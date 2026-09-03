@@ -39,6 +39,9 @@ describe('validateMigrationSql', () => {
         tempPrefixed: 'CREATE TEMP TABLE ext_a_scratch (id TEXT)',
         virtualPrefixed: 'CREATE VIRTUAL TABLE ext_a_fts USING fts5(body)',
         bracketedPrefixed: 'CREATE TABLE [ext_a_items] (id TEXT)',
+        tempView: 'CREATE TEMP VIEW settings AS SELECT 1',
+        temporaryView: 'CREATE TEMPORARY VIEW settings AS SELECT 1',
+        tempViewPrefixed: 'CREATE TEMP VIEW ext_a_report AS SELECT 1',
       }
       const result = {}
       for (const [key, sql] of Object.entries(cases)) result[key] = validateMigrationSql('ext_a_', sql).ok
@@ -57,6 +60,9 @@ describe('validateMigrationSql', () => {
       tempPrefixed: true,
       virtualPrefixed: true,
       bracketedPrefixed: true,
+      tempView: false,
+      temporaryView: false,
+      tempViewPrefixed: true,
     })
   })
 })

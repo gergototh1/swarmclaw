@@ -38,29 +38,45 @@ export function extensionTablePrefix(extensionId: string): string {
 }
 
 /**
- * Table name of a CREATE [TEMP|TEMPORARY|VIRTUAL] TABLE [IF NOT EXISTS] statement.
+ * Table name of a CREATE [TEMP|TEMPORARY|VIRTUAL] TABLE [IF NOT EXISTS]
+ * statement, or of a CREATE [TEMP|TEMPORARY] VIEW [IF NOT EXISTS] statement.
+ * A plain (non-temp) CREATE VIEW is deliberately not matched — see the doc
+ * comment on validateMigrationSql for why.
  *
- * The separator after TABLE (and after EXISTS) is whitespace *or* an opening
- * quote, because `CREATE TABLE"evil"(...)` is legal SQLite: the quote is its own
- * token. Brackets are quote characters here for the same reason SQLite treats
- * them as such.
+ * The separator after TABLE/VIEW (and after EXISTS) is whitespace *or* an
+ * opening quote, because `CREATE TABLE"evil"(...)` is legal SQLite: the quote
+ * is its own token. Brackets are quote characters here for the same reason
+ * SQLite treats them as such.
  */
-const CREATE_TABLE_RE = /create\s+(?:(?:temp|temporary|virtual)\s+)?table(?:\s+|(?=["'`[]))(?:if\s+not\s+exists(?:\s+|(?=["'`[])))?["'`[]?([A-Za-z0-9_]+)/gi
+const CREATE_TABLE_RE = /create\s+(?:(?:temp|temporary)\s+view|(?:(?:temp|temporary|virtual)\s+)?table)(?:\s+|(?=["'`[]))(?:if\s+not\s+exists(?:\s+|(?=["'`[])))?["'`[]?([A-Za-z0-9_]+)/gi
 
 /**
- * Checks the CREATE TABLE names in a migration against the extension's prefix.
- * Deliberately a regex over the declared migration text rather than a SQL
- * parser: the point is to catch a typo or a careless copy-paste at install
- * time, not to contain a hostile extension (which this could not do anyway).
+ * Checks the CREATE TABLE and CREATE [TEMP|TEMPORARY] VIEW names in a
+ * migration against the extension's prefix. Deliberately a regex over the
+ * declared migration text rather than a SQL parser: the point is to catch a
+ * typo or a careless copy-paste at install time, not to contain a hostile
+ * extension (which this could not do anyway — extensions are trusted,
+ * same-process code that can already reach anything the host can).
  *
- * CREATE TEMP TABLE is checked too, and that matters more than tidiness:
- * migrations run on the host's shared connection, SQLite resolves the temp
- * schema before main, so an unprefixed temp table named after a host table
- * shadows it for the rest of the process.
+ * CREATE TEMP TABLE and CREATE TEMP VIEW are both checked, and that matters
+ * more than tidiness: migrations run on the host's shared connection, SQLite
+ * resolves the temp schema before main, so an unprefixed temp table or temp
+ * view named after a host table (e.g. `settings`) shadows it for the rest of
+ * the process — every later host read of that name sees the extension's
+ * empty temp object instead. The migration is still recorded as applied, so
+ * a restart hides the symptom and it never runs again. A plain (non-temp)
+ * CREATE VIEW is not checked: it lives in the same schema as the host's own
+ * tables, so a colliding name fails loudly at creation time instead of
+ * silently shadowing anything.
  *
- * Only CREATE TABLE is looked at. ALTER TABLE, DROP TABLE, CREATE VIEW,
- * CREATE TRIGGER and CREATE INDEX are not checked at all, and a name inside a
- * comment or a string literal is checked as if it were a declaration.
+ * This inspects create statements only, and only by the name that follows
+ * them. ALTER TABLE, DROP TABLE, CREATE TRIGGER, CREATE INDEX, and ordinary
+ * DML (INSERT, UPDATE, DELETE, SELECT) against a host table all pass through
+ * unexamined, and a name that only appears inside a comment or a string
+ * literal is treated as if it were a real declaration. None of that can be
+ * caught without actually parsing the SQL, which this deliberately does not
+ * do. Do not read this function as a guarantee that a migration cannot touch
+ * host tables — it is not one, and was never meant to be.
  */
 export function validateMigrationSql(prefix: string, sql: string): { ok: true } | { ok: false; error: string } {
   for (const m of sql.matchAll(CREATE_TABLE_RE)) {
