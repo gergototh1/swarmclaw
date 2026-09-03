@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation'
 import { MainContent } from '@/components/layout/main-content'
 import { getHostRegistry } from '@/components/layout/extension-host'
 import { useExtensionPagesState } from '@/hooks/use-extension-pages'
-import { loadExtensionPage, pageKey, type RegisteredPage } from '@/lib/extensions/registry'
+import { assetUrl, loadExtensionPage, pageKey, type RegisteredPage } from '@/lib/extensions/registry'
+import { looksLikeDuplicateReact } from '@/lib/extensions/duplicate-react'
 
 /**
  * The route every extension-contributed page renders at.
@@ -31,6 +32,12 @@ import { loadExtensionPage, pageKey, type RegisteredPage } from '@/lib/extension
  *    from a bundle that shipped its own React. The registry cannot catch this one
  *    (a bundle that passes `window.swarmclaw.modules.react` satisfies the
  *    identity check by definition), so the error boundary below is the only net.
+ *
+ * Two more failures happen before any bundle is reached: the page list may not
+ * name this path, and the request for the page list may itself have failed. They
+ * are separate messages because they call for opposite actions, and the segment
+ * is optional in the route so that a bare `/x` gets the first of them rather than
+ * Next's own 404, which explains nothing about extensions.
  */
 
 /**
@@ -53,26 +60,6 @@ type LoadState =
   | { status: 'loading' }
   | { status: 'ready'; registered: RegisteredPage }
   | { status: 'error'; failure: Failure }
-
-/**
- * True for the render error a bundle that carries its own React produces.
- *
- * The friendly "Invalid hook call" sentence is only one of the shapes this takes.
- * A second React's hook dispatcher is null while the host renders, and React 19
- * reads through it before reaching that check, so what actually surfaces is a
- * TypeError naming the hook — worded differently by every engine — and the
- * production build reduces the friendly one to an error code. Verified against a
- * bundle with its own react 19 copy: Chrome reports
- * `Cannot read properties of null (reading 'useState')`.
- */
-function looksLikeDuplicateReact(message: string): boolean {
-  if (/invalid hook call/i.test(message)) return true
-  if (message.includes('#321')) return true
-  // Safari and Firefox both name the internals object they dereferenced.
-  if (message.includes('ReactSharedInternals')) return true
-  // Chrome names only the property, which for a hook read is always `use<Name>`.
-  return /Cannot read propert(?:y|ies) of null \(reading '(use[A-Z]|H\b)/.test(message)
-}
 
 function PageMessage({ tone, title, detail, hint }: Failure & { tone: 'error' | 'muted' }) {
   const error = tone === 'error'
@@ -130,7 +117,7 @@ class ExtensionPageBoundary extends Component<
 
 export default function ExtensionPageRoute() {
   const pathname = usePathname()
-  const { pages, loaded } = useExtensionPagesState()
+  const { pages, loaded, error: pagesError } = useExtensionPagesState()
   const [tracked, setTracked] = useState<{ target: string; state: LoadState }>({
     target: '',
     state: { status: 'loading' },
@@ -168,8 +155,31 @@ export default function ExtensionPageRoute() {
     const settle = (next: LoadState) => { if (!cancelled) setTracked({ target, state: next }) }
     const fail = (failure: Failure) => settle({ status: 'error', failure })
 
+    // Scoped to this page's own bundle so that an extension shipping one entry
+    // per page never has one page's refusal reported on another's route.
+    const bundleSrc = assetUrl(extensionId, entry)
+    const refusalFailure = (): Failure | undefined => {
+      const refusal = host.registrationRefusal(extensionId, pageId, bundleSrc)
+      if (!refusal) return undefined
+      return {
+        title: `Extension "${extensionId}" was refused when it registered page "${refusal.pageId}"`,
+        detail: refusal.message,
+        hint: 'SwarmClaw rejected the registration, so no component was stored for this page. Fix the bundle, '
+          + 'rebuild the extension and reload.',
+      }
+    }
+
     const timer = setTimeout(() => {
       if (cancelled || host.getPage(extensionId, pageId)) return
+      // A bundle may register from a later tick than the one the load settled on,
+      // and be refused then. That case is the reason this timer exists, so the
+      // refusal recorded since is checked here too: without this the real reason
+      // is discarded in favour of the generic "never registered" below.
+      const refused = refusalFailure()
+      if (refused) {
+        fail(refused)
+        return
+      }
       if (!bundleLoaded) {
         fail({
           title: `Extension "${extensionId}" is still loading its bundle`,
@@ -200,16 +210,11 @@ export default function ExtensionPageRoute() {
         if (cancelled || host.getPage(extensionId, pageId)) return
         // The bundle has executed, so a refusal it triggered is already recorded.
         // Without one, the bundle may still register from a later tick, so the
-        // timeout above is left to decide.
-        const refusal = host.registrationRefusal(extensionId, pageId)
-        if (!refusal) return
+        // timeout above is left to decide, and looks again for a refusal itself.
+        const refused = refusalFailure()
+        if (!refused) return
         clearTimeout(timer)
-        fail({
-          title: `Extension "${extensionId}" was refused when it registered page "${refusal.pageId}"`,
-          detail: refusal.message,
-          hint: 'SwarmClaw rejected the registration, so no component was stored for this page. Fix the bundle, '
-            + 'rebuild the extension and reload.',
-        })
+        fail(refused)
       })
       .catch((err: unknown) => {
         clearTimeout(timer)
@@ -230,18 +235,39 @@ export default function ExtensionPageRoute() {
   )
 
   if (!page) {
-    return (
-      <MainContent>
-        {loaded ? (
+    if (!loaded) {
+      return (
+        <MainContent>
+          <PageMessage tone="muted" title="Loading extension pages…" detail="Looking up which extension owns this page." />
+        </MainContent>
+      )
+    }
+    // A list that never arrived is not a list that says no. Told apart because the
+    // remedies are opposite, and because the restart that most often causes this
+    // is the one right after an extension is installed: reporting it as "not
+    // installed" sends the user to undo the thing that just worked.
+    if (pagesError) {
+      return (
+        <MainContent>
           <PageMessage
             tone="error"
-            title={`No installed extension contributes a page at ${pathname}`}
-            detail="Extension pages come from the ui.pages declaration of an installed, enabled extension."
-            hint="Check that the extension is installed and enabled on the Extensions screen, and that its declared path matches this URL."
+            title="Could not load the list of extension pages"
+            detail={'SwarmClaw could not fetch which pages installed extensions contribute, so it does not know '
+              + `whether one owns ${pathname}. The request failed with: ${pagesError}`}
+            hint={'This is usually the server restarting, which is what happens right after an extension is '
+              + 'installed. The list is retried in the background; reload if the page does not appear on its own.'}
           />
-        ) : (
-          <PageMessage tone="muted" title="Loading extension pages…" detail="Looking up which extension owns this page." />
-        )}
+        </MainContent>
+      )
+    }
+    return (
+      <MainContent>
+        <PageMessage
+          tone="error"
+          title={`No installed extension contributes a page at ${pathname}`}
+          detail="Extension pages come from the ui.pages declaration of an installed, enabled extension."
+          hint="Check that the extension is installed and enabled on the Extensions screen, and that its declared path matches this URL."
+        />
       </MainContent>
     )
   }

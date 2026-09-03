@@ -224,6 +224,10 @@ test('a refusal from one extension is never reported for another', () => {
   const hostReact = {}
   const alpha = createExtensionRegistry({ react: hostReact, currentExtensionId: () => 'alpha' })
   assert.throws(() => alpha.registerPage('main', () => null, { react: {}, extensionId: 'alpha' }))
+  // Assert the refusal was recorded first. Without this the isolation assertion
+  // below passes just as happily against a registry that records nothing at all,
+  // which is the mutation it exists to catch.
+  assert.match(alpha.registrationRefusal('alpha', 'main')?.message ?? '', /different React/)
   assert.equal(alpha.registrationRefusal('beta', 'main'), undefined)
 })
 
@@ -241,4 +245,67 @@ test('a successful registration records no refusal', () => {
   const reg = createExtensionRegistry({ react: hostReact, currentExtensionId: () => 'aisignal' })
   reg.registerPage('main', () => null, { react: hostReact, extensionId: 'aisignal' })
   assert.equal(reg.registrationRefusal('aisignal', 'main'), undefined)
+})
+
+test('the refusal fallback stays inside the bundle that recorded it', () => {
+  const hostReact = {}
+  let executing = '/api/extensions/aisignal/assets/pages/b.js'
+  const reg = createExtensionRegistry({
+    react: hostReact,
+    currentExtensionId: () => 'aisignal',
+    currentBundleSrc: () => executing,
+  })
+  const register = reg.registerPage as UntypedRegisterPage
+
+  // One entry per page: page b's bundle is refused, page a's silently registers
+  // nothing at all.
+  assert.throws(() => register('b', undefined, { react: hostReact, extensionId: 'aisignal' }))
+
+  const entryA = '/api/extensions/aisignal/assets/pages/a.js'
+  const entryB = '/api/extensions/aisignal/assets/pages/b.js'
+  // Page a must fall through to its own "never registered" message rather than
+  // borrow b's reason, which describes a different bundle.
+  assert.equal(reg.registrationRefusal('aisignal', 'a', entryA), undefined)
+  // Page b still reports its own refusal.
+  assert.match(reg.registrationRefusal('aisignal', 'b', entryB)?.message ?? '', /aisignal:b/)
+
+  // And within one entry the mistyped-page-id fallback still works: this is the
+  // single-entry case where an earlier refusal aborted the rest of the script.
+  executing = entryA
+  assert.throws(() => register('mian', undefined, { react: hostReact, extensionId: 'aisignal' }))
+  assert.equal(reg.registrationRefusal('aisignal', 'a', entryA)?.pageId, 'mian')
+})
+
+test('a refusal recorded outside bundle execution is never used as another bundle\'s fallback', () => {
+  const hostReact = {}
+  const reg = createExtensionRegistry({
+    react: hostReact,
+    currentExtensionId: () => 'aisignal',
+    // What a registration from a timer or a promise callback looks like: the
+    // browser cannot say which script is running.
+    currentBundleSrc: () => undefined,
+  })
+  const register = reg.registerPage as UntypedRegisterPage
+  assert.throws(() => register('late', undefined, { react: hostReact, extensionId: 'aisignal' }))
+
+  assert.equal(reg.registrationRefusal('aisignal', 'main', '/api/extensions/aisignal/assets/index.js'), undefined)
+  // It is still the authority for the page it names, and for a caller that has
+  // no bundle to scope to either.
+  assert.match(reg.registrationRefusal('aisignal', 'late')?.message ?? '', /aisignal:late/)
+  assert.match(reg.registrationRefusal('aisignal', 'main')?.message ?? '', /aisignal:late/)
+})
+
+test('registrationRefusal records the src of the bundle that was executing', () => {
+  const hostReact = {}
+  const src = '/api/extensions/aisignal/assets/index.js'
+  const reg = createExtensionRegistry({
+    react: hostReact,
+    currentExtensionId: () => 'aisignal',
+    currentBundleSrc: () => src,
+  })
+  assert.throws(() => reg.registerPage('main', () => null, { react: {}, extensionId: 'aisignal' }))
+  assert.equal(reg.registrationRefusal('aisignal', 'main')?.bundleSrc, src)
+  // assetUrl reproduces exactly what the loader stamps on the tag, so a renderer
+  // can scope the fallback from the page's declared entry alone.
+  assert.equal(assetUrl('aisignal', 'dist/index.js'), src)
 })

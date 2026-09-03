@@ -45,7 +45,31 @@ export interface ExtensionPagesState {
    * never blanks a page that is already mounted.
    */
   loaded: boolean
+  /**
+   * Why the last fetch failed, or `undefined` when it succeeded.
+   *
+   * Kept because `loaded` alone cannot tell "the server says no extension
+   * contributes this page" from "nobody could ask the server". Reporting the
+   * second as the first is actively misleading: the server restarting is exactly
+   * what happens moments after an extension is installed, and the user standing
+   * on that extension's page would be told it is not installed. Cleared by the
+   * next successful fetch, so a transient failure does not stick.
+   */
+  error?: string
 }
+
+/**
+ * How often the page list is re-fetched while the websocket is down.
+ *
+ * Matches the `extensions` registration in `components/layout/dashboard-shell.tsx`
+ * on purpose: `useWs` keeps one shared fallback interval per topic and the first
+ * subscriber's interval is the one that runs, so any other number here would be
+ * fiction. A minute is also the right order for this data, which only changes
+ * when an extension is installed, enabled or disabled. Without it nothing retries
+ * at all, and a fetch that failed during a restart keeps the route wrong until an
+ * extensions event happens to arrive.
+ */
+const PAGES_FALLBACK_MS = 60_000
 
 /** Pages contributed by installed extensions, refreshed when extensions change. */
 export function useExtensionPagesState(): ExtensionPagesState {
@@ -55,12 +79,20 @@ export function useExtensionPagesState(): ExtensionPagesState {
     api<ExtensionPage[]>('GET', '/extensions/ui?type=pages')
       .then((list) => { setState({ pages: Array.isArray(list) ? list : [], loaded: true }) })
       // A failed fetch still counts as settled: retrying forever behind a spinner
-      // hides the failure, and the next extensions event refreshes anyway.
-      .catch(() => { setState((prev) => ({ pages: prev.pages, loaded: true })) })
+      // hides the failure. The last known pages are kept so an already rendered
+      // page does not blank, and the reason is kept so a caller can say what
+      // actually went wrong instead of concluding the page does not exist.
+      .catch((err: unknown) => {
+        setState((prev) => ({
+          pages: prev.pages,
+          loaded: true,
+          error: err instanceof Error ? err.message : String(err),
+        }))
+      })
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
-  useWs('extensions', refresh)
+  useWs('extensions', refresh, PAGES_FALLBACK_MS)
 
   return state
 }

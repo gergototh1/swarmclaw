@@ -58,6 +58,15 @@ export interface ExtensionRegistryHost {
    * stamps on the injected script tag, read through `document.currentScript`.
    */
   currentExtensionId?: () => string | undefined
+  /**
+   * The `src` of the script tag whose bundle is executing right now, or
+   * `undefined` when that cannot be determined (the same later-tick and
+   * non-browser cases as `currentExtensionId`). Defaults to reading
+   * `document.currentScript`, which for a bundle this app injected is exactly
+   * the string `assetUrl` produced, so a caller can reproduce it from the
+   * `entry` of the page it is waiting for.
+   */
+  currentBundleSrc?: () => string | undefined
 }
 
 export interface ExtensionRegistry {
@@ -102,13 +111,22 @@ export interface ExtensionRegistry {
    * refusal is recorded here so the page route can render the message that until
    * now only existed in devtools.
    *
-   * When nothing was refused under `pageId`, the newest refusal from the same
-   * extension is returned instead: a bundle that registered under a mistyped page
-   * id leaves nothing under the id the host is waiting for, and its message names
-   * the id it actually used. Renderers must therefore treat the message as the
-   * authority on which page it describes rather than assuming it is `pageId`.
+   * When nothing was refused under `pageId`, the newest refusal recorded by the
+   * *same bundle* is returned instead: a bundle that registered under a mistyped
+   * page id leaves nothing under the id the host is waiting for, and its message
+   * names the id it actually used. Renderers must therefore treat the message as
+   * the authority on which page it describes rather than assuming it is `pageId`.
+   *
+   * `bundleSrc` is what scopes that fallback, and callers should pass
+   * `assetUrl(extensionId, entry)` for the page they are waiting for. An
+   * extension that ships one entry per page loads bundles that fail
+   * independently, and without the scope a page whose own bundle silently never
+   * registered would be reported with a sibling bundle's refusal — a message
+   * about a different page, in place of the accurate "never registered" one.
+   * Refusals recorded outside top-level bundle execution carry no `bundleSrc`
+   * and so are never used as a fallback for a bundle that has one.
    */
-  registrationRefusal(extensionId: string, pageId: string): PageRegistrationRefusal | undefined
+  registrationRefusal(extensionId: string, pageId: string, bundleSrc?: string): PageRegistrationRefusal | undefined
 }
 
 /** A `registerPage` call the registry rejected, kept so a renderer can explain a page that never appeared. */
@@ -125,6 +143,13 @@ export interface PageRegistrationRefusal {
   message: string
   /** `Date.now()` at the refusal. */
   at: number
+  /**
+   * The `src` of the script tag that was executing, exactly as
+   * `loadExtensionPage` set it, so `assetUrl(extensionId, entry)` reproduces it.
+   * `undefined` when the refusal did not happen during top-level bundle
+   * execution, which is also the case in a non-browser test.
+   */
+  bundleSrc?: string
 }
 
 /**
@@ -151,6 +176,17 @@ export function pageKey(extensionId: string, pageId: string): string {
 function executingExtensionId(): string | undefined {
   if (typeof document === 'undefined') return undefined
   return document.currentScript?.dataset.extension
+}
+
+/**
+ * The `src` attribute of the script tag currently executing. Read with
+ * `getAttribute` rather than the `src` property, which the browser resolves to
+ * an absolute URL: the attribute is the string `loadExtensionPage` assigned, so
+ * it compares equal to `assetUrl(extensionId, entry)` without any normalising.
+ */
+function executingBundleSrc(): string | undefined {
+  if (typeof document === 'undefined') return undefined
+  return document.currentScript?.getAttribute('src') ?? undefined
 }
 
 /**
@@ -190,6 +226,7 @@ export function createExtensionRegistry(host: ExtensionRegistryHost): ExtensionR
   const waiters = new Map<string, Set<(pageId: string) => void>>()
   const refusals: PageRegistrationRefusal[] = []
   const currentExtensionId = host.currentExtensionId || executingExtensionId
+  const currentBundleSrc = host.currentBundleSrc || executingBundleSrc
 
   /**
    * Record why a registration was refused, then throw it.
@@ -204,7 +241,7 @@ export function createExtensionRegistry(host: ExtensionRegistryHost): ExtensionR
   function refuse(pageId: string, reportedId: string, message: string): never {
     const owner = currentExtensionId() ?? reportedId
     if (owner) {
-      refusals.push({ extensionId: owner, pageId, message, at: Date.now() })
+      refusals.push({ extensionId: owner, pageId, message, at: Date.now(), bundleSrc: currentBundleSrc() })
       if (refusals.length > MAX_REFUSALS) refusals.shift()
     }
     throw new Error(message)
@@ -279,16 +316,20 @@ export function createExtensionRegistry(host: ExtensionRegistryHost): ExtensionR
       return () => { subscribers.delete(cb) }
     },
 
-    registrationRefusal(extensionId, pageId) {
+    registrationRefusal(extensionId, pageId, bundleSrc) {
       for (let i = refusals.length - 1; i >= 0; i--) {
         const refusal = refusals[i]
         if (refusal.extensionId === extensionId && refusal.pageId === pageId) return refusal
       }
-      // Nothing under this page id, so fall back to the extension's newest refusal:
-      // a bundle that registered under a mistyped id records nothing under the id
-      // the host waits for, and its message names the id it actually used.
+      // Nothing under this page id, so fall back to the newest refusal from the
+      // same bundle: one that registered under a mistyped id records nothing
+      // under the id the host waits for, and its message names the id it
+      // actually used. Scoped to the bundle because an extension may ship one
+      // entry per page, and a refusal from a sibling entry says nothing about
+      // the page being waited for.
       for (let i = refusals.length - 1; i >= 0; i--) {
-        if (refusals[i].extensionId === extensionId) return refusals[i]
+        const refusal = refusals[i]
+        if (refusal.extensionId === extensionId && refusal.bundleSrc === bundleSrc) return refusal
       }
       return undefined
     },
