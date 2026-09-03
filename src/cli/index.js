@@ -550,6 +550,7 @@ const COMMAND_GROUPS = [
       cmd('marketplace', 'GET', '/extensions/marketplace', 'Get extension marketplace catalog'),
       cmd('settings-get', 'GET', '/extensions/settings', 'Get extension settings (use --query extensionId=extension_name)'),
       cmd('settings-set', 'PUT', '/extensions/settings', 'Set extension settings (use --query extensionId=extension_name and --data JSON)', { expectsJsonBody: true }),
+      cmd('asset', 'GET', '/extensions/:id/assets/:...path', 'Fetch a built browser asset from an extension workspace (path segments are relative to the workspace dist/, so "index.js" reads dist/index.js)'),
       cmd('ui', 'GET', '/extensions/ui', 'List extension UI modules (use --query type=sidebar|header|chat_actions|connectors)'),
       cmd('builtins', 'GET', '/extensions/builtins', 'List built-in extensions'),
       cmd('managed-resources', 'GET', '/extensions/managed-resources', 'Preview extension-managed agents, routines, folders, gateways, and setup checks'),
@@ -999,8 +1000,16 @@ function getCommand(groupName, action) {
   return group.commands.find((command) => command.action === action) || null
 }
 
+// Matches ':name' and the catch-all form ':...name', which mirrors a Next.js '[...name]' segment.
+const PATH_PARAM_RE = /:(\.\.\.)?([A-Za-z0-9_]+)/g
+
 function extractPathParams(route) {
-  return [...route.matchAll(/:([A-Za-z0-9_]+)/g)].map((match) => match[1])
+  return [...route.matchAll(PATH_PARAM_RE)].map((match) => match[2])
+}
+
+/** True when `name` is declared as ':...name', i.e. it swallows every remaining path arg. */
+function isCatchAllParam(route, name) {
+  return route.includes(`:...${name}`)
 }
 
 function isPlainObject(value) {
@@ -1233,11 +1242,20 @@ function buildRoute(routeTemplate, args) {
   }
 
   let route = routeTemplate
-  for (let i = 0; i < pathParams.length; i += 1) {
-    route = route.replace(`:${pathParams[i]}`, encodeURIComponent(String(args[i])))
+  let consumed = 0
+  for (const name of pathParams) {
+    if (isCatchAllParam(routeTemplate, name)) {
+      // A catch-all is always the last segment, so it takes every remaining arg as one slash path.
+      const segments = args.slice(consumed).map((value) => encodeURIComponent(String(value)))
+      route = route.replace(`:...${name}`, segments.join('/'))
+      consumed = args.length
+      continue
+    }
+    route = route.replace(`:${name}`, encodeURIComponent(String(args[consumed])))
+    consumed += 1
   }
 
-  const remaining = args.slice(pathParams.length)
+  const remaining = args.slice(consumed)
   return { route, remaining, pathParams }
 }
 
@@ -1532,7 +1550,9 @@ function renderGroupHelp(groupName) {
   ].filter(Boolean)
 
   for (const command of resolved.commands) {
-    const params = extractPathParams(command.route).map((name) => `<${name}>`).join(' ')
+    const params = extractPathParams(command.route)
+      .map((name) => (isCatchAllParam(command.route, name) ? `<${name}...>` : `<${name}>`))
+      .join(' ')
     const suffix = params ? ` ${params}` : ''
     lines.push(`  ${command.action}${suffix}  ${command.description}`)
   }

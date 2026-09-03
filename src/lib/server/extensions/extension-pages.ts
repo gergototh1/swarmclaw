@@ -1,7 +1,16 @@
 import type { ExtensionPageDefinition } from '@/types/extension'
 
 const PATH_RE = /^\/x\/[a-z0-9][a-z0-9-]*$/
-const REL_RE = /^(?!\/)(?!\.)(?!.*\.\.)[A-Za-z0-9_./-]+\.(js|css)$/
+
+/**
+ * `entry` and `css` are workspace-relative and must start with `dist/`, because
+ * `/api/extensions/<id>/assets/...` only ever serves out of `<workspace>/dist`.
+ * Anything else (a bare `index.js`, a `build/` output dir) would validate but
+ * could never be fetched, so it is rejected up front instead of 404ing later.
+ */
+const DIST_REL_RE = /^dist\/(?!\.)(?!.*\.\.)[A-Za-z0-9_./-]+\.(js|css)$/
+
+const DIST_REL_HINT = 'must be a workspace-relative path starting with "dist/" (e.g. "dist/index.js"), with no ".." segments'
 
 export type PagesValidation =
   | { ok: true; pages: ExtensionPageDefinition[] }
@@ -26,8 +35,8 @@ export function validateExtensionPages(
     if (!PATH_RE.test(path)) return { ok: false, error: `ui.pages path "${path}" must be /x/<slug>` }
     if (seen.has(path)) return { ok: false, error: `ui.pages path "${path}" declared twice` }
     if (takenPaths.has(path)) return { ok: false, error: `ui.pages path "${path}" is already taken by another extension` }
-    if (!REL_RE.test(entry)) return { ok: false, error: `ui.pages entry "${entry}" must be a relative .js path without ".."` }
-    if (css !== undefined && !REL_RE.test(css)) return { ok: false, error: `ui.pages css "${css}" must be a relative .css path without ".."` }
+    if (!DIST_REL_RE.test(entry)) return { ok: false, error: `ui.pages entry "${entry}" ${DIST_REL_HINT}` }
+    if (css !== undefined && !DIST_REL_RE.test(css)) return { ok: false, error: `ui.pages css "${css}" ${DIST_REL_HINT}` }
     seen.add(path)
     pages.push({
       id,

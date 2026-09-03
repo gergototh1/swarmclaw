@@ -37,6 +37,29 @@ describe('validateExtensionPages', () => {
     const r = validateExtensionPages([{ ...good, css: '/etc/passwd.css' }], new Set())
     assert.equal(r.ok, false)
   })
+  it('accepts a dist/-prefixed entry and css, including a nested one', () => {
+    const r = validateExtensionPages([{ ...good, entry: 'dist/assets/app.js', css: 'dist/assets/app.css' }], new Set())
+    assert.equal(r.ok, true)
+    if (r.ok) {
+      assert.equal(r.pages[0].entry, 'dist/assets/app.js')
+      assert.equal(r.pages[0].css, 'dist/assets/app.css')
+    }
+  })
+  it('rejects an entry outside dist/, because only dist/ is ever served', () => {
+    const r = validateExtensionPages([{ ...good, entry: 'build/app.js' }], new Set())
+    assert.equal(r.ok, false)
+    if (!r.ok) assert.match(r.error, /dist\//)
+  })
+  it('rejects a bare entry filename with no dist/ prefix', () => {
+    const r = validateExtensionPages([{ ...good, entry: 'index.js' }], new Set())
+    assert.equal(r.ok, false)
+    if (!r.ok) assert.match(r.error, /dist\//)
+  })
+  it('rejects a css file outside dist/', () => {
+    const r = validateExtensionPages([{ ...good, css: 'build/app.css' }], new Set())
+    assert.equal(r.ok, false)
+    if (!r.ok) assert.match(r.error, /dist\//)
+  })
   it('treats an empty css string as no stylesheet declared', () => {
     const r = validateExtensionPages([{ ...good, css: '' }], new Set())
     assert.equal(r.ok, true)

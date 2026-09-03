@@ -5,6 +5,8 @@ import { runWithTempDataDir } from '@/lib/server/test-utils/run-with-temp-data-d
 interface AssetCall {
   status: number
   type: string | null
+  nosniff: string | null
+  csp: string | null
   body: string
 }
 
@@ -15,6 +17,7 @@ interface AssetRouteResult {
   dotDotSegment: AssetCall
   escapeInsideSegment: AssetCall
   symlinkEscape: AssetCall
+  svg: AssetCall
   noSegments: AssetCall
   emptySegment: AssetCall
   unknownExtension: AssetCall
@@ -37,12 +40,19 @@ const result = runWithTempDataDir<AssetRouteResult>(`
   fs.mkdirSync(dist, { recursive: true })
   fs.writeFileSync(path.join(dist, 'index.js'), 'window.__asset_ok = 1')
   fs.writeFileSync(path.join(dist, 'style.css'), '.a { color: red }')
+  fs.writeFileSync(path.join(dist, 'icon.svg'), '<svg xmlns="http://www.w3.org/2000/svg"></svg>')
   fs.writeFileSync(path.join(workspace, 'secret.txt'), 'TOP_SECRET')
   fs.symlinkSync(path.join(workspace, 'secret.txt'), path.join(dist, 'linked.js'))
 
   const call = async (segs, id = 'as_a.mjs') => {
     const res = await GET(new Request('http://local/api'), { params: Promise.resolve({ id, path: segs }) })
-    return { status: res.status, type: res.headers.get('content-type'), body: await res.text() }
+    return {
+      status: res.status,
+      type: res.headers.get('content-type'),
+      nosniff: res.headers.get('x-content-type-options'),
+      csp: res.headers.get('content-security-policy'),
+      body: await res.text(),
+    }
   }
 
   console.log(JSON.stringify({
@@ -52,6 +62,7 @@ const result = runWithTempDataDir<AssetRouteResult>(`
     dotDotSegment: await call(['..', 'secret.txt']),
     escapeInsideSegment: await call(['../secret.txt']),
     symlinkEscape: await call(['linked.js']),
+    svg: await call(['icon.svg']),
     noSegments: await call([]),
     emptySegment: await call(['']),
     unknownExtension: await call(['index.js'], 'as_missing.mjs'),
@@ -79,10 +90,12 @@ describe('extension asset route', () => {
   })
 
   it('never reads outside dist, even when the escape hides inside one segment', () => {
-    // A naive path.join(distRoot, ...segs) would normalize this to <workspace>/secret.txt and serve it.
+    // path.resolve normalizes this to <workspace>/secret.txt; the containment check is what
+    // refuses it, so that check must survive any later "simplification" of the route.
     assert.equal(result.escapeInsideSegment.status, 400)
     assert.doesNotMatch(result.escapeInsideSegment.body, /TOP_SECRET/)
-    // A symlink inside dist pointing outside must not be served either.
+    // A symlink inside dist pointing outside survives resolve+containment, so the
+    // realpath re-check is the only thing that stops it.
     assert.equal(result.symlinkEscape.status, 400)
     assert.doesNotMatch(result.symlinkEscape.body, /TOP_SECRET/)
   })
@@ -94,7 +107,18 @@ describe('extension asset route', () => {
 
   it('returns 404 for an extension that does not exist and 400 for a malformed id', () => {
     assert.equal(result.unknownExtension.status, 404)
-    assert.doesNotMatch(result.unknownExtension.body, /index\.js/)
+    assert.deepEqual(JSON.parse(result.unknownExtension.body), { error: 'Asset not found' })
     assert.equal(result.malformedExtensionId.status, 400)
+    assert.deepEqual(JSON.parse(result.malformedExtensionId.body), { error: 'Invalid asset path' })
+  })
+
+  it('sends nosniff on every asset and sandboxes a directly navigated svg', () => {
+    assert.equal(result.js.nosniff, 'nosniff')
+    assert.equal(result.css.nosniff, 'nosniff')
+    assert.equal(result.js.csp, null)
+    assert.equal(result.svg.status, 200)
+    assert.match(result.svg.type || '', /image\/svg\+xml/)
+    assert.equal(result.svg.nosniff, 'nosniff')
+    assert.equal(result.svg.csp, 'sandbox')
   })
 })

@@ -219,8 +219,15 @@ export interface ExtensionPageDefinition {
   icon?: string
   /** Must start with '/x/'; unique across installed extensions. */
   path: string
-  /** Relative to the extension workspace `dist/`, e.g. 'dist/index.js'. */
+  /**
+   * Built browser entry, relative to the extension workspace and required to
+   * start with `dist/` (e.g. 'dist/index.js'). Only `<workspace>/dist` is
+   * served, and `/api/extensions/<id>/assets/<...>` takes dist-relative
+   * segments, so 'dist/index.js' is fetched as
+   * `/api/extensions/<id>/assets/index.js`.
+   */
   entry: string
+  /** Optional stylesheet, same rule as `entry`: workspace-relative under `dist/`, e.g. 'dist/index.css'. */
   css?: string
   /**
    * 'end' (default), or 'after:<view>' naming one of the rail entries in
