@@ -1,7 +1,7 @@
 import type { ExtensionPageDefinition } from '@/types/extension'
 
 const PATH_RE = /^\/x\/[a-z0-9][a-z0-9-]*$/
-const REL_RE = /^(?!\.)(?!.*\.\.)[A-Za-z0-9_./-]+\.(js|css)$/
+const REL_RE = /^(?!\/)(?!\.)(?!.*\.\.)[A-Za-z0-9_./-]+\.(js|css)$/
 
 export type PagesValidation =
   | { ok: true; pages: ExtensionPageDefinition[] }
@@ -20,7 +20,8 @@ export function validateExtensionPages(
     const label = typeof p.label === 'string' ? p.label.trim() : ''
     const path = typeof p.path === 'string' ? p.path.trim() : ''
     const entry = typeof p.entry === 'string' ? p.entry.trim() : ''
-    const css = typeof p.css === 'string' ? p.css.trim() : undefined
+    const cssRaw = typeof p.css === 'string' ? p.css.trim() : undefined
+    const css = cssRaw === '' ? undefined : cssRaw
     if (!id || !label) return { ok: false, error: 'ui.pages entries need id and label' }
     if (!PATH_RE.test(path)) return { ok: false, error: `ui.pages path "${path}" must be /x/<slug>` }
     if (seen.has(path)) return { ok: false, error: `ui.pages path "${path}" declared twice` }

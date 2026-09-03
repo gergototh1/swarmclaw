@@ -15,22 +15,35 @@ describe('validateExtensionPages', () => {
     assert.equal(r.ok, false)
     if (!r.ok) assert.match(r.error, /\/x\//)
   })
-  it('rejects a path already taken by another plugin', () => {
+  it('rejects a path already taken by another extension', () => {
     const r = validateExtensionPages([good], new Set(['/x/aisignal']))
     assert.equal(r.ok, false)
     if (!r.ok) assert.match(r.error, /taken/)
   })
-  it('rejects duplicates inside one plugin and missing entry', () => {
+  it('rejects duplicates inside one extension and missing entry', () => {
     assert.equal(validateExtensionPages([good, { ...good, id: 'b' }], new Set()).ok, false)
     assert.equal(validateExtensionPages([{ ...good, entry: '' }], new Set()).ok, false)
   })
   it('rejects entry with path traversal', () => {
     assert.equal(validateExtensionPages([{ ...good, entry: '../x.js' }], new Set()).ok, false)
   })
+  it('rejects an absolute entry path', () => {
+    const r = validateExtensionPages([{ ...good, entry: '/etc/passwd.js' }], new Set())
+    assert.equal(r.ok, false)
+  })
+  it('rejects an absolute css path', () => {
+    const r = validateExtensionPages([{ ...good, css: '/etc/passwd.css' }], new Set())
+    assert.equal(r.ok, false)
+  })
+  it('treats an empty css string as no stylesheet declared', () => {
+    const r = validateExtensionPages([{ ...good, css: '' }], new Set())
+    assert.equal(r.ok, true)
+    if (r.ok) assert.equal(r.pages[0].css, undefined)
+  })
 })
 
 describe('manager.getPages', () => {
-  it('lists pages with extensionId and refuses a colliding second plugin', () => {
+  it('lists pages with extensionId and refuses a colliding second extension', () => {
     const out = runWithTempDataDir<{ pages: Array<{ extensionId: string; path: string }>; failed: string | null }>(`
       const extensionsMod = await import('@/lib/server/extensions')
       const { getExtensionManager } = extensionsMod.default || extensionsMod
