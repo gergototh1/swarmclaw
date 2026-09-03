@@ -113,6 +113,21 @@ function isCspEnforced(): boolean {
 const NON_DOCUMENT_PREFIXES = ['/api/', '/.well-known/', '/_next/']
 
 /**
+ * Path prefixes that always serve an HTML document, no matter what the dot
+ * rule below thinks. `/x/` is the extension-page catch-all
+ * (`src/app/x/[[...slug]]/page.tsx`), an *optional catch-all route* that
+ * matches every path under it, dots included. `PATH_RE` in
+ * `lib/server/extensions/extension-pages.ts` only validates what an
+ * extension's `ui.pages` manifest may *declare* — it says nothing about what
+ * the route *matches*. So `/x/foo.json` still renders this app's own document
+ * HTML (the "no extension owns this page" message, same component tree as a
+ * real extension page), and the dot rule alone would misread it as a file and
+ * ship it with no policy at all. This app never serves a real static file
+ * under `/x/`, so the override is unconditional.
+ */
+const DOCUMENT_PREFIXES = ['/x/']
+
+/**
  * True for requests that render an HTML document, which is all the policy governs.
  *
  * Keyed on the path rather than on the `Sec-Fetch-Dest: document` request
@@ -122,20 +137,36 @@ const NON_DOCUMENT_PREFIXES = ['/api/', '/.well-known/', '/_next/']
  * would silently lose the policy on real pages. The path is also assertable in
  * a unit test without synthesising browser headers.
  *
- * Every page route here is extensionless: `/home`, `/agents/<uuid>`,
- * `/s/<base64url token>`, and `/x/<slug>` where the slug is validated as
- * `[a-z0-9][a-z0-9-]*` (`lib/server/extensions/extension-pages.ts`). Everything
- * served out of `public/` and `src/app/icon.svg` has an extension. So "a dot in
- * the last segment" is a reliable "file, not page" test for this app, and it
- * keeps covering assets dropped into `public/` later without listing every
- * directory in there.
+ * Every *declared* page route in this app is extensionless: `/home`,
+ * `/agents/<uuid>`, `/s/<base64url token>`, and the `/x/<slug>` a manifest may
+ * register, where the slug is validated as `[a-z0-9][a-z0-9-]*`
+ * (`lib/server/extensions/extension-pages.ts`). But `/x/` is served by an
+ * optional catch-all, which matches at that prefix regardless of what follows
+ * — see `DOCUMENT_PREFIXES` above, which this function checks before the dot
+ * rule gets a vote. Everything served out of `public/` and `src/app/icon.svg`
+ * has an extension, so outside `/x/`, "a dot in the last segment" is still a
+ * reliable "file, not page" test, and it keeps covering assets dropped into
+ * `public/` later without listing every directory in there.
  *
  * What it cannot see: a future non-`/api/` route handler at an extensionless
  * path that returns something other than a document. Add its prefix to
  * NON_DOCUMENT_PREFIXES when one appears.
+ *
+ * Next's own not-found page at a dotted, non-`/x/` path (e.g. `/nope.json`) is
+ * misread as a file by the same dot rule, and that miss is not fixed here.
+ * Telling it apart from a real dotted file in `public/` needs to know whether
+ * the path resolved to an actual asset, and this function runs before Next has
+ * looked — that information does not exist yet at this point. Closing the gap
+ * without that information would mean dropping the dot rule outside `/x/`
+ * entirely, which would also wrap every asset in `public/` (all of which have
+ * extensions) in a document policy, breaking the "static asset still does not
+ * get a policy" guarantee. The generic not-found page renders no
+ * user-controlled content, so unlike `/x/<slug>` there is nothing there for an
+ * injected `<script>` to ride in on — the miss is accepted rather than fixed.
  */
 function isDocumentRequest(pathname: string): boolean {
   if (NON_DOCUMENT_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false
+  if (DOCUMENT_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return true
   return !pathname.slice(pathname.lastIndexOf('/') + 1).includes('.')
 }
 
@@ -295,8 +326,18 @@ export const config = {
     // so none of them needs the header. `isDocumentRequest` above repeats the
     // `.well-known` exclusion and adds the extension rule for `public/` assets;
     // that function, not this regex, is the authority.
+    //
+    // Each alternative is anchored to a full path segment (`(?:/|$)`) and its
+    // dots are escaped. This is the gate that decides whether the proxy module
+    // runs at all — unlike `isDocumentRequest`, which only decides what happens
+    // once it does — so an unanchored prefix test here is the more dangerous
+    // version of the same mistake: without the anchor, `api` as a bare
+    // alternative also matches the start of `/apiary`, and an unescaped `.` in
+    // `favicon.ico` or `.well-known` matches any character, so `/faviconXico`
+    // and `/Xwell-known/...` would silently skip the proxy too. No such route
+    // exists in this app today, but the fix does not depend on that staying true.
     {
-      source: '/((?!api|_next/static|_next/image|favicon.ico|.well-known).*)',
+      source: '/((?!api(?:/|$)|_next/static(?:/|$)|_next/image(?:/|$)|favicon\\.ico(?:/|$)|\\.well-known(?:/|$)).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

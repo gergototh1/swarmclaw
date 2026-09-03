@@ -200,4 +200,22 @@ describe('proxy content-security-policy', () => {
     assert.equal(response.status, 200)
     assert.ok(response.headers.get('content-security-policy-report-only'))
   })
+
+  it('policies a dotted path under /x/, which the dot rule alone would misread as a file', () => {
+    // /x/[[...slug]]/page.tsx is an optional catch-all: it matches any path
+    // under /x/, dots included. `ui.pages`' PATH_RE only validates what an
+    // extension manifest may declare, not what the route matches, so
+    // /x/foo.json still renders this app's own document HTML and must carry
+    // the policy the same as any other extension page.
+    delete process.env.ACCESS_KEY
+    const response = proxy(new NextRequest('http://localhost/x/foo.json'))
+    assert.ok(response.headers.get('content-security-policy-report-only'))
+  })
+
+  it('leaves a dotted static asset without a policy', () => {
+    delete process.env.ACCESS_KEY
+    const response = proxy(new NextRequest('http://localhost/branding/swarmclaw-mark.png'))
+    assert.equal(response.headers.get('content-security-policy'), null)
+    assert.equal(response.headers.get('content-security-policy-report-only'), null)
+  })
 })
