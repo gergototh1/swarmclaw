@@ -197,7 +197,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   useEffect(() => { refreshExtensionState() }, [refreshExtensionState])
   // Must stay equal to `PAGES_FALLBACK_MS` in `hooks/use-extension-pages.ts` —
   // see the comment there for why a mismatch here is not inert.
-  useWs('extensions', refreshExtensionState, 5_000)
+  useWs('extensions', refreshExtensionState, 60_000)
 
   // Keyboard shortcuts
   const handleShortcutKey = useCallback((e: KeyboardEvent) => {

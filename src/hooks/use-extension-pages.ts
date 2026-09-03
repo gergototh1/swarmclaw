@@ -74,7 +74,7 @@ export interface ExtensionPagesState {
  * extension-state refresh. A mismatch here silently overrides that other
  * registration's polling rate the moment a tab is hidden and shown again.
  */
-const PAGES_FALLBACK_MS = 5_000
+const PAGES_FALLBACK_MS = 60_000
 
 /** Pages contributed by installed extensions, refreshed when extensions change. */
 export function useExtensionPagesState(): ExtensionPagesState {
