@@ -156,3 +156,89 @@ test('loadExtensionPage rejects with a clear message when there is no document',
     /browser-only/,
   )
 })
+
+test('registerPage refuses a module namespace object passed instead of its default export', () => {
+  const hostReact = {}
+  const reg = createExtensionRegistry({ react: hostReact })
+  const register = reg.registerPage as UntypedRegisterPage
+  // What `registerPage('main', mod, ...)` passes when the bundle forgot `.default`.
+  const moduleNamespace = { default: () => null, __esModule: true }
+  assert.throws(() => register('main', moduleNamespace, { react: hostReact, extensionId: 'aisignal' }), /aisignal:main/)
+  assert.equal(reg.getPage('aisignal', 'main'), undefined)
+})
+
+test('registerPage refuses a plain object that is not a React element type', () => {
+  const hostReact = {}
+  const reg = createExtensionRegistry({ react: hostReact })
+  const register = reg.registerPage as UntypedRegisterPage
+  assert.throws(() => register('main', {}, { react: hostReact, extensionId: 'aisignal' }), /instead of a component/)
+  assert.throws(() => register('main', { $$typeof: 'react.memo' }, { react: hostReact, extensionId: 'aisignal' }), /instead of a component/)
+  assert.throws(() => register('main', { $$typeof: Symbol.for('vue.memo') }, { react: hostReact, extensionId: 'aisignal' }), /instead of a component/)
+  assert.equal(reg.getPage('aisignal', 'main'), undefined)
+})
+
+test('registerPage accepts forwardRef and lazy results alongside memo', () => {
+  const hostReact = {}
+  const reg = createExtensionRegistry({ react: hostReact })
+  const register = reg.registerPage as UntypedRegisterPage
+  const forwardRefLike = { $$typeof: Symbol.for('react.forward_ref'), render: () => null }
+  const lazyLike = { $$typeof: Symbol.for('react.lazy'), _payload: {}, _init: () => null }
+  register('fwd', forwardRefLike, { react: hostReact, extensionId: 'aisignal' })
+  register('lazy', lazyLike, { react: hostReact, extensionId: 'aisignal' })
+  assert.equal(reg.getPage('aisignal', 'fwd')?.Component, forwardRefLike)
+  assert.equal(reg.getPage('aisignal', 'lazy')?.Component, lazyLike)
+})
+
+test('a refused registration is recorded so the renderer can show it instead of a blank page', () => {
+  const hostReact = { id: 'host' }
+  const reg = createExtensionRegistry({ react: hostReact, currentExtensionId: () => 'aisignal' })
+  assert.equal(reg.registrationRefusal('aisignal', 'main'), undefined)
+
+  assert.throws(() => reg.registerPage('main', () => null, { react: { id: 'own' }, extensionId: 'aisignal' }))
+  const refusal = reg.registrationRefusal('aisignal', 'main')
+  assert.equal(refusal?.extensionId, 'aisignal')
+  assert.equal(refusal?.pageId, 'main')
+  assert.match(refusal?.message ?? '', /different React/)
+})
+
+test('a refusal is attributed to the executing bundle, not to the id it claimed', () => {
+  const hostReact = {}
+  const reg = createExtensionRegistry({ react: hostReact, currentExtensionId: () => 'alpha' })
+  assert.throws(() => reg.registerPage('main', () => null, { react: hostReact, extensionId: 'beta' }))
+  assert.equal(reg.registrationRefusal('beta', 'main'), undefined)
+  assert.match(reg.registrationRefusal('alpha', 'main')?.message ?? '', /belongs to extension "alpha"/)
+})
+
+test('a refusal under a different page id is still found for the page the host is waiting for', () => {
+  const hostReact = {}
+  const reg = createExtensionRegistry({ react: hostReact, currentExtensionId: () => 'aisignal' })
+  const register = reg.registerPage as UntypedRegisterPage
+  // The bundle mistyped the page id, so nothing is ever recorded under "main".
+  assert.throws(() => register('mian', undefined, { react: hostReact, extensionId: 'aisignal' }))
+  const refusal = reg.registrationRefusal('aisignal', 'main')
+  assert.equal(refusal?.pageId, 'mian')
+  assert.match(refusal?.message ?? '', /aisignal:mian/)
+})
+
+test('a refusal from one extension is never reported for another', () => {
+  const hostReact = {}
+  const alpha = createExtensionRegistry({ react: hostReact, currentExtensionId: () => 'alpha' })
+  assert.throws(() => alpha.registerPage('main', () => null, { react: {}, extensionId: 'alpha' }))
+  assert.equal(alpha.registrationRefusal('beta', 'main'), undefined)
+})
+
+test('the newest refusal for a page wins, so a retry after a rebuild is what is shown', () => {
+  const hostReact = {}
+  const reg = createExtensionRegistry({ react: hostReact, currentExtensionId: () => 'aisignal' })
+  const register = reg.registerPage as UntypedRegisterPage
+  assert.throws(() => register('main', () => null, { react: {}, extensionId: 'aisignal' }))
+  assert.throws(() => register('main', undefined, { react: hostReact, extensionId: 'aisignal' }))
+  assert.match(reg.registrationRefusal('aisignal', 'main')?.message ?? '', /instead of a component/)
+})
+
+test('a successful registration records no refusal', () => {
+  const hostReact = {}
+  const reg = createExtensionRegistry({ react: hostReact, currentExtensionId: () => 'aisignal' })
+  reg.registerPage('main', () => null, { react: hostReact, extensionId: 'aisignal' })
+  assert.equal(reg.registrationRefusal('aisignal', 'main'), undefined)
+})

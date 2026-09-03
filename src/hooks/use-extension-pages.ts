@@ -34,18 +34,38 @@ export function splitPagesByPosition(pages: ExtensionPage[], view: string | null
   return pages.filter((p) => p.position === wanted)
 }
 
+export interface ExtensionPagesState {
+  pages: ExtensionPage[]
+  /**
+   * False only until the first fetch settles. An empty list and a list that has
+   * not arrived yet are the same value, so anything that decides a page does not
+   * exist (the `/x/<slug>` route, which would otherwise flash "no such page" on
+   * every load) has to wait for this. The rail does not care: it renders nothing
+   * either way. Stays true across later refreshes, so a websocket-driven reload
+   * never blanks a page that is already mounted.
+   */
+  loaded: boolean
+}
+
 /** Pages contributed by installed extensions, refreshed when extensions change. */
-export function useExtensionPages(): ExtensionPage[] {
-  const [pages, setPages] = useState<ExtensionPage[]>([])
+export function useExtensionPagesState(): ExtensionPagesState {
+  const [state, setState] = useState<ExtensionPagesState>({ pages: [], loaded: false })
 
   const refresh = useCallback(() => {
     api<ExtensionPage[]>('GET', '/extensions/ui?type=pages')
-      .then((list) => { if (Array.isArray(list)) setPages(list) })
-      .catch(() => {})
+      .then((list) => { setState({ pages: Array.isArray(list) ? list : [], loaded: true }) })
+      // A failed fetch still counts as settled: retrying forever behind a spinner
+      // hides the failure, and the next extensions event refreshes anyway.
+      .catch(() => { setState((prev) => ({ pages: prev.pages, loaded: true })) })
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
   useWs('extensions', refresh)
 
-  return pages
+  return state
+}
+
+/** Pages contributed by installed extensions, refreshed when extensions change. */
+export function useExtensionPages(): ExtensionPage[] {
+  return useExtensionPagesState().pages
 }

@@ -91,7 +91,51 @@ export interface ExtensionRegistry {
    * Returns an unsubscribe function.
    */
   onPageRegistered(extensionId: string, pageId: string, cb: (pageId: string) => void): () => void
+  /**
+   * The most recent registration `registerPage` refused for this page, if any.
+   *
+   * A bundle calls `registerPage` at top-level script scope, so a refusal throws
+   * *inside the bundle's own execution*: the browser reports an uncaught error to
+   * the console, `script.onload` still fires, and `loadExtensionPage` still
+   * resolves. Nothing about the load tells the renderer that anything went wrong,
+   * which is exactly how a mis-built extension ends up showing a blank page. The
+   * refusal is recorded here so the page route can render the message that until
+   * now only existed in devtools.
+   *
+   * When nothing was refused under `pageId`, the newest refusal from the same
+   * extension is returned instead: a bundle that registered under a mistyped page
+   * id leaves nothing under the id the host is waiting for, and its message names
+   * the id it actually used. Renderers must therefore treat the message as the
+   * authority on which page it describes rather than assuming it is `pageId`.
+   */
+  registrationRefusal(extensionId: string, pageId: string): PageRegistrationRefusal | undefined
 }
+
+/** A `registerPage` call the registry rejected, kept so a renderer can explain a page that never appeared. */
+export interface PageRegistrationRefusal {
+  /**
+   * The extension whose bundle was executing, which is not necessarily the id the
+   * call claimed — a bundle registering under someone else's id is one of the
+   * refusals recorded here.
+   */
+  extensionId: string
+  /** The page id the call passed, which the extension may never have declared. */
+  pageId: string
+  /** The thrown message, written for the extension author. */
+  message: string
+  /** `Date.now()` at the refusal. */
+  at: number
+}
+
+/**
+ * How many refusals one registry keeps.
+ *
+ * Only the newest per page is ever read, so this exists purely to bound a
+ * pathological bundle that retries `registerPage` in a loop. Small on purpose:
+ * a page with more than a handful of failed registrations behind it is already
+ * being told the newest one.
+ */
+const MAX_REFUSALS = 20
 
 /** The registry key for one page. Extension-scoped, so page ids only need to be unique per extension. */
 export function pageKey(extensionId: string, pageId: string): string {
@@ -109,22 +153,70 @@ function executingExtensionId(): string | undefined {
   return document.currentScript?.dataset.extension
 }
 
-/** `memo()` and `forwardRef()` return objects, not functions, so both shapes count. */
+/**
+ * True for something React can actually render as an element type.
+ *
+ * Function components are the common case. `memo()`, `forwardRef()` and `lazy()`
+ * return plain objects rather than functions, and React identifies those by a
+ * `$$typeof` symbol registered as `Symbol.for('react.<kind>')`, so the symbol's
+ * description is what separates them from any other object.
+ *
+ * Accepting every non-null object instead (which this used to do) let a bundle
+ * pass its whole module namespace — `registerPage('main', mod, ...)` rather than
+ * `mod.default` — and store cleanly, only to die in the renderer with React's own
+ * "type is invalid" wording, which names nothing the author can act on.
+ */
 function isComponentLike(value: unknown): boolean {
-  return typeof value === 'function' || (typeof value === 'object' && value !== null)
+  if (typeof value === 'function') return true
+  if (typeof value !== 'object' || value === null) return false
+  const marker = (value as { $$typeof?: unknown }).$$typeof
+  return typeof marker === 'symbol' && (marker.description ?? '').startsWith('react.')
+}
+
+/** What a refused `registerPage` was handed, for an error message the author can act on. */
+function describeValue(value: unknown): string {
+  if (typeof value === 'object' && value !== null) {
+    // A module namespace stringifies to "[object Module]", which on its own reads
+    // like a type name rather than a mistake, so name the fix alongside it.
+    const keys = Object.keys(value as Record<string, unknown>)
+    if (keys.includes('default')) return 'a module object (pass its .default export, not the whole module)'
+    return `an object with keys [${keys.slice(0, 5).join(', ')}]`
+  }
+  return String(value)
 }
 
 export function createExtensionRegistry(host: ExtensionRegistryHost): ExtensionRegistry {
   const pages = new Map<string, RegisteredPage>()
   const waiters = new Map<string, Set<(pageId: string) => void>>()
+  const refusals: PageRegistrationRefusal[] = []
   const currentExtensionId = host.currentExtensionId || executingExtensionId
+
+  /**
+   * Record why a registration was refused, then throw it.
+   *
+   * Recording before throwing is the whole point: the throw lands in the
+   * extension bundle's own top-level execution, so it never reaches the host and
+   * the page route would otherwise have nothing to show but an empty frame.
+   * Refusals are attributed to the bundle that was executing where that is
+   * knowable, so a bundle claiming another extension's id cannot hide its
+   * mistake under that id or plant a message on it.
+   */
+  function refuse(pageId: string, reportedId: string, message: string): never {
+    const owner = currentExtensionId() ?? reportedId
+    if (owner) {
+      refusals.push({ extensionId: owner, pageId, message, at: Date.now() })
+      if (refusals.length > MAX_REFUSALS) refusals.shift()
+    }
+    throw new Error(message)
+  }
 
   return {
     registerPage(pageId, Component, opts) {
       // `opts` is typed, but the caller is untyped JavaScript from a separately
       // built bundle, so a missing object is as likely as a wrong React.
+      const reportedId = opts && typeof opts.extensionId === 'string' ? opts.extensionId.trim() : ''
       if (!opts || opts.react !== host.react) {
-        throw new Error(
+        refuse(pageId, reportedId,
           `Extension page "${pageId}" was built against a different React instance than the host. ` +
           'Pass the react binding the bundle imported, with react, react-dom and react/jsx-runtime ' +
           'built as externals that resolve to the host copies. Do not read ' +
@@ -133,9 +225,8 @@ export function createExtensionRegistry(host: ExtensionRegistryHost): ExtensionR
         )
       }
 
-      const reportedId = typeof opts.extensionId === 'string' ? opts.extensionId.trim() : ''
       if (!reportedId) {
-        throw new Error(
+        refuse(pageId, reportedId,
           `Extension page "${pageId}" was registered without an extensionId. Read it at top-level ` +
           'script scope from document.currentScript?.dataset.extension, which the loader stamps on ' +
           'the bundle tag.',
@@ -145,7 +236,7 @@ export function createExtensionRegistry(host: ExtensionRegistryHost): ExtensionR
       // against the bundle the loader actually injected rather than trusted.
       const executing = currentExtensionId()
       if (executing !== undefined && executing !== reportedId) {
-        throw new Error(
+        refuse(pageId, reportedId,
           `Extension page "${pageId}" was registered with extensionId "${reportedId}", but this ` +
           `bundle belongs to extension "${executing}". An extension can only register its own pages; ` +
           'read the id from document.currentScript?.dataset.extension instead of hard-coding it.',
@@ -153,8 +244,8 @@ export function createExtensionRegistry(host: ExtensionRegistryHost): ExtensionR
       }
 
       if (!isComponentLike(Component)) {
-        throw new Error(
-          `Extension page "${pageKey(reportedId, pageId)}" was registered with ${String(Component)} ` +
+        refuse(pageId, reportedId,
+          `Extension page "${pageKey(reportedId, pageId)}" was registered with ${describeValue(Component)} ` +
           'instead of a component. A bundle whose module interop leaves the default export undefined ' +
           'hits this; check what the bundle passes as the second argument to registerPage.',
         )
@@ -186,6 +277,20 @@ export function createExtensionRegistry(host: ExtensionRegistryHost): ExtensionR
       const subscribers = set
       subscribers.add(cb)
       return () => { subscribers.delete(cb) }
+    },
+
+    registrationRefusal(extensionId, pageId) {
+      for (let i = refusals.length - 1; i >= 0; i--) {
+        const refusal = refusals[i]
+        if (refusal.extensionId === extensionId && refusal.pageId === pageId) return refusal
+      }
+      // Nothing under this page id, so fall back to the extension's newest refusal:
+      // a bundle that registered under a mistyped id records nothing under the id
+      // the host waits for, and its message names the id it actually used.
+      for (let i = refusals.length - 1; i >= 0; i--) {
+        if (refusals[i].extensionId === extensionId) return refusals[i]
+      }
+      return undefined
     },
   }
 }
