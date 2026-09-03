@@ -20,7 +20,11 @@
 - Token-érték soha nem kerül naplóba, válaszba, repóba.
 - Plugin-oldal útvonala `/x/`-szel kezdődik, egyedi, beépített útvonalat nem vehet át.
 - Plugin-UI a `<script>`-tag modellel, közös React; csak saját/aláírt plugin.
-- Minden feladat: `npm run lint:baseline` → `No net-new lint issues detected`; `npm run type-check` tiszta. Commit-üzenet: rövid felszólító cím + miért; nincs gondolatjel (em dash).
+- Minden feladat: `npm run lint:baseline` → `No net-new lint issues detected`; `npm run type-check` tiszta.
+- Commit-üzenet: rövid felszólító cím + miért; nincs gondolatjel (em dash). A törzs után kötelező két trailer:
+  `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>` és
+  `Claude-Session: https://claude.ai/code/session_01NjTCGWAUDjCaEaocZBiGLG`
+- Lint-szabályt elnyomni tilos (repo CLAUDE.md). Ahol a terv példakódja `eslint-disable`-t mutat, ott a kódot kell átírni, nem a szabályt kikapcsolni.
 - Extension-azonosító = a fájlnév (`aisignal.mjs`); workspace-kulcs = `aisignal_mjs` (`extensionWorkspaceKey`).
 - Tesztek: node:test, `npx tsx --test <fájl>`; DB-s tesztek `runWithTempDataDir`-rel.
 

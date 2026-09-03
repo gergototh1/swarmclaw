@@ -19,7 +19,11 @@
 **Prefer simple, maintainable, reliable architectures.** Choose the straightforward approach over the clever one. Code that is easy to read, easy to debug, and easy to delete is better than code that is abstract, configurable, or "elegant." Avoid premature abstraction — three similar lines are better than a premature helper. Build for the current requirement, not hypothetical future ones.
 
 ### Commit Messages
-- Never reference "Claude", "Anthropic", "Codex", "Co-Authored-By", or any AI tool in commit messages. Write commit messages as if a human authored the code.
+- Upstream contributions (pull requests to swarmclawai/swarmclaw) must not reference "Claude", "Anthropic", "Codex", or any AI tool.
+  Write those commit messages as if a human authored the code.
+- On this fork, commits carry the assisting model as a trailer so authorship stays traceable:
+  `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>` and a `Claude-Session:` link.
+  Strip both trailers when cherry-picking a commit upstream.
 
 ### Testing
 
