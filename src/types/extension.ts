@@ -215,13 +215,19 @@ export interface ExtensionSettingsField {
 export interface ExtensionPageDefinition {
   id: string
   label: string
+  /** One of `EXTENSION_PAGE_ICON_NAMES` (`src/lib/extension-page-nav.ts`); anything else renders the default icon. */
   icon?: string
   /** Must start with '/x/'; unique across installed extensions. */
   path: string
   /** Relative to the extension workspace `dist/`, e.g. 'dist/index.js'. */
   entry: string
   css?: string
-  /** 'end' (default) or 'after:<AppView>', e.g. 'after:tasks'. */
+  /**
+   * 'end' (default), or 'after:<view>' naming one of the rail entries in
+   * `EXTENSION_NAV_ANCHORS` (`src/lib/extension-page-nav.ts`), e.g. 'after:tasks'.
+   * Any other value, including an anchor the rail does not mount a slot for, puts
+   * the page in the trailing "Extension Pages" group instead of dropping it.
+   */
   position?: string
 }
 

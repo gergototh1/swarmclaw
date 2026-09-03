@@ -12,6 +12,7 @@ import { ExtensionPagesAfter, ExtensionPagesEndGroup } from '@/components/layout
 import { useWs } from '@/hooks/use-ws'
 import { FULL_WIDTH_VIEWS, isPanelSidebarView } from '@/lib/app/view-constants'
 import { pathToView, useNavigate } from '@/lib/app/navigation'
+import { isExtensionPagePath } from '@/lib/extension-page-nav'
 import { safeStorageGet, safeStorageSet } from '@/lib/app/safe-storage'
 import type { AppView } from '@/types'
 
@@ -44,7 +45,10 @@ export function SidebarRail({
   const skillDraftCount = useAppStore((s) => s.skillDraftCount)
   const loadSkillDraftCount = useAppStore((s) => s.loadSkillDraftCount)
 
-  const activeView = pathToView(pathname) ?? 'home'
+  // `null` on an extension page: those routes are not an `AppView`, so no built-in
+  // entry may light up while one is open. Other unrecognised paths keep falling
+  // back to Home.
+  const activeView: AppView | null = pathToView(pathname) ?? (isExtensionPagePath(pathname) ? null : 'home')
 
   const defaultAgentId = defaultAgent?.id || null
   const isDefaultChat = activeView === 'agents' && currentAgentId === defaultAgentId

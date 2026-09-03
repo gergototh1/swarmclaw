@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import { validateExtensionPages } from './extension-pages'
+import { EXTENSION_NAV_ANCHORS, EXTENSION_PAGE_ICON_NAMES, EXTENSION_PAGE_PATH_PREFIX } from '@/lib/extension-page-nav'
 import { runWithTempDataDir } from '@/lib/server/test-utils/run-with-temp-data-dir'
 
 const good = { id: 'aisignal', label: 'AI Signal', path: '/x/aisignal', entry: 'dist/index.js' }
@@ -56,5 +58,20 @@ describe('manager.getPages', () => {
     `)
     assert.deepEqual(out.pages, [{ extensionId: 'pg_a.mjs', path: '/x/a' }])
     assert.match(out.failed || '', /taken/)
+  })
+})
+
+describe('extension page nav contract', () => {
+  it('exposes the icon key set and the mounted rail anchors to server code', () => {
+    assert.ok(EXTENSION_PAGE_ICON_NAMES.length > 0)
+    assert.ok(EXTENSION_PAGE_ICON_NAMES.includes('Puzzle'))
+    assert.equal(new Set(EXTENSION_PAGE_ICON_NAMES).size, EXTENSION_PAGE_ICON_NAMES.length)
+    assert.ok(EXTENSION_NAV_ANCHORS.length > 0)
+    assert.equal(EXTENSION_PAGE_PATH_PREFIX, '/x/')
+  })
+
+  it('stays importable from server code by not being a client module', () => {
+    const src = readFileSync(new URL('../../extension-page-nav.ts', import.meta.url), 'utf8')
+    assert.ok(!src.includes('use client'))
   })
 })

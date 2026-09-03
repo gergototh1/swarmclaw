@@ -9,23 +9,28 @@ import {
 } from 'lucide-react'
 import { ExtensionNavItem } from '@/components/layout/nav-item'
 import { splitPagesByPosition, useExtensionPages, type ExtensionPage } from '@/hooks/use-extension-pages'
+import type { ExtensionNavAnchor, ExtensionPageIconName } from '@/lib/extension-page-nav'
 
 /**
- * Icons an extension may name in its page declaration.
+ * The components behind the icon names an extension may declare.
  *
- * Deliberately a curated list rather than lucide's full `icons` barrel: the rail
- * ships on every route, and the barrel would pull the whole icon set into that
- * bundle. Unknown names fall back to `Puzzle`.
+ * The key space itself lives in `@/lib/extension-page-nav` as
+ * `EXTENSION_PAGE_ICON_NAMES` so server code and docs can read it without
+ * importing this client module; typing the map by that union keeps the two in
+ * lockstep. Names outside it fall back to `Puzzle`.
  */
-const PAGE_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
+const PAGE_ICONS: Record<ExtensionPageIconName, React.ComponentType<{ size?: number }>> = {
   Activity, Bell, Bot, Boxes, Calendar, Compass, Database, FileText, Folder, Gauge,
   Globe, Hash, Heart, Inbox, Layers, LineChart, Lightbulb, Link2, List, Mail, MapPin,
   MessageSquare, Newspaper, Puzzle, Radar, Rss, Search, Send, Settings, Shield,
   Sparkles, Star, Tag, Terminal, TrendingUp, Users, Workflow, Zap,
 }
 
+/** Widened view of `PAGE_ICONS`, so an unknown extension-supplied name is a lookup miss, not a type error. */
+const ICON_BY_NAME: Record<string, React.ComponentType<{ size?: number }> | undefined> = PAGE_ICONS
+
 function PageIcon({ name }: { name?: string }) {
-  const Icon = (name && PAGE_ICONS[name]) || Puzzle
+  const Icon = (name && ICON_BY_NAME[name]) || Puzzle
   return <Icon size={18} />
 }
 
@@ -56,12 +61,13 @@ function ExtensionPageLinks({ pages, expanded, onNavigate }: {
 /**
  * Extension-contributed rail entries anchored directly after a built-in entry.
  *
- * `view` names that built-in entry, or `null` for the trailing slot. It is a plain
- * string on purpose: an extension path is not an `AppView` and must not be widened
- * into one.
+ * `view` names that built-in entry, or `null` for the trailing slot. It is limited
+ * to `EXTENSION_NAV_ANCHORS` so the rail cannot mount a slot the trailing group
+ * does not know to skip, which would render those pages twice. An extension path
+ * is still never an `AppView` and must not be widened into one.
  */
 export function ExtensionPagesAfter({ view, expanded, onNavigate }: {
-  view: string | null
+  view: ExtensionNavAnchor | null
   expanded: boolean
   onNavigate?: () => void
 }) {
@@ -72,10 +78,12 @@ export function ExtensionPagesAfter({ view, expanded, onNavigate }: {
 }
 
 /**
- * Trailing rail group for extension pages that did not ask for an anchor.
+ * Trailing rail group for every extension page the rail does not anchor elsewhere.
  *
- * Renders the same group chrome as the built-in sections, and nothing at all when
- * no extension contributes a page.
+ * That covers pages with no position, pages that asked for `end`, and pages whose
+ * anchor names a view outside `EXTENSION_NAV_ANCHORS`. Renders the same group
+ * chrome as the built-in sections, and nothing at all when no extension
+ * contributes a page.
  */
 export function ExtensionPagesEndGroup({ expanded, onNavigate }: {
   expanded: boolean
