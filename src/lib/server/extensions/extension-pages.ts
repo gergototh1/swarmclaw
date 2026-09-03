@@ -22,7 +22,11 @@ export function validateExtensionPages(
 ): PagesValidation {
   if (raw == null) return { ok: true, pages: [] }
   if (!Array.isArray(raw)) return { ok: false, error: 'ui.pages must be an array' }
-  const seen = new Set<string>()
+  const seenPaths = new Set<string>()
+  // Page ids only have to be unique per extension: the browser registry keys
+  // pages on "<extensionId>:<pageId>", so two extensions may both ship a `main`.
+  // Within one extension a repeated id is unresolvable, so it is rejected here.
+  const seenIds = new Set<string>()
   const pages: ExtensionPageDefinition[] = []
   for (const p of raw as Array<Record<string, unknown>>) {
     const id = typeof p.id === 'string' ? p.id.trim() : ''
@@ -32,12 +36,14 @@ export function validateExtensionPages(
     const cssRaw = typeof p.css === 'string' ? p.css.trim() : undefined
     const css = cssRaw === '' ? undefined : cssRaw
     if (!id || !label) return { ok: false, error: 'ui.pages entries need id and label' }
+    if (seenIds.has(id)) return { ok: false, error: `ui.pages id "${id}" declared twice by this extension` }
     if (!PATH_RE.test(path)) return { ok: false, error: `ui.pages path "${path}" must be /x/<slug>` }
-    if (seen.has(path)) return { ok: false, error: `ui.pages path "${path}" declared twice` }
+    if (seenPaths.has(path)) return { ok: false, error: `ui.pages path "${path}" declared twice` }
     if (takenPaths.has(path)) return { ok: false, error: `ui.pages path "${path}" is already taken by another extension` }
     if (!DIST_REL_RE.test(entry)) return { ok: false, error: `ui.pages entry "${entry}" ${DIST_REL_HINT}` }
     if (css !== undefined && !DIST_REL_RE.test(css)) return { ok: false, error: `ui.pages css "${css}" ${DIST_REL_HINT}` }
-    seen.add(path)
+    seenIds.add(id)
+    seenPaths.add(path)
     pages.push({
       id,
       label,

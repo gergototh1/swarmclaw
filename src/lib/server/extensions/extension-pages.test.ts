@@ -26,6 +26,19 @@ describe('validateExtensionPages', () => {
     assert.equal(validateExtensionPages([good, { ...good, id: 'b' }], new Set()).ok, false)
     assert.equal(validateExtensionPages([{ ...good, entry: '' }], new Set()).ok, false)
   })
+  it('rejects two pages with the same id inside one extension', () => {
+    const r = validateExtensionPages([good, { ...good, path: '/x/second' }], new Set())
+    assert.equal(r.ok, false)
+    if (!r.ok) assert.match(r.error, /id "aisignal" declared twice/)
+  })
+  it('lets two different extensions declare the same page id', () => {
+    // Ids are only unique per extension; the browser registry namespaces them
+    // as "<extensionId>:<pageId>", so extension B must not be blocked by A.
+    const first = validateExtensionPages([good], new Set())
+    const second = validateExtensionPages([{ ...good, path: '/x/second' }], new Set(['/x/aisignal']))
+    assert.equal(first.ok, true)
+    assert.equal(second.ok, true)
+  })
   it('rejects entry with path traversal', () => {
     assert.equal(validateExtensionPages([{ ...good, entry: '../x.js' }], new Set()).ok, false)
   })
