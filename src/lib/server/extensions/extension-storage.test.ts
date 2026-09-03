@@ -1,20 +1,63 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { runWithTempDataDir } from '@/lib/server/test-utils/run-with-temp-data-dir'
-import { extensionTablePrefix, validateMigrationSql } from './extension-storage'
+
+// Nothing in this file imports './extension-storage' statically. That import
+// chain reaches '@/lib/server/storage', whose module body opens (and on a fresh
+// checkout creates) ./data/swarmclaw.db in WAL mode and installs shutdown
+// handlers for it. Even the two pure helpers below therefore run inside
+// runWithTempDataDir, so the test process never becomes a second writer on the
+// developer's database.
 
 describe('extensionTablePrefix', () => {
   it('derives ext_<id>_ from the filename', () => {
-    assert.equal(extensionTablePrefix('aisignal.mjs'), 'ext_aisignal_')
-    assert.equal(extensionTablePrefix('my-plugin.js'), 'ext_my_plugin_')
+    const out = runWithTempDataDir<{ aisignal: string; hyphenated: string }>(`
+      const mod = await import('@/lib/server/extensions/extension-storage')
+      const { extensionTablePrefix } = mod.default || mod
+      console.log(JSON.stringify({ aisignal: extensionTablePrefix('aisignal.mjs'), hyphenated: extensionTablePrefix('my-extension.js') }))
+    `)
+    assert.equal(out.aisignal, 'ext_aisignal_')
+    assert.equal(out.hyphenated, 'ext_my_extension_')
   })
 })
 
 describe('validateMigrationSql', () => {
-  it('accepts CREATE TABLE with the prefix and rejects without', () => {
-    assert.equal(validateMigrationSql('ext_a_', 'CREATE TABLE IF NOT EXISTS ext_a_items (id TEXT)').ok, true)
-    assert.equal(validateMigrationSql('ext_a_', 'CREATE TABLE sessions_copy (id TEXT)').ok, false)
-    assert.equal(validateMigrationSql('ext_a_', 'CREATE INDEX idx ON ext_a_items(id)').ok, true)
+  it('checks the table name of every CREATE TABLE spelling, TEMP and VIRTUAL and bracket-quoted included', () => {
+    const out = runWithTempDataDir<Record<string, boolean>>(`
+      const mod = await import('@/lib/server/extensions/extension-storage')
+      const { validateMigrationSql } = mod.default || mod
+      const cases = {
+        prefixed: 'CREATE TABLE IF NOT EXISTS ext_a_items (id TEXT)',
+        unprefixed: 'CREATE TABLE sessions_copy (id TEXT)',
+        index: 'CREATE INDEX idx ON ext_a_items(id)',
+        temp: 'CREATE TEMP TABLE settings (id TEXT)',
+        temporary: 'CREATE TEMPORARY TABLE settings (id TEXT)',
+        virtual: 'CREATE VIRTUAL TABLE evil_fts USING fts5(body)',
+        bracketed: 'CREATE TABLE [settings] (id TEXT)',
+        bracketedIfNotExists: 'CREATE TABLE IF NOT EXISTS [settings] (id TEXT)',
+        quotedWithoutSpace: 'CREATE TABLE"settings" (id TEXT)',
+        tempPrefixed: 'CREATE TEMP TABLE ext_a_scratch (id TEXT)',
+        virtualPrefixed: 'CREATE VIRTUAL TABLE ext_a_fts USING fts5(body)',
+        bracketedPrefixed: 'CREATE TABLE [ext_a_items] (id TEXT)',
+      }
+      const result = {}
+      for (const [key, sql] of Object.entries(cases)) result[key] = validateMigrationSql('ext_a_', sql).ok
+      console.log(JSON.stringify(result))
+    `)
+    assert.deepEqual(out, {
+      prefixed: true,
+      unprefixed: false,
+      index: true,
+      temp: false,
+      temporary: false,
+      virtual: false,
+      bracketed: false,
+      bracketedIfNotExists: false,
+      quotedWithoutSpace: false,
+      tempPrefixed: true,
+      virtualPrefixed: true,
+      bracketedPrefixed: true,
+    })
   })
 })
 
@@ -41,6 +84,22 @@ describe('runExtensionMigrations + createExtensionStorage', () => {
       catch (e) { console.log(JSON.stringify({ error: String(e.message) })) }
     `)
     assert.match(out.error, /ext_t_/)
+  })
+
+  it('refuses a CREATE TEMP TABLE, which would otherwise shadow a host table for the process', () => {
+    const out = runWithTempDataDir<{ error: string; applied: number }>(`
+      const mod = await import('@/lib/server/extensions/extension-storage')
+      const { runExtensionMigrations } = mod.default || mod
+      const storageMod = await import('@/lib/server/storage')
+      const { getDb } = storageMod.default || storageMod
+      let error = ''
+      try { runExtensionMigrations('t.mjs', [{ version: 1, sql: 'CREATE TEMP TABLE settings (id TEXT)' }]) }
+      catch (e) { error = String(e.message) }
+      const applied = getDb().prepare('SELECT version FROM ext_migrations WHERE extension_id = ?').all('t.mjs').length
+      console.log(JSON.stringify({ error, applied }))
+    `)
+    assert.match(out.error, /ext_t_/)
+    assert.equal(out.applied, 0)
   })
 
   it('rolls a half-failing migration back and records nothing for it', () => {
@@ -168,5 +227,115 @@ describe('setup(ctx) through the manager', () => {
     assert.equal(out.has, false)
     assert.equal(out.name, 'GoogleOAuthNotConfiguredError')
     assert.match(out.message, /not configured/i)
+  })
+})
+
+describe('deleteExtension drops the extension schema', () => {
+  it('removes its tables and its ext_migrations rows, so a reinstall re-runs its migrations', () => {
+    const out = runWithTempDataDir<{
+      deleted: boolean
+      before: { tables: string[]; rows: number }
+      after: { tables: string[]; rows: number }
+      reinstalled: string
+    }>(`
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const storageMod = await import('@/lib/server/storage')
+      const { getDb } = storageMod.default || storageMod
+      const snapshot = () => ({
+        tables: getDb().prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map((r) => r.name).filter((n) => n.startsWith('ext_del_a_')),
+        rows: getDb().prepare('SELECT version FROM ext_migrations WHERE extension_id = ?').all('del_a.mjs').length,
+      })
+      const m = getExtensionManager()
+      // v1 of the first installed version: one column.
+      await m.saveExtensionSource('del_a.mjs', \`
+        let storage = null
+        export default {
+          name: 'DelA',
+          migrations: [{ version: 1, sql: 'CREATE TABLE IF NOT EXISTS ext_del_a_notes (id TEXT PRIMARY KEY)' }],
+          setup(ctx) { storage = ctx.storage },
+          tools: [{ name: 'del_a_add', description: 'x', parameters: { type: 'object', properties: {} },
+            execute: () => { storage.exec('INSERT INTO ext_del_a_notes (id) VALUES (?)', ['n1']); return String(storage.all('SELECT * FROM ext_del_a_notes').length) } }],
+        }\`)
+      m.reload()
+      const before = snapshot()
+      const deleted = m.deleteExtension('del_a.mjs')
+      const after = snapshot()
+      // A newer version whose v1 declares three columns. If the uninstall left
+      // the old ext_migrations row behind, this migration is skipped and the
+      // tool call below fails with "no such column".
+      await m.saveExtensionSource('del_a.mjs', \`
+        let storage = null
+        export default {
+          name: 'DelA',
+          migrations: [{ version: 1, sql: 'CREATE TABLE IF NOT EXISTS ext_del_a_notes (id TEXT PRIMARY KEY, body TEXT, tag TEXT)' }],
+          setup(ctx) { storage = ctx.storage },
+          tools: [{ name: 'del_a_add', description: 'x', parameters: { type: 'object', properties: {} },
+            execute: () => { storage.exec('INSERT INTO ext_del_a_notes (id, body, tag) VALUES (?, ?, ?)', ['n1', 'b', 't']); return String(storage.all('SELECT * FROM ext_del_a_notes').length) } }],
+        }\`)
+      m.reload()
+      const entry = m.getTools(['del_a.mjs']).find((t) => t.tool.name === 'del_a_add')
+      let reinstalled = ''
+      try { reinstalled = String(await entry.tool.execute({}, { session: {}, message: '' })) }
+      catch (e) { reinstalled = 'ERROR: ' + e.message }
+      console.log(JSON.stringify({ deleted, before, after, reinstalled }))
+    `)
+    assert.equal(out.deleted, true)
+    assert.deepEqual(out.before, { tables: ['ext_del_a_notes'], rows: 1 })
+    assert.deepEqual(out.after, { tables: [], rows: 0 })
+    assert.equal(out.reinstalled, '1')
+  })
+
+  it('deletes an extension that never ran a migration and leaves other extensions alone', () => {
+    const out = runWithTempDataDir<{ deleted: boolean; tables: string[]; keeperRows: number }>(`
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const storageMod = await import('@/lib/server/storage')
+      const { getDb } = storageMod.default || storageMod
+      const m = getExtensionManager()
+      await m.saveExtensionSource('del_b.mjs', \`
+        export default {
+          name: 'DelB',
+          tools: [{ name: 'del_b_noop', description: 'x', parameters: { type: 'object', properties: {} }, execute: () => 'ok' }],
+        }\`)
+      await m.saveExtensionSource('del_c.mjs', \`
+        export default {
+          name: 'DelC',
+          migrations: [{ version: 1, sql: 'CREATE TABLE IF NOT EXISTS ext_del_c_keep (id TEXT)' }],
+        }\`)
+      m.reload()
+      const deleted = m.deleteExtension('del_b.mjs')
+      const tables = getDb().prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map((r) => r.name).filter((n) => n.startsWith('ext_del_'))
+      const keeperRows = getDb().prepare('SELECT version FROM ext_migrations WHERE extension_id = ?').all('del_c.mjs').length
+      console.log(JSON.stringify({ deleted, tables, keeperRows }))
+    `)
+    assert.equal(out.deleted, true)
+    assert.deepEqual(out.tables, ['ext_del_c_keep'])
+    assert.equal(out.keeperRows, 1)
+  })
+
+  it('still deletes when one of the extension tables is already gone', () => {
+    const out = runWithTempDataDir<{ deleted: boolean; error: string; rows: number }>(`
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const storageMod = await import('@/lib/server/storage')
+      const { getDb } = storageMod.default || storageMod
+      const m = getExtensionManager()
+      await m.saveExtensionSource('del_d.mjs', \`
+        export default {
+          name: 'DelD',
+          migrations: [{ version: 1, sql: 'CREATE TABLE IF NOT EXISTS ext_del_d_notes (id TEXT)' }],
+        }\`)
+      m.reload()
+      getDb().exec('DROP TABLE ext_del_d_notes')
+      let deleted = false
+      let error = ''
+      try { deleted = m.deleteExtension('del_d.mjs') } catch (e) { error = String(e.message) }
+      const rows = getDb().prepare('SELECT version FROM ext_migrations WHERE extension_id = ?').all('del_d.mjs').length
+      console.log(JSON.stringify({ deleted, error, rows }))
+    `)
+    assert.equal(out.error, '')
+    assert.equal(out.deleted, true)
+    assert.equal(out.rows, 0)
   })
 })

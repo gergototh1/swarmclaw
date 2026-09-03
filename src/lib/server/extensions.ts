@@ -40,7 +40,7 @@ import { notify } from './ws-hub'
 import { decryptKey, encryptKey, loadSettings, saveSettings } from './storage'
 import { buildExtensionHooks } from './extensions-approval-guidance'
 import { validateExtensionPages } from './extensions/extension-pages'
-import { createExtensionStorage, extensionTablePrefix, runExtensionMigrations } from './extensions/extension-storage'
+import { createExtensionStorage, dropExtensionStorage, extensionTablePrefix, runExtensionMigrations } from './extensions/extension-storage'
 import { getGoogleAccessToken, hasGoogleCredential } from './oauth/google'
 import { errorMessage, hmrSingleton } from '@/lib/shared-utils'
 
@@ -1065,6 +1065,20 @@ class ExtensionManager {
       const explicitConfig = this.readConfigEntry(id, config)
       const isEnabled = explicitConfig != null ? explicitConfig.enabled !== false : p.enabledByDefault !== false
       if (isEnabled) {
+        // The builtin branch does not run migrations, does not call setup() and
+        // does not register rpc handlers. Say so at load time rather than let a
+        // builtin fail later with "no such table".
+        const ignoredByBuiltinLoader: string[] = []
+        if (typeof p.setup === 'function') ignoredByBuiltinLoader.push('setup')
+        if (p.migrations && p.migrations.length > 0) ignoredByBuiltinLoader.push('migrations')
+        if (p.rpc && Object.keys(p.rpc).length > 0) ignoredByBuiltinLoader.push('rpc')
+        if (ignoredByBuiltinLoader.length > 0) {
+          log.warn('extensions', 'Builtin extension declares fields the builtin loader ignores', {
+            extensionId: id,
+            ignored: ignoredByBuiltinLoader.join(', '),
+          })
+        }
+
         this.extensions.set(id, {
           id,
           meta: {
@@ -2238,6 +2252,26 @@ class ExtensionManager {
     settings.extensionSettings = settingsMap
     saveSettings(settings)
     this.clearFailureState(filename)
+    // Last piece of extension state, and the only one that outlives the files:
+    // its ext_migrations rows and its ext_<id>_ tables. Leaving them makes a
+    // later reinstall skip its own migrations against a stale schema. The files
+    // are already gone by here, so a database error is logged rather than
+    // thrown — failing the call now would report an uninstall that did happen.
+    try {
+      const dropped = dropExtensionStorage(filename)
+      if (dropped.droppedTables.length > 0 || dropped.droppedMigrationRows > 0) {
+        log.info('extensions', 'Dropped extension storage on delete', {
+          extensionId: filename,
+          tables: dropped.droppedTables.join(', '),
+          migrationRows: dropped.droppedMigrationRows,
+        })
+      }
+    } catch (err: unknown) {
+      log.warn('extensions', 'Failed to drop extension storage on delete', {
+        extensionId: filename,
+        error: errorMessage(err),
+      })
+    }
     this.reload()
     return true
   }

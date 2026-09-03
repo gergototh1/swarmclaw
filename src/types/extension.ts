@@ -455,7 +455,15 @@ export interface Extension {
   localFolders?: ExtensionManagedLocalFolderDeclaration[]
   gatewayPlatforms?: ExtensionGatewayPlatformDeclaration[]
   setupChecks?: ExtensionSetupCheckDeclaration[]
-  /** Runs once at load, after the migrations. Synchronous, because load() is. */
+  /**
+   * Runs on every load and every reload, after the migrations, and must be
+   * idempotent. Reloads are frequent: any write under `data/extensions` trips
+   * the watcher, and saveExtensionSource, setEnabled and deleteExtension each
+   * reload explicitly, so in development setup() runs again on every file save.
+   * Capturing `ctx.storage` is fine; starting a timer, a listener or a
+   * subscription here leaks one per reload unless setup() replaces the previous
+   * one itself. Synchronous, because load() is.
+   */
   setup?: (ctx: ExtensionContext) => void
   migrations?: ExtensionMigration[]
   /** Called by the extension's own UI: POST /api/extensions/<id>/call/<method>. */
@@ -557,6 +565,11 @@ export interface ExtensionDefinitionCost {
  * copy would crash in one of the two hosts.
  */
 export interface ExtensionStorage {
+  /**
+   * Runs exactly one statement. It prepares the SQL, so a semicolon-separated
+   * batch fails with a raw driver error — this is not the db.exec() that
+   * migrations are run with. Split the batch, or declare it as a migration.
+   */
   exec(sql: string, params?: unknown[]): void
   all<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[]
   get<T = Record<string, unknown>>(sql: string, params?: unknown[]): T | undefined

@@ -22,19 +22,45 @@ import type { ExtensionMigration, ExtensionStorage } from '@/types/extension'
  * makes it possible to drop them on uninstall. It is enforced on the migration
  * declarations only (see validateMigrationSql) — runtime SQL is not parsed or
  * restricted, and nothing here should be mistaken for a sandbox.
+ *
+ * The prefix does NOT identify exactly one extension. The mapping is lossy: the
+ * extension suffix is dropped, every non-alphanumeric character becomes '_' and
+ * the result is lowercased, so 'ai-signal.mjs', 'ai_signal.mjs' and
+ * 'AI.Signal.js' all yield 'ext_ai_signal_'. ext_migrations, by contrast, keys
+ * on the raw filename. Two extensions that collide this way would each see
+ * their own migrations as unapplied, both create the same tables and then
+ * silently share rows. Nothing detects that today; if it ever needs to be
+ * prevented, the check belongs where an extension file is installed, not here.
  */
 export function extensionTablePrefix(extensionId: string): string {
   const base = extensionId.replace(/\.(m?js)$/i, '').replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase()
   return `ext_${base}_`
 }
 
-const CREATE_TABLE_RE = /create\s+(?:temp|temporary\s+)?table\s+(?:if\s+not\s+exists\s+)?["'`]?([A-Za-z0-9_]+)/gi
+/**
+ * Table name of a CREATE [TEMP|TEMPORARY|VIRTUAL] TABLE [IF NOT EXISTS] statement.
+ *
+ * The separator after TABLE (and after EXISTS) is whitespace *or* an opening
+ * quote, because `CREATE TABLE"evil"(...)` is legal SQLite: the quote is its own
+ * token. Brackets are quote characters here for the same reason SQLite treats
+ * them as such.
+ */
+const CREATE_TABLE_RE = /create\s+(?:(?:temp|temporary|virtual)\s+)?table(?:\s+|(?=["'`[]))(?:if\s+not\s+exists(?:\s+|(?=["'`[])))?["'`[]?([A-Za-z0-9_]+)/gi
 
 /**
  * Checks the CREATE TABLE names in a migration against the extension's prefix.
  * Deliberately a regex over the declared migration text rather than a SQL
  * parser: the point is to catch a typo or a careless copy-paste at install
  * time, not to contain a hostile extension (which this could not do anyway).
+ *
+ * CREATE TEMP TABLE is checked too, and that matters more than tidiness:
+ * migrations run on the host's shared connection, SQLite resolves the temp
+ * schema before main, so an unprefixed temp table named after a host table
+ * shadows it for the rest of the process.
+ *
+ * Only CREATE TABLE is looked at. ALTER TABLE, DROP TABLE, CREATE VIEW,
+ * CREATE TRIGGER and CREATE INDEX are not checked at all, and a name inside a
+ * comment or a string literal is checked as if it were a declaration.
  */
 export function validateMigrationSql(prefix: string, sql: string): { ok: true } | { ok: false; error: string } {
   for (const m of sql.matchAll(CREATE_TABLE_RE)) {
@@ -92,6 +118,41 @@ export function runExtensionMigrations(extensionId: string, migrations: Extensio
 }
 
 /**
+ * Drops everything one extension owns in the database: its ext_migrations rows
+ * and every table under its `ext_<id>_` prefix. Called on uninstall.
+ *
+ * Without it an uninstall leaves the schema behind while the file is gone, so
+ * reinstalling a version whose v1 declares a different shape finds the old
+ * ext_migrations row, skips the migration, and every tool call fails at runtime
+ * with "no such column" while load time reports success.
+ *
+ * Tolerates the cases an uninstall actually hits: an extension that never ran a
+ * migration, a database where ext_migrations was never created, and a table
+ * recorded in ext_migrations that no longer exists. Tables and rows go in one
+ * transaction so an uninstall never half-drops a schema.
+ */
+export function dropExtensionStorage(extensionId: string): { droppedTables: string[]; droppedMigrationRows: number } {
+  const db = getDb()
+  const prefix = extensionTablePrefix(extensionId)
+  // sqlite_master is filtered in JS, not with LIKE: the prefix contains '_',
+  // which LIKE reads as a single-character wildcard.
+  const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all() as Array<{ name: string }>)
+    .map((row) => row.name)
+    .filter((name) => name.toLowerCase().startsWith(prefix))
+  const hasMigrationsTable = db.prepare("SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'ext_migrations'").get() != null
+
+  let droppedMigrationRows = 0
+  db.transaction(() => {
+    for (const name of tables) db.exec(`DROP TABLE IF EXISTS "${name.replace(/"/g, '""')}"`)
+    if (hasMigrationsTable) {
+      droppedMigrationRows = db.prepare('DELETE FROM ext_migrations WHERE extension_id = ?').run(extensionId).changes
+    }
+  })()
+
+  return { droppedTables: tables, droppedMigrationRows }
+}
+
+/**
  * A handle onto the host's SQLite connection, handed to the extension in
  * `setup(ctx)`. `extensionId` is only there so a caller must name the
  * extension it is building the handle for; nothing is scoped by it, for the
@@ -101,6 +162,8 @@ export function createExtensionStorage(extensionId: string): ExtensionStorage {
   const db = getDb()
   void extensionId
   return {
+    // One statement per call: this prepares the SQL, unlike migrations, which
+    // go through db.exec(). See the note on ExtensionStorage.exec.
     exec(sql, params = []) { db.prepare(sql).run(...params) },
     all<T>(sql: string, params: unknown[] = []): T[] { return db.prepare(sql).all(...params) as T[] },
     get<T>(sql: string, params: unknown[] = []): T | undefined { return db.prepare(sql).get(...params) as T | undefined },
