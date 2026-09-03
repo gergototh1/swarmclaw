@@ -2,11 +2,15 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { AUTH_COOKIE_NAME } from '@/lib/auth'
 import {
+  buildContentSecurityPolicy,
+  contentSecurityPolicyHeaderName,
+} from '@/lib/content-security-policy'
+import {
   buildExtensionInstallCorsHeaders,
   isExtensionInstallCorsPath,
   resolveExtensionInstallCorsOrigin,
 } from '@/lib/extension-install-cors'
-import { isProductionRuntime } from '@/lib/runtime/runtime-env'
+import { isDevelopmentLikeRuntime, isProductionRuntime } from '@/lib/runtime/runtime-env'
 import { hmrSingleton } from '@/lib/shared-utils'
 
 /* ------------------------------------------------------------------ */
@@ -60,6 +64,59 @@ function withExtensionInstallCorsHeaders(pathname: string, origin: string | null
 }
 
 /* ------------------------------------------------------------------ */
+/*  Content-Security-Policy — document requests only                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Enforce the policy instead of only reporting it.
+ *
+ * Off by default, including in production. The policy is inherited by every
+ * `about:srcdoc` frame this app creates, and chat renders agent-authored HTML
+ * in exactly such a frame (`components/chat/code-block.tsx`,
+ * `components/chat/chat-preview-panel.tsx`), so enforcing `script-src` here
+ * also stops inline scripts inside those previews. Until that is resolved an
+ * operator opts in per install rather than the app deciding for them.
+ */
+function isCspEnforced(): boolean {
+  return process.env.SWARMCLAW_CSP_ENFORCE === '1'
+}
+
+/** True for requests that render an HTML document, which is all the policy governs. */
+function isDocumentRequest(pathname: string): boolean {
+  return !pathname.startsWith('/api/')
+}
+
+/**
+ * Pass a document request through with a nonce and the policy attached.
+ *
+ * The nonce goes on the **request** headers as well as the response, because
+ * that is where Next reads it from: `getScriptNonceFromHeader` parses the
+ * incoming `Content-Security-Policy` (or `-Report-Only`) header and stamps the
+ * nonce onto the framework, bundle and inline-bootstrap script tags it emits.
+ * `x-nonce` carries no meaning for Next itself; it is the documented way for
+ * app code to reach the same value through `headers()`.
+ *
+ * API responses deliberately get no policy. `/api/extensions/:id/assets/:path*`
+ * already sets its own `Content-Security-Policy: sandbox` on `.svg` bodies plus
+ * `X-Content-Type-Options: nosniff` on all of them, and a proxy-set header
+ * would collide with the first of those. Nothing under `/api/` returns a
+ * document, so there is nothing for a page policy to protect there.
+ */
+function documentResponse(request: NextRequest): NextResponse {
+  const nonce = btoa(crypto.randomUUID())
+  const policy = buildContentSecurityPolicy(nonce, { allowEval: isDevelopmentLikeRuntime() })
+  const headerName = contentSecurityPolicyHeaderName(isCspEnforced())
+
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-nonce', nonce)
+  requestHeaders.set(headerName, policy)
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } })
+  response.headers.set(headerName, policy)
+  return response
+}
+
+/* ------------------------------------------------------------------ */
 /*  Proxy                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -69,8 +126,14 @@ function withExtensionInstallCorsHeaders(pathname: string, origin: string | null
  *  After 5 failed attempts from a single IP the client is locked out for 15 minutes.
  */
 export function proxy(request: NextRequest) {
-  const rateLimitEnabled = isRateLimitEnabled()
   const { pathname } = request.nextUrl
+
+  // Page requests were never auth-gated here — the matcher simply did not cover
+  // them — and they still are not. This branch reproduces the pass-through the
+  // old `!pathname.startsWith('/api/')` allowlist gave them and adds the policy.
+  if (isDocumentRequest(pathname)) return documentResponse(request)
+
+  const rateLimitEnabled = isRateLimitEnabled()
   const corsOrigin = resolveExtensionInstallCorsOrigin(request.headers.get('origin'))
   const isWebhookTrigger = request.method === 'POST'
     && /^\/api\/webhooks\/[^/]+\/?$/.test(pathname)
@@ -92,10 +155,10 @@ export function proxy(request: NextRequest) {
     || pathname.startsWith('/api/a2a/')
     || pathname === '/api/.well-known/agent-card'
 
-  // Only protect API routes (not auth, inbound webhooks, or A2A)
+  // Only protect API routes (not auth, inbound webhooks, or A2A). Everything
+  // reaching this point is under /api/; the document branch returned already.
   if (
-    !pathname.startsWith('/api/')
-    || pathname === '/api/auth'
+    pathname === '/api/auth'
     || pathname === '/api/healthz'
     || isWebhookTrigger
     || isConnectorWebhook
@@ -163,5 +226,20 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: [
+    // Access-key auth. Kept as its own entry so no header condition can ever
+    // let an API request skip the check.
+    '/api/:path*',
+    // Content-Security-Policy on document requests. `_next/static`,
+    // `_next/image` and the favicon are subresources that carry no scripts of
+    // their own, and an RSC prefetch is a payload rather than a document, so
+    // none of them needs the header.
+    {
+      source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
+  ],
 }

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next"
+import { headers } from "next/headers"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { DashboardShell } from "@/components/layout/dashboard-shell"
@@ -22,15 +23,20 @@ export const viewport: Viewport = {
 // Turbopack prerender failures seen in detached fresh-install builds.
 export const dynamic = "force-dynamic"
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // The proxy puts the request's CSP nonce here. Next stamps it on the script
+  // tags it emits itself; next-themes' inline anti-flash script is ours to pass
+  // it to. Absent (undefined) for any request the proxy did not run on.
+  const nonce = (await headers()).get("x-nonce") ?? undefined
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased" cz-shortcut-listen="true">
-        <ThemeProvider>
+        <ThemeProvider nonce={nonce}>
           <AppQueryProvider>
             <TooltipProvider>
               <DashboardShell>
