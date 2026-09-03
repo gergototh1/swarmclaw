@@ -212,6 +212,19 @@ export interface ExtensionSettingsField {
   required?: boolean
 }
 
+export interface ExtensionPageDefinition {
+  id: string
+  label: string
+  icon?: string
+  /** Must start with '/x/'; unique across installed extensions. */
+  path: string
+  /** Relative to the extension workspace `dist/`, e.g. 'dist/index.js'. */
+  entry: string
+  css?: string
+  /** 'end' (default) or 'after:<AppView>', e.g. 'after:tasks'. */
+  position?: string
+}
+
 export interface ExtensionUIDefinition {
   sidebarItems?: Array<{
     id: string
@@ -249,6 +262,8 @@ export interface ExtensionUIDefinition {
     label: string
     icon?: string
   }>
+  /** Full pages the extension renders from its own bundle under the /x/ namespace. */
+  pages?: ExtensionPageDefinition[]
 }
 
 export type ExtensionManagedResourceKind = 'agent' | 'schedule' | 'local_folder'

@@ -11,6 +11,10 @@ export async function GET(req: Request) {
   const manager = getExtensionManager()
   const extensions = manager.getUIExtensions()
 
+  if (type === 'pages') {
+    return NextResponse.json(manager.getPages())
+  }
+
   if (type === 'sidebar') {
     const items = extensions.flatMap((ui) => ui.sidebarItems || [])
     return NextResponse.json(items)

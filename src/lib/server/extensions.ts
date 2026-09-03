@@ -9,6 +9,7 @@ import type {
   ExtensionMeta,
   ExtensionToolDef,
   ExtensionUIDefinition,
+  ExtensionPageDefinition,
   ExtensionProviderDefinition,
   ExtensionConnectorDefinition,
   ExtensionManagedResources,
@@ -36,6 +37,7 @@ import { createNotification } from './create-notification'
 import { notify } from './ws-hub'
 import { decryptKey, encryptKey, loadSettings, saveSettings } from './storage'
 import { buildExtensionHooks } from './extensions-approval-guidance'
+import { validateExtensionPages } from './extensions/extension-pages'
 import { errorMessage, hmrSingleton } from '@/lib/shared-utils'
 
 const EXTENSIONS_DIR = path.join(DATA_DIR, 'extensions')
@@ -1097,6 +1099,17 @@ class ExtensionManager {
               continue
             }
 
+            const takenPaths = new Set<string>()
+            for (const other of this.extensions.values()) {
+              for (const page of other.ui?.pages || []) takenPaths.add(page.path)
+            }
+            const pagesCheck = validateExtensionPages(ext.ui?.pages, takenPaths)
+            if (!pagesCheck.ok) {
+              this.markExtensionFailure(file, 'load.ui_pages', pagesCheck.error, true)
+              continue
+            }
+            if (ext.ui) ext.ui.pages = pagesCheck.pages
+
             this.extensions.set(file, {
               id: file,
               meta: {
@@ -1197,6 +1210,15 @@ class ExtensionManager {
       if (p.ui) allUI.push(p.ui)
     }
     return allUI
+  }
+
+  getPages(): Array<ExtensionPageDefinition & { extensionId: string }> {
+    this.load()
+    const out: Array<ExtensionPageDefinition & { extensionId: string }> = []
+    for (const p of this.extensions.values()) {
+      for (const page of p.ui?.pages || []) out.push({ ...page, extensionId: p.id })
+    }
+    return out
   }
 
   getManagedResourceExtensions(): Array<{
