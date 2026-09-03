@@ -78,7 +78,24 @@ describe('buildContentSecurityPolicy', () => {
     assert.deepEqual(parsed.get('object-src'), ["'none'"])
     assert.deepEqual(parsed.get('base-uri'), ["'self'"])
     assert.deepEqual(parsed.get('form-action'), ["'self'"])
+  })
+
+  it('refuses embedding, which stops /s/<token> share pages being framed once enforcing', () => {
+    // A share link is a public revocable page to open, not a widget to embed.
+    // Browsers ignore frame-ancestors in a report-only policy, so this is inert
+    // today and only bites when SWARMCLAW_CSP_ENFORCE=1. Asserted here so the
+    // share-page decision cannot be reversed by editing one directive quietly.
+    const parsed = directives(buildContentSecurityPolicy('n', { allowEval: false }))
     assert.deepEqual(parsed.get('frame-ancestors'), ["'none'"])
+  })
+
+  it('sends violations nowhere but the operator console', () => {
+    // Deliberate: a self-hosted install has no collector to point report-to at,
+    // and reporting page URLs off-box would leak a private deployment. Report-only
+    // here is an operator dry-run switch, not telemetry.
+    const policy = buildContentSecurityPolicy('n', { allowEval: false })
+    assert.ok(!policy.includes('report-to'))
+    assert.ok(!policy.includes('report-uri'))
   })
 })
 

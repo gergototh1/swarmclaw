@@ -70,20 +70,73 @@ function withExtensionInstallCorsHeaders(pathname: string, origin: string | null
 /**
  * Enforce the policy instead of only reporting it.
  *
- * Off by default, including in production. The policy is inherited by every
- * `about:srcdoc` frame this app creates, and chat renders agent-authored HTML
- * in exactly such a frame (`components/chat/code-block.tsx`,
- * `components/chat/chat-preview-panel.tsx`), so enforcing `script-src` here
- * also stops inline scripts inside those previews. Until that is resolved an
- * operator opts in per install rather than the app deciding for them.
+ * Off by default, including in production. **Two** things in the app break
+ * under an enforcing `script-src`, both for the same reason: a document loaded
+ * from a local scheme inherits the CSP of the document that created it, and
+ * neither of these carries this request's nonce. Fixing either one is its own
+ * task; neither is fixed here. Whoever flips this flag has to handle both.
+ *
+ * 1. **`about:srcdoc` chat previews.** Chat renders agent-authored HTML in
+ *    `srcdoc` iframes: `src/components/chat/code-block.tsx` (the inline preview)
+ *    and `src/components/chat/chat-preview-panel.tsx`. Inline `<script>` inside
+ *    those frames stops running. Confirmed in Chrome.
+ * 2. **`blob:` "Open in new tab".** `handleOpenTab` in
+ *    `src/components/chat/code-block.tsx` wraps the same agent-authored code in
+ *    a `Blob` of `text/html` (or `image/svg+xml`) and `window.open`s the object
+ *    URL. A `blob:` document inherits its creator's policy exactly the same
+ *    way, so that tab loses its inline scripts too — in a new window, where
+ *    nobody is watching a console.
+ *
+ * One further behaviour appears the moment this flips, deliberately rather than
+ * as a break: `frame-ancestors 'none'` starts being honoured. A browser ignores
+ * `frame-ancestors` in a report-only policy, so today it is inert; enforcing it
+ * means `/s/<token>` share pages can no longer be embedded in an iframe
+ * anywhere. That is the intended posture — a share link is a public, revocable,
+ * read-only page (`src/app/s/[token]/page.tsx`) that promises no embedding
+ * contract in either direction — but it is visible to anyone who was framing
+ * one. Allowing it again means giving that route its own policy, not loosening
+ * this one for the whole app.
  */
 function isCspEnforced(): boolean {
   return process.env.SWARMCLAW_CSP_ENFORCE === '1'
 }
 
-/** True for requests that render an HTML document, which is all the policy governs. */
+/**
+ * Path prefixes that never serve an HTML document.
+ *
+ * `/api/` is this app's route handlers. `/.well-known/` is the public A2A
+ * discovery endpoint (`src/app/.well-known/agent-card.json/route.ts`), fetched
+ * as `application/json` by remote agents. `/_next/` is framework output. The
+ * matcher below already skips most of these; the list is repeated here so the
+ * decision holds no matter what invokes this module.
+ */
+const NON_DOCUMENT_PREFIXES = ['/api/', '/.well-known/', '/_next/']
+
+/**
+ * True for requests that render an HTML document, which is all the policy governs.
+ *
+ * Keyed on the path rather than on the `Sec-Fetch-Dest: document` request
+ * header. The path is server-side data that every client produces, while
+ * fetch-metadata headers are absent from older browsers, from non-browser
+ * clients, and from anything behind a header-stripping proxy — all of which
+ * would silently lose the policy on real pages. The path is also assertable in
+ * a unit test without synthesising browser headers.
+ *
+ * Every page route here is extensionless: `/home`, `/agents/<uuid>`,
+ * `/s/<base64url token>`, and `/x/<slug>` where the slug is validated as
+ * `[a-z0-9][a-z0-9-]*` (`lib/server/extensions/extension-pages.ts`). Everything
+ * served out of `public/` and `src/app/icon.svg` has an extension. So "a dot in
+ * the last segment" is a reliable "file, not page" test for this app, and it
+ * keeps covering assets dropped into `public/` later without listing every
+ * directory in there.
+ *
+ * What it cannot see: a future non-`/api/` route handler at an extensionless
+ * path that returns something other than a document. Add its prefix to
+ * NON_DOCUMENT_PREFIXES when one appears.
+ */
 function isDocumentRequest(pathname: string): boolean {
-  return !pathname.startsWith('/api/')
+  if (NON_DOCUMENT_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false
+  return !pathname.slice(pathname.lastIndexOf('/') + 1).includes('.')
 }
 
 /**
@@ -96,11 +149,12 @@ function isDocumentRequest(pathname: string): boolean {
  * `x-nonce` carries no meaning for Next itself; it is the documented way for
  * app code to reach the same value through `headers()`.
  *
- * API responses deliberately get no policy. `/api/extensions/:id/assets/:path*`
- * already sets its own `Content-Security-Policy: sandbox` on `.svg` bodies plus
+ * Only documents get here. `/api/extensions/:id/assets/:path*` already sets its
+ * own `Content-Security-Policy: sandbox` on `.svg` bodies plus
  * `X-Content-Type-Options: nosniff` on all of them, and a proxy-set header
- * would collide with the first of those. Nothing under `/api/` returns a
- * document, so there is nothing for a page policy to protect there.
+ * would collide with the first of those. Nothing under `/api/`, `/.well-known/`
+ * or `public/` returns a document, so a page policy has nothing to protect
+ * there and would only be a header a future JSON body inherits by accident.
  */
 function documentResponse(request: NextRequest): NextResponse {
   const nonce = btoa(crypto.randomUUID())
@@ -130,8 +184,12 @@ export function proxy(request: NextRequest) {
 
   // Page requests were never auth-gated here — the matcher simply did not cover
   // them — and they still are not. This branch reproduces the pass-through the
-  // old `!pathname.startsWith('/api/')` allowlist gave them and adds the policy.
-  if (isDocumentRequest(pathname)) return documentResponse(request)
+  // old `!pathname.startsWith('/api/')` allowlist gave them. Documents also pick
+  // up the policy; static assets and `/.well-known/` pass through untouched, so
+  // they neither carry a page CSP nor fall into the access-key check below.
+  if (!pathname.startsWith('/api/')) {
+    return isDocumentRequest(pathname) ? documentResponse(request) : NextResponse.next()
+  }
 
   const rateLimitEnabled = isRateLimitEnabled()
   const corsOrigin = resolveExtensionInstallCorsOrigin(request.headers.get('origin'))
@@ -232,10 +290,13 @@ export const config = {
     '/api/:path*',
     // Content-Security-Policy on document requests. `_next/static`,
     // `_next/image` and the favicon are subresources that carry no scripts of
-    // their own, and an RSC prefetch is a payload rather than a document, so
-    // none of them needs the header.
+    // their own, `.well-known` is the public A2A agent card served as JSON to
+    // remote agents, and an RSC prefetch is a payload rather than a document,
+    // so none of them needs the header. `isDocumentRequest` above repeats the
+    // `.well-known` exclusion and adds the extension rule for `public/` assets;
+    // that function, not this regex, is the authority.
     {
-      source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+      source: '/((?!api|_next/static|_next/image|favicon.ico|.well-known).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

@@ -40,6 +40,24 @@
  * from being abused as a script source, and this policy allowlists no host
  * other than the app's own origin. Extension bundles are served from
  * `/api/extensions/<id>/assets/...`, which `'self'` already covers.
+ *
+ * ## Why there is no report-to / report-uri
+ *
+ * Console-only, by design. This policy ships report-only so an **operator** can
+ * dry-run it on their own install, watch DevTools, and then set
+ * `SWARMCLAW_CSP_ENFORCE=1`; it is a per-install switch, not a telemetry
+ * channel. `report-to` would need a `Reporting-Endpoints` response header
+ * naming a collector URL, and a self-hosted SwarmClaw has nowhere to point one:
+ * there is no shared origin across installs, sending violations to a project
+ * endpoint would exfiltrate the URLs and inline-script contents of a private
+ * self-hosted deployment without consent, and a local collector route would
+ * only write reports into a `data/` file nobody reads. `report-uri` is
+ * deprecated on top of that.
+ *
+ * If a report sink is ever wanted, it needs three things together and none of
+ * them alone: a route to receive `application/reports+json`, a
+ * `Reporting-Endpoints` header emitted next to this policy, and an operator
+ * opt-in for where the reports go.
  */
 
 export interface ContentSecurityPolicyOptions {
@@ -84,6 +102,13 @@ export function buildContentSecurityPolicy(nonce: string, options: ContentSecuri
     `frame-src 'self' data: blob: https: http:`,
     `worker-src 'self' blob:`,
     `form-action 'self'`,
+    // Nothing in the app is meant to be embedded, share pages included: a
+    // `/s/<token>` link (`app/s/[token]/page.tsx`) is a public revocable page
+    // to open, not a widget to frame. Inert while the policy is delivered
+    // report-only, since browsers ignore `frame-ancestors` there, so this bites
+    // only once `SWARMCLAW_CSP_ENFORCE=1` — see the note on `isCspEnforced` in
+    // `proxy.ts`. Allowing embedding again means a separate policy for that
+    // route, not a looser directive here.
     `frame-ancestors 'none'`,
   ].join('; ')
   // Deliberately omitted: `upgrade-insecure-requests`. Self-hosted SwarmClaw is

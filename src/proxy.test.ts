@@ -21,6 +21,19 @@ function nonceFromPolicy(policy: string): string {
   return match[1]
 }
 
+/** The request headers this response tells Next to render from. */
+function forwardedRequestHeaders(response: Response): Headers {
+  return new Headers(
+    Object.fromEntries(
+      (response.headers.get('x-middleware-override-headers') ?? '')
+        .split(',')
+        .map((key) => key.trim())
+        .filter(Boolean)
+        .map((key) => [key, response.headers.get(`x-middleware-request-${key}`) ?? '']),
+    ),
+  )
+}
+
 describe('proxy', () => {
   it('keeps CORS headers on extension-install auth failures for allowed origins', () => {
     process.env.ACCESS_KEY = 'top-secret'
@@ -104,15 +117,7 @@ describe('proxy content-security-policy', () => {
     const policy = response.headers.get('content-security-policy-report-only')
     assert.ok(policy)
 
-    const forwarded = new Headers(
-      Object.fromEntries(
-        (response.headers.get('x-middleware-override-headers') ?? '')
-          .split(',')
-          .map((key) => key.trim())
-          .filter(Boolean)
-          .map((key) => [key, response.headers.get(`x-middleware-request-${key}`) ?? '']),
-      ),
-    )
+    const forwarded = forwardedRequestHeaders(response)
 
     const nonce = nonceFromPolicy(policy)
     assert.equal(forwarded.get('x-nonce'), nonce)
@@ -140,6 +145,51 @@ describe('proxy content-security-policy', () => {
       const response = proxy(new NextRequest(`http://localhost${path}`))
       assert.equal(response.headers.get('content-security-policy'), null, path)
       assert.equal(response.headers.get('content-security-policy-report-only'), null, path)
+    }
+  })
+
+  it('leaves the public A2A agent card without a page policy or a nonce', () => {
+    // /.well-known/agent-card.json is application/json fetched by remote agents,
+    // not a document. A page CSP there is meaningless at best, and an x-nonce it
+    // never asked for is the seed of a future JSON route inheriting a page
+    // policy. It is also not access-key gated, so it must not 401 either.
+    process.env.ACCESS_KEY = 'top-secret'
+    const response = proxy(new NextRequest('http://localhost/.well-known/agent-card.json'))
+
+    assert.equal(response.status, 200)
+    assert.equal(response.headers.get('content-security-policy'), null)
+    assert.equal(response.headers.get('content-security-policy-report-only'), null)
+    assert.equal(forwardedRequestHeaders(response).get('x-nonce'), null)
+  })
+
+  it('leaves static assets alone rather than treating every non-api path as a page', () => {
+    process.env.ACCESS_KEY = 'top-secret'
+    for (const path of [
+      '/icon.svg',
+      '/next.svg',
+      '/branding/swarmclaw-mark.png',
+      '/provider-logos/openai.svg',
+      '/favicon.ico',
+    ]) {
+      const response = proxy(new NextRequest(`http://localhost${path}`))
+      assert.equal(response.status, 200, path)
+      assert.equal(response.headers.get('content-security-policy'), null, path)
+      assert.equal(response.headers.get('content-security-policy-report-only'), null, path)
+      assert.equal(forwardedRequestHeaders(response).get('x-nonce'), null, path)
+    }
+  })
+
+  it('still policies every real page route, including extension pages and share links', () => {
+    delete process.env.ACCESS_KEY
+    for (const path of [
+      '/',
+      '/home',
+      '/agents/2f1c9a3e-0d4b-4f21-9a77-1b6c0e5d8a42',
+      '/x/aisignal',
+      '/s/Q0hFQ0stVE9LRU4',
+    ]) {
+      const response = proxy(new NextRequest(`http://localhost${path}`))
+      assert.ok(response.headers.get('content-security-policy-report-only'), path)
     }
   })
 
