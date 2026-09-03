@@ -771,6 +771,16 @@ class ExtensionManager {
     if (!fs.existsSync(EXTENSION_WORKSPACES_DIR)) fs.mkdirSync(EXTENSION_WORKSPACES_DIR, { recursive: true })
   }
 
+  /** Filenames of the external extension files currently on disk. Empty when the directory cannot be read. */
+  private listExtensionFilenames(): string[] {
+    try {
+      this.ensureExtensionDirs()
+      return fs.readdirSync(EXTENSIONS_DIR).filter((name) => name.endsWith('.js') || name.endsWith('.mjs'))
+    } catch {
+      return []
+    }
+  }
+
   private getWorkspaceDir(filename: string): string {
     return path.join(EXTENSION_WORKSPACES_DIR, extensionWorkspaceKey(filename))
   }
@@ -1146,7 +1156,19 @@ class ExtensionManager {
                   extensionId: file,
                   tablePrefix: extensionTablePrefix(file),
                   storage: createExtensionStorage(file),
-                  settings: () => this.getExtensionSettings(file),
+                  // Not this.getExtensionSettings(file): setup() runs inside
+                  // load(), before this.loaded is set, so that path re-enters
+                  // load() through getSettingsFields and recurses until the
+                  // stack is exhausted, re-running every extension's setup and
+                  // migrations at each level. The fields are already in hand
+                  // here — they are this extension's own declarations, the same
+                  // list getSettingsFields would return once it is registered
+                  // — and the values are read fresh on every call, so a later
+                  // call still sees settings edited since load.
+                  settings: () => this.applyDeclaredSettingsDefaults(
+                    this.readStoredExtensionSettings(file),
+                    ext.ui?.settingsFields || [],
+                  ),
                   log: {
                     info: (msg, meta) => log.info(`extension:${ext.name}`, msg, meta),
                     warn: (msg, meta) => log.warn(`extension:${ext.name}`, msg, meta),
@@ -1862,7 +1884,15 @@ class ExtensionManager {
     return []
   }
 
-  getExtensionSettings(extensionId: string): Record<string, unknown> {
+  /**
+   * The stored settings values of one extension, secrets decrypted, with no
+   * declared-field defaults filled in and without touching this.load().
+   *
+   * Split out of getExtensionSettings so that setup(ctx) can be handed a
+   * settings accessor that does not re-enter the loader. See the settings
+   * accessor built in load().
+   */
+  private readStoredExtensionSettings(extensionId: string): Record<string, unknown> {
     const settings = loadSettings()
     const allSettings = (settings.extensionSettings as Record<string, Record<string, unknown>> | undefined) ?? {}
     const result: Record<string, unknown> = {}
@@ -1883,13 +1913,27 @@ class ExtensionManager {
       }
     }
 
-    for (const field of this.getSettingsFields(extensionId)) {
-      if (result[field.key] === undefined && field.defaultValue !== undefined) {
-        result[field.key] = field.defaultValue
+    return result
+  }
+
+  /** Fills a stored-settings map with the defaults of the fields that declare one. */
+  private applyDeclaredSettingsDefaults(
+    values: Record<string, unknown>,
+    fields: import('@/types').ExtensionSettingsField[],
+  ): Record<string, unknown> {
+    for (const field of fields) {
+      if (values[field.key] === undefined && field.defaultValue !== undefined) {
+        values[field.key] = field.defaultValue
       }
     }
+    return values
+  }
 
-    return result
+  getExtensionSettings(extensionId: string): Record<string, unknown> {
+    return this.applyDeclaredSettingsDefaults(
+      this.readStoredExtensionSettings(extensionId),
+      this.getSettingsFields(extensionId),
+    )
   }
 
   getPublicExtensionSettings(extensionId: string): { values: Record<string, unknown>; configuredSecretFields: string[] } {
@@ -2240,35 +2284,44 @@ class ExtensionManager {
   deleteExtension(filename: string): boolean {
     // Only allow deleting external extensions, not builtins
     if (this.builtins.has(this.canonicalExtensionId(filename))) return false
-    const fullPath = path.join(EXTENSIONS_DIR, filename)
+    // Sanitised before anything touches the filesystem: an unsanitised
+    // './x.mjs' still resolves to the file and unlinks it, but derives the
+    // prefix 'ext___x_', so the schema drop below matches nothing and leaves
+    // exactly the orphan schema it exists to prevent.
+    const sanitizedFilename = sanitizeExtensionFilename(filename)
+    const fullPath = path.join(EXTENSIONS_DIR, sanitizedFilename)
     if (!fs.existsSync(fullPath)) return false
+    // Read before the unlink: the surviving extension files decide which
+    // prefixed tables the drop below must leave alone.
+    const otherExtensionIds = this.listExtensionFilenames().filter((name) => name !== sanitizedFilename)
     fs.unlinkSync(fullPath)
-    const workspaceDir = this.getWorkspaceDir(filename)
+    const workspaceDir = this.getWorkspaceDir(sanitizedFilename)
     if (fs.existsSync(workspaceDir)) fs.rmSync(workspaceDir, { recursive: true, force: true })
-    this.updateConfigEntry(filename, null)
+    this.updateConfigEntry(sanitizedFilename, null)
     const settings = loadSettings()
     const settingsMap = (settings.extensionSettings as Record<string, Record<string, unknown>> | undefined) ?? {}
-    for (const key of this.configIdsFor(filename)) delete settingsMap[key]
+    for (const key of this.configIdsFor(sanitizedFilename)) delete settingsMap[key]
     settings.extensionSettings = settingsMap
     saveSettings(settings)
-    this.clearFailureState(filename)
+    this.clearFailureState(sanitizedFilename)
     // Last piece of extension state, and the only one that outlives the files:
-    // its ext_migrations rows and its ext_<id>_ tables. Leaving them makes a
-    // later reinstall skip its own migrations against a stale schema. The files
+    // its ext_migrations rows and its ext_<id>_ tables, views and triggers.
+    // Leaving them makes a later reinstall skip its own migrations against a
+    // stale schema, or fail outright on an object that still exists. The files
     // are already gone by here, so a database error is logged rather than
     // thrown — failing the call now would report an uninstall that did happen.
     try {
-      const dropped = dropExtensionStorage(filename)
-      if (dropped.droppedTables.length > 0 || dropped.droppedMigrationRows > 0) {
+      const dropped = dropExtensionStorage(sanitizedFilename, otherExtensionIds)
+      if (dropped.droppedObjects.length > 0 || dropped.droppedMigrationRows > 0) {
         log.info('extensions', 'Dropped extension storage on delete', {
-          extensionId: filename,
-          tables: dropped.droppedTables.join(', '),
+          extensionId: sanitizedFilename,
+          objects: dropped.droppedObjects.join(', '),
           migrationRows: dropped.droppedMigrationRows,
         })
       }
     } catch (err: unknown) {
       log.warn('extensions', 'Failed to drop extension storage on delete', {
-        extensionId: filename,
+        extensionId: sanitizedFilename,
         error: errorMessage(err),
       })
     }

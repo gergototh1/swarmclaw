@@ -65,6 +65,30 @@ describe('validateMigrationSql', () => {
       tempViewPrefixed: true,
     })
   })
+
+  it('explains why a quoted non-ascii table name is rejected instead of blaming "IF"', () => {
+    const out = runWithTempDataDir<{ error: string }>(`
+      const mod = await import('@/lib/server/extensions/extension-storage')
+      const { validateMigrationSql } = mod.default || mod
+      const result = validateMigrationSql('ext_a_', 'CREATE TABLE IF NOT EXISTS "\u00e9vil" (id TEXT)')
+      console.log(JSON.stringify({ error: result.ok ? '' : result.error }))
+    `)
+    // The name is still rejected, but not as a table literally called "IF".
+    assert.doesNotMatch(out.error, /"IF"/)
+    assert.match(out.error, /ext_a_/)
+    assert.match(out.error, /letters, digits and underscore/)
+  })
+
+  it('says the prefix is matched case-sensitively when a table name only differs in case', () => {
+    const out = runWithTempDataDir<{ error: string }>(`
+      const mod = await import('@/lib/server/extensions/extension-storage')
+      const { validateMigrationSql } = mod.default || mod
+      const result = validateMigrationSql('ext_a_', 'CREATE TABLE EXT_A_ITEMS (id TEXT)')
+      console.log(JSON.stringify({ error: result.ok ? '' : result.error }))
+    `)
+    assert.match(out.error, /EXT_A_ITEMS/)
+    assert.match(out.error, /case/i)
+  })
 })
 
 describe('runExtensionMigrations + createExtensionStorage', () => {
@@ -343,5 +367,198 @@ describe('deleteExtension drops the extension schema', () => {
     assert.equal(out.error, '')
     assert.equal(out.deleted, true)
     assert.equal(out.rows, 0)
+  })
+})
+
+describe('ctx.settings() inside setup(ctx)', () => {
+  it('reads the stored settings without re-entering the extension loader', () => {
+    const out = runWithTempDataDir<{
+      setupCalls: number
+      settings: Record<string, unknown> | null
+      stage: string
+      error: string
+      loaded: boolean
+    }>(`
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const storageMod = await import('@/lib/server/storage')
+      const { loadSettings, saveSettings } = storageMod.default || storageMod
+      const m = getExtensionManager()
+      await m.saveExtensionSource('set_a.mjs', \`
+        export default {
+          name: 'SetA',
+          ui: { settingsFields: [
+            { key: 'token', label: 'Token', type: 'text' },
+            { key: 'mode', label: 'Mode', type: 'text', defaultValue: 'fallback' },
+          ] },
+          setup(ctx) {
+            globalThis.__setupCalls = (globalThis.__setupCalls || 0) + 1
+            globalThis.__setupSettings = ctx.settings()
+          },
+          tools: [{ name: 'set_a_probe', description: 'x', parameters: { type: 'object', properties: {} }, execute: () => 'ok' }],
+        }\`)
+      const stored = loadSettings()
+      stored.extensionSettings = { ...(stored.extensionSettings || {}), 'set_a.mjs': { token: 'stored-token' } }
+      saveSettings(stored)
+      // saveExtensionSource reloads on its own, so count only the reload below.
+      globalThis.__setupCalls = 0
+      let error = ''
+      try { m.reload() } catch (e) { error = String(e && e.message ? e.message : e) }
+      // Counted here, before anything else can trigger a further load: one
+      // reload must call setup exactly once.
+      const setupCalls = globalThis.__setupCalls || 0
+      let meta = null
+      try { meta = m.listExtensions().find((e) => e.filename === 'set_a.mjs') } catch (e) { error = error || String(e && e.message ? e.message : e) }
+      let loaded = false
+      try { loaded = m.getTools(['set_a.mjs']).length > 0 } catch { loaded = false }
+      console.log(JSON.stringify({
+        setupCalls,
+        settings: globalThis.__setupSettings || null,
+        stage: (meta && meta.lastFailureStage) || '',
+        error,
+        loaded,
+      }))
+    `)
+    // Pre-fix this recursed until the stack was exhausted: setup ran ~1300 times
+    // and the extension did not load.
+    assert.equal(out.setupCalls, 1)
+    assert.equal(out.error, '')
+    assert.equal(out.stage, '')
+    assert.equal(out.loaded, true)
+    // Stored values, not merely the declared field list, plus declared defaults.
+    assert.deepEqual(out.settings, { token: 'stored-token', mode: 'fallback' })
+  })
+})
+
+describe('deleteExtension with a nested extension prefix', () => {
+  it('keeps the tables and migration rows of an extension whose prefix extends the deleted one', () => {
+    const out = runWithTempDataDir<{
+      deleted: boolean
+      tables: string[]
+      proRows: number
+      proSelect: string
+    }>(`
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const storageMod = await import('@/lib/server/storage')
+      const { getDb } = storageMod.default || storageMod
+      const m = getExtensionManager()
+      await m.saveExtensionSource('nest_a.mjs', \`
+        export default {
+          name: 'NestA',
+          migrations: [{ version: 1, sql: 'CREATE TABLE IF NOT EXISTS ext_nest_a_notes (id TEXT PRIMARY KEY)' }],
+        }\`)
+      await m.saveExtensionSource('nest_a_pro.mjs', \`
+        export default {
+          name: 'NestAPro',
+          migrations: [{ version: 1, sql: 'CREATE TABLE IF NOT EXISTS ext_nest_a_pro_notes (id TEXT PRIMARY KEY)' }],
+        }\`)
+      m.reload()
+      getDb().prepare('INSERT INTO ext_nest_a_pro_notes (id) VALUES (?)').run('kept')
+      const deleted = m.deleteExtension('nest_a.mjs')
+      const tables = getDb().prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map((r) => r.name).filter((n) => n.startsWith('ext_nest_'))
+      const proRows = getDb().prepare('SELECT version FROM ext_migrations WHERE extension_id = ?').all('nest_a_pro.mjs').length
+      let proSelect = ''
+      try { proSelect = String(getDb().prepare('SELECT COUNT(*) AS c FROM ext_nest_a_pro_notes').get().c) }
+      catch (e) { proSelect = 'ERROR: ' + e.message }
+      console.log(JSON.stringify({ deleted, tables, proRows, proSelect }))
+    `)
+    assert.equal(out.deleted, true)
+    assert.deepEqual(out.tables, ['ext_nest_a_pro_notes'])
+    assert.equal(out.proRows, 1)
+    assert.equal(out.proSelect, '1')
+  })
+})
+
+describe('deleteExtension drops prefixed views and triggers', () => {
+  it('lets a reinstall re-run a migration that creates a view', () => {
+    const out = runWithTempDataDir<{
+      leftovers: Array<{ type: string; name: string }>
+      stage: string
+      reinstalled: string
+    }>(`
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const storageMod = await import('@/lib/server/storage')
+      const { getDb } = storageMod.default || storageMod
+      const source = \`
+        let storage = null
+        export default {
+          name: 'ViewA',
+          migrations: [{ version: 1, sql: [
+            'CREATE TABLE IF NOT EXISTS ext_view_a_notes (id TEXT PRIMARY KEY, seen INTEGER)',
+            'CREATE VIEW ext_view_a_report AS SELECT id FROM ext_view_a_notes',
+            'CREATE TRIGGER ext_view_a_stamp AFTER INSERT ON ext_view_a_notes BEGIN UPDATE ext_view_a_notes SET seen = 1 WHERE id = NEW.id; END',
+          ].join('; ') }],
+          setup(ctx) { storage = ctx.storage },
+          tools: [{ name: 'view_a_count', description: 'x', parameters: { type: 'object', properties: {} },
+            execute: () => { storage.exec('INSERT INTO ext_view_a_notes (id) VALUES (?)', ['n1']); return String(storage.all('SELECT * FROM ext_view_a_report').length) } }],
+        }\`
+      const m = getExtensionManager()
+      await m.saveExtensionSource('view_a.mjs', source)
+      m.reload()
+      m.deleteExtension('view_a.mjs')
+      const leftovers = getDb().prepare('SELECT type, name FROM sqlite_master ORDER BY name').all().filter((r) => String(r.name).startsWith('ext_view_a_'))
+      await m.saveExtensionSource('view_a.mjs', source)
+      m.reload()
+      const meta = m.listExtensions().find((e) => e.filename === 'view_a.mjs')
+      const entry = m.getTools(['view_a.mjs']).find((t) => t.tool.name === 'view_a_count')
+      let reinstalled = ''
+      if (!entry) reinstalled = 'NOT LOADED'
+      else {
+        try { reinstalled = String(await entry.tool.execute({}, { session: {}, message: '' })) }
+        catch (e) { reinstalled = 'ERROR: ' + e.message }
+      }
+      console.log(JSON.stringify({ leftovers, stage: (meta && meta.lastFailureStage) || '', reinstalled }))
+    `)
+    assert.deepEqual(out.leftovers, [])
+    assert.equal(out.stage, '')
+    assert.equal(out.reinstalled, '1')
+  })
+})
+
+describe('dropExtensionStorage without an ext_migrations table', () => {
+  it('deletes cleanly in a database where no extension ever migrated', () => {
+    const out = runWithTempDataDir<{ error: string; droppedObjects: string[]; droppedMigrationRows: number; migrationsTable: boolean }>(`
+      const mod = await import('@/lib/server/extensions/extension-storage')
+      const { dropExtensionStorage } = mod.default || mod
+      const storageMod = await import('@/lib/server/storage')
+      const { getDb } = storageMod.default || storageMod
+      let error = ''
+      let result = { droppedObjects: [], droppedMigrationRows: -1 }
+      try { result = dropExtensionStorage('never_migrated.mjs') } catch (e) { error = String(e.message) }
+      const migrationsTable = getDb().prepare("SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'ext_migrations'").get() != null
+      console.log(JSON.stringify({ error, droppedObjects: result.droppedObjects, droppedMigrationRows: result.droppedMigrationRows, migrationsTable }))
+    `)
+    assert.equal(out.error, '')
+    assert.deepEqual(out.droppedObjects, [])
+    assert.equal(out.droppedMigrationRows, 0)
+    assert.equal(out.migrationsTable, false)
+  })
+})
+
+describe('deleteExtension filename sanitising', () => {
+  it('refuses a path-qualified filename instead of unlinking the file and orphaning its schema', () => {
+    const out = runWithTempDataDir<{ error: string; stillInstalled: boolean; tables: string[] }>(`
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const storageMod = await import('@/lib/server/storage')
+      const { getDb } = storageMod.default || storageMod
+      const m = getExtensionManager()
+      await m.saveExtensionSource('del_path.mjs', \`
+        export default {
+          name: 'DelPath',
+          migrations: [{ version: 1, sql: 'CREATE TABLE IF NOT EXISTS ext_del_path_notes (id TEXT)' }],
+        }\`)
+      m.reload()
+      let error = ''
+      try { m.deleteExtension('./del_path.mjs') } catch (e) { error = String(e.message) }
+      const stillInstalled = m.listExtensions().some((e) => e.filename === 'del_path.mjs')
+      const tables = getDb().prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map((r) => r.name).filter((n) => n.startsWith('ext_del_path'))
+      console.log(JSON.stringify({ error, stillInstalled, tables }))
+    `)
+    assert.match(out.error, /Invalid filename/)
+    assert.equal(out.stillInstalled, true)
+    assert.deepEqual(out.tables, ['ext_del_path_notes'])
   })
 })
