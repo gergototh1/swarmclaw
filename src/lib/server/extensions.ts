@@ -767,6 +767,11 @@ class ExtensionManager {
     return path.join(EXTENSION_WORKSPACES_DIR, extensionWorkspaceKey(filename))
   }
 
+  /** Absolute path of an extension's managed workspace directory. Returned even when it does not exist yet. */
+  getWorkspaceDirFor(filename: string): string {
+    return this.getWorkspaceDir(sanitizeExtensionFilename(filename))
+  }
+
   private getWorkspaceEntryPath(filename: string): string {
     return path.join(this.getWorkspaceDir(filename), 'index.js')
   }
