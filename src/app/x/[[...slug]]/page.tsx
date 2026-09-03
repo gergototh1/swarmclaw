@@ -255,7 +255,8 @@ export default function ExtensionPageRoute() {
             detail={'SwarmClaw could not fetch which pages installed extensions contribute, so it does not know '
               + `whether one owns ${pathname}. The request failed with: ${pagesError}`}
             hint={'This is usually the server restarting, which is what happens right after an extension is '
-              + 'installed. The list is retried in the background; reload if the page does not appear on its own.'}
+              + 'installed. The list is retried automatically as soon as the connection to the server comes back; '
+              + 'reload if the page does not appear within a few seconds of that.'}
           />
         </MainContent>
       )

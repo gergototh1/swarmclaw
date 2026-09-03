@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '@/lib/app/api-client'
 import { useWs } from '@/hooks/use-ws'
+import { isWsConnected, offWsStateChange, onWsStateChange } from '@/lib/ws-client'
 import { anchorPosition, isMountedAnchorPosition } from '@/lib/extension-page-nav'
 import type { ExtensionPageDefinition } from '@/types/extension'
 
@@ -61,19 +62,27 @@ export interface ExtensionPagesState {
 /**
  * How often the page list is re-fetched while the websocket is down.
  *
- * Matches the `extensions` registration in `components/layout/dashboard-shell.tsx`
- * on purpose: `useWs` keeps one shared fallback interval per topic and the first
- * subscriber's interval is the one that runs, so any other number here would be
- * fiction. A minute is also the right order for this data, which only changes
- * when an extension is installed, enabled or disabled. Without it nothing retries
- * at all, and a fetch that failed during a restart keeps the route wrong until an
- * extensions event happens to arrive.
+ * Must stay equal to the `extensions` registration in
+ * `components/layout/dashboard-shell.tsx` (`useWs('extensions', refreshExtensionState, ...)`),
+ * and not because whichever mounts first "wins" forever: `acquireFallback` in
+ * `use-ws.ts` only early-returns while the topic's shared entry still exists,
+ * and `releaseFallback` deletes that entry once its last handler leaves. The
+ * `/x` route this hook backs renders inside `DashboardShell`'s children, so
+ * effects run and tear down child-first — a single tab hide/show cycle drops
+ * the `extensions` entry and lets this hook recreate it, making *this* value
+ * the interval for the whole `extensions` topic, including the shell's own
+ * extension-state refresh. A mismatch here silently overrides that other
+ * registration's polling rate the moment a tab is hidden and shown again.
  */
-const PAGES_FALLBACK_MS = 60_000
+const PAGES_FALLBACK_MS = 5_000
 
 /** Pages contributed by installed extensions, refreshed when extensions change. */
 export function useExtensionPagesState(): ExtensionPagesState {
   const [state, setState] = useState<ExtensionPagesState>({ pages: [], loaded: false })
+  // Read inside the reconnect listener below without making it re-subscribe
+  // on every fetch outcome.
+  const errorRef = useRef(state.error)
+  useEffect(() => { errorRef.current = state.error }, [state.error])
 
   const refresh = useCallback(() => {
     api<ExtensionPage[]>('GET', '/extensions/ui?type=pages')
@@ -93,6 +102,21 @@ export function useExtensionPagesState(): ExtensionPagesState {
 
   useEffect(() => { refresh() }, [refresh])
   useWs('extensions', refresh, PAGES_FALLBACK_MS)
+
+  // A server restart reconnects the socket within seconds, long before the
+  // fallback interval above would next tick. `ws-client`'s `onopen` only
+  // notifies connection-state listeners and re-sends the subscribe frame — it
+  // never pushes anything to topic handlers — so a fetch that failed while the
+  // socket was down would otherwise sit failed until the next fallback tick or
+  // an actual `extensions` push. Re-fetch here instead, as soon as the
+  // connection comes back, whenever the last attempt is known to have failed.
+  useEffect(() => {
+    const onReconnect = () => {
+      if (isWsConnected() && errorRef.current) refresh()
+    }
+    onWsStateChange(onReconnect)
+    return () => offWsStateChange(onReconnect)
+  }, [refresh])
 
   return state
 }
