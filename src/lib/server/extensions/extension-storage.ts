@@ -156,13 +156,13 @@ export function runExtensionMigrations(extensionId: string, migrations: Extensio
 }
 
 /** DROP keyword per sqlite_master type. Anything else is left alone. */
-const DROPPABLE_OBJECT_TYPES: Record<string, string> = { trigger: 'TRIGGER', view: 'VIEW', table: 'TABLE' }
+const DROPPABLE_OBJECT_TYPES: Record<string, string> = { trigger: 'TRIGGER', view: 'VIEW', index: 'INDEX', table: 'TABLE' }
 
 /**
  * Drops everything one extension owns in the database: its ext_migrations rows
- * and every table, view and trigger under its `ext_<id>_` prefix, minus the
- * objects that belong to another installed extension (see below). Called on
- * uninstall, with the ids of the extension files still present.
+ * and every table, view, trigger and index under its `ext_<id>_` prefix, minus
+ * the objects that belong to another installed extension (see below). Called
+ * on uninstall, with the ids of the extension files still present.
  *
  * Without it an uninstall leaves the schema behind while the file is gone, so
  * reinstalling a version whose v1 declares a different shape finds the old
@@ -173,6 +173,28 @@ const DROPPABLE_OBJECT_TYPES: Record<string, string> = { trigger: 'TRIGGER', vie
  * same migration die with "view ... already exists", so the extension never
  * loads again.
  *
+ * Indexes are explicitly selected too, but for a narrower reason than tables,
+ * views and triggers: dropping a table already drops every index defined on
+ * it (SQLite does this automatically, explicit and auto-indexes alike), so an
+ * index on one of this extension's own prefixed tables was never actually a
+ * leftover risk — it goes with the table. What survives without this is an
+ * index whose *name* carries the prefix but whose *table* does not.
+ * `validateMigrationSql` only inspects CREATE TABLE and CREATE TEMP/TEMPORARY
+ * VIEW; a migration's CREATE INDEX is never checked against the prefix (see
+ * its doc comment), so nothing stops a migration from declaring
+ * `CREATE UNIQUE INDEX ext_x_y ON some_table_not_owned_by_x(...)`. That table
+ * is never dropped, and before this change the index was never queried
+ * either — `sqlite_master` was filtered to `type IN ('trigger', 'view',
+ * 'table')`, so a prefixed index name was invisible to this function
+ * regardless of which table it lived on. A reinstall whose migration
+ * re-declares that same index without "IF NOT EXISTS" then fails with
+ * "index ... already exists", the same failure mode views and triggers had
+ * before they were added. This does not reach SQLite's own automatic indexes
+ * (`sqlite_autoindex_<table>_<n>`, created for UNIQUE/PRIMARY KEY columns
+ * without an explicit index name): their names start with `sqlite_autoindex_`,
+ * never with this extension's prefix, so the name filter below already never
+ * selects them — there is no separate exclusion to write.
+ *
  * Prefixes nest, which is why `otherExtensionIds` exists. 'notes.mjs' yields
  * 'ext_notes_' and 'notes_pro.mjs' yields 'ext_notes_pro_', so a plain
  * startsWith test would drop the still-installed notes_pro tables while its
@@ -180,7 +202,9 @@ const DROPPABLE_OBJECT_TYPES: Record<string, string> = { trigger: 'TRIGGER', vie
  * count as applied forever, the tables are never recreated and every tool call
  * fails with "no such table". So any name that also matches a longer prefix of
  * an extension still on disk is skipped. Equally-long prefixes are the lossy
- * collision described on extensionTablePrefix and are still not handled here.
+ * collision described on extensionTablePrefix and are still not handled here —
+ * that is a preexisting gap shared by every object type this function drops,
+ * indexes included, not something introduced or widened here.
  *
  * Tolerates the cases an uninstall actually hits: an extension that never ran a
  * migration, a database where ext_migrations was never created, and a table
@@ -194,9 +218,12 @@ export function dropExtensionStorage(extensionId: string, otherExtensionIds: str
     .map((id) => extensionTablePrefix(id))
     .filter((other) => other.length > prefix.length && other.startsWith(prefix))
   // sqlite_master is filtered in JS, not with LIKE: the prefix contains '_',
-  // which LIKE reads as a single-character wildcard. Triggers go before views
-  // and views before tables, so nothing is dropped out from under a dependant.
-  const objects = (db.prepare("SELECT type, name FROM sqlite_master WHERE type IN ('trigger', 'view', 'table') ORDER BY CASE type WHEN 'trigger' THEN 0 WHEN 'view' THEN 1 ELSE 2 END, name").all() as Array<{ type: string; name: string }>)
+  // which LIKE reads as a single-character wildcard. Triggers go before views,
+  // views before indexes, and indexes before tables, so nothing is dropped out
+  // from under a dependant (indexes have no dependants of their own; they are
+  // ordered ahead of tables only for tidiness, since DROP INDEX IF EXISTS is a
+  // no-op once its table is already gone).
+  const objects = (db.prepare("SELECT type, name FROM sqlite_master WHERE type IN ('trigger', 'view', 'index', 'table') ORDER BY CASE type WHEN 'trigger' THEN 0 WHEN 'view' THEN 1 WHEN 'index' THEN 2 ELSE 3 END, name").all() as Array<{ type: string; name: string }>)
     .filter((row) => {
       const name = row.name.toLowerCase()
       return name.startsWith(prefix) && !siblingPrefixes.some((sibling) => name.startsWith(sibling))

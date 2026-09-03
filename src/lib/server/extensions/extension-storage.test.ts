@@ -517,6 +517,70 @@ describe('deleteExtension drops prefixed views and triggers', () => {
   })
 })
 
+describe('deleteExtension drops prefixed indexes even on a table it does not own', () => {
+  it('lets a reinstall re-run a migration that indexes a table outside its prefix', () => {
+    const out = runWithTempDataDir<{
+      leftovers: Array<{ type: string; name: string }>
+      hostTableSurvived: boolean
+      stage: string
+      reinstalled: string
+    }>(`
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const storageMod = await import('@/lib/server/storage')
+      const { getDb } = storageMod.default || storageMod
+      // Stands in for a host table: created directly, not through a migration,
+      // because validateMigrationSql inspects CREATE TABLE/VIEW and would
+      // refuse a migration that tried to create an unprefixed table itself.
+      // CREATE INDEX is not inspected at all (see validateMigrationSql's doc
+      // comment), so a migration naming its index with the extension's own
+      // prefix while pointing it at a table outside that prefix is not
+      // hypothetical -- it is exactly what an unchecked CREATE INDEX allows.
+      getDb().exec('CREATE TABLE host_sweeps (id TEXT PRIMARY KEY, ran INTEGER)')
+      const source = \`
+        let storage = null
+        export default {
+          name: 'IdxA',
+          migrations: [{ version: 1, sql: [
+            'CREATE TABLE IF NOT EXISTS ext_idx_a_items (id TEXT PRIMARY KEY)',
+            'CREATE UNIQUE INDEX ext_idx_a_sweeps_ran ON host_sweeps(ran)',
+          ].join('; ') }],
+          setup(ctx) { storage = ctx.storage },
+          tools: [{ name: 'idx_a_count', description: 'x', parameters: { type: 'object', properties: {} },
+            execute: () => { storage.exec('INSERT INTO ext_idx_a_items (id) VALUES (?)', ['n1']); return String(storage.all('SELECT * FROM ext_idx_a_items').length) } }],
+        }\`
+      const m = getExtensionManager()
+      await m.saveExtensionSource('idx_a.mjs', source)
+      m.reload()
+      m.deleteExtension('idx_a.mjs')
+      const leftovers = getDb().prepare('SELECT type, name FROM sqlite_master ORDER BY name').all().filter((r) => String(r.name).startsWith('ext_idx_a_'))
+      const hostTableSurvived = getDb().prepare("SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'host_sweeps'").get() != null
+      // Reinstall: same source, so the same CREATE UNIQUE INDEX (no "IF NOT
+      // EXISTS") runs again. Pre-fix, the index from the first install is
+      // still sitting in sqlite_master and this dies with "index ... already
+      // exists", exactly the failure mode views and triggers had before they
+      // were dropped on uninstall.
+      await m.saveExtensionSource('idx_a.mjs', source)
+      m.reload()
+      const meta = m.listExtensions().find((e) => e.filename === 'idx_a.mjs')
+      const entry = m.getTools(['idx_a.mjs']).find((t) => t.tool.name === 'idx_a_count')
+      let reinstalled = ''
+      if (!entry) reinstalled = 'NOT LOADED'
+      else {
+        try { reinstalled = String(await entry.tool.execute({}, { session: {}, message: '' })) }
+        catch (e) { reinstalled = 'ERROR: ' + e.message }
+      }
+      console.log(JSON.stringify({ leftovers, hostTableSurvived, stage: (meta && meta.lastFailureStage) || '', reinstalled }))
+    `)
+    assert.deepEqual(out.leftovers, [])
+    // The index's own table is never touched -- only the prefixed index name
+    // is dropped, not the host table it happens to point at.
+    assert.equal(out.hostTableSurvived, true)
+    assert.equal(out.stage, '')
+    assert.equal(out.reinstalled, '1')
+  })
+})
+
 describe('dropExtensionStorage without an ext_migrations table', () => {
   it('deletes cleanly in a database where no extension ever migrated', () => {
     const out = runWithTempDataDir<{ error: string; droppedObjects: string[]; droppedMigrationRows: number; migrationsTable: boolean }>(`
