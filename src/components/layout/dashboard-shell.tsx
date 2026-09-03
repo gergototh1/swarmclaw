@@ -19,6 +19,7 @@ import { normalizeThemeMode } from '@/lib/theme-mode'
 
 import { FullScreenLoader } from '@/components/ui/full-screen-loader'
 import { SidebarRail } from '@/components/layout/sidebar-rail'
+import { ExtensionHost } from '@/components/layout/extension-host'
 import { ErrorBoundary } from '@/components/layout/error-boundary'
 import { SheetLayer } from '@/components/layout/sheet-layer'
 import { CommandPalette } from '@/components/shared/command-palette'
@@ -271,6 +272,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       onTouchMove={isDesktop ? undefined : swipeHandlers.onTouchMove}
       onTouchEnd={isDesktop ? undefined : swipeHandlers.onTouchEnd}
     >
+      {/* Publishes the host React and UI primitives on window.swarmclaw so
+          extension page bundles can register their components. */}
+      <ExtensionHost />
+
       {/* Desktop: Navigation rail */}
       {isDesktop && (
         <SidebarRail onSwitchUser={() => setProfileSheetOpen(true)} isViewEnabled={isViewEnabled} />
