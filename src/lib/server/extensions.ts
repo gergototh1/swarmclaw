@@ -13,6 +13,8 @@ import type {
   ExtensionProviderDefinition,
   ExtensionConnectorDefinition,
   ExtensionManagedResources,
+  ExtensionMigration,
+  ExtensionRpcHandler,
   Session,
   ExtensionPackageManager,
   ExtensionDependencyInstallStatus,
@@ -38,6 +40,8 @@ import { notify } from './ws-hub'
 import { decryptKey, encryptKey, loadSettings, saveSettings } from './storage'
 import { buildExtensionHooks } from './extensions-approval-guidance'
 import { validateExtensionPages } from './extensions/extension-pages'
+import { createExtensionStorage, extensionTablePrefix, runExtensionMigrations } from './extensions/extension-storage'
+import { getGoogleAccessToken, hasGoogleCredential } from './oauth/google'
 import { errorMessage, hmrSingleton } from '@/lib/shared-utils'
 
 const EXTENSIONS_DIR = path.join(DATA_DIR, 'extensions')
@@ -523,7 +527,7 @@ function normalizeExtension(mod: unknown): Extension | null {
   const modObj = mod as Record<string, unknown>
   const raw: Record<string, unknown> = (modObj?.default as Record<string, unknown>) || modObj
 
-  if (raw.name && (raw.hooks || raw.tools || raw.ui || raw.providers || raw.connectors || raw.managedResources || raw.agents || raw.schedules || raw.routines || raw.localFolders || raw.gatewayPlatforms || raw.setupChecks)) {
+  if (raw.name && (raw.hooks || raw.tools || raw.ui || raw.providers || raw.connectors || raw.managedResources || raw.agents || raw.schedules || raw.routines || raw.localFolders || raw.gatewayPlatforms || raw.setupChecks || raw.rpc || raw.migrations)) {
     const hooks = isRecord(raw.hooks) ? (raw.hooks as ExtensionHooks) : {}
     return {
       name: raw.name as string,
@@ -537,6 +541,9 @@ function normalizeExtension(mod: unknown): Extension | null {
       providers: Array.isArray(raw.providers) ? (raw.providers as ExtensionProviderDefinition[]) : undefined,
       connectors: Array.isArray(raw.connectors) ? (raw.connectors as ExtensionConnectorDefinition[]) : undefined,
       managedResources: coerceManagedResources(raw),
+      setup: typeof raw.setup === 'function' ? (raw.setup as Extension['setup']) : undefined,
+      migrations: Array.isArray(raw.migrations) ? (raw.migrations as ExtensionMigration[]) : undefined,
+      rpc: isRecord(raw.rpc) ? (raw.rpc as Record<string, ExtensionRpcHandler>) : undefined,
     } as Extension
   }
 
@@ -693,6 +700,7 @@ interface LoadedExtension {
   providers?: ExtensionProviderDefinition[]
   connectors?: ExtensionConnectorDefinition[]
   managedResources?: ExtensionManagedResources
+  rpc?: Record<string, ExtensionRpcHandler>
   isBuiltin?: boolean
 }
 
@@ -1115,6 +1123,32 @@ class ExtensionManager {
             }
             if (ext.ui) ext.ui.pages = pagesCheck.pages
 
+            // Storage and setup run before the extension is registered, so an
+            // extension whose schema or setup fails never becomes reachable.
+            try {
+              runExtensionMigrations(file, ext.migrations)
+              if (ext.setup) {
+                ext.setup({
+                  extensionId: file,
+                  tablePrefix: extensionTablePrefix(file),
+                  storage: createExtensionStorage(file),
+                  settings: () => this.getExtensionSettings(file),
+                  log: {
+                    info: (msg, meta) => log.info(`extension:${ext.name}`, msg, meta),
+                    warn: (msg, meta) => log.warn(`extension:${ext.name}`, msg, meta),
+                    error: (msg, meta) => log.error(`extension:${ext.name}`, msg, meta),
+                  },
+                  oauth: {
+                    getGoogleAccessToken: (purpose) => getGoogleAccessToken(purpose),
+                    hasGoogleCredential: (purpose) => hasGoogleCredential(purpose),
+                  },
+                })
+              }
+            } catch (err: unknown) {
+              this.markExtensionFailure(file, 'load.setup', err, true)
+              continue
+            }
+
             this.extensions.set(file, {
               id: file,
               meta: {
@@ -1136,6 +1170,7 @@ class ExtensionManager {
               providers: ext.providers,
               connectors: ext.connectors,
               managedResources: ext.managedResources,
+              rpc: ext.rpc,
             })
             this.markExtensionSuccess(file)
           } catch (err: unknown) {

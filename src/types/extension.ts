@@ -455,6 +455,11 @@ export interface Extension {
   localFolders?: ExtensionManagedLocalFolderDeclaration[]
   gatewayPlatforms?: ExtensionGatewayPlatformDeclaration[]
   setupChecks?: ExtensionSetupCheckDeclaration[]
+  /** Runs once at load, after the migrations. Synchronous, because load() is. */
+  setup?: (ctx: ExtensionContext) => void
+  migrations?: ExtensionMigration[]
+  /** Called by the extension's own UI: POST /api/extensions/<id>/call/<method>. */
+  rpc?: Record<string, ExtensionRpcHandler>
 }
 
 export interface ExtensionMeta {
@@ -543,4 +548,38 @@ export interface ExtensionInvocationRecord {
 export interface ExtensionDefinitionCost {
   extensionId: string
   estimatedTokens: number
+}
+
+/**
+ * A handle onto the host's already-open SQLite connection. Extensions must not
+ * open a database of their own: `better-sqlite3` is a native module built for
+ * Electron's ABI in the desktop app and Node's ABI on the server, so a bundled
+ * copy would crash in one of the two hosts.
+ */
+export interface ExtensionStorage {
+  exec(sql: string, params?: unknown[]): void
+  all<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[]
+  get<T = Record<string, unknown>>(sql: string, params?: unknown[]): T | undefined
+  transaction<T>(fn: () => T): T
+}
+
+/**
+ * One versioned schema step. Every table it creates must start with the
+ * extension's `ext_<id>_` prefix — a tidiness and clean-uninstall convention
+ * checked against these declarations, not an isolation boundary.
+ */
+export interface ExtensionMigration { version: number; sql: string }
+
+export type ExtensionRpcHandler = (body: Record<string, unknown>) => unknown | Promise<unknown>
+
+export interface ExtensionContext {
+  extensionId: string
+  tablePrefix: string
+  storage: ExtensionStorage
+  settings: () => Record<string, unknown>
+  log: { info: (msg: string, meta?: unknown) => void; warn: (msg: string, meta?: unknown) => void; error: (msg: string, meta?: unknown) => void }
+  oauth: {
+    getGoogleAccessToken: (purpose: string) => Promise<string>
+    hasGoogleCredential: (purpose: string) => boolean
+  }
 }
