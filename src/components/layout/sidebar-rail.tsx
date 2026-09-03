@@ -8,6 +8,7 @@ import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { DaemonIndicator } from '@/components/layout/daemon-indicator'
 import { NotificationCenter } from '@/components/shared/notification-center'
 import { NavItem, RailTooltip } from '@/components/layout/nav-item'
+import { ExtensionPagesAfter, ExtensionPagesEndGroup } from '@/components/layout/extension-nav-items'
 import { useWs } from '@/hooks/use-ws'
 import { FULL_WIDTH_VIEWS, isPanelSidebarView } from '@/lib/app/view-constants'
 import { pathToView, useNavigate } from '@/lib/app/navigation'
@@ -90,6 +91,10 @@ export function SidebarRail({
   }
 
   const isNavActive = (view: AppView) => activeView === view && (mobile || sidebarOpen || FULL_WIDTH_VIEWS.has(view))
+
+  // Extension pages render full width and have no panel sidebar of their own, so
+  // navigating to one collapses the panel (and closes the drawer on mobile).
+  const handleExtensionNavClick = () => setSidebarOpen(false)
 
   return (
     <div
@@ -281,6 +286,7 @@ export function SidebarRail({
                 <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /><path d="M9 14l2 2 4-4" />
               </svg>
             </NavItem>
+            <ExtensionPagesAfter view="tasks" expanded={railExpanded} onNavigate={handleExtensionNavClick} />
 
             <NavItem view="missions" label="Missions" expanded={railExpanded} isActive={isNavActive('missions')} onClick={() => handleNavClick('missions')}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -397,6 +403,8 @@ export function SidebarRail({
               </svg>
             </NavItem>
           </div>
+
+          <ExtensionPagesEndGroup expanded={railExpanded} onNavigate={handleExtensionNavClick} />
         </div>
 
         <div className="flex-1" />

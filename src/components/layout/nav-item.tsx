@@ -74,3 +74,43 @@ export function RailTooltip({ label, description, children }: { label: string; d
     </Tooltip>
   )
 }
+
+/**
+ * Rail entry for a page contributed by an extension.
+ *
+ * Visually identical to `NavItem`, but navigates to a raw `href` instead of an
+ * `AppView`, so extension paths never have to be part of the `AppView` union.
+ */
+export function ExtensionNavItem({ href, label, expanded, isActive, onClick, children }: {
+  href: string
+  label: string
+  expanded: boolean
+  isActive: boolean
+  onClick?: () => void
+  children: React.ReactNode
+}) {
+  if (expanded) {
+    return (
+      <Link
+        href={href}
+        onClick={onClick}
+        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all border-none no-underline
+          ${isActive
+            ? 'bg-accent-soft text-accent-bright'
+            : 'bg-transparent text-text-3 hover:text-text hover:bg-white/[0.04]'}`}
+        style={{ fontFamily: 'inherit' }}
+      >
+        <span className="shrink-0 relative">{children}</span>
+        <span className="truncate" style={{ animation: 'spring-in 0.4s var(--ease-spring)' }}>{label}</span>
+      </Link>
+    )
+  }
+
+  return (
+    <RailTooltip label={label} description="Page provided by an installed extension">
+      <Link href={href} onClick={onClick} className={`rail-btn ${isActive ? 'active' : ''} relative no-underline`}>
+        {children}
+      </Link>
+    </RailTooltip>
+  )
+}
