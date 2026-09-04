@@ -689,6 +689,10 @@ export interface ExtensionContractConsumption {
  * `toString`/`constructor` to call by accident and a consumer cannot swap a
  * method on it. Any other name is `undefined` — the index signature says so, so
  * call through `handle.list?.(...)` or check first.
+ *
+ * A handle is a bearer capability: it carries the identity of the extension it
+ * was minted for, and the host never re-checks that against whoever calls
+ * through it. Handing your handle to another extension hands over your grant.
  */
 export interface ExtensionContractHandle {
   readonly [method: string]: ExtensionContractCall | undefined
@@ -701,9 +705,18 @@ export interface ExtensionContractHandle {
  * consumer that loads before its provider still works, and two extensions that
  * consume each other cannot deadlock at load time. It is also re-done on every
  * call, including every call through an already-obtained handle, so a handle
- * captured in `setup()` stops working the moment the provider is disabled,
- * removed or reloaded at a different contract version, rather than calling on
- * into a stale closure.
+ * captured in `setup()` stops working the moment the provider is disabled or
+ * deleted, rather than calling on into a stale closure.
+ *
+ * What re-resolution does not follow is an edit to an extension's file. The
+ * host's reload re-runs the loader but does not re-execute a module that is
+ * already loaded, so a contract version bumped on disk, a method added to or
+ * dropped from a `provides` block, and a `consumes` entry added or removed all
+ * keep behaving as they did before the edit until the process restarts. Plan
+ * for it: switching an extension off or uninstalling it is immediate, changing
+ * what it declares is a restart. In particular, a grant is not revoked by
+ * deleting the `consumes` entry and reloading — the running process still
+ * serves it.
  *
  * Data that comes back across this boundary keeps whatever trust it had. AI
  * Signal's items are newsletter bodies and forum posts written by strangers;
@@ -738,7 +751,12 @@ export interface ExtensionContractProvidedMeta {
  * declared, plus why it is not being served when it is not.
  */
 export interface ExtensionContractConsumedMeta extends ExtensionContractConsumption {
-  /** Absent when the contract resolves; otherwise the reason it does not. */
+  /**
+   * Absent when the contract resolves, and also absent for an extension that is
+   * not running — switched off, or failed to load — where the grant is still
+   * listed but there is no provider question to answer. Otherwise the reason
+   * the contract does not resolve.
+   */
   unavailable?: ExtensionContractUnavailableReason
 }
 
@@ -756,10 +774,17 @@ export interface ExtensionContext {
   }
   /**
    * Access to the contracts other extensions declare. Safe to capture: every
-   * call re-resolves, so a captured handle follows the provider being disabled,
-   * removed or reloaded instead of going stale. Reading it during `setup()`
-   * itself is the one exception worth knowing about -- see
-   * `createExtensionContracts` in
+   * call re-resolves, so a captured handle follows the provider being disabled
+   * or deleted instead of going stale.
+   *
+   * It does not follow an edit to an extension's file. A contract version
+   * bumped on disk, a method added or dropped, a `consumes` entry added or
+   * removed: none of those take effect on a reload, only on a process restart,
+   * because a reload does not re-execute an already-loaded module. Do not
+   * design around a reload revoking or upgrading anything.
+   *
+   * Reading this during `setup()` itself is the one further exception worth
+   * knowing about -- see `createExtensionContracts` in
    * `src/lib/server/extensions/extension-contracts.ts`.
    */
   contracts: ExtensionContracts

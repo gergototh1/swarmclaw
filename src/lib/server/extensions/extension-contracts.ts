@@ -51,6 +51,25 @@ import type {
  *   - Data crossing the boundary keeps whatever trust it had. The host does not
  *     inspect, sanitise, clone or serialise arguments or return values -- see
  *     `callContractMethod`.
+ *   - A handle is not bound to whoever holds it. It carries the identity of the
+ *     consumer it was minted for, so passing one on delegates the grant -- see
+ *     `buildContractHandle`.
+ *   - A reload does not pick up an edit to an extension's file. Disabling and
+ *     deleting take effect immediately, including through a handle captured
+ *     earlier; a contract version bumped on disk, or a declaration added or
+ *     removed, needs a process restart -- see `callContractMethod`.
+ *
+ * What this module exports, and which half of it is a compatibility surface.
+ * `ExtensionContractError` and `ExtensionContractErrorCode` are public API that
+ * reaches extension authors: an extension module cannot import this file, so it
+ * matches on `err.name === 'ExtensionContractError'` and switches on
+ * `err.code`, which is exactly what the tests do. Renaming either, or renaming
+ * one of the four codes, breaks extensions silently and is a breaking change.
+ * `ContractValidation`, `ContractResolution`, `ExtensionContractRegistry` and
+ * `ContractProviderEntry` are the named shapes of this module's own function
+ * arguments and results. They are exported so a caller can name what it holds
+ * -- the manager passes a registry, the tests stub one -- not because they are
+ * promised to anyone; they may change with the manager.
  */
 
 /** Contract and method names: lower snake case, so `__proto__` and friends cannot be spelled. */
@@ -355,14 +374,29 @@ export function resolveExtensionContract(
 /**
  * Invokes one contract method on behalf of one consumer.
  *
- * Every call re-resolves from scratch. That is what makes a captured
- * `ctx.contracts` -- or a handle stashed in a module-level variable at
- * `setup()` time, which is exactly what an extension author will do -- safe: if
- * the provider has since been disabled, uninstalled or reloaded at a different
- * contract version, the call fails with a named error instead of running a
+ * Every call re-resolves from scratch against the live extension map. That is
+ * what makes a captured `ctx.contracts` -- or a handle stashed in a
+ * module-level variable at `setup()` time, which is exactly what an extension
+ * author will do -- follow the operator: if the provider has since been
+ * disabled or deleted, the call fails with a named error instead of running a
  * stale closure over a provider the operator believes is switched off. A
  * disabled extension has to actually stop answering, or the toggle in the
  * extension list is a lie.
+ *
+ * Re-resolving does NOT pick up an edit to an extension's file, and this is the
+ * one guarantee not to claim. `reload()` re-runs the loader, but
+ * `clearExtensionRequireCache` in `extensions.ts` deletes a CommonJS cache
+ * entry, which evicts neither an ESM module nor -- under the tsx loader this
+ * project runs -- a CJS one, so the loader re-reads a module object Node never
+ * re-executed. A provider whose contract version is bumped on disk, a method
+ * added or dropped from a `provides` block, and a `consumes` entry edited or
+ * deleted from a consumer all keep behaving exactly as they did before the
+ * edit, until the process restarts. Disabling and deleting are the two that do
+ * take effect on a reload, because they are driven by the config file and the
+ * directory listing rather than by module content. Both halves are pinned by
+ * the live-manager tests in `extension-contracts.test.ts`; evicting the module
+ * cache is a platform-wide change to every extension reload, not a contracts
+ * one, and is tracked separately.
  *
  * Arguments and return values pass through untouched: not cloned, not frozen,
  * not serialised, not inspected. Two consequences worth stating rather than
@@ -454,8 +488,20 @@ async function callContractMethod(params: {
  * `getRpcHandler` needed: an ordinary object would answer `handle.constructor`,
  * `handle.toString` and `handle.hasOwnProperty` with callable functions nobody
  * declared. Freezing means a consumer that swaps a method on the handle it was
- * given changes nothing -- and since a fresh handle is built per `get()`, it
- * could not have reached another consumer anyway.
+ * given changes nothing, and a fresh handle per `get()` means the swap cannot
+ * propagate to a later `get()` either.
+ *
+ * Neither of those makes the handle contained. `consumerId` is baked into the
+ * closure at mint time and never re-checked against whoever calls, so a handle
+ * carries the identity of the consumer it was minted for wherever it is passed:
+ * an extension that hands its handle -- or its whole `ctx.contracts` -- to a
+ * third extension delegates its grant along with it, and that third extension
+ * then reads the provider's data having declared nothing. A handle is a bearer
+ * capability, and nothing here can be otherwise: same-process extensions can
+ * pass each other any value at all, which is the point the header of this file
+ * makes about this not being a sandbox. What the declaration buys is that the
+ * grant, and the extension that holds it, are named where an operator reads
+ * them.
  */
 function buildContractHandle(params: {
   consumerId: string

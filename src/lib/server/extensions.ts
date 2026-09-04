@@ -756,6 +756,23 @@ class ExtensionManager {
    */
   private loading = false
   private watcher: fs.FSWatcher | null = null
+  /**
+   * The contract declarations each external extension had the last time it got
+   * far enough through load() to have valid ones, kept across reloads on
+   * purpose. `this.extensions` is cleared and rebuilt by every load and holds
+   * only what is switched on, which used to mean an extension's declared data
+   * access vanished from its card the moment an operator switched it off —
+   * exactly when they most want to see what turning it back on would regain.
+   *
+   * This is the only place that survives, because there is nowhere else to
+   * read it from: a switched-off extension is never required, and requiring it
+   * to read its manifest would run the module the operator switched off. The
+   * cost is that it is process-local. A host that starts up with the extension
+   * already disabled has never executed it, so its card shows no grants until
+   * it is enabled once. Populated before setup() runs, so an extension that
+   * fails in setup() still shows what it asked for.
+   */
+  private lastKnownContracts: Map<string, ExtensionContractDeclarations> = new Map()
 
   registerBuiltin(id: string, extension: Extension) {
     const canonicalId = this.canonicalExtensionId(id)
@@ -1199,6 +1216,11 @@ class ExtensionManager {
               this.markExtensionFailure(file, 'load.contracts', contractsCheck.error, true)
               continue
             }
+            // Remembered before setup() and before the extension is registered:
+            // the operator's audit surface should show what an extension asked
+            // for even when it went on to fail, and should keep showing it once
+            // the extension is switched off. See `lastKnownContracts`.
+            this.lastKnownContracts.set(file, contractsCheck.declarations)
 
             // Storage and setup run before the extension is registered, so an
             // extension whose schema or setup fails never becomes reachable.
@@ -1373,14 +1395,20 @@ class ExtensionManager {
       },
       // "Installed" is what separates provider_disabled from provider_missing,
       // so it must answer for extensions that are NOT in the loaded map: the
-      // config file, not the map, is the source of truth for what exists on
-      // this host. Builtins are counted even though the builtin loader carries
-      // no contracts onto the record — an extension with that id does exist,
-      // and reporting it as missing would be a lie about the host.
+      // directory listing, not the map, is the source of truth for what exists
+      // on this host.
+      //
+      // Builtins are deliberately not counted, even though an extension with
+      // that id does exist. The builtin branch of load() carries no contracts
+      // onto the record and warns when a builtin declares `provides`, so a
+      // builtin can never answer a contract. Counting it would report
+      // `provider_disabled` — "switch it on and this works" — for a
+      // consumption that no operator action can ever satisfy, and it would go
+      // on saying that with the builtin already enabled. `provider_missing` is
+      // the truthful answer and the actionable one: nothing on this host
+      // provides that contract, and the way to change it is to install an
+      // external extension of that name, which this same listing then finds.
       isInstalled: (normalizedId: string) => {
-        for (const id of this.builtins.keys()) {
-          if (normalizeContractExtensionId(id) === normalizedId) return true
-        }
         for (const file of this.listExtensionFilenames()) {
           if (normalizeContractExtensionId(file) === normalizedId) return true
         }
@@ -1392,11 +1420,23 @@ class ExtensionManager {
   /**
    * The `ctx.contracts` for one extension. Resolution is lazy, so this is safe
    * to build during load() for an extension that is not registered yet, and
-   * safe for the extension to capture: the consumer's own `consumes` list is
-   * read live on every call, so a reload that edits or drops a declaration
-   * takes effect through a handle captured before it.
+   * safe for the extension to capture: the extension map is read live on every
+   * call, so disabling or deleting the provider takes effect through a handle
+   * captured before it. Editing a declaration does not — a reload does not
+   * re-execute the module the declarations came from, so a `consumes` entry
+   * removed on disk keeps being served until the process restarts. See
+   * `callContractMethod` in ./extensions/extension-contracts.
+   *
+   * Private because it mints a contracts object for whatever consumer id it is
+   * handed, with that id baked into every call it will ever make. Called from
+   * outside it is a per-consumer impersonation factory, and this manager is
+   * reachable from extension code through the HMR singleton in
+   * `src/lib/shared-utils.ts`. TypeScript `private` is a compile-time boundary,
+   * not a runtime one, and this process is not a sandbox — an extension can
+   * still reach in, exactly as it can already reach the database. What the
+   * keyword removes is the host offering it.
    */
-  getExtensionContracts(consumerId: string): ExtensionContracts {
+  private getExtensionContracts(consumerId: string): ExtensionContracts {
     return createExtensionContracts(consumerId, this.contractRegistry())
   }
 
@@ -2245,16 +2285,30 @@ class ExtensionManager {
       // A declared consumption is a data-access grant, so it is reported to the
       // operator whether or not it is being served today, together with the
       // reason the extension gave and — when it is not being served — the
-      // reason code. Only loaded extensions can report: an extension that is
-      // switched off is not in the map, so its declarations are not read, and
-      // its card shows nothing rather than something stale.
-      const describeContracts = (loaded?: LoadedExtension): Pick<ExtensionMeta, 'contractsProvided' | 'contractsConsumed'> => {
-        if (!loaded?.contracts) return {}
-        const provided: ExtensionContractProvidedMeta[] = Object.entries(loaded.contracts.provides)
+      // reason code.
+      //
+      // A switched-off or load-failed extension is not in the map, and its card
+      // used to show no grants at all. That is the wrong side of the trade for
+      // an audit surface: switching a module off is exactly when an operator
+      // wants to read what turning it back on would hand it. So the
+      // declarations fall back to the last ones this process saw for that file
+      // (see `lastKnownContracts`), which is stale only in the sense that the
+      // extension is not running.
+      //
+      // `unavailable` is left off entirely for a not-loaded extension. It names
+      // why a *provider* is not answering, and that question does not arise
+      // while the consumer itself is off; asking anyway would answer
+      // `not_declared`, because the resolver reads the loaded map and finds no
+      // consumer there — a reason code that is simply false about the manifest
+      // shown next to it.
+      const describeContracts = (filename: string, loaded?: LoadedExtension): Pick<ExtensionMeta, 'contractsProvided' | 'contractsConsumed'> => {
+        const declarations = loaded?.contracts ?? this.lastKnownContracts.get(filename)
+        if (!declarations) return {}
+        const provided: ExtensionContractProvidedMeta[] = Object.entries(declarations.provides)
           .map(([contract, definition]) => ({ contract, version: definition.version, summary: definition.summary }))
-        const contracts = this.getExtensionContracts(loaded.id)
-        const consumed: ExtensionContractConsumedMeta[] = loaded.contracts.consumes.map((entry) => {
-          const unavailable = contracts.why(entry.extension, entry.contract)
+        const contracts = loaded?.contracts ? this.getExtensionContracts(loaded.id) : null
+        const consumed: ExtensionContractConsumedMeta[] = declarations.consumes.map((entry) => {
+          const unavailable = contracts?.why(entry.extension, entry.contract)
           return unavailable ? { ...entry, unavailable } : { ...entry }
         })
         return {
@@ -2354,7 +2408,7 @@ class ExtensionManager {
               dependencyInstallError: dependencyInfo.installError,
               dependencyInstalledAt: dependencyInfo.installedAt,
               ...caps,
-              ...describeContracts(loaded),
+              ...describeContracts(f, loaded),
             })
           }
         }
@@ -2503,6 +2557,10 @@ class ExtensionManager {
     settings.extensionSettings = settingsMap
     saveSettings(settings)
     this.clearFailureState(sanitizedFilename)
+    // The remembered declarations are per-file and the file is gone, so a
+    // reinstall under the same name must not inherit the old grants on its card
+    // before it has loaded once.
+    this.lastKnownContracts.delete(sanitizedFilename)
     // Last piece of extension state, and the only one that outlives the files:
     // its ext_migrations rows and its ext_<id>_ tables, views and triggers.
     // Leaving them makes a later reinstall skip its own migrations against a
