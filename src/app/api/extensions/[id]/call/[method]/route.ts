@@ -5,6 +5,22 @@ import { log } from '@/lib/server/logger'
 export const dynamic = 'force-dynamic'
 
 /**
+ * One failure body, carrying the same text twice on purpose.
+ *
+ * `error` is the structured shape the rest of the API uses. `message` repeats
+ * it at the top level because that is the only half a browser caller can read:
+ * `api()` (`src/lib/app/api-client.ts`) takes `payload.error` only when it is a
+ * string, and otherwise falls back to a top-level `payload.message`. Without
+ * this field every failure below reaches the extension author who is debugging
+ * their own handler as `Request failed (<status>)`, with the real reason left
+ * on the wire and in the server log. Widening `api()` instead would change the
+ * error text of every route in the app that answers with this shape.
+ */
+function rpcFailure(status: number, code: string, message: string): NextResponse {
+  return NextResponse.json({ error: { code, message }, message }, { status })
+}
+
+/**
  * POST /api/extensions/:id/call/:method
  *
  * The one way an extension's browser page reaches its own server-side code.
@@ -28,19 +44,21 @@ export const dynamic = 'force-dynamic'
  * request is refused with 401 before it ever reaches this file.
  *
  * Statuses: 404 when no such method is callable, 400 when the body is not a
- * JSON object, 500 when the handler throws, 200 otherwise.
+ * JSON object, 500 when the handler throws, 200 otherwise. Every failure body
+ * is `{ error: { code, message }, message }` — see `rpcFailure` for why the
+ * text appears twice.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string; method: string }> }) {
   const { id, method } = await params
 
   // One 404 for "no such extension", "extension disabled", "no rpc map" and
-  // "no such method". The caller gets no way to enumerate what is installed.
+  // "no such method". The caller gets no way to enumerate what is installed —
+  // which holds only because `getRpcHandler` matches own properties of the
+  // `rpc` map, so an inherited name like `constructor` is a 404 here exactly as
+  // it is for an extension that was never installed.
   const handler = getExtensionManager().getRpcHandler(id, method)
   if (!handler) {
-    return NextResponse.json(
-      { error: { code: 'not_found', message: `no rpc method "${method}" on extension "${id}"` } },
-      { status: 404 },
-    )
+    return rpcFailure(404, 'not_found', `no rpc method "${method}" on extension "${id}"`)
   }
 
   let body: Record<string, unknown> = {}
@@ -56,10 +74,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
     body = parsed as Record<string, unknown>
   } catch (err) {
-    return NextResponse.json(
-      { error: { code: 'bad_request', message: err instanceof Error ? err.message : 'invalid JSON' } },
-      { status: 400 },
-    )
+    return rpcFailure(400, 'bad_request', err instanceof Error ? err.message : 'invalid JSON')
   }
 
   try {
@@ -67,12 +82,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // `NextResponse.json` serialises eagerly, so it stays inside this `try`: a
     // handler that returns something unserialisable (a cycle, a BigInt) becomes
     // the same 500 as one that threw, rather than an unhandled route crash.
-    // `?? {}` keeps the response parseable for a handler that returns nothing —
-    // the browser caller parses the body as JSON either way.
-    return NextResponse.json(result ?? {})
+    // Only `undefined` becomes `{}`: JSON cannot carry it, and an empty 200 body
+    // would make the browser caller throw on parse instead of resolving to
+    // "nothing to report". `null` is a value a handler can mean — "looked, found
+    // nothing" — and JSON carries it, so it round-trips as itself.
+    return NextResponse.json(result === undefined ? {} : result)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     log.warn('extension-rpc', `${id}.${method} failed`, { message })
-    return NextResponse.json({ error: { code: 'internal', message } }, { status: 500 })
+    return rpcFailure(500, 'internal', message)
   }
 }

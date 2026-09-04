@@ -1240,12 +1240,22 @@ class ExtensionManager {
    * Only external extensions have handlers here: the builtin branch of `load()`
    * does not carry `rpc` onto the loaded record, and warns when a builtin
    * declares one.
+   *
+   * The own-property check is what makes the paragraph above true. `rpc` is an
+   * ordinary object literal from the extension module, so a plain `rpc[method]`
+   * walks `Object.prototype` and finds `constructor`, `toString`, `valueOf` and
+   * `hasOwnProperty` — all functions, all callable, none of them a method the
+   * extension declared. Beyond running code nobody exposed, that turned this
+   * lookup into the very probe it promises not to be: `constructor` answered
+   * for an installed extension and not for a missing one.
    */
   getRpcHandler(extensionId: string, method: string): ExtensionRpcHandler | null {
     this.load()
     const ext = this.extensions.get(extensionId)
     if (!ext || this.isExplicitlyDisabled(extensionId)) return null
-    const handler = ext.rpc?.[method]
+    const rpc = ext.rpc
+    if (!rpc || !Object.prototype.hasOwnProperty.call(rpc, method)) return null
+    const handler = rpc[method]
     return typeof handler === 'function' ? handler : null
   }
 

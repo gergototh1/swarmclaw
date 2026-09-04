@@ -59,30 +59,40 @@ const hostUi: Record<string, unknown> = {
   CardAction,
 }
 
+// A response body that starts a whole HTML document, as opposed to a fragment.
+const HTML_DOCUMENT_START = /^\s*<(?:!doctype\b|html\b|!--)/i
+
 /**
  * Call an extension's server-side method.
  *
- * `POST /api/extensions/<id>/call/<method>` has no route yet, so an unmatched
- * `/api/**` falls through to Next's HTML not-found page. `api()` then rejects
- * with the whole HTML document as the message, which buries the one fact the
- * author needs. Recognise a non-JSON body and say that instead.
+ * `POST /api/extensions/<id>/call/<method>` is a real route
+ * (`src/app/api/extensions/[id]/call/[method]/route.ts`) and it always answers
+ * `application/json` — successes and failures alike. `api()`
+ * (`src/lib/app/api-client.ts`) is the one that reads the response content
+ * type: a JSON response comes back parsed, and a non-JSON one is the only way a
+ * raw body reaches us, as the text of the rejection. So a raw HTML document
+ * here means something other than this route answered — a proxy or error page
+ * in front of the app, or a build without the route — and that is the case
+ * worth naming, because `api()` would otherwise reject with the whole HTML
+ * document as the message and bury the one fact the author needs.
+ *
+ * A 200 is never that case, whatever its value looks like. A handler may return
+ * an HTML fragment, and it arrives as an ordinary JSON string; sniffing the
+ * first character of the parsed value would report that as a missing endpoint.
  */
 async function callExtensionMethod(extensionId: string, method: string, body?: object): Promise<unknown> {
   const endpoint = `/extensions/${encodeURIComponent(extensionId)}/call/${encodeURIComponent(method)}`
-  const unavailable = () => new Error(
-    `Extension RPC endpoint is not available: POST /api${endpoint} returned a non-JSON response`,
-  )
-  let result: unknown
   try {
-    result = await api('POST', endpoint, body ?? {})
+    return await api('POST', endpoint, body ?? {})
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    if (message.trimStart().startsWith('<')) throw unavailable()
+    if (HTML_DOCUMENT_START.test(message)) {
+      throw new Error(
+        `Extension RPC endpoint is not available: POST /api${endpoint} returned a non-JSON response`,
+      )
+    }
     throw err
   }
-  // A 200 that is not JSON is the same failure wearing a different status.
-  if (typeof result === 'string' && result.trimStart().startsWith('<')) throw unavailable()
-  return result
 }
 
 /**
