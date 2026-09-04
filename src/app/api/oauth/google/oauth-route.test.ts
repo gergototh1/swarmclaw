@@ -144,6 +144,68 @@ describe('GET /api/oauth/google/callback', () => {
     assert.equal(out.odd, 'oauth_consent_failed')
   })
 
+  it('exchanges the code against the redirect uri the auth request advertised, not one rebuilt from the callback', () => {
+    // Google compares the two redirect_uri strings byte for byte, and a proxy
+    // need not present the same Host on both requests: nginx's default
+    // proxy_pass sends the upstream address.
+    const out = runWithTempDataDir<{ authRedirectUri: string; sentRedirectUri: string; status: number }>(`
+      process.env.SWARMCLAW_DEPLOY_MODE = 'vps'
+      process.env.GOOGLE_OAUTH_CLIENT_WEB_ID = 'web-id'
+      process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET = 'web-secret'
+      ${LOAD_ROUTES}
+      let sentRedirectUri = ''
+      globalThis.fetch = async (_u, init) => {
+        sentRedirectUri = new URLSearchParams(String(init.body)).get('redirect_uri') || ''
+        return new Response(JSON.stringify({ refresh_token: 'rt-1', access_token: 'at-0', expires_in: 3600 }), { status: 200 })
+      }
+
+      const startReq = new Request('http://0.0.0.0:3456/api/oauth/google/start?purpose=aisignal')
+      startReq.headers.set('host', 'app.example.com')
+      startReq.headers.set('x-forwarded-proto', 'https')
+      const started = await start(startReq)
+      const authUrl = new URL(started.headers.get('location'))
+      const state = authUrl.searchParams.get('state')
+
+      const cbReq = new Request('http://0.0.0.0:3456/api/oauth/google/callback?code=auth-code&state=' + encodeURIComponent(state))
+      cbReq.headers.set('host', '10.0.0.7:3456')
+      const res = await callback(cbReq)
+      console.log(JSON.stringify({
+        authRedirectUri: authUrl.searchParams.get('redirect_uri') || '',
+        sentRedirectUri,
+        status: res.status,
+      }))
+    `)
+    assert.equal(out.authRedirectUri, 'https://app.example.com/api/oauth/google/callback')
+    assert.equal(out.sentRedirectUri, out.authRedirectUri)
+    assert.equal(out.status, 302)
+  })
+
+  it('drops the pending state when the user cancels, instead of leaving it live for the rest of its ttl', () => {
+    const out = runWithTempDataDir<{ cancelled: string; reusedStatus: number; reused: string; ids: string[] }>(`
+      ${DESKTOP_ENV}
+      ${LOAD_ROUTES}
+      const repo = await import('@/lib/server/credentials/credential-repository')
+      const { loadCredentials } = repo.default || repo
+      globalThis.fetch = async () => new Response(JSON.stringify({ refresh_token: 'rt-1', access_token: 'at-0', expires_in: 3600 }), { status: 200 })
+      const at = (query) => callback(new Request('http://127.0.0.1:4321/api/oauth/google/callback' + query))
+
+      const started = await start(new Request('http://127.0.0.1:4321/api/oauth/google/start?purpose=aisignal'))
+      const state = new URL(started.headers.get('location')).searchParams.get('state')
+      const cancelled = await at('?error=access_denied&state=' + encodeURIComponent(state))
+      const reused = await at('?code=auth-code&state=' + encodeURIComponent(state))
+      console.log(JSON.stringify({
+        cancelled: (await cancelled.json()).error,
+        reusedStatus: reused.status,
+        reused: reused.status === 302 ? '' : (await reused.json()).error,
+        ids: Object.keys(loadCredentials()),
+      }))
+    `)
+    assert.equal(out.cancelled, 'access_denied')
+    assert.equal(out.reusedStatus, 400, 'a cancelled consent must not leave its state usable')
+    assert.equal(out.reused, 'oauth_state_invalid')
+    assert.deepEqual(out.ids, [])
+  })
+
   it('rejects a callback with no state, an unknown state, or a replayed one', () => {
     const out = runWithTempDataDir<{ bare: string; unknown: string; replayed: string; firstStatus: number }>(`
       ${DESKTOP_ENV}

@@ -25,7 +25,7 @@ describe('google oauth', () => {
         if (body.get('refresh_token') === 'rt-1') return new Response(JSON.stringify({ access_token: 'at-1', expires_in: 3600 }), { status: 200 })
         return new Response(JSON.stringify({ error: 'invalid_grant' }), { status: 400 })
       }
-      const { purpose } = await g.handleGoogleCallback({ code: 'c', state, origin: 'http://127.0.0.1:4321', fetchImpl })
+      const { purpose } = await g.handleGoogleCallback({ code: 'c', state, fetchImpl })
       const token = await g.getGoogleAccessToken('aisignal', fetchImpl)
       let revoked = ''
       try { await g.getGoogleAccessToken('other', fetchImpl) } catch (e) { revoked = e.message }
@@ -43,10 +43,10 @@ describe('google oauth', () => {
       process.env.SWARMCLAW_DEPLOY_MODE = 'vps'; process.env.GOOGLE_OAUTH_CLIENT_WEB_ID = 'w'; process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET = 's'
       const gm = await import('@/lib/server/oauth/google'); const g = gm.default || gm
       const fetchImpl = async () => new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 1 }), { status: 200 })
-      let e1 = ''; try { await g.handleGoogleCallback({ code: 'c', state: 'nope', origin: 'https://h', fetchImpl }) } catch (e) { e1 = e.message }
+      let e1 = ''; try { await g.handleGoogleCallback({ code: 'c', state: 'nope', fetchImpl }) } catch (e) { e1 = e.message }
       const { state } = g.buildGoogleAuthUrl({ purpose: 'p', origin: 'https://h', scopes: [] })
-      await g.handleGoogleCallback({ code: 'c', state, origin: 'https://h', fetchImpl })
-      let e2 = ''; try { await g.handleGoogleCallback({ code: 'c', state, origin: 'https://h', fetchImpl }) } catch (e) { e2 = e.message }
+      await g.handleGoogleCallback({ code: 'c', state, fetchImpl })
+      let e2 = ''; try { await g.handleGoogleCallback({ code: 'c', state, fetchImpl }) } catch (e) { e2 = e.message }
       console.log(JSON.stringify({ e1, e2 }))
     `)
     assert.equal(out.e1, 'oauth_state_invalid'); assert.equal(out.e2, 'oauth_state_invalid')
@@ -62,7 +62,7 @@ describe('google oauth', () => {
       Date.now = () => realNow() + 11 * 60 * 1000
       let error = ''
       try {
-        await g.handleGoogleCallback({ code: 'c', state, origin: 'https://h', fetchImpl: async () => new Response('{}', { status: 200 }) })
+        await g.handleGoogleCallback({ code: 'c', state, fetchImpl: async () => new Response('{}', { status: 200 }) })
       } catch (e) { error = e.message } finally { Date.now = realNow }
       console.log(JSON.stringify({ error }))
     `)
@@ -78,8 +78,8 @@ describe('google oauth', () => {
       const a = g.buildGoogleAuthUrl({ purpose: 'aisignal', origin: 'https://h', scopes: [] })
       const b = g.buildGoogleAuthUrl({ purpose: 'other', origin: 'https://h', scopes: [] })
       const fetchImpl = async () => new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 60 }), { status: 200 })
-      const second = (await g.handleGoogleCallback({ code: 'c', state: b.state, origin: 'https://h', fetchImpl })).purpose
-      const first = (await g.handleGoogleCallback({ code: 'c', state: a.state, origin: 'https://h', fetchImpl })).purpose
+      const second = (await g.handleGoogleCallback({ code: 'c', state: b.state, fetchImpl })).purpose
+      const first = (await g.handleGoogleCallback({ code: 'c', state: a.state, fetchImpl })).purpose
       console.log(JSON.stringify({ first, second, ids: Object.keys(loadCredentials()).sort() }))
     `)
     assert.equal(out.first, 'aisignal')
@@ -99,7 +99,7 @@ describe('google oauth', () => {
         verifier = new URLSearchParams(String(init.body)).get('code_verifier') || ''
         return new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 60 }), { status: 200 })
       }
-      await g.handleGoogleCallback({ code: 'c', state, origin: 'https://h', fetchImpl })
+      await g.handleGoogleCallback({ code: 'c', state, fetchImpl })
       const derived = crypto.createHash('sha256').update(verifier).digest('base64url')
       console.log(JSON.stringify({
         challenge: params.get('code_challenge') || '',
@@ -118,12 +118,12 @@ describe('google oauth', () => {
       const gm = await import('@/lib/server/oauth/google'); const g = gm.default || gm
       const withRefresh = async () => new Response(JSON.stringify({ refresh_token: 'rt-good', access_token: 'a', expires_in: 60 }), { status: 200 })
       const first = g.buildGoogleAuthUrl({ purpose: 'aisignal', origin: 'https://h', scopes: [] })
-      await g.handleGoogleCallback({ code: 'c', state: first.state, origin: 'https://h', fetchImpl: withRefresh })
+      await g.handleGoogleCallback({ code: 'c', state: first.state, fetchImpl: withRefresh })
 
       const second = g.buildGoogleAuthUrl({ purpose: 'aisignal', origin: 'https://h', scopes: [] })
       let error = ''
       try {
-        await g.handleGoogleCallback({ code: 'c', state: second.state, origin: 'https://h', fetchImpl: async () => new Response(JSON.stringify({ access_token: 'a2', expires_in: 60 }), { status: 200 }) })
+        await g.handleGoogleCallback({ code: 'c', state: second.state, fetchImpl: async () => new Response(JSON.stringify({ access_token: 'a2', expires_in: 60 }), { status: 200 }) })
       } catch (e) { error = e.message }
 
       let token = ''
@@ -144,7 +144,7 @@ describe('google oauth', () => {
       const gm = await import('@/lib/server/oauth/google'); const g = gm.default || gm
       const connect = async (purpose) => {
         const { state } = g.buildGoogleAuthUrl({ purpose, origin: 'https://h', scopes: [] })
-        await g.handleGoogleCallback({ code: 'c', state, origin: 'https://h', fetchImpl: async () => new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 60 }), { status: 200 }) })
+        await g.handleGoogleCallback({ code: 'c', state, fetchImpl: async () => new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 60 }), { status: 200 }) })
       }
       await connect('revoked'); await connect('broken')
       let revoked = ''
@@ -162,7 +162,7 @@ describe('google oauth', () => {
       process.env.SWARMCLAW_DEPLOY_MODE = 'vps'; process.env.GOOGLE_OAUTH_CLIENT_WEB_ID = 'w'; process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET = 's'
       const gm = await import('@/lib/server/oauth/google'); const g = gm.default || gm
       const { state } = g.buildGoogleAuthUrl({ purpose: 'aisignal', origin: 'https://h', scopes: [] })
-      await g.handleGoogleCallback({ code: 'c', state, origin: 'https://h', fetchImpl: async () => new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 60 }), { status: 200 }) })
+      await g.handleGoogleCallback({ code: 'c', state, fetchImpl: async () => new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 60 }), { status: 200 }) })
 
       let refreshCalls = 0
       const slowRefresh = async () => {
@@ -189,7 +189,7 @@ describe('google oauth', () => {
       process.env.SWARMCLAW_DEPLOY_MODE = 'vps'; process.env.GOOGLE_OAUTH_CLIENT_WEB_ID = 'w'; process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET = 's'
       const gm = await import('@/lib/server/oauth/google'); const g = gm.default || gm
       const { state } = g.buildGoogleAuthUrl({ purpose: 'aisignal', origin: 'https://h', scopes: [] })
-      await g.handleGoogleCallback({ code: 'c', state, origin: 'https://h', fetchImpl: async () => new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 60 }), { status: 200 }) })
+      await g.handleGoogleCallback({ code: 'c', state, fetchImpl: async () => new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 60 }), { status: 200 }) })
       let calls = 0
       const flaky = async () => {
         calls += 1
@@ -238,7 +238,7 @@ describe('google oauth', () => {
       const hasBefore = g.hasGoogleCredential('aisignal')
       const { state } = g.buildGoogleAuthUrl({ purpose: 'aisignal', origin: 'https://app.example.com', scopes: [] })
       let sentClientId = ''
-      await g.handleGoogleCallback({ code: 'c', state, origin: 'https://app.example.com', fetchImpl: async (_u, init) => {
+      await g.handleGoogleCallback({ code: 'c', state, fetchImpl: async (_u, init) => {
         sentClientId = new URLSearchParams(String(init.body)).get('client_id') || ''
         return new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 60 }), { status: 200 })
       } })
@@ -257,7 +257,7 @@ describe('google oauth', () => {
       const repo = await import('@/lib/server/credentials/credential-repository')
       const { loadCredential, decryptKey } = repo.default || repo
       const { state } = g.buildGoogleAuthUrl({ purpose: 'aisignal', origin: 'https://h', scopes: [] })
-      await g.handleGoogleCallback({ code: 'c', state, origin: 'https://h', fetchImpl: async () => new Response(JSON.stringify({ refresh_token: 'super-secret-refresh', access_token: 'a', expires_in: 60 }), { status: 200 }) })
+      await g.handleGoogleCallback({ code: 'c', state, fetchImpl: async () => new Response(JSON.stringify({ refresh_token: 'super-secret-refresh', access_token: 'a', expires_in: 60 }), { status: 200 }) })
       const cred = loadCredential('google-oauth:aisignal')
       console.log(JSON.stringify({ raw: String(cred.encryptedKey), decrypted: decryptKey(cred.encryptedKey), provider: cred.provider, name: cred.name }))
     `)
@@ -266,6 +266,94 @@ describe('google oauth', () => {
     assert.equal(out.decrypted, 'super-secret-refresh')
     assert.equal(out.provider, 'google-oauth')
     assert.equal(out.name, 'aisignal')
+  })
+
+  it('stops handing out a cached access token as soon as the credential is deleted', () => {
+    // A Google access token stays valid for about an hour, so a cache consulted
+    // before the credential store would keep the mailbox readable for that long
+    // after the user pressed disconnect.
+    const out = runWithTempDataDir<{
+      before: string; after: string; deleted: boolean; refreshCalls: number; has: boolean
+    }>(`
+      process.env.SWARMCLAW_DEPLOY_MODE = 'vps'; process.env.GOOGLE_OAUTH_CLIENT_WEB_ID = 'w'; process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET = 's'
+      const gm = await import('@/lib/server/oauth/google'); const g = gm.default || gm
+      const svcMod = await import('@/lib/server/credentials/credential-service'); const svc = svcMod.default || svcMod
+      const { state } = g.buildGoogleAuthUrl({ purpose: 'aisignal', origin: 'https://h', scopes: [] })
+      await g.handleGoogleCallback({ code: 'c', state, fetchImpl: async () => new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 3600 }), { status: 200 }) })
+
+      let refreshCalls = 0
+      const refresh = async () => {
+        refreshCalls += 1
+        return new Response(JSON.stringify({ access_token: 'at-live', expires_in: 3600 }), { status: 200 })
+      }
+      const before = await g.getGoogleAccessToken('aisignal', refresh)
+      const deleted = svc.deleteCredentialRecord('google-oauth:aisignal')
+      let after = ''
+      try { after = await g.getGoogleAccessToken('aisignal', refresh) } catch (e) { after = 'threw:' + e.message }
+      console.log(JSON.stringify({ before, after, deleted, refreshCalls, has: g.hasGoogleCredential('aisignal') }))
+    `)
+    assert.equal(out.before, 'at-live')
+    assert.equal(out.deleted, true)
+    assert.equal(out.after, 'threw:gmail_token_missing', 'a deleted credential must not be served from the access-token cache')
+    assert.equal(out.refreshCalls, 1, 'the second call must fail on the missing credential, not send the deleted token to Google')
+    assert.equal(out.has, false)
+  })
+
+  it('reports a rejected authorization code as its own failure, not as a revoked token', () => {
+    // On an exchange `invalid_grant` means the code expired, was replayed, or
+    // the two redirect_uri strings differed. Telling a first-time user to
+    // re-grant access they never granted sends them nowhere.
+    const out = runWithTempDataDir<{ exchange: string; refresh: string }>(`
+      process.env.SWARMCLAW_DEPLOY_MODE = 'vps'; process.env.GOOGLE_OAUTH_CLIENT_WEB_ID = 'w'; process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET = 's'
+      const gm = await import('@/lib/server/oauth/google'); const g = gm.default || gm
+      const invalidGrant = async () => new Response(JSON.stringify({ error: 'invalid_grant' }), { status: 400 })
+
+      const stale = g.buildGoogleAuthUrl({ purpose: 'aisignal', origin: 'https://h', scopes: [] })
+      let exchange = ''
+      try { await g.handleGoogleCallback({ code: 'stale-code', state: stale.state, fetchImpl: invalidGrant }) } catch (e) { exchange = e.message }
+
+      const good = g.buildGoogleAuthUrl({ purpose: 'aisignal', origin: 'https://h', scopes: [] })
+      await g.handleGoogleCallback({ code: 'c', state: good.state, fetchImpl: async () => new Response(JSON.stringify({ refresh_token: 'r', access_token: 'a', expires_in: 1 }), { status: 200 }) })
+      let refresh = ''
+      try { await g.getGoogleAccessToken('aisignal', invalidGrant) } catch (e) { refresh = e.message }
+      console.log(JSON.stringify({ exchange, refresh }))
+    `)
+    assert.equal(out.exchange, 'oauth_code_invalid')
+    assert.notEqual(out.exchange, 'gmail_token_revoked')
+    // The refresh keeps the meaning it always had.
+    assert.equal(out.refresh, 'gmail_token_revoked')
+  })
+
+  it('prefers a configured public origin over the Host header, and ignores a value that is not one', () => {
+    const out = runWithTempDataDir<{
+      configured: string; trailingSlash: string; withPath: string
+      badScheme: string; blank: string; unset: string
+    }>(`
+      const gm = await import('@/lib/server/oauth/google'); const g = gm.default || gm
+      const at = (url, headers) => {
+        const req = new Request(url)
+        for (const [k, v] of Object.entries(headers || {})) req.headers.set(k, v)
+        return g.resolveCallbackOrigin(req)
+      }
+      // nginx's default proxy_pass sends the upstream address as Host.
+      const upstream = { host: '10.0.0.7:3456' }
+      const set = (value) => { process.env.SWARMCLAW_PUBLIC_ORIGIN = value }
+      set('https://app.example.com'); const configured = at('http://0.0.0.0:3456/api/oauth/google/start', upstream)
+      set('https://app.example.com/'); const trailingSlash = at('http://0.0.0.0:3456/api/oauth/google/start', upstream)
+      set('https://app.example.com/base'); const withPath = at('http://0.0.0.0:3456/api/oauth/google/start', { host: 'app.fallback.example' })
+      set('ftp://app.example.com'); const badScheme = at('http://0.0.0.0:3456/api/oauth/google/start', { host: 'app.fallback.example' })
+      set('   '); const blank = at('http://0.0.0.0:3456/api/oauth/google/start', { host: 'app.fallback.example' })
+      delete process.env.SWARMCLAW_PUBLIC_ORIGIN
+      const unset = at('http://0.0.0.0:3456/api/oauth/google/start', { host: 'app.fallback.example' })
+      console.log(JSON.stringify({ configured, trailingSlash, withPath, badScheme, blank, unset }))
+    `)
+    assert.equal(out.configured, 'https://app.example.com')
+    assert.equal(out.trailingSlash, 'https://app.example.com')
+    // A half-usable value is ignored rather than trimmed into something else.
+    assert.equal(out.withPath, 'http://app.fallback.example')
+    assert.equal(out.badScheme, 'http://app.fallback.example')
+    assert.equal(out.blank, 'http://app.fallback.example')
+    assert.equal(out.unset, 'http://app.fallback.example')
   })
 
   it('builds the callback origin from the Host header and the forwarded scheme, not from what the server was started as', () => {

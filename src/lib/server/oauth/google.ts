@@ -12,13 +12,23 @@
  * (`electron/server-lifecycle.ts`), so no fixed redirect URI exists to
  * register and a Web client cannot be used at all. A "Desktop app" client can:
  * Google matches loopback redirect URIs ignoring the port, per RFC 8252 §7.3.
- * `SWARMCLAW_DEPLOY_MODE` picks the pair; the redirect URI is always built from
- * the origin the request actually arrived on, which is what makes the varying
- * port work.
+ * `SWARMCLAW_DEPLOY_MODE` picks the pair; the redirect URI is built from the
+ * origin the request actually arrived on, which is what makes the varying port
+ * work. A VPS has no varying port and already knows its own registered origin,
+ * so `SWARMCLAW_PUBLIC_ORIGIN` (for example `https://app.example.com`) overrides
+ * that derivation when it is set. Set it on any deployment behind a reverse
+ * proxy: nginx's default `proxy_pass` sends the *upstream* address as `Host`,
+ * which would otherwise be baked into the redirect URI. Leave it unset in the
+ * desktop build, where the port changes every launch.
  *
  * **What is stored.** Only the refresh token, encrypted, in the credential
  * table under `google-oauth:<purpose>`. Access tokens live in memory until they
  * expire. Neither is ever logged or returned in a response body.
+ *
+ * **Disconnecting.** The in-memory access token is a shortcut past a refresh
+ * round trip, never past the credential store: every read re-checks that the
+ * stored refresh token is still there, so deleting the credential by any route
+ * stops access on the next call rather than up to an hour later.
  */
 
 import crypto from 'node:crypto'
@@ -54,6 +64,13 @@ interface PendingState {
   purpose: string
   /** PKCE verifier, kept server-side; only its SHA-256 ever leaves this process. */
   verifier: string
+  /**
+   * The origin the authorization request's `redirect_uri` was built from.
+   * Remembered rather than recomputed from the callback request, because Google
+   * compares the two `redirect_uri` strings byte for byte and the callback is a
+   * second request whose headers a proxy need not reproduce identically.
+   */
+  origin: string
   expiresAt: number
 }
 
@@ -161,12 +178,26 @@ function originFromHostHeader(protocol: string, hostHeader: string): string {
  * proxy knows and the app cannot. `X-Forwarded-Host` is deliberately *not*
  * consulted — that is the header a request can carry through an unaware proxy.
  *
+ * An operator who knows the public origin should not rely on any of that:
+ * `SWARMCLAW_PUBLIC_ORIGIN` is consulted first and wins outright. A Web client
+ * only works with an exactly registered redirect URI, so on a VPS that origin is
+ * already a fixed, known string, and nginx's default `proxy_pass` does not even
+ * forward the browser's `Host`. A value that is not a plain `http`/`https`
+ * origin is ignored rather than half-used, and the header path below applies.
+ *
  * Forging `Host` gains nothing: `/api/oauth/google/start` is access-key gated, so
  * only a signed-in caller reaches this, and Google matches the redirect URI
  * against the client's own registration — an exact registered URI for a Web
  * client, loopback only for a Desktop one. Neither accepts an attacker's host.
  */
 export function resolveCallbackOrigin(request: Request): string {
+  const configured = envValue('SWARMCLAW_PUBLIC_ORIGIN')
+  if (configured) {
+    const origin = parsePublicOrigin(configured)
+    if (origin) return origin
+    log.warn(TAG, 'SWARMCLAW_PUBLIC_ORIGIN is not a plain http or https origin, so it was ignored.')
+  }
+
   const requestUrl = new URL(request.url)
   const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim().toLowerCase()
   const protocol = forwardedProto === 'https' || forwardedProto === 'http'
@@ -175,6 +206,20 @@ export function resolveCallbackOrigin(request: Request): string {
 
   const hostHeader = request.headers.get('host')?.split(',')[0]?.trim() || ''
   return (hostHeader && originFromHostHeader(protocol, hostHeader)) || `${protocol}//${requestUrl.host}`
+}
+
+/** An `http(s)` origin and nothing else, or `''` for anything this cannot trust. */
+function parsePublicOrigin(value: string): string {
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return ''
+    // Scheme, host and port are all a redirect URI may take from this value;
+    // a path, query or credentials means the operator meant something else.
+    if (url.pathname !== '/' || url.search || url.hash || url.username || url.password) return ''
+    return url.origin
+  } catch {
+    return ''
+  }
 }
 
 function dropExpiredStates(now: number): void {
@@ -191,7 +236,7 @@ export function buildGoogleAuthUrl(opts: { purpose: string; origin: string; scop
   const state = crypto.randomBytes(24).toString('base64url')
   const verifier = crypto.randomBytes(32).toString('base64url')
   const challenge = crypto.createHash('sha256').update(verifier).digest('base64url')
-  pendingStates.set(state, { purpose: opts.purpose, verifier, expiresAt: now + STATE_TTL_MS })
+  pendingStates.set(state, { purpose: opts.purpose, verifier, origin: opts.origin, expiresAt: now + STATE_TTL_MS })
 
   const query = new URLSearchParams({
     client_id: client.id,
@@ -210,7 +255,15 @@ export function buildGoogleAuthUrl(opts: { purpose: string; origin: string; scop
   return { url: `${AUTH_URL}?${query.toString()}`, state }
 }
 
-async function postToken(params: Record<string, string>, fetchImpl: FetchImpl): Promise<Record<string, unknown>> {
+/**
+ * `invalidGrantError` is a parameter because `invalid_grant` means something
+ * different on each grant type, and the two are not interchangeable to a user:
+ * on a refresh the stored token really was revoked or expired, while on an
+ * authorization-code exchange it means the code was already used, timed out, or
+ * the two `redirect_uri` strings did not match — none of which the user can fix
+ * by re-granting access they may never have granted in the first place.
+ */
+async function postToken(params: Record<string, string>, fetchImpl: FetchImpl, invalidGrantError: string): Promise<Record<string, unknown>> {
   const response = await fetchImpl(TOKEN_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -219,19 +272,28 @@ async function postToken(params: Record<string, string>, fetchImpl: FetchImpl): 
   const parsed: unknown = await response.json().catch(() => null)
   const json = asRecord(parsed)
   if (!response.ok) {
-    // `invalid_grant` is the one Google failure the user has to act on: the
-    // refresh token was revoked or the consent expired, and only reconnecting
-    // fixes it. Everything else is transient or our own bug.
-    if (readString(json, 'error') === 'invalid_grant') throw new Error('gmail_token_revoked')
+    // `invalid_grant` is the one Google failure the caller has to act on rather
+    // than retry. Everything else is transient or our own bug.
+    if (readString(json, 'error') === 'invalid_grant') throw new Error(invalidGrantError)
     throw new Error('gmail_refresh_failed')
   }
   return json
 }
 
+/**
+ * Drop a pending state without exchanging anything, for a consent that came back
+ * as an error. Without this a cancelled connect leaves a live entry, and its
+ * PKCE verifier, in memory for the rest of the ten-minute TTL. Unknown or
+ * already-consumed states are a no-op, so a callback with a junk `state` costs
+ * nothing.
+ */
+export function discardGoogleOAuthState(state: string): void {
+  if (state) pendingStates.delete(state)
+}
+
 export async function handleGoogleCallback(opts: {
   code: string
   state: string
-  origin: string
   fetchImpl?: FetchImpl
 }): Promise<{ purpose: string }> {
   const pending = pendingStates.get(opts.state)
@@ -244,10 +306,12 @@ export async function handleGoogleCallback(opts: {
     code: opts.code,
     client_id: client.id,
     client_secret: client.secret,
-    redirect_uri: opts.origin + CALLBACK_PATH,
+    // The origin the auth url used, not one re-derived from this second
+    // request: Google compares the two strings byte for byte.
+    redirect_uri: pending.origin + CALLBACK_PATH,
     grant_type: 'authorization_code',
     code_verifier: pending.verifier,
-  }, opts.fetchImpl ?? fetch)
+  }, opts.fetchImpl ?? fetch, 'oauth_code_invalid')
 
   const refreshToken = readString(json, 'refresh_token')
   // `prompt=consent` means Google should always send one. If it did not, saving
@@ -290,7 +354,7 @@ async function refreshAccessToken(id: string, client: GoogleOAuthClient, fetchIm
     client_secret: client.secret,
     refresh_token: refreshToken,
     grant_type: 'refresh_token',
-  }, fetchImpl)
+  }, fetchImpl, 'gmail_token_revoked')
 
   const token = readString(json, 'access_token')
   if (!token) throw new Error('gmail_refresh_failed')
@@ -307,6 +371,16 @@ export async function getGoogleAccessToken(purpose: string, fetchImpl: FetchImpl
   if (!client) throw new GoogleOAuthNotConfiguredError(purpose)
 
   const id = credentialIdFor(purpose)
+  // Checked ahead of the cache, not only inside the refresh. A cached access
+  // token stays valid at Google for up to an hour, so returning one after the
+  // credential was deleted would keep the user's mailbox readable long after
+  // they pressed disconnect. Putting the check on the read path means every
+  // caller gets it, whichever route removed the credential.
+  if (!loadCredential(id)?.encryptedKey) {
+    accessCache.delete(id)
+    throw new Error('gmail_token_missing')
+  }
+
   const cached = accessCache.get(id)
   if (cached && cached.expiresAt > Date.now() + ACCESS_TOKEN_SKEW_MS) return cached.token
 

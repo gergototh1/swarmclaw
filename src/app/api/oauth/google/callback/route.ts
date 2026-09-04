@@ -10,7 +10,7 @@
 
 import { NextResponse } from 'next/server'
 
-import { handleGoogleCallback, resolveCallbackOrigin } from '@/lib/server/oauth/google'
+import { discardGoogleOAuthState, handleGoogleCallback, resolveCallbackOrigin } from '@/lib/server/oauth/google'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +47,10 @@ export async function GET(req: Request) {
   // does not read like a bug in the app.
   const consentError = url.searchParams.get('error') || ''
   if (consentError) {
+    // The consent this state was minted for will never complete, so it is dead
+    // weight; leaving it would keep it, and its PKCE verifier, alive for the
+    // rest of the ten-minute TTL.
+    discardGoogleOAuthState(url.searchParams.get('state') || '')
     return NextResponse.json(
       { error: KNOWN_CONSENT_ERRORS.has(consentError) ? consentError : 'oauth_consent_failed' },
       { status: 400 },
@@ -58,7 +62,9 @@ export async function GET(req: Request) {
   if (!code || !state) return NextResponse.json({ error: 'oauth_callback_missing_params' }, { status: 400 })
 
   try {
-    const { purpose } = await handleGoogleCallback({ code, state, origin })
+    // No `origin` here on purpose: the exchange reuses the one the auth url was
+    // built from, so the two redirect_uri strings cannot drift apart.
+    const { purpose } = await handleGoogleCallback({ code, state })
     return NextResponse.redirect(returnUrl(purpose, origin), 302)
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'oauth_failed' }, { status: 400 })

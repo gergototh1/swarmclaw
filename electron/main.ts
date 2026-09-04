@@ -4,6 +4,7 @@ import path from 'node:path'
 import { resolveRuntimePaths, RuntimePaths } from './paths'
 import { ServerHandle, startEmbeddedServer, tailLogFile } from './server-lifecycle'
 import { buildAppMenu } from './menu'
+import { shouldOpenExternally } from './external-navigation'
 
 const DEV_URL_DEFAULT = 'http://127.0.0.1:3456'
 const LOG_TAIL_BYTES = 1500
@@ -137,6 +138,17 @@ function createMainWindow(startUrl: string): void {
 
   mainWindow.on('closed', () => {
     mainWindow = null
+  })
+
+  // `setWindowOpenHandler` only covers window.open and target=_blank. A plain
+  // in-app link that redirects off-origin — Google consent is the one that
+  // matters — navigates the existing window instead, and Google refuses to run
+  // its consent screen inside Electron. Same-origin navigation is left alone, so
+  // the app's own pages still load here.
+  wc.on('will-navigate', (event, url) => {
+    if (!shouldOpenExternally(url, startUrl)) return
+    event.preventDefault()
+    void shell.openExternal(url)
   })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
