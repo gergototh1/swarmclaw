@@ -1223,6 +1223,32 @@ class ExtensionManager {
     this.loaded = true
   }
 
+  /**
+   * Look up one server-side method an extension exposes to its own browser UI.
+   *
+   * Returns `null` for every reason a call cannot be served — the extension is
+   * not installed, is disabled, declares no `rpc` map, or has no such method —
+   * so a caller cannot tell an installed-but-disabled extension from one that
+   * was never installed. That is deliberate: the caller has no business
+   * probing which extensions exist on this host.
+   *
+   * `load()` already skips disabled extensions, so the `isExplicitlyDisabled`
+   * check below is redundant today. It stays because it is the only line that
+   * would still hold if the map ever kept disabled entries (for a settings
+   * screen, say); it is cheap and reads off the config file, not the map.
+   *
+   * Only external extensions have handlers here: the builtin branch of `load()`
+   * does not carry `rpc` onto the loaded record, and warns when a builtin
+   * declares one.
+   */
+  getRpcHandler(extensionId: string, method: string): ExtensionRpcHandler | null {
+    this.load()
+    const ext = this.extensions.get(extensionId)
+    if (!ext || this.isExplicitlyDisabled(extensionId)) return null
+    const handler = ext.rpc?.[method]
+    return typeof handler === 'function' ? handler : null
+  }
+
   getTools(enabledIds: string[]): Array<{ extensionId: string; tool: ExtensionToolDef }> {
     this.load()
     const all: Array<{ extensionId: string; tool: ExtensionToolDef }> = []

@@ -551,6 +551,7 @@ const COMMAND_GROUPS = [
       cmd('settings-get', 'GET', '/extensions/settings', 'Get extension settings (use --query extensionId=extension_name)'),
       cmd('settings-set', 'PUT', '/extensions/settings', 'Set extension settings (use --query extensionId=extension_name and --data JSON)', { expectsJsonBody: true }),
       cmd('asset', 'GET', '/extensions/:id/assets/:...path', 'Fetch a built browser asset from an extension workspace (path segments are relative to the workspace dist/, so "index.js" reads dist/index.js)'),
+      cmd('call', 'POST', '/extensions/:id/call/:method', 'Call a server-side method an extension exposes to its own UI (use --data JSON for the request body)', { expectsJsonBody: true }),
       cmd('ui', 'GET', '/extensions/ui', 'List extension UI modules (use --query type=sidebar|header|chat_actions|connectors)'),
       cmd('builtins', 'GET', '/extensions/builtins', 'List built-in extensions'),
       cmd('managed-resources', 'GET', '/extensions/managed-resources', 'Preview extension-managed agents, routines, folders, gateways, and setup checks'),
