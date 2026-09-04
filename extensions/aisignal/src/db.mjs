@@ -13,6 +13,85 @@ import crypto from 'node:crypto'
  * called out individually below, because the DDL alone does not explain them
  * and the obvious "simplification" reintroduces the bug.
  */
+
+/*
+ * EVERY KEY IN THIS SCHEMA, AND WHAT IT GATES
+ * ===========================================
+ * Eight defects of one shape have been found in this extension across six
+ * review rounds. Every one of them was a key that decided whether a message got
+ * scored, or how far the frontier moved, while being blind to which source the
+ * run was reading. Finding a ninth by inventing a ninth scenario is not a
+ * method, so the whole key set is written down here instead: every primary key,
+ * every unique index, and every lookup that acts as one.
+ *
+ * A key *gates* if a hit or a miss on it changes whether a message is ever
+ * scored, or where the frontier lands. Those, and only those, have to be keyed
+ * on the identity the run resolved. Everything else is reporting, ordering or
+ * display, and says so below.
+ *
+ *   ext_aisignal_frontier -- PRIMARY KEY (kind, account, source_id)
+ *     gates   the frontier itself. This row *is* the point the next run over
+ *             this source resumes from.
+ *     source  all three halves of it. See THE FRONTIER KEY.
+ *
+ *   ext_aisignal_seen -- PRIMARY KEY (kind, account, message_id)
+ *     gates   whether a message is ever scored, and with it the frontier: a hit
+ *             drops the id out of `fresh` in sweep.mjs, so it is never fetched,
+ *             never counted into `leftover`, and cannot stop the run reading as
+ *             drained -- the frontier then moves past it.
+ *     source  kind and account: the space a message id is unique in. `source_id`
+ *             is deliberately left out and THE DEDUP KEY below carries the proof
+ *             that leaving it out cannot skip a message.
+ *
+ *   ext_aisignal_items -- UNIQUE (kind, account, message_id, COALESCE(url, ''))
+ *     gates   nothing about scoring or the frontier: no read of this index
+ *             reaches either, and `insertItem` runs long after the message was
+ *             fetched and handed over. It decides whether a recorded signal
+ *             becomes its own card or refreshes an existing one, so a key too
+ *             narrow loses a card rather than a message.
+ *     source  kind and account, the same space as the dedup and for the same
+ *             reason: two mailboxes can mint the same message id, and two
+ *             different messages must not merge into one card. `source_id` is
+ *             out of it deliberately -- one message that carries two labels of
+ *             one mailbox is one card, not two.
+ *
+ *   ext_aisignal_sweeps -- PRIMARY KEY (id)
+ *     gates   which row `finishSweep` closes, and closing is what moves the
+ *             frontier, so this key does reach it.
+ *     source  no, and it needs none: `id` is a surrogate minted per row by
+ *             `uid()`, not a natural key two sources could arrive at
+ *             independently. The row it names carries the source, and that is
+ *             what the frontier is keyed on.
+ *
+ *   ext_aisignal_items -- PRIMARY KEY (id)
+ *     gates   nothing beyond which card `decide()` flips. Surrogate, as above.
+ *
+ *   ext_aisignal_sweeps_ran -- INDEX (ran_at)
+ *     gates   nothing. Not unique; it exists so the history lists in order.
+ *
+ * The lookups that are not indexes but are used as keys:
+ *
+ *   seenIds -- WHERE kind = ? AND account = ? AND message_id IN (...)
+ *     The read side of ext_aisignal_seen, spelled exactly like its primary key,
+ *     and gating exactly what that key gates.
+ *   insertItem -- WHERE kind = ? AND account = ? AND message_id = ? AND
+ *                 COALESCE(url, '') = COALESCE(?, '')
+ *     The read side of the item index, spelled to match the indexed expression
+ *     so it uses it. Plus one deliberate second read for legacy rows; see there.
+ *   frontier(source) -- WHERE kind = ? AND account = ? AND source_id = ?
+ *     The read side of the frontier key, and every half is named by the caller.
+ *   sweepById(id) -- WHERE id = ?
+ *     Gates whether `recordSignal` may file an item (the sweep must exist and be
+ *     open). Addressed by the surrogate sweep id.
+ *   latestSweep(kind) -- WHERE kind = ? ORDER BY ran_at DESC, rowid DESC
+ *     Reporting only. It fed the frontier by inference until migration 2, which
+ *     is where five of the eight defects lived; nothing derives a frontier from
+ *     a sweep row any more.
+ *   finishSweep -- COUNT(*) FROM ext_aisignal_items WHERE sweep_id = ?
+ *     Reporting: `found` and `links_read` on the row.
+ *   items()/board()/counts() -- status, LIKE search, ordering
+ *     Display. No frontier and no fetch decision reads any of them.
+ */
 export const MIGRATIONS = [{
   version: 1,
   sql: `
@@ -175,6 +254,82 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
   PRIMARY KEY (kind, account, source_id)
 );
 `,
+}, {
+  /*
+   * The dedup is keyed on the mailbox too, because a message id is only an
+   * identity inside one.
+   *
+   * Migration 4 keyed the frontier on the resolved source, so a reconnect to
+   * another Google account correctly reads no frontier and lists the whole
+   * source. `ext_aisignal_seen` was still keyed on the bare Gmail message id,
+   * global across every mailbox the extension has ever opened -- and that table
+   * decides, one layer down, whether the mail that listing returned is ever
+   * looked at. A seen id is filtered out of `fresh`, so it is not fetched, not
+   * counted into `leftover`, and cannot stop the run reading as drained; the new
+   * source's frontier is then stamped above a message nobody scored. See THE
+   * DEDUP KEY below for the scenario end to end.
+   *
+   * `ext_aisignal_items` had the same exposure with a smaller blast radius: two
+   * different messages that share an id and a link merge into one card, so the
+   * second one silently overwrites the first instead of appearing beside it.
+   *
+   * What happens to the rows already stored
+   * ---------------------------------------
+   *   seen      dropped. An old row records an id and nothing else, and the
+   *             mailbox it came from is not recoverable: pre-migration-4 sweep
+   *             rows carry `account = ''`, so even walking `fetched_ids` back to
+   *             the sweep that marked it answers nothing. The two honest options
+   *             are to drop them or to keep them in a bucket no keyed read can
+   *             reach, which is the same thing with cruft. Dropping errs in the
+   *             only safe direction a dedup has: an id that is no longer known
+   *             is listed, fetched and scored again, which costs one pass. The
+   *             opposite -- treating a mailbox-less row as seen everywhere -- is
+   *             exactly the defect being closed here.
+   *   frontier  carried over, unlike migrations 3 and 4. Its key is not
+   *             changing: (kind, account, source_id) meant the resolved source
+   *             before this migration and means the same after, so no row is
+   *             handed to a source that did not earn it. Only the CHECK is new,
+   *             and the copy filters out anything blank so the constraint cannot
+   *             fail on data the old table would have allowed. Keeping it is
+   *             also what keeps the re-scoring above to one narrow window rather
+   *             than the whole label.
+   *   items     kept, and given the source of the sweep that found them. That is
+   *             `account = ''` for every row an install already has, and
+   *             `insertItem` treats such a row as adoptable: the first sweep
+   *             that sights it again claims it for its own mailbox rather than
+   *             inserting a second card. Without that, the re-scoring pass above
+   *             would resurface every card the user had already decided.
+   *
+   * So no install comes out of this able to skip mail: the frontier is where its
+   * own last close left it, and strictly more ids are eligible to be fetched
+   * than before.
+   */
+  version: 5,
+  sql: `
+ALTER TABLE ext_aisignal_items ADD COLUMN kind TEXT NOT NULL DEFAULT '';
+ALTER TABLE ext_aisignal_items ADD COLUMN account TEXT NOT NULL DEFAULT '';
+UPDATE ext_aisignal_items SET
+  kind = COALESCE((SELECT s.kind FROM ext_aisignal_sweeps s WHERE s.id = ext_aisignal_items.sweep_id), ''),
+  account = COALESCE((SELECT s.account FROM ext_aisignal_sweeps s WHERE s.id = ext_aisignal_items.sweep_id), '');
+DROP INDEX IF EXISTS ext_aisignal_items_msg_url;
+CREATE UNIQUE INDEX IF NOT EXISTS ext_aisignal_items_src_msg_url ON ext_aisignal_items (kind, account, message_id, COALESCE(url, ''));
+DROP TABLE IF EXISTS ext_aisignal_seen;
+CREATE TABLE IF NOT EXISTS ext_aisignal_seen (
+  kind TEXT NOT NULL, account TEXT NOT NULL, message_id TEXT NOT NULL, seen_at TEXT NOT NULL,
+  PRIMARY KEY (kind, account, message_id),
+  CHECK (kind <> '' AND account <> '' AND message_id <> '')
+);
+CREATE TABLE IF NOT EXISTS ext_aisignal_frontier_keyed (
+  kind TEXT NOT NULL, account TEXT NOT NULL, source_id TEXT NOT NULL, frontier TEXT, moved_at TEXT NOT NULL, sweep_id TEXT NOT NULL,
+  PRIMARY KEY (kind, account, source_id),
+  CHECK (kind <> '' AND account <> '' AND source_id <> '')
+);
+INSERT INTO ext_aisignal_frontier_keyed (kind, account, source_id, frontier, moved_at, sweep_id)
+  SELECT kind, account, source_id, frontier, moved_at, sweep_id FROM ext_aisignal_frontier
+  WHERE kind <> '' AND account <> '' AND source_id <> '';
+DROP TABLE ext_aisignal_frontier;
+ALTER TABLE ext_aisignal_frontier_keyed RENAME TO ext_aisignal_frontier;
+`,
 }]
 
 /*
@@ -218,8 +373,8 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
  * without a single character of it changing. Both default to '' so a run that
  * never resolved a source says so, and such a row moves no frontier.
  *
- * Why the item key is (message_id, COALESCE(url, ''))
- * --------------------------------------------------
+ * Why the item key is (kind, account, message_id, COALESCE(url, ''))
+ * -----------------------------------------------------------------
  * One newsletter carries many links, so message_id alone is not unique. url
  * alone is not either: an item can have no link at all. The pair is the key --
  * but SQLite treats NULLs as distinct in a unique index, so a plain
@@ -227,6 +382,16 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
  * url, and every re-run of a sweep inserts another copy of them. The index is
  * therefore on the expression COALESCE(url, ''), and the lookup in insertItem
  * spells the key exactly the same way so it can use that index.
+ *
+ * `kind` and `account` are in front of that pair because a Gmail message id is
+ * an identity only inside one mailbox -- the same reason the dedup carries them,
+ * stated in THE DEDUP KEY. Without them two genuinely different messages that
+ * happen to share an id and a link are one row, and the second sweep's card
+ * silently overwrites the first mailbox's. They are read off the sweep row
+ * rather than taken from the caller: the agent supplies the message id and the
+ * link, and nothing it says decides which mailbox a card is filed under.
+ * `source_id` is deliberately not in the key -- one message that carries two
+ * labels of one mailbox is one card, not two.
  *
  * `score` and `apply_score` are separate because ranking the deck by raw
  * relevance floated big-name announcements above things that were actually
@@ -242,6 +407,57 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
  * `ext_aisignal_seen` is separate from the items table because a message can be
  * swept and produce no items at all. Deriving "seen" from items would refetch
  * and rescore those messages on every single run, forever.
+ */
+
+/*
+ * THE DEDUP KEY
+ * =============
+ * `ext_aisignal_seen` is not cosmetic, and it is not only about wasted work. A
+ * seen id is filtered out of `fresh` in sweep.mjs, so it is never fetched, so it
+ * is not counted into `leftover`, so it cannot stop the run reading as drained
+ * -- and the frontier is then stamped above it. A message this table wrongly
+ * claims is seen is a message that is never scored and never listed again: the
+ * same permanent loss THE FRONTIER KEY exists to prevent, arriving through a
+ * second key one layer down.
+ *
+ * So the key has to be the identity of the message, and a Gmail message id is
+ * not one on its own. Google documents message ids as unique *within* an
+ * account and has never claimed more, so two mailboxes can mint the same id.
+ * Keyed on the bare id, this happens:
+ *
+ *   `a@example.test` is connected, the label `News` resolves to `Label_7`, and
+ *   a run sweeps its one message, Gmail id `X`. The close marks `X` seen and
+ *   stamps the frontier for that source. The operator disconnects Google and
+ *   reconnects `b@example.test`. The frontier key does its job: no row for the
+ *   new source, so `since` is null and the whole label is listed. `b`'s
+ *   `Label_7` holds a message that is also called `X`. It is dropped by the
+ *   dedup before the agent sees it, the run reports `messages: []`,
+ *   `leftover: 0`, `skipped: 1` and an untruncated listing, reads as drained,
+ *   and the new source's frontier lands at `ran_at` -- above a message that was
+ *   listed, never scored, and is now permanently out of every future window.
+ *
+ * The key is therefore (kind, account, message_id): the space the id is unique
+ * in, and no more.
+ *
+ *   kind      a web source mints its ids by some other rule entirely, so they
+ *             share no space with Gmail's.
+ *   account   the mailbox `users.getProfile` named for the credential in hand,
+ *             the same value the frontier is keyed on and resolved by the same
+ *             call, before any dedup is consulted.
+ *
+ * Why `source_id` is deliberately *not* in it, unlike the frontier key. Inside
+ * one mailbox a Gmail message id denotes one message however many labels carry
+ * it, so a hit here is the statement "this exact message was fetched and handed
+ * to the agent by some sweep of this mailbox" -- scored, not skipped, whichever
+ * label that sweep was reading. Nothing can be lost by it. Adding `source_id`
+ * would be wider still and equally incapable of skipping mail, but it would
+ * re-fetch and re-score every message that lives in two swept labels of one
+ * mailbox, which is the cost this table exists to avoid, and it would buy no
+ * safety at all because the message it re-scored had already been scored.
+ *
+ * The rule in one line: a gate is keyed on the space its identifier is unique
+ * in. For a watermark that space is the source; for a message id it is the
+ * mailbox.
  */
 
 const now = () => new Date().toISOString()
@@ -298,12 +514,32 @@ export const MAIL_KIND = 'mail'
  */
 function requireSource(where, source) {
   const { kind, account, sourceId } = source || {}
-  for (const [name, value] of [['kind', kind], ['account', account], ['sourceId', sourceId]]) {
-    if (typeof value !== 'string' || value === '') {
-      throw new Error(`${where} needs a non-empty ${name}: the frontier is keyed on (kind, account, sourceId), and a key with a half missing is some other source's window`)
-    }
-  }
+  requireNamed(where, [['kind', kind], ['account', account], ['sourceId', sourceId]],
+    "the frontier is keyed on (kind, account, sourceId), and a key with a half missing is some other source's window")
   return { kind, account, sourceId }
+}
+
+/**
+ * The half of a source a message id is unique inside: the kind and the mailbox.
+ *
+ * The dedup is keyed on this and not on the whole source, for the reason set
+ * out in THE DEDUP KEY. It is refused the same way and for the same reason a
+ * frontier read is: a dedup read that guessed the mailbox is a read of another
+ * mailbox's answer, and the answer it would give -- "already swept" -- is the
+ * one that loses a message for good.
+ */
+function requireIdSpace(where, source) {
+  const { kind, account } = source || {}
+  requireNamed(where, [['kind', kind], ['account', account]],
+    'a message id is unique inside one mailbox only, so the dedup is keyed on (kind, account, messageId) and a key with a half missing answers for another mailbox')
+  return { kind, account }
+}
+
+/** Every named half of a key is a non-empty string, or the missing one is named. */
+function requireNamed(where, fields, why) {
+  for (const [name, value] of fields) {
+    if (typeof value !== 'string' || value === '') throw new Error(`${where} needs a non-empty ${name}: ${why}`)
+  }
 }
 
 /**
@@ -400,7 +636,15 @@ export function createRepo(storage) {
      */
     openSweep({ label, source = null, since, fetchedIds, skipped, leftover, kind = MAIL_KIND, note = '', drained = false, ranAt = now() }) {
       if (drained && !source) throw new Error('a sweep cannot claim it drained a source it never resolved')
-      const { account, sourceId } = source ? requireSource('openSweep', { kind, ...source }) : { account: '', sourceId: '' }
+      // The two halves are named one by one rather than spread, so the identity
+      // checked here is the identity stored below. `{ kind, ...source }` let a
+      // `source` carrying its own `kind` satisfy the guard under one value while
+      // the INSERT wrote the parameter's -- a guard advertised as *the* identity
+      // gate that validated a key the row does not have. No caller in the tree
+      // does that; the point is that the shape cannot arise at all.
+      const { account, sourceId } = source
+        ? requireSource('openSweep', { kind, account: source.account, sourceId: source.sourceId })
+        : { account: '', sourceId: '' }
       const id = uid()
       const noteText = [skipped ? `skipped=${skipped}` : '', note].filter(Boolean).join('; ')
       S.exec('INSERT INTO ext_aisignal_sweeps (id, ran_at, label, account, source_id, since, messages, fetched_ids, leftover, kind, note, frontier_after) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
@@ -428,6 +672,11 @@ export function createRepo(storage) {
     /**
      * Closes a sweep: marks its fetched ids seen and recomputes the counters
      * from the items actually written.
+     *
+     * The ids are marked seen for the mailbox this sweep read and for no other,
+     * because a Gmail message id is unique inside an account and nowhere wider
+     * -- see THE DEDUP KEY. That table is a second gate on whether a message is
+     * ever scored, so it is keyed with the same care as the frontier itself.
      *
      * The closing note is appended to the one openSweep wrote rather than
      * replacing it: the success path passes an empty note, so replacing would
@@ -475,7 +724,18 @@ export function createRepo(storage) {
         if (!sweep) throw new Error(`unknown sweep ${sweepId}`)
         if (sweep.finished_at) throw new Error(alreadyClosedMessage(sweepId))
         const ids = JSON.parse(sweep.fetched_ids || '[]')
-        for (const m of ids) S.exec('INSERT OR IGNORE INTO ext_aisignal_seen (message_id, seen_at) VALUES (?, ?)', [m, now()])
+        // Marking an id seen is a statement about one mailbox, so a run that
+        // never named one cannot make it. Blank halves are not an identity --
+        // they are every unidentified run sharing one bucket -- and a bucket
+        // like that is what let one mailbox's ids answer for another's. This
+        // cannot happen in production (a run that fetched messages resolved its
+        // source first, and `failedSweep` fetches nothing), so the refusal is a
+        // barrier rather than a path, and it errs wide: the transaction rolls
+        // back, the sweep stays open, and every id it holds stays fetchable.
+        if (ids.length > 0 && !sweep.account) {
+          throw new Error(`sweep ${sweepId} fetched messages but resolved no source; a message id is only unique inside a mailbox, so there is no key to mark them seen under`)
+        }
+        for (const m of ids) S.exec('INSERT OR IGNORE INTO ext_aisignal_seen (kind, account, message_id, seen_at) VALUES (?,?,?,?)', [sweep.kind, sweep.account, m, now()])
         const found = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ?', [sweepId]).c
         const linksRead = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ? AND link_read = 1', [sweepId]).c
         S.exec('UPDATE ext_aisignal_sweeps SET found = ?, links_read = ?, ok = ?, note = ?, finished_at = ? WHERE id = ?', [found, linksRead, ok ? 1 : 0, joinNote(sweep.note, note), now(), sweepId])
@@ -519,12 +779,26 @@ export function createRepo(storage) {
       return S.get('SELECT frontier FROM ext_aisignal_frontier WHERE kind = ? AND account = ? AND source_id = ?', [kind, account, sourceId])?.frontier ?? null
     },
     sweeps(limit = 10) { return S.all(`SELECT * FROM ext_aisignal_sweeps ORDER BY ${SWEEP_ORDER} LIMIT ?`, [limit]) },
-    /** Which of `ids` have already been swept. Chunked because a source page can carry more ids than SQLite will bind. */
-    seenIds(ids) {
+    /**
+     * Which of `ids` this mailbox has already swept. Chunked because a source
+     * page can carry more ids than SQLite will bind.
+     *
+     * `source` is named by the caller and neither half has a default, for the
+     * reason `frontier` has none: an id is unique inside one mailbox, so a read
+     * that guessed the mailbox would answer with another mailbox's ids, and
+     * "already swept" is the answer that drops a message before anything scores
+     * it. See THE DEDUP KEY.
+     */
+    seenIds(source, ids) {
+      const { kind, account } = requireIdSpace('seenIds', source)
       const seen = new Set()
       for (let i = 0; i < ids.length; i += SEEN_CHUNK) {
         const chunk = ids.slice(i, i + SEEN_CHUNK)
-        for (const r of S.all(`SELECT message_id FROM ext_aisignal_seen WHERE message_id IN (${chunk.map(() => '?').join(',')})`, chunk)) seen.add(r.message_id)
+        const rows = S.all(
+          `SELECT message_id FROM ext_aisignal_seen WHERE kind = ? AND account = ? AND message_id IN (${chunk.map(() => '?').join(',')})`,
+          [kind, account, ...chunk],
+        )
+        for (const r of rows) seen.add(r.message_id)
       }
       return seen
     },
@@ -535,17 +809,35 @@ export function createRepo(storage) {
      * item keeps belonging to the sweep that first found it (so `found` is a
      * count of new finds, not of re-sightings) and a decision the user already
      * made is not undone by a later sweep resurfacing the same link.
+     *
+     * The kind and the mailbox come off the sweep row, never from the caller:
+     * the agent supplies the message id and the link, and neither it nor
+     * `recordSignal` has any business saying which mailbox a card is filed
+     * under. An unknown sweep is refused rather than filed under a blank one,
+     * which is the second barrier behind `recordSignal`'s own check.
      */
     insertItem(it) {
-      const existing = S.get("SELECT id FROM ext_aisignal_items WHERE message_id = ? AND COALESCE(url, '') = COALESCE(?, '')", [it.messageId, it.url ?? null])
+      const sweep = S.get('SELECT kind, account FROM ext_aisignal_sweeps WHERE id = ?', [it.sweepId])
+      if (!sweep) throw new Error(`unknown sweep ${it.sweepId}`)
+      const url = it.url ?? null
+      const key = [sweep.kind, sweep.account, it.messageId, url]
+      const existing = S.get("SELECT id FROM ext_aisignal_items WHERE kind = ? AND account = ? AND message_id = ? AND COALESCE(url, '') = COALESCE(?, '')", key)
+        // A row written before the key carried a mailbox has no mailbox to
+        // compare, and it is the same message this sweep is looking at far more
+        // often than it is a colliding id from a mailbox nobody has connected
+        // since. So the first sweep that sights one again adopts it: the card
+        // keeps its id, its status and the decision the user made on it,
+        // instead of a second card appearing beside an archived one. Reachable
+        // only for rows stored before migration 5, and each one only once.
+        ?? (sweep.account === '' ? undefined : S.get("SELECT id FROM ext_aisignal_items WHERE kind = ? AND account = '' AND message_id = ? AND COALESCE(url, '') = COALESCE(?, '')", [sweep.kind, it.messageId, url]))
       if (existing) {
-        S.exec('UPDATE ext_aisignal_items SET headline = ?, summary = ?, score = ?, apply_score = ?, why = ?, link_read = ? WHERE id = ?',
-          [it.headline, it.summary, it.score, it.applyScore, it.why || '', it.linkRead ? 1 : 0, existing.id])
+        S.exec('UPDATE ext_aisignal_items SET account = ?, headline = ?, summary = ?, score = ?, apply_score = ?, why = ?, link_read = ? WHERE id = ?',
+          [sweep.account, it.headline, it.summary, it.score, it.applyScore, it.why || '', it.linkRead ? 1 : 0, existing.id])
         return { id: existing.id, merged: true }
       }
       const id = uid()
-      S.exec('INSERT INTO ext_aisignal_items (id, sweep_id, message_id, headline, summary, url, source_name, source_email, sent_at, score, apply_score, why, link_read, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        [id, it.sweepId, it.messageId, it.headline, it.summary, it.url ?? null, it.sourceName ?? null, it.sourceEmail ?? null, it.sentAt ?? null, it.score, it.applyScore, it.why || '', it.linkRead ? 1 : 0, now()])
+      S.exec('INSERT INTO ext_aisignal_items (id, sweep_id, kind, account, message_id, headline, summary, url, source_name, source_email, sent_at, score, apply_score, why, link_read, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        [id, it.sweepId, sweep.kind, sweep.account, it.messageId, it.headline, it.summary, url, it.sourceName ?? null, it.sourceEmail ?? null, it.sentAt ?? null, it.score, it.applyScore, it.why || '', it.linkRead ? 1 : 0, now()])
       return { id, merged: false }
     },
     /**

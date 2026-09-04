@@ -489,7 +489,16 @@ export function createSweepTools(state) {
 
         // The date window is deliberately too wide, so this dedup is not
         // optional: without it the same newsletters are re-scored every run.
-        const seen = repo.seenIds(listed.ids)
+        //
+        // It is asked of *this mailbox*, because a Gmail message id is unique
+        // inside one account and nowhere wider, and this table decides whether
+        // a listed message is ever looked at: a hit drops the id out of `fresh`
+        // below, so it is never fetched, never counted into `leftover`, and
+        // cannot hold the frontier back. Asked globally, the same id in a
+        // newly connected mailbox reads as already swept and that message is
+        // lost for good -- the frontier key noticing the new mailbox does not
+        // help if the dedup does not. See THE DEDUP KEY in db.mjs.
+        const seen = repo.seenIds({ kind: MAIL_KIND, account: source.account }, listed.ids)
         const fresh = listed.ids.filter((id) => !seen.has(id))
 
         const messages = []

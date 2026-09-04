@@ -792,6 +792,62 @@ test('the same label name in another mailbox starts at the whole source', async 
   assert.deepEqual(storage.all('SELECT account FROM ext_aisignal_frontier ORDER BY account').map((r) => r.account), [MAILBOX, other])
 })
 
+test('the same message id in another mailbox is another message, not one already swept', async () => {
+  // The test above picks non-colliding ids (a1 versus b1/b2), so it proves the
+  // frontier noticed the new mailbox and nothing about the second gate one
+  // layer down. This one reuses the id.
+  //
+  // Google documents Gmail message ids as unique *within* an account and claims
+  // nothing wider, so two mailboxes can mint the same id. Keyed on the bare id,
+  // `ext_aisignal_seen` then answers "already swept" for a message the new
+  // mailbox has never had looked at: it drops out of `fresh`, so it is never
+  // fetched, never counted into `leftover`, and cannot stop the run reading as
+  // drained -- the run reported `messages: []`, `leftover: 0`, `skipped: 1`,
+  // `truncated: false` and stamped the new source's frontier at its `ran_at`,
+  // above a message nobody ever scored and that no later window reaches.
+  const box = { address: 'a@example.test', names: { News: 'Label_7' }, messages: { Label_7: [aged('X', 1)] } }
+  const gmail = mailboxGmail(box)
+  const { state, storage, run } = setup(gmail, { label: 'News', maxMessages: 5 })
+
+  const first = await run('signalSweep')
+  assert.deepEqual(first.messages.map((m) => m.id), ['X'])
+  await run('recordSignal', { sweepId: first.sweepId, messageId: 'X', headline: 'from the first mailbox', summary: '', url: 'https://one', score: 0.5, applyScore: 0.5 })
+  await run('finishSweep', { sweepId: first.sweepId })
+  const firstWindow = swept(state.repo, 'Label_7', 'a@example.test')
+  assert.notEqual(firstWindow, null)
+
+  // Disconnect Google, reconnect another account. Same label name, and a label
+  // id that collides because ids are minted per mailbox -- and one message in
+  // it that happens to carry the id the first mailbox already swept.
+  box.address = 'b@example.test'
+  box.messages = { Label_7: [aged('X', 20)] }
+
+  const asked = []
+  const realSeenIds = state.repo.seenIds
+  state.repo.seenIds = (source, ids) => { asked.push(source); return realSeenIds.call(state.repo, source, ids) }
+  const second = await run('signalSweep')
+  state.repo.seenIds = realSeenIds
+
+  assert.deepEqual(second.messages.map((m) => m.id), ['X'], 'the new mailbox\'s message is handed over, not dropped as already seen')
+  assert.equal(second.skipped, 0, 'nothing in the new mailbox has been swept before')
+  assert.equal(second.leftover, 0)
+  assert.deepEqual(asked, [{ kind: MAIL_KIND, account: 'b@example.test' }], 'the dedup is asked about the mailbox this run resolved')
+
+  // The same id and the same link, from a message that is not the same message:
+  // the card the new mailbox produces stands beside the old one instead of
+  // overwriting its headline in place.
+  await run('recordSignal', { sweepId: second.sweepId, messageId: 'X', headline: 'from the second mailbox', summary: '', url: 'https://one', score: 0.5, applyScore: 0.5 })
+  await run('finishSweep', { sweepId: second.sweepId })
+
+  // Two rows for one id: seen is a statement about one mailbox.
+  assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_seen WHERE message_id = ?', ['X']).c, 2)
+  assert.deepEqual(storage.all('SELECT account FROM ext_aisignal_seen ORDER BY account').map((r) => r.account), ['a@example.test', 'b@example.test'])
+  // And each mailbox's window is still its own.
+  assert.equal(swept(state.repo, 'Label_7', 'a@example.test'), firstWindow)
+  assert.equal(swept(state.repo, 'Label_7', 'b@example.test'), state.repo.sweepById(second.sweepId).ran_at)
+  assert.deepEqual(state.repo.items().items.map((i) => i.headline).sort(), ['from the first mailbox', 'from the second mailbox'])
+})
+
 test('renaming a Gmail label keeps the window that label already earned', async () => {
   // The other direction, and the reason the name is deliberately *not* in the
   // key: a rename that keeps the id is the one case that really is the same
@@ -913,7 +969,7 @@ test('a fetch that fails partway keeps the good messages and reports the failure
   // Closing the sweep marks only what was actually read, so the failed message
   // comes back on the next run instead of being lost.
   await run('finishSweep', { sweepId: r.sweepId })
-  const seen = state.repo.seenIds(['a', 'b', 'c'])
+  const seen = state.repo.seenIds({ kind: MAIL_KIND, account: MAILBOX }, ['a', 'b', 'c'])
   assert.deepEqual([...seen].sort(), ['a', 'c'])
 })
 

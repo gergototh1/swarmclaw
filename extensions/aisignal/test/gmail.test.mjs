@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
 import { test } from 'node:test'
 
-import { createGmail, stripHtml, sinceQuery, GmailError } from '../src/gmail.mjs'
+import { createGmail, stripHtml, sinceQuery, GmailError, REQUEST_TIMEOUT_MS } from '../src/gmail.mjs'
 
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } })
 
@@ -611,4 +611,91 @@ test('a non-integer message cap is refused before any request goes out', async (
   assert.equal(calls, 0)
   // A whole number that arrived as a string is still a whole number.
   assert.deepEqual(await g.listIds({ labelId: 'L1', since: null, max: '2' }), { ids: ['a'], truncated: false, stoppedOn: null })
+})
+
+// --- The request deadline ----------------------------------------------------
+//
+// `fetch` has no timeout of its own, so before this every call here could wait
+// forever. These runs are started by a schedule rather than by a person, so a
+// hung one is not a spinner somebody is watching: it is a mailbox that quietly
+// stops being swept, with a sweep row left open and nothing to say why.
+
+/** A fetch that never answers, and rejects the way an aborted one does. */
+const hangingFetch = (_url, init) => new Promise((_resolve, reject) => {
+  init.signal.addEventListener('abort', () => reject(new Error('This operation was aborted')))
+})
+
+/** A fetch whose headers arrive and whose body then never ends. */
+const stallingBody = async (_url, init) => ({
+  status: 200,
+  ok: true,
+  json: () => new Promise((_resolve, reject) => {
+    init.signal.addEventListener('abort', () => reject(new Error('This operation was aborted')))
+  }),
+})
+
+/** Lets the token stage settle so the call has reached its fetch and armed the deadline. */
+const untilTheRequestIsOut = () => new Promise((resolve) => setImmediate(resolve))
+
+test('a request that never answers is abandoned on the deadline under its own code', { timeout: 5000 }, async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const g = createGmail({ getToken: async () => 't', fetchImpl: hangingFetch })
+
+  const pending = g.listIds({ labelId: 'L1', since: null, max: 5 })
+  await untilTheRequestIsOut()
+
+  // One millisecond short of the deadline the call is still waiting, so the
+  // bound really is the named constant and not something shorter that happens
+  // to fire.
+  t.mock.timers.tick(REQUEST_TIMEOUT_MS - 1)
+  let settled = false
+  pending.then(() => { settled = true }, () => { settled = true })
+  await untilTheRequestIsOut()
+  assert.equal(settled, false)
+
+  t.mock.timers.tick(1)
+  // Its own code, not gmail_unexpected: "Gmail never answered" and "the socket
+  // broke" are different things for an operator to do something about, and a
+  // run abandoned on time is not a transport error.
+  await assert.rejects(pending, (e) => e instanceof GmailError && e.code === 'gmail_timeout' && /30000 ms/.test(e.message))
+})
+
+test('the deadline covers every call, and the body as well as the headers', { timeout: 5000 }, async (t) => {
+  // The deadline lives in the one request helper, so it is not something each
+  // endpoint has to remember: `mailbox()` and `labelId()` go out before any
+  // frontier can be read, and a hang in either strands the run before it has a
+  // sweep row of its own.
+  const g = createGmail({ getToken: async () => 't', fetchImpl: hangingFetch })
+  for (const [what, call] of [
+    ['profile', () => g.mailbox()],
+    ['labels', () => g.labelId('AI hírlevél')],
+    ['messages', () => g.listIds({ labelId: 'L1', since: null, max: 5 })],
+    ['one message', () => g.getMessage('a')],
+  ]) {
+    t.mock.timers.enable({ apis: ['setTimeout'] })
+    const pending = call()
+    await untilTheRequestIsOut()
+    t.mock.timers.tick(REQUEST_TIMEOUT_MS)
+    await assert.rejects(pending, (e) => e.code === 'gmail_timeout', `${what} runs under the deadline`)
+    t.mock.timers.reset()
+  }
+
+  // A reply whose headers arrive and whose body then stalls hangs exactly as
+  // thoroughly, so the timer is only cleared once the body has been read.
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const stalled = createGmail({ getToken: async () => 't', fetchImpl: stallingBody }).mailbox()
+  await untilTheRequestIsOut()
+  t.mock.timers.tick(REQUEST_TIMEOUT_MS)
+  await assert.rejects(stalled, (e) => e.code === 'gmail_timeout')
+})
+
+test('a reply that arrives in time is not touched by the deadline', { timeout: 5000 }, async (t) => {
+  // The other direction: the timer must not fire on a call that finished, and
+  // must not leave the process holding one either.
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const g = createGmail({ getToken: async () => 't', fetchImpl: async () => json({ emailAddress: 'owner@example.test' }) })
+  assert.equal(await g.mailbox(), 'owner@example.test')
+  // Nothing is left armed to abort a request that already answered.
+  t.mock.timers.tick(REQUEST_TIMEOUT_MS * 2)
+  assert.equal(await g.mailbox(), 'owner@example.test')
 })

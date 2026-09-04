@@ -21,6 +21,7 @@ import { Buffer } from 'node:buffer'
  *   gmail_list_failed       listing labels or messages failed
  *   gmail_profile_failed    the mailbox profile could not be read
  *   gmail_fetch_failed      fetching one message failed
+ *   gmail_timeout           Gmail did not finish answering within the deadline
  *   gmail_unexpected        transport error, a reply that is not JSON, a reply
  *                           that parses but is not the documented shape, or a
  *                           caller-side argument that cannot be honoured
@@ -64,6 +65,31 @@ const BASE = 'https://gmail.googleapis.com/gmail/v1/users/me'
  * of them" would be a false statement.
  */
 const MAX_PAGES = 200
+
+/**
+ * How long one request may take, headers and body together, before it is
+ * abandoned under its own code.
+ *
+ * Without a deadline a request that never answers hangs the whole run forever:
+ * `fetch` has no default timeout, so a connection a middlebox holds open leaves
+ * the sweep waiting with a sweep row open, no `finished_at`, and nothing on the
+ * schedule to notice -- these runs are started by a schedule, so a hung one is
+ * not a person staring at a spinner, it is a mailbox that quietly stops being
+ * swept. Every call goes through `call` below, so putting the deadline there
+ * covers `/profile`, `/labels`, `/messages` and `/messages/{id}` at once,
+ * including the two that `mailbox()` and `labelId()` now make before any
+ * frontier can even be read.
+ *
+ * It covers the body as well as the headers, because a reply whose stream never
+ * ends hangs exactly as thoroughly as one that never arrives.
+ *
+ * Thirty seconds is far above anything Gmail takes for these four endpoints and
+ * far below a schedule interval, so it cannot cut off a slow-but-working reply
+ * and cannot let a dead one outlive the run that made it. Timing out is a
+ * failure like any other here: it lands on the sweep row through `failSweep`,
+ * nothing is marked seen, and the next run picks the same messages up.
+ */
+export const REQUEST_TIMEOUT_MS = 30000
 
 export class GmailError extends Error {
   constructor(code, message) {
@@ -236,6 +262,13 @@ export function createGmail({ getToken, fetchImpl = fetch }) {
    * One authenticated GET. `failCode` is the code for "this operation failed"
    * and is used for every status that is not a token or scope problem, so the
    * caller learns which call broke as well as how.
+   *
+   * The whole exchange runs under one deadline -- see REQUEST_TIMEOUT_MS -- and
+   * the timer is only cleared once the body has been read, so a reply that
+   * arrives and then stalls mid-stream is cut off as surely as one that never
+   * arrives. Whatever the abort surfaces as (a rejected fetch, a rejected
+   * `json()`, a `TypeError` from a fetch double that ignores the signal), the
+   * `aborted` flag is what names it, not the error's own class or message.
    */
   async function call(path, failCode) {
     let token
@@ -249,36 +282,48 @@ export function createGmail({ getToken, fetchImpl = fetch }) {
       throw new GmailError(code, e?.message)
     }
 
-    let res
+    const deadline = new AbortController()
+    const timer = setTimeout(() => deadline.abort(), REQUEST_TIMEOUT_MS)
+    const timedOut = () => new GmailError('gmail_timeout', `Gmail did not answer within ${REQUEST_TIMEOUT_MS} ms`)
     try {
-      res = await fetchImpl(`${BASE}${path}`, { headers: { authorization: `Bearer ${token}` } })
-    } catch (e) {
-      // DNS, TLS, a dropped socket. Named so it cannot be mistaken for a reply.
-      throw new GmailError('gmail_unexpected', `Gmail request failed: ${e?.message || e}`)
-    }
+      let res
+      try {
+        res = await fetchImpl(`${BASE}${path}`, { headers: { authorization: `Bearer ${token}` }, signal: deadline.signal })
+      } catch (e) {
+        // DNS, TLS, a dropped socket. Named so it cannot be mistaken for a
+        // reply -- and the deadline first, so a run abandoned on time is not
+        // filed as a transport error nobody can act on.
+        if (deadline.signal.aborted) throw timedOut()
+        throw new GmailError('gmail_unexpected', `Gmail request failed: ${e?.message || e}`)
+      }
 
-    if (res.status === 401) throw new GmailError('gmail_token_invalid', 'Gmail rejected the access token')
-    if (res.status === 403) {
-      const body = await res.json().catch(() => ({}))
-      const reason = body?.error?.errors?.[0]?.reason || ''
-      throw new GmailError(isScopeReason(reason) ? 'gmail_scope_missing' : failCode, reason || 'HTTP 403')
-    }
-    if (!res.ok) throw new GmailError(failCode, `HTTP ${res.status}`)
+      if (res.status === 401) throw new GmailError('gmail_token_invalid', 'Gmail rejected the access token')
+      if (res.status === 403) {
+        const body = await res.json().catch(() => ({}))
+        if (deadline.signal.aborted) throw timedOut()
+        const reason = body?.error?.errors?.[0]?.reason || ''
+        throw new GmailError(isScopeReason(reason) ? 'gmail_scope_missing' : failCode, reason || 'HTTP 403')
+      }
+      if (!res.ok) throw new GmailError(failCode, `HTTP ${res.status}`)
 
-    let body
-    try {
-      body = await res.json()
-    } catch (e) {
-      // A proxy or sign-in interstitial answering 200 with HTML. Left unwrapped
-      // this rejects with a bare SyntaxError whose `code` is undefined, and a
-      // caller switching on the code would file the run as "nothing found".
-      throw new GmailError('gmail_unexpected', `Gmail returned a body that is not JSON: ${e?.message || e}`)
+      let body
+      try {
+        body = await res.json()
+      } catch (e) {
+        // A proxy or sign-in interstitial answering 200 with HTML. Left unwrapped
+        // this rejects with a bare SyntaxError whose `code` is undefined, and a
+        // caller switching on the code would file the run as "nothing found".
+        if (deadline.signal.aborted) throw timedOut()
+        throw new GmailError('gmail_unexpected', `Gmail returned a body that is not JSON: ${e?.message || e}`)
+      }
+      // Parsing successfully is not the same as parsing into an object: a
+      // literal `null`, a number or an array all parse, and every field read
+      // after this would then throw uncoded.
+      if (!body || typeof body !== 'object' || Array.isArray(body)) throw unexpectedShape('JSON body that is not an object')
+      return body
+    } finally {
+      clearTimeout(timer)
     }
-    // Parsing successfully is not the same as parsing into an object: a literal
-    // `null`, a number or an array all parse, and every field read after this
-    // would then throw uncoded.
-    if (!body || typeof body !== 'object' || Array.isArray(body)) throw unexpectedShape('JSON body that is not an object')
-    return body
   }
 
   return {

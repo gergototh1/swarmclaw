@@ -16,6 +16,13 @@ const ACCOUNT = 'owner@example.test'
 const src = (sourceId, account = ACCOUNT) => ({ account, sourceId })
 const frontierOf = (repo, sourceId, { kind = MAIL_KIND, account = ACCOUNT } = {}) => repo.frontier({ kind, account, sourceId })
 
+/**
+ * The space a message id is unique in, which is what the dedup is keyed on: the
+ * kind and the mailbox, and deliberately not the label the sweep read. See THE
+ * DEDUP KEY.
+ */
+const space = (account = ACCOUNT, kind = MAIL_KIND) => ({ kind, account })
+
 /** A storage handle with the schema applied, plus the repository over it. */
 function fresh() {
   const s = memStorage()
@@ -146,6 +153,109 @@ test('the frontier key is exactly the dimensions a sweep varies over', () => {
   assert.deepEqual(key, ['kind', 'account', 'source_id'])
 })
 
+test('the dedup key is exactly the space a message id is unique in', () => {
+  // The rule stated in THE DEDUP KEY, asserted rather than described. The bare
+  // message id was the eighth defect of this shape: global across every mailbox
+  // the extension ever opened, and gating whether a listed message is ever
+  // fetched at all. The mailbox is in the key now. The label id deliberately is
+  // not -- inside one mailbox an id denotes one message however many labels
+  // carry it -- so both directions are pinned here and neither can drift.
+  const s = memStorage()
+  for (const m of MIGRATIONS) s.raw.exec(m.sql)
+  const key = s.all('PRAGMA table_info(ext_aisignal_seen)').filter((c) => c.pk > 0).sort((a, b) => a.pk - b.pk).map((c) => c.name)
+  assert.deepEqual(key, ['kind', 'account', 'message_id'])
+
+  // And the item index carries the same space, so two mailboxes' messages
+  // cannot merge into one card.
+  const index = s.get("SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'ext_aisignal_items' AND sql LIKE '%UNIQUE%'").sql
+  assert.match(index, /\(kind, account, message_id, COALESCE\(url, ''\)\)/)
+})
+
+test('a blank key is refused by the schema, not only by the guard that reads it', () => {
+  // "A blank key is not an identity" lived in requireSource and in one guard in
+  // finishSweep, which is to say in two places a later edit can walk past. It
+  // is a CHECK now: the tables that gate whether mail is scored say it
+  // themselves, and every install carries the rule whatever the code above it
+  // does.
+  const s = memStorage()
+  for (const m of MIGRATIONS) s.raw.exec(m.sql)
+  assert.throws(() => s.exec('INSERT INTO ext_aisignal_frontier (kind, account, source_id, frontier, moved_at, sweep_id) VALUES (?,?,?,?,?,?)',
+    ['mail', '', 'LBL_X', '2026-09-01', '2026-09-01', 's1']), /CHECK/)
+  assert.throws(() => s.exec('INSERT INTO ext_aisignal_frontier (kind, account, source_id, frontier, moved_at, sweep_id) VALUES (?,?,?,?,?,?)',
+    ['mail', ACCOUNT, '', '2026-09-01', '2026-09-01', 's1']), /CHECK/)
+  assert.throws(() => s.exec('INSERT INTO ext_aisignal_seen (kind, account, message_id, seen_at) VALUES (?,?,?,?)',
+    ['mail', '', 'm1', '2026-09-01']), /CHECK/)
+  assert.throws(() => s.exec('INSERT INTO ext_aisignal_seen (kind, account, message_id, seen_at) VALUES (?,?,?,?)',
+    ['', ACCOUNT, 'm1', '2026-09-01']), /CHECK/)
+})
+
+test('a message swept in one mailbox is not swept in another, and is in every label of its own', () => {
+  // The dedup gates whether a listed message is ever fetched, so it has to
+  // answer for one mailbox and no other: a hit drops the id out of `fresh`,
+  // which keeps it out of `leftover`, which lets the run read as drained and
+  // move the frontier past a message nobody scored.
+  const r = fresh()
+  const first = r.openSweep({ label: 'News', source: src('Label_7'), since: null, fetchedIds: ['X'], skipped: 0, leftover: 0, drained: true })
+  r.finishSweep({ sweepId: first.id, ok: true, note: '' })
+
+  assert.deepEqual([...r.seenIds(space(), ['X'])], ['X'])
+  assert.deepEqual([...r.seenIds(space('other@example.test'), ['X'])], [], 'another mailbox has never swept this id')
+  assert.deepEqual([...r.seenIds(space(ACCOUNT, 'web'), ['X'])], [], 'another kind mints its ids by another rule')
+  // The label is deliberately not in the key: inside one mailbox this id is
+  // this message, whichever label a run happened to read it under, and it was
+  // handed to the agent once already.
+  assert.deepEqual([...r.seenIds(space(), ['X'])], ['X'])
+})
+
+test('seenIds names the half of its key that is missing instead of answering for another mailbox', () => {
+  // Same refusal as `frontier`, for the same reason and with more at stake: the
+  // wrong answer here is "already swept", which drops a message before anything
+  // looks at it.
+  const r = fresh()
+  assert.throws(() => r.seenIds({ account: ACCOUNT }, ['m1']), /non-empty kind/)
+  assert.throws(() => r.seenIds({ kind: MAIL_KIND }, ['m1']), /non-empty account/)
+  assert.throws(() => r.seenIds({ kind: MAIL_KIND, account: '' }, ['m1']), /non-empty account/)
+  assert.throws(() => r.seenIds(undefined, ['m1']), /non-empty kind/)
+})
+
+test('a sweep that fetched messages but resolved no source marks nothing seen', () => {
+  // Blank halves are every unidentified run sharing one bucket, which is the
+  // shape being closed. Production cannot produce this row -- a run that
+  // fetched anything resolved its source first -- so the refusal is a barrier,
+  // and it errs wide: the transaction rolls back, the sweep stays open, and
+  // every id it holds is still fetchable.
+  const { storage, repo: r } = freshWithStorage()
+  const sourceless = r.openSweep({ label: 'x', since: null, fetchedIds: ['m1'], skipped: 0, leftover: 0 })
+
+  assert.throws(() => r.finishSweep({ sweepId: sourceless.id, ok: true, note: '' }), /no key to mark them seen under/)
+  assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_seen').c, 0)
+  assert.equal(r.sweepById(sourceless.id).finished_at, null, 'the sweep is still open, so its messages come back')
+  // A sourceless row that fetched nothing still closes, and still moves nothing.
+  const empty = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  r.finishSweep({ sweepId: empty.id, ok: true, note: '' })
+  assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_frontier').c, 0)
+})
+
+test('openSweep validates the kind it is going to store, not one the source smuggled in', () => {
+  // `requireSource('openSweep', { kind, ...source })` let a `source` carrying
+  // its own `kind` override the parameter -- for the validation only, while the
+  // INSERT went on using the outer one. A guard advertised as *the* identity
+  // gate was checking a key the row does not have: a blank kind on the source
+  // refused a call whose kind was fine, and a different one waved through a row
+  // stored under something else.
+  const { storage, repo: r } = freshWithStorage()
+  const opened = r.openSweep({ label: 'x', source: { ...src('LBL_X'), kind: 'web' }, since: null, fetchedIds: [], skipped: 0, leftover: 0, drained: true })
+  assert.equal(storage.get('SELECT kind FROM ext_aisignal_sweeps WHERE id = ?', [opened.id]).kind, MAIL_KIND)
+  r.finishSweep({ sweepId: opened.id, ok: true, note: '' })
+  assert.notEqual(frontierOf(r, 'LBL_X'), null, 'the row landed under the kind it was stored with')
+  assert.equal(frontierOf(r, 'LBL_X', { kind: 'web' }), null)
+
+  // And a blank one on the source does not refuse a call that named its kind.
+  assert.doesNotThrow(() => r.openSweep({ label: 'x', source: { ...src('LBL_Y'), kind: '' }, since: null, fetchedIds: [], skipped: 0, leftover: 0 }))
+  // The halves that really are the key are still refused by name.
+  assert.throws(() => r.openSweep({ label: 'x', source: { account: '', sourceId: 'LBL_Z' }, since: null, fetchedIds: [], skipped: 0, leftover: 0 }), /non-empty account/)
+})
+
 test('frontier names the half of its key that is missing instead of a SQLite parameter index', () => {
   // A read that guessed a missing half would be a read of some other source's
   // window. Refused -- but refused by name: an unbound parameter surfaced as
@@ -177,8 +287,12 @@ test('a sweep that resolved no source moves no frontier, and cannot claim it dra
 })
 
 test('open -> insert -> finish marks seen and counts', () => {
+  // The sweep names its source because marking an id seen is a statement about
+  // one mailbox: an id is unique inside an account and nowhere wider, so the
+  // dedup is keyed on (kind, account, message_id) and a run that resolved no
+  // mailbox has no key to write one under.
   const r = fresh()
-  const sweep = r.openSweep({ label: 'AI hirlevel', since: '2026-09-01', fetchedIds: ['m1', 'm2'], skipped: 0, leftover: 0 })
+  const sweep = r.openSweep({ label: 'AI hirlevel', source: src('LBL_X'), since: '2026-09-01', fetchedIds: ['m1', 'm2'], skipped: 0, leftover: 0 })
   r.insertItem({ sweepId: sweep.id, messageId: 'm1', headline: 'H', summary: 'S', url: 'https://x', score: 0.5, applyScore: 0.2, why: 'w', linkRead: 1 })
   // A second item whose summary came from the blurb only, so linksRead has to
   // count fewer than found instead of trivially agreeing with it.
@@ -187,7 +301,7 @@ test('open -> insert -> finish marks seen and counts', () => {
   assert.equal(done.found, 2)
   assert.equal(done.seenMarked, 2)
   assert.equal(done.linksRead, 1)
-  assert.deepEqual([...r.seenIds(['m1', 'm2', 'm3'])], ['m1', 'm2'])
+  assert.deepEqual([...r.seenIds(space(), ['m1', 'm2', 'm3'])], ['m1', 'm2'])
   assert.equal(r.latestSweep().finished_at !== null, true)
 })
 
@@ -242,6 +356,104 @@ test('a url makes an item distinct from the same message without one', () => {
   r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'first link', summary: '', url: 'https://one', score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
   r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'second link', summary: '', url: 'https://two', score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
   assert.equal(r.counts().items, 3)
+})
+
+test('the same message id in two mailboxes is two cards, and one mailbox seeing it twice is one', () => {
+  // The item key had the dedup's exposure one layer down: two genuinely
+  // different messages that share an id and a link merged into one row, so the
+  // second mailbox's card silently overwrote the first mailbox's headline and
+  // score instead of standing beside it. The mailbox is in the key now, read
+  // off the sweep row rather than from the caller.
+  const r = fresh()
+  const a = r.openSweep({ label: 'News', source: src('Label_7'), since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  const b = r.openSweep({ label: 'News', source: src('Label_7', 'other@example.test'), since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+
+  const first = r.insertItem({ sweepId: a.id, messageId: 'X', headline: 'from one mailbox', summary: '', url: 'https://one', score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+  const second = r.insertItem({ sweepId: b.id, messageId: 'X', headline: 'from the other', summary: '', url: 'https://one', score: 0.2, applyScore: 0.2, why: '', linkRead: 0 })
+  assert.equal(second.merged, false)
+  assert.notEqual(second.id, first.id)
+  assert.equal(r.counts().items, 2)
+  assert.deepEqual(r.items().items.map((i) => i.headline).sort(), ['from one mailbox', 'from the other'])
+
+  // Inside one mailbox the id is still one message, so a re-sighting refreshes
+  // the card it already has rather than dealing a second one.
+  const again = r.insertItem({ sweepId: a.id, messageId: 'X', headline: 'refreshed', summary: '', url: 'https://one', score: 0.9, applyScore: 0.9, why: '', linkRead: 0 })
+  assert.equal(again.merged, true)
+  assert.equal(again.id, first.id)
+  assert.equal(r.counts().items, 2)
+
+  // An item filed against a sweep that does not exist has no mailbox to be
+  // filed under, so it is refused rather than landing in the blank bucket.
+  assert.throws(() => r.insertItem({ sweepId: 'nope', messageId: 'X', headline: 'h', summary: '', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 0 }), /unknown sweep nope/)
+})
+
+test('an install whose dedup was keyed on the bare message id keeps its frontier and its decided cards', () => {
+  // Migration 5. Three different answers, because the three tables are three
+  // different questions.
+  //
+  //   seen      dropped. A row names an id and no mailbox, and there is no
+  //             honest way to recover which one: a pre-migration-4 sweep row
+  //             carries account ''. Keeping it as an answer for every mailbox
+  //             is the defect itself, so it goes, and the install re-lists and
+  //             re-scores one window. That is the safe direction: a message
+  //             scored twice costs a pass, a message skipped is permanent.
+  //   frontier  carried over, unlike migrations 3 and 4. Its key is not
+  //             changing -- (kind, account, source_id) meant the resolved source
+  //             before and means it after -- so no row reaches a source that did
+  //             not earn it, and keeping it is what holds the re-scoring above
+  //             to one window instead of the whole label.
+  //   items     kept and adopted, so the pass that re-scores does not resurface
+  //             every card the user had already decided.
+  const s = memStorage()
+  for (const m of MIGRATIONS.slice(0, 4)) s.raw.exec(m.sql)
+  s.exec('INSERT INTO ext_aisignal_sweeps (id, ran_at, label, since, kind, finished_at, frontier_after) VALUES (?,?,?,?,?,?,?)',
+    ['old', '2026-09-01T00:00:00.000Z', 'AI hirlevel', null, 'mail', '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z'])
+  s.exec('INSERT INTO ext_aisignal_seen (message_id, seen_at) VALUES (?,?)', ['X', '2026-09-01T00:00:00.000Z'])
+  s.exec('INSERT INTO ext_aisignal_items (id, sweep_id, message_id, headline, summary, url, score, apply_score, status, decided_at, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+    ['card', 'old', 'X', 'already decided', '', 'https://one', 0.5, 0.5, 'archived', '2026-09-02T00:00:00.000Z', '2026-09-01T00:00:00.000Z'])
+  s.exec('INSERT INTO ext_aisignal_frontier (kind, account, source_id, frontier, moved_at, sweep_id) VALUES (?,?,?,?,?,?)',
+    ['mail', ACCOUNT, 'LBL_X', '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z', 'old'])
+  // A row with a blank half cannot be written by finishSweep, but the v4 table
+  // has no CHECK to stop one, so the copy filters rather than failing.
+  s.exec('INSERT INTO ext_aisignal_frontier (kind, account, source_id, frontier, moved_at, sweep_id) VALUES (?,?,?,?,?,?)',
+    ['mail', '', '', '2026-09-09T00:00:00.000Z', '2026-09-09T00:00:00.000Z', 'old'])
+
+  s.raw.exec(MIGRATIONS[4].sql)
+  const after = createRepo(s)
+
+  // The window this source earned is exactly where its own last close left it.
+  assert.equal(frontierOf(after, 'LBL_X'), '2026-09-01T00:00:00.000Z')
+  assert.equal(s.get('SELECT COUNT(*) AS c FROM ext_aisignal_frontier').c, 1, 'the blank-keyed row did not come across')
+
+  // Nothing claims to have been swept any more, so strictly more ids are
+  // eligible to be fetched than before -- which is why this cannot lose mail.
+  assert.equal(after.counts().seen, 0)
+  assert.deepEqual([...after.seenIds(space(), ['X'])], [])
+
+  // The card kept its kind from the sweep that found it and has no mailbox,
+  // because that sweep never resolved one.
+  const legacy = s.get('SELECT kind, account, status FROM ext_aisignal_items WHERE id = ?', ['card'])
+  assert.equal(legacy.kind, 'mail')
+  assert.equal(legacy.account, '')
+  assert.equal(legacy.status, 'archived')
+
+  // The re-scoring pass sights the same message again, now under a mailbox.
+  // It adopts the card instead of dealing a second one, so the decision the
+  // user already made survives the upgrade.
+  const sweep = after.openSweep({ label: 'AI hirlevel', source: src('LBL_X'), since: null, fetchedIds: ['X'], skipped: 0, leftover: 0, drained: true })
+  const again = after.insertItem({ sweepId: sweep.id, messageId: 'X', headline: 'seen again', summary: '', url: 'https://one', score: 0.5, applyScore: 0.5, why: '', linkRead: 0 })
+  assert.equal(again.merged, true)
+  assert.equal(again.id, 'card')
+  assert.equal(after.counts().items, 1)
+  const adopted = s.get('SELECT account, status, decided_at FROM ext_aisignal_items WHERE id = ?', ['card'])
+  assert.equal(adopted.account, ACCOUNT)
+  assert.equal(adopted.status, 'archived')
+  assert.equal(adopted.decided_at, '2026-09-02T00:00:00.000Z')
+
+  // And that pass marks the message seen under a key that names its mailbox.
+  after.finishSweep({ sweepId: sweep.id, ok: true, note: '' })
+  assert.deepEqual([...after.seenIds(space(), ['X'])], ['X'])
+  assert.deepEqual([...after.seenIds(space('other@example.test'), ['X'])], [])
 })
 
 test('sweeps of different kinds do not shadow each other', () => {
@@ -504,13 +716,16 @@ test('seenIds answers for more ids than one chunk holds', () => {
   // so what this actually checks is that the chunking stitches the chunks back
   // together correctly, not that the limit is reached.
   const r = fresh()
-  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: Array.from({ length: 1200 }, (_, i) => 'm' + i), skipped: 0, leftover: 0 })
+  const sweep = r.openSweep({ label: 'x', source: src('LBL_X'), since: null, fetchedIds: Array.from({ length: 1200 }, (_, i) => 'm' + i), skipped: 0, leftover: 0 })
   r.finishSweep({ sweepId: sweep.id, ok: true, note: '' })
-  const seen = r.seenIds(Array.from({ length: 1400 }, (_, i) => 'm' + i))
+  const seen = r.seenIds(space(), Array.from({ length: 1400 }, (_, i) => 'm' + i))
   assert.equal(seen.size, 1200)
   assert.equal(seen.has('m1199'), true)
   assert.equal(seen.has('m1200'), false)
-  assert.equal(r.seenIds([]).size, 0)
+  assert.equal(r.seenIds(space(), []).size, 0)
+  // Every chunk is asked about one mailbox, so another mailbox's answer is
+  // empty rather than 1200 ids it never swept.
+  assert.equal(r.seenIds(space('someone.else@example.test'), Array.from({ length: 1400 }, (_, i) => 'm' + i)).size, 0)
 })
 
 test('finishSweep keeps the skipped count openSweep recorded', () => {
@@ -518,7 +733,7 @@ test('finishSweep keeps the skipped count openSweep recorded', () => {
   // is the only place that number is kept. Closing the sweep with SET note = ?
   // would drop it every time, because the success path passes an empty note.
   const r = fresh()
-  const capped = r.openSweep({ label: 'x', since: null, fetchedIds: ['m1'], skipped: 40, leftover: 40 })
+  const capped = r.openSweep({ label: 'x', source: src('LBL_X'), since: null, fetchedIds: ['m1'], skipped: 40, leftover: 40 })
   r.finishSweep({ sweepId: capped.id, ok: true, note: '' })
   assert.equal(r.latestSweep().note, 'skipped=40')
 
@@ -534,7 +749,7 @@ test('finishSweep does not duplicate a multi-segment closing note', () => {
   // single-segment parts, so an addition that itself contains '; ' was never
   // found among them and got appended again.
   const r = fresh()
-  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: ['m1'], skipped: 3, leftover: 0, note: 'partial page; rate limited' })
+  const sweep = r.openSweep({ label: 'x', source: src('LBL_X'), since: null, fetchedIds: ['m1'], skipped: 3, leftover: 0, note: 'partial page; rate limited' })
   r.finishSweep({ sweepId: sweep.id, ok: true, note: 'partial page; rate limited' })
   assert.equal(r.latestSweep().note, 'skipped=3; partial page; rate limited')
 })
