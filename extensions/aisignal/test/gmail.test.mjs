@@ -689,6 +689,100 @@ test('the deadline covers every call, and the body as well as the headers', { ti
   await assert.rejects(stalled, (e) => e.code === 'gmail_timeout')
 })
 
+/**
+ * A token refresh that never answers.
+ *
+ * This is the host's `getGoogleAccessToken`, and the host refreshes against
+ * Google's token endpoint with a bare `fetch` that carries no signal and no
+ * timeout, so it takes no argument and there is nothing to abort. A promise
+ * that never settles is exactly what the extension has to survive.
+ */
+const hangingToken = () => new Promise(() => {})
+
+test('the deadline covers the token stage, which is the first request every call makes', { timeout: 5000 }, async (t) => {
+  // The token is fetched before the URL is, so a hang there strands a scheduled
+  // run before `labelId` has returned -- earlier than any sweep row exists, so
+  // not even the failed one `failedSweep` writes. That is the harm the deadline
+  // is for, arriving one stage ahead of where the deadline used to start.
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let fetches = 0
+  const g = createGmail({
+    getToken: hangingToken,
+    fetchImpl: async () => { fetches += 1; return json({ labels: [{ id: 'L1', name: 'AI hírlevél' }] }) },
+  })
+
+  const pending = g.labelId('AI hírlevél')
+  await untilTheRequestIsOut()
+
+  // One millisecond short of the deadline it is still waiting, so the bound is
+  // the named constant and not something shorter that happens to fire.
+  t.mock.timers.tick(REQUEST_TIMEOUT_MS - 1)
+  let settled = false
+  pending.then(() => { settled = true }, () => { settled = true })
+  await untilTheRequestIsOut()
+  assert.equal(settled, false)
+
+  t.mock.timers.tick(1)
+  // `gmail_timeout`, not `gmail_refresh_failed`: the credential is not the
+  // problem and sending the operator off to reconnect would be a wrong answer.
+  // The message names the stage, because Gmail was never asked anything.
+  await assert.rejects(pending, (e) => e instanceof GmailError
+    && e.code === 'gmail_timeout'
+    && /the Google token endpoint did not answer within 30000 ms/.test(e.message))
+  assert.equal(fetches, 0, 'the run never reached Gmail: it hung in front of it')
+})
+
+test('a token that answers late is abandoned, not cancelled, and the run still fails on time', { timeout: 5000 }, async (t) => {
+  // The honest limit of the fix, pinned so it cannot be quietly overstated. The
+  // host's fetch never receives this AbortController's signal, so the wait is
+  // raced rather than ended: the token request goes on and settles by itself,
+  // and what the deadline guarantees is only that the run failed on time.
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let resolveToken
+  let stillRunning = false
+  const token = new Promise((resolve) => { resolveToken = resolve })
+  const g = createGmail({
+    getToken: () => token.then((v) => { stillRunning = true; return v }),
+    fetchImpl: async () => json({ labels: [] }),
+  })
+
+  const pending = g.labelId('AI hírlevél')
+  await untilTheRequestIsOut()
+  t.mock.timers.tick(REQUEST_TIMEOUT_MS)
+  await assert.rejects(pending, (e) => e.code === 'gmail_timeout')
+
+  // The abandoned request settling afterwards changes nothing and throws
+  // nothing: the call is long gone, and its rejection was handled by the race.
+  resolveToken('t')
+  await untilTheRequestIsOut()
+  assert.equal(stillRunning, true, 'the host request outlived the run that made it')
+})
+
+test('a status whose body nobody reads ends the request instead of leaving it open', async () => {
+  // An unread body holds its connection on a real undici fetch until the
+  // response is collected, and clearing the deadline's timer frees nothing.
+  // These two exits never look at the body, so they end the request; the 403
+  // branch reads its own and needs no such thing.
+  for (const [status, code] of [[401, 'gmail_token_invalid'], [500, 'gmail_list_failed']]) {
+    let signal
+    const g = createGmail({
+      getToken: async () => 't',
+      fetchImpl: async (_u, init) => { signal = init.signal; return { status, ok: false, json: async () => ({}) } },
+    })
+    await assert.rejects(g.listIds({ labelId: 'L1', since: null, max: 1 }), (e) => e.code === code)
+    assert.equal(signal.aborted, true, `HTTP ${status} releases the body it never read`)
+  }
+
+  // The other direction: a reply that was read is not aborted on the way out.
+  let okSignal
+  const good = createGmail({
+    getToken: async () => 't',
+    fetchImpl: async (_u, init) => { okSignal = init.signal; return json({ emailAddress: 'owner@example.test' }) },
+  })
+  assert.equal(await good.mailbox(), 'owner@example.test')
+  assert.equal(okSignal.aborted, false)
+})
+
 test('a reply that arrives in time is not touched by the deadline', { timeout: 5000 }, async (t) => {
   // The other direction: the timer must not fire on a call that finished, and
   // must not leave the process holding one either.

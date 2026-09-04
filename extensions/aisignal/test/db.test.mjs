@@ -174,9 +174,14 @@ test('the dedup key is exactly the space a message id is unique in', () => {
 test('a blank key is refused by the schema, not only by the guard that reads it', () => {
   // "A blank key is not an identity" lived in requireSource and in one guard in
   // finishSweep, which is to say in two places a later edit can walk past. It
-  // is a CHECK now: the tables that gate whether mail is scored say it
-  // themselves, and every install carries the rule whatever the code above it
-  // does.
+  // is a CHECK now, so the tables that gate whether mail is scored say it
+  // themselves.
+  //
+  // What a CHECK is worth depends on the statement that runs into it, and this
+  // case only shows that the constraint exists. The frontier write really is a
+  // plain `INSERT ... ON CONFLICT ... DO UPDATE`, so this is its path; the seen
+  // write is not spelled this way, and the case below drives that one through
+  // `finishSweep` instead.
   const s = memStorage()
   for (const m of MIGRATIONS) s.raw.exec(m.sql)
   assert.throws(() => s.exec('INSERT INTO ext_aisignal_frontier (kind, account, source_id, frontier, moved_at, sweep_id) VALUES (?,?,?,?,?,?)',
@@ -187,6 +192,48 @@ test('a blank key is refused by the schema, not only by the guard that reads it'
     ['mail', '', 'm1', '2026-09-01']), /CHECK/)
   assert.throws(() => s.exec('INSERT INTO ext_aisignal_seen (kind, account, message_id, seen_at) VALUES (?,?,?,?)',
     ['', ACCOUNT, 'm1', '2026-09-01']), /CHECK/)
+})
+
+test('the seen write is spelled so a blank key raises, not so the row is skipped', () => {
+  // The extension has exactly one path that writes ext_aisignal_seen, and the
+  // CHECK is only a barrier if that path lets it raise. `INSERT OR IGNORE`, what
+  // this write used to be, does not: SQLite downgrades every constraint failure
+  // under OR IGNORE to a silently skipped row, CHECK included, so the barrier
+  // stopped nothing and said nothing.
+  const { storage, repo } = freshWithStorage()
+
+  // A sweep row with a real mailbox and a blank kind. The repository cannot mint
+  // one -- requireSource refuses it -- and finishSweep's own guard only looks at
+  // the account, so this is the shape that reaches the INSERT holding half a
+  // key. It is written directly for exactly that reason: the question here is
+  // what the write does when the code above it has not stopped it.
+  storage.exec('INSERT INTO ext_aisignal_sweeps (id, ran_at, label, account, source_id, since, messages, fetched_ids, leftover, kind, note, frontier_after) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+    ['s1', '2026-09-01T00:00:00.000Z', 'News', ACCOUNT, 'Label_7', null, 1, JSON.stringify(['X']), 0, '', '', '2026-09-01T00:00:00.000Z'])
+
+  // Closed as a failure, so the frontier write is skipped and the seen INSERT
+  // is the only statement in the transaction that can raise. The CHECK asserted
+  // here is that table's own, not one further down.
+  assert.throws(() => repo.finishSweep({ sweepId: 's1', ok: false }), /CHECK constraint failed: kind <> '' AND account <> '' AND message_id <> ''/)
+  // And it errs the way every other refusal on this path errs: the transaction
+  // rolls back, so nothing is marked seen, the sweep is still open, and every id
+  // it holds is still fetchable by a run that can name its source.
+  assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_seen').c, 0)
+  assert.equal(storage.get('SELECT finished_at FROM ext_aisignal_sweeps WHERE id = ?', ['s1']).finished_at, null)
+
+  // The spelling that was there before, for contrast: no error, and no row.
+  storage.exec("INSERT OR IGNORE INTO ext_aisignal_seen (kind, account, message_id, seen_at) VALUES ('', ?, 'X', '2026-09-01T00:00:00.000Z')", [ACCOUNT])
+  assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_seen').c, 0, 'skipped in silence, which is what made the CHECK decorative')
+})
+
+test('seenMarked counts the rows the close wrote, not the ids it was handed', () => {
+  // Under a write that can skip a row, a count of the input is a report of a
+  // write that may not have happened.
+  const r = fresh()
+  const first = r.openSweep({ label: 'News', source: src('Label_7'), since: null, fetchedIds: ['X', 'Y'], skipped: 0, leftover: 0, drained: true })
+  assert.equal(r.finishSweep({ sweepId: first.id, ok: true }).seenMarked, 2)
+
+  const again = r.openSweep({ label: 'News', source: src('Label_7'), since: null, fetchedIds: ['Y', 'Z'], skipped: 0, leftover: 0, drained: true })
+  assert.equal(r.finishSweep({ sweepId: again.id, ok: true }).seenMarked, 1, 'Y was already marked for this mailbox; only Z is a new row')
 })
 
 test('a message swept in one mailbox is not swept in another, and is in every label of its own', () => {
@@ -356,6 +403,40 @@ test('a url makes an item distinct from the same message without one', () => {
   r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'first link', summary: '', url: 'https://one', score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
   r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'second link', summary: '', url: 'https://two', score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
   assert.equal(r.counts().items, 3)
+})
+
+test('an item that loses the race for its own key merges instead of surfacing a SQLite code', () => {
+  // insertItem reads twice and then writes, and the unique index is what really
+  // settles the key. The three statements are one transaction now, like
+  // finishSweep's; this pins what a writer that still finds the key taken does,
+  // because what it used to do was surface a raw SQLITE_CONSTRAINT_UNIQUE out of
+  // the recordSignal tool -- a code naming a column list, in a file that names
+  // every other failure.
+  const { storage, repo } = freshWithStorage()
+  const sweep = repo.openSweep({ label: 'News', source: src('Label_7'), since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+
+  // A second writer takes the key in the window between the read and the write.
+  // Raw SQL, because a repository call here would try to begin a transaction
+  // inside the one insertItem has already begun.
+  let armed = true
+  const contested = {
+    ...storage,
+    exec: (sql, p) => {
+      if (armed && sql.startsWith('INSERT INTO ext_aisignal_items')) {
+        armed = false
+        storage.exec('INSERT INTO ext_aisignal_items (id, sweep_id, kind, account, message_id, headline, summary, url, source_name, source_email, sent_at, score, apply_score, why, link_read, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          ['winner', sweep.id, MAIL_KIND, ACCOUNT, 'a', 'the writer that got there first', '', 'https://one', null, null, null, 0.1, 0.1, '', 0, '2026-09-01T00:00:00.000Z'])
+      }
+      return storage.exec(sql, p)
+    },
+  }
+
+  const out = createRepo(contested).insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'the one that arrived second', summary: 's', url: 'https://one', score: 0.4, applyScore: 0.5, why: 'w', linkRead: 1 })
+  assert.deepEqual(out, { id: 'winner', merged: true }, 'the loser merges into the row that won, and reports a merge')
+  assert.equal(repo.counts().items, 1)
+  const only = repo.items().items[0]
+  assert.equal(only.headline, 'the one that arrived second', 'the merge is the ordinary one: display fields refreshed')
+  assert.equal(only.apply_score, 0.5)
 })
 
 test('the same message id in two mailboxes is two cards, and one mailbox seeing it twice is one', () => {

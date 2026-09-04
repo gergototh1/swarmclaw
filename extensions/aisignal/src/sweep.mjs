@@ -478,7 +478,14 @@ export function createSweepTools(state) {
 
         // The frontier of this source, and of no other: another source's window
         // says nothing about what this one still has waiting.
-        const since = widenedFrontier(sinceFloor, repo.frontier({ kind: MAIL_KIND, ...source }))
+        //
+        // Every half is named, the way the dedup read below names its two and
+        // `openSweep` names all three. `{ kind: MAIL_KIND, ...source }` reads
+        // the same today and is a different sentence: it says "whatever this
+        // object holds", which is how a `kind` on the source came to override
+        // the parameter in `openSweep`. Two reads of one run's identity should
+        // not be spelled two ways.
+        const since = widenedFrontier(sinceFloor, repo.frontier({ kind: MAIL_KIND, account: source.account, sourceId: source.sourceId }))
 
         let listed
         try {

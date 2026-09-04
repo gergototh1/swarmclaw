@@ -67,8 +67,8 @@ const BASE = 'https://gmail.googleapis.com/gmail/v1/users/me'
 const MAX_PAGES = 200
 
 /**
- * How long one request may take, headers and body together, before it is
- * abandoned under its own code.
+ * How long one call may take -- token, headers and body together -- before it
+ * is abandoned under its own code.
  *
  * Without a deadline a request that never answers hangs the whole run forever:
  * `fetch` has no default timeout, so a connection a middlebox holds open leaves
@@ -79,6 +79,22 @@ const MAX_PAGES = 200
  * covers `/profile`, `/labels`, `/messages` and `/messages/{id}` at once,
  * including the two that `mailbox()` and `labelId()` now make before any
  * frontier can even be read.
+ *
+ * It covers the token stage as well as the Gmail request, and it has to. The
+ * first network round trip of every call is not to Gmail at all: `getToken` is
+ * the host's, and the host refreshes against Google's token endpoint with a
+ * bare `fetch` carrying no signal and no timeout of its own. A hang there
+ * strands a scheduled run *before* `labelId` returns, so there is not even a
+ * sweep row -- not the failed one `failedSweep` would leave -- and the mailbox
+ * stops being swept with nothing anywhere to say why.
+ *
+ * What this layer can do about that is bounded, and the boundary is written
+ * down rather than implied: the host's fetch never receives this
+ * `AbortController`'s signal, so the wait is *raced* against the deadline, not
+ * cancelled. A token request that has already gone out is abandoned and lives
+ * on until it settles by itself; what the deadline guarantees is that the run
+ * fails on time, under `gmail_timeout`, instead of hanging forever. That is
+ * less than cancellation and more than nothing, and it is the whole promise.
  *
  * It covers the body as well as the headers, because a reply whose stream never
  * ends hangs exactly as thoroughly as one that never arrives.
@@ -263,29 +279,58 @@ export function createGmail({ getToken, fetchImpl = fetch }) {
    * and is used for every status that is not a token or scope problem, so the
    * caller learns which call broke as well as how.
    *
-   * The whole exchange runs under one deadline -- see REQUEST_TIMEOUT_MS -- and
-   * the timer is only cleared once the body has been read, so a reply that
-   * arrives and then stalls mid-stream is cut off as surely as one that never
-   * arrives. Whatever the abort surfaces as (a rejected fetch, a rejected
-   * `json()`, a `TypeError` from a fetch double that ignores the signal), the
-   * `aborted` flag is what names it, not the error's own class or message.
+   * The whole exchange runs under one deadline -- see REQUEST_TIMEOUT_MS. The
+   * timer is armed before the token is asked for and cleared only once the body
+   * has been read, so the token refresh, a reply that never arrives and a reply
+   * that arrives and then stalls mid-stream are all cut off alike. Whatever the
+   * abort surfaces as (a rejected fetch, a rejected `json()`, a `TypeError`
+   * from a fetch double that ignores the signal), the `aborted` flag is what
+   * names it, not the error's own class or message.
+   *
+   * The two stages are bounded by different means, and only one of them is a
+   * cancellation. The Gmail request gets the signal, so the deadline really
+   * ends it. `getToken` is the host's and its own fetch never sees this signal,
+   * so that stage is bounded by racing the wait: the call fails on time and the
+   * host's token request is left running until it settles by itself. Abandoned,
+   * not cancelled -- see REQUEST_TIMEOUT_MS.
    */
   async function call(path, failCode) {
-    let token
-    try {
-      token = await getToken()
-    } catch (e) {
-      // The host names its own failures. Anything unrecognised is still a
-      // failure of the token stage, so it lands on the code that sends the user
-      // to reconnect rather than on a code that blames Gmail.
-      const code = TOKEN_CODES.has(e?.message) ? e.message : 'gmail_refresh_failed'
-      throw new GmailError(code, e?.message)
-    }
-
     const deadline = new AbortController()
     const timer = setTimeout(() => deadline.abort(), REQUEST_TIMEOUT_MS)
-    const timedOut = () => new GmailError('gmail_timeout', `Gmail did not answer within ${REQUEST_TIMEOUT_MS} ms`)
+    const timedOut = (what = 'Gmail') => new GmailError('gmail_timeout', `${what} did not answer within ${REQUEST_TIMEOUT_MS} ms`)
+    const tokenTimedOut = () => timedOut('the Google token endpoint')
+    // The losing half of the token race. `Promise.race` attaches a handler to
+    // it, so an abort that arrives after the token did is a settled rejection
+    // rather than an unhandled one.
+    const abandoned = new Promise((_resolve, reject) => {
+      deadline.signal.addEventListener('abort', () => reject(tokenTimedOut()), { once: true })
+    })
+    /**
+     * The error to throw at an exit that never reads the reply's body.
+     *
+     * On a real undici fetch an unread body holds its connection open until the
+     * response is garbage collected, and clearing the timer in `finally` frees
+     * nothing. These exits are done with the request, so they end it: the same
+     * controller that carries the deadline is what releases the body. The 403
+     * branch below reads its body already and needs none of this.
+     */
+    const endingIt = (err) => { deadline.abort(); return err }
     try {
+      let token
+      try {
+        token = await Promise.race([getToken(), abandoned])
+      } catch (e) {
+        // The deadline first, for the reason the fetch catch below checks it
+        // first: a run abandoned on time is not a credential the operator has
+        // to go and reconnect. Otherwise the host names its own failures, and
+        // anything unrecognised is still a failure of the token stage, so it
+        // lands on the code that sends the user to reconnect rather than on a
+        // code that blames Gmail.
+        if (deadline.signal.aborted) throw tokenTimedOut()
+        const code = TOKEN_CODES.has(e?.message) ? e.message : 'gmail_refresh_failed'
+        throw new GmailError(code, e?.message)
+      }
+
       let res
       try {
         res = await fetchImpl(`${BASE}${path}`, { headers: { authorization: `Bearer ${token}` }, signal: deadline.signal })
@@ -297,14 +342,14 @@ export function createGmail({ getToken, fetchImpl = fetch }) {
         throw new GmailError('gmail_unexpected', `Gmail request failed: ${e?.message || e}`)
       }
 
-      if (res.status === 401) throw new GmailError('gmail_token_invalid', 'Gmail rejected the access token')
+      if (res.status === 401) throw endingIt(new GmailError('gmail_token_invalid', 'Gmail rejected the access token'))
       if (res.status === 403) {
         const body = await res.json().catch(() => ({}))
         if (deadline.signal.aborted) throw timedOut()
         const reason = body?.error?.errors?.[0]?.reason || ''
         throw new GmailError(isScopeReason(reason) ? 'gmail_scope_missing' : failCode, reason || 'HTTP 403')
       }
-      if (!res.ok) throw new GmailError(failCode, `HTTP ${res.status}`)
+      if (!res.ok) throw endingIt(new GmailError(failCode, `HTTP ${res.status}`))
 
       let body
       try {

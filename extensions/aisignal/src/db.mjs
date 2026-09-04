@@ -42,6 +42,10 @@ import crypto from 'node:crypto'
  *     source  kind and account: the space a message id is unique in. `source_id`
  *             is deliberately left out and THE DEDUP KEY below carries the proof
  *             that leaving it out cannot skip a message.
+ *     written by `finishSweep`, and by nothing else, with
+ *             `ON CONFLICT (kind, account, message_id) DO NOTHING` -- the one
+ *             spelling that excuses a repeat of this key while leaving the
+ *             table's CHECK free to fire. See migration 5.
  *
  *   ext_aisignal_items -- UNIQUE (kind, account, message_id, COALESCE(url, ''))
  *     gates   nothing about scoring or the frontier: no read of this index
@@ -83,12 +87,26 @@ import crypto from 'node:crypto'
  *   sweepById(id) -- WHERE id = ?
  *     Gates whether `recordSignal` may file an item (the sweep must exist and be
  *     open). Addressed by the surrogate sweep id.
+ *   insertItem -- SELECT kind, account FROM ext_aisignal_sweeps WHERE id = ?
+ *     The sweeps primary key again, and the notable one of these: it is the read
+ *     that decides which mailbox a card is filed under, which is what makes the
+ *     item key's source "read off the sweep row rather than taken from the
+ *     caller" true rather than merely intended. Gates no fetch and no frontier
+ *     -- it runs long after the message was handed over -- but a wrong answer
+ *     here files a card under the wrong mailbox.
+ *   failSweep -- SELECT note FROM ext_aisignal_sweeps WHERE id = ?
+ *     The same primary key, for the note the failure text is appended to.
+ *     Reporting.
  *   latestSweep(kind) -- WHERE kind = ? ORDER BY ran_at DESC, rowid DESC
  *     Reporting only. It fed the frontier by inference until migration 2, which
  *     is where five of the eight defects lived; nothing derives a frontier from
  *     a sweep row any more.
  *   finishSweep -- COUNT(*) FROM ext_aisignal_items WHERE sweep_id = ?
  *     Reporting: `found` and `links_read` on the row.
+ *   finishSweep -- COUNT(*) FROM ext_aisignal_seen WHERE kind = ? AND account = ?
+ *     Reporting: read either side of the marking loop so `seenMarked` counts
+ *     rows written rather than ids offered. Keyed on the dedup's own space, so
+ *     it counts this mailbox and no other.
  *   items()/board()/counts() -- status, LIKE search, ordering
  *     Display. No frontier and no fetch decision reads any of them.
  */
@@ -293,12 +311,25 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
    *             fail on data the old table would have allowed. Keeping it is
    *             also what keeps the re-scoring above to one narrow window rather
    *             than the whole label.
-   *   items     kept, and given the source of the sweep that found them. That is
-   *             `account = ''` for every row an install already has, and
-   *             `insertItem` treats such a row as adoptable: the first sweep
-   *             that sights it again claims it for its own mailbox rather than
-   *             inserting a second card. Without that, the re-scoring pass above
-   *             would resurface every card the user had already decided.
+   *   items     kept, and given the source of the sweep that found them. What
+   *             that comes to is a property of the row, not of the install: a
+   *             sweep opened after migration 4 carries a real mailbox and its
+   *             items inherit it, while every older sweep carries `account = ''`
+   *             and its items inherit that. `insertItem` treats a blank-account
+   *             row as adoptable -- the first sweep that sights it again claims
+   *             it for its own mailbox rather than inserting a second card --
+   *             so the rows that need adopting are exactly the rows that get
+   *             it. Without that, the re-scoring pass above would resurface
+   *             cards the user had already decided.
+   *
+   * A CHECK is a claim about the statements that write the table as much as
+   * about the table, so both writers are spelled to let it fire. `INSERT OR
+   * IGNORE` would not: SQLite downgrades every constraint failure under it to a
+   * silently skipped row, CHECK included, which is a barrier that stops nothing
+   * and reports nothing. `finishSweep` therefore marks ids seen with
+   * `ON CONFLICT (kind, account, message_id) DO NOTHING`, which excuses only the
+   * conflict that is ordinary here, and writes the frontier with a plain
+   * `INSERT ... ON CONFLICT ... DO UPDATE`.
    *
    * So no install comes out of this able to skip mail: the frontier is where its
    * own last close left it, and strictly more ids are eligible to be fetched
@@ -597,6 +628,19 @@ function joinNote(existing, addition) {
  */
 const SEEN_CHUNK = 500
 
+/**
+ * How many ids this mailbox has marked seen.
+ *
+ * Read either side of the marking loop so `finishSweep` can report rows
+ * *written* rather than ids offered. The storage handle's `exec` returns
+ * nothing -- the host's wraps `better-sqlite3`'s `run()` and drops its result --
+ * so the count is taken from the table itself, inside the same transaction as
+ * the writes, which is where the answer is exact.
+ */
+function countSeen(S, kind, account) {
+  return S.get('SELECT COUNT(*) AS c FROM ext_aisignal_seen WHERE kind = ? AND account = ?', [kind, account]).c
+}
+
 export function createRepo(storage) {
   const S = storage
   return {
@@ -676,7 +720,14 @@ export function createRepo(storage) {
      * The ids are marked seen for the mailbox this sweep read and for no other,
      * because a Gmail message id is unique inside an account and nowhere wider
      * -- see THE DEDUP KEY. That table is a second gate on whether a message is
-     * ever scored, so it is keyed with the same care as the frontier itself.
+     * ever scored, so it is keyed with the same care as the frontier itself,
+     * and the write is spelled so the schema's CHECK is a barrier on it rather
+     * than a rule nothing runs into; see the marking loop below.
+     *
+     * `seenMarked` counts the rows the close actually wrote. It is not the
+     * length of the id list: a close can be handed an id the mailbox already
+     * has, and a count of what was offered would report a write that did not
+     * happen.
      *
      * The closing note is appended to the one openSweep wrote rather than
      * replacing it: the success path passes an empty note, so replacing would
@@ -735,7 +786,23 @@ export function createRepo(storage) {
         if (ids.length > 0 && !sweep.account) {
           throw new Error(`sweep ${sweepId} fetched messages but resolved no source; a message id is only unique inside a mailbox, so there is no key to mark them seen under`)
         }
-        for (const m of ids) S.exec('INSERT OR IGNORE INTO ext_aisignal_seen (kind, account, message_id, seen_at) VALUES (?,?,?,?)', [sweep.kind, sweep.account, m, now()])
+        // `INSERT OR IGNORE` was the wrong spelling for a write that has a
+        // CHECK behind it. SQLite's OR IGNORE downgrades *every* constraint
+        // failure on the row to a silently skipped row, CHECK included, so the
+        // barrier migration 5 put on this table fired on nothing this extension
+        // actually writes -- and this is the only write path it has. Removing
+        // the guard above then produced a clean `finishSweep` that marked
+        // nothing seen and said it had. `ON CONFLICT DO NOTHING` names the one
+        // conflict that is ordinary here -- the same id marked seen twice, which
+        // a retried close does -- and leaves every other constraint to raise.
+        const seenBefore = countSeen(S, sweep.kind, sweep.account)
+        for (const m of ids) {
+          S.exec('INSERT INTO ext_aisignal_seen (kind, account, message_id, seen_at) VALUES (?,?,?,?) ON CONFLICT (kind, account, message_id) DO NOTHING',
+            [sweep.kind, sweep.account, m, now()])
+        }
+        // Rows written, not ids offered. `ids.length` was a count of the input,
+        // so a close that skipped rows still reported having written them.
+        const seenMarked = countSeen(S, sweep.kind, sweep.account) - seenBefore
         const found = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ?', [sweepId]).c
         const linksRead = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ? AND link_read = 1', [sweepId]).c
         S.exec('UPDATE ext_aisignal_sweeps SET found = ?, links_read = ?, ok = ?, note = ?, finished_at = ? WHERE id = ?', [found, linksRead, ok ? 1 : 0, joinNote(sweep.note, note), now(), sweepId])
@@ -743,7 +810,7 @@ export function createRepo(storage) {
           S.exec('INSERT INTO ext_aisignal_frontier (kind, account, source_id, frontier, moved_at, sweep_id) VALUES (?,?,?,?,?,?) ON CONFLICT (kind, account, source_id) DO UPDATE SET frontier = excluded.frontier, moved_at = excluded.moved_at, sweep_id = excluded.sweep_id',
             [sweep.kind, sweep.account, sweep.source_id, sweep.frontier_after, now(), sweepId])
         }
-        return { sweepId, found, linksRead, seenMarked: ids.length, ok: Boolean(ok) }
+        return { sweepId, found, linksRead, seenMarked, ok: Boolean(ok) }
       })
     },
     /**
@@ -815,30 +882,67 @@ export function createRepo(storage) {
      * `recordSignal` has any business saying which mailbox a card is filed
      * under. An unknown sweep is refused rather than filed under a blank one,
      * which is the second barrier behind `recordSignal`'s own check.
+     *
+     * All of it is one transaction, like `finishSweep`. Two reads decide what
+     * the write is going to be, and the unique index is what actually settles
+     * it: check-then-act across three statements lets a second writer take the
+     * key between the read and the INSERT, and the loser then surfaces a raw
+     * `SQLITE_CONSTRAINT_UNIQUE` out of the tool -- a SQLite code naming a
+     * column list, in a file that names every other failure. The transaction
+     * makes the three one unit, and the INSERT has a named fallback: if the key
+     * is occupied by the time the write lands, that is the merge branch
+     * arriving a moment late, so it merges instead of throwing.
      */
     insertItem(it) {
-      const sweep = S.get('SELECT kind, account FROM ext_aisignal_sweeps WHERE id = ?', [it.sweepId])
-      if (!sweep) throw new Error(`unknown sweep ${it.sweepId}`)
-      const url = it.url ?? null
-      const key = [sweep.kind, sweep.account, it.messageId, url]
-      const existing = S.get("SELECT id FROM ext_aisignal_items WHERE kind = ? AND account = ? AND message_id = ? AND COALESCE(url, '') = COALESCE(?, '')", key)
-        // A row written before the key carried a mailbox has no mailbox to
-        // compare, and it is the same message this sweep is looking at far more
-        // often than it is a colliding id from a mailbox nobody has connected
-        // since. So the first sweep that sights one again adopts it: the card
-        // keeps its id, its status and the decision the user made on it,
-        // instead of a second card appearing beside an archived one. Reachable
-        // only for rows stored before migration 5, and each one only once.
-        ?? (sweep.account === '' ? undefined : S.get("SELECT id FROM ext_aisignal_items WHERE kind = ? AND account = '' AND message_id = ? AND COALESCE(url, '') = COALESCE(?, '')", [sweep.kind, it.messageId, url]))
-      if (existing) {
-        S.exec('UPDATE ext_aisignal_items SET account = ?, headline = ?, summary = ?, score = ?, apply_score = ?, why = ?, link_read = ? WHERE id = ?',
-          [sweep.account, it.headline, it.summary, it.score, it.applyScore, it.why || '', it.linkRead ? 1 : 0, existing.id])
-        return { id: existing.id, merged: true }
-      }
-      const id = uid()
-      S.exec('INSERT INTO ext_aisignal_items (id, sweep_id, kind, account, message_id, headline, summary, url, source_name, source_email, sent_at, score, apply_score, why, link_read, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        [id, it.sweepId, sweep.kind, sweep.account, it.messageId, it.headline, it.summary, url, it.sourceName ?? null, it.sourceEmail ?? null, it.sentAt ?? null, it.score, it.applyScore, it.why || '', it.linkRead ? 1 : 0, now()])
-      return { id, merged: false }
+      return S.transaction(() => {
+        const sweep = S.get('SELECT kind, account FROM ext_aisignal_sweeps WHERE id = ?', [it.sweepId])
+        if (!sweep) throw new Error(`unknown sweep ${it.sweepId}`)
+        const url = it.url ?? null
+        const key = [sweep.kind, sweep.account, it.messageId, url]
+        const findExact = () => S.get("SELECT id FROM ext_aisignal_items WHERE kind = ? AND account = ? AND message_id = ? AND COALESCE(url, '') = COALESCE(?, '')", key)
+        const merge = (rowId) => {
+          S.exec('UPDATE ext_aisignal_items SET account = ?, headline = ?, summary = ?, score = ?, apply_score = ?, why = ?, link_read = ? WHERE id = ?',
+            [sweep.account, it.headline, it.summary, it.score, it.applyScore, it.why || '', it.linkRead ? 1 : 0, rowId])
+          return { id: rowId, merged: true }
+        }
+        const existing = findExact()
+          // A row written before the key carried a mailbox has no mailbox to
+          // compare, and it is the same message this sweep is looking at far
+          // more often than it is a colliding id from a mailbox nobody has
+          // connected since. So the first sweep that sights one again adopts
+          // it: the card keeps its id, its status and the decision the user
+          // made on it, instead of a second card appearing beside an archived
+          // one. Reachable only for rows stored before migration 5, and each
+          // one only once.
+          //
+          // Adoptable, with one condition. The lookup names `kind = ?` off the
+          // live sweep, so a legacy row that migration 5 backfilled to
+          // `kind = ''` is never matched by it and gets a duplicate card beside
+          // the decided one instead. That backfill is `COALESCE(..., '')` over
+          // the sweep the item names, and it can only fall through to `''` if
+          // that sweep row is gone: nothing in the extension deletes one, and
+          // `insertItem` refuses an item whose sweep does not exist, so every
+          // stored item has a sweep row and a real kind. The condition holds
+          // because nothing can remove what it depends on, not because the
+          // lookup checks it.
+          ?? (sweep.account === '' ? undefined : S.get("SELECT id FROM ext_aisignal_items WHERE kind = ? AND account = '' AND message_id = ? AND COALESCE(url, '') = COALESCE(?, '')", [sweep.kind, it.messageId, url]))
+        if (existing) return merge(existing.id)
+        const id = uid()
+        try {
+          S.exec('INSERT INTO ext_aisignal_items (id, sweep_id, kind, account, message_id, headline, summary, url, source_name, source_email, sent_at, score, apply_score, why, link_read, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            [id, it.sweepId, sweep.kind, sweep.account, it.messageId, it.headline, it.summary, url, it.sourceName ?? null, it.sourceEmail ?? null, it.sentAt ?? null, it.score, it.applyScore, it.why || '', it.linkRead ? 1 : 0, now()])
+        } catch (e) {
+          // Only the unique index can have filled the key since the read a few
+          // lines up, and the answer to that is the answer the read would have
+          // given: merge into the row that got there first. Decided by asking
+          // the table rather than by matching an error string, so a real
+          // failure -- a NOT NULL, a disk error -- still comes out unchanged.
+          const raced = findExact()
+          if (!raced) throw e
+          return merge(raced.id)
+        }
+        return { id, merged: false }
+      })
     },
     /**
      * The searchable list. `total` is the size of the whole match, `count` only
