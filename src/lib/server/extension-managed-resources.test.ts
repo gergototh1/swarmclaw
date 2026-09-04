@@ -22,7 +22,7 @@ import os from 'node:os'
  * reads DATA_DIR once, at import time, and ES modules evaluate their
  * dependencies in import order.
  */
-import '@/lib/server/test-support/isolated-data-dir'
+import { assertIsolatedDataDir } from '@/lib/server/test-support/isolated-data-dir'
 
 import { getExtensionManager } from './extensions'
 import {
@@ -35,6 +35,11 @@ import {
 import { DATA_DIR, WORKSPACE_DIR } from './data-dir'
 import { loadAgents, loadSchedules, loadSettings, saveAgents, saveSchedules, saveSettings } from './storage'
 import { DEFAULT_AGENT_ROUTE } from '@/lib/setup-defaults'
+
+// Outside any test() on purpose: a test that only detects the wrong directory
+// runs after the tests before it have already written there. A throw here
+// aborts the file before its first test.
+assertIsolatedDataDir({ DATA_DIR, WORKSPACE_DIR })
 
 const originalAgents = loadAgents()
 const originalSchedules = loadSchedules()
@@ -385,4 +390,76 @@ test('declared skill ids and declared skill names are pinned together, without d
   const result = reconcileExtensionManagedResources(id)
   const created = loadAgents()[result.createdAgents[0]]
   assert.deepEqual(created.skillIds, ['stored_skill_id', 'shipped-skill'])
+})
+
+test('a reconcile keeps the skill an operator pinned by hand beside the declared one', () => {
+  /*
+   * The pin list on an agent is shared: the agent sheet, `manage_skills`
+   * attach, the agents API and a reconcile from Extensions > Managed Resources
+   * all write `skillIds`. Before this, a declaration with `skills` filled the
+   * list and won every time, so reconcile #1 gave the declared pin, the
+   * operator added one by hand, and reconcile #2 -- which runs on install,
+   * enable and upgrade -- gave the declared pin alone again. The declaration
+   * has to reach its agent without deleting what the operator added, so the
+   * list is the union.
+   */
+  const id = extensionId('managed_skills_operator_pin')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Skill Pin Survival Fixture',
+    managedResources: {
+      agents: [
+        {
+          agentKey: 'scout',
+          displayName: 'Managed Scout',
+          systemPrompt: 'Sweep carefully.',
+          skills: ['ai-hirlevel-kinyeres'],
+        },
+      ],
+    },
+  })
+
+  const first = reconcileExtensionManagedResources(id)
+  const agentId = first.createdAgents[0]
+  assert.deepEqual(loadAgents()[agentId].skillIds, ['ai-hirlevel-kinyeres'])
+
+  const agents = loadAgents()
+  agents[agentId] = { ...agents[agentId], skillIds: [...(agents[agentId].skillIds || []), 'skill_operator_pinned_by_hand'] }
+  saveAgents(agents)
+
+  reconcileExtensionManagedResources(id)
+  assert.deepEqual(
+    loadAgents()[agentId].skillIds,
+    ['ai-hirlevel-kinyeres', 'skill_operator_pinned_by_hand'],
+    'the second reconcile dropped the pin the operator added',
+  )
+})
+
+test('a reconcile puts a declared pin back that the operator removed, and adds nothing twice', () => {
+  // The other edge of the union: the declaration has to reach its agent, so
+  // removing the declared pin by hand is undone by the next reconcile, and a
+  // pin that is already there is not duplicated.
+  const id = extensionId('managed_skills_redeclare')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Skill Redeclare Fixture',
+    managedResources: {
+      agents: [
+        {
+          agentKey: 'scout',
+          displayName: 'Managed Scout',
+          systemPrompt: 'Sweep carefully.',
+          skills: ['ai-hirlevel-kinyeres'],
+        },
+      ],
+    },
+  })
+
+  const agentId = reconcileExtensionManagedResources(id).createdAgents[0]
+  const agents = loadAgents()
+  agents[agentId] = { ...agents[agentId], skillIds: ['skill_operator_pinned_by_hand'] }
+  saveAgents(agents)
+
+  reconcileExtensionManagedResources(id)
+  assert.deepEqual(loadAgents()[agentId].skillIds, ['skill_operator_pinned_by_hand', 'ai-hirlevel-kinyeres'])
+  reconcileExtensionManagedResources(id)
+  assert.deepEqual(loadAgents()[agentId].skillIds, ['skill_operator_pinned_by_hand', 'ai-hirlevel-kinyeres'])
 })

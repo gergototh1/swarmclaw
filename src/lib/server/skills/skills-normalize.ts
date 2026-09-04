@@ -481,6 +481,17 @@ export function normalizeSkillPayload(input: NormalizeSkillInput): NormalizedSki
   // undefined for it and the scoped key was the only spelling that worked --
   // which silently dropped the flag from every skill file that used the obvious
   // one, the bundled resourceful-problem-solving skill included.
+  //
+  // WHAT THIS CHANGES ON EVERY INSTANCE, NOT ONLY ON ONE WITH ODD SKILL FILES.
+  // `always` has no agent scoping: selectPromptSkills takes `attached || always`
+  // for every agent's turn. The bundled skills/resourceful-problem-solving/
+  // SKILL.md carries `always: true` and ships with the app, so from this change
+  // on its 1,561 characters are in EVERY agent's prompt on EVERY install, on
+  // upgrade, with no migration and no switch -- the flag was written by its
+  // author and was silently ignored before. Any workspace or project SKILL.md
+  // with the same key does the same on the instance that has it. There is no
+  // screen for the set; `manage_skills` action "status" reports `always` per
+  // skill, and the README release note says this out loud.
   const always = asBoolean(runtimeMeta?.always) ?? asBoolean(frontmatter?.always) ?? asBoolean(input.always)
   const installOptions = normalizeInstallOptions(runtimeMeta?.install)
     || normalizeInstallOptions(input.installOptions)

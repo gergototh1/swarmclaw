@@ -556,12 +556,15 @@ tudtam eldönteni.
 ## Amit egy sorra megadok
 
 \`headline\` és \`summary\` **magyarul**, mint a scoutnál; a \`summary\`
-legalább két mondat. A jelölt \`source\` mezője \`reddit\`, \`hn\` vagy
-\`github\` — ezt a három sztringet adja a tool —, a \`sourceName\`-be pedig
-ennek az olvasható neve megy: Reddit, Hacker News, GitHub. Ez utóbbi az, ami a
-soron látszik. A \`messageId\` a jelölt \`id\`-je (\`reddit:…\`, \`hn:…\`,
-\`github:…\`). Az \`url\` pontosan az, ami a jelöltön áll; kitalált url-t soha
-nem írok.
+legalább két mondat. Egy jelölten ennyi áll: \`id\`, \`source\`, \`title\`,
+\`url\`, \`text\`, \`score\`, \`createdAt\`, \`topic\` és \`topicHu\` — az
+utolsó kettő a téma kulcsa és magyar neve, a \`text\` pedig a poszt, a sztori
+vagy a repo-leírás, hosszban levágva. A jelölt \`source\` mezője \`reddit\`,
+\`hn\` vagy \`github\` — ezt a három sztringet adja a tool —, a
+\`sourceName\`-be pedig ennek az olvasható neve megy: Reddit, Hacker News,
+GitHub. Ez utóbbi az, ami a soron látszik. A \`messageId\` a jelölt \`id\`-je
+(\`reddit:…\`, \`hn:…\`, \`github:…\`). Az \`url\` pontosan az, ami a
+jelöltön áll; kitalált url-t soha nem írok.
 
 **A jelölt \`score\` mezője nem az én pontszámom.** A forrás saját szavazat-
 vagy csillagszáma, kijelzésre — egy 412 pontos HN-sztori \`score\`-ja 412. A
@@ -905,32 +908,63 @@ félbehagyni a futást nem kell miatta.
  * nowhere else: a heartbeat turn would open a sweep nobody asked for, and a
  * sweep opened outside a run is one more thing that can be left unclosed.
  *
- * WHAT `skills` DOES, AND WHAT ACTUALLY PUTS A SKILL IN THE TURN
- * -------------------------------------------------------------
+ * WHAT `skills` DOES, AND WHAT ACTUALLY REACHES THE TURN
+ * ------------------------------------------------------
  * `skills` is a list of names, and each name is a PIN on the agent that
  * declares it. `buildManagedAgent` renders it on the card as `agent.skills` and
- * also carries it into `agent.skillIds`, which is the list the turn hands to
+ * also carries it into `agent.skillIds` -- as a union with whatever the
+ * operator has pinned there by hand, so a reconcile adds the declaration and
+ * deletes nothing. `skillIds` is the list the turn hands to
  * `resolveRuntimeSkills`; the resolver matches a pin against a skill's storage
  * id OR its name and key, so a file that has no storage id -- which is every
  * skill `scripts/install.mjs` copies into `<swarmclaw-home>/skills` for
- * `discoverSkills` to find -- can be pinned by the only handle it has. The
- * pinned skill's whole content goes into that agent's prompt, which is what
- * makes both souls' "Elolvasom, nem díszlet" true.
+ * `discoverSkills` to find -- can be pinned by the only handle it has.
+ *
+ * What the pinned skill then becomes in the prompt is decided by two limits in
+ * src/lib/server/skills/runtime-skill-resolver.ts, and only the second one
+ * binds here:
+ *
+ *   1. `selectPromptSkills` has a 30 000-character budget across every pinned
+ *      and always-on skill of one turn, and SKIPS a skill that does not fit
+ *      rather than truncating it, and says nothing when it does.
+ *   2. `sectionFromSkills`, the builder the real turn uses
+ *      (chat-turn-preparation.ts -> buildRuntimeSkillPromptBlocks), inlines at
+ *      most `INLINED_SKILL_CHAR_CAP` = 3 000 characters of EACH skill, cuts
+ *      the rest, and appends a marker telling the agent to call `use_skill`
+ *      with action "load" for the whole file.
+ *
+ * So "the whole skill is in the prompt" is only true of a skill whose body is
+ * under 3 000 characters, and both files here are kept under it on purpose --
+ * test/agents.test.mjs reads the cap off the host source and fails when either
+ * file grows past it, and src/lib/server/skills/runtime-skill-resolver.test.ts
+ * renders the real files through the real builder and fails on the marker.
+ * Before this the files were 12 k and 14 k, roughly a quarter of each reached
+ * the agent, and the `ok` rule was in the cut part.
+ *
+ * The marker is a live path, not a dead end: `use_skill` is bound to every
+ * session without a tool-access gate (`buildSkillRuntimeTools` in
+ * session-tools/skill-runtime.ts checks no extension id, and index.ts calls
+ * every native builder), so it is in these agents' tool set even though their
+ * scoped `tools` list does not and cannot name it. But a rule that has to hold
+ * on every turn cannot depend on the agent choosing to make that call, so the
+ * division of labour is: the run-level rules -- the call order, `ok` and what
+ * it marks seen, the two mandatory scores and their refusal, `merged` and the
+ * exact-headline rule, the note's contents -- live in the soul and the task
+ * prompt, which are never truncated, and the skill carries only what the soul
+ * does not: what counts as a row, the headline and summary form, when to read
+ * a link, and the scoring bands. The skill repeats the mandatory-score and
+ * `ok` rules in one sentence each so it does not contradict the soul when read
+ * alone.
  *
  * WHY NOT `always: true`. That flag was tried and taken back out. It has no
  * agent scoping anywhere in the host: `selectPromptSkills` takes
  * `skill.attached || skill.always` without asking which agent the turn belongs
  * to, and `discoverSkills` scans the workspace layer for every agent on every
- * turn. So marking these two always-on put roughly 6 KB of Hungarian
- * newsletter-scoring prose -- whose own first sentence says it belongs to a
- * different agent -- into the prompt of every unrelated agent on the instance,
- * and spent most of the 30 k always-on budget doing it. A skill that names its
- * owner in its first line has to reach that owner and nobody else, and a pin is
- * the instrument that says so.
- *
- * Both files are inside the 30 k character budget with room to spare, which
- * still matters: `selectPromptSkills` SKIPS a skill that does not fit rather
- * than truncating it, and says nothing when it does.
+ * turn. So marking these two always-on put both files -- whose own first
+ * sentence says they belong to a different agent -- into the prompt of every
+ * unrelated agent on the instance. A skill that names its owner in its first
+ * line has to reach that owner and nobody else, and a pin is the instrument
+ * that says so.
  */
 export const AGENTS = Object.freeze([
   Object.freeze({

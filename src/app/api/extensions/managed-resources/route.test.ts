@@ -4,9 +4,32 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 
+/*
+ * THIS FILE GETS ITS OWN DATA DIRECTORY
+ * =====================================
+ * Every test here reconciles extension-managed resources through the route,
+ * which saves agents and schedules, and the `afterEach` below restores the
+ * collections it read at load. Against the real DATA_DIR -- the developer's
+ * own instance -- that restore is not a safety net: this file runs as one of
+ * many parallel `test:runtime` processes writing the same SQLite file, and an
+ * interrupted restore leaves whatever the test had written. It was the one
+ * managed-resources test still doing that after its sibling,
+ * src/lib/server/extension-managed-resources.test.ts, was moved.
+ *
+ * The import below must stay FIRST among the imports that reach `data-dir.ts`:
+ * DATA_DIR is read once, at import time, and ES modules evaluate their
+ * dependencies in import order. The assertion under the imports is what
+ * catches the import moving: it runs at module level, so a wrong directory
+ * aborts the file before its first test writes anything.
+ */
+import { assertIsolatedDataDir } from '@/lib/server/test-support/isolated-data-dir'
+
+import { DATA_DIR, WORKSPACE_DIR } from '@/lib/server/data-dir'
 import { getExtensionManager } from '@/lib/server/extensions'
 import { loadAgents, loadSchedules, loadSettings, saveAgents, saveSchedules, saveSettings } from '@/lib/server/storage'
 import { GET, POST } from './route'
+
+assertIsolatedDataDir({ DATA_DIR, WORKSPACE_DIR })
 
 const originalAgents = loadAgents()
 const originalSchedules = loadSchedules()

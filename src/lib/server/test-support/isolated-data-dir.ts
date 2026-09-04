@@ -25,6 +25,15 @@
  *
  * The directory is removed when the process exits. Importing this from anything
  * but a test would repoint that process's whole data directory.
+ *
+ * Setting the variables is only half of it. If this import is written BELOW
+ * one that reads DATA_DIR, the variables are set too late, `data-dir.ts` has
+ * already resolved the instance's own directory, and every test in the file
+ * writes there -- and a test that merely checks the result runs after the
+ * other tests have already written. So a consumer also calls
+ * `assertIsolatedDataDir` at the top level of the module, outside any
+ * `test()`, with the constants `data-dir.ts` actually resolved: a throw there
+ * aborts the file before its first test runs.
  */
 import fs from 'node:fs'
 import os from 'node:os'
@@ -43,4 +52,17 @@ process.on('exit', () => {
   }
 })
 
-export const ISOLATED_DATA_DIR = process.env.DATA_DIR
+/**
+ * Throws unless `data-dir.ts` resolved DATA_DIR and WORKSPACE_DIR to the
+ * throwaway directory this module set up. Pass the constants imported from
+ * `data-dir.ts` -- those are what storage opened -- and call it at module
+ * level so nothing in the file runs against the wrong directory.
+ */
+export function assertIsolatedDataDir(resolved: { DATA_DIR: string; WORKSPACE_DIR: string }): void {
+  if (resolved.DATA_DIR !== process.env.DATA_DIR || resolved.WORKSPACE_DIR !== process.env.WORKSPACE_DIR) {
+    throw new Error(
+      `data-dir.ts resolved DATA_DIR=${resolved.DATA_DIR} and WORKSPACE_DIR=${resolved.WORKSPACE_DIR} before this test file pointed them at ${root}; `
+      + 'the isolated-data-dir import must be the first import that reaches data-dir.ts',
+    )
+  }
+}

@@ -767,7 +767,8 @@ test('a failed sweep cannot be reopened as a clean one by closing it', () => {
   // Defect A, end to end at this layer. failSweep opens nothing of its own: the
   // row it closes was opened with leftover 0 and an empty note, which is what
   // a run that drained everything also looks like. Under the old rule one
-  // finishSweep call -- with `ok` at its declared default -- turned that row
+  // finishSweep call -- this one says `ok: true` outright; an omitted `ok` now
+  // reads as false and is covered elsewhere -- turned that row
   // into the newest finished, ok, leftover-0, untruncated sweep, and the
   // frontier jumped to its `ran_at`, stranding the real backlog behind it.
   const r = fresh()

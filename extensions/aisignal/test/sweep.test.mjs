@@ -484,9 +484,10 @@ test('a drained run earns a frontier no newer than the listing it describes', as
 
 test('a run that could not list cannot be closed into a frontier', async () => {
   // Defect A, through the tools the agent actually calls and against the real
-  // modules. `signalSweep` hands back a sweepId on every failure path, `ok`
-  // defaults to true, and "always close what you open" is what an agent prompt
-  // encodes -- so this exact pair of calls is a thing that happens. Before the
+  // modules. `signalSweep` hands back a sweepId on every failure path, this
+  // close says `ok: true` outright (an omitted `ok` now reads as false, which
+  // is a separate rule), and "always close what you open" is what an agent
+  // prompt encodes -- so this exact pair of calls is a thing that happens. Before the
   // fix it moved the frontier to the failed row's `ran_at` and the backlog
   // waiting behind the real frontier became unreachable.
   const backlogWindow = new Date(Date.now() - 9 * 86400000).toISOString()

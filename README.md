@@ -500,6 +500,10 @@ Operational docs: https://swarmclaw.ai/docs/observability
 
 ## Releases
 
+### Unreleased
+
+- **A plain `always: true` in a SKILL.md frontmatter is now honoured.** Before, only the scoped `metadata.openclaw.always` spelling worked and the plain key was silently ignored. The bundled `skills/resourceful-problem-solving/SKILL.md` carries the plain key, so **on this upgrade it enters every agent's prompt on every instance** (about 1.5 k characters per turn), with no migration step and no per-agent scoping -- `always` has none. The same happens to any workspace or project SKILL.md that uses the key. To see which skills are always-on, ask an agent for `manage_skills` action `status` and read the `always` field; to turn one off, remove the key from that file (for the bundled one, delete or edit `skills/resourceful-problem-solving/SKILL.md` on the instance).
+
 ### v1.9.40 Highlights
 
 Multi-architecture container images and a new provider.

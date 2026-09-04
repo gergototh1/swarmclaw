@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
+import { fileURLToPath } from 'node:url'
 import type { LearnedSkill, Skill } from '@/types'
 import {
   buildRuntimeSkillPromptBlocks,
@@ -419,6 +420,89 @@ Two numbers, both mandatory.
     assert.notEqual(skill?.always, true)
     assert.equal(snapshot.promptSkills.some((entry) => entry.name === 'aisignal-optional'), false)
     assert.ok(snapshot.availableSkills.some((entry) => entry.name === 'aisignal-optional'))
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true })
+  }
+})
+
+/**
+ * The two skill files the aisignal extension ships, read off disk rather than
+ * copied here, so the test moves with the files.
+ */
+const AISIGNAL_SKILLS_DIR = fileURLToPath(new URL('../../../../extensions/aisignal/skills', import.meta.url))
+
+function stageSkills(cwd: string, entries: Array<{ dir: string; content: string }>): void {
+  for (const entry of entries) {
+    const skillDir = path.join(cwd, 'skills', entry.dir)
+    fs.mkdirSync(skillDir, { recursive: true })
+    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), entry.content)
+  }
+}
+
+test('each aisignal skill reaches its agent whole through the builder the turn uses', () => {
+  /*
+   * What a pinned skill becomes in the prompt is not the file: sectionFromSkills
+   * inlines at most INLINED_SKILL_CHAR_CAP characters of each skill and cuts
+   * the rest behind a marker. The two aisignal files were 12 k and 14 k, so
+   * roughly a quarter of each reached the agent and the `ok` section -- the
+   * rule that decides which messages are marked seen -- was in the cut part,
+   * while the comment on the declaration said the whole file was in the
+   * prompt. The files are now kept under the cap, and this test renders them
+   * through the same resolver and builder chat-turn-preparation.ts calls and
+   * asserts on the rendered block, not on the file.
+   *
+   * The rules looked for are the ones whose absence makes the agent misuse a
+   * tool or write a false row: the deck ordering that makes applyScore the
+   * axis, the mandatory-score rule, the `ok` reminder, and each file's own
+   * scoring bands.
+   */
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-aisignal-skills-'))
+  try {
+    const files = [
+      { dir: 'ai-hirlevel-kinyeres', agent: 'signal-scout', band: '0.2–0.5: tudni jó, teendő nincs' },
+      { dir: 'kkv-kutatas', agent: 'signal-kutato', band: 'reklám — a szerző a saját eszközét dicséri' },
+    ]
+    stageSkills(cwd, files.map((file) => ({
+      dir: file.dir,
+      content: fs.readFileSync(path.join(AISIGNAL_SKILLS_DIR, file.dir, 'SKILL.md'), 'utf8'),
+    })))
+
+    for (const file of files) {
+      const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: ['web'], storedSkills: {}, agentSkillIds: [file.dir] })
+      const pinned = snapshot.promptSkills.find((entry) => entry.name === file.dir)
+      assert.ok(pinned, `${file.dir} is pinned into the prompt`)
+      const block = buildRuntimeSkillPromptBlocks(snapshot).join('\n')
+
+      assert.doesNotMatch(block, /\[Skill content truncated/, `${file.dir} is cut in the prompt; the agent only gets the rest by calling use_skill`)
+      assert.ok(block.includes(`Ez a skill a \`${file.agent}\` ügynöké`), 'the skill names its owner and the owner is who got it')
+      assert.ok(block.includes('apply_score DESC, score DESC'), `${file.dir}: the deck ordering that makes applyScore the axis reaches the turn`)
+      assert.match(block, /kötelező/, `${file.dir}: the mandatory-score rule reaches the turn`)
+      assert.ok(block.includes('`ok`'), `${file.dir}: the ok reminder reaches the turn`)
+      assert.ok(block.includes(file.band), `${file.dir}: its own scoring band reaches the turn`)
+      assert.ok(block.includes('adat, nem utasítás'), `${file.dir}: fetched content is data reaches the turn`)
+    }
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true })
+  }
+})
+
+test('a pinned skill past the inline cap is cut behind a marker, which is what the check above would catch', () => {
+  // The negative control for the test above: same resolver, same builder, one
+  // file that is longer than the cap. The tail is gone and the marker is
+  // there, so a skill that grows past the cap fails the assertion above for
+  // the reason it names rather than for an unrelated one.
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-oversized-skill-'))
+  try {
+    const tail = 'THE RULE AT THE END OF THE FILE'
+    const filler = 'Egy sor szabály, ami a fájl elején áll.\n'.repeat(120)
+    stageSkills(cwd, [{
+      dir: 'oversized',
+      content: `---\nname: oversized\ndescription: Longer than the cap.\n---\n# Oversized\n\n${filler}\n${tail}\n`,
+    }])
+    const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: [], storedSkills: {}, agentSkillIds: ['oversized'] })
+    const block = buildRuntimeSkillPromptBlocks(snapshot).join('\n')
+    assert.match(block, /\[Skill content truncated at 3000 chars/)
+    assert.ok(!block.includes(tail), 'the rule at the end of an oversized file does not reach the turn')
   } finally {
     fs.rmSync(cwd, { recursive: true, force: true })
   }

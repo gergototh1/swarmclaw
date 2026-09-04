@@ -413,6 +413,19 @@ function buildManagedAgent(
   // name as well as on a storage id. Union rather than either/or, because a
   // declaration may reasonably name a stored skill and a shipped file at once.
   const declaredSkillPins = Array.from(new Set([...list(declaration.skillIds), ...list(declaration.skills)]))
+  // The pin list is shared with the operator. The agent sheet, `manage_skills`
+  // attach, the agents API and Extensions > Managed Resources all write into
+  // the same `skillIds`, so a reconcile that replaced it with the declaration
+  // deleted every pin an operator had added by hand -- and a reconcile runs on
+  // install, enable and upgrade. So it is the union: everything the operator
+  // has on the stored agent, plus every declared pin that is not there yet.
+  // Two consequences, both deliberate. A declared pin the operator removed by
+  // hand comes back on the next reconcile, because the declaration has to
+  // reach its agent. And a pin an OLD version of the declaration named stays
+  // on the agent after an upgrade renames it, because nothing here can tell a
+  // stale declared pin from an operator's own; a pin that matches no skill is
+  // inert in the resolver, so the cost is a dead name in the list.
+  const skillIds = Array.from(new Set([...list(existing?.skillIds), ...declaredSkillPins]))
   return {
     ...(existing || {}),
     id,
@@ -437,7 +450,7 @@ function buildManagedAgent(
     tools: list(declaration.tools).length ? list(declaration.tools) : existing?.tools,
     extensions: extensionIds.length ? extensionIds : existing?.extensions || [],
     skills: list(declaration.skills).length ? list(declaration.skills) : existing?.skills,
-    skillIds: declaredSkillPins.length ? declaredSkillPins : existing?.skillIds || [],
+    skillIds,
     mcpServerIds: list(declaration.mcpServerIds).length ? list(declaration.mcpServerIds) : existing?.mcpServerIds || [],
     monthlyBudget: typeof declaration.monthlyBudget === 'number' ? declaration.monthlyBudget : existing?.monthlyBudget ?? null,
     dailyBudget: typeof declaration.dailyBudget === 'number' ? declaration.dailyBudget : existing?.dailyBudget ?? null,

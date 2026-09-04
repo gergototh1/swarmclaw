@@ -691,15 +691,72 @@ test('no skill of this extension is marked always-on, because always-on has no o
   }
 })
 
-test('both skills fit the prompt budget they are injected under, with room for each other', () => {
-  // MAX_SKILLS_PROMPT_CHARS is 30 000 across every always-on and attached skill
-  // in one turn, and selectPromptSkills silently SKIPS a skill that does not
-  // fit rather than truncating it. Each agent carries one of these, so either
-  // alone has to fit; the sum is checked too, because an install with both
-  // agents has both files discovered in the same layer.
-  const sizes = AGENTS.flatMap((a) => a.skills).map((skill) => readSource(path.join('skills', skill, 'SKILL.md')).length + skill.length + 12)
-  for (const size of sizes) assert.ok(size < 30_000, 'a skill over the budget is dropped from the prompt without a word')
-  assert.ok(sizes.reduce((a, b) => a + b, 0) < 30_000)
+/**
+ * The body of a skill file as the host sees it: `normalizeSkillPayload` drops
+ * the frontmatter and trims the start, and `truncateInlinedSkillContent` trims
+ * the whole thing before measuring. Same arithmetic, so the number here is the
+ * number the cap is applied to.
+ */
+function skillBody(skill) {
+  const raw = readSource(path.join('skills', skill, 'SKILL.md'))
+  const parsed = raw.match(/^\s*---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/)
+  assert.ok(parsed, `${skill}/SKILL.md has no frontmatter block`)
+  return parsed[2].trimStart().trim()
+}
+
+const HOST_RESOLVER = '../../src/lib/server/skills/runtime-skill-resolver.ts'
+
+test('both skills are under the per-skill cap the turn actually inlines them at', () => {
+  /*
+   * Two limits apply to a pinned skill, and the one that binds is the small
+   * one. selectPromptSkills has a 30 000-character budget across every pinned
+   * and always-on skill of a turn and SKIPS what does not fit; the guard that
+   * used to be here checked that. But sectionFromSkills, the builder the real
+   * turn uses, then inlines at most INLINED_SKILL_CHAR_CAP characters of EACH
+   * skill and cuts the rest behind a marker. At 12 k and 14 k these two files
+   * were inside the first limit and three-quarters gone under the second, with
+   * the `ok` section in the cut part.
+   *
+   * The cap is read off the host source rather than written down here, so a
+   * host that raises or lowers it moves this test with it. The 30 k sum is
+   * still checked, because both limits are real.
+   */
+  const resolver = fs.readFileSync(path.resolve(extensionRoot, HOST_RESOLVER), 'utf8')
+  const cap = resolver.match(/^const INLINED_SKILL_CHAR_CAP = (\d+)$/m)
+  assert.ok(cap, 'the host no longer caps inlined skill content under that name; find what replaced it before trusting this test')
+  const inlineCap = Number(cap[1])
+  assert.ok(resolver.includes('truncateInlinedSkillContent(skill.content, skill.name)'), 'the cap is no longer applied where the pinned block is built')
+
+  const sizes = AGENTS.flatMap((a) => a.skills).map((skill) => ({ skill, body: skillBody(skill).length }))
+  for (const { skill, body } of sizes) {
+    assert.ok(body <= inlineCap, `${skill} is ${body} characters; past ${inlineCap} the host cuts it and the agent only gets the rest by calling use_skill`)
+  }
+  const selectionBudget = resolver.match(/MAX_SKILLS_PROMPT_CHARS/) ? 30_000 : null
+  assert.ok(selectionBudget, 'the host no longer has a selection budget under that name')
+  assert.ok(sizes.reduce((sum, { body }) => sum + body + 12, 0) < selectionBudget, 'together the two must also clear the selection budget, which skips rather than truncates')
+})
+
+test('the truncation marker points at a tool these agents actually have', () => {
+  /*
+   * The marker the host appends past the cap says to call `use_skill`. Both
+   * agents run scoped tool access -- a non-empty `tools` list with no
+   * `toolAccessMode` -- and `use_skill` is not a tool id an agent can declare,
+   * so if it were gated like `web` is, the marker would name a tool these two
+   * do not have. It is not gated: the host calls every native builder and
+   * buildSkillRuntimeTools returns the tool without asking hasExtension. Pinned
+   * against the source, because the comment in agents.mjs makes that claim and
+   * a gate added later would make the claim false without any test noticing.
+   */
+  const index = fs.readFileSync(path.resolve(extensionRoot, '../../src/lib/server/session-tools/index.ts'), 'utf8')
+  assert.ok(index.includes("['use_skill', buildSkillRuntimeTools]"), 'use_skill is no longer built as a native tool')
+  const runtime = fs.readFileSync(path.resolve(extensionRoot, '../../src/lib/server/session-tools/skill-runtime.ts'), 'utf8')
+  const builder = runtime.slice(runtime.indexOf('export function buildSkillRuntimeTools('))
+  assert.ok(builder.length > 0, 'buildSkillRuntimeTools is gone')
+  assert.ok(!/hasExtension\(|hasTool\(/.test(builder), 'buildSkillRuntimeTools now gates use_skill on a tool id, so a scoped agent may not have it and the marker is a dead end')
+  for (const agent of AGENTS) {
+    assert.equal(agent.toolAccessMode, undefined, `${agent.agentKey} is expected to run scoped tool access`)
+    assert.ok(agent.tools.length > 0)
+  }
 })
 
 test('the installer copies the skills into the layer the host discovers', () => {
