@@ -468,6 +468,27 @@ export interface Extension {
   migrations?: ExtensionMigration[]
   /** Called by the extension's own UI: POST /api/extensions/<id>/call/<method>. */
   rpc?: Record<string, ExtensionRpcHandler>
+  /**
+   * Contracts this extension offers to other extensions, keyed by contract
+   * name. Validated at load: a contract with no callable method, no summary or
+   * a bad version fails the load rather than resolving to nothing later.
+   *
+   * Only external extensions can provide. The builtin branch of load() does not
+   * carry these onto the loaded record, for the same reason it does not carry
+   * `rpc`; it warns when a builtin declares them.
+   */
+  provides?: Record<string, ExtensionContractDefinition>
+  /**
+   * Contracts this extension asks for. Declaring one is the *only* way to reach
+   * another extension's data through `ctx.contracts`; an undeclared call gets
+   * null with `not_declared` even when the provider is right there and enabled.
+   *
+   * An entry whose provider is missing, disabled or on another version is not a
+   * load error — the extension loads and `ctx.contracts.get` returns null. An
+   * operator is far better served by "the newsletter module is limited because
+   * AI Signal is switched off" than by a module that silently never starts.
+   */
+  consumes?: ExtensionContractConsumption[]
 }
 
 export interface ExtensionMeta {
@@ -507,6 +528,15 @@ export interface ExtensionMeta {
   dependencyInstallStatus?: ExtensionDependencyInstallStatus
   dependencyInstallError?: string
   dependencyInstalledAt?: number
+  /** Contracts this extension offers. Omitted when it offers none. */
+  contractsProvided?: ExtensionContractProvidedMeta[]
+  /**
+   * Contracts this extension asks for, each with the reason it gave and, when
+   * the contract does not resolve today, why not. Omitted when it asks for
+   * none. This is a data-access grant, so it is shown to the operator whether
+   * or not it is currently being served.
+   */
+  contractsConsumed?: ExtensionContractConsumedMeta[]
 }
 
 export type ExtensionPublisherSource =
@@ -583,6 +613,135 @@ export interface ExtensionStorage {
  */
 export interface ExtensionMigration { version: number; sql: string }
 
+/**
+ * Why `ctx.contracts.get()` returned null. A closed set of four:
+ *
+ * - `not_declared`     the consumer never listed this contract in `consumes`.
+ *                      Checked first and reported regardless of whether the
+ *                      provider exists, so an undeclared call cannot be used to
+ *                      probe which extensions are installed on this host.
+ * - `provider_missing` no single enabled extension on this host answers to that
+ *                      id and declares that contract. Also covers two cases the
+ *                      consumer cannot tell apart and does not need to: the
+ *                      provider is loaded but declares no such contract, and two
+ *                      installed extensions normalise to the same id so the host
+ *                      cannot tell which one was meant (that collision is logged
+ *                      at load time, which is where the operator sees it).
+ * - `provider_disabled` an extension with that id is installed but is not loaded
+ *                      right now. "Not loaded" includes disabled by the operator
+ *                      and failed to load; the host does not distinguish them
+ *                      here.
+ * - `version_mismatch` the provider declares that contract at a different
+ *                      version than the consumer asked for.
+ */
+export type ExtensionContractUnavailableReason =
+  | 'not_declared'
+  | 'provider_missing'
+  | 'provider_disabled'
+  | 'version_mismatch'
+
+/**
+ * One method of a contract, as the provider declares it.
+ *
+ * The host does not inspect, validate, transform or serialise either the
+ * argument object or the return value. Whatever the provider returns is what
+ * the consumer gets, by reference.
+ */
+export type ExtensionContractMethod = (args: Record<string, unknown>) => unknown | Promise<unknown>
+
+/** One method of a contract, as the consumer calls it through the handle. */
+export type ExtensionContractCall = (args?: Record<string, unknown>) => Promise<unknown>
+
+/**
+ * One contract an extension offers to other extensions, declared in `provides`.
+ *
+ * `summary` is required because it is the only thing that tells an operator
+ * what a consumer of this contract is being given. The host mediates *access*,
+ * not semantics: a contract whose summary says "read only" can still write, and
+ * nothing here stops it. The summary and the consumer's `reason` are what make
+ * that visible; they are not enforcement.
+ */
+export interface ExtensionContractDefinition {
+  version: number
+  summary: string
+  methods: Record<string, ExtensionContractMethod>
+}
+
+/**
+ * One contract an extension asks for, declared in `consumes`.
+ *
+ * `reason` is not decoration. A declared consumption is a data-access grant
+ * shown to the operator in the extension list, and the reason is the sentence
+ * they read when deciding whether to keep the extension installed.
+ */
+export interface ExtensionContractConsumption {
+  extension: string
+  contract: string
+  version: number
+  reason: string
+}
+
+/**
+ * What `ctx.contracts.get()` hands back: exactly the methods the provider
+ * listed under that contract, and nothing else.
+ *
+ * The object has a null prototype and is frozen, so it carries no inherited
+ * `toString`/`constructor` to call by accident and a consumer cannot swap a
+ * method on it. Any other name is `undefined` — the index signature says so, so
+ * call through `handle.list?.(...)` or check first.
+ */
+export interface ExtensionContractHandle {
+  readonly [method: string]: ExtensionContractCall | undefined
+}
+
+/**
+ * `ctx.contracts` — the host-mediated way one extension reaches another's data.
+ *
+ * Resolution is lazy: nothing is looked up until `get` or `why` is called, so a
+ * consumer that loads before its provider still works, and two extensions that
+ * consume each other cannot deadlock at load time. It is also re-done on every
+ * call, including every call through an already-obtained handle, so a handle
+ * captured in `setup()` stops working the moment the provider is disabled,
+ * removed or reloaded at a different contract version, rather than calling on
+ * into a stale closure.
+ *
+ * Data that comes back across this boundary keeps whatever trust it had. AI
+ * Signal's items are newsletter bodies and forum posts written by strangers;
+ * arriving through another extension does not make them instructions. A
+ * consumer that puts them in front of a model or on an outbound channel must
+ * guard them itself (see `guardUntrustedText` in
+ * `src/lib/server/untrusted-content.ts`); the host does not do it here, and does
+ * not pretend to.
+ */
+export interface ExtensionContracts {
+  /** The provider's declared methods, or null. `why` names the reason for the null. */
+  get: (extensionId: string, contract: string) => ExtensionContractHandle | null
+  /** The reason `get` would return null, or null when the contract does resolve. */
+  why: (extensionId: string, contract: string) => ExtensionContractUnavailableReason | null
+}
+
+/** One extension's validated contract declarations, as the host keeps them. */
+export interface ExtensionContractDeclarations {
+  provides: Record<string, ExtensionContractDefinition>
+  consumes: ExtensionContractConsumption[]
+}
+
+/** A contract this extension offers, as shown to the operator. */
+export interface ExtensionContractProvidedMeta {
+  contract: string
+  version: number
+  summary: string
+}
+
+/**
+ * A contract this extension asks for, as shown to the operator: the grant it
+ * declared, plus why it is not being served when it is not.
+ */
+export interface ExtensionContractConsumedMeta extends ExtensionContractConsumption {
+  /** Absent when the contract resolves; otherwise the reason it does not. */
+  unavailable?: ExtensionContractUnavailableReason
+}
+
 export type ExtensionRpcHandler = (body: Record<string, unknown>) => unknown | Promise<unknown>
 
 export interface ExtensionContext {
@@ -595,4 +754,13 @@ export interface ExtensionContext {
     getGoogleAccessToken: (purpose: string) => Promise<string>
     hasGoogleCredential: (purpose: string) => boolean
   }
+  /**
+   * Access to the contracts other extensions declare. Safe to capture: every
+   * call re-resolves, so a captured handle follows the provider being disabled,
+   * removed or reloaded instead of going stale. Reading it during `setup()`
+   * itself is the one exception worth knowing about -- see
+   * `createExtensionContracts` in
+   * `src/lib/server/extensions/extension-contracts.ts`.
+   */
+  contracts: ExtensionContracts
 }

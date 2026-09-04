@@ -15,6 +15,10 @@ import type {
   ExtensionManagedResources,
   ExtensionMigration,
   ExtensionRpcHandler,
+  ExtensionContractDeclarations,
+  ExtensionContractConsumedMeta,
+  ExtensionContractProvidedMeta,
+  ExtensionContracts,
   Session,
   ExtensionPackageManager,
   ExtensionDependencyInstallStatus,
@@ -41,6 +45,13 @@ import { decryptKey, encryptKey, loadSettings, saveSettings } from './storage'
 import { buildExtensionHooks } from './extensions-approval-guidance'
 import { validateExtensionPages } from './extensions/extension-pages'
 import { createExtensionStorage, dropExtensionStorage, extensionTablePrefix, runExtensionMigrations } from './extensions/extension-storage'
+import {
+  createExtensionContracts,
+  normalizeContractExtensionId,
+  validateExtensionContracts,
+  type ContractProviderEntry,
+  type ExtensionContractRegistry,
+} from './extensions/extension-contracts'
 import { getGoogleAccessToken, hasGoogleCredential } from './oauth/google'
 import { errorMessage, hmrSingleton } from '@/lib/shared-utils'
 
@@ -527,7 +538,7 @@ function normalizeExtension(mod: unknown): Extension | null {
   const modObj = mod as Record<string, unknown>
   const raw: Record<string, unknown> = (modObj?.default as Record<string, unknown>) || modObj
 
-  if (raw.name && (raw.hooks || raw.tools || raw.ui || raw.providers || raw.connectors || raw.managedResources || raw.agents || raw.schedules || raw.routines || raw.localFolders || raw.gatewayPlatforms || raw.setupChecks || raw.rpc || raw.migrations)) {
+  if (raw.name && (raw.hooks || raw.tools || raw.ui || raw.providers || raw.connectors || raw.managedResources || raw.agents || raw.schedules || raw.routines || raw.localFolders || raw.gatewayPlatforms || raw.setupChecks || raw.rpc || raw.migrations || raw.provides || raw.consumes)) {
     const hooks = isRecord(raw.hooks) ? (raw.hooks as ExtensionHooks) : {}
     return {
       name: raw.name as string,
@@ -544,6 +555,14 @@ function normalizeExtension(mod: unknown): Extension | null {
       setup: typeof raw.setup === 'function' ? (raw.setup as Extension['setup']) : undefined,
       migrations: Array.isArray(raw.migrations) ? (raw.migrations as ExtensionMigration[]) : undefined,
       rpc: isRecord(raw.rpc) ? (raw.rpc as Record<string, ExtensionRpcHandler>) : undefined,
+      // Carried through exactly as declared, unlike the fields above, so that
+      // validateExtensionContracts sees what the author actually wrote. A
+      // shape check here would turn `provides: []` into "declares nothing" and
+      // load the extension with its contracts silently missing; letting the
+      // validator reject it fails the load with a message that names the
+      // mistake.
+      provides: raw.provides as Extension['provides'],
+      consumes: raw.consumes as Extension['consumes'],
     } as Extension
   }
 
@@ -701,6 +720,8 @@ interface LoadedExtension {
   connectors?: ExtensionConnectorDefinition[]
   managedResources?: ExtensionManagedResources
   rpc?: Record<string, ExtensionRpcHandler>
+  /** Validated `provides`/`consumes`. Set for every loaded external extension, never for a builtin. */
+  contracts?: ExtensionContractDeclarations
   isBuiltin?: boolean
 }
 
@@ -725,6 +746,15 @@ class ExtensionManager {
   private extensions: Map<string, LoadedExtension> = new Map()
   private builtins: Map<string, Extension> = new Map()
   private loaded = false
+  /**
+   * True only while load() is running. Contract resolution reads it so that a
+   * `ctx.contracts` call made from inside an extension's setup() does not
+   * re-enter load(): setup() runs during load(), so re-entering would recurse
+   * until the stack ran out, re-running every extension's migrations and
+   * setup() on the way down. Same trap the `settings` closure in load()
+   * documents, reached from a different direction.
+   */
+  private loading = false
   private watcher: fs.FSWatcher | null = null
 
   registerBuiltin(id: string, extension: Extension) {
@@ -1065,6 +1095,15 @@ class ExtensionManager {
 
   load() {
     if (this.loaded) return
+    this.loading = true
+    try {
+      this.loadOnce()
+    } finally {
+      this.loading = false
+    }
+  }
+
+  private loadOnce() {
     this.extensions.clear()
     this.ensureExtensionWatcher()
 
@@ -1082,6 +1121,8 @@ class ExtensionManager {
         if (typeof p.setup === 'function') ignoredByBuiltinLoader.push('setup')
         if (p.migrations && p.migrations.length > 0) ignoredByBuiltinLoader.push('migrations')
         if (p.rpc && Object.keys(p.rpc).length > 0) ignoredByBuiltinLoader.push('rpc')
+        if (p.provides && Object.keys(p.provides).length > 0) ignoredByBuiltinLoader.push('provides')
+        if (p.consumes && p.consumes.length > 0) ignoredByBuiltinLoader.push('consumes')
         if (ignoredByBuiltinLoader.length > 0) {
           log.warn('extensions', 'Builtin extension declares fields the builtin loader ignores', {
             extensionId: id,
@@ -1147,6 +1188,18 @@ class ExtensionManager {
             }
             if (ext.ui) ext.ui.pages = pagesCheck.pages
 
+            // Contract declarations are checked here, alongside the pages, and
+            // for the same reason: a declaration the author got wrong should
+            // fail the load rather than resolve to nothing at call time. A
+            // consumption whose provider is absent is NOT checked here — that
+            // is answered with null at call time, so an unmet dependency never
+            // stops the consumer from loading.
+            const contractsCheck = validateExtensionContracts(file, ext.provides, ext.consumes)
+            if (!contractsCheck.ok) {
+              this.markExtensionFailure(file, 'load.contracts', contractsCheck.error, true)
+              continue
+            }
+
             // Storage and setup run before the extension is registered, so an
             // extension whose schema or setup fails never becomes reachable.
             try {
@@ -1178,6 +1231,11 @@ class ExtensionManager {
                     getGoogleAccessToken: (purpose) => getGoogleAccessToken(purpose),
                     hasGoogleCredential: (purpose) => hasGoogleCredential(purpose),
                   },
+                  // Two closures, nothing resolved yet. Safe to capture, and
+                  // safe to build here even though the extension is not
+                  // registered yet: the consumer's own declarations are read
+                  // live at call time, from the record set below.
+                  contracts: this.getExtensionContracts(file),
                 })
               }
             } catch (err: unknown) {
@@ -1207,6 +1265,7 @@ class ExtensionManager {
               connectors: ext.connectors,
               managedResources: ext.managedResources,
               rpc: ext.rpc,
+              contracts: contractsCheck.declarations,
             })
             this.markExtensionSuccess(file)
           } catch (err: unknown) {
@@ -1221,6 +1280,33 @@ class ExtensionManager {
     } catch { /* ignore */ }
 
     this.loaded = true
+    this.warnOnAmbiguousContractProviderIds()
+  }
+
+  /**
+   * Contract ids drop the file extension, so 'notes.js' and 'notes.mjs' both
+   * answer to 'notes'. `resolveExtensionContract` refuses to pick between them
+   * and reports `provider_missing`, which is correct but says nothing about
+   * why. This is the line that says why, and it is logged once per load rather
+   * than once per call because the operator, not the consumer, is the one who
+   * can fix it by renaming or removing a file.
+   */
+  private warnOnAmbiguousContractProviderIds(): void {
+    const byNormalizedId = new Map<string, string[]>()
+    for (const [id, entry] of this.extensions.entries()) {
+      if (!entry.contracts || Object.keys(entry.contracts.provides).length === 0) continue
+      const normalized = normalizeContractExtensionId(id)
+      const ids = byNormalizedId.get(normalized) || []
+      ids.push(id)
+      byNormalizedId.set(normalized, ids)
+    }
+    for (const [normalized, ids] of byNormalizedId.entries()) {
+      if (ids.length < 2) continue
+      log.warn('extensions', 'Contract provider id is ambiguous; no contract from these extensions can be consumed', {
+        contractExtensionId: normalized,
+        extensionIds: ids.join(', '),
+      })
+    }
   }
 
   /**
@@ -1257,6 +1343,61 @@ class ExtensionManager {
     if (!rpc || !Object.prototype.hasOwnProperty.call(rpc, method)) return null
     const handler = rpc[method]
     return typeof handler === 'function' ? handler : null
+  }
+
+  /**
+   * The view of the loaded extension map that contract resolution needs.
+   *
+   * `ensureLoaded` deliberately does nothing while a load is in progress: the
+   * only caller that can hit that case is an extension resolving a contract
+   * from inside its own setup(), and re-entering load() there recurses (see the
+   * `loading` field). The cost is that such a call sees only the extensions
+   * loaded so far and can read `provider_missing` for one that is loaded a
+   * moment later; resolving lazily instead of in setup() avoids it entirely,
+   * which is what `createExtensionContracts` tells extension authors to do.
+   */
+  private contractRegistry(): ExtensionContractRegistry {
+    return {
+      ensureLoaded: () => {
+        if (!this.loaded && !this.loading) this.load()
+      },
+      declarationsOf: (loadedId: string) => this.extensions.get(loadedId)?.contracts ?? null,
+      providersFor: (normalizedId: string) => {
+        const matches: ContractProviderEntry[] = []
+        for (const [id, entry] of this.extensions.entries()) {
+          if (!entry.contracts) continue
+          if (normalizeContractExtensionId(id) !== normalizedId) continue
+          matches.push({ id, declarations: entry.contracts })
+        }
+        return matches
+      },
+      // "Installed" is what separates provider_disabled from provider_missing,
+      // so it must answer for extensions that are NOT in the loaded map: the
+      // config file, not the map, is the source of truth for what exists on
+      // this host. Builtins are counted even though the builtin loader carries
+      // no contracts onto the record — an extension with that id does exist,
+      // and reporting it as missing would be a lie about the host.
+      isInstalled: (normalizedId: string) => {
+        for (const id of this.builtins.keys()) {
+          if (normalizeContractExtensionId(id) === normalizedId) return true
+        }
+        for (const file of this.listExtensionFilenames()) {
+          if (normalizeContractExtensionId(file) === normalizedId) return true
+        }
+        return false
+      },
+    }
+  }
+
+  /**
+   * The `ctx.contracts` for one extension. Resolution is lazy, so this is safe
+   * to build during load() for an extension that is not registered yet, and
+   * safe for the extension to capture: the consumer's own `consumes` list is
+   * read live on every call, so a reload that edits or drops a declaration
+   * takes effect through a handle captured before it.
+   */
+  getExtensionContracts(consumerId: string): ExtensionContracts {
+    return createExtensionContracts(consumerId, this.contractRegistry())
   }
 
   getTools(enabledIds: string[]): Array<{ extensionId: string; tool: ExtensionToolDef }> {
@@ -2101,6 +2242,27 @@ class ExtensionManager {
       const failures = this.readFailureState()
       const metas: ExtensionMeta[] = []
 
+      // A declared consumption is a data-access grant, so it is reported to the
+      // operator whether or not it is being served today, together with the
+      // reason the extension gave and — when it is not being served — the
+      // reason code. Only loaded extensions can report: an extension that is
+      // switched off is not in the map, so its declarations are not read, and
+      // its card shows nothing rather than something stale.
+      const describeContracts = (loaded?: LoadedExtension): Pick<ExtensionMeta, 'contractsProvided' | 'contractsConsumed'> => {
+        if (!loaded?.contracts) return {}
+        const provided: ExtensionContractProvidedMeta[] = Object.entries(loaded.contracts.provides)
+          .map(([contract, definition]) => ({ contract, version: definition.version, summary: definition.summary }))
+        const contracts = this.getExtensionContracts(loaded.id)
+        const consumed: ExtensionContractConsumedMeta[] = loaded.contracts.consumes.map((entry) => {
+          const unavailable = contracts.why(entry.extension, entry.contract)
+          return unavailable ? { ...entry, unavailable } : { ...entry }
+        })
+        return {
+          contractsProvided: provided.length > 0 ? provided : undefined,
+          contractsConsumed: consumed.length > 0 ? consumed : undefined,
+        }
+      }
+
       const describeCapabilities = (loaded?: LoadedExtension, fallback?: Extension): Pick<ExtensionMeta, 'toolCount' | 'hookCount' | 'hasUI' | 'providerCount' | 'connectorCount' | 'settingsFields' | 'managedAgentCount' | 'managedScheduleCount' | 'localFolderCount' | 'gatewayPlatformCount' | 'setupCheckCount'> => {
         const tools = loaded?.tools || fallback?.tools || []
         const hooks = loaded?.hooks || fallback?.hooks || {}
@@ -2192,6 +2354,7 @@ class ExtensionManager {
               dependencyInstallError: dependencyInfo.installError,
               dependencyInstalledAt: dependencyInfo.installedAt,
               ...caps,
+              ...describeContracts(loaded),
             })
           }
         }

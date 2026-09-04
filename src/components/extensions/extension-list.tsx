@@ -7,7 +7,7 @@ import { api } from '@/lib/app/api-client'
 import { getExtensionSourceLabel } from '@/lib/extension-sources'
 import { toast } from 'sonner'
 import { useMountedRef } from '@/hooks/use-mounted-ref'
-import type { Agent, MarketplaceExtension, ExtensionMeta } from '@/types'
+import type { Agent, MarketplaceExtension, ExtensionContractConsumedMeta, ExtensionMeta } from '@/types'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { dedup } from '@/lib/shared-utils'
@@ -291,7 +291,43 @@ function extensionCapabilityBadges(ext: ExtensionMeta): string[] {
   if (ext.providerCount && ext.providerCount > 0) badges.push(`${ext.providerCount} provider${ext.providerCount === 1 ? '' : 's'}`)
   if (ext.connectorCount && ext.connectorCount > 0) badges.push(`${ext.connectorCount} connector${ext.connectorCount === 1 ? '' : 's'}`)
   if (ext.hasDependencyManifest) badges.push(`${ext.dependencyCount ?? 0} dep${ext.dependencyCount === 1 ? '' : 's'}`)
+  const provided = ext.contractsProvided?.length ?? 0
+  if (provided > 0) badges.push(`${provided} contract${provided === 1 ? '' : 's'}`)
   return badges
+}
+
+/**
+ * The consumptions an extension declared, which is the operator's view of a
+ * data-access grant: which other extension's data this one asked for, the
+ * sentence it gave for wanting it, and — when the host is not serving it — the
+ * reason why not.
+ *
+ * Deliberately a read-only list and not a permissions panel. There is one
+ * control over a grant, and it is the enable toggle already on this card: a
+ * consumption exists because the extension declares it, so revoking one means
+ * switching the extension off, not editing its manifest from here.
+ *
+ * The host mediates access, not semantics. It cannot check that a contract
+ * described as read-only only reads, so this shows what was declared and does
+ * not dress it up as a verified permission.
+ */
+function ContractConsumptions({ consumed }: { consumed: ExtensionContractConsumedMeta[] }) {
+  return (
+    <div className="mt-2.5 pt-2.5 border-t border-white/[0.05]">
+      <p className="text-[10px] font-600 uppercase tracking-wide text-text-3/40 mb-1">Data access</p>
+      <ul className="space-y-1">
+        {consumed.map((entry) => (
+          <li key={`${entry.extension}:${entry.contract}`} className="text-[11px] leading-relaxed">
+            <span className="font-mono text-text-3/70">{entry.extension}.{entry.contract} v{entry.version}</span>
+            <span className="text-text-3/55"> &mdash; {entry.reason}</span>
+            {entry.unavailable && (
+              <span className="text-amber-400/90"> Unavailable: {entry.unavailable}.</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 // --- Installed extensions grid ---
@@ -456,6 +492,11 @@ function ExtensionCard({ ext, allowDelete, agents, onEdit, onToggle, onDelete, o
           </span>
         )}
       </div>
+
+      {/* Declared data access */}
+      {ext.contractsConsumed && ext.contractsConsumed.length > 0 && (
+        <ContractConsumptions consumed={ext.contractsConsumed} />
+      )}
 
       {/* Failure warning */}
       {ext.autoDisabled && (
