@@ -1,0 +1,184 @@
+/*
+ * AI Signal page. Every class is `ais-` prefixed: the host injects this sheet
+ * into its own document, so an unprefixed rule would restyle the shell.
+ *
+ * Colours come from the host's tokens with a fallback beside each, so the page
+ * follows the host's light and dark themes and still reads when a token is
+ * renamed. Metadata is set in the host's mono face (`--font-mono`).
+ */
+.ais-root {
+  padding: 20px 24px 40px;
+  max-width: 880px;
+  margin: 0 auto;
+  color: var(--card-foreground, inherit);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.ais-mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; }
+.ais-muted { color: var(--color-text-3, #8282a0); }
+.ais-warn { color: var(--color-warning, #d97706); font-weight: 600; }
+.ais-error {
+  color: var(--color-danger, #dc2626);
+  border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 35%, transparent);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 0 0 16px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ais-link {
+  color: var(--accent, #6366f1);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.ais-connect { margin-left: 8px; font-weight: 600; }
+
+/* status bar */
+.ais-status {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+.ais-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.ais-sweeps summary { cursor: pointer; color: var(--color-text-3, #8282a0); font-size: 12px; }
+.ais-sweeps ul { margin: 6px 0 0; padding-left: 18px; font-size: 12px; }
+.ais-sweeps li { margin: 2px 0; overflow-wrap: anywhere; }
+
+/* tabs */
+.ais-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border, rgba(127, 127, 127, 0.2)); }
+.ais-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  margin-bottom: -1px;
+  cursor: pointer;
+  color: var(--color-text-3, #8282a0);
+  font: inherit;
+  font-weight: 600;
+}
+.ais-tab-active { color: inherit; border-bottom-color: var(--accent, #6366f1); }
+
+/* buttons */
+.ais-btn {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  background: var(--card, transparent);
+  color: inherit;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+.ais-btn:hover:not(:disabled) { border-color: var(--accent, #6366f1); }
+.ais-btn:disabled { opacity: 0.45; cursor: default; }
+.ais-btn-primary { background: var(--accent, #6366f1); color: var(--accent-foreground, #fff); border-color: transparent; }
+.ais-btn-small { padding: 4px 10px; font-size: 12px; }
+.ais-actions { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+
+/* deck */
+.ais-deck { display: flex; flex-direction: column; align-items: center; }
+.ais-card-stack { position: relative; width: 100%; max-width: 620px; min-height: 320px; }
+.ais-card {
+  position: relative;
+  background: var(--card, #fff);
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 16px;
+  padding: 22px 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  transition: transform 160ms ease;
+  overflow-wrap: anywhere;
+}
+.ais-card-dragging { transition: none; cursor: grabbing; }
+.ais-card-behind { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.ais-card-behind-1 { transform: translateY(8px) scale(0.97); opacity: 0.8; }
+.ais-card-behind-2 { transform: translateY(16px) scale(0.94); opacity: 0.5; }
+.ais-card:not(.ais-card-behind) { z-index: 1; }
+.ais-card h2 { font-size: 20px; line-height: 1.3; margin: 12px 0 8px; }
+.ais-card p { margin: 0 0 10px; }
+.ais-why {
+  border-left: 3px solid var(--accent, #6366f1);
+  padding-left: 10px;
+  color: var(--color-text-2, #6b7280);
+  font-style: italic;
+}
+.ais-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--color-text-3, #8282a0); }
+.ais-stamp {
+  position: absolute;
+  top: 18px;
+  padding: 4px 12px;
+  border: 3px solid currentColor;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.ais-stamp-save { right: 18px; color: var(--color-success, #16a34a); transform: rotate(12deg); }
+.ais-stamp-archive { left: 18px; color: var(--color-danger, #dc2626); transform: rotate(-12deg); }
+.ais-empty { text-align: center; padding: 40px 0; }
+.ais-toast {
+  border: 1px solid var(--color-danger, #dc2626);
+  color: var(--color-danger, #dc2626);
+  border-radius: 10px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  max-width: 620px;
+  overflow-wrap: anywhere;
+}
+
+/* list */
+.ais-chips { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.ais-chip {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  background: none;
+  color: inherit;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ais-chip-active { background: var(--accent, #6366f1); color: var(--accent-foreground, #fff); border-color: transparent; }
+.ais-search {
+  flex: 1 1 200px;
+  min-width: 160px;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  background: var(--card, transparent);
+  color: inherit;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+}
+.ais-row {
+  border-top: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  padding: 12px 0;
+  overflow-wrap: anywhere;
+}
+.ais-row strong { display: block; margin: 6px 0 4px; }
+.ais-row p { margin: 0 0 6px; }
+.ais-row .ais-actions { justify-content: flex-start; margin-top: 8px; }
+.ais-badge {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+.ais-badge-bad { color: var(--color-danger, #dc2626); font-weight: 700; }
+.ais-capped { margin-top: 12px; }

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test test/*.test.mjs",
+    "test": "node --import tsx --test test/*.test.mjs",
     "install:local": "node scripts/install.mjs"
   },
   "devDependencies": {
