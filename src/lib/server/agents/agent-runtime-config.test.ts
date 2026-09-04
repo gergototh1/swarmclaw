@@ -1,11 +1,36 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Agent, GatewayProfile } from '@/types'
+
+/*
+ * THIS FILE GETS ITS OWN DATA DIRECTORY
+ * =====================================
+ * The two Ollama tests below write credentials, and the first of them DELETES
+ * every stored `ollama` credential except the one it is about to save, with
+ * no restore anywhere in the file. Against the real DATA_DIR -- the
+ * developer's own instance, which is where `data-dir.ts` resolves when
+ * nothing points it elsewhere -- that is a permanent loss of the operator's
+ * Ollama credentials on every run of `test:runtime`. The other in-process
+ * writers in the suite at least restore in an `afterEach`; this one did not.
+ *
+ * The import below is what moves it, and it must stay FIRST among the
+ * imports that reach `data-dir.ts`: DATA_DIR is read once, at import time,
+ * and ES modules evaluate their dependencies in import order. The assertion
+ * under the imports runs at module level, so a wrong directory aborts the
+ * file before its first test writes anything.
+ */
+import { assertIsolatedDataDir } from '@/lib/server/test-support/isolated-data-dir'
+
+import { DATA_DIR, WORKSPACE_DIR } from '@/lib/server/data-dir'
 import { normalizeProviderEndpoint } from '@/lib/openclaw/openclaw-endpoint'
 import {
   applyResolvedRoute,
   resolveAgentRouteCandidatesWithProfiles,
 } from '@/lib/server/agents/agent-runtime-config'
+
+// Outside any test() on purpose: a test that only detects the wrong directory
+// runs after the tests before it have already written there.
+assertIsolatedDataDir({ DATA_DIR, WORKSPACE_DIR })
 
 function makeGateway(overrides: Partial<GatewayProfile> = {}): GatewayProfile {
   const now = Date.now()

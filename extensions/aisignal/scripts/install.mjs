@@ -61,11 +61,35 @@ fs.writeFileSync(path.join(extDir, 'aisignal.mjs'), "export { default } from './
 // `skills: ['ai-hirlevel-kinyeres']` matches on the SKILL.md's frontmatter
 // `name`, not on the directory, so the two have to agree; agents.test.mjs pins
 // that they do.
+//
+// A copy alone is not an upgrade. cpSync never removes anything, so after a
+// skill is renamed the old directory stays under <home>/skills, discovery
+// still lists it, and any pin that still names it still matches it. The host
+// drops the old pin from the managed agent on its next reconcile (the marker
+// records what each reconcile declared); what it cannot do is remove the file,
+// which is this script's business. So the directory names shipped by each
+// install are written to a manifest beside the workspace, and the next install
+// removes from <home>/skills every name the previous install shipped that the
+// repo no longer has. Only names from the manifest are touched: a skill the
+// operator put there by hand is not this script's to remove, and the very
+// first install after this manifest existed has nothing to compare against,
+// so a rename that happened before that leaves its directory in place.
 const skillsRoot = path.join(root, 'skills')
-if (fs.existsSync(skillsRoot)) {
-  for (const skill of fs.readdirSync(skillsRoot)) {
-    fs.cpSync(path.join(skillsRoot, skill), path.join(home, 'skills', skill), { recursive: true })
-  }
+const shippedManifest = path.join(wsDir, 'shipped-skills.json')
+const shipped = fs.existsSync(skillsRoot) ? fs.readdirSync(skillsRoot) : []
+let previouslyShipped = []
+try {
+  const parsed = JSON.parse(fs.readFileSync(shippedManifest, 'utf8'))
+  previouslyShipped = Array.isArray(parsed) ? parsed.filter((entry) => typeof entry === 'string') : []
+} catch {
+  // No manifest, or not one this script wrote: nothing was shipped that this run knows about.
 }
+for (const stale of previouslyShipped.filter((name) => !shipped.includes(name))) {
+  fs.rmSync(path.join(home, 'skills', stale), { recursive: true, force: true })
+}
+for (const skill of shipped) {
+  fs.cpSync(path.join(skillsRoot, skill), path.join(home, 'skills', skill), { recursive: true })
+}
+fs.writeFileSync(shippedManifest, `${JSON.stringify(shipped, null, 2)}\n`)
 
 console.log(`aisignal installed: ${extDir}/aisignal.mjs, workspace ${wsDir}`)

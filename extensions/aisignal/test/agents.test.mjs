@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
@@ -736,16 +738,23 @@ test('both skills are under the per-skill cap the turn actually inlines them at'
   assert.ok(sizes.reduce((sum, { body }) => sum + body + 12, 0) < selectionBudget, 'together the two must also clear the selection budget, which skips rather than truncates')
 })
 
-test('the truncation marker points at a tool these agents actually have', () => {
+test('the truncation marker points at a tool these agents actually have, as far as a source-text tripwire can tell', () => {
   /*
    * The marker the host appends past the cap says to call `use_skill`. Both
    * agents run scoped tool access -- a non-empty `tools` list with no
    * `toolAccessMode` -- and `use_skill` is not a tool id an agent can declare,
    * so if it were gated like `web` is, the marker would name a tool these two
-   * do not have. It is not gated: the host calls every native builder and
-   * buildSkillRuntimeTools returns the tool without asking hasExtension. Pinned
-   * against the source, because the comment in agents.mjs makes that claim and
-   * a gate added later would make the claim false without any test noticing.
+   * do not have. Today it is not gated: the host calls every native builder
+   * and buildSkillRuntimeTools returns the tool without asking hasExtension.
+   *
+   * This is a TRIPWIRE ON THE SOURCE TEXT, not a proof of the binding. It
+   * catches the two spellings a gate would most likely take -- `use_skill`
+   * leaving the native builder table, or `hasExtension(` / `hasTool(`
+   * appearing inside buildSkillRuntimeTools -- and nothing else. A gate
+   * written as `bctx.activeExtensions.includes(...)`, or a filter applied
+   * after the builders run, would pass this test and still leave the marker a
+   * dead end. Proving the binding takes a session driven through the host's
+   * tool assembly, which this extension's suite does not do.
    */
   const index = fs.readFileSync(path.resolve(extensionRoot, '../../src/lib/server/session-tools/index.ts'), 'utf8')
   assert.ok(index.includes("['use_skill', buildSkillRuntimeTools]"), 'use_skill is no longer built as a native tool')
@@ -766,6 +775,92 @@ test('the installer copies the skills into the layer the host discovers', () => 
   const installer = readSource('scripts/install.mjs')
   assert.ok(installer.includes("path.join(root, 'skills')"))
   assert.ok(installer.includes("path.join(home, 'skills', skill)"))
+})
+
+/**
+ * A scratch copy of this extension's source tree, so install.mjs can be run
+ * from it with a skill renamed, and a scratch SWARMCLAW_HOME for it to
+ * install into. Both are outside the repo tree and removed by the caller.
+ */
+function stageInstallerFixture() {
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'aisignal-installer-'))
+  const source = path.join(scratch, 'extension')
+  fs.cpSync(extensionRoot, source, {
+    recursive: true,
+    filter: (entry) => !entry.includes(`${path.sep}node_modules`) && !entry.includes(`${path.sep}test`),
+  })
+  const home = path.join(scratch, 'home')
+  return { scratch, source, home }
+}
+
+function runInstaller(source, home) {
+  const result = spawnSync(process.execPath, [path.join(source, 'scripts', 'install.mjs')], {
+    env: { ...process.env, SWARMCLAW_HOME: home, DATA_DIR: path.join(home, 'data') },
+    encoding: 'utf8',
+  })
+  assert.equal(result.status, 0, result.stderr)
+}
+
+test('an upgrade that renames a skill removes the old directory from the layer the host discovers', () => {
+  /*
+   * cpSync never removes anything, so before this a renamed skill left its
+   * old directory under <home>/skills: discovery still listed it, and a pin
+   * that still named it still matched it, which is how a managed agent came
+   * to carry the superseded skill in its prompt next to the new one. The host
+   * drops the old pin on reconcile; the file is this script's to remove, and
+   * it removes only what a previous run of itself shipped. Driven by running
+   * the real script twice against a scratch home, the second time from a
+   * copy of the tree in which `kkv-kutatas` is renamed.
+   */
+  const { scratch, source, home } = stageInstallerFixture()
+  try {
+    runInstaller(source, home)
+    const skillsDir = path.join(home, 'skills')
+    assert.deepEqual(fs.readdirSync(skillsDir).sort(), ['ai-hirlevel-kinyeres', 'kkv-kutatas'])
+    // A skill the operator put there by hand, which the script did not ship.
+    fs.mkdirSync(path.join(skillsDir, 'operator-own'), { recursive: true })
+    fs.writeFileSync(path.join(skillsDir, 'operator-own', 'SKILL.md'), '---\nname: operator-own\n---\n# Own\n')
+
+    fs.renameSync(path.join(source, 'skills', 'kkv-kutatas'), path.join(source, 'skills', 'kkv-kutatas-v2'))
+    runInstaller(source, home)
+
+    assert.deepEqual(fs.readdirSync(skillsDir).sort(), ['ai-hirlevel-kinyeres', 'kkv-kutatas-v2', 'operator-own'], 'the old directory is still there, or the operator skill went with it')
+    const manifest = JSON.parse(fs.readFileSync(path.join(home, 'data', 'extensions', '.workspaces', 'aisignal_mjs', 'shipped-skills.json'), 'utf8'))
+    assert.deepEqual(manifest.sort(), ['ai-hirlevel-kinyeres', 'kkv-kutatas-v2'])
+  } finally {
+    fs.rmSync(scratch, { recursive: true, force: true })
+  }
+})
+
+test('an install with no manifest to compare against removes nothing', () => {
+  // The documented limit: the first run after the manifest existed cannot
+  // know what an older run shipped, so a directory from before stays.
+  const { scratch, source, home } = stageInstallerFixture()
+  try {
+    const leftover = path.join(home, 'skills', 'kkv-kutatas-old')
+    fs.mkdirSync(leftover, { recursive: true })
+    fs.writeFileSync(path.join(leftover, 'SKILL.md'), '---\nname: kkv-kutatas-old\n---\n# Régi\n')
+    runInstaller(source, home)
+    assert.ok(fs.existsSync(leftover), 'a directory no manifest names was removed')
+  } finally {
+    fs.rmSync(scratch, { recursive: true, force: true })
+  }
+})
+
+test('both souls say a stranger claim is written as a claim, with its source, and a quote as a quote', () => {
+  // The rule the old kkv-kutatas file carried past the inline cut, so it
+  // reached no turn, and the skill rewrite then dropped. It is about writing
+  // the `summary` truthfully, which is the false-note half of the governing
+  // rule, and a newsletter's claims have the same property as a Reddit
+  // comment's, so it is in both souls. The host-side test in
+  // src/lib/server/extension-managed-resources.test.ts asserts it on the
+  // reconciled agent, one hop from the turn; this one keeps the two souls from
+  // drifting apart on it.
+  for (const [label, text] of [['SCOUT_SOUL', SCOUT_SOUL], ['KUTATO_SOUL', KUTATO_SOUL]]) {
+    assert.ok(flat(text).includes('Ha idézek, jelölöm, hogy idézet, és megmondom, honnan'), `${label} must say a quote is marked and sourced`)
+    assert.ok(/nem tény/.test(flat(text)), `${label} must say a stranger's claim is not a fact`)
+  }
+  assert.ok(/19\s+felszavazattal nem tény/.test(flat(KUTATO_SOUL)), 'the research soul keeps the worked case: an upvoted comment is an opinion')
 })
 
 // ---------------------------------------------------------------------------

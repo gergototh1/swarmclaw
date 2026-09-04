@@ -33,8 +33,10 @@ import {
   setExtensionLocalFolderConfig,
 } from './extension-managed-resources'
 import { DATA_DIR, WORKSPACE_DIR } from './data-dir'
+import { buildRuntimeSkillPromptBlocks, resolveRuntimeSkills } from './skills/runtime-skill-resolver'
 import { loadAgents, loadSchedules, loadSettings, saveAgents, saveSchedules, saveSettings } from './storage'
 import { DEFAULT_AGENT_ROUTE } from '@/lib/setup-defaults'
+import { AGENTS as AISIGNAL_AGENTS } from '../../../extensions/aisignal/src/agents.mjs'
 
 // Outside any test() on purpose: a test that only detects the wrong directory
 // runs after the tests before it have already written there. A throw here
@@ -462,4 +464,169 @@ test('a reconcile puts a declared pin back that the operator removed, and adds n
   assert.deepEqual(loadAgents()[agentId].skillIds, ['skill_operator_pinned_by_hand', 'ai-hirlevel-kinyeres'])
   reconcileExtensionManagedResources(id)
   assert.deepEqual(loadAgents()[agentId].skillIds, ['skill_operator_pinned_by_hand', 'ai-hirlevel-kinyeres'])
+})
+
+/** A SKILL.md under `<cwd>/skills/<dir>`, which is the project layer discoverSkills scans. */
+function stageSkill(cwd: string, dir: string, content: string): void {
+  const skillDir = path.join(cwd, 'skills', dir)
+  fs.mkdirSync(skillDir, { recursive: true })
+  fs.writeFileSync(path.join(skillDir, 'SKILL.md'), content)
+}
+
+const OLD_SKILL_PROSE = 'A RÉGI SZABÁLY, AMIT AZ ÚJ FÁJL MÁR NEM MOND'
+
+const pinnedKutatas = (names: string[]): string[] => names.filter((name) => name.startsWith('kkv-kutatas')).sort()
+
+/** What an upgrade leaves on disk: the renamed skill's old file, and the new one beside it. */
+function stageRenamedSkillPair(cwd: string): void {
+  stageSkill(cwd, 'kkv-kutatas-old', `---\nname: kkv-kutatas-old\ndescription: The superseded file.\n---\n# Régi\n\n${'Egy régi sor szabály.\n'.repeat(160)}\n${OLD_SKILL_PROSE}\n`)
+  stageSkill(cwd, 'kkv-kutatas-v2', '---\nname: kkv-kutatas-v2\ndescription: The replacement.\n---\n# Új\n\nAz új szabály, röviden.\n')
+}
+
+function registerSkillRenameFixture(id: string, skill: string): void {
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Skill Rename Fixture',
+    managedResources: {
+      agents: [
+        {
+          agentKey: 'kutato',
+          displayName: 'Managed Kutato',
+          systemPrompt: 'Research carefully.',
+          skills: [skill],
+        },
+      ],
+    },
+  })
+}
+
+test('the resolver attaches a stale pin that still matches a file, which is why a reconcile has to drop it', () => {
+  /*
+   * The premise of the two tests below, shown rather than assumed. The round 3
+   * comment said a pin an older declaration named "is inert in the resolver".
+   * It is inert only when it matches nothing: the installer copies an
+   * extension's skill files into the workspace layer and never removes one, so
+   * after a rename the old pin matches the old file, and both attach.
+   */
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-stale-pin-'))
+  try {
+    stageRenamedSkillPair(cwd)
+    const snapshot = resolveRuntimeSkills({
+      cwd,
+      enabledExtensions: [],
+      storedSkills: {},
+      learnedSkills: {},
+      agentSkillIds: ['kkv-kutatas-old', 'kkv-kutatas-v2'],
+    })
+    // Filtered to the pair under test: the bundled always-on skill is in every prompt on every instance.
+    assert.deepEqual(pinnedKutatas(snapshot.promptSkills.map((entry) => entry.name)), ['kkv-kutatas-old', 'kkv-kutatas-v2'])
+    const block = buildRuntimeSkillPromptBlocks(snapshot).join('\n')
+    assert.match(block, /\[Skill content truncated/, 'the superseded file is long enough to be cut, and it is in the prompt')
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true })
+  }
+})
+
+test('a reconcile after a rename drops the old declared pin, so one skill is in the prompt once', () => {
+  /*
+   * Reconcile #1 declares `kkv-kutatas-old`; the operator pins a skill of
+   * their own by hand; the upgrade re-declares `kkv-kutatas-v2`. Before this
+   * the union kept the old pin -- nothing told a stale declared pin from an
+   * operator's -- and with the old file still on disk the agent's prompt
+   * carried both copies. The marker now records what each reconcile declared,
+   * and the next one subtracts what the previous declared and this one does
+   * not. The operator's own pin on another name is untouched.
+   *
+   * The second half drives the stored pin list through the real resolver and
+   * the real prompt builder, with both files staged the way the installer
+   * leaves them, and looks at the rendered block: one skill, no marker, none
+   * of the superseded prose.
+   */
+  const id = extensionId('managed_skills_rename')
+  registerSkillRenameFixture(id, 'kkv-kutatas-old')
+  const agentId = reconcileExtensionManagedResources(id).createdAgents[0]
+  assert.deepEqual(loadAgents()[agentId].skillIds, ['kkv-kutatas-old'])
+  assert.deepEqual(loadAgents()[agentId].managedByExtension?.declaredSkillIds, ['kkv-kutatas-old'])
+
+  const agents = loadAgents()
+  agents[agentId] = { ...agents[agentId], skillIds: [...(agents[agentId].skillIds || []), 'skill_operator_pinned_by_hand'] }
+  saveAgents(agents)
+
+  registerSkillRenameFixture(id, 'kkv-kutatas-v2')
+  reconcileExtensionManagedResources(id)
+  const stored = loadAgents()[agentId]
+  assert.deepEqual(stored.skillIds, ['skill_operator_pinned_by_hand', 'kkv-kutatas-v2'], 'the old declared pin stayed, or the operator pin went')
+  assert.deepEqual(stored.managedByExtension?.declaredSkillIds, ['kkv-kutatas-v2'])
+
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-renamed-pin-'))
+  try {
+    stageRenamedSkillPair(cwd)
+    const snapshot = resolveRuntimeSkills({
+      cwd,
+      enabledExtensions: [],
+      storedSkills: {},
+      learnedSkills: {},
+      agentSkillIds: stored.skillIds || [],
+    })
+    assert.deepEqual(pinnedKutatas(snapshot.promptSkills.map((entry) => entry.name)), ['kkv-kutatas-v2'])
+    const block = buildRuntimeSkillPromptBlocks(snapshot).join('\n')
+    assert.doesNotMatch(block, /\[Skill content truncated/)
+    assert.ok(!block.includes(OLD_SKILL_PROSE), 'the superseded skill is in the prompt beside its replacement')
+    assert.ok(block.includes('Az új szabály, röviden.'), 'the replacement is not in the prompt')
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true })
+  }
+})
+
+test('an agent reconciled before the marker recorded its pins keeps an old pin, as the comment says', () => {
+  // The documented limit of the subtraction: with no recorded set there is
+  // nothing to subtract from. The first reconcile after records the set, so
+  // the rename after THAT is cleaned. Pinned so the comment cannot drift
+  // from what happens.
+  const id = extensionId('managed_skills_rename_legacy')
+  registerSkillRenameFixture(id, 'kkv-kutatas-old')
+  const agentId = reconcileExtensionManagedResources(id).createdAgents[0]
+  const agents = loadAgents()
+  const marker = agents[agentId].managedByExtension
+  assert.ok(marker)
+  const legacyMarker = { ...marker }
+  delete legacyMarker.declaredSkillIds
+  agents[agentId] = { ...agents[agentId], managedByExtension: legacyMarker }
+  saveAgents(agents)
+
+  registerSkillRenameFixture(id, 'kkv-kutatas-v2')
+  reconcileExtensionManagedResources(id)
+  assert.deepEqual(loadAgents()[agentId].skillIds, ['kkv-kutatas-old', 'kkv-kutatas-v2'])
+
+  registerSkillRenameFixture(id, 'kkv-kutatas-v3')
+  reconcileExtensionManagedResources(id)
+  assert.deepEqual(loadAgents()[agentId].skillIds, ['kkv-kutatas-old', 'kkv-kutatas-v3'], 'v2 was recorded, so it goes; the pre-record pin stays')
+})
+
+test('the rule that a stranger claim is not a fact reaches both aisignal agents in the field the turn reads whole', () => {
+  /*
+   * The old kkv-kutatas skill file carried the only rule about writing the
+   * `summary` truthfully -- a quote is marked as a quote with its source, and
+   * a Reddit comment with 19 upvotes is an opinion, not a fact -- at offset
+   * 4179, past the 3 000-character inline cut, so it reached no turn. The
+   * skill rewrite dropped it. It is now in both souls, and this test asserts
+   * on where a turn reads it from, not on the file: the extension's real
+   * declarations go through the real reconcile, and the assertion is on the
+   * stored agent's `systemPrompt`, the field `buildAgentSystemPrompt` in
+   * chat-turn-preparation.ts pushes into the turn without a cap. That builder
+   * is not exported, so this stops one hop short of it.
+   */
+  const id = extensionId('aisignal_declared_agents')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'AI Signal',
+    managedResources: { agents: [...AISIGNAL_AGENTS] },
+  })
+  const result = reconcileExtensionManagedResources(id)
+  assert.equal(result.createdAgents.length, 2)
+  const agents = loadAgents()
+  for (const agentId of result.createdAgents) {
+    const agent = agents[agentId]
+    const prompt = String(agent.systemPrompt || '').replace(/\s+/g, ' ')
+    assert.match(prompt, /Ha idézek, jelölöm, hogy idézet, és megmondom, honnan/, `${agent.name}: a quote is not marked as a quote in the prompt`)
+    assert.match(prompt, /nem tény/, `${agent.name}: the prompt does not say a stranger's claim is not a fact`)
+  }
 })

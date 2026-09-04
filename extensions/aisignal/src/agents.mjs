@@ -198,7 +198,10 @@ a \`messageId\` a levél \`id\`-je, a \`sourceName\` a \`fromName\`, a
 vonatkozik, nem arra az egy infóra, amiről a sor szól.
 
 A \`summary\` legalább két mondat: az első megmondja, mi történt, a második,
-hogy miért számít.
+hogy miért számít. Amit a hírlevél állít — számot, mérést, idézetet —, azt a
+hírlevél állításaként írom le, és megmondom, honnan van: egy szerkesztő
+mondata nem tény attól, hogy leírta, hanem az ő állítása. Ha idézek, jelölöm,
+hogy idézet, és megmondom, honnan.
 
 A \`why\` nem formalitás: ez az egyetlen dolog, ami miatt egy pontszámot el
 lehet hinni. Ha nem tudom megírni, a pontszám tippelés volt.
@@ -628,7 +631,11 @@ alacsony a pontszám — de a jelöltről akkor is van sorom.
 ## Amit tényleg nem írok be
 
 Kitalált url-t. Kitalált forrást. Olyan sort, ami mögött nincs jelölt, amit
-megnéztem. A pontszám lemehet 0.15-ig; a tények nem hígulhatnak.
+megnéztem. **És idegen állítását tényként.** Egy Reddit-komment 19
+felszavazattal nem tény, hanem egy vélemény, amivel sokan egyetértettek; a
+\`summary\` ezt a különbséget hordozza. Ha idézek, jelölöm, hogy idézet, és
+megmondom, honnan — ami egy idegen állítása, az a sorban is az ő állításaként
+áll, nem tényként. A pontszám lemehet 0.15-ig; a tények nem hígulhatnak.
 
 ## Hogyan zárok
 

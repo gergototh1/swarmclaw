@@ -297,7 +297,7 @@ always: true
 Two numbers, both mandatory.
 `)
 
-    const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: [], storedSkills: {}, agentSkillIds: [] })
+    const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: [], storedSkills: {}, learnedSkills: {}, agentSkillIds: [] })
     const skill = snapshot.skills.find((entry) => entry.name === 'aisignal-style')
 
     assert.ok(skill, 'the skill is discovered')
@@ -344,12 +344,14 @@ This skill belongs to the signal-scout agent.
       cwd,
       enabledExtensions: [],
       storedSkills: {},
+      learnedSkills: {},
       agentSkillIds: ['signal-scoring'],
     })
     const unrelated = resolveRuntimeSkills({
       cwd,
       enabledExtensions: [],
       storedSkills: {},
+      learnedSkills: {},
       agentSkillIds: [],
     })
 
@@ -413,7 +415,7 @@ description: How to score a signal row.
 Two numbers, both mandatory.
 `)
 
-    const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: [], storedSkills: {}, agentSkillIds: [] })
+    const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: [], storedSkills: {}, learnedSkills: {}, agentSkillIds: [] })
     const skill = snapshot.skills.find((entry) => entry.name === 'aisignal-optional')
 
     assert.ok(skill)
@@ -455,6 +457,11 @@ test('each aisignal skill reaches its agent whole through the builder the turn u
    * tool or write a false row: the deck ordering that makes applyScore the
    * axis, the mandatory-score rule, the `ok` reminder, and each file's own
    * scoring bands.
+   *
+   * `learnedSkills: {}` is passed so the resolver does not open the process's
+   * DATA_DIR for them; discoverSkills still scans the instance's own workspace
+   * layer alongside the staged project layer, which is read-only, and a
+   * workspace skill of the same name would lose to the staged one.
    */
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-aisignal-skills-'))
   try {
@@ -468,7 +475,7 @@ test('each aisignal skill reaches its agent whole through the builder the turn u
     })))
 
     for (const file of files) {
-      const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: ['web'], storedSkills: {}, agentSkillIds: [file.dir] })
+      const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: ['web'], storedSkills: {}, learnedSkills: {}, agentSkillIds: [file.dir] })
       const pinned = snapshot.promptSkills.find((entry) => entry.name === file.dir)
       assert.ok(pinned, `${file.dir} is pinned into the prompt`)
       const block = buildRuntimeSkillPromptBlocks(snapshot).join('\n')
@@ -499,7 +506,7 @@ test('a pinned skill past the inline cap is cut behind a marker, which is what t
       dir: 'oversized',
       content: `---\nname: oversized\ndescription: Longer than the cap.\n---\n# Oversized\n\n${filler}\n${tail}\n`,
     }])
-    const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: [], storedSkills: {}, agentSkillIds: ['oversized'] })
+    const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: [], storedSkills: {}, learnedSkills: {}, agentSkillIds: ['oversized'] })
     const block = buildRuntimeSkillPromptBlocks(snapshot).join('\n')
     assert.match(block, /\[Skill content truncated at 3000 chars/)
     assert.ok(!block.includes(tail), 'the rule at the end of an oversized file does not reach the turn')

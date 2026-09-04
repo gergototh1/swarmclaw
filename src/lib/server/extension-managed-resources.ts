@@ -417,15 +417,33 @@ function buildManagedAgent(
   // attach, the agents API and Extensions > Managed Resources all write into
   // the same `skillIds`, so a reconcile that replaced it with the declaration
   // deleted every pin an operator had added by hand -- and a reconcile runs on
-  // install, enable and upgrade. So it is the union: everything the operator
-  // has on the stored agent, plus every declared pin that is not there yet.
-  // Two consequences, both deliberate. A declared pin the operator removed by
-  // hand comes back on the next reconcile, because the declaration has to
-  // reach its agent. And a pin an OLD version of the declaration named stays
-  // on the agent after an upgrade renames it, because nothing here can tell a
-  // stale declared pin from an operator's own; a pin that matches no skill is
-  // inert in the resolver, so the cost is a dead name in the list.
-  const skillIds = Array.from(new Set([...list(existing?.skillIds), ...declaredSkillPins]))
+  // install, enable and upgrade. So it is a union: what is on the stored
+  // agent, plus every declared pin that is not there yet. A declared pin the
+  // operator removed by hand therefore comes back on the next reconcile,
+  // because the declaration has to reach its agent.
+  //
+  // The union alone had a hole the replace did not: a pin an OLD version of
+  // the declaration named stayed on the agent after an upgrade renamed the
+  // skill. That is not a dead name. An extension's skill files are copied into
+  // the workspace layer and nothing removes the old one on upgrade, so the old
+  // pin still matches the old file and the agent's prompt carried the
+  // superseded skill next to its replacement -- past the inline cap, with the
+  // truncation marker on. Only a pin that matches no skill at all is inert.
+  //
+  // So the marker records the pins each reconcile declared, and the next
+  // reconcile subtracts from the stored list every name the previous
+  // declaration named that this one does not. Nothing here can tell a stale
+  // declared pin from an operator's own pin on the same name, so a name the
+  // operator also pinned by hand goes with it when the declaration drops it;
+  // an operator's pin on any OTHER name is untouched. An agent last reconciled
+  // before the marker carried the set has nothing to subtract from, so a
+  // rename that happened before that keeps its old pin; the first reconcile
+  // after records the set and the one after that is cleaned. What stays on
+  // disk is the installer's business: this only decides what the agent pins.
+  const previousDeclaredPins = list(existing?.managedByExtension?.declaredSkillIds)
+  const droppedPins = new Set(previousDeclaredPins.filter((pin) => !declaredSkillPins.includes(pin)))
+  const keptOperatorPins = list(existing?.skillIds).filter((pin) => !droppedPins.has(pin))
+  const skillIds = Array.from(new Set([...keptOperatorPins, ...declaredSkillPins]))
   return {
     ...(existing || {}),
     id,
@@ -458,7 +476,7 @@ function buildManagedAgent(
     disabled: declaration.disabled !== undefined ? declaration.disabled === true : existing?.disabled === true,
     heartbeatEnabled: declaration.heartbeatEnabled !== undefined ? declaration.heartbeatEnabled !== false : existing?.heartbeatEnabled ?? true,
     planningMode: declaration.planningMode !== undefined ? declaration.planningMode : existing?.planningMode ?? null,
-    managedByExtension: managedMarker(extension, 'agent', agentKey, hash),
+    managedByExtension: { ...managedMarker(extension, 'agent', agentKey, hash), declaredSkillIds: declaredSkillPins },
     createdAt: existing?.createdAt || now,
     updatedAt: now,
   } as Agent

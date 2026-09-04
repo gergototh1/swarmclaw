@@ -294,6 +294,15 @@ export interface ExtensionManagedResourceMarker {
   resourceKey: string
   declarationHash?: string | null
   reconciledAt: number
+  /**
+   * Agents only: the skill pins (`skillIds` plus `skills`) the declaration
+   * named at this reconcile. The next reconcile subtracts from the stored
+   * agent's `skillIds` every name here that the new declaration no longer
+   * names, which is how a renamed skill's old pin leaves the agent. Absent on
+   * an agent last reconciled before this field existed, in which case there
+   * is nothing to subtract.
+   */
+  declaredSkillIds?: string[]
 }
 
 export interface ExtensionManagedAgentDeclaration {
