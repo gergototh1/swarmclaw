@@ -124,6 +124,30 @@ test('board reports the caps and the totals behind its capped lists', async () =
 })
 
 /**
+ * `board.undecided` (from `repo.board()`) and `counts.undecided` (from
+ * `repo.counts()`) answer the same question from two separate reads.
+ * better-sqlite3 is synchronous and nothing awaits between them today, so in
+ * production they cannot disagree -- but that is a property of `board()`'s
+ * current body, not of the two counts, and nothing stops a later `await`
+ * landing between them. `rpc.board()` builds `counts.undecided` from
+ * `board.undecided` rather than trusting a second, independent read, so the
+ * response is internally consistent by construction: it stays that way even
+ * when the second read would, on its own, answer differently.
+ */
+test('board never lets counts.undecided disagree with the deck it was built beside', async () => {
+  const { state, rpc } = setup()
+  withItems(state, 3)
+  const realCounts = state.repo.counts.bind(state.repo)
+  // Stands in for a write landing between the two reads a future `await`
+  // would open a window for: repo.counts() answers a number board() did not
+  // itself compute.
+  state.repo.counts = () => ({ ...realCounts(), undecided: 999 })
+  const b = await rpc.board({})
+  assert.equal(b.undecided, 3)
+  assert.equal(b.counts.undecided, 3)
+})
+
+/**
  * A filter the caller got wrong is refused, not widened. Falling back to 'all'
  * hands a caller every card including the archived ones, which is the direction
  * that hurts: the module most likely to mistype a status is one putting these
@@ -175,6 +199,27 @@ test('items reads a limit and an offset by the absent-default, refuse, cap rule'
   for (const offset of [-1, 1.5, true, [5], 'two']) {
     await assert.rejects(rpc.items({ offset }), /offset must be a whole number/, `offset ${JSON.stringify(offset)}`)
   }
+})
+
+/**
+ * `offset` has no `max` at its call site in reads.mjs -- a `limit` above
+ * `MAX_LIMIT` is capped before it ever reaches SQLite, but an `offset` this
+ * large used to reach `LIMIT ? OFFSET ?` in db.mjs unbounded. `Number.isInteger`
+ * is true for `1e21`, so the old guard let it through; SQLite then raised its
+ * own `datatype mismatch`, which named neither `offset` nor this extension.
+ * `Number.isSafeInteger` refuses it here instead, by name, the same as every
+ * other value this module cannot honour.
+ */
+test('items refuses an offset past the safe-integer range instead of handing it to SQLite unbounded', async () => {
+  const { state, rpc } = setup()
+  withItems(state, 3)
+  for (const offset of [1e21, 1e300, Number.MAX_SAFE_INTEGER + 1]) {
+    await assert.rejects(rpc.items({ offset }), /offset must be a whole number/, `offset ${offset}`)
+  }
+  // Every value inside the safe-integer range that the old check also passed
+  // keeps answering the same way: an offset past the end of the table is an
+  // honest "no rows here", not a refusal.
+  assert.equal((await rpc.items({ offset: Number.MAX_SAFE_INTEGER })).count, 0)
 })
 
 /**

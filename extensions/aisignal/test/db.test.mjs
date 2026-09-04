@@ -969,6 +969,35 @@ test('decide rejects an unknown decision and reports an id that matched nothing'
   assert.equal(r.decide(id, 'archive').ok, true)
 })
 
+/**
+ * The decision vocabulary used to be checked by indexing a plain object
+ * literal and testing the result for truthiness: `DECISION_STATUS[decision]`.
+ * A plain object inherits `Object.prototype`, so `'constructor'`, `'toString'`,
+ * `'valueOf'` and `'__proto__'` all read back an inherited function or object
+ * -- truthy -- and slipped past the old `if (!status) throw` guard as though
+ * each were a real decision. `S.exec` then bound that function or object as
+ * the `status` parameter; node:sqlite accepts it without binding it to
+ * anything and without throwing, so the UPDATE ran, touched no row, and
+ * `decide` still returned `{ ok: true, ... }` -- a claimed write this
+ * function's own comment says must never happen. The gate is now
+ * `DECISIONS.includes(decision)`, which only matches `decide`'s own vocabulary
+ * regardless of what `Object.prototype` carries.
+ */
+test('decide refuses a decision that only resolves through Object.prototype', () => {
+  const r = fresh()
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  const { id } = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'h', summary: '', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+
+  for (const decision of ['constructor', 'toString', 'valueOf', '__proto__', 'hasOwnProperty']) {
+    assert.throws(() => r.decide(id, decision), new RegExp(`unknown decision ${decision}`), decision)
+  }
+  // None of the refused calls touched the row: it is still exactly as
+  // insertItem left it, not "saved" or "archived" by an inherited function
+  // that slipped past the old guard.
+  assert.equal(r.items().items[0].status, 'new')
+  assert.equal(r.items().items[0].decided_at, null)
+})
+
 test('items search treats % and _ as literal characters', () => {
   const r = fresh()
   const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })

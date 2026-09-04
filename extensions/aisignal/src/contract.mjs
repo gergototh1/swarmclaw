@@ -1,4 +1,4 @@
-import { createItemReads } from './reads.mjs'
+import { createItemReads, projectSignalColumns } from './reads.mjs'
 
 /**
  * The one thing another extension may ask AI Signal for: its stored cards.
@@ -63,15 +63,24 @@ import { createItemReads } from './reads.mjs'
  * wanting it.
  *
  * WHAT THE CONSUMER IS HOLDING WHEN THESE RETURN.
- * Rows straight out of SQLite, with their `headline`, `summary` and `url` as
- * the newsletter or the forum wrote them -- unescaped, untruncated, and written
- * by a stranger who has every reason to try to steer whatever reads them next.
- * The host does not clean data crossing this boundary and does not claim to;
- * the `summary` below says so in the sentence the operator reads, and it is the
- * consumer -- the layer that knows whether the text is going into a DOM node, a
- * model prompt or an outbound email -- that has to guard it there. Nothing on
+ * Not the row `db.mjs` stores -- a fixed projection of it, `SIGNAL_CONTRACT_
+ * COLUMNS` in reads.mjs, chosen for what a reader needs to identify, present,
+ * rank and link a card and to know whether the operator has acted on it.
+ * `source_email`, the sweep's own bookkeeping (`sweep_id`, `message_id`,
+ * `kind`, `account`), and the columns reads.mjs lists beside them do not cross
+ * this boundary; see that list for the full accounting of what is in and what
+ * is out, and why each one is.
+ *
+ * Within that projection, `headline`, `summary` and `url` are exactly what the
+ * newsletter or the forum wrote -- unescaped, untruncated, and written by a
+ * stranger who has every reason to try to steer whatever reads them next. The
+ * host does not clean data crossing this boundary and does not claim to; the
+ * `summary` below says so in the sentence the operator reads, and it is the
+ * consumer -- the layer that knows whether the text is going into a DOM node,
+ * a model prompt or an outbound email -- that has to guard it there. Nothing on
  * this side of the boundary treats it as anything but bytes: see the header of
- * reads.mjs.
+ * reads.mjs. The allowlist narrows which columns arrive; it does not clean the
+ * ones that do.
  */
 
 /** The contract name, as a consumer spells it in `consumes` and in `ctx.contracts.get`. */
@@ -114,14 +123,23 @@ export function createSignalsContract(state) {
        * default, and anything present that cannot be honoured is refused rather
        * than widened -- a consumer that asks for `status: 'saevd'` gets an
        * error, not every card in the table.
+       *
+       * `items` is the shared query's rows narrowed through
+       * `projectSignalColumns` to `SIGNAL_CONTRACT_COLUMNS` -- `total` and
+       * `count` describe the same match either way, so only the row shape
+       * changes at this boundary, never which rows matched or how many.
        */
-      list: async (args) => reads.list(args),
+      list: async (args) => {
+        const { total, count, items } = await reads.list(args)
+        return { total, count, items: items.map(projectSignalColumns) }
+      },
       /**
        * One card by `id`, or `null` when nothing carries that id -- including
        * the case a consumer will actually hit, an id it read a moment ago whose
-       * row is gone by the time it asks again.
+       * row is gone by the time it asks again. A row that is found is narrowed
+       * through `projectSignalColumns` the same way `list`'s rows are.
        */
-      get: async (args) => reads.get(args),
+      get: async (args) => projectSignalColumns(await reads.get(args)),
     },
   }
 }

@@ -1105,10 +1105,24 @@ export function createRepo(storage) {
      * caller's typo into a silent un-decide of a card the user had settled. An
      * id that matches no row reports ok: false instead of claiming a write that
      * never happened.
+     *
+     * The gate is `DECISIONS.includes(decision)`, not `DECISION_STATUS[decision]`
+     * truthiness. `DECISION_STATUS` is a plain object literal, so it inherits
+     * `Object.prototype`: indexing it with `'constructor'`, `'toString'`,
+     * `'valueOf'` or `'__proto__'` returns an inherited function or object,
+     * which is truthy, so the old check let all four straight through as a
+     * "decision". `S.exec` then bound that function or object as the `status`
+     * parameter, which node:sqlite accepts without binding it to anything and
+     * without throwing, so the statement ran, touched no row, and this
+     * function still returned `{ ok: true, ... }` -- a claimed write this
+     * function's own comment says it must never make. `DECISIONS` is an array
+     * built from `Object.keys(DECISION_STATUS)`, so `.includes` only
+     * ever matches an own, enumerable key -- 'save', 'archive', 'undo' -- and
+     * every one of those four strings is refused by name instead.
      */
     decide(id, decision) {
+      if (!DECISIONS.includes(decision)) throw new Error(`unknown decision ${decision}`)
       const status = DECISION_STATUS[decision]
-      if (!status) throw new Error(`unknown decision ${decision}`)
       if (!S.get('SELECT id FROM ext_aisignal_items WHERE id = ?', [id])) return { ok: false, id, status }
       const decidedAt = decision === 'undo' ? null : now()
       S.exec('UPDATE ext_aisignal_items SET status = ?, decided_at = ? WHERE id = ?', [status, decidedAt, id])

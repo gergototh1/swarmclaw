@@ -131,6 +131,18 @@ export function createRpc(state, deps) {
      * beside the count it was taken from -- `deckLimit`/`undecided` from the
      * repository, `allLimit` and `sweepLimit` here, and `counts` for the totals
      * behind all of them.
+     *
+     * `board.undecided` and `counts.undecided` answer the same question --
+     * how many cards are still `new` -- and `counts` is built from
+     * `board.undecided` rather than from its own count of the same rows.
+     * better-sqlite3 is synchronous and nothing awaits between the two reads
+     * today, so they cannot disagree either way; but that is a property of
+     * this function's current body, not of the two counts, and a later `await`
+     * dropped in between them would let a write land in the gap and hand the
+     * page two different numbers for one fact with no way to say which is
+     * current. Building `counts.undecided` from `board.undecided` instead of a
+     * second query makes the response internally consistent by construction,
+     * so it stays that way regardless of what this function's body does next.
      */
     async board() {
       const repo = repoOf(state)
@@ -141,7 +153,7 @@ export function createRpc(state, deps) {
         allLimit: ALL_LIMIT,
         sweeps: repo.sweeps(SWEEP_LIMIT),
         sweepLimit: SWEEP_LIMIT,
-        counts: repo.counts(),
+        counts: { ...repo.counts(), undecided: board.undecided },
         label: labelOf(state),
         gmail: gmail(),
       }

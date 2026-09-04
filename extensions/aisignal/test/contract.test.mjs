@@ -4,6 +4,7 @@ import { test } from 'node:test'
 import aisignal from '../index.mjs'
 import { SIGNALS_CONTRACT, SIGNALS_CONTRACT_VERSION, createSignalsContract } from '../src/contract.mjs'
 import { MIGRATIONS, createRepo } from '../src/db.mjs'
+import { SIGNAL_CONTRACT_COLUMNS } from '../src/reads.mjs'
 import { createRpc } from '../src/rpc.mjs'
 import { memStorage } from './helpers.mjs'
 
@@ -30,13 +31,14 @@ function setup() {
   return { state, storage: s, contract: createSignalsContract(state), rpc: createRpc(state, { hasGoogleCredential: () => true }) }
 }
 
-function withItems(state, count, { headline = (i) => `h${i}` } = {}) {
+function withItems(state, count, { headline = (i) => `h${i}`, sourceName, sourceEmail } = {}) {
   const sw = state.repo.openSweep({ label: 'AI hírlevél', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
   const ids = []
   for (let i = 0; i < count; i++) {
     ids.push(state.repo.insertItem({
       sweepId: sw.id, messageId: `m${i}`, headline: headline(i), summary: `s${i}`,
       url: `https://x/${i}`, score: 0.4, applyScore: 0.8, why: 'w', linkRead: 0,
+      sourceName, sourceEmail,
     }).id)
   }
   return ids
@@ -87,10 +89,21 @@ test('nothing the contract declares changes anything', async () => {
 })
 
 /**
- * The two audiences share one implementation. If they did not, the contract
- * would eventually disagree with the page about what a status means or what a
- * limit is capped at, and the disagreement would only show up in whichever one
- * nobody was looking at.
+ * The two audiences share one implementation for *which rows match and in
+ * what order* -- the filter, the ordering and the refusals. If they did not,
+ * the contract would eventually disagree with the page about what a status
+ * means or what a limit is capped at, and the disagreement would only show up
+ * in whichever one nobody was looking at.
+ *
+ * What this test does not compare any more is the column set on each row: the
+ * contract narrows its rows through `projectSignalColumns` (see Important 2 in
+ * the review this test was rewritten for) and the page does not, so a
+ * `deepEqual` of whole rows would fail on every call for a reason that has
+ * nothing to do with a filter or an ordering diverging -- exactly the failure
+ * this test exists to catch, buried under one it does not. `total` and `count`
+ * describe the match itself and are compared directly; the rows are compared
+ * by `id`, in order, which is the only part of "which rows, in what order" a
+ * projected row can still state.
  */
 test('the contract and the page answer the same list question identically', async () => {
   const { state, contract, rpc } = setup()
@@ -98,7 +111,11 @@ test('the contract and the page answer the same list question identically', asyn
   state.repo.decide(ids[0], 'archive')
 
   for (const args of [{}, { status: 'new' }, { status: 'archived' }, { q: 'h1' }, { order: 'score', limit: 2 }, { limit: 2, offset: 2 }]) {
-    assert.deepEqual(await contract.methods.list(args), await rpc.items(args), JSON.stringify(args))
+    const fromContract = await contract.methods.list(args)
+    const fromRpc = await rpc.items(args)
+    assert.equal(fromContract.total, fromRpc.total, JSON.stringify(args))
+    assert.equal(fromContract.count, fromRpc.count, JSON.stringify(args))
+    assert.deepEqual(fromContract.items.map((it) => it.id), fromRpc.items.map((it) => it.id), JSON.stringify(args))
   }
   for (const bad of [{ status: 'saevd' }, { order: 'ascending' }, { limit: 0 }, { limit: -1 }, { offset: -1 }, { q: 'x'.repeat(201) }]) {
     const fromContract = await contract.methods.list(bad).then(() => null, (e) => e.message)
@@ -106,6 +123,61 @@ test('the contract and the page answer the same list question identically', asyn
     assert.equal(fromContract, fromRpc, JSON.stringify(bad))
     assert.notEqual(fromContract, null, `${JSON.stringify(bad)} must be refused`)
   }
+})
+
+/**
+ * The allowlist itself, pinned. Naming every column here rather than asserting
+ * a length or a subset means a migration or an edit that adds a column to
+ * `SIGNAL_CONTRACT_COLUMNS` fails this test until someone updates it -- the
+ * "deliberate act" Important 2 in the review asked for, made mechanical.
+ */
+test('the contract exposes exactly this allowlist of columns, and nothing else', () => {
+  assert.deepEqual(SIGNAL_CONTRACT_COLUMNS, ['id', 'headline', 'summary', 'source_name', 'url', 'score', 'apply_score', 'status'])
+})
+
+/**
+ * The instance the review called out by name: a stored row carries
+ * `source_email`, `sweep_id`, `message_id`, `kind`, `account`, `why`,
+ * `link_read`, `sent_at`, `created_at` and `decided_at` alongside the
+ * allowlisted columns, and the page (through `rpc.items`, over the same
+ * `db.mjs` row) gets every one of them. A contract consumer gets only the
+ * allowlist -- in particular, never the third party's mailing address the
+ * page itself stores in `source_email`.
+ */
+test('the contract withholds every column outside the allowlist, including a third party\'s address', async () => {
+  const { state, contract, rpc } = setup()
+  withItems(state, 1, { sourceName: 'Weekly Digest', sourceEmail: 'reader@example.test' })
+
+  const fromPage = (await rpc.items({})).items[0]
+  assert.equal(fromPage.source_email, 'reader@example.test')
+  assert.equal('sweep_id' in fromPage, true)
+
+  const fromContract = (await contract.methods.list({})).items[0]
+  assert.deepEqual(Object.keys(fromContract).sort(), SIGNAL_CONTRACT_COLUMNS.slice().sort())
+  assert.equal('source_email' in fromContract, false)
+  assert.equal('sweep_id' in fromContract, false)
+  assert.equal('message_id' in fromContract, false)
+  assert.equal('why' in fromContract, false)
+  assert.equal('link_read' in fromContract, false)
+  assert.equal('sent_at' in fromContract, false)
+  assert.equal('created_at' in fromContract, false)
+  assert.equal('decided_at' in fromContract, false)
+  assert.equal('kind' in fromContract, false)
+  assert.equal('account' in fromContract, false)
+  // What is allowed through is unchanged: identify, present, rank, link, and
+  // whether the operator has acted on it.
+  assert.equal(fromContract.id, fromPage.id)
+  assert.equal(fromContract.headline, fromPage.headline)
+  assert.equal(fromContract.summary, fromPage.summary)
+  assert.equal(fromContract.source_name, 'Weekly Digest')
+  assert.equal(fromContract.url, fromPage.url)
+  assert.equal(fromContract.score, fromPage.score)
+  assert.equal(fromContract.apply_score, fromPage.apply_score)
+  assert.equal(fromContract.status, fromPage.status)
+
+  const oneFromContract = await contract.methods.get({ id: fromPage.id })
+  assert.deepEqual(Object.keys(oneFromContract).sort(), SIGNAL_CONTRACT_COLUMNS.slice().sort())
+  assert.equal('source_email' in oneFromContract, false)
 })
 
 /**
@@ -123,6 +195,20 @@ test('get answers null for a card that is not there any more', async () => {
   assert.equal(await contract.methods.get({ id: 'never-existed' }), null)
   // The other card is untouched, so a null is about one card and not about the list.
   assert.equal((await contract.methods.list({})).total, 1)
+})
+
+/**
+ * The exact call the review reproduced: `contract.methods.list({ offset: 1e21 })`
+ * used to pass `readWholeNumber`'s `Number.isInteger` guard -- true for `1e21`
+ * -- and reach `LIMIT ? OFFSET ?` in db.mjs unbounded, where SQLite raised its
+ * own `datatype mismatch` instead of this module's named refusal. A consumer
+ * would have seen `provider_threw: contract aisignal.signals.list threw:
+ * datatype mismatch`, naming neither `offset` nor this extension.
+ */
+test('list refuses an offset past the safe-integer range instead of forwarding a SQLite error', async () => {
+  const { contract } = setup()
+  await assert.rejects(contract.methods.list({ offset: 1e21 }), /offset must be a whole number/)
+  await assert.rejects(contract.methods.list({ offset: 1e300 }), /offset must be a whole number/)
 })
 
 test('get refuses a call that names no card', async () => {
