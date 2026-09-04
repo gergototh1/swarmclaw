@@ -37,8 +37,11 @@ test('open -> insert -> finish marks seen and counts', () => {
   const r = fresh()
   const sweep = r.openSweep({ label: 'AI hirlevel', since: '2026-09-01', fetchedIds: ['m1', 'm2'], skipped: 0, leftover: 0 })
   r.insertItem({ sweepId: sweep.id, messageId: 'm1', headline: 'H', summary: 'S', url: 'https://x', score: 0.5, applyScore: 0.2, why: 'w', linkRead: 1 })
+  // A second item whose summary came from the blurb only, so linksRead has to
+  // count fewer than found instead of trivially agreeing with it.
+  r.insertItem({ sweepId: sweep.id, messageId: 'm2', headline: 'H2', summary: 'S2', url: 'https://y', score: 0.4, applyScore: 0.1, why: 'w', linkRead: 0 })
   const done = r.finishSweep({ sweepId: sweep.id, ok: true, note: '' })
-  assert.equal(done.found, 1)
+  assert.equal(done.found, 2)
   assert.equal(done.seenMarked, 2)
   assert.equal(done.linksRead, 1)
   assert.deepEqual([...r.seenIds(['m1', 'm2', 'm3'])], ['m1', 'm2'])
@@ -185,9 +188,11 @@ test('items filters by status and search, and reports the unfiltered page size',
   assert.deepEqual(r.items({ order: 'score', limit: 2, offset: 2 }).items.map((i) => i.message_id), ['a'])
 })
 
-test('seenIds chunks past the SQLite parameter limit', () => {
-  // seenIds is fed a whole Gmail page of ids; SQLite caps bound parameters
-  // (999 on older builds), so the IN list is chunked rather than built in one go.
+test('seenIds answers for more ids than one chunk holds', () => {
+  // seenIds is fed a whole Gmail page of ids and splits the IN list into
+  // SEEN_CHUNK-sized queries. Current SQLite would bind all of them in one go,
+  // so what this actually checks is that the chunking stitches the chunks back
+  // together correctly, not that the limit is reached.
   const r = fresh()
   const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: Array.from({ length: 1200 }, (_, i) => 'm' + i), skipped: 0, leftover: 0 })
   r.finishSweep({ sweepId: sweep.id, ok: true, note: '' })
@@ -196,4 +201,118 @@ test('seenIds chunks past the SQLite parameter limit', () => {
   assert.equal(seen.has('m1199'), true)
   assert.equal(seen.has('m1200'), false)
   assert.equal(r.seenIds([]).size, 0)
+})
+
+test('finishSweep keeps the skipped count openSweep recorded', () => {
+  // The cap leaves messages behind on a perfectly successful run, and the note
+  // is the only place that number is kept. Closing the sweep with SET note = ?
+  // would drop it every time, because the success path passes an empty note.
+  const r = fresh()
+  const capped = r.openSweep({ label: 'x', since: null, fetchedIds: ['m1'], skipped: 40, leftover: 40 })
+  r.finishSweep({ sweepId: capped.id, ok: true, note: '' })
+  assert.equal(r.latestSweep().note, 'skipped=40')
+
+  // A closing note is appended to the opening one, not substituted for it, and
+  // finishing twice must not append it twice.
+  const noted = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 3, leftover: 0 })
+  r.finishSweep({ sweepId: noted.id, ok: true, note: 'partial page' })
+  r.finishSweep({ sweepId: noted.id, ok: true, note: 'partial page' })
+  assert.equal(r.latestSweep().note, 'skipped=3; partial page')
+})
+
+test('latestFinishedSince ignores a sweep that started and never finished', () => {
+  // ok defaults to 1, so a run that died mid-pass still reads as a success. If
+  // it became the watermark, every message between the last genuinely completed
+  // sweep and the crash would be skipped forever, which is why finished_at
+  // exists and why the guard is tested apart from the failSweep path.
+  const r = fresh()
+  const completed = r.openSweep({ label: 'x', since: '2026-09-01', fetchedIds: ['m1'], skipped: 0, leftover: 0 })
+  r.finishSweep({ sweepId: completed.id, ok: true, note: '' })
+  const abandoned = r.openSweep({ label: 'x', since: '2026-09-02', fetchedIds: ['m2'], skipped: 0, leftover: 0 })
+
+  const latest = r.latestSweep()
+  assert.equal(latest.id, abandoned.id)
+  assert.equal(latest.ok, 1)
+  assert.equal(latest.finished_at, null)
+  assert.equal(r.latestFinishedSince('mail').since, '2026-09-01')
+})
+
+test('a merge leaves a decision the user already made alone', () => {
+  // A later sweep sighting the same link must not put an archived card back in
+  // the deck, so the merge refreshes the scored fields and nothing else.
+  const { storage, repo: r } = freshWithStorage()
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  const { id } = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'h', summary: 's', url: 'https://one', score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+  r.decide(id, 'archive')
+  const decidedAt = storage.get('SELECT decided_at FROM ext_aisignal_items WHERE id = ?', [id]).decided_at
+  assert.notEqual(decidedAt, null)
+
+  const again = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'h2', summary: 's2', url: 'https://one', score: 0.9, applyScore: 0.9, why: 'w', linkRead: 1 })
+  assert.equal(again.merged, true)
+  assert.equal(again.id, id)
+  const row = storage.get('SELECT * FROM ext_aisignal_items WHERE id = ?', [id])
+  assert.equal(row.headline, 'h2')
+  assert.equal(row.apply_score, 0.9)
+  assert.equal(row.status, 'archived')
+  assert.equal(row.decided_at, decidedAt)
+  assert.equal(r.board(50).deck.length, 0)
+})
+
+test("items status 'unknown' selects the rows written before status had a default", () => {
+  // Those rows carry '' rather than 'new', and no other filter value reaches
+  // them, so 'unknown' has to map to the empty string instead of to itself.
+  const { storage, repo: r } = freshWithStorage()
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  const legacy = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'old row', summary: '', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+  r.insertItem({ sweepId: sweep.id, messageId: 'b', headline: 'new row', summary: '', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+  storage.exec("UPDATE ext_aisignal_items SET status = '' WHERE id = ?", [legacy.id])
+
+  const unknown = r.items({ status: 'unknown' })
+  assert.equal(unknown.total, 1)
+  assert.equal(unknown.items[0].id, legacy.id)
+  assert.equal(r.items({ status: 'new' }).total, 1)
+  assert.equal(r.items().total, 2)
+})
+
+test('sweeps opened in the same millisecond still order newest first', () => {
+  // ran_at is an ISO millisecond string, so two sweeps opened inside the same
+  // tick tie on it and would otherwise come back in whatever order the query
+  // planner happened to pick.
+  const { storage, repo: r } = freshWithStorage()
+  const first = r.openSweep({ label: 'x', since: '2026-09-01', fetchedIds: [], skipped: 0, leftover: 0 })
+  const second = r.openSweep({ label: 'x', since: '2026-09-02', fetchedIds: [], skipped: 0, leftover: 0 })
+  storage.exec('UPDATE ext_aisignal_sweeps SET ran_at = ?', ['2026-09-03T00:00:00.000Z'])
+
+  assert.equal(r.latestSweep().id, second.id)
+  assert.deepEqual(r.sweeps(10).map((s) => s.id), [second.id, first.id])
+  r.finishSweep({ sweepId: first.id, ok: true, note: '' })
+  r.finishSweep({ sweepId: second.id, ok: true, note: '' })
+  assert.equal(r.latestFinishedSince('mail').since, '2026-09-02')
+})
+
+test('decide rejects an unknown decision and reports an id that matched nothing', () => {
+  // Mapping anything unrecognised to 'new' turns a caller's typo into a silent
+  // un-decide, and an id that matched no row must not report success.
+  const r = fresh()
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  const { id } = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'h', summary: '', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+  r.decide(id, 'save')
+
+  assert.throws(() => r.decide(id, 'archiv'), /unknown decision archiv/)
+  assert.equal(r.items().items[0].status, 'saved')
+  assert.equal(r.decide('nope', 'save').ok, false)
+  assert.equal(r.decide(id, 'archive').ok, true)
+})
+
+test('items search treats % and _ as literal characters', () => {
+  const r = fresh()
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  for (const [messageId, headline] of [['a', '100% faster'], ['b', '100 faster still'], ['c', 'a_b tooling'], ['d', 'axb tooling']]) {
+    r.insertItem({ sweepId: sweep.id, messageId, headline, summary: '', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+  }
+  assert.equal(r.items({ q: '100%' }).total, 1)
+  assert.equal(r.items({ q: '100%' }).items[0].message_id, 'a')
+  assert.equal(r.items({ q: 'a_b' }).total, 1)
+  assert.equal(r.items({ q: 'a_b' }).items[0].message_id, 'c')
+  assert.equal(r.items({ q: 'faster' }).total, 2)
 })

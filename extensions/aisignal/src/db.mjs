@@ -95,7 +95,30 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_seen (message_id TEXT PRIMARY KEY, seen_
 const now = () => new Date().toISOString()
 const uid = () => crypto.randomBytes(8).toString('hex')
 
-/** Bound-parameter chunk for the seen lookup; SQLite's default limit is 999. */
+/**
+ * Newest sweep first. `ran_at` is an ISO millisecond string, so two sweeps
+ * opened inside the same tick tie on it and would come back in whatever order
+ * the query planner picked. `rowid` breaks the tie by insertion order, which is
+ * the answer every caller of these three reads wants anyway.
+ */
+const SWEEP_ORDER = 'ran_at DESC, rowid DESC'
+
+/** The complete decision vocabulary decide() accepts, and the status each writes. */
+const DECISION_STATUS = { save: 'saved', archive: 'archived', undo: 'new' }
+
+/** Sweep notes are '; '-joined segments; re-adding one already present is a no-op so finishSweep stays idempotent. */
+function joinNote(existing, addition) {
+  const parts = (existing || '').split('; ').filter(Boolean)
+  if (addition && !parts.includes(addition)) parts.push(addition)
+  return parts.join('; ')
+}
+
+/**
+ * Bound-parameter chunk for the seen lookup. SQLite's limit has been 32766
+ * since 3.32 and was 999 before that, so on any build this runs against today a
+ * whole page of ids would bind in one statement. The chunking stays as defence
+ * against an old build, not because the current one needs it.
+ */
 const SEEN_CHUNK = 500
 
 export function createRepo(storage) {
@@ -120,28 +143,34 @@ export function createRepo(storage) {
      * Closes a sweep: marks its fetched ids seen and recomputes the counters
      * from the items actually written.
      *
-     * Safe to call twice. The seen writes are INSERT OR IGNORE and the counts
-     * are recomputed rather than incremented, so a retry lands on the same
-     * numbers. An unknown sweep id throws instead of quietly marking a batch of
-     * messages seen against nothing, which would lose them for good.
+     * The closing note is appended to the one openSweep wrote rather than
+     * replacing it: the success path passes an empty note, so replacing would
+     * drop the `skipped=N` count on every sweep that actually completed, which
+     * is exactly the run the count matters for.
+     *
+     * Safe to call twice. The seen writes are INSERT OR IGNORE, the counts are
+     * recomputed rather than incremented, and the note append skips a segment
+     * that is already there, so a retry lands on the same row. An unknown sweep
+     * id throws instead of quietly marking a batch of messages seen against
+     * nothing, which would lose them for good.
      */
     finishSweep({ sweepId, ok = true, note = '' }) {
       return S.transaction(() => {
-        const sweep = S.get('SELECT fetched_ids FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
+        const sweep = S.get('SELECT fetched_ids, note FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
         if (!sweep) throw new Error(`unknown sweep ${sweepId}`)
         const ids = JSON.parse(sweep.fetched_ids || '[]')
         for (const m of ids) S.exec('INSERT OR IGNORE INTO ext_aisignal_seen (message_id, seen_at) VALUES (?, ?)', [m, now()])
         const found = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ?', [sweepId]).c
         const linksRead = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ? AND link_read = 1', [sweepId]).c
-        S.exec('UPDATE ext_aisignal_sweeps SET found = ?, links_read = ?, ok = ?, note = ?, finished_at = ? WHERE id = ?', [found, linksRead, ok ? 1 : 0, note, now(), sweepId])
+        S.exec('UPDATE ext_aisignal_sweeps SET found = ?, links_read = ?, ok = ?, note = ?, finished_at = ? WHERE id = ?', [found, linksRead, ok ? 1 : 0, joinNote(sweep.note, note), now(), sweepId])
         return { sweepId, found, linksRead, seenMarked: ids.length, ok: Boolean(ok) }
       })
     },
     /** Most recent sweep of one kind, finished or not. Always filtered by kind -- see the note on the `kind` column. */
-    latestSweep(kind = 'mail') { return S.get('SELECT * FROM ext_aisignal_sweeps WHERE kind = ? ORDER BY ran_at DESC LIMIT 1', [kind]) || null },
+    latestSweep(kind = 'mail') { return S.get(`SELECT * FROM ext_aisignal_sweeps WHERE kind = ? ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
     /** Watermark to resume from: the last sweep of this kind that both succeeded and completed. */
-    latestFinishedSince(kind = 'mail') { return S.get('SELECT since, ran_at FROM ext_aisignal_sweeps WHERE kind = ? AND ok = 1 AND finished_at IS NOT NULL ORDER BY ran_at DESC LIMIT 1', [kind]) || null },
-    sweeps(limit = 10) { return S.all('SELECT * FROM ext_aisignal_sweeps ORDER BY ran_at DESC LIMIT ?', [limit]) },
+    latestFinishedSince(kind = 'mail') { return S.get(`SELECT since, ran_at FROM ext_aisignal_sweeps WHERE kind = ? AND ok = 1 AND finished_at IS NOT NULL ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
+    sweeps(limit = 10) { return S.all(`SELECT * FROM ext_aisignal_sweeps ORDER BY ${SWEEP_ORDER} LIMIT ?`, [limit]) },
     /** Which of `ids` have already been swept. Chunked because a source page can carry more ids than SQLite will bind. */
     seenIds(ids) {
       const seen = new Set()
@@ -182,7 +211,14 @@ export function createRepo(storage) {
     items({ status = 'all', q = '', order = 'recent', limit = 50, offset = 0 } = {}) {
       const where = []; const p = []
       if (status !== 'all') { where.push('status = ?'); p.push(status === 'unknown' ? '' : status) }
-      if (q) { where.push('(headline LIKE ? OR summary LIKE ?)'); p.push(`%${q}%`, `%${q}%`) }
+      if (q) {
+        // Without ESCAPE the user's own % and _ are pattern syntax, so a search
+        // for '100%' matches every headline starting '100' and 'a_b' matches
+        // 'axb'. The backslash is escaped first so it cannot escape the escape.
+        const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`
+        where.push("(headline LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\')")
+        p.push(like, like)
+      }
       const w = where.length ? `WHERE ${where.join(' AND ')}` : ''
       const o = order === 'score' ? 'apply_score DESC, score DESC' : 'created_at DESC'
       const total = S.get(`SELECT COUNT(*) AS c FROM ext_aisignal_items ${w}`, p).c
@@ -199,9 +235,20 @@ export function createRepo(storage) {
       const undecided = S.get("SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE status = 'new'").c
       return { deck, deckLimit, undecided }
     },
-    /** 'save' | 'archive' | 'undo'. Undo clears decided_at so an undone card is indistinguishable from one never decided. */
+    /**
+     * 'save' | 'archive' | 'undo'. Undo clears decided_at so an undone card is
+     * indistinguishable from one never decided.
+     *
+     * This layer knows the whole value set, so an unrecognised decision throws
+     * rather than falling through to 'new': mapping it there would turn a
+     * caller's typo into a silent un-decide of a card the user had settled. An
+     * id that matches no row reports ok: false instead of claiming a write that
+     * never happened.
+     */
     decide(id, decision) {
-      const status = decision === 'save' ? 'saved' : decision === 'archive' ? 'archived' : 'new'
+      const status = DECISION_STATUS[decision]
+      if (!status) throw new Error(`unknown decision ${decision}`)
+      if (!S.get('SELECT id FROM ext_aisignal_items WHERE id = ?', [id])) return { ok: false, id, status }
       const decidedAt = decision === 'undo' ? null : now()
       S.exec('UPDATE ext_aisignal_items SET status = ?, decided_at = ? WHERE id = ?', [status, decidedAt, id])
       return { ok: true, id, status }
