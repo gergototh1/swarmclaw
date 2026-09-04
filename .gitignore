@@ -95,3 +95,7 @@ IMPROVEMENTS.md
 
 # spec drafts (local only)
 /docs/specs/
+
+# extension build output and dependencies (built by the extension's own scripts)
+/extensions/*/dist/
+/extensions/*/node_modules/
