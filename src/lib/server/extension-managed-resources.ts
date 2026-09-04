@@ -345,6 +345,51 @@ function instanceDefaultRoute(agents: Record<string, Agent>): AgentRoute {
   return { provider: DEFAULT_AGENT_ROUTE.provider, model: DEFAULT_AGENT_ROUTE.model }
 }
 
+/**
+ * The route a reconcile writes: a provider and the model it runs, resolved
+ * TOGETHER and never half from one place and half from another.
+ *
+ * Field by field this read `text(declaration.model) || existing?.model ||
+ * fallbackRoute.model`, and `''` is falsy. An empty model is not "unset" here
+ * -- `instanceDefaultRoute` and `DEFAULT_AGENT_ROUTE` both establish it as what
+ * a CLI provider legitimately carries -- so an operator who re-routed a managed
+ * agent onto a CLI provider had their empty model fall through on the next
+ * reconcile and come back paired with a model borrowed from whatever route the
+ * fallback names. That is exactly the "provider from one place, model from
+ * another" pairing this resolution exists to prevent, and the comment three
+ * lines below the defect asserted the opposite of what the code did.
+ *
+ * So the candidates are whole routes in precedence order -- what the extension
+ * declared, what the operator has since chosen on the stored agent, then the
+ * instance's own default -- and the first one that names a provider supplies
+ * BOTH halves. Presence of a provider is the test, because a provider has no
+ * legitimate empty value while a model does; a candidate whose model is absent
+ * or not a string contributes the empty model, which is what a CLI route is.
+ *
+ * `existing` in the middle is what keeps a reconcile from overwriting an
+ * operator's choice, which is the property the old comment claimed and the old
+ * code only half had.
+ */
+function resolveManagedRoute(
+  existing: Agent | null,
+  declaration: ExtensionManagedAgentDeclaration,
+  fallbackRoute: AgentRoute,
+): AgentRoute {
+  const candidates: Array<{ provider: string, model: unknown }> = [
+    { provider: text(declaration.provider), model: declaration.model },
+    { provider: text(existing?.provider), model: existing?.model },
+    { provider: text(fallbackRoute.provider), model: fallbackRoute.model },
+  ]
+  for (const candidate of candidates) {
+    if (!candidate.provider) continue
+    return {
+      provider: candidate.provider as Agent['provider'],
+      model: typeof candidate.model === 'string' ? candidate.model : '',
+    }
+  }
+  return { provider: fallbackRoute.provider, model: fallbackRoute.model }
+}
+
 function buildManagedAgent(
   existing: Agent | null,
   extension: ManagedExtensionEntry,
@@ -359,6 +404,15 @@ function buildManagedAgent(
   const id = existing?.id || managedResourceId(extension.extensionId, 'agent', agentKey)
   const extensionIds = Array.from(new Set([...list(declaration.extensions), extension.extensionId]))
   const prompt = text(declaration.systemPrompt) || text(declaration.instructions?.content)
+  const route = resolveManagedRoute(existing, declaration, fallbackRoute)
+  // A declared skill is a pin on THIS agent, and `skills` alone pins nothing:
+  // it is the name list the agent card renders, while the turn hands
+  // `skillIds` to resolveRuntimeSkills. A skill shipped by an extension is
+  // discovered off disk and has no storage id, so its NAME is the only thing a
+  // declaration can pin it by -- and the resolver now matches a pin on the
+  // name as well as on a storage id. Union rather than either/or, because a
+  // declaration may reasonably name a stored skill and a shipped file at once.
+  const declaredSkillPins = Array.from(new Set([...list(declaration.skillIds), ...list(declaration.skills)]))
   return {
     ...(existing || {}),
     id,
@@ -366,11 +420,11 @@ function buildManagedAgent(
     description: text(declaration.description) || existing?.description || `Managed by ${extension.extensionName}.`,
     systemPrompt: prompt || existing?.systemPrompt || `You are ${displayName}. Follow the extension-managed instructions for ${extension.extensionName}.`,
     // Declaration first, then whatever the operator has since chosen on the
-    // stored agent, then the instance's own default route. The operator's choice
-    // is never overwritten by a later reconcile, which is why `existing` sits in
-    // the middle rather than being ignored.
-    provider: (text(declaration.provider) || existing?.provider || fallbackRoute.provider) as Agent['provider'],
-    model: text(declaration.model) || existing?.model || fallbackRoute.model,
+    // stored agent, then the instance's own default route -- as ONE route, so
+    // an empty model cannot be filled in from a different provider's. See
+    // resolveManagedRoute.
+    provider: route.provider,
+    model: route.model,
     apiEndpoint: declaration.apiEndpoint !== undefined ? declaration.apiEndpoint || null : existing?.apiEndpoint ?? null,
     credentialId: declaration.credentialId !== undefined ? declaration.credentialId || null : existing?.credentialId ?? null,
     fallbackCredentialIds: list(declaration.fallbackCredentialIds).length ? list(declaration.fallbackCredentialIds) : existing?.fallbackCredentialIds || [],
@@ -383,7 +437,7 @@ function buildManagedAgent(
     tools: list(declaration.tools).length ? list(declaration.tools) : existing?.tools,
     extensions: extensionIds.length ? extensionIds : existing?.extensions || [],
     skills: list(declaration.skills).length ? list(declaration.skills) : existing?.skills,
-    skillIds: list(declaration.skillIds).length ? list(declaration.skillIds) : existing?.skillIds || [],
+    skillIds: declaredSkillPins.length ? declaredSkillPins : existing?.skillIds || [],
     mcpServerIds: list(declaration.mcpServerIds).length ? list(declaration.mcpServerIds) : existing?.mcpServerIds || [],
     monthlyBudget: typeof declaration.monthlyBudget === 'number' ? declaration.monthlyBudget : existing?.monthlyBudget ?? null,
     dailyBudget: typeof declaration.dailyBudget === 'number' ? declaration.dailyBudget : existing?.dailyBudget ?? null,

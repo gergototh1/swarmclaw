@@ -4,7 +4,6 @@ description: Mi számít infónak egy AI-hírlevélben, mikor nézz a link mög�
 version: 1.0.0
 license: MIT
 tags: [aisignal, hírlevél, kinyerés, pontozás]
-always: true
 ---
 
 # AI hírlevél — kinyerés
@@ -170,9 +169,16 @@ levél azonosítója, és három hírlevélnek három azonosítója van, akármi
 link. Három sor lesz belőle, és ez a helyes eredmény: az operátor látja, hogy
 három forrás mondta ugyanazt, ami önmagában információ.
 
-A `merged: true` egyetlen dolgot jelent: **ugyanazt a levelet írtad be még
-egyszer**. Pontosan akkor, ha ugyanaz a `messageId` és ugyanaz az `url` — vagy
-ha nincs link, ugyanaz a `headline`. Nem hiba, lépj tovább.
+A `merged: true` azt jelenti, hogy **ugyanaz a levél már be van írva ugyanazzal
+a linkkel** — vagy link híján ugyanazzal a címsorral. Nem hiba, lépj tovább.
+
+De **nem feltétlenül ebben a futásban írtad be**: a kulcsban nincs benne a
+sweep azonosítója, tehát a sor ugyanúgy lehet egy korábbi futásé. Tipikusan
+akkor, ha egy előző futás lezárás nélkül szakadt félbe: a levelei nem lettek
+látottak, most újra eléd kerülnek, és minden sorod az ő soraiba olvad. Ilyenkor
+a lezárás `found` száma nulla is lehet úgy, hogy közben öt kártya készült — aki
+csak a számot nézi, néma futásnak hinné. Ezért: **ha egy körben a sorok nagy
+része `merged: true`, írd meg a `note`-ban, hányról van szó.**
 
 ### Link nélküli infóknál a címsor a megkülönböztető
 
@@ -184,6 +190,12 @@ felülírja az elsőt, és az egy elveszett megfigyelés.
 Ez nem kényszer, hanem ugyanaz a szabály, ami fentebb a címsorra amúgy is áll:
 a `headline` **mondja meg a dolgot**. Két infó, aminek ugyanaz a jó címsora,
 egy infó volt.
+
+**És ez a másik irányban is szigorú: a címsor karakterre pontosan számít.**
+Ugyanaz a link nélküli infó más szavakkal leírva nem összeolvad, hanem egy
+MÁSODIK kártya lesz belőle ugyanarról. Ha egy korábbi futás sorát frissíted —
+mert a levél újra eléd került —, akkor ugyanazt a címsort írd be szó szerint,
+ne fogalmazd át.
 
 **Ne próbáld egyformává tenni a linkeket, és ne találgasd ki a „végső"
 címet.** A tool két sort akkor von össze, ha ugyanaz a levél-azonosító és
@@ -222,8 +234,15 @@ kerül eléd. Melyiket, azt az `ok` mondja meg:
   látottá válik, azok is, amikből nem lett sor. Ez a helyes: amit megnéztél és
   háttérzajnak minősítettél, ne jöjjön vissza minden körben.
 - **`ok: false`** — nem jutottál végig. Ilyenkor **csak azok** a levelek
-  válnak látottá, **amikről írtál sort**; a többihez nem nyúlt a futás, és a
-  következő körben visszakapod. A vízjel sem mozdul.
+  válnak látottá, **amikről ebben a futásban lett sor**; a többihez nem nyúlt a
+  futás, és a következő körben visszakapod. A vízjel sem mozdul. (Ami egy
+  korábbi futás sorába olvadt bele, az sem ebben a futásban adott sort, tehát
+  az is visszajön. Ez a tág irány, nem hiba.)
+
+**Az `ok` kötelező mező** — ugyanúgy, mint a `score` és az `applyScore` egy
+soron. Ha kihagyod, a tool `false`-nak veszi: abból, hogy nem mondtál semmit,
+nem következik, hogy végigmentél, és a hallgatás nem vihet el levelet. Ettől
+még mondd ki, minden lezárásban.
 
 Tehát az `ok` nem az önértékelésed, hanem egy tény a tool számára: „megnéztem
 és nem ért egy sort" vagy „ehhez el sem jutottam". Ha bizonytalan vagy,

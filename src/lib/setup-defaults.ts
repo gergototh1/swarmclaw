@@ -934,6 +934,16 @@ export function getDefaultModelForProvider(provider: SetupProvider): string {
  * that ages. Nothing here is a route an extension chose: an extension that
  * pinned a model would pin it on installs where that credential does not exist,
  * which is why extension declarations leave both fields out.
+ *
+ * NOT THE SAME THING AS `DEFAULT_AGENTS['claude-cli'].model`, which is
+ * `claude-sonnet-4-6` a few lines up. That one is the setup wizard's answer for
+ * an operator who has just PICKED Claude Code CLI and is naming a model on
+ * purpose, so a current model id is the useful answer and updating it is part
+ * of shipping a new one. This one is the zero-config seed nobody chose, reached
+ * on a first run or after an operator deleted their own default agent, and its
+ * whole value is that it names no model to go stale. Two answers for one
+ * provider, and they differ because the questions do; neither should be
+ * rewritten to match the other.
  */
 export const DEFAULT_AGENT_ROUTE: { provider: ProviderType; model: string } = {
   provider: 'claude-cli',

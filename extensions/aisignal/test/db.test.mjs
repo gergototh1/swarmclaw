@@ -1125,7 +1125,7 @@ test('items search treats % and _ as literal characters', () => {
 test('a sweep that names an id space stores it, keeps source_id blank, and moves no frontier', () => {
   const repo = fresh()
   const { id } = repo.openSweep({ label: 'topics', idSpace: { account: 'public-web' }, since: null, fetchedIds: ['hn:1'], skipped: 0, leftover: 0, kind: 'research' })
-  repo.finishSweep({ sweepId: id })
+  repo.finishSweep({ sweepId: id, ok: true })
 
   const row = repo.sweepById(id)
   assert.equal(row.account, 'public-web')

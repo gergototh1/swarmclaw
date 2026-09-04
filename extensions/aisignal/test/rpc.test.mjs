@@ -71,7 +71,7 @@ test('decide validates and health reports missing credential', async () => {
 test('board keeps a sweep that failed distinguishable from one that found nothing', async () => {
   const { state, rpc } = setup()
   const empty = state.repo.openSweep({ label: 'quiet', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
-  state.repo.finishSweep({ sweepId: empty.id })
+  state.repo.finishSweep({ sweepId: empty.id, ok: true })
   const broken = state.repo.openSweep({ label: 'broken', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
   state.repo.failSweep(broken.id, 'gmail_unauthorized', 'the credential was refused')
 

@@ -410,13 +410,31 @@ function unitScore(field, raw) {
  * the agent is saying it never got through the messages.
  *
  * So the value is validated here like every other input in this file rather
- * than trusted from upstream: absent means "the run finished" (the declared
- * default), the boolean and its two string spellings are honoured, and anything
- * else is refused. Refusing leaves the sweep open, which is the safe end: an
- * unfinished sweep never reaches `finishSweep`, so the frontier stays put.
+ * than trusted from upstream: the boolean and its two string spellings are
+ * honoured, and anything else is refused. Refusing leaves the sweep open, which
+ * is the safe end: an unfinished sweep never reaches `finishSweep`, so the
+ * frontier stays put.
+ *
+ * ABSENT IS `false`, NOT `true`
+ * -----------------------------
+ * This used to read absent as "the run finished", and that was the fix's own
+ * fail-open door. The set an unfinished close protects is the mail the agent
+ * never reached, and the run that never reaches its mail is the run whose close
+ * is most likely to arrive minimal or truncated -- so the one malformation the
+ * whole rule exists for was the one that regressed straight back to marking
+ * every fetched id seen. Nothing on the tool answer said so either: the reply
+ * read `"ok": true`, and the next run was offered nothing.
+ *
+ * A close that omits `ok` has not said the agent went through the mail. The
+ * only reading of silence that cannot destroy a message is "I did not finish":
+ * it costs one re-reading, which lands on the dedup or on a merge, against a
+ * message no run is ever offered again. `ok` is `required` on the schema below
+ * so a well-formed close always states it, and this is what an ill-formed one
+ * gets. `db.mjs`'s own default says the same thing a third time, for a caller
+ * that reaches the repository without passing through here.
  */
 function resolveOk(raw) {
-  if (raw === undefined || raw === null) return true
+  if (raw === undefined || raw === null) return false
   if (typeof raw === 'boolean') return raw
   if (typeof raw === 'string') {
     const t = raw.trim().toLowerCase()
@@ -690,13 +708,13 @@ export function createSweepTools(state) {
 
     {
       name: 'finishSweep',
-      description: 'Lezárja a sweepet: a számok a sorra kerülnek, és id-k látottá válnak — ok: true esetén az összes letöltött, ok: false esetén csak azok, amikről sort írtál. A látott id soha nem kerül újra eléd. Egy már lezárt sweepet nem lehet újra lezárni.',
+      description: 'Lezárja a sweepet: a számok a sorra kerülnek, és id-k látottá válnak — ok: true esetén az összes letöltött, ok: false esetén csak azok, amikről ebben a futásban lett sor. Az ok KÖTELEZŐ; kihagyva a lezárás félbemaradtnak számít. A látott id soha nem kerül újra eléd. Egy már lezárt sweepet nem lehet újra lezárni.',
       parameters: {
         type: 'object',
-        required: ['sweepId'],
+        required: ['sweepId', 'ok'],
         properties: {
           sweepId: { type: 'string' },
-          ok: { type: 'boolean', description: 'Hamis, ha félbemaradt: ilyenkor a vízjel nem mozdul, és csak a sort adó id-k lesznek látottak — amit meg sem néztél, visszajön. Igazra állítani nem mozdítja előre a vízjelet (azt a sweep futáskor rögzített eredménye dönti el), de minden letöltött id-t látottnak jelöl.' },
+          ok: { type: 'boolean', description: 'KÖTELEZŐ. Hamis, ha félbemaradt: ilyenkor a vízjel nem mozdul, és csak a sort adó id-k lesznek látottak — amit meg sem néztél, visszajön. Igazra állítani nem mozdítja előre a vízjelet (azt a sweep futáskor rögzített eredménye dönti el), de minden letöltött id-t látottnak jelöl. Ha kihagyod, a lezárás félbemaradtnak számít (hamis), mert a hallgatásból nem következik, hogy végigmentél.' },
           note: { type: 'string' },
         },
       },

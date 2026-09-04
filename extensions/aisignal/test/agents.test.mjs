@@ -251,6 +251,11 @@ async function observedReturnFields() {
     score: 0.4,
     applyScore: 0.2,
   }))
+  // And the close's own answer. It was missing here, so `found` -- which a run
+  // can read as 0 on a turn that wrote five cards, every one of them merged
+  // into an earlier sweep's row -- was not even in the vocabulary the prompts
+  // are checked against.
+  collect(await tools.get('finishSweep').execute({ sweepId, ok: true }))
   return fields
 }
 
@@ -282,7 +287,7 @@ test('a failed sweep answers with a sweepId and is already closed, which is what
   // This is the sentence both prompts are written against: closing it again
   // throws, so "always close what you open" needs its one exception.
   await assert.rejects(
-    () => tools.get('finishSweep').execute({ sweepId: failed.sweepId }),
+    () => tools.get('finishSweep').execute({ sweepId: failed.sweepId, ok: true }),
     /already closed/,
   )
 })
@@ -486,12 +491,19 @@ test('every backticked name in every managed skill resolves to something that ex
  * What it would not catch: a field that is named but described wrongly, a field
  * named in one agent's text that matters to the other, and anything about the
  * prose around the name. It is a presence check, not a comprehension check.
+ *
+ * `found` used to be exempt here on the ground that it is "the sweep row's
+ * counter and the board reads it". It is also on the close's own answer, which
+ * the agent reads before it writes anything else, and it can say 0 on a run
+ * that wrote five cards -- every `recordSignal` having merged into rows an
+ * earlier, unclosed run left behind. A counter that can contradict the run in
+ * the "found nothing" direction is a fact the agent has to be told about, so
+ * the exemption is gone and all four texts name it.
  */
 const FIELDS_NEEDING_NO_MENTION = Object.freeze({
   label: 'the label name the run resolved, echoed back for the sweep row; the agent passes it or omits it and never reads it back',
   messages: 'the hand-over list itself. The agent works through it; naming the container adds nothing that naming its fields does not',
   candidates: 'the research hand-over list, for the same reason as `messages`',
-  found: "on finishSweep's own answer, which arrives after the note is written. It is the sweep row's counter and the board reads it",
   linksRead: "same: a counter recomputed by the close from `link_read`, not a fact the run has to report",
   seenMarked: "same: how many seen rows the close wrote. The RULE behind it is what the agent must know, and both prompts state it under `ok`",
 })
@@ -524,7 +536,7 @@ async function handedOverFields() {
   const tools = byName(state)
   const { sweepId } = await tools.get('signalSweep').execute({})
   const recorded = await tools.get('recordSignal').execute({ sweepId, messageId: 'm1', headline: 'H', summary: 'Egy. Kettő.', score: 0.4, applyScore: 0.2 })
-  const closed = await tools.get('finishSweep').execute({ sweepId })
+  const closed = await tools.get('finishSweep').execute({ sweepId, ok: true })
   const shared = await collect(recorded, closed)
 
   return {
@@ -541,7 +553,7 @@ test('every field a run hands the agent is named in the text that agent reads', 
     const prompt = agent.agentKey === 'signal-scout' ? MAIL_PROMPT : RESEARCH_PROMPT
     const skills = agent.skills.map((s) => readSource(path.join('skills', s, 'SKILL.md')))
     // Everything the agent has in front of it on a scheduled turn: its system
-    // prompt, the task text, and the skill its frontmatter marks always-on.
+    // prompt, the task text, and the skill its own declaration pins to it.
     const named = new Set([soul, prompt, ...skills].flatMap((text) => backtickedTokens(text).map(baseToken)))
     for (const field of fields[agent.agentKey]) {
       if (named.has(field)) continue
@@ -648,30 +660,33 @@ test('every skill a declaration names is a skill file that is present and named 
   }
 })
 
-test('every skill a declaration names is marked always-on, which is what puts it in the turn', () => {
+test('no skill of this extension is marked always-on, because always-on has no owner', () => {
   /*
-   * `skills: ['ai-hirlevel-kinyeres']` on the declaration attaches nothing. The
-   * host writes it to `agent.skills`, but the turn passes `agent.skillIds` to
-   * resolveRuntimeSkills, that id list only names STORED skills, and these two
-   * are DISCOVERED off disk -- buildSeedFromDiscovered hardcodes
-   * `attached: false`. A discovered, unattached, non-always skill lands in a
-   * name-and-description list capped at twelve and has to be pulled in with a
-   * tool call, so both souls' "Elolvasom, nem díszlet" was a promise about a
-   * file the agent had not been given.
+   * These two files were briefly marked `always: true`, and that is the wrong
+   * instrument. `always` has no agent scoping anywhere in the host:
+   * selectPromptSkills takes `skill.attached || skill.always` without reference
+   * to the agent, and discoverSkills scans the workspace layer for every agent
+   * on every turn. So the flag put both files -- each one opening with "Ez a
+   * skill a `signal-scout` ügynöké" -- into the prompt of every unrelated agent
+   * on the instance, and ate most of the 30 k always-on budget doing it.
    *
-   * `always: true` in the frontmatter is what changes that: normalizeSkillPayload
-   * reads it, buildSeedFromDiscovered carries it, and selectPromptSkills puts
-   * every always-on skill's whole content into the prompt. Asserted on the file
-   * rather than described, because nothing else here would notice it going.
-   * The host half -- that a plain `always: true` really is read, and really does
-   * reach a turn -- is asserted in src/lib/server/skills/runtime-skill-resolver.test.ts.
+   * What reaches the right agent instead is the declaration: `skills: [...]`
+   * lands in `agent.skillIds`, and resolveRuntimeSkills matches a pin on a
+   * skill's name as well as on a storage id -- which a file discovered off disk
+   * does not have. The host half of that, including the proof that an unrelated
+   * agent does NOT get these files, is asserted in
+   * src/lib/server/skills/runtime-skill-resolver.test.ts.
+   *
+   * Asserted on the file rather than described, because a re-added flag would
+   * be invisible here otherwise: everything else about these skills keeps
+   * working with it on.
    */
   for (const agent of AGENTS) {
     for (const skill of agent.skills) {
       const content = readSource(path.join('skills', skill, 'SKILL.md'))
       const frontmatter = content.match(/^---\r?\n([\s\S]*?)^---\r?\n/m)
       assert.ok(frontmatter, `${skill}/SKILL.md has no frontmatter block`)
-      assert.match(frontmatter[1], /^always:\s*true\s*$/m, `${skill} is not always-on, so the agent that names it never receives it`)
+      assert.doesNotMatch(frontmatter[1], /^always:/m, `${skill} is always-on, so every agent on the instance carries a skill that names its owner in its first line`)
     }
   }
 })

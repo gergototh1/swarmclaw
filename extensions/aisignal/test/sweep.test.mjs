@@ -175,7 +175,7 @@ function setup(gmail, settings = { label: LABEL }) {
  */
 function closedSweep(repo, fetchedIds = [], source = { account: MAILBOX, sourceId: LABEL_ID }, label = LABEL) {
   const { id } = repo.openSweep({ label, source, since: null, fetchedIds, skipped: 0, leftover: 0, drained: true })
-  repo.finishSweep({ sweepId: id })
+  repo.finishSweep({ sweepId: id, ok: true })
   return id
 }
 
@@ -446,7 +446,7 @@ test('the frontier follows the listing truncated bit, not the stoppedOn string',
   const cut = setup(fakeGmail({ ids: ['a'], truncated: true, stoppedOn: null }))
   const cutSweep = await cut.run('signalSweep', { maxMessages: 5 })
   assert.equal(cutSweep.leftover, 0)
-  await cut.run('finishSweep', { sweepId: cutSweep.sweepId })
+  await cut.run('finishSweep', { sweepId: cutSweep.sweepId, ok: true })
   // Mail is waiting behind the point that walk stopped, so nothing may advance.
   assert.equal(swept(cut.state.repo), null)
 
@@ -454,7 +454,7 @@ test('the frontier follows the listing truncated bit, not the stoppedOn string',
   // is a walk that finished, whatever reason string it carries.
   const whole = setup(fakeGmail({ ids: ['a'], truncated: false, stoppedOn: 'cap' }))
   const wholeSweep = await whole.run('signalSweep', { maxMessages: 5 })
-  await whole.run('finishSweep', { sweepId: wholeSweep.sweepId })
+  await whole.run('finishSweep', { sweepId: wholeSweep.sweepId, ok: true })
   assert.equal(swept(whole.state.repo), whole.state.repo.sweepById(wholeSweep.sweepId).ran_at)
 })
 
@@ -475,7 +475,7 @@ test('a drained run earns a frontier no newer than the listing it describes', as
   const { state, run } = setup(gmail)
 
   const sw = await run('signalSweep', { maxMessages: 5 })
-  await run('finishSweep', { sweepId: sw.sweepId })
+  await run('finishSweep', { sweepId: sw.sweepId, ok: true })
 
   const frontier = swept(state.repo)
   assert.equal(frontier, state.repo.sweepById(sw.sweepId).ran_at)
@@ -501,7 +501,7 @@ test('a run that could not list cannot be closed into a frontier', async () => {
     return labelId(name)
   }
   const { state, run } = setup(gmail)
-  state.repo.finishSweep({ sweepId: state.repo.openSweep({ label: LABEL, source: { account: MAILBOX, sourceId: LABEL_ID }, since: backlogWindow, fetchedIds: [], skipped: 0, leftover: 7 }).id })
+  state.repo.finishSweep({ sweepId: state.repo.openSweep({ label: LABEL, source: { account: MAILBOX, sourceId: LABEL_ID }, since: backlogWindow, fetchedIds: [], skipped: 0, leftover: 7 }).id, ok: true })
   assert.equal(swept(state.repo), backlogWindow)
 
   const failed = await run('signalSweep')
@@ -551,7 +551,7 @@ test('a run that left messages behind does not move the frontier past them', asy
 
   const first = await run('signalSweep', { maxMessages: 3 })
   assert.equal(first.leftover, 5)
-  await run('finishSweep', { sweepId: first.sweepId })
+  await run('finishSweep', { sweepId: first.sweepId, ok: true })
   assert.equal(gmail.calls.list[0].since, null)
   // Five messages are still waiting behind that run, so closing it handed the
   // frontier its own window rather than its `ran_at`.
@@ -579,7 +579,7 @@ test('the window a run did not drain is the window the next run reopens', async 
   const first = await run('signalSweep', { sinceDays: 7, maxMessages: 1 })
   const window = gmail.calls.list[0].since
   assert.equal(Math.abs(Date.now() - new Date(window).getTime() - 7 * 86400000) < 60000, true)
-  await run('finishSweep', { sweepId: first.sweepId })
+  await run('finishSweep', { sweepId: first.sweepId, ok: true })
   const ranAt = state.repo.latestSweep().ran_at
 
   await run('signalSweep', { maxMessages: 1 })
@@ -602,11 +602,11 @@ test('a narrow sinceDays cannot move the window past mail an earlier run left be
 
   const first = await run('signalSweep', { maxMessages: 2 })
   assert.equal(first.leftover, 4)
-  await run('finishSweep', { sweepId: first.sweepId })
+  await run('finishSweep', { sweepId: first.sweepId, ok: true })
   assert.equal(gmail.calls.list[0].since, null)
 
   const second = await run('signalSweep', { sinceDays: 1, maxMessages: 2 })
-  await run('finishSweep', { sweepId: second.sweepId })
+  await run('finishSweep', { sweepId: second.sweepId, ok: true })
   // The frontier here is the whole label, and nothing is wider than that, so
   // the narrow ask is answered with the window that still contains m1..m6.
   assert.equal(gmail.calls.list[1].since, null)
@@ -640,7 +640,7 @@ test('a first run asking for a narrow window still sweeps the whole label', asyn
   const first = await run('signalSweep', { sinceDays: 1, maxMessages: 5 })
   assert.equal(first.leftover, 0)
   assert.equal(gmail.calls.list[0].since, null, 'the backlog is inside the window this run swept')
-  await run('finishSweep', { sweepId: first.sweepId })
+  await run('finishSweep', { sweepId: first.sweepId, ok: true })
 
   // Only now, having actually drained the whole label, may the window move up
   // to that run's own timestamp -- and that timestamp is one the run took
@@ -660,7 +660,7 @@ test('sinceDays is clamped to a watermark that is already older than it', async 
   // this test can ask for.
   const tenDaysAgo = new Date(Date.now() - 10 * 86400000).toISOString()
   const { id } = state.repo.openSweep({ label: LABEL, source: { account: MAILBOX, sourceId: LABEL_ID }, since: tenDaysAgo, fetchedIds: [], skipped: 0, leftover: 3 })
-  state.repo.finishSweep({ sweepId: id })
+  state.repo.finishSweep({ sweepId: id, ok: true })
 
   await run('signalSweep', { sinceDays: 2 })
 
@@ -701,7 +701,7 @@ test('opening a sweep does not move the frontier; only closing it does', async (
   await run('recordSignal', { sweepId: sw.sweepId, messageId: 'a', headline: 'h', summary: 's', score: 0.5, applyScore: 0.5 })
   assert.equal(swept(state.repo), before, 'nothing before the close moves it')
 
-  await run('finishSweep', { sweepId: sw.sweepId })
+  await run('finishSweep', { sweepId: sw.sweepId, ok: true })
   assert.equal(swept(state.repo), state.repo.latestSweep().ran_at)
 })
 
@@ -712,7 +712,7 @@ test('a listing that stopped short keeps the window open even with nothing left 
   const first = await run('signalSweep', { maxMessages: 5 })
   assert.equal(first.leftover, 0)
   assert.equal(first.listStoppedOn, 'cap')
-  await run('finishSweep', { sweepId: first.sweepId })
+  await run('finishSweep', { sweepId: first.sweepId, ok: true })
 
   await run('signalSweep', { maxMessages: 5 })
 
@@ -784,7 +784,7 @@ test('a label name repointed at another Gmail label starts at the whole source',
 
   const first = await run('signalSweep')
   assert.deepEqual(first.messages.map((m) => m.id), ['old1'])
-  await run('finishSweep', { sweepId: first.sweepId })
+  await run('finishSweep', { sweepId: first.sweepId, ok: true })
   const drainedAt = swept(state.repo, 'LBL_OLD')
   assert.notEqual(drainedAt, null)
 
@@ -794,7 +794,7 @@ test('a label name repointed at another Gmail label starts at the whole source',
   assert.equal(gmail.calls.list[1].labelId, 'LBL_NEW')
   assert.equal(gmail.calls.list[1].since, null, 'a source nobody has swept is the whole source')
   assert.deepEqual(second.messages.map((m) => m.id), ['new1', 'new2'])
-  await run('finishSweep', { sweepId: second.sweepId })
+  await run('finishSweep', { sweepId: second.sweepId, ok: true })
 
   // Two sources, two windows, neither standing in for the other.
   assert.equal(swept(state.repo, 'LBL_OLD'), drainedAt)
@@ -812,7 +812,7 @@ test('the same label name in another mailbox starts at the whole source', async 
   const { state, storage, run } = setup(gmail, { label: LABEL, maxMessages: 5 })
 
   const first = await run('signalSweep')
-  await run('finishSweep', { sweepId: first.sweepId })
+  await run('finishSweep', { sweepId: first.sweepId, ok: true })
   const oldMailboxWindow = swept(state.repo, 'Label_7')
   assert.notEqual(oldMailboxWindow, null)
 
@@ -823,7 +823,7 @@ test('the same label name in another mailbox starts at the whole source', async 
   const second = await run('signalSweep')
   assert.equal(gmail.calls.list[1].since, null, 'the new mailbox has no watermark of its own')
   assert.deepEqual(second.messages.map((m) => m.id), ['b1', 'b2'])
-  await run('finishSweep', { sweepId: second.sweepId })
+  await run('finishSweep', { sweepId: second.sweepId, ok: true })
 
   assert.equal(swept(state.repo, 'Label_7', other), state.repo.sweepById(second.sweepId).ran_at)
   assert.equal(swept(state.repo, 'Label_7'), oldMailboxWindow)
@@ -853,7 +853,7 @@ test('the same message id in another mailbox is another message, not one already
   const first = await run('signalSweep')
   assert.deepEqual(first.messages.map((m) => m.id), ['X'])
   await run('recordSignal', { sweepId: first.sweepId, messageId: 'X', headline: 'from the first mailbox', summary: '', url: 'https://one', score: 0.5, applyScore: 0.5 })
-  await run('finishSweep', { sweepId: first.sweepId })
+  await run('finishSweep', { sweepId: first.sweepId, ok: true })
   const firstWindow = swept(state.repo, 'Label_7', 'a@example.test')
   assert.notEqual(firstWindow, null)
 
@@ -878,7 +878,7 @@ test('the same message id in another mailbox is another message, not one already
   // the card the new mailbox produces stands beside the old one instead of
   // overwriting its headline in place.
   await run('recordSignal', { sweepId: second.sweepId, messageId: 'X', headline: 'from the second mailbox', summary: '', url: 'https://one', score: 0.5, applyScore: 0.5 })
-  await run('finishSweep', { sweepId: second.sweepId })
+  await run('finishSweep', { sweepId: second.sweepId, ok: true })
 
   // Two rows for one id: seen is a statement about one mailbox.
   assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_seen WHERE message_id = ?', ['X']).c, 2)
@@ -899,7 +899,7 @@ test('renaming a Gmail label keeps the window that label already earned', async 
   const { state, run } = setup(gmail, settings)
 
   const first = await run('signalSweep')
-  await run('finishSweep', { sweepId: first.sweepId })
+  await run('finishSweep', { sweepId: first.sweepId, ok: true })
   const earned = swept(state.repo, 'LBL_ONE')
 
   // Renamed in Gmail, and the setting follows it. Same label, same mailbox.
@@ -1009,7 +1009,7 @@ test('a fetch that fails partway keeps the good messages and reports the failure
 
   // Closing the sweep marks only what was actually read, so the failed message
   // comes back on the next run instead of being lost.
-  await run('finishSweep', { sweepId: r.sweepId })
+  await run('finishSweep', { sweepId: r.sweepId, ok: true })
   const seen = state.repo.seenIds({ kind: MAIL_KIND, account: MAILBOX }, ['a', 'b', 'c'])
   assert.deepEqual([...seen].sort(), ['a', 'c'])
 })
@@ -1145,7 +1145,7 @@ test('recordSignal refuses a sweep that does not exist or is already closed', as
 
   await assert.rejects(run('recordSignal', { ...args, sweepId: 'nope' }), /unknown sweep/)
 
-  await run('finishSweep', { sweepId: sw.sweepId })
+  await run('finishSweep', { sweepId: sw.sweepId, ok: true })
   // The sweep's ids are already marked seen, so an item filed here would never
   // be counted and its message would never come back.
   await assert.rejects(run('recordSignal', { ...args, sweepId: sw.sweepId }), /closed/)
@@ -1188,7 +1188,7 @@ test('the same message recorded twice merges instead of doubling', async () => {
   assert.equal(items.length, 1)
   assert.equal(items[0].headline, 'second')
 
-  const fin = await run('finishSweep', { sweepId: sw.sweepId })
+  const fin = await run('finishSweep', { sweepId: sw.sweepId, ok: true })
   assert.equal(fin.found, 1)
 })
 
@@ -1211,9 +1211,9 @@ test('finishSweep refuses a sweep it has already closed, and throws on an unknow
   const { state, run } = setup(fakeGmail({ ids: ['m1'] }))
   const sw = await run('signalSweep', { maxMessages: 1 })
 
-  const first = await run('finishSweep', { sweepId: sw.sweepId, note: 'partial page' })
+  const first = await run('finishSweep', { sweepId: sw.sweepId, note: 'partial page', ok: true })
   assert.equal(first.seenMarked, 1)
-  await assert.rejects(run('finishSweep', { sweepId: sw.sweepId, note: 'partial page' }), /already closed/)
+  await assert.rejects(run('finishSweep', { sweepId: sw.sweepId, note: 'partial page', ok: true }), /already closed/)
 
   // The first close stands untouched: the note is there once, the ids are
   // marked once, and the frontier is where that one close put it.
@@ -1221,7 +1221,7 @@ test('finishSweep refuses a sweep it has already closed, and throws on an unknow
   assert.equal(state.repo.counts().seen, 1)
   assert.equal(swept(state.repo), state.repo.latestSweep().ran_at)
 
-  await assert.rejects(run('finishSweep', { sweepId: 'nope' }), /unknown sweep/)
+  await assert.rejects(run('finishSweep', { sweepId: 'nope', ok: true }), /unknown sweep/)
 })
 
 test('both refusals of an already-closed sweep speak one sentence', async () => {
@@ -1231,10 +1231,10 @@ test('both refusals of an already-closed sweep speak one sentence', async () => 
   // same place.
   const { state, run } = setup(fakeGmail({ ids: ['m1'] }))
   const sw = await run('signalSweep')
-  await run('finishSweep', { sweepId: sw.sweepId })
+  await run('finishSweep', { sweepId: sw.sweepId, ok: true })
 
   const fromRecord = await run('recordSignal', { sweepId: sw.sweepId, messageId: 'm1', headline: 'h', summary: 's', score: 0.5, applyScore: 0.5 }).then(() => null, (e) => e.message)
-  const fromFinish = await run('finishSweep', { sweepId: sw.sweepId }).then(() => null, (e) => e.message)
+  const fromFinish = await run('finishSweep', { sweepId: sw.sweepId, ok: true }).then(() => null, (e) => e.message)
 
   assert.equal(fromRecord, alreadyClosedMessage(sw.sweepId))
   assert.equal(fromFinish, alreadyClosedMessage(sw.sweepId))
@@ -1256,6 +1256,58 @@ test('finishSweep refuses an ok it cannot read instead of recording a broken run
   const fin = await run('finishSweep', { sweepId: sw.sweepId, ok: 'false' })
   assert.equal(fin.ok, false)
   assert.equal(state.repo.latestSweep().ok, 0)
+  assert.equal(swept(state.repo), null)
+})
+
+test('a close that omits `ok` loses no mail, and says so on its own answer', async () => {
+  /*
+   * The rule the previous round installed is right in both directions, and this
+   * is the door it left open. `ok` used to default to `true` in the tool layer
+   * AND in the repository, so the one malformation the rule exists for -- a
+   * minimal or truncated close from an agent that ran out of turn -- marked
+   * every fetched id seen and answered `"ok": true` while doing it. Five
+   * messages fetched, one recorded, and the four the agent never read were gone
+   * with nothing in the reply to say so.
+   *
+   * Absent is now the unfinished close. Silence is not a report that the run
+   * finished; it is no report at all, and the only reading of no report that
+   * cannot destroy a message is the one that re-offers it.
+   */
+  const { state, run } = setup(fakeGmail({ ids: ['m1', 'm2', 'm3', 'm4', 'm5'] }))
+  const sw = await run('signalSweep', { maxMessages: 5 })
+  await run('recordSignal', { sweepId: sw.sweepId, messageId: 'm1', headline: 'h', summary: 's', score: 0.4, applyScore: 0.2 })
+
+  const fin = await run('finishSweep', { sweepId: sw.sweepId, note: 'nem jutottam végig' })
+
+  // The answer the agent reads says what happened, rather than reporting a
+  // clean run over mail nobody looked at.
+  assert.equal(fin.ok, false)
+  assert.equal(fin.found, 1)
+  assert.equal(fin.seenMarked, 1)
+  assert.equal(state.repo.latestSweep().ok, 0)
+  // The frontier stays where it was, so the window is not stepped over either.
+  assert.equal(swept(state.repo), null)
+
+  // And the four the run never read are still fetchable: only the recorded id
+  // is marked seen, which is exactly what an explicit `ok: false` does.
+  const seen = state.repo.seenIds({ kind: MAIL_KIND, account: MAILBOX }, ['m1', 'm2', 'm3', 'm4', 'm5'])
+  assert.deepEqual([...seen].sort(), ['m1'])
+  const next = await run('signalSweep', { maxMessages: 5 })
+  assert.deepEqual(next.messages.map((m) => m.id), ['m2', 'm3', 'm4', 'm5'])
+})
+
+test('the repository reads an absent `ok` the same way the tool does', async () => {
+  // The tool layer is not the only door into the close: `finishSweep` is a
+  // repository method, and a default of `true` there would be the same defect
+  // one call deeper. Stated in both places on purpose, so neither can drift.
+  const { state, run } = setup(fakeGmail({ ids: ['m1', 'm2'] }))
+  const sw = await run('signalSweep', { maxMessages: 2 })
+
+  const fin = state.repo.finishSweep({ sweepId: sw.sweepId })
+
+  assert.equal(fin.ok, false)
+  assert.equal(fin.seenMarked, 0)
+  assert.equal(state.repo.counts().seen, 0)
   assert.equal(swept(state.repo), null)
 })
 
@@ -1284,6 +1336,9 @@ test('the three tools are declared with the names and required parameters the ag
   const { tools } = setup(fakeGmail())
   assert.deepEqual(Object.keys(tools).sort(), ['finishSweep', 'recordSignal', 'signalSweep'])
   assert.deepEqual(tools.recordSignal.parameters.required, ['sweepId', 'messageId', 'headline', 'summary', 'score', 'applyScore'])
-  assert.deepEqual(tools.finishSweep.parameters.required, ['sweepId'])
+  // `ok` is required, and that is a guarantee rather than a detail: the close
+  // most likely to arrive minimal is the close of a run that ran out of turn,
+  // which is exactly the run whose unread mail an absent `ok` used to destroy.
+  assert.deepEqual(tools.finishSweep.parameters.required, ['sweepId', 'ok'])
   for (const t of Object.values(tools)) assert.equal(typeof t.description, 'string')
 })

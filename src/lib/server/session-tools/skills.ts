@@ -79,6 +79,14 @@ function summarizeSkill(skill: ResolvedRuntimeSkill): Record<string, unknown> {
     source: skill.source,
     managed: skill.managed,
     attached: skill.attached,
+    // An always-on skill is in EVERY agent's prompt on this instance, with no
+    // agent scoping anywhere behind the flag, and any SKILL.md in any layer can
+    // set it -- including a third-party file nobody in this tree wrote. So the
+    // set is answerable: `manage_skills` with action "list" names it, alongside
+    // the `always-on` entry `matchReasons` already carries. `attached` beside
+    // it is the scoped alternative, which is what an extension-managed agent's
+    // declared skills now use.
+    always: skill.always,
     eligible: skill.eligible,
     status: skill.status,
     missing: skill.missing,

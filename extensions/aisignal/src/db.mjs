@@ -97,9 +97,13 @@ import crypto from 'node:crypto'
  *     The read side of ext_aisignal_seen, spelled exactly like its primary key,
  *     and gating exactly what that key gates.
  *   insertItem -- WHERE kind = ? AND account = ? AND message_id = ? AND
- *                 COALESCE(url, '') = COALESCE(?, '')
+ *                 COALESCE(url, '') = COALESCE(?, '') AND
+ *                 CASE WHEN COALESCE(url, '') = '' THEN headline ELSE '' END = ?
  *     The read side of the item index, spelled to match the indexed expression
- *     so it uses it. Plus one deliberate second read for legacy rows; see there.
+ *     so it uses it -- the headline half included, which migration 6 added and
+ *     which this entry spelled without until a reader noticed the index entry
+ *     above and this one disagreed. Plus one deliberate second read for legacy
+ *     rows; see there.
  *   frontier(source) -- WHERE kind = ? AND account = ? AND source_id = ?
  *     The read side of the frontier key, and every half is named by the caller.
  *   sweepById(id) -- WHERE id = ?
@@ -119,8 +123,28 @@ import crypto from 'node:crypto'
  *     Reporting only. It fed the frontier by inference until migration 2, which
  *     is where five of the eight defects lived; nothing derives a frontier from
  *     a sweep row any more.
+ *   finishSweep -- SELECT DISTINCT message_id FROM ext_aisignal_items
+ *                  WHERE sweep_id = ?
+ *     gates   whether a message is ever scored again, and it is the most gating
+ *             read in this whole list. It runs on an unfinished close and it
+ *             names the ids that close marks seen, so a miss leaves a message
+ *             fetchable and a hit retires it for good. Written down because it
+ *             is the ONE `WHERE sweep_id = ?` read in `finishSweep` that is not
+ *             a counter, and the two counters below sit next to it.
+ *     source  none of its own, and it needs none. `sweep_id` is the surrogate
+ *             key of one row, and the kind and the account the ids are marked
+ *             under are read off THAT row rather than from this query -- the
+ *             same reason the sweeps primary key needs no source. The set is
+ *             then intersected with the row's own `fetched_ids`, so an item
+ *             filed against an id this sweep never fetched marks nothing.
+ *     errs    narrow, which is the wide direction here: a record that merged
+ *             into a row from an earlier sweep keeps that sweep's `sweep_id`
+ *             and is therefore not in this set, so its message comes back. See
+ *             WHICH IDS A CLOSE MARKS SEEN.
  *   finishSweep -- COUNT(*) FROM ext_aisignal_items WHERE sweep_id = ?
- *     Reporting: `found` and `links_read` on the row.
+ *     Reporting: `found` and `links_read` on the row. Same table and same
+ *     `WHERE`, and it gates nothing -- which is only readable now that the
+ *     entry above says which of the two does.
  *   finishSweep -- COUNT(*) FROM ext_aisignal_seen WHERE kind = ? AND account = ?
  *     Reporting: read either side of the marking loop so `seenMarked` counts
  *     rows written rather than ids offered. Keyed on the dedup's own space, so
@@ -881,6 +905,25 @@ export function createRepo(storage) {
      * of guarantees the whole extension rests on: mail an agent never looked at
      * comes back, and mail an agent looked at and passed over does not.
      *
+     * AND AN ABSENT `ok` IS THE UNFINISHED ONE
+     * ----------------------------------------
+     * The default is `false`, and it is the whole point of the parameter having
+     * a default at all. This signature used to read `ok = true`, so the single
+     * most likely malformation -- a minimal or truncated close from an agent
+     * that is out of turn, which is EXACTLY the state `ok: false` exists for --
+     * regressed to marking every fetched id seen. A close that says nothing has
+     * not told us the agent went through the mail; it has told us nothing, and
+     * the only reading of nothing that cannot destroy mail is "I did not
+     * finish".
+     *
+     * The cost of being wrong this way is one re-reading, which lands on the
+     * dedup or on a merge. The cost of being wrong the other way is a message
+     * no run will ever be offered again. So the tool's schema requires `ok`
+     * (see sweep.mjs), the tool layer resolves an absent one to `false`, and
+     * this default is the third statement of the same rule for a caller that
+     * reaches the repository directly. A programmatic caller that means "the
+     * run finished" says so.
+     *
      * Before this, the marking loop ran over `fetched_ids` unconditionally and
      * only the frontier write was gated on `ok`. A run that fetched three
      * messages, recorded one and closed `ok: false` left the frontier where it
@@ -946,12 +989,12 @@ export function createRepo(storage) {
      * one throws for the reason recordSignal refuses one: closing is not
      * idempotent any more now that it moves the frontier. `failSweep` closes
      * the row of a run that could not list at all, and without this guard a
-     * single `finishSweep({ sweepId, ok: true })` -- and `ok: true` is the
-     * declared default -- reopened that failure as a clean run whose
+     * single `finishSweep({ sweepId, ok: true })` reopened that failure as a
+     * clean run whose
      * `leftover = 0` and empty note read as "drained", handing the frontier a
      * timestamp no run had earned and stranding the real backlog behind it.
      */
-    finishSweep({ sweepId, ok = true, note = '' }) {
+    finishSweep({ sweepId, ok = false, note = '' }) {
       return S.transaction(() => {
         const sweep = S.get('SELECT fetched_ids, note, kind, account, source_id, frontier_after, finished_at FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
         if (!sweep) throw new Error(`unknown sweep ${sweepId}`)

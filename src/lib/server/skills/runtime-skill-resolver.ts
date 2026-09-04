@@ -129,6 +129,13 @@ export interface RuntimeSkillSnapshot {
 export interface ResolveRuntimeSkillsOptions {
   cwd?: string | null
   enabledExtensions?: string[] | null
+  /**
+   * The skills pinned to this agent, each named by a storage id OR by the
+   * skill's own name/key. Both spellings are honoured because both are written
+   * in practice: the agent sheet pins a managed skill by storage id, and an
+   * extension-managed agent declares its skill by the frontmatter name of a
+   * file that has no storage id. See skillSelectors.
+   */
   agentSkillIds?: string[] | null
   storedSkills?: Record<string, Skill>
   learnedSkills?: Record<string, LearnedSkill>
@@ -196,6 +203,23 @@ function buildSkillKey(input: {
   filename?: string | null
 }): string {
   return normalizeKey(input.skillKey || input.name || input.filename || 'skill')
+}
+
+/**
+ * Every name one skill answers to, normalized.
+ *
+ * A pin arrives as a string, and which string depends on where the pin was
+ * written. The agent sheet writes the storage id of a managed skill. An
+ * extension-managed agent declares the skill by the name in its SKILL.md
+ * frontmatter, because a file discovered off disk has no storage id to name --
+ * `buildSeedFromDiscovered` gives it a `runtimeId` and a `key` and no
+ * `storageId` at all. Matching only on storage id is what made a managed
+ * agent's `skills: [...]` declaration attach nothing.
+ */
+function skillSelectors(seed: SkillSeed): string[] {
+  return [seed.runtimeId, seed.storageId, seed.key, seed.name, seed.skillKey]
+    .map((value) => normalizeKey(value || ''))
+    .filter(Boolean)
 }
 
 function inferToolNames(input: {
@@ -584,7 +608,13 @@ function toResolvedSkill(seed: SkillSeed, status: RuntimeSkillStatus, match: {
 export function resolveRuntimeSkills(options: ResolveRuntimeSkillsOptions = {}): RuntimeSkillSnapshot {
   const storedSkills = options.storedSkills || loadSkills()
   const learnedSkills = options.learnedSkills || loadLearnedSkills()
-  const attachedIds = new Set(Array.isArray(options.agentSkillIds) ? options.agentSkillIds.filter(Boolean) : [])
+  const agentSkillIds = Array.isArray(options.agentSkillIds) ? options.agentSkillIds.filter(Boolean) : []
+  const attachedIds = new Set(agentSkillIds)
+  // The same pins, read as selectors rather than as storage ids, so a pin can
+  // also name a skill that has no storage id -- see skillSelectors. Applied
+  // after the merge below, because a skill can be seeded from several layers
+  // and the pin is about the skill, not about the layer it was found in.
+  const attachedSelectors = new Set(agentSkillIds.map((value) => normalizeKey(value)).filter(Boolean))
   const discovered = discoverSkills({ cwd: options.cwd || undefined })
   const scopedLearnedSeeds = Object.values(learnedSkills)
     .filter((skill) => {
@@ -618,18 +648,15 @@ export function resolveRuntimeSkills(options: ResolveRuntimeSkillsOptions = {}):
 
   const skills = [...grouped.values()]
     .map((entries) => {
-      const merged = mergeSeeds(entries)
+      const base = mergeSeeds(entries)
+      const merged: SkillSeed = base.attached || !skillSelectors(base).some((value) => attachedSelectors.has(value))
+        ? base
+        : { ...base, attached: true }
       const status = evaluateSkillStatus(merged)
       const match = scoreSkillForRuntime(merged, status, enabledExtensionSet)
       const selected = Boolean(
         selectedSkillSelector
-        && [
-          merged.runtimeId,
-          merged.storageId,
-          merged.key,
-          merged.name,
-          merged.skillKey,
-        ].some((value) => normalizeKey(value || '') === selectedSkillSelector),
+        && skillSelectors(merged).includes(selectedSkillSelector),
       )
       return toResolvedSkill(merged, status, match, {
         enabledExtensionSet,

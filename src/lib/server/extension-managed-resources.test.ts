@@ -4,6 +4,26 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 
+/*
+ * THIS FILE GETS ITS OWN DATA DIRECTORY
+ * =====================================
+ * Every test here saves agents, schedules and settings, and one of them DELETES
+ * the instance's `default` agent to reach the state the route fallback exists
+ * for. Against the real DATA_DIR -- the developer's own database -- the
+ * `afterEach` restore is not a safety net: `ensureDefaultAgent` re-seeds a
+ * default only when the agents table is EMPTY, which it is not here, so a
+ * Ctrl-C, a CI timeout or a throw between the delete and the restore leaves the
+ * instance permanently without a `default` agent, which is exactly the state
+ * under test and one nothing in the product recreates. This file also runs as
+ * one of many parallel processes under `test:runtime`, several of which write
+ * the same SQLite file.
+ *
+ * The import below is what moves it, and it must stay FIRST: `data-dir.ts`
+ * reads DATA_DIR once, at import time, and ES modules evaluate their
+ * dependencies in import order.
+ */
+import '@/lib/server/test-support/isolated-data-dir'
+
 import { getExtensionManager } from './extensions'
 import {
   inspectExtensionLocalFolder,
@@ -12,6 +32,7 @@ import {
   reconcileExtensionManagedResources,
   setExtensionLocalFolderConfig,
 } from './extension-managed-resources'
+import { DATA_DIR, WORKSPACE_DIR } from './data-dir'
 import { loadAgents, loadSchedules, loadSettings, saveAgents, saveSchedules, saveSettings } from './storage'
 import { DEFAULT_AGENT_ROUTE } from '@/lib/setup-defaults'
 
@@ -30,6 +51,16 @@ afterEach(() => {
   saveAgents(originalAgents)
   saveSchedules(originalSchedules)
   saveSettings(originalSettings)
+})
+
+test('this file writes to a throwaway data directory and never the instance own one', () => {
+  // The regression this catches is the import at the top of the file going
+  // away, or moving below one that reads DATA_DIR. Asserted on the resolved
+  // constants rather than on the environment, because those are what storage
+  // actually opened, and asserted first because every other test here writes.
+  const temp = os.tmpdir()
+  assert.ok(DATA_DIR.startsWith(temp), `DATA_DIR is the instance's own: ${DATA_DIR}`)
+  assert.ok(WORKSPACE_DIR.startsWith(temp), `WORKSPACE_DIR is the instance's own: ${WORKSPACE_DIR}`)
 })
 
 test('managed resources summary and reconcile create extension-owned agents and schedules', () => {
@@ -260,4 +291,98 @@ test('a reconcile does not move an agent the operator has since re-routed', () =
   const after = loadAgents()[agentId]
   assert.equal(after.provider, 'openrouter')
   assert.equal(after.model, 'anthropic/claude-sonnet-4.6')
+})
+
+test('a reconcile keeps the empty model an operator paired with a CLI provider', () => {
+  /*
+   * The falsy-empty hole in the same resolution. `''` is what a CLI provider
+   * legitimately carries -- it is DEFAULT_AGENT_ROUTE's own model, and the
+   * reason the instance-default lookup keeps an empty model as an empty model
+   * -- so `existing?.model || fallbackRoute.model` read the operator's
+   * deliberate empty as "unset" and filled it from a route they never chose.
+   * Driven: created on anthropic/claude-sonnet-4-6, re-routed by the operator
+   * to claude-cli with no model, and the next reconcile handed back claude-cli
+   * paired with claude-sonnet-4-6 -- a provider from one place and a model from
+   * another, which is the pairing this resolution exists to prevent.
+   */
+  const agents = loadAgents()
+  agents.default = { ...agents.default, id: 'default', provider: 'anthropic', model: 'claude-sonnet-4-6' } as typeof agents.default
+  saveAgents(agents)
+  saveSettings({ ...loadSettings(), defaultAgentId: null })
+
+  const id = extensionId('managed_route_cli')
+  routelessAgentFixture(id)
+  const agentId = reconcileExtensionManagedResources(id).createdAgents[0]
+  assert.equal(loadAgents()[agentId].model, 'claude-sonnet-4-6')
+
+  const rerouted = loadAgents()
+  rerouted[agentId] = { ...rerouted[agentId], provider: 'claude-cli', model: '' }
+  saveAgents(rerouted)
+
+  reconcileExtensionManagedResources(id)
+  const after = loadAgents()[agentId]
+  assert.equal(after.provider, 'claude-cli')
+  assert.equal(after.model, '', 'the operator chose a route, not just a provider')
+})
+
+test('a declared skill name is pinned to the agent that declares it', () => {
+  /*
+   * `skills: [...]` used to be a label on the agent card and nothing more: the
+   * turn hands `agent.skillIds` to resolveRuntimeSkills, so a declaration that
+   * named only `skills` attached nothing, and the skill an extension shipped
+   * for one agent reached no agent at all. The instrument reached for instead
+   * was `always: true` in the SKILL.md, which has no agent scoping and put the
+   * file into every agent's prompt on the instance.
+   *
+   * A skill an extension ships is discovered off disk and has no storage id, so
+   * its name is the only handle a declaration has. The name therefore lands in
+   * `skillIds` as well, and the resolver matches a pin on a name as well as on
+   * a storage id -- see runtime-skill-resolver.test.ts for the other half.
+   */
+  const id = extensionId('managed_skills')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Skill Declaring Fixture',
+    managedResources: {
+      agents: [
+        {
+          agentKey: 'scout',
+          displayName: 'Managed Scout',
+          systemPrompt: 'Sweep carefully.',
+          skills: ['ai-hirlevel-kinyeres'],
+        },
+      ],
+    },
+  })
+
+  // Two statements, not one: `loadAgents()[reconcile(...)...]` evaluates the
+  // object before the property, so the read would happen before the write.
+  const result = reconcileExtensionManagedResources(id)
+  const created = loadAgents()[result.createdAgents[0]]
+  assert.deepEqual(created.skills, ['ai-hirlevel-kinyeres'], 'the card still reads the name')
+  assert.deepEqual(created.skillIds, ['ai-hirlevel-kinyeres'], 'and the turn is handed it too')
+})
+
+test('declared skill ids and declared skill names are pinned together, without duplicates', () => {
+  // A declaration may reasonably name a stored skill by id and a file it ships
+  // by name in one breath, so the pin list is their union rather than one or
+  // the other.
+  const id = extensionId('managed_skills_union')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Skill Union Fixture',
+    managedResources: {
+      agents: [
+        {
+          agentKey: 'scout',
+          displayName: 'Managed Scout',
+          systemPrompt: 'Sweep carefully.',
+          skills: ['shipped-skill', 'stored_skill_id'],
+          skillIds: ['stored_skill_id'],
+        },
+      ],
+    },
+  })
+
+  const result = reconcileExtensionManagedResources(id)
+  const created = loadAgents()[result.createdAgents[0]]
+  assert.deepEqual(created.skillIds, ['stored_skill_id', 'shipped-skill'])
 })

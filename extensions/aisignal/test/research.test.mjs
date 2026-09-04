@@ -176,7 +176,7 @@ test('a research sweep resolves no source, so closing it moves no frontier at al
   const state = toolState({ repo, fetchImpl: async () => json({ hits: [hit()], data: { children: [] }, items: [] }) })
 
   const r = await createResearchTool(state).execute({ topics: ['skillek'] })
-  repo.finishSweep({ sweepId: r.sweepId })
+  repo.finishSweep({ sweepId: r.sweepId, ok: true })
 
   // The whole table, not one keyed read: a frontier this run could have written
   // under some other key would still be a watermark nothing earned.
@@ -193,7 +193,7 @@ test('a research sweep marks its handed-over candidates seen, and the next run s
 
   const first = await tool.execute({ topics: ['skillek'] })
   assert.deepEqual(first.candidates.map((c) => c.id), ['hn:1'])
-  repo.finishSweep({ sweepId: first.sweepId })
+  repo.finishSweep({ sweepId: first.sweepId, ok: true })
 
   const second = await tool.execute({ topics: ['skillek'] })
   assert.deepEqual(second.candidates, [])
@@ -205,7 +205,7 @@ test('the research dedup is keyed on its own space, so a mail id of the same nam
   const state = toolState({ repo, fetchImpl: async () => json({ hits: [hit()], data: { children: [] }, items: [] }) })
 
   const r = await createResearchTool(state).execute({ topics: ['skillek'] })
-  repo.finishSweep({ sweepId: r.sweepId })
+  repo.finishSweep({ sweepId: r.sweepId, ok: true })
 
   assert.equal(repo.seenIds({ kind: RESEARCH_KIND, account: RESEARCH_ID_SPACE }, ['hn:1']).size, 1)
   assert.equal(repo.seenIds({ kind: 'mail', account: 'owner@example.test' }, ['hn:1']).size, 0)
@@ -225,7 +225,7 @@ test('a candidate id that could not be keyed never reaches the row, so closing t
   const r = await createResearchTool(state).execute({ topics: ['skillek'] })
   assert.deepEqual(r.candidates, [])
   assert.match(repo.latestSweep(RESEARCH_KIND).note, /dropped=2/)
-  assert.doesNotThrow(() => repo.finishSweep({ sweepId: r.sweepId }))
+  assert.doesNotThrow(() => repo.finishSweep({ sweepId: r.sweepId, ok: true }))
 })
 
 // ---------------------------------------------------------------------------
@@ -621,7 +621,7 @@ test('a host that answered before it failed keeps what it answered, and the run 
   assert.equal(row.note, 'unavailable=reddit,hn,github')
   // The candidate is on the row, so closing marks it seen and the next run does
   // not offer it again.
-  repo.finishSweep({ sweepId: r.sweepId })
+  repo.finishSweep({ sweepId: r.sweepId, ok: true })
   assert.equal(repo.counts().seen, 1)
 })
 
@@ -643,7 +643,7 @@ test('candidates above the per-run cap are counted as leftover and left off the 
 
   // The 20 left behind are not on the row, so closing does not mark them seen
   // and the next run offers them again.
-  repo2.finishSweep({ sweepId: r2.sweepId })
+  repo2.finishSweep({ sweepId: r2.sweepId, ok: true })
   assert.equal(repo2.counts().seen, 60)
 })
 

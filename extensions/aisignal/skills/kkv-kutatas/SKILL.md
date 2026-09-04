@@ -4,7 +4,6 @@ description: Mi számít megfigyelésnek a nyílt weben, hogyan pontozz, és mi�
 version: 1.0.0
 license: MIT
 tags: [aisignal, kutatás, KKV, pontozás]
-always: true
 ---
 
 # KKV-kutatás — mi kerül a paklira
@@ -213,8 +212,14 @@ A tool a levél- vagy jelölt-azonosító és az url párosa alapján von össze
 azt jelenti, hogy ugyanaz a sztori egy hírlevélből és a Hacker Newsról két
 külön sor lesz, és ugyanaz a sztori két Reddit-posztból is kettő. **A tool
 sosem von össze két különböző jelöltet**, akkor sem, ha szó szerint ugyanarról
-írnak. Ha egy hívás `merged: true`-val jön vissza, ugyanazt a jelöltet írtad
-be még egyszer: nem hiba, lépj tovább.
+írnak. Ha egy hívás `merged: true`-val jön vissza, ugyanaz a jelölt már be van
+írva ugyanazzal a linkkel: nem hiba, lépj tovább. **De nem feltétlenül ebben a
+futásban írtad be** — a kulcsban nincs benne a sweep azonosítója, tehát a sor
+lehet egy korábbi, lezárás nélkül félbemaradt futásé is. Ha egy körben a sorok
+nagy része így jön vissza, írd meg a `note`-ban, hányról van szó: a lezárás
+`found` száma ilyenkor nulla is lehet úgy, hogy közben kártyák készültek.
+Link nélküli jelöltnél ugyanez a címsoron múlik, karakterre pontosan —
+átfogalmazva nem összeolvadás lesz belőle, hanem egy második kártya ugyanarról.
 
 Ez ismert korlát, nem a te hibád, és **ne próbáld megkerülni**: ne írj be
 kitalált vagy „megtisztított" url-t azért, hogy összevonódjon. Egy hamis link
@@ -278,8 +283,13 @@ eléd. Melyiket, azt az `ok` mondja meg:
 - **`ok: true`** — végigmentél az összesen. Ilyenkor **minden átadott jelölt**
   látottá válik, a gyengék is. Ez a helyes: azokról már van sorod.
 - **`ok: false`** — nem jutottál végig. Ilyenkor **csak azok** válnak látottá,
-  **amikről írtál sort**; a többit meg sem nézted, és a következő futásban
-  visszakapod.
+  **amikről ebben a futásban lett sor**; a többit meg sem nézted, és a következő
+  futásban visszakapod. (Ami egy korábbi futás sorába olvadt bele, az sem ebben
+  a futásban adott sort, tehát az is visszajön — ez a tág irány.)
+
+**Az `ok` kötelező mező** — ugyanúgy, mint a `score` és az `applyScore` egy
+soron. Ha kihagyod, a tool `false`-nak veszi: abból, hogy nem mondtál semmit,
+nem következik, hogy végigmentél. Ettől még mondd ki, minden lezárásban.
 
 Egy futás, ami hatvan jelöltből harmincat pontozott és `ok: true`-val zárt,
 a másik harmincat eltemette. Ha nem jutottál végig, `ok: false` — és ha

@@ -312,6 +312,89 @@ Two numbers, both mandatory.
   }
 })
 
+test('a skill pinned by name reaches the agent that pins it and no other', () => {
+  /*
+   * An extension-managed agent declares `skills: ['ai-hirlevel-kinyeres']`, the
+   * host carries that onto the agent, and the turn hands it here. Before this,
+   * a pin only ever matched a STORED skill's storage id, so a skill an
+   * extension ships -- discovered off disk, with no storage id to name -- was
+   * pinned by nothing and the declaration attached nothing at all.
+   *
+   * The instrument that was reached for instead was `always: true`, and it has
+   * no owner: selectPromptSkills takes `attached || always` without reference
+   * to the agent, so a skill whose first line names the one agent it belongs to
+   * went into every agent's prompt on the instance. The second half of this
+   * test is that half of the bug: the unrelated agent must NOT be carrying it.
+   */
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-pinned-skill-'))
+  try {
+    const skillDir = path.join(cwd, 'skills', 'signal-scoring')
+    fs.mkdirSync(skillDir, { recursive: true })
+    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), `---
+name: signal-scoring
+description: How the two scores are built.
+---
+# Scoring
+
+This skill belongs to the signal-scout agent.
+`)
+
+    const owner = resolveRuntimeSkills({
+      cwd,
+      enabledExtensions: [],
+      storedSkills: {},
+      agentSkillIds: ['signal-scoring'],
+    })
+    const unrelated = resolveRuntimeSkills({
+      cwd,
+      enabledExtensions: [],
+      storedSkills: {},
+      agentSkillIds: [],
+    })
+
+    const pinned = owner.skills.find((entry) => entry.name === 'signal-scoring')
+    assert.ok(pinned, 'the skill is discovered')
+    assert.equal(pinned?.attached, true, 'the declaration pins it by name')
+    assert.notEqual(pinned?.always, true, 'and it does so without making it always-on')
+    assert.ok(
+      owner.promptSkills.some((entry) => entry.name === 'signal-scoring'),
+      'the agent that names it gets its content, not a pick-me line',
+    )
+    assert.match(buildRuntimeSkillPromptBlocks(owner).join('\n'), /This skill belongs to the signal-scout agent/)
+
+    const forOthers = unrelated.skills.find((entry) => entry.name === 'signal-scoring')
+    assert.equal(forOthers?.attached, false, 'nobody else pinned it')
+    assert.equal(
+      unrelated.promptSkills.some((entry) => entry.name === 'signal-scoring'),
+      false,
+      'an unrelated agent does not carry another agent\'s skill',
+    )
+    assert.ok(unrelated.availableSkills.some((entry) => entry.name === 'signal-scoring'))
+    assert.doesNotMatch(buildRuntimeSkillPromptBlocks(unrelated).join('\n'), /This skill belongs to the signal-scout agent/)
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true })
+  }
+})
+
+test('a pin still matches the storage id of a stored skill', () => {
+  // Matching on name is an addition, not a replacement: the agent sheet writes
+  // storage ids, and every agent that has ever pinned a managed skill has one
+  // of those in its list.
+  const storedSkills = {
+    stored_release_notes: makeSkill('stored_release_notes', {
+      name: 'release-notes',
+      content: '# Stored\nWrite the notes.',
+    }),
+  }
+  const snapshot = resolveRuntimeSkills({
+    enabledExtensions: [],
+    storedSkills,
+    agentSkillIds: ['stored_release_notes'],
+  })
+  const skill = snapshot.skills.find((entry) => entry.name === 'release-notes')
+  assert.equal(skill?.attached, true)
+})
+
 test('a discovered skill with no always flag stays out of the prompt', () => {
   // The contrast that makes the case above worth having: same file, same
   // discovery, no flag. It is listed as available and its content is not in the

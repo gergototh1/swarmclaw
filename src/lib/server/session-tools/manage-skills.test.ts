@@ -126,6 +126,37 @@ describe('manage_skills runtime actions', () => {
     assert.deepEqual(statusEntry?.toolNames, ['google_workspace'])
   })
 
+  it('names the skills that are always-on for every agent on the instance', async () => {
+    /*
+     * A plain `always: true` in any SKILL.md, in any layer, puts that file into
+     * EVERY agent's prompt: `selectPromptSkills` takes `attached || always`
+     * without reference to the agent. Nothing behind the flag scopes it and
+     * nothing warns about it, so the set has to at least be answerable -- this
+     * is where an operator, or an agent asked by one, reads which skills became
+     * always-on and which are merely pinned to one agent.
+     */
+    const alwaysDir = path.join(workspaceDir, 'skills', 'house-style')
+    fs.mkdirSync(alwaysDir, { recursive: true })
+    fs.writeFileSync(path.join(alwaysDir, 'SKILL.md'), `---
+name: house-style
+description: How this instance writes.
+always: true
+---
+# House Style
+
+Short sentences.
+`)
+
+    const manageSkills = buildManageSkillsTool()
+    const raw = await manageSkills.invoke({ action: 'status' })
+    const result = JSON.parse(String(raw)) as Array<Record<string, unknown>>
+
+    const entry = result.find((item) => item.name === 'house-style')
+    assert.ok(entry, 'the always-on skill is listed')
+    assert.equal(entry?.always, true, 'and the listing says it is always-on')
+    assert.equal(entry?.attached, false, 'which is not the same as pinned to this agent')
+  })
+
   it('attach materializes a discovered project skill and binds it to the current agent', async () => {
     const localSkillDir = path.join(workspaceDir, 'skills', 'project-helper')
     fs.mkdirSync(localSkillDir, { recursive: true })
