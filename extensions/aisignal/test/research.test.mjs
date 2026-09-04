@@ -61,7 +61,17 @@ const repoRow = (over = {}) => ({ id: 7, full_name: 'a/b', html_url: 'https://gh
  * instance takes the same injected `fetchImpl`.
  */
 let topicsFixtures = 0
+// Captured once, at module load, before any test has a chance to stub it. Two
+// overlapping `researchOver` calls were demonstrated to leave both module
+// instances reading the *second* fixture and to leave `fs.readFileSync`
+// holding the first stub for the rest of the process -- every later load of a
+// path ending in `research_topics.json` then returns a stale fixture, silently,
+// with tests still green. Asserting against this constant, rather than against
+// whatever `fs.readFileSync` happens to be right now, is what makes a leaked
+// stub throw instead of silently compounding.
+const ORIGINAL_READ_FILE_SYNC = fs.readFileSync
 async function researchOver(topicsFile) {
+  assert.equal(fs.readFileSync, ORIGINAL_READ_FILE_SYNC, 'fs.readFileSync is already stubbed -- an earlier researchOver call did not restore it, so this call would read the wrong fixture')
   const readFileSync = fs.readFileSync
   topicsFixtures += 1
   try {
@@ -83,6 +93,23 @@ function countingReddit(body = { hits: [], items: [], data: { children: [] } }) 
     },
   }
 }
+
+test('researchOver fails loudly on an overlapping call instead of silently reading the wrong fixture', async () => {
+  // Simulates the leak the guard exists for: a second call starting while the
+  // first is still mid-stub (its module import is in flight, so its `finally`
+  // has not restored `fs.readFileSync` yet). Without the guard this would
+  // silently succeed and leave every later `researchOver` reading whichever
+  // fixture happened to stub last.
+  const first = researchOver({ days: 30, topics: [{ key: 'first', hu: 'First', query: 'q' }] })
+  await assert.rejects(
+    researchOver({ days: 30, topics: [{ key: 'second', hu: 'Second', query: 'q' }] }),
+    /fs.readFileSync is already stubbed/,
+  )
+  // The first call is left to finish and restore the real fs.readFileSync, so
+  // this test does not itself leak into the ones that follow it.
+  await first
+  assert.equal(fs.readFileSync, ORIGINAL_READ_FILE_SYNC)
+})
 
 // ---------------------------------------------------------------------------
 // The brief's four cases.
@@ -134,6 +161,9 @@ test('researchSweep records unavailable sources instead of failing silently', as
   })
   const r = await createResearchTool(state).execute({ topics: ['skillek'] }, { session: {}, message: '' })
   assert.deepEqual(r.unavailable, ['github'])
+  // github failed a request it made, it was not left unable to ask at all --
+  // notAsked names none of the sources on unavailable.
+  assert.deepEqual(r.notAsked, [])
   assert.match(repo.latestSweep(RESEARCH_KIND).note, /github/)
 })
 
@@ -261,6 +291,8 @@ test('a topic Reddit could not be asked for is named unavailable, not recorded a
 
   assert.equal(calls.reddit, 0)
   assert.deepEqual(r.unavailable, ['reddit'])
+  // Reddit was never asked at all -- notAsked names it too, not just unavailable.
+  assert.deepEqual(r.notAsked, ['reddit'])
   // Hacker News answered and its candidate is kept: this is a run that read two
   // hosts, not a failed one.
   assert.deepEqual(r.candidates.map((c) => c.id), ['hn:1'])
@@ -268,6 +300,33 @@ test('a topic Reddit could not be asked for is named unavailable, not recorded a
   const row = repo.latestSweep(RESEARCH_KIND)
   assert.equal(row.note, 'unavailable=reddit; unasked=reddit')
   assert.equal(row.finished_at, null)
+})
+
+test('the same unavailable host name is two different facts: rate limited stays off notAsked, never asked lands on it', async () => {
+  // Measured, same topic, same HN/GitHub answers: a rate-limited Reddit and a
+  // Reddit this run could not put its question to both land on `unavailable`
+  // with the name "reddit" -- the tool result would be identical in both cases
+  // without `notAsked`. The two facts imply different operator actions: wait
+  // and retry, versus edit research_topics.json and stop naming that subreddit.
+  const answerOthers = (u) => (String(u).includes('reddit.com') ? null : json({ hits: [hit()], items: [] }))
+
+  const { createResearchTool: rateLimitedTool } = await researchOver({ days: 30, topics: [{ key: 'k', hu: 'K', query: 'q', subreddits: 'mcp' }] })
+  const { repo: rateLimitedRepo } = freshRepo()
+  const rateLimited = await rateLimitedTool(toolState({
+    repo: rateLimitedRepo,
+    fetchImpl: async (u) => answerOthers(u) ?? json({ message: 'Too Many Requests' }, 429),
+  })).execute({})
+  assert.deepEqual(rateLimited.unavailable, ['reddit'])
+  assert.deepEqual(rateLimited.notAsked, [])
+
+  const { createResearchTool: neverAskedTool } = await researchOver({ days: 30, topics: [{ key: 'k', hu: 'K', query: 'q', subreddits: 'r/mcp' }] })
+  const { repo: neverAskedRepo } = freshRepo()
+  const neverAsked = await neverAskedTool(toolState({
+    repo: neverAskedRepo,
+    fetchImpl: async (u) => answerOthers(u) ?? Promise.reject(new Error('a subreddit that was refused must not be asked')),
+  })).execute({})
+  assert.deepEqual(neverAsked.unavailable, ['reddit'])
+  assert.deepEqual(neverAsked.notAsked, ['reddit'])
 })
 
 test('a subreddit list problem in one topic does not stop Reddit being asked about the next one', async () => {
@@ -287,6 +346,9 @@ test('a subreddit list problem in one topic does not stop Reddit being asked abo
   assert.equal(calls.reddit, 1)
   assert.deepEqual(r.candidates.map((c) => c.topic), ['good'])
   assert.deepEqual(r.unavailable, ['reddit'])
+  // Reddit was not fully asked -- the 'bad' topic's list never resolved -- even
+  // though it did answer for 'good', so it is on notAsked too.
+  assert.deepEqual(r.notAsked, ['reddit'])
 })
 
 test('a run that asked nobody anything is a failed sweep, even with no host that failed a request', async () => {
@@ -298,6 +360,9 @@ test('a run that asked nobody anything is a failed sweep, even with no host that
   assert.equal(r.error.code, 'research_http_error')
   assert.match(r.error.message, /no research source answered: reddit, hn, github/)
   assert.equal(repo.latestSweep(RESEARCH_KIND).ok, 0)
+  // The topic names no subreddits at all, so Reddit was never asked -- that is
+  // on a failed sweep's notAsked too, not just its unavailable.
+  assert.deepEqual(r.notAsked, ['reddit'])
 })
 
 // ---------------------------------------------------------------------------
@@ -472,6 +537,9 @@ test('a run whose time budget is spent stops asking and says which host it did n
   const r = await createResearchTool(state).execute({ topics: ['skillek'] })
   assert.equal(r.error.code, 'research_timeout')
   assert.deepEqual(r.unavailable, ['reddit', 'hn', 'github'])
+  // Each host failed a request the run made -- the budget firing is not the
+  // same fact as a topic this run could not ask in full.
+  assert.deepEqual(r.notAsked, [])
 })
 
 // ---------------------------------------------------------------------------
@@ -488,6 +556,8 @@ test('one host down does not stop the other two, and the run says which one it w
   })
   const r = await createResearchTool(state).execute({ topics: ['skillek'] })
   assert.deepEqual(r.unavailable, ['reddit'])
+  // A rate limit is a failed request, not a topic Reddit could not be asked.
+  assert.deepEqual(r.notAsked, [])
   assert.deepEqual(r.candidates.map((c) => c.source).sort(), ['github', 'hn'])
   assert.match(repo.latestSweep(RESEARCH_KIND).note, /unavailable=reddit/)
 })
@@ -514,6 +584,8 @@ test('all three hosts down is a failed sweep, not a clean run that found nothing
   assert.equal(r.error.code, 'research_http_error')
   assert.deepEqual(r.candidates, [])
   assert.deepEqual(r.unavailable, ['reddit', 'hn', 'github'])
+  // All three failed requests they made -- none of them was left unable to ask.
+  assert.deepEqual(r.notAsked, [])
   const row = repo.latestSweep(RESEARCH_KIND)
   assert.equal(row.ok, 0)
   assert.ok(row.finished_at)
@@ -540,6 +612,9 @@ test('a host that answered before it failed keeps what it answered, and the run 
   assert.equal(r.error, undefined)
   assert.deepEqual(r.candidates.map((c) => c.id), ['reddit:r1'])
   assert.deepEqual(r.unavailable, ['reddit', 'hn', 'github'])
+  // Every one of them failed a request it made, Reddit included -- none was
+  // left unable to ask, so notAsked names none of them.
+  assert.deepEqual(r.notAsked, [])
   const row = repo.latestSweep(RESEARCH_KIND)
   assert.equal(row.ok, 1)
   assert.equal(row.finished_at, null)
