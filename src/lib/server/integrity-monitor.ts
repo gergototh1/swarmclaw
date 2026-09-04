@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { DATA_DIR } from './data-dir'
+import { EXTENSIONS_DIR, resolveExtensionSourcePath } from './extensions/extension-source-paths'
 import { resolveOpenClawWorkspace } from './openclaw/sync'
 import { loadIntegrityBaselines, saveIntegrityBaselines } from './storage'
 
@@ -94,13 +95,19 @@ function collectWatchTargets(): WatchTarget[] {
   pushIfExists(targets, path.join(DATA_DIR, 'extensions.json'), 'config')
   // Also check legacy path for backward compat
   pushIfExists(targets, path.join(DATA_DIR, 'plugins.json'), 'config')
-  const extensionDir = path.join(DATA_DIR, 'extensions')
+  const extensionDir = EXTENSIONS_DIR
   const legacyExtensionDir = path.join(DATA_DIR, 'plugins')
   const extDir = fs.existsSync(extensionDir) ? extensionDir : fs.existsSync(legacyExtensionDir) ? legacyExtensionDir : null
   if (extDir) {
     for (const entry of fs.readdirSync(extDir)) {
       if (!entry.endsWith('.js') && !entry.endsWith('.mjs') && !entry.endsWith('.cjs')) continue
       pushIfExists(targets, path.join(extDir, entry), 'extension')
+      // The file above is a generated shim for a workspace-backed extension,
+      // and its content never changes however much the extension does. Watching
+      // it alone means the code the host actually imports is unmonitored, which
+      // is the opposite of what a tamper monitor is for. Duplicate paths are
+      // collapsed at the end, so a plain extension costs nothing here.
+      if (extDir === extensionDir) pushIfExists(targets, resolveExtensionSourcePath(entry), 'extension')
     }
   }
 

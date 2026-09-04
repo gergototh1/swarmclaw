@@ -457,9 +457,15 @@ export interface Extension {
   setupChecks?: ExtensionSetupCheckDeclaration[]
   /**
    * Runs on every load and every reload, after the migrations, and must be
-   * idempotent. Reloads are frequent: any write under `data/extensions` trips
-   * the watcher, and saveExtensionSource, setEnabled and deleteExtension each
-   * reload explicitly, so in development setup() runs again on every file save.
+   * idempotent. Reloads are frequent: saveExtensionSource, setEnabled,
+   * deleteExtension and updateExtension each reload explicitly, and the host
+   * watches both files that can hold an extension's source -- the top-level
+   * `data/extensions/<name>` file and, for a workspace-backed extension, the
+   * `data/extensions/.workspaces/<key>/index.js` the loader actually imports.
+   * Anything else under `data/extensions`, a workspace `package.json` or its
+   * `node_modules` included, does not trip a watcher. So in development setup()
+   * runs again on every source save, twice per save in fact: once for the
+   * explicit reload and once for the watcher's debounced one.
    * Capturing `ctx.storage` is fine; starting a timer, a listener or a
    * subscription here leaks one per reload unless setup() clears the previous
    * one itself.

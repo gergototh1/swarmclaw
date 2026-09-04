@@ -584,3 +584,280 @@ describe('extension manager hook execution', () => {
     assert.equal(await manager.deleteExtension(filename), true)
   })
 })
+
+/**
+ * The four defects this block pins all live in the manager: which file an
+ * update writes, which file the watcher observes, what a shim contains, and
+ * which of two overlapping reloads wins.
+ *
+ * They run under `node --import tsx`, like every other manager test here, and
+ * that is a deliberate split rather than an oversight. tsx transpiles the
+ * extension sources below before Node sees them, so nothing here is evidence
+ * about how the shipped module system treats an ESM extension -- that half is
+ * pinned on plain Node and on Electron's embedded Node by
+ * `extensions/extension-module-loader.test.ts`, which drives the loader's own
+ * source with no tsx in the way. The manager cannot be driven that way: its
+ * import chain opens the SQLite database, and this repo builds the native
+ * binding for Node, not for Electron's ABI. What is asserted here is manager
+ * behaviour -- path resolution, watcher coverage, reload ordering -- which does
+ * not depend on the module system underneath.
+ */
+describe('extension manager source paths, reloads and watchers', () => {
+  it('lands an update on the file a workspace-backed extension actually runs', () => {
+    // The regression: updateExtension wrote the download into
+    // data/extensions/<name>, which for a workspace-backed extension is only a
+    // generated shim. The old workspace entry kept running while the recorded
+    // hash and the API response both said the update had landed.
+    const out = runWithTempDataDir<{
+      before: string
+      after: string
+      shown: string
+      shimIsStillAShim: boolean
+      recordedHashMatchesRunningCode: boolean
+      requestedUrl: string
+    }>(`
+      import fs from 'node:fs'
+      import path from 'node:path'
+      import crypto from 'node:crypto'
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const m = getExtensionManager()
+
+      const source = (tag) => \`
+        export default {
+          name: 'Update Probe',
+          tools: [{ name: 'update_probe', description: 'x', parameters: { type: 'object', properties: {} }, execute: () => '\${tag}' }],
+        }\`
+
+      // A package.json is what moves an extension into a managed workspace and
+      // leaves a shim in the extensions directory behind it.
+      await m.saveExtensionSource('update_probe.mjs', source('v1'), {
+        packageJson: { name: 'update-probe', type: 'module' },
+      })
+
+      const call = async () => {
+        const entry = m.getTools(['update_probe.mjs']).find((t) => t.tool.name === 'update_probe')
+        return entry ? String(await entry.tool.execute({}, { session: {}, message: '' })) : 'missing'
+      }
+      const before = await call()
+
+      const url = 'https://extensions.example.test/update_probe.mjs'
+      m.setMeta('update_probe.mjs', { sourceUrl: url })
+
+      // A stub, not a request: the manager's download path is global fetch, and
+      // this test must not reach the network.
+      let requestedUrl = ''
+      const downloaded = source('v2')
+      globalThis.fetch = async (input) => {
+        requestedUrl = String(input)
+        return new Response(downloaded, { headers: { 'content-type': 'application/javascript' } })
+      }
+
+      await m.updateExtension('update_probe.mjs')
+
+      const after = await call()
+      const shown = m.readExtensionSource('update_probe.mjs')
+      const shim = fs.readFileSync(path.join(process.env.DATA_DIR, 'extensions', 'update_probe.mjs'), 'utf8')
+      const config = JSON.parse(fs.readFileSync(path.join(process.env.DATA_DIR, 'extensions.json'), 'utf8'))
+      const recorded = (config['update_probe.mjs'] || {}).sourceHash
+      const runningHash = crypto.createHash('sha256').update(shown).digest('hex')
+
+      console.log(JSON.stringify({
+        before,
+        after,
+        shown,
+        shimIsStillAShim: shim.includes('Auto-generated extension workspace shim') && !shim.includes('Update Probe'),
+        recordedHashMatchesRunningCode: recorded === runningHash,
+        requestedUrl,
+      }))
+    `)
+
+    assert.equal(out.requestedUrl, 'https://extensions.example.test/update_probe.mjs')
+    assert.equal(out.before, 'v1')
+    assert.equal(out.after, 'v2', 'the update must take effect, not just be recorded')
+    assert.equal(out.shown.includes('v2'), true, 'readExtensionSource must show the code that is running')
+    assert.equal(out.shimIsStillAShim, true, 'the extensions-dir file stays a shim rather than becoming a second copy of the source')
+    assert.equal(
+      out.recordedHashMatchesRunningCode,
+      true,
+      'the recorded sourceHash must describe the code the host is actually running',
+    )
+  })
+
+  it('installs the newest generation when two reloads overlap, and runs no setup() for a generation that never lands', () => {
+    // Reloads used to bump the generation up front and then install by
+    // completion order, so a slow older generation could land after a fast
+    // newer one and serve stale code, with the newer generation's setup()
+    // already run against a module instance the host then dropped.
+    //
+    // The probe makes the inversion deterministic rather than hoping for it:
+    // every evaluation of the extension takes the next ordinal from a file, and
+    // the second evaluation -- the one the first reload triggers -- stalls for
+    // 300ms while the second reload's evaluation runs to completion.
+    const out = runWithTempDataDir<{
+      initial: string
+      afterRace: string
+      setupOrdinals: number[]
+    }>(`
+      import fs from 'node:fs'
+      import path from 'node:path'
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+
+      const dataDir = process.env.DATA_DIR
+      const ordinalFile = path.join(dataDir, 'race-evaluations')
+      const setupLog = path.join(dataDir, 'race-setups')
+      const extensionsDir = path.join(dataDir, 'extensions')
+      fs.mkdirSync(extensionsDir, { recursive: true })
+
+      // Written straight to disk: saveExtensionSource would reload on the way
+      // out and trip the watcher, and the counts below have to come only from
+      // the two reloads this test issues.
+      const source = [
+        "import fs from 'node:fs'",
+        "const ordinalFile = " + JSON.stringify(ordinalFile),
+        "const setupLog = " + JSON.stringify(setupLog),
+        "const ordinal = (fs.existsSync(ordinalFile) ? Number(fs.readFileSync(ordinalFile, 'utf8')) : 0) + 1",
+        "fs.writeFileSync(ordinalFile, String(ordinal))",
+        "if (ordinal === 2) await new Promise((resolve) => setTimeout(resolve, 300))",
+        "export default {",
+        "  name: 'Race Probe',",
+        "  setup() { fs.appendFileSync(setupLog, ordinal + '\\\\n') },",
+        "  tools: [{ name: 'race_probe', description: 'x', parameters: { type: 'object', properties: {} }, execute: () => String(ordinal) }],",
+        "}",
+      ].join('\\n')
+      fs.writeFileSync(path.join(extensionsDir, 'race_probe.mjs'), source)
+
+      const m = getExtensionManager()
+      await m.ensureLoaded()
+      const call = async () => {
+        const entry = m.getTools(['race_probe.mjs']).find((t) => t.tool.name === 'race_probe')
+        return entry ? String(await entry.tool.execute({}, { session: {}, message: '' })) : 'missing'
+      }
+      const initial = await call()
+
+      const first = m.reload()
+      const second = m.reload()
+      await Promise.all([first, second])
+
+      const afterRace = await call()
+      const setupOrdinals = fs.readFileSync(setupLog, 'utf8').trim().split('\\n').map(Number)
+      console.log(JSON.stringify({ initial, afterRace, setupOrdinals }))
+    `)
+
+    assert.equal(out.initial, '1', 'the probe must load once before the race')
+    const highestSetup = Math.max(...out.setupOrdinals)
+    assert.equal(out.setupOrdinals.length, 3, 'one setup() per load: the initial load and the two reloads')
+    assert.equal(
+      Number(out.afterRace),
+      highestSetup,
+      'the live extension must be the newest generation that ran setup(), not whichever reload finished first',
+    )
+    assert.equal(out.afterRace, '3', 'the reload issued last must be the one that lands')
+  })
+
+  it('reloads when the managed workspace entry is edited on disk', () => {
+    // The extensions-directory watcher is non-recursive and filtered to
+    // .js/.mjs basenames, so it never saw a write under
+    // extensions/.workspaces/<key>/ -- which since the loader started importing
+    // the workspace entry is the file that decides what runs.
+    const out = runWithTempDataDir<{ before: string; afterWorkspaceEdit: string }>(`
+      import fs from 'node:fs'
+      import path from 'node:path'
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const m = getExtensionManager()
+      const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+      const source = (tag) => \`
+        export default {
+          name: 'Workspace Watch Probe',
+          tools: [{ name: 'workspace_watch_probe', description: 'x', parameters: { type: 'object', properties: {} }, execute: () => '\${tag}' }],
+        }\`
+
+      await m.saveExtensionSource('workspace_watch_probe.mjs', source('first'), {
+        packageJson: { name: 'workspace-watch-probe', type: 'module' },
+      })
+      const call = async () => {
+        const entry = m.getTools(['workspace_watch_probe.mjs']).find((t) => t.tool.name === 'workspace_watch_probe')
+        return entry ? String(await entry.tool.execute({}, { session: {}, message: '' })) : 'missing'
+      }
+      // Let the save's own debounced watcher reload settle, so what follows is
+      // caused by the workspace edit alone.
+      await wait(600)
+      const before = await call()
+
+      const entryPath = path.join(dataDirWorkspace(), 'index.js')
+      fs.writeFileSync(entryPath, source('second'))
+      await wait(900)
+      const afterWorkspaceEdit = await call()
+
+      console.log(JSON.stringify({ before, afterWorkspaceEdit }))
+
+      function dataDirWorkspace() {
+        return path.join(process.env.DATA_DIR, 'extensions', '.workspaces', 'workspace_watch_probe_mjs')
+      }
+    `)
+
+    assert.equal(out.before, 'first')
+    assert.equal(
+      out.afterWorkspaceEdit,
+      'second',
+      'editing the workspace entry the loader imports must trip the watcher',
+    )
+  })
+
+  it('writes a workspace shim in the module format its own filename implies', () => {
+    // The shim is not on the load path any more, but its format still has to be
+    // valid: `module.exports = require(...)` in an .mjs file is a syntax error,
+    // and it used to overwrite the correct ESM shim an extension's own
+    // installer had written.
+    const out = runWithTempDataDir<{
+      esmShim: string
+      cjsShim: string
+      esmImported: string
+      cjsRequired: string
+    }>(`
+      import path from 'node:path'
+      import fs from 'node:fs'
+      import { createRequire } from 'node:module'
+      import { pathToFileURL } from 'node:url'
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const m = getExtensionManager()
+
+      await m.saveExtensionSource(
+        'shim_probe.mjs',
+        "export default { name: 'ESM Shim Probe', tools: [] }",
+        { packageJson: { name: 'shim-probe-esm', type: 'module' } },
+      )
+      await m.saveExtensionSource(
+        'shim_probe.js',
+        "module.exports = { name: 'CJS Shim Probe', tools: [] }",
+        { packageJson: { name: 'shim-probe-cjs' } },
+      )
+
+      const extensionsDir = path.join(process.env.DATA_DIR, 'extensions')
+      const esmShimPath = path.join(extensionsDir, 'shim_probe.mjs')
+      const cjsShimPath = path.join(extensionsDir, 'shim_probe.js')
+
+      // Loaded, not just pattern-matched: an invalid shim throws here.
+      const esmNamespace = await import(pathToFileURL(esmShimPath).href)
+      const nodeRequire = createRequire(path.join(extensionsDir, 'noop.js'))
+      const cjsExport = nodeRequire(cjsShimPath)
+
+      console.log(JSON.stringify({
+        esmShim: fs.readFileSync(esmShimPath, 'utf8'),
+        cjsShim: fs.readFileSync(cjsShimPath, 'utf8'),
+        esmImported: esmNamespace.default.name,
+        cjsRequired: cjsExport.name,
+      }))
+    `)
+
+    assert.equal(out.esmShim.includes('export { default } from'), true, 'an .mjs shim must be ESM')
+    assert.equal(out.esmShim.includes('module.exports'), false, 'an .mjs shim must not contain CommonJS')
+    assert.equal(out.cjsShim.includes('module.exports = require('), true, 'a .js shim stays CommonJS')
+    assert.equal(out.esmImported, 'ESM Shim Probe')
+    assert.equal(out.cjsRequired, 'CJS Shim Probe')
+  })
+})

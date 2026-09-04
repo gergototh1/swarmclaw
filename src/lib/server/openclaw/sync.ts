@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { DATA_DIR } from '../data-dir'
+import { EXTENSIONS_DIR, resolveExtensionSourcePath } from '../extensions/extension-source-paths'
 import { normalizeOpenClawAgentId } from '@/lib/openclaw/openclaw-agent-id'
 import { loadAgents, upsertAgent } from '@/lib/server/agents/agent-repository'
 import { decryptKey, encryptKey, loadCredentials, saveCredentials } from '@/lib/server/credentials/credential-repository'
@@ -394,16 +395,21 @@ export function syncExtensionsFromOpenClaw(): { imported: number } {
   const openclawExtensionDir = path.join(config.workspacePath, 'plugins')
   if (!fs.existsSync(openclawExtensionDir)) return { imported: 0 }
 
-  const localExtensionDir = path.join(DATA_DIR, 'extensions')
+  const localExtensionDir = EXTENSIONS_DIR
   ensureDir(localExtensionDir)
 
   const files = fs.readdirSync(openclawExtensionDir).filter((f) => f.endsWith('.js'))
   const existingHashes = new Set<string>()
-  // Hash existing local extensions
+  // Hash existing local extensions, by their source rather than by the file in
+  // the extensions directory. For a workspace-backed extension that file is a
+  // generated shim whose content is the same few lines for every extension, so
+  // hashing it compares shims to each other and lets an OpenClaw plugin the
+  // host already has be imported again under a second name.
   if (fs.existsSync(localExtensionDir)) {
     for (const f of fs.readdirSync(localExtensionDir).filter((f) => f.endsWith('.js'))) {
-      const content = fs.readFileSync(path.join(localExtensionDir, f), 'utf8')
-      existingHashes.add(contentHash(content))
+      const sourcePath = resolveExtensionSourcePath(f)
+      if (!fs.existsSync(sourcePath)) continue
+      existingHashes.add(contentHash(fs.readFileSync(sourcePath, 'utf8')))
     }
   }
 

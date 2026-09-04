@@ -63,10 +63,17 @@ export const EXTENSION_GENERATION_QUERY = 'swarmclawExtensionGeneration'
  *    dependencies are not what the operator edited, and re-executing them per
  *    reload would both widen the leak below and re-run whatever global setup a
  *    package does at import time. They stay shared across generations, exactly
- *    as they are shared with the host.
+ *    as they are shared with the host. `evictExtensionCommonJsCache` skips
+ *    `node_modules` for the same reason, so the rule holds in both module
+ *    formats rather than only in ESM.
  *
- * The hook is inert for every module in the process that is not reached from a
- * generation-stamped parent, which is everything except extension code.
+ * What the hook does not do is bound the stamp to the extension's own tree. It
+ * stamps whatever a stamped parent resolves to, so an extension that imported a
+ * file from outside `data/extensions` would get a fresh copy of that file, and
+ * of everything it imports, per reload. No shipped extension does this and
+ * nothing in the host hands one such a path, but the limit is real: this hook
+ * is inert only for modules never reached from a generation-stamped parent, not
+ * for everything outside the extension directory.
  */
 const RESOLVE_HOOKS_SOURCE = `
 const KEY = ${JSON.stringify(EXTENSION_GENERATION_QUERY)}
@@ -152,8 +159,8 @@ function dynamicImport(url: string): Promise<Record<string, unknown>> {
  * enabling, disabling or deleting an extension, or a write the extensions
  * directory watcher sees -- not per request, so the count grows with operator
  * actions rather than with traffic. `node_modules` is excluded from stamping
- * above, so an extension's dependencies are imported once for the process no
- * matter how often it reloads.
+ * above and from the CommonJS eviction below, so an extension's dependencies
+ * are imported once for the process no matter how often it reloads.
  */
 export async function importExtensionModule(filePath: string, generation: number): Promise<Record<string, unknown>> {
   ensureExtensionResolveHooks()
@@ -187,8 +194,8 @@ export function moduleCacheKey(target: string): string {
 }
 
 /**
- * Evicts a CommonJS extension, and everything loaded out of its workspace, from
- * `require.cache`.
+ * Evicts a CommonJS extension, and the workspace files it loaded, from
+ * `require.cache`. Its `node_modules` are deliberately left in place.
  *
  * Still needed after the move to `import()`. Importing a CommonJS file goes
  * through Node's CommonJS loader underneath, which keeps its own realpath-keyed
@@ -197,6 +204,19 @@ export function moduleCacheKey(target: string): string {
  * entry is evicted first. Measured on both runtimes -- with this eviction a
  * CommonJS extension and its workspace files re-execute per generation, without
  * it neither does.
+ *
+ * `node_modules` is skipped so that the two module formats agree. The resolve
+ * hook above does not stamp a dependency, so an ESM extension's dependencies
+ * are evaluated once per process; sweeping them out of `require.cache` here
+ * made a CommonJS extension's dependencies re-execute on *every* reload
+ * instead, which is measurably worse than a stale copy: a connection pool, a
+ * process listener or a native binding created at a package's import time was
+ * created again per reload, with the previous one still registered and now
+ * unreachable. The cost of skipping them is that a dependency changed on disk
+ * -- upgraded through `installExtensionDependencies`, or edited inside
+ * `node_modules` -- is not picked up until the process restarts. That was
+ * already true for every ESM extension; it is now true for both, which is what
+ * the extension-facing documentation says.
  *
  * Node keys that cache by the *resolved realpath* of a module, not by the path
  * the caller handed to `require()`, so the eviction key has to be realpath'd to
@@ -237,9 +257,10 @@ export function evictExtensionCommonJsCache(
   const isWithinRoot =
     containerDir === containerRoot || containerDir.startsWith(`${containerRoot}${path.sep}`)
   if (!isWithinRoot) return
+  const nodeModulesSegment = `${path.sep}node_modules${path.sep}`
   for (const cacheKey of Object.keys(moduleCache)) {
-    if (cacheKey.startsWith(`${containerDir}${path.sep}`)) {
-      delete moduleCache[cacheKey]
-    }
+    if (!cacheKey.startsWith(`${containerDir}${path.sep}`)) continue
+    if (cacheKey.slice(containerDir.length).includes(nodeModulesSegment)) continue
+    delete moduleCache[cacheKey]
   }
 }

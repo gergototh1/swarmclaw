@@ -72,6 +72,7 @@ interface LoadResult {
   tag: string
   entryRuns: number
   depRuns: number
+  pkgRuns: number
 }
 
 interface DriverOutput {
@@ -84,14 +85,23 @@ interface DriverOutput {
 
 /**
  * Builds two extensions in the child's data directory -- one ESM, one CommonJS,
- * each with the entry importing a second file -- loads both, edits the *imported*
- * file on disk, and loads both again under the next generation.
+ * each with the entry importing a second file and a package out of its own
+ * `node_modules` -- loads both, edits the *imported* file on disk, and loads
+ * both again under the next generation.
  *
  * Editing the imported file rather than the entry is deliberate. A generation
  * stamp on the entry URL alone re-executes the entry and nothing it imports,
  * which is where every real extension keeps its code; a test that only edited
  * the entry would pass against a loader that cannot pick up an edit that
  * matters.
+ *
+ * The `node_modules` package is there for the opposite property. A dependency
+ * must be evaluated once per process however often the extension reloads, in
+ * both module formats: the resolve hook refuses to stamp it, and the CommonJS
+ * eviction refuses to sweep it, because re-running a package's import-time
+ * global setup per reload creates a second connection pool, a second process
+ * listener or a second native binding with the first still registered. The
+ * counter below is what makes that claim checkable on the runtimes that ship.
  */
 const DRIVER_SCRIPT = `
 import fs from 'node:fs'
@@ -105,20 +115,31 @@ const nodeRequire = createRequire(path.join(root, 'noop.js'))
 function writeExtension(kind, tag) {
   const dir = path.join(root, kind)
   fs.mkdirSync(path.join(dir, 'src'), { recursive: true })
+  // Always CommonJS, and rewritten with the rest so that a stale copy cannot be
+  // what keeps the count at 1: the package is shared across generations because
+  // the loader refuses to re-evaluate it, not because nothing touched it.
+  const pkgDir = path.join(dir, 'node_modules', 'shared-pkg')
+  fs.mkdirSync(pkgDir, { recursive: true })
+  fs.writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify({ name: 'shared-pkg', main: 'index.js' }))
+  // Counted per extension and captured at evaluation time, so the number
+  // reported is the number of times *this* package was evaluated.
+  fs.writeFileSync(path.join(pkgDir, 'index.js'),
+    "const key = '__pkgRuns_' + " + JSON.stringify(kind) + '\\n'
+    + 'globalThis[key] = (globalThis[key] || 0) + 1\\nmodule.exports = { runs: globalThis[key] }\\n')
   if (kind === 'esm') {
     fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'esm-ext', type: 'module' }))
     fs.writeFileSync(path.join(dir, 'src', 'dep.mjs'),
       'globalThis.__esmDep = (globalThis.__esmDep || 0) + 1\\nexport const tag = ' + JSON.stringify(tag) + '\\n')
     fs.writeFileSync(path.join(dir, 'index.js'),
-      "import { tag } from './src/dep.mjs'\\nglobalThis.__esmEntry = (globalThis.__esmEntry || 0) + 1\\n"
-      + 'export default { name: "esm-extension", tag, entryRuns: globalThis.__esmEntry, depRuns: globalThis.__esmDep }\\n')
+      "import pkg from 'shared-pkg'\\nimport { tag } from './src/dep.mjs'\\nglobalThis.__esmEntry = (globalThis.__esmEntry || 0) + 1\\n"
+      + 'export default { name: "esm-extension", tag, entryRuns: globalThis.__esmEntry, depRuns: globalThis.__esmDep, pkgRuns: pkg.runs }\\n')
   } else {
     fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'cjs-ext' }))
     fs.writeFileSync(path.join(dir, 'src', 'dep.js'),
       'globalThis.__cjsDep = (globalThis.__cjsDep || 0) + 1\\nmodule.exports = { tag: ' + JSON.stringify(tag) + ' }\\n')
     fs.writeFileSync(path.join(dir, 'index.js'),
-      "const { tag } = require('./src/dep.js')\\nglobalThis.__cjsEntry = (globalThis.__cjsEntry || 0) + 1\\n"
-      + 'module.exports = { name: "cjs-extension", tag, entryRuns: globalThis.__cjsEntry, depRuns: globalThis.__cjsDep }\\n')
+      "const pkg = require('shared-pkg')\\nconst { tag } = require('./src/dep.js')\\nglobalThis.__cjsEntry = (globalThis.__cjsEntry || 0) + 1\\n"
+      + 'module.exports = { name: "cjs-extension", tag, entryRuns: globalThis.__cjsEntry, depRuns: globalThis.__cjsDep, pkgRuns: pkg.runs }\\n')
   }
   return path.join(dir, 'index.js')
 }
@@ -180,9 +201,16 @@ function assertLoadsAndReloads(output: DriverOutput): void {
     assert.equal(first.entryRuns, 1, `${kind}: entry must execute exactly once on first load`)
     assert.equal(first.depRuns, 1, `${kind}: imported file must execute exactly once on first load`)
 
+    assert.equal(first.pkgRuns, 1, `${kind}: a node_modules package executes once on first load`)
+
     assert.equal(second.tag, 'second', `${kind}: reload must pick up the edited imported file`)
     assert.equal(second.entryRuns, 2, `${kind}: reload must re-execute the entry`)
     assert.equal(second.depRuns, 2, `${kind}: reload must re-execute the imported file`)
+    assert.equal(
+      second.pkgRuns,
+      1,
+      `${kind}: a node_modules package must stay at one execution per process across reloads`,
+    )
   }
 }
 
