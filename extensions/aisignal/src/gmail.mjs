@@ -115,6 +115,22 @@ const pad2 = (n) => String(n).padStart(2, '0')
  * the cost is re-listing messages the caller already has ids for: at most 62
  * hours of them, from (D-2)T10:00Z to the latest instant day D can hold.
  *
+ * Why the granularity must not be tightened
+ * -----------------------------------------
+ * Gmail's `after:` also accepts epoch seconds, so "ask for the exact instant
+ * instead of over-widening by up to two days" reads as a free optimisation. It
+ * is not, and the timezone argument above is only the first reason. The second
+ * is the caller's frontier: `since` is a stored watermark a previous run
+ * earned, and a watermark is a single instant while a run is an interval. The
+ * sweep layer keeps the frontier no newer than the listing that earned it, and
+ * this coarse window is the margin on the other side -- it re-opens far enough
+ * back that a message which landed near the boundary, or a clock that moved
+ * between the two runs, is listed again rather than passed over. An exact
+ * `after:<frontier>` removes that margin, and what falls through it is not
+ * delayed but skipped: the caller's dedup cannot recover a message that was
+ * never listed. Erring wide costs a re-listing that lands on the dedup, which
+ * is why every bound in this function errs wide.
+ *
  * An absent or unparseable `since` yields an empty string, and the caller then
  * sends no `q` at all rather than a query that matches nothing.
  */

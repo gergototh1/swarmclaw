@@ -1,3 +1,4 @@
+import { MAIL_KIND, alreadyClosedMessage } from './db.mjs'
 import { createGmail, GmailError } from './gmail.mjs'
 
 /**
@@ -126,21 +127,28 @@ function resolveMax(fromArgs, fromSettings) {
  * The point every run resumes from. `null` is "the whole label", the widest
  * window there is and therefore the safe answer whenever nothing better is
  * known. Its invariant is one sentence: *everything older than the frontier has
- * been swept*.
+ * been swept* -- of this source, and of no other.
  *
- * It is a stored value in `ext_aisignal_frontier`, one row per source kind, and
- * it moves in exactly one place -- `finishSweep` in db.mjs, which copies the
- * closing sweep's `frontier_after` column into it. Nothing infers it, and this
- * file no longer reads `leftover`, `ok` or `note` to reconstruct it.
+ * It is a stored value in `ext_aisignal_frontier`, one row per source, where a
+ * source is a kind *and a label*: a sweep of one label proves nothing about
+ * another, and one shared row let a run that drained a quiet label stamp its
+ * `ran_at` onto the window a busy label resumed from. It moves in exactly one
+ * place -- `finishSweep` in db.mjs, which copies the closing sweep's
+ * `frontier_after` column into the row for that sweep's own kind and label.
+ * Nothing infers it, and this file no longer reads `leftover`, `ok` or `note`
+ * to reconstruct it.
  *
  * `frontier_after` is decided here, by `signalSweep`, at the moment the run
  * knows the answer, and written by `openSweep` before the agent is handed
  * anything:
  *
- *   drained     -- Gmail's walk finished (`listStoppedOn === null`) *and* every
- *                  fresh id it listed became a message (`leftover === 0`). The
- *                  run cleared its whole window, so `frontier_after` is the
- *                  run's own `ran_at`.
+ *   drained     -- Gmail's walk finished (`listed.truncated === false`, the one
+ *                  bit the client publishes for this) *and* every fresh id it
+ *                  listed became a message (`leftover === 0`). The run cleared
+ *                  its whole window, so `frontier_after` is the run's own
+ *                  `ran_at` -- which is taken *before* the listing, so nothing
+ *                  that arrived while the listing was in flight can end up
+ *                  below a frontier that never returned it.
  *   not drained -- the run left something behind, by either of the two ways a
  *                  run can. `leftover > 0` means it listed ids it did not
  *                  fetch, because the cap stopped it or a fetch failed. A
@@ -151,6 +159,11 @@ function resolveMax(fromArgs, fromSettings) {
  *                  amount still waiting behind the cut. Either way
  *                  `frontier_after` is the run's own `since`, so the next run
  *                  re-opens the same window and the backlog stays reachable.
+ *
+ * Where a reader looks: `frontier_after` is chosen at the end of `signalSweep`
+ * below and written by `openSweep`; the stored cell is written by `finishSweep`
+ * and read by `resolveSince`. Those are the only four places, and none of them
+ * consults a sweep row to find a frontier out.
  *
  * Why the frontier may not simply follow a completed run's `ran_at`: a run caps
  * how many messages it fetches, so "this run completed" and "this run swept
@@ -286,14 +299,19 @@ function handOver(m) {
  * something, `list_truncated=page_ceiling` means it buys the same slow walk --
  * and the failure code alone answers neither. `failSweep` appends to it.
  *
+ * `ranAt` is the run's own timestamp, taken before it asked Gmail for anything,
+ * so a failure sits in the history at the moment the run started. It cannot
+ * become a frontier from here -- see the next paragraph -- and is passed for the
+ * one reason every other opened row carries it: one run, one timestamp.
+ *
  * `drained` is deliberately not passed: a run that never completed a listing
  * proved nothing about its window, so the row carries the default
  * `frontier_after` and cannot move the frontier. `failSweep` also closes the
  * row, and `finishSweep` refuses an already-closed sweep, so the agent cannot
  * reopen this failure as a clean run either.
  */
-function failedSweep(repo, { label, since, code, message, skipped = 0, leftover = 0, listStoppedOn = null, fetchFailures = [], note = '' }) {
-  const { id } = repo.openSweep({ label, since, fetchedIds: [], skipped, leftover, note })
+function failedSweep(repo, { label, since, code, message, skipped = 0, leftover = 0, listStoppedOn = null, fetchFailures = [], note = '', ranAt }) {
+  const { id } = repo.openSweep({ label, since, fetchedIds: [], skipped, leftover, note, ranAt })
   repo.failSweep(id, code, message)
   return { sweepId: id, label, since, skipped, leftover, listStoppedOn, fetchFailures, messages: [], error: { code, message } }
 }
@@ -371,14 +389,33 @@ export function createSweepTools(state) {
         const settings = state.settings() || {}
         const label = String(args.label || settings.label || DEFAULT_LABEL)
 
+        /*
+         * The run's timestamp, taken before anything is asked of Gmail.
+         *
+         * A drained run's frontier is this value, and a frontier must never be
+         * newer than the listing it claims to describe: a newsletter that
+         * arrives while `listIds` is walking pages is not in what comes back,
+         * and a timestamp taken after the walk would put it below the frontier
+         * the run earns -- swept, according to the store, without ever having
+         * been listed. Taken here it lands above, so the next window still
+         * contains it. It costs one re-listing at most, which the dedup eats.
+         *
+         * Every sweep row this call opens carries it, so the failure rows sit
+         * in the history at the moment the run started rather than at the
+         * moment it gave up.
+         */
+        const ranAt = new Date().toISOString()
+
         let max
         let since
         try {
           max = resolveMax(args.maxMessages, settings.maxMessages)
-          since = resolveSince(args.sinceDays, repo.frontier('mail'))
+          // The frontier of this label, and of no other: another label's window
+          // says nothing about what this one still has waiting.
+          since = resolveSince(args.sinceDays, repo.frontier(MAIL_KIND, label))
         } catch (e) {
           if (!(e instanceof InputError)) throw e
-          return failedSweep(repo, { label, since: null, code: BAD_INPUT, message: e.message })
+          return failedSweep(repo, { label, since: null, code: BAD_INPUT, message: e.message, ranAt })
         }
 
         const gmail = gmailFor(state)
@@ -387,7 +424,7 @@ export function createSweepTools(state) {
           const labelId = await gmail.labelId(label)
           listed = await gmail.listIds({ labelId, since, max: LIST_BUDGET })
         } catch (e) {
-          return failedSweep(repo, { label, since, code: codeOf(e), message: e.message })
+          return failedSweep(repo, { label, since, code: codeOf(e), message: e.message, ranAt })
         }
 
         // The date window is deliberately too wide, so this dedup is not
@@ -452,7 +489,7 @@ export function createSweepTools(state) {
         // of a mailbox this run never managed to read.
         if (fresh.length > 0 && messages.length === 0 && fetchFailures.length > 0) {
           const first = fetchFailures[0]
-          return failedSweep(repo, { label, since, code: first.code, message: first.message, skipped: seen.size, leftover, listStoppedOn, fetchFailures, note })
+          return failedSweep(repo, { label, since, code: first.code, message: first.message, skipped: seen.size, leftover, listStoppedOn, fetchFailures, note, ranAt })
         }
 
         /*
@@ -464,10 +501,21 @@ export function createSweepTools(state) {
          * what `leftover = 0` meant. `openSweep` turns it into the row's
          * `frontier_after`, and closing the sweep copies that into the frontier;
          * see THE FRONTIER above.
+         *
+         * The listing half reads `truncated`, which the client publishes as the
+         * one bit every caller must respect, rather than re-deriving it from
+         * `stoppedOn`. The two agree only because the client nulls `stoppedOn`
+         * when nothing was cut off; a client that returned the raw stop reason
+         * -- it is already computed, so returning it is a plausible tidy-up --
+         * would make a walk that landed on the cap with the last page exhausted
+         * read as not drained here, and this file would be deriving the bit
+         * from a string the client says no caller should derive it from.
+         * Anything but an explicit `false` leaves the window open, which is the
+         * wide direction and the one this file is allowed to err in.
          */
-        const drained = listStoppedOn === null && leftover === 0
+        const drained = listed.truncated === false && leftover === 0
 
-        const { id } = repo.openSweep({ label, since, fetchedIds: messages.map((m) => m.id), skipped: seen.size, leftover, note, drained })
+        const { id } = repo.openSweep({ label, since, fetchedIds: messages.map((m) => m.id), skipped: seen.size, leftover, note, drained, ranAt })
         return { sweepId: id, label, since, skipped: seen.size, leftover, listStoppedOn, fetchFailures, messages }
       },
     },
@@ -508,7 +556,7 @@ export function createSweepTools(state) {
         const sweepId = String(a.sweepId ?? '')
         const sweep = repo.sweepById(sweepId)
         if (!sweep) throw new Error(`unknown sweep ${sweepId}`)
-        if (sweep.finished_at) throw new Error(`sweep ${sweepId} is already closed; open a new one with signalSweep`)
+        if (sweep.finished_at) throw new Error(alreadyClosedMessage(sweepId))
 
         const messageId = String(a.messageId ?? '').trim()
         if (!messageId) throw new Error('messageId is required')

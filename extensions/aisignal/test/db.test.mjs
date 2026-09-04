@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { MIGRATIONS, createRepo } from '../src/db.mjs'
+import { MAIL_KIND, MIGRATIONS, createRepo } from '../src/db.mjs'
 import { memStorage } from './helpers.mjs'
 
 /** A storage handle with the schema applied, plus the repository over it. */
@@ -50,11 +50,34 @@ test('an install that migrates onto the explicit frontier starts at the whole so
   for (const m of MIGRATIONS.slice(1)) s.raw.exec(m.sql)
   const after = createRepo(s)
 
-  assert.equal(after.frontier('mail'), null)
+  assert.equal(after.frontier('mail', 'x'), null)
   assert.equal(s.get('SELECT COUNT(*) AS c FROM ext_aisignal_frontier').c, 0)
   // The rows themselves survive, they just stop being the frontier's source.
   assert.equal(after.counts().sweeps, 1)
   assert.equal(s.get('SELECT frontier_after FROM ext_aisignal_sweeps WHERE id = ?', ['stale']).frontier_after, null)
+})
+
+test('an install that already holds a kind-keyed frontier row migrates to an empty label-keyed table', () => {
+  // Migration 3 re-keys the frontier on (kind, label), which SQLite cannot do
+  // in place, and it seeds nothing for the same reason migration 2 did not: the
+  // old row does not record which label earned it, and a value handed to the
+  // wrong label would be a frontier one sweep too new for that label, which
+  // skips its mail permanently. No row reads as null, null is the whole label,
+  // and the cost of that is one re-listing per label that lands on the dedup.
+  const s = memStorage()
+  s.raw.exec(MIGRATIONS[0].sql)
+  s.raw.exec(MIGRATIONS[1].sql)
+  s.exec('INSERT INTO ext_aisignal_frontier (kind, frontier, moved_at, sweep_id) VALUES (?,?,?,?)',
+    ['mail', '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z', 'old'])
+
+  for (const m of MIGRATIONS.slice(2)) s.raw.exec(m.sql)
+  const after = createRepo(s)
+
+  assert.equal(s.get('SELECT COUNT(*) AS c FROM ext_aisignal_frontier').c, 0)
+  assert.equal(after.frontier('mail', 'AI hirlevel'), null)
+  // The table really is the new shape, so the value cannot come back through a
+  // read that names only the kind.
+  assert.deepEqual(s.all('PRAGMA table_info(ext_aisignal_frontier)').map((c) => c.name), ['kind', 'label', 'frontier', 'moved_at', 'sweep_id'])
 })
 
 test('open -> insert -> finish marks seen and counts', () => {
@@ -138,14 +161,64 @@ test('sweeps of different kinds do not shadow each other', () => {
   assert.equal(r.latestSweep('mail').id, mail.id)
   assert.equal(r.latestSweep('web').id, web.id)
   assert.equal(r.latestSweep().id, mail.id)
-  assert.equal(r.frontier('mail'), '2026-09-01')
-  assert.equal(r.frontier('web'), '2026-09-02')
+  assert.equal(r.frontier('mail', 'mail'), '2026-09-01')
+  assert.equal(r.frontier('web', 'web'), '2026-09-02')
   assert.equal(r.latestSweep('rss'), null)
   // A kind that has never closed a sweep has no frontier row at all, which
   // reads as the whole source rather than as another kind's answer.
-  assert.equal(r.frontier('rss'), null)
+  assert.equal(r.frontier('rss', 'mail'), null)
+  // Nor does the label alone carry across kinds: same name, different source.
+  assert.equal(r.frontier('web', 'mail'), null)
   assert.equal(r.sweeps(10).length, 2)
   assert.equal(r.counts().sweeps, 2)
+})
+
+test('sweeps of different labels do not shadow each other either', () => {
+  // The same statement one source further out. Keyed on kind alone, the drained
+  // run of the quiet label below would have written its `ran_at` over the busy
+  // label's window, and the busy label's backlog -- older than that value and
+  // outside anything sinceQuery reopens -- would never be listed again.
+  const { storage, repo: r } = freshWithStorage()
+  const busy = r.openSweep({ label: 'AI hirlevel', since: '2026-09-01', fetchedIds: ['m1'], skipped: 0, leftover: 4 })
+  r.finishSweep({ sweepId: busy.id, ok: true, note: '' })
+
+  const quiet = r.openSweep({ label: 'Csendes', since: null, fetchedIds: [], skipped: 0, leftover: 0, drained: true })
+  const quietRanAt = storage.get('SELECT ran_at FROM ext_aisignal_sweeps WHERE id = ?', [quiet.id]).ran_at
+  r.finishSweep({ sweepId: quiet.id, ok: true, note: '' })
+
+  assert.equal(r.frontier(MAIL_KIND, 'Csendes'), quietRanAt)
+  assert.equal(r.frontier(MAIL_KIND, 'AI hirlevel'), '2026-09-01')
+  // A label nobody has swept has no row, which is the whole label rather than
+  // some other label's answer.
+  assert.equal(r.frontier(MAIL_KIND, 'Harmadik'), null)
+  assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_frontier').c, 2)
+
+  // And the busy label's own next close still moves its own row, and only its
+  // own row.
+  const again = r.openSweep({ label: 'AI hirlevel', since: '2026-09-01', fetchedIds: ['m2'], skipped: 0, leftover: 0, drained: true })
+  const againRanAt = storage.get('SELECT ran_at FROM ext_aisignal_sweeps WHERE id = ?', [again.id]).ran_at
+  r.finishSweep({ sweepId: again.id, ok: true, note: '' })
+  assert.equal(r.frontier(MAIL_KIND, 'AI hirlevel'), againRanAt)
+  assert.equal(r.frontier(MAIL_KIND, 'Csendes'), quietRanAt)
+})
+
+test('openSweep takes the run timestamp its caller stamped', () => {
+  // A drained run's frontier is its `ran_at`, and signalSweep takes that value
+  // before it asks Gmail for anything, so the frontier can never be newer than
+  // the listing it describes. The row has to carry the caller's value rather
+  // than a fresh one taken here, or the timestamp moves back to after the
+  // listing and mail that arrived during it lands below the frontier.
+  const r = fresh()
+  const stamped = '2026-09-01T00:00:00.000Z'
+  const { id } = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0, drained: true, ranAt: stamped })
+  assert.equal(r.sweepById(id).ran_at, stamped)
+  assert.equal(r.sweepById(id).frontier_after, stamped)
+  r.finishSweep({ sweepId: id, ok: true, note: '' })
+  assert.equal(r.frontier(MAIL_KIND, 'x'), stamped)
+
+  // A caller with no listing behind it says nothing and gets this moment.
+  const plain = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  assert.equal(r.sweepById(plain.id).ran_at > stamped, true)
 })
 
 test('finishSweep refuses a sweep that is already closed', () => {
@@ -165,7 +238,7 @@ test('finishSweep refuses a sweep that is already closed', () => {
   assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_seen').c, 2)
   assert.equal(r.counts().seen, 2)
   assert.notEqual(r.latestSweep().finished_at, null)
-  assert.equal(r.frontier('mail'), '2026-09-01')
+  assert.equal(r.frontier('mail', 'x'), '2026-09-01')
 })
 
 test('a failed sweep cannot be reopened as a clean one by closing it', () => {
@@ -178,13 +251,13 @@ test('a failed sweep cannot be reopened as a clean one by closing it', () => {
   const r = fresh()
   const backlog = r.openSweep({ label: 'x', since: '2026-08-25T00:00:00.000Z', fetchedIds: [], skipped: 0, leftover: 7 })
   r.finishSweep({ sweepId: backlog.id, ok: true, note: '' })
-  assert.equal(r.frontier('mail'), '2026-08-25T00:00:00.000Z')
+  assert.equal(r.frontier('mail', 'x'), '2026-08-25T00:00:00.000Z')
 
   const failed = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
   r.failSweep(failed.id, 'gmail_label_missing', 'no Gmail label named "AI hirlevel"')
 
   assert.throws(() => r.finishSweep({ sweepId: failed.id, ok: true, note: '' }), /already closed/)
-  assert.equal(r.frontier('mail'), '2026-08-25T00:00:00.000Z')
+  assert.equal(r.frontier('mail', 'x'), '2026-08-25T00:00:00.000Z')
   assert.equal(r.latestSweep().ok, 0)
 })
 
@@ -205,20 +278,20 @@ test('a failed sweep carries no frontier a successful close could hand over', ()
   r.finishSweep({ sweepId: failed.id, ok: true, note: '' })
 
   const ranAt = storage.get('SELECT ran_at FROM ext_aisignal_sweeps WHERE id = ?', [failed.id]).ran_at
-  assert.equal(r.frontier('mail'), '2026-08-25T00:00:00.000Z')
-  assert.notEqual(r.frontier('mail'), ranAt)
+  assert.equal(r.frontier('mail', 'x'), '2026-08-25T00:00:00.000Z')
+  assert.notEqual(r.frontier('mail', 'x'), ranAt)
 })
 
 test('a drained run hands the frontier its ran_at and a run that left something behind hands its since', () => {
   const { storage, repo: r } = freshWithStorage()
   const held = r.openSweep({ label: 'x', since: '2026-09-01', fetchedIds: [], skipped: 0, leftover: 4 })
   r.finishSweep({ sweepId: held.id, ok: true, note: '' })
-  assert.equal(r.frontier('mail'), '2026-09-01')
+  assert.equal(r.frontier('mail', 'x'), '2026-09-01')
 
   const cleared = r.openSweep({ label: 'x', since: '2026-09-01', fetchedIds: ['m1'], skipped: 0, leftover: 0, drained: true })
   const ranAt = storage.get('SELECT ran_at FROM ext_aisignal_sweeps WHERE id = ?', [cleared.id]).ran_at
   r.finishSweep({ sweepId: cleared.id, ok: true, note: '' })
-  assert.equal(r.frontier('mail'), ranAt)
+  assert.equal(r.frontier('mail', 'x'), ranAt)
 })
 
 test('ok: false leaves the frontier exactly where it was', () => {
@@ -228,15 +301,15 @@ test('ok: false leaves the frontier exactly where it was', () => {
   const r = fresh()
   const first = r.openSweep({ label: 'x', since: '2026-09-01', fetchedIds: [], skipped: 0, leftover: 0, drained: true })
   r.finishSweep({ sweepId: first.id, ok: false, note: '' })
-  assert.equal(r.frontier('mail'), null)
+  assert.equal(r.frontier('mail', 'x'), null)
 
   const second = r.openSweep({ label: 'x', since: '2026-09-02', fetchedIds: [], skipped: 0, leftover: 2 })
   r.finishSweep({ sweepId: second.id, ok: true, note: '' })
-  assert.equal(r.frontier('mail'), '2026-09-02')
+  assert.equal(r.frontier('mail', 'x'), '2026-09-02')
 
   const third = r.openSweep({ label: 'x', since: '2026-09-02', fetchedIds: [], skipped: 0, leftover: 0, drained: true })
   r.finishSweep({ sweepId: third.id, ok: false, note: '' })
-  assert.equal(r.frontier('mail'), '2026-09-02')
+  assert.equal(r.frontier('mail', 'x'), '2026-09-02')
 })
 
 test('finishSweep rejects an unknown sweep instead of writing a phantom row', () => {
@@ -256,7 +329,7 @@ test('failSweep records the failure and closes the sweep', () => {
   assert.notEqual(row.finished_at, null)
   // A failed sweep never marks its messages seen, so the next run refetches them.
   assert.equal(r.counts().seen, 0)
-  assert.equal(r.frontier('mail'), null)
+  assert.equal(r.frontier('mail', 'x'), null)
 })
 
 test('failSweep appends to the note the opening wrote instead of replacing it', () => {
@@ -407,7 +480,7 @@ test('a sweep that started and never finished leaves the frontier alone', () => 
   assert.equal(latest.id, abandoned.id)
   assert.equal(latest.ok, 1)
   assert.equal(latest.finished_at, null)
-  assert.equal(r.frontier('mail'), '2026-09-01')
+  assert.equal(r.frontier('mail', 'x'), '2026-09-01')
   // The row does carry the frontier it would have earned, which is exactly why
   // it has to be a close that hands it over rather than a read that finds it.
   assert.notEqual(storage.get('SELECT frontier_after FROM ext_aisignal_sweeps WHERE id = ?', [abandoned.id]).frontier_after, null)
@@ -463,7 +536,7 @@ test('sweeps opened in the same millisecond still order newest first', () => {
   assert.deepEqual(r.sweeps(10).map((s) => s.id), [second.id, first.id])
   r.finishSweep({ sweepId: first.id, ok: true, note: '' })
   r.finishSweep({ sweepId: second.id, ok: true, note: '' })
-  assert.equal(r.frontier('mail'), '2026-09-02')
+  assert.equal(r.frontier('mail', 'x'), '2026-09-02')
 })
 
 test('decide rejects an unknown decision and reports an id that matched nothing', () => {

@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_seen (message_id TEXT PRIMARY KEY, seen_
    * `ext_aisignal_frontier` holds the current value, one row per source kind for
    * the same reason `kind` exists on the sweep row: a web sweep must never
    * answer "when did we last read mail?". `finishSweep` is the only writer.
+   * Migration 3 re-keys the same table on the label as well, for the same
+   * reason one kind further; see below.
    *
    * Existing installs start with no row at all, which reads as NULL, which is
    * the whole label. That is deliberate, and it is the only seed that is
@@ -67,6 +69,46 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_seen (message_id TEXT PRIMARY KEY, seen_
 ALTER TABLE ext_aisignal_sweeps ADD COLUMN frontier_after TEXT;
 CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
   kind TEXT PRIMARY KEY, frontier TEXT, moved_at TEXT NOT NULL, sweep_id TEXT NOT NULL
+);
+`,
+}, {
+  /*
+   * The frontier is per label, not only per kind.
+   *
+   * Migration 2 keyed `ext_aisignal_frontier` on `kind` alone, so every mail
+   * sweep wrote the same row whatever label it had swept. A run that drained a
+   * quiet label stamped its own `ran_at` onto the single mail frontier, and the
+   * busy label resumed from it: its backlog was then older than the frontier
+   * and outside the window `sinceQuery` re-opens, so it was never listed again
+   * and the dedup could not save messages nobody listed. The label reaches a
+   * sweep either from the tool argument or from the operator's `label` setting,
+   * so changing that setting -- an ordinary configuration act -- was enough to
+   * strand a backlog.
+   *
+   * This is the statement `kind` already makes one source further out: a series
+   * that answers "when did we last read this source?" has to be one series per
+   * source, or it answers for a source it never read. Two labels are two
+   * sources.
+   *
+   * SQLite cannot re-key a table in place, so the table is dropped and rebuilt
+   * on (kind, label) -- and rebuilt *empty*. The alternative was to carry the
+   * old row over under the label of the sweep its `sweep_id` names, which would
+   * preserve one value; it also makes the migration depend on that sweep row
+   * still being there and on its label being the one that earned the value,
+   * which is the invariant this migration introduces rather than one the old
+   * data was written under. Empty is unconditional, and it is safe in the only
+   * direction that matters: no row reads as NULL, NULL is the whole label, and
+   * the whole label is the widest window there is, so no install comes out of
+   * this with a frontier *newer* than the rule below would produce for a given
+   * label. The cost is one re-listing per label, and it lands on the dedup; the
+   * cost of a value one sweep too new is mail skipped permanently.
+   */
+  version: 3,
+  sql: `
+DROP TABLE IF EXISTS ext_aisignal_frontier;
+CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
+  kind TEXT NOT NULL, label TEXT NOT NULL, frontier TEXT, moved_at TEXT NOT NULL, sweep_id TEXT NOT NULL,
+  PRIMARY KEY (kind, label)
 );
 `,
 }]
@@ -135,6 +177,29 @@ const now = () => new Date().toISOString()
 const uid = () => crypto.randomBytes(8).toString('hex')
 
 /**
+ * The source kind of a newsletter sweep, and the default of every read that
+ * takes one.
+ *
+ * Exported rather than spelled `'mail'` at each site because the literal had
+ * started to live in two files -- a parameter default here and a call argument
+ * in sweep.mjs -- and the open-web source brings a second kind. One series
+ * answering for a source it never read is exactly what the `kind` column exists
+ * to prevent, so the two files must not be able to disagree about how the mail
+ * series is spelled.
+ */
+export const MAIL_KIND = 'mail'
+
+/**
+ * The refusal both closing paths speak.
+ *
+ * `finishSweep` here and `recordSignal` in sweep.mjs turn an already-closed
+ * sweep away for neighbouring reasons, and the sentence was typed out in both
+ * files. Two copies of one rule drift on the first edit to either, and the
+ * agent reading them would get two accounts of the same refusal.
+ */
+export const alreadyClosedMessage = (sweepId) => `sweep ${sweepId} is already closed; open a new one with signalSweep`
+
+/**
  * Newest sweep first. `ran_at` is an ISO millisecond string, so two sweeps
  * opened inside the same tick tie on it and would come back in whatever order
  * the query planner picked. `rowid` breaks the tie by insertion order, which is
@@ -196,10 +261,19 @@ export function createRepo(storage) {
      * it back. The default is the cautious one: a caller that says nothing --
      * `failedSweep`, which opens a row for a run that never listed anything --
      * earns `since`, never `ran_at`.
+     *
+     * `ranAt` is the run's own timestamp and the caller may supply it, because
+     * a drained run's `frontier_after` is this value and the frontier must be
+     * no newer than the listing it describes. `signalSweep` takes it before it
+     * asks Gmail for anything; a message that arrives while the listing is in
+     * flight then lands *above* the frontier that run earns, so the next window
+     * still contains it. Stamping it here, after the fetch, would put that
+     * message below the frontier without it ever having been returned. The
+     * default is this moment, which is right for every caller that opens a row
+     * without a listing behind it.
      */
-    openSweep({ label, since, fetchedIds, skipped, leftover, kind = 'mail', note = '', drained = false }) {
+    openSweep({ label, since, fetchedIds, skipped, leftover, kind = MAIL_KIND, note = '', drained = false, ranAt = now() }) {
       const id = uid()
-      const ranAt = now()
       const noteText = [skipped ? `skipped=${skipped}` : '', note].filter(Boolean).join('; ')
       S.exec('INSERT INTO ext_aisignal_sweeps (id, ran_at, label, since, messages, fetched_ids, leftover, kind, note, frontier_after) VALUES (?,?,?,?,?,?,?,?,?,?)',
         [id, ranAt, label, since, fetchedIds.length, JSON.stringify(fetchedIds), leftover, kind, noteText, drained ? ranAt : since])
@@ -234,10 +308,18 @@ export function createRepo(storage) {
      *
      * This is the one place the frontier moves. A successful close copies the
      * row's `frontier_after` -- settled by openSweep, out of the agent's reach
-     * -- into `ext_aisignal_frontier` for that kind; `ok: false` leaves the
-     * frontier exactly where it was. Nothing else in the extension writes that
-     * table, and nothing anywhere derives a frontier from anything else, so
-     * "when does the frontier move?" is answered by these four lines.
+     * -- into `ext_aisignal_frontier` for that sweep's kind *and its label*;
+     * `ok: false` leaves the frontier exactly where it was. Nothing else in the
+     * extension writes that table, and nothing anywhere derives a frontier from
+     * anything else, so "when does the frontier move?" is answered by these
+     * four lines.
+     *
+     * The label is part of the key because a sweep of one label proves nothing
+     * about another. Keyed on kind alone, a run that drained a quiet label
+     * stamped its `ran_at` onto the frontier a busy label resumed from, and
+     * that label's backlog fell outside every window afterwards. The row a
+     * close writes is therefore the row for the source it actually swept, and
+     * every other source's window is exactly where its own last close left it.
      *
      * An unknown sweep id throws instead of quietly marking a batch of messages
      * seen against nothing, which would lose them for good. An already-closed
@@ -251,17 +333,17 @@ export function createRepo(storage) {
      */
     finishSweep({ sweepId, ok = true, note = '' }) {
       return S.transaction(() => {
-        const sweep = S.get('SELECT fetched_ids, note, kind, frontier_after, finished_at FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
+        const sweep = S.get('SELECT fetched_ids, note, kind, label, frontier_after, finished_at FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
         if (!sweep) throw new Error(`unknown sweep ${sweepId}`)
-        if (sweep.finished_at) throw new Error(`sweep ${sweepId} is already closed; open a new one with signalSweep`)
+        if (sweep.finished_at) throw new Error(alreadyClosedMessage(sweepId))
         const ids = JSON.parse(sweep.fetched_ids || '[]')
         for (const m of ids) S.exec('INSERT OR IGNORE INTO ext_aisignal_seen (message_id, seen_at) VALUES (?, ?)', [m, now()])
         const found = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ?', [sweepId]).c
         const linksRead = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ? AND link_read = 1', [sweepId]).c
         S.exec('UPDATE ext_aisignal_sweeps SET found = ?, links_read = ?, ok = ?, note = ?, finished_at = ? WHERE id = ?', [found, linksRead, ok ? 1 : 0, joinNote(sweep.note, note), now(), sweepId])
         if (ok) {
-          S.exec('INSERT INTO ext_aisignal_frontier (kind, frontier, moved_at, sweep_id) VALUES (?,?,?,?) ON CONFLICT (kind) DO UPDATE SET frontier = excluded.frontier, moved_at = excluded.moved_at, sweep_id = excluded.sweep_id',
-            [sweep.kind, sweep.frontier_after, now(), sweepId])
+          S.exec('INSERT INTO ext_aisignal_frontier (kind, label, frontier, moved_at, sweep_id) VALUES (?,?,?,?,?) ON CONFLICT (kind, label) DO UPDATE SET frontier = excluded.frontier, moved_at = excluded.moved_at, sweep_id = excluded.sweep_id',
+            [sweep.kind, sweep.label, sweep.frontier_after, now(), sweepId])
         }
         return { sweepId, found, linksRead, seenMarked: ids.length, ok: Boolean(ok) }
       })
@@ -276,18 +358,22 @@ export function createRepo(storage) {
      */
     sweepById(id) { return S.get('SELECT * FROM ext_aisignal_sweeps WHERE id = ?', [id]) || null },
     /** Most recent sweep of one kind, finished or not. Always filtered by kind -- see the note on the `kind` column. */
-    latestSweep(kind = 'mail') { return S.get(`SELECT * FROM ext_aisignal_sweeps WHERE kind = ? ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
+    latestSweep(kind = MAIL_KIND) { return S.get(`SELECT * FROM ext_aisignal_sweeps WHERE kind = ? ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
     /**
-     * The point the next run of this kind resumes from, or null for the whole
-     * source.
+     * The point the next run of this kind *over this label* resumes from, or
+     * null for the whole source.
      *
      * A read of one stored cell, with no rule in it. Everything that decides
      * what that cell contains lives in openSweep and finishSweep above, and no
-     * caller has to reconstruct anything from a sweep row to use this: an
-     * install that has never closed a sweep has no row here, which reads as
-     * null, which is the whole source.
+     * caller has to reconstruct anything from a sweep row to use this: a source
+     * that has never closed a sweep has no row here, which reads as null, which
+     * is the whole source.
+     *
+     * Both halves of the key are named by the caller, and neither has a
+     * default: a read that guessed one would be a read of some other source's
+     * window, which is the whole defect this key exists to close.
      */
-    frontier(kind = 'mail') { return S.get('SELECT frontier FROM ext_aisignal_frontier WHERE kind = ?', [kind])?.frontier ?? null },
+    frontier(kind, label) { return S.get('SELECT frontier FROM ext_aisignal_frontier WHERE kind = ? AND label = ?', [kind, label])?.frontier ?? null },
     sweeps(limit = 10) { return S.all(`SELECT * FROM ext_aisignal_sweeps ORDER BY ${SWEEP_ORDER} LIMIT ?`, [limit]) },
     /** Which of `ids` have already been swept. Chunked because a source page can carry more ids than SQLite will bind. */
     seenIds(ids) {
