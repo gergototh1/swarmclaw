@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import { test } from 'node:test'
 
 import { MIGRATIONS, createRepo } from '../src/db.mjs'
@@ -46,6 +47,42 @@ const child = (over = {}) => ({ data: { id: 'r1', title: 'T', selftext: 'body', 
 
 /** One GitHub repository row. */
 const repoRow = (over = {}) => ({ id: 7, full_name: 'a/b', html_url: 'https://gh.test/a/b', description: 'd', stargazers_count: 3, pushed_at: new Date().toISOString(), ...over })
+
+/**
+ * The real tool, over a topics file the operator's own file does not contain.
+ *
+ * research.mjs reads research_topics.json once, at load, and no argument to the
+ * tool can name a topic that is not in it -- which is the shape of the case
+ * under test: a topic whose Reddit request set is empty or truncated, something
+ * none of the three configured topics is. So a second instance of the module is
+ * loaded over a stubbed read: the stub answers for that one path and is put back
+ * before the caller runs, and the query string is what gets a fresh instance
+ * past the module cache. Nothing here reaches the network either; the returned
+ * instance takes the same injected `fetchImpl`.
+ */
+let topicsFixtures = 0
+async function researchOver(topicsFile) {
+  const readFileSync = fs.readFileSync
+  topicsFixtures += 1
+  try {
+    fs.readFileSync = (p, enc) => (String(p).endsWith('research_topics.json') ? JSON.stringify(topicsFile) : readFileSync(p, enc))
+    return await import(`../src/research.mjs?topics=${topicsFixtures}`)
+  } finally {
+    fs.readFileSync = readFileSync
+  }
+}
+
+/** A fetch double that answers every host with an empty page and counts Reddit. */
+function countingReddit(body = { hits: [], items: [], data: { children: [] } }) {
+  const calls = { reddit: 0 }
+  return {
+    calls,
+    fetchImpl: async (u) => {
+      if (String(u).includes('reddit.com')) calls.reddit += 1
+      return json(body)
+    },
+  }
+}
 
 // ---------------------------------------------------------------------------
 // The brief's four cases.
@@ -162,6 +199,108 @@ test('a candidate id that could not be keyed never reaches the row, so closing t
 })
 
 // ---------------------------------------------------------------------------
+// A Reddit request set that could not be built: zero requests is not an empty
+// answer.
+// ---------------------------------------------------------------------------
+
+test('a subreddit list that resolves to nothing makes no request at all, and says so rather than answering empty', async () => {
+  // `r/mcp` is how Reddit itself writes a subreddit and it is not a path
+  // segment, so nothing is asked. An empty array with `dropped: 0` was
+  // indistinguishable from Reddit answering with nothing.
+  const c = await fetchReddit({
+    query: 'x',
+    subreddits: 'r/mcp,r/ClaudeAI',
+    days: 30,
+    fetchImpl: async () => { throw new Error('a subreddit that was refused must not be asked') },
+  })
+  assert.deepEqual([...c], [])
+  assert.equal(c.asked, 0)
+  assert.equal(c.unasked, 2)
+})
+
+test('a topic with no subreddits at all asks Reddit nothing, and does not report that as Reddit answering', async () => {
+  const c = await fetchReddit({ query: 'x', subreddits: undefined, days: 30, fetchImpl: async () => { throw new Error('nothing to ask') } })
+  assert.equal(c.asked, 0)
+  assert.equal(c.unasked, 0)
+  // `asked === 0` is the whole signal here: there is no rejected name to count,
+  // and the run must still not read this as an empty Reddit page.
+  assert.deepEqual([...c], [])
+})
+
+test('subreddits past the per-topic cap are counted as unasked instead of silently truncated', async () => {
+  let calls = 0
+  const c = await fetchReddit({
+    query: 'x',
+    subreddits: Array.from({ length: 9 }, (_, i) => `a${i + 1}`),
+    days: 30,
+    fetchImpl: async (u) => { calls += 1; assert.doesNotMatch(String(u), /\/r\/a9\//); return json({ data: { children: [] } }) },
+  })
+  assert.equal(calls, 8)
+  assert.equal(c.asked, 8)
+  assert.equal(c.unasked, 1)
+})
+
+test('one unusable subreddit name does not stop the usable ones being asked, and is counted', async () => {
+  const c = await fetchReddit({
+    query: 'x',
+    subreddits: ['a'.repeat(22), 'mcp', '', 'mcp'],
+    days: 30,
+    fetchImpl: async () => json({ data: { children: [] } }),
+  })
+  assert.equal(c.asked, 1)
+  // The 22-character name only. A blank between two commas names no subreddit
+  // and a repeat is one request, so neither is a subreddit that went unasked.
+  assert.equal(c.unasked, 1)
+})
+
+test('a topic Reddit could not be asked for is named unavailable, not recorded as a clean run over Reddit', async () => {
+  const { createResearchTool: createTool } = await researchOver({ days: 30, topics: [{ key: 'k', hu: 'K', query: 'q', subreddits: 'r/mcp,r/ClaudeAI' }] })
+  const { repo } = freshRepo()
+  const { calls, fetchImpl } = countingReddit({ hits: [hit()], items: [], data: { children: [] } })
+  const r = await createTool(toolState({ repo, fetchImpl })).execute({})
+
+  assert.equal(calls.reddit, 0)
+  assert.deepEqual(r.unavailable, ['reddit'])
+  // Hacker News answered and its candidate is kept: this is a run that read two
+  // hosts, not a failed one.
+  assert.deepEqual(r.candidates.map((c) => c.id), ['hn:1'])
+  assert.equal(r.error, undefined)
+  const row = repo.latestSweep(RESEARCH_KIND)
+  assert.equal(row.note, 'unavailable=reddit; unasked=reddit')
+  assert.equal(row.finished_at, null)
+})
+
+test('a subreddit list problem in one topic does not stop Reddit being asked about the next one', async () => {
+  // A host that is down is not asked again; a topic that could not be spelled is
+  // not the host being down.
+  const { createResearchTool: createTool } = await researchOver({
+    days: 30,
+    topics: [
+      { key: 'bad', hu: 'Bad', query: 'q1', subreddits: 'r/mcp' },
+      { key: 'good', hu: 'Good', query: 'q2', subreddits: 'mcp' },
+    ],
+  })
+  const { repo } = freshRepo()
+  const { calls, fetchImpl } = countingReddit({ hits: [], items: [], data: { children: [child()] } })
+  const r = await createTool(toolState({ repo, fetchImpl })).execute({})
+
+  assert.equal(calls.reddit, 1)
+  assert.deepEqual(r.candidates.map((c) => c.topic), ['good'])
+  assert.deepEqual(r.unavailable, ['reddit'])
+})
+
+test('a run that asked nobody anything is a failed sweep, even with no host that failed a request', async () => {
+  const { createResearchTool: createTool } = await researchOver({ days: 30, topics: [{ key: 'k', hu: 'K', query: 'q' }] })
+  const { repo } = freshRepo()
+  const state = toolState({ repo, fetchImpl: async (u) => (String(u).includes('reddit.com') ? json({ data: { children: [] } }) : json({}, 503)) })
+  const r = await createTool(state).execute({})
+
+  assert.equal(r.error.code, 'research_http_error')
+  assert.match(r.error.message, /no research source answered: reddit, hn, github/)
+  assert.equal(repo.latestSweep(RESEARCH_KIND).ok, 0)
+})
+
+// ---------------------------------------------------------------------------
 // What these three APIs do badly.
 // ---------------------------------------------------------------------------
 
@@ -251,6 +390,36 @@ test('a permalink that would move the origin off reddit.com is refused', async (
   assert.equal(c.dropped, 2)
 })
 
+test('a GitHub repository with no usable link is dropped and counted, the same answer Reddit gives', async () => {
+  // Three fetchers, one rule: a candidate that cannot be linked is dropped and
+  // counted. GitHub used to hand over `url: null` with `dropped: 0`, which put a
+  // linkless card in front of the agent and reported nothing about it.
+  const gh = await fetchGithub({
+    query: 'x',
+    days: 30,
+    fetchImpl: async () => json({ items: [repoRow({ id: 7, html_url: null }), repoRow({ id: 8, html_url: 'javascript:alert(1)' }), repoRow({ id: 9 })] }),
+  })
+  assert.deepEqual(gh.map((c) => c.id), ['github:9'])
+  assert.equal(gh.dropped, 2)
+  assert.ok(gh.every((c) => typeof c.url === 'string'))
+})
+
+test('the per-source cap is applied per request, so a topic with three subreddits accepts it three times', async () => {
+  const c = await fetchReddit({
+    query: 'x',
+    subreddits: ['a', 'b', 'c'],
+    days: 30,
+    fetchImpl: async (u) => {
+      const sub = String(u).match(/\/r\/([^/]+)\//)[1]
+      return json({ data: { children: Array.from({ length: 200 }, (_, i) => child({ id: `${sub}${i + 1}` })) } })
+    },
+  })
+  // 50 per request and not per topic. Bounded downstream by the per-run cap on
+  // what is handed over, which is where the bound belongs.
+  assert.equal(c.length, 150)
+  assert.equal(c.asked, 3)
+})
+
 test('a title and a body longer than the hand-over limits are bounded', async () => {
   const c = await fetchHackerNews({ query: 'x', days: 30, fetchImpl: async () => json({ hits: [hit({ title: 'x'.repeat(5000), story_text: 'y'.repeat(50000) })] }) })
   assert.equal(c[0].title.length, 300)
@@ -258,9 +427,36 @@ test('a title and a body longer than the hand-over limits are bounded', async ()
 })
 
 test('a request that never answers is abandoned under its own code rather than hanging', async () => {
+  // The double rejects the way `fetch` does when its signal fires: an
+  // AbortError. That is what the deadline arm reads, because the controller
+  // being aborted says only that the deadline passed, not that it is what ended
+  // the call.
   await assert.rejects(
-    fetchHackerNews({ query: 'x', days: 30, timeoutMs: 10, fetchImpl: (_u, init) => new Promise((_resolve, reject) => { init.signal.addEventListener('abort', () => reject(new Error('aborted'))) }) }),
+    fetchHackerNews({ query: 'x', days: 30, timeoutMs: 10, fetchImpl: (_u, init) => new Promise((_resolve, reject) => { init.signal.addEventListener('abort', () => reject(new DOMException('This operation was aborted', 'AbortError'))) }) }),
     (e) => e.code === 'research_timeout',
+  )
+  // Some fetch implementations wrap the abort rather than throwing it.
+  await assert.rejects(
+    fetchHackerNews({ query: 'x', days: 30, timeoutMs: 10, fetchImpl: (_u, init) => new Promise((_resolve, reject) => { init.signal.addEventListener('abort', () => reject(Object.assign(new TypeError('fetch failed'), { cause: new DOMException('aborted', 'AbortError') }))) }) }),
+    (e) => e.code === 'research_timeout',
+  )
+})
+
+test('a transport failure that lands after the deadline fired is named as the failure it was, not as a timeout', async () => {
+  // The deadline fires at 10ms and the connection drops at 40ms. The run was
+  // over either way, but "reddit did not answer in time" and "reddit could not
+  // be reached" send an operator to different places.
+  await assert.rejects(
+    fetchHackerNews({
+      query: 'x',
+      days: 30,
+      timeoutMs: 10,
+      fetchImpl: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 40))
+        throw Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' })
+      },
+    }),
+    (e) => e.code === 'research_unreachable',
   )
 })
 
@@ -321,6 +517,37 @@ test('all three hosts down is a failed sweep, not a clean run that found nothing
   const row = repo.latestSweep(RESEARCH_KIND)
   assert.equal(row.ok, 0)
   assert.ok(row.finished_at)
+})
+
+test('a host that answered before it failed keeps what it answered, and the run is not a failed sweep', async () => {
+  // Every host is in `unavailable` -- each failed at least once -- but one of
+  // them answered first. "Every host failed at some point" and "no host produced
+  // any answer" are different facts, and failing the sweep on the first threw
+  // away material that had already been fetched.
+  const { repo } = freshRepo()
+  const state = toolState({
+    repo,
+    fetchImpl: async (u) => {
+      const url = String(u)
+      // `eszkozok` is asked first and its query is the one carrying "customer
+      // support"; Reddit answers for it and is down by the time `stack` is asked.
+      if (url.includes('reddit.com')) return url.includes(encodeURIComponent('customer support')) ? json({ data: { children: [child()] } }) : json({}, 503)
+      return json({}, 503)
+    },
+  })
+  const r = await createResearchTool(state).execute({ topics: ['eszkozok', 'stack'] })
+
+  assert.equal(r.error, undefined)
+  assert.deepEqual(r.candidates.map((c) => c.id), ['reddit:r1'])
+  assert.deepEqual(r.unavailable, ['reddit', 'hn', 'github'])
+  const row = repo.latestSweep(RESEARCH_KIND)
+  assert.equal(row.ok, 1)
+  assert.equal(row.finished_at, null)
+  assert.equal(row.note, 'unavailable=reddit,hn,github')
+  // The candidate is on the row, so closing marks it seen and the next run does
+  // not offer it again.
+  repo.finishSweep({ sweepId: r.sweepId })
+  assert.equal(repo.counts().seen, 1)
 })
 
 test('candidates above the per-run cap are counted as leftover and left off the row, not marked seen', async () => {

@@ -50,7 +50,10 @@ import crypto from 'node:crypto'
  *             named. For research it is the one public space every candidate id
  *             is minted in, named by `RESEARCH_ID_SPACE` in research.mjs; the
  *             candidate id carries its own host as a prefix, so `hn:1` and
- *             `reddit:1` do not collide inside it.
+ *             `reddit:1` do not collide inside it. The prefix names the host and
+ *             not the entity, so it separates the hosts and nothing else -- see
+ *             A SWEEP WITH AN ID SPACE AND NO SOURCE for what that costs a
+ *             second entity type from one host.
  *     written by `finishSweep`, and by nothing else, with
  *             `ON CONFLICT (kind, account, message_id) DO NOTHING` -- the one
  *             spelling that excuses a repeat of this key while leaving the
@@ -575,6 +578,16 @@ export const MAIL_KIND = 'mail'
  * operator: no credential opens it, and no operator action can swap it
  * underneath the way reconnecting Google swaps a mailbox. That constant is the
  * `account` half of its dedup key, and it is spelled once, in research.mjs.
+ *
+ * The prefix separates the three hosts and only the three hosts. It does not
+ * make one host's ids unique on its own, because a host does not mint one
+ * sequence: GitHub repository ids and issue ids come from separate sequences,
+ * and a Reddit `t3_` link id shares the base36 space with `t1_` comment ids.
+ * What makes the ids unique today is that exactly one entity type is fetched per
+ * host, so a second one -- issues, comments -- must carry its own prefix rather
+ * than its host's. Sharing one would mean a candidate marked seen for something
+ * it is not: this table's rows are never deleted, and an id it holds is never
+ * offered again.
  *
  * So `openSweep` takes either a `source` (all three halves, frontier keyed) or
  * an `idSpace` (the account half only, no frontier). Not both, and never a
