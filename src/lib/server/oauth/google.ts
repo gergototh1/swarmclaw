@@ -24,10 +24,14 @@
  *
  * **What is stored.** Only the refresh token, encrypted, in the credential
  * table under `google-oauth:<purpose>`. Access tokens live in memory until they
- * expire. Neither is logged, and neither is returned in a response body. The one
- * place that reads every credential and writes the plaintext to disk,
- * `pushCredentialsToOpenClaw` in `src/lib/server/openclaw/sync.ts`, skips
- * `google-oauth` rows for exactly that reason.
+ * expire. Neither is logged, and neither is returned in a response body by any
+ * code path in this file, though a route or tool that was deliberately pointed
+ * at a `google-oauth` credential id — the dashboard-url endpoint, the session
+ * tool credential injector — will still resolve and return its plaintext like
+ * any other credential. The one place that reads every credential and writes
+ * the plaintext to disk, `pushCredentialsToOpenClaw` in
+ * `src/lib/server/openclaw/sync.ts`, skips `google-oauth` rows for exactly that
+ * reason.
  *
  * **Disconnecting.** The in-memory access token is a shortcut past a refresh
  * round trip, never past the credential store: every read re-checks that the

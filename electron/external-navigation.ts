@@ -37,6 +37,31 @@ export function shouldOpenExternally(target: string, appUrl: string): boolean {
   return targetOrigin !== appOrigin
 }
 
+/**
+ * Fields read off Electron's `will-navigate` / `will-redirect` `details`
+ * argument (the non-deprecated one) by {@link shouldExternaliseNavigation}.
+ * Named independently of either event's own params interface so this file
+ * still imports nothing from `electron`.
+ */
+export interface NavigationDetails {
+  url: string
+  isMainFrame: boolean
+}
+
+/**
+ * `true` when a `will-navigate` or `will-redirect` event should be cancelled
+ * and its URL handed to the system browser instead.
+ *
+ * Gated on `isMainFrame` before the origin check: the app renders cross-origin
+ * iframes of its own — a YouTube embed, an arbitrary preview URL — and a
+ * redirect inside one of those must stay inside the iframe, not cancel its
+ * navigation and open the system browser on page content's say-so. Only a
+ * main-frame navigation is ever a candidate for externalising.
+ */
+export function shouldExternaliseNavigation(details: NavigationDetails, appUrl: string): boolean {
+  return details.isMainFrame && shouldOpenExternally(details.url, appUrl)
+}
+
 /** `http`/`https` origin, or `''` for anything else — including `about:blank`. */
 function originOf(value: string): string {
   try {

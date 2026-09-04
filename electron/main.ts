@@ -4,7 +4,7 @@ import path from 'node:path'
 import { resolveRuntimePaths, RuntimePaths } from './paths'
 import { ServerHandle, startEmbeddedServer, tailLogFile } from './server-lifecycle'
 import { buildAppMenu } from './menu'
-import { shouldOpenExternally } from './external-navigation'
+import { shouldExternaliseNavigation, shouldOpenExternally } from './external-navigation'
 
 const DEV_URL_DEFAULT = 'http://127.0.0.1:3456'
 const LOG_TAIL_BYTES = 1500
@@ -153,31 +153,49 @@ function createMainWindow(startUrl: string): void {
  * Three ways out of the window, and Google consent can take any of them, so all
  * three are covered:
  *
- * - `will-navigate` fires when the page itself starts a navigation. A click on
- *   an in-app link to `/api/oauth/google/start` raises it with the *app-origin*
- *   URL, which correctly stays in the window.
+ * - `will-navigate` fires when the page itself starts a navigation, and is
+ *   documented as firing for the main frame only. A click on an in-app link to
+ *   `/api/oauth/google/start` raises it with the *app-origin* URL, which
+ *   correctly stays in the window.
  * - `will-redirect` fires for the server-side hop that follows: the start route
  *   answers 302 to `accounts.google.com`. This is the event that carries the
  *   Google URL, and with nothing handling it the consent screen loads inside
- *   Electron, where Google refuses it with `disallowed_useragent`.
- * - `setWindowOpenHandler` covers `window.open` and `target=_blank`. It uses the
- *   same origin test as the two events rather than a prefix of the start URL, so
- *   `http://127.0.0.1:34560` is no longer read as the app on port 3456. An
- *   allowed child window then gets these same handlers through
- *   `did-create-window`, so a start URL opened in a new window redirects out to
- *   the browser just as one in the main window does.
+ *   Electron, where Google refuses it with `disallowed_useragent`. Unlike
+ *   `will-navigate`, `will-redirect` carries no main-frame-only restriction in
+ *   its documentation, its params interface includes `isMainFrame` for exactly
+ *   that reason, and it fires after `did-start-navigation`, which is documented
+ *   as firing for any frame, subframes included. The app renders cross-origin
+ *   iframes of its own — a YouTube embed in `markdown-body.tsx`, an arbitrary
+ *   preview URL in `chat-preview-panel.tsx` — and a redirect inside one of
+ *   those (a plain `http` to `https` hop, YouTube's regional consent hop) must
+ *   stay inside the iframe rather than cancel its navigation and open the
+ *   system browser. So both listeners below read `isMainFrame` off the
+ *   non-deprecated `details` argument, which is what carries it, and only act
+ *   when it is `true`; a subframe redirect or navigation is left alone.
+ * - `setWindowOpenHandler` covers `window.open` and `target=_blank`, which
+ *   always target a new top-level browsing context rather than a subframe, so
+ *   it needs no such gate. It uses the same origin test as the two events
+ *   rather than a prefix of the start URL, so `http://127.0.0.1:34560` is no
+ *   longer read as the app on port 3456. An allowed child window then gets
+ *   these same handlers through `did-create-window`, so a start URL opened in
+ *   a new window redirects out to the browser just as one in the main window
+ *   does.
  *
  * The `preventDefault` on `will-redirect` cancels the whole navigation, not only
- * the redirect, which is what is wanted: the window stays where it was and the
- * consent screen opens outside.
+ * the redirect, which is what is wanted for the main frame: the window stays
+ * where it was and the consent screen opens outside.
  */
 function attachExternalNavigationHandlers(contents: WebContents, appUrl: string): void {
   // Typed by the shape it uses, so one listener serves both events without
-  // naming either event's parameter interface.
-  const externalise = (event: { preventDefault: () => void }, url: string): void => {
-    if (!shouldOpenExternally(url, appUrl)) return
-    event.preventDefault()
-    void shell.openExternal(url)
+  // naming either event's parameter interface. Reads only the non-deprecated
+  // `details` argument (both events also still pass the deprecated positional
+  // `url`/`isMainFrame`/etc. arguments after it, which this ignores) so that
+  // `isMainFrame` is actually in reach — `shouldExternaliseNavigation` is what
+  // consults it.
+  const externalise = (details: { preventDefault: () => void; url: string; isMainFrame: boolean }): void => {
+    if (!shouldExternaliseNavigation(details, appUrl)) return
+    details.preventDefault()
+    void shell.openExternal(details.url)
   }
 
   contents.on('will-navigate', externalise)

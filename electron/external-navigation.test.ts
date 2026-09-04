@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { shouldOpenExternally } from './external-navigation'
+import { shouldExternaliseNavigation, shouldOpenExternally } from './external-navigation'
 
 const APP = 'http://127.0.0.1:4321'
 
@@ -38,5 +38,37 @@ describe('desktop external navigation routing', () => {
     assert.equal(shouldOpenExternally('javascript:alert(1)', APP), false)
     assert.equal(shouldOpenExternally('not a url', APP), false)
     assert.equal(shouldOpenExternally('https://accounts.google.com', 'not a url'), false)
+  })
+})
+
+describe('main-frame gating for will-navigate / will-redirect', () => {
+  it('leaves a subframe redirect or navigation alone even off-origin', () => {
+    // This is the case that blanks an embedded iframe and launches the system
+    // browser at a URL page content chose: a YouTube consent hop or an
+    // http-to-https redirect inside `chat-preview-panel.tsx`'s iframe must
+    // never be treated as a candidate for externalising.
+    assert.equal(
+      shouldExternaliseNavigation({ url: 'https://accounts.google.com/consent', isMainFrame: false }, APP),
+      false,
+    )
+    assert.equal(
+      shouldExternaliseNavigation({ url: 'https://www.youtube-nocookie.com/embed/x?consent=1', isMainFrame: false }, APP),
+      false,
+    )
+    assert.equal(
+      shouldExternaliseNavigation({ url: 'https://example.com/', isMainFrame: false }, APP),
+      false,
+    )
+  })
+
+  it('still externalises a main-frame navigation off the app origin', () => {
+    assert.equal(
+      shouldExternaliseNavigation({ url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=x', isMainFrame: true }, APP),
+      true,
+    )
+  })
+
+  it('leaves a main-frame navigation within the app in the app window', () => {
+    assert.equal(shouldExternaliseNavigation({ url: `${APP}/x/aisignal?connected=1`, isMainFrame: true }, APP), false)
   })
 })
