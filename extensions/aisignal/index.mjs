@@ -1,4 +1,5 @@
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { createSweepTools } from './src/sweep.mjs'
 
 /**
  * Everything the host hands over in setup(), in one place.
@@ -24,7 +25,7 @@ const aisignal = {
     state.oauth = ctx.oauth
     state.repo = createRepo(ctx.storage)
   },
-  tools: [],
+  tools: createSweepTools(state),
   rpc: {},
   ui: {
     pages: [{

@@ -177,6 +177,15 @@ export function createRepo(storage) {
         return { sweepId, found, linksRead, seenMarked: ids.length, ok: Boolean(ok) }
       })
     },
+    /**
+     * One sweep by id, or null.
+     *
+     * recordSignal needs it before it writes: an item filed against a sweep
+     * that does not exist is attributed to nothing, and one filed against a
+     * sweep already closed is never counted into that sweep's `found` while its
+     * message is already marked seen, so nothing ever brings it back.
+     */
+    sweepById(id) { return S.get('SELECT * FROM ext_aisignal_sweeps WHERE id = ?', [id]) || null },
     /** Most recent sweep of one kind, finished or not. Always filtered by kind -- see the note on the `kind` column. */
     latestSweep(kind = 'mail') { return S.get(`SELECT * FROM ext_aisignal_sweeps WHERE kind = ? ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
     /** Watermark to resume from: the last sweep of this kind that both succeeded and completed. */
