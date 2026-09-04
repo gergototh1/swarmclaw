@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { getExtensionManager, normalizeMarketplaceExtensionUrl, sanitizeExtensionFilename } from './extensions'
 import { canonicalizeExtensionId, expandExtensionIds, extensionIdMatches } from './tool-aliases'
@@ -859,5 +860,198 @@ describe('extension manager source paths, reloads and watchers', () => {
     assert.equal(out.cjsShim.includes('module.exports = require('), true, 'a .js shim stays CommonJS')
     assert.equal(out.esmImported, 'ESM Shim Probe')
     assert.equal(out.cjsRequired, 'CJS Shim Probe')
+  })
+
+  it('writes no CommonJS require into the shim of a .js extension whose source is an ES module', () => {
+    // The fourth format combination, and the only one with no valid bridge. An
+    // agent scaffolding through `extension_creator` gets a `.js` filename
+    // forced on it while its `packageJson` goes through untouched, so `.js`
+    // shim over ESM entry is the shape agent-authored ESM extensions land in.
+    // `module.exports = require(<esm entry>)` there loads under a server's
+    // Node 22 and raises ERR_REQUIRE_ESM under the desktop app's Node 20.18,
+    // and this repo does not ship a file that behaves differently in the two
+    // places it runs.
+    //
+    // Manager-level, so tsx only: `saveExtensionSource` reaches the
+    // SQLite-backed storage layer, whose native module is built for one Node
+    // ABI at a time. What the shim's *format* does on each shipped runtime is
+    // pinned separately by extension-module-loader.test.ts.
+    const out = runWithTempDataDir<{
+      shim: string
+      requireError: string
+      toolResult: string
+    }>(`
+      import path from 'node:path'
+      import fs from 'node:fs'
+      import { createRequire } from 'node:module'
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const m = getExtensionManager()
+
+      await m.saveExtensionSource(
+        'esm_source_probe.js',
+        "export default { name: 'ESM Source Probe', tools: [{ name: 'esm_source_probe', description: 'x', parameters: { type: 'object', properties: {} }, execute: () => 'loaded' }] }",
+        { packageJson: { name: 'esm-source-probe', type: 'module' } },
+      )
+
+      const extensionsDir = path.join(process.env.DATA_DIR, 'extensions')
+      const shimPath = path.join(extensionsDir, 'esm_source_probe.js')
+      const nodeRequire = createRequire(path.join(extensionsDir, 'noop.js'))
+
+      let requireError = 'no error'
+      try { nodeRequire(shimPath) } catch (err) { requireError = err.message }
+
+      const entry = m.getTools(['esm_source_probe.js']).find((t) => t.tool.name === 'esm_source_probe')
+      const toolResult = entry ? String(await entry.tool.execute({}, { session: {}, message: '' })) : 'missing'
+
+      console.log(JSON.stringify({ shim: fs.readFileSync(shimPath, 'utf8'), requireError, toolResult }))
+    `)
+
+    assert.equal(out.shim.includes('require('), false, 'a CommonJS shim must not require an ESM entry')
+    assert.equal(out.shim.includes('throw new Error('), true, 'the shim must fail the same way on every runtime')
+    assert.equal(
+      out.shim.includes('./.workspaces/esm_source_probe_js/index.js'),
+      true,
+      'the shim must name the workspace entry, derived from the workspace constants',
+    )
+    assert.equal(out.requireError.includes('is an ES module'), true, 'the failure must say why')
+    assert.equal(out.toolResult, 'loaded', 'the extension itself still loads: the loader imports the entry, not the shim')
+  })
+
+  it('does not count an import of a vanished workspace entry toward auto-disable', () => {
+    // Two defects in one sequence. The workspace entry is the file a reinstall
+    // replaces, and while it is gone `hasExtensionWorkspace` is false, so
+    // resolving the source hands back the extensions-dir shim -- which is
+    // still there. Testing that resolved path reported "not vanished" in
+    // exactly the case the flag exists for. And `vanished` only ever
+    // suppressed the auto-disable *action*: the consecutive-failure count went
+    // up anyway, so the genuine failures that followed arrived at the
+    // threshold one short.
+    //
+    // Laid out on disk rather than through saveExtensionSource, and the
+    // watcher left to settle between steps, so every failure counted below is
+    // one this test asked for.
+    const out = runWithTempDataDir<{
+      afterVanish: number
+      afterFirstBreak: number
+      afterSecondBreak: number
+      stillEnabled: boolean
+      vanishError: string
+    }>(`
+      import fs from 'node:fs'
+      import path from 'node:path'
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const m = getExtensionManager()
+      const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+      const dataDir = process.env.DATA_DIR
+      const extensionsDir = path.join(dataDir, 'extensions')
+      const workspaceDir = path.join(extensionsDir, '.workspaces', 'vanish_probe_mjs')
+      const entryPath = path.join(workspaceDir, 'index.js')
+      fs.mkdirSync(workspaceDir, { recursive: true })
+      fs.writeFileSync(path.join(workspaceDir, 'package.json'), '{"name":"vanish-probe","type":"module"}')
+      fs.writeFileSync(entryPath, "export default { name: 'Vanish Probe', tools: [] }")
+      fs.writeFileSync(
+        path.join(extensionsDir, 'vanish_probe.mjs'),
+        "export { default } from './.workspaces/vanish_probe_mjs/index.js'",
+      )
+
+      const failuresPath = path.join(dataDir, 'extension-failures.json')
+      const failure = () => {
+        if (!fs.existsSync(failuresPath)) return null
+        const state = JSON.parse(fs.readFileSync(failuresPath, 'utf8'))
+        return state['vanish_probe.mjs'] || null
+      }
+      const count = () => (failure() ? failure().count : 0)
+
+      await m.ensureLoaded()
+
+      // The entry an operator's reinstall removes, with the shim left behind.
+      fs.rmSync(entryPath)
+      await m.reload()
+      // The workspace watcher saw that unlink and has a debounced reload of its
+      // own coming; let it land so it cannot be mistaken for a later step.
+      await wait(900)
+      const afterVanish = count()
+      const vanishError = failure() ? failure().lastError : ''
+
+      // A genuine failure: the entry is back, and it does not parse.
+      fs.writeFileSync(entryPath, 'export default { name: ')
+      await m.reload()
+      const afterFirstBreak = count()
+      await m.reload()
+      const afterSecondBreak = count()
+
+      // Written only when something changes it, and an auto-disable is such a
+      // change, so an absent file means nothing was disabled.
+      const configPath = path.join(dataDir, 'extensions.json')
+      const config = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, 'utf8')) : {}
+      const stillEnabled = config['vanish_probe.mjs']?.enabled !== false
+
+      console.log(JSON.stringify({ afterVanish, afterFirstBreak, afterSecondBreak, stillEnabled, vanishError }))
+    `)
+
+    assert.equal(out.afterVanish, 0, 'a vanished workspace entry must not advance the consecutive-failure count')
+    assert.notEqual(out.vanishError, '', 'the error is still recorded so an operator can see it')
+    assert.equal(out.afterFirstBreak, 1, 'the first genuine failure is the first failure')
+    assert.equal(out.afterSecondBreak, 2, 'the second genuine failure is the second, not the threshold')
+    assert.equal(out.stillEnabled, true, 'two genuine failures must not reach a threshold of three')
+  })
+
+  it('reports that an upgraded dependency needs a restart, and that a first install does not', () => {
+    // The narrowed cache eviction leaves a workspace's node_modules evaluated
+    // once per process on purpose, so an install that upgraded a package
+    // reports 'installed' while the copy already loaded is what still runs.
+    // Nothing said so outside a loader comment.
+    //
+    // The package manager is a stub on PATH: the claim under test is about
+    // what the host reports, and a real install would be a network request.
+    const binDir = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-stub-npm-'))
+    const stubNpm = path.join(binDir, 'npm')
+    fs.writeFileSync(
+      stubNpm,
+      '#!/bin/sh\nmkdir -p node_modules/left-pad\nprintf \'{"name":"left-pad"}\' > node_modules/left-pad/package.json\nexit 0\n',
+    )
+    fs.chmodSync(stubNpm, 0o755)
+
+    try {
+      const out = runWithTempDataDir<{
+        firstInstall: boolean
+        secondInstall: boolean
+        hadNodeModulesAfterFirst: boolean
+      }>(`
+        import fs from 'node:fs'
+        import path from 'node:path'
+        const extensionsMod = await import('@/lib/server/extensions')
+        const { getExtensionManager } = extensionsMod.default || extensionsMod
+        const m = getExtensionManager()
+
+        await m.saveExtensionSource(
+          'dependency_probe.mjs',
+          "export default { name: 'Dependency Probe', tools: [] }",
+          { packageJson: { name: 'dependency-probe', type: 'module', dependencies: { 'left-pad': '1.3.0' } } },
+        )
+
+        const nodeModules = path.join(
+          process.env.DATA_DIR, 'extensions', '.workspaces', 'dependency_probe_mjs', 'node_modules',
+        )
+        const first = await m.installExtensionDependencies('dependency_probe.mjs')
+        const hadNodeModulesAfterFirst = fs.existsSync(nodeModules)
+        const second = await m.installExtensionDependencies('dependency_probe.mjs')
+
+        console.log(JSON.stringify({
+          firstInstall: first.restartRequiredForUpgrades,
+          secondInstall: second.restartRequiredForUpgrades,
+          hadNodeModulesAfterFirst,
+        }))
+      `, { env: { PATH: `${binDir}${path.delimiter}${process.env.PATH || ''}` } })
+
+      assert.equal(out.hadNodeModulesAfterFirst, true, 'the stub package manager must actually populate node_modules')
+      assert.equal(out.firstInstall, false, 'a first install has nothing already loaded to go stale')
+      assert.equal(out.secondInstall, true, 'an install over existing packages may have upgraded one this process holds')
+    } finally {
+      fs.rmSync(binDir, { recursive: true, force: true })
+    }
   })
 })

@@ -147,3 +147,118 @@ describe('integrity-monitor', () => {
     assert.ok(result.checkedFiles > 0)
   })
 })
+
+/**
+ * The workspace-backed extension layout, monitored.
+ *
+ * `data/extensions/<name>` is a generated shim for an extension that keeps its
+ * code in a managed workspace, and the shim's content never changes however
+ * much the extension does. Baselining the workspace *entry* on top of it was
+ * not enough either: an entry is wiring, and AI Signal's is 3.6 KB against
+ * 172 KB of logic in `src/*.mjs` beside it, so a monitor that stopped at the
+ * entry reported clean while roughly 98% of the executing code had been
+ * replaced.
+ *
+ * These cases run under tsx only. `runIntegrityMonitor` reads and writes its
+ * baselines through the SQLite-backed storage layer, whose native module is
+ * built for one Node ABI at a time, so this subject cannot be driven under
+ * Electron's embedded Node the way `extension-module-loader.test.ts` drives the
+ * loader.
+ *
+ * The layout below is the one `extensions/aisignal/scripts/install.mjs` writes,
+ * spelled out rather than imported so that a change to the installer shows up
+ * here as a disagreement instead of being silently followed.
+ */
+describe('integrity-monitor extension workspaces', () => {
+  let extensionsDir = ''
+  let workspaceDir = ''
+
+  const workspaceFile = (...parts: string[]): string => path.join(workspaceDir, ...parts)
+
+  before(() => {
+    extensionsDir = path.join(process.env.DATA_DIR!, 'extensions')
+    workspaceDir = path.join(extensionsDir, '.workspaces', 'aisignal_mjs')
+    fs.mkdirSync(path.join(workspaceDir, 'src'), { recursive: true })
+    fs.mkdirSync(path.join(workspaceDir, 'node_modules', 'left-pad'), { recursive: true })
+
+    fs.writeFileSync(workspaceFile('index.js'), "export { default } from './src/db.mjs'\n")
+    fs.writeFileSync(workspaceFile('src', 'db.mjs'), 'export default { name: "aisignal", credential: "first" }\n')
+    fs.writeFileSync(workspaceFile('package.json'), '{"name":"aisignal","type":"module"}\n')
+    fs.writeFileSync(workspaceFile('package-lock.json'), '{"name":"aisignal","lockfileVersion":3}\n')
+    fs.writeFileSync(
+      path.join(workspaceDir, 'node_modules', 'left-pad', 'index.js'),
+      'module.exports = () => "first"\n',
+    )
+    fs.writeFileSync(path.join(extensionsDir, 'aisignal.mjs'), "export { default } from './.workspaces/aisignal_mjs/index.js'\n")
+    fs.writeFileSync(path.join(extensionsDir, 'plain.js'), 'module.exports = { name: "plain" }\n')
+
+    // Establish the baseline for everything above in one pass.
+    integrityMonitor.runIntegrityMonitor({ integrityMonitorEnabled: true })
+  })
+
+  it('reports a drift for a source file below the workspace entry', () => {
+    fs.writeFileSync(workspaceFile('src', 'db.mjs'), 'export default { name: "aisignal", credential: "stolen" }\n')
+
+    const result = integrityMonitor.runIntegrityMonitor({ integrityMonitorEnabled: true })
+    const drift = result.drifts.find((d) => d.filePath === path.resolve(workspaceFile('src', 'db.mjs')))
+    assert.ok(drift, 'editing a file below the workspace entry must trip a drift')
+    assert.equal(drift!.type, 'modified')
+    assert.equal(drift!.kind, 'extension')
+    assert.notEqual(drift!.previousHash, drift!.nextHash)
+  })
+
+  it('reports a drift for the workspace entry the loader imports', () => {
+    fs.writeFileSync(workspaceFile('index.js'), "export { default } from './src/db.mjs'\n// tampered\n")
+
+    const result = integrityMonitor.runIntegrityMonitor({ integrityMonitorEnabled: true })
+    const drift = result.drifts.find((d) => d.filePath === path.resolve(workspaceFile('index.js')))
+    assert.ok(drift, 'the workspace entry must stay monitored')
+    assert.equal(drift!.type, 'modified')
+  })
+
+  it('reports a drift for the workspace manifest that declares the dependencies', () => {
+    // The manifest is what makes the node_modules exclusion below safe to
+    // state: packages under it are reachable only as declared dependencies, and
+    // changing that declaration is visible here.
+    fs.writeFileSync(workspaceFile('package.json'), '{"name":"aisignal","type":"module","dependencies":{"left-pad":"1.3.0"}}\n')
+
+    const result = integrityMonitor.runIntegrityMonitor({ integrityMonitorEnabled: true })
+    const drift = result.drifts.find((d) => d.filePath === path.resolve(workspaceFile('package.json')))
+    assert.ok(drift, 'the workspace package.json must be monitored')
+  })
+
+  it('leaves the workspace node_modules out of the baseline, and nothing else', () => {
+    fs.writeFileSync(
+      path.join(workspaceDir, 'node_modules', 'left-pad', 'index.js'),
+      'module.exports = () => "second"\n',
+    )
+    // Written into a directory that is not named node_modules, to show the
+    // exclusion is the literal name and not "anything that looks vendored".
+    fs.mkdirSync(workspaceFile('vendor'), { recursive: true })
+    fs.writeFileSync(workspaceFile('vendor', 'helper.mjs'), 'export const helper = () => "first"\n')
+    integrityMonitor.runIntegrityMonitor({ integrityMonitorEnabled: true })
+    fs.writeFileSync(workspaceFile('vendor', 'helper.mjs'), 'export const helper = () => "second"\n')
+
+    const result = integrityMonitor.runIntegrityMonitor({ integrityMonitorEnabled: true })
+    assert.equal(
+      result.drifts.some((d) => d.filePath.includes(`${path.sep}node_modules${path.sep}`)),
+      false,
+      'installed packages are deliberately unmonitored',
+    )
+    assert.ok(
+      result.drifts.find((d) => d.filePath === path.resolve(workspaceFile('vendor', 'helper.mjs'))),
+      'only the literal node_modules name is skipped',
+    )
+  })
+
+  it('baselines a plain extension exactly once', () => {
+    // The shim path and the resolved source path are the same file for an
+    // extension with no workspace, and the id is sha1 of the resolved path, so
+    // the two pushes collapse. One edit must therefore be one drift.
+    fs.writeFileSync(path.join(extensionsDir, 'plain.js'), 'module.exports = { name: "plain-modified" }\n')
+
+    const result = integrityMonitor.runIntegrityMonitor({ integrityMonitorEnabled: true })
+    const drifts = result.drifts.filter((d) => d.filePath === path.resolve(path.join(extensionsDir, 'plain.js')))
+    assert.equal(drifts.length, 1, 'a plain extension must not be baselined twice')
+  })
+})

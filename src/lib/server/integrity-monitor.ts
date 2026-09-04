@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { DATA_DIR } from './data-dir'
-import { EXTENSIONS_DIR, resolveExtensionSourcePath } from './extensions/extension-source-paths'
+import { EXTENSIONS_DIR, listExtensionSourceFiles } from './extensions/extension-source-paths'
 import { resolveOpenClawWorkspace } from './openclaw/sync'
 import { loadIntegrityBaselines, saveIntegrityBaselines } from './storage'
 
@@ -105,9 +105,31 @@ function collectWatchTargets(): WatchTarget[] {
       // The file above is a generated shim for a workspace-backed extension,
       // and its content never changes however much the extension does. Watching
       // it alone means the code the host actually imports is unmonitored, which
-      // is the opposite of what a tamper monitor is for. Duplicate paths are
-      // collapsed at the end, so a plain extension costs nothing here.
-      if (extDir === extensionDir) pushIfExists(targets, resolveExtensionSourcePath(entry), 'extension')
+      // is the opposite of what a tamper monitor is for.
+      //
+      // So baseline the extension's whole source tree, not just the entry the
+      // loader starts at. An entry is wiring: AI Signal's is 3.6 KB against
+      // 172 KB of logic in `src/*.mjs` beside it, the Gmail credential path
+      // included, and a monitor that watched only the entry would report clean
+      // while all of that had been replaced.
+      //
+      // Deliberately out of scope: `<workspace>/node_modules`. Those are
+      // installed third-party packages rather than the extension's own code,
+      // and hashing tens of thousands of files on every monitor tick is not
+      // something an operator would keep enabled. The exclusion cannot be used
+      // to hide code the loader imports: only the literal directory name is
+      // skipped, at any depth, and the workspace `package.json` and lockfile
+      // that declare which packages exist are baselined like any other source
+      // file, so changing the dependency set is a drift. See
+      // `listExtensionSourceFiles`.
+      //
+      // Duplicate paths are collapsed at the end, so a plain extension -- whose
+      // source is the file already pushed above -- costs nothing here.
+      if (extDir === extensionDir) {
+        for (const sourceFile of listExtensionSourceFiles(entry)) {
+          pushIfExists(targets, sourceFile, 'extension')
+        }
+      }
     }
   }
 

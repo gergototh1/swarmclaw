@@ -403,7 +403,7 @@ export function syncExtensionsFromOpenClaw(): { imported: number } {
   // Hash existing local extensions, by their source rather than by the file in
   // the extensions directory. For a workspace-backed extension that file is a
   // generated shim whose content is the same few lines for every extension, so
-  // hashing it compares shims to each other and lets an OpenClaw plugin the
+  // hashing it compares shims to each other and lets an OpenClaw extension the
   // host already has be imported again under a second name.
   if (fs.existsSync(localExtensionDir)) {
     for (const f of fs.readdirSync(localExtensionDir).filter((f) => f.endsWith('.js'))) {

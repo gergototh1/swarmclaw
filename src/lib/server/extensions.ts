@@ -64,7 +64,8 @@ import {
   EXTENSIONS_DIR,
   extensionWorkspaceDir,
   extensionWorkspaceEntryPath,
-  extensionWorkspaceKey,
+  extensionSourceIsMissing,
+  extensionWorkspaceEntrySpecifier,
   hasExtensionWorkspace,
   resolveExtensionSourcePath,
 } from './extensions/extension-source-paths'
@@ -152,6 +153,24 @@ interface ExtensionDependencyInfo {
   installStatus: ExtensionDependencyInstallStatus
   installError?: string
   installedAt?: number
+  /**
+   * True when this install may have upgraded a package the running process has
+   * already evaluated, so the reload that follows it cannot pick the new copy
+   * up.
+   *
+   * The extension's own files re-execute on reload -- a generation stamp for
+   * ESM, a targeted `require.cache` eviction for CommonJS -- but a package
+   * under the workspace's `node_modules` is deliberately left evaluated once
+   * per process, because re-running a package's import-time setup per reload
+   * duplicates connection pools, process listeners and native bindings. An
+   * install into a workspace that already had `node_modules` is therefore
+   * reported as installed while the old copy of anything upgraded stays live
+   * until the host restarts, and an operator who is not told that reads a
+   * successful install as a change that took effect. Only the install path
+   * sets it; a first install into an empty workspace has nothing loaded to go
+   * stale.
+   */
+  restartRequiredForUpgrades: boolean
 }
 
 interface UpsertExtensionOptions {
@@ -748,10 +767,12 @@ type ExternalModuleRecord =
   | { ok: true; namespace: Record<string, unknown> }
   /**
    * `vanished` marks an import that failed because the file is no longer there,
-   * which is a race with the operator rather than a broken extension and must
-   * not count toward the auto-disable threshold. It does not cover a
-   * half-written file: that one still exists, still fails to parse, and is held
-   * off only by the watcher debounce.
+   * which is a race with the operator rather than a broken extension. It leaves
+   * the consecutive-failure counter alone entirely: suppressing only the
+   * auto-disable action still advanced the count, so a vanished import followed
+   * by genuine failures hit the threshold one failure early. It does not cover
+   * a half-written file: that one still exists, still fails to parse, and is
+   * held off only by the watcher debounce.
    */
   | { ok: false; error: unknown; vanished?: boolean }
 
@@ -949,9 +970,8 @@ class ExtensionManager {
    * The extensions-directory watcher above is non-recursive and filtered to
    * `.js`/`.mjs` basenames, so it never reports a write under
    * `extensions/.workspaces/<key>/` -- and that workspace entry is the file the
-   * loader imports for a workspace-backed extension. Editing it on disk, which
-   * is the everyday development loop for an extension that ships its own source
-   * tree, therefore changed nothing until something else forced a reload.
+   * loader imports for a workspace-backed extension. Editing it on disk
+   * therefore changed nothing until something else forced a reload.
    *
    * One non-recursive watcher per workspace rather than one recursive watcher
    * over the extensions directory: a recursive watch descends into every
@@ -959,6 +979,19 @@ class ExtensionManager {
    * Linux and floods the debounce during a dependency install. A non-recursive
    * watch on the workspace root reports its direct children only, and the
    * filter below keeps that to the entry file.
+   *
+   * What that leaves uncovered, stated plainly because the temptation is to
+   * read the paragraph above as a fix for extension development in general: the
+   * watch reaches exactly two files per extension, the extensions-dir file and
+   * the workspace entry. It does not reach the source tree below that entry --
+   * `src/*.mjs`, where an extension like AI Signal keeps almost all of its code
+   * -- nor the workspace `package.json`, nor `node_modules`. Editing any of
+   * those takes an explicit reload: save through the UI, toggle the extension
+   * off and on, or touch the entry file. This is the same limit
+   * `Extension.setup`'s contract states in `src/types/extension.ts`, and the
+   * two must keep saying it the same way. Widening it means paying the
+   * recursive-watch cost above on every host, dependency-install floods
+   * included, for a loop that has a one-keystroke workaround.
    *
    * Re-synced from `loadOnce`, so a workspace that appeared gains a watcher and
    * one that was deleted loses it without any separate bookkeeping.
@@ -1063,6 +1096,7 @@ class ExtensionManager {
       installStatus: explicitConfig?.dependencyInstallStatus || (manifest ? 'ready' : 'none'),
       installError: explicitConfig?.dependencyInstallError,
       installedAt: explicitConfig?.dependencyInstalledAt,
+      restartRequiredForUpgrades: false,
     }
   }
 
@@ -1076,22 +1110,48 @@ class ExtensionManager {
    * `listExtensionFilenames` and `listExtensions` read, and what an operator
    * opening `data/extensions/<name>` finds.
    *
-   * Its module format still has to be the one its own filename implies. Node
-   * decides that from the extension: `.mjs` is ESM whatever sits around it, and
-   * `.js` outside a `"type": "module"` package is CommonJS. Emitting
-   * `module.exports = require(...)` into an `.mjs` file, which is what this did
-   * until now, is a syntax error -- inert only because nothing imports it,
-   * misleading to anyone reading the file, and a live breakage the moment
-   * anything imports the shim again. A UI edit of an ESM extension such as AI
-   * Signal, whose installer writes a correct ESM shim, used to overwrite it
-   * with the invalid CommonJS form.
+   * Two module formats have to line up here, and they are decided
+   * independently. The shim's own format comes from its name and where it
+   * sits: `.mjs` is ESM whatever surrounds it, and `.js` under
+   * `data/extensions` is CommonJS because nothing above that directory
+   * declares `"type": "module"`. The entry's format comes from the workspace
+   * `package.json`. Three of the four combinations bridge:
+   *
+   *   `.mjs` shim, either entry     `export { default } from ...`
+   *   `.js` shim, CommonJS entry    `module.exports = require(...)`
+   *   `.js` shim, ESM entry         no bridge exists
+   *
+   * The last one is not hypothetical: `extension_creator` forces `.js`
+   * filenames and passes `packageJson` straight through, so an agent that
+   * scaffolds an ESM extension lands there. Writing the CommonJS `require()`
+   * form for it produces a file that loads under a server's Node 22 and raises
+   * ERR_REQUIRE_ESM under the desktop app's Electron 33 (Node 20.18), and a
+   * shim that behaves differently in the two places the product ships is worse
+   * than one that does not load anywhere. So that case gets a shim that fails
+   * identically on both and says why: inert while nothing imports the shim,
+   * honest the moment something does.
+   *
+   * The relative specifier is derived from the workspace constants rather than
+   * spelled out, so moving the workspaces directory or the entry filename
+   * cannot leave the shim pointing at nothing.
    */
   private writeWorkspaceShim(filename: string): void {
-    const relEntry = `./.workspaces/${extensionWorkspaceKey(filename)}/index.js`
-    const reexport = filename.endsWith('.mjs')
-      ? `export { default } from ${JSON.stringify(relEntry)}\n`
-      : `module.exports = require(${JSON.stringify(relEntry)})\n`
-    const shim = `// Auto-generated extension workspace shim. Edit the managed source file instead.\n${reexport}`
+    const specifier = extensionWorkspaceEntrySpecifier(filename)
+    const shimIsEsm = filename.endsWith('.mjs')
+    const entryIsEsm = this.readWorkspaceManifest(filename)?.type === 'module'
+    let body: string
+    if (shimIsEsm) {
+      body = `export { default } from ${JSON.stringify(specifier)}\n`
+    } else if (!entryIsEsm) {
+      body = `module.exports = require(${JSON.stringify(specifier)})\n`
+    } else {
+      const reason = `Extension shim ${filename} is CommonJS and its source ${specifier} is an ES module.`
+      body = `// This file is CommonJS and ${specifier} is an ES module, so it cannot\n`
+        + '// re-export it. The host imports the workspace entry directly and never this\n'
+        + '// file; anything else must import the entry too.\n'
+        + `throw new Error(${JSON.stringify(`${reason} Import the source directly.`)})\n`
+    }
+    const shim = `// Auto-generated extension workspace shim. Edit the managed source file instead.\n${body}`
     fs.writeFileSync(path.join(EXTENSIONS_DIR, filename), shim, 'utf8')
   }
 
@@ -1304,11 +1364,22 @@ class ExtensionManager {
     notify('extensions')
   }
 
-  private markExtensionFailure(id: string, stage: string, err: unknown, disableEligible: boolean): void {
+  /**
+   * Records a failure against an extension.
+   *
+   * `countsAsFailure` is false only for something that is not the extension's
+   * fault -- today, an import of a file an operator removed mid-reload. Such an
+   * event is still written down so the error is visible on the extension's
+   * card, but it neither advances the consecutive-failure count nor can trip
+   * the auto-disable threshold, and the next genuine failure counts from where
+   * the run of real failures actually stood.
+   */
+  private markExtensionFailure(id: string, stage: string, err: unknown, countsAsFailure: boolean): void {
     const errorText = errorMessage(err)
     const state = this.readFailureState()
     const failureKey = this.canonicalExtensionId(id)
-    const nextCount = (state[failureKey]?.count || 0) + 1
+    const previousCount = state[failureKey]?.count || 0
+    const nextCount = countsAsFailure ? previousCount + 1 : previousCount
     const record: ExtensionFailureRecord = {
       count: nextCount,
       lastError: errorText,
@@ -1327,7 +1398,7 @@ class ExtensionManager {
     })
 
     if (
-      disableEligible
+      countsAsFailure
       && nextCount >= MAX_CONSECUTIVE_EXTENSION_FAILURES
       && !this.builtins.has(failureKey)
     ) {
@@ -1387,27 +1458,35 @@ class ExtensionManager {
       // CommonJS extension is served from require.cache underneath `import()`
       // unless its entry is gone from there first.
       this.clearExtensionRequireCache(dynamicRequire, file)
+      // The workspace entry when there is a workspace, the file in the
+      // extensions directory otherwise -- the same path `readExtensionSource`
+      // shows the operator, rather than the generated shim that stands in for
+      // it. The shim's own module format is then irrelevant to loading, which
+      // matters because a `.js` shim over an ESM workspace entry has no valid
+      // re-export form at all (see `writeWorkspaceShim`). Loading the entry
+      // directly removes that, and removes a difference between the runtimes
+      // the product ships on with it.
+      //
+      // Resolved once, so the path this import names is the path the failure
+      // below reports.
+      const sourcePath = this.resolveExtensionSourcePath(file)
       try {
-        // The workspace entry when there is a workspace, the file in the
-        // extensions directory otherwise -- the same path `readExtensionSource`
-        // shows the operator, rather than the generated shim that re-exports
-        // it. The shim's own module format is then irrelevant to loading, which
-        // matters because `writeWorkspaceShim` emits CommonJS regardless of the
-        // extension's filename: importing an `.mjs` shim holding
-        // `module.exports = ...` is a syntax error, and importing a `.js`
-        // CommonJS shim that requires an ESM workspace entry is
-        // ERR_REQUIRE_ESM on Electron and not on a newer Node. Loading the
-        // entry directly removes both, and removes a difference between
-        // runtimes with it.
-        const sourcePath = this.resolveExtensionSourcePath(file)
         const namespace = await importExtensionModule(sourcePath, generation)
         acquired.set(file, { ok: true, namespace })
       } catch (err: unknown) {
-        // An extension deleted between the directory listing above and this
-        // import fails here, and counting that as a failure of the extension
-        // would push a perfectly healthy neighbour reinstall toward
+        // An extension whose file an operator removed while the host was
+        // reading it fails here, and counting that as a failure of the
+        // extension would push a perfectly healthy reinstall toward
         // auto-disable on nothing but timing.
-        const vanished = !fs.existsSync(this.resolveExtensionSourcePath(file))
+        //
+        // Asked through `extensionSourceIsMissing` rather than by testing
+        // `sourcePath`, because for a workspace-backed extension mid-reinstall
+        // those are two different files: the entry is the one that is gone, and
+        // once it is gone `resolveExtensionSourcePath` falls back to the
+        // extensions-dir shim, which is still present. Testing the resolved
+        // path therefore reported "not vanished" in exactly the case this flag
+        // exists for.
+        const vanished = extensionSourceIsMissing(file)
         acquired.set(file, { ok: false, error: err, vanished })
       }
     }
@@ -2805,13 +2884,8 @@ class ExtensionManager {
       ? this.getWorkspaceEntryPath(sanitizedFilename)
       : path.join(EXTENSIONS_DIR, sanitizedFilename)
 
-    if (shouldUseWorkspace) {
-      fs.mkdirSync(this.getWorkspaceDir(sanitizedFilename), { recursive: true })
-      fs.writeFileSync(sourcePath, code, 'utf8')
-      this.writeWorkspaceShim(sanitizedFilename)
-    } else {
-      fs.writeFileSync(sourcePath, code, 'utf8')
-    }
+    if (shouldUseWorkspace) fs.mkdirSync(this.getWorkspaceDir(sanitizedFilename), { recursive: true })
+    fs.writeFileSync(sourcePath, code, 'utf8')
 
     const normalizedPackageManager = normalizeExtensionPackageManager(options?.packageManager)
 
@@ -2832,6 +2906,11 @@ class ExtensionManager {
       this.setMeta(sanitizedFilename, options.meta)
     }
 
+    // After the manifest, not before it: the shim's re-export form depends on
+    // whether the workspace `package.json` declares `"type": "module"`, and on
+    // a first scaffold that file does not exist yet when the code is written.
+    if (shouldUseWorkspace) this.writeWorkspaceShim(sanitizedFilename)
+
     if (options?.installDependencies) {
       await this.installExtensionDependencies(sanitizedFilename, {
         packageManager: normalizedPackageManager || undefined,
@@ -2850,6 +2929,10 @@ class ExtensionManager {
 
     this.ensureExtensionDirs()
     const workspaceDir = this.getWorkspaceDir(sanitizedFilename)
+    // Read before the install, because it is the only cheap way to tell a first
+    // install from one that could have upgraded a package this process has
+    // already evaluated. See `restartRequiredForUpgrades`.
+    const hadInstalledPackages = fs.existsSync(path.join(workspaceDir, 'node_modules'))
     const sourcePath = this.resolveExtensionSourcePath(sanitizedFilename)
     const currentCode = fs.existsSync(sourcePath) ? fs.readFileSync(sourcePath, 'utf8') : ''
 
@@ -2893,7 +2976,10 @@ class ExtensionManager {
       await this.reload()
     }
 
-    return this.getDependencyInfo(sanitizedFilename, this.readConfigEntry(sanitizedFilename))
+    return {
+      ...this.getDependencyInfo(sanitizedFilename, this.readConfigEntry(sanitizedFilename)),
+      restartRequiredForUpgrades: hadInstalledPackages,
+    }
   }
 
   async setEnabled(filename: string, enabled: boolean): Promise<void> {
@@ -3071,8 +3157,15 @@ class ExtensionManager {
     // that was then dropped, with no teardown hook to undo them. Running one
     // reload at a time removes both: the generation is bumped inside the
     // serialised section, so the reload that starts last reads the newest file
-    // and installs last, and no generation is ever acquired only to be thrown
-    // away.
+    // and installs last, and no generation is ever acquired by *this method*
+    // only to be thrown away.
+    //
+    // That last clause is about `reload()`, not about the manager. `ensureLoaded`
+    // acquires outside this queue, so a reload that overlapped it could still
+    // install the older of the two acquisitions. Reaching that needs something
+    // to call `reload()` before `instrumentation.register()`'s await returns,
+    // which nothing does; it is recorded here rather than fixed so the sentence
+    // above cannot be read as a property of the whole class.
     //
     // The discard-on-stale alternative -- acquire concurrently, drop a result
     // once a newer generation has landed -- would also keep the newest

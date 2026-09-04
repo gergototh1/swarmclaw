@@ -1,16 +1,13 @@
 import { z } from 'zod'
 import { tool, type StructuredToolInterface } from '@langchain/core/tools'
 import fs from 'fs'
-import path from 'path'
-import { DATA_DIR } from '../data-dir'
 import type { ToolBuildContext } from './context'
 import type { Extension, ExtensionHooks } from '@/types'
 import { getExtensionManager } from '../extensions'
+import { EXTENSIONS_DIR, resolveExtensionSourcePath } from '../extensions/extension-source-paths'
 import { normalizeToolInputArgs } from './normalize-tool-args'
 import { errorMessage } from '@/lib/shared-utils'
 import { getEnabledExtensionIds } from '@/lib/capability-selection'
-
-const EXTENSIONS_DIR = path.join(DATA_DIR, 'extensions')
 
 /**
  * Core Extension Creator Execution Logic
@@ -47,7 +44,13 @@ async function executeExtensionCreatorAction(args: Record<string, unknown>, ctxO
         packageManager,
         installDependencies: packageJson !== undefined,
       })
-      const filePath = path.join(EXTENSIONS_DIR, filename)
+      // The path the agent is told about has to be the one it can edit. A
+      // scaffold that passes a packageJson is workspace-backed, so
+      // saveExtensionSource wrote the code to `.workspaces/<key>/index.js` and
+      // left a generated shim at `extensions/<filename>`. This result goes to a
+      // model holding shell and file-editing tools, and reporting the shim
+      // would send its next edit to a file the loader never reads.
+      const filePath = resolveExtensionSourcePath(filename)
 
       // Auto-enable the extension for the agent that created it
       if (pctx.agentId && pctx.sessionId) {
@@ -235,12 +238,15 @@ Key rules:
 
     if (action === 'delete') {
       if (!filename) return 'Error: filename required.'
-      const filePath = path.join(EXTENSIONS_DIR, filename)
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath)
-        await getExtensionManager().reload()
-        return `Deleted ${filename} and reloaded manager.`
-      }
+      // Through the manager, never by unlinking the extensions-dir file. That
+      // file is a generated shim for a workspace-backed extension: removing it
+      // alone left the workspace and its node_modules, the extensions.json
+      // entry and the extension's database objects behind, made the manager's
+      // own deleteExtension return false so no UI could finish the job, and let
+      // a later scaffold under the same name write fresh code into the stale
+      // workspace and inherit its old dependencies.
+      const deleted = await getExtensionManager().deleteExtension(filename)
+      if (deleted) return `Deleted ${filename} and reloaded manager.`
       return `File not found: ${filename}`
     }
 

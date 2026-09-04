@@ -158,13 +158,23 @@ export function ExtensionSheet() {
     if (!editing?.filename) return
     setDependencyInstalling(true)
     try {
-      const response = await api<{ ok: boolean }>('POST', '/extensions/dependencies', {
-        filename: editing.filename,
-        packageManager: editing.packageManager,
-      })
+      const response = await api<{ ok: boolean; dependencyInfo?: { restartRequiredForUpgrades?: boolean } }>(
+        'POST',
+        '/extensions/dependencies',
+        {
+          filename: editing.filename,
+          packageManager: editing.packageManager,
+        },
+      )
       if (response?.ok) {
         await loadExtensions()
-        toast.success('Extension dependencies installed')
+        // A package this process already evaluated keeps the copy it has, so an
+        // install that upgraded one reports success while the old code is still
+        // what runs. The operator has to be told here, not only in a comment
+        // next to the loader.
+        toast.success(response.dependencyInfo?.restartRequiredForUpgrades
+          ? 'Extension dependencies installed. Restart SwarmClaw to run upgraded packages.'
+          : 'Extension dependencies installed')
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to install extension dependencies')
@@ -338,6 +348,13 @@ export function ExtensionSheet() {
               {editing.dependencyInstalledAt && (
                 <p className="text-[10px] text-text-3/45 mt-3">
                   Last installed {new Date(editing.dependencyInstalledAt).toLocaleString()}
+                </p>
+              )}
+
+              {editing.dependencyInstallStatus === 'installed' && (
+                <p className="text-[10px] text-text-3/45 mt-1.5">
+                  Reloading an extension re-runs its own files, but a package it depends on
+                  is loaded once per process. Restart SwarmClaw to run an upgraded package.
                 </p>
               )}
             </div>
