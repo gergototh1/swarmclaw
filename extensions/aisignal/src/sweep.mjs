@@ -65,7 +65,7 @@ const TEXT_LIMIT = 20000
 /**
  * The note segment a run writes when the id listing itself stopped short.
  *
- * Written by `signalSweep` and read back by `resolveSince`, so the two are
+ * Written by `signalSweep` and read back by `drainedWindow`, so the two are
  * spelled once here: the watermark rule turns on this segment being findable on
  * a later read of the row, and a writer and a reader that drift apart would let
  * the watermark step over a listing that never finished.
@@ -122,7 +122,7 @@ function resolveMax(fromArgs, fromSettings) {
  * Did that sweep drain the window it opened?
  *
  * Only a run that did may move the watermark forward, so this is the whole
- * safety condition of `resolveSince` and it is deliberately conservative: it
+ * safety condition of `watermarkSince` and it is deliberately conservative: it
  * answers "yes" only when the run left nothing behind by either of the two ways
  * a run can leave something behind.
  *
@@ -147,14 +147,12 @@ function drainedWindow(sweep) {
 }
 
 /**
- * The watermark this run resumes from.
+ * The frontier a run would resume from with nobody asking for anything else.
  *
  * `latestFinishedSince` already refuses to hand back a sweep that never
- * completed, so a crashed run cannot become the watermark and skip everything
- * up to the crash. An explicit `sinceDays` overrides it for a deliberate
- * catch-up pass; a `sinceDays` that is not a positive number is refused rather
- * than turned into an Invalid Date, which would throw uncoded out of
- * `toISOString`.
+ * completed, so a crashed run cannot become the frontier and skip everything up
+ * to the crash. `null` means "the whole label", which is the widest window
+ * there is and therefore the safe answer when there is nothing to resume from.
  *
  * Why a finished sweep's `ran_at` is not automatically the next window's start
  * ----------------------------------------------------------------------------
@@ -164,29 +162,74 @@ function drainedWindow(sweep) {
  * window past that mail, and `sinceQuery` only re-opens the window by about 62
  * hours, so a backlog older than that is never listed again -- the dedup cannot
  * save a message that is never listed, and the row goes on claiming
- * `leftover = 495` forever. This is the third time in this extension that a
- * window silently narrowed past mail nobody read (the mailbox timezone and the
- * truncation flag were the other two), which is why the rule here is the
- * conservative one:
+ * `leftover = 495` forever. So:
  *
  *   a finished sweep that drained its window hands back its `ran_at`;
  *   one that did not hands back *its own* `since`, so the next run re-opens the
  *   same window and the backlog stays reachable.
  *
- * A sweep that left something behind therefore never advances the watermark,
- * and the window only moves once some run has actually cleared it. Re-listing
- * the same window is cheap and lands on the dedup; skipping it is permanent.
+ * A sweep that left something behind therefore never advances the frontier, and
+ * the window only moves once some run has actually cleared it. Re-listing the
+ * same window is cheap and lands on the dedup; skipping it is permanent.
+ */
+function watermarkSince(watermark) {
+  if (!watermark) return null
+  return drainedWindow(watermark) ? (watermark.ran_at || null) : (watermark.since || null)
+}
+
+/**
+ * The window this run opens: the frontier, widened if the caller asked for
+ * more, never narrowed.
+ *
+ * `sinceDays` used to be resolved on its own and returned in place of the
+ * frontier, and the resolved value is persisted as the sweep row's `since`,
+ * which is what the next run resumes from. Nothing compared the two, so any
+ * narrowing `sinceDays` was permanent: a run that asks for one day writes a
+ * one-day frontier, the next run opens there, and everything an earlier run
+ * left behind more than about 62 hours back is never listed again while its row
+ * goes on claiming leftover forever. The drained branch was worse -- a
+ * first-ever one-day pass that drained its one day set the frontier to its own
+ * `ran_at` and the entire pre-existing backlog became unreachable.
+ *
+ * Why clamping rather than honouring the narrow pass
+ * -------------------------------------------------
+ * The alternative was to run the narrow window but mark that sweep as
+ * non-draining so it could not advance the frontier. It cannot be made safe
+ * here: a non-draining sweep hands back *its own* `since`, which is the narrow
+ * one, so the frontier still moves forward. Making it hand back the wider value
+ * instead means carrying that value somewhere, and the only place available
+ * without a migration is the note -- a field `finishSweep` lets the agent write
+ * into. A frontier that a note segment can push forward is a one-token
+ * injection from any newsletter this extension reads, and this layer's second
+ * rule is that newsletter text is hostile.
+ *
+ * Clamping needs no state at all: one comparison, and the parameter becomes
+ * incapable of losing mail no matter what talked the agent into passing it. The
+ * cost is that a request to narrow is answered with a wider window than asked
+ * for; the run reports the `since` it actually used, and erring wide costs a
+ * re-listing that lands on the dedup while erring narrow is permanent.
+ *
+ * A `sinceDays` that is not a positive number is still refused rather than
+ * clamped away, because it is a caller mistake worth naming, and turning it
+ * into an Invalid Date would throw uncoded out of `toISOString`.
  */
 function resolveSince(sinceDays, watermark) {
-  if (sinceDays === undefined || sinceDays === null || sinceDays === '') {
-    if (!watermark) return null
-    return drainedWindow(watermark) ? (watermark.ran_at || null) : (watermark.since || null)
-  }
+  const frontier = watermarkSince(watermark)
+  if (sinceDays === undefined || sinceDays === null || sinceDays === '') return frontier
+
   const n = Number(sinceDays)
   if (!Number.isFinite(n) || n <= 0) throw new InputError('sinceDays must be a positive number of days')
   const from = new Date(Date.now() - n * 86400000)
   if (Number.isNaN(from.getTime())) throw new InputError('sinceDays reaches outside the range of a date')
-  return from.toISOString()
+
+  // No frontier is the whole label, and nothing is wider than that.
+  if (frontier === null) return null
+  // A frontier that will not parse reaches `sinceQuery`, which drops an
+  // unreadable date and lists the whole label -- also wider than anything
+  // `sinceDays` can ask for, so it wins here too rather than being replaced.
+  const frontierAt = Date.parse(frontier)
+  if (!Number.isFinite(frontierAt)) return frontier
+  return from.getTime() < frontierAt ? from.toISOString() : frontier
 }
 
 /**
@@ -312,7 +355,7 @@ export function createSweepTools(state) {
         type: 'object',
         properties: {
           label: { type: 'string', description: 'Gmail címke; alapból a beállított.' },
-          sinceDays: { type: 'number', description: 'Ennyi napra visszamenőleg, a legutóbbi befejezett sweep vízjele helyett.' },
+          sinceDays: { type: 'number', description: 'Ennyi napra visszamenőleg. Csak tágítani tud: ha a vízjel régebbi, az marad, hogy az elmaradt levelek ne vesszenek el.' },
           maxMessages: { type: 'number', description: 'Levél / futás; alapból a beállított, annak híján 5.' },
         },
       },

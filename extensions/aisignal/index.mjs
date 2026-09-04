@@ -52,7 +52,13 @@ const aisignal = {
     }],
     settingsFields: [
       { key: 'label', label: 'Gmail címke', type: 'text', placeholder: 'AI hírlevél' },
-      { key: 'maxMessages', label: 'Levél / futás', type: 'number', placeholder: '5' },
+      // `defaultValue` is what a never-configured install gets: the host writes
+      // it into the stored settings when the key is undefined. It does not
+      // replace `DEFAULT_MAX` in sweep.mjs -- a field the operator clears stores
+      // '' rather than undefined, so the host default never fires again and the
+      // sweep layer is the only thing that can turn a blank setting back into a
+      // working run. The two numbers are the same on purpose.
+      { key: 'maxMessages', label: 'Levél / futás', type: 'number', placeholder: '5', defaultValue: 5 },
     ],
   },
   managedResources: { agents: [], schedules: [] },

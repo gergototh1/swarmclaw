@@ -199,7 +199,7 @@ test('the setting supplies the cap when the call does not', async () => {
 
 // --- The watermark ----------------------------------------------------------
 
-test('the watermark is the last finished sweep that drained its window, and sinceDays overrides it', async () => {
+test('the watermark is the last finished sweep that drained its window, and sinceDays widens it', async () => {
   const gmail = fakeGmail({ ids: [] })
   const { state, run } = setup(gmail)
   closedSweep(state.repo)
@@ -213,6 +213,8 @@ test('the watermark is the last finished sweep that drained its window, and sinc
   await run('signalSweep')
   assert.equal(gmail.calls.list[0].since, ranAt)
 
+  // Three days back is earlier than a watermark written moments ago, so this
+  // asks for more mail than the watermark would have given and gets it.
   await run('signalSweep', { sinceDays: 3 })
   const asked = new Date(gmail.calls.list[1].since).getTime()
   assert.equal(Math.abs(Date.now() - asked - 3 * 86400000) < 60000, true)
@@ -247,9 +249,14 @@ test('a run that left messages behind does not move the watermark past them', as
 test('the window a run did not drain is the window the next run reopens', async () => {
   const gmail = fakeGmail({ ids: ['a', 'b', 'c'] })
   const { state, run } = setup(gmail)
+  // A drained sweep first, so there is a watermark for `sinceDays: 7` to widen
+  // past. Without one the window is the whole label already and the widening
+  // would have nothing to show.
+  closedSweep(state.repo)
 
   const first = await run('signalSweep', { sinceDays: 7, maxMessages: 1 })
   const window = gmail.calls.list[0].since
+  assert.equal(Math.abs(Date.now() - new Date(window).getTime() - 7 * 86400000) < 60000, true)
   await run('finishSweep', { sweepId: first.sweepId })
   const ranAt = state.repo.latestSweep().ran_at
 
@@ -259,6 +266,84 @@ test('the window a run did not drain is the window the next run reopens', async 
   // between them, and a window starting at `ran_at` excludes them for good.
   assert.equal(gmail.calls.list[1].since, window)
   assert.notEqual(gmail.calls.list[1].since, ranAt)
+})
+
+test('a narrow sinceDays cannot move the window past mail an earlier run left behind', async () => {
+  // The failure this pins, reproduced against the real modules before the fix:
+  // run one sweeps the whole label and leaves four messages behind; run two
+  // asks for one day and its resolved `since` is persisted as the row's
+  // watermark; run three then opens at minus one day, `sinceQuery` only widens
+  // that by about 62 hours, and the four messages are never listed again while
+  // the row claims their leftover forever.
+  const gmail = fakeGmail({ ids: ['m1', 'm2', 'm3', 'm4', 'm5', 'm6'] })
+  const { run } = setup(gmail)
+
+  const first = await run('signalSweep', { maxMessages: 2 })
+  assert.equal(first.leftover, 4)
+  await run('finishSweep', { sweepId: first.sweepId })
+  assert.equal(gmail.calls.list[0].since, null)
+
+  const second = await run('signalSweep', { sinceDays: 1, maxMessages: 2 })
+  await run('finishSweep', { sweepId: second.sweepId })
+  // The frontier here is the whole label, and nothing is wider than that, so
+  // the narrow ask is answered with the window that still contains m1..m6.
+  assert.equal(gmail.calls.list[1].since, null)
+  assert.equal(second.since, null)
+
+  await run('signalSweep', { maxMessages: 2 })
+  assert.equal(gmail.calls.list[2].since, null)
+})
+
+test('a first run asking for a narrow window still sweeps the whole label', async () => {
+  // The drained branch of the same failure: a first-ever one-day pass that
+  // drains its one day would set the watermark to its own `ran_at`, and the
+  // whole pre-existing backlog would sit behind a window that never reopens.
+  const gmail = fakeGmail({ ids: ['a'] })
+  const { state, run } = setup(gmail)
+
+  const first = await run('signalSweep', { sinceDays: 1, maxMessages: 5 })
+  assert.equal(first.leftover, 0)
+  assert.equal(gmail.calls.list[0].since, null, 'the backlog is inside the window this run swept')
+  await run('finishSweep', { sweepId: first.sweepId })
+
+  // Only now, having actually drained the whole label, may the window move up
+  // to that run's own timestamp.
+  await run('signalSweep', { maxMessages: 5 })
+  assert.equal(gmail.calls.list[1].since, state.repo.sweeps(2)[1].ran_at)
+})
+
+test('sinceDays is clamped to a watermark that is already older than it', async () => {
+  const gmail = fakeGmail({ ids: ['a'] })
+  const { state, run } = setup(gmail)
+  // A sweep that left something behind ten days ago: its window, not its
+  // `ran_at`, is the frontier, and that frontier is older than any `sinceDays`
+  // this test can ask for.
+  const tenDaysAgo = new Date(Date.now() - 10 * 86400000).toISOString()
+  const { id } = state.repo.openSweep({ label: 'x', since: tenDaysAgo, fetchedIds: [], skipped: 0, leftover: 3 })
+  state.repo.finishSweep({ sweepId: id })
+
+  await run('signalSweep', { sinceDays: 2 })
+
+  assert.equal(gmail.calls.list[0].since, tenDaysAgo)
+})
+
+test('a watermark row that carries no leftover is not treated as drained', async () => {
+  // `drainedWindow` refuses a row whose `leftover` is not a finite number, and
+  // nothing else pins that check: a read that stops selecting the column -- a
+  // trimmed projection, a source that never wrote it -- would otherwise answer
+  // "this run drained everything" and restore the rule that steps over unswept
+  // mail. Driving it needs a row the repository cannot produce, so the read is
+  // replaced rather than the row.
+  const gmail = fakeGmail({ ids: [] })
+  const { state, run } = setup(gmail)
+  const window = new Date(Date.now() - 5 * 86400000).toISOString()
+  const ranAt = new Date().toISOString()
+  state.repo.latestFinishedSince = () => ({ since: window, ran_at: ranAt, note: '' })
+
+  await run('signalSweep')
+
+  assert.equal(gmail.calls.list[0].since, window)
+  assert.notEqual(gmail.calls.list[0].since, ranAt)
 })
 
 test('a listing that stopped short keeps the window open even with nothing left over', async () => {

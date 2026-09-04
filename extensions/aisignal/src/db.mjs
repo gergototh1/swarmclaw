@@ -110,6 +110,18 @@ const DECISION_STATUS = { save: 'saved', archive: 'archived', undo: 'new' }
  * Sweep notes are '; '-joined segments; re-adding a segment already present is
  * a no-op so finishSweep stays idempotent.
  *
+ * One of those segments is load-bearing, and nothing in this file says so on
+ * its own: `list_truncated=<reason>`, written by `signalSweep`, is what
+ * `drainedWindow` in sweep.mjs reads to decide that a sweep did not drain its
+ * window and therefore may not become the next run's watermark. The sweep row
+ * has no column for it, so the note is the only carrier. Trimming the note,
+ * capping its length, reordering or reformatting its segments, or dropping the
+ * '; ' separator here would make that segment unfindable, and an unfindable
+ * segment reads as "this run drained everything" -- the watermark then steps
+ * over mail nobody read, silently and permanently. Any change to the note
+ * format has to keep `TRUNCATED_RE` in sweep.mjs matching, or move the fact
+ * into a column of its own.
+ *
  * The addition is split on the same separator before the containment check.
  * A closing note can itself carry several segments (e.g. "partial page; rate
  * limited"), and checking that whole string against the single-segment
@@ -207,7 +219,7 @@ export function createRepo(storage) {
      * actually drained the window it opened. A sweep that left messages behind,
      * or whose listing stopped short, has a `ran_at` that is later than mail it
      * never looked at; resuming from it makes that mail unreachable. See
-     * `resolveSince` in sweep.mjs for the rule this row feeds.
+     * `watermarkSince` in sweep.mjs for the rule this row feeds.
      */
     latestFinishedSince(kind = 'mail') { return S.get(`SELECT since, ran_at, leftover, note FROM ext_aisignal_sweeps WHERE kind = ? AND ok = 1 AND finished_at IS NOT NULL ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
     sweeps(limit = 10) { return S.all(`SELECT * FROM ext_aisignal_sweeps ORDER BY ${SWEEP_ORDER} LIMIT ?`, [limit]) },
