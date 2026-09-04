@@ -2,17 +2,25 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import { MAIL_KIND, MIGRATIONS, createRepo, alreadyClosedMessage } from '../src/db.mjs'
-import { GmailError } from '../src/gmail.mjs'
+import { GmailError, sinceQuery } from '../src/gmail.mjs'
 import { createSweepTools } from '../src/sweep.mjs'
 import { memStorage } from './helpers.mjs'
 
 /**
- * The label these runs sweep, and therefore the label their frontier belongs
- * to. The frontier is keyed on the kind *and* the label, so a test that reads
- * it names the source it swept -- `frontier(MAIL_KIND, LABEL)` is one source's
- * window and says nothing about any other.
+ * The label name these runs sweep, and the source that name resolves to.
+ *
+ * The frontier is keyed on the resolved source -- the kind, the mailbox and the
+ * Gmail label id -- and not on the name, because a name is an alias an operator
+ * can repoint. So a test that reads a frontier names all three: `swept(repo)` is
+ * the window of the source these runs actually read, and says nothing about any
+ * other.
  */
 const LABEL = 'AI hírlevél'
+const MAILBOX = 'owner@example.test'
+const LABEL_ID = 'LBL_AI'
+
+/** The frontier of one resolved source. Defaults to the one the tools sweep. */
+const swept = (repo, sourceId = LABEL_ID, account = MAILBOX) => repo.frontier({ kind: MAIL_KIND, account, sourceId })
 
 /**
  * A stand-in for the Gmail client, in the shape `createGmail` actually returns.
@@ -29,14 +37,19 @@ const LABEL = 'AI hírlevél'
  * step. A test that pins which of them the sweep layer reads has to be able to
  * hand over a pair that disagrees.
  */
-function fakeGmail({ label = 'L', ids = [], stoppedOn = null, truncated = stoppedOn !== null, message, labelFail, fetchFail } = {}) {
-  const calls = { label: [], list: [], get: [] }
+function fakeGmail({ label = LABEL_ID, mailbox = MAILBOX, ids = [], stoppedOn = null, truncated = stoppedOn !== null, message, labelFail, mailboxFail, fetchFail } = {}) {
+  const calls = { label: [], mailbox: [], list: [], get: [] }
   return {
     calls,
     labelId: async (name) => {
       calls.label.push(name)
       if (labelFail) throw labelFail
       return label
+    },
+    mailbox: async () => {
+      calls.mailbox.push(mailbox)
+      if (mailboxFail) throw mailboxFail
+      return mailbox
     },
     listIds: async (opts) => {
       calls.list.push(opts)
@@ -60,13 +73,17 @@ function fakeGmail({ label = 'L', ids = [], stoppedOn = null, truncated = stoppe
  * does not have, and fails the way the real client fails.
  */
 function multiLabelGmail(idsByLabel) {
-  const calls = { label: [], list: [], get: [] }
+  const calls = { label: [], mailbox: [], list: [], get: [] }
   return {
     calls,
     labelId: async (name) => {
       calls.label.push(name)
       if (!Object.hasOwn(idsByLabel, name)) throw new GmailError('gmail_label_missing', `no Gmail label named "${name}"`)
       return name
+    },
+    mailbox: async () => {
+      calls.mailbox.push(MAILBOX)
+      return MAILBOX
     },
     listIds: async (opts) => {
       calls.list.push(opts)
@@ -78,6 +95,59 @@ function multiLabelGmail(idsByLabel) {
     },
   }
 }
+
+/**
+ * A Gmail double that behaves like a mailbox rather than like a canned answer:
+ * label *names* resolve to label *ids*, `mailbox()` reports whose mailbox this
+ * is, and a listing honours `since` the way Gmail does.
+ *
+ * All three are what the defect needs to be visible. The name is the mutable
+ * alias, the id is what a name resolves to, the mailbox is what the credential
+ * opens -- and only a listing that actually applies the window shows that a
+ * backlog older than an inherited watermark is never returned. The window is
+ * computed from the real `sinceQuery`, so it is the same `after:` day the real
+ * client would send, read as UTC midnight of that day.
+ *
+ * The state is a single mutable object so one run of the extension can be
+ * repointed between sweeps -- which is exactly what a rename, or a reconnect to
+ * another Google account, does underneath a setting nobody edited.
+ */
+function mailboxGmail(box) {
+  const calls = { label: [], mailbox: [], list: [], get: [] }
+  const windowStart = (since) => {
+    const q = sinceQuery(since)
+    if (!q) return -Infinity
+    const [y, m, d] = q.slice('after:'.length).split('/').map(Number)
+    return Date.UTC(y, m - 1, d)
+  }
+  return {
+    calls,
+    labelId: async (name) => {
+      calls.label.push(name)
+      const id = box.names[name]
+      if (!id) throw new GmailError('gmail_label_missing', `no Gmail label named "${name}"`)
+      return id
+    },
+    mailbox: async () => {
+      calls.mailbox.push(box.address)
+      return box.address
+    },
+    listIds: async ({ labelId, since, max }) => {
+      calls.list.push({ labelId, since, max, account: box.address })
+      const from = windowStart(since)
+      const ids = (box.messages[labelId] || []).filter((m) => m.at >= from).map((m) => m.id)
+      const truncated = ids.length > max
+      return { ids: ids.slice(0, max), truncated, stoppedOn: truncated ? 'cap' : null }
+    },
+    getMessage: async (id) => {
+      calls.get.push(id)
+      return { id, subject: `S ${id}`, fromName: 'F', fromEmail: 'f@x', sentAt: null, text: 'body', textInAttachment: false }
+    },
+  }
+}
+
+/** A message that landed `days` ago, in the shape mailboxGmail lists. */
+const aged = (id, days) => ({ id, at: Date.now() - days * 86400000 })
 
 function setup(gmail, settings = { label: LABEL }) {
   const s = memStorage()
@@ -99,12 +169,12 @@ function setup(gmail, settings = { label: LABEL }) {
  * `drained` is what earns that; a sweep closed without it leaves the frontier
  * at its own `since`.
  *
- * The label defaults to the one the tools sweep, because that is the source the
- * frontier it moves belongs to: a sweep of any other label would leave the
- * runs below opening at the whole label, which is a different test.
+ * The source defaults to the one the tools resolve, because that is the source
+ * the frontier it moves belongs to: a sweep of any other source would leave the
+ * runs below opening at the whole source, which is a different test.
  */
-function closedSweep(repo, fetchedIds = [], label = LABEL) {
-  const { id } = repo.openSweep({ label, since: null, fetchedIds, skipped: 0, leftover: 0, drained: true })
+function closedSweep(repo, fetchedIds = [], source = { account: MAILBOX, sourceId: LABEL_ID }, label = LABEL) {
+  const { id } = repo.openSweep({ label, source, since: null, fetchedIds, skipped: 0, leftover: 0, drained: true })
   repo.finishSweep({ sweepId: id })
   return id
 }
@@ -256,7 +326,7 @@ test('the frontier is the stored point a drained run left behind, and sinceDays 
   // That sweep left nothing over and its listing was not cut short, so no mail
   // is hiding behind its `ran_at` -- and closing it wrote that `ran_at` into
   // the frontier. Nothing here reads the sweep row to find that out.
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), ranAt)
+  assert.equal(swept(state.repo), ranAt)
 
   await run('signalSweep')
   assert.equal(gmail.calls.list[0].since, ranAt)
@@ -281,15 +351,15 @@ test('a drained sweep of one label does not move the frontier of another', async
   assert.equal(busy.leftover, 4)
   await run('finishSweep', { sweepId: busy.sweepId, ok: true })
   // Four are still waiting, so this label's window stays the whole label.
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), null)
+  assert.equal(swept(state.repo), null)
 
   const quiet = await run('signalSweep', { label: 'Csendes' })
   assert.equal(quiet.leftover, 0)
   await run('finishSweep', { sweepId: quiet.sweepId, ok: true })
 
   // The quiet label drained, so it earns a frontier -- its own.
-  assert.equal(state.repo.frontier(MAIL_KIND, 'Csendes'), state.repo.sweepById(quiet.sweepId).ran_at)
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), null, 'the four backlogged newsletters are still reachable')
+  assert.equal(swept(state.repo, 'Csendes'), state.repo.sweepById(quiet.sweepId).ran_at)
+  assert.equal(swept(state.repo), null, 'the four backlogged newsletters are still reachable')
 
   // And the next run of the busy label really does reopen the same window and
   // pick the backlog up, rather than starting after the quiet run.
@@ -316,8 +386,8 @@ test('changing the label setting does not strand the backlog behind the old one'
   await run('finishSweep', { sweepId: second.sweepId, ok: true })
   // The clean run earns a frontier for the label it actually swept, and the
   // label the operator moved away from keeps its own window.
-  assert.equal(state.repo.frontier(MAIL_KIND, 'Csendes'), state.repo.sweepById(second.sweepId).ran_at)
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), null)
+  assert.equal(swept(state.repo, 'Csendes'), state.repo.sweepById(second.sweepId).ran_at)
+  assert.equal(swept(state.repo), null)
 
   settings.label = LABEL
   const third = await run('signalSweep')
@@ -337,14 +407,14 @@ test('the frontier follows the listing truncated bit, not the stoppedOn string',
   assert.equal(cutSweep.leftover, 0)
   await cut.run('finishSweep', { sweepId: cutSweep.sweepId })
   // Mail is waiting behind the point that walk stopped, so nothing may advance.
-  assert.equal(cut.state.repo.frontier(MAIL_KIND, LABEL), null)
+  assert.equal(swept(cut.state.repo), null)
 
   // And the mirror: a walk that landed on the cap with the last page exhausted
   // is a walk that finished, whatever reason string it carries.
   const whole = setup(fakeGmail({ ids: ['a'], truncated: false, stoppedOn: 'cap' }))
   const wholeSweep = await whole.run('signalSweep', { maxMessages: 5 })
   await whole.run('finishSweep', { sweepId: wholeSweep.sweepId })
-  assert.equal(whole.state.repo.frontier(MAIL_KIND, LABEL), whole.state.repo.sweepById(wholeSweep.sweepId).ran_at)
+  assert.equal(swept(whole.state.repo), whole.state.repo.sweepById(wholeSweep.sweepId).ran_at)
 })
 
 test('a drained run earns a frontier no newer than the listing it describes', async () => {
@@ -366,7 +436,7 @@ test('a drained run earns a frontier no newer than the listing it describes', as
   const sw = await run('signalSweep', { maxMessages: 5 })
   await run('finishSweep', { sweepId: sw.sweepId })
 
-  const frontier = state.repo.frontier(MAIL_KIND, LABEL)
+  const frontier = swept(state.repo)
   assert.equal(frontier, state.repo.sweepById(sw.sweepId).ran_at)
   assert.equal(Date.parse(frontier) < duringListing, true, 'the frontier predates the listing that earned it')
 })
@@ -380,10 +450,18 @@ test('a run that could not list cannot be closed into a frontier', async () => {
   // waiting behind the real frontier became unreachable.
   const backlogWindow = new Date(Date.now() - 9 * 86400000).toISOString()
   const err = new GmailError('gmail_label_missing', 'no Gmail label named "AI hírlevél"')
-  const gmail = fakeGmail({ ids: ['a'], labelFail: err })
+  // The label is missing for the first run only, so the run after it can show
+  // the backlog window really is still there to be reopened.
+  const gmail = fakeGmail({ ids: ['a'] })
+  const labelId = gmail.labelId
+  let firstLookup = true
+  gmail.labelId = async (name) => {
+    if (firstLookup) { firstLookup = false; throw err }
+    return labelId(name)
+  }
   const { state, run } = setup(gmail)
-  state.repo.finishSweep({ sweepId: state.repo.openSweep({ label: LABEL, since: backlogWindow, fetchedIds: [], skipped: 0, leftover: 7 }).id })
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), backlogWindow)
+  state.repo.finishSweep({ sweepId: state.repo.openSweep({ label: LABEL, source: { account: MAILBOX, sourceId: LABEL_ID }, since: backlogWindow, fetchedIds: [], skipped: 0, leftover: 7 }).id })
+  assert.equal(swept(state.repo), backlogWindow)
 
   const failed = await run('signalSweep')
   assert.equal(failed.error.code, 'gmail_label_missing')
@@ -391,9 +469,9 @@ test('a run that could not list cannot be closed into a frontier', async () => {
 
   await assert.rejects(run('finishSweep', { sweepId: failed.sweepId, ok: true }), /already closed/)
 
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), backlogWindow, 'the seven backlogged messages are still reachable')
-  // And the next run really does open there: `since` is resolved from the
-  // frontier before the client is asked for anything.
+  assert.equal(swept(state.repo), backlogWindow, 'the seven backlogged messages are still reachable')
+  // And the next run, once the label resolves again, really does open there:
+  // the source is resolved first, and its frontier is what the window is.
   assert.equal((await run('signalSweep')).since, backlogWindow)
 })
 
@@ -412,7 +490,7 @@ test('a note the agent supplies cannot reach the frontier', async () => {
   await run('finishSweep', { sweepId: sw.sweepId, ok: true, note: 'list_truncated=cap' })
 
   const ranAt = state.repo.latestSweep().ran_at
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), ranAt)
+  assert.equal(swept(state.repo), ranAt)
   // The text is still on the row, where an operator can read it. It just has no
   // say in where the next run starts.
   assert.match(state.repo.latestSweep().note, /list_truncated=cap/)
@@ -437,7 +515,7 @@ test('a run that left messages behind does not move the frontier past them', asy
   // Five messages are still waiting behind that run, so closing it handed the
   // frontier its own window rather than its `ran_at`.
   assert.equal(state.repo.latestSweep().leftover, 5)
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), null)
+  assert.equal(swept(state.repo), null)
 
   const second = await run('signalSweep', { maxMessages: 3 })
 
@@ -540,7 +618,7 @@ test('sinceDays is clamped to a watermark that is already older than it', async 
   // `ran_at`, is the frontier, and that frontier is older than any `sinceDays`
   // this test can ask for.
   const tenDaysAgo = new Date(Date.now() - 10 * 86400000).toISOString()
-  const { id } = state.repo.openSweep({ label: LABEL, since: tenDaysAgo, fetchedIds: [], skipped: 0, leftover: 3 })
+  const { id } = state.repo.openSweep({ label: LABEL, source: { account: MAILBOX, sourceId: LABEL_ID }, since: tenDaysAgo, fetchedIds: [], skipped: 0, leftover: 3 })
   state.repo.finishSweep({ sweepId: id })
 
   await run('signalSweep', { sinceDays: 2 })
@@ -576,14 +654,14 @@ test('opening a sweep does not move the frontier; only closing it does', async (
   const gmail = fakeGmail({ ids: ['a'] })
   const { state, run } = setup(gmail)
   closedSweep(state.repo)
-  const before = state.repo.frontier(MAIL_KIND, LABEL)
+  const before = swept(state.repo)
 
   const sw = await run('signalSweep', { maxMessages: 5 })
   await run('recordSignal', { sweepId: sw.sweepId, messageId: 'a', headline: 'h', summary: 's', score: 0.5, applyScore: 0.5 })
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), before, 'nothing before the close moves it')
+  assert.equal(swept(state.repo), before, 'nothing before the close moves it')
 
   await run('finishSweep', { sweepId: sw.sweepId })
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), state.repo.latestSweep().ran_at)
+  assert.equal(swept(state.repo), state.repo.latestSweep().ran_at)
 })
 
 test('a listing that stopped short keeps the window open even with nothing left over', async () => {
@@ -602,7 +680,7 @@ test('a listing that stopped short keeps the window open even with nothing left 
   // both halves of `drained` have to hold, and only one of them does here.
   assert.equal(gmail.calls.list[1].since, null)
   assert.equal(state.repo.latestSweep().leftover, 0)
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), null)
+  assert.equal(swept(state.repo), null)
 })
 
 test('an unfinished sweep does not move the frontier and a bad sinceDays is refused', async () => {
@@ -610,7 +688,7 @@ test('an unfinished sweep does not move the frontier and a bad sinceDays is refu
   const { state, run } = setup(gmail)
   // Opened and never closed: resuming from it would skip everything up to the
   // crash, so the first run must sweep with no frontier at all.
-  state.repo.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0, drained: true })
+  state.repo.openSweep({ label: LABEL, source: { account: MAILBOX, sourceId: LABEL_ID }, since: null, fetchedIds: [], skipped: 0, leftover: 0, drained: true })
 
   await run('signalSweep')
   assert.equal(gmail.calls.list[0].since, null)
@@ -640,6 +718,177 @@ test('a frontier that will not parse widens the window rather than being replace
   await run('signalSweep', { sinceDays: 3 })
 
   assert.equal(gmail.calls.list[0].since, 'tegnapelőtt')
+})
+
+// --- Fix round 5: the frontier belongs to the resolved source ---------------
+//
+// The label the operator types is a name, and a name is an alias for a source.
+// Both halves of what it resolves to -- which Gmail label, in which mailbox --
+// move under ordinary operator action, and every test below is a way the new
+// source used to inherit the old source's watermark and skip its backlog.
+
+test('a label name repointed at another Gmail label starts at the whole source', async () => {
+  // Rename LBL_OLD out of the way and point the name at LBL_NEW, which already
+  // holds mail weeks old -- applying a Gmail filter to existing conversations is
+  // one click. Keyed on the name, the next run read LBL_OLD's watermark, listed
+  // nothing older than it, read as drained and advanced further still; those two
+  // messages were never listed, and the dedup cannot save what nobody listed.
+  const box = {
+    address: MAILBOX,
+    names: { News: 'LBL_OLD' },
+    messages: { LBL_OLD: [aged('old1', 1)], LBL_NEW: [aged('new1', 19), aged('new2', 20)] },
+  }
+  const gmail = mailboxGmail(box)
+  const { state, run } = setup(gmail, { label: 'News', maxMessages: 5 })
+
+  const first = await run('signalSweep')
+  assert.deepEqual(first.messages.map((m) => m.id), ['old1'])
+  await run('finishSweep', { sweepId: first.sweepId })
+  const drainedAt = swept(state.repo, 'LBL_OLD')
+  assert.notEqual(drainedAt, null)
+
+  box.names = { 'News archive': 'LBL_OLD', News: 'LBL_NEW' }
+
+  const second = await run('signalSweep')
+  assert.equal(gmail.calls.list[1].labelId, 'LBL_NEW')
+  assert.equal(gmail.calls.list[1].since, null, 'a source nobody has swept is the whole source')
+  assert.deepEqual(second.messages.map((m) => m.id), ['new1', 'new2'])
+  await run('finishSweep', { sweepId: second.sweepId })
+
+  // Two sources, two windows, neither standing in for the other.
+  assert.equal(swept(state.repo, 'LBL_OLD'), drainedAt)
+  assert.equal(swept(state.repo, 'LBL_NEW'), state.repo.sweepById(second.sweepId).ran_at)
+})
+
+test('the same label name in another mailbox starts at the whole source', async () => {
+  // No rename at all. The host stores one Google refresh token per purpose, so
+  // disconnecting and reconnecting a *different* account replaces the mailbox
+  // while the frontier rows survive. The default label name plausibly exists in
+  // both, and user label ids are minted per mailbox -- so the same id here is a
+  // different label, which is why the label id alone cannot be the key.
+  const box = { address: MAILBOX, names: { [LABEL]: 'Label_7' }, messages: { Label_7: [aged('a1', 1)] } }
+  const gmail = mailboxGmail(box)
+  const { state, storage, run } = setup(gmail, { label: LABEL, maxMessages: 5 })
+
+  const first = await run('signalSweep')
+  await run('finishSweep', { sweepId: first.sweepId })
+  const oldMailboxWindow = swept(state.repo, 'Label_7')
+  assert.notEqual(oldMailboxWindow, null)
+
+  const other = 'someone.else@example.test'
+  box.address = other
+  box.messages = { Label_7: [aged('b1', 19), aged('b2', 20)] }
+
+  const second = await run('signalSweep')
+  assert.equal(gmail.calls.list[1].since, null, 'the new mailbox has no watermark of its own')
+  assert.deepEqual(second.messages.map((m) => m.id), ['b1', 'b2'])
+  await run('finishSweep', { sweepId: second.sweepId })
+
+  assert.equal(swept(state.repo, 'Label_7', other), state.repo.sweepById(second.sweepId).ran_at)
+  assert.equal(swept(state.repo, 'Label_7'), oldMailboxWindow)
+  // Two rows, not one overwritten: the id is the same in both mailboxes and it
+  // is the account that keeps them apart.
+  assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_frontier WHERE source_id = ?', ['Label_7']).c, 2)
+  assert.deepEqual(storage.all('SELECT account FROM ext_aisignal_frontier ORDER BY account').map((r) => r.account), [MAILBOX, other])
+})
+
+test('renaming a Gmail label keeps the window that label already earned', async () => {
+  // The other direction, and the reason the name is deliberately *not* in the
+  // key: a rename that keeps the id is the one case that really is the same
+  // source, and it resumes where it left off instead of re-listing everything.
+  const box = { address: MAILBOX, names: { News: 'LBL_ONE' }, messages: { LBL_ONE: [aged('m1', 1)] } }
+  const gmail = mailboxGmail(box)
+  const settings = { label: 'News', maxMessages: 5 }
+  const { state, run } = setup(gmail, settings)
+
+  const first = await run('signalSweep')
+  await run('finishSweep', { sweepId: first.sweepId })
+  const earned = swept(state.repo, 'LBL_ONE')
+
+  // Renamed in Gmail, and the setting follows it. Same label, same mailbox.
+  box.names = { Hírek: 'LBL_ONE' }
+  settings.label = 'Hírek'
+
+  const second = await run('signalSweep')
+  assert.equal(gmail.calls.list[1].since, earned)
+  assert.equal(second.label, 'Hírek', 'the row still records what the operator typed')
+})
+
+test('a run that cannot resolve its source reads no frontier and moves none', async () => {
+  // The ordering rule: the source is resolved before any frontier is read, so a
+  // run with no key never reads one under a guess, and the row it leaves behind
+  // names no source for a later close to move one with either.
+  const gmail = fakeGmail({ ids: ['a'], labelFail: new GmailError('gmail_label_missing', 'no Gmail label named "AI hírlevél"') })
+  const { state, storage, run } = setup(gmail)
+  closedSweep(state.repo, ['s1'])
+  const before = swept(state.repo)
+
+  const reads = []
+  const real = state.repo.frontier
+  state.repo.frontier = (source) => { reads.push(source); return real.call(state.repo, source) }
+  const r = await run('signalSweep')
+  state.repo.frontier = real
+
+  assert.equal(r.error.code, 'gmail_label_missing')
+  assert.deepEqual(reads, [], 'no key, so no frontier read')
+  assert.equal(swept(state.repo), before)
+  const row = state.repo.latestSweep()
+  assert.equal(row.account, '')
+  assert.equal(row.source_id, '')
+  assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_frontier').c, 1)
+})
+
+test('a mailbox the profile call cannot name fails the run rather than keying on half a source', async () => {
+  const gmail = fakeGmail({ ids: ['a'], mailboxFail: new GmailError('gmail_profile_failed', 'HTTP 500') })
+  const { state, run } = setup(gmail)
+  closedSweep(state.repo, ['s1'])
+  const before = swept(state.repo)
+
+  const r = await run('signalSweep')
+
+  assert.equal(r.error.code, 'gmail_profile_failed')
+  assert.deepEqual(r.messages, [])
+  assert.equal(state.repo.latestSweep().ok, 0)
+  assert.equal(swept(state.repo), before)
+  assert.equal(gmail.calls.list.length, 0, 'nothing was listed under a source the run could not name')
+})
+
+test('resolving the source costs one lookup each per run and nothing per message', async () => {
+  // The profile request is one per run, taken beside the label lookup and
+  // before the fetches, not once per message -- and a label that does not
+  // resolve does not spend it at all.
+  const gmail = fakeGmail({ ids: ['a', 'b', 'c'] })
+  const { run } = setup(gmail)
+  await run('signalSweep', { maxMessages: 3 })
+  assert.equal(gmail.calls.label.length, 1)
+  assert.equal(gmail.calls.mailbox.length, 1)
+  assert.equal(gmail.calls.get.length, 3)
+
+  const missing = fakeGmail({ ids: ['a'], labelFail: new GmailError('gmail_label_missing', 'no such label') })
+  await setup(missing).run('signalSweep')
+  assert.equal(missing.calls.label.length, 1)
+  assert.equal(missing.calls.mailbox.length, 0)
+})
+
+test('a failed run is stamped at the moment it started, not the moment it gave up', async () => {
+  // One run, one timestamp: the failure sits in the history where the run
+  // began. `signalSweep` takes it before it asks Gmail for anything and passes
+  // it to every row it opens, failures included; letting the failure row
+  // restamp `now()` would put it on the far side of however long the run spent
+  // failing.
+  const gmail = fakeGmail({ ids: ['a'] })
+  let gaveUpAt = 0
+  gmail.labelId = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    gaveUpAt = Date.now()
+    throw new GmailError('gmail_list_failed', 'HTTP 500')
+  }
+  const { state, run } = setup(gmail)
+
+  const r = await run('signalSweep')
+
+  assert.equal(r.error.code, 'gmail_list_failed')
+  assert.equal(Date.parse(state.repo.latestSweep().ran_at) < gaveUpAt, true)
 })
 
 // --- Gmail failing partway through the fetch --------------------------------
@@ -873,7 +1122,7 @@ test('finishSweep refuses a sweep it has already closed, and throws on an unknow
   // marked once, and the frontier is where that one close put it.
   assert.equal(state.repo.latestSweep().note.split('partial page').length - 1, 1)
   assert.equal(state.repo.counts().seen, 1)
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), state.repo.latestSweep().ran_at)
+  assert.equal(swept(state.repo), state.repo.latestSweep().ran_at)
 
   await assert.rejects(run('finishSweep', { sweepId: 'nope' }), /unknown sweep/)
 })
@@ -892,7 +1141,7 @@ test('both refusals of an already-closed sweep speak one sentence', async () => 
 
   assert.equal(fromRecord, alreadyClosedMessage(sw.sweepId))
   assert.equal(fromFinish, alreadyClosedMessage(sw.sweepId))
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), state.repo.sweepById(sw.sweepId).ran_at)
+  assert.equal(swept(state.repo), state.repo.sweepById(sw.sweepId).ran_at)
 })
 
 test('finishSweep refuses an ok it cannot read instead of recording a broken run as clean', async () => {
@@ -910,7 +1159,7 @@ test('finishSweep refuses an ok it cannot read instead of recording a broken run
   const fin = await run('finishSweep', { sweepId: sw.sweepId, ok: 'false' })
   assert.equal(fin.ok, false)
   assert.equal(state.repo.latestSweep().ok, 0)
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), null)
+  assert.equal(swept(state.repo), null)
 })
 
 test('finishSweep records a failed close without marking the sweep good', async () => {
@@ -921,7 +1170,7 @@ test('finishSweep records a failed close without marking the sweep good', async 
   assert.equal(state.repo.latestSweep().ok, 0)
   // The frontier must never move on a sweep that did not really complete, even
   // though this one's own run drained its window.
-  assert.equal(state.repo.frontier(MAIL_KIND, LABEL), null)
+  assert.equal(swept(state.repo), null)
 })
 
 // --- The extension must be set up first -------------------------------------

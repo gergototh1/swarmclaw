@@ -54,8 +54,9 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_seen (message_id TEXT PRIMARY KEY, seen_
    * `ext_aisignal_frontier` holds the current value, one row per source kind for
    * the same reason `kind` exists on the sweep row: a web sweep must never
    * answer "when did we last read mail?". `finishSweep` is the only writer.
-   * Migration 3 re-keys the same table on the label as well, for the same
-   * reason one kind further; see below.
+   * Migration 3 re-keys the same table on the label as well, and migration 4
+   * re-keys it again on the source that label name actually resolved to, for
+   * the same reason one step further each time; see below.
    *
    * Existing installs start with no row at all, which reads as NULL, which is
    * the whole label. That is deliberate, and it is the only seed that is
@@ -111,6 +112,69 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
   PRIMARY KEY (kind, label)
 );
 `,
+}, {
+  /*
+   * The frontier belongs to the source a run resolved, not to the name the
+   * operator typed.
+   *
+   * Migration 3 keyed the table on (kind, label), and `label` is a Gmail label
+   * *name*: a mutable alias that a run resolves to an actual source at sweep
+   * time, through `gmail.labelId(name)`, inside whatever mailbox the stored
+   * Google credential currently opens. Both halves of that resolution move
+   * under ordinary operator action, and when either moves the new source
+   * silently inherits the old source's watermark.
+   *
+   *   A rename. `News` maps to the Gmail label LBL_OLD and a sweep drains it,
+   *   so the frontier for `News` is now. The operator renames LBL_OLD to
+   *   `News archive` and points the name `News` at LBL_NEW, which already
+   *   holds mail weeks old -- applying a filter to existing conversations is
+   *   one click. The next run resolves `News` to LBL_NEW, reads LBL_OLD's
+   *   watermark, lists nothing older than it, reads as drained and advances
+   *   the frontier further still. Those messages are never listed again, and
+   *   the dedup cannot save a message nobody listed.
+   *
+   *   A reconnect, which needs no rename at all. The host stores one refresh
+   *   token per purpose, so disconnecting Google and reconnecting a *different*
+   *   account replaces the whole mailbox while these rows survive. The default
+   *   label name ships with the extension, so the same name plausibly exists in
+   *   both mailboxes, and everything in the new mailbox older than the old
+   *   mailbox's frontier is skipped.
+   *
+   * So the key stops being a name and becomes the identity the run actually
+   * resolved -- see THE FRONTIER KEY below for the rule itself. Two columns
+   * rather than one composed string, because two columns are injective with no
+   * encoding rule to get wrong. `source_id` alone is not enough: user label ids
+   * are per-mailbox and collide across accounts. The label *name* is
+   * deliberately not in the key, so a rename that keeps the id keeps its
+   * window, which is the one case that really is the same source; `label` stays
+   * on the sweep row as what the operator typed, and nothing reads it back.
+   *
+   * Rebuilt empty, for exactly the reason migration 3 was. There is no honest
+   * source identity to give an existing row: the name it was keyed on may have
+   * been repointed since, which is the defect this migration closes, so a
+   * carried-over value would be handed to a source that may never have earned
+   * it -- a frontier one sweep too new for that source, which skips its mail
+   * permanently. Carrying rows over would also make the migration depend on the
+   * invariant it introduces rather than on one the old data was written under.
+   * Empty is unconditional: no row reads as NULL, NULL is the whole source, and
+   * no install comes out of this with a frontier newer than the rule below
+   * would produce for a given source. The cost is one re-listing per source and
+   * it lands on the dedup.
+   *
+   * The two new sweep columns default to '' so every row already stored says
+   * what is true of it: that run resolved no source. `finishSweep` refuses to
+   * move a frontier for such a row.
+   */
+  version: 4,
+  sql: `
+ALTER TABLE ext_aisignal_sweeps ADD COLUMN account TEXT NOT NULL DEFAULT '';
+ALTER TABLE ext_aisignal_sweeps ADD COLUMN source_id TEXT NOT NULL DEFAULT '';
+DROP TABLE IF EXISTS ext_aisignal_frontier;
+CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
+  kind TEXT NOT NULL, account TEXT NOT NULL, source_id TEXT NOT NULL, frontier TEXT, moved_at TEXT NOT NULL, sweep_id TEXT NOT NULL,
+  PRIMARY KEY (kind, account, source_id)
+);
+`,
 }]
 
 /*
@@ -146,6 +210,13 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
  * `since` is the watermark the run actually used, nullable for a first or full
  * pass. `run_id` links the sweep back to the agent run that produced it, and
  * `note` carries both the skipped count and any failure text.
+ *
+ * `account` and `source_id` are the source the run resolved, and they are what
+ * the frontier is keyed on -- see THE FRONTIER KEY. `label` sits beside them as
+ * the name the operator typed, which is reporting only: a name is an alias that
+ * can be repointed at another Gmail label, or opened against another mailbox,
+ * without a single character of it changing. Both default to '' so a run that
+ * never resolved a source says so, and such a row moves no frontier.
  *
  * Why the item key is (message_id, COALESCE(url, ''))
  * --------------------------------------------------
@@ -188,6 +259,52 @@ const uid = () => crypto.randomBytes(8).toString('hex')
  * series is spelled.
  */
 export const MAIL_KIND = 'mail'
+
+/*
+ * THE FRONTIER KEY
+ * ================
+ * A frontier answers "everything older than this has been swept -- of this
+ * source, and of no other", so its key has to be the source itself. The source
+ * is three values, and all three are in the primary key of
+ * `ext_aisignal_frontier`:
+ *
+ *   kind      which series this is. A web sweep must never answer "when did we
+ *             last read mail?".
+ *   account   which mailbox the run was actually looking at. For mail this is
+ *             the address `users.getProfile` reports for the credential in
+ *             hand. The host stores one Google refresh token per purpose, so
+ *             reconnecting a different account swaps the mailbox under a name
+ *             that did not change.
+ *   sourceId  which source inside that account. For mail this is the Gmail
+ *             label *id* `labelId(name)` resolved, never the name: the name is
+ *             a mutable alias an operator can repoint at another label in one
+ *             click. Label ids are per-mailbox, which is why `account` is in
+ *             the key with it.
+ *
+ * That is the whole set of dimensions a sweep varies over, and putting all of
+ * it in the key is what enforces the rule rather than merely satisfying it: a
+ * run against a source that differs in *any* of the three resolves to a row
+ * that does not exist, which reads as NULL, which is the whole source -- the
+ * widest window there is and the safe direction. A key missing a half would
+ * instead resolve to some other source's row and inherit its watermark, and
+ * mail below an inherited watermark is never listed again.
+ *
+ * `requireSource` is where that is enforced: every read of the frontier and
+ * every sweep that claims a source goes through it, and a half that is absent
+ * or blank is refused by name rather than reaching SQLite as an unbound
+ * parameter. The one thing a source is *not* keyed on is the label name the
+ * operator typed; it is on the sweep row for the history and nothing reads it
+ * back.
+ */
+function requireSource(where, source) {
+  const { kind, account, sourceId } = source || {}
+  for (const [name, value] of [['kind', kind], ['account', account], ['sourceId', sourceId]]) {
+    if (typeof value !== 'string' || value === '') {
+      throw new Error(`${where} needs a non-empty ${name}: the frontier is keyed on (kind, account, sourceId), and a key with a half missing is some other source's window`)
+    }
+  }
+  return { kind, account, sourceId }
+}
 
 /**
  * The refusal both closing paths speak.
@@ -271,12 +388,23 @@ export function createRepo(storage) {
      * message below the frontier without it ever having been returned. The
      * default is this moment, which is right for every caller that opens a row
      * without a listing behind it.
+     *
+     * `source` is the identity the run resolved -- `{ account, sourceId }`, see
+     * THE FRONTIER KEY -- and it is what `finishSweep` keys the frontier on.
+     * `null` is the honest value for a run that never got as far as resolving
+     * one: `failedSweep` opens such a row so the failure is visible in the
+     * history, and a row with no source can move no frontier at all. Claiming
+     * `drained` without one is refused rather than stored, because a run cannot
+     * have cleared a source it never identified, and the row it would leave
+     * behind is the one shape that hands a `ran_at` to the frontier.
      */
-    openSweep({ label, since, fetchedIds, skipped, leftover, kind = MAIL_KIND, note = '', drained = false, ranAt = now() }) {
+    openSweep({ label, source = null, since, fetchedIds, skipped, leftover, kind = MAIL_KIND, note = '', drained = false, ranAt = now() }) {
+      if (drained && !source) throw new Error('a sweep cannot claim it drained a source it never resolved')
+      const { account, sourceId } = source ? requireSource('openSweep', { kind, ...source }) : { account: '', sourceId: '' }
       const id = uid()
       const noteText = [skipped ? `skipped=${skipped}` : '', note].filter(Boolean).join('; ')
-      S.exec('INSERT INTO ext_aisignal_sweeps (id, ran_at, label, since, messages, fetched_ids, leftover, kind, note, frontier_after) VALUES (?,?,?,?,?,?,?,?,?,?)',
-        [id, ranAt, label, since, fetchedIds.length, JSON.stringify(fetchedIds), leftover, kind, noteText, drained ? ranAt : since])
+      S.exec('INSERT INTO ext_aisignal_sweeps (id, ran_at, label, account, source_id, since, messages, fetched_ids, leftover, kind, note, frontier_after) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+        [id, ranAt, label, account, sourceId, since, fetchedIds.length, JSON.stringify(fetchedIds), leftover, kind, noteText, drained ? ranAt : since])
       return { id }
     },
     /**
@@ -308,18 +436,28 @@ export function createRepo(storage) {
      *
      * This is the one place the frontier moves. A successful close copies the
      * row's `frontier_after` -- settled by openSweep, out of the agent's reach
-     * -- into `ext_aisignal_frontier` for that sweep's kind *and its label*;
+     * -- into `ext_aisignal_frontier` for the source that sweep actually read;
      * `ok: false` leaves the frontier exactly where it was. Nothing else in the
      * extension writes that table, and nothing anywhere derives a frontier from
      * anything else, so "when does the frontier move?" is answered by these
-     * four lines.
+     * few lines.
      *
-     * The label is part of the key because a sweep of one label proves nothing
-     * about another. Keyed on kind alone, a run that drained a quiet label
-     * stamped its `ran_at` onto the frontier a busy label resumed from, and
-     * that label's backlog fell outside every window afterwards. The row a
-     * close writes is therefore the row for the source it actually swept, and
-     * every other source's window is exactly where its own last close left it.
+     * The row it writes is keyed on the whole resolved source -- kind, account
+     * and source id, see THE FRONTIER KEY -- because a sweep of one source
+     * proves nothing about another. Keyed on kind alone, a run that drained a
+     * quiet label stamped its `ran_at` onto the frontier a busy label resumed
+     * from; keyed on the label *name*, a name repointed at another Gmail label,
+     * or a reconnect to another mailbox, handed the new source the old source's
+     * watermark. Every other source's window stays exactly where its own last
+     * close left it.
+     *
+     * A sweep that never resolved a source moves nothing. Its columns are
+     * blank, and a blank key is not an identity -- it is every source that was
+     * never identified sharing one row. Such a row cannot reach here in
+     * production (a run that could not resolve its source is closed by
+     * `failSweep`, and an already-closed sweep is refused above), so the guard
+     * is the second barrier rather than the first, and it errs in the direction
+     * that leaves the window wide.
      *
      * An unknown sweep id throws instead of quietly marking a batch of messages
      * seen against nothing, which would lose them for good. An already-closed
@@ -333,7 +471,7 @@ export function createRepo(storage) {
      */
     finishSweep({ sweepId, ok = true, note = '' }) {
       return S.transaction(() => {
-        const sweep = S.get('SELECT fetched_ids, note, kind, label, frontier_after, finished_at FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
+        const sweep = S.get('SELECT fetched_ids, note, kind, account, source_id, frontier_after, finished_at FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
         if (!sweep) throw new Error(`unknown sweep ${sweepId}`)
         if (sweep.finished_at) throw new Error(alreadyClosedMessage(sweepId))
         const ids = JSON.parse(sweep.fetched_ids || '[]')
@@ -341,9 +479,9 @@ export function createRepo(storage) {
         const found = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ?', [sweepId]).c
         const linksRead = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ? AND link_read = 1', [sweepId]).c
         S.exec('UPDATE ext_aisignal_sweeps SET found = ?, links_read = ?, ok = ?, note = ?, finished_at = ? WHERE id = ?', [found, linksRead, ok ? 1 : 0, joinNote(sweep.note, note), now(), sweepId])
-        if (ok) {
-          S.exec('INSERT INTO ext_aisignal_frontier (kind, label, frontier, moved_at, sweep_id) VALUES (?,?,?,?,?) ON CONFLICT (kind, label) DO UPDATE SET frontier = excluded.frontier, moved_at = excluded.moved_at, sweep_id = excluded.sweep_id',
-            [sweep.kind, sweep.label, sweep.frontier_after, now(), sweepId])
+        if (ok && sweep.account && sweep.source_id) {
+          S.exec('INSERT INTO ext_aisignal_frontier (kind, account, source_id, frontier, moved_at, sweep_id) VALUES (?,?,?,?,?,?) ON CONFLICT (kind, account, source_id) DO UPDATE SET frontier = excluded.frontier, moved_at = excluded.moved_at, sweep_id = excluded.sweep_id',
+            [sweep.kind, sweep.account, sweep.source_id, sweep.frontier_after, now(), sweepId])
         }
         return { sweepId, found, linksRead, seenMarked: ids.length, ok: Boolean(ok) }
       })
@@ -360,8 +498,8 @@ export function createRepo(storage) {
     /** Most recent sweep of one kind, finished or not. Always filtered by kind -- see the note on the `kind` column. */
     latestSweep(kind = MAIL_KIND) { return S.get(`SELECT * FROM ext_aisignal_sweeps WHERE kind = ? ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
     /**
-     * The point the next run of this kind *over this label* resumes from, or
-     * null for the whole source.
+     * The point the next run over this source resumes from, or null for the
+     * whole source.
      *
      * A read of one stored cell, with no rule in it. Everything that decides
      * what that cell contains lives in openSweep and finishSweep above, and no
@@ -369,11 +507,17 @@ export function createRepo(storage) {
      * that has never closed a sweep has no row here, which reads as null, which
      * is the whole source.
      *
-     * Both halves of the key are named by the caller, and neither has a
-     * default: a read that guessed one would be a read of some other source's
-     * window, which is the whole defect this key exists to close.
+     * Every part of the key is named by the caller and none has a default. A
+     * read that guessed one would be a read of some other source's window,
+     * which is the whole defect this key exists to close, so a missing part is
+     * refused by name -- see THE FRONTIER KEY. Left to SQLite it surfaced as
+     * "Provided value cannot be bound to SQLite parameter 2", which names a
+     * parameter index in a file that names every other failure.
      */
-    frontier(kind, label) { return S.get('SELECT frontier FROM ext_aisignal_frontier WHERE kind = ? AND label = ?', [kind, label])?.frontier ?? null },
+    frontier(source) {
+      const { kind, account, sourceId } = requireSource('frontier', source)
+      return S.get('SELECT frontier FROM ext_aisignal_frontier WHERE kind = ? AND account = ? AND source_id = ?', [kind, account, sourceId])?.frontier ?? null
+    },
     sweeps(limit = 10) { return S.all(`SELECT * FROM ext_aisignal_sweeps ORDER BY ${SWEEP_ORDER} LIMIT ?`, [limit]) },
     /** Which of `ids` have already been swept. Chunked because a source page can carry more ids than SQLite will bind. */
     seenIds(ids) {

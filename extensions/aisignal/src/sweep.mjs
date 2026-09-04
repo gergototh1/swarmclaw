@@ -124,19 +124,26 @@ function resolveMax(fromArgs, fromSettings) {
 /*
  * THE FRONTIER
  * ============
- * The point every run resumes from. `null` is "the whole label", the widest
+ * The point every run resumes from. `null` is "the whole source", the widest
  * window there is and therefore the safe answer whenever nothing better is
  * known. Its invariant is one sentence: *everything older than the frontier has
  * been swept* -- of this source, and of no other.
  *
- * It is a stored value in `ext_aisignal_frontier`, one row per source, where a
- * source is a kind *and a label*: a sweep of one label proves nothing about
- * another, and one shared row let a run that drained a quiet label stamp its
- * `ran_at` onto the window a busy label resumed from. It moves in exactly one
- * place -- `finishSweep` in db.mjs, which copies the closing sweep's
- * `frontier_after` column into the row for that sweep's own kind and label.
+ * It is a stored value in `ext_aisignal_frontier`, one row per source, and what
+ * a source is -- the kind, the mailbox, and the Gmail label id, never the label
+ * name -- is stated once in THE FRONTIER KEY in db.mjs. It moves in exactly one
+ * place: `finishSweep` in db.mjs, which copies the closing sweep's
+ * `frontier_after` column into the row for the source that sweep resolved.
  * Nothing infers it, and this file no longer reads `leftover`, `ok` or `note`
  * to reconstruct it.
+ *
+ * Which is why `signalSweep` below resolves its source -- both halves of it --
+ * *before* it reads any frontier. A run that cannot say which mailbox and which
+ * label it is looking at has no key to read a frontier under, and reading one
+ * under a guess is the whole defect the key exists to close. So a run that
+ * cannot resolve its source never reads a frontier and never advances one: it
+ * opens a sweep row with no source at all, `failSweep` closes it, and
+ * `finishSweep` moves nothing for a row like that.
  *
  * `frontier_after` is decided here, by `signalSweep`, at the moment the run
  * knows the answer, and written by `openSweep` before the agent is handed
@@ -183,6 +190,41 @@ function resolveMax(fromArgs, fromSettings) {
  */
 
 /**
+ * The instant `sinceDays` asks the window to open at, or null if the caller
+ * asked for nothing.
+ *
+ * Validation only, and separated from the clamp below because the two happen at
+ * different moments now: a caller's argument can be judged before a single
+ * request goes out, while the frontier it is clamped against cannot be read
+ * until the run has resolved which source it belongs to. Refusing here keeps a
+ * `sinceDays` nobody can honour from spending two Gmail requests first, which
+ * is what every other input check in this file already does.
+ *
+ * A value that is not a positive number, or that reaches back further than a
+ * date can go, is refused rather than clamped away, because it is a caller
+ * mistake worth naming here where the parameter has a name.
+ */
+function resolveSinceFloor(sinceDays) {
+  if (sinceDays === undefined || sinceDays === null || sinceDays === '') return null
+
+  const n = Number(sinceDays)
+  if (!Number.isFinite(n) || n <= 0) throw new InputError('sinceDays must be a positive number of days')
+  const from = new Date(Date.now() - n * 86400000).getTime()
+  // Two ways a plausible-looking number lands outside a window Gmail can be
+  // asked for, and the second is the one that used to get through. Past about
+  // 1e8 days the arithmetic leaves the range of a Date entirely and
+  // `toISOString` would throw uncoded, which the old guard caught. But anything
+  // over roughly 20,700 days is already before 1970 while still being a
+  // perfectly valid Date: `sinceDays: 1e8` resolves to a year in the negative
+  // hundreds of thousands, `sinceQuery` renders it as `after:-271765/12/22`,
+  // Gmail rejects the query, and the caller's slip comes back as
+  // `gmail_list_failed` -- Gmail blamed for a number this layer was handed and
+  // could have named. So the bound is the one the parameter actually has.
+  if (Number.isNaN(from) || from < 0) throw new InputError('sinceDays reaches back before 1970, further than Gmail can be asked about')
+  return new Date(from).toISOString()
+}
+
+/**
  * The window this run opens: the frontier, widened if the caller asked for
  * more, never narrowed.
  *
@@ -212,36 +254,17 @@ function resolveMax(fromArgs, fromSettings) {
  * lands on the dedup while erring narrow is permanent. The clamp is also what
  * lets the frontier trust a non-draining run's `since`: it can never be newer
  * than the frontier that run opened against.
- *
- * A `sinceDays` that is not a positive number, or that reaches back further
- * than a date can go, is refused rather than clamped away, because it is a
- * caller mistake worth naming here where the parameter has a name.
  */
-function resolveSince(sinceDays, frontier) {
-  if (sinceDays === undefined || sinceDays === null || sinceDays === '') return frontier
-
-  const n = Number(sinceDays)
-  if (!Number.isFinite(n) || n <= 0) throw new InputError('sinceDays must be a positive number of days')
-  const from = new Date(Date.now() - n * 86400000).getTime()
-  // Two ways a plausible-looking number lands outside a window Gmail can be
-  // asked for, and the second is the one that used to get through. Past about
-  // 1e8 days the arithmetic leaves the range of a Date entirely and
-  // `toISOString` would throw uncoded, which the old guard caught. But anything
-  // over roughly 20,700 days is already before 1970 while still being a
-  // perfectly valid Date: `sinceDays: 1e8` resolves to a year in the negative
-  // hundreds of thousands, `sinceQuery` renders it as `after:-271765/12/22`,
-  // Gmail rejects the query, and the caller's slip comes back as
-  // `gmail_list_failed` -- Gmail blamed for a number this layer was handed and
-  // could have named. So the bound is the one the parameter actually has.
-  if (Number.isNaN(from) || from < 0) throw new InputError('sinceDays reaches back before 1970, further than Gmail can be asked about')
+function widenedFrontier(floor, frontier) {
+  if (floor === null) return frontier
 
   // `Date.parse` answers NaN for both a null frontier and one that will not
   // parse, and `x < NaN` is false, so both fall through to the frontier itself.
-  // Neither needs a guard of its own: no frontier is the whole label, and an
+  // Neither needs a guard of its own: no frontier is the whole source, and an
   // unreadable one reaches `sinceQuery`, which drops the date and lists the
-  // whole label -- both wider than anything `sinceDays` can ask for, so both
+  // whole source -- both wider than anything `sinceDays` can ask for, so both
   // win here rather than being replaced.
-  return from < Date.parse(frontier) ? new Date(from).toISOString() : frontier
+  return Date.parse(floor) < Date.parse(frontier) ? floor : frontier
 }
 
 /**
@@ -309,9 +332,16 @@ function handOver(m) {
  * `frontier_after` and cannot move the frontier. `failSweep` also closes the
  * row, and `finishSweep` refuses an already-closed sweep, so the agent cannot
  * reopen this failure as a clean run either.
+ *
+ * `source` is whatever the run had resolved by the time it failed, and it is
+ * null for the failures that happen before or during that resolution -- a bad
+ * argument, a missing label, an unreadable mailbox. That is the honest value
+ * and it is the third barrier under the same rule: a row with no source is a
+ * row `finishSweep` moves no frontier for, whichever source it might have been
+ * about.
  */
-function failedSweep(repo, { label, since, code, message, skipped = 0, leftover = 0, listStoppedOn = null, fetchFailures = [], note = '', ranAt }) {
-  const { id } = repo.openSweep({ label, since, fetchedIds: [], skipped, leftover, note, ranAt })
+function failedSweep(repo, { label, source = null, since, code, message, skipped = 0, leftover = 0, listStoppedOn = null, fetchFailures = [], note = '', ranAt }) {
+  const { id } = repo.openSweep({ label, source, since, fetchedIds: [], skipped, leftover, note, ranAt })
   repo.failSweep(id, code, message)
   return { sweepId: id, label, since, skipped, leftover, listStoppedOn, fetchFailures, messages: [], error: { code, message } }
 }
@@ -407,24 +437,54 @@ export function createSweepTools(state) {
         const ranAt = new Date().toISOString()
 
         let max
-        let since
+        let sinceFloor
         try {
           max = resolveMax(args.maxMessages, settings.maxMessages)
-          // The frontier of this label, and of no other: another label's window
-          // says nothing about what this one still has waiting.
-          since = resolveSince(args.sinceDays, repo.frontier(MAIL_KIND, label))
+          sinceFloor = resolveSinceFloor(args.sinceDays)
         } catch (e) {
           if (!(e instanceof InputError)) throw e
           return failedSweep(repo, { label, since: null, code: BAD_INPUT, message: e.message, ranAt })
         }
 
         const gmail = gmailFor(state)
+
+        /*
+         * Which source this run is about, settled before any frontier is read.
+         *
+         * `label` is a name the operator typed, and a name is an alias: the
+         * operator can point it at a different Gmail label in one click, and
+         * reconnecting Google with a different account swaps the whole mailbox
+         * underneath it without the name changing at all. So the run asks Gmail
+         * what the name resolves to, and in which mailbox, and that pair is the
+         * key it reads and later writes its frontier under -- see THE FRONTIER
+         * KEY in db.mjs. A run that cannot answer both halves has no key, so it
+         * fails here having read no frontier and, its row carrying no source,
+         * able to advance none either.
+         *
+         * The label lookup goes first because it is the failure an operator
+         * actually hits -- a typo in the setting -- and a run that has no label
+         * has no source whatever the mailbox says, so the profile request is
+         * not spent on it. Neither answer is cached anywhere: a remembered
+         * mailbox address outlives exactly the reconnect this key exists to
+         * notice.
+         */
+        let source
+        try {
+          const sourceId = await gmail.labelId(label)
+          source = { account: await gmail.mailbox(), sourceId }
+        } catch (e) {
+          return failedSweep(repo, { label, since: null, code: codeOf(e), message: e.message, ranAt })
+        }
+
+        // The frontier of this source, and of no other: another source's window
+        // says nothing about what this one still has waiting.
+        const since = widenedFrontier(sinceFloor, repo.frontier({ kind: MAIL_KIND, ...source }))
+
         let listed
         try {
-          const labelId = await gmail.labelId(label)
-          listed = await gmail.listIds({ labelId, since, max: LIST_BUDGET })
+          listed = await gmail.listIds({ labelId: source.sourceId, since, max: LIST_BUDGET })
         } catch (e) {
-          return failedSweep(repo, { label, since, code: codeOf(e), message: e.message, ranAt })
+          return failedSweep(repo, { label, source, since, code: codeOf(e), message: e.message, ranAt })
         }
 
         // The date window is deliberately too wide, so this dedup is not
@@ -489,7 +549,7 @@ export function createSweepTools(state) {
         // of a mailbox this run never managed to read.
         if (fresh.length > 0 && messages.length === 0 && fetchFailures.length > 0) {
           const first = fetchFailures[0]
-          return failedSweep(repo, { label, since, code: first.code, message: first.message, skipped: seen.size, leftover, listStoppedOn, fetchFailures, note, ranAt })
+          return failedSweep(repo, { label, source, since, code: first.code, message: first.message, skipped: seen.size, leftover, listStoppedOn, fetchFailures, note, ranAt })
         }
 
         /*
@@ -515,7 +575,7 @@ export function createSweepTools(state) {
          */
         const drained = listed.truncated === false && leftover === 0
 
-        const { id } = repo.openSweep({ label, since, fetchedIds: messages.map((m) => m.id), skipped: seen.size, leftover, note, drained, ranAt })
+        const { id } = repo.openSweep({ label, source, since, fetchedIds: messages.map((m) => m.id), skipped: seen.size, leftover, note, drained, ranAt })
         return { sweepId: id, label, since, skipped: seen.size, leftover, listStoppedOn, fetchFailures, messages }
       },
     },

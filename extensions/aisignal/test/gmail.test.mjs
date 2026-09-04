@@ -553,6 +553,54 @@ test('a From header with no angle brackets is all address and no name', async ()
   assert.equal(m.fromName, '')
 })
 
+// --- Fix round 5 ------------------------------------------------------------
+//
+// The other half of a source identity. A label id says which label; only the
+// mailbox says whose, and the two together are what a frontier is keyed on.
+
+test('mailbox names the mailbox the credential opens', async () => {
+  const urls = []
+  const g = createGmail({
+    getToken: async () => 't',
+    fetchImpl: async (u) => { urls.push(String(u)); return json({ emailAddress: 'owner@example.test', messagesTotal: 12 }) },
+  })
+  assert.equal(await g.mailbox(), 'owner@example.test')
+  assert.equal(urls[0].endsWith('/users/me/profile'), true)
+})
+
+test('a profile that cannot be read is a named failure, never an anonymous mailbox', async () => {
+  // An empty or absent address passed through would become half of a frontier
+  // key shared with every other unreadable profile, which is the one thing a
+  // key must never be: an identity that is not one.
+  const unexpected = (e) => e instanceof GmailError && e.code === 'gmail_unexpected'
+  for (const body of [{}, { emailAddress: '' }, { emailAddress: 7 }, { emailAddress: null }]) {
+    const odd = createGmail({ getToken: async () => 't', fetchImpl: async () => json(body) })
+    await assert.rejects(odd.mailbox(), unexpected)
+  }
+
+  // The operation gets a code of its own: reading the profile is neither
+  // listing nor fetching, and an operator has to learn which call broke.
+  const failed = createGmail({ getToken: async () => 't', fetchImpl: async () => json({ error: { code: 500 } }, 500) })
+  await assert.rejects(failed.mailbox(), (e) => e instanceof GmailError && e.code === 'gmail_profile_failed')
+
+  // Token and scope failures keep their own codes here as everywhere else.
+  const scope = createGmail({ getToken: async () => 't', fetchImpl: async () => json({ error: { code: 403, errors: [{ reason: 'insufficientPermissions' }] } }, 403) })
+  await assert.rejects(scope.mailbox(), (e) => e.code === 'gmail_scope_missing')
+  const revoked = createGmail({ getToken: async () => { throw new Error('gmail_token_revoked') }, fetchImpl: async () => json({}) })
+  await assert.rejects(revoked.mailbox(), (e) => e.code === 'gmail_token_revoked')
+})
+
+test('mailbox asks Gmail every time rather than remembering an address', async () => {
+  // A remembered address outlives exactly the reconnect the frontier key exists
+  // to notice: the host keeps one refresh token per purpose, so the same client
+  // asked twice must answer for the credential in hand both times.
+  const addresses = ['first@example.test', 'second@example.test']
+  let n = 0
+  const g = createGmail({ getToken: async () => 't', fetchImpl: async () => json({ emailAddress: addresses[n++] }) })
+  assert.equal(await g.mailbox(), 'first@example.test')
+  assert.equal(await g.mailbox(), 'second@example.test')
+})
+
 test('a non-integer message cap is refused before any request goes out', async () => {
   // maxMessages is a number input the operator types into. 2.5 sails past a
   // positive-number test, is sent as maxResults=2.5, and comes back as a plain

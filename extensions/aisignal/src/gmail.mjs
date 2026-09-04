@@ -19,6 +19,7 @@ import { Buffer } from 'node:buffer'
  *   gmail_scope_missing     Gmail answered 403 for a missing scope
  *   gmail_label_missing     the label list came back and holds no such name
  *   gmail_list_failed       listing labels or messages failed
+ *   gmail_profile_failed    the mailbox profile could not be read
  *   gmail_fetch_failed      fetching one message failed
  *   gmail_unexpected        transport error, a reply that is not JSON, a reply
  *                           that parses but is not the documented shape, or a
@@ -281,6 +282,33 @@ export function createGmail({ getToken, fetchImpl = fetch }) {
   }
 
   return {
+    /**
+     * The address of the mailbox this credential opens, from
+     * `users.getProfile`.
+     *
+     * It is the half of a source identity that a label id cannot supply: user
+     * label ids are minted per mailbox, so the same id in two accounts is two
+     * different sources, and the host stores one Google refresh token per
+     * purpose -- disconnecting and reconnecting a different account swaps the
+     * whole mailbox without anything the operator typed changing. The caller
+     * keys its frontier on this together with the label id.
+     *
+     * Deliberately not memoised anywhere: a cached address outlives exactly the
+     * reconnect it exists to notice, and would answer for a mailbox this
+     * credential no longer opens. It costs one request per run, alongside the
+     * label lookup and before the per-message fetches, so it is off the hot
+     * path without being kept.
+     *
+     * An absent or empty `emailAddress` is a shape failure rather than an
+     * anonymous mailbox: passed through it would become half of a frontier key
+     * shared with every other unreadable profile.
+     */
+    async mailbox() {
+      const j = await call('/profile', 'gmail_profile_failed')
+      if (typeof j.emailAddress !== 'string' || !j.emailAddress) throw unexpectedShape('profile with no emailAddress')
+      return j.emailAddress
+    },
+
     /**
      * The id of the label with exactly this name. The comparison is exact:
      * Gmail allows two labels differing only in case, so folding the case could
