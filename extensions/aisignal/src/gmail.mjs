@@ -25,10 +25,12 @@ import { Buffer } from 'node:buffer'
  *                           caller-side argument that cannot be honoured
  *
  * The same rule shapes the two results that are not a single value:
- * `listIds` returns `{ ids, truncated }` because a list cut short by the page
- * bound is not the same fact as a list Gmail finished; and `getMessage`
- * returns `textInAttachment` because a message whose text part was served as
- * an attachment is not the same fact as a message with no text at all.
+ * `listIds` returns `{ ids, truncated, stoppedOn }` because a list cut short is
+ * not the same fact as a list Gmail finished, and because "the cap filled up"
+ * and "the request budget ran out" are not the same fact either; and
+ * `getMessage` returns `textInAttachment` because a message whose text part was
+ * served as an attachment is not the same fact as a message with no text at
+ * all.
  *
  * The second: a newsletter's content is data, never instruction. Nothing here
  * evaluates, follows or re-serialises what a message says. `stripHtml` removes
@@ -55,9 +57,10 @@ const BASE = 'https://gmail.googleapis.com/gmail/v1/users/me'
  * saying so. This ceiling only stops an enormous cap from becoming thousands of
  * requests.
  *
- * Whichever bound bites, the result says so: `truncated` is true when the loop
- * stopped on the page bound while Gmail still had pages. The ids collected are
- * genuinely found ids, but "these are all of them" would be a false statement.
+ * Whichever bound bites, the result says so: `truncated` is true whenever the
+ * walk stopped with a live page token in hand, and `stoppedOn` names which
+ * bound did it. The ids collected are genuinely found ids, but "these are all
+ * of them" would be a false statement.
  */
 const MAX_PAGES = 200
 
@@ -103,12 +106,14 @@ const pad2 = (n) => String(n).padStart(2, '0')
  *   clean and reports "found nothing".
  *
  * Stepping one day back makes the window too wide instead, which is the error
- * this module is allowed to make. UTC offsets run from -12:00 to +14:00, so
- * local midnight of the previous UTC day falls between (D-1)T10:00Z and
- * (D-1)T12:00Z -- always at or before the start of day D, and therefore always
- * at or before `since`. One day back is enough for every timezone on earth, and
- * the cost is re-listing at most a day of messages the caller already has ids
- * for.
+ * this module is allowed to make. Local midnight of day D-1 in a zone at offset
+ * `o` is the instant (D-1)T00:00Z minus `o`, and UTC offsets run from -12:00 to
+ * +14:00, so that instant falls between (D-2)T10:00Z at the eastern extreme of
+ * UTC+14 and (D-1)T12:00Z at the western extreme of UTC-12. Both ends are
+ * before DT00:00Z, which is itself at or before `since`, so the window always
+ * opens early enough. One day back is enough for every timezone on earth, and
+ * the cost is re-listing messages the caller already has ids for: at most 62
+ * hours of them, from (D-2)T10:00Z to the latest instant day D can hold.
  *
  * An absent or unparseable `since` yields an empty string, and the caller then
  * sends no `q` at all rather than a query that matches nothing.
@@ -270,51 +275,92 @@ export function createGmail({ getToken, fetchImpl = fetch }) {
      * operator off to create a label that already exists. Only a list that
      * arrived and holds no match is `gmail_label_missing`, and neither is ever
      * an empty sweep.
+     *
+     * The matched entry's `id` is checked for the same reason a message's is:
+     * an absent one is `undefined` by the time it reaches `labelIds=` in the
+     * next query string, and the sweep that comes back is a sweep of something
+     * else.
      */
     async labelId(name) {
       const j = await call('/labels', 'gmail_list_failed')
       if (!Array.isArray(j.labels)) throw unexpectedShape('label list with no labels array')
       const hit = j.labels.find((l) => l?.name === name)
       if (!hit) throw new GmailError('gmail_label_missing', `no Gmail label named "${name}"`)
+      if (typeof hit.id !== 'string' || !hit.id) throw unexpectedShape('label with no id')
       return hit.id
     },
 
     /**
      * Message ids under a label, newest first, at most `max` of them, as
-     * `{ ids, truncated }`.
+     * `{ ids, truncated, stoppedOn }`.
      *
-     * `truncated` is true when the page bound stopped the walk while Gmail
-     * still had pages: every id in `ids` was found, but there may be more.
-     * Without it a bounded walk and a finished one look identical, and the
-     * caller would record a partial sweep as a complete one.
+     * `truncated` is true whenever the walk stopped while Gmail still had a
+     * live page token: every id in `ids` was found, but there are more behind
+     * them. Without it a bounded walk and a finished one look identical, and
+     * the caller would record a partial sweep as a complete one -- then advance
+     * its watermark past everything it never fetched, which is the same
+     * permanent loss the date window used to cause, arriving through the flag
+     * meant to prevent it.
      *
-     * `max` must be a positive number. A blank `maxMessages` setting arrives
-     * here as `''` (which `Number` turns into 0) or as `undefined` (NaN), and
-     * answering either with an empty list would report a clean sweep that never
-     * sent a request -- exactly the false negative this guard exists to
-     * prevent. It cannot be deferred to the caller: by the time the value is
+     * Setting it only on the page bound was that bug: the case that actually
+     * happens is a cap of five against forty waiting newsletters, and that walk
+     * ends on the cap, not on the page bound.
+     *
+     * `stoppedOn` says which bound ended the walk, because "there is more" and
+     * "we gave up early" are different things to do about:
+     *
+     *   'cap'           the caller's `max` filled up. The ordinary full batch:
+     *                   the rest is still waiting, and the next run should go
+     *                   again immediately rather than wait for its schedule.
+     *                   This is what populates the sweep row's `leftover`.
+     *   'page_ceiling'  MAX_PAGES requests went out and the cap was still not
+     *                   full, so Gmail is handing back pages far emptier than
+     *                   the filter expected. Going again immediately buys the
+     *                   next run the same slow walk.
+     *   null            Gmail said there was nothing after the last page. The
+     *                   only value that means "this really is all of them".
+     *
+     * `truncated` is `stoppedOn !== null`, kept as its own field because it is
+     * the one bit every caller must respect and no caller should have to derive
+     * from a string it may not recognise.
+     *
+     * `max` must be a positive whole number. A blank `maxMessages` setting
+     * arrives here as `''` (which `Number` turns into 0) or as `undefined`
+     * (NaN), and answering either with an empty list would report a clean sweep
+     * that never sent a request -- exactly the false negative this guard exists
+     * to prevent. It cannot be deferred to the caller: by the time the value is
      * here, "asked for nothing deliberately" and "the operator typed nothing"
      * are the same value, and this module owns the rule that an empty list
      * means Gmail was asked and had nothing. No caller in the extension asks
-     * for zero messages, so nothing is lost by refusing zero as well.
+     * for zero messages, so nothing is lost by refusing zero as well. A
+     * fractional cap is refused for the neighbouring reason: the setting is a
+     * number field an operator types into, `2.5` goes out as `maxResults=2.5`,
+     * and Gmail answers with a list failure that says nothing about the value
+     * that caused it.
      */
     async listIds({ labelId, since, max }) {
       const limit = Number(max)
-      if (!Number.isFinite(limit) || limit < 1) {
-        throw new GmailError('gmail_unexpected', `listIds needs a positive message cap, got ${JSON.stringify(max) ?? String(max)}`)
+      if (!Number.isInteger(limit) || limit < 1) {
+        throw new GmailError('gmail_unexpected', `listIds needs a positive whole message cap, got ${JSON.stringify(max) ?? String(max)}`)
       }
 
       // One page can carry as little as one matching id, so the cap is the
       // page bound; MAX_PAGES only keeps a huge cap from becoming a huge
       // number of requests.
-      const maxPages = Math.min(Math.ceil(limit), MAX_PAGES)
+      const maxPages = Math.min(limit, MAX_PAGES)
       const ids = []
       let pageToken = ''
-      let truncated = false
+      let stoppedOn = null
 
-      for (let page = 0; ids.length < limit; page += 1) {
+      for (let page = 0; ; page += 1) {
+        // The cap is checked first: when both bounds land on the same page the
+        // caller's own limit is the one it can act on.
+        if (ids.length >= limit) {
+          stoppedOn = 'cap'
+          break
+        }
         if (page >= maxPages) {
-          truncated = true
+          stoppedOn = 'page_ceiling'
           break
         }
 
@@ -334,8 +380,12 @@ export function createGmail({ getToken, fetchImpl = fetch }) {
         if (!pageToken) break
       }
 
+      // A bound only truncates if Gmail still had somewhere to go. Landing on
+      // the cap with the last page exhausted is a walk that finished, and
+      // saying otherwise would send every next run back for nothing.
+      const truncated = stoppedOn !== null && pageToken !== ''
       // Gmail treats maxResults as a hint, so trim rather than trust it.
-      return { ids: ids.slice(0, limit), truncated }
+      return { ids: ids.slice(0, limit), truncated, stoppedOn: truncated ? stoppedOn : null }
     },
 
     /**
@@ -358,8 +408,13 @@ export function createGmail({ getToken, fetchImpl = fetch }) {
       // The id is what the caller dedups on. Passing `undefined` through would
       // put a message in the store that no later sweep can recognise.
       if (typeof j.id !== 'string' || !j.id) throw unexpectedShape('message with no id')
-      if (j.payload != null && (typeof j.payload !== 'object' || Array.isArray(j.payload))) throw unexpectedShape('message payload that is not an object')
-      const rawHeaders = j.payload?.headers
+      // `format=full` always carries a payload, so an absent one is a broken
+      // reply rather than a message with nothing in it. Reading it anyway
+      // returns empty text and no attachment flag, which is exactly what a
+      // genuine PDF-only newsletter returns; its siblings below already refuse
+      // a payload of the wrong type, and this is the same failure.
+      if (!j.payload || typeof j.payload !== 'object' || Array.isArray(j.payload)) throw unexpectedShape('message payload')
+      const rawHeaders = j.payload.headers
       if (rawHeaders != null && !Array.isArray(rawHeaders)) throw unexpectedShape('message payload with no headers array')
 
       const headers = Object.fromEntries((rawHeaders || []).map((h) => [String(h?.name || '').toLowerCase(), h?.value || '']))

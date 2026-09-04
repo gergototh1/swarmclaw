@@ -16,7 +16,7 @@ test('listIds pages and passes since as after:', async () => {
   const urls = []
   const fetchImpl = async (u) => { urls.push(String(u)); return String(u).includes('pageToken=p2') ? json({ messages: [{ id: 'c' }] }) : json({ messages: [{ id: 'a' }, { id: 'b' }], nextPageToken: 'p2' }) }
   const g = createGmail({ getToken: async () => 't', fetchImpl })
-  assert.deepEqual(await g.listIds({ labelId: 'L1', since: '2026-09-01T00:00:00Z', max: 10 }), { ids: ['a', 'b', 'c'], truncated: false })
+  assert.deepEqual(await g.listIds({ labelId: 'L1', since: '2026-09-01T00:00:00Z', max: 10 }), { ids: ['a', 'b', 'c'], truncated: false, stoppedOn: null })
   // One day back of the UTC day: see the sinceQuery tests below for why.
   assert.match(urls[0], /q=after%3A2026%2F08%2F31/)
 })
@@ -177,11 +177,12 @@ test('listIds stops instead of looping forever on an endless nextPageToken', { t
   assert.equal(calls <= 50, true)
   // Empty and truncated: Gmail still had pages, so this is not "found nothing".
   assert.equal(r.truncated, true)
+  assert.equal(r.stoppedOn, 'page_ceiling')
 })
 
-test('listIds never returns more ids than max, even if a page over-delivers', async () => {
+test('listIds never returns more ids than max, and says the cap is why it stopped', async () => {
   const g = createGmail({ getToken: async () => 't', fetchImpl: async () => json({ messages: [{ id: 'a' }, { id: 'b' }, { id: 'c' }], nextPageToken: 'p2' }) })
-  assert.deepEqual(await g.listIds({ labelId: 'L1', since: null, max: 2 }), { ids: ['a', 'b'], truncated: false })
+  assert.deepEqual(await g.listIds({ labelId: 'L1', since: null, max: 2 }), { ids: ['a', 'b'], truncated: true, stoppedOn: 'cap' })
 })
 
 test('a 403 that is not a scope problem keeps the operation failure code', async () => {
@@ -367,7 +368,10 @@ test('a cap that is not a positive number is gmail_unexpected, not a sweep with 
   // empty list for either would record a clean sweep that never asked Gmail
   // anything. By the time the value is here, a blank setting and a deliberate
   // zero are the same value, so neither can be honoured.
-  for (const max of [undefined, null, '', NaN, 0, -1, 'five', {}]) {
+  // 2.5 is admitted by a plain positive-number test and then sent as
+  // maxResults=2.5, which Gmail rejects: the operator would read
+  // gmail_list_failed and go looking at Gmail rather than at what they typed.
+  for (const max of [undefined, null, '', NaN, 0, -1, 'five', {}, 2.5, 1.0001, Infinity]) {
     let calls = 0
     const g = createGmail({ getToken: async () => 't', fetchImpl: async () => { calls += 1; return json({ messages: [{ id: 'a' }] }) } })
     await assert.rejects(
@@ -393,7 +397,10 @@ test('listIds collects the whole cap when Gmail delivers one id per page', async
   assert.equal(r.ids.length, 200)
   assert.equal(r.ids[0], 'm1')
   assert.equal(r.ids[199], 'm200')
-  assert.equal(r.truncated, false)
+  // The whole cap arrived, and Gmail still had pages, so this is a full batch
+  // rather than a finished mailbox.
+  assert.equal(r.truncated, true)
+  assert.equal(r.stoppedOn, 'cap')
 })
 
 test('listIds says truncated when the hard page ceiling stops it with pages left', async () => {
@@ -406,20 +413,23 @@ test('listIds says truncated when the hard page ceiling stops it with pages left
   const r = await g.listIds({ labelId: 'L1', since: null, max: 500 })
   assert.equal(r.ids.length, 200)
   assert.equal(r.truncated, true)
+  // Short of the cap: the caller asked for 500 and the request budget, not the
+  // cap, is what ended the walk.
+  assert.equal(r.stoppedOn, 'page_ceiling')
 })
 
 test('a complete walk is never reported as truncated', async () => {
   const g = createGmail({ getToken: async () => 't', fetchImpl: async () => json({ messages: [{ id: 'a' }] }) })
-  assert.deepEqual(await g.listIds({ labelId: 'L1', since: null, max: 5 }), { ids: ['a'], truncated: false })
+  assert.deepEqual(await g.listIds({ labelId: 'L1', since: null, max: 5 }), { ids: ['a'], truncated: false, stoppedOn: null })
   const none = createGmail({ getToken: async () => 't', fetchImpl: async () => json({}) })
   // Gmail omits `messages` entirely when a label has nothing matching, and that
   // is the one empty list here that really does mean "looked and found nothing".
-  assert.deepEqual(await none.listIds({ labelId: 'L1', since: null, max: 5 }), { ids: [], truncated: false })
+  assert.deepEqual(await none.listIds({ labelId: 'L1', since: null, max: 5 }), { ids: [], truncated: false, stoppedOn: null })
 })
 
 test('listIds skips a page entry with no id instead of collecting a hole', async () => {
   const g = createGmail({ getToken: async () => 't', fetchImpl: async () => json({ messages: [{ id: 'a' }, {}, null, { threadId: 't' }, { id: 'b' }] }) })
-  assert.deepEqual(await g.listIds({ labelId: 'L1', since: null, max: 5 }), { ids: ['a', 'b'], truncated: false })
+  assert.deepEqual(await g.listIds({ labelId: 'L1', since: null, max: 5 }), { ids: ['a', 'b'], truncated: false, stoppedOn: null })
 })
 
 test('a text part served as an attachment is distinguishable from having no text part', async () => {
@@ -462,4 +472,95 @@ test('getMessage escapes the message id into the path', async () => {
   assert.equal(m.id, 'weird')
   assert.equal(calls[0].includes('/messages/a%2F..%2Flabels%3Fx%3D1%23f?format=full'), true)
   assert.equal(calls[0].includes('/labels'), false)
+})
+
+// --- Fix round 2 ------------------------------------------------------------
+//
+// The same rule again, one layer up: a partial answer that calls itself
+// complete. `truncated` used to be set only when the request budget ran out,
+// so the one case that actually happens -- the cap filling up while Gmail
+// still holds pages -- reported a finished mailbox.
+
+test('listIds says truncated when the cap fills while Gmail still holds pages', async () => {
+  // The reproduction: a cap of 3 against a mailbox with more. A caller reading
+  // truncated === false advances its watermark past everything it did not
+  // fetch, and the rest is lost the same way the date window used to lose it.
+  const g = createGmail({ getToken: async () => 't', fetchImpl: async (u) => {
+    const n = Number(new URL(String(u)).searchParams.get('pageToken') || 1)
+    return json({ messages: [{ id: `m${n}` }], nextPageToken: String(n + 1) })
+  } })
+  const r = await g.listIds({ labelId: 'L1', since: null, max: 3 })
+  assert.deepEqual(r, { ids: ['m1', 'm2', 'm3'], truncated: true, stoppedOn: 'cap' })
+})
+
+test('listIds tells a cap stop apart from a page ceiling stop', async () => {
+  // Both mean "there is more"; they do not mean the same thing to the caller.
+  // A cap stop is the ordinary full batch a sweep is expected to leave behind
+  // and come straight back for; a page ceiling stop means the walk gave up
+  // before it even reached the cap, and coming straight back may not help.
+  const endless = () => createGmail({ getToken: async () => 't', fetchImpl: async () => json({ messages: [{ id: 'a' }], nextPageToken: 'more' }) })
+  assert.equal((await endless().listIds({ labelId: 'L1', since: null, max: 2 })).stoppedOn, 'cap')
+  assert.equal((await endless().listIds({ labelId: 'L1', since: null, max: 5000 })).stoppedOn, 'page_ceiling')
+  // And a walk Gmail finished names no stop reason at all.
+  const done = createGmail({ getToken: async () => 't', fetchImpl: async () => json({ messages: [{ id: 'a' }] }) })
+  assert.equal((await done.listIds({ labelId: 'L1', since: null, max: 5 })).stoppedOn, null)
+})
+
+test('listIds does not follow a nextPageToken that is not a string', async () => {
+  // Without the type guard a numeric token is truthy, so the walk sends
+  // pageToken=12345 and pages on against a reply Gmail never meant as a
+  // cursor, collecting the same page over and over.
+  let calls = 0
+  const g = createGmail({ getToken: async () => 't', fetchImpl: async () => {
+    calls += 1
+    if (calls > 20) throw new Error('listIds followed a non-string nextPageToken')
+    return json({ messages: [{ id: 'a' }], nextPageToken: 12345 })
+  } })
+  const r = await g.listIds({ labelId: 'L1', since: null, max: 10 })
+  assert.equal(calls, 1)
+  assert.deepEqual(r, { ids: ['a'], truncated: false, stoppedOn: null })
+})
+
+test('a message with no payload at all is a shape failure, not a message with no content', async () => {
+  // format=full always carries a payload, so an absent one is a broken reply.
+  // Reported as empty text it is indistinguishable from a genuine PDF-only
+  // newsletter, which is the false empty this module refuses everywhere else.
+  const unexpected = (e) => e instanceof GmailError && e.code === 'gmail_unexpected'
+  await assert.rejects(messageClient({ id: 'x' }).getMessage('x'), unexpected)
+  await assert.rejects(messageClient({ id: 'x', payload: null }).getMessage('x'), unexpected)
+  // The siblings already behaved this way; all three now share it.
+  await assert.rejects(messageClient({ id: 'x', payload: 'full' }).getMessage('x'), unexpected)
+  await assert.rejects(messageClient({ id: 'x', payload: [] }).getMessage('x'), unexpected)
+})
+
+test('a matching label with no id is a shape failure, not an id of undefined', async () => {
+  // An undefined id goes straight into labelIds= on the next request, and the
+  // sweep that comes back is a sweep of the wrong thing.
+  const g = createGmail({ getToken: async () => 't', fetchImpl: async () => json({ labels: [{ name: 'AI hírlevél' }] }) })
+  await assert.rejects(g.labelId('AI hírlevél'), (e) => e instanceof GmailError && e.code === 'gmail_unexpected')
+  const blank = createGmail({ getToken: async () => 't', fetchImpl: async () => json({ labels: [{ id: '', name: 'AI hírlevél' }] }) })
+  await assert.rejects(blank.labelId('AI hírlevél'), (e) => e instanceof GmailError && e.code === 'gmail_unexpected')
+  const numeric = createGmail({ getToken: async () => 't', fetchImpl: async () => json({ labels: [{ id: 7, name: 'AI hírlevél' }] }) })
+  await assert.rejects(numeric.labelId('AI hírlevél'), (e) => e instanceof GmailError && e.code === 'gmail_unexpected')
+})
+
+test('a From header with no angle brackets is all address and no name', async () => {
+  // The whole header as the display name puts "news@example.com" in the from
+  // name of every signal such a sender produces, and the address is already
+  // carried separately.
+  const m = await messageClient({ id: 'a', payload: { headers: [{ name: 'From', value: 'news@example.com' }] } }).getMessage('a')
+  assert.equal(m.fromEmail, 'news@example.com')
+  assert.equal(m.fromName, '')
+})
+
+test('a non-integer message cap is refused before any request goes out', async () => {
+  // maxMessages is a number input the operator types into. 2.5 sails past a
+  // positive-number test, is sent as maxResults=2.5, and comes back as a plain
+  // list failure that says nothing about the setting that caused it.
+  let calls = 0
+  const g = createGmail({ getToken: async () => 't', fetchImpl: async () => { calls += 1; return json({ messages: [{ id: 'a' }] }) } })
+  await assert.rejects(g.listIds({ labelId: 'L1', since: null, max: 2.5 }), (e) => e instanceof GmailError && e.code === 'gmail_unexpected')
+  assert.equal(calls, 0)
+  // A whole number that arrived as a string is still a whole number.
+  assert.deepEqual(await g.listIds({ labelId: 'L1', since: null, max: '2' }), { ids: ['a'], truncated: false, stoppedOn: null })
 })
