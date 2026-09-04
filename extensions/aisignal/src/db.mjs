@@ -119,6 +119,13 @@ import crypto from 'node:crypto'
  *     Reporting: read either side of the marking loop so `seenMarked` counts
  *     rows written rather than ids offered. Keyed on the dedup's own space, so
  *     it counts this mailbox and no other.
+ *   itemById(id) -- WHERE id = ?
+ *     Display, and the items primary key read rather than written -- the same
+ *     key `decide` addresses a card by. It is the one lookup another extension
+ *     can reach through the `signals` contract, so it is written down here
+ *     rather than left implied by the primary key entry above. Gates no fetch
+ *     and no frontier, and an id that matches nothing is answered with null
+ *     rather than with a blank row.
  *   items()/board()/counts() -- status, LIKE search, ordering
  *     Display. No frontier and no fetch decision reads any of them.
  */
@@ -648,6 +655,20 @@ const SWEEP_ORDER = 'ran_at DESC, rowid DESC'
 const DECISION_STATUS = { save: 'saved', archive: 'archived', undo: 'new' }
 
 /**
+ * The same vocabulary as a list, for the layer above.
+ *
+ * `rpc.decide` checks the value before it reaches here so the caller gets a
+ * message naming the whole set rather than only the value it got wrong. That
+ * check reads this rather than spelling the three words a second time: two
+ * copies drift on the first edit, and the shape a drift takes here is an rpc
+ * layer refusing a decision the repository would have accepted -- a decision
+ * the user could no longer make, with nothing in the UI to say why. Frozen
+ * because it is exported: a caller that reordered or extended it would be
+ * editing this file's vocabulary from another one.
+ */
+export const DECISIONS = Object.freeze(Object.keys(DECISION_STATUS))
+
+/**
  * Sweep notes are '; '-joined segments; re-adding a segment already present is
  * a no-op, so a note built up across openSweep and failSweep never doubles a
  * segment.
@@ -1012,6 +1033,21 @@ export function createRepo(storage) {
         return { id, merged: false }
       })
     },
+    /**
+     * One item by id, or null.
+     *
+     * The single-card read behind the `signals` contract and behind any UI that
+     * addresses one card rather than a page of them. A miss is null and not an
+     * empty row, because "no card carries that id" and "here is a card with
+     * nothing in it" are different facts and only the first is true -- which is
+     * the answer a consumer needs when the card it is holding an id for was
+     * removed between two of its calls.
+     *
+     * The row is returned as stored. Its `headline`, `summary` and `url` are
+     * newsletter prose and forum posts written by strangers; nothing here
+     * inspects or alters them, and nothing above may treat them as direction.
+     */
+    itemById(id) { return S.get('SELECT * FROM ext_aisignal_items WHERE id = ?', [id]) || null },
     /**
      * The searchable list. `total` is the size of the whole match, `count` only
      * of the page returned, because the UI shows "showing N of M".

@@ -44,8 +44,27 @@ import { createGmail, GmailError } from './gmail.mjs'
  */
 const DEFAULT_MAX = 5
 
-/** The label swept when neither the call nor the settings name one. */
-const DEFAULT_LABEL = 'AI hírlevél'
+/**
+ * The label swept when neither the call nor the settings name one.
+ *
+ * Exported because rpc.mjs reports the label the UI is looking at, and the only
+ * honest answer to "which label is this?" is the one a sweep would actually
+ * read. Two copies of the string drift on the first edit, and the drift is
+ * silent: the page would name one label while every run swept another.
+ */
+export const DEFAULT_LABEL = 'AI hírlevél'
+
+/**
+ * The purpose the host's stored Google credential is filed under.
+ *
+ * Exported for the reason `DEFAULT_LABEL` is. rpc.mjs answers "is Gmail
+ * connected?" by asking `hasGoogleCredential`, and that answer is about a
+ * credential only if it names the same purpose `gmailFor` below opens. Keyed on
+ * a second copy of the literal, a rename would leave the page reporting
+ * `connected` about a credential no sweep uses, or `missing` about one that
+ * works -- a false report in whichever direction the copies fell.
+ */
+export const OAUTH_PURPOSE = 'aisignal'
 
 /**
  * How many ids one run will list, as opposed to fetch.
@@ -87,7 +106,7 @@ class InputError extends Error {}
 
 function gmailFor(state) {
   if (state.gmailFactory) return state.gmailFactory()
-  return createGmail({ getToken: () => state.oauth.getGoogleAccessToken('aisignal') })
+  return createGmail({ getToken: () => state.oauth.getGoogleAccessToken(OAUTH_PURPOSE) })
 }
 
 /**

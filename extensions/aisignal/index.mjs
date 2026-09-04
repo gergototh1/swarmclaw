@@ -1,6 +1,8 @@
+import { SIGNALS_CONTRACT, createSignalsContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
-import { createSweepTools } from './src/sweep.mjs'
 import { createResearchTool } from './src/research.mjs'
+import { createRpc } from './src/rpc.mjs'
+import { createSweepTools } from './src/sweep.mjs'
 
 /**
  * Everything the host hands over in setup(), in one place.
@@ -52,7 +54,25 @@ const aisignal = {
     state.repo = createRepo(ctx.storage)
   },
   tools: [...createSweepTools(state), createResearchTool(state)],
-  rpc: {},
+  /**
+   * What this extension's own page may call, over
+   * `POST /api/extensions/aisignal/call/<method>`.
+   *
+   * `hasGoogleCredential` is passed as a closure over `state` rather than as
+   * `state.oauth.hasGoogleCredential`: `state.oauth` is null until `setup()`
+   * runs, and this map is built before it. Which purpose is asked about is
+   * rpc.mjs's decision, not this file's -- it names `OAUTH_PURPOSE` from
+   * sweep.mjs, so the page cannot report on a credential no sweep uses.
+   */
+  rpc: createRpc(state, { hasGoogleCredential: (purpose) => state.oauth.hasGoogleCredential(purpose) }),
+  /**
+   * What *another* extension may call, once it has named this contract in its
+   * own `consumes` and an operator has left it installed.
+   *
+   * Strictly smaller than `rpc` and separately declared: see contract.mjs for
+   * which methods are in it and why the others are not.
+   */
+  provides: { [SIGNALS_CONTRACT]: createSignalsContract(state) },
   ui: {
     pages: [{
       id: 'aisignal',
