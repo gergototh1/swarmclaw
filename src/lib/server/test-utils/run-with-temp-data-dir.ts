@@ -25,6 +25,13 @@ export function runWithTempDataDir<T = unknown>(
   // the symlinked shape asks for it explicitly by passing an absolute
   // `dataDir`, which is what the reload test in extension-contracts.test.ts
   // does.
+  //
+  // That symlink reload test ('re-executes an edited extension when DATA_DIR
+  // reaches it through a symlink') is the *only* consumer left that exercises
+  // a symlinked data directory -- every other caller now gets the realpath'd
+  // `tempDir` above. Do not delete that test as redundant with this
+  // realpathing: it is the one place left that would catch a regression in
+  // the module-cache-key symlink handling this comment describes.
   const tempDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), options.prefix || 'swarmclaw-test-')))
   const resolveTempPath = (value: string | undefined, fallback: string): string =>
     path.isAbsolute(value || '') ? String(value) : path.join(tempDir, value || fallback)

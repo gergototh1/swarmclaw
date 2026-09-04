@@ -462,11 +462,21 @@ export interface Extension {
    * reload explicitly, so in development setup() runs again on every file save.
    * Capturing `ctx.storage` is fine; starting a timer, a listener or a
    * subscription here leaks one per reload unless setup() clears the previous
-   * one itself. Note that a reload re-executes the module, so the new setup()
-   * cannot see a handle the old one left in a module-level variable: park
-   * anything that has to be cleared on the next reload somewhere the
-   * re-execution does not reset, such as `globalThis`. Synchronous, because
-   * load() is.
+   * one itself.
+   *
+   * Whether the new setup() sees a handle the old one left in a module-level
+   * variable depends on the extension's module format, not on a universal
+   * reload mechanic. A CommonJS extension's file is evicted from
+   * `require.cache` and re-executed on every reload, so its module-level
+   * variables start fresh and the new setup() sees nothing the old one left
+   * there. An ESM extension is not re-executed by the shipped loader at all --
+   * see Task 20 in `doc/plans/2026-09-03-aisignal-extension.md` -- so its
+   * module object, and whatever it left in a module-level variable, survives
+   * across every reload until the process restarts. Do not rely on either
+   * behaviour: park anything that has to be reliably cleared on the next
+   * reload on `globalThis` instead, and clear it yourself there -- no reload,
+   * in either module format, touches `globalThis` on its own. Synchronous,
+   * because load() is.
    */
   setup?: (ctx: ExtensionContext) => void
   migrations?: ExtensionMigration[]
@@ -712,15 +722,29 @@ export interface ExtensionContractHandle {
  * captured in `setup()` stops working the moment the provider is disabled or
  * deleted, rather than calling on into a stale closure.
  *
- * Re-resolution follows an edit to an extension's file too, because the host's
- * reload re-executes the file. A contract version bumped on disk is the version
- * served, and a consumer still declaring the old one gets `version_mismatch`; a
- * method added to or dropped from a `provides` block appears or disappears; and
- * a `consumes` entry deleted from a consumer revokes the grant, so the next
- * call answers `not_declared`. Switching an extension off, uninstalling it and
- * editing what it declares are all immediate. Nothing here needs a restart, and
- * a reload does not preserve module state: an extension's own module-level
- * variables start again from their initial values.
+ * Re-resolution follows an edit to an extension's file too, but only for a
+ * CommonJS extension: the host's reload evicts it from Node's CommonJS
+ * `require.cache` and the file re-executes, so a contract version bumped on
+ * disk is the version served, a method added to or dropped from a `provides`
+ * block appears or disappears, and a `consumes` entry deleted from a consumer
+ * really does revoke the grant -- the next call answers `not_declared`.
+ *
+ * An ESM extension gets none of that from a reload: it lives in Node's
+ * separate ESM registry, which the CommonJS eviction never touches, so its
+ * `provides` and `consumes` stay exactly as they were the moment it first
+ * loaded -- no matter how many times the file on disk is edited and reloaded
+ * -- until the process restarts. **Deleting a `consumes` entry from an ESM
+ * extension's file does not revoke its grant on a running host.** Do not tell
+ * an operator or an extension author otherwise. This is a known gap, open as
+ * Task 20 in `doc/plans/2026-09-03-aisignal-extension.md`.
+ *
+ * Switching an extension off and uninstalling it are unaffected by any of
+ * this: both are immediate for either module format, because both are read
+ * off the config file and the directory listing rather than off module
+ * content. Module *state* is a separate question from module *content*: a
+ * CommonJS extension's module-level variables do start again from their
+ * initial values on each reload, because the file re-executes; an ESM
+ * extension's do not, because it does not.
  *
  * Data that comes back across this boundary keeps whatever trust it had. AI
  * Signal's items are newsletter bodies and forum posts written by strangers;
@@ -779,15 +803,23 @@ export interface ExtensionContext {
   /**
    * Access to the contracts other extensions declare. Safe to capture: every
    * call re-resolves, so a captured handle follows the provider being disabled
-   * or deleted instead of going stale.
+   * or deleted instead of going stale -- true for every extension regardless
+   * of module format, because disabling and deleting are read off the config
+   * file and the directory listing, not off module content.
    *
-   * It follows an edit to an extension's file as well, because a reload
-   * re-executes the file. A contract version bumped on disk, a method added or
-   * dropped, a `consumes` entry added or removed: each takes effect on the next
-   * reload, without a process restart. A captured handle follows all of it, so
-   * a grant really is revoked by deleting the `consumes` entry, and a provider
-   * bump really does stop serving a consumer that still declares the old
-   * version.
+   * Following an edit to an extension's *file* is narrower: it only happens
+   * for a CommonJS extension, whose reload evicts it from Node's CommonJS
+   * require cache and re-executes it. There, a contract version bumped on
+   * disk, a method added or dropped, and a `consumes` entry added or removed
+   * each take effect on the next reload, without a process restart, and a
+   * captured handle follows all of it. An ESM extension's reload does not
+   * re-execute its file at all -- it lives in Node's separate ESM registry,
+   * untouched by that eviction -- so a captured handle, and a fresh `get`
+   * alike, keep seeing whatever the file declared when it first loaded even
+   * after the operator edits it and reloads, until the process restarts.
+   * Deleting a `consumes` entry from an ESM extension's file does not revoke a
+   * grant on a running host. This is a known gap, open as Task 20 in
+   * `doc/plans/2026-09-03-aisignal-extension.md`.
    *
    * Reading this during `setup()` itself is the one further exception worth
    * knowing about -- see `createExtensionContracts` in

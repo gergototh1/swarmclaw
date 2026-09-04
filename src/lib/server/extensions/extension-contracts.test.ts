@@ -29,6 +29,21 @@ import type { ExtensionContractDeclarations } from '@/types/extension'
 // with a hand-made registry would prove the resolver works and say nothing
 // about whether the host wires it up, which is the half that can actually be
 // broken by a later edit.
+//
+// One thing this file does NOT reach: the shipped ESM loader. Every extension
+// source below is written with `export`/`export default` and saved with a
+// `.mjs` filename, but `runWithTempDataDir` spawns the subprocess with `node
+// --import tsx`, and tsx transpiles that ESM syntax to CommonJS before Node
+// ever sees it. So `dynamicRequire()` here is requiring a CommonJS module, and
+// `clearExtensionRequireCache`'s CommonJS `require.cache` eviction does what
+// it is supposed to: the file re-executes on reload. Every assertion below
+// that a reload re-executes a `.mjs` extension's file is therefore pinning
+// this harness's CJS-via-tsx behaviour -- which is also exactly what a real
+// CommonJS (`.js`) extension does in production -- and says nothing about a
+// genuine ESM extension loaded by the shipped loader, where `require()` of an
+// ESM file returns Node's already-evaluated ESM-registry module without
+// re-running it. That gap is real, is not exercised anywhere in this repo, and
+// is open as Task 20 in `doc/plans/2026-09-03-aisignal-extension.md`.
 
 const PROVIDER_SOURCE = `
 export const calls = { list: 0, secret: 0 }
@@ -68,11 +83,12 @@ const PROVIDER_V2_SOURCE = PROVIDER_SOURCE.replace('version: 1,', 'version: 2,')
  * src/types/extension.ts warns about, so it is what the tests exercise.
  *
  * That state hangs off `globalThis` rather than off a module-level binding
- * because a reload really does re-execute this file, so module state does not
- * survive one and a handle held only there would be discarded rather than
- * tested. An extension that parks a handle in a timer, a connector, or
- * anything else the host keeps alive across a reload is in exactly this
- * position, and that is the handle worth asserting about.
+ * because, under this harness's tsx-transpiled-to-CJS reload (see the note
+ * above `PROVIDER_SOURCE`), a reload really does re-execute this file, so
+ * module state does not survive one and a handle held only there would be
+ * discarded rather than tested. An extension that parks a handle in a timer,
+ * a connector, or anything else the host keeps alive across a reload is in
+ * exactly this position, and that is the handle worth asserting about.
  */
 const CONSUMER_SOURCE = `
 globalThis.__consumerState = globalThis.__consumerState || { contracts: null, handle: null }
@@ -555,16 +571,26 @@ describe('extension contracts: a captured handle', () => {
   })
 })
 
-// --- what a reload does ------------------------------------------------------
+// --- what a reload does, for a CommonJS extension (and this harness's .mjs) -
 //
 // The tests below edit an extension's file on a manager that is already
-// running, which is the case the install-time tests cannot reach. A reload
-// re-executes the edited file, so a contract version bumped on disk is the
-// version the host serves, and a `consumes` entry deleted on disk is a grant
-// the host stops serving. The last two also pin that eviction does not depend
-// on where the data directory happens to live: one drives the manager through
-// a symlinked DATA_DIR, and the escape it guards against is a cache key built
-// from an unrealpath'd path, which Node never files a module under.
+// running, which is the case the install-time tests cannot reach. Under this
+// harness's tsx-transpiled-to-CJS reload (see the note above `PROVIDER_SOURCE`
+// near the top of this file), a reload re-executes the edited file, so a
+// contract version bumped on disk is the version the host serves, and a
+// `consumes` entry deleted on disk is a grant the host stops serving. The
+// last two also pin that eviction does not depend on where the data directory
+// happens to live: one drives the manager through a symlinked DATA_DIR, and
+// the escape it guards against is a cache key built from an unrealpath'd
+// path, which Node never files a module under.
+//
+// This is CommonJS reload behaviour. A genuine ESM extension, loaded by the
+// shipped loader rather than this harness's tsx transpile, does not
+// re-execute on reload at all -- see the caveats on `callContractMethod` in
+// ./extension-contracts.ts and on `ExtensionContracts` in
+// src/types/extension.ts. No test in this file, or anywhere in this repo,
+// exercises that path; it is tracked as Task 20 in
+// `doc/plans/2026-09-03-aisignal-extension.md`.
 
 describe('extension contracts: an edit to an extension file', () => {
   it('upgrades a live manager: a provider contract version bumped on disk is the version the host serves', () => {
@@ -891,9 +917,13 @@ describe('extension contracts: the operator-facing audit surface', () => {
     // switched off. The bound is worth pinning precisely because an operator
     // reads this card to decide whether to switch the extension back on.
     assert.deepEqual(out.afterEditWhileOff, innocuous)
-    // Switching it on is the action that answers the question, and it answers
-    // honestly: the reload re-executes the file, and the card immediately shows
-    // what the file declares now.
+    // Switching it on is the action that answers the question, and under this
+    // harness's CJS reload (see the note above `PROVIDER_SOURCE`) it answers
+    // honestly: the reload re-executes the file, and the card immediately
+    // shows what the file declares now. A genuine ESM extension does not get
+    // this: switching it back on returns the already-evaluated module instead
+    // of re-executing it, so its card would keep showing the *stale*
+    // pre-edit manifest -- see Task 20.
     assert.deepEqual(out.afterEnable, [{
       extension: 'mailbox',
       contract: 'signals',

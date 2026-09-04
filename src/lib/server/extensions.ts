@@ -919,9 +919,16 @@ class ExtensionManager {
    *
    * realpathSync throws for a path that no longer resolves: a file deleted
    * between the directory listing and this call, or a workspace directory that
-   * was never created. Falling back to the unresolved path keeps the eviction
-   * doing whatever else it can rather than taking the reload down, and costs
-   * nothing, because an entry Node cannot resolve is not one Node is holding.
+   * was never created. Falling back to the unresolved path in that case is not
+   * a claim that the fallback still finds the right cache entry — it does not:
+   * Node keyed the entry by the realpath computed at *load* time, and the
+   * unresolved path of a file that has since vanished was never that key, so
+   * this eviction misses it either way. It is harmless regardless, because the
+   * only caller is the load loop below, which calls this immediately before
+   * `dynamicRequire(fullPath)` on a filename it just read from `readdirSync`:
+   * a file that vanished between that listing and here fails the require()
+   * moments later regardless of what this method managed to evict, so a
+   * missed eviction here changes nothing about the outcome.
    */
   private clearExtensionRequireCache(dynamicRequire: NodeRequire, filename: string): void {
     const rootPath = moduleCacheKey(path.join(EXTENSIONS_DIR, filename))
@@ -929,6 +936,18 @@ class ExtensionManager {
     // Same exposure as the root key: a prefix comparison against an
     // unrealpath'd directory never matches the realpath'd keys Node stores.
     const workspaceDir = moduleCacheKey(this.getWorkspaceDir(filename))
+    // Contained to the realpath'd workspaces root so that a workspace
+    // directory which is, or has become, a symlink to somewhere broad cannot
+    // widen this into a sweep of the process-wide `require.cache`, which is
+    // shared by every module the host and every extension has ever required.
+    // Extensions run in-process and can already reach worse than that
+    // directly, so this is not closing an escalation of capability — it is
+    // closing an accidental blast radius the realpath fix above did not
+    // itself account for.
+    const workspacesRoot = moduleCacheKey(EXTENSION_WORKSPACES_DIR)
+    const isWithinWorkspacesRoot =
+      workspaceDir === workspacesRoot || workspaceDir.startsWith(`${workspacesRoot}${path.sep}`)
+    if (!isWithinWorkspacesRoot) return
     for (const cacheKey of Object.keys(dynamicRequire.cache)) {
       if (cacheKey.startsWith(`${workspaceDir}${path.sep}`)) {
         delete dynamicRequire.cache[cacheKey]
@@ -1465,10 +1484,19 @@ class ExtensionManager {
    * to build during load() for an extension that is not registered yet, and
    * safe for the extension to capture: the extension map is read live on every
    * call, so disabling or deleting the provider takes effect through a handle
-   * captured before it. Editing a declaration does too — a reload re-executes
-   * the module the declarations came from, so a `consumes` entry removed on
-   * disk stops being served from the next reload on. See `callContractMethod`
-   * in ./extensions/extension-contracts.
+   * captured before it, regardless of module format.
+   *
+   * Editing a declaration is narrower: it only takes effect on the next reload
+   * for a CommonJS extension, whose file `clearExtensionRequireCache` evicts
+   * and re-executes. Reloading an ESM extension still succeeds — `require()`
+   * of an ESM file returns the module from Node's ESM registry rather than
+   * re-evaluating it — so `loaded.contracts` is repopulated on every reload
+   * with the same, unchanged declarations the module had when it first
+   * loaded. A `consumes` entry removed on disk therefore keeps appearing on
+   * the operator's card, and keeps being served, exactly as before: the file
+   * edit has no effect on a running host until the process restarts. Known
+   * gap, open as Task 20 in `doc/plans/2026-09-03-aisignal-extension.md`. See
+   * `callContractMethod` in ./extensions/extension-contracts.
    *
    * Private because it mints a contracts object for whatever consumer id it is
    * handed, with that id baked into every call it will ever make. Called from
@@ -2340,9 +2368,18 @@ class ExtensionManager {
       // shows the declarations it had when it was last loaded, so an operator
       // reading the card of a disabled extension to judge what switching it
       // back on would hand it can be reading a superseded manifest. Switching
-      // it on is what answers the question — the reload re-executes the file
-      // and the card then shows what the file declares now — which is also the
-      // action the operator was deciding about.
+      // it on is the action the operator was deciding about, but whether it
+      // also answers the question depends on the extension's module format.
+      // For a CommonJS extension the reload that follows re-executes the
+      // file, so the card then shows what the file declares now. For an ESM
+      // extension the reload succeeds but does not re-execute the file — see
+      // `getExtensionContracts` above — so `loaded.contracts` is repopulated
+      // from the same module the process first evaluated, and the card, like
+      // the extension's actual running behaviour, keeps showing the manifest
+      // from that first load. An ESM extension edited while switched off
+      // therefore shows, and runs, the *stale* manifest after being switched
+      // back on, not the one now on disk. Known gap, open as Task 20 in
+      // `doc/plans/2026-09-03-aisignal-extension.md`.
       //
       // `unavailable` is left off entirely for a not-loaded extension. It names
       // why a *provider* is not answering, and that question does not arise
