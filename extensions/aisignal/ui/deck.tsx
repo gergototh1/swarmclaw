@@ -2,14 +2,14 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 
 import type { Board, Item } from './api'
-import { createDeckController, deckKeyAction, remainingUndecided, stampFor, type DecideFn, type DeckDecision } from './deck-state'
+import { createDeckController, deckKeyListener, remainingUndecided, stampFor, type DecideFn, type DeckDecision } from './deck-state'
 import { formatDate, formatScore } from './format'
 import { safeHref } from './safe-href'
 
 /**
  * One card at a time. Drag past a quarter of the card's width, or press an
- * arrow key, and the decision is written; `u` or Cmd/Ctrl+Z takes the newest
- * one back, ten deep. The state lives in `createDeckController`, which is
+ * arrow key with nothing focused, and the decision is written; `u` or
+ * Cmd/Ctrl+Z takes the newest one back, ten deep. The state lives in `createDeckController`, which is
  * where the optimistic write and every rollback are, and which
  * test/ui.test.mjs drives without a DOM.
  *
@@ -82,16 +82,11 @@ export function Deck({ board, decide, onChanged }: { board: Board; decide: Decid
     if (href) window.open(href, '_blank', 'noopener')
   }, [top])
 
+  // The listener is on the window, so it sees every key on the page; which
+  // keys are the deck's, and that a key on a focused control never is, is
+  // decided in `deckKeyListener`, where the test drives it.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const action = deckKeyAction(e)
-      if (!action) return
-      e.preventDefault()
-      if (action === 'archive') commit('archive')
-      else if (action === 'save') commit('save')
-      else if (action === 'open') openTop()
-      else undoLast()
-    }
+    const onKey = deckKeyListener({ commit, open: openTop, undo: undoLast })
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [commit, undoLast, openTop])

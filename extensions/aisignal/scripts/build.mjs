@@ -25,7 +25,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 export const HOST_MODULES = Object.freeze(['react', 'react-dom', 'react/jsx-runtime'])
 
 /**
- * The esbuild plugin that turns each host module import into a lookup.
+ * The esbuild resolver hook that turns each host module import into a lookup.
  *
  * A missing entry throws with the module's name at bundle execution, which is
  * the earliest moment the bundle can know: the table is only there once the

@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 
 import * as React from 'react'
@@ -12,7 +15,7 @@ import { readBoard, readItemsPage } from '../ui/api.ts'
 import { bundle } from '../scripts/build.mjs'
 import { Deck } from '../ui/deck.tsx'
 import {
-  UNDO_DEPTH, beginDecision, createDeckController, deckKeyAction, initialDeck, remainingUndecided, stampFor,
+  UNDO_DEPTH, beginDecision, createDeckController, deckKeyAction, deckKeyListener, initialDeck, remainingUndecided, stampFor,
 } from '../ui/deck-state.ts'
 import { cappedNote, describeGmail, describeOutcome, formatDate, formatScore, noteSegments, statusBadge, sweepOutcome } from '../ui/format.ts'
 import { ListBody } from '../ui/list.tsx'
@@ -47,11 +50,14 @@ function sweep(overrides = {}) {
 
 function board(overrides = {}) {
   return {
-    deck: [], deckLimit: 50, undecided: 0, all: [], allLimit: 200, sweeps: [], sweepLimit: 10,
+    deck: [], deckLimit: 50, undecided: 0, allLimit: 200, sweeps: [], sweepLimit: 10,
     counts: { items: 0, undecided: 0, sweeps: 0, seen: 0 }, label: 'AI hírlevél', gmail: { status: 'connected' },
     ...overrides,
   }
 }
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const source = (rel) => fs.readFileSync(path.join(root, rel), 'utf8')
 
 const render = (type, props) => renderToStaticMarkup(jsx(type, props))
 const noop = () => {}
@@ -131,6 +137,16 @@ test('readBoard refuses a response without its lists instead of yielding an empt
   assert.equal(ok.allLimit, 200)
   assert.equal(ok.sweepLimit, 10)
   assert.throws(() => readItemsPage({ items: [] }), /"total"/)
+})
+
+test('readBoard requires only what the page reads: no row list beside the deck, no count beside the items', () => {
+  // The list asks `items` for its own page. A board that ships no `all` is
+  // whole, and one that does is not refused either; nothing reads it.
+  assert.equal('all' in board(), false, 'the fixture is the shape the server now sends')
+  const plain = readBoard(board())
+  assert.equal('all' in plain, false)
+  assert.equal('all' in readBoard({ ...board(), all: [item()] }), false)
+  assert.deepEqual(Object.keys(readItemsPage({ total: 1, items: [item()] })), ['total', 'items'])
 })
 
 // --- words for facts ---
@@ -226,6 +242,60 @@ test('deckKeyAction ignores editable targets and maps the keys', () => {
   assert.equal(key('u', { target: { tagName: 'TEXTAREA' } }), null)
   assert.equal(key('u', { target: { tagName: 'DIV', isContentEditable: true } }), null)
   assert.equal(key('u', { target: { tagName: 'DIV' } }), 'undo')
+  assert.equal(key('u', { target: { tagName: 'BODY', tabIndex: -1 } }), 'undo')
+  // A key on a focused control is the control's: Enter activates a button, a
+  // link or a summary, and the arrows move along a tablist. The three tags
+  // are the ones the review hit; the tabIndex rule catches the rest.
+  assert.equal(key('Enter', { target: { tagName: 'BUTTON', tabIndex: 0 } }), null)
+  assert.equal(key('Enter', { target: { tagName: 'A', tabIndex: 0 } }), null)
+  assert.equal(key('Enter', { target: { tagName: 'SUMMARY' } }), null)
+  assert.equal(key('ArrowRight', { target: { tagName: 'BUTTON', tabIndex: 0 } }), null)
+  assert.equal(key('ArrowLeft', { target: { tagName: 'button' } }), null)
+  assert.equal(key('u', { target: { tagName: 'A' } }), null)
+  assert.equal(key('Enter', { target: { tagName: 'DIV', tabIndex: 0 } }), null, 'a div the host made focusable')
+  assert.equal(key('Enter', { target: { tagName: 'IFRAME' } }), null)
+  assert.equal(key('Enter', { target: { tagName: 'SELECT' } }), null)
+})
+
+/**
+ * The review's failing sequence: with the deck mounted, Tab to the "Lista"
+ * tab, "Gmail bekötése", "Ment →" or the "Korábbi futások" summary, press
+ * Enter, and the control did not activate; the top card's url opened in a
+ * new tab instead. Arrow keys on the tablist decided cards. The listener the
+ * deck installs must leave the key -- default included -- to the control.
+ */
+test("the deck's key listener leaves Enter and the arrows to a focused control and takes them from the body", () => {
+  const calls = []
+  const onKey = deckKeyListener({
+    commit: (decision) => calls.push(['commit', decision]),
+    open: () => calls.push(['open']),
+    undo: () => calls.push(['undo']),
+  })
+  const press = (key, target) => {
+    let prevented = false
+    const taken = onKey({ key, metaKey: false, ctrlKey: false, altKey: false, target, preventDefault: () => { prevented = true } })
+    return { taken, prevented }
+  }
+  const controls = [
+    { tagName: 'BUTTON', tabIndex: 0, role: 'tab' },   // the "Lista" tab
+    { tagName: 'A', tabIndex: 0 },                      // "Gmail bekötése"
+    { tagName: 'BUTTON', tabIndex: 0 },                 // "Ment →"
+    { tagName: 'SUMMARY', tabIndex: 0 },                // "Korábbi futások"
+  ]
+  for (const target of controls) {
+    for (const key of ['Enter', 'ArrowRight', 'ArrowLeft', 'u']) {
+      assert.deepEqual(press(key, target), { taken: false, prevented: false }, `${key} on ${target.tagName} is the control's`)
+    }
+  }
+  assert.deepEqual(calls, [], 'no url opened, no card decided')
+
+  const body = { tagName: 'BODY', tabIndex: -1 }
+  assert.deepEqual(press('Enter', body), { taken: true, prevented: true })
+  assert.deepEqual(press('ArrowRight', body), { taken: true, prevented: true })
+  assert.deepEqual(press('ArrowLeft', { tagName: 'DIV', tabIndex: -1, className: 'ais-card' }), { taken: true, prevented: true })
+  assert.deepEqual(press('u', body), { taken: true, prevented: true })
+  assert.deepEqual(press('x', body), { taken: false, prevented: false })
+  assert.deepEqual(calls, [['open'], ['commit', 'save'], ['commit', 'archive'], ['undo']])
 })
 
 test('a decision leaves the screen at once and counts against the undecided total', () => {
@@ -388,6 +458,7 @@ test('loadList turns a refused query into a refused state carrying the message',
   const calls = []
   const ok = await loadList(async (method, body) => { calls.push([method, body]); return { total: 1, count: 1, items: [item()] } }, { status: 'saved', q: 'a', limit: 200 })
   assert.equal(ok.kind, 'ok')
+  assert.deepEqual(Object.keys(ok), ['kind', 'page'], 'the state carries the page and nothing the list does not read')
   assert.deepEqual(calls, [['items', { status: 'saved', q: 'a', order: 'recent', limit: 200 }]])
 })
 
@@ -398,7 +469,7 @@ test('the list shows a refused query as its error, not as an empty list', () => 
   assert.ok(refused.includes('q must be at most 200 characters'))
   assert.equal(refused.includes('0 sor'), false)
   assert.equal(refused.includes('Nincs ilyen sor'), false)
-  const empty = render(ListBody, { ...props, q: 'zzz', state: { kind: 'ok', limit: 200, page: { total: 0, count: 0, items: [] } } })
+  const empty = render(ListBody, { ...props, q: 'zzz', state: { kind: 'ok', page: { total: 0, items: [] } } })
   assert.ok(empty.includes('0 sor'))
   assert.ok(empty.includes('Nincs ilyen sor erre a keresésre'))
   assert.equal(empty.includes('elutasította'), false)
@@ -407,10 +478,10 @@ test('the list shows a refused query as its error, not as an empty list', () => 
 test('a capped list says it is capped, with both numbers', () => {
   const items = Array.from({ length: 200 }, (_, i) => item({ id: `r${i}` }))
   const props = { status: 'all', q: '', notice: null, onStatus: noop, onQuery: noop, onNotice: noop, onAct: noAct }
-  const capped = render(ListBody, { ...props, state: { kind: 'ok', limit: 200, page: { total: 4318, count: 200, items } } })
+  const capped = render(ListBody, { ...props, state: { kind: 'ok', page: { total: 4318, items } } })
   assert.ok(capped.includes('4318 sor'))
   assert.ok(capped.includes('200 sor látszik, összesen 4318'))
-  const whole = render(ListBody, { ...props, state: { kind: 'ok', limit: 200, page: { total: 200, count: 200, items } } })
+  const whole = render(ListBody, { ...props, state: { kind: 'ok', page: { total: 200, items } } })
   assert.equal(whole.includes('látszik, összesen'), false)
 })
 
@@ -420,7 +491,7 @@ test('the list renders a hostile row as text, flags an unknown status and refuse
     item({ id: 'b', status: 'saved', url: 'https://ok.test/' }),
   ]
   const props = { status: 'all', q: '', notice: null, onStatus: noop, onQuery: noop, onNotice: noop, onAct: noAct }
-  const html = render(ListBody, { ...props, state: { kind: 'ok', limit: 200, page: { total: 2, count: 2, items: rows } } })
+  const html = render(ListBody, { ...props, state: { kind: 'ok', page: { total: 2, items: rows } } })
   assert.equal(html.includes('<script>'), false)
   assert.ok(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'))
   assert.ok(html.includes('ais-badge ais-badge-bad">saevd<'))
@@ -431,7 +502,7 @@ test('the list renders a hostile row as text, flags an unknown status and refuse
 })
 
 test('the list shows a decision that failed as a notice', () => {
-  const props = { status: 'all', q: '', notice: 'A döntés nem mentődött el: offline', onStatus: noop, onQuery: noop, onNotice: noop, onAct: noAct, state: { kind: 'ok', limit: 200, page: { total: 0, count: 0, items: [] } } }
+  const props = { status: 'all', q: '', notice: 'A döntés nem mentődött el: offline', onStatus: noop, onQuery: noop, onNotice: noop, onAct: noAct, state: { kind: 'ok', page: { total: 0, items: [] } } }
   assert.ok(render(ListBody, props).includes('A döntés nem mentődött el: offline'))
 })
 
@@ -481,4 +552,68 @@ test('the status bar says the sweep history is capped, from the board&#x27;s own
   const whole = render(StatusBar, { board: board({ sweeps: sweeps.slice(0, 3), sweepLimit: 10, counts: { items: 0, undecided: 0, sweeps: 3, seen: 0 } }), onRefresh: noop })
   assert.ok(whole.includes('Korábbi futások (3)'))
   assert.ok(html.includes('címke: AI hírlevél'))
+})
+
+// --- the sheet, the build script and the package, read as text ---
+
+/**
+ * The two behind-cards are `inset: 0` against the stack, so the stack's box is
+ * theirs. With a floor on the stack they hung ~130px below a short top card as
+ * a bare panel; the stack must take its height from the card alone.
+ */
+test('the pile behind the top card is sized by the card, not by a floor on the stack', () => {
+  const css = source('ui/style.css')
+  const rule = (selector) => {
+    const escaped = selector.replace(/[.]/g, '\\.')
+    const m = css.match(new RegExp('(?:^|\\n)' + escaped + '\\s*\\{([^}]*)\\}'))
+    assert.ok(m, `${selector} is in the sheet`)
+    return m[1]
+  }
+  const stack = rule('.ais-card-stack')
+  assert.equal(/min-height|height\s*:/.test(stack), false, `no height of its own: ${stack.trim()}`)
+  assert.match(stack, /position:\s*relative/)
+  const behind = rule('.ais-card-behind')
+  assert.match(behind, /position:\s*absolute/)
+  assert.match(behind, /inset:\s*0/)
+})
+
+/**
+ * The terminology rule covers comments, so the word is not written here
+ * either: it is taken from the one place it may appear, esbuild's own option
+ * key at the build call, and every other line of the script is checked
+ * against it.
+ */
+test("the build script's comments say extension; esbuild's option key is the one line that does not", () => {
+  const lines = source('scripts/build.mjs').split('\n')
+  const optionKey = /^\s*(plugins):\s*\[/
+  const keyLines = lines.filter((line) => optionKey.test(line))
+  assert.equal(keyLines.length, 1, "esbuild's option key stays, once")
+  const word = optionKey.exec(keyLines[0])[1].replace(/s$/, '')
+  const offending = lines.filter((line) => line.toLowerCase().includes(word) && !optionKey.test(line))
+  assert.deepEqual(offending, [])
+})
+
+/**
+ * `npm test` here runs `node --import tsx` and the tests import react; both
+ * resolved from the repo root until they were declared, so the extension's
+ * own `npm test` failed anywhere but inside this monorepo. Every package the
+ * tests, the page and the build import must be one the package declares.
+ */
+test("the extension's package declares every package its own test run imports", () => {
+  const pkg = JSON.parse(source('package.json'))
+  assert.match(pkg.scripts.test, /--import tsx/)
+  const declared = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies })
+  const files = ['test', 'ui', 'scripts'].flatMap((dir) => fs.readdirSync(path.join(root, dir)).map((f) => `${dir}/${f}`))
+  const imported = new Set()
+  for (const file of files) {
+    for (const m of source(file).matchAll(/^import (?:[^'"]*from )?['"]([^'".][^'"]*)['"]/gm)) {
+      const spec = m[1]
+      if (spec.startsWith('node:')) continue
+      imported.add(spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0])
+    }
+  }
+  assert.ok(imported.has('tsx') || pkg.scripts.test.includes('tsx'))
+  for (const name of [...imported, 'tsx'].sort()) {
+    assert.ok(declared.includes(name), `${name} is imported but not declared in package.json`)
+  }
 })

@@ -119,7 +119,9 @@ test('board reports the caps and the totals behind its capped lists', async () =
   assert.equal(b.deckLimit, 50)
   assert.equal(b.allLimit, 200)
   assert.equal(b.sweepLimit, 10)
-  assert.equal(b.all.length, 3)
+  // The list asks items() for its own page; a board reloaded after every
+  // decision does not ship 200 rows nothing reads.
+  assert.equal('all' in b, false)
   assert.deepEqual(b.counts, { items: 3, undecided: 3, sweeps: 1, seen: 0 })
 })
 

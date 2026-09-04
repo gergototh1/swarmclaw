@@ -89,7 +89,13 @@
 
 /* deck */
 .ais-deck { display: flex; flex-direction: column; align-items: center; }
-.ais-card-stack { position: relative; width: 100%; max-width: 620px; min-height: 320px; }
+/*
+ * The stack has no height of its own: the top card sits in flow and sets it,
+ * and the two behind-cards are `inset: 0` against it, so they are exactly as
+ * tall as the card they peek out from under. A floor here (there was a
+ * min-height once) left them hanging below a short card as a bare panel.
+ */
+.ais-card-stack { position: relative; width: 100%; max-width: 620px; }
 .ais-card {
   position: relative;
   background: var(--card, #fff);

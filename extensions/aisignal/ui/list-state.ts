@@ -13,7 +13,7 @@ import { errorText, readItemsPage } from './api'
  */
 export type ListState =
   | { kind: 'loading' }
-  | { kind: 'ok'; page: ItemsPage; limit: number }
+  | { kind: 'ok'; page: ItemsPage }
   | { kind: 'refused'; message: string }
 
 export interface ListQuery {
@@ -26,7 +26,7 @@ export interface ListQuery {
 export async function loadList(rpc: Rpc, query: ListQuery): Promise<ListState> {
   try {
     const page = readItemsPage(await rpc('items', { status: query.status, q: query.q, order: 'recent', limit: query.limit }))
-    return { kind: 'ok', page, limit: query.limit }
+    return { kind: 'ok', page }
   } catch (err) {
     return { kind: 'refused', message: errorText(err) }
   }

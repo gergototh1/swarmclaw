@@ -36,8 +36,8 @@ import { DEFAULT_LABEL, OAUTH_PURPOSE, repoOf } from './sweep.mjs'
  *     See `gmailHealth`.
  *   - Every capped list says what it was capped at and how many rows are behind
  *     it, so a full page cannot be read as "that is all there is". `deck` has
- *     `deckLimit` and `undecided`, exactly as the repository built it; `all`
- *     and `sweeps` get the same treatment from `counts`.
+ *     `deckLimit` and `undecided`, exactly as the repository built it;
+ *     `sweeps` and the `items` pages get the same treatment from `counts`.
  *
  * WHAT THIS FILE DOES TO THE STORED TEXT: NOTHING. Every headline, summary and
  * url on these rows is newsletter prose or a forum post written by a stranger,
@@ -50,12 +50,15 @@ import { DEFAULT_LABEL, OAUTH_PURPOSE, repoOf } from './sweep.mjs'
 const DECK_LIMIT = 50
 
 /**
- * Rows in the two lists `board()` returns beside the deck.
+ * The page size the list asks `items()` for, and the sweep rows `board()`
+ * returns beside the deck.
  *
  * Both are caps and neither is a total. `board()` returns `counts` so the page
  * can say "50 of 4,318" instead of implying the cap is the whole table -- the
  * same reason the repository's own `board()` returns `undecided` beside a
- * capped `deck`.
+ * capped `deck`. `board()` reports `allLimit` but does not ship the list
+ * itself: the list view asks `items()` for the page it shows, and a board is
+ * reloaded after every decision, so 200 rows nothing read went out each time.
  */
 const ALL_LIMIT = 200
 const SWEEP_LIMIT = 10
@@ -124,13 +127,14 @@ export function createRpc(state, deps) {
   const gmail = () => gmailHealth(state, deps.hasGoogleCredential)
   return {
     /**
-     * Everything one page load needs: the deck to decide on, the recent list,
-     * the sweep history, the configured label and the Gmail status.
+     * Everything one page load needs: the deck to decide on, the sweep
+     * history, the configured label and the Gmail status. The list is not
+     * here; the page asks `items()` for it with `allLimit`.
      *
-     * `deck`, `all` and `sweeps` are each capped, and each cap is reported
-     * beside the count it was taken from -- `deckLimit`/`undecided` from the
-     * repository, `allLimit` and `sweepLimit` here, and `counts` for the totals
-     * behind all of them.
+     * `deck` and `sweeps` are each capped, and each cap is reported beside
+     * the count it was taken from -- `deckLimit`/`undecided` from the
+     * repository, `sweepLimit` here, and `counts` for the totals behind all
+     * of them and behind the `items()` pages.
      *
      * `board.undecided` and `counts.undecided` answer the same question --
      * how many cards are still `new` -- and `counts` is built from
@@ -149,7 +153,6 @@ export function createRpc(state, deps) {
       const board = repo.board(DECK_LIMIT)
       return {
         ...board,
-        all: repo.items({ limit: ALL_LIMIT }).items,
         allLimit: ALL_LIMIT,
         sweeps: repo.sweeps(SWEEP_LIMIT),
         sweepLimit: SWEEP_LIMIT,

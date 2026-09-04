@@ -69,7 +69,7 @@ export interface Board {
   deck: Item[]
   deckLimit: number
   undecided: number
-  all: Item[]
+  /** The page size the list asks `items` for; `counts.items` is the total behind it. */
   allLimit: number
   sweeps: Sweep[]
   sweepLimit: number
@@ -80,7 +80,6 @@ export interface Board {
 
 export interface ItemsPage {
   total: number
-  count: number
   items: Item[]
 }
 
@@ -121,11 +120,14 @@ function readArray<T>(method: string, record: Record<string, unknown>, field: st
  * Rows inside the lists are not walked: they are whatever `db.mjs` selected,
  * and a missing column there is a rendering question (`formatScore` prints a
  * placeholder for a non-number) rather than a reason to refuse the page.
+ *
+ * Only what the page reads is required. The list asks `items` for its own
+ * page, so the board carries no row list beside the deck; it used to, and
+ * every refresh -- one per decision -- shipped 200 rows nothing read.
  */
 export function readBoard(raw: unknown): Board {
   if (!isRecord(raw)) refuse('board', 'board')
   const deck = readArray<Item>('board', raw, 'deck')
-  const all = readArray<Item>('board', raw, 'all')
   const sweeps = readArray<Sweep>('board', raw, 'sweeps')
   const gmail = raw.gmail
   if (!isRecord(gmail) || typeof gmail.status !== 'string' || !GMAIL_STATES.includes(gmail.status)) refuse('board', 'gmail')
@@ -135,7 +137,6 @@ export function readBoard(raw: unknown): Board {
     deck,
     deckLimit: readNumber('board', raw, 'deckLimit'),
     undecided: readNumber('board', raw, 'undecided'),
-    all,
     allLimit: readNumber('board', raw, 'allLimit'),
     sweeps,
     sweepLimit: readNumber('board', raw, 'sweepLimit'),
@@ -150,12 +151,14 @@ export function readBoard(raw: unknown): Board {
   }
 }
 
-/** The `items` response, or a thrown error naming the field it lacks. */
+/**
+ * The `items` response, or a thrown error naming the field it lacks. The
+ * server's `count` is `items.length` said twice and is not read.
+ */
 export function readItemsPage(raw: unknown): ItemsPage {
   if (!isRecord(raw)) refuse('items', 'items')
   return {
     total: readNumber('items', raw, 'total'),
-    count: readNumber('items', raw, 'count'),
     items: readArray<Item>('items', raw, 'items'),
   }
 }
