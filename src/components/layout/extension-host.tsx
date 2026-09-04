@@ -67,32 +67,41 @@ const HTML_DOCUMENT_START = /^\s*<(?:!doctype\b|html\b|!--)/i
  *
  * `POST /api/extensions/<id>/call/<method>` is a real route
  * (`src/app/api/extensions/[id]/call/[method]/route.ts`) and it always answers
- * `application/json` — successes and failures alike. `api()`
- * (`src/lib/app/api-client.ts`) is the one that reads the response content
- * type: a JSON response comes back parsed, and a non-JSON one is the only way a
- * raw body reaches us, as the text of the rejection. So a raw HTML document
- * here means something other than this route answered — a proxy or error page
- * in front of the app, or a build without the route — and that is the case
- * worth naming, because `api()` would otherwise reject with the whole HTML
- * document as the message and bury the one fact the author needs.
+ * `application/json` — successes and failures alike. But `api()`
+ * (`src/lib/app/api-client.ts`) does not know that; it decides purely from the
+ * response's own content type. When that type is not JSON, `api()` reads the
+ * body as text and, depending on the status, either resolves with it (2xx) or
+ * throws it as the message (non-2xx). Either way a raw HTML document can reach
+ * this function, resolved or thrown, and either way it means something other
+ * than this route answered: a proxy or interstitial in front of the app (an
+ * ngrok warning page, a captive portal, an SPA rewrite that serves `index.html`
+ * for every path), or a build without the route. That is the case worth
+ * naming, because otherwise the document renders — or is reported — as though
+ * it were the handler's own output.
  *
- * A 200 is never that case, whatever its value looks like. A handler may return
- * an HTML fragment, and it arrives as an ordinary JSON string; sniffing the
- * first character of the parsed value would report that as a missing endpoint.
+ * A handler may legitimately return an HTML fragment, and on the resolved path
+ * that arrives as an ordinary string, indistinguishable in shape from a document
+ * body. `HTML_DOCUMENT_START` is what tells them apart: only a document opener
+ * (`<!doctype`, `<html`, `<!--`) is treated as the unavailable case, so
+ * `rpc: { renderPreview: () => '<p>hi</p>' }` still resolves with the fragment
+ * on both paths.
  */
 async function callExtensionMethod(extensionId: string, method: string, body?: object): Promise<unknown> {
   const endpoint = `/extensions/${encodeURIComponent(extensionId)}/call/${encodeURIComponent(method)}`
+  const unavailable = () =>
+    new Error(`Extension RPC endpoint is not available: POST /api${endpoint} returned a non-JSON response`)
+
+  let result: unknown
   try {
-    return await api('POST', endpoint, body ?? {})
+    result = await api('POST', endpoint, body ?? {})
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    if (HTML_DOCUMENT_START.test(message)) {
-      throw new Error(
-        `Extension RPC endpoint is not available: POST /api${endpoint} returned a non-JSON response`,
-      )
-    }
+    if (HTML_DOCUMENT_START.test(message)) throw unavailable()
     throw err
   }
+
+  if (typeof result === 'string' && HTML_DOCUMENT_START.test(result)) throw unavailable()
+  return result
 }
 
 /**
