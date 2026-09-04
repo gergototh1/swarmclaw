@@ -9,8 +9,10 @@
  * it starts inside the window and *navigates out*. Electron's
  * `setWindowOpenHandler` never sees that — it only fires for `window.open` and
  * `target=_blank` — and Google refuses to render its consent screen in an
- * embedded user agent (`disallowed_useragent`). A `will-navigate` handler is
- * what catches it.
+ * embedded user agent (`disallowed_useragent`). `will-navigate` sees only the
+ * first hop, which is on the app's own origin; the Google URL arrives on
+ * `will-redirect`, the event Electron raises for a server-side redirect. Both
+ * are wired to this predicate in `main.ts`.
  *
  * The comparison is on the origin, not on a prefix of the start URL: the app's
  * own pages must keep loading in the window, and a prefix test would also let

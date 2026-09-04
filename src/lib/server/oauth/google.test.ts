@@ -356,6 +356,32 @@ describe('google oauth', () => {
     assert.equal(out.unset, 'http://app.fallback.example')
   })
 
+  it('ignores a configured public origin in desktop mode, where the loopback port changes every launch', () => {
+    // A stray SWARMCLAW_PUBLIC_ORIGIN in a desktop user's environment would
+    // otherwise build the redirect URI on someone else's origin, and the
+    // loopback callback would never come back to this process.
+    const out = runWithTempDataDir<{ desktop: string; vps: string; defaultMode: string }>(`
+      const gm = await import('@/lib/server/oauth/google'); const g = gm.default || gm
+      const at = () => {
+        const req = new Request('http://127.0.0.1:4321/api/oauth/google/start')
+        req.headers.set('host', '127.0.0.1:4321')
+        return g.resolveCallbackOrigin(req)
+      }
+      process.env.SWARMCLAW_PUBLIC_ORIGIN = 'https://app.example.com'
+      process.env.SWARMCLAW_DEPLOY_MODE = 'desktop'
+      const desktop = at()
+      process.env.SWARMCLAW_DEPLOY_MODE = 'vps'
+      const vps = at()
+      delete process.env.SWARMCLAW_DEPLOY_MODE
+      const defaultMode = at()
+      console.log(JSON.stringify({ desktop, vps, defaultMode }))
+    `)
+    assert.equal(out.desktop, 'http://127.0.0.1:4321')
+    // The vps path, and the vps default, are unchanged.
+    assert.equal(out.vps, 'https://app.example.com')
+    assert.equal(out.defaultMode, 'https://app.example.com')
+  })
+
   it('builds the callback origin from the Host header and the forwarded scheme, not from what the server was started as', () => {
     // Next composes request.url from the *configured* hostname, which is
     // 0.0.0.0 in the Docker image. Only the Host header carries the public one.

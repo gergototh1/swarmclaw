@@ -5,7 +5,7 @@ import { shouldOpenExternally } from './external-navigation'
 
 const APP = 'http://127.0.0.1:4321'
 
-describe('desktop will-navigate routing', () => {
+describe('desktop external navigation routing', () => {
   it('sends a navigation off the app origin to the system browser', () => {
     // The consent screen is the reason this exists: Google answers an in-app
     // click on /api/oauth/google/start with a 302 to accounts.google.com, and

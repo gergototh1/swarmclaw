@@ -18,17 +18,34 @@
  * so `SWARMCLAW_PUBLIC_ORIGIN` (for example `https://app.example.com`) overrides
  * that derivation when it is set. Set it on any deployment behind a reverse
  * proxy: nginx's default `proxy_pass` sends the *upstream* address as `Host`,
- * which would otherwise be baked into the redirect URI. Leave it unset in the
- * desktop build, where the port changes every launch.
+ * which would otherwise be baked into the redirect URI. In desktop mode it is
+ * ignored outright rather than merely left unset, because a stray value there
+ * can only name an origin the loopback callback will never arrive on.
  *
  * **What is stored.** Only the refresh token, encrypted, in the credential
  * table under `google-oauth:<purpose>`. Access tokens live in memory until they
- * expire. Neither is ever logged or returned in a response body.
+ * expire. Neither is logged, and neither is returned in a response body. The one
+ * place that reads every credential and writes the plaintext to disk,
+ * `pushCredentialsToOpenClaw` in `src/lib/server/openclaw/sync.ts`, skips
+ * `google-oauth` rows for exactly that reason.
  *
  * **Disconnecting.** The in-memory access token is a shortcut past a refresh
  * round trip, never past the credential store: every read re-checks that the
- * stored refresh token is still there, so deleting the credential by any route
- * stops access on the next call rather than up to an hour later.
+ * stored refresh token is still there. A deletion made in this process — the
+ * repository delete, and the credential service delete behind
+ * `DELETE /api/credentials/:id` — invalidates the credentials cache with it, so
+ * access stops on the next call rather than up to an hour later. Two cases fall
+ * outside that. A row removed from the database by something other than this
+ * process is only noticed once the 90 second credentials cache expires. And a
+ * refresh already in flight when the deletion lands still resolves, handing its
+ * token to the caller that asked before the delete.
+ *
+ * **Disconnecting is not revoking.** Nothing here calls Google's `/revoke`
+ * endpoint, so the refresh token stays valid at Google until the user withdraws
+ * access in their own account settings. What a delete stops is issuance: this
+ * app no longer holds a token to present and cannot mint another without a fresh
+ * consent, which is the chokepoint that matters. UI copy should say the account
+ * was disconnected here, not that access was revoked at Google.
  */
 
 import crypto from 'node:crypto'
@@ -185,13 +202,18 @@ function originFromHostHeader(protocol: string, hostHeader: string): string {
  * forward the browser's `Host`. A value that is not a plain `http`/`https`
  * origin is ignored rather than half-used, and the header path below applies.
  *
+ * Desktop mode does not consult it at all. There the server picks a fresh
+ * loopback port each launch, so any fixed origin is the wrong one; honouring a
+ * value that happened to be exported in the user's shell would build a redirect
+ * URI pointing somewhere else entirely and the callback would never arrive.
+ *
  * Forging `Host` gains nothing: `/api/oauth/google/start` is access-key gated, so
  * only a signed-in caller reaches this, and Google matches the redirect URI
  * against the client's own registration — an exact registered URI for a Web
  * client, loopback only for a Desktop one. Neither accepts an attacker's host.
  */
 export function resolveCallbackOrigin(request: Request): string {
-  const configured = envValue('SWARMCLAW_PUBLIC_ORIGIN')
+  const configured = resolveGoogleDeployMode() === 'desktop' ? '' : envValue('SWARMCLAW_PUBLIC_ORIGIN')
   if (configured) {
     const origin = parsePublicOrigin(configured)
     if (origin) return origin

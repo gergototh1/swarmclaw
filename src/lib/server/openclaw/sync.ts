@@ -353,6 +353,18 @@ export async function pullCredentialsFromOpenClaw(): Promise<{ imported: number 
   return { imported }
 }
 
+/**
+ * Providers whose stored secret is never pushed to the OpenClaw workspace.
+ *
+ * `google-oauth` rows hold a Google refresh token, not an API key. Writing one
+ * here would put a long-lived credential for the user's mailbox in cleartext on
+ * disk, in a file nothing in this app reads back, and OpenClaw has no way to use
+ * it in the first place: it keys `auth-profiles.json` by provider, so every
+ * `google-oauth:<purpose>` row would collapse onto a single `google-oauth` entry
+ * and be handed on as though it were that provider's API key.
+ */
+const PUSH_EXCLUDED_PROVIDERS = new Set(['google-oauth'])
+
 export function pushCredentialsToOpenClaw(): { written: boolean } {
   const config = loadSyncConfig()
   const authProfilesPath = path.join(config.workspacePath, 'auth-profiles.json')
@@ -361,6 +373,7 @@ export function pushCredentialsToOpenClaw(): { written: boolean } {
   const profiles: Record<string, string> = {}
   for (const cred of Object.values(creds) as Array<Record<string, string>>) {
     if (!cred.encryptedKey || !cred.provider) continue
+    if (PUSH_EXCLUDED_PROVIDERS.has(cred.provider)) continue
     try {
       profiles[cred.provider] = decryptKey(cred.encryptedKey)
     } catch { /* skip undecryptable */ }

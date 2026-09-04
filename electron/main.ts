@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, nativeImage, shell } from 'electron'
+import { app, BrowserWindow, dialog, nativeImage, shell, WebContents } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { resolveRuntimePaths, RuntimePaths } from './paths'
@@ -140,25 +140,57 @@ function createMainWindow(startUrl: string): void {
     mainWindow = null
   })
 
-  // `setWindowOpenHandler` only covers window.open and target=_blank. A plain
-  // in-app link that redirects off-origin — Google consent is the one that
-  // matters — navigates the existing window instead, and Google refuses to run
-  // its consent screen inside Electron. Same-origin navigation is left alone, so
-  // the app's own pages still load here.
-  wc.on('will-navigate', (event, url) => {
-    if (!shouldOpenExternally(url, startUrl)) return
+  attachExternalNavigationHandlers(wc, startUrl)
+
+  void mainWindow.loadURL(startUrl).catch((err) => {
+    console.error('[swarmclaw] loadURL rejected:', err)
+  })
+}
+
+/**
+ * Route navigation that leaves the app's own origin to the system browser.
+ *
+ * Three ways out of the window, and Google consent can take any of them, so all
+ * three are covered:
+ *
+ * - `will-navigate` fires when the page itself starts a navigation. A click on
+ *   an in-app link to `/api/oauth/google/start` raises it with the *app-origin*
+ *   URL, which correctly stays in the window.
+ * - `will-redirect` fires for the server-side hop that follows: the start route
+ *   answers 302 to `accounts.google.com`. This is the event that carries the
+ *   Google URL, and with nothing handling it the consent screen loads inside
+ *   Electron, where Google refuses it with `disallowed_useragent`.
+ * - `setWindowOpenHandler` covers `window.open` and `target=_blank`. It uses the
+ *   same origin test as the two events rather than a prefix of the start URL, so
+ *   `http://127.0.0.1:34560` is no longer read as the app on port 3456. An
+ *   allowed child window then gets these same handlers through
+ *   `did-create-window`, so a start URL opened in a new window redirects out to
+ *   the browser just as one in the main window does.
+ *
+ * The `preventDefault` on `will-redirect` cancels the whole navigation, not only
+ * the redirect, which is what is wanted: the window stays where it was and the
+ * consent screen opens outside.
+ */
+function attachExternalNavigationHandlers(contents: WebContents, appUrl: string): void {
+  // Typed by the shape it uses, so one listener serves both events without
+  // naming either event's parameter interface.
+  const externalise = (event: { preventDefault: () => void }, url: string): void => {
+    if (!shouldOpenExternally(url, appUrl)) return
     event.preventDefault()
     void shell.openExternal(url)
-  })
+  }
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith(startUrl)) return { action: 'allow' }
+  contents.on('will-navigate', externalise)
+  contents.on('will-redirect', externalise)
+
+  contents.setWindowOpenHandler(({ url }) => {
+    if (!shouldOpenExternally(url, appUrl)) return { action: 'allow' }
     void shell.openExternal(url)
     return { action: 'deny' }
   })
 
-  void mainWindow.loadURL(startUrl).catch((err) => {
-    console.error('[swarmclaw] loadURL rejected:', err)
+  contents.on('did-create-window', (child) => {
+    attachExternalNavigationHandlers(child.webContents, appUrl)
   })
 }
 
