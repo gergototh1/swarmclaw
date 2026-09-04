@@ -2781,3 +2781,50 @@ fogyasztó saját hibája, de a hívásmélységet korlátozni kell.
 
 **Global Constraints:** a terv fenti Global Constraints szakasza erre a
 feladatra is érvényes.
+
+---
+
+### Task 20: az extension-újratöltés valóban olvassa újra a fájlt
+
+A Task 19 review-ja derítette ki, és a hatóköre jóval túlmutat a
+szerződéseken: a `reload()` **nem futtatja újra** a megváltozott extension
+fájlt. A `clearExtensionRequireCache` (`src/lib/server/extensions.ts:868-877`)
+a `dynamicRequire.cache`-ből töröl, ami ESM-modult nem ürít ki, és a projekt
+saját tsx-loadere alatt CJS-t sem. Az újratöltés tehát egy olyan
+modulobjektumon fut végig, amit a Node soha nem értékelt ki újra.
+
+Reprodukálva mindkét irányban: egy szolgáltató szerződés-verziójának emelése
+a lemezen és `reload()` után a régi verzió és a régi kód él tovább; egy
+`consumes` blokk törlése után a hozzáférési engedély megmarad, miközben a
+kártya olyan jogosultságot hirdet, ami a fájlban már nincs.
+
+A letiltás és a törlés **működik** — azokat a konfigurációs fájl és a
+könyvtárlistázás hajtja, nem a modul tartalma.
+
+**Miért külön feladat:** a Task 19 a *kimondott* garanciákat igazította a
+valósághoz (az ott hozott döntés: tartalmi változás újraindítást igényel, és
+ez most így is van dokumentálva). A tényleges javítás viszont minden extension
+újratöltését érinti, nem csak a szerződéseket, és a szokásos megoldás — egy
+gyorsítótár-kerülő lekérdezőparaméteres import — modulpéldányokat szivárogtat.
+Ez saját tervezést és saját review-t érdemel.
+
+**Files:**
+- Modify: `src/lib/server/extensions.ts` (`clearExtensionRequireCache` és a
+  betöltési út), `src/lib/server/extensions.test.ts`
+
+**Amit a megoldásnak tudnia kell:**
+1. Egy lemezen módosított extension `reload()` után **tényleg újra fut**, ESM
+   és CJS esetén egyaránt, fejlesztésben (tsx) és éles buildben is.
+2. A szivárgás mértéke ismert és kimondott: hány modulpéldány marad bent
+   újratöltésenként, és mi tartja őket életben.
+3. A `setup()` mellékhatásai nem duplázódnak. A típusfájl (`:463`) már ma
+   figyelmeztet a context elkapására; egy időzítő vagy figyelő, amit a régi
+   példány indított, nem élhet tovább némán az új mellett.
+4. A Task 19 négy kommentje, ami ma azt mondja, hogy a tartalmi változáshoz
+   újraindítás kell, ezzel egyszerre igazodik — vagy marad igaz, ha a javítás
+   csak részleges.
+5. Teszt, ami élő manageren emel szerződés-verziót és töröl deklarációt, és
+   a Task 19-ben lerakott pinneket a *javított* szemantikára írja át.
+
+**Global Constraints:** a terv fenti Global Constraints szakasza erre a
+feladatra is érvényes.
