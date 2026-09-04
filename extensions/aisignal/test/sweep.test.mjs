@@ -53,9 +53,14 @@ function setup(gmail, settings = { label: 'AI hírlevél' }) {
   return { state, storage: s, tools, warned, run: (n, a) => tools[n].execute(a ?? {}, { session: {}, message: '' }) }
 }
 
-/** A closed, successful sweep, so `latestFinishedSince` has a watermark to hand back. */
+/**
+ * A closed, successful sweep that drained the whole label, so the frontier has
+ * moved to that sweep's `ran_at` and a later run has something to resume from.
+ * `drained` is what earns that; a sweep closed without it leaves the frontier
+ * at its own `since`.
+ */
 function closedSweep(repo, fetchedIds = []) {
-  const { id } = repo.openSweep({ label: 'x', since: null, fetchedIds, skipped: 0, leftover: 0 })
+  const { id } = repo.openSweep({ label: 'x', since: null, fetchedIds, skipped: 0, leftover: 0, drained: true })
   repo.finishSweep({ sweepId: id })
   return id
 }
@@ -197,30 +202,79 @@ test('the setting supplies the cap when the call does not', async () => {
   assert.equal(r.leftover, 1)
 })
 
-// --- The watermark ----------------------------------------------------------
+// --- The frontier -----------------------------------------------------------
 
-test('the watermark is the last finished sweep that drained its window, and sinceDays widens it', async () => {
+test('the frontier is the stored point a drained run left behind, and sinceDays widens it', async () => {
   const gmail = fakeGmail({ ids: [] })
   const { state, run } = setup(gmail)
   closedSweep(state.repo)
   const ranAt = state.repo.latestSweep().ran_at
-  // This one left nothing over and its listing was not cut short, so no mail is
-  // hiding behind its `ran_at` and the window may move up to it.
-  const mark = state.repo.latestFinishedSince('mail')
-  assert.equal(mark.leftover, 0)
-  assert.equal(/list_truncated/.test(mark.note || ''), false)
+  // That sweep left nothing over and its listing was not cut short, so no mail
+  // is hiding behind its `ran_at` -- and closing it wrote that `ran_at` into
+  // the frontier. Nothing here reads the sweep row to find that out.
+  assert.equal(state.repo.frontier('mail'), ranAt)
 
   await run('signalSweep')
   assert.equal(gmail.calls.list[0].since, ranAt)
 
-  // Three days back is earlier than a watermark written moments ago, so this
-  // asks for more mail than the watermark would have given and gets it.
+  // Three days back is earlier than a frontier written moments ago, so this
+  // asks for more mail than the frontier would have given and gets it.
   await run('signalSweep', { sinceDays: 3 })
   const asked = new Date(gmail.calls.list[1].since).getTime()
   assert.equal(Math.abs(Date.now() - asked - 3 * 86400000) < 60000, true)
 })
 
-test('a run that left messages behind does not move the watermark past them', async () => {
+test('a run that could not list cannot be closed into a frontier', async () => {
+  // Defect A, through the tools the agent actually calls and against the real
+  // modules. `signalSweep` hands back a sweepId on every failure path, `ok`
+  // defaults to true, and "always close what you open" is what an agent prompt
+  // encodes -- so this exact pair of calls is a thing that happens. Before the
+  // fix it moved the frontier to the failed row's `ran_at` and the backlog
+  // waiting behind the real frontier became unreachable.
+  const backlogWindow = new Date(Date.now() - 9 * 86400000).toISOString()
+  const err = new GmailError('gmail_label_missing', 'no Gmail label named "AI hírlevél"')
+  const gmail = fakeGmail({ ids: ['a'], labelFail: err })
+  const { state, run } = setup(gmail)
+  state.repo.finishSweep({ sweepId: state.repo.openSweep({ label: 'x', since: backlogWindow, fetchedIds: [], skipped: 0, leftover: 7 }).id })
+  assert.equal(state.repo.frontier('mail'), backlogWindow)
+
+  const failed = await run('signalSweep')
+  assert.equal(failed.error.code, 'gmail_label_missing')
+  assert.equal(state.repo.latestSweep().ok, 0)
+
+  await assert.rejects(run('finishSweep', { sweepId: failed.sweepId, ok: true }), /already closed/)
+
+  assert.equal(state.repo.frontier('mail'), backlogWindow, 'the seven backlogged messages are still reachable')
+  // And the next run really does open there: `since` is resolved from the
+  // frontier before the client is asked for anything.
+  assert.equal((await run('signalSweep')).since, backlogWindow)
+})
+
+test('a note the agent supplies cannot reach the frontier', async () => {
+  // Defect B. `list_truncated=cap` used to be control state read back out of
+  // the row's free-text note, and `finishSweep` lets the agent append to that
+  // note. A fully drained run closed with that segment pinned the frontier open
+  // forever, because notes only append and nothing removes a segment -- and
+  // every newsletter this extension reads is a candidate source for the string.
+  const gmail = fakeGmail({ ids: ['a'] })
+  const { state, run } = setup(gmail)
+
+  const sw = await run('signalSweep', { maxMessages: 5 })
+  assert.equal(sw.leftover, 0)
+  assert.equal(sw.listStoppedOn, null)
+  await run('finishSweep', { sweepId: sw.sweepId, ok: true, note: 'list_truncated=cap' })
+
+  const ranAt = state.repo.latestSweep().ran_at
+  assert.equal(state.repo.frontier('mail'), ranAt)
+  // The text is still on the row, where an operator can read it. It just has no
+  // say in where the next run starts.
+  assert.match(state.repo.latestSweep().note, /list_truncated=cap/)
+
+  await run('signalSweep')
+  assert.equal(gmail.calls.list[1].since, ranAt)
+})
+
+test('a run that left messages behind does not move the frontier past them', async () => {
   // The failure this pins: run one has no watermark, lists the whole label,
   // fetches its cap and records the rest as leftover. If run two starts from run
   // one's `ran_at`, `sinceQuery` reopens the window by about 62 hours at most
@@ -233,8 +287,10 @@ test('a run that left messages behind does not move the watermark past them', as
   assert.equal(first.leftover, 5)
   await run('finishSweep', { sweepId: first.sweepId })
   assert.equal(gmail.calls.list[0].since, null)
-  // The watermark row itself says five messages are still waiting behind it.
-  assert.equal(state.repo.latestFinishedSince('mail').leftover, 5)
+  // Five messages are still waiting behind that run, so closing it handed the
+  // frontier its own window rather than its `ran_at`.
+  assert.equal(state.repo.latestSweep().leftover, 5)
+  assert.equal(state.repo.frontier('mail'), null)
 
   const second = await run('signalSweep', { maxMessages: 3 })
 
@@ -327,23 +383,42 @@ test('sinceDays is clamped to a watermark that is already older than it', async 
   assert.equal(gmail.calls.list[0].since, tenDaysAgo)
 })
 
-test('a watermark row that carries no leftover is not treated as drained', async () => {
-  // `drainedWindow` refuses a row whose `leftover` is not a finite number, and
-  // nothing else pins that check: a read that stops selecting the column -- a
-  // trimmed projection, a source that never wrote it -- would otherwise answer
-  // "this run drained everything" and restore the rule that steps over unswept
-  // mail. Driving it needs a row the repository cannot produce, so the read is
-  // replaced rather than the row.
+test('the sweep layer takes the frontier from the stored cell and from nowhere else', async () => {
+  // The old rule rebuilt the frontier on every read out of a sweep row's
+  // `leftover` and a regex over its free-text `note`, so any row that looked
+  // drained was a frontier whatever the extension had decided at the time.
+  // Replacing the one read proves there is no second path left: a drained,
+  // closed, moments-old row is sitting right there, and the window still opens
+  // where the stored cell says it does.
   const gmail = fakeGmail({ ids: [] })
   const { state, run } = setup(gmail)
-  const window = new Date(Date.now() - 5 * 86400000).toISOString()
-  const ranAt = new Date().toISOString()
-  state.repo.latestFinishedSince = () => ({ since: window, ran_at: ranAt, note: '' })
+  closedSweep(state.repo)
+  const ranAt = state.repo.latestSweep().ran_at
+  const stored = new Date(Date.now() - 5 * 86400000).toISOString()
+  state.repo.frontier = () => stored
 
   await run('signalSweep')
 
-  assert.equal(gmail.calls.list[0].since, window)
+  assert.equal(gmail.calls.list[0].since, stored)
   assert.notEqual(gmail.calls.list[0].since, ranAt)
+})
+
+test('opening a sweep does not move the frontier; only closing it does', async () => {
+  // The window a run opens is not the window it cleared, and the run cannot
+  // know it cleared anything until the fetch is done and the agent has closed
+  // it. A frontier that moved at open time would step over every message of a
+  // run that then died halfway.
+  const gmail = fakeGmail({ ids: ['a'] })
+  const { state, run } = setup(gmail)
+  closedSweep(state.repo)
+  const before = state.repo.frontier('mail')
+
+  const sw = await run('signalSweep', { maxMessages: 5 })
+  await run('recordSignal', { sweepId: sw.sweepId, messageId: 'a', headline: 'h', summary: 's', score: 0.5, applyScore: 0.5 })
+  assert.equal(state.repo.frontier('mail'), before, 'nothing before the close moves it')
+
+  await run('finishSweep', { sweepId: sw.sweepId })
+  assert.equal(state.repo.frontier('mail'), state.repo.latestSweep().ran_at)
 })
 
 test('a listing that stopped short keeps the window open even with nothing left over', async () => {
@@ -358,26 +433,48 @@ test('a listing that stopped short keeps the window open even with nothing left 
   await run('signalSweep', { maxMessages: 5 })
 
   // `leftover` is 0 and mail is still waiting behind the point the walk
-  // stopped, so leftover alone cannot be the condition the watermark turns on.
+  // stopped, so leftover alone cannot be the condition the frontier turns on:
+  // both halves of `drained` have to hold, and only one of them does here.
   assert.equal(gmail.calls.list[1].since, null)
-  assert.equal(state.repo.latestFinishedSince('mail').leftover, 0)
+  assert.equal(state.repo.latestSweep().leftover, 0)
+  assert.equal(state.repo.frontier('mail'), null)
 })
 
-test('an unfinished sweep is not a watermark and a bad sinceDays is refused', async () => {
+test('an unfinished sweep does not move the frontier and a bad sinceDays is refused', async () => {
   const gmail = fakeGmail({ ids: [] })
   const { state, run } = setup(gmail)
   // Opened and never closed: resuming from it would skip everything up to the
-  // crash, so the first run must sweep with no watermark at all.
-  state.repo.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  // crash, so the first run must sweep with no frontier at all.
+  state.repo.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0, drained: true })
 
   await run('signalSweep')
   assert.equal(gmail.calls.list[0].since, null)
 
-  for (const bad of ['tegnap', 0, -2, 1e12]) {
+  // 1e8 is the one that used to get through. It is a perfectly valid Date, so
+  // the old Invalid-Date guard passed it, and `sinceQuery` then rendered it as
+  // `after:-271765/12/22`, which Gmail rejects -- a caller's slip reported as
+  // `gmail_list_failed`, with a request actually sent.
+  for (const bad of ['tegnap', 0, -2, 1e8, 1e12]) {
     const r = await run('signalSweep', { sinceDays: bad })
     assert.equal(r.error.code, 'aisignal_bad_input')
+    assert.equal(state.repo.latestSweep().ok, 0)
   }
-  assert.equal(gmail.calls.list.length, 1)
+  assert.equal(gmail.calls.list.length, 1, 'every one of them was refused before a request went out')
+})
+
+test('a frontier that will not parse widens the window rather than being replaced', async () => {
+  // `Date.parse` answers NaN for a null frontier and for an unreadable one, and
+  // `x < NaN` is false, so one comparison covers both: the frontier wins and
+  // `sinceQuery` drops an unreadable date, listing the whole label. Two extra
+  // guards used to spell this out, and each could be deleted on its own with
+  // the suite still green.
+  const gmail = fakeGmail({ ids: [] })
+  const { state, run } = setup(gmail)
+  state.repo.frontier = () => 'tegnapelőtt'
+
+  await run('signalSweep', { sinceDays: 3 })
+
+  assert.equal(gmail.calls.list[0].since, 'tegnapelőtt')
 })
 
 // --- Gmail failing partway through the fetch --------------------------------
@@ -596,16 +693,22 @@ test('an item with no url is still one item however often it is recorded', async
 
 // --- finishSweep guards -----------------------------------------------------
 
-test('finishSweep twice lands on the same numbers and throws on an unknown sweep', async () => {
+test('finishSweep refuses a sweep it has already closed, and throws on an unknown one', async () => {
+  // Closing moves the frontier, so a second close is a second chance to move
+  // it. recordSignal has refused an already-closed sweep all along, for the
+  // neighbouring reason, and this is the same refusal.
   const { state, run } = setup(fakeGmail({ ids: ['m1'] }))
   const sw = await run('signalSweep', { maxMessages: 1 })
 
   const first = await run('finishSweep', { sweepId: sw.sweepId, note: 'partial page' })
-  const second = await run('finishSweep', { sweepId: sw.sweepId, note: 'partial page' })
-  assert.deepEqual(second, first)
-  // The note is appended once, not once per attempt.
+  assert.equal(first.seenMarked, 1)
+  await assert.rejects(run('finishSweep', { sweepId: sw.sweepId, note: 'partial page' }), /already closed/)
+
+  // The first close stands untouched: the note is there once, the ids are
+  // marked once, and the frontier is where that one close put it.
   assert.equal(state.repo.latestSweep().note.split('partial page').length - 1, 1)
   assert.equal(state.repo.counts().seen, 1)
+  assert.equal(state.repo.frontier('mail'), state.repo.latestSweep().ran_at)
 
   await assert.rejects(run('finishSweep', { sweepId: 'nope' }), /unknown sweep/)
 })
@@ -615,16 +718,17 @@ test('finishSweep refuses an ok it cannot read instead of recording a broken run
   const sw = await run('signalSweep')
 
   await assert.rejects(run('finishSweep', { sweepId: sw.sweepId, ok: 'igen' }), /true or false/)
-  // Refusing leaves the sweep open, which is the safe end: an unfinished sweep
-  // is not a watermark, so the next run picks the same mail back up.
+  // Refusing leaves the sweep open, which is the safe end: an unclosed sweep
+  // never reaches the frontier, so the next run picks the same mail back up.
   assert.equal(state.repo.latestSweep().finished_at, null)
 
   // The stringified boolean a tool call can arrive with still means what it
-  // says; reading it as a success would make a broken run the next watermark.
+  // says; reading it as a success would move the frontier on a run the agent
+  // is telling us it never got through.
   const fin = await run('finishSweep', { sweepId: sw.sweepId, ok: 'false' })
   assert.equal(fin.ok, false)
   assert.equal(state.repo.latestSweep().ok, 0)
-  assert.equal(state.repo.latestFinishedSince(), null)
+  assert.equal(state.repo.frontier('mail'), null)
 })
 
 test('finishSweep records a failed close without marking the sweep good', async () => {
@@ -633,8 +737,9 @@ test('finishSweep records a failed close without marking the sweep good', async 
   const fin = await run('finishSweep', { sweepId: sw.sweepId, ok: false, note: 'scoring gave up' })
   assert.equal(fin.ok, false)
   assert.equal(state.repo.latestSweep().ok, 0)
-  // A watermark must never come from a sweep that did not really complete.
-  assert.equal(state.repo.latestFinishedSince(), null)
+  // The frontier must never move on a sweep that did not really complete, even
+  // though this one's own run drained its window.
+  assert.equal(state.repo.frontier('mail'), null)
 })
 
 // --- The extension must be set up first -------------------------------------

@@ -65,15 +65,17 @@ const TEXT_LIMIT = 20000
 /**
  * The note segment a run writes when the id listing itself stopped short.
  *
- * Written by `signalSweep` and read back by `drainedWindow`, so the two are
- * spelled once here: the watermark rule turns on this segment being findable on
- * a later read of the row, and a writer and a reader that drift apart would let
- * the watermark step over a listing that never finished.
+ * Diagnostic, and only diagnostic. It used to be control state: the frontier
+ * was inferred on a later read by regex-matching this segment out of the row's
+ * free-text `note`, which is the same column `finishSweep` lets the agent
+ * append to. One `list_truncated=cap` in an agent-supplied note therefore
+ * pinned the frontier open forever, and notes only ever append, so nothing
+ * could take it back -- untrusted text read as control state, in the one file
+ * whose second rule is that newsletter text is hostile. The frontier is stored
+ * state now (see THE FRONTIER below) and nothing reads this segment back; it is
+ * what an operator reads to tell a full mailbox from a struggling query.
  */
 const TRUNCATED_NOTE = 'list_truncated'
-
-/** That segment at the start of the note or after a '; ' separator. */
-const TRUNCATED_RE = new RegExp(`(^|; )${TRUNCATED_NOTE}=`)
 
 const HTTP_RE = /^https?:\/\//i
 
@@ -118,64 +120,54 @@ function resolveMax(fromArgs, fromSettings) {
   return DEFAULT_MAX
 }
 
-/**
- * Did that sweep drain the window it opened?
+/*
+ * THE FRONTIER
+ * ============
+ * The point every run resumes from. `null` is "the whole label", the widest
+ * window there is and therefore the safe answer whenever nothing better is
+ * known. Its invariant is one sentence: *everything older than the frontier has
+ * been swept*.
  *
- * Only a run that did may move the watermark forward, so this is the whole
- * safety condition of `watermarkSince` and it is deliberately conservative: it
- * answers "yes" only when the run left nothing behind by either of the two ways
- * a run can leave something behind.
+ * It is a stored value in `ext_aisignal_frontier`, one row per source kind, and
+ * it moves in exactly one place -- `finishSweep` in db.mjs, which copies the
+ * closing sweep's `frontier_after` column into it. Nothing infers it, and this
+ * file no longer reads `leftover`, `ok` or `note` to reconstruct it.
  *
- *   `leftover > 0` -- the run listed ids it did not turn into messages, because
- *   the per-run cap stopped it or because a fetch failed. Those messages are
- *   older than the run's own `ran_at`.
+ * `frontier_after` is decided here, by `signalSweep`, at the moment the run
+ * knows the answer, and written by `openSweep` before the agent is handed
+ * anything:
  *
- *   a `list_truncated=` segment -- the id listing stopped on the budget or on
- *   the page ceiling, so there is mail behind the point Gmail's walk ended that
- *   this run never even listed. `leftover` cannot show it: a truncated listing
- *   whose every id was already seen leaves `leftover` at 0 while an unknown
- *   amount is still waiting behind the cut.
+ *   drained     -- Gmail's walk finished (`listStoppedOn === null`) *and* every
+ *                  fresh id it listed became a message (`leftover === 0`). The
+ *                  run cleared its whole window, so `frontier_after` is the
+ *                  run's own `ran_at`.
+ *   not drained -- the run left something behind, by either of the two ways a
+ *                  run can. `leftover > 0` means it listed ids it did not
+ *                  fetch, because the cap stopped it or a fetch failed. A
+ *                  truncated listing means there is mail behind the point the
+ *                  walk ended that the run never even listed -- and `leftover`
+ *                  cannot show that, since a truncated listing whose every id
+ *                  was already seen leaves `leftover` at 0 with an unknown
+ *                  amount still waiting behind the cut. Either way
+ *                  `frontier_after` is the run's own `since`, so the next run
+ *                  re-opens the same window and the backlog stays reachable.
+ *
+ * Why the frontier may not simply follow a completed run's `ran_at`: a run caps
+ * how many messages it fetches, so "this run completed" and "this run swept
+ * everything in its window" are different facts. Taking `ran_at` from a run
+ * that left mail behind moves the window past that mail, and `sinceQuery` only
+ * re-opens the window by about 62 hours, so a backlog older than that is never
+ * listed again -- the dedup cannot save a message that is never listed, and the
+ * row goes on claiming `leftover = 495` forever. Re-listing the same window is
+ * cheap and lands on the dedup; skipping it is permanent.
+ *
+ * Every value the frontier can take is therefore either a `ran_at` a run earned
+ * by draining, or a `since` that `resolveSince` had already clamped to be no
+ * newer than the frontier the run opened against. Nothing the agent supplies --
+ * `note`, `ok`, `sinceDays` -- can produce a value newer than one of those two,
+ * and a run that never got as far as a listing carries the default
+ * `frontier_after`, so it cannot move the frontier at all.
  */
-function drainedWindow(sweep) {
-  // A row that does not carry the two facts cannot answer the question, and the
-  // benefit of the doubt is the answer that loses mail -- so it does not get it.
-  // This is what keeps a future read that drops a column from silently
-  // restoring the old, unsafe rule.
-  if (!Number.isFinite(Number(sweep.leftover))) return false
-  if (Number(sweep.leftover) > 0) return false
-  return !TRUNCATED_RE.test(sweep.note || '')
-}
-
-/**
- * The frontier a run would resume from with nobody asking for anything else.
- *
- * `latestFinishedSince` already refuses to hand back a sweep that never
- * completed, so a crashed run cannot become the frontier and skip everything up
- * to the crash. `null` means "the whole label", which is the widest window
- * there is and therefore the safe answer when there is nothing to resume from.
- *
- * Why a finished sweep's `ran_at` is not automatically the next window's start
- * ----------------------------------------------------------------------------
- * A run caps how many messages it fetches and records the rest as `leftover`,
- * so "this run completed" and "this run swept everything in its window" are
- * different facts. Taking `ran_at` from a run that left mail behind moves the
- * window past that mail, and `sinceQuery` only re-opens the window by about 62
- * hours, so a backlog older than that is never listed again -- the dedup cannot
- * save a message that is never listed, and the row goes on claiming
- * `leftover = 495` forever. So:
- *
- *   a finished sweep that drained its window hands back its `ran_at`;
- *   one that did not hands back *its own* `since`, so the next run re-opens the
- *   same window and the backlog stays reachable.
- *
- * A sweep that left something behind therefore never advances the frontier, and
- * the window only moves once some run has actually cleared it. Re-listing the
- * same window is cheap and lands on the dedup; skipping it is permanent.
- */
-function watermarkSince(watermark) {
-  if (!watermark) return null
-  return drainedWindow(watermark) ? (watermark.ran_at || null) : (watermark.since || null)
-}
 
 /**
  * The window this run opens: the frontier, widened if the caller asked for
@@ -193,43 +185,50 @@ function watermarkSince(watermark) {
  *
  * Why clamping rather than honouring the narrow pass
  * -------------------------------------------------
- * The alternative was to run the narrow window but mark that sweep as
- * non-draining so it could not advance the frontier. It cannot be made safe
- * here: a non-draining sweep hands back *its own* `since`, which is the narrow
- * one, so the frontier still moves forward. Making it hand back the wider value
- * instead means carrying that value somewhere, and the only place available
- * without a migration is the note -- a field `finishSweep` lets the agent write
- * into. A frontier that a note segment can push forward is a one-token
- * injection from any newsletter this extension reads, and this layer's second
- * rule is that newsletter text is hostile.
+ * The alternative was to run the narrow window but record that sweep as
+ * non-draining so it could not advance the frontier. That does not help: a
+ * non-draining sweep's `frontier_after` is *its own* `since`, which is the
+ * narrow one, so the frontier would still move forward. Making it record the
+ * wider value instead means keeping the narrow window and the wide frontier
+ * apart on the row, which buys nothing over simply not narrowing.
  *
- * Clamping needs no state at all: one comparison, and the parameter becomes
- * incapable of losing mail no matter what talked the agent into passing it. The
- * cost is that a request to narrow is answered with a wider window than asked
- * for; the run reports the `since` it actually used, and erring wide costs a
- * re-listing that lands on the dedup while erring narrow is permanent.
+ * Clamping is one comparison, and it makes the parameter incapable of losing
+ * mail no matter what talked the agent into passing it. The cost is that a
+ * request to narrow is answered with a wider window than asked for; the run
+ * reports the `since` it actually used, and erring wide costs a re-listing that
+ * lands on the dedup while erring narrow is permanent. The clamp is also what
+ * lets the frontier trust a non-draining run's `since`: it can never be newer
+ * than the frontier that run opened against.
  *
- * A `sinceDays` that is not a positive number is still refused rather than
- * clamped away, because it is a caller mistake worth naming, and turning it
- * into an Invalid Date would throw uncoded out of `toISOString`.
+ * A `sinceDays` that is not a positive number, or that reaches back further
+ * than a date can go, is refused rather than clamped away, because it is a
+ * caller mistake worth naming here where the parameter has a name.
  */
-function resolveSince(sinceDays, watermark) {
-  const frontier = watermarkSince(watermark)
+function resolveSince(sinceDays, frontier) {
   if (sinceDays === undefined || sinceDays === null || sinceDays === '') return frontier
 
   const n = Number(sinceDays)
   if (!Number.isFinite(n) || n <= 0) throw new InputError('sinceDays must be a positive number of days')
-  const from = new Date(Date.now() - n * 86400000)
-  if (Number.isNaN(from.getTime())) throw new InputError('sinceDays reaches outside the range of a date')
+  const from = new Date(Date.now() - n * 86400000).getTime()
+  // Two ways a plausible-looking number lands outside a window Gmail can be
+  // asked for, and the second is the one that used to get through. Past about
+  // 1e8 days the arithmetic leaves the range of a Date entirely and
+  // `toISOString` would throw uncoded, which the old guard caught. But anything
+  // over roughly 20,700 days is already before 1970 while still being a
+  // perfectly valid Date: `sinceDays: 1e8` resolves to a year in the negative
+  // hundreds of thousands, `sinceQuery` renders it as `after:-271765/12/22`,
+  // Gmail rejects the query, and the caller's slip comes back as
+  // `gmail_list_failed` -- Gmail blamed for a number this layer was handed and
+  // could have named. So the bound is the one the parameter actually has.
+  if (Number.isNaN(from) || from < 0) throw new InputError('sinceDays reaches back before 1970, further than Gmail can be asked about')
 
-  // No frontier is the whole label, and nothing is wider than that.
-  if (frontier === null) return null
-  // A frontier that will not parse reaches `sinceQuery`, which drops an
-  // unreadable date and lists the whole label -- also wider than anything
-  // `sinceDays` can ask for, so it wins here too rather than being replaced.
-  const frontierAt = Date.parse(frontier)
-  if (!Number.isFinite(frontierAt)) return frontier
-  return from.getTime() < frontierAt ? from.toISOString() : frontier
+  // `Date.parse` answers NaN for both a null frontier and one that will not
+  // parse, and `x < NaN` is false, so both fall through to the frontier itself.
+  // Neither needs a guard of its own: no frontier is the whole label, and an
+  // unreadable one reaches `sinceQuery`, which drops the date and lists the
+  // whole label -- both wider than anything `sinceDays` can ask for, so both
+  // win here rather than being replaced.
+  return from < Date.parse(frontier) ? new Date(from).toISOString() : frontier
 }
 
 /**
@@ -286,6 +285,12 @@ function handOver(m) {
  * sharpest -- `list_truncated=cap` means going again immediately is worth
  * something, `list_truncated=page_ceiling` means it buys the same slow walk --
  * and the failure code alone answers neither. `failSweep` appends to it.
+ *
+ * `drained` is deliberately not passed: a run that never completed a listing
+ * proved nothing about its window, so the row carries the default
+ * `frontier_after` and cannot move the frontier. `failSweep` also closes the
+ * row, and `finishSweep` refuses an already-closed sweep, so the agent cannot
+ * reopen this failure as a clean run either.
  */
 function failedSweep(repo, { label, since, code, message, skipped = 0, leftover = 0, listStoppedOn = null, fetchFailures = [], note = '' }) {
   const { id } = repo.openSweep({ label, since, fetchedIds: [], skipped, leftover, note })
@@ -325,15 +330,17 @@ function unitScore(field, raw) {
  * `a.ok !== false` read every value that is not the boolean `false` as a
  * success, so the string `'false'` -- which is what a tool call carries when the
  * argument is stringified on its way in -- turned a run the agent reported as
- * broken into a clean one. That sweep then becomes a watermark and the mail it
- * never finished is stepped over, which is the same false report the rest of
- * this module is built to avoid, in the direction that loses mail.
+ * broken into a clean one. `ok` cannot push the frontier past anything the run
+ * did not earn (that is `frontier_after`'s job, and it is settled before the
+ * agent sees the sweep), but it does decide whether the frontier moves at all,
+ * so reading a broken run as clean lets a drained window's `ran_at` land while
+ * the agent is saying it never got through the messages.
  *
  * So the value is validated here like every other input in this file rather
  * than trusted from upstream: absent means "the run finished" (the declared
  * default), the boolean and its two string spellings are honoured, and anything
  * else is refused. Refusing leaves the sweep open, which is the safe end: an
- * unfinished sweep is not a watermark, so the next run picks the same mail up.
+ * unfinished sweep never reaches `finishSweep`, so the frontier stays put.
  */
 function resolveOk(raw) {
   if (raw === undefined || raw === null) return true
@@ -368,7 +375,7 @@ export function createSweepTools(state) {
         let since
         try {
           max = resolveMax(args.maxMessages, settings.maxMessages)
-          since = resolveSince(args.sinceDays, repo.latestFinishedSince('mail'))
+          since = resolveSince(args.sinceDays, repo.frontier('mail'))
         } catch (e) {
           if (!(e instanceof InputError)) throw e
           return failedSweep(repo, { label, since: null, code: BAD_INPUT, message: e.message })
@@ -448,7 +455,19 @@ export function createSweepTools(state) {
           return failedSweep(repo, { label, since, code: first.code, message: first.message, skipped: seen.size, leftover, listStoppedOn, fetchFailures, note })
         }
 
-        const { id } = repo.openSweep({ label, since, fetchedIds: messages.map((m) => m.id), skipped: seen.size, leftover, note })
+        /*
+         * Did this run clear the whole window it opened?
+         *
+         * This is the one decision the frontier turns on, and it is taken here,
+         * from two numbers this run counted, at the only moment both are known
+         * -- not reconstructed later from the row by a reader who has to guess
+         * what `leftover = 0` meant. `openSweep` turns it into the row's
+         * `frontier_after`, and closing the sweep copies that into the frontier;
+         * see THE FRONTIER above.
+         */
+        const drained = listStoppedOn === null && leftover === 0
+
+        const { id } = repo.openSweep({ label, since, fetchedIds: messages.map((m) => m.id), skipped: seen.size, leftover, note, drained })
         return { sweepId: id, label, since, skipped: seen.size, leftover, listStoppedOn, fetchFailures, messages }
       },
     },
@@ -522,13 +541,13 @@ export function createSweepTools(state) {
 
     {
       name: 'finishSweep',
-      description: 'Lezárja a sweepet: a letöltött id-k látottá válnak, a számok a sorra kerülnek. Csak akkor hívd, ha végigmentél a leveleken.',
+      description: 'Lezárja a sweepet: a letöltött id-k látottá válnak, a számok a sorra kerülnek. Csak akkor hívd, ha végigmentél a leveleken. Egy már lezárt sweepet nem lehet újra lezárni.',
       parameters: {
         type: 'object',
         required: ['sweepId'],
         properties: {
           sweepId: { type: 'string' },
-          ok: { type: 'boolean', description: 'Hamis, ha félbemaradt: a sweep nem lesz vízjel a következő futásnak.' },
+          ok: { type: 'boolean', description: 'Hamis, ha félbemaradt: ilyenkor a vízjel egyáltalán nem mozdul. Igazra állítani nem mozdítja előre: azt a sweep saját, futáskor rögzített eredménye dönti el.' },
           note: { type: 'string' },
         },
       },

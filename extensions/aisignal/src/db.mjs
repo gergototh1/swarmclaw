@@ -32,6 +32,43 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_items (
 CREATE UNIQUE INDEX IF NOT EXISTS ext_aisignal_items_msg_url ON ext_aisignal_items (message_id, COALESCE(url, ''));
 CREATE TABLE IF NOT EXISTS ext_aisignal_seen (message_id TEXT PRIMARY KEY, seen_at TEXT NOT NULL);
 `,
+}, {
+  /*
+   * The frontier, made explicit.
+   *
+   * It used to be inferred on every read: take the newest finished, ok sweep,
+   * look at its `leftover`, regex-match a `list_truncated=` segment out of its
+   * free-text `note`, and conclude from those two whether its `ran_at` or its
+   * `since` was the point to resume from. Five separate defects of that one
+   * shape were found and patched in that derivation, and the last two came from
+   * inputs the agent supplies -- a `note` segment it can write, and an `ok` it
+   * can send at a sweep `failSweep` had already closed. So the conclusion stops
+   * being redrawn and becomes a value the sweep code writes down.
+   *
+   * `frontier_after` on the sweep row is the frontier this sweep earns if it
+   * closes successfully. `signalSweep` decides it at the moment it knows -- see
+   * THE FRONTIER in sweep.mjs -- and `openSweep` writes it before the agent is
+   * handed anything, so nothing the agent says afterwards can change it. NULL is
+   * "the whole label", which is the widest window there is.
+   *
+   * `ext_aisignal_frontier` holds the current value, one row per source kind for
+   * the same reason `kind` exists on the sweep row: a web sweep must never
+   * answer "when did we last read mail?". `finishSweep` is the only writer.
+   *
+   * Existing installs start with no row at all, which reads as NULL, which is
+   * the whole label. That is deliberate, and it is the only seed that is
+   * provably safe: any value copied out of the old rows would have to be
+   * computed by the very inference this migration exists to delete, and a seed
+   * that came out even one sweep too new would skip mail permanently. The cost
+   * of starting wide is one re-listing that lands on the dedup.
+   */
+  version: 2,
+  sql: `
+ALTER TABLE ext_aisignal_sweeps ADD COLUMN frontier_after TEXT;
+CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
+  kind TEXT PRIMARY KEY, frontier TEXT, moved_at TEXT NOT NULL, sweep_id TEXT NOT NULL
+);
+`,
 }]
 
 /*
@@ -47,14 +84,16 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_seen (message_id TEXT PRIMARY KEY, seen_
  *
  * `finished_at` is what separates "still running or died" from "completed", and
  * `ok` cannot do that job: it defaults to 1, so an abandoned sweep would read
- * as a success. Anything that resumes from the last good watermark has to test
- * both (see latestFinishedSince).
+ * as a success. It is also what makes closing a sweep a one-time event: an
+ * already-closed row has moved the frontier once, and finishSweep refuses to
+ * let it move it again.
  *
  * `leftover` is how many messages the per-run cap left behind, so the UI can
  * say how much is still waiting and the next run knows to go again immediately.
  * `messages` is the size of the batch actually fetched, `found` how many items
  * came out of it, `links_read` how many of those were written after really
- * fetching the linked page.
+ * fetching the linked page. All four are reporting: the frontier stopped being
+ * derived from `leftover`, and from the note, in migration 2.
  *
  * `kind` exists because a second source was added later and every "latest
  * sweep" read has to be per-kind. Sharing one series meant an open-web sweep
@@ -108,19 +147,15 @@ const DECISION_STATUS = { save: 'saved', archive: 'archived', undo: 'new' }
 
 /**
  * Sweep notes are '; '-joined segments; re-adding a segment already present is
- * a no-op so finishSweep stays idempotent.
+ * a no-op, so a note built up across openSweep and failSweep never doubles a
+ * segment.
  *
- * One of those segments is load-bearing, and nothing in this file says so on
- * its own: `list_truncated=<reason>`, written by `signalSweep`, is what
- * `drainedWindow` in sweep.mjs reads to decide that a sweep did not drain its
- * window and therefore may not become the next run's watermark. The sweep row
- * has no column for it, so the note is the only carrier. Trimming the note,
- * capping its length, reordering or reformatting its segments, or dropping the
- * '; ' separator here would make that segment unfindable, and an unfindable
- * segment reads as "this run drained everything" -- the watermark then steps
- * over mail nobody read, silently and permanently. Any change to the note
- * format has to keep `TRUNCATED_RE` in sweep.mjs matching, or move the fact
- * into a column of its own.
+ * The note is diagnostic and nothing else. It carried a load-bearing segment
+ * until migration 2: `list_truncated=<reason>` was regex-matched back out of
+ * this column to decide whether a sweep could become the next run's watermark,
+ * which made a column the agent can append to part of the safety rule. The
+ * frontier is stored state now (`frontier_after`, and `ext_aisignal_frontier`),
+ * nothing reads this column back, and the format is free to change.
  *
  * The addition is split on the same separator before the containment check.
  * A closing note can itself carry several segments (e.g. "partial page; rate
@@ -147,11 +182,27 @@ const SEEN_CHUNK = 500
 export function createRepo(storage) {
   const S = storage
   return {
-    openSweep({ label, since, fetchedIds, skipped, leftover, kind = 'mail', note = '' }) {
+    /**
+     * Opens a sweep row and, with it, settles what this run will do to the
+     * frontier if it closes successfully.
+     *
+     * `drained` says the run cleared the whole window it opened. Only the sweep
+     * code can know that -- it is the one thing that saw both the listing and
+     * the fetch -- and it is recorded here, before the agent is handed a single
+     * message, so no later argument can change it. A drained run earns its own
+     * `ran_at`; anything else earns its own `since`, which `resolveSince` has
+     * already clamped to be no newer than the frontier this run opened against,
+     * so a run that left mail behind can only hold the frontier still or pull
+     * it back. The default is the cautious one: a caller that says nothing --
+     * `failedSweep`, which opens a row for a run that never listed anything --
+     * earns `since`, never `ran_at`.
+     */
+    openSweep({ label, since, fetchedIds, skipped, leftover, kind = 'mail', note = '', drained = false }) {
       const id = uid()
+      const ranAt = now()
       const noteText = [skipped ? `skipped=${skipped}` : '', note].filter(Boolean).join('; ')
-      S.exec('INSERT INTO ext_aisignal_sweeps (id, ran_at, label, since, messages, fetched_ids, leftover, kind, note) VALUES (?,?,?,?,?,?,?,?,?)',
-        [id, now(), label, since, fetchedIds.length, JSON.stringify(fetchedIds), leftover, kind, noteText])
+      S.exec('INSERT INTO ext_aisignal_sweeps (id, ran_at, label, since, messages, fetched_ids, leftover, kind, note, frontier_after) VALUES (?,?,?,?,?,?,?,?,?,?)',
+        [id, ranAt, label, since, fetchedIds.length, JSON.stringify(fetchedIds), leftover, kind, noteText, drained ? ranAt : since])
       return { id }
     },
     /**
@@ -181,21 +232,37 @@ export function createRepo(storage) {
      * drop the `skipped=N` count on every sweep that actually completed, which
      * is exactly the run the count matters for.
      *
-     * Safe to call twice. The seen writes are INSERT OR IGNORE, the counts are
-     * recomputed rather than incremented, and the note append skips a segment
-     * that is already there, so a retry lands on the same row. An unknown sweep
-     * id throws instead of quietly marking a batch of messages seen against
-     * nothing, which would lose them for good.
+     * This is the one place the frontier moves. A successful close copies the
+     * row's `frontier_after` -- settled by openSweep, out of the agent's reach
+     * -- into `ext_aisignal_frontier` for that kind; `ok: false` leaves the
+     * frontier exactly where it was. Nothing else in the extension writes that
+     * table, and nothing anywhere derives a frontier from anything else, so
+     * "when does the frontier move?" is answered by these four lines.
+     *
+     * An unknown sweep id throws instead of quietly marking a batch of messages
+     * seen against nothing, which would lose them for good. An already-closed
+     * one throws for the reason recordSignal refuses one: closing is not
+     * idempotent any more now that it moves the frontier. `failSweep` closes
+     * the row of a run that could not list at all, and without this guard a
+     * single `finishSweep({ sweepId, ok: true })` -- and `ok: true` is the
+     * declared default -- reopened that failure as a clean run whose
+     * `leftover = 0` and empty note read as "drained", handing the frontier a
+     * timestamp no run had earned and stranding the real backlog behind it.
      */
     finishSweep({ sweepId, ok = true, note = '' }) {
       return S.transaction(() => {
-        const sweep = S.get('SELECT fetched_ids, note FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
+        const sweep = S.get('SELECT fetched_ids, note, kind, frontier_after, finished_at FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
         if (!sweep) throw new Error(`unknown sweep ${sweepId}`)
+        if (sweep.finished_at) throw new Error(`sweep ${sweepId} is already closed; open a new one with signalSweep`)
         const ids = JSON.parse(sweep.fetched_ids || '[]')
         for (const m of ids) S.exec('INSERT OR IGNORE INTO ext_aisignal_seen (message_id, seen_at) VALUES (?, ?)', [m, now()])
         const found = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ?', [sweepId]).c
         const linksRead = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ? AND link_read = 1', [sweepId]).c
         S.exec('UPDATE ext_aisignal_sweeps SET found = ?, links_read = ?, ok = ?, note = ?, finished_at = ? WHERE id = ?', [found, linksRead, ok ? 1 : 0, joinNote(sweep.note, note), now(), sweepId])
+        if (ok) {
+          S.exec('INSERT INTO ext_aisignal_frontier (kind, frontier, moved_at, sweep_id) VALUES (?,?,?,?) ON CONFLICT (kind) DO UPDATE SET frontier = excluded.frontier, moved_at = excluded.moved_at, sweep_id = excluded.sweep_id',
+            [sweep.kind, sweep.frontier_after, now(), sweepId])
+        }
         return { sweepId, found, linksRead, seenMarked: ids.length, ok: Boolean(ok) }
       })
     },
@@ -211,17 +278,16 @@ export function createRepo(storage) {
     /** Most recent sweep of one kind, finished or not. Always filtered by kind -- see the note on the `kind` column. */
     latestSweep(kind = 'mail') { return S.get(`SELECT * FROM ext_aisignal_sweeps WHERE kind = ? ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
     /**
-     * Watermark to resume from: the last sweep of this kind that both succeeded
-     * and completed.
+     * The point the next run of this kind resumes from, or null for the whole
+     * source.
      *
-     * `leftover` and `note` come back alongside the two timestamps because the
-     * caller cannot pick between them without knowing whether that sweep
-     * actually drained the window it opened. A sweep that left messages behind,
-     * or whose listing stopped short, has a `ran_at` that is later than mail it
-     * never looked at; resuming from it makes that mail unreachable. See
-     * `watermarkSince` in sweep.mjs for the rule this row feeds.
+     * A read of one stored cell, with no rule in it. Everything that decides
+     * what that cell contains lives in openSweep and finishSweep above, and no
+     * caller has to reconstruct anything from a sweep row to use this: an
+     * install that has never closed a sweep has no row here, which reads as
+     * null, which is the whole source.
      */
-    latestFinishedSince(kind = 'mail') { return S.get(`SELECT since, ran_at, leftover, note FROM ext_aisignal_sweeps WHERE kind = ? AND ok = 1 AND finished_at IS NOT NULL ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
+    frontier(kind = 'mail') { return S.get('SELECT frontier FROM ext_aisignal_frontier WHERE kind = ?', [kind])?.frontier ?? null },
     sweeps(limit = 10) { return S.all(`SELECT * FROM ext_aisignal_sweeps ORDER BY ${SWEEP_ORDER} LIMIT ?`, [limit]) },
     /** Which of `ids` have already been swept. Chunked because a source page can carry more ids than SQLite will bind. */
     seenIds(ids) {

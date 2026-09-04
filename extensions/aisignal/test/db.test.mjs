@@ -33,6 +33,30 @@ test('every migration index uses the ext_aisignal_ prefix so uninstall drops it'
   }
 })
 
+test('an install that migrates onto the explicit frontier starts at the whole source', () => {
+  // Migration 2 seeds nothing. The alternative was to compute a starting value
+  // out of the sweep rows already there, which would mean re-implementing the
+  // inference the migration exists to delete -- and a seed even one sweep too
+  // new skips mail permanently, while a seed that is too wide costs one
+  // re-listing that lands on the dedup.
+  //
+  // The row is written the way a v1 install wrote it, straight into a table
+  // that has no frontier_after column yet, so this really is the old schema.
+  const s = memStorage()
+  s.raw.exec(MIGRATIONS[0].sql)
+  s.exec('INSERT INTO ext_aisignal_sweeps (id, ran_at, label, since, leftover, ok, note, finished_at) VALUES (?,?,?,?,?,?,?,?)',
+    ['stale', '2026-08-02', 'x', '2026-08-01', 0, 1, '', '2026-08-02'])
+
+  for (const m of MIGRATIONS.slice(1)) s.raw.exec(m.sql)
+  const after = createRepo(s)
+
+  assert.equal(after.frontier('mail'), null)
+  assert.equal(s.get('SELECT COUNT(*) AS c FROM ext_aisignal_frontier').c, 0)
+  // The rows themselves survive, they just stop being the frontier's source.
+  assert.equal(after.counts().sweeps, 1)
+  assert.equal(s.get('SELECT frontier_after FROM ext_aisignal_sweeps WHERE id = ?', ['stale']).frontier_after, null)
+})
+
 test('open -> insert -> finish marks seen and counts', () => {
   const r = fresh()
   const sweep = r.openSweep({ label: 'AI hirlevel', since: '2026-09-01', fetchedIds: ['m1', 'm2'], skipped: 0, leftover: 0 })
@@ -102,9 +126,9 @@ test('a url makes an item distinct from the same message without one', () => {
 })
 
 test('sweeps of different kinds do not shadow each other', () => {
-  // latestSweep drives the incremental watermark. If a web sweep could answer
-  // for mail, the next mail run would resume from the web run's timestamp and
-  // silently skip every newsletter in between.
+  // The frontier is stored per kind. If a web sweep could answer for mail, the
+  // next mail run would resume from the web run's frontier and silently skip
+  // every newsletter in between.
   const r = fresh()
   const mail = r.openSweep({ label: 'mail', since: '2026-09-01', fetchedIds: ['m1'], skipped: 0, leftover: 0 })
   r.finishSweep({ sweepId: mail.id, ok: true, note: '' })
@@ -114,27 +138,105 @@ test('sweeps of different kinds do not shadow each other', () => {
   assert.equal(r.latestSweep('mail').id, mail.id)
   assert.equal(r.latestSweep('web').id, web.id)
   assert.equal(r.latestSweep().id, mail.id)
-  assert.equal(r.latestFinishedSince('mail').since, '2026-09-01')
-  assert.equal(r.latestFinishedSince('web').since, '2026-09-02')
+  assert.equal(r.frontier('mail'), '2026-09-01')
+  assert.equal(r.frontier('web'), '2026-09-02')
   assert.equal(r.latestSweep('rss'), null)
-  assert.equal(r.latestFinishedSince('rss'), null)
+  // A kind that has never closed a sweep has no frontier row at all, which
+  // reads as the whole source rather than as another kind's answer.
+  assert.equal(r.frontier('rss'), null)
   assert.equal(r.sweeps(10).length, 2)
   assert.equal(r.counts().sweeps, 2)
 })
 
-test('finishSweep is idempotent when the same sweep is finished twice', () => {
-  // A retried run, or a crash between the seen-marking and the response, calls
-  // this again. Seen ids are INSERT OR IGNORE and the counters are recomputed,
-  // so the second call must land on the same numbers rather than doubling them.
+test('finishSweep refuses a sweep that is already closed', () => {
+  // Closing used to be idempotent, which was safe while closing only marked ids
+  // seen and recomputed counters. It moves the frontier now, so a second close
+  // is a second chance to move it -- and `failSweep` closes the row of a run
+  // that could not list at all, which a single finishSweep({ ok: true }) then
+  // reopened as a clean run. The whole sweep row, frontier included, has to be
+  // exactly as the first close left it.
   const { storage, repo: r } = freshWithStorage()
-  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: ['m1', 'm2'], skipped: 0, leftover: 0 })
+  const sweep = r.openSweep({ label: 'x', since: '2026-09-01', fetchedIds: ['m1', 'm2'], skipped: 0, leftover: 0 })
   r.insertItem({ sweepId: sweep.id, messageId: 'm1', headline: 'h', summary: '', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 1 })
   const first = r.finishSweep({ sweepId: sweep.id, ok: true, note: '' })
-  const second = r.finishSweep({ sweepId: sweep.id, ok: true, note: '' })
-  assert.deepEqual(second, first)
+  assert.equal(first.found, 1)
+
+  assert.throws(() => r.finishSweep({ sweepId: sweep.id, ok: true, note: '' }), /already closed/)
   assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_seen').c, 2)
   assert.equal(r.counts().seen, 2)
   assert.notEqual(r.latestSweep().finished_at, null)
+  assert.equal(r.frontier('mail'), '2026-09-01')
+})
+
+test('a failed sweep cannot be reopened as a clean one by closing it', () => {
+  // Defect A, end to end at this layer. failSweep opens nothing of its own: the
+  // row it closes was opened with leftover 0 and an empty note, which is what
+  // a run that drained everything also looks like. Under the old rule one
+  // finishSweep call -- with `ok` at its declared default -- turned that row
+  // into the newest finished, ok, leftover-0, untruncated sweep, and the
+  // frontier jumped to its `ran_at`, stranding the real backlog behind it.
+  const r = fresh()
+  const backlog = r.openSweep({ label: 'x', since: '2026-08-25T00:00:00.000Z', fetchedIds: [], skipped: 0, leftover: 7 })
+  r.finishSweep({ sweepId: backlog.id, ok: true, note: '' })
+  assert.equal(r.frontier('mail'), '2026-08-25T00:00:00.000Z')
+
+  const failed = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  r.failSweep(failed.id, 'gmail_label_missing', 'no Gmail label named "AI hirlevel"')
+
+  assert.throws(() => r.finishSweep({ sweepId: failed.id, ok: true, note: '' }), /already closed/)
+  assert.equal(r.frontier('mail'), '2026-08-25T00:00:00.000Z')
+  assert.equal(r.latestSweep().ok, 0)
+})
+
+test('a failed sweep carries no frontier a successful close could hand over', () => {
+  // The second, independent barrier under defect A: even with the already-
+  // closed guard lifted, the row a failed run leaves behind has the
+  // `frontier_after` of a run that proved nothing -- its own `since` -- so
+  // closing it can only hold the frontier still or pull it back, never advance
+  // it. Driving that needs a row failSweep has not closed.
+  const { storage, repo: r } = freshWithStorage()
+  const backlog = r.openSweep({ label: 'x', since: '2026-08-25T00:00:00.000Z', fetchedIds: [], skipped: 0, leftover: 7 })
+  r.finishSweep({ sweepId: backlog.id, ok: true, note: '' })
+
+  const failed = r.openSweep({ label: 'x', since: '2026-08-25T00:00:00.000Z', fetchedIds: [], skipped: 0, leftover: 0 })
+  r.failSweep(failed.id, 'gmail_label_missing', 'no label')
+  storage.exec('UPDATE ext_aisignal_sweeps SET finished_at = NULL WHERE id = ?', [failed.id])
+
+  r.finishSweep({ sweepId: failed.id, ok: true, note: '' })
+
+  const ranAt = storage.get('SELECT ran_at FROM ext_aisignal_sweeps WHERE id = ?', [failed.id]).ran_at
+  assert.equal(r.frontier('mail'), '2026-08-25T00:00:00.000Z')
+  assert.notEqual(r.frontier('mail'), ranAt)
+})
+
+test('a drained run hands the frontier its ran_at and a run that left something behind hands its since', () => {
+  const { storage, repo: r } = freshWithStorage()
+  const held = r.openSweep({ label: 'x', since: '2026-09-01', fetchedIds: [], skipped: 0, leftover: 4 })
+  r.finishSweep({ sweepId: held.id, ok: true, note: '' })
+  assert.equal(r.frontier('mail'), '2026-09-01')
+
+  const cleared = r.openSweep({ label: 'x', since: '2026-09-01', fetchedIds: ['m1'], skipped: 0, leftover: 0, drained: true })
+  const ranAt = storage.get('SELECT ran_at FROM ext_aisignal_sweeps WHERE id = ?', [cleared.id]).ran_at
+  r.finishSweep({ sweepId: cleared.id, ok: true, note: '' })
+  assert.equal(r.frontier('mail'), ranAt)
+})
+
+test('ok: false leaves the frontier exactly where it was', () => {
+  // `ok` is the one thing the agent says that touches the frontier, and it can
+  // only hold it still: the value that would have been written is settled on
+  // the row before the agent sees the sweep.
+  const r = fresh()
+  const first = r.openSweep({ label: 'x', since: '2026-09-01', fetchedIds: [], skipped: 0, leftover: 0, drained: true })
+  r.finishSweep({ sweepId: first.id, ok: false, note: '' })
+  assert.equal(r.frontier('mail'), null)
+
+  const second = r.openSweep({ label: 'x', since: '2026-09-02', fetchedIds: [], skipped: 0, leftover: 2 })
+  r.finishSweep({ sweepId: second.id, ok: true, note: '' })
+  assert.equal(r.frontier('mail'), '2026-09-02')
+
+  const third = r.openSweep({ label: 'x', since: '2026-09-02', fetchedIds: [], skipped: 0, leftover: 0, drained: true })
+  r.finishSweep({ sweepId: third.id, ok: false, note: '' })
+  assert.equal(r.frontier('mail'), '2026-09-02')
 })
 
 test('finishSweep rejects an unknown sweep instead of writing a phantom row', () => {
@@ -154,7 +256,7 @@ test('failSweep records the failure and closes the sweep', () => {
   assert.notEqual(row.finished_at, null)
   // A failed sweep never marks its messages seen, so the next run refetches them.
   assert.equal(r.counts().seen, 0)
-  assert.equal(r.latestFinishedSince('mail'), null)
+  assert.equal(r.frontier('mail'), null)
 })
 
 test('failSweep appends to the note the opening wrote instead of replacing it', () => {
@@ -228,20 +330,18 @@ test('finishSweep keeps the skipped count openSweep recorded', () => {
   assert.equal(r.latestSweep().note, 'skipped=40')
 
   // A closing note is appended to the opening one, not substituted for it, and
-  // finishing twice must not append it twice.
-  const noted = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 3, leftover: 0 })
-  r.finishSweep({ sweepId: noted.id, ok: true, note: 'partial page' })
+  // a segment the opening already wrote is not appended a second time.
+  const noted = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 3, leftover: 0, note: 'partial page' })
   r.finishSweep({ sweepId: noted.id, ok: true, note: 'partial page' })
   assert.equal(r.latestSweep().note, 'skipped=3; partial page')
 })
 
-test('finishSweep does not duplicate a multi-segment closing note on retry', () => {
+test('finishSweep does not duplicate a multi-segment closing note', () => {
   // joinNote used to check the whole addition against the existing note's
   // single-segment parts, so an addition that itself contains '; ' was never
-  // found among them and got appended again on every retry.
+  // found among them and got appended again.
   const r = fresh()
-  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: ['m1'], skipped: 3, leftover: 0 })
-  r.finishSweep({ sweepId: sweep.id, ok: true, note: 'partial page; rate limited' })
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: ['m1'], skipped: 3, leftover: 0, note: 'partial page; rate limited' })
   r.finishSweep({ sweepId: sweep.id, ok: true, note: 'partial page; rate limited' })
   assert.equal(r.latestSweep().note, 'skipped=3; partial page; rate limited')
 })
@@ -293,21 +393,24 @@ test('board deck orders tied apply_score, score and created_at by insertion, new
   assert.deepEqual(r.board(50).deck.map((it) => it.id), ids.slice().reverse())
 })
 
-test('latestFinishedSince ignores a sweep that started and never finished', () => {
-  // ok defaults to 1, so a run that died mid-pass still reads as a success. If
-  // it became the watermark, every message between the last genuinely completed
-  // sweep and the crash would be skipped forever, which is why finished_at
-  // exists and why the guard is tested apart from the failSweep path.
-  const r = fresh()
+test('a sweep that started and never finished leaves the frontier alone', () => {
+  // ok defaults to 1, so a run that died mid-pass still reads as a success on
+  // its row. The frontier does not read rows: it moves in finishSweep and
+  // nowhere else, so a run that never got there simply never moved it, however
+  // drained the row it left behind looks.
+  const { storage, repo: r } = freshWithStorage()
   const completed = r.openSweep({ label: 'x', since: '2026-09-01', fetchedIds: ['m1'], skipped: 0, leftover: 0 })
   r.finishSweep({ sweepId: completed.id, ok: true, note: '' })
-  const abandoned = r.openSweep({ label: 'x', since: '2026-09-02', fetchedIds: ['m2'], skipped: 0, leftover: 0 })
+  const abandoned = r.openSweep({ label: 'x', since: '2026-09-02', fetchedIds: ['m2'], skipped: 0, leftover: 0, drained: true })
 
   const latest = r.latestSweep()
   assert.equal(latest.id, abandoned.id)
   assert.equal(latest.ok, 1)
   assert.equal(latest.finished_at, null)
-  assert.equal(r.latestFinishedSince('mail').since, '2026-09-01')
+  assert.equal(r.frontier('mail'), '2026-09-01')
+  // The row does carry the frontier it would have earned, which is exactly why
+  // it has to be a close that hands it over rather than a read that finds it.
+  assert.notEqual(storage.get('SELECT frontier_after FROM ext_aisignal_sweeps WHERE id = ?', [abandoned.id]).frontier_after, null)
 })
 
 test('a merge leaves a decision the user already made alone', () => {
@@ -360,7 +463,7 @@ test('sweeps opened in the same millisecond still order newest first', () => {
   assert.deepEqual(r.sweeps(10).map((s) => s.id), [second.id, first.id])
   r.finishSweep({ sweepId: first.id, ok: true, note: '' })
   r.finishSweep({ sweepId: second.id, ok: true, note: '' })
-  assert.equal(r.latestFinishedSince('mail').since, '2026-09-02')
+  assert.equal(r.frontier('mail'), '2026-09-02')
 })
 
 test('decide rejects an unknown decision and reports an id that matched nothing', () => {
