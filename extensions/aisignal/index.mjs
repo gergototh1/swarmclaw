@@ -10,8 +10,16 @@ import { createSweepTools } from './src/sweep.mjs'
  * write under data/extensions -- which is why nothing here is a timer, a
  * listener or a subscription: a reload would leak one per load. Plain
  * assignment is idempotent, so re-running setup() is free.
+ *
+ * `gmailFactory` is the one key the host never fills, and it is listed here
+ * precisely because it is not one of setup()'s: it is the seam sweep.mjs builds
+ * its Gmail client through, so a test can inject a double and drive the whole
+ * layer with no credential anywhere near it. Production leaves it null and the
+ * client is built from the host's OAuth. Leaving it off the object made the
+ * seam invisible to anyone reading this file, where every other key on the
+ * shared state is declared.
  */
-export const state = { storage: null, settings: () => ({}), log: console, oauth: null, repo: null }
+export const state = { storage: null, settings: () => ({}), log: console, oauth: null, repo: null, gmailFactory: null }
 
 const aisignal = {
   name: 'AI Signal',

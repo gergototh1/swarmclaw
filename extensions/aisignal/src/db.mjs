@@ -146,9 +146,19 @@ export function createRepo(storage) {
      * Closes a sweep that blew up. Deliberately does not touch
      * ext_aisignal_seen: the fetched messages stay unseen so the next run
      * retries them.
+     *
+     * The failure text is appended to the note openSweep wrote, for the same
+     * reason finishSweep appends: replacing it drops the `skipped=N` count and
+     * every structured segment the run had already established -- and the
+     * failure path is exactly where an operator most needs to know whether the
+     * listing stopped on the cap, how many fetches failed, and how much was
+     * skipped. A code alone cannot answer "is running again immediately worth
+     * anything?". Appending through joinNote also keeps a retried failure from
+     * writing the same segment twice.
      */
     failSweep(sweepId, code, message) {
-      S.exec('UPDATE ext_aisignal_sweeps SET ok = 0, note = ?, finished_at = ? WHERE id = ?', [`${code}: ${message}`, now(), sweepId])
+      const sweep = S.get('SELECT note FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
+      S.exec('UPDATE ext_aisignal_sweeps SET ok = 0, note = ?, finished_at = ? WHERE id = ?', [joinNote(sweep?.note, `${code}: ${message}`), now(), sweepId])
     },
     /**
      * Closes a sweep: marks its fetched ids seen and recomputes the counters
@@ -188,8 +198,18 @@ export function createRepo(storage) {
     sweepById(id) { return S.get('SELECT * FROM ext_aisignal_sweeps WHERE id = ?', [id]) || null },
     /** Most recent sweep of one kind, finished or not. Always filtered by kind -- see the note on the `kind` column. */
     latestSweep(kind = 'mail') { return S.get(`SELECT * FROM ext_aisignal_sweeps WHERE kind = ? ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
-    /** Watermark to resume from: the last sweep of this kind that both succeeded and completed. */
-    latestFinishedSince(kind = 'mail') { return S.get(`SELECT since, ran_at FROM ext_aisignal_sweeps WHERE kind = ? AND ok = 1 AND finished_at IS NOT NULL ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
+    /**
+     * Watermark to resume from: the last sweep of this kind that both succeeded
+     * and completed.
+     *
+     * `leftover` and `note` come back alongside the two timestamps because the
+     * caller cannot pick between them without knowing whether that sweep
+     * actually drained the window it opened. A sweep that left messages behind,
+     * or whose listing stopped short, has a `ran_at` that is later than mail it
+     * never looked at; resuming from it makes that mail unreachable. See
+     * `resolveSince` in sweep.mjs for the rule this row feeds.
+     */
+    latestFinishedSince(kind = 'mail') { return S.get(`SELECT since, ran_at, leftover, note FROM ext_aisignal_sweeps WHERE kind = ? AND ok = 1 AND finished_at IS NOT NULL ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
     sweeps(limit = 10) { return S.all(`SELECT * FROM ext_aisignal_sweeps ORDER BY ${SWEEP_ORDER} LIMIT ?`, [limit]) },
     /** Which of `ids` have already been swept. Chunked because a source page can carry more ids than SQLite will bind. */
     seenIds(ids) {

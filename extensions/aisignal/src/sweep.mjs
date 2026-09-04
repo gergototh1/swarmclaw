@@ -62,6 +62,19 @@ const LIST_BUDGET = 500
 /** How much of a message body is handed to the agent. */
 const TEXT_LIMIT = 20000
 
+/**
+ * The note segment a run writes when the id listing itself stopped short.
+ *
+ * Written by `signalSweep` and read back by `resolveSince`, so the two are
+ * spelled once here: the watermark rule turns on this segment being findable on
+ * a later read of the row, and a writer and a reader that drift apart would let
+ * the watermark step over a listing that never finished.
+ */
+const TRUNCATED_NOTE = 'list_truncated'
+
+/** That segment at the start of the note or after a '; ' separator. */
+const TRUNCATED_RE = new RegExp(`(^|; )${TRUNCATED_NOTE}=`)
+
 const HTTP_RE = /^https?:\/\//i
 
 /** A caller-side or settings-side value that cannot be honoured. Not Gmail's fault, so not a `gmail_*` code. */
@@ -106,6 +119,34 @@ function resolveMax(fromArgs, fromSettings) {
 }
 
 /**
+ * Did that sweep drain the window it opened?
+ *
+ * Only a run that did may move the watermark forward, so this is the whole
+ * safety condition of `resolveSince` and it is deliberately conservative: it
+ * answers "yes" only when the run left nothing behind by either of the two ways
+ * a run can leave something behind.
+ *
+ *   `leftover > 0` -- the run listed ids it did not turn into messages, because
+ *   the per-run cap stopped it or because a fetch failed. Those messages are
+ *   older than the run's own `ran_at`.
+ *
+ *   a `list_truncated=` segment -- the id listing stopped on the budget or on
+ *   the page ceiling, so there is mail behind the point Gmail's walk ended that
+ *   this run never even listed. `leftover` cannot show it: a truncated listing
+ *   whose every id was already seen leaves `leftover` at 0 while an unknown
+ *   amount is still waiting behind the cut.
+ */
+function drainedWindow(sweep) {
+  // A row that does not carry the two facts cannot answer the question, and the
+  // benefit of the doubt is the answer that loses mail -- so it does not get it.
+  // This is what keeps a future read that drops a column from silently
+  // restoring the old, unsafe rule.
+  if (!Number.isFinite(Number(sweep.leftover))) return false
+  if (Number(sweep.leftover) > 0) return false
+  return !TRUNCATED_RE.test(sweep.note || '')
+}
+
+/**
  * The watermark this run resumes from.
  *
  * `latestFinishedSince` already refuses to hand back a sweep that never
@@ -114,9 +155,33 @@ function resolveMax(fromArgs, fromSettings) {
  * catch-up pass; a `sinceDays` that is not a positive number is refused rather
  * than turned into an Invalid Date, which would throw uncoded out of
  * `toISOString`.
+ *
+ * Why a finished sweep's `ran_at` is not automatically the next window's start
+ * ----------------------------------------------------------------------------
+ * A run caps how many messages it fetches and records the rest as `leftover`,
+ * so "this run completed" and "this run swept everything in its window" are
+ * different facts. Taking `ran_at` from a run that left mail behind moves the
+ * window past that mail, and `sinceQuery` only re-opens the window by about 62
+ * hours, so a backlog older than that is never listed again -- the dedup cannot
+ * save a message that is never listed, and the row goes on claiming
+ * `leftover = 495` forever. This is the third time in this extension that a
+ * window silently narrowed past mail nobody read (the mailbox timezone and the
+ * truncation flag were the other two), which is why the rule here is the
+ * conservative one:
+ *
+ *   a finished sweep that drained its window hands back its `ran_at`;
+ *   one that did not hands back *its own* `since`, so the next run re-opens the
+ *   same window and the backlog stays reachable.
+ *
+ * A sweep that left something behind therefore never advances the watermark,
+ * and the window only moves once some run has actually cleared it. Re-listing
+ * the same window is cheap and lands on the dedup; skipping it is permanent.
  */
 function resolveSince(sinceDays, watermark) {
-  if (sinceDays === undefined || sinceDays === null || sinceDays === '') return watermark?.ran_at || null
+  if (sinceDays === undefined || sinceDays === null || sinceDays === '') {
+    if (!watermark) return null
+    return drainedWindow(watermark) ? (watermark.ran_at || null) : (watermark.since || null)
+  }
   const n = Number(sinceDays)
   if (!Number.isFinite(n) || n <= 0) throw new InputError('sinceDays must be a positive number of days')
   const from = new Date(Date.now() - n * 86400000)
@@ -124,8 +189,22 @@ function resolveSince(sinceDays, watermark) {
   return from.toISOString()
 }
 
-/** Anything that is not a `GmailError` still has to land on a name a caller can switch on. */
-const codeOf = (e) => (e instanceof GmailError ? e.code : 'gmail_unexpected')
+/**
+ * Anything that is not a `GmailError` still has to land on a name a caller can
+ * switch on.
+ *
+ * The class is not the only carrier of a name. An error that crossed a module
+ * boundary, or one raised by a layer under the client, can carry a perfectly
+ * good string `code` and fail `instanceof`; degrading it to `gmail_unexpected`
+ * throws away the one thing the row exists to record. So a string `code` is
+ * honoured whatever the class, and only a genuinely unnamed error falls through
+ * to the generic name.
+ */
+function codeOf(e) {
+  if (e instanceof GmailError) return e.code
+  const code = e?.code
+  return typeof code === 'string' && code !== '' ? code : 'gmail_unexpected'
+}
 
 /**
  * What the agent is handed for one message.
@@ -158,9 +237,15 @@ function handOver(m) {
  * is visible in the history instead of the run leaving no trace at all.
  * `failSweep` deliberately marks nothing seen, so everything this run touched
  * comes back on the next one.
+ *
+ * The `note` the run had already built is passed through rather than dropped.
+ * A failure is where the difference between the two truncation reasons is
+ * sharpest -- `list_truncated=cap` means going again immediately is worth
+ * something, `list_truncated=page_ceiling` means it buys the same slow walk --
+ * and the failure code alone answers neither. `failSweep` appends to it.
  */
-function failedSweep(repo, { label, since, code, message, skipped = 0, leftover = 0, listStoppedOn = null, fetchFailures = [] }) {
-  const { id } = repo.openSweep({ label, since, fetchedIds: [], skipped, leftover })
+function failedSweep(repo, { label, since, code, message, skipped = 0, leftover = 0, listStoppedOn = null, fetchFailures = [], note = '' }) {
+  const { id } = repo.openSweep({ label, since, fetchedIds: [], skipped, leftover, note })
   repo.failSweep(id, code, message)
   return { sweepId: id, label, since, skipped, leftover, listStoppedOn, fetchFailures, messages: [], error: { code, message } }
 }
@@ -189,6 +274,33 @@ function unitScore(field, raw) {
     throw new Error(`${field} must be a number between 0 and 1, got ${shown}`)
   }
   return n
+}
+
+/**
+ * Whether the agent is closing a run it actually completed.
+ *
+ * `a.ok !== false` read every value that is not the boolean `false` as a
+ * success, so the string `'false'` -- which is what a tool call carries when the
+ * argument is stringified on its way in -- turned a run the agent reported as
+ * broken into a clean one. That sweep then becomes a watermark and the mail it
+ * never finished is stepped over, which is the same false report the rest of
+ * this module is built to avoid, in the direction that loses mail.
+ *
+ * So the value is validated here like every other input in this file rather
+ * than trusted from upstream: absent means "the run finished" (the declared
+ * default), the boolean and its two string spellings are honoured, and anything
+ * else is refused. Refusing leaves the sweep open, which is the safe end: an
+ * unfinished sweep is not a watermark, so the next run picks the same mail up.
+ */
+function resolveOk(raw) {
+  if (raw === undefined || raw === null) return true
+  if (typeof raw === 'boolean') return raw
+  if (typeof raw === 'string') {
+    const t = raw.trim().toLowerCase()
+    if (t === 'true') return true
+    if (t === 'false') return false
+  }
+  throw new Error('ok must be true or false')
 }
 
 export function createSweepTools(state) {
@@ -281,7 +393,7 @@ export function createSweepTools(state) {
          */
         const listStoppedOn = listed.stoppedOn ?? null
         const note = [
-          listStoppedOn ? `list_truncated=${listStoppedOn}` : '',
+          listStoppedOn ? `${TRUNCATED_NOTE}=${listStoppedOn}` : '',
           fetchFailures.length ? `fetch_failed=${fetchFailures.length}` : '',
         ].filter(Boolean).join('; ')
 
@@ -290,7 +402,7 @@ export function createSweepTools(state) {
         // of a mailbox this run never managed to read.
         if (fresh.length > 0 && messages.length === 0 && fetchFailures.length > 0) {
           const first = fetchFailures[0]
-          return failedSweep(repo, { label, since, code: first.code, message: first.message, skipped: seen.size, leftover, listStoppedOn, fetchFailures })
+          return failedSweep(repo, { label, since, code: first.code, message: first.message, skipped: seen.size, leftover, listStoppedOn, fetchFailures, note })
         }
 
         const { id } = repo.openSweep({ label, since, fetchedIds: messages.map((m) => m.id), skipped: seen.size, leftover, note })
@@ -382,7 +494,7 @@ export function createSweepTools(state) {
         // a batch of messages seen against nothing, which would lose them.
         return repoOf(state).finishSweep({
           sweepId: String(a.sweepId ?? ''),
-          ok: a.ok !== false,
+          ok: resolveOk(a.ok),
           note: a.note ? String(a.note) : '',
         })
       },

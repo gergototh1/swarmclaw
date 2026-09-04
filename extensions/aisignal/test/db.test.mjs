@@ -157,6 +157,21 @@ test('failSweep records the failure and closes the sweep', () => {
   assert.equal(r.latestFinishedSince('mail'), null)
 })
 
+test('failSweep appends to the note the opening wrote instead of replacing it', () => {
+  // A failed sweep is where the difference between the two truncation reasons
+  // matters most, so the segments the opening established have to survive the
+  // failure: a bare code cannot say what the run had already established.
+  const r = fresh()
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 4, leftover: 9, note: 'list_truncated=cap; fetch_failed=2' })
+  r.failSweep(sweep.id, 'gmail_fetch_failed', 'HTTP 500')
+  assert.equal(r.latestSweep().note, 'skipped=4; list_truncated=cap; fetch_failed=2; gmail_fetch_failed: HTTP 500')
+
+  // Same append twice is the same row, like the finishSweep path.
+  r.failSweep(sweep.id, 'gmail_fetch_failed', 'HTTP 500')
+  assert.equal(r.latestSweep().note, 'skipped=4; list_truncated=cap; fetch_failed=2; gmail_fetch_failed: HTTP 500')
+  assert.equal(r.latestSweep().leftover, 9)
+})
+
 test('openSweep records the fetch shape the next run needs', () => {
   const r = fresh()
   r.openSweep({ label: 'AI hirlevel', since: '2026-09-01', fetchedIds: ['m1', 'm2', 'm3'], skipped: 2, leftover: 7 })

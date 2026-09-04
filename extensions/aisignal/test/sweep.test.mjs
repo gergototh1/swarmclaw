@@ -199,11 +199,16 @@ test('the setting supplies the cap when the call does not', async () => {
 
 // --- The watermark ----------------------------------------------------------
 
-test('the watermark is the last finished sweep, and sinceDays overrides it', async () => {
+test('the watermark is the last finished sweep that drained its window, and sinceDays overrides it', async () => {
   const gmail = fakeGmail({ ids: [] })
   const { state, run } = setup(gmail)
   closedSweep(state.repo)
   const ranAt = state.repo.latestSweep().ran_at
+  // This one left nothing over and its listing was not cut short, so no mail is
+  // hiding behind its `ran_at` and the window may move up to it.
+  const mark = state.repo.latestFinishedSince('mail')
+  assert.equal(mark.leftover, 0)
+  assert.equal(/list_truncated/.test(mark.note || ''), false)
 
   await run('signalSweep')
   assert.equal(gmail.calls.list[0].since, ranAt)
@@ -211,6 +216,66 @@ test('the watermark is the last finished sweep, and sinceDays overrides it', asy
   await run('signalSweep', { sinceDays: 3 })
   const asked = new Date(gmail.calls.list[1].since).getTime()
   assert.equal(Math.abs(Date.now() - asked - 3 * 86400000) < 60000, true)
+})
+
+test('a run that left messages behind does not move the watermark past them', async () => {
+  // The failure this pins: run one has no watermark, lists the whole label,
+  // fetches its cap and records the rest as leftover. If run two starts from run
+  // one's `ran_at`, `sinceQuery` reopens the window by about 62 hours at most
+  // and the backlog is never listed again -- and the dedup cannot save a message
+  // that is never listed, so the row would claim its leftover forever.
+  const gmail = fakeGmail({ ids: ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8'] })
+  const { state, run } = setup(gmail)
+
+  const first = await run('signalSweep', { maxMessages: 3 })
+  assert.equal(first.leftover, 5)
+  await run('finishSweep', { sweepId: first.sweepId })
+  assert.equal(gmail.calls.list[0].since, null)
+  // The watermark row itself says five messages are still waiting behind it.
+  assert.equal(state.repo.latestFinishedSince('mail').leftover, 5)
+
+  const second = await run('signalSweep', { maxMessages: 3 })
+
+  // Run one swept the whole label, so run two has to sweep it again: its own
+  // window is the only one the five backlogged messages are inside.
+  assert.equal(gmail.calls.list[1].since, null)
+  assert.deepEqual(second.messages.map((m) => m.id), ['m4', 'm5', 'm6'])
+  assert.equal(second.skipped, 3)
+  assert.equal(second.leftover, 2)
+})
+
+test('the window a run did not drain is the window the next run reopens', async () => {
+  const gmail = fakeGmail({ ids: ['a', 'b', 'c'] })
+  const { state, run } = setup(gmail)
+
+  const first = await run('signalSweep', { sinceDays: 7, maxMessages: 1 })
+  const window = gmail.calls.list[0].since
+  await run('finishSweep', { sweepId: first.sweepId })
+  const ranAt = state.repo.latestSweep().ran_at
+
+  await run('signalSweep', { maxMessages: 1 })
+
+  // Its own `since`, not its `ran_at`: the two messages it left behind are
+  // between them, and a window starting at `ran_at` excludes them for good.
+  assert.equal(gmail.calls.list[1].since, window)
+  assert.notEqual(gmail.calls.list[1].since, ranAt)
+})
+
+test('a listing that stopped short keeps the window open even with nothing left over', async () => {
+  const gmail = fakeGmail({ ids: ['a'], stoppedOn: 'cap' })
+  const { state, run } = setup(gmail)
+
+  const first = await run('signalSweep', { maxMessages: 5 })
+  assert.equal(first.leftover, 0)
+  assert.equal(first.listStoppedOn, 'cap')
+  await run('finishSweep', { sweepId: first.sweepId })
+
+  await run('signalSweep', { maxMessages: 5 })
+
+  // `leftover` is 0 and mail is still waiting behind the point the walk
+  // stopped, so leftover alone cannot be the condition the watermark turns on.
+  assert.equal(gmail.calls.list[1].since, null)
+  assert.equal(state.repo.latestFinishedSince('mail').leftover, 0)
 })
 
 test('an unfinished sweep is not a watermark and a bad sinceDays is refused', async () => {
@@ -278,6 +343,44 @@ test('a fetch failure with no code still lands under a named one', async () => {
   const { run } = setup(gmail)
   const r = await run('signalSweep', { maxMessages: 1 })
   assert.equal(r.error.code, 'gmail_unexpected')
+})
+
+test('an error that carries a code keeps it even when it is not a GmailError', async () => {
+  // A named error can reach here without being an instance of the class: across
+  // a module boundary, or raised under the client. The name is the whole point
+  // of the row, so the class is not what decides whether it survives.
+  const coded = Object.assign(new Error('no Gmail label named "AI hírlevél"'), { code: 'gmail_label_missing' })
+  const { state, run } = setup(fakeGmail({ labelFail: coded }))
+
+  const r = await run('signalSweep')
+
+  assert.equal(r.error.code, 'gmail_label_missing')
+  assert.match(state.repo.latestSweep().note, /gmail_label_missing/)
+})
+
+test('a failed sweep keeps the segments its opening wrote', async () => {
+  // Listing stopped on the cap and then every fetch failed. The failure code
+  // alone cannot tell an operator whether going again immediately is worth
+  // anything -- the skipped count, the truncation reason and the fetch-failure
+  // count are what answers that, and they were written before the failure.
+  const gmail = fakeGmail({
+    ids: ['s1', 'a', 'b'],
+    stoppedOn: 'cap',
+    fetchFail: () => new GmailError('gmail_fetch_failed', 'HTTP 500'),
+  })
+  const { state, run } = setup(gmail)
+  closedSweep(state.repo, ['s1'])
+
+  const r = await run('signalSweep', { maxMessages: 2 })
+
+  assert.equal(r.error.code, 'gmail_fetch_failed')
+  assert.equal(r.listStoppedOn, 'cap')
+  const { note, ok } = state.repo.latestSweep()
+  assert.equal(ok, 0)
+  assert.match(note, /skipped=1/)
+  assert.match(note, /list_truncated=cap/)
+  assert.match(note, /fetch_failed=2/)
+  assert.match(note, /gmail_fetch_failed: HTTP 500/)
 })
 
 // --- What the agent is handed ----------------------------------------------
@@ -420,6 +523,23 @@ test('finishSweep twice lands on the same numbers and throws on an unknown sweep
   assert.equal(state.repo.counts().seen, 1)
 
   await assert.rejects(run('finishSweep', { sweepId: 'nope' }), /unknown sweep/)
+})
+
+test('finishSweep refuses an ok it cannot read instead of recording a broken run as clean', async () => {
+  const { state, run } = setup(fakeGmail({ ids: ['m1'] }))
+  const sw = await run('signalSweep')
+
+  await assert.rejects(run('finishSweep', { sweepId: sw.sweepId, ok: 'igen' }), /true or false/)
+  // Refusing leaves the sweep open, which is the safe end: an unfinished sweep
+  // is not a watermark, so the next run picks the same mail back up.
+  assert.equal(state.repo.latestSweep().finished_at, null)
+
+  // The stringified boolean a tool call can arrive with still means what it
+  // says; reading it as a success would make a broken run the next watermark.
+  const fin = await run('finishSweep', { sweepId: sw.sweepId, ok: 'false' })
+  assert.equal(fin.ok, false)
+  assert.equal(state.repo.latestSweep().ok, 0)
+  assert.equal(state.repo.latestFinishedSince(), null)
 })
 
 test('finishSweep records a failed close without marking the sweep good', async () => {
