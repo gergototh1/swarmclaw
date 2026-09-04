@@ -2784,47 +2784,76 @@ feladatra is érvényes.
 
 ---
 
-### Task 20: az extension-újratöltés valóban olvassa újra a fájlt — LEZÁRVA
+### Task 20 (ÚJRANYITVA, kiszélesítve): az extension betöltődjön és újratöltődjön MINDEN futtatókörnyezetben
 
-Lezárva a Task 19 második javítási körében; nem maradt tennivaló.
+Ezt a bejegyzést kétszer írtam rossz diagnózisra. A harmadik mérés az alábbi,
+és ez már közvetlenül ellenőrzött, nem következtetett.
 
-A Task 19 review-ja rossz diagnózist adott. Nem ESM/CJS modul-gyorsítótár
-szemantikáról volt szó, és a `reload()` a hostok többségén mindig is újra
-futtatta a megváltozott fájlt. A tényleges ok kulcs-eltérés volt: a
-`clearExtensionRequireCache` a `path.join(EXTENSIONS_DIR, filename)` alapján
-törölt, a Node viszont a **feloldott realpath** szerint tárolja a modulokat, és
-a `DATA_DIR` `path.resolve`-olt, de sosem realpath-olt. Ahol az adatkönyvtár
-symlink mögött van — például a macOS `os.tmpdir()`, ami `/var/folders/...` és a
-`/private/var/folders/...`-ra mutat —, ott a törlés csendben semmit nem talált;
-Linuxon, Dockerben, VPS-en és normál app-home könyvtárral ugyanez a kód
-helyesen ürített. A hibát egy CommonJS `.js` extension is túlélte, tehát a
-modulformátumhoz semmi köze nem volt.
+**A blokkoló hiba: az aisignal extension az Electron appban egyáltalán nem
+tölt be.** Mért adat ugyanazzal a próbával:
 
-A javítás a `clearExtensionRequireCache`-en belül realpath-olja a kulcsot (a
-gyökérfájlt és a workspace-előtagot is), nem a `DATA_DIR`-t globálisan: a
-`DATA_DIR`-t a rendszer sok más helyen is használja, felhasználónak mutatott és
-tárolt útvonalakban is. A fel nem oldható útvonal (időközben törölt fájl) a
-feloldatlan útvonalra esik vissza, így az ürítés nem dönti el az egész
-újratöltést.
+```
+node 22.22.3 (fejlesztés):    REQUIRE(ESM) OK
+electron 33 -> node 20.18.3:  REQUIRE(ESM) FAILED: ERR_REQUIRE_ESM
+```
 
-Ezzel a `reload()` **minden** hoston egyformán viselkedik: a lemezen módosított
-extension újra fut, a felemelt szerződés-verzió `version_mismatch`-et ad a régi
-verzióra deklaráló fogyasztónak, a törölt `consumes` bejegyzés pedig
-`not_declared`-t — a korábban elkapott handle-ön keresztül is. Cserébe egy
-extension modulszintű állapota sem éli túl az újratöltést; ez most ki van
-mondva a `src/types/extension.ts`-ben.
+A betöltő `require`-t használ, az extension pedig ESM (`"type": "module"`,
+`index.mjs`), a `require(esm)` viszont csak a Node 20.19/22.12 óta létezik. Az
+Electron 33 a 20.18.3-at hozza. Ez nem újratöltési finomság: a modul ott el sem
+indul. A terv Task 18-a ("ugyanaz az extension Electron-szerveren és Dockerben")
+ezen bukott volna el, a legvégén, minden más megépítése után.
 
-Ami emiatt elesett: nem kell gyorsítótár-kerülő lekérdezőparaméteres import, és
-nincs szivárgó modulpéldány sem, mert nem jön létre új példány a régi mellett —
-a régi kulcs törlődik, mielőtt a loader újra megköveteli a fájlt.
+**A másodlagos hiba, ami ugyanebből a gyökérből nő:** a `reload()` nem futtatja
+újra a megváltozott ESM extensiont. A `clearExtensionRequireCache` a CommonJS
+gyorsítótárból töröl; egy `require()`-rel betöltött ESM modul viszont az ESM
+registryben él, és a `require.cache`-ben megjelenő bejegyzés csak egy szintetikus
+burkoló, aminek a törlése nem vált ki újraértékelést. A teszt-futtató `tsx`
+alatt ez nem látszik, mert a tsx a `.mjs`-t CJS-re fordítja, tehát ott az ürítés
+működik — és a tesztek kizárólag ott futnak.
 
-**Amit lezárt (files):** `src/lib/server/extensions.ts`
-(`clearExtensionRequireCache` + `moduleCacheKey`),
-`src/lib/server/test-utils/run-with-temp-data-dir.ts` (realpath-olt ideiglenes
-könyvtár, hogy több teszt ne örökölje a csapdát),
-`src/lib/server/extensions/extension-contracts.test.ts` (a két pin átírva a
-javított szemantikára, plusz egy külön eset, ami symlinkelt `DATA_DIR`-en
-hajtja meg a managert).
+**Amit a korábbi kör helyesen zárt le, és nem kell újra megcsinálni:** a
+realpath kulcs-eltérés valós volt és javítva van (`moduleCacheKey`), CommonJS
+extensionnél az újratöltés ettől ténylegesen működik. Ez a fele kész.
+
+**Miért kerül a 14-es elé:** minden további modul erre a betöltőre ül rá. Ha a
+desktop app nem tud ESM extensiont betölteni, akkor a videó-, health- és
+hírlevél-modul sem fog, és minél több épül rá, annál drágább a váltás.
+
+**Files:**
+- Modify: `src/lib/server/extensions.ts` (betöltés és `clearExtensionRequireCache`),
+  `src/lib/server/extensions.test.ts`, `src/lib/server/test-utils/run-with-temp-data-dir.ts`
+- Esetleg: `package.json` (Electron-verzió), `electron/server-lifecycle.ts`
+
+**A három lehetséges irány, mindegyik más árral — a feladat első lépése ezek
+mérése, nem a választás elhalasztása:**
+
+1. **Dinamikus `import()` a betöltőben.** Mindkét Node-verzión működik, és
+   megszünteti az `ERR_REQUIRE_ESM`-et. Ára: aszinkron, tehát a betöltési út
+   alakja változik; és az ESM registryt sem lehet üríteni, úgyhogy az
+   újratöltéshez gyorsítótár-kerülő lekérdezőparaméter kell, ami
+   modulpéldányokat szivárogtat. A szivárgás mértékét meg kell mérni, nem
+   megbecsülni.
+2. **Electron-frissítés 35+-ra** (Node 22, ahol a `require(esm)` létezik).
+   A betöltő változatlan marad. Ára: az Electron főverzió-ugrás saját
+   kockázat, és a desktop réteg egészét érinti.
+3. **Az extensionök legyenek CJS.** A betöltő és a futtatókörnyezet is marad.
+   Ára: az aisignal ESM-ben van megírva, a `scripts/install.mjs` ESM shimet ír,
+   és minden jövőbeli modul is ESM-et várna.
+
+**Amit a megoldásnak tudnia kell:**
+1. Az aisignal extension **betöltődik és fut** az Electron appban és
+   `next start` alatt is, nem csak a teszt-futtató alatt.
+2. Egy lemezen módosított extension `reload()` után tényleg újra fut — ESM és
+   CJS esetén egyaránt, és **minden** futtatókörnyezetben, nem csak `tsx` alatt.
+3. Ha marad szivárgás, a mértéke ki van mérve és ki van mondva: hány
+   modulpéldány marad bent újratöltésenként, és mi tartja őket életben.
+4. A `setup()` mellékhatásai nem duplázódnak.
+5. **A tesztek a szállított futtatókörnyezetet gyakorolják.** Ez a feladat
+   legfontosabb tanulsága: a `runWithTempDataDir` `node --import tsx`-szel
+   indít, és emiatt két külön körben állítottunk olyat, amit a teszt zölden
+   igazolt, a termék viszont nem csinál. Kell legalább egy eset, ami sima
+   Node-dal fut, és egy, ami az Electron beágyazott Node-jával.
+6. A Task 19 hét dokumentációs helye ezzel egyszerre igazodik.
 
 **Global Constraints:** a terv fenti Global Constraints szakasza erre a
 feladatra is érvényes.
