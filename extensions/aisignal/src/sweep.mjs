@@ -94,8 +94,14 @@ function gmailFor(state) {
  * Tools are declared at module scope in `index.mjs` and can only read `state`
  * once `setup(ctx)` has filled it. Reaching through a null repo throws a
  * `TypeError` that tells the operator nothing, so the missing step is named.
+ *
+ * Exported because research.mjs opens sweeps against the same shared `state`
+ * and needs the same guard. Two copies of one sentence drift on the first edit
+ * to either, and an operator who saw two different accounts of one missing step
+ * would have two things to look for -- which is the reason
+ * `alreadyClosedMessage` is exported from db.mjs rather than typed twice.
  */
-function repoOf(state) {
+export function repoOf(state) {
   if (!state.repo) throw new Error('the AI Signal extension is not set up yet')
   return state.repo
 }

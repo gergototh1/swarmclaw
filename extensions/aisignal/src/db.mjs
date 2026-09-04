@@ -33,6 +33,10 @@ import crypto from 'node:crypto'
  *     gates   the frontier itself. This row *is* the point the next run over
  *             this source resumes from.
  *     source  all three halves of it. See THE FRONTIER KEY.
+ *     kinds   the mail kind writes a row here on every successful close. The
+ *             research kind never does, and cannot: it names no `source_id`, so
+ *             `finishSweep`'s `sweep.source_id` test is false for every row it
+ *             opens. See A SWEEP WITH AN ID SPACE AND NO SOURCE.
  *
  *   ext_aisignal_seen -- PRIMARY KEY (kind, account, message_id)
  *     gates   whether a message is ever scored, and with it the frontier: a hit
@@ -42,6 +46,11 @@ import crypto from 'node:crypto'
  *     source  kind and account: the space a message id is unique in. `source_id`
  *             is deliberately left out and THE DEDUP KEY below carries the proof
  *             that leaving it out cannot skip a message.
+ *     kinds   both. For mail the account is the mailbox `users.getProfile`
+ *             named. For research it is the one public space every candidate id
+ *             is minted in, named by `RESEARCH_ID_SPACE` in research.mjs; the
+ *             candidate id carries its own host as a prefix, so `hn:1` and
+ *             `reddit:1` do not collide inside it.
  *     written by `finishSweep`, and by nothing else, with
  *             `ON CONFLICT (kind, account, message_id) DO NOTHING` -- the one
  *             spelling that excuses a repeat of this key while leaving the
@@ -543,6 +552,37 @@ export const MAIL_KIND = 'mail'
  * operator typed; it is on the sweep row for the history and nothing reads it
  * back.
  */
+/*
+ * A SWEEP WITH AN ID SPACE AND NO SOURCE
+ * ======================================
+ * A mail sweep reads one source and resumes from a watermark, so it names all
+ * three halves of a frontier key. The research sweep in research.mjs does
+ * neither, and saying so is the whole of its `openSweep` call.
+ *
+ * It has no watermark. Its window is a fixed number of days back from the
+ * moment it runs -- that is what the three search APIs are asked for -- so
+ * there is nothing to resume from and no stored cell that would change what the
+ * next run fetches. It also has no single source to key one on: one run asks
+ * three hosts about several topics, so any `source_id` it could write would name
+ * a fraction of what the row describes. `finishSweep` moves a frontier only for
+ * a row that carries both an account and a source id, so a research row moves
+ * none -- which is the same answer the mail path gives a run that could not
+ * resolve its source, arrived at structurally rather than by remembering to.
+ *
+ * It does have ids to dedup, and those ids need a key. A candidate id carries
+ * its own host as a prefix (`hn:1`, `reddit:r1`, `github:7`), so the space it is
+ * unique in is that one public web, identical for every install and for every
+ * operator: no credential opens it, and no operator action can swap it
+ * underneath the way reconnecting Google swaps a mailbox. That constant is the
+ * `account` half of its dedup key, and it is spelled once, in research.mjs.
+ *
+ * So `openSweep` takes either a `source` (all three halves, frontier keyed) or
+ * an `idSpace` (the account half only, no frontier). Not both, and never a
+ * half-filled `source`: a blank half is not an identity, it is every
+ * unidentified run sharing one row, which is the defect the CHECK exists to
+ * stop. The two arguments are separate names because they are separate claims,
+ * and a caller has to make the weaker one on purpose.
+ */
 function requireSource(where, source) {
   const { kind, account, sourceId } = source || {}
   requireNamed(where, [['kind', kind], ['account', account], ['sourceId', sourceId]],
@@ -677,9 +717,18 @@ export function createRepo(storage) {
      * `drained` without one is refused rather than stored, because a run cannot
      * have cleared a source it never identified, and the row it would leave
      * behind is the one shape that hands a `ran_at` to the frontier.
+     *
+     * `idSpace` is the weaker claim, for a run that has ids to dedup and no
+     * watermark to advance: `{ account }` alone, stored with a blank
+     * `source_id`, so `finishSweep` can key the seen table and cannot key a
+     * frontier. See A SWEEP WITH AN ID SPACE AND NO SOURCE. Naming both is
+     * refused rather than resolved in favour of one, because a caller that
+     * passes both has two different answers to the same question and this layer
+     * has no basis for picking.
      */
-    openSweep({ label, source = null, since, fetchedIds, skipped, leftover, kind = MAIL_KIND, note = '', drained = false, ranAt = now() }) {
+    openSweep({ label, source = null, idSpace = null, since, fetchedIds, skipped, leftover, kind = MAIL_KIND, note = '', drained = false, ranAt = now() }) {
       if (drained && !source) throw new Error('a sweep cannot claim it drained a source it never resolved')
+      if (source && idSpace) throw new Error('a sweep names either a source or an id space, never both: a source already carries the space its ids are unique in')
       // The two halves are named one by one rather than spread, so the identity
       // checked here is the identity stored below. `{ kind, ...source }` let a
       // `source` carrying its own `kind` satisfy the guard under one value while
@@ -688,7 +737,13 @@ export function createRepo(storage) {
       // does that; the point is that the shape cannot arise at all.
       const { account, sourceId } = source
         ? requireSource('openSweep', { kind, account: source.account, sourceId: source.sourceId })
-        : { account: '', sourceId: '' }
+        // An id space is named the same way and checked by the same guard the
+        // dedup read uses, so a run cannot store a key `seenIds` would refuse.
+        // `sourceId` is written blank on purpose and not left to a default: it
+        // is the column `finishSweep` tests before it moves a frontier.
+        : idSpace
+          ? { account: requireIdSpace('openSweep', { kind, account: idSpace.account }).account, sourceId: '' }
+          : { account: '', sourceId: '' }
       const id = uid()
       const noteText = [skipped ? `skipped=${skipped}` : '', note].filter(Boolean).join('; ')
       S.exec('INSERT INTO ext_aisignal_sweeps (id, ran_at, label, account, source_id, since, messages, fetched_ids, leftover, kind, note, frontier_after) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',

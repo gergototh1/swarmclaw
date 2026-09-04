@@ -47,6 +47,11 @@ for (const d of ['src', 'dist']) {
 }
 fs.copyFileSync(path.join(root, 'index.mjs'), path.join(wsDir, 'index.js'))
 fs.copyFileSync(path.join(root, 'package.json'), path.join(wsDir, 'package.json'))
+// research.mjs reads this at load, from the workspace root beside src/. It is
+// data rather than code, so the src/ copy above does not carry it and it has to
+// be named here; without it an installed extension loads with no topics and the
+// research tool refuses every call.
+fs.copyFileSync(path.join(root, 'research_topics.json'), path.join(wsDir, 'research_topics.json'))
 fs.writeFileSync(path.join(extDir, 'aisignal.mjs'), "export { default } from './.workspaces/aisignal_mjs/index.js'\n")
 
 // Skills ship alongside the extension once there are any; there are none yet.

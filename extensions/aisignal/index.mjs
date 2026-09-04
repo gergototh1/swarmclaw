@@ -1,5 +1,6 @@
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { createSweepTools } from './src/sweep.mjs'
+import { createResearchTool } from './src/research.mjs'
 
 /**
  * Everything the host hands over in setup(), in one place.
@@ -18,8 +19,25 @@ import { createSweepTools } from './src/sweep.mjs'
  * client is built from the host's OAuth. Leaving it off the object made the
  * seam invisible to anyone reading this file, where every other key on the
  * shared state is declared.
+ *
+ * `fetchImpl`, `researchTimeoutMs` and `researchBudgetMs` are the same kind of
+ * key for research.mjs, and are declared here for the same reason. `fetchImpl`
+ * is what a test injects so no request leaves the machine; the two numbers are
+ * the request deadline and the run's time budget, which a test shortens so it
+ * can pin the timeout without waiting for one. All three are null in
+ * production, where the global `fetch` and the module's own constants are used.
  */
-export const state = { storage: null, settings: () => ({}), log: console, oauth: null, repo: null, gmailFactory: null }
+export const state = {
+  storage: null,
+  settings: () => ({}),
+  log: console,
+  oauth: null,
+  repo: null,
+  gmailFactory: null,
+  fetchImpl: null,
+  researchTimeoutMs: null,
+  researchBudgetMs: null,
+}
 
 const aisignal = {
   name: 'AI Signal',
@@ -33,7 +51,7 @@ const aisignal = {
     state.oauth = ctx.oauth
     state.repo = createRepo(ctx.storage)
   },
-  tools: createSweepTools(state),
+  tools: [...createSweepTools(state), createResearchTool(state)],
   rpc: {},
   ui: {
     pages: [{

@@ -981,3 +981,29 @@ test('items search treats % and _ as literal characters', () => {
   assert.equal(r.items({ q: 'a_b' }).items[0].message_id, 'c')
   assert.equal(r.items({ q: 'faster' }).total, 2)
 })
+
+test('a sweep that names an id space stores it, keeps source_id blank, and moves no frontier', () => {
+  const repo = fresh()
+  const { id } = repo.openSweep({ label: 'topics', idSpace: { account: 'public-web' }, since: null, fetchedIds: ['hn:1'], skipped: 0, leftover: 0, kind: 'research' })
+  repo.finishSweep({ sweepId: id })
+
+  const row = repo.sweepById(id)
+  assert.equal(row.account, 'public-web')
+  assert.equal(row.source_id, '')
+  // The ids are marked seen under the space, and nothing is keyed as a source.
+  assert.equal(repo.seenIds({ kind: 'research', account: 'public-web' }, ['hn:1']).size, 1)
+  assert.throws(() => repo.frontier({ kind: 'research', account: 'public-web', sourceId: '' }), /non-empty sourceId/)
+})
+
+test('an id space with a blank account is refused by name rather than stored', () => {
+  const repo = fresh()
+  assert.throws(() => repo.openSweep({ label: 'topics', idSpace: { account: '' }, since: null, fetchedIds: [], skipped: 0, leftover: 0, kind: 'research' }), /non-empty account/)
+})
+
+test('a sweep that names both a source and an id space is refused rather than resolved in favour of one', () => {
+  const repo = fresh()
+  assert.throws(
+    () => repo.openSweep({ label: 'l', source: { account: 'a@b.test', sourceId: 'LBL' }, idSpace: { account: 'public-web' }, since: null, fetchedIds: [], skipped: 0, leftover: 0 }),
+    /either a source or an id space/,
+  )
+})

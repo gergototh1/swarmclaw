@@ -1,0 +1,60 @@
+{
+  "_comment": [
+    "The topics the research sweep reads. The operator chose them, and this file",
+    "is their only home: change them here, in the repo, not in the installed",
+    "workspace, or the next `npm run install:local` writes them back.",
+    "",
+    "WHY JSON AND NOT YAML: this file is read with `JSON.parse` at module load,",
+    "with no dependency and no parser of our own. YAML would need one, and an",
+    "extension may not bundle a native module or grow a dependency the host does",
+    "not already carry.",
+    "",
+    "WHAT EACH FIELD MEANS:",
+    "  key         the topic's identifier. It is what `researchSweep` accepts in",
+    "              its `topics` argument and what each candidate carries back as",
+    "              `topic`. It never appears in a fetched URL.",
+    "  hu          what the agent calls the topic when it talks to the operator.",
+    "  query       what is actually searched. IN ENGLISH: Reddit, Hacker News and",
+    "              GitHub speak English, and a Hungarian search returns nothing.",
+    "  subreddits  the subreddits `fetchReddit` searches, one request each. A",
+    "              comma-separated list; the fetcher also accepts an array. Without",
+    "              them the search is a general keyword sweep, and general keyword",
+    "              sweeps are exactly what makes these small-business topics noisy.",
+    "  search      carried over from the Hermes research runner this file came",
+    "              from, where it named which of that tool's sources to ask. This",
+    "              extension does NOT read it: it always asks Reddit, Hacker News",
+    "              and GitHub, and reports by name any of the three that did not",
+    "              answer, so a run can never imply it looked somewhere it did not.",
+    "",
+    "THE KEYWORD TRAP -- MEASURED, NOT ASSUMED. The first `skillek` query",
+    "(\"useful MCP servers ... worth using\") pulled \"Useful Bash Tricks\" and \"Awe",
+    "does not require PAE, though PAE makes it more useful\" off Hacker News: the",
+    "search matched the common adjective (`useful`), not the subject. So a query",
+    "is built from CONCRETE NOUNS (MCP server, Claude Code, agent skill), never",
+    "from general adjectives."
+  ],
+  "days": 30,
+  "topics": [
+    {
+      "key": "eszkozok",
+      "hu": "AI-eszközök egy KKV munkafolyamatában",
+      "query": "small business AI automation what actually works customer support admin",
+      "subreddits": "smallbusiness,Entrepreneur,AI_Agents,automation,msp",
+      "search": "youtube,hackernews,github"
+    },
+    {
+      "key": "stack",
+      "hu": "Automatizálás és szoftver-stack",
+      "query": "small business automation stack tools we stopped using what broke migration away",
+      "subreddits": "smallbusiness,Entrepreneur,automation,nocode,sysadmin,msp",
+      "search": "youtube,hackernews,github"
+    },
+    {
+      "key": "skillek",
+      "hu": "Skillek, repók, MCP-k, workflow-k",
+      "query": "MCP server Claude Code agent skill workflow setup experience",
+      "subreddits": "mcp,ClaudeAI,LocalLLaMA,AI_Agents,ChatGPTCoding",
+      "search": "youtube,hackernews,github"
+    }
+  ]
+}
