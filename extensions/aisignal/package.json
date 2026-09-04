@@ -6,10 +6,12 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --import tsx --test test/*.test.mjs",
+    "test:e2e": "node test/e2e.smoke.mjs",
     "install:local": "node scripts/install.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
+    "playwright": "^1.44.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tsx": "^4.20.6"
