@@ -220,6 +220,64 @@ test('finishSweep keeps the skipped count openSweep recorded', () => {
   assert.equal(r.latestSweep().note, 'skipped=3; partial page')
 })
 
+test('finishSweep does not duplicate a multi-segment closing note on retry', () => {
+  // joinNote used to check the whole addition against the existing note's
+  // single-segment parts, so an addition that itself contains '; ' was never
+  // found among them and got appended again on every retry.
+  const r = fresh()
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: ['m1'], skipped: 3, leftover: 0 })
+  r.finishSweep({ sweepId: sweep.id, ok: true, note: 'partial page; rate limited' })
+  r.finishSweep({ sweepId: sweep.id, ok: true, note: 'partial page; rate limited' })
+  assert.equal(r.latestSweep().note, 'skipped=3; partial page; rate limited')
+})
+
+test('items pages through rows with identical created_at exactly once, in insertion order', () => {
+  // A sweep writes its whole batch inside one millisecond, so created_at alone
+  // ties every row in it. Without a tiebreaker that never ties, SQLite's own
+  // stable sort falls back to physical scan order for the tied rows -- oldest
+  // first -- which is backwards for a "most recent first" list and, because
+  // that fallback is implementation-defined rather than guaranteed, is exactly
+  // the kind of ordering a LIMIT/OFFSET walk cannot rely on: nothing stops a
+  // later insert into the tied group, a different query plan, or another
+  // SQLite build from placing a row on the wrong side of an already-read
+  // offset, so the same walk returns a row twice or skips one between pages.
+  // `rowid DESC` pins the tie order to insertion order (newest first) so the
+  // walk is well-defined regardless.
+  const { storage, repo: r } = freshWithStorage()
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  const ids = []
+  for (let i = 0; i < 5; i++) {
+    const { id } = r.insertItem({ sweepId: sweep.id, messageId: 'm' + i, headline: 'h' + i, summary: '', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+    ids.push(id)
+  }
+  storage.exec('UPDATE ext_aisignal_items SET created_at = ?', ['2026-09-01T00:00:00.000Z'])
+  const expected = ids.slice().reverse() // newest (last inserted) first
+
+  const walked = []
+  for (let offset = 0; offset < ids.length; offset += 2) {
+    walked.push(...r.items({ limit: 2, offset }).items.map((it) => it.id))
+  }
+  assert.deepEqual(walked, expected)
+  assert.equal(new Set(walked).size, ids.length)
+})
+
+test('board deck orders tied apply_score, score and created_at by insertion, newest first', () => {
+  // Same tie as above, on the deck query. Without the rowid tiebreaker the
+  // deck falls back to oldest-first for a tied batch, which is the wrong
+  // order for cards the user expects sorted newest-first, and is not an order
+  // the deck can rely on staying put across calls either.
+  const { storage, repo: r } = freshWithStorage()
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  const ids = []
+  for (let i = 0; i < 5; i++) {
+    const { id } = r.insertItem({ sweepId: sweep.id, messageId: 'm' + i, headline: 'h' + i, summary: '', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+    ids.push(id)
+  }
+  storage.exec('UPDATE ext_aisignal_items SET created_at = ?', ['2026-09-01T00:00:00.000Z'])
+
+  assert.deepEqual(r.board(50).deck.map((it) => it.id), ids.slice().reverse())
+})
+
 test('latestFinishedSince ignores a sweep that started and never finished', () => {
   // ok defaults to 1, so a run that died mid-pass still reads as a success. If
   // it became the watermark, every message between the last genuinely completed

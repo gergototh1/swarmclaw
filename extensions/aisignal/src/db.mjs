@@ -106,10 +106,21 @@ const SWEEP_ORDER = 'ran_at DESC, rowid DESC'
 /** The complete decision vocabulary decide() accepts, and the status each writes. */
 const DECISION_STATUS = { save: 'saved', archive: 'archived', undo: 'new' }
 
-/** Sweep notes are '; '-joined segments; re-adding one already present is a no-op so finishSweep stays idempotent. */
+/**
+ * Sweep notes are '; '-joined segments; re-adding a segment already present is
+ * a no-op so finishSweep stays idempotent.
+ *
+ * The addition is split on the same separator before the containment check.
+ * A closing note can itself carry several segments (e.g. "partial page; rate
+ * limited"), and checking that whole string against the single-segment
+ * `parts` array never finds a match, so a retried sweep would append it again
+ * on every call.
+ */
 function joinNote(existing, addition) {
   const parts = (existing || '').split('; ').filter(Boolean)
-  if (addition && !parts.includes(addition)) parts.push(addition)
+  for (const p of (addition || '').split('; ').filter(Boolean)) {
+    if (!parts.includes(p)) parts.push(p)
+  }
   return parts.join('; ')
 }
 
@@ -207,6 +218,14 @@ export function createRepo(storage) {
      * status 'unknown' selects the empty string, not a missing value: rows
      * written before status had a default carry '' rather than NULL, and they
      * are unreachable from any other filter.
+     *
+     * Both orderings end on `rowid DESC`. `created_at` and `apply_score`/
+     * `score` are only as precise as their column, and a whole sweep batch is
+     * written inside one millisecond, so ties on those alone leave the order
+     * up to the query planner -- a LIMIT/OFFSET walk of tied rows can then
+     * return one row on two pages and skip another between them. `rowid`
+     * reflects insertion order and is never tied, so it always breaks the tie
+     * the same way.
      */
     items({ status = 'all', q = '', order = 'recent', limit = 50, offset = 0 } = {}) {
       const where = []; const p = []
@@ -220,7 +239,7 @@ export function createRepo(storage) {
         p.push(like, like)
       }
       const w = where.length ? `WHERE ${where.join(' AND ')}` : ''
-      const o = order === 'score' ? 'apply_score DESC, score DESC' : 'created_at DESC'
+      const o = order === 'score' ? 'apply_score DESC, score DESC, created_at DESC, rowid DESC' : 'created_at DESC, rowid DESC'
       const total = S.get(`SELECT COUNT(*) AS c FROM ext_aisignal_items ${w}`, p).c
       const rows = S.all(`SELECT * FROM ext_aisignal_items ${w} ORDER BY ${o} LIMIT ? OFFSET ?`, [...p, limit, offset])
       return { total, count: rows.length, items: rows }
@@ -229,9 +248,14 @@ export function createRepo(storage) {
      * The decide surface: a capped deck plus the true number still undecided,
      * so a full deck can say how much is behind it instead of implying 50 is all
      * there is.
+     *
+     * Ends on `rowid DESC` for the same reason `items()` does: a sweep batch
+     * ties on `apply_score`, `score` and `created_at` within the millisecond it
+     * was written, and without a tiebreaker that never ties the deck can
+     * reorder between two calls that see the same rows.
      */
     board(deckLimit = 50) {
-      const deck = S.all("SELECT * FROM ext_aisignal_items WHERE status = 'new' ORDER BY apply_score DESC, score DESC, created_at DESC LIMIT ?", [deckLimit])
+      const deck = S.all("SELECT * FROM ext_aisignal_items WHERE status = 'new' ORDER BY apply_score DESC, score DESC, created_at DESC, rowid DESC LIMIT ?", [deckLimit])
       const undecided = S.get("SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE status = 'new'").c
       return { deck, deckLimit, undecided }
     },
