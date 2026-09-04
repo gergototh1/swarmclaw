@@ -1,3 +1,4 @@
+import { AGENTS, SCHEDULES } from './src/agents.mjs'
 import { SIGNALS_CONTRACT, createSignalsContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { createResearchTool } from './src/research.mjs'
@@ -99,7 +100,19 @@ const aisignal = {
       { key: 'maxMessages', label: 'Levél / futás', type: 'number', placeholder: '5', defaultValue: 5 },
     ],
   },
-  managedResources: { agents: [], schedules: [] },
+  /**
+   * The two agents and the two schedules the host creates and keeps in step
+   * with this declaration -- see src/agents.mjs for the prompts and for what
+   * the host does with a run that fails or one that overruns its slot.
+   *
+   * The declarations are frozen there and handed over by reference. The host
+   * only reads them (`buildManagedAgent` and `buildManagedSchedule` copy
+   * fields out; `declarationHash` walks them), so a shared reference is safe,
+   * and freezing is what keeps a later reader from treating this object as
+   * somewhere to stash per-install state: `setup()` runs again on every reload
+   * and would not undo a mutation made here.
+   */
+  managedResources: { agents: AGENTS, schedules: SCHEDULES },
 }
 
 export default aisignal

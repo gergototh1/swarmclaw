@@ -54,7 +54,13 @@ fs.copyFileSync(path.join(root, 'package.json'), path.join(wsDir, 'package.json'
 fs.copyFileSync(path.join(root, 'research_topics.json'), path.join(wsDir, 'research_topics.json'))
 fs.writeFileSync(path.join(extDir, 'aisignal.mjs'), "export { default } from './.workspaces/aisignal_mjs/index.js'\n")
 
-// Skills ship alongside the extension once there are any; there are none yet.
+// The skills the two managed agents name in their declarations. They are
+// copied into <home>/skills, which is the workspace layer discoverSkills()
+// scans -- an extension's own directory is not a layer it looks in, so a skill
+// left in the repo tree is a skill the agent that names it never sees.
+// `skills: ['ai-hirlevel-kinyeres']` matches on the SKILL.md's frontmatter
+// `name`, not on the directory, so the two have to agree; agents.test.mjs pins
+// that they do.
 const skillsRoot = path.join(root, 'skills')
 if (fs.existsSync(skillsRoot)) {
   for (const skill of fs.readdirSync(skillsRoot)) {
