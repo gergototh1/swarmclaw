@@ -30,20 +30,21 @@ import type { ExtensionContractDeclarations } from '@/types/extension'
 // about whether the host wires it up, which is the half that can actually be
 // broken by a later edit.
 //
-// One thing this file does NOT reach: the shipped ESM loader. Every extension
-// source below is written with `export`/`export default` and saved with a
-// `.mjs` filename, but `runWithTempDataDir` spawns the subprocess with `node
-// --import tsx`, and tsx transpiles that ESM syntax to CommonJS before Node
-// ever sees it. So `dynamicRequire()` here is requiring a CommonJS module, and
-// `clearExtensionRequireCache`'s CommonJS `require.cache` eviction does what
-// it is supposed to: the file re-executes on reload. Every assertion below
-// that a reload re-executes a `.mjs` extension's file is therefore pinning
-// this harness's CJS-via-tsx behaviour -- which is also exactly what a real
-// CommonJS (`.js`) extension does in production -- and says nothing about a
-// genuine ESM extension loaded by the shipped loader, where `require()` of an
-// ESM file returns Node's already-evaluated ESM-registry module without
-// re-running it. That gap is real, is not exercised anywhere in this repo, and
-// is open as Task 20 in `doc/plans/2026-09-03-aisignal-extension.md`.
+// One thing this file does NOT reach: the module system the product ships on.
+// Every extension source below is written with `export`/`export default` and
+// saved with a `.mjs` filename, but `runWithTempDataDir` spawns the subprocess
+// with `node --import tsx`, and tsx transpiles that ESM syntax before Node ever
+// sees it. So an assertion here that a reload re-executes a `.mjs` extension is
+// evidence about the manager -- that it re-imports, re-validates and re-runs
+// setup() at the right moments -- and not about whether Node re-evaluates an
+// ESM file, which is the part tsx stands in front of.
+//
+// That second half is pinned by `extension-module-loader.test.ts`, which drives
+// the loader's own source under plain Node and under Electron's embedded Node,
+// with no tsx in the way. Read the two together: this file for the manager, that
+// one for the module system. Neither is sufficient alone, and a claim about
+// reload behaviour that rests only on this file has the same shape as the
+// ERR_REQUIRE_ESM defect that survived two rounds of green tests here.
 
 const PROVIDER_SOURCE = `
 export const calls = { list: 0, secret: 0 }
@@ -218,7 +219,7 @@ function installBoth(consumer = CONSUMER_SOURCE, provider = PROVIDER_SOURCE): st
     const m = getExtensionManager()
     await m.saveExtensionSource('provider.mjs', ${JSON.stringify(provider)})
     await m.saveExtensionSource('consumer.mjs', ${JSON.stringify(consumer)})
-    m.reload()
+    await m.reload()
     const probe = (body) => m.getRpcHandler('consumer.mjs', 'probe')(body)
     const call = (body) => m.getRpcHandler('consumer.mjs', 'call')(body)
     const SIGNALS = { extension: 'provider', contract: 'signals' }
@@ -319,7 +320,7 @@ describe('extension contracts: unmet dependencies', () => {
       meta: unknown
     }>(`
       ${installBoth()}
-      m.setEnabled('provider.mjs', false)
+      await m.setEnabled('provider.mjs', false)
       const result = await probe(SIGNALS)
       const metas = m.listExtensions()
       const consumerMeta = metas.find((e) => e.filename === 'consumer.mjs')
@@ -353,7 +354,7 @@ describe('extension contracts: unmet dependencies', () => {
       const { getExtensionManager } = extensionsMod.default || extensionsMod
       const m = getExtensionManager()
       await m.saveExtensionSource('consumer.mjs', ${JSON.stringify(CONSUMER_SOURCE)})
-      m.reload()
+      await m.reload()
       const result = await m.getRpcHandler('consumer.mjs', 'probe')({ extension: 'provider', contract: 'signals' })
       const alive = await m.getRpcHandler('consumer.mjs', 'alive')({})
       console.log(JSON.stringify({ consumerAlive: !!alive && alive.alive === true, why: result.why }))
@@ -503,7 +504,7 @@ describe('extension contracts: what the host does not enforce', () => {
           provides: { signals: { version: 1, methods: { list: async () => [] } } },
         }\`)
       await m.saveExtensionSource('consumer.mjs', ${JSON.stringify(CONSUMER_SOURCE.replace("extension: 'provider'", "extension: 'writer'"))})
-      m.reload()
+      await m.reload()
 
       const metas = m.listExtensions()
       const noSummary = metas.find((e) => e.filename === 'nosummary.mjs')
@@ -548,7 +549,7 @@ describe('extension contracts: a captured handle', () => {
       ${installBoth()}
       await probe(SIGNALS)
       const before = await call({ ...SIGNALS, method: 'get', args: { id: 's1' } })
-      m.setEnabled('provider.mjs', false)
+      await m.setEnabled('provider.mjs', false)
       const after = await call({ ...SIGNALS, method: 'get', args: { id: 's1' } })
       console.log(JSON.stringify({
         before: before.value,
@@ -584,13 +585,10 @@ describe('extension contracts: a captured handle', () => {
 // the escape it guards against is a cache key built from an unrealpath'd
 // path, which Node never files a module under.
 //
-// This is CommonJS reload behaviour. A genuine ESM extension, loaded by the
-// shipped loader rather than this harness's tsx transpile, does not
-// re-execute on reload at all -- see the caveats on `callContractMethod` in
-// ./extension-contracts.ts and on `ExtensionContracts` in
-// src/types/extension.ts. No test in this file, or anywhere in this repo,
-// exercises that path; it is tracked as Task 20 in
-// `doc/plans/2026-09-03-aisignal-extension.md`.
+// These pin the manager's half of the reload. That an ESM file is genuinely
+// re-evaluated -- which under tsx it is not required to be, see the note above
+// `PROVIDER_SOURCE` -- is pinned separately, on the shipped runtimes, by
+// `extension-module-loader.test.ts`.
 
 describe('extension contracts: an edit to an extension file', () => {
   it('upgrades a live manager: a provider contract version bumped on disk is the version the host serves', () => {
@@ -612,7 +610,7 @@ describe('extension contracts: an edit to an extension file', () => {
       const beforeProvided = m.listExtensions().find((e) => e.filename === 'provider.mjs').contractsProvided
 
       await m.saveExtensionSource('provider.mjs', ${JSON.stringify(PROVIDER_V3_SOURCE)})
-      m.reload()
+      await m.reload()
 
       const onDisk = m.readExtensionSource('provider.mjs')
       const afterProvided = m.listExtensions().find((e) => e.filename === 'provider.mjs').contractsProvided
@@ -624,7 +622,7 @@ describe('extension contracts: an edit to an extension file', () => {
       // Realigning the consumer on the new version is what proves the
       // provider's method bodies were re-executed too, not just its manifest.
       await m.saveExtensionSource('consumer.mjs', ${JSON.stringify(CONSUMER_V3_SOURCE)})
-      m.reload()
+      await m.reload()
       const realigned = await call({ ...SIGNALS, method: 'list', args: { limit: 1 } })
 
       console.log(JSON.stringify({
@@ -687,7 +685,7 @@ describe('extension contracts: an edit to an extension file', () => {
       const before = await call({ ...SIGNALS, method: 'get', args: { id: 's1' } })
 
       await m.saveExtensionSource('consumer.mjs', ${JSON.stringify(CONSUMER_WITHOUT_DECLARATION_SOURCE)})
-      m.reload()
+      await m.reload()
 
       const onDisk = m.readExtensionSource('consumer.mjs')
       const after = await call({ ...SIGNALS, method: 'get', args: { id: 's1' } })
@@ -732,7 +730,7 @@ describe('extension contracts: an edit to an extension file', () => {
       ${installBoth()}
       await probe(SIGNALS)
       const before = await call({ ...SIGNALS, method: 'get', args: { id: 's1' } })
-      const deleted = m.deleteExtension('provider.mjs')
+      const deleted = await m.deleteExtension('provider.mjs')
       const after = await call({ ...SIGNALS, method: 'get', args: { id: 's1' } })
       console.log(JSON.stringify({
         before: before.value,
@@ -780,7 +778,7 @@ describe('extension contracts: an edit to an extension file', () => {
         await probe(SIGNALS)
         const beforeProvided = m.listExtensions().find((e) => e.filename === 'provider.mjs').contractsProvided
         await m.saveExtensionSource('provider.mjs', ${JSON.stringify(PROVIDER_V3_SOURCE)})
-        m.reload()
+        await m.reload()
         const afterProvided = m.listExtensions().find((e) => e.filename === 'provider.mjs').contractsProvided
         const afterWhy = (await probe(SIGNALS)).why
         console.log(JSON.stringify({ beforeProvided, afterProvided, afterWhy }))
@@ -818,7 +816,7 @@ describe('extension contracts: a handle is a bearer capability', () => {
       await m.saveExtensionSource('provider.mjs', ${JSON.stringify(PROVIDER_SOURCE)})
       await m.saveExtensionSource('leaker.mjs', ${JSON.stringify(LEAKING_CONSUMER_SOURCE)})
       await m.saveExtensionSource('stranger.mjs', ${JSON.stringify(STRANGER_SOURCE)})
-      m.reload()
+      await m.reload()
       const leaked = await m.getRpcHandler('leaker.mjs', 'leak')({})
       const ownWhy = await m.getRpcHandler('stranger.mjs', 'ownWhy')({})
       const ownGetIsNull = await m.getRpcHandler('stranger.mjs', 'ownGet')({})
@@ -852,8 +850,8 @@ describe('extension contracts: the operator-facing audit surface', () => {
       providerProvided: unknown
     }>(`
       ${installBoth()}
-      m.setEnabled('consumer.mjs', false)
-      m.setEnabled('provider.mjs', false)
+      await m.setEnabled('consumer.mjs', false)
+      await m.setEnabled('provider.mjs', false)
       const metas = m.listExtensions()
       const consumerMeta = metas.find((e) => e.filename === 'consumer.mjs')
       const providerMeta = metas.find((e) => e.filename === 'provider.mjs')
@@ -891,14 +889,14 @@ describe('extension contracts: the operator-facing audit surface', () => {
       afterEnable: unknown
     }>(`
       ${installBoth()}
-      m.setEnabled('consumer.mjs', false)
+      await m.setEnabled('consumer.mjs', false)
       const whileOff = m.listExtensions().find((e) => e.filename === 'consumer.mjs').contractsConsumed
 
       await m.saveExtensionSource('consumer.mjs', ${JSON.stringify(MAILBOX_CONSUMER_SOURCE)})
-      m.reload()
+      await m.reload()
       const afterEditWhileOff = m.listExtensions().find((e) => e.filename === 'consumer.mjs').contractsConsumed
 
-      m.setEnabled('consumer.mjs', true)
+      await m.setEnabled('consumer.mjs', true)
       const afterEnable = m.listExtensions().find((e) => e.filename === 'consumer.mjs').contractsConsumed
 
       console.log(JSON.stringify({ whileOff, afterEditWhileOff, afterEnable }))
@@ -917,13 +915,10 @@ describe('extension contracts: the operator-facing audit surface', () => {
     // switched off. The bound is worth pinning precisely because an operator
     // reads this card to decide whether to switch the extension back on.
     assert.deepEqual(out.afterEditWhileOff, innocuous)
-    // Switching it on is the action that answers the question, and under this
-    // harness's CJS reload (see the note above `PROVIDER_SOURCE`) it answers
-    // honestly: the reload re-executes the file, and the card immediately
-    // shows what the file declares now. A genuine ESM extension does not get
-    // this: switching it back on returns the already-evaluated module instead
-    // of re-executing it, so its card would keep showing the *stale*
-    // pre-edit manifest -- see Task 20.
+    // Switching it on is the action that answers the question, and it answers
+    // honestly: the reload re-executes the file -- in either module format, on
+    // every shipped runtime -- and the card immediately shows what the file
+    // declares now.
     assert.deepEqual(out.afterEnable, [{
       extension: 'mailbox',
       contract: 'signals',
@@ -940,7 +935,7 @@ describe('extension contracts: the operator-facing audit surface', () => {
       const m = getExtensionManager()
       m.registerBuiltin('signalsource', { name: 'Signal Source' })
       await m.saveExtensionSource('consumer.mjs', ${JSON.stringify(CONSUMER_SOURCE.replace("extension: 'provider'", "extension: 'signalsource'"))})
-      m.reload()
+      await m.reload()
       const builtinListed = m.listExtensions().some((e) => e.filename === 'signalsource' && e.isBuiltin && e.enabled)
       const result = await m.getRpcHandler('consumer.mjs', 'probe')({ extension: 'signalsource', contract: 'signals' })
       console.log(JSON.stringify({ builtinListed, why: result.why }))
@@ -991,7 +986,7 @@ describe('extension contracts: recursion', () => {
           } } },
           setup(ctx) { state.contracts = ctx.contracts },
         }\`)
-      m.reload()
+      await m.reload()
       const result = await m.getRpcHandler('ping.mjs', 'start')({})
       const aliveAfter = await m.getRpcHandler('ping.mjs', 'alive')({})
       console.log(JSON.stringify({ ok: result.ok, code: result.code || '', message: result.message || '', aliveAfter: aliveAfter === true }))
@@ -1017,7 +1012,7 @@ describe('extension contracts: hostile and careless declarations', () => {
       await m.saveExtensionSource('notafunction.mjs', \`
         export default { name: 'NotAFunction', provides: { signals: { version: 1, summary: 'Nothing.', methods: { list: 'nope' } } } }\`)
       await m.saveExtensionSource('healthy.mjs', ${JSON.stringify(PROVIDER_SOURCE)})
-      m.reload()
+      await m.reload()
       const metas = m.listExtensions()
       const empty = metas.find((e) => e.filename === 'empty.mjs')
       const notAFunction = metas.find((e) => e.filename === 'notafunction.mjs')

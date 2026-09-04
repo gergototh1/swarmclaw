@@ -52,6 +52,12 @@ import {
   type ContractProviderEntry,
   type ExtensionContractRegistry,
 } from './extensions/extension-contracts'
+import {
+  ensureExtensionResolveHooks,
+  evictExtensionCommonJsCache,
+  extensionModuleExport,
+  importExtensionModule,
+} from './extensions/extension-module-loader'
 import { getGoogleAccessToken, hasGoogleCredential } from './oauth/google'
 import { errorMessage, hmrSingleton } from '@/lib/shared-utils'
 
@@ -85,6 +91,8 @@ const _migrateLegacyPaths = (() => {
 const MAX_EXTERNAL_EXTENSION_BYTES = 1024 * 1024
 const SUPPORTED_EXTENSION_PACKAGE_MANAGERS: ExtensionPackageManager[] = ['npm', 'pnpm', 'yarn', 'bun']
 const EXTENSION_INSTALL_TIMEOUT_MS = 5 * 60 * 1000
+/** How long the extensions directory watcher waits for writes to stop before reloading. */
+const EXTENSION_WATCH_DEBOUNCE_MS = 250
 const MAX_CONSECUTIVE_EXTENSION_FAILURES = (() => {
   const raw = Number.parseInt(process.env.SWARMCLAW_EXTENSION_FAILURE_THRESHOLD || '3', 10)
   if (!Number.isFinite(raw)) return 3
@@ -726,16 +734,15 @@ interface LoadedExtension {
 }
 
 /**
- * The key Node would file `target` under in the module cache: its resolved
- * realpath, or the path unchanged when it does not resolve.
+ * One enabled external extension's module, as of the generation it was acquired
+ * in. `ok: false` records an acquisition that was attempted and failed, which is
+ * what separates "this extension is broken" from "this extension has not been
+ * acquired yet": the first is a load failure to report, the second means the
+ * synchronous load path must not run at all. See `loadOnce`.
  */
-function moduleCacheKey(target: string): string {
-  try {
-    return fs.realpathSync(target)
-  } catch {
-    return target
-  }
-}
+type ExternalModuleRecord =
+  | { ok: true; namespace: Record<string, unknown> }
+  | { ok: false; error: unknown }
 
 function createExtensionRequire(): NodeRequire | null {
   try {
@@ -789,6 +796,48 @@ class ExtensionManager {
    */
   private lastKnownContracts: Map<string, ExtensionContractDeclarations> = new Map()
 
+  /**
+   * The module object of every enabled external extension, acquired
+   * asynchronously by `acquireExternalModules` and read synchronously by
+   * `loadOnce`.
+   *
+   * This split is the whole shape change. An extension module can only be
+   * obtained with `import()`, which is async, but the manager's read side
+   * (`getTools`, `getProviders`, `listExtensions`, the prompt sections, the
+   * provider list) is synchronous and reached from a long tail of synchronous
+   * callers across the app. Making all of those async would rewrite prompt
+   * building and the provider registry to fix an extension loader, so instead
+   * the async step is confined to acquisition: the module objects are in hand
+   * before any synchronous read can want them, and `loadOnce` never awaits.
+   *
+   * What has to hold for that to be honest is that `loaded` is never false at a
+   * moment when this map is stale. Every path that invalidates re-acquires
+   * first and swaps both in the same synchronous step -- see `reload`. The one
+   * remaining cold moment is process start, before `ensureLoaded` has run;
+   * `loadOnce` refuses to complete a load in that state rather than quietly
+   * reporting a host with no external extensions.
+   */
+  private externalModules: Map<string, ExternalModuleRecord> = new Map()
+
+  /**
+   * Bumped once per reload. Stamped onto each extension's module URL so the
+   * next `import()` evaluates the file again instead of returning the module
+   * Node already has: the ESM registry is keyed by URL and cannot be evicted.
+   * Starts at 1 so the first load is already stamped and the second load
+   * differs from it.
+   */
+  private moduleGeneration = 1
+
+  /** The debounced re-acquisition the extensions directory watcher schedules. */
+  private watcherReloadTimer: NodeJS.Timeout | null = null
+
+  /**
+   * Set once, the first time the synchronous load path is reached before any
+   * module has been acquired. Keeps that warning to one line per process
+   * instead of one per getter call.
+   */
+  private warnedAboutColdLoad = false
+
   registerBuiltin(id: string, extension: Extension) {
     const canonicalId = this.canonicalExtensionId(id)
     this.builtins.set(canonicalId, extension)
@@ -802,8 +851,7 @@ class ExtensionManager {
       this.ensureExtensionDirs()
       const watcher = fs.watch(EXTENSIONS_DIR, (_eventType, filename) => {
         if (!filename || (!filename.endsWith('.js') && !filename.endsWith('.mjs'))) return
-        this.loaded = false
-        notify('extensions')
+        this.scheduleWatcherReload()
       })
       watcher.on('error', (err: unknown) => {
         log.warn('extensions', 'Extension watcher disabled after runtime watch failure', {
@@ -821,6 +869,39 @@ class ExtensionManager {
         error: errorMessage(err),
       })
     }
+  }
+
+  /**
+   * Re-acquires and reloads after a write under the extensions directory.
+   *
+   * The watcher used to only mark the manager dirty and let the next getter
+   * reload synchronously. It cannot do that any more -- acquisition is async --
+   * and the naive replacement, marking dirty and re-acquiring in the
+   * background, would leave a window in which every getter reports a host with
+   * no external extensions. So the reload happens here, ahead of any reader,
+   * and `loaded` only goes false once the new modules are in hand.
+   *
+   * The debounce is not cosmetic. `fs.watch` fires while a file is still being
+   * written, and importing a half-written extension is a syntax error that
+   * `markExtensionFailure` counts; enough of them in a row and the extension is
+   * auto-disabled. Waiting for the writes to stop is what keeps an ordinary
+   * save from looking like a failing extension. A reload already in flight is
+   * not interrupted: the timer is restarted, so the last write wins.
+   */
+  private scheduleWatcherReload(): void {
+    if (this.watcherReloadTimer) clearTimeout(this.watcherReloadTimer)
+    const timer = setTimeout(() => {
+      this.watcherReloadTimer = null
+      void this.reload()
+        .catch((err: unknown) => {
+          log.warn('extensions', 'Reload after extensions directory change failed', {
+            error: errorMessage(err),
+          })
+        })
+        .finally(() => { notify('extensions') })
+    }, EXTENSION_WATCH_DEBOUNCE_MS)
+    timer.unref?.()
+    this.watcherReloadTimer = timer
   }
 
   private isExternalExtensionFilename(id: string): boolean {
@@ -898,61 +979,35 @@ class ExtensionManager {
   }
 
   /**
-   * Evicts an extension, and everything loaded out of its workspace, from the
-   * module cache so that the next require() re-executes the file the operator
-   * just edited.
+   * Evicts a CommonJS extension, and everything loaded out of its workspace,
+   * from `require.cache` so that the next load re-executes the file the
+   * operator just edited.
    *
-   * Node keys that cache by the *resolved realpath* of a module, not by the
-   * path the caller handed to require(), so the eviction key has to be
-   * realpath'd to match. DATA_DIR is path.resolve'd and deliberately not
-   * realpath'd, because it is also shown to people and written into stored
-   * state; on a host whose data directory sits behind a symlink the
-   * unrealpath'd key therefore matched nothing and the eviction silently did
-   * nothing at all, leaving the previous module object live until the process
-   * restarted. macOS is the everyday case: `os.tmpdir()` is `/var/folders/...`,
-   * a link to `/private/var/folders/...`. That made extension reloads behave
-   * one way on a symlinked data directory and another way on Linux, Docker or
-   * an app-home directory, which is exactly the host dependence this project
-   * does not accept. Realpathing the key here, rather than realpathing DATA_DIR
-   * for everything, confines the change to the one place that has to agree with
-   * Node's own key.
+   * Still required now that the loader uses `import()`. Importing a CommonJS
+   * file runs Node's CommonJS loader underneath, and that loader has its own
+   * realpath-keyed cache: the generation-stamped URL gives the ESM side a fresh
+   * module record, but the CommonJS side fills it from the cached
+   * `module.exports` unless the entry is evicted first. Measured under plain
+   * Node and under Electron's embedded Node: with this eviction a CommonJS
+   * extension and its workspace files re-execute per generation, without it
+   * neither does. ESM extensions do not need it and are not helped by it --
+   * their re-execution comes entirely from the generation stamp, because an ESM
+   * module lives in a registry with no eviction API.
    *
-   * realpathSync throws for a path that no longer resolves: a file deleted
-   * between the directory listing and this call, or a workspace directory that
-   * was never created. Falling back to the unresolved path in that case is not
-   * a claim that the fallback still finds the right cache entry — it does not:
-   * Node keyed the entry by the realpath computed at *load* time, and the
-   * unresolved path of a file that has since vanished was never that key, so
-   * this eviction misses it either way. It is harmless regardless, because the
-   * only caller is the load loop below, which calls this immediately before
-   * `dynamicRequire(fullPath)` on a filename it just read from `readdirSync`:
-   * a file that vanished between that listing and here fails the require()
-   * moments later regardless of what this method managed to evict, so a
-   * missed eviction here changes nothing about the outcome.
+   * Both the file the operator sees in the extensions directory and the
+   * workspace entry the loader actually imports are evicted, because either can
+   * be the CommonJS module Node cached: an extension without a workspace is
+   * loaded from the first path, one with a workspace from the second.
+   *
+   * The realpath and containment reasoning that this eviction depends on lives
+   * with the eviction itself, in `evictExtensionCommonJsCache`.
    */
   private clearExtensionRequireCache(dynamicRequire: NodeRequire, filename: string): void {
-    const rootPath = moduleCacheKey(path.join(EXTENSIONS_DIR, filename))
-    delete dynamicRequire.cache[rootPath]
-    // Same exposure as the root key: a prefix comparison against an
-    // unrealpath'd directory never matches the realpath'd keys Node stores.
-    const workspaceDir = moduleCacheKey(this.getWorkspaceDir(filename))
-    // Contained to the realpath'd workspaces root so that a workspace
-    // directory which is, or has become, a symlink to somewhere broad cannot
-    // widen this into a sweep of the process-wide `require.cache`, which is
-    // shared by every module the host and every extension has ever required.
-    // Extensions run in-process and can already reach worse than that
-    // directly, so this is not closing an escalation of capability — it is
-    // closing an accidental blast radius the realpath fix above did not
-    // itself account for.
-    const workspacesRoot = moduleCacheKey(EXTENSION_WORKSPACES_DIR)
-    const isWithinWorkspacesRoot =
-      workspaceDir === workspacesRoot || workspaceDir.startsWith(`${workspacesRoot}${path.sep}`)
-    if (!isWithinWorkspacesRoot) return
-    for (const cacheKey of Object.keys(dynamicRequire.cache)) {
-      if (cacheKey.startsWith(`${workspaceDir}${path.sep}`)) {
-        delete dynamicRequire.cache[cacheKey]
-      }
-    }
+    evictExtensionCommonJsCache(dynamicRequire.cache, {
+      entryPaths: [path.join(EXTENSIONS_DIR, filename), this.getWorkspaceEntryPath(filename)],
+      containerDir: this.getWorkspaceDir(filename),
+      containerRoot: EXTENSION_WORKSPACES_DIR,
+    })
   }
 
   private resolveExtensionSourcePath(filename: string): string {
@@ -1172,8 +1227,105 @@ class ExtensionManager {
     }
   }
 
+  /** The enabled external extension filenames this host should have modules for. */
+  private enabledExternalFilenames(config: Record<string, ExtensionConfigEntry>): string[] {
+    return this.listExtensionFilenames().filter((file) => this.readConfigEntry(file, config)?.enabled !== false)
+  }
+
+  /**
+   * Imports every enabled external extension for the given generation.
+   *
+   * Nothing here touches the manager's own state: it returns a map, which the
+   * caller swaps in. That is what lets `reload` invalidate and rebuild without
+   * ever awaiting in between, so no synchronous reader can observe a host with
+   * its extensions momentarily missing.
+   *
+   * An extension whose import throws is recorded as a failure rather than
+   * omitted. `loadOnce` needs to tell "this file was tried and is broken" from
+   * "this file has not been tried yet"; only the second means the module map is
+   * not usable yet.
+   */
+  private async acquireExternalModules(generation: number): Promise<Map<string, ExternalModuleRecord>> {
+    const acquired = new Map<string, ExternalModuleRecord>()
+    let config: Record<string, ExtensionConfigEntry>
+    try {
+      this.ensureExtensionDirs()
+      config = this.loadConfig()
+    } catch {
+      return acquired
+    }
+    const dynamicRequire = createExtensionRequire()
+    if (!dynamicRequire) return acquired
+
+    if (!ensureExtensionResolveHooks()) {
+      // Degraded, not broken: an edited extension's own entry file still
+      // re-executes on reload, but the modules it imports keep the copies Node
+      // already holds, so an edit confined to those does not take effect until
+      // the process restarts. Worth a line in the log because the symptom
+      // otherwise looks like a reload that silently did nothing.
+      log.warn('extensions', 'Extension module resolve hooks unavailable; reload will not re-execute imported extension files')
+    }
+
+    for (const file of this.enabledExternalFilenames(config)) {
+      // Evicted immediately before the import, and only for this file: a
+      // CommonJS extension is served from require.cache underneath `import()`
+      // unless its entry is gone from there first.
+      this.clearExtensionRequireCache(dynamicRequire, file)
+      try {
+        // The workspace entry when there is a workspace, the file in the
+        // extensions directory otherwise -- the same path `readExtensionSource`
+        // shows the operator, rather than the generated shim that re-exports
+        // it. The shim's own module format is then irrelevant to loading, which
+        // matters because `writeWorkspaceShim` emits CommonJS regardless of the
+        // extension's filename: importing an `.mjs` shim holding
+        // `module.exports = ...` is a syntax error, and importing a `.js`
+        // CommonJS shim that requires an ESM workspace entry is
+        // ERR_REQUIRE_ESM on Electron and not on a newer Node. Loading the
+        // entry directly removes both, and removes a difference between
+        // runtimes with it.
+        const namespace = await importExtensionModule(this.resolveExtensionSourcePath(file), generation)
+        acquired.set(file, { ok: true, namespace })
+      } catch (err: unknown) {
+        acquired.set(file, { ok: false, error: err })
+      }
+    }
+    return acquired
+  }
+
+  /**
+   * Synchronous load. Registers builtins always, and external extensions only
+   * from modules already acquired.
+   *
+   * When an enabled external extension has no acquired module this returns
+   * without marking the manager loaded, so the next call tries again once
+   * acquisition has finished. It deliberately does not register the extensions
+   * it *does* have: a partial load followed by a full one would call every
+   * already-registered extension's `setup()` twice for a single boot, and
+   * `setup()` is where extensions do their one-time work.
+   */
   load() {
     if (this.loaded) return
+    this.loading = true
+    try {
+      this.loadOnce()
+    } finally {
+      this.loading = false
+    }
+  }
+
+  /**
+   * Loads, acquiring external extension modules first.
+   *
+   * This is the entry point the server boot path awaits (see
+   * `src/instrumentation.ts`). It exists because an extension module can only
+   * be obtained with `import()`: `load()` alone cannot produce a host with
+   * external extensions on a cold process, no matter how many times it is
+   * called.
+   */
+  async ensureLoaded(): Promise<void> {
+    if (this.loaded) return
+    const acquired = await this.acquireExternalModules(this.moduleGeneration)
+    this.externalModules = acquired
     this.loading = true
     try {
       this.loadOnce()
@@ -1238,127 +1390,147 @@ class ExtensionManager {
     // 2. Load External
     try {
       this.ensureExtensionDirs()
-      const files = fs.readdirSync(EXTENSIONS_DIR).filter(f => f.endsWith('.js') || f.endsWith('.mjs'))
-      const dynamicRequire = createExtensionRequire()
+      const files = this.enabledExternalFilenames(config)
 
-      if (dynamicRequire) {
-        for (const file of files) {
-          try {
-            const explicitConfig = this.readConfigEntry(file, config)
-            const isEnabled = explicitConfig?.enabled !== false
-            if (!isEnabled) continue
+      // Every enabled file must already have an acquisition result. One that
+      // does not means acquisition has not run yet for this generation, and
+      // there is no synchronous way to run it: `import()` is async. Bail
+      // without marking the manager loaded rather than report a host that has
+      // no external extensions, and rather than register half of them and call
+      // the other half's setup() a second time on the next pass.
+      const unacquired = files.filter((file) => !this.externalModules.has(file))
+      if (unacquired.length > 0) {
+        if (!this.warnedAboutColdLoad) {
+          this.warnedAboutColdLoad = true
+          log.warn('extensions', 'External extensions read before they were loaded; awaiting ensureLoaded()', {
+            extensionIds: unacquired.join(', '),
+          })
+        }
+        return
+      }
 
-            const fullPath = path.join(EXTENSIONS_DIR, file)
-            this.clearExtensionRequireCache(dynamicRequire, file)
-            const ext = normalizeExtension(dynamicRequire(fullPath))
-            if (!ext) {
-              this.markExtensionFailure(file, 'load.normalize', 'Extension format unsupported or activate() failed', true)
-              continue
-            }
+      for (const file of files) {
+        try {
+          const explicitConfig = this.readConfigEntry(file, config)
 
-            const takenPaths = new Set<string>()
-            for (const other of this.extensions.values()) {
-              for (const page of other.ui?.pages || []) takenPaths.add(page.path)
-            }
-            const pagesCheck = validateExtensionPages(ext.ui?.pages, takenPaths)
-            if (!pagesCheck.ok) {
-              this.markExtensionFailure(file, 'load.ui_pages', pagesCheck.error, true)
-              continue
-            }
-            if (ext.ui) ext.ui.pages = pagesCheck.pages
-
-            // Contract declarations are checked here, alongside the pages, and
-            // for the same reason: a declaration the author got wrong should
-            // fail the load rather than resolve to nothing at call time. A
-            // consumption whose provider is absent is NOT checked here — that
-            // is answered with null at call time, so an unmet dependency never
-            // stops the consumer from loading.
-            const contractsCheck = validateExtensionContracts(file, ext.provides, ext.consumes)
-            if (!contractsCheck.ok) {
-              this.markExtensionFailure(file, 'load.contracts', contractsCheck.error, true)
-              continue
-            }
-            // Remembered before setup() and before the extension is registered:
-            // the operator's audit surface should show what an extension asked
-            // for even when it went on to fail, and should keep showing it once
-            // the extension is switched off. See `lastKnownContracts`.
-            this.lastKnownContracts.set(file, contractsCheck.declarations)
-
-            // Storage and setup run before the extension is registered, so an
-            // extension whose schema or setup fails never becomes reachable.
-            try {
-              runExtensionMigrations(file, ext.migrations)
-              if (ext.setup) {
-                ext.setup({
-                  extensionId: file,
-                  tablePrefix: extensionTablePrefix(file),
-                  storage: createExtensionStorage(file),
-                  // Not this.getExtensionSettings(file): setup() runs inside
-                  // load(), before this.loaded is set, so that path re-enters
-                  // load() through getSettingsFields and recurses until the
-                  // stack is exhausted, re-running every extension's setup and
-                  // migrations at each level. The fields are already in hand
-                  // here — they are this extension's own declarations, the same
-                  // list getSettingsFields would return once it is registered
-                  // — and the values are read fresh on every call, so a later
-                  // call still sees settings edited since load.
-                  settings: () => this.applyDeclaredSettingsDefaults(
-                    this.readStoredExtensionSettings(file),
-                    ext.ui?.settingsFields || [],
-                  ),
-                  log: {
-                    info: (msg, meta) => log.info(`extension:${ext.name}`, msg, meta),
-                    warn: (msg, meta) => log.warn(`extension:${ext.name}`, msg, meta),
-                    error: (msg, meta) => log.error(`extension:${ext.name}`, msg, meta),
-                  },
-                  oauth: {
-                    getGoogleAccessToken: (purpose) => getGoogleAccessToken(purpose),
-                    hasGoogleCredential: (purpose) => hasGoogleCredential(purpose),
-                  },
-                  // Two closures, nothing resolved yet. Safe to capture, and
-                  // safe to build here even though the extension is not
-                  // registered yet: the consumer's own declarations are read
-                  // live at call time, from the record set below.
-                  contracts: this.getExtensionContracts(file),
-                })
-              }
-            } catch (err: unknown) {
-              this.markExtensionFailure(file, 'load.setup', err, true)
-              continue
-            }
-
-            this.extensions.set(file, {
-              id: file,
-              meta: {
-                name: ext.name,
-                description: ext.description || '',
-                filename: file,
-                enabled: true,
-                author: ext.author,
-                version: ext.version || '0.0.1',
-                source: inferStoredExtensionSource(explicitConfig),
-                sourceLabel: inferStoredPublisherSource(explicitConfig),
-                installSource: inferStoredInstallSource(explicitConfig),
-                sourceUrl: explicitConfig?.sourceUrl,
-                openclaw: ext.openclaw === true,
-              },
-              hooks: buildExtensionHooks(file, ext.name, ext.hooks, ext.tools),
-              tools: ext.tools || [],
-              ui: ext.ui,
-              providers: ext.providers,
-              connectors: ext.connectors,
-              managedResources: ext.managedResources,
-              rpc: ext.rpc,
-              contracts: contractsCheck.declarations,
-            })
-            this.markExtensionSuccess(file)
-          } catch (err: unknown) {
+          const record = this.externalModules.get(file)
+          if (!record) continue
+          if (!record.ok) {
             log.error('extensions', 'Failed to load external extension', {
               extensionId: file,
-              error: errorMessage(err),
+              error: errorMessage(record.error),
             })
-            this.markExtensionFailure(file, 'load.require', err, true)
+            this.markExtensionFailure(file, 'load.require', record.error, true)
+            continue
           }
+          const ext = normalizeExtension(extensionModuleExport(record.namespace))
+          if (!ext) {
+            this.markExtensionFailure(file, 'load.normalize', 'Extension format unsupported or activate() failed', true)
+            continue
+          }
+
+          const takenPaths = new Set<string>()
+          for (const other of this.extensions.values()) {
+            for (const page of other.ui?.pages || []) takenPaths.add(page.path)
+          }
+          const pagesCheck = validateExtensionPages(ext.ui?.pages, takenPaths)
+          if (!pagesCheck.ok) {
+            this.markExtensionFailure(file, 'load.ui_pages', pagesCheck.error, true)
+            continue
+          }
+          if (ext.ui) ext.ui.pages = pagesCheck.pages
+
+          // Contract declarations are checked here, alongside the pages, and
+          // for the same reason: a declaration the author got wrong should
+          // fail the load rather than resolve to nothing at call time. A
+          // consumption whose provider is absent is NOT checked here — that
+          // is answered with null at call time, so an unmet dependency never
+          // stops the consumer from loading.
+          const contractsCheck = validateExtensionContracts(file, ext.provides, ext.consumes)
+          if (!contractsCheck.ok) {
+            this.markExtensionFailure(file, 'load.contracts', contractsCheck.error, true)
+            continue
+          }
+          // Remembered before setup() and before the extension is registered:
+          // the operator's audit surface should show what an extension asked
+          // for even when it went on to fail, and should keep showing it once
+          // the extension is switched off. See `lastKnownContracts`.
+          this.lastKnownContracts.set(file, contractsCheck.declarations)
+
+          // Storage and setup run before the extension is registered, so an
+          // extension whose schema or setup fails never becomes reachable.
+          try {
+            runExtensionMigrations(file, ext.migrations)
+            if (ext.setup) {
+              ext.setup({
+                extensionId: file,
+                tablePrefix: extensionTablePrefix(file),
+                storage: createExtensionStorage(file),
+                // Not this.getExtensionSettings(file): setup() runs inside
+                // load(), before this.loaded is set, so that path re-enters
+                // load() through getSettingsFields and recurses until the
+                // stack is exhausted, re-running every extension's setup and
+                // migrations at each level. The fields are already in hand
+                // here — they are this extension's own declarations, the same
+                // list getSettingsFields would return once it is registered
+                // — and the values are read fresh on every call, so a later
+                // call still sees settings edited since load.
+                settings: () => this.applyDeclaredSettingsDefaults(
+                  this.readStoredExtensionSettings(file),
+                  ext.ui?.settingsFields || [],
+                ),
+                log: {
+                  info: (msg, meta) => log.info(`extension:${ext.name}`, msg, meta),
+                  warn: (msg, meta) => log.warn(`extension:${ext.name}`, msg, meta),
+                  error: (msg, meta) => log.error(`extension:${ext.name}`, msg, meta),
+                },
+                oauth: {
+                  getGoogleAccessToken: (purpose) => getGoogleAccessToken(purpose),
+                  hasGoogleCredential: (purpose) => hasGoogleCredential(purpose),
+                },
+                // Two closures, nothing resolved yet. Safe to capture, and
+                // safe to build here even though the extension is not
+                // registered yet: the consumer's own declarations are read
+                // live at call time, from the record set below.
+                contracts: this.getExtensionContracts(file),
+              })
+            }
+          } catch (err: unknown) {
+            this.markExtensionFailure(file, 'load.setup', err, true)
+            continue
+          }
+
+          this.extensions.set(file, {
+            id: file,
+            meta: {
+              name: ext.name,
+              description: ext.description || '',
+              filename: file,
+              enabled: true,
+              author: ext.author,
+              version: ext.version || '0.0.1',
+              source: inferStoredExtensionSource(explicitConfig),
+              sourceLabel: inferStoredPublisherSource(explicitConfig),
+              installSource: inferStoredInstallSource(explicitConfig),
+              sourceUrl: explicitConfig?.sourceUrl,
+              openclaw: ext.openclaw === true,
+            },
+            hooks: buildExtensionHooks(file, ext.name, ext.hooks, ext.tools),
+            tools: ext.tools || [],
+            ui: ext.ui,
+            providers: ext.providers,
+            connectors: ext.connectors,
+            managedResources: ext.managedResources,
+            rpc: ext.rpc,
+            contracts: contractsCheck.declarations,
+          })
+          this.markExtensionSuccess(file)
+        } catch (err: unknown) {
+          log.error('extensions', 'Failed to load external extension', {
+            extensionId: file,
+            error: errorMessage(err),
+          })
+          this.markExtensionFailure(file, 'load.require', err, true)
         }
       }
     } catch { /* ignore */ }
@@ -1486,16 +1658,12 @@ class ExtensionManager {
    * call, so disabling or deleting the provider takes effect through a handle
    * captured before it, regardless of module format.
    *
-   * Editing a declaration is narrower: it only takes effect on the next reload
-   * for a CommonJS extension, whose file `clearExtensionRequireCache` evicts
-   * and re-executes. Reloading an ESM extension still succeeds — `require()`
-   * of an ESM file returns the module from Node's ESM registry rather than
-   * re-evaluating it — so `loaded.contracts` is repopulated on every reload
-   * with the same, unchanged declarations the module had when it first
-   * loaded. A `consumes` entry removed on disk therefore keeps appearing on
-   * the operator's card, and keeps being served, exactly as before: the file
-   * edit has no effect on a running host until the process restarts. Known
-   * gap, open as Task 20 in `doc/plans/2026-09-03-aisignal-extension.md`. See
+   * Editing a declaration takes effect on the next reload, in both module
+   * formats: `reload()` re-imports the file under a new generation-stamped
+   * module URL, which is what makes Node evaluate an ESM file again, and evicts
+   * CommonJS entries from `require.cache` alongside it. So a `consumes` entry
+   * removed on disk stops appearing on the operator's card and stops being
+   * served after the reload, without a process restart. See
    * `callContractMethod` in ./extensions/extension-contracts.
    *
    * Private because it mints a contracts object for whatever consumer id it is
@@ -2368,18 +2536,10 @@ class ExtensionManager {
       // shows the declarations it had when it was last loaded, so an operator
       // reading the card of a disabled extension to judge what switching it
       // back on would hand it can be reading a superseded manifest. Switching
-      // it on is the action the operator was deciding about, but whether it
-      // also answers the question depends on the extension's module format.
-      // For a CommonJS extension the reload that follows re-executes the
-      // file, so the card then shows what the file declares now. For an ESM
-      // extension the reload succeeds but does not re-execute the file — see
-      // `getExtensionContracts` above — so `loaded.contracts` is repopulated
-      // from the same module the process first evaluated, and the card, like
-      // the extension's actual running behaviour, keeps showing the manifest
-      // from that first load. An ESM extension edited while switched off
-      // therefore shows, and runs, the *stale* manifest after being switched
-      // back on, not the one now on disk. Known gap, open as Task 20 in
-      // `doc/plans/2026-09-03-aisignal-extension.md`.
+      // it on is the action the operator was deciding about, and it also answers
+      // the question: the reload that follows re-executes the file in either
+      // module format — see `reload` — so the card then shows what the file
+      // declares now, matching what the extension actually runs.
       //
       // `unavailable` is left off entirely for a not-loaded extension. It names
       // why a *provider* is not answering, and that question does not arise
@@ -2555,7 +2715,7 @@ class ExtensionManager {
       })
     }
 
-    this.reload()
+    await this.reload()
   }
 
   async installExtensionDependencies(filename: string, options?: { packageManager?: ExtensionPackageManager }): Promise<ExtensionDependencyInfo> {
@@ -2607,20 +2767,20 @@ class ExtensionManager {
       })
       throw new Error(message)
     } finally {
-      this.reload()
+      await this.reload()
     }
 
     return this.getDependencyInfo(sanitizedFilename, this.readConfigEntry(sanitizedFilename))
   }
 
-  setEnabled(filename: string, enabled: boolean) {
+  async setEnabled(filename: string, enabled: boolean): Promise<void> {
     const current = this.readConfigEntry(filename)
     this.updateConfigEntry(filename, { ...(current || {}), enabled })
     if (enabled) this.clearFailureState(filename)
-    this.reload()
+    await this.reload()
   }
 
-  deleteExtension(filename: string): boolean {
+  async deleteExtension(filename: string): Promise<boolean> {
     // Only allow deleting external extensions, not builtins
     if (this.builtins.has(this.canonicalExtensionId(filename))) return false
     // Sanitised before anything touches the filesystem: an unsanitised
@@ -2668,7 +2828,7 @@ class ExtensionManager {
         error: errorMessage(err),
       })
     }
-    this.reload()
+    await this.reload()
     return true
   }
 
@@ -2713,7 +2873,7 @@ class ExtensionManager {
       updatedAt: Date.now(),
     })
 
-    this.reload()
+    await this.reload()
     return true
   }
 
@@ -2739,7 +2899,43 @@ class ExtensionManager {
     try { return JSON.parse(fs.readFileSync(EXTENSIONS_CONFIG, 'utf8')) } catch { return {} }
   }
 
-  reload() { this.loaded = false; this.load() }
+  /**
+   * Re-acquires every enabled external extension and rebuilds the manager.
+   *
+   * Asynchronous because acquiring an extension module is: `import()` is the
+   * only call that loads ESM on Electron's Node, and the only one that can
+   * produce a *second* evaluation of a file Node has already loaded. Callers
+   * that do not await it get a manager that is still serving the previous
+   * generation, which is the same thing they got before this became async, so
+   * the failure mode of a missed `await` is a stale read rather than a crash.
+   *
+   * The generation bump is what makes the reload real. Node's ESM registry is
+   * keyed by module URL and has no eviction API, so re-importing the same URL
+   * returns the same module object however many times the file changed on
+   * disk; stamping a new generation onto the URL is the only supported way to
+   * get the edited file evaluated. The cost is a leak, measured rather than
+   * estimated: one retained module instance per file in the extension's own
+   * module graph per reload, roughly 5-8 KB each, held by that registry for the
+   * life of the process. Bumped per reload rather than per load, so the count
+   * tracks operator actions -- install, edit, enable, disable, delete, or a
+   * write the directory watcher sees -- and not request traffic.
+   *
+   * Acquisition finishes before anything is invalidated, and the swap and the
+   * rebuild share one synchronous step, so there is no moment at which a
+   * synchronous reader sees a host whose external extensions have vanished.
+   */
+  async reload(): Promise<void> {
+    this.moduleGeneration += 1
+    const acquired = await this.acquireExternalModules(this.moduleGeneration)
+    this.externalModules = acquired
+    this.loaded = false
+    this.loading = true
+    try {
+      this.loadOnce()
+    } finally {
+      this.loading = false
+    }
+  }
 }
 
 const _managerHolder = hmrSingleton<{ instance: ExtensionManager | null }>('__swarmclaw_extension_manager__', () => ({ instance: null }))

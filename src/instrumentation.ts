@@ -11,6 +11,23 @@ export async function register() {
     const { ensureDaemonStarted } = await import('@/lib/server/runtime/daemon-state')
     await ensureOpenTelemetryStarted()
 
+    // Awaited, and not deferred with the work below, because an extension
+    // module can only be obtained with `import()`. Every read side of the
+    // extension manager is synchronous -- tool lists, provider lists, prompt
+    // sections -- so an extension that has not been imported by the time the
+    // first request runs is simply absent from that request, with no way for
+    // the synchronous caller to wait for it. Loading here is the same work the
+    // first request used to do inline; it moves the cost from first request to
+    // boot and removes the window in which the host reports no extensions.
+    // A broken extension must not stop the server, so failures are logged and
+    // the boot continues: the manager records per-extension failures itself.
+    try {
+      const { getExtensionManager } = await import('@/lib/server/extensions')
+      await getExtensionManager().ensureLoaded()
+    } catch (err) {
+      log.error(TAG, 'Extension load during boot failed:', err)
+    }
+
     // Defer migrations, WS init, and daemon startup so the HTTP listener can bind
     // and /api/healthz can respond immediately. Heavy per-install work (session
     // migrations on large data dirs, daemon recovery) no longer gates first boot.

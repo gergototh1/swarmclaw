@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   if (!ext) {
     return NextResponse.json({ error: 'Extension not found' }, { status: 404 })
   }
-  manager.setEnabled(filename as string, enabled)
+  await manager.setEnabled(filename as string, enabled)
   logActivity({ entityType: 'extension', entityId: filename as string, action: enabled ? 'enabled' : 'disabled', actor: 'user', summary: `Extension "${filename}" ${enabled ? 'enabled' : 'disabled'}` })
   notify('extensions')
 
@@ -40,7 +40,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'filename required' }, { status: 400 })
   }
   const manager = getExtensionManager()
-  const deleted = manager.deleteExtension(filename)
+  const deleted = await manager.deleteExtension(filename)
   if (!deleted) {
     return NextResponse.json({ error: 'Cannot delete built-in or non-existent extension' }, { status: 400 })
   }

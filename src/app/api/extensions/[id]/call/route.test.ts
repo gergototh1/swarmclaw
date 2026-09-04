@@ -40,8 +40,8 @@ const result = runWithTempDataDir<RpcRouteResult>(`
   const manager = getExtensionManager()
   await manager.saveExtensionSource('rpc_a.mjs', 'export default { name: "R", rpc: { echo: (b) => ({ got: b }), later: async (b) => ({ awaited: b.n }), boom: () => { throw new Error("kaboom") }, silent: () => undefined, nothing: () => null, fragment: () => "<p>hi</p>", circular: () => { const o = {}; o.self = o; return o } } }')
   await manager.saveExtensionSource('rpc_off.mjs', 'export default { name: "Off", rpc: { echo: (b) => ({ got: b }) } }')
-  manager.setEnabled('rpc_off.mjs', false)
-  manager.reload()
+  await manager.setEnabled('rpc_off.mjs', false)
+  await manager.reload()
 
   // \`raw\` is the exact request body; \`undefined\` sends no body at all.
   const call = async (method, raw, id = 'rpc_a.mjs') => {

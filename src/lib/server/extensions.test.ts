@@ -5,6 +5,7 @@ import path from 'node:path'
 import { getExtensionManager, normalizeMarketplaceExtensionUrl, sanitizeExtensionFilename } from './extensions'
 import { canonicalizeExtensionId, expandExtensionIds, extensionIdMatches } from './tool-aliases'
 import { DATA_DIR } from './data-dir'
+import { runWithTempDataDir } from './test-utils/run-with-temp-data-dir'
 import type { Session } from '@/types'
 
 let testExtensionSeq = 0
@@ -454,6 +455,104 @@ describe('extension manager hook execution', () => {
     assert.equal(callCount, 1)
   })
 
+  it('calls setup() once per load, however many synchronous reads happen before the modules are acquired', () => {
+    // The synchronous read side of the manager cannot acquire an extension
+    // module -- `import()` is async -- so it can be reached on a cold process
+    // before anything has been imported. What it must not do there is register
+    // half a host and let the real load register the rest, which would run
+    // setup() twice for one boot on every extension that happened to be ready
+    // first. setup() is where extensions run migrations and take handles; a
+    // second call per boot is a duplicated side effect, not a wasted cycle.
+    const out = runWithTempDataDir<{
+      afterColdLoads: number
+      afterEnsureLoaded: number
+      afterWarmLoad: number
+      afterReload: number
+      failure: string
+    }>(`
+      import fs from 'node:fs'
+      import path from 'node:path'
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const counter = path.join(process.env.DATA_DIR, 'setup-calls')
+      const extensionsDir = path.join(process.env.DATA_DIR, 'extensions')
+      fs.mkdirSync(extensionsDir, { recursive: true })
+      // Written straight to disk rather than through saveExtensionSource, which
+      // reloads on the way out and would acquire the module before the cold
+      // reads below could happen.
+      const source = [
+        "import fs from 'node:fs'",
+        "const at = " + JSON.stringify(counter),
+        "export default {",
+        "  name: 'Setup Once',",
+        "  setup() {",
+        "    const seen = fs.existsSync(at) ? Number(fs.readFileSync(at, 'utf8')) : 0",
+        "    fs.writeFileSync(at, String(seen + 1))",
+        "  },",
+        "  tools: [{ name: 'setup_once_noop', description: 'x', parameters: { type: 'object', properties: {} }, execute: () => 'ok' }],",
+        "}",
+      ].join('\\n')
+      fs.writeFileSync(path.join(extensionsDir, 'setup_once.mjs'), source)
+
+      const read = () => (fs.existsSync(counter) ? Number(fs.readFileSync(counter, 'utf8')) : 0)
+      const m = getExtensionManager()
+      m.load(); m.load(); m.load()
+      const afterColdLoads = read()
+      await m.ensureLoaded()
+      const afterEnsureLoaded = read()
+      m.load(); m.load()
+      const afterWarmLoad = read()
+      await m.reload()
+      const afterReload = read()
+      const meta = m.listExtensions().find((e) => e.filename === 'setup_once.mjs')
+      console.log(JSON.stringify({
+        afterColdLoads,
+        afterEnsureLoaded,
+        afterWarmLoad,
+        afterReload,
+        failure: (meta && meta.lastFailureError) || '',
+      }))
+    `)
+
+    assert.equal(out.failure, '', 'the probe extension must load cleanly')
+    assert.equal(out.afterColdLoads, 0, 'a synchronous read before acquisition must not register the extension at all')
+    assert.equal(out.afterEnsureLoaded, 1, 'the load that acquires the module runs setup() exactly once')
+    assert.equal(out.afterWarmLoad, 1, 'a synchronous read of an already-loaded manager must not run setup() again')
+    assert.equal(out.afterReload, 2, 'a reload runs setup() again, once')
+  })
+
+  it('re-executes an edited ESM extension on reload, through the manager', () => {
+    // The module-system half of this is pinned on the shipped runtimes by
+    // extension-module-loader.test.ts. This is the manager half: that reload()
+    // actually re-imports under a new generation and rebuilds from the result,
+    // rather than repopulating itself from the module it already had.
+    const out = runWithTempDataDir<{ before: string; after: string }>(`
+      import fs from 'node:fs'
+      import path from 'node:path'
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const m = getExtensionManager()
+      const source = (tag) => \`
+        export default {
+          name: 'Reload Probe',
+          tools: [{ name: 'reload_probe', description: 'x', parameters: { type: 'object', properties: {} }, execute: () => '\${tag}' }],
+        }\`
+      await m.saveExtensionSource('reload_probe.mjs', source('first'))
+      const call = async () => {
+        const entry = m.getTools(['reload_probe.mjs']).find((t) => t.tool.name === 'reload_probe')
+        return String(await entry.tool.execute({}, { session: {}, message: '' }))
+      }
+      const before = await call()
+      fs.writeFileSync(path.join(process.env.DATA_DIR, 'extensions', 'reload_probe.mjs'), source('second'))
+      await m.reload()
+      const after = await call()
+      console.log(JSON.stringify({ before, after }))
+    `)
+
+    assert.equal(out.before, 'first')
+    assert.equal(out.after, 'second')
+  })
+
   it('stores dependency-aware extensions in managed workspaces', async () => {
     const filename = `${uniqueExtensionId('workspace_extension')}.js`
     const manager = getExtensionManager()
@@ -482,6 +581,6 @@ describe('extension manager hook execution', () => {
     const shimPath = path.join(DATA_DIR, 'extensions', filename)
     assert.equal(fs.readFileSync(shimPath, 'utf8').includes('Auto-generated extension workspace shim'), true)
 
-    assert.equal(manager.deleteExtension(filename), true)
+    assert.equal(await manager.deleteExtension(filename), true)
   })
 })

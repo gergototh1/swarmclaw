@@ -238,7 +238,7 @@ Key rules:
       const filePath = path.join(EXTENSIONS_DIR, filename)
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath)
-        getExtensionManager().reload()
+        await getExtensionManager().reload()
         return `Deleted ${filename} and reloaded manager.`
       }
       return `File not found: ${filename}`

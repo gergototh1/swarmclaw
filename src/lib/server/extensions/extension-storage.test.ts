@@ -201,7 +201,7 @@ describe('setup(ctx) through the manager', () => {
           tools: [{ name: 'st_add', description: 'x', parameters: { type: 'object', properties: {} },
             execute: () => { storage.exec('INSERT OR IGNORE INTO ext_st_a_notes (id) VALUES (?)', ['n1']); return String(storage.all('SELECT * FROM ext_st_a_notes').length) } }],
         }\`)
-      m.reload()
+      await m.reload()
       const entry = m.getTools(['st_a.mjs']).find((t) => t.tool.name === 'st_add')
       const count = Number(await entry.tool.execute({}, { session: {}, message: '' }))
       console.log(JSON.stringify({ count }))
@@ -220,7 +220,7 @@ describe('setup(ctx) through the manager', () => {
           tools: [{ name: 'st_boom', description: 'x', parameters: { type: 'object', properties: {} }, execute: () => 'ok' }],
           setup() { throw new Error('setup exploded') },
         }\`)
-      m.reload()
+      await m.reload()
       const meta = m.listExtensions().find((e) => e.filename === 'st_boom.mjs')
       console.log(JSON.stringify({
         loaded: m.getTools(['st_boom.mjs']).length > 0,
@@ -250,7 +250,7 @@ describe('setup(ctx) through the manager', () => {
               catch (e) { return JSON.stringify({ has, name: e.name, message: e.message }) }
             } }],
         }\`)
-      m.reload()
+      await m.reload()
       const entry = m.getTools(['st_oauth.mjs']).find((t) => t.tool.name === 'st_oauth_probe')
       console.log(await entry.tool.execute({}, { session: {}, message: '' }))
     `)
@@ -287,9 +287,9 @@ describe('deleteExtension drops the extension schema', () => {
           tools: [{ name: 'del_a_add', description: 'x', parameters: { type: 'object', properties: {} },
             execute: () => { storage.exec('INSERT INTO ext_del_a_notes (id) VALUES (?)', ['n1']); return String(storage.all('SELECT * FROM ext_del_a_notes').length) } }],
         }\`)
-      m.reload()
+      await m.reload()
       const before = snapshot()
-      const deleted = m.deleteExtension('del_a.mjs')
+      const deleted = await m.deleteExtension('del_a.mjs')
       const after = snapshot()
       // A newer version whose v1 declares three columns. If the uninstall left
       // the old ext_migrations row behind, this migration is skipped and the
@@ -303,7 +303,7 @@ describe('deleteExtension drops the extension schema', () => {
           tools: [{ name: 'del_a_add', description: 'x', parameters: { type: 'object', properties: {} },
             execute: () => { storage.exec('INSERT INTO ext_del_a_notes (id, body, tag) VALUES (?, ?, ?)', ['n1', 'b', 't']); return String(storage.all('SELECT * FROM ext_del_a_notes').length) } }],
         }\`)
-      m.reload()
+      await m.reload()
       const entry = m.getTools(['del_a.mjs']).find((t) => t.tool.name === 'del_a_add')
       let reinstalled = ''
       try { reinstalled = String(await entry.tool.execute({}, { session: {}, message: '' })) }
@@ -333,8 +333,8 @@ describe('deleteExtension drops the extension schema', () => {
           name: 'DelC',
           migrations: [{ version: 1, sql: 'CREATE TABLE IF NOT EXISTS ext_del_c_keep (id TEXT)' }],
         }\`)
-      m.reload()
-      const deleted = m.deleteExtension('del_b.mjs')
+      await m.reload()
+      const deleted = await m.deleteExtension('del_b.mjs')
       const tables = getDb().prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map((r) => r.name).filter((n) => n.startsWith('ext_del_'))
       const keeperRows = getDb().prepare('SELECT version FROM ext_migrations WHERE extension_id = ?').all('del_c.mjs').length
       console.log(JSON.stringify({ deleted, tables, keeperRows }))
@@ -356,11 +356,11 @@ describe('deleteExtension drops the extension schema', () => {
           name: 'DelD',
           migrations: [{ version: 1, sql: 'CREATE TABLE IF NOT EXISTS ext_del_d_notes (id TEXT)' }],
         }\`)
-      m.reload()
+      await m.reload()
       getDb().exec('DROP TABLE ext_del_d_notes')
       let deleted = false
       let error = ''
-      try { deleted = m.deleteExtension('del_d.mjs') } catch (e) { error = String(e.message) }
+      try { deleted = await m.deleteExtension('del_d.mjs') } catch (e) { error = String(e.message) }
       const rows = getDb().prepare('SELECT version FROM ext_migrations WHERE extension_id = ?').all('del_d.mjs').length
       console.log(JSON.stringify({ deleted, error, rows }))
     `)
@@ -403,7 +403,7 @@ describe('ctx.settings() inside setup(ctx)', () => {
       // saveExtensionSource reloads on its own, so count only the reload below.
       globalThis.__setupCalls = 0
       let error = ''
-      try { m.reload() } catch (e) { error = String(e && e.message ? e.message : e) }
+      try { await m.reload() } catch (e) { error = String(e && e.message ? e.message : e) }
       // Counted here, before anything else can trigger a further load: one
       // reload must call setup exactly once.
       const setupCalls = globalThis.__setupCalls || 0
@@ -453,9 +453,9 @@ describe('deleteExtension with a nested extension prefix', () => {
           name: 'NestAPro',
           migrations: [{ version: 1, sql: 'CREATE TABLE IF NOT EXISTS ext_nest_a_pro_notes (id TEXT PRIMARY KEY)' }],
         }\`)
-      m.reload()
+      await m.reload()
       getDb().prepare('INSERT INTO ext_nest_a_pro_notes (id) VALUES (?)').run('kept')
-      const deleted = m.deleteExtension('nest_a.mjs')
+      const deleted = await m.deleteExtension('nest_a.mjs')
       const tables = getDb().prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map((r) => r.name).filter((n) => n.startsWith('ext_nest_'))
       const proRows = getDb().prepare('SELECT version FROM ext_migrations WHERE extension_id = ?').all('nest_a_pro.mjs').length
       let proSelect = ''
@@ -496,11 +496,11 @@ describe('deleteExtension drops prefixed views and triggers', () => {
         }\`
       const m = getExtensionManager()
       await m.saveExtensionSource('view_a.mjs', source)
-      m.reload()
-      m.deleteExtension('view_a.mjs')
+      await m.reload()
+      await m.deleteExtension('view_a.mjs')
       const leftovers = getDb().prepare('SELECT type, name FROM sqlite_master ORDER BY name').all().filter((r) => String(r.name).startsWith('ext_view_a_'))
       await m.saveExtensionSource('view_a.mjs', source)
-      m.reload()
+      await m.reload()
       const meta = m.listExtensions().find((e) => e.filename === 'view_a.mjs')
       const entry = m.getTools(['view_a.mjs']).find((t) => t.tool.name === 'view_a_count')
       let reinstalled = ''
@@ -551,8 +551,8 @@ describe('deleteExtension drops prefixed indexes even on a table it does not own
         }\`
       const m = getExtensionManager()
       await m.saveExtensionSource('idx_a.mjs', source)
-      m.reload()
-      m.deleteExtension('idx_a.mjs')
+      await m.reload()
+      await m.deleteExtension('idx_a.mjs')
       const leftovers = getDb().prepare('SELECT type, name FROM sqlite_master ORDER BY name').all().filter((r) => String(r.name).startsWith('ext_idx_a_'))
       const hostTableSurvived = getDb().prepare("SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'host_sweeps'").get() != null
       // Reinstall: same source, so the same CREATE UNIQUE INDEX (no "IF NOT
@@ -561,7 +561,7 @@ describe('deleteExtension drops prefixed indexes even on a table it does not own
       // exists", exactly the failure mode views and triggers had before they
       // were dropped on uninstall.
       await m.saveExtensionSource('idx_a.mjs', source)
-      m.reload()
+      await m.reload()
       const meta = m.listExtensions().find((e) => e.filename === 'idx_a.mjs')
       const entry = m.getTools(['idx_a.mjs']).find((t) => t.tool.name === 'idx_a_count')
       let reinstalled = ''
@@ -614,9 +614,9 @@ describe('deleteExtension filename sanitising', () => {
           name: 'DelPath',
           migrations: [{ version: 1, sql: 'CREATE TABLE IF NOT EXISTS ext_del_path_notes (id TEXT)' }],
         }\`)
-      m.reload()
+      await m.reload()
       let error = ''
-      try { m.deleteExtension('./del_path.mjs') } catch (e) { error = String(e.message) }
+      try { await m.deleteExtension('./del_path.mjs') } catch (e) { error = String(e.message) }
       const stillInstalled = m.listExtensions().some((e) => e.filename === 'del_path.mjs')
       const tables = getDb().prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map((r) => r.name).filter((n) => n.startsWith('ext_del_path'))
       console.log(JSON.stringify({ error, stillInstalled, tables }))

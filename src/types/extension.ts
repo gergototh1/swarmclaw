@@ -464,19 +464,16 @@ export interface Extension {
    * subscription here leaks one per reload unless setup() clears the previous
    * one itself.
    *
-   * Whether the new setup() sees a handle the old one left in a module-level
-   * variable depends on the extension's module format, not on a universal
-   * reload mechanic. A CommonJS extension's file is evicted from
-   * `require.cache` and re-executed on every reload, so its module-level
-   * variables start fresh and the new setup() sees nothing the old one left
-   * there. An ESM extension is not re-executed by the shipped loader at all --
-   * see Task 20 in `doc/plans/2026-09-03-aisignal-extension.md` -- so its
-   * module object, and whatever it left in a module-level variable, survives
-   * across every reload until the process restarts. Do not rely on either
-   * behaviour: park anything that has to be reliably cleared on the next
-   * reload on `globalThis` instead, and clear it yourself there -- no reload,
-   * in either module format, touches `globalThis` on its own. Synchronous,
-   * because load() is.
+   * A reload re-executes the extension's file in both module formats, so its
+   * module-level variables start again from their initial values and the new
+   * setup() sees nothing the previous one left in them. What survives a reload
+   * is `globalThis`, which no reload touches, and anything the extension pulled
+   * from `node_modules`, which is imported once per process rather than once
+   * per reload. So park state that must be reliably cleared on the next reload
+   * on `globalThis` and clear it yourself there; a module-level variable is
+   * cleared for you, but only because the module is thrown away and a new one
+   * evaluated in its place. Synchronous, because load() is: the host awaits the
+   * extension's module before setup() runs, never during it.
    */
   setup?: (ctx: ExtensionContext) => void
   migrations?: ExtensionMigration[]
@@ -722,29 +719,21 @@ export interface ExtensionContractHandle {
  * captured in `setup()` stops working the moment the provider is disabled or
  * deleted, rather than calling on into a stale closure.
  *
- * Re-resolution follows an edit to an extension's file too, but only for a
- * CommonJS extension: the host's reload evicts it from Node's CommonJS
- * `require.cache` and the file re-executes, so a contract version bumped on
- * disk is the version served, a method added to or dropped from a `provides`
- * block appears or disappears, and a `consumes` entry deleted from a consumer
- * really does revoke the grant -- the next call answers `not_declared`.
+ * Re-resolution follows an edit to an extension's file too, in both module
+ * formats and on every runtime the product ships on. The host's reload imports
+ * each extension under a fresh generation-stamped module URL -- the only way to
+ * get Node to evaluate an ESM file a second time, since its registry is keyed by
+ * URL and cannot be evicted -- and evicts CommonJS entries from `require.cache`
+ * alongside it. So a contract version bumped on disk is the version served, a
+ * method added to or dropped from a `provides` block appears or disappears, and
+ * a `consumes` entry deleted from a consumer really does revoke the grant: the
+ * next call answers `not_declared`, without a process restart.
  *
- * An ESM extension gets none of that from a reload: it lives in Node's
- * separate ESM registry, which the CommonJS eviction never touches, so its
- * `provides` and `consumes` stay exactly as they were the moment it first
- * loaded -- no matter how many times the file on disk is edited and reloaded
- * -- until the process restarts. **Deleting a `consumes` entry from an ESM
- * extension's file does not revoke its grant on a running host.** Do not tell
- * an operator or an extension author otherwise. This is a known gap, open as
- * Task 20 in `doc/plans/2026-09-03-aisignal-extension.md`.
- *
- * Switching an extension off and uninstalling it are unaffected by any of
- * this: both are immediate for either module format, because both are read
- * off the config file and the directory listing rather than off module
- * content. Module *state* is a separate question from module *content*: a
- * CommonJS extension's module-level variables do start again from their
- * initial values on each reload, because the file re-executes; an ESM
- * extension's do not, because it does not.
+ * Switching an extension off and uninstalling it do not depend on any of that:
+ * both are read off the config file and the directory listing rather than off
+ * module content, so both are immediate. Module *state* follows module
+ * *content*: because the file re-executes, its module-level variables start
+ * again from their initial values on each reload.
  *
  * Data that comes back across this boundary keeps whatever trust it had. AI
  * Signal's items are newsletter bodies and forum posts written by strangers;
@@ -807,19 +796,12 @@ export interface ExtensionContext {
    * of module format, because disabling and deleting are read off the config
    * file and the directory listing, not off module content.
    *
-   * Following an edit to an extension's *file* is narrower: it only happens
-   * for a CommonJS extension, whose reload evicts it from Node's CommonJS
-   * require cache and re-executes it. There, a contract version bumped on
-   * disk, a method added or dropped, and a `consumes` entry added or removed
-   * each take effect on the next reload, without a process restart, and a
-   * captured handle follows all of it. An ESM extension's reload does not
-   * re-execute its file at all -- it lives in Node's separate ESM registry,
-   * untouched by that eviction -- so a captured handle, and a fresh `get`
-   * alike, keep seeing whatever the file declared when it first loaded even
-   * after the operator edits it and reloads, until the process restarts.
-   * Deleting a `consumes` entry from an ESM extension's file does not revoke a
-   * grant on a running host. This is a known gap, open as Task 20 in
-   * `doc/plans/2026-09-03-aisignal-extension.md`.
+   * Following an edit to an extension's *file* also works in both module
+   * formats: the reload re-executes the file, ESM by importing it under a new
+   * generation-stamped URL and CommonJS by evicting it from the require cache
+   * first. A contract version bumped on disk, a method added or dropped, and a
+   * `consumes` entry added or removed each take effect on the next reload
+   * without a process restart, and a captured handle follows all of it.
    *
    * Reading this during `setup()` itself is the one further exception worth
    * knowing about -- see `createExtensionContracts` in

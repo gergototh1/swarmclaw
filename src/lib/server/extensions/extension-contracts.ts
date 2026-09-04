@@ -58,17 +58,16 @@ import type {
  *     handle captured earlier: both are driven by the config file and the
  *     directory listing, not by module content, so neither depends on the
  *     module re-executing -- see `callContractMethod`.
- *   - Editing a *file* is different, and depends on the extension's module
- *     format. `clearExtensionRequireCache` (in `extensions.ts`) evicts an
- *     entry from Node's CommonJS `require.cache`, so a CommonJS extension
- *     really does re-execute on reload: a contract version bumped on disk is
- *     served, and a `consumes` entry deleted on disk is a grant revoked. An
- *     ESM extension -- the flagship AI Signal extension among them -- loads
- *     through Node's separate ESM module registry, which that eviction does
- *     not touch, so its declared contracts do not change until the process
- *     restarts, no matter how many times the operator edits the file and
- *     reloads. This is a known gap, open as Task 20 in
- *     `doc/plans/2026-09-03-aisignal-extension.md`, not fixed here.
+ *   - Editing a *file* also takes effect on the next reload, in both module
+ *     formats and on every runtime the product ships on. `reload()` imports
+ *     each extension under a fresh generation-stamped module URL, which is what
+ *     makes Node evaluate an ESM file again -- its registry is keyed by URL and
+ *     cannot be evicted -- and evicts CommonJS entries from `require.cache`,
+ *     which is what makes a CommonJS file evaluate again. A contract version
+ *     bumped on disk is served after the reload, and a `consumes` entry deleted
+ *     on disk is a grant revoked, for an ESM extension such as AI Signal as
+ *     much as for a CommonJS one. What does *not* re-execute is code the
+ *     extension pulled from `node_modules`; see `extension-module-loader.ts`.
  *
  * What this module exports, and which half of it is a compatibility surface.
  * `ExtensionContractError` and `ExtensionContractErrorCode` are public API that
@@ -394,33 +393,29 @@ export function resolveExtensionContract(
  * disabled extension has to actually stop answering, or the toggle in the
  * extension list is a lie.
  *
- * Re-resolving also picks up an edit to an extension's file, for a CommonJS
- * extension: `reload()` calls `clearExtensionRequireCache` in `extensions.ts`,
- * which evicts the module from Node's CommonJS `require.cache` before the
- * loader requires it again, so the file really does re-execute. A provider
- * whose contract version is bumped on disk then serves the new version and a
- * consumer still pinned to the old one gets `version_mismatch`; a method added
- * to or dropped from a `provides` block is added or dropped; and a `consumes`
- * entry deleted from a consumer is a revoked grant -- the next call answers
- * `not_declared`, through a handle captured before the edit as much as through
- * a fresh `get`.
+ * Re-resolving also picks up an edit to an extension's file, in both module
+ * formats. `reload()` re-imports every enabled extension under a new
+ * generation-stamped module URL, which makes Node evaluate the file again --
+ * for ESM because its registry is keyed by URL and holds no second copy of a
+ * URL it has seen, for CommonJS because the stamped import is paired with an
+ * eviction from `require.cache`. A provider whose contract version is bumped on
+ * disk then serves the new version and a consumer still pinned to the old one
+ * gets `version_mismatch`; a method added to or dropped from a `provides` block
+ * is added or dropped; and a `consumes` entry deleted from a consumer is a
+ * revoked grant -- the next call answers `not_declared`, through a handle
+ * captured before the edit as much as through a fresh `get`.
  *
- * An ESM extension gets none of that from a reload: it loads through Node's
- * separate ESM module registry, not the CommonJS cache
- * `clearExtensionRequireCache` evicts, so its file keeps running the version
- * it first loaded with -- including its `provides` and `consumes` -- until the
- * process restarts, however many times `reload()` runs in between. This is a
- * known gap, open as Task 20 in `doc/plans/2026-09-03-aisignal-extension.md`;
- * it is not fixed here.
+ * Disabling and deleting behave the same way, driven by the config file and the
+ * directory listing rather than by module content, so neither waits on a
+ * process restart.
  *
- * Disabling and deleting behave the same way for both module formats, driven
- * by the config file and the directory listing rather than by module content,
- * so neither waits on a process restart. The live-manager tests in
- * `extension-contracts.test.ts` pin the CommonJS-reload half of this,
- * including through a data directory reached by a symlink, which is where the
- * eviction used to miss -- they exercise the module format the test harness
- * transpiles their `.mjs` sources to at runtime (see the note near the top of
- * that file), not the shipped loader's ESM path.
+ * Where the tests stand. The live-manager tests in `extension-contracts.test.ts`
+ * pin the reload behaviour above, including through a data directory reached by
+ * a symlink, which is where the cache eviction used to miss -- but they run
+ * under the tsx test runner, which transpiles their `.mjs` sources, so they
+ * exercise the manager rather than the shipped module system. The module system
+ * itself is pinned separately by `extension-module-loader.test.ts`, which drives
+ * the loader under plain Node and under Electron's embedded Node.
  *
  * Arguments and return values pass through untouched: not cloned, not frozen,
  * not serialised, not inspected. Two consequences worth stating rather than

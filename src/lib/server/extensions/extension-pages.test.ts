@@ -88,7 +88,7 @@ describe('manager.getPages', () => {
       const m = getExtensionManager()
       await m.saveExtensionSource('pg_a.mjs', 'export default { name: "A", tools: [], ui: { pages: [{ id: "a", label: "A", path: "/x/a", entry: "dist/index.js" }] } }')
       await m.saveExtensionSource('pg_b.mjs', 'export default { name: "B", tools: [], ui: { pages: [{ id: "b", label: "B", path: "/x/a", entry: "dist/index.js" }] } }')
-      m.reload()
+      await m.reload()
       const failed = m.listExtensions().find((e) => e.filename === 'pg_b.mjs')?.lastFailureError || null
       console.log(JSON.stringify({ pages: m.getPages().map((p) => ({ extensionId: p.extensionId, path: p.path })), failed }))
     `)
