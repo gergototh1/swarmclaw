@@ -206,7 +206,8 @@ function documentResponse(request: NextRequest): NextResponse {
 /* ------------------------------------------------------------------ */
 
 /** Access key auth proxy with brute-force rate limiting.
- *  Checks X-Access-Key header or auth cookie on all /api/ routes except /api/auth.
+ *  Checks X-Access-Key header or auth cookie on all /api/ routes except /api/auth
+ *  and the Google OAuth callback.
  *  The key is validated against the ACCESS_KEY env var.
  *  After 5 failed attempts from a single IP the client is locked out for 15 minutes.
  */
@@ -228,6 +229,15 @@ export function proxy(request: NextRequest) {
     && /^\/api\/webhooks\/[^/]+\/?$/.test(pathname)
   const isConnectorWebhook = request.method === 'POST'
     && /^\/api\/connectors\/[^/]+\/webhook\/?$/.test(pathname)
+  // Google redirects the *browser* here after consent, and in the desktop build
+  // that browser is the system one — a different cookie jar from the Electron
+  // window that started the flow, so there is no auth cookie to present and no
+  // way to add one. Only this exact path, and only GET; `/api/oauth/google/start`
+  // stays gated, so a `state` can only be minted by someone already signed in.
+  // The handler reads nothing but `code` and `state`, and rejects any `state`
+  // that is not one of those single-use, ten-minute, PKCE-bound values.
+  const isGoogleOAuthCallback = request.method === 'GET'
+    && pathname === '/api/oauth/google/callback'
 
   if (request.method === 'OPTIONS' && isExtensionInstallCorsPath(pathname)) {
     if (!corsOrigin) {
@@ -251,6 +261,7 @@ export function proxy(request: NextRequest) {
     || pathname === '/api/healthz'
     || isWebhookTrigger
     || isConnectorWebhook
+    || isGoogleOAuthCallback
     || isA2ARoute
   ) {
     return NextResponse.next()

@@ -559,6 +559,14 @@ const COMMAND_GROUPS = [
     ],
   },
   {
+    name: 'oauth',
+    description: 'Connect a Google account for extensions that act on it',
+    commands: [
+      cmd('google-start', 'GET', '/oauth/google/start', 'Get the Google consent URL for a purpose (use --query purpose=aisignal; returns a 302 to accounts.google.com)'),
+      cmd('google-callback', 'GET', '/oauth/google/callback', 'Redirect target Google sends the browser to after consent (use --query code= --query state=); not normally called by hand'),
+    ],
+  },
+  {
     name: 'providers',
     description: 'Manage providers and model overrides',
     commands: [

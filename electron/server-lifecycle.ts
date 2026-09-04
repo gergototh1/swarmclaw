@@ -42,6 +42,11 @@ export async function startEmbeddedServer(opts: StartOptions): Promise<ServerHan
     DATA_DIR: opts.paths.dataDir,
     WORKSPACE_DIR: opts.paths.workspaceDir,
     BROWSER_PROFILES_DIR: opts.paths.browserProfilesDir,
+    // The port above is whatever was free this launch, so no fixed redirect URI
+    // exists to register with Google. This tells the OAuth code to use the
+    // "Desktop app" client pair, whose loopback redirect URIs match on host
+    // alone and ignore the port.
+    SWARMCLAW_DEPLOY_MODE: 'desktop',
     ELECTRON_RUN_AS_NODE: '1',
   }
   delete env.ELECTRON_NO_ATTACH_CONSOLE

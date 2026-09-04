@@ -65,6 +65,32 @@ describe('proxy', () => {
     assert.equal(response.status, 200)
   })
 
+  it('lets the Google OAuth callback through without the access key, but nothing else under /api/oauth', () => {
+    // Consent comes back in the system browser on desktop, which holds no auth
+    // cookie. The single-use state is the protection, not the cookie.
+    process.env.ACCESS_KEY = 'top-secret'
+
+    const callback = proxy(new NextRequest('http://localhost/api/oauth/google/callback?code=c&state=s'))
+    assert.equal(callback.status, 200)
+
+    for (const url of [
+      'http://localhost/api/oauth/google/start?purpose=aisignal',
+      'http://localhost/api/oauth/google/callback/extra',
+      'http://localhost/api/oauth/google/callbackx',
+    ]) {
+      assert.equal(proxy(new NextRequest(url)).status, 401, url)
+    }
+  })
+
+  it('keeps the callback exemption to GET, so no other method rides in on it', () => {
+    process.env.ACCESS_KEY = 'top-secret'
+
+    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+      const response = proxy(new NextRequest('http://localhost/api/oauth/google/callback', { method }))
+      assert.equal(response.status, 401, method)
+    }
+  })
+
   it('does not lock out invalid requests in development', () => {
     process.env.ACCESS_KEY = 'top-secret'
     const originalNodeEnv = process.env.NODE_ENV;

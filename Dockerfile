@@ -47,6 +47,9 @@ RUN mkdir -p /app/data
 ENV NODE_ENV=production
 ENV PORT=3456
 ENV HOSTNAME=0.0.0.0
+# One fixed public origin, so Google OAuth uses a "Web application" client with
+# that origin's callback registered. See src/lib/server/oauth/google.ts.
+ENV SWARMCLAW_DEPLOY_MODE=vps
 
 EXPOSE 3456
 EXPOSE 3457
