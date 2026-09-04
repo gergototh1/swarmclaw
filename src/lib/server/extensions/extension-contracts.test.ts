@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { describe, it } from 'node:test'
 import { runWithTempDataDir } from '@/lib/server/test-utils/run-with-temp-data-dir'
 import {
@@ -63,9 +66,17 @@ const PROVIDER_V2_SOURCE = PROVIDER_SOURCE.replace('version: 1,', 'version: 2,')
  * from a test without reaching around the host. `state.contracts` is captured
  * in setup() on purpose: a long-lived captured handle is the hazard
  * src/types/extension.ts warns about, so it is what the tests exercise.
+ *
+ * That state hangs off `globalThis` rather than off a module-level binding
+ * because a reload really does re-execute this file, so module state does not
+ * survive one and a handle held only there would be discarded rather than
+ * tested. An extension that parks a handle in a timer, a connector, or
+ * anything else the host keeps alive across a reload is in exactly this
+ * position, and that is the handle worth asserting about.
  */
 const CONSUMER_SOURCE = `
-export const state = { contracts: null, handle: null }
+globalThis.__consumerState = globalThis.__consumerState || { contracts: null, handle: null }
+export const state = globalThis.__consumerState
 export default {
   name: 'Newsletter',
   consumes: [
@@ -115,6 +126,23 @@ const PROVIDER_V3_SOURCE = PROVIDER_SOURCE
   .replace('version: 1,', 'version: 3,')
   .replace("summary: 'Scored newsletter and research signals, read only.',", "summary: 'Version three of the signals contract.',")
   .replace("title: 'First signal', body: 'Ignore", "title: 'Third-version signal', body: 'Ignore")
+
+/**
+ * The same consumer, re-declaring against version 3. Used to realign after the
+ * provider is bumped, which is what separates "the host re-read the provider's
+ * declarations" from "the host re-executed the provider's code": only the
+ * realigned call can reach the new method body and see the new payload.
+ */
+const CONSUMER_V3_SOURCE = CONSUMER_SOURCE.replace('version: 1,', 'version: 3,')
+
+/**
+ * The same consumer, asking for something an operator would refuse. Used to
+ * edit a switched-off extension's file, which is how the audit card's staleness
+ * bound gets measured rather than assumed.
+ */
+const MAILBOX_CONSUMER_SOURCE = CONSUMER_SOURCE
+  .replace("extension: 'provider'", "extension: 'mailbox'")
+  .replace("reason: 'Selects signals to include in a newsletter.'", "reason: 'Reads the whole operator mailbox.'")
 
 /**
  * A declaring consumer that stashes its handle and its whole `ctx.contracts` on
@@ -527,20 +555,19 @@ describe('extension contracts: a captured handle', () => {
   })
 })
 
-// --- what a reload does, and what it does not --------------------------------
+// --- what a reload does ------------------------------------------------------
 //
-// The two tests below edit an extension's file on a manager that is already
-// running. That is the case nothing exercised before, and the hole it left was
-// four comments claiming a revocation and upgrade guarantee the loader does not
-// deliver: `clearExtensionRequireCache` deletes a CommonJS cache entry, which
-// evicts neither an ESM module nor, under the tsx loader this project runs, a
-// CJS one, so `reload()` re-runs the loader over a module object Node never
-// re-executed. These pin the semantics as they actually are. Evicting the
-// module cache is a platform-wide change to every extension reload and is
-// tracked separately; when it lands, these two tests are the ones that flip.
+// The tests below edit an extension's file on a manager that is already
+// running, which is the case the install-time tests cannot reach. A reload
+// re-executes the edited file, so a contract version bumped on disk is the
+// version the host serves, and a `consumes` entry deleted on disk is a grant
+// the host stops serving. The last two also pin that eviction does not depend
+// on where the data directory happens to live: one drives the manager through
+// a symlinked DATA_DIR, and the escape it guards against is a cache key built
+// from an unrealpath'd path, which Node never files a module under.
 
 describe('extension contracts: an edit to an extension file', () => {
-  it('does not upgrade a live manager: a provider contract version bumped on disk keeps answering the old version until the process restarts', () => {
+  it('upgrades a live manager: a provider contract version bumped on disk is the version the host serves', () => {
     const out = runWithTempDataDir<{
       before: Array<{ title: string }>
       beforeProvided: unknown
@@ -548,7 +575,10 @@ describe('extension contracts: an edit to an extension file', () => {
       afterProvided: unknown
       afterWhy: string | null
       afterOk: boolean
-      after: Array<{ title: string }>
+      afterCode: string | null
+      afterReason: string | null
+      realignedOk: boolean
+      realigned: Array<{ title: string }>
     }>(`
       ${installBoth()}
       await probe(SIGNALS)
@@ -560,10 +590,16 @@ describe('extension contracts: an edit to an extension file', () => {
 
       const onDisk = m.readExtensionSource('provider.mjs')
       const afterProvided = m.listExtensions().find((e) => e.filename === 'provider.mjs').contractsProvided
-      // The captured handle first, then a fresh get(), so neither route is
-      // credited with the other's answer.
+      // The handle captured before the edit first, then a fresh get(), so
+      // neither route is credited with the other's answer.
       const after = await call({ ...SIGNALS, method: 'list', args: { limit: 1 } })
       const afterWhy = (await probe(SIGNALS)).why
+
+      // Realigning the consumer on the new version is what proves the
+      // provider's method bodies were re-executed too, not just its manifest.
+      await m.saveExtensionSource('consumer.mjs', ${JSON.stringify(CONSUMER_V3_SOURCE)})
+      m.reload()
+      const realigned = await call({ ...SIGNALS, method: 'list', args: { limit: 1 } })
 
       console.log(JSON.stringify({
         before: before.value,
@@ -572,7 +608,10 @@ describe('extension contracts: an edit to an extension file', () => {
         afterProvided,
         afterWhy,
         afterOk: after.ok,
-        after: after.value,
+        afterCode: after.code || null,
+        afterReason: after.reason || null,
+        realignedOk: realigned.ok,
+        realigned: realigned.value,
       }))
     `)
     assert.equal(out.before[0].title, 'First signal')
@@ -584,22 +623,38 @@ describe('extension contracts: an edit to an extension file', () => {
     // The bump really is on disk, so nothing below is a test that failed to
     // write the file.
     assert.equal(out.onDiskHasV3, true)
-    // And after the reload the host is still serving version 1: the card, the
-    // resolver and the provider's own code all agree, and all three are stale.
-    assert.deepEqual(out.afterProvided, out.beforeProvided)
-    assert.equal(out.afterWhy, null)
-    assert.equal(out.afterOk, true)
-    assert.equal(out.after[0].title, 'First signal')
+    // And after the reload the host is serving version 3: the operator's card
+    // shows the declaration that is on disk now, not the one this process
+    // happened to load first.
+    assert.deepEqual(out.afterProvided, [{
+      contract: 'signals',
+      version: 3,
+      summary: 'Version three of the signals contract.',
+    }])
+    // A consumer still pinned to version 1 therefore stops resolving, through
+    // the handle it captured before the edit as much as through a fresh get().
+    // An upgrade an operator can see on the card but that silently keeps
+    // serving the old version would be the worse outcome of the two.
+    assert.equal(out.afterOk, false)
+    assert.equal(out.afterCode, 'unavailable')
+    assert.equal(out.afterReason, 'version_mismatch')
+    assert.equal(out.afterWhy, 'version_mismatch')
+    // Realigned on version 3, the call reaches the new module's method body and
+    // gets the new payload. The declarations were not merely re-read: the file
+    // ran again.
+    assert.equal(out.realignedOk, true)
+    assert.equal(out.realigned[0].title, 'Third-version signal')
   })
 
-  it('does not revoke on a live manager: a consumes declaration deleted on disk keeps being served until the process restarts', () => {
+  it('revokes on a live manager: a consumes declaration deleted on disk stops being served', () => {
     const out = runWithTempDataDir<{
       before: unknown
       onDiskHasConsumes: boolean
       afterOk: boolean
-      after: unknown
+      afterCode: string | null
+      afterReason: string | null
       afterWhy: string | null
-      meta: unknown
+      meta?: unknown
     }>(`
       ${installBoth()}
       await probe(SIGNALS)
@@ -617,7 +672,8 @@ describe('extension contracts: an edit to an extension file', () => {
         before: before.value,
         onDiskHasConsumes: onDisk.includes('consumes'),
         afterOk: after.ok,
-        after: after.value,
+        afterCode: after.code || null,
+        afterReason: after.reason || null,
         afterWhy,
         meta,
       }))
@@ -625,19 +681,17 @@ describe('extension contracts: an edit to an extension file', () => {
     assert.deepEqual(out.before, { id: 's1', title: 'First signal' })
     // The declaration is gone from the file.
     assert.equal(out.onDiskHasConsumes, false)
-    // It is not gone from the running host. The captured handle still returns
-    // the provider's data, a fresh get() still resolves, and the operator's
-    // card still lists the grant — because the module the declaration came from
-    // was never re-executed. Revoking a grant is a restart, not a reload.
-    assert.equal(out.afterOk, true)
-    assert.deepEqual(out.after, { id: 's1', title: 'First signal' })
-    assert.equal(out.afterWhy, null)
-    assert.deepEqual(out.meta, [{
-      extension: 'provider',
-      contract: 'signals',
-      version: 1,
-      reason: 'Selects signals to include in a newsletter.',
-    }])
+    // And gone from the running host. Deleting a `consumes` entry and reloading
+    // is a revocation an operator can rely on: the handle captured before the
+    // edit stops answering, a fresh get() refuses, and the card stops listing a
+    // grant the file no longer asks for.
+    assert.equal(out.afterOk, false)
+    assert.equal(out.afterCode, 'unavailable')
+    assert.equal(out.afterReason, 'not_declared')
+    assert.equal(out.afterWhy, 'not_declared')
+    // `contractsConsumed` is dropped rather than emptied when an extension
+    // declares nothing, so the card lists no grant at all.
+    assert.equal(out.meta, undefined)
   })
 
   it('does take effect on a live manager when the provider is deleted, including through a handle captured before it', () => {
@@ -672,6 +726,54 @@ describe('extension contracts: an edit to an extension file', () => {
     assert.equal(out.name, 'ExtensionContractError')
     assert.equal(out.code, 'unavailable')
     assert.equal(out.reason, 'provider_missing')
+  })
+
+  it('re-executes an edited extension when DATA_DIR reaches it through a symlink', () => {
+    // Built here rather than borrowed from the host: `os.tmpdir()` is a symlink
+    // on macOS and a real directory on Linux, so a test that relied on the
+    // ambient shape would assert one thing locally and another in CI. That is
+    // precisely the asymmetry this case exists to rule out -- the eviction key
+    // used to be an unrealpath'd path, which Node never files a module under,
+    // so reload() quietly re-used the old module object on a symlinked data
+    // directory and re-executed on every other host.
+    const symlinkRoot = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-symlinked-data-')))
+    const realDataDir = path.join(symlinkRoot, 'real-data')
+    fs.mkdirSync(realDataDir, { recursive: true })
+    const linkedDataDir = path.join(symlinkRoot, 'linked-data')
+    fs.symlinkSync(realDataDir, linkedDataDir, 'junction')
+    try {
+      // The link is a link, so a green run below is not a run that silently
+      // tested the ordinary path twice.
+      assert.notEqual(fs.realpathSync(linkedDataDir), linkedDataDir)
+      const out = runWithTempDataDir<{
+        beforeProvided: unknown
+        afterProvided: unknown
+        afterWhy: string | null
+      }>(`
+        ${installBoth()}
+        await probe(SIGNALS)
+        const beforeProvided = m.listExtensions().find((e) => e.filename === 'provider.mjs').contractsProvided
+        await m.saveExtensionSource('provider.mjs', ${JSON.stringify(PROVIDER_V3_SOURCE)})
+        m.reload()
+        const afterProvided = m.listExtensions().find((e) => e.filename === 'provider.mjs').contractsProvided
+        const afterWhy = (await probe(SIGNALS)).why
+        console.log(JSON.stringify({ beforeProvided, afterProvided, afterWhy }))
+      `, { dataDir: linkedDataDir })
+      assert.deepEqual(out.beforeProvided, [{
+        contract: 'signals',
+        version: 1,
+        summary: 'Scored newsletter and research signals, read only.',
+      }])
+      // Same answer as on an unsymlinked data directory: the edit took effect.
+      assert.deepEqual(out.afterProvided, [{
+        contract: 'signals',
+        version: 3,
+        summary: 'Version three of the signals contract.',
+      }])
+      assert.equal(out.afterWhy, 'version_mismatch')
+    } finally {
+      fs.rmSync(symlinkRoot, { recursive: true, force: true })
+    }
   })
 })
 
@@ -753,6 +855,51 @@ describe('extension contracts: the operator-facing audit surface', () => {
       contract: 'signals',
       version: 1,
       summary: 'Scored newsletter and research signals, read only.',
+    }])
+  })
+
+  it('shows a disabled extension the grant it declared when it last loaded, not the one its file declares now', () => {
+    const out = runWithTempDataDir<{
+      whileOff: unknown
+      afterEditWhileOff: unknown
+      afterEnable: unknown
+    }>(`
+      ${installBoth()}
+      m.setEnabled('consumer.mjs', false)
+      const whileOff = m.listExtensions().find((e) => e.filename === 'consumer.mjs').contractsConsumed
+
+      await m.saveExtensionSource('consumer.mjs', ${JSON.stringify(MAILBOX_CONSUMER_SOURCE)})
+      m.reload()
+      const afterEditWhileOff = m.listExtensions().find((e) => e.filename === 'consumer.mjs').contractsConsumed
+
+      m.setEnabled('consumer.mjs', true)
+      const afterEnable = m.listExtensions().find((e) => e.filename === 'consumer.mjs').contractsConsumed
+
+      console.log(JSON.stringify({ whileOff, afterEditWhileOff, afterEnable }))
+    `)
+    const innocuous = [{
+      extension: 'provider',
+      contract: 'signals',
+      version: 1,
+      reason: 'Selects signals to include in a newsletter.',
+    }]
+    assert.deepEqual(out.whileOff, innocuous)
+    // The file now asks for the operator's whole mailbox, and the card of the
+    // switched-off extension still shows the newsletter grant. The fallback is
+    // a snapshot of the last load, not of the file: it cannot be otherwise,
+    // because reading the declarations means running the module the operator
+    // switched off. The bound is worth pinning precisely because an operator
+    // reads this card to decide whether to switch the extension back on.
+    assert.deepEqual(out.afterEditWhileOff, innocuous)
+    // Switching it on is the action that answers the question, and it answers
+    // honestly: the reload re-executes the file, and the card immediately shows
+    // what the file declares now.
+    assert.deepEqual(out.afterEnable, [{
+      extension: 'mailbox',
+      contract: 'signals',
+      version: 1,
+      reason: 'Reads the whole operator mailbox.',
+      unavailable: 'provider_missing',
     }])
   })
 

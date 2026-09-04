@@ -2784,47 +2784,47 @@ feladatra is érvényes.
 
 ---
 
-### Task 20: az extension-újratöltés valóban olvassa újra a fájlt
+### Task 20: az extension-újratöltés valóban olvassa újra a fájlt — LEZÁRVA
 
-A Task 19 review-ja derítette ki, és a hatóköre jóval túlmutat a
-szerződéseken: a `reload()` **nem futtatja újra** a megváltozott extension
-fájlt. A `clearExtensionRequireCache` (`src/lib/server/extensions.ts:868-877`)
-a `dynamicRequire.cache`-ből töröl, ami ESM-modult nem ürít ki, és a projekt
-saját tsx-loadere alatt CJS-t sem. Az újratöltés tehát egy olyan
-modulobjektumon fut végig, amit a Node soha nem értékelt ki újra.
+Lezárva a Task 19 második javítási körében; nem maradt tennivaló.
 
-Reprodukálva mindkét irányban: egy szolgáltató szerződés-verziójának emelése
-a lemezen és `reload()` után a régi verzió és a régi kód él tovább; egy
-`consumes` blokk törlése után a hozzáférési engedély megmarad, miközben a
-kártya olyan jogosultságot hirdet, ami a fájlban már nincs.
+A Task 19 review-ja rossz diagnózist adott. Nem ESM/CJS modul-gyorsítótár
+szemantikáról volt szó, és a `reload()` a hostok többségén mindig is újra
+futtatta a megváltozott fájlt. A tényleges ok kulcs-eltérés volt: a
+`clearExtensionRequireCache` a `path.join(EXTENSIONS_DIR, filename)` alapján
+törölt, a Node viszont a **feloldott realpath** szerint tárolja a modulokat, és
+a `DATA_DIR` `path.resolve`-olt, de sosem realpath-olt. Ahol az adatkönyvtár
+symlink mögött van — például a macOS `os.tmpdir()`, ami `/var/folders/...` és a
+`/private/var/folders/...`-ra mutat —, ott a törlés csendben semmit nem talált;
+Linuxon, Dockerben, VPS-en és normál app-home könyvtárral ugyanez a kód
+helyesen ürített. A hibát egy CommonJS `.js` extension is túlélte, tehát a
+modulformátumhoz semmi köze nem volt.
 
-A letiltás és a törlés **működik** — azokat a konfigurációs fájl és a
-könyvtárlistázás hajtja, nem a modul tartalma.
+A javítás a `clearExtensionRequireCache`-en belül realpath-olja a kulcsot (a
+gyökérfájlt és a workspace-előtagot is), nem a `DATA_DIR`-t globálisan: a
+`DATA_DIR`-t a rendszer sok más helyen is használja, felhasználónak mutatott és
+tárolt útvonalakban is. A fel nem oldható útvonal (időközben törölt fájl) a
+feloldatlan útvonalra esik vissza, így az ürítés nem dönti el az egész
+újratöltést.
 
-**Miért külön feladat:** a Task 19 a *kimondott* garanciákat igazította a
-valósághoz (az ott hozott döntés: tartalmi változás újraindítást igényel, és
-ez most így is van dokumentálva). A tényleges javítás viszont minden extension
-újratöltését érinti, nem csak a szerződéseket, és a szokásos megoldás — egy
-gyorsítótár-kerülő lekérdezőparaméteres import — modulpéldányokat szivárogtat.
-Ez saját tervezést és saját review-t érdemel.
+Ezzel a `reload()` **minden** hoston egyformán viselkedik: a lemezen módosított
+extension újra fut, a felemelt szerződés-verzió `version_mismatch`-et ad a régi
+verzióra deklaráló fogyasztónak, a törölt `consumes` bejegyzés pedig
+`not_declared`-t — a korábban elkapott handle-ön keresztül is. Cserébe egy
+extension modulszintű állapota sem éli túl az újratöltést; ez most ki van
+mondva a `src/types/extension.ts`-ben.
 
-**Files:**
-- Modify: `src/lib/server/extensions.ts` (`clearExtensionRequireCache` és a
-  betöltési út), `src/lib/server/extensions.test.ts`
+Ami emiatt elesett: nem kell gyorsítótár-kerülő lekérdezőparaméteres import, és
+nincs szivárgó modulpéldány sem, mert nem jön létre új példány a régi mellett —
+a régi kulcs törlődik, mielőtt a loader újra megköveteli a fájlt.
 
-**Amit a megoldásnak tudnia kell:**
-1. Egy lemezen módosított extension `reload()` után **tényleg újra fut**, ESM
-   és CJS esetén egyaránt, fejlesztésben (tsx) és éles buildben is.
-2. A szivárgás mértéke ismert és kimondott: hány modulpéldány marad bent
-   újratöltésenként, és mi tartja őket életben.
-3. A `setup()` mellékhatásai nem duplázódnak. A típusfájl (`:463`) már ma
-   figyelmeztet a context elkapására; egy időzítő vagy figyelő, amit a régi
-   példány indított, nem élhet tovább némán az új mellett.
-4. A Task 19 négy kommentje, ami ma azt mondja, hogy a tartalmi változáshoz
-   újraindítás kell, ezzel egyszerre igazodik — vagy marad igaz, ha a javítás
-   csak részleges.
-5. Teszt, ami élő manageren emel szerződés-verziót és töröl deklarációt, és
-   a Task 19-ben lerakott pinneket a *javított* szemantikára írja át.
+**Amit lezárt (files):** `src/lib/server/extensions.ts`
+(`clearExtensionRequireCache` + `moduleCacheKey`),
+`src/lib/server/test-utils/run-with-temp-data-dir.ts` (realpath-olt ideiglenes
+könyvtár, hogy több teszt ne örökölje a csapdát),
+`src/lib/server/extensions/extension-contracts.test.ts` (a két pin átírva a
+javított szemantikára, plusz egy külön eset, ami symlinkelt `DATA_DIR`-en
+hajtja meg a managert).
 
 **Global Constraints:** a terv fenti Global Constraints szakasza erre a
 feladatra is érvényes.

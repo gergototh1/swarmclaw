@@ -16,7 +16,16 @@ export function runWithTempDataDir<T = unknown>(
     timeoutMs?: number
   } = {},
 ): T {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), options.prefix || 'swarmclaw-test-'))
+  // Realpath'd on purpose. `os.tmpdir()` is a symlink on macOS
+  // (`/var/folders/...` -> `/private/var/folders/...`) and a real directory on
+  // Linux, and code that has to agree with a path Node resolved -- the module
+  // cache key in `extensions.ts` is the one that got this wrong -- then behaves
+  // one way on a developer's machine and another way in CI. Handing every test a
+  // resolved directory makes the two environments the same. A test that wants
+  // the symlinked shape asks for it explicitly by passing an absolute
+  // `dataDir`, which is what the reload test in extension-contracts.test.ts
+  // does.
+  const tempDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), options.prefix || 'swarmclaw-test-')))
   const resolveTempPath = (value: string | undefined, fallback: string): string =>
     path.isAbsolute(value || '') ? String(value) : path.join(tempDir, value || fallback)
   const dataDir = resolveTempPath(options.dataDir, '')

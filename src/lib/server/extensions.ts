@@ -725,6 +725,18 @@ interface LoadedExtension {
   isBuiltin?: boolean
 }
 
+/**
+ * The key Node would file `target` under in the module cache: its resolved
+ * realpath, or the path unchanged when it does not resolve.
+ */
+function moduleCacheKey(target: string): string {
+  try {
+    return fs.realpathSync(target)
+  } catch {
+    return target
+  }
+}
+
 function createExtensionRequire(): NodeRequire | null {
   try {
     return createRequire(path.join(process.cwd(), 'package.json'))
@@ -767,10 +779,13 @@ class ExtensionManager {
    * This is the only place that survives, because there is nowhere else to
    * read it from: a switched-off extension is never required, and requiring it
    * to read its manifest would run the module the operator switched off. The
-   * cost is that it is process-local. A host that starts up with the extension
+   * cost is that it is process-local, and that it is a snapshot of the last
+   * load rather than of the file. A host that starts up with the extension
    * already disabled has never executed it, so its card shows no grants until
-   * it is enabled once. Populated before setup() runs, so an extension that
-   * fails in setup() still shows what it asked for.
+   * it is enabled once; and a file edited after it was switched off keeps
+   * showing the declarations it had when it last ran, until it is switched on
+   * again. Populated before setup() runs, so an extension that fails in setup()
+   * still shows what it asked for.
    */
   private lastKnownContracts: Map<string, ExtensionContractDeclarations> = new Map()
 
@@ -882,10 +897,38 @@ class ExtensionManager {
     fs.writeFileSync(path.join(EXTENSIONS_DIR, filename), shim, 'utf8')
   }
 
+  /**
+   * Evicts an extension, and everything loaded out of its workspace, from the
+   * module cache so that the next require() re-executes the file the operator
+   * just edited.
+   *
+   * Node keys that cache by the *resolved realpath* of a module, not by the
+   * path the caller handed to require(), so the eviction key has to be
+   * realpath'd to match. DATA_DIR is path.resolve'd and deliberately not
+   * realpath'd, because it is also shown to people and written into stored
+   * state; on a host whose data directory sits behind a symlink the
+   * unrealpath'd key therefore matched nothing and the eviction silently did
+   * nothing at all, leaving the previous module object live until the process
+   * restarted. macOS is the everyday case: `os.tmpdir()` is `/var/folders/...`,
+   * a link to `/private/var/folders/...`. That made extension reloads behave
+   * one way on a symlinked data directory and another way on Linux, Docker or
+   * an app-home directory, which is exactly the host dependence this project
+   * does not accept. Realpathing the key here, rather than realpathing DATA_DIR
+   * for everything, confines the change to the one place that has to agree with
+   * Node's own key.
+   *
+   * realpathSync throws for a path that no longer resolves: a file deleted
+   * between the directory listing and this call, or a workspace directory that
+   * was never created. Falling back to the unresolved path keeps the eviction
+   * doing whatever else it can rather than taking the reload down, and costs
+   * nothing, because an entry Node cannot resolve is not one Node is holding.
+   */
   private clearExtensionRequireCache(dynamicRequire: NodeRequire, filename: string): void {
-    const rootPath = path.join(EXTENSIONS_DIR, filename)
+    const rootPath = moduleCacheKey(path.join(EXTENSIONS_DIR, filename))
     delete dynamicRequire.cache[rootPath]
-    const workspaceDir = this.getWorkspaceDir(filename)
+    // Same exposure as the root key: a prefix comparison against an
+    // unrealpath'd directory never matches the realpath'd keys Node stores.
+    const workspaceDir = moduleCacheKey(this.getWorkspaceDir(filename))
     for (const cacheKey of Object.keys(dynamicRequire.cache)) {
       if (cacheKey.startsWith(`${workspaceDir}${path.sep}`)) {
         delete dynamicRequire.cache[cacheKey]
@@ -1422,10 +1465,10 @@ class ExtensionManager {
    * to build during load() for an extension that is not registered yet, and
    * safe for the extension to capture: the extension map is read live on every
    * call, so disabling or deleting the provider takes effect through a handle
-   * captured before it. Editing a declaration does not — a reload does not
-   * re-execute the module the declarations came from, so a `consumes` entry
-   * removed on disk keeps being served until the process restarts. See
-   * `callContractMethod` in ./extensions/extension-contracts.
+   * captured before it. Editing a declaration does too — a reload re-executes
+   * the module the declarations came from, so a `consumes` entry removed on
+   * disk stops being served from the next reload on. See `callContractMethod`
+   * in ./extensions/extension-contracts.
    *
    * Private because it mints a contracts object for whatever consumer id it is
    * handed, with that id baked into every call it will ever make. Called from
@@ -2292,8 +2335,14 @@ class ExtensionManager {
       // an audit surface: switching a module off is exactly when an operator
       // wants to read what turning it back on would hand it. So the
       // declarations fall back to the last ones this process saw for that file
-      // (see `lastKnownContracts`), which is stale only in the sense that the
-      // extension is not running.
+      // (see `lastKnownContracts`). The bound on that staleness is the last
+      // load, not the file on disk: an extension switched off and then edited
+      // shows the declarations it had when it was last loaded, so an operator
+      // reading the card of a disabled extension to judge what switching it
+      // back on would hand it can be reading a superseded manifest. Switching
+      // it on is what answers the question — the reload re-executes the file
+      // and the card then shows what the file declares now — which is also the
+      // action the operator was deciding about.
       //
       // `unavailable` is left off entirely for a not-loaded extension. It names
       // why a *provider* is not answering, and that question does not arise

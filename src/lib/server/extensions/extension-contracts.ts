@@ -54,10 +54,11 @@ import type {
  *   - A handle is not bound to whoever holds it. It carries the identity of the
  *     consumer it was minted for, so passing one on delegates the grant -- see
  *     `buildContractHandle`.
- *   - A reload does not pick up an edit to an extension's file. Disabling and
- *     deleting take effect immediately, including through a handle captured
- *     earlier; a contract version bumped on disk, or a declaration added or
- *     removed, needs a process restart -- see `callContractMethod`.
+ *   - A reload picks up an edit to an extension's file. Disabling, deleting and
+ *     editing all take effect immediately, including through a handle captured
+ *     earlier: a contract version bumped on disk is the version served, and a
+ *     `consumes` entry deleted on disk is a grant revoked -- see
+ *     `callContractMethod`.
  *
  * What this module exports, and which half of it is a compatibility surface.
  * `ExtensionContractError` and `ExtensionContractErrorCode` are public API that
@@ -383,20 +384,19 @@ export function resolveExtensionContract(
  * disabled extension has to actually stop answering, or the toggle in the
  * extension list is a lie.
  *
- * Re-resolving does NOT pick up an edit to an extension's file, and this is the
- * one guarantee not to claim. `reload()` re-runs the loader, but
- * `clearExtensionRequireCache` in `extensions.ts` deletes a CommonJS cache
- * entry, which evicts neither an ESM module nor -- under the tsx loader this
- * project runs -- a CJS one, so the loader re-reads a module object Node never
- * re-executed. A provider whose contract version is bumped on disk, a method
- * added or dropped from a `provides` block, and a `consumes` entry edited or
- * deleted from a consumer all keep behaving exactly as they did before the
- * edit, until the process restarts. Disabling and deleting are the two that do
- * take effect on a reload, because they are driven by the config file and the
- * directory listing rather than by module content. Both halves are pinned by
- * the live-manager tests in `extension-contracts.test.ts`; evicting the module
- * cache is a platform-wide change to every extension reload, not a contracts
- * one, and is tracked separately.
+ * Re-resolving also picks up an edit to an extension's file, because
+ * `reload()` re-executes it: `clearExtensionRequireCache` in `extensions.ts`
+ * evicts the module before the loader requires it again. So a provider whose
+ * contract version is bumped on disk serves the new version and a consumer
+ * still pinned to the old one gets `version_mismatch`; a method added to or
+ * dropped from a `provides` block is added or dropped; and a `consumes` entry
+ * deleted from a consumer is a revoked grant -- the next call answers
+ * `not_declared`, through a handle captured before the edit as much as through
+ * a fresh `get`. Disabling and deleting behave the same way, driven by the
+ * config file and the directory listing rather than by module content. Nothing
+ * here waits for a process restart. The live-manager tests in
+ * `extension-contracts.test.ts` pin all of it, including through a data
+ * directory reached by a symlink, which is where the eviction used to miss.
  *
  * Arguments and return values pass through untouched: not cloned, not frozen,
  * not serialised, not inspected. Two consequences worth stating rather than

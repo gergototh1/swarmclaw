@@ -461,8 +461,12 @@ export interface Extension {
    * the watcher, and saveExtensionSource, setEnabled and deleteExtension each
    * reload explicitly, so in development setup() runs again on every file save.
    * Capturing `ctx.storage` is fine; starting a timer, a listener or a
-   * subscription here leaks one per reload unless setup() replaces the previous
-   * one itself. Synchronous, because load() is.
+   * subscription here leaks one per reload unless setup() clears the previous
+   * one itself. Note that a reload re-executes the module, so the new setup()
+   * cannot see a handle the old one left in a module-level variable: park
+   * anything that has to be cleared on the next reload somewhere the
+   * re-execution does not reset, such as `globalThis`. Synchronous, because
+   * load() is.
    */
   setup?: (ctx: ExtensionContext) => void
   migrations?: ExtensionMigration[]
@@ -708,15 +712,15 @@ export interface ExtensionContractHandle {
  * captured in `setup()` stops working the moment the provider is disabled or
  * deleted, rather than calling on into a stale closure.
  *
- * What re-resolution does not follow is an edit to an extension's file. The
- * host's reload re-runs the loader but does not re-execute a module that is
- * already loaded, so a contract version bumped on disk, a method added to or
- * dropped from a `provides` block, and a `consumes` entry added or removed all
- * keep behaving as they did before the edit until the process restarts. Plan
- * for it: switching an extension off or uninstalling it is immediate, changing
- * what it declares is a restart. In particular, a grant is not revoked by
- * deleting the `consumes` entry and reloading — the running process still
- * serves it.
+ * Re-resolution follows an edit to an extension's file too, because the host's
+ * reload re-executes the file. A contract version bumped on disk is the version
+ * served, and a consumer still declaring the old one gets `version_mismatch`; a
+ * method added to or dropped from a `provides` block appears or disappears; and
+ * a `consumes` entry deleted from a consumer revokes the grant, so the next
+ * call answers `not_declared`. Switching an extension off, uninstalling it and
+ * editing what it declares are all immediate. Nothing here needs a restart, and
+ * a reload does not preserve module state: an extension's own module-level
+ * variables start again from their initial values.
  *
  * Data that comes back across this boundary keeps whatever trust it had. AI
  * Signal's items are newsletter bodies and forum posts written by strangers;
@@ -777,11 +781,13 @@ export interface ExtensionContext {
    * call re-resolves, so a captured handle follows the provider being disabled
    * or deleted instead of going stale.
    *
-   * It does not follow an edit to an extension's file. A contract version
-   * bumped on disk, a method added or dropped, a `consumes` entry added or
-   * removed: none of those take effect on a reload, only on a process restart,
-   * because a reload does not re-execute an already-loaded module. Do not
-   * design around a reload revoking or upgrading anything.
+   * It follows an edit to an extension's file as well, because a reload
+   * re-executes the file. A contract version bumped on disk, a method added or
+   * dropped, a `consumes` entry added or removed: each takes effect on the next
+   * reload, without a process restart. A captured handle follows all of it, so
+   * a grant really is revoked by deleting the `consumes` entry, and a provider
+   * bump really does stop serving a consumer that still declares the old
+   * version.
    *
    * Reading this during `setup()` itself is the one further exception worth
    * knowing about -- see `createExtensionContracts` in
