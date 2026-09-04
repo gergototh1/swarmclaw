@@ -2693,3 +2693,91 @@ git commit -m "Ship the AI Signal extension in the Docker image and verify both 
 | Élő agent-teszt, rögzítés | 18 |
 
 Típus-egyeztetés: `ExtensionPageDefinition` (1) ↔ `ExtensionPage` a hookban (2) ↔ `getPages()` (1) ↔ `loadExtensionPage(page)` (4); `ExtensionContext.oauth` a 7-ben stub, a 9 és 14 bővíti (`getGoogleAccessToken`, `hasGoogleCredential`); a `createRepo` metódusnevei a 10-ben definiáltak, a 12/13/14 ugyanazokat hívja (`openSweep`, `failSweep`, `finishSweep`, `latestSweep`, `latestFinishedSince`, `sweeps`, `seenIds`, `insertItem`, `items`, `board`, `decide`, `counts`).
+
+---
+
+### Task 19: extension-közti szerződések (végrehajtási sorrend: a Task 13 után, a Task 14 ELŐTT)
+
+Ez a feladat a terv írása után került be. Oka: a tervezett további modulok közül a
+hírlevél-modul az AI Signal kiválasztott jeleiből dolgozik, a storage viszont
+szándékosan szigetelt (`validateMigrationSql` csak `ext_<id>_` prefixű táblát
+enged), tehát ma egy modul nem lát bele a másikéba. A szigetelés az, amitől egy
+modul biztonságosan letiltható és eltávolítható, ezért nem feloldjuk, hanem
+**deklarált, host által közvetített szerződést** adunk mellé.
+
+A Task 14 azért kerül emögé, mert az AI Signal RPC-felülete így eleve két
+közönséggel születik: a saját UI-ja és a szerződést fogyasztó modulok.
+
+**Files:**
+- Create: `src/lib/server/extensions/extension-contracts.ts`, `src/lib/server/extensions/extension-contracts.test.ts`
+- Modify: `src/types/extension.ts` (`provides`, `consumes`, `ExtensionContext.contracts`), `src/lib/server/extensions.ts` (a handle beadása a contextbe), az extension-lista UI-ja (nem teljesült függőség és megadott hozzáférés megjelenítése)
+
+**Interfaces:**
+- Produces: `ctx.contracts.get(extensionId, contract)` → `ContractHandle | null`, ahol a `ContractHandle` a szolgáltató deklarált metódusai. `null` esetén `ctx.contracts.why(extensionId, contract)` nevesíti az okot: `not_declared`, `provider_missing`, `provider_disabled`, `version_mismatch`.
+
+**Manifeszt, szolgáltatói oldal:**
+
+```js
+provides: {
+  signals: {
+    version: 1,
+    summary: 'Scored newsletter and research signals, read only.',
+    methods: {
+      list: async ({ status, since, limit }) => { /* ... */ },
+      get: async ({ id }) => { /* ... */ },
+    },
+  },
+}
+```
+
+**Manifeszt, fogyasztói oldal:**
+
+```js
+consumes: [
+  { extension: 'aisignal', contract: 'signals', version: 1,
+    reason: 'Selects signals to include in a newsletter.' },
+]
+```
+
+A `reason` nem dekoráció: ez jelenik meg az operátornak a modul telepítésekor.
+Egy deklarált fogyasztás **adathozzáférési engedély**, és ha ezt cégeknek
+telepítjük, láthatónak és visszavonhatónak kell lennie.
+
+**A hét viselkedési szabály, amit a teszteknek le kell horgonyozniuk:**
+
+1. **Deklaráció nélkül nincs hozzáférés.** Ha egy extension nem sorolta fel a
+   `consumes`-ban, a `get` `null`-t ad `not_declared` okkal, akkor is, ha a
+   szolgáltató jelen van és engedélyezett. Ez az egyetlen tulajdonság, amitől a
+   deklarációnak értelme van; ez a feladat biztonsági magja.
+2. **Csak a deklarált metódusok érhetők el.** A handle a szerződésben felsorolt
+   metódusokat adja, semmi mást: sem a szolgáltató UI-RPC-jét, sem a storage-át.
+3. **A nem teljesült függőség nem betöltési hiba.** A fogyasztó betöltődik, a
+   `get` `null`-t ad, és a `why` megnevezi az okot. Az operátornak sokkal
+   jobb, hogy „a hírlevél-modul korlátozott, mert az AI Signal ki van
+   kapcsolva", mint hogy egy modul csendben nem indul el.
+4. **A verzióeltérés ugyanígy viselkedik**, `version_mismatch` okkal. A
+   szolgáltató szerződés-verziója nőhet; a fogyasztó a sajátját kéri.
+5. **A szolgáltató kivétele nevesítve jön át**, nem nyers hibaként, és nem
+   dönti el a fogyasztót.
+6. **A határon átmenő adat továbbra is nem megbízható.** Az AI Signal jelei
+   hírlevelek és idegenek által írt fórumszövegek; attól, hogy egy másik modulon
+   át érkeznek, nem lesznek utasítássá. A hírlevél-modulnál ez élesebb, mint
+   eddig bárhol: ott ez a szöveg egy **kimenő csatorna** mellé kerül.
+7. **A host hozzáférést közvetít, nem szemantikát.** Nem tudja kikényszeríteni,
+   hogy egy szerződés valóban csak olvasson. A `summary` és a `reason` az, ami
+   ezt az operátor felé láthatóvá teszi, és ezt a korlátot ki kell mondani a
+   kód kommentjében is, nem elhallgatni.
+
+**Tesztesetek** (mind a hét szabályra egy-egy, `extension-contracts.test.ts`):
+szolgáltató jelen → handle a deklarált metódusokkal; letiltott szolgáltató →
+`null` + `provider_disabled`; hiányzó szolgáltató → `null` + `provider_missing`;
+verzióeltérés → `null` + `version_mismatch`; **nem deklarált fogyasztás jelen
+lévő szolgáltatóval → `null` + `not_declared`**; szerződésen kívüli metódus →
+nem érhető el; dobó szolgáltató → nevesített hiba, a fogyasztó él.
+
+Körkörös függőség (A fogyasztja B-t, B fogyasztja A-t) betöltéskor nem
+keletkezhet, mert a feloldás hívás idejű; a futásidejű végtelen rekurzió a
+fogyasztó saját hibája, de a hívásmélységet korlátozni kell.
+
+**Global Constraints:** a terv fenti Global Constraints szakasza erre a
+feladatra is érvényes.
