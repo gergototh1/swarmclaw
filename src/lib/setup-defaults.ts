@@ -917,3 +917,25 @@ export const DEFAULT_AGENTS = {
 export function getDefaultModelForProvider(provider: SetupProvider): string {
   return DEFAULT_AGENTS[provider].model
 }
+
+/**
+ * The route an agent is created on when nothing else says otherwise.
+ *
+ * This is what `ensureDefaultAgent` seeds the instance's own assistant with on a
+ * first run, and it is what `buildManagedAgent` falls back to when an
+ * extension-managed agent declares no provider or model AND the instance has no
+ * default agent to copy one from — a state an operator only reaches by deleting
+ * their own default agent, since the seed creates one whenever the table is
+ * empty.
+ *
+ * `claude-cli` with an empty model is deliberate on both counts. It is the CLI
+ * this product is built around, it needs no API credential, and an empty model
+ * means "whatever the CLI is configured to use" rather than a version string
+ * that ages. Nothing here is a route an extension chose: an extension that
+ * pinned a model would pin it on installs where that credential does not exist,
+ * which is why extension declarations leave both fields out.
+ */
+export const DEFAULT_AGENT_ROUTE: { provider: ProviderType; model: string } = {
+  provider: 'claude-cli',
+  model: '',
+}

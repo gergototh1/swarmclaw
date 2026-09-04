@@ -10,6 +10,7 @@ import { DATA_DIR, IS_BUILD_BOOTSTRAP, WORKSPACE_DIR } from './data-dir'
 import { normalizeHeartbeatSettingFields } from '@/lib/runtime/heartbeat-defaults'
 import { normalizeRuntimeSettingFields } from '@/lib/runtime/runtime-loop'
 import { normalizeCapabilitySelection } from '@/lib/capability-selection'
+import { DEFAULT_AGENT_ROUTE } from '@/lib/setup-defaults'
 
 const TAG = 'storage'
 const malformedRecordWarnings = new Set<string>()
@@ -695,8 +696,10 @@ if (!IS_BUILD_BOOTSTRAP) {
       id: 'default',
       name: 'Assistant',
       description: 'A general-purpose AI assistant',
-      provider: 'claude-cli',
-      model: '',
+      // The one place this route is written down, so an extension-managed agent
+      // that falls back to it in buildManagedAgent cannot drift from it.
+      provider: DEFAULT_AGENT_ROUTE.provider,
+      model: DEFAULT_AGENT_ROUTE.model,
       systemPrompt: `You are the SwarmClaw assistant. SwarmClaw is a self-hosted AI runtime for autonomous agents.
 
 ## Platform

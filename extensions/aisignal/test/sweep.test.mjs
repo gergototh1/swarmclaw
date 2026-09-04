@@ -194,6 +194,47 @@ test('signalSweep dedups before the cap and reports leftover', async () => {
   assert.equal(state.repo.latestSweep().leftover, 1)
 })
 
+test('mail an unfinished run never opened comes back on the next run', async () => {
+  /*
+   * The reviewer's reproduction, through the tools rather than the repository.
+   *
+   * Run one is handed three messages, records one, and closes `ok: false`
+   * because it ran out of turn. Before, the close marked all three seen while
+   * the frontier stayed put, so run two was handed nothing and the two messages
+   * nobody had opened were unreachable for good -- the exact opposite of what
+   * the prompt promises about `ok: false`.
+   */
+  const gmail = fakeGmail({ ids: ['m1', 'm2', 'm3'] })
+  const { run } = setup(gmail)
+
+  const first = await run('signalSweep', {})
+  assert.deepEqual(first.messages.map((m) => m.id), ['m1', 'm2', 'm3'])
+  await run('recordSignal', { sweepId: first.sweepId, messageId: 'm1', headline: 'H', summary: 'Egy. Kettő.', score: 0.4, applyScore: 0.2 })
+  const closed = await run('finishSweep', { sweepId: first.sweepId, ok: false, note: 'kifutottam az időből' })
+  assert.deepEqual({ found: closed.found, seenMarked: closed.seenMarked, ok: closed.ok }, { found: 1, seenMarked: 1, ok: false })
+
+  const second = await run('signalSweep', {})
+  assert.deepEqual(second.messages.map((m) => m.id), ['m2', 'm3'], 'what nobody looked at is offered again')
+  assert.equal(second.skipped, 1, 'and the one that produced a card is not')
+})
+
+test('mail a finished run looked at and passed over does not come back', async () => {
+  // The other direction, and the reason an unconditional "never mark on a
+  // partial close" would be wrong: `ok: true` means the agent went through all
+  // of them, so the two it read and judged not worth a card must not be offered
+  // again or every run re-reads the same dull newsletters.
+  const gmail = fakeGmail({ ids: ['m1', 'm2', 'm3'] })
+  const { run } = setup(gmail)
+
+  const first = await run('signalSweep', {})
+  await run('recordSignal', { sweepId: first.sweepId, messageId: 'm1', headline: 'H', summary: 'Egy. Kettő.', score: 0.4, applyScore: 0.2 })
+  assert.equal((await run('finishSweep', { sweepId: first.sweepId, ok: true })).seenMarked, 3)
+
+  const second = await run('signalSweep', {})
+  assert.deepEqual(second.messages, [])
+  assert.equal(second.skipped, 3)
+})
+
 test('signalSweep writes a named error on the sweep row instead of an empty list', async () => {
   const err = new GmailError('gmail_label_missing', 'no Gmail label named "AI hírlevél"')
   const { state, run } = setup(fakeGmail({ labelFail: err }))

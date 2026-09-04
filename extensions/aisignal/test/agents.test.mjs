@@ -254,6 +254,14 @@ async function observedReturnFields() {
   return fields
 }
 
+/** The fields one handed-over newsletter carries, read off a real run. */
+async function observedMessageFields() {
+  const state = toolState({ gmail: fakeGmail({ ids: ['m1'] }) })
+  const result = await byName(state).get('signalSweep').execute({})
+  assert.ok(result.messages.length > 0, 'the fixture must hand over at least one message')
+  return new Set(Object.keys(result.messages[0]))
+}
+
 /** The fields one research candidate carries, read off a real run. */
 async function observedCandidateFields() {
   const nowSec = Math.floor(Date.now() / 1000)
@@ -327,8 +335,16 @@ const PINNED_PROSE = Object.freeze({
   'research_topics.json': { file: 'research_topics.json', why: 'the operator-owned topics file' },
 })
 
+/*
+ * `Reddit`, `Hacker News` and `GitHub` used to be here, and having them here is
+ * what let the inaccuracy through: the prompts said `sourceName` was "what the
+ * candidate calls itself" and gave those three, while the field a candidate
+ * carries is `source` and its values are `reddit`, `hn` and `github`. An
+ * allowlist of display names made the wrong sentence pass. They are ordinary
+ * prose now, unbackticked, and the three real values come off RESEARCH_SOURCES,
+ * so a prompt that backticks a display name fails here again.
+ */
 const PLAIN_PROSE = Object.freeze([
-  'Reddit', 'Hacker News', 'GitHub', // what a sourceName looks like on a card
   'link.mail.beehiiv.com/ss/c/<opaque>', // the worked example of a per-recipient tracking link
   'false', // the JavaScript literal, spoken about on its own
 ])
@@ -386,6 +402,7 @@ test('every backticked name in every prompt resolves to something that exists', 
     for (const parameter of Object.keys(tool.parameters?.properties || {})) vocabulary.add(parameter)
   }
   for (const field of await observedReturnFields()) vocabulary.add(field)
+  for (const field of await observedMessageFields()) vocabulary.add(field)
   for (const field of await observedCandidateFields()) vocabulary.add(field)
   for (const source of RESEARCH_SOURCES) vocabulary.add(source)
   vocabulary.add(RESEARCH_ID_SPACE)
@@ -414,6 +431,7 @@ test('every backticked name in every managed skill resolves to something that ex
     for (const parameter of Object.keys(tool.parameters?.properties || {})) vocabulary.add(parameter)
   }
   for (const field of await observedReturnFields()) vocabulary.add(field)
+  for (const field of await observedMessageFields()) vocabulary.add(field)
   for (const field of await observedCandidateFields()) vocabulary.add(field)
   for (const source of RESEARCH_SOURCES) vocabulary.add(source)
   vocabulary.add(RESEARCH_ID_SPACE)
@@ -437,6 +455,112 @@ test('every backticked name in every managed skill resolves to something that ex
     }
   }
   assert.deepEqual(unknown, [], 'a skill names something that does not exist')
+})
+
+// ---------------------------------------------------------------------------
+// The other direction: every fact a tool hands over is named where it is read
+// ---------------------------------------------------------------------------
+
+/**
+ * Why this check exists, and what the check above could not catch.
+ *
+ * The vocabulary walk is one-directional: it asks whether every name a prompt
+ * uses exists. Nothing asked the reverse -- whether every field a tool RETURNS
+ * is named in the text the agent that receives it will read. Two defects went
+ * through that gap and neither could have failed a test above.
+ *
+ * `textInAttachment` was the expensive one. `handOver` in sweep.mjs carries it,
+ * and its own comment says why: an empty `text` with the flag set means the body
+ * is at the attachments endpoint, not that the newsletter was empty. The flag
+ * appeared in no prompt and no skill, so an agent handed `{ text: '',
+ * textInAttachment: true }` reported an empty newsletter -- a false report in
+ * the "found nothing" direction, produced by the very field the tool author
+ * added so the prompt could avoid it. `textTruncated` is the milder twin.
+ *
+ * So: every field a run hands the agent is either named in the text that agent
+ * sees, or listed below with a reason it does not need to be. The exemption list
+ * is the point. Each entry is an argued claim a reviewer can disagree with, and
+ * a field NOBODY has thought about is neither named nor listed, which is what
+ * makes this fail.
+ *
+ * What it would not catch: a field that is named but described wrongly, a field
+ * named in one agent's text that matters to the other, and anything about the
+ * prose around the name. It is a presence check, not a comprehension check.
+ */
+const FIELDS_NEEDING_NO_MENTION = Object.freeze({
+  label: 'the label name the run resolved, echoed back for the sweep row; the agent passes it or omits it and never reads it back',
+  messages: 'the hand-over list itself. The agent works through it; naming the container adds nothing that naming its fields does not',
+  candidates: 'the research hand-over list, for the same reason as `messages`',
+  found: "on finishSweep's own answer, which arrives after the note is written. It is the sweep row's counter and the board reads it",
+  linksRead: "same: a counter recomputed by the close from `link_read`, not a fact the run has to report",
+  seenMarked: "same: how many seen rows the close wrote. The RULE behind it is what the agent must know, and both prompts state it under `ok`",
+})
+
+/**
+ * Every field the mail run hands its agent, and every field the research run
+ * hands its own -- kept apart, unlike `observedReturnFields`, which pools both.
+ *
+ * Pooling them would ask the mail prompt to name `notAsked`, which only a
+ * research run answers, and the research prompt to name `fetchFailures`. Each
+ * agent is answerable for the fields IT is handed and no others, so both tools
+ * are called here on both paths and the two answers are collected separately.
+ * `recordSignal` and `finishSweep` are shared, so their fields land in both.
+ */
+async function handedOverFields() {
+  const collect = async (...results) => {
+    const fields = new Set()
+    for (const result of results) for (const key of Object.keys(await result)) fields.add(key)
+    return fields
+  }
+
+  const mailOk = byName(toolState({ gmail: fakeGmail({ ids: ['m1'] }) })).get('signalSweep')
+  const mailFail = byName(toolState({ gmail: fakeGmail({ labelFail: new Error('no such label') }) })).get('signalSweep')
+  const researchOk = byName(toolState({ fetchImpl: fakeFetch() })).get('researchSweep')
+  const researchFail = byName(toolState({ fetchImpl: fakeFetch({ fail: true }) })).get('researchSweep')
+
+  // recordSignal's and finishSweep's own answers, on a run of their own so the
+  // sweep this one closes is not one another case is still writing to.
+  const state = toolState({ gmail: fakeGmail({ ids: ['m1'] }) })
+  const tools = byName(state)
+  const { sweepId } = await tools.get('signalSweep').execute({})
+  const recorded = await tools.get('recordSignal').execute({ sweepId, messageId: 'm1', headline: 'H', summary: 'Egy. Kettő.', score: 0.4, applyScore: 0.2 })
+  const closed = await tools.get('finishSweep').execute({ sweepId })
+  const shared = await collect(recorded, closed)
+
+  return {
+    'signal-scout': new Set([...await collect(mailOk.execute({}), mailFail.execute({})), ...await observedMessageFields(), ...shared]),
+    'signal-kutato': new Set([...await collect(researchOk.execute({}), researchFail.execute({})), ...await observedCandidateFields(), ...shared]),
+  }
+}
+
+test('every field a run hands the agent is named in the text that agent reads', async () => {
+  const fields = await handedOverFields()
+  const unmentioned = []
+  for (const agent of AGENTS) {
+    const soul = agent.agentKey === 'signal-scout' ? SCOUT_SOUL : KUTATO_SOUL
+    const prompt = agent.agentKey === 'signal-scout' ? MAIL_PROMPT : RESEARCH_PROMPT
+    const skills = agent.skills.map((s) => readSource(path.join('skills', s, 'SKILL.md')))
+    // Everything the agent has in front of it on a scheduled turn: its system
+    // prompt, the task text, and the skill its frontmatter marks always-on.
+    const named = new Set([soul, prompt, ...skills].flatMap((text) => backtickedTokens(text).map(baseToken)))
+    for (const field of fields[agent.agentKey]) {
+      if (named.has(field)) continue
+      if (Object.hasOwn(FIELDS_NEEDING_NO_MENTION, field)) continue
+      unmentioned.push(`${agent.agentKey}: ${field}`)
+    }
+  }
+  assert.deepEqual(unmentioned, [], 'a tool hands over a field no prompt or skill names, and no reason is recorded for leaving it out')
+})
+
+test('the reverse check would catch a hand-over field nobody documented', () => {
+  // `textInAttachment` is the field this check was written for, so removing it
+  // from every text has to be visible. The walk is the same one, over a
+  // hand-over field that is neither named nor exempt.
+  const named = new Set(backtickedTokens(SCOUT_SOUL + MAIL_PROMPT).map(baseToken))
+  assert.ok(named.has('textInAttachment'), 'the mail agent is told about the attachment flag')
+  const stripped = new Set([...named].filter((t) => t !== 'textInAttachment'))
+  assert.equal(stripped.has('textInAttachment'), false)
+  assert.equal(Object.hasOwn(FIELDS_NEEDING_NO_MENTION, 'textInAttachment'), false, 'and it is not exempt, so the check above would report it')
 })
 
 test('the vocabulary check would catch a tool name that does not exist', async () => {
@@ -522,6 +646,45 @@ test('every skill a declaration names is a skill file that is present and named 
       assert.equal(frontmatterName[1], skill)
     }
   }
+})
+
+test('every skill a declaration names is marked always-on, which is what puts it in the turn', () => {
+  /*
+   * `skills: ['ai-hirlevel-kinyeres']` on the declaration attaches nothing. The
+   * host writes it to `agent.skills`, but the turn passes `agent.skillIds` to
+   * resolveRuntimeSkills, that id list only names STORED skills, and these two
+   * are DISCOVERED off disk -- buildSeedFromDiscovered hardcodes
+   * `attached: false`. A discovered, unattached, non-always skill lands in a
+   * name-and-description list capped at twelve and has to be pulled in with a
+   * tool call, so both souls' "Elolvasom, nem díszlet" was a promise about a
+   * file the agent had not been given.
+   *
+   * `always: true` in the frontmatter is what changes that: normalizeSkillPayload
+   * reads it, buildSeedFromDiscovered carries it, and selectPromptSkills puts
+   * every always-on skill's whole content into the prompt. Asserted on the file
+   * rather than described, because nothing else here would notice it going.
+   * The host half -- that a plain `always: true` really is read, and really does
+   * reach a turn -- is asserted in src/lib/server/skills/runtime-skill-resolver.test.ts.
+   */
+  for (const agent of AGENTS) {
+    for (const skill of agent.skills) {
+      const content = readSource(path.join('skills', skill, 'SKILL.md'))
+      const frontmatter = content.match(/^---\r?\n([\s\S]*?)^---\r?\n/m)
+      assert.ok(frontmatter, `${skill}/SKILL.md has no frontmatter block`)
+      assert.match(frontmatter[1], /^always:\s*true\s*$/m, `${skill} is not always-on, so the agent that names it never receives it`)
+    }
+  }
+})
+
+test('both skills fit the prompt budget they are injected under, with room for each other', () => {
+  // MAX_SKILLS_PROMPT_CHARS is 30 000 across every always-on and attached skill
+  // in one turn, and selectPromptSkills silently SKIPS a skill that does not
+  // fit rather than truncating it. Each agent carries one of these, so either
+  // alone has to fit; the sum is checked too, because an install with both
+  // agents has both files discovered in the same layer.
+  const sizes = AGENTS.flatMap((a) => a.skills).map((skill) => readSource(path.join('skills', skill, 'SKILL.md')).length + skill.length + 12)
+  for (const size of sizes) assert.ok(size < 30_000, 'a skill over the budget is dropped from the prompt without a word')
+  assert.ok(sizes.reduce((a, b) => a + b, 0) < 30_000)
 })
 
 test('the installer copies the skills into the layer the host discovers', () => {

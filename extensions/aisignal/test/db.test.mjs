@@ -168,7 +168,7 @@ test('the dedup key is exactly the space a message id is unique in', () => {
   // And the item index carries the same space, so two mailboxes' messages
   // cannot merge into one card.
   const index = s.get("SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'ext_aisignal_items' AND sql LIKE '%UNIQUE%'").sql
-  assert.match(index, /\(kind, account, message_id, COALESCE\(url, ''\)\)/)
+  assert.match(index, /\(kind, account, message_id, COALESCE\(url, ''\), CASE WHEN COALESCE\(url, ''\) = '' THEN headline ELSE '' END\)/)
 })
 
 test('a blank key is refused by the schema, not only by the guard that reads it', () => {
@@ -210,6 +210,12 @@ test('the seen write is spelled so a blank key raises, not so the row is skipped
   storage.exec('INSERT INTO ext_aisignal_sweeps (id, ran_at, label, account, source_id, since, messages, fetched_ids, leftover, kind, note, frontier_after) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
     ['s1', '2026-09-01T00:00:00.000Z', 'News', ACCOUNT, 'Label_7', null, 1, JSON.stringify(['X']), 0, '', '', '2026-09-01T00:00:00.000Z'])
 
+  // One item against the fetched id, because an unfinished close only marks the
+  // ids that produced one -- see the seen-marking rule in finishSweep. Without
+  // it this close would mark nothing and the CHECK would never be reached, so
+  // the item is what puts the write in front of the barrier.
+  repo.insertItem({ sweepId: 's1', messageId: 'X', headline: 'H', summary: '', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+
   // Closed as a failure, so the frontier write is skipped and the seen INSERT
   // is the only statement in the transaction that can raise. The CHECK asserted
   // here is that table's own, not one further down.
@@ -223,6 +229,76 @@ test('the seen write is spelled so a blank key raises, not so the row is skipped
   // The spelling that was there before, for contrast: no error, and no row.
   storage.exec("INSERT OR IGNORE INTO ext_aisignal_seen (kind, account, message_id, seen_at) VALUES ('', ?, 'X', '2026-09-01T00:00:00.000Z')", [ACCOUNT])
   assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_seen').c, 0, 'skipped in silence, which is what made the CHECK decorative')
+})
+
+test('an unfinished close leaves what it never read fetchable, and marks what it recorded', () => {
+  /*
+   * The whole rule in one run. Three messages fetched, one recorded, closed
+   * `ok: false` because the agent ran out of turn.
+   *
+   * Before, the marking loop ran over `fetched_ids` unconditionally and only the
+   * frontier write was gated on `ok`: the frontier stayed put and all three were
+   * marked seen, so the two the agent never opened dropped out of `fresh` on
+   * every future listing and were unreachable for good -- while both prompts
+   * told the agent `ok: false` would bring them back.
+   */
+  const { storage, repo } = freshWithStorage()
+  const sweep = repo.openSweep({ label: 'News', source: src('Label_7'), since: null, fetchedIds: ['m1', 'm2', 'm3'], skipped: 0, leftover: 0, drained: true })
+  repo.insertItem({ sweepId: sweep.id, messageId: 'm1', headline: 'H', summary: 's', url: null, score: 0.4, applyScore: 0.2, why: '', linkRead: 0 })
+
+  const closed = repo.finishSweep({ sweepId: sweep.id, ok: false })
+  assert.equal(closed.found, 1)
+  assert.equal(closed.seenMarked, 1, 'only the id that produced a card is marked')
+
+  // What the agent never looked at comes back: a later run listing the same
+  // three ids sees two of them as fresh.
+  const seen = repo.seenIds(space(), ['m1', 'm2', 'm3'])
+  assert.deepEqual([...seen], ['m1'])
+  assert.equal(storage.get('SELECT COUNT(*) AS c FROM ext_aisignal_seen').c, 1)
+  // And the frontier still has not moved, so the window they come back in is
+  // the same one.
+  assert.equal(frontierOf(repo, 'Label_7'), null)
+})
+
+test('a successful close marks every fetched id, including the ones it passed over', () => {
+  // The other half of the same rule. `ok: true` means the agent went through all
+  // of them, so a message it read and judged not worth a card must not be
+  // offered again -- otherwise every sweep re-reads the same dull newsletters
+  // and never gets past them.
+  const repo = fresh()
+  const sweep = repo.openSweep({ label: 'News', source: src('Label_7'), since: null, fetchedIds: ['m1', 'm2', 'm3'], skipped: 0, leftover: 0, drained: true })
+  repo.insertItem({ sweepId: sweep.id, messageId: 'm1', headline: 'H', summary: 's', url: null, score: 0.4, applyScore: 0.2, why: '', linkRead: 0 })
+
+  const closed = repo.finishSweep({ sweepId: sweep.id, ok: true })
+  assert.equal(closed.seenMarked, 3)
+  assert.deepEqual([...repo.seenIds(space(), ['m1', 'm2', 'm3'])].sort(), ['m1', 'm2', 'm3'])
+})
+
+test('an unfinished close marks nothing for an id it never fetched', () => {
+  // The recorded set is intersected with `fetched_ids`, so an item filed against
+  // a message this sweep did not fetch cannot mark that message seen. The agent
+  // supplies `messageId`, and nothing it says may drop a message out of a future
+  // listing.
+  const repo = fresh()
+  const sweep = repo.openSweep({ label: 'News', source: src('Label_7'), since: null, fetchedIds: ['m1'], skipped: 0, leftover: 0, drained: true })
+  repo.insertItem({ sweepId: sweep.id, messageId: 'elsewhere', headline: 'H', summary: 's', url: null, score: 0.4, applyScore: 0.2, why: '', linkRead: 0 })
+
+  assert.equal(repo.finishSweep({ sweepId: sweep.id, ok: false }).seenMarked, 0)
+  assert.deepEqual([...repo.seenIds(space(), ['m1', 'elsewhere'])], [])
+})
+
+test('a research run that closes unfinished offers its unscored candidates again', () => {
+  // Same arithmetic on the research side, where one run hands over up to sixty
+  // candidates: a run that scores half of them and closes must not bury the
+  // other half. The id space is the public one, not a mailbox.
+  const repo = fresh()
+  const ids = ['reddit:1', 'hn:2', 'github:3']
+  const sweep = repo.openSweep({ label: 'kutatás', idSpace: { account: 'public-web' }, since: null, fetchedIds: ids, skipped: 0, leftover: 0, kind: 'research' })
+  repo.insertItem({ sweepId: sweep.id, messageId: 'reddit:1', headline: 'H', summary: 's', url: 'https://example.test/a', score: 0.3, applyScore: 0.2, why: '', linkRead: 0 })
+
+  repo.finishSweep({ sweepId: sweep.id, ok: false })
+  const seen = repo.seenIds({ kind: 'research', account: 'public-web' }, ids)
+  assert.deepEqual([...seen], ['reddit:1'])
 })
 
 test('seenMarked counts the rows the close wrote, not the ids it was handed', () => {
@@ -376,23 +452,58 @@ test('board deck orders by apply_score and caps, undecided is the real count', (
   assert.equal(b.deck[0].apply_score > b.deck[49].apply_score, true)
 })
 
-test('items without a url still dedupe on message_id', () => {
+test('a link-free item re-recorded under the same headline merges rather than duplicating', () => {
   // SQLite treats NULLs as distinct in a unique index, so a plain
   // UNIQUE (message_id, url) would let every re-run insert another copy of an
   // item that has no link. The index and the lookup both go through
   // COALESCE(url, ''), which is what makes this merge instead of duplicate.
   const r = fresh()
   const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
-  const first = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'first', summary: 's', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
-  const second = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'second', summary: 's2', url: null, score: 0.4, applyScore: 0.5, why: 'w', linkRead: 1 })
+  const first = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'same', summary: 's', url: null, score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+  const second = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'same', summary: 's2', url: null, score: 0.4, applyScore: 0.5, why: 'w', linkRead: 1 })
   assert.equal(first.merged, false)
   assert.equal(second.merged, true)
   assert.equal(second.id, first.id)
   assert.equal(r.counts().items, 1)
   const only = r.items().items[0]
-  assert.equal(only.headline, 'second')
+  assert.equal(only.summary, 's2')
   assert.equal(only.apply_score, 0.5)
   assert.equal(only.link_read, 1)
+})
+
+test('two different link-free infos out of one message are two cards, not one overwritten', () => {
+  // The defect this closes: `url` is not required, a newsletter carries several
+  // infos, and COALESCE(url, '') made every link-free info out of one message
+  // the same key. The second recordSignal took the merge branch and UPDATEd the
+  // first one's headline, summary, scores and why out of existence -- while
+  // every prompt told the agent `merged: true` was benign and it should move on.
+  // An observation the agent had looked at was gone, which is the one thing this
+  // extension may never do.
+  const r = fresh()
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  const first = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'Az OpenAI levitte az árat', summary: 'Egy. Kettő.', url: null, score: 0.6, applyScore: 0.3, why: 'w1', linkRead: 0 })
+  const second = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'A Mistral kiadott egy modellt', summary: 'Három. Négy.', url: null, score: 0.4, applyScore: 0.2, why: 'w2', linkRead: 0 })
+
+  assert.equal(first.merged, false)
+  assert.equal(second.merged, false, 'a different info out of the same message is not a re-record')
+  assert.notEqual(second.id, first.id)
+  assert.equal(r.counts().items, 2)
+  const headlines = r.items().items.map((i) => i.headline).sort()
+  assert.deepEqual(headlines, ['A Mistral kiadott egy modellt', 'Az OpenAI levitte az árat'])
+})
+
+test('the same message and the same link is one card however the headline is worded', () => {
+  // The discriminator is only in the key where the link cannot carry it. With a
+  // url, a second pass that words the headline differently is still the same
+  // info, and a second card for it would be the noise the dedup exists to stop.
+  const r = fresh()
+  const sweep = r.openSweep({ label: 'x', since: null, fetchedIds: [], skipped: 0, leftover: 0 })
+  const first = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'first wording', summary: 's', url: 'https://one', score: 0.1, applyScore: 0.1, why: '', linkRead: 0 })
+  const second = r.insertItem({ sweepId: sweep.id, messageId: 'a', headline: 'second wording', summary: 's2', url: 'https://one', score: 0.4, applyScore: 0.5, why: 'w', linkRead: 1 })
+  assert.equal(second.merged, true)
+  assert.equal(second.id, first.id)
+  assert.equal(r.counts().items, 1)
+  assert.equal(r.items().items[0].headline, 'second wording')
 })
 
 test('a url makes an item distinct from the same message without one', () => {

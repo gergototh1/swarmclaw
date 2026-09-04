@@ -475,7 +475,13 @@ export function normalizeSkillPayload(input: NormalizeSkillInput): NormalizedSki
   const capabilities = asStringArray(runtimeMeta?.capabilities)
     || asStringArray(input.capabilities)
     || undefined
-  const always = asBoolean(runtimeMeta?.always) ?? asBoolean(input.always)
+  // Plain `always: true` in the frontmatter counts, not only the scoped
+  // `metadata.openclaw.always`. A SKILL.md discovered off disk reaches here as
+  // `{ content, filename }` and nothing else, so `input.always` is always
+  // undefined for it and the scoped key was the only spelling that worked --
+  // which silently dropped the flag from every skill file that used the obvious
+  // one, the bundled resourceful-problem-solving skill included.
+  const always = asBoolean(runtimeMeta?.always) ?? asBoolean(frontmatter?.always) ?? asBoolean(input.always)
   const installOptions = normalizeInstallOptions(runtimeMeta?.install)
     || normalizeInstallOptions(input.installOptions)
   const skillRequirements = normalizeRequirements(runtimeMeta)

@@ -4,6 +4,7 @@ description: Mi számít megfigyelésnek a nyílt weben, hogyan pontozz, és mi�
 version: 1.0.0
 license: MIT
 tags: [aisignal, kutatás, KKV, pontozás]
+always: true
 ---
 
 # KKV-kutatás — mi kerül a paklira
@@ -77,9 +78,10 @@ A `researchSweep` minden jelöltről ennyit ad: `id`, `source`, `title`, `url`,
 selftext, egy HN story-szöveg vagy egy repo-leírás, hosszban levágva.
 
 A `recordSignal` `messageId` mezőjébe a jelölt `id`-je megy
-(`reddit:…`, `hn:…`, `github:…`), az `url`-be pontosan az, ami a jelöltön áll,
-a `sourceName`-be az, aminek a jelölt mondja magát (`Reddit`, `Hacker News`,
-`GitHub`).
+(`reddit:…`, `hn:…`, `github:…`), az `url`-be pontosan az, ami a jelöltön áll.
+A jelölt `source` mezője a három sztring egyike — `reddit`, `hn`, `github` —,
+a `sourceName`-be pedig ennek az olvasható neve megy: Reddit, Hacker News,
+GitHub. Ez utóbbi az, ami a soron látszik.
 
 ## A címsor (`headline`)
 
@@ -207,10 +209,12 @@ földre; ez hiba, nem szerénység.
 ## Duplikátumok
 
 A tool a levél- vagy jelölt-azonosító és az url párosa alapján von össze, és
-**csak akkor, ha az url szó szerint egyezik**. Ez azt jelenti, hogy ugyanaz a
-sztori egy hírlevélből és a Hacker Newsról két külön sor lesz, mert két külön
-url. Ha egy hívás `merged: true`-val jön vissza, egy meglévő sort
-frissítettél: nem hiba, lépj tovább.
+**csak akkor, ha mindkettő egyezik** — az azonosító is, nem csak az url. Ez
+azt jelenti, hogy ugyanaz a sztori egy hírlevélből és a Hacker Newsról két
+külön sor lesz, és ugyanaz a sztori két Reddit-posztból is kettő. **A tool
+sosem von össze két különböző jelöltet**, akkor sem, ha szó szerint ugyanarról
+írnak. Ha egy hívás `merged: true`-val jön vissza, ugyanazt a jelöltet írtad
+be még egyszer: nem hiba, lépj tovább.
 
 Ez ismert korlát, nem a te hibád, és **ne próbáld megkerülni**: ne írj be
 kitalált vagy „megtisztított" url-t azért, hogy összevonódjon. Egy hamis link
@@ -257,13 +261,29 @@ nem is moshatod össze.
 ## A `note` mezője
 
 A `finishSweep` `note`-jába megy: hány jelöltet kaptál, hányról írtál sort,
-mi volt a legjobb és mi volt a legrosszabb, mennyi a `leftover`, és **név
-szerint** az `unavailable` és a `notAsked` lista, egymástól elválasztva. Nem a
+mi volt a legjobb és mi volt a legrosszabb, mennyi a `skipped` (ennyit egy
+korábbi futás már megnézett) és mennyi a `leftover`, és **név szerint** az
+`unavailable` és a `notAsked` lista, egymástól elválasztva. Nem a
 záró válaszodba: azt az operátor nem látja a paklin, a note-ot igen.
 
 A `note` **embernek szóló próza** — semmi nem olvassa vissza gépileg —, tehát
 emberi mondat megy bele, nem kódolt formátum. De amit ide nem írsz bele, azt
 senki nem tudja meg.
+
+## Az `ok` mezője — ez dönti el, mi jön vissza
+
+A lezárás **látottnak jelöli** a jelölteket, és a látott jelölt többé nem kerül
+eléd. Melyiket, azt az `ok` mondja meg:
+
+- **`ok: true`** — végigmentél az összesen. Ilyenkor **minden átadott jelölt**
+  látottá válik, a gyengék is. Ez a helyes: azokról már van sorod.
+- **`ok: false`** — nem jutottál végig. Ilyenkor **csak azok** válnak látottá,
+  **amikről írtál sort**; a többit meg sem nézted, és a következő futásban
+  visszakapod.
+
+Egy futás, ami hatvan jelöltből harmincat pontozott és `ok: true`-val zárt,
+a másik harmincat eltemette. Ha nem jutottál végig, `ok: false` — és ha
+bizonytalan vagy, szintén.
 
 Mérve: hét futás zárult nulla sorral úgy, hogy az indoklás a záró válaszban ott
 volt, a felületen viszont nem látszott semmi. Kívülről ez megkülönböztethetetlen

@@ -4,6 +4,7 @@ description: Mi számít infónak egy AI-hírlevélben, mikor nézz a link mög�
 version: 1.0.0
 license: MIT
 tags: [aisignal, hírlevél, kinyerés, pontozás]
+always: true
 ---
 
 # AI hírlevél — kinyerés
@@ -23,6 +24,20 @@ szponzorált blokk, „mit olvass még", állásajánlat, közösségi CTA, a sz
 hangulatjelentése. Ezek nem infók, akkor sem, ha érdekesek.
 
 Ha nem tudod megmondani, **mi változott**, akkor nem infó. Ne írd be.
+
+## Amikor a törzs nincs ott — és ez nem azt jelenti, hogy üres
+
+Minden átadott levélen ott van két mező, és mindkettő a hiányzó szövegről szól.
+
+- **`textInAttachment`** — ha igaz, a `text` üres lehet **anélkül, hogy a levél
+  üres volna**: a törzs csatolmányként érkezett, és a sweep nem tölti le.
+  Ilyenkor vagy a tárgyból és a feladóból írsz egy őszinte, alacsony pontszámú
+  sort, aminek a `why`-ja kimondja, hogy a törzset nem láttad, vagy nem írsz
+  sort — de a `note`-ban megmondod, hány ilyen levél volt. **Azt soha ne írd,
+  hogy nem volt benne semmi.** Az „üres hírlevél" jelentés hamis jelentés.
+- **`textTruncated`** — a törzs hosszú volt, és amit kaptál, az az eleje. Az
+  összefoglalód tehát a levél egy részéről szól. Ha a téma fontos és a lényeg a
+  vágás után lehet, nézz a link mögé.
 
 ## A címsor (`headline`)
 
@@ -148,8 +163,27 @@ alatt van. Ez nem kudarc, hanem a helyes válasz.
 
 Ugyanaz a hír három hírlevélben ugyanaz az egy infó. **Ne vond össze magad** —
 írd be mindegyiket a `recordSignal`-lal, a link pontos, teljes címével, ahogy
-a levélben áll, és a tool összevonja őket, amikor tudja. Ha a válasz
-`merged: true`, egy meglévő sort frissítettél: ez nem hiba, lépj tovább.
+a levélben áll.
+
+**És ne várd, hogy a tool összevonja őket: nem tudja.** A kulcsban benne van a
+levél azonosítója, és három hírlevélnek három azonosítója van, akármi is a
+link. Három sor lesz belőle, és ez a helyes eredmény: az operátor látja, hogy
+három forrás mondta ugyanazt, ami önmagában információ.
+
+A `merged: true` egyetlen dolgot jelent: **ugyanazt a levelet írtad be még
+egyszer**. Pontosan akkor, ha ugyanaz a `messageId` és ugyanaz az `url` — vagy
+ha nincs link, ugyanaz a `headline`. Nem hiba, lépj tovább.
+
+### Link nélküli infóknál a címsor a megkülönböztető
+
+Egy hírlevélből öt-tíz infó jön ki, és nem mindegyikhez tartozik link. Két
+link nélküli infó ugyanabból a levélből **csak akkor lesz két sor, ha két
+különböző `headline`-t adsz nekik** — ha ugyanazt írod kétszer, a második
+felülírja az elsőt, és az egy elveszett megfigyelés.
+
+Ez nem kényszer, hanem ugyanaz a szabály, ami fentebb a címsorra amúgy is áll:
+a `headline` **mondja meg a dolgot**. Két infó, aminek ugyanaz a jó címsora,
+egy infó volt.
 
 **Ne próbáld egyformává tenni a linkeket, és ne találgasd ki a „végső"
 címet.** A tool két sort akkor von össze, ha ugyanaz a levél-azonosító és
@@ -176,4 +210,22 @@ gépileg —, de amit nem írsz bele, azt senki nem tudja meg. Menjen bele, hán
 levelet néztél át, hány sor lett belőle, és **név szerint** minden olyan tény,
 amit a `signalSweep` külön adott vissza: a `skipped` és a `leftover` szám, a
 `fetchFailures` (ezeket nem sikerült letölteni — ez nem ugyanaz, mint hogy nem
-volt bennük semmi), és a `listStoppedOn`, ha volt.
+volt bennük semmi), a `listStoppedOn`, ha volt, és hány levél törzse volt
+csatolmányban (`textInAttachment`).
+
+## Az `ok`, amivel zársz — ez dönti el, mi jön vissza
+
+A lezárás **látottnak jelöli** a leveleket, és a látott levél soha többé nem
+kerül eléd. Melyiket, azt az `ok` mondja meg:
+
+- **`ok: true`** — végigmentél az összesen. Ilyenkor **minden letöltött levél**
+  látottá válik, azok is, amikből nem lett sor. Ez a helyes: amit megnéztél és
+  háttérzajnak minősítettél, ne jöjjön vissza minden körben.
+- **`ok: false`** — nem jutottál végig. Ilyenkor **csak azok** a levelek
+  válnak látottá, **amikről írtál sort**; a többihez nem nyúlt a futás, és a
+  következő körben visszakapod. A vízjel sem mozdul.
+
+Tehát az `ok` nem az önértékelésed, hanem egy tény a tool számára: „megnéztem
+és nem ért egy sort" vagy „ehhez el sem jutottam". Ha bizonytalan vagy,
+`ok: false` — abból egy fölösleges újraolvasás lesz, a másik irányból egy
+örökre elveszett levél.

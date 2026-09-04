@@ -6,6 +6,7 @@ import { getExtensionManager } from '@/lib/server/extensions'
 import { loadAgents, saveAgentMany } from '@/lib/server/agents/agent-repository'
 import { loadSchedules, upsertSchedules } from '@/lib/server/schedules/schedule-repository'
 import { loadSettings, saveSettings } from '@/lib/server/settings/settings-repository'
+import { DEFAULT_AGENT_ROUTE } from '@/lib/setup-defaults'
 import { logActivity } from '@/lib/server/activity/activity-log'
 import { notify } from '@/lib/server/ws-hub'
 import { WORKSPACE_DIR } from '@/lib/server/data-dir'
@@ -303,10 +304,52 @@ function normalizeScheduleStatus(value: unknown, triggerEnabled?: boolean): Sche
   return 'paused'
 }
 
+interface AgentRoute {
+  provider: Agent['provider']
+  model: string
+}
+
+/**
+ * The route a managed agent is created on when its declaration names none.
+ *
+ * An extension declaration deliberately leaves `provider` and `model` out: an
+ * extension that pinned a model would pin it on installs where that credential
+ * does not exist, and the operator is the one who owns the choice. What that
+ * silence used to mean was two literals in `buildManagedAgent` — `'openai'` and
+ * `'gpt-4o-mini'` — so every extension-managed agent on every install was
+ * created pointing at an OpenAI credential the install may never have had. The
+ * first scheduled run then failed on a credential error, or succeeded badly.
+ *
+ * What the silence means now is "whatever this instance already runs on": the
+ * agent `settings.defaultAgentId` names, and failing that the seeded `default`
+ * agent. Both halves come from the same agent, so the pair is a route rather
+ * than a provider from one place and a model from another. An empty `model` is
+ * kept as an empty model — it is what a CLI provider legitimately carries, and
+ * treating it as "unset" would substitute a model name the CLI never asked for.
+ *
+ * When neither is there — an operator who deleted their own default agent, the
+ * only way to reach that state, since the seed creates one whenever the agents
+ * table is empty — the answer is `DEFAULT_AGENT_ROUTE`, the same route the seed
+ * would have used. It is a route that needs no API credential, which is the
+ * right way to be wrong here.
+ */
+function instanceDefaultRoute(agents: Record<string, Agent>): AgentRoute {
+  const settings = loadSettings()
+  for (const id of [text(settings.defaultAgentId), 'default']) {
+    if (!id) continue
+    const agent = agents[id]
+    if (agent && text(agent.provider)) {
+      return { provider: agent.provider, model: typeof agent.model === 'string' ? agent.model : '' }
+    }
+  }
+  return { provider: DEFAULT_AGENT_ROUTE.provider, model: DEFAULT_AGENT_ROUTE.model }
+}
+
 function buildManagedAgent(
   existing: Agent | null,
   extension: ManagedExtensionEntry,
   declaration: ExtensionManagedAgentDeclaration,
+  fallbackRoute: AgentRoute,
 ): Agent | null {
   const agentKey = getManagedAgentKey(declaration)
   const displayName = getManagedAgentDisplayName(declaration)
@@ -322,8 +365,12 @@ function buildManagedAgent(
     name: displayName,
     description: text(declaration.description) || existing?.description || `Managed by ${extension.extensionName}.`,
     systemPrompt: prompt || existing?.systemPrompt || `You are ${displayName}. Follow the extension-managed instructions for ${extension.extensionName}.`,
-    provider: (text(declaration.provider) || existing?.provider || 'openai') as Agent['provider'],
-    model: text(declaration.model) || existing?.model || 'gpt-4o-mini',
+    // Declaration first, then whatever the operator has since chosen on the
+    // stored agent, then the instance's own default route. The operator's choice
+    // is never overwritten by a later reconcile, which is why `existing` sits in
+    // the middle rather than being ignored.
+    provider: (text(declaration.provider) || existing?.provider || fallbackRoute.provider) as Agent['provider'],
+    model: text(declaration.model) || existing?.model || fallbackRoute.model,
     apiEndpoint: declaration.apiEndpoint !== undefined ? declaration.apiEndpoint || null : existing?.apiEndpoint ?? null,
     credentialId: declaration.credentialId !== undefined ? declaration.credentialId || null : existing?.credentialId ?? null,
     fallbackCredentialIds: list(declaration.fallbackCredentialIds).length ? list(declaration.fallbackCredentialIds) : existing?.fallbackCredentialIds || [],
@@ -607,6 +654,10 @@ export function reconcileExtensionManagedResources(extensionId?: string | null):
   }
   const agents = loadAgents()
   const schedules = loadSchedules()
+  // Resolved once per reconcile, off the same snapshot the loop writes into, so
+  // one extension's freshly created agent cannot become the route the next one
+  // inherits.
+  const fallbackRoute = instanceDefaultRoute(agents)
   const agentEntries: Array<[string, Agent]> = []
   const scheduleEntries: Array<[string, Schedule]> = []
 
@@ -614,7 +665,7 @@ export function reconcileExtensionManagedResources(extensionId?: string | null):
     for (const declaration of extension.managedResources.agents || []) {
       const resourceKey = getManagedAgentKey(declaration)
       const existing = resourceKey ? findManagedAgent(agents, extension.extensionId, resourceKey) : null
-      const next = buildManagedAgent(existing, extension, declaration)
+      const next = buildManagedAgent(existing, extension, declaration, fallbackRoute)
       if (!next) {
         result.skipped.push({ resourceKind: 'agent', resourceKey: resourceKey || 'unknown', reason: 'invalid_agent_declaration' })
         continue

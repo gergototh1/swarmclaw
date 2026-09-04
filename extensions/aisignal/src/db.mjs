@@ -59,7 +59,8 @@ import crypto from 'node:crypto'
  *             spelling that excuses a repeat of this key while leaving the
  *             table's CHECK free to fire. See migration 5.
  *
- *   ext_aisignal_items -- UNIQUE (kind, account, message_id, COALESCE(url, ''))
+ *   ext_aisignal_items -- UNIQUE (kind, account, message_id, COALESCE(url, ''),
+ *                                 headline when there is no url)
  *     gates   nothing about scoring or the frontier: no read of this index
  *             reaches either, and `insertItem` runs long after the message was
  *             fetched and handed over. It decides whether a recorded signal
@@ -70,6 +71,11 @@ import crypto from 'node:crypto'
  *             different messages must not merge into one card. `source_id` is
  *             out of it deliberately -- one message that carries two labels of
  *             one mailbox is one card, not two.
+ *     link    the url when there is one, and the headline when there is not.
+ *             `url` is optional on `recordSignal` and a newsletter carries
+ *             several infos, so without the second half two different link-free
+ *             infos out of one message were one key and the second overwrote
+ *             the first. See migration 6.
  *
  *   ext_aisignal_sweeps -- PRIMARY KEY (id)
  *     gates   which row `finishSweep` closes, and closing is what moves the
@@ -380,6 +386,43 @@ INSERT INTO ext_aisignal_frontier_keyed (kind, account, source_id, frontier, mov
 DROP TABLE ext_aisignal_frontier;
 ALTER TABLE ext_aisignal_frontier_keyed RENAME TO ext_aisignal_frontier;
 `,
+}, {
+  /*
+   * Two link-free infos out of one newsletter stop being one card.
+   *
+   * The key was (kind, account, message_id, COALESCE(url, '')), and `url` is not
+   * a required argument of `recordSignal` -- the newsletter skill's own
+   * definition of an info admits ones with no link, and a newsletter carries
+   * five to ten infos. So two DIFFERENT infos out of one message, neither
+   * carrying a link, arrived at the same key, and the second `recordSignal`
+   * took the merge branch and UPDATEd the first one's headline, summary, both
+   * scores and its `why` out of existence. The agent was told this answer was
+   * benign -- every prompt says `merged: true` means "you refreshed a row you
+   * already wrote" -- so it moved on, and an observation it had looked at was
+   * gone. That is the loss this extension exists not to make.
+   *
+   * The fix adds a discriminator that is only in the key when the link half
+   * cannot do the job: with a url, the key is what it was, because the same
+   * message and the same link IS the same info however the headline is worded
+   * on a second pass. With no url, the headline joins the key, so two infos
+   * that say different things get two cards and a genuine re-record of the same
+   * one still merges. `insertItem` spells the same expression, so the lookup
+   * still uses this index rather than scanning.
+   *
+   * The research side never reached this: every candidate carries a unique id
+   * and a validated url, so `COALESCE(url, '')` is never blank there.
+   *
+   * Nothing is rewritten and nothing can fail on the way in. The new index is
+   * strictly finer than the old one -- it adds a column and removes none -- so
+   * every set of rows the old unique index allowed is a set this one allows
+   * too.
+   */
+  version: 6,
+  sql: `
+DROP INDEX IF EXISTS ext_aisignal_items_src_msg_url;
+CREATE UNIQUE INDEX IF NOT EXISTS ext_aisignal_items_src_msg_url_headline ON ext_aisignal_items
+  (kind, account, message_id, COALESCE(url, ''), CASE WHEN COALESCE(url, '') = '' THEN headline ELSE '' END);
+`,
 }]
 
 /*
@@ -423,7 +466,8 @@ ALTER TABLE ext_aisignal_frontier_keyed RENAME TO ext_aisignal_frontier;
  * without a single character of it changing. Both default to '' so a run that
  * never resolved a source says so, and such a row moves no frontier.
  *
- * Why the item key is (kind, account, message_id, COALESCE(url, ''))
+ * Why the item key is (kind, account, message_id, COALESCE(url, ''), headline
+ * when the url is blank)
  * -----------------------------------------------------------------
  * One newsletter carries many links, so message_id alone is not unique. url
  * alone is not either: an item can have no link at all. The pair is the key --
@@ -432,6 +476,15 @@ ALTER TABLE ext_aisignal_frontier_keyed RENAME TO ext_aisignal_frontier;
  * url, and every re-run of a sweep inserts another copy of them. The index is
  * therefore on the expression COALESCE(url, ''), and the lookup in insertItem
  * spells the key exactly the same way so it can use that index.
+ *
+ * COALESCE(url, '') then over-collapses in the other direction: a newsletter
+ * carries five to ten infos and `url` is not required, so two DIFFERENT
+ * link-free infos out of one message shared one key and the second silently
+ * overwrote the first. The headline joins the key exactly when the url is
+ * blank, so it discriminates only where the url cannot; with a link the key is
+ * unchanged, because the same message and the same link is the same info
+ * however the second pass words its headline. Migration 6 carries the whole
+ * argument.
  *
  * `kind` and `account` are in front of that pair because a Gmail message id is
  * an identity only inside one mailbox -- the same reason the dedup carries them,
@@ -803,8 +856,48 @@ export function createRepo(storage) {
       S.exec('UPDATE ext_aisignal_sweeps SET ok = 0, note = ?, finished_at = ? WHERE id = ?', [joinNote(sweep?.note, `${code}: ${message}`), now(), sweepId])
     },
     /**
-     * Closes a sweep: marks its fetched ids seen and recomputes the counters
-     * from the items actually written.
+     * Closes a sweep: marks ids seen and recomputes the counters from the items
+     * actually written.
+     *
+     * WHICH IDS A CLOSE MARKS SEEN, AND WHY `ok` DECIDES IT
+     * ----------------------------------------------------
+     * `seen` exists to stop a source re-offering something a run has already
+     * dealt with. "Fetched but not recorded" is two different things wearing one
+     * shape, and only the closing agent knows which it is looking at:
+     *
+     *   the agent read it and judged it not worth a card. That must be marked
+     *   seen, or every future sweep re-offers the same dull newsletters and the
+     *   run never gets past them.
+     *
+     *   the agent ran out of turn before reaching it. That must NOT be marked
+     *   seen: nothing looked at it, and marking it drops the message out of
+     *   `fresh` on every future listing while the frontier stays put, so it is
+     *   unreachable for good.
+     *
+     * `ok` is exactly the signal that separates them -- `ok: true` means "I went
+     * through all of them", `ok: false` means "I did not" -- so it is what picks
+     * the set. A successful close marks every fetched id; an unfinished one
+     * marks only the ids that produced an item in this sweep. That is the pair
+     * of guarantees the whole extension rests on: mail an agent never looked at
+     * comes back, and mail an agent looked at and passed over does not.
+     *
+     * Before this, the marking loop ran over `fetched_ids` unconditionally and
+     * only the frontier write was gated on `ok`. A run that fetched three
+     * messages, recorded one and closed `ok: false` left the frontier where it
+     * was and marked all three seen, so the two it never read were gone -- while
+     * both prompts told the agent that `ok: false` brings them back. The same
+     * arithmetic held on the research side, where one run hands over up to sixty
+     * candidates.
+     *
+     * The recorded set is read off the items table rather than taken from the
+     * caller, for the reason kind and account are: the agent says what it
+     * recorded by recording it, and a close that could name its own set could
+     * name ids it never looked at. It is intersected with `fetched_ids` so an
+     * item filed against an id this sweep never fetched marks nothing. A record
+     * that MERGED into a row from an earlier sweep keeps that sweep's
+     * `sweep_id`, so it is not in this sweep's recorded set and its message
+     * comes back on an unfinished close -- the wide direction, and the next run
+     * either merges it again or closes clean and marks it seen.
      *
      * The ids are marked seen for the mailbox this sweep read and for no other,
      * because a Gmail message id is unique inside an account and nowhere wider
@@ -863,7 +956,17 @@ export function createRepo(storage) {
         const sweep = S.get('SELECT fetched_ids, note, kind, account, source_id, frontier_after, finished_at FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
         if (!sweep) throw new Error(`unknown sweep ${sweepId}`)
         if (sweep.finished_at) throw new Error(alreadyClosedMessage(sweepId))
-        const ids = JSON.parse(sweep.fetched_ids || '[]')
+        const fetchedIds = JSON.parse(sweep.fetched_ids || '[]')
+        // Which of the fetched ids this close marks seen -- see WHICH IDS A
+        // CLOSE MARKS SEEN above. The unfinished branch asks the items table
+        // which ids this sweep actually turned into a card, and marks those and
+        // nothing else; every other fetched id stays fetchable and comes back.
+        const ids = ok
+          ? fetchedIds
+          : (() => {
+            const recorded = new Set(S.all('SELECT DISTINCT message_id FROM ext_aisignal_items WHERE sweep_id = ?', [sweepId]).map((r) => r.message_id))
+            return fetchedIds.filter((m) => recorded.has(m))
+          })()
         // Marking an id seen is a statement about one mailbox, so a run that
         // never named one cannot make it. Blank halves are not an identity --
         // they are every unidentified run sharing one bucket -- and a bucket
@@ -872,7 +975,7 @@ export function createRepo(storage) {
         // source first, and `failedSweep` fetches nothing), so the refusal is a
         // barrier rather than a path, and it errs wide: the transaction rolls
         // back, the sweep stays open, and every id it holds stays fetchable.
-        if (ids.length > 0 && !sweep.account) {
+        if (fetchedIds.length > 0 && !sweep.account) {
           throw new Error(`sweep ${sweepId} fetched messages but resolved no source; a message id is only unique inside a mailbox, so there is no key to mark them seen under`)
         }
         // `INSERT OR IGNORE` was the wrong spelling for a write that has a
@@ -987,8 +1090,13 @@ export function createRepo(storage) {
         const sweep = S.get('SELECT kind, account FROM ext_aisignal_sweeps WHERE id = ?', [it.sweepId])
         if (!sweep) throw new Error(`unknown sweep ${it.sweepId}`)
         const url = it.url ?? null
-        const key = [sweep.kind, sweep.account, it.messageId, url]
-        const findExact = () => S.get("SELECT id FROM ext_aisignal_items WHERE kind = ? AND account = ? AND message_id = ? AND COALESCE(url, '') = COALESCE(?, '')", key)
+        // The headline half of the key, empty whenever the link can carry the
+        // key on its own -- see migration 6. Written out here rather than
+        // inlined so the two lookups below and the index all say the same thing.
+        const headlineKey = url ? '' : it.headline
+        const key = [sweep.kind, sweep.account, it.messageId, url, headlineKey]
+        const KEY_SQL = "kind = ? AND account = ? AND message_id = ? AND COALESCE(url, '') = COALESCE(?, '') AND CASE WHEN COALESCE(url, '') = '' THEN headline ELSE '' END = ?"
+        const findExact = () => S.get(`SELECT id FROM ext_aisignal_items WHERE ${KEY_SQL}`, key)
         const merge = (rowId) => {
           S.exec('UPDATE ext_aisignal_items SET account = ?, headline = ?, summary = ?, score = ?, apply_score = ?, why = ?, link_read = ? WHERE id = ?',
             [sweep.account, it.headline, it.summary, it.score, it.applyScore, it.why || '', it.linkRead ? 1 : 0, rowId])
@@ -1014,7 +1122,7 @@ export function createRepo(storage) {
           // stored item has a sweep row and a real kind. The condition holds
           // because nothing can remove what it depends on, not because the
           // lookup checks it.
-          ?? (sweep.account === '' ? undefined : S.get("SELECT id FROM ext_aisignal_items WHERE kind = ? AND account = '' AND message_id = ? AND COALESCE(url, '') = COALESCE(?, '')", [sweep.kind, it.messageId, url]))
+          ?? (sweep.account === '' ? undefined : S.get(`SELECT id FROM ext_aisignal_items WHERE kind = ? AND account = '' AND message_id = ? AND COALESCE(url, '') = COALESCE(?, '') AND CASE WHEN COALESCE(url, '') = '' THEN headline ELSE '' END = ?`, [sweep.kind, it.messageId, url, headlineKey]))
         if (existing) return merge(existing.id)
         const id = uid()
         try {

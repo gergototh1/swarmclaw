@@ -264,3 +264,79 @@ test('resolveRuntimeSkills includes active learned skills only for the matching 
   assert.ok(!snapshot.skills.some((skill) => skill.name === 'other-agent-skill'))
   assert.ok(!snapshot.skills.some((skill) => skill.name === 'whatsapp-voice-fallback'))
 })
+
+test('a discovered skill marked always in plain frontmatter reaches the prompt without being attached', () => {
+  /*
+   * The path an extension-shipped skill actually travels, asserted end to end.
+   *
+   * An extension declares `skills: ['name']` on its managed agent, the host
+   * writes that to `agent.skills`, and the turn then passes `agent.skillIds` --
+   * a different field, and one that only ever names STORED skills. A skill
+   * discovered off disk is seeded with `attached: false`, so nothing on the
+   * declaration can put it in front of the model, and `selectPromptSkills` takes
+   * only skills that are attached or always-on.
+   *
+   * `always: true` in the frontmatter is what closes that, and it has to be read
+   * from the PLAIN key: a discovered SKILL.md reaches normalizeSkillPayload as
+   * `{ content, filename }` and nothing else, so before this the flag was only
+   * honoured under the scoped `metadata.openclaw.always` and every file using the
+   * obvious spelling was silently non-always.
+   */
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-always-skill-'))
+  try {
+    const skillDir = path.join(cwd, 'skills', 'aisignal-style')
+    fs.mkdirSync(skillDir, { recursive: true })
+    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), `---
+name: aisignal-style
+description: How to score a signal row.
+always: true
+---
+# Scoring
+
+Two numbers, both mandatory.
+`)
+
+    const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: [], storedSkills: {}, agentSkillIds: [] })
+    const skill = snapshot.skills.find((entry) => entry.name === 'aisignal-style')
+
+    assert.ok(skill, 'the skill is discovered')
+    assert.equal(skill?.attached, false, 'nothing attached it, which is the whole point')
+    assert.equal(skill?.always, true, 'the plain frontmatter key is read')
+    assert.ok(
+      snapshot.promptSkills.some((entry) => entry.name === 'aisignal-style'),
+      'an always-on skill goes into the prompt rather than into the pick-me list',
+    )
+    assert.match(buildRuntimeSkillPromptBlocks(snapshot).join('\n'), /Two numbers, both mandatory/)
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true })
+  }
+})
+
+test('a discovered skill with no always flag stays out of the prompt', () => {
+  // The contrast that makes the case above worth having: same file, same
+  // discovery, no flag. It is listed as available and its content is not in the
+  // prompt, which is exactly what the extension's two skills used to be.
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-optional-skill-'))
+  try {
+    const skillDir = path.join(cwd, 'skills', 'aisignal-optional')
+    fs.mkdirSync(skillDir, { recursive: true })
+    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), `---
+name: aisignal-optional
+description: How to score a signal row.
+---
+# Scoring
+
+Two numbers, both mandatory.
+`)
+
+    const snapshot = resolveRuntimeSkills({ cwd, enabledExtensions: [], storedSkills: {}, agentSkillIds: [] })
+    const skill = snapshot.skills.find((entry) => entry.name === 'aisignal-optional')
+
+    assert.ok(skill)
+    assert.notEqual(skill?.always, true)
+    assert.equal(snapshot.promptSkills.some((entry) => entry.name === 'aisignal-optional'), false)
+    assert.ok(snapshot.availableSkills.some((entry) => entry.name === 'aisignal-optional'))
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true })
+  }
+})

@@ -690,13 +690,13 @@ export function createSweepTools(state) {
 
     {
       name: 'finishSweep',
-      description: 'Lezárja a sweepet: a letöltött id-k látottá válnak, a számok a sorra kerülnek. Csak akkor hívd, ha végigmentél a leveleken. Egy már lezárt sweepet nem lehet újra lezárni.',
+      description: 'Lezárja a sweepet: a számok a sorra kerülnek, és id-k látottá válnak — ok: true esetén az összes letöltött, ok: false esetén csak azok, amikről sort írtál. A látott id soha nem kerül újra eléd. Egy már lezárt sweepet nem lehet újra lezárni.',
       parameters: {
         type: 'object',
         required: ['sweepId'],
         properties: {
           sweepId: { type: 'string' },
-          ok: { type: 'boolean', description: 'Hamis, ha félbemaradt: ilyenkor a vízjel egyáltalán nem mozdul. Igazra állítani nem mozdítja előre: azt a sweep saját, futáskor rögzített eredménye dönti el.' },
+          ok: { type: 'boolean', description: 'Hamis, ha félbemaradt: ilyenkor a vízjel nem mozdul, és csak a sort adó id-k lesznek látottak — amit meg sem néztél, visszajön. Igazra állítani nem mozdítja előre a vízjelet (azt a sweep futáskor rögzített eredménye dönti el), de minden letöltött id-t látottnak jelöl.' },
           note: { type: 'string' },
         },
       },
