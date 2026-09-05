@@ -84,8 +84,10 @@ const tts = {
   tools: [],
   /**
    * What this extension's own page and its MCP shim may call, over
-   * `POST /api/extensions/tts/call/<method>`. See rpc.mjs for which methods
-   * are in it and why `synthesize` answers a refusal as a value there.
+   * `POST /api/extensions/tts.mjs/call/<method>` -- the host keys that route on
+   * the extension's file id, which is `tts.mjs`, not `tts`. See rpc.mjs for
+   * which methods are in it and why `synthesize` answers a refusal as a value
+   * there.
    */
   rpc: createRpc(state, synth, { workspaceDir, portFile: resolvePortFile() }),
   /**

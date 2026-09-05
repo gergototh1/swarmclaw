@@ -97,6 +97,11 @@ export const SYNTHESIS_FIELDS = Object.freeze(['kerelemId', 'fajl', 'hosszMs', '
  * and an empty endpoint are refused under different codes. The counter and
  * the cap let a consumer see a refusal coming; the three settings are the
  * cache key, as above.
+ *
+ * `maiMasodperc` counts what the day is committed to, which includes the
+ * estimate of any call still waiting on the provider. A consumer reading it
+ * twice may see it fall, because a call that failed gives its reservation
+ * back; it is a budget position, not a monotonic total.
  */
 export const STATUS_FIELDS = Object.freeze(['kulcsBeallitva', 'vegpontBeallitva', 'maiMasodperc', 'napiKeret', 'hang', 'modell', 'nyelv'])
 

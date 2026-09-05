@@ -46,6 +46,17 @@ import { setTimeout as sleep } from 'node:timers/promises'
  * restarted between two calls has a new port, and a shim that cached the old
  * one would send the second call to whatever now owns it.
  *
+ * WHAT HAS NEVER BEEN TRIED. This shim has not been run against a running
+ * SwarmClaw. Every test of it, in test/mcp.test.mjs and in the review that
+ * followed, drives it against a fake HTTP server in the same test process --
+ * one that writes its own port file and answers `service: "swarmclaw"` by
+ * construction. That exercises this file's own logic and proves nothing about
+ * the other side of the contract: that the host really writes `run/port.json`
+ * where index.mjs computes it, with the four fields in the shape read below,
+ * and that `/api/healthz` on that port really answers that service name. Only
+ * a live run confirms those, and it has not happened. Treat a first live
+ * failure here as the contract being wrong, not as this file being broken.
+ *
  * TWO SWARMCLAW INSTANCES ON ONE MACHINE. `service: "swarmclaw"` says the
  * port belongs to some SwarmClaw server, not which one. The shim does not
  * try to tell them apart: it talks to the server whose port file the

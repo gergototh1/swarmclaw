@@ -10,7 +10,13 @@ import { SZOLGALTATO, celFajlEllenorzes, probeDurationMs, readSettings, szovegEl
 
 /**
  * The methods this extension's own page and its MCP shim may call, over
- * `POST /api/extensions/tts/call/<method>`, and nothing else.
+ * `POST /api/extensions/tts.mjs/call/<method>`, and nothing else.
+ *
+ * The `tts.mjs` in that path is not a typo. The host keys the route on the
+ * extension's *file* id (`src/app/api/extensions/[id]/call/[method]/route.ts`
+ * looks the handler up by the same id the loader registered), and
+ * scripts/install.mjs writes this extension as `<DATA_DIR>/extensions/tts.mjs`.
+ * `/api/extensions/tts/call/...` is a 404, so this is the one spelling to copy.
  *
  * One of the two entry points over the synthesizer; the other is the
  * `narration` contract in contract.mjs. This one is the wider of the two on

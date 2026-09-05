@@ -23,11 +23,28 @@ import { Buffer } from 'node:buffer'
  *                     or an MPEG frame sync), because the caller names the
  *                     file `.mp3` and ffprobe would happily measure a wav
  *                     stored under that name.
- *   `classifyRefusal` which non-2xx answer means "no balance". The status
- *                     Soniox uses for an exhausted account is unknown (spec
- *                     13.); the rule here is HTTP 402, or any 4xx whose JSON
- *                     error text names balance, credits or funds. Nothing
- *                     from that body is quoted into the message.
+ *   `egyenlegKimerultE` which non-2xx answer means "no balance". A guess, and
+ *                     named as one where it is written; `classifyRefusal` does
+ *                     nothing but turn its answer into an error.
+ *
+ * THE CONTAINER, IN ONE FILE
+ * --------------------------
+ * "Soniox returns mp3" is a single assumption with three consequences, and
+ * all three are stated here so the first funded call that shows wav or opus
+ * is one file's worth of editing:
+ *
+ *   AUDIO_FORMAT        what `buildRequest` asks the provider for
+ *   HANG_KITERJESZTES   the suffix a target path must carry, applied by
+ *                       `celFajlEllenorzes` (synthesize.mjs)
+ *   `looksLikeMp3`      how the first bytes are recognised, applied to a
+ *                       reply here in `readAudio` and to an operator's own
+ *                       file by `importCache` (rpc.mjs)
+ *
+ * Three call sites still read them, in three files, and that is the honest
+ * count: what is confined is the assumption, not the number of places that
+ * act on it. The one thing not derived from here is `importCache`'s refusal
+ * label `fajl_nem_mp3`, which is a stored string the page shows; a container
+ * change has to rename that too.
  *
  * THE CODES, A CLOSED SET
  * -----------------------
@@ -41,7 +58,7 @@ import { Buffer } from 'node:buffer'
  *   tts_idotullepes                 the deadline passed before the whole body
  *                                   had arrived; the request was aborted
  *   tts_egyenleg_kimerult           the provider refused for lack of balance
- *                                   (by the rule in `classifyRefusal`)
+ *                                   (by the guess in `egyenlegKimerultE`)
  *   tts_szolgaltato_visszautasitott any other non-2xx answer; the HTTP status
  *                                   is in the message and on `httpStatus`
  *   tts_valasz_ertelmezhetetlen     a 2xx that carried no usable audio: empty,
@@ -61,6 +78,8 @@ import { Buffer } from 'node:buffer'
  *   tts_szoveg_ervenytelen          the text is empty or too long
  *   tts_hossz_meres_sikertelen      the audio arrived and ffprobe could not
  *                                   measure it
+ *   tts_fajl_iras_sikertelen        the audio arrived and could not be put
+ *                                   where the caller asked for it
  *
  * THE DEADLINE
  * ------------
@@ -124,7 +143,16 @@ export const TTS_KODOK = Object.freeze([
   'tts_celfajl_ervenytelen',
   'tts_szoveg_ervenytelen',
   'tts_hossz_meres_sikertelen',
+  'tts_fajl_iras_sikertelen',
 ])
+
+/**
+ * The container this extension asks for and accepts. See THE CONTAINER, IN
+ * ONE FILE above: these two and `looksLikeMp3` are the whole of the mp3
+ * assumption, and the three call sites read them from here.
+ */
+export const AUDIO_FORMAT = 'mp3'
+export const HANG_KITERJESZTES = '.mp3'
 
 /**
  * The request as the Soniox documentation described it when this was
@@ -138,7 +166,7 @@ function buildRequest({ apiKey, modell, hang, nyelv, szoveg, signal }) {
       'content-type': 'application/json',
       accept: 'audio/mpeg, application/json',
     },
-    body: JSON.stringify({ text: szoveg, model: modell, voice: hang, language: nyelv, audio_format: 'mp3' }),
+    body: JSON.stringify({ text: szoveg, model: modell, voice: hang, language: nyelv, audio_format: AUDIO_FORMAT }),
     signal,
   }
 }
@@ -154,22 +182,7 @@ export function looksLikeMp3(bytes) {
   return bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0
 }
 
-/**
- * The phrases a provider uses to say an account has no money left. Applied to
- * the strings inside a 4xx JSON body, never to a 5xx, and never quoted back.
- * Deliberately narrow: "quota" alone is a rate limit as often as a balance,
- * and "insufficient" alone is a permission as often as a credit.
- */
-const EGYENLEG_MINTAK = Object.freeze([
-  /insufficient (balance|credits?|funds)/i,
-  /(balance|credits?|funds)\b[^.]{0,40}\b(exhausted|depleted|insufficient|empty|zero|too low)/i,
-  /\b(no|out of|not enough) (balance|credits?|funds)\b/i,
-  /payment required/i,
-  /\bbilling\b/i,
-  /top[ -]?up/i,
-])
-
-/** Every string inside a parsed JSON value, to a small depth, for the classifier to read. */
+/** Every string inside a parsed JSON value, to a small depth, for the guess below to read. */
 function collectStrings(value, depth, out) {
   if (depth < 0 || out.length >= 32) return
   if (typeof value === 'string') { out.push(value); return }
@@ -178,31 +191,69 @@ function collectStrings(value, depth, out) {
 }
 
 /**
- * The error for a non-2xx answer.
+ * THIS FUNCTION IS A GUESS. It is the whole of the guess, and it is here alone
+ * so that a real observation replaces it in one place.
  *
- * HTTP 402 is "payment required" by definition, and a 4xx whose error text
- * names balance, credits or funds is read the same way. Both land on
- * `tts_egyenleg_kimerult` with `alap` saying which rule fired (`http-402` or
- * `hibaszoveg`), so a reader of the row can tell a definition from a phrase
- * match. Everything else is `tts_szolgaltato_visszautasitott` with the status
- * in the message. The body is classified, never quoted.
+ * The brief said every non-2xx is `tts_szolgaltato_visszautasitott`, and that
+ * a separate code for an exhausted account is added once that status has
+ * actually been seen (spec 13.). It has not been seen: this account has never
+ * made a funded call. The code exists ahead of that observation because the
+ * operator's balance is spent and the refusal is the first thing they will
+ * meet, and this rule is what stands in until the real answer is recorded.
  *
- * This is the assumption the first live call replaces with a fact: if Soniox
- * turns out to say "no balance" with a status or a phrase not covered here,
- * that answer arrives as `tts_szolgaltato_visszautasitott` with its status,
- * which is a true statement, and this function is where the rule is added.
+ * Because it is a guess, it is written to be wrong in the safe direction: an
+ * answer this does not recognise degrades to `tts_szolgaltato_visszautasitott`
+ * with its HTTP status, which is always a true statement, whereas an answer
+ * this recognises wrongly tells the operator to go and top up an account that
+ * is fine. So:
+ *
+ *   - HTTP 402 alone (`http-402`). That status *is* "payment required"; no
+ *     body is read for it.
+ *   - a 4xx whose JSON error text *asserts* that this account is out of money
+ *     (`hibaszoveg`). Only phrases that pair a money noun with an exhaustion
+ *     word count. A body that merely mentions money -- "billing", "top up", a
+ *     link to a pricing or billing page -- is not an assertion about this
+ *     account, so URLs are removed before matching and the bare words are not
+ *     patterns at all.
+ *
+ * "quota" is never enough on its own: it is a rate limit as often as a
+ * balance. Nor is "insufficient": it is a permission as often as a credit.
+ * A 5xx body is never read for phrases -- a server fault is not a statement
+ * about an account.
+ *
+ * Returns the value for `alap` when the answer reads as exhaustion, and null
+ * otherwise. Nothing from the body is ever quoted back out.
+ */
+export function egyenlegKimerultE(status, json) {
+  if (status === 402) return 'http-402'
+  if (status < 400 || status >= 500 || json === undefined) return null
+  const strings = []
+  collectStrings(json, 3, strings)
+  // A documentation or billing-portal link is where these words most often
+  // appear in a body that has nothing to do with the balance.
+  const text = strings.join('\n').replace(/\bhttps?:\/\/\S+/gi, ' ')
+  const minta = [
+    /insufficient (balance|credits?|funds)/i,
+    /(balance|credits?|funds)\b[^.]{0,40}\b(exhausted|depleted|insufficient|empty|zero|too low)/i,
+    /\b(no|out of|not enough) (balance|credits?|funds)\b/i,
+  ]
+  return minta.some((re) => re.test(text)) ? 'hibaszoveg' : null
+}
+
+/**
+ * The error for a non-2xx answer. Everything this decides comes from
+ * `egyenlegKimerultE` above; `alap` records which of its two rules fired, so a
+ * reader of the row can tell a status code's definition from a phrase match.
+ * Anything it does not claim is `tts_szolgaltato_visszautasitott` with the
+ * status in the message. The body is classified, never quoted.
  */
 export function classifyRefusal(status, json) {
-  if (status === 402) {
-    return new TtsError('tts_egyenleg_kimerult', 'a szolgáltató HTTP 402-vel utasított el: nincs egyenleg', { httpStatus: status, alap: 'http-402' })
+  const alap = egyenlegKimerultE(status, json)
+  if (alap === 'http-402') {
+    return new TtsError('tts_egyenleg_kimerult', 'a szolgáltató HTTP 402-vel utasított el: nincs egyenleg', { httpStatus: status, alap })
   }
-  if (status >= 400 && status < 500 && json !== undefined) {
-    const strings = []
-    collectStrings(json, 3, strings)
-    const text = strings.join('\n')
-    if (EGYENLEG_MINTAK.some((re) => re.test(text))) {
-      return new TtsError('tts_egyenleg_kimerult', `a szolgáltató HTTP ${status}-tal utasított el, és a hibaszövege az egyenleget nevezi meg`, { httpStatus: status, alap: 'hibaszoveg' })
-    }
+  if (alap === 'hibaszoveg') {
+    return new TtsError('tts_egyenleg_kimerult', `a szolgáltató HTTP ${status}-tal utasított el, és a hibaszövege az egyenleget nevezi meg`, { httpStatus: status, alap })
   }
   return new TtsError('tts_szolgaltato_visszautasitott', `a szolgáltató HTTP ${status}-t adott`, { httpStatus: status })
 }

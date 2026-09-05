@@ -144,6 +144,69 @@ test('the cap counts what was made today: a call that would cross it is refused,
   assert.equal(calls.length, 2)
 })
 
+/** A fetch held open until the test releases it, so two calls are in flight at once. */
+function gatedFetch() {
+  let release
+  const gate = new Promise((resolve) => { release = resolve })
+  const state = { calls: 0 }
+  state.fetchImpl = async () => {
+    state.calls += 1
+    await gate
+    return new Response(MP3, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
+  }
+  state.release = release
+  return state
+}
+
+test('two calls that overlap cannot together spend past the daily cap: the second is refused while the first is still in flight', { timeout: 5000 }, async () => {
+  // Each sentence estimates at 1.5 s and the cap is 2 s, so the two together
+  // do not fit. Both would pass a cap that is read before the request and
+  // written after it, because neither has written anything while the other
+  // looks.
+  const gated = gatedFetch()
+  const { state, synth, cel } = setup({ settings: { napiKeretMp: 2 }, probeMs: 1500, fetchImpl: gated.fetchImpl })
+  const elso = 'a'.repeat(BECSULT_KARAKTER_PER_MP * 15 / 10)
+  const masodik = 'b'.repeat(BECSULT_KARAKTER_PER_MP * 15 / 10)
+
+  const a = synth.synthesize({ szoveg: elso, celFajl: cel('a'), kerte: 'mcp' })
+  const b = synth.synthesize({ szoveg: masodik, celFajl: cel('b'), kerte: 'contract' })
+  // Both decisions are already made: nothing has been awaited yet, and the
+  // first call is parked on the gate with its reservation held.
+  assert.equal(gated.calls, 1, 'only the call that holds the reservation reached the provider')
+  assert.equal(state.repo.maiMasodperc(today()), 1.5, 'the day holds the first call\'s reservation and nothing else')
+
+  gated.release()
+  await assert.rejects(
+    b,
+    (e) => e instanceof TtsError && e.code === 'tts_keret_kimerult' && e.maiMasodperc === 1.5 && e.napiKeret === 2,
+    'the second call is refused against the first call\'s reservation, not against an empty counter',
+  )
+  const ra = await a
+  assert.equal(ra.hosszMs, 1500)
+  // The measured length replaced the estimate, and the day is inside the cap.
+  assert.equal(state.repo.maiMasodperc(today()), 1.5)
+  assert.ok(state.repo.maiMasodperc(today()) <= 2, 'the day never went over the cap')
+  // A call refused on the cap never reached the provider, so it leaves no row.
+  assert.deepEqual(state.repo.counts(), { kerelmek: 1, kesz: 1, hiba: 0 })
+  assert.equal(fs.existsSync(cel('b')), false)
+})
+
+test('a reservation held by a call that turns out to cost nothing is released, so a refusal does not eat the day', async () => {
+  const szoveg = 'a'.repeat(BECSULT_KARAKTER_PER_MP * 2)
+  const { state, synth, cel } = setup({
+    settings: { napiKeretMp: 2 },
+    fetchImpl: async () => { throw Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNRESET' } }) },
+  })
+  await assert.rejects(synth.synthesize({ szoveg, celFajl: cel('a'), kerte: 'mcp' }), (e) => e.code === 'tts_halozat')
+  assert.equal(state.repo.maiMasodperc(today()), 0, 'the 2 s reservation went back')
+  // The whole cap is available again, which it would not be if a failed call
+  // kept its reservation.
+  state.fetchImpl = async () => new Response(MP3, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
+  const r = await synth.synthesize({ szoveg, celFajl: cel('b'), kerte: 'mcp' })
+  assert.equal(r.cache, false)
+  assert.equal(state.repo.maiMasodperc(today()), 1.2)
+})
+
 test('a non-2xx answer is tts_szolgaltato_visszautasitott with the status, recorded as a failed row, and the counter is untouched', async () => {
   for (const [status, body] of [[500, 'boom'], [403, '{"error":"forbidden"}'], [400, '{"error":{"message":"voice not found"}}']]) {
     const { state, synth, cel } = setup({ fetchImpl: async () => new Response(body, { status, headers: { 'content-type': status === 500 ? 'text/plain' : 'application/json' } }) })
@@ -183,6 +246,20 @@ test('a refusal for lack of balance names itself: HTTP 402, or a 4xx whose error
   for (const [status, body] of [[403, '{"error":"insufficient permissions"}'], [429, '{"error":"rate limit exceeded, quota reset in 10s"}'], [500, '{"error":"insufficient balance"}']]) {
     assert.equal(classifyRefusal(status, JSON.parse(body)).code, 'tts_szolgaltato_visszautasitott', `${status} ${body}`)
   }
+  // The rule is a guess, so it has to be wrong in the safe direction: a body
+  // that merely mentions money, most often in a link to a documentation or
+  // billing page, is not an assertion that this account is out of money. Each
+  // of these degrades to the generic refusal rather than telling the operator
+  // to go and top up an account that is fine.
+  for (const [status, body] of [
+    [400, '{"error":{"message":"Unknown voice \'Kenji\'. See https://soniox.example/docs/billing for supported voices."}}'],
+    [400, '{"error":"invalid model","docs":"https://soniox.example/pricing#top-up"}'],
+    [403, '{"error":"billing"}'],
+    [403, '{"error":"this endpoint requires a paid plan; payment required for access"}'],
+    [429, '{"error":"quota exceeded"}'],
+  ]) {
+    assert.equal(classifyRefusal(status, JSON.parse(body)).code, 'tts_szolgaltato_visszautasitott', `${status} ${body}`)
+  }
   // A 5xx body is never read for phrases; a 4xx with no JSON is a plain refusal.
   assert.equal(classifyRefusal(503, undefined).code, 'tts_szolgaltato_visszautasitott')
   assert.equal(classifyRefusal(401, undefined).code, 'tts_szolgaltato_visszautasitott')
@@ -212,7 +289,9 @@ test('a network failure is tts_halozat with the cause code, not the URL, and a J
   assert.equal(fs.readFileSync((await alt.synth.synthesize({ szoveg: 'x', celFajl: alt.cel('a'), kerte: 'mcp' })).fajl).equals(MP3), true)
 })
 
-test('a 2xx that carries no usable audio is tts_valasz_ertelmezhetetlen, not a refusal and not a success', async () => {
+test('a 2xx that carries no usable audio is tts_valasz_ertelmezhetetlen, not a refusal and not a success, and it is charged like any other paid call', async () => {
+  // Two seconds' worth of text, so the estimate the day is charged is exact.
+  const szoveg = 'a'.repeat(BECSULT_KARAKTER_PER_MP * 2)
   const cases = [
     ['empty bytes', new Response(Buffer.alloc(0), { status: 200, headers: { 'content-type': 'audio/mpeg' } })],
     ['JSON without audio', new Response('{"ok":true}', { status: 200, headers: { 'content-type': 'application/json' } })],
@@ -225,13 +304,17 @@ test('a 2xx that carries no usable audio is tts_valasz_ertelmezhetetlen, not a r
   for (const [label, response] of cases) {
     const { state, synth, cel } = setup({ fetchImpl: async () => response })
     await assert.rejects(
-      synth.synthesize({ szoveg: 'x', celFajl: cel('a'), kerte: 'mcp' }),
+      synth.synthesize({ szoveg, celFajl: cel('a'), kerte: 'mcp' }),
       (e) => e instanceof TtsError && e.code === 'tts_valasz_ertelmezhetetlen' && e.httpStatus === 200,
       label,
     )
     assert.equal(fs.existsSync(cel('a')), false, `${label}: nothing is written`)
     assert.equal(state.repo.kerelmek(1)[0].hiba_kod, 'tts_valasz_ertelmezhetetlen', label)
-    assert.equal(state.repo.maiMasodperc(today()), 0, label)
+    // The provider answered 2xx: it took the work and it was paid. There is no
+    // measurement to charge, so the estimate stands, exactly as it does when
+    // ffprobe fails on audio that did arrive. Releasing it here and charging
+    // there would let one of the two spend past the cap one call at a time.
+    assert.equal(state.repo.maiMasodperc(today()), 2, `${label}: the estimate is charged`)
   }
   assert.equal(looksLikeMp3(Buffer.from([0xff, 0xfb, 0x90, 0x00])), true, 'an MPEG frame sync is an mp3 too')
   assert.equal(looksLikeMp3(Buffer.from([0xff, 0x00])), false)
@@ -337,6 +420,41 @@ test('a measurement failure after a paid call is tts_hossz_meres_sikertelen, rec
   assert.equal(seen.cmd, 'ffprobe')
   assert.equal(seen.args.at(-1), '/abs/x.mp3')
   assert.equal(typeof seen.opts.timeout, 'number')
+})
+
+test('a write that fails after a paid call is tts_fajl_iras_sikertelen, recorded, charged, and never a bare 500', async () => {
+  const szoveg = 'a'.repeat(BECSULT_KARAKTER_PER_MP * 3)
+  const cases = [
+    ['a file sits where the directory should be', ({ dir }) => {
+      fs.writeFileSync(path.join(dir, 'narracio'), 'not a directory')
+      return path.join(dir, 'narracio', 'jelenet', 'a.mp3')
+    }, 'ENOTDIR'],
+    ['a directory sits where the file should be', ({ dir }) => {
+      const cel = path.join(dir, 'narracio', 'a.mp3')
+      fs.mkdirSync(cel, { recursive: true })
+      return cel
+    }, 'EISDIR'],
+  ]
+  for (const [label, prepare, code] of cases) {
+    const { state, synth, dir } = setup()
+    const celFajl = prepare({ dir })
+    await assert.rejects(
+      synth.synthesize({ szoveg, celFajl, kerte: 'mcp' }),
+      // A named refusal, not the raw fs error: the path is not repeated, and
+      // the reason is the errno an operator can act on.
+      (e) => e instanceof TtsError && e.code === 'tts_fajl_iras_sikertelen' && e.message.includes(code) && !e.message.includes(dir),
+      label,
+    )
+    assert.ok(TTS_KODOK.includes('tts_fajl_iras_sikertelen'))
+    const row = state.repo.kerelmek(1)[0]
+    assert.equal(row.status, 'hiba', label)
+    assert.equal(row.hiba_kod, 'tts_fajl_iras_sikertelen', label)
+    assert.equal(row.bajt, MP3.length, `${label}: the audio arrived and was paid for`)
+    // Paid and undeliverable is charged exactly as paid and unmeasurable is.
+    assert.equal(state.repo.maiMasodperc(today()), 3, `${label}: the estimate is charged`)
+    // Nothing claims the cache key, so the next call makes the sentence again.
+    assert.equal(state.repo.counts().kesz, 0, label)
+  }
 })
 
 test('two overlapping calls for one sentence both finish, and both report the row that holds the key', async () => {

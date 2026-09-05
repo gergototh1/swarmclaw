@@ -4,7 +4,7 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 
 import { napOf, sha256 } from './db.mjs'
-import { TtsError, synthesizeRemote } from './soniox.mjs'
+import { HANG_KITERJESZTES, TtsError, synthesizeRemote } from './soniox.mjs'
 
 /**
  * The synthesis path: settings, cache, daily cap, the provider call, the file,
@@ -28,10 +28,12 @@ export const DEFAULTS = Object.freeze({ modell: 'tts-rt-v1', hang: 'Kenji', nyel
 export const MAX_SZOVEG = 2000
 /**
  * The pre-call budget estimate for Hungarian speech, characters per second.
- * It is the spec's estimate, not a measurement: it decides whether a call may
- * go out under the cap, and it stands in for a measurement on the one path
- * where the audio arrived and could not be measured. The counter itself is
- * otherwise fed by ffprobe.
+ * It is the spec's estimate, not a measurement. Every call is charged this
+ * estimate before the request goes out, because the cap has to be defended
+ * against a call that is still in flight; the charge is then corrected to the
+ * measured length, released in full when the call turned out to cost nothing,
+ * or left standing as the estimate when the provider was paid and no
+ * measurement could be taken. `synthesize` says which case is which.
  */
 export const BECSULT_KARAKTER_PER_MP = 14
 /**
@@ -101,6 +103,17 @@ export async function probeDurationMs(file, execFileImpl = execFileAsync) {
   return Math.round(seconds * 1000)
 }
 
+/**
+ * Why the file could not be written, in words an operator can act on. The
+ * errno code carries the whole of it -- ENOSPC, EACCES, EROFS, ENOTDIR,
+ * EISDIR -- and the message Node builds around it repeats the path, which
+ * this layer does not quote (see `celFajlEllenorzes`).
+ */
+function writeFailureReason(err) {
+  if (err && typeof err === 'object' && typeof err.code === 'string') return err.code
+  return err instanceof Error && err.name ? err.name : 'ismeretlen ok'
+}
+
 /** Why ffprobe failed, in words an operator can act on, without its stderr. */
 function probeFailureReason(err) {
   const e = err && typeof err === 'object' ? err : {}
@@ -115,7 +128,7 @@ function probeFailureReason(err) {
  * this only says whether it may. The reason never repeats the path.
  */
 export function celFajlEllenorzes(celFajl) {
-  if (typeof celFajl !== 'string' || !path.isAbsolute(celFajl) || !celFajl.endsWith('.mp3')) return 'abszolút, .mp3 végű útvonal kell'
+  if (typeof celFajl !== 'string' || !path.isAbsolute(celFajl) || !celFajl.endsWith(HANG_KITERJESZTES)) return `abszolút, ${HANG_KITERJESZTES} végű útvonal kell`
   if (celFajl.split(/[\\/]/).some((s) => s === '..')) return 'az útvonalban nem lehet ..'
   if (hasControlCharacter(celFajl)) return 'vezérlőkarakter az útvonalban'
   return null
@@ -153,9 +166,33 @@ export function createSynthesizer(state) {
      * tell later whether the voice has changed under it.
      *
      * Order: refuse the arguments, refuse the settings, answer from the cache,
-     * refuse on the cap, call, write, measure, count, record. The cap is
-     * checked after the cache because a cached sentence costs nothing; the
-     * provider is called only after every refusal that needs no network.
+     * *reserve* the estimate against the cap, call, write, measure, correct
+     * the reservation, record. The reservation comes after the cache because
+     * a cached sentence costs nothing; the provider is called only after
+     * every refusal that needs no network.
+     *
+     * WHY THE ROOM IS TAKEN BEFORE THE CALL AND NOT COUNTED AFTER IT. The cap
+     * exists to bound what the operator pays in a day, and the provider is
+     * paid while the call is in flight. A cap that is read before the request
+     * and written after it is no cap under concurrency: two calls that both
+     * read an empty counter both see room, and the day ends over budget by
+     * the whole of the second call. So `repo.foglal` takes the estimate out
+     * of the day's room in one step before the request goes out, and what
+     * happens to that reservation afterwards is decided by whether the money
+     * was spent:
+     *
+     *   the call was answered and measured  the reservation is corrected to
+     *                                       the measured length, up or down
+     *   the provider answered 2xx but the   the reservation stands as the
+     *   audio was unusable, unwritable or   estimate: the money is gone and
+     *   unmeasurable                        there is nothing better to charge
+     *   the call cost nothing: a refusal,   the reservation is released in
+     *   a timeout, a broken socket          full
+     *
+     * The middle row is the one that used to differ between paths: a failed
+     * measurement was charged and an unparseable 2xx was not, though both had
+     * been paid for. They are charged alike now, and the estimate is the
+     * charge because no measurement exists on either.
      */
     async synthesize({ szoveg, celFajl, kerte }) {
       const szovegHiba = szovegEllenorzes(szoveg)
@@ -185,14 +222,17 @@ export function createSynthesizer(state) {
 
       const nap = napOf(new Date().toISOString())
       const becsultMp = szoveg.length / BECSULT_KARAKTER_PER_MP
-      const mai = repo.maiMasodperc(nap)
-      if (mai + becsultMp > cfg.napiKeretMp) {
+      const foglalas = repo.foglal(nap, becsultMp, cfg.napiKeretMp)
+      if (!foglalas.ok) {
         throw new TtsError(
           'tts_keret_kimerult',
-          `ma ${Math.round(mai)} mp készült, a keret ${cfg.napiKeretMp} mp, ez a kérés becsülve ~${Math.ceil(becsultMp)} mp`,
-          { maiMasodperc: mai, napiKeret: cfg.napiKeretMp },
+          `ma ${Math.round(foglalas.mai)} mp készült vagy van úton, a keret ${cfg.napiKeretMp} mp, ez a kérés becsülve ~${Math.ceil(becsultMp)} mp`,
+          { maiMasodperc: foglalas.mai, napiKeret: cfg.napiKeretMp },
         )
       }
+      // From here on the day's counter holds `becsultMp` for this call, and
+      // every exit below either releases it, corrects it, or says why it
+      // stands. There is no path out of this method that leaves it unaddressed.
 
       const rowBase = { szolgaltato: SZOLGALTATO, modell: cfg.modell, hang: cfg.hang, nyelv: cfg.nyelv, szoveg, fajl: celFajl, kerte }
       let bytes
@@ -202,34 +242,51 @@ export function createSynthesizer(state) {
           fetchImpl: state.fetchImpl || fetch,
         })
       } catch (err) {
-        // A failed call is a row with its code and no seconds: the counter is
-        // for audio that was made, and a refusal, a timeout or a broken
-        // socket made none. The index is partial on 'kesz', so this row does
-        // not hold the cache key.
+        // `tts_valasz_ertelmezhetetlen` is the one failure here that the
+        // provider answered 2xx to: it accepted the work and this side could
+        // not use what came back. The money is gone, so the reservation
+        // stands as the estimate. Every other failure -- a refusal, a
+        // timeout, a broken socket -- made no audio and was billed for none,
+        // so the room goes back.
+        const fizetve = err instanceof TtsError && err.code === 'tts_valasz_ertelmezhetetlen'
+        if (!fizetve) repo.igazit(nap, -becsultMp)
+        // A failed call is a row with its code and no seconds. The index is
+        // partial on 'kesz', so this row does not hold the cache key.
         if (err instanceof TtsError) repo.insertKerelem({ ...rowBase, hosszMs: 0, bajt: 0, status: 'hiba', hibaKod: err.code })
         throw err
       }
 
-      fs.mkdirSync(path.dirname(celFajl), { recursive: true })
-      fs.writeFileSync(celFajl, bytes)
+      try {
+        fs.mkdirSync(path.dirname(celFajl), { recursive: true })
+        fs.writeFileSync(celFajl, bytes)
+      } catch (err) {
+        // A full disk, a read-only mount, a directory where the file should
+        // go: the audio was bought and cannot be delivered. The reservation
+        // stands for the same reason it does on a failed measurement, and the
+        // row records the code so the operator sees a paid call that produced
+        // no file rather than nothing at all. No finished row is written, so
+        // the sentence is not cached to a file that is not there.
+        repo.insertKerelem({ ...rowBase, hosszMs: 0, bajt: bytes.length, status: 'hiba', hibaKod: 'tts_fajl_iras_sikertelen' })
+        throw new TtsError('tts_fajl_iras_sikertelen', `a fájl nem írható: ${writeFailureReason(err)}`)
+      }
 
       let hosszMs
       try {
         hosszMs = await probeDurationMs(celFajl, state.execFileImpl || execFileAsync)
       } catch (err) {
-        // The provider answered and was paid, and the measurement failed. Not
-        // counting it would let a broken ffprobe spend past the cap one call
-        // at a time, so the estimate is charged in place of the measurement;
-        // that is the one path where the counter holds an estimate, and the
-        // row says so through its code. The file stays where the caller
-        // asked for it, but no finished row claims it, so the next call for
-        // this sentence makes it again rather than trusting an unmeasured
-        // file.
-        repo.addMasodperc(nap, becsultMp)
+        // The provider answered and was paid, and the measurement failed.
+        // Releasing the reservation would let a broken ffprobe spend past the
+        // cap one call at a time, so the estimate stands in place of the
+        // measurement and the row says so through its code. The file stays
+        // where the caller asked for it, but no finished row claims it, so
+        // the next call for this sentence makes it again rather than trusting
+        // an unmeasured file.
         repo.insertKerelem({ ...rowBase, hosszMs: 0, bajt: bytes.length, status: 'hiba', hibaKod: 'tts_hossz_meres_sikertelen' })
         throw new TtsError('tts_hossz_meres_sikertelen', err instanceof Error ? err.message : String(err))
       }
-      repo.addMasodperc(nap, hosszMs / 1000)
+      // The measurement replaces the estimate: the day is charged what this
+      // call actually made, not what it was guessed to make.
+      repo.igazit(nap, hosszMs / 1000 - becsultMp)
 
       let id
       try {
@@ -251,6 +308,12 @@ export function createSynthesizer(state) {
      * The settings and the day's counter, without the key's value. `hang`,
      * `modell` and `nyelv` are here because a consumer that stored a result
      * needs the current voice to know whether it still matches.
+     *
+     * `maiMasodperc` is what the day is committed to, not only what it has
+     * finished: a call still waiting on the provider holds its estimate in
+     * this number. That is what makes it useful for seeing a refusal coming,
+     * and it means the figure can fall when a call fails and gives its
+     * reservation back.
      */
     status() {
       const cfg = readSettings(state)

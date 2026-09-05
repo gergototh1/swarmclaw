@@ -21,6 +21,15 @@ import { fileURLToPath } from 'node:url'
  * test's own pid and a `startedAt` of now, which is what a live server's
  * file looks like; each of the three checks then gets a test that fails it
  * alone.
+ *
+ * WHAT THESE TESTS CANNOT SHOW. The fake host answers `service: "swarmclaw"`
+ * because this file makes it, and it writes the port file because this file
+ * writes it. So everything below is a test of the shim against the contract
+ * as this repository understands it, and nothing below is evidence that a
+ * running SwarmClaw matches that understanding. The shim has never been run
+ * against a real host; a live run is the only thing that can confirm the
+ * port-file contract end to end, and it is still owed. See the same note in
+ * mcp/server.mjs.
  */
 const SHIM = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'mcp', 'server.mjs')
 const SWARMCLAW_HEALTHZ = { status: 200, json: { ok: true, service: 'swarmclaw', time: 1 } }
