@@ -28,6 +28,12 @@ COPY . .
 # Build
 RUN SWARMCLAW_BUILD_MODE=1 npm run build:ci
 
+# Build the AI Signal extension's page bundle. The extension ships in the image
+# as source plus dist, and is installed into the data directory at run time with
+# `node extensions/aisignal/scripts/install.mjs`; nothing in it is needed from
+# node_modules after the build, so the tree is dropped before the copy below.
+RUN cd /app/extensions/aisignal && npm ci && npm run build && rm -rf node_modules
+
 # Production
 FROM node:22-slim AS runner
 
@@ -40,6 +46,7 @@ COPY --from=base /app/.next/static ./.next/static
 COPY --from=base /app/public ./public
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/package.json ./
+COPY --from=base /app/extensions/aisignal ./extensions/aisignal
 
 # Data directory (mount as volume for persistence)
 RUN mkdir -p /app/data

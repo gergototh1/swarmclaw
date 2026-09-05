@@ -26,13 +26,34 @@ import { fileURLToPath } from 'node:url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(here, '..')
-// Matches the host's own resolution order (src/lib/server/data-dir.ts): an
-// explicit DATA_DIR wins, then SWARMCLAW_HOME/data, and the fallback is the
-// desktop app's home. A dev server started from a repo checkout without either
-// variable uses <repo>/data instead, so pass SWARMCLAW_HOME or DATA_DIR when
-// installing against one.
-const home = process.env.SWARMCLAW_HOME || path.join(process.env.HOME || '', 'Library/Application Support/@swarmclawai/swarmclaw/home')
-const dataDir = process.env.DATA_DIR || path.join(home, 'data')
+// Where the desktop app keeps its home on this machine (electron/paths.ts:
+// userData + '/home'), when this is a machine that has one. Only the macOS
+// location is known here; on any other platform, or when the directory does
+// not exist, this is null and the host's own fallbacks below apply.
+function desktopHome() {
+  if (process.platform !== 'darwin') return null
+  const candidate = path.join(process.env.HOME || '', 'Library/Application Support/@swarmclawai/swarmclaw/home')
+  return fs.existsSync(candidate) ? candidate : null
+}
+
+// Follows the host's own resolution order. Data (src/lib/server/data-dir.ts):
+// an explicit DATA_DIR wins, then SWARMCLAW_HOME/data, then the desktop app's
+// home when this machine has one, and otherwise <cwd>/data -- which is what the
+// host itself uses when started without either variable, in the container
+// (WORKDIR /app, so /app/data, the compose volume) as much as from a checkout.
+// The earlier version fell back to the macOS desktop home unconditionally, so
+// in a Linux container it installed under a path the host never reads.
+const explicitHome = process.env.SWARMCLAW_HOME || null
+const desktop = explicitHome ? null : desktopHome()
+const dataDir = process.env.DATA_DIR
+  || (explicitHome ? path.join(explicitHome, 'data') : null)
+  || (desktop ? path.join(desktop, 'data') : null)
+  || path.join(process.cwd(), 'data')
+// Skills go to the layer discoverSkills() scans (skill-discovery.ts,
+// resolveWorkspaceSkillsDir): SWARMCLAW_HOME/skills, else ~/.swarmclaw/skills.
+// The desktop app sets SWARMCLAW_HOME to its home, so that home's skills
+// directory is the same layer when installing against the desktop app by hand.
+const home = explicitHome || desktop || path.join(process.env.HOME || '', '.swarmclaw')
 const extDir = path.join(dataDir, 'extensions')
 const wsDir = path.join(extDir, '.workspaces', 'aisignal_mjs')
 

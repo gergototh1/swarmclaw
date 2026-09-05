@@ -1,7 +1,6 @@
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
-import { createRequire } from 'module'
 import { spawn } from 'child_process'
 import type {
   Extension,
@@ -776,9 +775,31 @@ type ExternalModuleRecord =
    */
   | { ok: false; error: unknown; vanished?: boolean }
 
+/**
+ * A `require` rooted at the host's package.json, for evicting a CommonJS
+ * extension from `require.cache` before it is re-imported.
+ *
+ * Deliberately not written as `createRequire(<expression>)` with `createRequire`
+ * imported from `module`. webpack recognises that exact call shape and, when the
+ * argument is not a string literal, compiles the call to a bare `undefined`
+ * behind a `createRequire()` marker comment, with no build warning and no
+ * runtime throw. Under `next dev --webpack` (and a
+ * `next build --webpack`) this function therefore returned `undefined`, the
+ * caller took its "external extensions disabled" exit, and no external
+ * extension loaded: listed as enabled, `hasUI: false`, nothing in the log,
+ * because the catch below only speaks when something throws. Turbopack, which
+ * every default build and the desktop and container images use, leaves the
+ * call alone, so the defect was invisible everywhere except a developer's
+ * `--webpack` run.
+ *
+ * `process.getBuiltinModule` (Node 20.16+, so Electron 33's embedded 20.18.3
+ * included) hands back the real `node:module` at run time through a call no
+ * bundler rewrites, and the resulting `require` is the same object either way.
+ */
 function createExtensionRequire(): NodeRequire | null {
   try {
-    return createRequire(path.join(process.cwd(), 'package.json'))
+    const nodeModule = process.getBuiltinModule('node:module')
+    return nodeModule.createRequire(path.join(process.cwd(), 'package.json'))
   } catch (err: unknown) {
     log.warn('extensions', 'createRequire failed; external extensions disabled', {
       error: errorMessage(err),

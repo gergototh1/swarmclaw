@@ -3,3 +3,5 @@ node_modules
 data
 .env*
 .git
+extensions/aisignal/node_modules
+extensions/aisignal/dist
