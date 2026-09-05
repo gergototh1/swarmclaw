@@ -318,6 +318,7 @@
 .vid-szuro-sor { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin: 12px 0 6px; }
 .vid-root .vid-szuro-mezo { display: flex; flex-direction: column; gap: 2px; margin: 0; font-size: 12px; color: var(--color-text-3, #8282a0); }
 .vid-szuro-mezo .vid-input { margin-top: 0; width: auto; min-width: 150px; color: var(--card-foreground, inherit); }
+.vid-szuro-mezo .vid-szuro-ok { max-width: 220px; line-height: 1.35; }
 .vid-sablon-szamlalo { margin: 4px 0 8px; }
 .vid-sablon-racs {
   display: grid;

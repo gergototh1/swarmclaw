@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Ref } from 'react'
 
 import type { Health, PreviewHiba, PreviewStatus, Prop, Rpc, Templates } from './api'
-import { errorText, readPreviewStart, readPreviewStatus, readTemplates, readTemplatePreview } from './api'
+import { errorText, readPreviewCancel, readPreviewStart, readPreviewStatus, readTemplates, readTemplatePreview } from './api'
 import { kodSzamok, megtartasSzoveg } from './format'
 import type { Szuro, SzuroForras } from './sablon-szuro'
 import { URES_SZURO, szurtTipusok } from './sablon-szuro'
@@ -59,10 +59,28 @@ function hibaSzoveg(hiba: PreviewHiba): string {
   return hiba.kod
 }
 
-/** One prop as a line. `mit` is optional in the catalogue, so a prop without a sentence still draws its name. */
+/**
+ * One prop as a line. `mit` is optional in the catalogue, so a prop without a
+ * sentence still draws its name.
+ *
+ * THE TEST IS "IS THIS A SENTENCE", NOT "IS THIS UNDEFINED". `katalogus.mjs`
+ * checks a prop's `nev` and `kotelezo` and `api.ts`'s `isProp` checks the
+ * same two, so `mit` reaches here as whatever the generated catalogue put
+ * there -- a null, a number, an object. Testing for `undefined` would let a
+ * `null` draw the line `sorok (kötelező) — null`, which is a statement about
+ * the kit that nothing measured.
+ *
+ * The guard is HERE and not in `isProp` deliberately. `propsOrNull` nulls the
+ * WHOLE `propok` field over one entry it cannot read, by the rule that half a
+ * prop table is a false statement about the kit; a `mit` that is not a
+ * sentence is not that -- it is one optional field the drawing site already
+ * knows how to omit. Type-checking it in `isProp` would cost all twenty-four
+ * prop lists over a missing sentence, which is a worse answer than this one.
+ */
 function propSzoveg(prop: Prop): string {
   const kotelezo = prop.kotelezo ? 'kötelező' : 'opcionális'
-  return prop.mit === undefined || prop.mit === '' ? `${prop.nev} (${kotelezo})` : `${prop.nev} (${kotelezo}) — ${prop.mit}`
+  const mit: unknown = prop.mit
+  return typeof mit === 'string' && mit !== '' ? `${prop.nev} (${kotelezo}) — ${mit}` : `${prop.nev} (${kotelezo})`
 }
 
 /** The 9:16 frame: a picture, or a marked empty frame that says which of the four reasons it is. */
@@ -89,6 +107,14 @@ function Keret({ tipus, kep }: { tipus: string; kep: KepAllapot | undefined }) {
  * type this run has not finished is the one in flight. When that cannot be
  * told -- no catalogue, or the lists disagree -- the line is the two numbers
  * and no name, rather than a name that might belong to the next type.
+ *
+ * THE TWO HALVES MUST BE THE SAME KIT. `hianyzo` is recomputed from the
+ * catalogue on disk on every poll, while the run carries the hash it started
+ * against. If the operator points the setting at another project mid-run the
+ * two describe different kits, and `hianyzo` would then name a type this run
+ * never set out to draw -- wrongly, and for the WHOLE remaining run rather
+ * than for one poll. Both hashes are in hand, so they are compared, and a
+ * mismatch falls back to the numbers, which are the run's own and stay true.
  */
 function haladas(allapot: PreviewStatus): string {
   const fut = allapot.fut
@@ -96,33 +122,81 @@ function haladas(allapot: PreviewStatus): string {
   const kesz = new Set(fut.kesz)
   const hibas = new Set(Object.keys(fut.hibak))
   const mennyi = kesz.size + hibas.size
-  const aktualis = (allapot.hianyzo ?? []).find((t) => !kesz.has(t) && !hibas.has(t))
+  const ugyanazAKatalogus = allapot.katalogusHash !== null && allapot.katalogusHash === fut.katalogusHash
+  const aktualis = !ugyanazAKatalogus
+    ? undefined
+    : (allapot.hianyzo ?? []).find((t) => !kesz.has(t) && !hibas.has(t))
   const szamok = `${mennyi}/${fut.osszes}`
   if (fut.megszakitva) return `${szamok} — megszakítás alatt`
   return aktualis === undefined ? szamok : `${szamok} — ${aktualis}`
 }
 
-/** The three-position toggles, drawn the same way and disabled together with the fact they ask about. */
-function Valaszto<T extends string>({ cimke, ertek, allasok, tiltva, onValt }: {
+/**
+ * The three-position toggles, drawn the same way and disabled together with
+ * the fact they ask about.
+ *
+ * A DARK CONTROL SAYS WHY, the same as the generate button does.
+ * `sablon-szuro.ts` states the rule -- a dimension nobody measured cannot
+ * narrow, "the view disables that control and says why" -- and a select that
+ * is simply grey leaves the operator to guess whether the kit has no
+ * such types or the page never learned. `miert` is drawn beside the control
+ * and repeated as its tooltip, so it is there for a pointer and for a reader.
+ */
+function Valaszto<T extends string>({ cimke, ertek, allasok, tiltva, miert, onValt }: {
   cimke: string
   ertek: T
   allasok: Array<[T, string]>
   tiltva: boolean
+  /** Which fact is missing, in the page's own words. Drawn only while `tiltva`. */
+  miert: string
   onValt: (ertek: T) => void
 }) {
   return (
     <label className="vid-szuro-mezo">
       {cimke}
-      <select className="vid-input" value={ertek} disabled={tiltva} onChange={(e) => onValt(e.target.value as T)}>
+      <select
+        className="vid-input"
+        value={ertek}
+        disabled={tiltva}
+        title={tiltva ? miert : undefined}
+        onChange={(e) => onValt(e.target.value as T)}
+      >
         {allasok.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select>
+      {tiltva && <span className="vid-muted vid-szuro-ok">{miert}</span>}
     </label>
   )
 }
 
+/**
+ * Why the generate button is dark, or null while it is live.
+ *
+ * ONE FUNCTION FOR BOTH, so the button and its sentence cannot drift: `tiltva`
+ * below is `tiltasOka(...) !== null` and nothing else, which is what keeps the
+ * rule "a control this page disables says why" from being true of three of the
+ * reasons and false of the fourth.
+ */
+function tiltasOka({ hiba, renderBlokkolt, hibaKodok, dolgozik, hianyzoDb }: {
+  hiba: string | null
+  renderBlokkolt: boolean
+  hibaKodok: string[]
+  dolgozik: boolean
+  hianyzoDb: number | null
+}): { szoveg: string; rossz: boolean } | null {
+  if (hiba !== null) return { szoveg: 'A generálás katalógus nélkül nem indulhat.', rossz: false }
+  if (renderBlokkolt) {
+    const kodok = hibaKodok.length === 0 ? '' : ` Hibás ellenőrzések: ${hibaKodok.join(', ')}.`
+    return { szoveg: `A render most blokkolt, így az előnézetek nem generálhatók.${kodok}`, rossz: true }
+  }
+  if (dolgozik) return { szoveg: 'Az indítás elment, a válaszra várok.', rossz: false }
+  if (hianyzoDb === 0) return { szoveg: 'Minden mintával rendelkező típusnak van képe.', rossz: false }
+  if (hianyzoDb === null) return { szoveg: 'Az előnézetek állapota nem ismert, így a generálás nem indítható innen.', rossz: false }
+  return null
+}
+
 export function SablonokBody({
   data, health, allapot, allapotHiba, szuro, onSzuro, kepek, futasHibak, nyitott, onNyit,
-  racsRef, onGeneral, onMegszakit, dolgozik, uzenet,
+  racsRef, onGeneral, onMegszakit, dolgozik, uzenet, onUzenetZar,
 }: {
   data: Templates
   health: Health | null
@@ -141,6 +215,8 @@ export function SablonokBody({
   onMegszakit: () => void
   dolgozik: boolean
   uzenet: string | null
+  /** Clears `uzenet`. The bar's notice carries the same button, for the same reason: a line nothing retracts stays on screen for the rest of the session. */
+  onUzenetZar: () => void
 }) {
   const stat = data.sablonStat
   const tipusok = data.tipusok ?? null
@@ -162,13 +238,25 @@ export function SablonokBody({
   const nyitottPropok = nyitott === null ? null : (data.propok?.[nyitott] ?? null)
   const nyitottStat = nyitott === null || stat === null ? null : (stat[nyitott] ?? null)
 
-  const npxHianyzik = health !== null && health.eszkozok.npx === false
+  // THE FACT READ IS `blokkolt`, NOT A CODE THIS FILE NAMES. The design spec
+  // named `npx_hianyzik` alone; this is a deliberate strengthening, because
+  // `health.mjs` declares `chrome_hianyzik` and `platform_nem_mac` render
+  // blockers too and `elonezet.mjs` guards neither. Reading the code the spec
+  // named would leave the button live on a fresh install while the status bar
+  // two rows up prints `Most blokkolt: render`, and pressing it would spend
+  // forty seconds of somebody's machine on twenty-four runs that each fail --
+  // the argument this file's own docblock makes for npx, one code over.
+  // Reading the measured list instead means the bar and the button cannot
+  // disagree, and a blocker declared later needs no edit here.
+  //
+  // A health that has not answered is NOT a blocker: it says nothing about
+  // whether the render can start, and the server refuses on its own if not.
+  const renderBlokkolt = health !== null && health.blokkolt.includes('render')
   const hianyzoDb = allapot === null ? null : (allapot.hianyzo?.length ?? null)
   const fut = allapot === null ? null : allapot.fut
-  // Disabled, and the sentence under the button says by which of the three.
-  // A health that has not answered is NOT one of them: it says nothing about
-  // whether npx resolves, and the server refuses on its own if it does not.
-  const tiltva = data.hiba !== null || npxHianyzik || dolgozik || hianyzoDb === null || hianyzoDb === 0
+  const ok = tiltasOka({ hiba: data.hiba, renderBlokkolt, hibaKodok: health?.hibak ?? [], dolgozik, hianyzoDb })
+  // Disabled exactly when there is a sentence to say so, and never otherwise.
+  const tiltva = ok !== null
 
   return (
     <div className="vid-sablonok">
@@ -190,21 +278,17 @@ export function SablonokBody({
             <button type="button" className="vid-btn vid-btn-small" onClick={onMegszakit}>Megszakít</button>
           </>
         )}
-        {fut === null && data.hiba !== null && <span className="vid-muted">A generálás katalógus nélkül nem indulhat.</span>}
-        {fut === null && data.hiba === null && npxHianyzik && (
-          <span className="vid-bad">Az <span className="vid-mono">npx</span> nem oldható fel, a render nem indítható (npx_hianyzik).</span>
-        )}
-        {fut === null && data.hiba === null && !npxHianyzik && hianyzoDb === 0 && (
-          <span className="vid-muted">Minden mintával rendelkező típusnak van képe.</span>
-        )}
-        {fut === null && data.hiba === null && !npxHianyzik && hianyzoDb === null && (
-          <span className="vid-muted">Az előnézetek állapota nem ismert, így a generálás nem indítható innen.</span>
-        )}
+        {fut === null && ok !== null && <span className={ok.rossz ? 'vid-bad' : 'vid-muted'}>{ok.szoveg}</span>}
       </div>
       {allapotHiba !== null && (
         <p className="vid-bad" role="alert">Az előnézetek állapotát nem tudtam lekérdezni: {allapotHiba}</p>
       )}
-      {uzenet !== null && <p className="vid-notice" role="status">{uzenet}</p>}
+      {uzenet !== null && (
+        <p className="vid-notice" role="status">
+          {uzenet}
+          <button type="button" className="vid-btn vid-btn-small" onClick={onUzenetZar}>Elrejt</button>
+        </p>
+      )}
 
       <div className="vid-szuro-sor">
         <label className="vid-szuro-mezo">
@@ -221,6 +305,7 @@ export function SablonokBody({
           cimke="küldhetőség"
           ertek={szuro.kuldhetoseg}
           tiltva={kuldheto === null}
+          miert="a kit-tábla nem olvasható, így erre nem lehet szűrni"
           allasok={[['mind', 'mind'], ['kuldheto', 'csak küldhető'], ['nem', 'csak nem küldhető']]}
           onValt={(kuldhetoseg) => onSzuro({ ...szuro, kuldhetoseg })}
         />
@@ -228,6 +313,7 @@ export function SablonokBody({
           cimke="használat"
           ertek={szuro.hasznalat}
           tiltva={hasznalatok === null}
+          miert="katalógus nélkül nincs használati szám, így erre nem lehet szűrni"
           allasok={[['mind', 'mind'], ['hasznalt', 'használt'], ['nem', 'nem használt']]}
           onValt={(hasznalat) => onSzuro({ ...szuro, hasznalat })}
         />
@@ -235,6 +321,7 @@ export function SablonokBody({
           cimke="előnézet"
           ertek={szuro.elonezet}
           tiltva={forras.vanKep === null}
+          miert="az előnézetek állapota még nem ismert, így erre nem lehet szűrni"
           allasok={[['mind', 'mind'], ['van', 'van kép'], ['nincs', 'nincs kép']]}
           onValt={(elonezet) => onSzuro({ ...szuro, elonezet })}
         />
@@ -242,12 +329,18 @@ export function SablonokBody({
       </div>
 
       {/*
-        Drawn in every state of the grid, including the one where the
-        catalogue could not be read (`0/0`). This line and the refusal code
-        above it are what keep "no card matches" and "no catalogue" apart.
+        Drawn in every state of the grid, including the one where the type
+        list could not be read (`0/?`). This line and the refusal code above
+        it are what keep "no card matches" and "no catalogue" apart.
+
+        THE DENOMINATOR IS `?` AND NOT 0 when there is no type list, by the
+        rule this module keeps everywhere else (`meretlen`, `nincs mérve`, the
+        `?` on a card's use count): 0 is a number, and nobody counted. The kit
+        may well have its twenty-four types behind a `templates` field that
+        failed its shape check, and `0/0` would say it has none.
       */}
       <p className="vid-sablon-szamlalo vid-muted">
-        {lathato.length}/{tipusok === null ? 0 : tipusok.length} típus látszik
+        {lathato.length}/{tipusok === null ? '?' : tipusok.length} típus látszik
       </p>
 
       {tipusok === null ? (
@@ -397,6 +490,19 @@ export function SablonokBody({
   )
 }
 
+/**
+ * The pictures that actually arrived, without the loading and refused
+ * entries: what survives the end of a run, so those cards ask again.
+ *
+ * A plain function so it can be the `setKepek` updater itself, with no
+ * closure and no side effect in it.
+ */
+export function csakKepek(kepek: Record<string, KepAllapot>): Record<string, KepAllapot> {
+  const megmarad: Record<string, KepAllapot> = {}
+  for (const [tipus, kep] of Object.entries(kepek)) if (kep.kind === 'kep') megmarad[tipus] = kep
+  return megmarad
+}
+
 /** What one `templatePreview` answer means for the card, honouring both `hiba` and `ok`. */
 function kepAllapotbol(valasz: { dataUrl: string | null; ok: string | null; hiba: string | null }): KepAllapot {
   if (valasz.dataUrl !== null) return { kind: 'kep', dataUrl: valasz.dataUrl }
@@ -440,6 +546,11 @@ export function Sablonok({ rpc, health }: { rpc: Rpc; health: Health | null }) {
   const racsRef = useRef<HTMLDivElement | null>(null)
   const kertRef = useRef<Set<string>>(new Set())
   const futottRef = useRef(false)
+  // `kepek` for the one reader that runs outside render: the pruning below,
+  // which cannot take `kepek` as a dependency without rebuilding the
+  // two-second poll on every picture that arrives.
+  const kepekRef = useRef<Record<string, KepAllapot>>({})
+  useEffect(() => { kepekRef.current = kepek }, [kepek])
 
   useEffect(() => {
     let stale = false
@@ -461,12 +572,13 @@ export function Sablonok({ rpc, health }: { rpc: Rpc; health: Health | null }) {
         // fillable, and the only moment this page learns of it.
         const futMost = fut !== null
         if (futottRef.current && !futMost) {
-          setKepek((prev) => {
-            const megmarad: Record<string, KepAllapot> = {}
-            for (const [tipus, kep] of Object.entries(prev)) if (kep.kind === 'kep') megmarad[tipus] = kep
-            kertRef.current = new Set(Object.keys(megmarad))
-            return megmarad
-          })
+          // The updater is the pure function and NOTHING ELSE. React 19
+          // StrictMode double-invokes updaters, so the ref that records what
+          // has been asked for is written after the call, from the mirror,
+          // rather than from inside it. Idempotent either way -- but a state
+          // updater is not a place from which anything outside it is written.
+          setKepek(csakKepek)
+          kertRef.current = new Set(Object.keys(csakKepek(kepekRef.current)))
           setGeneracio((n) => n + 1)
         }
         futottRef.current = futMost
@@ -545,7 +657,15 @@ export function Sablonok({ rpc, health }: { rpc: Rpc; health: Health | null }) {
 
   const megszakit = useCallback(() => {
     rpc('templatePreviewCancel')
-      .then(() => { setUzenet('A megszakítást elküldtem; a már elkészült képek megmaradnak.') })
+      // The contract has exactly one field and it is the answer to the only
+      // question this button asks. `megszakitva: false` means the run had
+      // already ended before the click arrived -- nothing was stopped -- and
+      // saying "elküldtem" over it would report an act that did not happen.
+      .then((raw) => {
+        setUzenet(readPreviewCancel(raw).megszakitva
+          ? 'A megszakítást elküldtem; a már elkészült képek megmaradnak.'
+          : 'Nem futott generálás, így nem volt mit megszakítani.')
+      })
       .catch((err: unknown) => setUzenet(`A megszakítás nem sikerült: ${errorText(err)}`))
       .finally(allapotot)
   }, [rpc, allapotot])
@@ -571,6 +691,7 @@ export function Sablonok({ rpc, health }: { rpc: Rpc; health: Health | null }) {
         onMegszakit={megszakit}
         dolgozik={dolgozik}
         uzenet={uzenet}
+        onUzenetZar={() => setUzenet(null)}
       />
     </>
   )

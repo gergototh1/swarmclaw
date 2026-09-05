@@ -420,6 +420,25 @@ export function readPreviewStart(raw: unknown): PreviewStart {
   }
 }
 
+/**
+ * The `templatePreviewCancel` answer, whose one field is the whole contract.
+ *
+ * `megszakit()` answers `false` when there was no run to stop -- the run
+ * ended between the poll that drew the button and the click on it -- and the
+ * page must not report a cancellation it did not cause. There is no `hiba`
+ * here on purpose: `rpc.mjs` says the method reads nothing but the module's
+ * own run state, so a missing field is a shape this page cannot trust rather
+ * than a failure it can name, and `false` is the safe reading of both.
+ */
+export interface PreviewCancel {
+  megszakitva: boolean
+}
+
+export function readPreviewCancel(raw: unknown): PreviewCancel {
+  const root = readRoot('templatePreviewCancel', raw)
+  return { megszakitva: root.megszakitva === true }
+}
+
 export interface Health {
   ok: boolean
   /** Codes that block a capability. */
