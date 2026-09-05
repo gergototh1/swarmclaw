@@ -6,9 +6,11 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import {
+  managedScheduleBlock,
   resolveScheduleWakeSessionIdForTests,
   shouldWakeScheduleSessionForTests,
 } from '@/lib/server/runtime/scheduler'
+import type { ExtensionActivationState } from '@/lib/server/extensions'
 
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../..')
 
@@ -490,5 +492,204 @@ describe('scheduler wake targeting', () => {
     assert.equal(output.sourceKind, 'schedule')
     assert.equal(output.templateId, 'sched-protocol-template')
     assert.ok(output.transcriptChatroomId)
+  })
+})
+
+describe('managed schedules of an extension that is disabled or not loaded', () => {
+  const activation = (state: ExtensionActivationState) => {
+    const calls: string[] = []
+    return {
+      calls,
+      lookup: (extensionId: string): ExtensionActivationState => {
+        calls.push(extensionId)
+        return state
+      },
+    }
+  }
+
+  it('has no opinion about a schedule no extension manages', () => {
+    const unmanaged = activation('disabled')
+    assert.equal(managedScheduleBlock({}, unmanaged.lookup), null)
+    assert.equal(managedScheduleBlock({ managedByExtension: null }, unmanaged.lookup), null)
+    assert.deepEqual(unmanaged.calls, [], 'the activation lookup is not made for an unmanaged schedule')
+  })
+
+  it('treats a marker without a usable extensionId as unmanaged', () => {
+    const blank = activation('disabled')
+    assert.equal(managedScheduleBlock({
+      managedByExtension: { extensionId: '', resourceKind: 'schedule', resourceKey: 's', reconciledAt: 0 },
+    }, blank.lookup), null)
+    assert.deepEqual(blank.calls, [])
+  })
+
+  it('names the block after the extension activation state', () => {
+    const marker = { extensionId: 'video.mjs', resourceKind: 'schedule' as const, resourceKey: 's', reconciledAt: 0 }
+    assert.equal(managedScheduleBlock({ managedByExtension: marker }, activation('active').lookup), null)
+    assert.deepEqual(
+      managedScheduleBlock({ managedByExtension: marker }, activation('disabled').lookup),
+      { reason: 'extension_disabled', extensionId: 'video.mjs' },
+    )
+    assert.deepEqual(
+      managedScheduleBlock({ managedByExtension: marker }, activation('not_loaded').lookup),
+      { reason: 'extension_not_loaded', extensionId: 'video.mjs' },
+    )
+  })
+
+  it('skips them visibly with reason extension_disabled, creates no task, and fires again once the extension is re-enabled', () => {
+    const output = runSchedulerWithTempDataDir(`
+      const unwrap = (mod) => mod.default || mod
+      const { getExtensionManager } = unwrap(await import('@/lib/server/extensions'))
+      const { reconcileExtensionManagedResources } = unwrap(await import('@/lib/server/extension-managed-resources'))
+      const { loadSchedules, upsertSchedule } = unwrap(await import('@/lib/server/schedules/schedule-repository'))
+      const { loadTasks } = unwrap(await import('@/lib/server/tasks/task-repository'))
+      const { runSchedulerTickForTests } = unwrap(await import('@/lib/server/runtime/scheduler'))
+
+      const extensionId = 'sched_managed.mjs'
+      const m = getExtensionManager()
+      await m.saveExtensionSource(extensionId, \`export default {
+        name: 'Managed Schedule Fixture',
+        tools: [],
+        managedResources: {
+          agents: [{ agentKey: 'worker', displayName: 'Managed Worker', provider: 'ollama', model: 'test-model', heartbeatEnabled: false }],
+          schedules: [{
+            scheduleKey: 'hourly', displayName: 'Managed hourly run', taskPrompt: 'Do the managed work.', taskMode: 'task',
+            agentRef: { resourceKind: 'agent', resourceKey: 'worker' },
+            scheduleType: 'cron', cron: '0 * * * *', timezone: 'UTC', status: 'active',
+          }],
+        },
+      }\`)
+      reconcileExtensionManagedResources(extensionId)
+      const created = Object.values(loadSchedules()).find((s) => s.managedByExtension?.extensionId === extensionId)
+      if (!created) throw new Error('reconcile did not create the managed schedule')
+
+      await m.setEnabled(extensionId, false)
+      const activationWhileDisabled = m.getActivationState(extensionId)
+      const now = Date.now()
+      upsertSchedule(created.id, { ...created, nextRunAt: now - 1_000 })
+      await runSchedulerTickForTests(now)
+      const afterDisabled = loadSchedules()[created.id]
+      const skipped = afterDisabled.history?.[0]
+      const tasksAfterDisabled = Object.keys(loadTasks()).length
+
+      await m.setEnabled(extensionId, true)
+      upsertSchedule(created.id, { ...afterDisabled, nextRunAt: now - 1_000 })
+      await runSchedulerTickForTests(now)
+      const afterEnabled = loadSchedules()[created.id]
+
+      console.log(JSON.stringify({
+        activationWhileDisabled,
+        tasksAfterDisabled,
+        skippedAction: skipped?.action ?? null,
+        skippedReason: skipped?.metadata?.reason ?? null,
+        skippedExtensionId: skipped?.metadata?.extensionId ?? null,
+        skippedSummary: skipped?.summary ?? null,
+        statusAfterDisabled: afterDisabled.status,
+        advancedAfterDisabled: (afterDisabled.nextRunAt || 0) > now,
+        runNumberAfterDisabled: afterDisabled.runNumber || 0,
+        activationAfterEnable: m.getActivationState(extensionId),
+        firedAction: afterEnabled.history?.[0]?.action ?? null,
+        runNumberAfterEnabled: afterEnabled.runNumber || 0,
+        tasksAfterEnabled: Object.keys(loadTasks()).length,
+      }))
+    `)
+
+    assert.equal(output.activationWhileDisabled, 'disabled')
+    assert.equal(output.tasksAfterDisabled, 0)
+    assert.equal(output.skippedAction, 'skipped')
+    assert.equal(output.skippedReason, 'extension_disabled')
+    assert.equal(output.skippedExtensionId, 'sched_managed.mjs')
+    assert.match(output.skippedSummary, /extension is disabled/)
+    assert.equal(output.statusAfterDisabled, 'active')
+    assert.equal(output.advancedAfterDisabled, true)
+    assert.equal(output.runNumberAfterDisabled, 0)
+    assert.equal(output.activationAfterEnable, 'active')
+    assert.equal(output.firedAction, 'run_started')
+    assert.equal(output.runNumberAfterEnabled, 1)
+    assert.equal(output.tasksAfterEnabled, 1)
+  })
+
+  it('skips them with reason extension_not_loaded when the extension failed to load or was never installed', () => {
+    const output = runSchedulerWithTempDataDir(`
+      import fs from 'node:fs'
+      import path from 'node:path'
+      const unwrap = (mod) => mod.default || mod
+      const { getExtensionManager } = unwrap(await import('@/lib/server/extensions'))
+      const { reconcileExtensionManagedResources } = unwrap(await import('@/lib/server/extension-managed-resources'))
+      const { loadSchedules, upsertSchedule } = unwrap(await import('@/lib/server/schedules/schedule-repository'))
+      const { loadTasks } = unwrap(await import('@/lib/server/tasks/task-repository'))
+      const { runSchedulerTickForTests } = unwrap(await import('@/lib/server/runtime/scheduler'))
+
+      const extensionId = 'sched_broken.mjs'
+      const m = getExtensionManager()
+      const source = (setupBody) => \`export default {
+        name: 'Broken Schedule Fixture',
+        tools: [],
+        setup() { \${setupBody} },
+        managedResources: {
+          agents: [{ agentKey: 'worker', displayName: 'Broken Worker', provider: 'ollama', model: 'test-model', heartbeatEnabled: false }],
+          schedules: [{
+            scheduleKey: 'hourly', displayName: 'Broken hourly run', taskPrompt: 'Do the work.', taskMode: 'task',
+            agentRef: { resourceKind: 'agent', resourceKey: 'worker' },
+            scheduleType: 'cron', cron: '0 * * * *', timezone: 'UTC', status: 'active',
+          }],
+        },
+      }\`
+      await m.saveExtensionSource(extensionId, source(''))
+      reconcileExtensionManagedResources(extensionId)
+      const managed = Object.values(loadSchedules()).find((s) => s.managedByExtension?.extensionId === extensionId)
+      if (!managed) throw new Error('reconcile did not create the managed schedule')
+
+      // The extension breaks after its schedule exists: written straight to
+      // disk so nothing but the reload below re-acquires it.
+      fs.writeFileSync(path.join(process.env.DATA_DIR, 'extensions', extensionId), source("throw new Error('setup failed')"))
+      await m.reload()
+
+      const now = Date.now()
+      upsertSchedule(managed.id, { ...managed, nextRunAt: now - 1_000 })
+      upsertSchedule('sched-orphan', {
+        id: 'sched-orphan',
+        name: 'Orphaned managed run',
+        agentId: managed.agentId,
+        taskPrompt: 'Do the orphaned work.',
+        scheduleType: 'cron',
+        cron: '0 * * * *',
+        timezone: 'UTC',
+        status: 'active',
+        nextRunAt: now - 1_000,
+        managedByExtension: { extensionId: 'never_installed.mjs', resourceKind: 'schedule', resourceKey: 'hourly', reconciledAt: now },
+        createdAt: now - 10_000,
+        updatedAt: now - 10_000,
+      })
+      await runSchedulerTickForTests(now)
+      const schedules = loadSchedules()
+      const broken = schedules[managed.id]
+      const orphan = schedules['sched-orphan']
+
+      console.log(JSON.stringify({
+        brokenEnabled: m.isEnabled(extensionId),
+        brokenActivation: m.getActivationState(extensionId),
+        orphanActivation: m.getActivationState('never_installed.mjs'),
+        tasks: Object.keys(loadTasks()).length,
+        brokenAction: broken.history?.[0]?.action ?? null,
+        brokenReason: broken.history?.[0]?.metadata?.reason ?? null,
+        brokenStatus: broken.status,
+        orphanAction: orphan.history?.[0]?.action ?? null,
+        orphanReason: orphan.history?.[0]?.metadata?.reason ?? null,
+        orphanExtensionId: orphan.history?.[0]?.metadata?.extensionId ?? null,
+        orphanStatus: orphan.status,
+      }))
+    `)
+
+    assert.equal(output.brokenEnabled, true, 'one failed setup() must not disable the extension')
+    assert.equal(output.brokenActivation, 'not_loaded')
+    assert.equal(output.orphanActivation, 'not_loaded')
+    assert.equal(output.tasks, 0)
+    assert.equal(output.brokenAction, 'skipped')
+    assert.equal(output.brokenReason, 'extension_not_loaded')
+    assert.equal(output.brokenStatus, 'active')
+    assert.equal(output.orphanAction, 'skipped')
+    assert.equal(output.orphanReason, 'extension_not_loaded')
+    assert.equal(output.orphanExtensionId, 'never_installed.mjs')
+    assert.equal(output.orphanStatus, 'active')
   })
 })

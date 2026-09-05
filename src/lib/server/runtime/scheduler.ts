@@ -14,6 +14,7 @@ import { hmrSingleton } from '@/lib/shared-utils'
 import { log } from '@/lib/server/logger'
 import { appendScheduleHistoryEntry } from '@/lib/server/schedules/schedule-history'
 import { assessScheduleNextRunRepair, computeScheduleNextRunAt } from '@/lib/server/schedules/schedule-timing'
+import type { ExtensionActivationState } from '@/lib/server/extensions'
 import type { Schedule } from '@/types'
 
 const TAG = 'scheduler'
@@ -121,10 +122,64 @@ function computeNextRuns(now = Date.now()): Record<string, Schedule> {
   return schedules
 }
 
+export type ManagedScheduleBlockReason = 'extension_disabled' | 'extension_not_loaded'
+
+export interface ManagedScheduleBlock {
+  reason: ManagedScheduleBlockReason
+  /** The extension the schedule's marker names, for the log and history entry. */
+  extensionId: string
+}
+
+/**
+ * Why a schedule an extension manages must not fire right now, or null for
+ * one that may. A schedule no extension manages is always null, and the
+ * activation lookup is not made for it: the check has no opinion about it.
+ *
+ * Disabling an extension rewrites its config entry and reloads; the managed
+ * schedules a reconcile created for it stay in the store, `active`, with a
+ * `nextRunAt`. Before this check every one of them kept dispatching to an
+ * agent whose tools had gone with the extension, each dispatch a paid model
+ * turn. The uninstall path deletes those schedules
+ * (extensions/extension-managed-teardown.ts); the disable path does not, and
+ * neither a load failure nor a file removed by hand touches them, so all of
+ * those states arrive here. Both disable routes, the operator's toggle and
+ * the automatic disable after repeated failures, write the same config entry,
+ * which is what `ExtensionManager.getActivationState` reads.
+ *
+ * 'extension_disabled' and 'extension_not_loaded' are kept apart because they
+ * call for different actions: one is switched off and can be switched on;
+ * the other is on and broken, gone from disk, or was never installed.
+ *
+ * A marker whose `extensionId` is not a non-empty string attributes the
+ * schedule to no extension. The reconcile and the teardown both match a
+ * schedule to its extension by that id and never by the marker's presence
+ * alone, so such a schedule is treated here the way they treat it: as one no
+ * extension manages.
+ */
+export function managedScheduleBlock(
+  schedule: Pick<Schedule, 'managedByExtension'>,
+  getExtensionActivationState: (extensionId: string) => ExtensionActivationState,
+): ManagedScheduleBlock | null {
+  const extensionId = schedule.managedByExtension?.extensionId
+  if (typeof extensionId !== 'string' || extensionId.length === 0) return null
+  const state = getExtensionActivationState(extensionId)
+  if (state === 'active') return null
+  return { reason: state === 'disabled' ? 'extension_disabled' : 'extension_not_loaded', extensionId }
+}
+
 async function tick(now = Date.now()) {
   await processDueWatchJobs(now)
   const schedules = computeNextRuns(now)
   const agents = listAgents()
+  // Imported here rather than at module scope so that extensions.ts, and what
+  // it pulls in (the WS hub, OAuth, extension storage, the package installer),
+  // stays out of this module's static import graph: scheduler.test.ts imports
+  // this module in-process for its pure helpers, and that import must not
+  // evaluate the extension host. tick() is already async, and after the first
+  // tick the import resolves from the module cache.
+  const { getExtensionManager } = await import('@/lib/server/extensions')
+  const getExtensionActivationState = (extensionId: string): ExtensionActivationState =>
+    getExtensionManager().getActivationState(extensionId)
   const tasks = loadTasks()
   const inFlightScheduleKeys = new Set<string>(
     Object.values(tasks as Record<string, ScheduleTaskLike>)
@@ -155,6 +210,34 @@ async function tick(now = Date.now()) {
   for (const schedule of Object.values(schedules)) {
     if (schedule.status !== 'active') continue
     if (!schedule.nextRunAt || schedule.nextRunAt > now) continue
+
+    // Checked before the in-flight and agent checks: when the extension is
+    // off, that is the reason the operator can act on, whatever else is true
+    // of the schedule. A run that was already queued or running when the
+    // extension went off is not touched here; this decides only whether a
+    // new one starts. The schedule is advanced like every other skip, so a
+    // re-enabled extension resumes at its next slot rather than replaying
+    // the slots it missed (and a `once` schedule is completed by the skip,
+    // as it is by every other skip).
+    const managedBlock = managedScheduleBlock(schedule, getExtensionActivationState)
+    if (managedBlock) {
+      const { reason, extensionId } = managedBlock
+      const condition = reason === 'extension_disabled' ? 'is disabled' : 'is not loaded'
+      log.warn(TAG, `Skipping schedule "${schedule.name}" (${schedule.id}) because extension ${extensionId} ${condition}`)
+      advanceSchedule(schedule)
+      upsertSchedule(schedule.id, appendScheduleHistoryEntry(schedule, {
+        now,
+        actor: 'system',
+        action: 'skipped',
+        summary: `Schedule skipped because its extension ${condition}: "${schedule.name}"`,
+        metadata: { reason, extensionId },
+      }))
+      pushMainLoopEventToMainSessions({
+        type: 'schedule_skipped',
+        text: `Schedule skipped: "${schedule.name}" (${schedule.id}) because extension ${extensionId} ${condition}.`,
+      })
+      continue
+    }
 
     const scheduleSignature = getScheduleSignatureKey(schedule)
     if (scheduleSignature && inFlightScheduleKeys.has(scheduleSignature)) {

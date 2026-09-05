@@ -101,6 +101,12 @@ const _migrateLegacyPaths = (() => {
     } catch { /* ignore migration errors */ }
   }
 })()
+/**
+ * What `ExtensionManager.getActivationState` reports for one extension. See
+ * that method for what each value means.
+ */
+export type ExtensionActivationState = 'active' | 'disabled' | 'not_loaded'
+
 const MAX_EXTERNAL_EXTENSION_BYTES = 1024 * 1024
 const SUPPORTED_EXTENSION_PACKAGE_MANAGERS: ExtensionPackageManager[] = ['npm', 'pnpm', 'yarn', 'bun']
 const EXTENSION_INSTALL_TIMEOUT_MS = 5 * 60 * 1000
@@ -2831,6 +2837,44 @@ class ExtensionManager {
   isExplicitlyDisabled(filename: string): boolean {
     const explicit = this.readConfigEntry(filename)
     return explicit?.enabled === false
+  }
+
+  /**
+   * Whether an extension is loaded right now and switched on: the condition
+   * under which the schedules it manages may fire. The scheduler asks the
+   * finer-grained `getActivationState` so it can name which half failed; this
+   * is the same answer collapsed to a boolean.
+   */
+  isActive(filename: string): boolean {
+    return this.getActivationState(filename) === 'active'
+  }
+
+  /**
+   * 'active', or why the extension is not.
+   *
+   * 'disabled' comes from the config entry: it is what the operator's toggle
+   * (`setEnabled`) and the automatic disable after
+   * MAX_CONSECUTIVE_EXTENSION_FAILURES (`autoDisableExternalExtension`) both
+   * write, and for a builtin with no entry it is `enabledByDefault: false`.
+   * 'not_loaded' is an enabled extension with no record in `this.extensions`:
+   * its import threw or timed out, its setup() threw, its file is no longer on
+   * disk, or nothing by that name was ever installed. The config is read
+   * first because a disabled extension is absent from the map as well, and
+   * 'disabled' is the answer an operator can act on with one switch.
+   *
+   * The map is read as it stands. On a cold process before `ensureLoaded` has
+   * landed, no external extension is in it and each one answers 'not_loaded';
+   * the server boot awaits `ensureLoaded` before it starts the daemon that
+   * runs the scheduler (src/instrumentation.ts), so the scheduler does not
+   * see that moment, but a caller that runs earlier would. Nothing here waits
+   * for a reload in progress either: `reload()` swaps the map in without an
+   * await in between, so a read lands on the old generation or the new one,
+   * never on an empty map.
+   */
+  getActivationState(filename: string): ExtensionActivationState {
+    if (!this.isEnabled(filename)) return 'disabled'
+    this.load()
+    return this.extensions.has(filename) ? 'active' : 'not_loaded'
   }
 
   listExtensions(): ExtensionMeta[] {
