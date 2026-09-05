@@ -41,11 +41,14 @@ function wholeSetting(state, key, fallback, min) {
 
 export function createRenderOps(state) {
   const repo = () => state.repo
-  // Both runners resolve the tool's name to a path before spawning it, so
-  // `npx`, `ffmpeg` and `ffprobe` are found in the packaged desktop app, where
-  // the inherited PATH holds neither Homebrew nor nvm (src/binaries.mjs). The
-  // wrapping is here rather than at each call site so the QA gate, which is
-  // handed `execFileImpl()`, resolves by the same rule as the preflight.
+  // Both runners resolve the tool's name to a path before spawning it, and put
+  // that path's own directory on the child's PATH so a script tool finds the
+  // interpreter it was installed beside -- `npx` is `#!/usr/bin/env node`. That
+  // is what makes `npx`, `ffmpeg` and `ffprobe` work in the packaged desktop
+  // app, where the inherited PATH holds neither Homebrew, nor nvm, nor a
+  // user-level ~/.local/bin install (src/binaries.mjs). The wrapping is here
+  // rather than at each call site so the QA gate, which is handed
+  // `execFileImpl()`, resolves by the same rule as the preflight.
   const spawnImpl = () => resolvingSpawn(state, state.spawnImpl || spawn)
   const execFileImpl = () => resolvingExecFile(state, state.execFileImpl || execFileAsync)
   const killImpl = () => state.killImpl || ((pid, signal) => process.kill(pid, signal))

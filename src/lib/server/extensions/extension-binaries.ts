@@ -68,9 +68,19 @@ const MAX_BINARY_NAME_LENGTH = 64
 const BINARY_NAME = /^[A-Za-z0-9][A-Za-z0-9._+-]*$/
 
 /**
- * Where a POSIX machine keeps binaries a GUI-launched process's `PATH` misses.
+ * Where a POSIX machine keeps binaries a GUI-launched process's `PATH` misses:
+ * the two Homebrew prefixes, the two `/usr/local` ones, the system pair, and
+ * the two a user-level install writes to without root -- `~/.local/bin`, where
+ * a Node installed without Homebrew or nvm lands, and `~/.npm-global/bin`.
  * `resolveCliBinary` adds every nvm Node version on top of these, which is what
  * finds `npx` when Node came from nvm.
+ *
+ * A path from this list is where the file is, which is not the same as a tool
+ * that runs: `npx` is a `#!/usr/bin/env node` script, so its interpreter has to
+ * be findable too. That is the caller's business and not this list's -- see
+ * WHAT IT PROMISES above, and `extensions/video/src/binaries.mjs` for a caller
+ * that puts the resolved directory on the child's `PATH` for exactly this
+ * reason.
  *
  * Empty on Windows: these are POSIX paths, and `resolveCliBinary` probes
  * `where` there, which reads the process `PATH` the same way a shell would.

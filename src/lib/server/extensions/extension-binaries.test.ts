@@ -154,6 +154,44 @@ describe('resolveExtensionBinary', () => {
     assert.equal(out.bannerText, null)
   })
 
+  it('finds a binary in ~/.local/bin, where a user-level install without Homebrew or nvm lands', { skip: process.platform === 'win32' ? 'POSIX only' : false }, () => {
+    // THE LOCATION THIS PINS. The fallback list is the whole point of this
+    // module on a GUI-launched app, and it used to name Homebrew, /usr/local
+    // and nvm only. A Node installed without any of those -- the plain
+    // user-level install -- puts `node` and `npx` in ~/.local/bin, which is
+    // exactly where the operator's are, so the resolver answered null for a
+    // tool sitting in plain sight and the video extension reported
+    // `npx_hianyzik` with `blokkolt: ['render']`.
+    //
+    // HOME is redirected and the login shell is one that answers nothing, so
+    // this asserts the directory list and not the machine running the suite,
+    // and it never writes into the operator's own home.
+    const out = runWithTempDataDir<{ found: string | null; expected: string }>(`
+      const fs = await import('node:fs')
+      const os = await import('node:os')
+      const path = await import('node:path')
+      const home = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'swarmclaw-home-'))
+      process.env.HOME = home
+      // A shell that finds nothing, so only the fallback list can answer.
+      const shell = path.join(home, 'silent-shell')
+      fs.writeFileSync(shell, '#!/bin/sh\\nexit 1\\n', { mode: 0o755 })
+      process.env.SHELL = shell
+      const localBin = path.join(home, '.local', 'bin')
+      fs.mkdirSync(localBin, { recursive: true })
+      const name = 'swarmclaw-local-bin-' + process.pid
+      const expected = path.join(localBin, name)
+      fs.writeFileSync(expected, '#!/bin/sh\\nexit 0\\n', { mode: 0o755 })
+      const mod = await import('@/lib/server/extensions/extension-binaries')
+      const { resolveExtensionBinary } = mod.default || mod
+      try {
+        console.log(JSON.stringify({ found: resolveExtensionBinary(name), expected }))
+      } finally {
+        fs.rmSync(home, { recursive: true, force: true })
+      }
+    `)
+    assert.equal(out.found, out.expected, '~/.local/bin is not on the fallback list')
+  })
+
   it('looks only where it says it looks, so a null is a real absence and not a filesystem walk that gave up', () => {
     const out = runWithTempDataDir<{ found: string | null }>(`
       const fs = await import('node:fs')
