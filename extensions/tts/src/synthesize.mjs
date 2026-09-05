@@ -130,8 +130,13 @@ function hasControlCharacter(text) {
   return false
 }
 
-/** Whether the text may be synthesised, or why not. The reason never repeats the text. */
-function szovegEllenorzes(szoveg) {
+/**
+ * Whether the text may be synthesised, or why not. The reason never repeats
+ * the text. Exported for the cache import on the rpc, which admits a sentence
+ * under the same rule a call would, so an imported row is one a call could
+ * hit.
+ */
+export function szovegEllenorzes(szoveg) {
   if (typeof szoveg !== 'string') return 'a szöveg sztring kell legyen'
   if (szoveg.trim() === '') return 'a szöveg üres'
   if (szoveg.length > MAX_SZOVEG) return `a szöveg ${szoveg.length} karakter, a felső határ ${MAX_SZOVEG}`
@@ -142,10 +147,10 @@ export function createSynthesizer(state) {
   return {
     /**
      * One sentence to one mp3 at `celFajl`. Returns
-     * `{ kerelemId, fajl, hosszMs, cache, hang, modell }` or throws a
-     * `TtsError`. `hang` and `modell` are the settings this result was made
-     * with, so a consumer can tell later whether the voice has changed under
-     * it.
+     * `{ kerelemId, fajl, hosszMs, cache, hang, modell, nyelv }` or throws a
+     * `TtsError`. `hang`, `modell` and `nyelv` are the settings this result
+     * was made with, the three the cache key is made of, so a consumer can
+     * tell later whether the voice has changed under it.
      *
      * Order: refuse the arguments, refuse the settings, answer from the cache,
      * refuse on the cap, call, write, measure, count, record. The cap is
@@ -171,7 +176,7 @@ export function createSynthesizer(state) {
             fs.mkdirSync(path.dirname(celFajl), { recursive: true })
             fs.copyFileSync(hit.fajl, celFajl)
           }
-          return { kerelemId: hit.id, fajl: celFajl, hosszMs: hit.hossz_ms, cache: true, hang: cfg.hang, modell: cfg.modell }
+          return { kerelemId: hit.id, fajl: celFajl, hosszMs: hit.hossz_ms, cache: true, hang: cfg.hang, modell: cfg.modell, nyelv: cfg.nyelv }
         }
         // The row said the file exists and it does not: release the key so
         // this call, not a later one, makes the sentence again.
@@ -239,7 +244,7 @@ export function createSynthesizer(state) {
         if (!winner) throw err
         id = winner.id
       }
-      return { kerelemId: id, fajl: celFajl, hosszMs, cache: false, hang: cfg.hang, modell: cfg.modell }
+      return { kerelemId: id, fajl: celFajl, hosszMs, cache: false, hang: cfg.hang, modell: cfg.modell, nyelv: cfg.nyelv }
     },
 
     /**

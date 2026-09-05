@@ -1,4 +1,10 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { NARRATION_CONTRACT, createNarrationContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { createRpc } from './src/rpc.mjs'
+import { createSynthesizer } from './src/synthesize.mjs'
 
 /**
  * Everything the host hands over in setup(), plus the two seams a test injects.
@@ -15,7 +21,7 @@ import { MIGRATIONS, createRepo } from './src/db.mjs'
  * falling back to the global `fetch` and the module's own promisified
  * `execFile` when they are null. A test sets both to doubles, so no request
  * leaves the machine and no ffprobe is needed to run the suite. Nothing in
- * this file reads either yet.
+ * this file reads either; the synthesizer built below does.
  */
 export const state = {
   storage: null,
@@ -26,6 +32,42 @@ export const state = {
   fetchImpl: null,
   execFileImpl: null,
 }
+
+/**
+ * The workspace this file runs from. The MCP shim lives beside it under
+ * `mcp/`, and the rpc's `mcpConfig` reports that path for the operator's
+ * Settings > MCP Servers entry.
+ */
+const workspaceDir = path.dirname(fileURLToPath(import.meta.url))
+
+/**
+ * Where the host writes `run/port.json`, by the host's own rule in
+ * `src/lib/server/data-dir.ts` (`resolveRunDir`), repeated here because an
+ * extension may not import that file: when SWARMCLAW_HOME is set, `run/`
+ * sits beside `data/` under that home, not inside it; otherwise it is `run/`
+ * under DATA_DIR, which is the DATA_DIR variable when set and `<cwd>/data`
+ * when not. The host's build-time branch is left out because the port file is
+ * written only by a running server.
+ *
+ * Two copies of one rule, read from the same environment. Nothing here can
+ * check that the host wrote where this says; the page shows the path so the
+ * operator can, and the shim reports a missing file by name rather than
+ * guessing a port.
+ */
+function resolvePortFile() {
+  const home = process.env.SWARMCLAW_HOME?.trim()
+  if (home) return path.join(path.resolve(home), 'run', 'port.json')
+  const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
+  return path.join(dataDir, 'run', 'port.json')
+}
+
+/**
+ * The one synthesizer both surfaces share. Built at module scope over
+ * `state`, which setup() fills later: it closes over the object and reads
+ * `state.repo`, `state.settings` and the two seams on every call, so a reload
+ * that re-runs setup() is seen by the next call without rebuilding anything.
+ */
+const synth = createSynthesizer(state)
 
 const tts = {
   name: 'Narráció (TTS)',
@@ -40,7 +82,21 @@ const tts = {
     state.repo = createRepo(ctx.storage)
   },
   tools: [],
-  rpc: {},
+  /**
+   * What this extension's own page and its MCP shim may call, over
+   * `POST /api/extensions/tts/call/<method>`. See rpc.mjs for which methods
+   * are in it and why `synthesize` answers a refusal as a value there.
+   */
+  rpc: createRpc(state, synth, { workspaceDir, portFile: resolvePortFile() }),
+  /**
+   * What *another* extension may call, once it has named this contract in its
+   * own `consumes` and an operator has left it installed.
+   *
+   * Strictly smaller than `rpc` and separately declared, with its answers cut
+   * to its own field lists: see contract.mjs for which methods are in it and
+   * why the others are not.
+   */
+  provides: { [NARRATION_CONTRACT]: createNarrationContract(synth) },
   ui: {
     pages: [{
       id: 'tts',
@@ -51,9 +107,10 @@ const tts = {
       icon: 'MessageSquare',
       path: '/x/tts',
       // Workspace-relative and required to start with dist/: only
-      // <workspace>/dist is ever served. This checkout ships no ui/ yet, so
-      // an install carries no dist/ and the asset route answers 404 for both
-      // files: the rail lists the page and the page never registers.
+      // <workspace>/dist is ever served. scripts/build.mjs writes dist/ from
+      // ui/ and scripts/install.mjs copies it into the workspace; an install
+      // made without a build carries no dist/, the asset route answers 404 for
+      // both files, and the rail lists a page that never registers.
       entry: 'dist/index.js',
       css: 'dist/style.css',
       position: 'end',

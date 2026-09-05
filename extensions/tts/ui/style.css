@@ -1,0 +1,87 @@
+/*
+ * Narration (tts) page. Every class is `tts-` prefixed: the host injects this
+ * sheet into its own document, so an unprefixed rule would restyle the shell.
+ *
+ * Colours come from the host's tokens with a fallback beside each, so the page
+ * follows the host's light and dark themes and still reads when a token is
+ * renamed. Paths, codes and the MCP entry are set in the host's mono face.
+ */
+.tts-root {
+  padding: 20px 24px 40px;
+  max-width: 880px;
+  margin: 0 auto;
+  color: var(--card-foreground, inherit);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.tts-root h1 { font-size: 20px; margin: 0 0 16px; }
+.tts-root h2 { font-size: 15px; margin: 0 0 10px; }
+.tts-mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; }
+.tts-muted { color: var(--color-text-3, #8282a0); }
+.tts-error {
+  color: var(--color-danger, #dc2626);
+  border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 35%, transparent);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tts-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.tts-head h1 { margin: 0; }
+.tts-btn {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  background: var(--card, transparent);
+  color: inherit;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+.tts-btn:hover:not(:disabled) { border-color: var(--accent, #6366f1); }
+.tts-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* sections */
+.tts-section {
+  background: var(--card, transparent);
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}
+.tts-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+.tts-facts dt { color: var(--color-text-3, #8282a0); }
+.tts-facts dd { margin: 0; }
+.tts-yes { color: var(--color-success, #16a34a); font-weight: 600; }
+.tts-no { color: var(--color-danger, #dc2626); font-weight: 600; }
+.tts-pre {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  background: color-mix(in srgb, var(--border, rgba(127, 127, 127, 0.2)) 30%, transparent);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.tts-steps { margin: 0; padding-left: 20px; }
+.tts-steps li { margin-bottom: 6px; }
+
+/* the request list */
+.tts-row {
+  border-top: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  padding: 10px 0;
+  overflow-wrap: anywhere;
+}
+.tts-row p { margin: 0 0 4px; white-space: pre-wrap; }
+.tts-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--color-text-3, #8282a0); }
+.tts-badge {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+.tts-badge-bad { color: var(--color-danger, #dc2626); font-weight: 700; }
+.tts-capped { margin-top: 10px; }
