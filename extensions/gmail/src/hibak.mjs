@@ -1,5 +1,7 @@
 /**
- * The closed error set of the gmail extension, and the two verbs that use it.
+ * The closed error set of the gmail extension, and the verbs that use it:
+ * `refuse` and `guard`, plus `TOKEN_CODES` at the foot of the file -- the
+ * four-code subset the Gmail client passes through from the host untouched.
  *
  * Every refusal this module can produce is named here, in one array, so a
  * reviewer can read the whole vocabulary without walking the module. Two rules
@@ -215,3 +217,23 @@ export async function guard(fn) {
     throw err
   }
 }
+
+/**
+ * The four codes the host's `getGoogleAccessToken` throws, as a set the client
+ * checks a caught message against.
+ *
+ * They pass through the client untouched because each one tells the operator a
+ * different thing to do -- connect the mailbox, re-enter the encryption key,
+ * reconnect a revoked grant, try again -- and only the host knows which
+ * applies. Anything the host throws that is NOT in this set is still a failure
+ * of the token stage, so it lands on `gmail_refresh_failed` rather than on a
+ * code that blames Gmail for a request Gmail never received.
+ *
+ * A subset of `HIBA_KODOK` rather than four fresh literals, and derived from it
+ * by name so a respelling in one place cannot leave the other behind: a code
+ * listed here that is not in the closed set would be a code no caller could
+ * enumerate.
+ */
+export const TOKEN_CODES = new Set(
+  HIBA_KODOK.filter((code) => code === 'gmail_token_missing' || code === 'gmail_token_unreadable' || code === 'gmail_token_revoked' || code === 'gmail_refresh_failed'),
+)
