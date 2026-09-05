@@ -18,9 +18,15 @@ import { sha256 } from './db.mjs'
  * this table does not is refused when a plan uses it, and every plan is
  * warned `katalogus_valtozott` while the gap exists, so a kit change can
  * never admit an unchecked value -- it can only be visibly missing until the
- * table follows. test/katalogus.test.mjs pins that the table covers the
- * real catalogue, so the gap is a failing test here before it is a refusal
- * for an agent.
+ * table follows. What test/katalogus.test.mjs pins is this table against
+ * test/fixtures/katalogus.generated.json -- a byte copy of the catalogue,
+ * taken on the date below -- and no test reads the operator's live project.
+ * So a REGENERATED kit does not turn this suite red: it turns into the
+ * `katalogus_valtozott` warning on every plan and into a refusal for the
+ * agent that reaches for the new type, and the fixture and this table are
+ * brought forward together afterwards. The test keeps the pair from drifting
+ * apart on their own; the operator's kit is guarded by the warning and the
+ * refusal, not by a test.
  *
  * The shapes were read off the Remotion project's src/kit/jelenetek.tsx,
  * jelenetek2.tsx, jelenetek3.tsx (the `*Props` types) and src/kit/Diagram.tsx

@@ -44,11 +44,22 @@ import { remotionDirOf } from './katalogus.mjs'
  *
  * WHAT A REFUSAL LEAVES. Nothing in the table. A set is written whole or
  * not at all (`replaceNarraciok`), so a scene that failed after four that
- * succeeded leaves the four mp3s on disk and in the tts cache, and no row:
- * the next call pays nothing for those four and tries the fifth again. The
- * same holds for the N-rules: a set under N2 or outside N3 is refused after
- * every file was made, and a rerun after the plan is fixed hits the cache
- * for every unchanged sentence.
+ * succeeded leaves the four mp3s on disk and in the tts cache, and no row;
+ * the next call tries the fifth again. The same holds for the N-rules: a set
+ * under N2 or outside N3 is refused after every file was made.
+ *
+ * What the retry PAYS for the four is not this module's guarantee to make.
+ * The tts answers a repeated sentence from its cache only while the mp3 the
+ * cache row names is still on disk: `synthesize` checks it with
+ * `fs.existsSync`, and on a miss it calls `markLost` and synthesises the
+ * sentence again, for money (extensions/tts/src/synthesize.mjs). Those are
+ * the same files `cleanupAll` here deletes -- every path a narration row
+ * names, whatever the video's state -- so a Tisztítás between two runs turns
+ * the free retry into a paid one. That breadth is the spec's 11.3 uninstall
+ * path and it stays; what does not stay is a comment promising a free retry
+ * behind a condition it does not check. The rerun this module CAN promise
+ * costs nothing is the one below: an unchanged, complete, current set is not
+ * re-narrated at all.
  *
  * THE VOICE FINGERPRINT. The tts cache key is (szolgaltato, modell, hang,
  * nyelv, szoveg_hash), and its answer carries `hang`, `modell` and `nyelv`.
@@ -164,10 +175,45 @@ function keretMezok(cause) {
   return out
 }
 
+/**
+ * The plan's narration set as it stands on disk, in scene order, when every
+ * part of it is already current -- otherwise null. This is the check that
+ * makes `videoNarrate` cross the tts contract only when the narration hash
+ * changed (spec 10, point 8): with a full, current, voice-matching set there
+ * is nothing to synthesise, and asking anyway spends the operator's balance
+ * on files it already has.
+ *
+ * It asks exactly what the render gate asks, field for field (render.mjs,
+ * `start`, step 3): a row per sentence and no more, the plan's current hash,
+ * the sentence's current hash, the mp3 present under public/, and all three
+ * voice fields equal to the tts's current setting. Anything laxer would skip
+ * a call the render then demands by name (`narracio_hianyos`,
+ * `narracio_hang_valtozott`); anything stricter would pay for a file that is
+ * already right.
+ *
+ * `jelenlegiHang` is the tts's `status()`, which synthesises nothing and
+ * costs nothing. A null one means "not current": re-narrating is the safe
+ * direction, and a tts that cannot say which voice it is set to cannot vouch
+ * for the voice its old files were made in.
+ */
+export function naprakeszNarracio({ rows, sorok, tervHash, publicDir, jelenlegiHang }) {
+  if (!jelenlegiHang || sorok.length === 0 || rows.length !== sorok.length) return null
+  const jelenetenkent = new Map(rows.map((r) => [r.jelenet, r]))
+  const rendezett = []
+  for (const sor of sorok) {
+    const n = jelenetenkent.get(sor.jelenet)
+    if (!n || n.terv_hash !== tervHash || n.szoveg_hash !== sor.szovegHash) return null
+    if (!fs.existsSync(path.join(publicDir, n.fajl))) return null
+    if (!hangEgyezik(n, jelenlegiHang)) return null
+    rendezett.push(n)
+  }
+  return rendezett
+}
+
 export function createNarrateTool(state) {
   return {
     name: 'videoNarrate',
-    description: 'Jelenetenkénti narrációt kér a tts extensiontől a legfrissebb, átment tervhez, ffprobe-bal méri a hosszakat, és ha a fedettség és a teljes hossz megfelel (N1–N3), a készletet a tervre írja és a videó narralt lesz. Bukásnál nem ír sort; a már elkészült mp3-ak a tts cache-ében maradnak, az újrahívás azokért nem fizet.',
+    description: 'Jelenetenkénti narrációt kér a tts extensiontől a legfrissebb, átment tervhez, ffprobe-bal méri a hosszakat, és ha a fedettség és a teljes hossz megfelel (N1–N3), a készletet a tervre írja és a videó narralt lesz. Ha a tervhez már megvan a teljes, aktuális, a mostani hanggal készült narráció, egyetlen tts-hívás sem megy ki (valtozatlan: true). Bukásnál nem ír sort; a már elkészült mp3-ak a lemezen maradnak, és amíg ott vannak, az újrahívás a tts cache-éből szolgál ki.',
     parameters: { type: 'object', required: ['tervId'], properties: { tervId: { type: 'string' } } },
     execute(args) {
       return guard(async () => {
@@ -193,8 +239,40 @@ export function createNarrateTool(state) {
         // a stranger wrote is in this path, and the scene index is an integer.
         const celDir = path.join(publicDir, NARRACIO_NEVTER, terv.video_id, terv.terv_hash)
         const probe = state.probeImpl || probeDurationMs
+        const sorok = narracioSorok(terv)
+        // A tts `status()` that throws is not this tool's refusal to make: the
+        // same tts is about to refuse the synthesize call with its own code,
+        // and that code is the sentence the operator needs. An unreadable
+        // status only means the set cannot be called current.
+        let jelenlegiHang = null
+        try {
+          jelenlegiHang = await tts.status()
+        } catch {
+          jelenlegiHang = null
+        }
+        const naprakesz = naprakeszNarracio({ rows: repo.narraciok(terv.id), sorok, tervHash: terv.terv_hash, publicDir, jelenlegiHang })
+        if (naprakesz !== null) {
+          // Nothing was asked of the tts and nothing is written -- not even
+          // the video's status: a call that changed nothing must not move a
+          // video that has since been rendered back to `narralt`. `cache` is
+          // absent from the scenes for the same reason. A cache hit is
+          // something the tts reports about a call, and no call was made; a
+          // `cache: true` here would be this module inventing an answer. The
+          // N-rules are not re-run either: they were measured on these exact
+          // lengths when the set was written, and nothing since has changed.
+          const megvanHosszak = naprakesz.map((n) => n.hossz_ms)
+          const megvanIv = idovonal(megvanHosszak)
+          return {
+            valtozatlan: true,
+            jelenetek: naprakesz.map((n) => ({ jelenet: n.jelenet, fajl: n.fajl, hosszMs: n.hossz_ms })),
+            osszHosszMs: megvanHosszak.reduce((sum, x) => sum + x, 0),
+            teljesMs: megvanIv.teljesMs,
+            fedettseg: Number(fedettseg(megvanHosszak).toFixed(3)),
+            hang: { hang: naprakesz[0].hang, modell: naprakesz[0].modell, nyelv: naprakesz[0].nyelv },
+          }
+        }
         const eredmeny = []
-        for (const sor of narracioSorok(terv)) {
+        for (const sor of sorok) {
           const celFajl = path.join(celDir, `${sor.jelenet}.mp3`)
           let valasz
           try {
@@ -252,6 +330,7 @@ export function createNarrateTool(state) {
         })))
         repo.setVideoStatus(terv.video_id, 'narralt')
         return {
+          valtozatlan: false,
           jelenetek: eredmeny.map((e) => ({ jelenet: e.jelenet, fajl: e.fajl, hosszMs: e.hosszMs, cache: e.cache })),
           osszHosszMs: hosszak.reduce((s, x) => s + x, 0),
           teljesMs: iv.teljesMs,

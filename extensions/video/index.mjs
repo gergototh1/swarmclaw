@@ -51,10 +51,17 @@ export const state = {
 }
 
 /**
- * One instance at module scope, so the rpc handlers that arrive with the page
- * (`cancelRender`, `cleanup`, `health`) call the same object the two render
- * tools call, and the page and the tools cannot drift apart in what they mean
- * by a cancel or a cleanup.
+ * One instance at module scope, so that the rpc handlers arriving with the
+ * page (`cancelRender`, `cleanup`, `health`) will call the same object the
+ * two render tools call, and the page and the tools cannot drift apart in
+ * what they mean by a cancel or a cleanup.
+ *
+ * They are not here yet. `rpc` below is empty, so nothing outside this module
+ * reaches `renderOps.cancel`, `cleanupAll` or `orphanCount`, `hetiSor` in
+ * sablon.mjs, or the repository reads no tool asks for (`tervekForVideo`,
+ * `feedbackFor`, `qaAll`, `narraciokAll` and a dozen more). They are the page
+ * task's surface and dead code until it lands; this paragraph says so rather
+ * than describing them in the present tense as if they were wired.
  *
  * Sharing it is not what makes the render survive a reload. Every operation
  * here starts from the render row and writes through the same host storage, so

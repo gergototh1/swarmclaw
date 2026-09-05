@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import { test } from 'node:test'
 
 import { FORDULO_MAX, MIGRATIONS, RENDER_STATUSOK, VIDEO_STATUSOK, canonicalJson, tervHashOf } from '../src/db.mjs'
@@ -288,4 +289,37 @@ test('replaceNarraciok swaps the whole set and counts reflect the tables', () =>
   }
   assert.deepEqual(repo.narraciok(t.id).map((n) => n.jelenet), [1])
   assert.deepEqual(repo.counts(), { videos: 1, tervek: 1, renderek: 0, qaOk: 0, nyitottJavaslatok: 0, fordulok: 0 })
+})
+
+test('the key list in db.mjs names every primary key and every unique index the schema actually has', () => {
+  // The header calls itself "the whole key set: every primary key, every
+  // unique index, and every lookup that acts as one". That claim is what a
+  // later reader trusts instead of reading the DDL, and on the other module
+  // the entry that had gone stale was twice the one that mattered, so it is
+  // pinned rather than believed: a key with no entry, or an entry whose
+  // columns have drifted from the schema, fails here.
+  const forras = fs.readFileSync(new URL('../src/db.mjs', import.meta.url), 'utf8')
+  const kezdet = forras.indexOf('EVERY KEY IN THIS SCHEMA')
+  const veg = forras.indexOf('export const MIGRATIONS')
+  assert.ok(kezdet > 0 && veg > kezdet)
+  const lista = forras.slice(kezdet, veg)
+  const { storage } = freshRepo()
+  const tablak = storage.all("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'ext_video_%' ORDER BY name").map((r) => r.name)
+  assert.equal(tablak.length, 12)
+  for (const tabla of tablak) {
+    const pk = storage.all(`PRAGMA table_info(${tabla})`).filter((c) => c.pk > 0).sort((a, b) => a.pk - b.pk).map((c) => c.name)
+    assert.ok(pk.length > 0, `${tabla} has no primary key`)
+    assert.ok(lista.includes(`${tabla} -- PRIMARY KEY (${pk.join(', ')})`), `${tabla}: PRIMARY KEY (${pk.join(', ')}) is missing from the key list`)
+    for (const idx of storage.all(`PRAGMA index_list(${tabla})`).filter((i) => i.unique === 1)) {
+      // A table-level UNIQUE gets an auto-index and is listed under its
+      // table's name; a named index is listed under its own name. SQLite also
+      // backs a non-integer PRIMARY KEY with an auto-index, and that one is
+      // the primary key already checked above, not a second key.
+      const oszlopok = storage.all(`PRAGMA index_info(${idx.name})`).map((c) => c.name)
+      const autoindex = idx.name.startsWith('sqlite_autoindex_')
+      if (autoindex && oszlopok.join(', ') === pk.join(', ')) continue
+      const vart = autoindex ? `${tabla} -- UNIQUE (${oszlopok.join(', ')})` : idx.name
+      assert.ok(lista.includes(vart), `${tabla}: ${vart} is missing from the key list`)
+    }
+  }
 })

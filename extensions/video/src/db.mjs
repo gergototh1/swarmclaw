@@ -55,6 +55,18 @@ import crypto from 'node:crypto'
  *             Keyed on the card id the `signals` contract handed over, which
  *             is the provider's own surrogate; the card's text is not in it.
  *
+ *   ext_video_tervek -- PRIMARY KEY (id)
+ *     gates   THE RENDER, as one half of its approval key. `passingVerdikt`
+ *             is asked for (terv.id, terv.terv_hash), and the id half is what
+ *             makes a verdict a judgement of ONE submission: the hash alone
+ *             would let a verdict on an identical earlier version answer for
+ *             a later one (the verdict index below spells out why). It is
+ *             also the column every narration row and every render row is
+ *             filed under (`narraciok(tervId)`, `replaceNarraciok`,
+ *             `render.terv_id`), so a plan id that named two plans would put
+ *             one plan's audio on another plan's timeline. Surrogate, minted
+ *             by uid(), never derived from anything a stranger wrote.
+ *
  *   ext_video_tervek -- UNIQUE (video_id, verzio)
  *     gates   which plan is THE LATEST. A verdict, a narration set and a render
  *             are written only against the latest plan; the tools refuse an
@@ -79,6 +91,17 @@ import crypto from 'node:crypto'
  *             and the voice is on the narration row, where the render checks
  *             it against the TTS's current setting); the Remotion source
  *             (not watched by this module at all).
+ *
+ *   ext_video_verdiktek -- PRIMARY KEY (id)
+ *     gates   nothing by itself, and it is deliberately NOT what the render
+ *             asks: that is the (terv_id, terv_hash) index below. What this
+ *             id does is NAME the verdict a render started under.
+ *             `claimRender` copies it onto the render row as `verdikt_id`,
+ *             and the daily review reads it back (`verdiktekVsQa`) to find
+ *             the passes the QA later failed; a plan can carry several
+ *             verdicts, so without this the render row could not say which
+ *             one let it run. It is also one of the ids `bizonyitekLetezik`
+ *             accepts, so a proposal may cite a judgement as evidence.
  *
  *   ext_video_verdiktek -- INDEX (terv_id, terv_hash); read by passingVerdikt,
  *                          which takes the LATEST row for (terv_id, terv_hash)
@@ -157,6 +180,13 @@ import crypto from 'node:crypto'
  *   ext_video_renderek -- INDEX (video_id, started_at)
  *     gates   nothing. The per-video history and the retention sweep's order.
  *
+ *   ext_video_qa -- PRIMARY KEY (id)
+ *     gates   nothing. Surrogate, minted by uid() at the INSERT; the gate is
+ *             the three-column unique index below, and `qaFor` never reads
+ *             this column. It is here so a measurement can be cited by id as
+ *             evidence (`bizonyitekLetezik`), and so the `ON CONFLICT` write
+ *             has a row of its own to leave alone.
+ *
  *   ext_video_qa -- UNIQUE (render_id, file_sha256, szabalykeszlet)
  *     gates   `qa_ok`. A video is `qa_ok` when there is a row with ok = 1 for
  *             the render's CURRENT `file_sha256` under the CURRENT rule set. A
@@ -171,6 +201,14 @@ import crypto from 'node:crypto'
  *             `qa_meres_sikertelen` on the render row and `qa_meretlen` on
  *             the video, because "the gate failed" and "the gate never ran"
  *             are different facts and only one of them is a row in this table.
+ *
+ *   ext_video_visszajelzesek -- PRIMARY KEY (id)
+ *     gates   nothing. Surrogate. The idempotency key is the dedup index
+ *             below, which is why `insertFeedback` reads the row back BY
+ *             that key and not by the id it minted: on a conflict the minted
+ *             id is not the id that stands, and returning it would report a
+ *             row that was never written. Cited by id as evidence
+ *             (`bizonyitekLetezik`).
  *
  *   ext_video_visszajelzesek_dedup -- UNIQUE INDEX (video_id, COALESCE(at_ms, -1),
  *                                     COALESCE(jelenet, -1), szoveg)

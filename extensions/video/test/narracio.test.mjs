@@ -112,8 +112,7 @@ test('a narrated plan gets one row per scene under the module namespace, the vid
   assert.equal(rows[3].hang, 'Kenji'); assert.equal(rows[3].modell, 'tts-rt-v1'); assert.equal(rows[3].nyelv, 'hu')
   assert.equal(rows[3].terv_hash, terv.tervHash); assert.equal(rows[3].tts_keres_id, 'k-4'); assert.equal(rows[3].szoveg_hash, narracioSorok(repo.terv(terv.id))[3].szovegHash)
   assert.equal(repo.video(videoId).status, 'narralt')
-  const again = await run({ tervId: terv.id })
-  assert.equal(again.jelenetek.every((j) => j.cache), true)
+  assert.equal(r.valtozatlan, false)
   assert.equal(repo.narraciok(terv.id).length, 8)
 })
 
@@ -230,4 +229,49 @@ test('hangEgyezik compares all three fields of the voice fingerprint, so a langu
 test('ttsHandle returns the handle when the host has one', () => {
   const handle = { synthesize: async () => ({}), status: async () => ({}) }
   assert.equal(ttsHandle({ contracts: { get: () => handle, why: () => null } }), handle)
+})
+
+test('a second identical videoNarrate crosses the tts zero times: the set is already current, so nothing is synthesised and nothing is written', async () => {
+  // Spec 10, point 8: videoNarrate calls the tts only when the narration hash
+  // changed. The operator's provider balance is spent, so every avoidable
+  // call is one they would have to fund.
+  const tts = ttsDouble()
+  const s = setup({ tts }); s.pass()
+  const first = await s.run({ tervId: s.terv.id })
+  assert.equal(first.valtozatlan, false); assert.equal(tts.calls.length, 8)
+  const elotte = s.repo.narraciok(s.terv.id).map((n) => `${n.jelenet}:${n.fajl}:${n.hossz_ms}:${n.created_at}`)
+  s.repo.setVideoStatus(s.videoId, 'qa_ok')
+  const second = await s.run({ tervId: s.terv.id })
+  assert.equal(tts.calls.length, 8, 'a complete, current, voice-matching set asks the tts for nothing')
+  assert.equal(s.probed.length, 8, 'and measures nothing either')
+  assert.equal(second.valtozatlan, true)
+  assert.deepEqual(second.jelenetek.map((j) => j.fajl), first.jelenetek.map((j) => j.fajl))
+  assert.equal(second.teljesMs, first.teljesMs); assert.equal(second.osszHosszMs, first.osszHosszMs)
+  assert.deepEqual(second.hang, first.hang)
+  assert.equal(second.jelenetek.every((j) => j.cache === undefined), true, 'no call was made, so no cache hit is claimed')
+  assert.deepEqual(s.repo.narraciok(s.terv.id).map((n) => `${n.jelenet}:${n.fajl}:${n.hossz_ms}:${n.created_at}`), elotte, 'the set is not rewritten')
+  assert.equal(s.repo.video(s.videoId).status, 'qa_ok', 'a call that changed nothing does not move a rendered video back to narralt')
+})
+
+test('the unchanged short circuit asks exactly what the render gate asks: a missing mp3, a changed voice and an unreadable tts status all re-narrate', async () => {
+  const tts = ttsDouble()
+  const s = setup({ tts }); s.pass()
+  await s.run({ tervId: s.terv.id })
+  assert.equal(tts.calls.length, 8)
+  // A file gone from disk is the case the tts cache also misses (markLost), so it is paid for again either way.
+  fs.unlinkSync(path.join(s.dir, 'public', s.repo.narraciok(s.terv.id)[2].fajl))
+  assert.equal((await s.run({ tervId: s.terv.id })).valtozatlan, false)
+  assert.equal(tts.calls.length, 16)
+  // A voice change: the render refuses the old mp3s with narracio_hang_valtozott, so the guard must not call the set current.
+  const masHang = ttsDouble({ hang: 'Mira' })
+  s.state.contracts = { get: () => masHang.handle, why: () => null }
+  assert.equal((await s.run({ tervId: s.terv.id })).valtozatlan, false)
+  assert.equal(masHang.calls.length, 8)
+  assert.equal(s.repo.narraciok(s.terv.id)[0].hang, 'Mira')
+  // A tts whose status cannot be read is not "unchanged" either: the safe direction is to re-narrate.
+  const nemaAllapot = ttsDouble()
+  nemaAllapot.handle.status = async () => { throw new Error('nincs kapcsolat') }
+  s.state.contracts = { get: () => nemaAllapot.handle, why: () => null }
+  assert.equal((await s.run({ tervId: s.terv.id })).valtozatlan, false)
+  assert.equal(nemaAllapot.calls.length, 8)
 })

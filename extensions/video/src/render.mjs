@@ -67,15 +67,38 @@ export function createRenderOps(state) {
   }
 
   /**
-   * SIGTERM to the group now, SIGKILL after ten seconds. A SIGTERM that throws
-   * means there is no group left to signal, so no SIGKILL is scheduled for it;
-   * the timer is unref'd, so a pending one never holds the process open.
+   * SIGTERM to the group now, SIGKILL ten seconds later, and a sentence
+   * saying what those calls ACTUALLY did. The caller writes that sentence
+   * onto the render row, so a row never asserts a signal the kernel refused:
+   * an orphaned Chrome Headless Shell under a row that says it was killed is
+   * the process-tree failure the spec's 11.3 calls unrecoverable, and the
+   * only thing worse than it is not knowing it happened.
+   *
+   * A throwing SIGTERM is not one fact but three, and only one of them means
+   * the process is gone. ESRCH is the group already exited: nothing is left
+   * to kill and no SIGKILL is scheduled. EPERM is a LIVE group this user may
+   * not signal -- `groupAlive` reads it exactly that way -- and a SIGKILL
+   * would be refused for the same reason, so none is scheduled and the
+   * sentence says the process may still be running. Anything else is
+   * reported with its own code or message.
+   *
+   * The SIGKILL timer is unref'd. That is deliberate (a held-open timer would
+   * outlive a module reload and hold the host's exit), and it means a host
+   * that quits inside those ten seconds never sends the second signal. So the
+   * sentence promises it only "if the host is still running": the row may not
+   * claim a signal whose delivery depends on the host outliving a timer that
+   * cannot keep it alive.
    */
   function killGroup(pid) {
     try {
       killImpl()(-pid, 'SIGTERM')
-    } catch {
-      return
+    } catch (err) {
+      const kod = err !== null && typeof err === 'object' && typeof err.code === 'string' ? err.code : ''
+      if (kod === 'ESRCH') return { kiment: false, szoveg: 'a SIGTERM ESRCH-t adott: a csoport addigra elment, jel nem ment ki' }
+      if (kod === 'EPERM') return { kiment: false, szoveg: 'a SIGTERM-et EPERM utasította el: a csoport él, de ez a felhasználó nem jelezheti; SIGKILL sem ment ki, a folyamat futhat tovább' }
+      let miert = kod
+      if (miert === '') miert = err instanceof Error ? err.message : String(err)
+      return { kiment: false, szoveg: `a SIGTERM nem ment ki (${miert}); SIGKILL sem, a folyamat futhat tovább` }
     }
     const timer = setTimeout(() => {
       try {
@@ -85,6 +108,7 @@ export function createRenderOps(state) {
       }
     }, SIGKILL_UTAN_MS)
     timer.unref()
+    return { kiment: true, szoveg: `a csoport SIGTERM-et kapott; ${SIGKILL_UTAN_MS / 1000} másodperc múlva SIGKILL következik, ha a host addig még fut` }
   }
 
   /** Writes the video's status only while this render's plan is still the latest: a newer plan owns the status. */
@@ -93,14 +117,27 @@ export function createRenderOps(state) {
     if (latest && latest.id === render.terv_id) repo().setVideoStatus(render.video_id, status)
   }
 
-  async function closeWithFile(render) {
+  /**
+   * Closes a finished render from its file: sha256 onto the row, the QA gate,
+   * the video's status.
+   *
+   * `megjegyzes` is how this row came to be closed, when that is not "the
+   * process exited and we saw it". `closeDead` closes a render whose process
+   * nobody watched end, and a `kesz` row with an empty `hiba_kod` reads as a
+   * clean render -- a partial mp4 from a killed process would then read as
+   * "rendered, then failed QA", which is a different and more flattering
+   * story than the truth. The note is carried into whichever sentence this
+   * path writes, so it survives a QA that could not measure the file too.
+   */
+  async function closeWithFile(render, megjegyzes = null) {
     const sha = await fileSha256(render.out_path)
     if (!repo().finishRender(render.id, { status: 'kesz', fileSha256: sha })) return
+    const jegyzettel = (szoveg) => (megjegyzes === null ? szoveg : `${megjegyzes}; ${szoveg}`)
     let qa
     try {
       qa = await runQaGate({ filePath: render.out_path, execFileImpl: execFileImpl() })
     } catch (err) {
-      repo().setRenderHiba(render.id, 'qa_meres_sikertelen', err instanceof Error ? err.message : String(err))
+      repo().setRenderHiba(render.id, 'qa_meres_sikertelen', jegyzettel(err instanceof Error ? err.message : String(err)))
       videoStatusAfterRender(render, 'qa_meretlen')
       return
     }
@@ -114,17 +151,35 @@ export function createRenderOps(state) {
     // unmeasurable render and a badly finished one are different facts, so it
     // is recorded as the former.
     if (qa.fileSha256 !== sha) {
-      repo().setRenderHiba(render.id, 'qa_meres_sikertelen', 'a fájl a lezárás és a mérés között megváltozott; a mérés nem a soron álló sha256-ra vonatkozik')
+      repo().setRenderHiba(render.id, 'qa_meres_sikertelen', jegyzettel('a fájl a lezárás és a mérés között megváltozott; a mérés nem a soron álló sha256-ra vonatkozik'))
       videoStatusAfterRender(render, 'qa_meretlen')
       return
     }
-    repo().insertQa({ renderId: render.id, fileSha256: qa.fileSha256, szabalykeszlet: SZABALYKESZLET, ok: qa.ok, meresek: { ...qa.meresek, figyelmeztetesek: qa.figyelmeztetesek }, bukasok: qa.bukasok })
-    videoStatusAfterRender(render, qa.ok ? 'qa_ok' : 'qa_hiba')
+    // `insertQa` writes ON CONFLICT DO NOTHING on (render_id, file_sha256,
+    // szabalykeszlet) and answers with the row that STANDS for that key --
+    // the earlier measurement when this fingerprint was measured before. The
+    // video follows that row and not this run's `qa.ok`, because taking the
+    // fresh boolean would set `qa_ok` while the row every later `qaFor` reads
+    // says ok = 0: the video's status and the QA row would be two answers to
+    // one question, and the row is the one the gate consults.
+    const allo = repo().insertQa({ renderId: render.id, fileSha256: qa.fileSha256, szabalykeszlet: SZABALYKESZLET, ok: qa.ok, meresek: { ...qa.meresek, figyelmeztetesek: qa.figyelmeztetesek }, bukasok: qa.bukasok })
+    if (allo === null) {
+      // The write went through and the key does not read back: the gate has
+      // no row, so the video has no pass. Not a measurement failure of the
+      // file, but it is the same fact for the operator -- nothing measured.
+      repo().setRenderHiba(render.id, 'qa_meres_sikertelen', jegyzettel('a QA sor a beírás után nem olvasható vissza a saját kulcsán'))
+      videoStatusAfterRender(render, 'qa_meretlen')
+      return
+    }
+    if (megjegyzes !== null) repo().setRenderHiba(render.id, 'render_folyamat_eltunt', megjegyzes)
+    videoStatusAfterRender(render, allo.ok === 1 ? 'qa_ok' : 'qa_hiba')
   }
 
+  /** Closes a running render as a failure; false when the row was no longer running, so the caller does not write onto a row somebody else closed. */
   function closeWithError(render, kod, szoveg) {
-    if (!repo().finishRender(render.id, { status: 'hiba', hibaKod: kod, hibaSzoveg: szoveg })) return
+    if (!repo().finishRender(render.id, { status: 'hiba', hibaKod: kod, hibaSzoveg: szoveg })) return false
     videoStatusAfterRender(render, 'render_hiba')
+    return true
   }
 
   /**
@@ -145,12 +200,46 @@ export function createRenderOps(state) {
     return closeWithError(render, 'render_kilepesi_kod', `kilépési kód ${code}; napló: ${render.log_path}`)
   }
 
-  /** Spec 3.4 steps 1-2: a render whose process is gone is closed from the disk, and no signal is sent. */
+  /**
+   * Spec 3.4 steps 1-2: a render whose process is gone is closed from the
+   * disk, and no signal is sent. `miert` goes onto the row in every branch,
+   * the branch that finds the file included: how a render ended is a fact
+   * about the file that came out of it.
+   */
   async function closeDead(render, miert) {
-    if (render.out_path !== null && fs.existsSync(render.out_path)) return closeWithFile(render)
+    if (render.out_path !== null && fs.existsSync(render.out_path)) return closeWithFile(render, miert)
     const dir = render.out_path === null ? null : path.dirname(render.out_path)
     if (dir === null || !fs.existsSync(dir)) return closeWithError(render, 'render_kimenet_hianyzik', `${miert}; a kimeneti könyvtár sincs meg (kézzel törölve?)`)
     return closeWithError(render, 'render_megszakadt', `${miert}; a könyvtár megvan, a fájl nincs; napló: ${render.log_path}`)
+  }
+
+  /**
+   * Spec 11.2's second `render_kimenet_hianyzik` case: a `kesz` row whose
+   * file LATER disappeared. The first case (a `fut` row whose output
+   * directory the operator removed) is `closeDead`'s; this one has no process
+   * left to watch, so the only moment it can be noticed is a read, and
+   * `videoRenderStatus` is the read the spec names. Without it the answer is
+   * a path, a sha256 and a QA pass for a file that is not there, which is the
+   * producer handing the operator a video that does not exist.
+   *
+   * Only an outside deletion is reported. The module's own sweeps go through
+   * `markRenderDeleted`, which nulls all three paths and stamps `torolve_at`,
+   * so a row this module emptied names no file and is skipped here.
+   *
+   * The QA row is left standing. It is a true measurement of bytes that
+   * existed, and hiding it would replace one false report with another; what
+   * changes is that the answer no longer offers the path under `hiba: null`
+   * as if the operator could open it. An earlier code is kept inside the
+   * text, because `qa_meres_sikertelen` ("the gate never ran") and this one
+   * ("the file is gone") are two facts and the column holds one code. No QA
+   * is run here: the spec is explicit that a missing file is not a
+   * measurement failure.
+   */
+  function noteMissingOutput(render) {
+    if (render === null || render.status !== 'kesz' || render.out_path === null || render.torolve_at !== null) return
+    if (render.hiba_kod === 'render_kimenet_hianyzik' || fs.existsSync(render.out_path)) return
+    const elozo = render.hiba_kod === '' ? '' : `${render.hiba_kod}: ${render.hiba_szoveg}; `
+    repo().setRenderHiba(render.id, 'render_kimenet_hianyzik', `${elozo}a lezáráskor mért fájl azóta eltűnt a lemezről: ${render.out_path}`)
   }
 
   function summary(render) {
@@ -181,10 +270,13 @@ export function createRenderOps(state) {
       } else if (!groupAlive(render.pid)) {
         await closeDead(render, 'a folyamatcsoport nem él')
       } else if (nowMs() - Date.parse(render.started_at) > renderMaxPerc() * 60_000) {
-        killGroup(render.pid)
-        closeWithError(render, 'render_idotullepes', `${renderMaxPerc()} percnél régebb óta fut; a csoport SIGTERM-et kapott, tíz másodperc múlva SIGKILL-t`)
+        // The signals are made first and the row says what they returned; the
+        // sentence is never written ahead of the calls it describes.
+        const jel = killGroup(render.pid)
+        closeWithError(render, 'render_idotullepes', `${renderMaxPerc()} percnél régebb óta fut; ${jel.szoveg}`)
       }
     }
+    noteMissingOutput(repo().render(renderId))
     return summary(repo().render(renderId))
   }
 
@@ -192,9 +284,12 @@ export function createRenderOps(state) {
     const render = repo().render(renderId)
     if (!render) refuse('render_ismeretlen', `nincs render ezzel az id-vel: ${renderId}`)
     if (render.status !== 'fut') refuse('render_nem_fut', `a render státusza ${render.status}`)
-    // The row closes first so the exit event that follows the kill finds nothing to do.
-    closeWithError(render, 'render_megszakitva', 'az operátor leállította a lapról')
-    if (groupAlive(render.pid)) killGroup(render.pid)
+    // The row closes first so the exit event that follows the kill finds
+    // nothing to do; what the signals returned is written onto it afterwards,
+    // because until they are made there is nothing true to write.
+    const zart = closeWithError(render, 'render_megszakitva', 'az operátor leállította a lapról')
+    const jel = groupAlive(render.pid) ? killGroup(render.pid) : { kiment: false, szoveg: 'a folyamatcsoport addigra nem élt, jel nem ment ki' }
+    if (zart) repo().setRenderHiba(render.id, 'render_megszakitva', `az operátor leállította a lapról; ${jel.szoveg}`)
     return summary(repo().render(renderId))
   }
 
@@ -210,6 +305,14 @@ export function createRenderOps(state) {
   async function start(tervId) {
     const terv = repo().terv(tervId)
     if (!terv) refuse('terv_ismeretlen', `nincs terv ezzel az id-vel: ${tervId}`)
+    // A closed video is closed for the render too, and the refusal is the one
+    // videoNarrate, videoDraft and videoVerdict already make. Without it this
+    // render's close would call `videoStatusAfterRender`, and `setVideoStatus`
+    // would write `qa_ok` over `lezart` -- a closed video reopened by a run
+    // nobody was allowed to start. Nothing calls `lezarVideo` yet; the guard
+    // is here because the write that would follow it is already here.
+    const video = repo().video(terv.video_id)
+    if (video && video.status === 'lezart') refuse('video_lezart', 'a videó le van zárva')
     const latest = repo().latestTerv(terv.video_id)
     if (latest.id !== terv.id) refuse('terv_elavult', `a(z) ${terv.verzio}. verzió nem a legfrissebb`, { legfrissebbTervId: latest.id })
     // 1. a passing verdict on this id AND this hash -- passingVerdikt itself

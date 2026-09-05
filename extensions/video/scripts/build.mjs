@@ -17,6 +17,14 @@ import { build } from 'esbuild'
  * Exported as `bundle` (and run from the command line at the bottom) so
  * test/ui.test.mjs can build the same graph in memory and pin that property
  * without writing dist/.
+ *
+ * NOT RUNNABLE YET, and `npm run build` in this extension fails today: the
+ * entry point `ui/main.tsx`, the `ui/style.css` copied at the bottom and the
+ * `test/ui.test.mjs` named above all arrive with the page task, and none of
+ * them exists. Nothing in the test suite or in scripts/install.mjs calls
+ * this file meanwhile. It is here now because the no-second-React rule above
+ * is a decision about how the page loads, and it belongs beside the build it
+ * governs rather than being rediscovered when the page is written.
  */
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')

@@ -272,3 +272,133 @@ test('takarit keeps the newest N rows per video, deletes only row-bound files un
   assert.equal(all.renderek, 2); assert.equal(all.narraciok, 9); assert.equal(all.sorNelkul, 1)
   assert.equal(fs.existsSync(stray), true)
 })
+
+test('a kesz render whose file later vanished is named render_kimenet_hianyzik, and the module\'s own deletion is not', async () => {
+  const s = setup(); s.narrate()
+  const child = fakeChild(); s.setChild(child)
+  const r = await s.run('videoRender', { tervId: s.terv.id })
+  const row = s.repo.render(r.renderId)
+  fs.writeFileSync(row.out_path, 'x'.repeat(200_000))
+  child.emit('exit', 0, null); await settle(() => s.repo.video(s.videoId).status === 'qa_ok')
+  const elotte = await s.run('videoRenderStatus', { renderId: r.renderId })
+  assert.equal(elotte.hiba, null); assert.equal(elotte.qa.ok, true)
+  // Spec 11.2: a kesz row whose file disappeared afterwards. Without this the
+  // producer hands the operator a path and a QA pass for a file that is gone.
+  fs.unlinkSync(row.out_path)
+  const st = await s.run('videoRenderStatus', { renderId: r.renderId })
+  assert.equal(st.status, 'kesz')
+  assert.equal(st.hiba.kod, 'render_kimenet_hianyzik')
+  assert.ok(st.hiba.szoveg.includes(row.out_path))
+  assert.equal(s.repo.render(r.renderId).hiba_kod, 'render_kimenet_hianyzik')
+  assert.equal(st.qa.ok, true, 'the measurement stands: it is a true fact about bytes that existed')
+  assert.equal(s.repo.qaAll().length, 1, 'no QA is run on a file that is not there')
+  // The module's own sweep nulls the paths, so a row it emptied names no file and is not reported as a vanished one.
+  const s2 = setup(); s2.narrate()
+  const c2 = fakeChild(); s2.setChild(c2)
+  const r2 = await s2.run('videoRender', { tervId: s2.terv.id })
+  fs.writeFileSync(s2.repo.render(r2.renderId).out_path, 'x'.repeat(200_000))
+  c2.emit('exit', 0, null); await settle(() => s2.repo.video(s2.videoId).status === 'qa_ok')
+  s2.ops.cleanupAll()
+  const st2 = await s2.run('videoRenderStatus', { renderId: r2.renderId })
+  assert.equal(st2.outPath, null); assert.equal(st2.hiba, null)
+  // An earlier code is kept in the text: "the gate never ran" and "the file is gone" are two facts.
+  const s3 = setup(); s3.narrate()
+  const c3 = fakeChild(); s3.setChild(c3)
+  const r3 = await s3.run('videoRender', { tervId: s3.terv.id })
+  const row3 = s3.repo.render(r3.renderId); fs.writeFileSync(row3.out_path, 'x'.repeat(200_000))
+  s3.state.execFileImpl = async () => { throw new Error('ffprobe died') }
+  c3.emit('exit', 0, null); await settle(() => s3.repo.video(s3.videoId).status === 'qa_meretlen')
+  fs.unlinkSync(row3.out_path)
+  const st3 = await s3.run('videoRenderStatus', { renderId: r3.renderId })
+  assert.equal(st3.hiba.kod, 'render_kimenet_hianyzik')
+  assert.match(st3.hiba.szoveg, /qa_meres_sikertelen/)
+})
+
+test('the overrun row says what the signals returned: a refused SIGTERM is not reported as a kill and no SIGKILL follows it', async (t) => {
+  const s = setup(); s.narrate()
+  const r = await s.run('videoRender', { tervId: s.terv.id })
+  // Every signal to this group is refused. groupAlive reads EPERM as a live
+  // group, so the watchdog reaches the kill; the kill itself never lands.
+  s.state.killImpl = (pid, signal) => { s.kills.push({ pid, signal }); const e = new Error('EPERM'); e.code = 'EPERM'; throw e }
+  s.clock.now += 41 * 60_000
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const st = await s.run('videoRenderStatus', { renderId: r.renderId })
+  t.mock.timers.tick(30_000)
+  t.mock.timers.reset()
+  assert.equal(st.hiba.kod, 'render_idotullepes')
+  assert.match(st.hiba.szoveg, /EPERM/)
+  assert.doesNotMatch(st.hiba.szoveg, /SIGTERM-et kapott/)
+  assert.deepEqual(s.kills.map((k) => k.signal), [0, 'SIGTERM'], 'no SIGKILL is scheduled behind a SIGTERM that never went out')
+})
+
+test('a SIGTERM that went out does schedule the SIGKILL, and the row promises it only while the host runs', async (t) => {
+  const s = setup(); s.narrate()
+  const r = await s.run('videoRender', { tervId: s.terv.id })
+  s.clock.now += 41 * 60_000
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const st = await s.run('videoRenderStatus', { renderId: r.renderId })
+  assert.deepEqual(s.kills.map((k) => k.signal), [0, 'SIGTERM'])
+  t.mock.timers.tick(10_000)
+  t.mock.timers.reset()
+  assert.deepEqual(s.kills.map((k) => k.signal), [0, 'SIGTERM', 'SIGKILL'])
+  assert.match(st.hiba.szoveg, /SIGTERM-et kapott/)
+  assert.match(st.hiba.szoveg, /ha a host addig még fut/, 'an unref\'d timer cannot promise a signal a departing host will send')
+})
+
+test('cancel records that no signal went out when the group had already gone', async () => {
+  const s = setup(); s.narrate()
+  const child = fakeChild(); s.setChild(child)
+  const r = await s.run('videoRender', { tervId: s.terv.id })
+  s.state.deadGroups.add(-4242)
+  const c = s.ops.cancel(r.renderId)
+  assert.equal(c.hiba.kod, 'render_megszakitva')
+  assert.match(c.hiba.szoveg, /nem élt, jel nem ment ki/)
+  assert.deepEqual(s.kills.map((k) => k.signal), [0], 'a dead group is probed and then left alone')
+})
+
+test('a render closed from the disk keeps why it was closed, so a kesz row does not read as a clean render', async () => {
+  const s = setup(); s.narrate()
+  const r = await s.run('videoRender', { tervId: s.terv.id })
+  fs.writeFileSync(s.repo.render(r.renderId).out_path, 'x'.repeat(200_000))
+  s.state.deadGroups.add(-4242)
+  const st = await s.run('videoRenderStatus', { renderId: r.renderId })
+  assert.equal(st.status, 'kesz'); assert.equal(st.qa.ok, true)
+  assert.equal(st.hiba.kod, 'render_folyamat_eltunt')
+  assert.match(st.hiba.szoveg, /a folyamatcsoport nem él/)
+  // The same fact survives a QA that could not measure the file.
+  const s2 = setup(); s2.narrate()
+  const r2 = await s2.run('videoRender', { tervId: s2.terv.id })
+  fs.writeFileSync(s2.repo.render(r2.renderId).out_path, 'x'.repeat(200_000))
+  s2.state.execFileImpl = async () => { throw new Error('ffprobe died') }
+  s2.state.deadGroups.add(-4242)
+  const st2 = await s2.run('videoRenderStatus', { renderId: r2.renderId })
+  assert.equal(st2.hiba.kod, 'qa_meres_sikertelen')
+  assert.match(st2.hiba.szoveg, /^a folyamatcsoport nem él; .*ffprobe died/)
+})
+
+test('the video follows the QA row that stands for the fingerprint, not the measurement the write did not keep', async () => {
+  const s = setup(); s.narrate()
+  const child = fakeChild(); s.setChild(child)
+  const r = await s.run('videoRender', { tervId: s.terv.id })
+  const row = s.repo.render(r.renderId)
+  const bajtok = 'x'.repeat(200_000)
+  fs.writeFileSync(row.out_path, bajtok)
+  // A failing measurement of exactly these bytes under this rule set is
+  // already on file. insertQa's ON CONFLICT leaves it alone, so the fresh
+  // pass is never written; a video set from the fresh boolean would say
+  // qa_ok while every qaFor reads ok = 0.
+  const sha = createHash('sha256').update(bajtok).digest('hex')
+  s.repo.insertQa({ renderId: r.renderId, fileSha256: sha, szabalykeszlet: 1, ok: false, meresek: {}, bukasok: ['korabbi'] })
+  child.emit('exit', 0, null); await settle(() => s.repo.video(s.videoId).status !== 'renderel')
+  assert.equal(s.repo.render(r.renderId).status, 'kesz')
+  assert.equal(s.repo.qaAll().length, 1)
+  assert.equal(s.repo.qaFor(r.renderId, sha, 1).ok, 0)
+  assert.equal(s.repo.video(s.videoId).status, 'qa_hiba')
+})
+
+test('videoRender refuses a closed video, so no render close can write qa_ok over lezart', async () => {
+  const s = setup(); s.narrate()
+  s.repo.lezarVideo(s.videoId)
+  assert.equal((await s.run('videoRender', { tervId: s.terv.id })).error.code, 'video_lezart')
+  assert.equal(s.spawned.length, 0)
+})
