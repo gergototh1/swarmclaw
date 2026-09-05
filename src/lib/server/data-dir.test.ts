@@ -27,6 +27,14 @@ describe('data-dir resolution', () => {
     fs.chmodSync(externalWorkspace, 0o555)
 
     try {
+      // A runner that isolates itself with SWARMCLAW_HOME or WORKSPACE_DIR
+      // would otherwise hand those to the subprocess and override the
+      // fallback under test.
+      const env = { ...process.env, HOME: fakeHome, DATA_DIR: dataDir } as NodeJS.ProcessEnv
+      delete (env as Record<string, unknown>).SWARMCLAW_HOME
+      delete (env as Record<string, unknown>).WORKSPACE_DIR
+      delete (env as Record<string, unknown>).BROWSER_PROFILES_DIR
+
       const result = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', `
         const modNs = await import('./src/lib/server/data-dir')
         const mod = modNs.default || modNs['module.exports'] || modNs
@@ -36,11 +44,7 @@ describe('data-dir resolution', () => {
         }))
       `], {
         cwd: repoRoot,
-        env: {
-          ...process.env,
-          HOME: fakeHome,
-          DATA_DIR: dataDir,
-        },
+        env,
         encoding: 'utf-8',
       })
 
@@ -109,6 +113,7 @@ describe('data-dir resolution', () => {
           dataDir: mod.DATA_DIR,
           workspaceDir: mod.WORKSPACE_DIR,
           browserProfilesDir: mod.BROWSER_PROFILES_DIR,
+          runDir: mod.RUN_DIR,
         }))
       `], {
         cwd: repoRoot,
@@ -121,6 +126,42 @@ describe('data-dir resolution', () => {
       assert.equal(payload.dataDir, path.join(swarmclawHome, 'data'))
       assert.equal(payload.workspaceDir, path.join(swarmclawHome, 'workspace'))
       assert.equal(payload.browserProfilesDir, path.join(swarmclawHome, 'browser-profiles'))
+      assert.equal(payload.runDir, path.join(swarmclawHome, 'run'), 'beside data/, not inside it, when a home is set')
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  // The repo's docker-compose.yml mounts ./data as /app/data and sets neither
+  // SWARMCLAW_HOME nor DATA_DIR, so the container resolves DATA_DIR from cwd
+  // and the run directory lands inside the mounted volume. This pins that
+  // layout so the comment on RUN_DIR describes what happens rather than what
+  // a set home would give.
+  it('puts the run directory inside DATA_DIR when no SWARMCLAW_HOME is set, as in the docker-compose layout', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-data-dir-run-'))
+    const fakeHome = path.join(tempDir, 'home')
+    const dataDir = path.join(tempDir, 'app', 'data')
+
+    try {
+      const env = { ...process.env, HOME: fakeHome, DATA_DIR: dataDir } as NodeJS.ProcessEnv
+      delete (env as Record<string, unknown>).SWARMCLAW_HOME
+      delete (env as Record<string, unknown>).WORKSPACE_DIR
+      delete (env as Record<string, unknown>).BROWSER_PROFILES_DIR
+
+      const result = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', `
+        const modNs = await import('./src/lib/server/data-dir')
+        const mod = modNs.default || modNs['module.exports'] || modNs
+        console.log(JSON.stringify({ dataDir: mod.DATA_DIR, runDir: mod.RUN_DIR }))
+      `], {
+        cwd: repoRoot,
+        env,
+        encoding: 'utf-8',
+      })
+
+      assert.equal(result.status, 0, result.stderr || result.stdout || 'subprocess failed')
+      const payload = extractLastJson(result.stdout || '')
+      assert.equal(payload.dataDir, dataDir)
+      assert.equal(payload.runDir, path.join(dataDir, 'run'))
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true })
     }

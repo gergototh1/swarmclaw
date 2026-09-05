@@ -14,6 +14,7 @@ import { hmrSingleton } from '@/lib/shared-utils'
 import { log } from '@/lib/server/logger'
 import { appendScheduleHistoryEntry } from '@/lib/server/schedules/schedule-history'
 import { assessScheduleNextRunRepair, computeScheduleNextRunAt } from '@/lib/server/schedules/schedule-timing'
+import { getExtensionManager } from '@/lib/server/extensions'
 import type { ExtensionActivationState } from '@/lib/server/extensions'
 import type { Schedule } from '@/types'
 
@@ -167,19 +168,23 @@ export function managedScheduleBlock(
   return { reason: state === 'disabled' ? 'extension_disabled' : 'extension_not_loaded', extensionId }
 }
 
+/**
+ * The block's reason as the clause that follows "extension <id>": what the
+ * scheduler's log line and history entry say, and what the manual Run now
+ * refusal says, so an operator reads one wording in both places.
+ */
+export function managedScheduleBlockCondition(block: Pick<ManagedScheduleBlock, 'reason'>): 'is disabled' | 'is not loaded' {
+  return block.reason === 'extension_disabled' ? 'is disabled' : 'is not loaded'
+}
+
+function getExtensionActivationState(extensionId: string): ExtensionActivationState {
+  return getExtensionManager().getActivationState(extensionId)
+}
+
 async function tick(now = Date.now()) {
   await processDueWatchJobs(now)
   const schedules = computeNextRuns(now)
   const agents = listAgents()
-  // Imported here rather than at module scope so that extensions.ts, and what
-  // it pulls in (the WS hub, OAuth, extension storage, the package installer),
-  // stays out of this module's static import graph: scheduler.test.ts imports
-  // this module in-process for its pure helpers, and that import must not
-  // evaluate the extension host. tick() is already async, and after the first
-  // tick the import resolves from the module cache.
-  const { getExtensionManager } = await import('@/lib/server/extensions')
-  const getExtensionActivationState = (extensionId: string): ExtensionActivationState =>
-    getExtensionManager().getActivationState(extensionId)
   const tasks = loadTasks()
   const inFlightScheduleKeys = new Set<string>(
     Object.values(tasks as Record<string, ScheduleTaskLike>)
@@ -222,7 +227,7 @@ async function tick(now = Date.now()) {
     const managedBlock = managedScheduleBlock(schedule, getExtensionActivationState)
     if (managedBlock) {
       const { reason, extensionId } = managedBlock
-      const condition = reason === 'extension_disabled' ? 'is disabled' : 'is not loaded'
+      const condition = managedScheduleBlockCondition(managedBlock)
       log.warn(TAG, `Skipping schedule "${schedule.name}" (${schedule.id}) because extension ${extensionId} ${condition}`)
       advanceSchedule(schedule)
       upsertSchedule(schedule.id, appendScheduleHistoryEntry(schedule, {

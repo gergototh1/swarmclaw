@@ -60,9 +60,13 @@ export async function register() {
           initWsServer()
           // The port file is how an extension's out-of-process MCP shim finds
           // this server; see port-file.ts for what a reader may rely on.
-          // `PORT` holds the port Next actually bound: it writes it there from
-          // the listening callback and runs this hook afterwards, so a bare
-          // `next dev` that moved off a busy port reports the moved-to port.
+          // `PORT` holds the port Next actually bound: start-server.js writes
+          // it there from the `listening` callback, from the bound address,
+          // and runs this hook afterwards. Every launch path here passes the
+          // port in (Electron's `PORT`, the Dockerfile's `ENV PORT`, the dev
+          // script's `-p`), so the value read is the value passed; the
+          // else-branch below is a guard against a Next release that stops
+          // setting it, not a case any launch path produces today.
           // Only the worker-only branch above skips this, on purpose.
           try {
             const port = Number(process.env.PORT)

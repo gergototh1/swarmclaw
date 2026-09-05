@@ -2,6 +2,8 @@ import { buildAgentDisabledMessage, isAgentDisabled } from '@/lib/server/agents/
 import { loadAgents } from '@/lib/server/agents/agent-repository'
 import { logActivity } from '@/lib/server/activity/activity-log'
 import { enqueueTask } from '@/lib/server/runtime/queue'
+import { managedScheduleBlock, managedScheduleBlockCondition } from '@/lib/server/runtime/scheduler'
+import { getExtensionManager } from '@/lib/server/extensions'
 import { loadSessions } from '@/lib/server/sessions/session-repository'
 import { prepareScheduleUpdate, prepareScheduleCreate } from '@/lib/server/schedules/schedule-service'
 import {
@@ -206,6 +208,21 @@ export function runScheduleNow(id: string): ServiceResult<Record<string, unknown
   if (!schedule) return serviceFail(404, 'Schedule not found')
   if (schedule.status === 'archived') {
     return serviceFail(409, 'Archived schedules must be restored before they can run.')
+  }
+
+  // The same gate the scheduler tick applies, in the same position, ahead of
+  // the agent and in-flight checks: a schedule an extension manages runs an
+  // agent whose tools left with the extension, and a manual run against it
+  // is the same paid turn for nothing that the tick refuses unattended. The
+  // answer is the one a disabled agent gets, a 409 with the reason, and no
+  // task, history entry, or activity is written for a run that did not start.
+  const managedBlock = managedScheduleBlock(schedule, (extensionId) => getExtensionManager().getActivationState(extensionId))
+  if (managedBlock) {
+    const condition = managedScheduleBlockCondition(managedBlock)
+    const remedy = managedBlock.reason === 'extension_disabled'
+      ? 'Enable the extension to continue.'
+      : 'Repair or reinstall the extension to continue.'
+    return serviceFail(409, `Extension ${managedBlock.extensionId} ${condition} and its schedule "${schedule.name}" cannot run. ${remedy}`)
   }
 
   const agents = loadAgents()

@@ -5,12 +5,22 @@ import { RUN_DIR } from '@/lib/server/data-dir'
 
 /**
  * The port file: how a process this server does not control (an extension's
- * stdio MCP shim, spawned by an agent) finds the server's HTTP port, which is
- * not fixed. The desktop app picks whatever port is free at launch, `next dev`
- * moves up when its port is taken, and the container pins 3456; the file
- * makes all three look the same to a reader.
+ * stdio MCP shim, spawned by an agent) finds the server's HTTP port. The port
+ * is fixed per launch but differs between launches, and only the launcher
+ * knows it: the desktop app picks whatever port is free at start and passes
+ * it as `PORT`, the container pins 3456 in its `Dockerfile`, and `npm run
+ * dev` pins 3456 with `-p`. Next moves to another port only when the port
+ * came from its own default (`allowRetry = portSource === 'default'` in
+ * `next/dist/cli/next-dev.js`); with `-p` or `PORT`, as here, a taken port is
+ * an EADDRINUSE exit, not a move. The file hands the launcher's choice to a
+ * process the launcher never told.
  *
- * Contract, for the writer here and any reader elsewhere:
+ * Contract, for the writer here and any reader elsewhere. The reader that
+ * matters is a separate process: an extension's shim is a plain `.mjs` that
+ * cannot import this module, so it re-implements every check below itself,
+ * and one it leaves out is a check nobody makes. A reader that stops after
+ * the pid check accepts a reused pid and sends an agent's requests to whatever
+ * program listens on the port now.
  *
  * What it contains: one JSON object, `{ port, wsPort, pid, startedAt }`, and a
  * trailing newline. `port` is the HTTP listener, `wsPort` the WebSocket hub,
@@ -38,13 +48,26 @@ import { RUN_DIR } from '@/lib/server/data-dir'
  *
  * What a reader must do about a stale file: a file left by a dead server can
  * name a port that a different program now owns, so the file alone proves
- * nothing. First `readPortFile`, which rejects anything that is not the shape
- * above. Then `isPortFileLive`, which rules out the two cheap cases: the pid
- * names no process, or `startedAt` predates this boot (a reboot restarts pid
- * numbering, so an old pid matching a live process means nothing). Then a
- * request to `GET /api/healthz` on `port` whose body must report
- * `service: "swarmclaw"`; anything else is a reused pid and a stale file.
- * Only a file that passes all three names this server.
+ * nothing. Three checks, all three required, in this order:
+ *
+ *   1. Shape. Parse the file and reject anything that is not the object
+ *      above with `port` and `wsPort` in 1..65535 and `pid` a positive
+ *      integer; `readPortFile` here is the reference.
+ *   2. Boot time and pid. Reject a `startedAt` earlier than this boot
+ *      (`Date.now() - os.uptime() * 1000`, less a tolerance for a clock
+ *      correction; a reboot restarts pid numbering, so an old pid matching a
+ *      live process means nothing), then reject a pid no process has
+ *      (`process.kill(pid, 0)`; EPERM means it exists and belongs to another
+ *      user, which still counts as alive). `isPortFileLive` here is the
+ *      reference. A reader that checks only the pid has skipped half of this.
+ *   3. Identity. `GET /api/healthz` on `port` must answer with a JSON body
+ *      whose `service` is `"swarmclaw"` (src/app/api/healthz/route.ts);
+ *      anything else, including a connection refused that persists past the
+ *      retry noted above, is a reused pid and a stale file.
+ *
+ * Only a file that passes all three names this server. Checks 1 and 2 are
+ * the cheap ones and exist so a reader rarely reaches 3; they do not replace
+ * it, because within one boot a pid can be reused after the server dies.
  *
  * Two servers on one home: the file names whichever wrote it last. Two
  * servers sharing one `SWARMCLAW_HOME` also share one data directory, which

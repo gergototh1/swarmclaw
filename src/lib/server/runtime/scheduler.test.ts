@@ -495,6 +495,29 @@ describe('scheduler wake targeting', () => {
   })
 })
 
+describe('the scheduler and the extension host', () => {
+  // extensions.ts creates its manager holder with hmrSingleton at module
+  // scope, so this global key exists exactly when that module has been
+  // evaluated. The scheduler reaches it statically, both through its own
+  // import and through watch-jobs -> chatrooms/mailbox-utils, so the host is
+  // evaluated by the import alone, before any tick. That is why the scheduler
+  // imports it directly rather than lazily: a dynamic import in tick() could
+  // not keep the host out of this graph, and a claim that it does must
+  // change this test first.
+  it('evaluates the extension host by importing the scheduler alone, before any tick', () => {
+    const output = runSchedulerWithTempDataDir(`
+      const MARKER = '__swarmclaw_extension_manager__'
+      const before = Object.prototype.hasOwnProperty.call(globalThis, MARKER)
+      await import('@/lib/server/runtime/scheduler')
+      const after = Object.prototype.hasOwnProperty.call(globalThis, MARKER)
+      console.log(JSON.stringify({ before, after }))
+    `)
+
+    assert.equal(output.before, false)
+    assert.equal(output.after, true)
+  })
+})
+
 describe('managed schedules of an extension that is disabled or not loaded', () => {
   const activation = (state: ExtensionActivationState) => {
     const calls: string[] = []

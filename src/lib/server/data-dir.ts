@@ -62,11 +62,18 @@ export const WORKSPACE_DIR = resolveWorkspaceDir()
 /**
  * Where this process writes facts about itself that another process reads:
  * today the port file (`run/port.json`) an extension's out-of-process MCP
- * shim resolves the server's dynamic port from. It sits beside the data
- * directory rather than inside it, so a backup or an export of `data/` does
- * not carry a pid and a port that mean nothing on another machine. There is
- * no build-mode branch because the only writer runs from the instrumentation
- * hook at server start, which a build does not execute.
+ * shim resolves the server's port from.
+ *
+ * Under `SWARMCLAW_HOME` (the desktop app sets it) the directory sits beside
+ * `data/`, so a backup or an export of `data/` carries no pid. Without a home
+ * it is `DATA_DIR/run`, inside the data directory: the repo's
+ * `docker-compose.yml` mounts `./data` and neither it nor the `Dockerfile`
+ * sets `SWARMCLAW_HOME` or `DATA_DIR`, so on that VPS layout the file lives in
+ * the volume and a copy of the volume carries a pid and a port that mean
+ * nothing on another machine. The reader's checks in runtime/port-file.ts
+ * (boot time, pid, healthz) are what make such a copy harmless; this path
+ * does not. There is no build-mode branch because the only writer runs from
+ * the instrumentation hook at server start, which a build does not execute.
  */
 function resolveRunDir(): string {
   const appHome = resolveSwarmclawHome()

@@ -2840,17 +2840,10 @@ class ExtensionManager {
   }
 
   /**
-   * Whether an extension is loaded right now and switched on: the condition
-   * under which the schedules it manages may fire. The scheduler asks the
-   * finer-grained `getActivationState` so it can name which half failed; this
-   * is the same answer collapsed to a boolean.
-   */
-  isActive(filename: string): boolean {
-    return this.getActivationState(filename) === 'active'
-  }
-
-  /**
-   * 'active', or why the extension is not.
+   * 'active', or why the extension is not. There is no boolean form of this:
+   * every caller so far (the scheduler tick and the manual Run now) has to
+   * tell the operator which half failed, and `=== 'active'` at the call site
+   * is the collapse when one does not.
    *
    * 'disabled' comes from the config entry: it is what the operator's toggle
    * (`setEnabled`) and the automatic disable after
