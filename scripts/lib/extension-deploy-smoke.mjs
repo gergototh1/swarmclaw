@@ -20,11 +20,24 @@ import { fileURLToPath } from 'node:url'
  * developer's machine".
  *
  * That parameter is the whole reason this file exists. The `node` runtime and
- * the `electron` runtime differ in exactly three ways -- which binary runs
+ * the `electron` runtime differ in exactly four ways -- which binary runs
  * `server.js`, which directory it runs from (and therefore which
- * `node_modules`, and therefore which `better-sqlite3` ABI), and one
- * environment variable -- and everything else has to be identical, or a
+ * `node_modules`, and therefore which `better-sqlite3` ABI), and two
+ * environment variables -- and everything else has to be identical, or a
  * difference in the harness gets mistaken for a difference in the deployment.
+ *
+ * The second of those variables is `SWARMCLAW_DEPLOY_MODE`, and it is worth
+ * saying why a harness carries it at all. The desktop app sets it to `desktop`
+ * in `electron/server-lifecycle.ts` and the container image bakes `vps` into
+ * the `Dockerfile`; it decides which OAuth client pair the host reads
+ * (`GOOGLE_OAUTH_CLIENT_DESKTOP_*` against `GOOGLE_OAUTH_CLIENT_WEB_*`) and
+ * therefore what a page tells an operator to set. A harness that started the
+ * app's own binary but left the variable unset would run the app's runtime
+ * down the VPS branch and report it as the desktop deployment, which is a
+ * harness that quietly does not test the thing it is named after. So a runtime
+ * declares its mode, the server is started in it, and `deployMode` is handed
+ * to the smoke as `SWARMCLAW_DEPLOY_EXPECT_MODE` so the smoke can require the
+ * module to report the same one back.
  *
  * What a run does, in order:
  *
@@ -33,7 +46,8 @@ import { fileURLToPath } from 'node:url'
  *   2. builds the extension's page bundle and installs the extension into a
  *      scratch data directory the way `scripts/install.mjs` does for an
  *      operator -- both under the host's own Node, because they are build
- *      steps, not the deployment under test;
+ *      steps, not the deployment under test -- preceded by any `companions`
+ *      the caller named;
  *   3. starts the server on a free port with DATA_DIR, WORKSPACE_DIR and
  *      SWARMCLAW_HOME pointed at the scratch directory and a key minted for
  *      this run;
@@ -70,7 +84,12 @@ export function standaloneNodeRuntime() {
     command: process.execPath,
     args: [path.join(REPO_ROOT, '.next', 'standalone', 'server.js')],
     cwd: REPO_ROOT,
+    // Deliberately no SWARMCLAW_DEPLOY_MODE: a bare server is the deployment
+    // that sets nothing, and the host's rule is that `desktop` is chosen only
+    // when asked for explicitly (`resolveGoogleDeployMode`). Leaving it unset
+    // is what proves the default rather than restating it.
     env: {},
+    deployMode: 'vps',
   }
 }
 
@@ -124,6 +143,15 @@ function startServer(runtime, port, scratch, accessKey) {
     NEXT_TELEMETRY_DISABLED: '1',
     SWARMCLAW_DAEMON_AUTOSTART: '0',
   }
+  // The harness owns SWARMCLAW_DEPLOY_MODE outright rather than letting the
+  // shell it was launched from decide it. A runtime that names it in `env`
+  // keeps that value; one that does not runs with the variable ABSENT, which
+  // is a different claim from running with it set to `vps` -- the host resolves
+  // `vps` from an unset variable, and it is that resolution the bare-server run
+  // is there to exercise. An inherited value would make which branch was
+  // exercised depend on the developer's shell.
+  if (!runtime.env?.SWARMCLAW_DEPLOY_MODE) delete env.SWARMCLAW_DEPLOY_MODE
+
   // Its own process group, so stopping it takes any child it forks with it.
   const child = spawn(runtime.command, runtime.args, {
     cwd: runtime.cwd,
@@ -198,8 +226,19 @@ async function waitForHealth(baseUrl, logs) {
  * different one; `label` is what the log calls it, and it is worth being exact
  * there, because the only thing separating a passing Electron run from a
  * passing Node run in a transcript is that sentence.
+ *
+ * `companions` are other extensions installed into the same scratch data
+ * directory before this one, and they exist for exactly one situation: an
+ * extension that reaches another through a CONTRACT. aisignal asks the host
+ * for the `mailbox` contract gmail provides, and on a host where gmail is not
+ * installed its health says `provider_missing` -- a true answer, and one that
+ * exercises none of the wiring between the two modules. The container run
+ * installs every extension into one data directory because that is what an
+ * operator's host looks like, so without companions the same module would
+ * report `ready` there and `provider_missing` here, and a reader comparing the
+ * two deployments would be looking at a difference in the harness.
  */
-export async function runExtensionDeploySmoke({ extension, runtime }) {
+export async function runExtensionDeploySmoke({ extension, runtime, companions = [] }) {
   const extRoot = path.join(REPO_ROOT, 'extensions', extension)
   const log = (message) => console.log(`[${extension} deploy-local] ${message}`)
 
@@ -229,12 +268,22 @@ export async function runExtensionDeploySmoke({ extension, runtime }) {
     log(`${label}: ok`)
   }
 
+  // NOTHING BELOW MAY RUN install.mjs WITHOUT DATA_DIR AND SWARMCLAW_HOME. An
+  // install script with neither falls back to the operator's live desktop home
+  // and migrates their database.
+  const installEnv = { ...process.env, DATA_DIR: scratch.dataDir, SWARMCLAW_HOME: scratch.home }
+
   try {
+    for (const companion of companions) {
+      const companionRoot = path.join(REPO_ROOT, 'extensions', companion)
+      runNode(`build the ${companion} bundle (companion)`, path.join(companionRoot, 'scripts', 'build.mjs'), process.env)
+      runNode(`install ${companion} into the same scratch data directory (companion)`, path.join(companionRoot, 'scripts', 'install.mjs'), installEnv)
+    }
     runNode('build the extension bundle', path.join(extRoot, 'scripts', 'build.mjs'), process.env)
     runNode(
       'install the extension into the scratch data directory',
       path.join(extRoot, 'scripts', 'install.mjs'),
-      { ...process.env, DATA_DIR: scratch.dataDir, SWARMCLAW_HOME: scratch.home },
+      installEnv,
     )
 
     const port = await freePort()
@@ -251,6 +300,9 @@ export async function runExtensionDeploySmoke({ extension, runtime }) {
         SWARMCLAW_DEPLOY_BASE_URL: baseUrl,
         SWARMCLAW_DEPLOY_ACCESS_KEY: accessKey,
         DATA_DIR: scratch.dataDir,
+        // What the runtime says it is, so the smoke can require the running
+        // module to report the same thing rather than the harness assuming it.
+        SWARMCLAW_DEPLOY_EXPECT_MODE: runtime.deployMode || '',
       },
       stdio: 'inherit',
     })

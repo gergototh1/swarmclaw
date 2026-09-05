@@ -45,6 +45,12 @@ import { HEALTH_CODES } from '../src/health.mjs'
  *      credential or a key, an unknown method is a 404 rather than a crash, and
  *      the port file `mcpConfig` names exists and holds a live pid from this
  *      host -- the host's side of the port-file contract, on a running host;
+ *   5b. with SWARMCLAW_DEPLOY_EXPECT_MODE set: requires the deploy mode this
+ *      module reports to be the one the deployment actually runs in, which is
+ *      what decides whether the page names the Desktop-app pair or the Web
+ *      pair as the remedy. The desktop app sets it in
+ *      `electron/server-lifecycle.ts` and the image bakes it into the
+ *      `Dockerfile`, and neither of those is visible from inside a unit test;
  *   6. starts the shipped shim with exactly the `command`, `args` and `env`
  *      `mcpConfig` printed, plus this run's own access key, and requires
  *      `tools/list` to answer with the six tools and `gmail_outbox` to come
@@ -65,6 +71,10 @@ import { HEALTH_CODES } from '../src/health.mjs'
  *   SWARMCLAW_DEPLOY_BASE_URL=http://127.0.0.1:3518 \
  *   SWARMCLAW_DEPLOY_ACCESS_KEY=... DATA_DIR=/path/to/data \
  *   node extensions/gmail/test/deploy.smoke.mjs
+ *
+ * SWARMCLAW_DEPLOY_EXPECT_MODE is `desktop` or `vps` -- what the deployment
+ * being tested runs in. Without it step 5b is skipped and reported as skipped,
+ * never as passed.
  *
  * DATA_DIR is the directory holding that server's `swarmclaw.db`. In a
  * container, run the script inside the container so the file is local to it;
@@ -104,6 +114,18 @@ const TILTOTT = ['refresh_token', 'access_token', 'CLIENT_SECRET']
 const baseUrl = (process.env.SWARMCLAW_DEPLOY_BASE_URL || '').replace(/\/+$/, '')
 const accessKey = process.env.SWARMCLAW_DEPLOY_ACCESS_KEY || process.env.ACCESS_KEY || ''
 const dataDir = process.env.DATA_DIR || ''
+/**
+ * The deploy mode this deployment is supposed to be running in, named by
+ * whoever started the server. It is not a second source of truth for the mode:
+ * the mode is the server process's own `SWARMCLAW_DEPLOY_MODE`, and this is
+ * only what the run requires the module to report back, so that a deployment
+ * whose mode never reached the extension fails here instead of quietly naming
+ * the wrong pair of environment variables on the operator's status bar.
+ */
+const expectedDeployMode = (process.env.SWARMCLAW_DEPLOY_EXPECT_MODE || '').trim()
+
+/** Which OAuth client pair a deploy mode makes the host read. */
+const CLIENT_PAIR = { desktop: 'GOOGLE_OAUTH_CLIENT_DESKTOP_*', vps: 'GOOGLE_OAUTH_CLIENT_WEB_*' }
 
 if (!baseUrl) throw new Error('SWARMCLAW_DEPLOY_BASE_URL is required: the base url of the running server')
 if (!accessKey) throw new Error('SWARMCLAW_DEPLOY_ACCESS_KEY (or ACCESS_KEY) is required: the running server\'s access key')
@@ -356,8 +378,10 @@ async function main() {
     return `${res.text.length} bytes`
   })
 
+  let health = null
   await check('rpc health answers its own vocabulary and no secret', async () => {
     const res = await rpc(headers, 'health')
+    health = res.body
     assert.equal(res.status, 200, `answered ${res.status}: ${JSON.stringify(res.body)}`)
     const body = res.body
     assert.equal(typeof body?.ok, 'boolean', 'ok')
@@ -383,6 +407,31 @@ async function main() {
     const kodok = [...body.hibak, ...body.figyelmeztetesek].map((h) => h.kod)
     return `ok=${body.ok} kodok=${kodok.join(',') || 'none'} blokkolt=${body.blokkolt.join(',') || 'none'}`
   })
+
+  // The mode is only observable in the detail of `google_oauth_client_missing`,
+  // which is the one place it changes what the operator is told to do. On a
+  // host that HAS a client configured the code is absent and there is nothing
+  // to read, so the run says so rather than passing a check it did not make.
+  const klienshiany = (health?.hibak || []).find((h) => h?.kod === 'google_oauth_client_missing') || null
+  if (!expectedDeployMode) {
+    log('skip the deploy-mode check: SWARMCLAW_DEPLOY_EXPECT_MODE not set (whoever starts the server names the deployment)')
+  } else if (!klienshiany) {
+    log('skip the deploy-mode check: a Google client is configured on this host, so health does not report which pair to set')
+  } else {
+    await check('the deploy mode the module reports is the one this deployment runs in', async () => {
+      assert.ok(
+        Object.hasOwn(CLIENT_PAIR, expectedDeployMode),
+        `SWARMCLAW_DEPLOY_EXPECT_MODE=${JSON.stringify(expectedDeployMode)} is neither "desktop" nor "vps"`,
+      )
+      assert.equal(
+        klienshiany.mode,
+        expectedDeployMode,
+        `the module reports deploy mode ${JSON.stringify(klienshiany.mode)} on a deployment running in ${JSON.stringify(expectedDeployMode)}; `
+        + 'the page would name the wrong pair of environment variables as the remedy',
+      )
+      return `mode=${klienshiany.mode} -> the page names ${CLIENT_PAIR[klienshiany.mode]}`
+    })
+  }
 
   const board = await check('rpc board answers with the queue and the book, and no secret', async () => {
     const res = await rpc(headers, 'board')

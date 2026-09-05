@@ -54,17 +54,23 @@ import { setTimeout as sleep } from 'node:timers/promises'
  * restarted between two calls has a new port, and a shim that cached the old
  * one would send the second call to whatever now owns it.
  *
- * WHAT HAS NEVER BEEN TRIED. This shim has not been run against a running
- * SwarmClaw. Every test of it, in test/mcp.test.mjs and in the review that
- * followed, drives it against a fake HTTP server in the same test process --
- * one that writes its own port file and answers `service: "swarmclaw"` by
- * construction. That exercises this file's own logic and proves nothing about
- * the other side of the contract: that the host really writes `run/port.json`
- * where index.mjs computes it, with the five fields in the shape read below,
- * and that `/api/healthz` on that port really answers that service name and
- * that instance token. Only a live run confirms those, and it has not
- * happened. Treat a first live
- * failure here as the contract being wrong, not as this file being broken.
+ * WHERE THE OTHER SIDE OF THE CONTRACT IS CHECKED. Every test of this file, in
+ * test/mcp.test.mjs and in the review that followed, drives it against a fake
+ * HTTP server in the same test process -- one that writes its own port file
+ * and answers `service: "swarmclaw"` by construction. That exercises this
+ * file's own logic and proves nothing about the other side of the contract:
+ * that the host really writes `run/port.json` where index.mjs computes it,
+ * with the five fields in the shape read below, and that `/api/healthz` on
+ * that port really answers that service name and that instance token.
+ *
+ * Only a live run confirms those, and test/deploy.smoke.mjs is that run: it
+ * starts this file with the `command`, `args` and `env` the running host's own
+ * `mcpConfig` printed and requires `tts_status` to come back from that host.
+ * It has now been made against a running SwarmClaw on all three runtimes the
+ * checkout can produce -- the standalone server under Node 22, the packaged
+ * desktop app's server under Electron 33's embedded Node 20.18.3, and the
+ * Linux container image -- so a failure here is evidence about the contract,
+ * not about this file being untried.
  *
  * TWO SWARMCLAW INSTANCES ON ONE MACHINE. The operator picks the instance by
  * naming its port file in `SWARMCLAW_PORT_FILE`, and each instance keeps its

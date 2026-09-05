@@ -12,3 +12,5 @@ extensions/tts/node_modules
 extensions/tts/dist
 extensions/video/node_modules
 extensions/video/dist
+extensions/gmail/node_modules
+extensions/gmail/dist

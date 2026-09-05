@@ -85,8 +85,18 @@ import { setTimeout as sleep } from 'node:timers/promises'
  * that run -- it starts this file with the `command`, `args` and `env` the
  * running host's own `mcpConfig` printed and requires `tools/list` and one
  * `gmail_outbox` call to come back from that host. So a failure there is
- * evidence about the contract; what remains unproven is only the deployments
- * that smoke has not been pointed at yet.
+ * evidence about the contract.
+ *
+ * That run has now been made on both deployments the product ships and on the
+ * bare built server: the standalone server under Node 22, the packaged desktop
+ * app's own server under Electron 33's embedded Node 20.18.3 (where
+ * `mcpConfig` names `process.execPath` with ELECTRON_RUN_AS_NODE, because a
+ * GUI-launched app has no `node` on its PATH), and the Linux container image
+ * under the image's own Node. All four port-file checks passed on each, and
+ * the outbound total the shim read back matched the one the rpc had just
+ * answered directly. What is still unproven is not the contract but the
+ * mailbox: no run has yet had a Google credential behind it, so no tool call
+ * from this shim has ever reached Gmail.
  *
  * WHAT THIS FILE DOES WITH UNTRUSTED TEXT. Two kinds pass through it and
  * neither steers anything. Going out: an agent's arguments (`query`, `szoveg`,

@@ -42,6 +42,19 @@ import { bekothetoE, healthMondat, keretSzoveg } from './format'
  * than sending anybody anywhere. The route's 409 is the fallback for the one
  * case this cannot cover -- a client removed between the health read and the
  * click -- and 409 is what makes that answer readable instead of a bare 500.
+ *
+ * WHERE THE CONSENT SCREEN OPENS IN THE DESKTOP APP (design spec 14, third
+ * open point; settled 2026-09-05 by reading `electron/external-navigation.ts`
+ * rather than by a live consent, which has not been run). Not in this window:
+ * this URL is app-origin, so the click starts in the window, and the 302 to
+ * `accounts.google.com` arrives on Electron's `will-redirect`, where
+ * `shouldExternaliseNavigation` sees a cross-origin main-frame navigation and
+ * hands it to `shell.openExternal`. Google refuses to render consent in an
+ * embedded user agent at all (`disallowed_useragent`), so the system browser
+ * is the only place it can happen. The consequence an operator sees is that
+ * the callback lands on `http://127.0.0.1:<port>` IN THAT BROWSER, and the
+ * connected mailbox shows up in the app window only after this page is
+ * reloaded there.
  */
 const CONNECT_URL = '/api/oauth/google/start?purpose=gmail'
 

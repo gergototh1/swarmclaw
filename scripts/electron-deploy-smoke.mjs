@@ -6,8 +6,8 @@ import path from 'node:path'
 import { REPO_ROOT, runExtensionDeploySmoke } from './lib/extension-deploy-smoke.mjs'
 
 /**
- * `npm run test:deploy:electron` -- both extensions against the desktop app's
- * own server, run by the app's own Electron binary.
+ * `npm run test:deploy:electron` -- every extension the product ships, against
+ * the desktop app's own server, run by the app's own Electron binary.
  *
  * WHY A SEPARATE RUN EXISTS AT ALL. The desktop app and the Linux container
  * ship the same host code on two different runtimes, and the differences are
@@ -66,7 +66,32 @@ import { REPO_ROOT, runExtensionDeploySmoke } from './lib/extension-deploy-smoke
  *     npm run test:deploy:electron          # the release artifact, as built
  */
 
-const EXTENSIONS = ['tts', 'video']
+/**
+ * Every extension the product ships, in the order an operator installs them.
+ *
+ * `gmail` and `aisignal` are last because they are the pair this list exists
+ * for. The gmail module is the only one holding a credential that can send
+ * mail, and aisignal is the module that reaches that credential through the
+ * mailbox contract rather than a client of its own; if either loads on a
+ * developer's Node and not on the packaged runtime, an operator sees a card
+ * that says enabled and a mailbox that never answers. aisignal is also the
+ * concrete precedent: it turned out never to have loaded in the desktop app,
+ * discovered after everything had been built on it.
+ */
+const EXTENSIONS = ['tts', 'video', 'gmail', 'aisignal']
+
+/**
+ * Extensions that have to be installed next to another one for the run to
+ * exercise what an operator's host does.
+ *
+ * aisignal reaches its mailbox through the `mailbox` CONTRACT gmail provides.
+ * Alone in a scratch data directory it answers `provider_missing`, which is
+ * true and tests nothing about the wiring between the two modules; the
+ * container run installs everything into one data directory, so without this
+ * the same module would report `ready` there and `provider_missing` here and
+ * the difference would be the harness, not the deployment.
+ */
+const COMPANIONS = { aisignal: ['gmail'] }
 
 /**
  * Where a packaged SwarmClaw is likely to be. `SWARMCLAW_ELECTRON_APP` wins
@@ -209,14 +234,23 @@ async function main() {
       command: binary,
       args: [path.join(standalone, 'server.js')],
       cwd: standalone,
-      env: { ELECTRON_RUN_AS_NODE: '1' },
+      // Both variables are what `electron/server-lifecycle.ts` puts in the
+      // child's environment when the real app spawns this same server.js.
+      // ELECTRON_RUN_AS_NODE is what makes the app binary a Node; the deploy
+      // mode is what sends the host down the Desktop-app OAuth client branch
+      // (`GOOGLE_OAUTH_CLIENT_DESKTOP_*`, a loopback redirect on whatever port
+      // the app got) instead of the Web-client branch a VPS uses. Without it
+      // this run would start the app's own binary and then exercise the VPS
+      // branch, and report the result as the desktop deployment.
+      env: { ELECTRON_RUN_AS_NODE: '1', SWARMCLAW_DEPLOY_MODE: 'desktop' },
+      deployMode: 'desktop',
     }
 
     for (const extension of EXTENSIONS) {
       log(`--- ${extension} ---`)
-      await runExtensionDeploySmoke({ extension, runtime })
+      await runExtensionDeploySmoke({ extension, runtime, companions: COMPANIONS[extension] || [] })
     }
-    log(`both extensions pass on the packaged runtime (Electron ${versions.electron} / Node ${versions.node})`)
+    log(`all ${EXTENSIONS.length} extensions pass on the packaged runtime (Electron ${versions.electron} / Node ${versions.node}): ${EXTENSIONS.join(', ')}`)
   } finally {
     cleanup()
   }

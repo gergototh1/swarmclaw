@@ -285,7 +285,15 @@ async function main() {
     return `${res.text.length} bytes, ${enforced ? 'enforced' : 'report-only'} CSP with nonce`
   })
 
-  const health = await check('rpc health answers without a mailbox behind it', async () => {
+  // The label used to say "without a mailbox behind it", which was true of a
+  // scratch data directory holding only this extension. Both deploy runs now
+  // install gmail alongside it, so this is where the `mailbox` contract is
+  // resolved between two separately loaded modules on the deployment's own
+  // runtime, and `gmail.status` reports which of the two it found. The check is
+  // deliberately not pinned to `ready`: this script installs no credential, and
+  // what it asserts is that the answer has the shape the page reads, whichever
+  // side of the contract the host ended up on.
+  const health = await check('rpc health answers with the mailbox status it resolved', async () => {
     const res = await rpc(headers, 'health')
     assert.equal(res.status, 200, `answered ${res.status}: ${JSON.stringify(res.body)}`)
     assert.equal(typeof res.body?.gmail?.status, 'string', 'gmail.status')

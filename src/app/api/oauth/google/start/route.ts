@@ -31,6 +31,17 @@ const SCOPES: Record<string, string[]> = {
   // message or change a mailbox setting, however badly this app misbehaves. It
   // can move a message to the trash, which gmail.modify does cover; that is
   // reversible by the account's owner, permanent deletion is not.
+  //
+  // STILL UNRECORDED AS OF 2026-09-05, and recorded as unrecorded rather than
+  // guessed: the wording Google actually puts on the consent screen for
+  // gmail.modify, and whether an unverified project is allowed through it at
+  // all (design spec 14, first open point). gmail.modify is a restricted
+  // scope, so the app is expected to hit either the unverified-app warning or
+  // a block, and which one decides whether an operator can connect a mailbox
+  // without going through Google's verification. Nobody has run the flow: the
+  // deploy verification of 2026-09-05 covered both deployments without making
+  // a single Google request. The first operator to connect a mailbox should
+  // paste the screen's own sentence here with the date.
   gmail: ['https://www.googleapis.com/auth/gmail.modify'],
 }
 

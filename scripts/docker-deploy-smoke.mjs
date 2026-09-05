@@ -5,8 +5,8 @@ import path from 'node:path'
 import { REPO_ROOT, freePort, until } from './lib/extension-deploy-smoke.mjs'
 
 /**
- * `npm run test:deploy:docker` -- both extensions inside the Linux container
- * image, which is the other deployment the product ships.
+ * `npm run test:deploy:docker` -- every extension the product ships, inside the
+ * Linux container image, which is the other deployment the product ships.
  *
  * WHY THIS IS NOT THE SAME RUN AS THE OTHER TWO. The node and Electron runs
  * both start a server from this checkout and point the smoke at it from
@@ -37,7 +37,16 @@ import { REPO_ROOT, freePort, until } from './lib/extension-deploy-smoke.mjs'
  *   npm run test:deploy:docker
  */
 
-const EXTENSIONS = ['tts', 'video']
+/**
+ * Every extension the product ships. The same list the Electron run uses, and
+ * for the same reason: a difference between the two deployments is only
+ * visible if both are asked the same questions about the same modules.
+ *
+ * Unlike the node and Electron runs, these all install into ONE container and
+ * one data directory, which is how an operator's host actually looks -- gmail
+ * providing the mailbox contract and aisignal consuming it, in one process.
+ */
+const EXTENSIONS = ['tts', 'video', 'gmail', 'aisignal']
 const IMAGE = 'swarmclaw-deploy-smoke:local'
 const CONTAINER = 'swarmclaw-deploy-smoke'
 const CONTAINER_PORT = 3456
@@ -153,6 +162,12 @@ async function main() {
         '-e', `SWARMCLAW_DEPLOY_BASE_URL=http://127.0.0.1:${CONTAINER_PORT}`,
         '-e', `SWARMCLAW_DEPLOY_ACCESS_KEY=${accessKey}`,
         '-e', `DATA_DIR=${CONTAINER_DATA_DIR}`,
+        // The container's own deploy mode is not passed in: the Dockerfile
+        // bakes `ENV SWARMCLAW_DEPLOY_MODE=vps` into the runner stage. This
+        // only tells the smoke what to require the running module to report,
+        // so the check confirms the image ships that mode and the extension
+        // sees it, rather than the harness having supplied both halves.
+        '-e', 'SWARMCLAW_DEPLOY_EXPECT_MODE=vps',
         CONTAINER,
         'node', `extensions/${extension}/test/deploy.smoke.mjs`,
       ], { stdio: ['ignore', 'inherit', 'inherit'] })
@@ -167,7 +182,7 @@ async function main() {
       }
       log(`deploy smoke against the container: ok (${extension})`)
     }
-    log('both extensions pass inside the container image')
+    log(`all ${EXTENSIONS.length} extensions pass inside the container image: ${EXTENSIONS.join(', ')}`)
   } finally {
     cleanup()
   }
