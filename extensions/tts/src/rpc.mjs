@@ -99,6 +99,48 @@ function fileHead(file) {
 }
 
 /**
+ * The runtime an MCP client has to spawn to run the shim, and what that spawn
+ * needs in its environment.
+ *
+ * THE DEFECT THIS CLOSES. `mcpConfig` used to say `"command": "node"`, and the
+ * host spawns an MCP server with its own `process.env` (see
+ * `connectMcpServer` in the host's `mcp-client.ts`), so that word is resolved
+ * against the *host's* `PATH`. In the packaged desktop app that is a short
+ * system `PATH` -- launchd hands a GUI process `/usr/bin:/bin:/usr/sbin:/sbin`
+ * and nothing else -- and no Node installation puts a binary there: Homebrew
+ * uses `/opt/homebrew/bin`, the official installer `/usr/local/bin`, nvm and
+ * fnm a directory under the operator's home. So the entry the page tells the
+ * operator to copy spawns nothing, and every narration tool call fails on a
+ * machine with Node plainly installed. It is the same defect
+ * `ctx.resolveBinary` closed one level down for `ffprobe`, one level up: this
+ * time it is the host's MCP client doing the spawning, not the extension.
+ *
+ * WHAT IT NAMES INSTEAD. `process.execPath` -- the runtime this module is
+ * running in right now. It needs no lookup and no `PATH`, and it cannot name a
+ * runtime that is absent, because the host is running on it. In the container
+ * that is the image's `/usr/local/bin/node`; in the desktop app it is the app's
+ * own Electron binary, which runs as Node when `ELECTRON_RUN_AS_NODE` is set,
+ * so that variable goes in the entry exactly when the host is an Electron
+ * build. That also means the shim never runs on a Node older or newer than the
+ * one the host itself was tested on.
+ *
+ * WHAT IT DOES NOT PROMISE. An absolute path is a path, and MCP entries are
+ * stored once by the operator: moving or replacing the app changes
+ * `process.execPath` and the stored entry then names a runtime that is gone.
+ * The page says to copy the block again after moving or updating the app,
+ * because nothing here can rewrite a setting the host owns.
+ *
+ * The two arguments exist for the tests, which need to see both branches
+ * without writing to `process`; nothing else passes them.
+ */
+export function shimRuntime({ execPath = process.execPath, electronVersion = process.versions.electron } = {}) {
+  return {
+    command: execPath,
+    env: electronVersion ? { ELECTRON_RUN_AS_NODE: '1' } : {},
+  }
+}
+
+/**
  * `workspaceDir` and `portFile` arrive from index.mjs: the workspace is where
  * the shim lives, and the port file path repeats the host's own rule there
  * because extension code cannot import data-dir.ts. Both are reported by
@@ -144,13 +186,15 @@ export function createRpc(state, synth, { workspaceDir, portFile }) {
      */
     async mcpConfig(body) {
       readNoArgs(body)
+      const runtime = shimRuntime()
       return {
         id: 'tts',
         name: 'SwarmClaw narráció (tts)',
         transport: 'stdio',
-        command: 'node',
+        command: runtime.command,
         args: [shim],
         env: {
+          ...runtime.env,
           SWARMCLAW_PORT_FILE: portFile,
           SWARMCLAW_ACCESS_KEY: 'az ACCESS_KEY értéke a host .env.local fájljából; ide kézzel',
         },

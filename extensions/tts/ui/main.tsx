@@ -140,6 +140,7 @@ export function McpPanel({ config }: { config: McpConfig }) {
   return (
     <>
       <p className="tts-muted">Másold be a Settings → MCP Servers alá. A SWARMCLAW_ACCESS_KEY értékét a host .env.local fájljából írd be kézzel; ez a lap nem ismeri.</p>
+      <p className="tts-muted">A command a hostot futtató programot nevezi meg teljes úton, nem a „node” szót: a host a saját PATH-jával indítja a szervert, és a csomagolt alkalmazásé nem tartalmaz Node-ot. Ha az alkalmazást áthelyezed vagy frissíted, másold be újra ezt a blokkot.</p>
       <pre className="tts-pre">{JSON.stringify(config, null, 2)}</pre>
     </>
   )

@@ -3,5 +3,12 @@ node_modules
 data
 .env*
 .git
+# Every extension's node_modules and dist are produced inside the image by the
+# Dockerfile's own `npm ci && npm run build`. A developer machine's copies would
+# be macOS builds shadowed a moment later, and only slow the context upload.
 extensions/aisignal/node_modules
 extensions/aisignal/dist
+extensions/tts/node_modules
+extensions/tts/dist
+extensions/video/node_modules
+extensions/video/dist

@@ -95,6 +95,8 @@
     "test:deploy:aisignal": "node ./scripts/aisignal-deploy-smoke.mjs",
     "test:deploy:video": "node ./scripts/video-deploy-smoke.mjs",
     "test:deploy:tts": "node ./scripts/tts-deploy-smoke.mjs",
+    "test:deploy:electron": "node ./scripts/electron-deploy-smoke.mjs",
+    "test:deploy:docker": "node ./scripts/docker-deploy-smoke.mjs",
     "test:mcp:conformance": "node --import tsx ./scripts/mcp-conformance-check.ts",
     "electron:compile": "tsc -p electron/tsconfig.json",
     "electron:dev": "npm run electron:compile && electron electron-dist/main.js",

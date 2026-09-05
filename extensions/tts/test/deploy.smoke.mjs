@@ -32,11 +32,12 @@ import { MIGRATIONS } from '../src/db.mjs'
  *      and stylesheet served from the workspace's `dist`;
  *   4. requires `/x/tts` to answer with the shell rather than a redirect;
  *   5. calls `status`, `health` and `mcpConfig` over rpc, checks that no key
- *      value is in any answer, and that the port file `mcpConfig` names exists
- *      and holds a live pid -- the host's side of the port-file contract, on a
- *      running host;
- *   6. starts the shipped shim with `process.execPath`, the `args` and `env`
- *      from `mcpConfig` and this run's own access key, and requires
+ *      value is in any answer, that the port file `mcpConfig` names exists and
+ *      holds a live pid -- the host's side of the port-file contract, on a
+ *      running host -- and that the `command` it prints is a path that exists
+ *      on this deployment rather than a name to look up on a `PATH`;
+ *   6. starts the shipped shim with exactly the `command`, `args` and `env`
+ *      `mcpConfig` printed, plus this run's own access key, and requires
  *      `tools/call tts_status` to answer with the running host's `hang`;
  *   7. with DATA_DIR set: requires every migration to have been applied
  *      through the host's own database driver and the workspace to hold no
@@ -188,13 +189,20 @@ function pidAlive(pid) {
 
 /**
  * One `tools/call` against the shipped shim, started the way the host's MCP
- * client starts it: plain node, the workspace copy, no loader, no
- * node_modules. `process.execPath` stands in for the host's `node`, which is
- * what the desktop app uses for its own child processes.
+ * client starts it: the `command`, `args` and `env` the running host just
+ * printed in `mcpConfig`, and nothing this script chose for itself.
+ *
+ * Taking the command from the answer rather than substituting `process.execPath`
+ * is the point. The entry an operator copies into Settings > MCP Servers is the
+ * thing being tested, and on a packaged desktop app that entry has to name a
+ * runtime the host's own environment can actually spawn -- the host's `PATH`
+ * there is `/usr/bin:/bin:/usr/sbin:/sbin`, where no Node installation lives.
+ * A smoke that spawned its own Node would pass on exactly the deployment where
+ * the operator's copy of that entry does not run.
  */
-function shimCall(shimPath, env, name) {
+function shimCall(command, shimPath, env, name) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [shimPath], { env: { ...process.env, ...env }, stdio: ['pipe', 'pipe', 'pipe'] })
+    const child = spawn(command, [shimPath], { env: { ...process.env, ...env }, stdio: ['pipe', 'pipe', 'pipe'] })
     const stderr = []
     child.stderr.on('data', (c) => stderr.push(c.toString('utf8')))
     const timer = setTimeout(() => {
@@ -313,6 +321,15 @@ async function main() {
     assert.equal(res.body?.transport, 'stdio')
     assert.ok(Array.isArray(res.body?.args) && res.body.args.length === 1, 'args')
     assert.ok(fs.existsSync(res.body.args[0]), `the shim is not at ${res.body.args[0]}`)
+    // The host spawns an MCP server with its own environment, so a bare
+    // `node` here would be looked up in the host's PATH -- and a packaged
+    // desktop app's PATH is `/usr/bin:/bin:/usr/sbin:/sbin`, where no Node
+    // installation puts a binary. On this deployment, whatever it names has to
+    // be a path that is really there.
+    const command = res.body?.command
+    assert.equal(typeof command, 'string', 'command')
+    assert.ok(path.isAbsolute(command), `command "${command}" is a name to look up, not a path`)
+    assert.ok(fs.existsSync(command), `command names ${command}, which does not exist on this host`)
     // The access key is named by its variable and never by its value: the
     // operator fills it in from the host's own .env.local.
     assertNoAccessKey('mcpConfig', res.text)
@@ -331,13 +348,17 @@ async function main() {
     return `${portFile} -> port ${parsed.port}, pid ${parsed.pid}`
   })
 
-  await check('the shipped shim answers tts_status from the running host', async () => {
+  await check('the shipped shim, started exactly as mcpConfig says, answers tts_status from the running host', async () => {
     const config = (await rpc(headers, 'mcpConfig')).body
     const direct = (await rpc(headers, 'status')).body
     // The operator fills the key in by hand; here the smoke's own key stands in
     // for that step. It goes into the child's environment and nowhere else.
-    const answer = await shimCall(config.args[0], {
-      SWARMCLAW_PORT_FILE: config.env.SWARMCLAW_PORT_FILE,
+    // Everything but the key comes from the host's own answer, including the
+    // command: on the desktop app that is the app's Electron binary plus the
+    // ELECTRON_RUN_AS_NODE the entry carries, and this is where that pair is
+    // proven to start the shim rather than a browser window.
+    const answer = await shimCall(config.command, config.args[0], {
+      ...config.env,
       SWARMCLAW_ACCESS_KEY: accessKey,
     }, 'tts_status')
     assert.ok(answer.result, `the shim answered with an error: ${JSON.stringify(answer.error)}`)

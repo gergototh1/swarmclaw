@@ -5,7 +5,7 @@ import path from 'node:path'
 import { test } from 'node:test'
 
 import { MIGRATIONS, createRepo } from '../src/db.mjs'
-import { DEFAULT_LIMIT, MAX_IMPORT_SOROK, MAX_LIMIT, createRpc, readWholeNumber } from '../src/rpc.mjs'
+import { DEFAULT_LIMIT, MAX_IMPORT_SOROK, MAX_LIMIT, createRpc, readWholeNumber, shimRuntime } from '../src/rpc.mjs'
 import { createSynthesizer } from '../src/synthesize.mjs'
 import { memStorage } from './helpers.mjs'
 
@@ -142,11 +142,34 @@ test('mcpConfig names the shim, the port file and the key variable, without a ke
   const c = await rpc.mcpConfig({})
   assert.equal(c.id, 'tts')
   assert.equal(c.transport, 'stdio')
-  assert.equal(c.command, 'node')
   assert.deepEqual(c.args, ['/ws/tts_mjs/mcp/server.mjs'])
   assert.equal(c.env.SWARMCLAW_PORT_FILE, '/home/run/port.json')
   assert.match(c.env.SWARMCLAW_ACCESS_KEY, /ACCESS_KEY/)
   assert.equal(JSON.stringify(c).includes('titkos-kulcs'), false)
+})
+
+// The word `node` is what a GUI-launched host cannot resolve: launchd gives it
+// `/usr/bin:/bin:/usr/sbin:/sbin`, and no Node installation puts a binary in
+// any of those. So the entry has to name a runtime by its path, and the only
+// path that is certain to exist is the one the host is running on.
+test('mcpConfig names a runtime that exists rather than the bare word node', async () => {
+  const { rpc } = setup()
+  const c = await rpc.mcpConfig({})
+  assert.equal(c.command, process.execPath)
+  assert.equal(path.isAbsolute(c.command), true, 'the command has to be a path, not a name to look up')
+  assert.equal(fs.existsSync(c.command), true, `mcpConfig names ${c.command}, which does not exist`)
+})
+
+test('shimRuntime adds ELECTRON_RUN_AS_NODE exactly when the host is an Electron build', () => {
+  const plain = shimRuntime({ execPath: '/usr/local/bin/node', electronVersion: undefined })
+  assert.equal(plain.command, '/usr/local/bin/node')
+  assert.deepEqual(plain.env, {})
+
+  // The desktop app's server already runs this way; the shim it spawns has to
+  // be told the same thing, or the Electron binary starts a browser instead.
+  const electron = shimRuntime({ execPath: '/Applications/SwarmClaw.app/Contents/MacOS/SwarmClaw', electronVersion: '33.4.11' })
+  assert.equal(electron.command, '/Applications/SwarmClaw.app/Contents/MacOS/SwarmClaw')
+  assert.deepEqual(electron.env, { ELECTRON_RUN_AS_NODE: '1' })
 })
 
 // --- importCache ---

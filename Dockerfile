@@ -38,7 +38,12 @@ RUN cd /app/extensions/aisignal && npm ci && npm run build && rm -rf node_module
 # directory at run time with `node extensions/<name>/scripts/install.mjs`; each
 # install script prints what is still missing before either module can work.
 RUN cd /app/extensions/tts && npm ci && npm run build && rm -rf node_modules
-RUN cd /app/extensions/video && npm ci && npm run build && rm -rf node_modules
+# The video extension's dev dependencies include Playwright, which is there for
+# the browser smoke a developer runs and has no use in the image; without this
+# variable its install downloads three browser builds that the next line
+# deletes again. `npm ci` needs the whole dev tree because esbuild, which does
+# the build, is in it too.
+RUN cd /app/extensions/video && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci && npm run build && rm -rf node_modules
 
 # Production
 FROM node:22-slim AS runner
