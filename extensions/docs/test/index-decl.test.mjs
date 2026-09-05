@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import docs, { rootSetting, sharedFolder, state, versionsKept, watchEnabled } from '../index.mjs'
+import docs, { rootSetting, sharedFolder, state, vaultOf, versionsKept, watchEnabled, watcherControl } from '../index.mjs'
 
 /** The smallest ctx the host could hand over. */
 function fakeCtx(settings = {}) {
@@ -57,11 +57,24 @@ test('the root folder is declared as a managed local folder', () => {
   assert.equal(docs.managedResources.setupChecks.length, 1)
 })
 
-test('setup() can run twice without throwing and drops the cached vault', () => {
+test('setup() can run twice, and the second run follows the new root', () => {
+  // A setup() minden data/extensions alatti írásra újrafut, tehát az
+  // ismételhetőség nem kényelmi kérdés. A lényeg, hogy a második futás után
+  // semmi ne az előző gyökérre mutasson.
   docs.setup(fakeCtx({ gyoker: '/tmp/docs-decl-a' }))
-  assert.equal(state._vault, null)
+  assert.equal(vaultOf().root, '/tmp/docs-decl-a')
+
   docs.setup(fakeCtx({ gyoker: '/tmp/docs-decl-b' }))
-  assert.equal(state._root, null)
+  assert.equal(vaultOf().root, '/tmp/docs-decl-b')
+  assert.equal(state._root, '/tmp/docs-decl-b')
+})
+
+test('setup() starts at most one watcher however often it runs', () => {
+  docs.setup(fakeCtx({ gyoker: '/tmp/docs-decl-a' }))
+  const first = watcherControl.status()
+  docs.setup(fakeCtx({ gyoker: '/tmp/docs-decl-a' }))
+  docs.setup(fakeCtx({ gyoker: '/tmp/docs-decl-a' }))
+  assert.deepEqual(watcherControl.status(), first)
 })
 
 test('settings readers fall back rather than returning undefined', () => {

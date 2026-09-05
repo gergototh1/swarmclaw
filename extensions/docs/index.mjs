@@ -1,9 +1,12 @@
 import { createAgentContext } from './src/agent-context.mjs'
+import { DOCS_CONTRACT, createDocsContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { createIndexWriter } from './src/index-writer.mjs'
+import { createRpc } from './src/rpc.mjs'
 import { createService } from './src/service.mjs'
 import { createTools } from './src/tools.mjs'
 import { createVault } from './src/vault.mjs'
+import { createWatcherControl } from './src/watcher.mjs'
 
 /**
  * Everything the host hands over in setup(), plus what is derived from it.
@@ -87,8 +90,37 @@ export function serviceOf() {
 }
 
 const logOf = () => state.log
+const repoOf = () => state.repo
 
 const agentContext = createAgentContext(state, { serviceOf, sharedFolder, logOf })
+
+/**
+ * The module's single watcher, held at module scope so that a reload finds the
+ * one it already started rather than opening another beside it.
+ */
+export const watcherControl = createWatcherControl()
+
+/**
+ * Brings the watcher in line with the settings. Idempotent in both directions,
+ * which is what makes it safe to call from setup() -- and setup() runs again on
+ * every write under data/extensions.
+ */
+export function syncWatcher() {
+  try {
+    return watcherControl.ensureWatcher({
+      root: vaultOf().root,
+      enabled: watchEnabled(),
+      writer: writerOf(),
+      vault: vaultOf(),
+      log: state.log,
+    })
+  } catch (err) {
+    // An unreachable root is a state the page reports, not a reason to fail
+    // loading the extension.
+    state.log?.warn?.('docs watcher not started', { error: err?.message })
+    return watcherControl.status()
+  }
+}
 
 const docs = {
   name: 'Doksik',
@@ -96,6 +128,23 @@ const docs = {
   description: 'Markdown-doksik egy mappában: grafikus szerkesztő az operátornak, hat tool az ügynököknek, ügynökönként saját mappa.',
   migrations: MIGRATIONS,
   tools: createTools(state, { serviceOf, logOf }),
+  rpc: createRpc({
+    serviceOf,
+    vaultOf,
+    writerOf,
+    repoOf,
+    watcherStatus: () => watcherControl.status(),
+    restartWatcher: () => { watcherControl.stop(); return syncWatcher() },
+    sharedFolder,
+    rootSetting,
+    logOf,
+  }),
+  provides: {
+    [DOCS_CONTRACT]: createDocsContract({
+      serviceOf,
+      extensionNameOf: (args) => (typeof args?.hivo === 'string' && args.hivo.trim() !== '' ? args.hivo.trim() : 'ext'),
+    }),
+  },
   hooks: {
     getAgentContext: agentContext.getAgentContext,
     getCapabilityDescription: agentContext.getCapabilityDescription,
@@ -113,6 +162,7 @@ const docs = {
     state._writer = null
     state._service = null
     state._root = null
+    syncWatcher()
   },
   ui: {
     pages: [{

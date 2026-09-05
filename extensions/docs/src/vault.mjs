@@ -249,6 +249,11 @@ export function createVault({ root }) {
     return found
   }
 
+  /** Creates a folder, so that an empty one can exist before it has a file. */
+  function mkdirp(relDir) {
+    fs.mkdirSync(abs(relDir), { recursive: true })
+  }
+
   function move(fromRel, toRel) {
     const from = abs(fromRel)
     const to = abs(toRel)
@@ -293,5 +298,5 @@ export function createVault({ root }) {
     }
   }
 
-  return { root: realRoot, abs, rel, ensureRoot, exists, readDoc, writeDoc, listDocs, move, trash, remove }
+  return { root: realRoot, abs, rel, ensureRoot, exists, readDoc, writeDoc, listDocs, mkdirp, move, trash, remove }
 }
