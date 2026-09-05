@@ -7,8 +7,9 @@ export async function register() {
     const { log } = await import('@/lib/server/logger')
     const { ensureOpenTelemetryStarted, shutdownOpenTelemetry } = await import('@/lib/server/observability/otel')
     const isWorkerOnly = process.env.SWARMCLAW_WORKER_ONLY === '1'
-    const { initWsServer, closeWsServer } = await import('./lib/server/ws-hub')
+    const { initWsServer, closeWsServer, resolveWsPort } = await import('./lib/server/ws-hub')
     const { ensureDaemonStarted } = await import('@/lib/server/runtime/daemon-state')
+    const { writePortFile, removePortFile } = await import('@/lib/server/runtime/port-file')
     await ensureOpenTelemetryStarted()
 
     // Awaited, and not deferred with the work below, because an extension
@@ -57,6 +58,22 @@ export async function register() {
           ensureDaemonStarted('worker-boot')
         } else {
           initWsServer()
+          // The port file is how an extension's out-of-process MCP shim finds
+          // this server; see port-file.ts for what a reader may rely on.
+          // `PORT` holds the port Next actually bound: it writes it there from
+          // the listening callback and runs this hook afterwards, so a bare
+          // `next dev` that moved off a busy port reports the moved-to port.
+          // Only the worker-only branch above skips this, on purpose.
+          try {
+            const port = Number(process.env.PORT)
+            if (Number.isSafeInteger(port) && port > 0) {
+              writePortFile({ port, wsPort: resolveWsPort(), pid: process.pid, startedAt: Date.now() })
+            } else {
+              log.warn(TAG, 'PORT is not set; run/port.json was not written and an MCP shim cannot find this server')
+            }
+          } catch (err) {
+            log.error(TAG, 'writing run/port.json failed:', err)
+          }
           ensureDaemonStarted('instrumentation')
         }
       })()
@@ -84,6 +101,7 @@ export async function register() {
         log.error(TAG, 'Failed to stop OpenTelemetry during shutdown:', err)
       }
       if (!isWorkerOnly) {
+        removePortFile()
         await closeWsServer()
       }
       process.exit(0)
@@ -91,6 +109,12 @@ export async function register() {
     if (!shutdownState.registered) {
       process.on('SIGTERM', () => { void shutdown('SIGTERM') })
       process.on('SIGINT', () => { void shutdown('SIGINT') })
+      // Exits that bypass `shutdown` (the uncaught-exception handler below,
+      // Next's own exit on a listen error) still get the port file removed;
+      // it is a no-op when the file is missing or another process's. A
+      // SIGKILL or a crash of the runtime itself runs no handler at all, and
+      // the file stays for the reader's staleness checks to catch.
+      process.on('exit', () => { removePortFile() })
 
       // Gracefully handle EPIPE errors from child processes (e.g. Playwright MCP proxy)
       // that occur during dev server restarts when stdio pipes break

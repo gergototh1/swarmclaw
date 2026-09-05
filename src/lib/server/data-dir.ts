@@ -59,6 +59,23 @@ function resolveWorkspaceDir(): string {
 
 export const WORKSPACE_DIR = resolveWorkspaceDir()
 
+/**
+ * Where this process writes facts about itself that another process reads:
+ * today the port file (`run/port.json`) an extension's out-of-process MCP
+ * shim resolves the server's dynamic port from. It sits beside the data
+ * directory rather than inside it, so a backup or an export of `data/` does
+ * not carry a pid and a port that mean nothing on another machine. There is
+ * no build-mode branch because the only writer runs from the instrumentation
+ * hook at server start, which a build does not execute.
+ */
+function resolveRunDir(): string {
+  const appHome = resolveSwarmclawHome()
+  if (appHome) return path.join(appHome, 'run')
+  return path.join(DATA_DIR, 'run')
+}
+
+export const RUN_DIR = resolveRunDir()
+
 function resolveBrowserProfilesDir(): string {
   if (process.env.BROWSER_PROFILES_DIR) return process.env.BROWSER_PROFILES_DIR
   if (IS_BUILD_BOOTSTRAP) return path.join(DATA_DIR, 'browser-profiles')

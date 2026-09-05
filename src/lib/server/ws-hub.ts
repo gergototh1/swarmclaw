@@ -22,10 +22,21 @@ function getHub(): WsHub | null {
   return (globalThis as any)[GK] ?? null
 }
 
+/**
+ * The port the WebSocket hub listens on; the port file reports the same
+ * number. Read from the environment at call time, not at import time, because
+ * Next writes the HTTP port it actually bound into `process.env.PORT` from
+ * its listening callback, and the hub follows that port when `WS_PORT` is not
+ * set.
+ */
+export function resolveWsPort(): number {
+  return Number(process.env.WS_PORT) || (Number(process.env.PORT) || 3456) + 1
+}
+
 export function initWsServer() {
   if (getHub()) return
 
-  const port = Number(process.env.WS_PORT) || (Number(process.env.PORT) || 3456) + 1
+  const port = resolveWsPort()
   const wss = new WebSocketServer({ port, path: '/ws' })
   const clients = new Set<WsClient>()
 
