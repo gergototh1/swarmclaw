@@ -21,22 +21,39 @@ import { MIGRATIONS, createRepo } from '../src/db.mjs'
  * `raw` is the extra: migrations do not go through `exec` on the host either,
  * they go through a `db.exec()` path that accepts a whole batch, so the tests
  * apply `MIGRATIONS` through `raw.exec` for the same reason.
+ *
+ * `transaction` nests, because the host's does. On the host it is
+ * `db.transaction(fn)()` from better-sqlite3, which opens a SAVEPOINT when it
+ * is already inside a transaction, so a repository method that runs its own
+ * transaction (`decideJavaslat`, `insertTerv`, `upsertRetention`) composes
+ * inside a caller's. `node:sqlite` throws on a second BEGIN, so the same
+ * shape is written out here: an outer call uses BEGIN/COMMIT/ROLLBACK, an
+ * inner one a named savepoint that releases or rolls back to itself. Without
+ * this the double would refuse a composition the host allows, which is the
+ * one thing a test double must never do.
  */
 export function memStorage() {
   const db = new DatabaseSync(':memory:')
+  let depth = 0
   return {
     exec: (sql, p = []) => { db.prepare(sql).run(...p) },
     all: (sql, p = []) => db.prepare(sql).all(...p),
     get: (sql, p = []) => db.prepare(sql).get(...p),
     transaction: (fn) => {
-      db.exec('BEGIN')
+      const nested = depth > 0
+      const sp = `sp_${depth}`
+      db.exec(nested ? `SAVEPOINT ${sp}` : 'BEGIN')
+      depth += 1
       try {
         const r = fn()
-        db.exec('COMMIT')
+        db.exec(nested ? `RELEASE ${sp}` : 'COMMIT')
         return r
       } catch (e) {
-        db.exec('ROLLBACK')
+        db.exec(nested ? `ROLLBACK TO ${sp}` : 'ROLLBACK')
+        if (nested) db.exec(`RELEASE ${sp}`)
         throw e
+      } finally {
+        depth -= 1
       }
     },
     raw: db,

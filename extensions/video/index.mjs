@@ -1,8 +1,11 @@
 import { AGENTS, SCHEDULES } from './src/agents.mjs'
+import { VIDEOS_CONTRACT, createVideosContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { setupChecks } from './src/health.mjs'
 import { createCatalogTool } from './src/katalogus.mjs'
 import { createNarrateTool } from './src/narracio.mjs'
 import { createRenderOps, createRenderTools } from './src/render.mjs'
+import { createRpc } from './src/rpc.mjs'
 import { createAfterChatTurn, createTanulsagTools } from './src/tanulsag.mjs'
 import { createTervTools } from './src/terv.mjs'
 
@@ -21,8 +24,10 @@ import { createTervTools } from './src/terv.mjs'
  * so a reader of this file sees every key the shared state can carry:
  *
  *   spawnImpl, execFileImpl, killImpl  -- render.mjs's child process, ffprobe
- *                                         and signal calls; default to
- *                                         node:child_process and process.kill
+ *                                         and signal calls, and health.mjs's
+ *                                         version probe of ffmpeg, ffprobe and
+ *                                         npx; default to node:child_process
+ *                                         and process.kill
  *   probeImpl                          -- narracio.mjs's ffprobe of an mp3
  *   platform                           -- process.platform
  *   bootAt                             -- the host machine's boot time, by the
@@ -57,12 +62,12 @@ export const state = {
  * two render tools call, and the page and the tools cannot drift apart in
  * what they mean by a cancel or a cleanup.
  *
- * They are not here yet. `rpc` below is empty, so nothing outside this module
- * reaches `renderOps.cancel`, `cleanupAll` or `orphanCount`, `hetiSor` in
- * sablon.mjs, or the repository reads no tool asks for (`tervekForVideo`,
- * `feedbackFor`, `qaAll`, `narraciokAll` and a dozen more). They are the page
- * task's surface and dead code until it lands; this paragraph says so rather
- * than describing them in the present tense as if they were wired.
+ * `rpc` below now carries them: `cancelRender` calls `renderOps.cancel`,
+ * `cleanup` calls `cleanupAll`, and `health` calls `orphanCount` and
+ * `summary`. What still has no caller is the browser bundle -- `ui.pages`
+ * points at a `dist/` that does not exist yet, so nothing in the product
+ * calls these thirteen methods until the page task lands. They are reachable
+ * over the rpc route today; they are not yet used.
  *
  * Sharing it is not what makes the render survive a reload. Every operation
  * here starts from the render row and writes through the same host storage, so
@@ -89,11 +94,18 @@ const video = {
   // The catalogue read, the six tools of a plan's life before narration
   // (open, draft, verdict, lessons, queue, plan), the narration over the tts
   // contract, the render and its watchdog, and the three of the daily
-  // review (material, close, propose). The rpc map arrives in a later task;
-  // an empty rpc declaration is what the host accepts for an extension that
-  // has none yet.
+  // review (material, close, propose).
   tools: [createCatalogTool(state), ...createTervTools(state), createNarrateTool(state), ...createRenderTools(state, renderOps), ...createTanulsagTools(state)],
-  rpc: {},
+  /**
+   * The page's methods (src/rpc.mjs), built over the same `renderOps` the
+   * render tools use. Declared at module scope like the tools, so they read
+   * `state` on every call rather than closing over a ctx.
+   *
+   * Adding a method here adds nothing to the `videos` contract below: the two
+   * are separate files with separate projections and neither imports the
+   * other (src/contract.mjs says why at length).
+   */
+  rpc: createRpc(state, renderOps),
   // The turn recorder for the daily review (spec 6.5). The host spreads this
   // object into the extension's hook set, so the key is the host's hook name.
   hooks: { afterChatTurn: createAfterChatTurn(state) },
@@ -108,6 +120,13 @@ const video = {
     { extension: 'aisignal', contract: 'signals', version: 1, reason: 'A mentett kártyákból választ videó-nyersanyagot; a kártya szövegét a videó forrásaként tárolja.' },
     { extension: 'tts', contract: 'narration', version: 1, reason: 'Jelenetenkénti narrációt kér a tervhez, és a kész mp3 útját és hosszát tárolja.' },
   ],
+  /**
+   * What another extension may read: `videos`, two reads over a fixed column
+   * projection. The declaration and every word of the reasoning are in
+   * src/contract.mjs. Nothing consumes it today; the mechanism's real test is
+   * whether two providers and two consumers run together (spec 9.2).
+   */
+  provides: { [VIDEOS_CONTRACT]: createVideosContract(state) },
   ui: {
     pages: [{
       id: 'video',
@@ -143,9 +162,14 @@ const video = {
    * The two agents and their three schedules (src/agents.mjs). Nothing here
    * exists on the operator's instance until they press Reconcile once on
    * Extensions > Managed resources: no host path runs a reconcile on install,
-   * enable or upgrade. `setupChecks` arrives with the health task.
+   * enable or upgrade.
+   *
+   * `setupChecks` is the install's conditions by name, from the same list
+   * `health` answers (src/health.mjs). The host counts them for the card and
+   * carries them in the managed-resources payload; it runs none of them, so
+   * the answering is entirely the page's `health` call.
    */
-  managedResources: { agents: AGENTS, schedules: SCHEDULES },
+  managedResources: { agents: AGENTS, schedules: SCHEDULES, setupChecks: setupChecks() },
 }
 
 export default video

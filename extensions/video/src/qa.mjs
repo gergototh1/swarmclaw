@@ -51,6 +51,19 @@ import { VideoError, readString, refuse } from './args.mjs'
  */
 export const SZABALYKESZLET = 1
 
+/**
+ * The ids of accepted `szabaly` proposals a released rule set has actually
+ * coded. A version of this file that implements one writes its proposal id
+ * here; the page reads the list and marks the proposal `kodolva`, which is
+ * what takes it off the backlog and out of the cap in `decideProposal`.
+ *
+ * Empty today, and it means what it says: rule set 1 codes no proposal,
+ * because rule set 1 is the port of `qa_gate.py` and predates every
+ * proposal. An id here that no rule implements would be the false report
+ * this module does not make.
+ */
+export const KODOLT_JAVASLAT_IDK = Object.freeze([])
+
 /** The `qa_gate.py` constants, by name and value. */
 export const KUSZOBOK = Object.freeze({
   MIN_SIZE_BYTES: 100_000,
