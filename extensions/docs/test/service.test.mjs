@@ -1,0 +1,311 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import test from 'node:test'
+
+import { MIGRATIONS, createRepo } from '../src/db.mjs'
+import { HIBA } from '../src/errors.mjs'
+import { createIndexWriter } from '../src/index-writer.mjs'
+import { createService, fileSlug } from '../src/service.mjs'
+import { createVault } from '../src/vault.mjs'
+import { memStorage } from './helpers.mjs'
+
+const user = { kind: 'user' }
+const marketing = { kind: 'agent', slug: 'marketing' }
+const kutato = { kind: 'agent', slug: 'kutato' }
+
+function harness({ versions = 50 } = {}) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-svc-'))
+  const s = memStorage()
+  for (const m of MIGRATIONS) s.raw.exec(m.sql)
+  const vault = createVault({ root })
+  vault.ensureRoot()
+  const repo = createRepo(s)
+  const writer = createIndexWriter({ vault, repo })
+  let clock = Date.parse('2026-09-06T10:00:00.000Z')
+  const service = createService({
+    vault,
+    writer,
+    repo,
+    sharedFolder: () => 'kozos',
+    versionsKept: () => versions,
+    now: () => new Date(clock),
+  })
+  return {
+    vault,
+    repo,
+    service,
+    tick: (ms) => { clock += ms },
+    cleanup: () => fs.rmSync(root, { recursive: true, force: true }),
+  }
+}
+
+test('fileSlug folds accents and never returns an empty name', () => {
+  assert.equal(fileSlug('Ügyfélprofil — Morvai'), 'ugyfelprofil-morvai')
+  assert.equal(fileSlug('Kőműves Űrhajós'), 'komuves-urhajos')
+  assert.equal(fileSlug('!!!'), 'doksi')
+  assert.equal(fileSlug(''), 'doksi')
+})
+
+test('create without a folder lands in the calling agent home', () => {
+  const h = harness()
+  try {
+    const res = h.service.create(marketing, { cim: 'Ügyfélprofil', tartalom: 'Szöveg.\n' })
+    assert.equal(res.utvonal, 'agents/marketing/ugyfelprofil.md')
+    assert.equal(res.verzio, 1)
+    assert.equal(h.repo.getById(res.id).owner, 'agent:marketing')
+  } finally { h.cleanup() }
+})
+
+test('create by the operator with no folder lands in the shared folder', () => {
+  const h = harness()
+  try {
+    const res = h.service.create(user, { cim: 'Közös jegyzet' })
+    assert.equal(res.utvonal, 'kozos/kozos-jegyzet.md')
+  } finally { h.cleanup() }
+})
+
+test('create refuses another agent folder by name', () => {
+  const h = harness()
+  try {
+    assert.throws(
+      () => h.service.create(marketing, { mappa: 'agents/kutato', cim: 'Belenyúlás' }),
+      (err) => err.code === HIBA.nincs_jog,
+    )
+  } finally { h.cleanup() }
+})
+
+test('two documents with the same title get distinct file names', () => {
+  const h = harness()
+  try {
+    const a = h.service.create(marketing, { cim: 'Jegyzet' })
+    const b = h.service.create(marketing, { cim: 'Jegyzet' })
+    assert.equal(a.utvonal, 'agents/marketing/jegyzet.md')
+    assert.equal(b.utvonal, 'agents/marketing/jegyzet-2.md')
+    assert.notEqual(a.id, b.id)
+  } finally { h.cleanup() }
+})
+
+test('create from a template starts from the template body', () => {
+  const h = harness()
+  try {
+    h.vault.writeDoc('_sablonok/jegyzokonyv.md', {
+      meta: { id: 'doc_tpl', title: 'Jegyzőkönyv', owner: 'user', tags: [] },
+      body: '## Résztvevők\n\n## Döntések\n',
+    })
+    const res = h.service.create(marketing, { cim: 'Hétfői kör', sablon: 'jegyzokonyv' })
+    assert.equal(h.service.read(res.id).tartalom, '## Résztvevők\n\n## Döntések\n')
+  } finally { h.cleanup() }
+})
+
+test('create names a missing template instead of writing an empty doc', () => {
+  const h = harness()
+  try {
+    assert.throws(
+      () => h.service.create(marketing, { cim: 'X', sablon: 'nincs-ilyen' }),
+      (err) => err.code === HIBA.nincs_ilyen_doksi,
+    )
+  } finally { h.cleanup() }
+})
+
+test('update without baseVersion is refused, not silently applied', () => {
+  const h = harness()
+  try {
+    const doc = h.service.create(marketing, { cim: 'A', tartalom: 'eredeti\n' })
+    assert.throws(
+      () => h.service.update(marketing, { id: doc.id, tartalom: 'új\n' }),
+      (err) => err.code === HIBA.rossz_parameter,
+    )
+    assert.equal(h.service.read(doc.id).tartalom, 'eredeti\n')
+  } finally { h.cleanup() }
+})
+
+test('update with a stale baseVersion conflicts and writes nothing', () => {
+  const h = harness()
+  try {
+    const doc = h.service.create(marketing, { cim: 'A', tartalom: 'eredeti\n' })
+    h.service.update(user, { id: doc.id, tartalom: 'operátoré\n', baseVersion: 1 })
+
+    let caught
+    try {
+      h.service.update(marketing, { id: doc.id, tartalom: 'ügynöké\n', baseVersion: 1 })
+    } catch (err) { caught = err }
+
+    assert.equal(caught.code, HIBA.utkozes)
+    assert.equal(caught.details.jelenlegiVerzio, 2)
+    assert.equal(caught.details.modositotta, 'user')
+    assert.equal(caught.details.ovek, 'operátoré\n')
+    assert.equal(h.service.read(doc.id).tartalom, 'operátoré\n')
+  } finally { h.cleanup() }
+})
+
+test('update with the right baseVersion writes and bumps the version', () => {
+  const h = harness()
+  try {
+    const doc = h.service.create(marketing, { cim: 'A', tartalom: 'eredeti\n' })
+    const res = h.service.update(marketing, { id: doc.id, tartalom: 'új\n', baseVersion: 1 })
+    assert.equal(res.verzio, 2)
+    assert.equal(h.service.read(doc.id).tartalom, 'új\n')
+  } finally { h.cleanup() }
+})
+
+test('a version row holds the text of that version, not the one before it', () => {
+  const h = harness()
+  try {
+    const doc = h.service.create(marketing, { cim: 'A', tartalom: 'egy\n' })
+    h.service.update(marketing, { id: doc.id, tartalom: 'ketto\n', baseVersion: 1 })
+    assert.equal(h.service.version(doc.id, 1).content, 'egy\n')
+    assert.equal(h.service.version(doc.id, 2).content, 'ketto\n')
+  } finally { h.cleanup() }
+})
+
+test('versions are pruned to the configured limit', () => {
+  const h = harness({ versions: 3 })
+  try {
+    const doc = h.service.create(marketing, { cim: 'A', tartalom: 'v1\n' })
+    for (let v = 1; v <= 5; v += 1) {
+      h.service.update(marketing, { id: doc.id, tartalom: `v${v + 1}\n`, baseVersion: v })
+    }
+    assert.deepEqual(h.service.versions(doc.id).map((x) => x.version), [6, 5, 4])
+  } finally { h.cleanup() }
+})
+
+test('renaming a document rewrites the links that point at its old title', () => {
+  const h = harness()
+  try {
+    const target = h.service.create(user, { cim: 'Ügyfélprofil', tartalom: 'x\n' })
+    const referrer = h.service.create(user, { cim: 'Hivatkozó', tartalom: 'Lásd [[Ügyfélprofil]].\n' })
+
+    const res = h.service.update(user, { id: target.id, cim: 'Morvai profil', baseVersion: 1 })
+    assert.deepEqual(res.linkek.frissitett, [h.repo.getById(referrer.id).path])
+    assert.equal(h.service.read(referrer.id).tartalom, 'Lásd [[Morvai profil]].\n')
+  } finally { h.cleanup() }
+})
+
+test('a rename skips a referrer the actor may not write, and names it', () => {
+  const h = harness()
+  try {
+    const target = h.service.create(marketing, { cim: 'Ügyfélprofil', tartalom: 'x\n' })
+    const referrer = h.service.create(kutato, { cim: 'Kutató jegyzet', tartalom: 'Lásd [[Ügyfélprofil]].\n' })
+
+    const res = h.service.update(marketing, { id: target.id, cim: 'Morvai profil', baseVersion: 1 })
+    assert.deepEqual(res.linkek.frissitett, [])
+    assert.deepEqual(res.linkek.kihagyott, ['agents/kutato/kutato-jegyzet.md'])
+    assert.equal(h.service.read(referrer.id).tartalom, 'Lásd [[Ügyfélprofil]].\n')
+  } finally { h.cleanup() }
+})
+
+test('list gives an agent its own folder plus the shared one', () => {
+  const h = harness()
+  try {
+    h.service.create(marketing, { cim: 'Sajat' })
+    h.service.create(user, { mappa: 'kozos', cim: 'Kozos' })
+    h.service.create(kutato, { cim: 'Masike' })
+
+    const seen = h.service.list(marketing).map((d) => d.title).sort()
+    assert.deepEqual(seen, ['Kozos', 'Sajat'])
+    // De ha kifejezetten kéri, a másikét is látja: olvasni mindent lehet.
+    assert.equal(h.service.list(marketing, { mappa: 'agents/kutato' }).length, 1)
+  } finally { h.cleanup() }
+})
+
+test('search folds diacritics and can be scoped', () => {
+  const h = harness()
+  try {
+    h.service.create(marketing, { cim: 'A', tartalom: 'Kőműves Morvai.\n' })
+    assert.equal(h.service.search('komuves').length, 1)
+    assert.equal(h.service.search('komuves', { mappa: 'kozos' }).length, 0)
+    assert.throws(() => h.service.search('  '), (err) => err.code === HIBA.rossz_parameter)
+  } finally { h.cleanup() }
+})
+
+test('move keeps the id and refuses a destination the actor cannot write', () => {
+  const h = harness()
+  try {
+    const doc = h.service.create(marketing, { cim: 'A' })
+    const res = h.service.move(marketing, { id: doc.id, ujMappa: 'kozos' })
+    assert.equal(res.utvonal, 'kozos/a.md')
+    assert.equal(h.repo.getById(doc.id).path, 'kozos/a.md')
+
+    assert.throws(
+      () => h.service.move(marketing, { id: doc.id, ujMappa: 'agents/kutato' }),
+      (err) => err.code === HIBA.nincs_jog,
+    )
+  } finally { h.cleanup() }
+})
+
+test('delete trashes the file, keeps the row, and restore brings it back', () => {
+  const h = harness()
+  try {
+    const doc = h.service.create(marketing, { cim: 'A', tartalom: 'Morvai.\n' })
+    const removed = h.service.remove(marketing, { id: doc.id })
+
+    assert.equal(h.vault.exists('agents/marketing/a.md'), false)
+    assert.ok(h.vault.exists(removed.kukaban))
+    assert.equal(h.repo.listDocs({}).length, 0)
+    assert.equal(h.repo.search('morvai', {}).length, 0)
+    assert.equal(h.repo.listDocs({ includeDeleted: true }).length, 1)
+
+    const back = h.service.restore(marketing, { id: doc.id })
+    assert.equal(back.utvonal, 'agents/marketing/a.md')
+    assert.equal(h.service.read(doc.id).tartalom, 'Morvai.\n')
+    assert.equal(h.repo.search('morvai', {}).length, 1)
+  } finally { h.cleanup() }
+})
+
+test('only the operator may purge', () => {
+  const h = harness()
+  try {
+    const doc = h.service.create(marketing, { cim: 'A' })
+    h.service.remove(marketing, { id: doc.id })
+    assert.throws(
+      () => h.service.purge(marketing, { id: doc.id }),
+      (err) => err.code === HIBA.nincs_jog,
+    )
+    h.service.purge(user, { id: doc.id })
+    assert.equal(h.repo.listDocs({ includeDeleted: true }).length, 0)
+  } finally { h.cleanup() }
+})
+
+test('restoring an old version writes it forward instead of rewinding history', () => {
+  const h = harness()
+  try {
+    const doc = h.service.create(marketing, { cim: 'A', tartalom: 'egy\n' })
+    h.service.update(marketing, { id: doc.id, tartalom: 'ketto\n', baseVersion: 1 })
+    h.service.restoreVersion(marketing, { id: doc.id, verzio: 1, baseVersion: 2 })
+
+    assert.equal(h.service.read(doc.id).tartalom, 'egy\n')
+    assert.deepEqual(h.service.versions(doc.id).map((v) => v.version), [3, 2, 1])
+    assert.equal(h.service.version(doc.id, 2).content, 'ketto\n', 'a köztes verzió eltűnt')
+  } finally { h.cleanup() }
+})
+
+test('backlinks and templates answer through the service', () => {
+  const h = harness()
+  try {
+    const target = h.service.create(user, { cim: 'Cél', tartalom: 'x\n' })
+    h.service.create(user, { cim: 'Forrás', tartalom: 'Lásd [[Cél]].\n' })
+    assert.deepEqual(h.service.backlinks(target.id).map((b) => b.title), ['Forrás'])
+
+    assert.deepEqual(h.service.templates(), [])
+    h.vault.writeDoc('_sablonok/jegyzokonyv.md', { meta: { id: 'doc_t', title: 'J', owner: 'user', tags: [] }, body: 'x\n' })
+    assert.deepEqual(h.service.templates(), [{ nev: 'jegyzokonyv', utvonal: '_sablonok/jegyzokonyv.md' }])
+  } finally { h.cleanup() }
+})
+
+test('every operation names a missing document rather than returning nothing', () => {
+  const h = harness()
+  try {
+    for (const call of [
+      () => h.service.read('doc_nincs'),
+      () => h.service.update(user, { id: 'doc_nincs', baseVersion: 1 }),
+      () => h.service.move(user, { id: 'doc_nincs', ujMappa: 'kozos' }),
+      () => h.service.remove(user, { id: 'doc_nincs' }),
+      () => h.service.versions('doc_nincs'),
+      () => h.service.backlinks('doc_nincs'),
+    ]) {
+      assert.throws(call, (err) => err.code === HIBA.nincs_ilyen_doksi)
+    }
+  } finally { h.cleanup() }
+})

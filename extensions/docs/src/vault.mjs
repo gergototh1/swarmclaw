@@ -277,5 +277,21 @@ export function createVault({ root }) {
     return { trashRel }
   }
 
-  return { root: realRoot, abs, rel, ensureRoot, exists, readDoc, writeDoc, listDocs, move, trash }
+  /**
+   * Deletes for good.
+   *
+   * Only the trash operation and the operator's own purge reach this; ordinary
+   * deletion is `trash()`, which keeps the bytes. Removes the id's directory
+   * rather than the single file so the trash does not accumulate empty folders.
+   */
+  function remove(relPath) {
+    const target = abs(relPath)
+    fs.rmSync(target, { force: true })
+    const dir = path.dirname(target)
+    if (dir !== realRoot && fs.existsSync(dir) && fs.readdirSync(dir).length === 0) {
+      fs.rmdirSync(dir)
+    }
+  }
+
+  return { root: realRoot, abs, rel, ensureRoot, exists, readDoc, writeDoc, listDocs, move, trash, remove }
 }

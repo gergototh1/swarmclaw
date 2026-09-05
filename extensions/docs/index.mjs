@@ -1,5 +1,8 @@
+import { createAgentContext } from './src/agent-context.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { createIndexWriter } from './src/index-writer.mjs'
+import { createService } from './src/service.mjs'
+import { createTools } from './src/tools.mjs'
 import { createVault } from './src/vault.mjs'
 
 /**
@@ -25,6 +28,7 @@ export const state = {
   repo: null,
   _vault: null,
   _writer: null,
+  _service: null,
   _root: null,
 }
 
@@ -57,6 +61,13 @@ function rebuildIfNeeded() {
   if (state._vault && state._root === root) return
   state._vault = createVault({ root })
   state._writer = createIndexWriter({ vault: state._vault, repo: state.repo })
+  state._service = createService({
+    vault: state._vault,
+    writer: state._writer,
+    repo: state.repo,
+    sharedFolder,
+    versionsKept,
+  })
   state._root = root
 }
 
@@ -70,11 +81,26 @@ export function writerOf() {
   return state._writer
 }
 
+export function serviceOf() {
+  rebuildIfNeeded()
+  return state._service
+}
+
+const logOf = () => state.log
+
+const agentContext = createAgentContext(state, { serviceOf, sharedFolder, logOf })
+
 const docs = {
   name: 'Doksik',
   version: '0.1.0',
   description: 'Markdown-doksik egy mappában: grafikus szerkesztő az operátornak, hat tool az ügynököknek, ügynökönként saját mappa.',
   migrations: MIGRATIONS,
+  tools: createTools(state, { serviceOf, logOf }),
+  hooks: {
+    getAgentContext: agentContext.getAgentContext,
+    getCapabilityDescription: agentContext.getCapabilityDescription,
+    getOperatingGuidance: agentContext.getOperatingGuidance,
+  },
   setup(ctx) {
     state.storage = ctx.storage
     state.settings = typeof ctx.settings === 'function' ? ctx.settings : () => ({})
@@ -85,6 +111,7 @@ const docs = {
     // previous load did, and a stale vault would write into the old one.
     state._vault = null
     state._writer = null
+    state._service = null
     state._root = null
   },
   ui: {
