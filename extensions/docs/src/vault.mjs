@@ -141,7 +141,23 @@ export function createVault({ root }) {
   }
   const expanded = root.startsWith('~/') ? path.join(os.homedir(), root.slice(2)) : root
   const resolved = path.resolve(expanded)
-  const realRoot = fs.existsSync(resolved) ? fs.realpathSync(resolved) : resolved
+  /**
+   * Mutable, because the canonical form of a path is not knowable until the
+   * path exists.
+   *
+   * A root that does not exist yet cannot be realpath'd, so it starts as the
+   * lexically resolved form. The moment `ensureRoot` creates it, the
+   * filesystem can answer -- and on macOS it answers differently: a directory
+   * under /tmp or /var resolves to /private/tmp or /private/var.
+   *
+   * Leaving the old value in place is not cosmetic. `abs()` realpaths the
+   * nearest existing ancestor and compares it with this, so a root stuck at
+   * `/var/...` while the directory answers `/private/var/...` makes every path
+   * in the vault look like an escape, and every operation fails. That is
+   * exactly what happened on the first install, where setup() built the vault
+   * before the root existed.
+   */
+  let realRoot = fs.existsSync(resolved) ? fs.realpathSync(resolved) : resolved
 
   /**
    * The absolute path of a root-relative one, or a throw.
@@ -184,6 +200,8 @@ export function createVault({ root }) {
   function ensureRoot() {
     try {
       fs.mkdirSync(realRoot, { recursive: true })
+      // Now that it exists, the filesystem can say what it really is.
+      realRoot = fs.realpathSync(realRoot)
       fs.accessSync(realRoot, fs.constants.W_OK)
     } catch {
       throw new DocsError(
@@ -298,5 +316,20 @@ export function createVault({ root }) {
     }
   }
 
-  return { root: realRoot, abs, rel, ensureRoot, exists, readDoc, writeDoc, listDocs, mkdirp, move, trash, remove }
+  // `root` is a getter, not a snapshot: ensureRoot may re-resolve it, and a
+  // caller holding the value from before would be holding the wrong one.
+  return {
+    get root() { return realRoot },
+    abs,
+    rel,
+    ensureRoot,
+    exists,
+    readDoc,
+    writeDoc,
+    listDocs,
+    mkdirp,
+    move,
+    trash,
+    remove,
+  }
 }

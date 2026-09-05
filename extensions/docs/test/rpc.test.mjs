@@ -285,6 +285,30 @@ test('the contract cannot write into an agent folder that is not its own', async
   } finally { h.cleanup() }
 })
 
+test('the contract declaration satisfies every rule the host enforces', () => {
+  const h = harness()
+  try {
+    // A host validátora (src/lib/server/extensions/extension-contracts.ts,
+    // validateContracts) ezeket kéri. A `summary` hiánya nem a betöltéskor
+    // derült ki, hanem élesben, a naplóból -- ezért van itt.
+    const NAME_RE = /^[a-z][a-z0-9_]{0,63}$/
+    const MAX_TEXT = 200
+
+    assert.ok(NAME_RE.test(DOCS_CONTRACT), 'a szerződés neve nem felel meg a mintának')
+    assert.ok(Number.isInteger(h.contract.version) && h.contract.version >= 1)
+    assert.equal(typeof h.contract.summary, 'string')
+    assert.ok(h.contract.summary.trim().length > 0, 'nincs summary: a host visszautasítja a betöltést')
+    assert.ok(h.contract.summary.length <= MAX_TEXT, `túl hosszú summary: ${h.contract.summary.length}`)
+
+    const names = Object.keys(h.contract.methods)
+    assert.ok(names.length > 0, 'metódus nélküli szerződést a host elutasít')
+    for (const name of names) {
+      assert.ok(NAME_RE.test(name), `rossz metódusnév: ${name}`)
+      assert.equal(typeof h.contract.methods[name], 'function')
+    }
+  } finally { h.cleanup() }
+})
+
 test('the contract exposes exactly two methods, at version 1', () => {
   const h = harness()
   try {

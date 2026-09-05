@@ -107,6 +107,12 @@ export const watcherControl = createWatcherControl()
  */
 export function syncWatcher() {
   try {
+    // The root has to exist before anything can watch it. setup() runs before
+    // any tool or page call has had a reason to create it, so on a fresh
+    // install the watch would otherwise fail with ENOENT and stay down until
+    // the operator pressed the restart button -- which is a bad first
+    // impression of a feature that is supposed to be automatic.
+    vaultOf().ensureRoot()
     return watcherControl.ensureWatcher({
       root: vaultOf().root,
       enabled: watchEnabled(),

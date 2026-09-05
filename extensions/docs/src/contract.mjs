@@ -22,6 +22,10 @@ export const DOCS_CONTRACT = 'docs'
 export function createDocsContract({ serviceOf, extensionNameOf }) {
   return {
     version: 1,
+    // Required by the host, and it is the operator who reads it: the extensions
+    // list renders this sentence beside every consumer that declares the
+    // contract, and that listing is the only place the reach shows up at all.
+    summary: 'Doksit tehet le a saját mappájába, és vissza tudja olvasni, amit letett. Listázni, keresni, módosítani és törölni nem tud.',
     methods: {
       /** Creates a document in the calling extension's own folder. */
       letesz(args = {}) {

@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import test, { after } from 'node:test'
 
 import docs, { rootSetting, sharedFolder, state, vaultOf, versionsKept, watchEnabled, watcherControl } from '../index.mjs'
+
+/**
+ * setup() now starts a real watcher, and an open fs.watch handle keeps the
+ * Node process alive after the last test has passed. Every suite that calls
+ * setup() has to hand it back.
+ */
+after(() => { watcherControl.stop() })
 
 /** The smallest ctx the host could hand over. */
 function fakeCtx(settings = {}) {
@@ -61,20 +71,53 @@ test('setup() can run twice, and the second run follows the new root', () => {
   // A setup() minden data/extensions alatti írásra újrafut, tehát az
   // ismételhetőség nem kényelmi kérdés. A lényeg, hogy a második futás után
   // semmi ne az előző gyökérre mutasson.
-  docs.setup(fakeCtx({ gyoker: '/tmp/docs-decl-a' }))
-  assert.equal(vaultOf().root, '/tmp/docs-decl-a')
+  //
+  // A vault a gyökeret realpath-tal oldja fel -- macOS-en a /tmp maga is
+  // symlink --, ezért a kanonikus alakhoz hasonlítunk, nem a beírthoz.
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-ket-'))
+  const a = path.join(base, 'a')
+  const b = path.join(base, 'b')
+  try {
+    docs.setup(fakeCtx({ gyoker: a }))
+    assert.equal(vaultOf().root, fs.realpathSync(a))
 
-  docs.setup(fakeCtx({ gyoker: '/tmp/docs-decl-b' }))
-  assert.equal(vaultOf().root, '/tmp/docs-decl-b')
-  assert.equal(state._root, '/tmp/docs-decl-b')
+    docs.setup(fakeCtx({ gyoker: b }))
+    assert.equal(vaultOf().root, fs.realpathSync(b))
+    assert.equal(state._root, b)
+  } finally {
+    watcherControl.stop()
+    fs.rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('setup() creates the root so the first watch does not fail on ENOENT', () => {
+  // Élesben ez bukott: a setup() a figyelőt még nem létező mappára indította,
+  // az fs.watch ENOENT-tel elszállt, és a figyelés a telepítés után addig
+  // állt, amíg az operátor kézzel újra nem indította.
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-setup-')) + '/friss'
+  try {
+    docs.setup(fakeCtx({ gyoker: root }))
+    assert.equal(fs.existsSync(root), true, 'a setup() nem hozta létre a gyökeret')
+    assert.equal(watcherControl.status().fut, true, 'a figyelő nem indult el')
+    assert.equal(watcherControl.status().hiba, null)
+  } finally {
+    watcherControl.stop()
+    fs.rmSync(path.dirname(root), { recursive: true, force: true })
+  }
 })
 
 test('setup() starts at most one watcher however often it runs', () => {
-  docs.setup(fakeCtx({ gyoker: '/tmp/docs-decl-a' }))
-  const first = watcherControl.status()
-  docs.setup(fakeCtx({ gyoker: '/tmp/docs-decl-a' }))
-  docs.setup(fakeCtx({ gyoker: '/tmp/docs-decl-a' }))
-  assert.deepEqual(watcherControl.status(), first)
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-egy-'))
+  try {
+    docs.setup(fakeCtx({ gyoker: root }))
+    const first = watcherControl.status()
+    docs.setup(fakeCtx({ gyoker: root }))
+    docs.setup(fakeCtx({ gyoker: root }))
+    assert.deepEqual(watcherControl.status(), first)
+  } finally {
+    watcherControl.stop()
+    fs.rmSync(root, { recursive: true, force: true })
+  }
 })
 
 test('settings readers fall back rather than returning undefined', () => {

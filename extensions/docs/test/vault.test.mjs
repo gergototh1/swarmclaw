@@ -142,6 +142,27 @@ test('ensureRoot names an unwritable root instead of failing silently', () => {
   }
 })
 
+test('a root created after the vault was built still accepts paths', () => {
+  // Élesben ez bukott meg: a setup() a vaultot a gyökér létrejötte ELŐTT
+  // építette, így a root feloldatlan maradt (/var/...), miközben a később
+  // létrejött mappát az abs() már /private/var/...-ként oldotta fel -- és
+  // onnantól a vault minden útvonalat kilépésnek ítélt.
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-kesoi-'))
+  const root = path.join(base, 'meg-nincs')
+  try {
+    const vault = createVault({ root })
+    assert.equal(fs.existsSync(root), false)
+
+    vault.ensureRoot()
+    assert.equal(vault.root, fs.realpathSync(root), 'a root nem oldódott fel a létrejötte után')
+    assert.doesNotThrow(() => vault.abs('kozos/a.md'))
+    vault.writeDoc('kozos/a.md', { meta: { id: 'doc_a', title: 'A', owner: 'user', tags: [] }, body: 'x\n' })
+    assert.equal(vault.readDoc('kozos/a.md').body, 'x\n')
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('readDoc names a missing file', () => {
   const root = tempRoot()
   try {

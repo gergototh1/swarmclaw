@@ -16,11 +16,22 @@ import { agentSlug } from './permissions.mjs'
  * the actor, a model could name somebody else and write into their folder.
  */
 
-/** Who is calling, from what the host said rather than what was asked for. */
+/**
+ * Who is calling, from what the host said rather than what was asked for.
+ *
+ * The host builds this object as `{ ...ctx, ...buildContext }`
+ * (src/lib/server/session-tools/index.ts), so the agent arrives in more than
+ * one shape: `agentId` is on the outer context, and `agentRecord` is the whole
+ * Agent, name included. The name matters, because it is what the folder is
+ * called: without it the slug falls back to the first characters of the id and
+ * an operator opening the vault in Finder sees `agents/c3377d/` where
+ * `agents/gtassistant/` was the entire point.
+ */
 export function actorOf(ctx) {
   const session = ctx?.session ?? {}
-  const id = session.agentId ?? session.agent?.id ?? ''
-  const name = session.agentName ?? session.agent?.name ?? ''
+  const record = session.agentRecord ?? session.agent ?? null
+  const id = session.agentId ?? record?.id ?? ''
+  const name = record?.name ?? session.agentName ?? ''
   if (!id && !name) return { kind: 'user' }
   return { kind: 'agent', slug: agentSlug(name, id) }
 }

@@ -67,6 +67,20 @@ test('the module exposes exactly the six declared tools', () => {
   } finally { h.cleanup() }
 })
 
+test('actorOf reads the agent record the host actually passes', () => {
+  // A host a tool ctx-ét `{ ...ctx, ...buildContext }`-ként állítja össze
+  // (src/lib/server/session-tools/index.ts): az agentId a külső contextből jön,
+  // a teljes Agent pedig agentRecord néven. Élesben ez utóbbi hiányzott a
+  // felismerésből, és a mappa `agents/c3377d/` lett volna `agents/gtassistant/`
+  // helyett.
+  assert.deepEqual(
+    actorOf({ session: { agentId: 'c3377d2c', agentRecord: { id: 'c3377d2c', name: 'GTassistant' } } }),
+    { kind: 'agent', slug: 'gtassistant' },
+  )
+  // Név nélkül az id az egyetlen kapaszkodó -- csúnya, de működik.
+  assert.deepEqual(actorOf({ session: { agentId: 'c3377d2c' } }), { kind: 'agent', slug: 'c3377d' })
+})
+
 test('actorOf reads the session, and no tool argument can override it', () => {
   assert.deepEqual(actorOf(agentCtx('abc123def', 'Marketing Ügynök')), { kind: 'agent', slug: 'marketing-ugynok' })
   assert.deepEqual(actorOf(operatorCtx), { kind: 'user' })
