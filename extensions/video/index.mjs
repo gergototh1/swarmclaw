@@ -1,3 +1,4 @@
+import { AGENTS, SCHEDULES } from './src/agents.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { createCatalogTool } from './src/katalogus.mjs'
 import { createNarrateTool } from './src/narracio.mjs'
@@ -85,8 +86,8 @@ const video = {
     state.contracts = ctx.contracts
     state.repo = createRepo(ctx.storage)
   },
-  // The catalogue read, the five tools of a plan's life before narration
-  // (open, draft, verdict, lessons, queue), the narration over the tts
+  // The catalogue read, the six tools of a plan's life before narration
+  // (open, draft, verdict, lessons, queue, plan), the narration over the tts
   // contract, the render and its watchdog, and the three of the daily
   // review (material, close, propose). The rpc map arrives in a later task;
   // an empty rpc declaration is what the host accepts for an extension that
@@ -138,7 +139,13 @@ const video = {
       { key: 'forduloRogzites', label: 'Fordulók rögzítése', type: 'select', defaultValue: 'sajat', options: [{ value: 'sajat', label: 'csak a modul két ügynöke' }, { value: 'mind', label: 'minden csatolt ügynök (60 napig)' }] },
     ],
   },
-  managedResources: { agents: [], schedules: [] },
+  /**
+   * The two agents and their three schedules (src/agents.mjs). Nothing here
+   * exists on the operator's instance until they press Reconcile once on
+   * Extensions > Managed resources: no host path runs a reconcile on install,
+   * enable or upgrade. `setupChecks` arrives with the health task.
+   */
+  managedResources: { agents: AGENTS, schedules: SCHEDULES },
 }
 
 export default video
