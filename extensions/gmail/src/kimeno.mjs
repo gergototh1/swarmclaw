@@ -87,8 +87,15 @@ const MAX_UZENET_ID = 256
  */
 const NEM_TAMOGATOTT = Object.freeze(['cc', 'bcc', 'replyTo', 'html', 'melleklet', 'attachments'])
 
-/** The daily draft budget when the operator has no opinion. Matches the settings field's own default in index.mjs. */
-const NAPI_PISZKOZAT_ALAP = 20
+/**
+ * The daily draft budget when the operator has no opinion. Matches the settings
+ * field's own default in index.mjs.
+ *
+ * Exported so `health.mjs` shows the number this file actually enforces. A
+ * second copy there would be a status bar promising a limit the next refusal
+ * does not count against.
+ */
+export const NAPI_PISZKOZAT_ALAP = 20
 
 /** The keys an attempt row's `mit` renders, and how much of each. Bounded here so a refused 100 000 character body is not built into a string only to be cut. */
 const MIT_KULCSOK = Object.freeze(['cimzettHandlek', 'valaszUzenetId', 'targy', 'szoveg', ...NEM_TAMOGATOTT])

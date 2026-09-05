@@ -1,4 +1,9 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { MAILBOX_CONTRACT, createMailboxContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { createRpc } from './src/rpc.mjs'
 
 /**
  * Everything the host hands over in setup(), plus the two seams a test injects.
@@ -26,6 +31,35 @@ export const state = {
   repo: null,
   clientFactory: null,
   fetchImpl: null,
+}
+
+/**
+ * The workspace this file runs from. The MCP shim lives beside it under
+ * `mcp/`, and the rpc's `mcpConfig` reports that path for the operator's
+ * Settings > MCP Servers entry.
+ */
+const workspaceDir = path.dirname(fileURLToPath(import.meta.url))
+
+/**
+ * Where the host writes `run/port.json`, by the host's own rule in
+ * `src/lib/server/data-dir.ts` (`resolveRunDir`), repeated here because an
+ * extension may not import that file: when SWARMCLAW_HOME is set, `run/` sits
+ * beside `data/` under that home, not inside it; otherwise it is `run/` under
+ * DATA_DIR, which is the DATA_DIR variable when set and `<cwd>/data` when not.
+ * The host's build-time branch is left out because the port file is written
+ * only by a running server.
+ *
+ * A SECOND COPY OF ONE RULE, read from the same environment, and nothing on
+ * this side can check that the host wrote where this says. That is why the
+ * page shows the path -- so the operator can compare it with what is on disk --
+ * and why `health` reports whether a file is there rather than assuming one is.
+ * The shim reports a missing file by name and never guesses a port.
+ */
+function resolvePortFile() {
+  const home = process.env.SWARMCLAW_HOME?.trim()
+  if (home) return path.join(path.resolve(home), 'run', 'port.json')
+  const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
+  return path.join(dataDir, 'run', 'port.json')
 }
 
 const gmail = {
@@ -67,11 +101,21 @@ const gmail = {
    * `POST /api/extensions/gmail.mjs/call/<method>` -- the host keys that route
    * on the extension's file id, which is `gmail.mjs`, not `gmail`.
    *
-   * Empty until the methods exist. An empty map is not a placeholder that
-   * behaves like something: the route answers "no such method" for every name,
-   * which is the truth about this build.
+   * The wider of the two doors, and the one that carries `releaseDraft`, the
+   * only method in this module that sends. See rpc.mjs for which methods are on
+   * it, what that placement actually buys and what it does not.
    */
-  rpc: {},
+  rpc: createRpc(state, { workspaceDir, portFile: resolvePortFile() }),
+  /**
+   * What *another* extension may call, once it has named this contract and this
+   * version in its own `consumes` and an operator has left it installed.
+   *
+   * Strictly smaller than `rpc` and separately declared, with its answers cut to
+   * its own field lists: no release, no discard, no labelling, no writing to the
+   * address book, and an outbound projection that carries neither the body nor
+   * the resolved addresses. See contract.mjs for each absence and its reason.
+   */
+  provides: { [MAILBOX_CONTRACT]: createMailboxContract(state) },
   ui: {
     pages: [{
       id: 'gmail',

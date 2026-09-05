@@ -60,8 +60,14 @@ import { napKulcs, naploKiserlet } from './kimeno.mjs'
  * to show the operator which recipients are not in the book.
  */
 
-/** The daily release budget when the operator has no opinion. Matches the settings field's own default in index.mjs. */
-const NAPI_KIADAS_ALAP = 10
+/**
+ * The daily release budget when the operator has no opinion. Matches the
+ * settings field's own default in index.mjs.
+ *
+ * Exported for the same reason as `NAPI_PISZKOZAT_ALAP`: `health.mjs` reports
+ * the number this file enforces rather than a copy of it.
+ */
+export const NAPI_KIADAS_ALAP = 10
 
 /**
  * The shape of an outbound row's id: sixteen hex characters, which is what
@@ -73,8 +79,12 @@ const NAPI_KIADAS_ALAP = 10
  * cannot carry anything but these characters into a log line or an agent's next
  * prompt. An id that fails this shape is named by its rule and never by its
  * bytes.
+ *
+ * Exported because `rpc.mjs` reads a row by id too and echoes the id in its
+ * refusal for the same reason. One constant, one place: two copies is how one
+ * of them ends up admitting a byte the other refuses.
  */
-const KIMENO_ID_RE = /^[0-9a-f]{16}$/
+export const KIMENO_ID_RE = /^[0-9a-f]{16}$/
 
 /** The shape of a confirmation: SHA-256 as sixty-four hex characters, which is what `torzsHashOf` produces. */
 const MEGEROSITES_RE = /^[0-9a-f]{64}$/
