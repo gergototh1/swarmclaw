@@ -483,7 +483,7 @@ RPC-t, a per-extension SQLite tárolót és a szerződéseket. A `~/DEV/swarmcla
 nem lenne grafikus szerkesztője.
 
 ```
-extensions/doksik/
+extensions/docs/
   index.mjs            a modul deklarációja
   package.json
   src/*.mjs            a 4. pont moduljai
