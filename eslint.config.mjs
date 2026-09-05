@@ -21,6 +21,8 @@ const eslintConfig = defineConfig([
     // Electron build output (compiled from electron/*.ts)
     "electron-dist/**",
     "release/**",
+    // Extension page bundles (written by each extension's scripts/build.mjs)
+    "extensions/*/dist/**",
   ]),
   // Prevent console.* in server-side code — use `import { log } from '@/lib/server/logger'` instead.
   {

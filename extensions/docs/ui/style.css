@@ -1,0 +1,186 @@
+/*
+ * The page's own styles.
+ *
+ * Every colour is a var() with a fallback, so the page follows the host's theme
+ * where the host defines one and stays readable where it does not. Nothing here
+ * is a global selector: every rule is under a `docs-` class, because this
+ * stylesheet is loaded into the host's document and a bare `h3` rule would
+ * reach the rest of the application.
+ */
+
+.docs-lap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: 14px;
+  color: var(--foreground, #1a1a1a);
+}
+
+.docs-hasabok {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr) minmax(220px, 300px);
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .docs-hasabok { grid-template-columns: 1fr; }
+  .docs-panel { display: none; }
+}
+
+.docs-oszlop {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+  border-right: 1px solid var(--border, #e4e4e7);
+}
+
+.docs-panel { border-right: none; }
+
+/* --- Sávok --- */
+
+.docs-sav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--muted, #f4f4f5);
+  border-bottom: 1px solid var(--border, #e4e4e7);
+}
+
+.docs-sav-baj {
+  background: var(--destructive-muted, #fef2f2);
+  color: var(--destructive, #b91c1c);
+}
+
+.docs-hiba {
+  color: var(--destructive, #b91c1c);
+  margin: 4px 0;
+}
+
+.docs-halvany {
+  color: var(--muted-foreground, #71717a);
+}
+
+/* --- Fa --- */
+
+.docs-fa-fejlec { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.docs-fa-fejlec input { width: 100%; padding: 6px 8px; border: 1px solid var(--border, #e4e4e7); border-radius: 6px; background: transparent; color: inherit; }
+.docs-fa-gombok { display: flex; gap: 6px; }
+
+.docs-fa-lista { list-style: none; margin: 0; padding-left: 12px; }
+.docs-fa-gyoker { padding-left: 0; }
+
+.docs-fa-mappanev,
+.docs-fa-doksi {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 3px 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.docs-fa-mappanev:hover,
+.docs-fa-doksi:hover { background: var(--accent, #f4f4f5); }
+.docs-fa-doksi.docs-aktiv { background: var(--accent, #e4e4e7); font-weight: 600; }
+
+.docs-talalatok { display: flex; flex-direction: column; gap: 6px; }
+.docs-talalat {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 6px; border: 1px solid var(--border, #e4e4e7); border-radius: 6px;
+  background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.docs-talalat:hover { background: var(--accent, #f4f4f5); }
+
+.docs-kuka { margin-top: 16px; border-top: 1px solid var(--border, #e4e4e7); padding-top: 8px; }
+.docs-kuka-elem { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.docs-kuka-elem span { flex: 1; }
+.docs-veszelyes { color: var(--destructive, #b91c1c); }
+
+/* --- Szerkesztő --- */
+
+.docs-szerkeszto { display: flex; flex-direction: column; }
+.docs-szerkeszto-fejlec { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.docs-szerkeszto-fejlec h2 { margin: 0; font-size: 18px; }
+
+.docs-eszkoztar {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding-bottom: 8px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--border, #e4e4e7);
+  position: sticky; top: 0;
+  background: var(--background, #fff);
+  z-index: 1;
+}
+
+.docs-eszkoztar button,
+.docs-fa-gombok button,
+.docs-utkozes-gombok button,
+.docs-sav button,
+.docs-kuka-elem button,
+.docs-verziok button {
+  padding: 3px 8px;
+  border: 1px solid var(--border, #e4e4e7);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.docs-eszkoztar button.docs-aktiv { background: var(--accent, #e4e4e7); font-weight: 600; }
+
+.docs-editor { flex: 1; min-height: 0; }
+.docs-proza { outline: none; line-height: 1.6; min-height: 300px; }
+.docs-proza h1 { font-size: 24px; margin: 16px 0 8px; }
+.docs-proza h2 { font-size: 20px; margin: 14px 0 6px; }
+.docs-proza h3 { font-size: 16px; margin: 12px 0 4px; }
+.docs-proza p { margin: 8px 0; }
+.docs-proza ul, .docs-proza ol { padding-left: 22px; }
+.docs-proza blockquote { margin: 8px 0; padding-left: 12px; border-left: 3px solid var(--border, #e4e4e7); color: var(--muted-foreground, #71717a); }
+.docs-proza pre { padding: 8px; overflow-x: auto; border-radius: 6px; background: var(--muted, #f4f4f5); }
+.docs-proza table { border-collapse: collapse; width: 100%; }
+.docs-proza th, .docs-proza td { border: 1px solid var(--border, #e4e4e7); padding: 4px 8px; }
+
+.docs-link { color: var(--primary, #2563eb); }
+.docs-link-unresolved { color: var(--muted-foreground, #a1a1aa); text-decoration: underline dotted; }
+
+.docs-utkozes {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--destructive, #b91c1c);
+  border-radius: 6px;
+  background: var(--destructive-muted, #fef2f2);
+}
+.docs-utkozes p { margin: 0 0 6px; }
+.docs-utkozes-gombok { display: flex; gap: 6px; margin-top: 8px; }
+.docs-diff { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.docs-diff h4 { margin: 0 0 4px; font-size: 12px; }
+.docs-diff pre { max-height: 240px; overflow: auto; padding: 6px; background: var(--background, #fff); border: 1px solid var(--border, #e4e4e7); border-radius: 4px; white-space: pre-wrap; }
+
+/* --- Panel --- */
+
+.docs-panel section { margin-bottom: 16px; }
+.docs-panel h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted-foreground, #71717a); }
+
+.docs-meta { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; }
+.docs-meta dt { color: var(--muted-foreground, #71717a); }
+.docs-meta dd { margin: 0; overflow-wrap: anywhere; }
+
+.docs-verziok, .docs-backlinkek { list-style: none; margin: 0; padding: 0; }
+.docs-verziok li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 2px 0; }
+.docs-verziok li > button:first-child { flex: 1; text-align: left; }
+.docs-elonezet { flex-basis: 100%; max-height: 200px; overflow: auto; padding: 6px; background: var(--muted, #f4f4f5); border-radius: 4px; white-space: pre-wrap; }
+.docs-backlinkek li { display: flex; flex-direction: column; padding: 3px 0; }
+.docs-masodlagos { opacity: 0.8; }

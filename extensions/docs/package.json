@@ -9,9 +9,19 @@
     "install:local": "node scripts/install.mjs"
   },
   "devDependencies": {
+    "@tiptap/core": "^2.27.3",
+    "@tiptap/extension-link": "^2.27.3",
+    "@tiptap/extension-table": "^2.27.3",
+    "@tiptap/extension-table-cell": "^2.27.3",
+    "@tiptap/extension-table-header": "^2.27.3",
+    "@tiptap/extension-table-row": "^2.27.3",
+    "@tiptap/react": "^2.27.3",
+    "@tiptap/starter-kit": "^2.27.3",
     "esbuild": "^0.25.0",
+    "marked": "^15.0.12",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "tsx": "^4.20.6"
+    "tsx": "^4.20.6",
+    "turndown": "^7.2.4"
   }
 }

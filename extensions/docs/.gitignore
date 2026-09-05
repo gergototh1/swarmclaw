@@ -1,0 +1,3 @@
+# Build output: scripts/build.mjs writes it and scripts/install.mjs copies it.
+dist/
+node_modules/
