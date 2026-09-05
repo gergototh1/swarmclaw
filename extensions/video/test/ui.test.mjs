@@ -156,11 +156,16 @@ test('the built video bundle registers the declared page with the host React and
   assert.equal(opts.extensionId, 'video.mjs')
   assert.equal(opts.react, React, 'the very object on window.swarmclaw.modules, not a copy')
   assert.equal(typeof component, 'function')
-  // Before the first load lands the page says so rather than drawing an empty queue.
+  // Before the first load lands the page says so rather than drawing an empty
+  // queue -- but it draws the status bar and the tabs, which do not come from
+  // the board and must not wait on it. A board that never arrives costs the
+  // queue and nothing else.
   const html = renderToStaticMarkup(jsx(component, { extensionId: 'video.mjs', rpc: async () => ({}) }))
   assert.ok(html.includes('data-extension="video.mjs"'))
   assert.ok(html.includes('Betöltés'))
-  assert.equal(html.includes('vid-status'), false)
+  assert.ok(html.includes('vid-status'), 'the status bar is drawn without the board')
+  assert.ok(html.includes('Az állapot lekérdezése folyamatban'), 'and says which of its own loads is missing')
+  assert.ok(html.includes('role="tablist"'), 'the tabs are drawn without the board')
 })
 
 test('the built video bundle names the missing host module instead of failing inside React', async () => {
@@ -453,6 +458,23 @@ test('the status bar says which turn recorder is on, and the three uninstall ste
   assert.ok(sajat.includes('Uninstall előtt'))
   assert.ok(sajat.includes('Tisztítás'))
   assert.ok(sajat.includes('ext_video_ táblákat'))
+})
+
+test('a board that could not be read costs the queue and nothing else on the bar', () => {
+  // The board is one of three loads and gates neither of the others. What it
+  // owns is the running render and the recorded turns, and those say they are
+  // unknown; every health line, the schedule sentence and both buttons are
+  // still drawn, because that is what an operator needs in order to act on a
+  // module whose queue would not load.
+  const html = render(StatusBar, {
+    board: null, health: health(), healthError: null, managed: { kind: 'unscheduled', missing: ['Videó gyártó'], total: 3 }, onRefresh: noop, rpc: async () => ({}),
+  })
+  assert.ok(html.includes('Remotion-könyvtár: rendben'), 'the health lines are drawn')
+  assert.ok(html.includes('nincs ütemezés — Reconcile kell'), 'the Reconcile warning is drawn')
+  assert.ok(html.includes('Uninstall előtt'))
+  assert.ok(html.includes('A sort nem sikerült betölteni'), 'and what the missing board costs is named')
+  assert.equal(html.includes('Nem fut render.'), false, 'a queue that never loaded is not a claim that nothing is running')
+  assert.equal(html.includes('A modul még egyetlen fordulót sem rögzített.'), false, 'nor a claim that no turn was recorded')
 })
 
 test('the last turns are labelled as this module own record, not as the host run history', () => {

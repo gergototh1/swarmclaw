@@ -60,6 +60,13 @@ import { readNoArgs, readSynthesisArgs } from './args.mjs'
  * logged; the caller names the file, and this side only checks the name.
  * Nothing in the answer repeats the text.
  *
+ * The file the consumer names is checked, not trusted: it has to be an
+ * absolute `.mp3` under the `hangGyoker` root, resolved through realpath so a
+ * symlink cannot lead out of it, and a file already there that no request row
+ * names is refused rather than replaced (`tts_celfajl_ervenytelen`,
+ * `tts_celfajl_foglalt`). A consumer holding this handle can write inside
+ * that root and nowhere else.
+ *
  * Refusals are thrown as `TtsError` with a code from `TTS_KODOK`
  * (src/soniox.mjs), unchanged. The host wraps the throw as an
  * `ExtensionContractError` with code `provider_threw` and keeps the original
@@ -98,12 +105,18 @@ export const SYNTHESIS_FIELDS = Object.freeze(['kerelemId', 'fajl', 'hosszMs', '
  * the cap let a consumer see a refusal coming; the three settings are the
  * cache key, as above.
  *
+ * `hangGyoker` is the directory a target path has to sit under, by value. It
+ * crosses because a consumer that cannot see it can only guess a path and be
+ * refused: `synthesize` accepts nothing outside that root, and nothing on the
+ * consumer's side can derive it. It is a directory the operator configured,
+ * not a secret.
+ *
  * `maiMasodperc` counts what the day is committed to, which includes the
  * estimate of any call still waiting on the provider. A consumer reading it
  * twice may see it fall, because a call that failed gives its reservation
  * back; it is a budget position, not a monotonic total.
  */
-export const STATUS_FIELDS = Object.freeze(['kulcsBeallitva', 'vegpontBeallitva', 'maiMasodperc', 'napiKeret', 'hang', 'modell', 'nyelv'])
+export const STATUS_FIELDS = Object.freeze(['kulcsBeallitva', 'vegpontBeallitva', 'hangGyoker', 'maiMasodperc', 'napiKeret', 'hang', 'modell', 'nyelv'])
 
 /** A fresh object with exactly `fields` copied out of `value`, absent ones included as undefined so the shape is fixed. */
 function pick(fields, value) {

@@ -134,6 +134,22 @@ const tts = {
       // good key's refusal into a transport failure, and the two must not look
       // the same. The field is required, and health will say when it is empty.
       { key: 'endpoint', label: 'TTS végpont (URL)', type: 'text', required: true, placeholder: 'https://…/v1/text-to-speech', help: 'A Soniox dokumentációjából, az EU-régió URL-je. A kód nem hordoz alapértelmezést, mert egy rossz URL rosszabb, mint egy üres.' },
+      // THE ONE DIRECTORY THIS EXTENSION WRITES INTO. `celFajl` is chosen by
+      // the caller -- an agent through the MCP shim, another extension
+      // through the contract -- and it is a write. Without a root, "absolute
+      // .mp3 path with no .." admits every mp3 on the machine, the
+      // operator's own narrations included, and those cannot be made again.
+      // No default: a guessed directory would be a guess about somebody
+      // else's disk, and an empty setting refuses every call by name
+      // (`tts_gyoker_hianyzik`) instead of writing somewhere plausible.
+      {
+        key: 'hangGyoker',
+        label: 'Hangfájlok gyökere (abszolút útvonal)',
+        type: 'text',
+        required: true,
+        placeholder: '/…/_remotion/public/narracio/swarmclaw',
+        help: 'A modul csak ez alá ír, symlinken keresztül sem lép ki belőle, és a már ott lévő fájlt csak akkor írja felül, ha egy kérés-sor megnevezi. Válaszd a lehető legszűkebbet: ha a videó modult szolgálod ki, ez a Remotion-projekt public/narracio/swarmclaw könyvtára, NEM a public/narracio, mert abban a saját, újra el nem készíthető narrációid vannak.',
+      },
       // `defaultValue` is what a never-configured install gets: the host writes
       // it into the stored settings when the key is undefined. A field the
       // operator clears stores '' rather than undefined, so the host default

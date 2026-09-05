@@ -88,7 +88,7 @@ function szerzodesMondat(nev: string, why: string | null, kovetkezmeny: string, 
 }
 
 export function StatusBar({ board, health, managed, healthError, onRefresh, rpc }: {
-  board: Board
+  board: Board | null
   health: Health | null
   managed: ManagedStatus | null
   healthError: string | null
@@ -122,7 +122,14 @@ export function StatusBar({ board, health, managed, healthError, onRefresh, rpc 
   }, [rpc, onRefresh])
 
   const schedule = describeManaged(managed)
-  const futo = board.futoRender
+  // The board is its own load and can fail on its own. When it did, this bar
+  // still draws everything that does not come from it -- the health lines,
+  // the schedules, the two buttons -- because a queue that could not be read
+  // says nothing about whether ffmpeg is installed or whether Reconcile has
+  // been pressed, and those are what the operator needs in order to act. The
+  // two facts that DO come from the board say they are unknown rather than
+  // being drawn as their calm value: no running render, no recorded turns.
+  const futo = board ? board.futoRender : null
   const remotion = health ? remotionMondat(health) : null
   const eszkoz = health ? eszkozMondat(health) : null
   const platform = health ? platformMondat(health) : null
@@ -174,7 +181,7 @@ export function StatusBar({ board, health, managed, healthError, onRefresh, rpc 
         />
       )}
 
-      {futo ? (
+      {board !== null && (futo ? (
         <div className="vid-status-run">
           <span className={futo.hostUjraindult ? 'vid-warn' : ''}>
             {futo.hostUjraindult
@@ -185,9 +192,10 @@ export function StatusBar({ board, health, managed, healthError, onRefresh, rpc 
         </div>
       ) : (
         <Mondat kind="muted" text="Nem fut render." />
-      )}
+      ))}
 
-      {board.utolsoFordulok.length > 0 ? (
+      {board === null && <Mondat kind="muted" text="A sort nem sikerült betölteni, így a futó renderről és a fordulókról itt nincs adat." />}
+      {board !== null && (board.utolsoFordulok.length > 0 ? (
         <ul className="vid-fordulok">
           {board.utolsoFordulok.slice(0, 3).map((f, i) => (
             <li key={`${f.agentId}-${f.at}-${i}`}>A modul fordulói szerint: {f.agentId} {f.forras} {formatDate(f.at)}</li>
@@ -195,7 +203,7 @@ export function StatusBar({ board, health, managed, healthError, onRefresh, rpc 
         </ul>
       ) : (
         <Mondat kind="muted" text="A modul még egyetlen fordulót sem rögzített." />
-      )}
+      ))}
 
       {health && health.sorNelkul !== null && health.sorNelkul > 0 && (
         <Mondat kind="warn" text={`${health.sorNelkul} sor nélküli fájl a két névtérben (az operátoré)`} />

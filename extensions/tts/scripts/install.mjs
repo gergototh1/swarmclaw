@@ -80,8 +80,10 @@ fs.writeFileSync(path.join(extDir, 'tts.mjs'), "export { default } from './.work
 // <home>/skills, which is the workspace layer discoverSkills() scans -- an
 // extension's own directory is not a layer it looks in, so a skill left in the
 // repo tree is a skill the agent that names it never sees. This extension
-// ships no skills today and declares no agents; the block stays so that the
-// day a skill is added, its rename and removal are already handled.
+// ships no skills today and declares no agents, so the copy loop below does
+// nothing on this checkout. The removal is not idle in the same way: it reads
+// a manifest that is a file on disk and deletes what the manifest names,
+// which is why every name is checked before it is joined onto a path.
 //
 // A copy alone is not an upgrade. cpSync never removes anything, so after a
 // skill is renamed the old directory stays under <home>/skills, discovery
@@ -95,13 +97,48 @@ fs.writeFileSync(path.join(extDir, 'tts.mjs'), "export { default } from './.work
 // operator put there by hand is not this script's to remove, and the very
 // first install after this manifest existed has nothing to compare against,
 // so a rename that happened before that leaves its directory in place.
+
+/**
+ * A manifest entry this script will put after `<home>/skills/` and delete
+ * recursively, or null.
+ *
+ * THE MANIFEST IS A FILE ON DISK AND THIS IS A DELETE. It survives across
+ * installs inside the data directory, it is JSON, and nothing signs it. An
+ * entry of `""` makes `path.join(home, 'skills', '')` the skills directory
+ * itself; `".."` makes it `<home>`, which with SWARMCLAW_HOME set holds the
+ * data directory, the database and every extension. Both would then be
+ * removed with `recursive: true, force: true` and no message.
+ *
+ * So a name has to be a plain directory name: non-empty, no separator, not
+ * `.` and not `..`. The host applies exactly this rule where it removes the
+ * same directories on uninstall (`removeShippedSkillDirs` in
+ * src/lib/server/extensions/extension-managed-teardown.ts, and the non-empty
+ * part in `readShippedSkillNames` beside it); the two are one rule, and this
+ * copy is here because an install script may not import the host's `src/`.
+ * Anything refused is reported and left alone: a name this script cannot
+ * place is not a name it may delete.
+ */
+function plainDirectoryName(name) {
+  if (typeof name !== 'string') return null
+  if (name === '' || name === '.' || name === '..') return null
+  if (name !== path.basename(name)) return null
+  return name
+}
+
 const skillsRoot = path.join(root, 'skills')
 const shippedManifest = path.join(wsDir, 'shipped-skills.json')
 const shipped = fs.existsSync(skillsRoot) ? fs.readdirSync(skillsRoot) : []
 let previouslyShipped = []
 try {
   const parsed = JSON.parse(fs.readFileSync(shippedManifest, 'utf8'))
-  previouslyShipped = Array.isArray(parsed) ? parsed.filter((entry) => typeof entry === 'string') : []
+  for (const entry of Array.isArray(parsed) ? parsed : []) {
+    const name = plainDirectoryName(entry)
+    if (name === null) {
+      console.error(`figyelmen kívül hagyott manifest-bejegyzés (nem egyszerű könyvtárnév): ${JSON.stringify(entry)}`)
+      continue
+    }
+    previouslyShipped.push(name)
+  }
 } catch {
   // No manifest, or not one this script wrote: nothing was shipped that this run knows about.
 }
@@ -153,7 +190,8 @@ if (copied.includes('mcp')) {
 
   const lepesek = [
     ['apiKey és endpoint beállítva', 'Extensions → a Narráció (TTS) kártyán; a /x/tts lap mutatja, be van-e állítva (az értéket sehol nem mutatja)', null],
-    ['ffprobe a PATH-on', 'az ffmpeg csomag része (brew install ffmpeg); enélkül minden szintézis tts_hossz_meres_sikertelen', tool('ffprobe', ['-version'])],
+    ['hangGyoker beállítva', 'Extensions → a Narráció (TTS) kártyán, abszolút út: a modul CSAK ez alá ír. Enélkül minden hívás tts_gyoker_hianyzik-kal bukik. A videómodulhoz a Remotion-projekt public/narracio/swarmclaw könyvtára -- nem a public/narracio, mert abban az operátor saját, újra el nem készíthető narrációi vannak', null],
+    ['ffprobe a PATH-on', 'az ffmpeg csomag része (brew install ffmpeg); enélkül a szintézis tts_hossz_meres_sikertelen-nel bukik -- a hang elkészül, a lemezen marad és cache-elve lesz, de hossz nélkül', tool('ffprobe', ['-version'])],
     ['MCP-bejegyzés felvéve', 'Settings → MCP Servers; a pontos JSON a /x/tts lapon, a SWARMCLAW_ACCESS_KEY értékét kézzel írd be a host .env.local fájljából', null],
   ]
 
@@ -180,9 +218,14 @@ Hiba, betöltés közben és futás közben:
     lassú betöltés, hanem a host indulását tartja fel a teljes határidőig.
   - Egy hibás extension nem viszi magával a hostot: a betöltés hibája a kártyára
     kerül, a többi extension fut.
-  - Kulcs nélkül, keret felett vagy szolgáltatói hiba esetén a hívás névvel bukik
-    (tts_kulcs_hianyzik, tts_keret_kimerult és a többi), és a napi keret a hívás
-    ELŐTT foglal, tehát egy hibás válasz sem költ a kereten túl.
+  - Kulcs nélkül, gyökér nélkül, keret felett vagy szolgáltatói hiba esetén a hívás
+    névvel bukik (tts_kulcs_hianyzik, tts_gyoker_hianyzik, tts_keret_kimerult és a
+    többi), és a napi keret a hívás ELŐTT foglal, tehát egy hibás válasz sem költ a
+    kereten túl.
+  - A célfájl a hívóé, de nem bármi: abszolút .mp3 a hangGyoker alatt (realpath-tal
+    ellenőrizve, symlinken sem lehet kilépni), és meglévő fájlt csak akkor ír felül,
+    ha egy ext_tts_kerelmek sor megnevezi (tts_celfajl_ervenytelen,
+    tts_celfajl_foglalt).
 
 Letiltás (Extensions → a kártya kapcsolója):
   - a modul nem lesz betöltve, a lapja eltűnik;

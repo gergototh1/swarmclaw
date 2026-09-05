@@ -27,6 +27,26 @@ import { resolveCliBinary } from '@/lib/providers/cli-utils'
  * system's own ENOENT is what surfaces, rather than turning "I could not find
  * it" into "it does not exist".
  *
+ * WHAT IT COSTS, AND WHY AN EXTENSION MUST NOT CALL IT PER TOOL CALL. The
+ * first step is a synchronous `spawnSync` of the operator's login shell
+ * (`$SHELL -lc`, which sources their profile) for up to 2 seconds, on the
+ * thread that calls it. In the server that is the thread running the HTTP
+ * handlers, the WebSocket hub and the scheduler tick: a lookup that takes two
+ * seconds stalls all three for two seconds. A negative answer is cached for
+ * 30 seconds and a positive one for the same, so a binary that is not
+ * installed is paid for again every half minute. There is no gate on this: it
+ * is handed to every loaded extension, third-party ones included, and nothing
+ * counts or throttles the calls. Resolve once per operation and hold the
+ * answer for that operation; never once per item, and never in a loop.
+ *
+ * WHEN THE FALLBACK LIST IS REACHED. `resolveCliBinary` asks the login shell
+ * first and uses the answer only when the shell gave an absolute path or the
+ * name itself. A profile that prints anything to stdout makes that answer
+ * unreadable, and `findBinaryOnPath` reports it as no answer, so the
+ * directories below are what decide — which is the case this whole module exists for, since the
+ * machine that has a short GUI PATH is the same machine whose profile is
+ * where the operator's real PATH is set.
+ *
  * WHAT IT REFUSES. The lookup's first step runs `command -v <name>` inside a
  * login shell, so the name reaches a shell string. Anything but a plain
  * command name is therefore refused by name and never quietly rewritten: no

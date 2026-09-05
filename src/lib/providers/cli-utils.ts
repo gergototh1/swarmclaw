@@ -88,6 +88,19 @@ function getNvmBinaryPaths(name: string): string[] {
  * Resolve a CLI binary path at execution time (not module load time).
  * Uses login-shell `command -v` via findBinaryOnPath (30s TTL cache),
  * then falls back to known paths + nvm paths.
+ *
+ * The shell answer wins when there is one, and `findBinaryOnPath` returns one
+ * only when the login shell answered with an absolute path or with the name
+ * itself (a builtin, a function, an alias). A profile that prints a banner
+ * makes the shell inconclusive, not authoritative: it answers null and the
+ * fallback list below is what decides. That ordering is
+ * the reason the list exists at all — on a packaged desktop app the process
+ * PATH has no /opt/homebrew/bin in it, and a banner used to be returned as if
+ * it were the binary's path, so the fallbacks were never reached.
+ *
+ * Not free: the first step is a synchronous login-shell spawn of up to 2
+ * seconds on the calling thread, and a negative result is cached for only 30
+ * seconds. See `findBinaryOnPath`.
  */
 export function resolveCliBinary(name: string, extraPaths?: string[]): string | null {
   const fromPath = findBinaryOnPath(name)

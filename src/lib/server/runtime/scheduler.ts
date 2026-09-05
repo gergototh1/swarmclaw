@@ -12,7 +12,7 @@ import { ensureAgentThreadSession } from '@/lib/server/agents/agent-thread-sessi
 import { hasActiveProtocolRunForSchedule, launchProtocolRunForSchedule } from '@/lib/server/protocols/protocol-service'
 import { hmrSingleton } from '@/lib/shared-utils'
 import { log } from '@/lib/server/logger'
-import { appendScheduleHistoryEntry } from '@/lib/server/schedules/schedule-history'
+import { appendScheduleHistoryEntry, normalizeScheduleHistory } from '@/lib/server/schedules/schedule-history'
 import { assessScheduleNextRunRepair, computeScheduleNextRunAt } from '@/lib/server/schedules/schedule-timing'
 import { getExtensionManager } from '@/lib/server/extensions'
 import type { ExtensionActivationState } from '@/lib/server/extensions'
@@ -220,27 +220,59 @@ async function tick(now = Date.now()) {
     // off, that is the reason the operator can act on, whatever else is true
     // of the schedule. A run that was already queued or running when the
     // extension went off is not touched here; this decides only whether a
-    // new one starts. The schedule is advanced like every other skip, so a
-    // re-enabled extension resumes at its next slot rather than replaying
-    // the slots it missed (and a `once` schedule is completed by the skip,
-    // as it is by every other skip).
+    // new one starts.
+    //
+    // DISABLED IS A DECISION; NOT LOADED IS A MOMENT. An operator switched the
+    // extension off, so a slot that falls while it is off is a slot they chose
+    // to miss: the schedule is advanced like every other skip, and a
+    // re-enabled extension resumes at its next slot rather than replaying what
+    // it missed.
+    //
+    // `not_loaded` is not that. `getActivationState` answers it while the
+    // directory watcher is reloading, while an import is still running, and
+    // after a one-off error the next reload clears — windows of seconds, which
+    // no operator chose and none can see. Advancing through one of those loses
+    // a run nobody skipped, and for a `once` schedule `advanceSchedule`
+    // completes it outright: the routine is marked done without ever having
+    // run, and there is nothing left to fire when the extension comes back.
+    // So a not-loaded extension defers the slot instead: `nextRunAt` stays
+    // where it is, in the past, and the next tick after the extension loads
+    // fires it. The cost is that a permanently broken extension keeps its
+    // schedule due for ever, which is the safe direction and is visible in the
+    // history entry below.
     const managedBlock = managedScheduleBlock(schedule, getExtensionActivationState)
     if (managedBlock) {
       const { reason, extensionId } = managedBlock
       const condition = managedScheduleBlockCondition(managedBlock)
-      log.warn(TAG, `Skipping schedule "${schedule.name}" (${schedule.id}) because extension ${extensionId} ${condition}`)
-      advanceSchedule(schedule)
-      upsertSchedule(schedule.id, appendScheduleHistoryEntry(schedule, {
-        now,
-        actor: 'system',
-        action: 'skipped',
-        summary: `Schedule skipped because its extension ${condition}: "${schedule.name}"`,
-        metadata: { reason, extensionId },
-      }))
-      pushMainLoopEventToMainSessions({
-        type: 'schedule_skipped',
-        text: `Schedule skipped: "${schedule.name}" (${schedule.id}) because extension ${extensionId} ${condition}.`,
-      })
+      const deferred = reason === 'extension_not_loaded'
+      // The deferral repeats every tick until the extension loads, so it is
+      // recorded once per run of deferrals rather than once per tick: an
+      // extension that is broken for an hour must not push every real entry
+      // out of a 25-entry history, and the operator must not be woken by the
+      // same sentence every minute. The first tick of the run says it; the
+      // ones after it are the same fact still being true.
+      const alreadyDeferred = deferred && normalizeScheduleHistory(schedule.history)[0]?.metadata?.reason === 'extension_not_loaded'
+      if (!alreadyDeferred) {
+        log.warn(TAG, `${deferred ? 'Deferring' : 'Skipping'} schedule "${schedule.name}" (${schedule.id}) because extension ${extensionId} ${condition}`)
+      }
+      if (!deferred) advanceSchedule(schedule)
+      if (!alreadyDeferred) {
+        upsertSchedule(schedule.id, appendScheduleHistoryEntry(schedule, {
+          now,
+          actor: 'system',
+          action: 'skipped',
+          summary: deferred
+            ? `Schedule deferred because its extension ${condition}; it will run when the extension loads: "${schedule.name}"`
+            : `Schedule skipped because its extension ${condition}: "${schedule.name}"`,
+          metadata: { reason, extensionId },
+        }))
+        pushMainLoopEventToMainSessions({
+          type: 'schedule_skipped',
+          text: deferred
+            ? `Schedule deferred: "${schedule.name}" (${schedule.id}) because extension ${extensionId} ${condition}; it stays due and runs when the extension loads.`
+            : `Schedule skipped: "${schedule.name}" (${schedule.id}) because extension ${extensionId} ${condition}.`,
+        })
+      }
       continue
     }
 

@@ -53,10 +53,11 @@ import { Buffer } from 'node:buffer'
  * a refusal for lack of balance is a fifth the operator will meet before any
  * other. Each is its own code, so nothing downstream has to read a message:
  *
- *   tts_halozat                     the request could not be made or the
- *                                   connection broke: DNS, TLS, a reset
- *   tts_idotullepes                 the deadline passed before the whole body
- *                                   had arrived; the request was aborted
+ *   tts_halozat                     the request could not be made, or the
+ *                                   connection broke BEFORE a status line:
+ *                                   DNS, TLS, a reset
+ *   tts_idotullepes                 the deadline passed before a status line
+ *                                   arrived; the request was aborted
  *   tts_egyenleg_kimerult           the provider refused for lack of balance
  *                                   (by the guess in `egyenlegKimerultE`)
  *   tts_szolgaltato_visszautasitott any other non-2xx answer; the HTTP status
@@ -64,17 +65,36 @@ import { Buffer } from 'node:buffer'
  *   tts_valasz_ertelmezhetetlen     a 2xx that carried no usable audio: empty,
  *                                   not JSON when it said it was, a JSON with
  *                                   no audio field, or bytes that are not mp3
+ *   tts_valasz_megszakadt           a 2xx whose body then broke off or ran
+ *                                   out of time
+ *
+ * WHERE THE 2XX LINE FALLS, AND WHY IT DECIDES THE MONEY. The status line is
+ * the only evidence this side has about whether the provider did the work. A
+ * 2xx means it accepted the request and began sending audio, and on a metered
+ * API that is the moment the call becomes billable; what happens to the body
+ * afterwards is this side's problem, not evidence that the provider was free.
+ * So every failure after a 2xx has its own code and all of them are in
+ * `FIZETETT_KODOK`, which is the list the synthesis layer charges for. A
+ * broken socket three lines apart from a 2xx used to read as `tts_halozat`
+ * and hand back the whole reservation, which meant the same evidence reached
+ * opposite conclusions depending on which line of this file saw it.
  *
  * The rest of the set belongs to the synthesis layer and is listed here so
  * the whole vocabulary is in one place:
  *
  *   tts_kulcs_hianyzik              the apiKey setting is empty
  *   tts_vegpont_hianyzik            the endpoint setting is empty
+ *   tts_gyoker_hianyzik             the hangGyoker setting is empty, so there
+ *                                   is no directory a target path may sit in
  *   tts_beallitas_hibas             a setting, or an argument of this
  *                                   module's own such as `timeoutMs`, is
  *                                   present and cannot be honoured
  *   tts_keret_kimerult              this extension's own daily cap is spent
- *   tts_celfajl_ervenytelen         the target path is refused
+ *   tts_celfajl_ervenytelen         the target path is refused: not absolute,
+ *                                   not .mp3, or outside the configured root
+ *   tts_celfajl_foglalt             a file is already there and no request row
+ *                                   names it, so it is not this extension's
+ *                                   to replace
  *   tts_szoveg_ervenytelen          the text is empty or too long
  *   tts_hossz_meres_sikertelen      the audio arrived and ffprobe could not
  *                                   measure it
@@ -133,18 +153,33 @@ export class TtsError extends Error {
 export const TTS_KODOK = Object.freeze([
   'tts_kulcs_hianyzik',
   'tts_vegpont_hianyzik',
+  'tts_gyoker_hianyzik',
   'tts_beallitas_hibas',
   'tts_keret_kimerult',
   'tts_egyenleg_kimerult',
   'tts_szolgaltato_visszautasitott',
   'tts_valasz_ertelmezhetetlen',
+  'tts_valasz_megszakadt',
   'tts_halozat',
   'tts_idotullepes',
   'tts_celfajl_ervenytelen',
+  'tts_celfajl_foglalt',
   'tts_szoveg_ervenytelen',
   'tts_hossz_meres_sikertelen',
   'tts_fajl_iras_sikertelen',
 ])
+
+/**
+ * The codes whose call the provider was paid for. The synthesis layer charges
+ * exactly these to the day's counter when no measurement exists, and releases
+ * the reservation for everything else.
+ *
+ * Membership is decided by one fact and nothing else: did a 2xx status line
+ * arrive? On a metered API the safe default is to charge what cannot be
+ * proven free, and a 2xx is the provider saying it took the work. Both codes
+ * here are raised only after `res.ok` was true.
+ */
+export const FIZETETT_KODOK = Object.freeze(['tts_valasz_ertelmezhetetlen', 'tts_valasz_megszakadt'])
 
 /**
  * The container this extension asks for and accepts. See THE CONTAINER, IN
@@ -362,9 +397,16 @@ export async function synthesizeRemote({ endpoint, apiKey, modell, hang, nyelv, 
     try {
       return await readAudio(res)
     } catch (err) {
-      if (deadline.signal.aborted) throw timedOut()
+      // Past the 2xx. The provider accepted the work and started sending
+      // audio, so a body that then breaks off or runs out of time is not a
+      // call that cost nothing: it gets its own code and is charged (see
+      // FIZETETT_KODOK). `tts_halozat` and `tts_idotullepes` stay what they
+      // say they are -- a call that never got a status line.
+      if (deadline.signal.aborted) {
+        throw new TtsError('tts_valasz_megszakadt', `a szolgáltató elkezdett válaszolni, de a test nem ért ide ${timeoutMs} ms alatt`, { httpStatus: res.status })
+      }
       if (err instanceof TtsError) throw err
-      throw new TtsError('tts_halozat', `a válasz teste megszakadt: ${transportReason(err)}`)
+      throw new TtsError('tts_valasz_megszakadt', `a válasz teste megszakadt: ${transportReason(err)}`, { httpStatus: res.status })
     }
   } finally {
     clearTimeout(timer)

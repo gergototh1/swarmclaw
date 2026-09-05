@@ -10,6 +10,7 @@ export async function register() {
     const { initWsServer, closeWsServer, resolveWsPort } = await import('./lib/server/ws-hub')
     const { ensureDaemonStarted } = await import('@/lib/server/runtime/daemon-state')
     const { writePortFile, removePortFile } = await import('@/lib/server/runtime/port-file')
+    const { serverInstanceId } = await import('@/lib/server/runtime/instance-id')
     await ensureOpenTelemetryStarted()
 
     // Awaited, and not deferred with the work below, because an extension
@@ -71,7 +72,11 @@ export async function register() {
           try {
             const port = Number(process.env.PORT)
             if (Number.isSafeInteger(port) && port > 0) {
-              writePortFile({ port, wsPort: resolveWsPort(), pid: process.pid, startedAt: Date.now() })
+              // The instance token goes in the file so a reader can tell this
+              // server from another SwarmClaw that happens to hold the port
+              // after a stale file is left behind; /api/healthz returns the
+              // same value for the comparison.
+              writePortFile({ port, wsPort: resolveWsPort(), pid: process.pid, startedAt: Date.now(), instanceId: serverInstanceId() })
             } else {
               log.warn(TAG, 'PORT is not set; run/port.json was not written and an MCP shim cannot find this server')
             }

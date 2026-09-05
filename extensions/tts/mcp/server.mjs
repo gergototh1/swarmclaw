@@ -24,20 +24,28 @@ import { setTimeout as sleep } from 'node:timers/promises'
  * at boot and this shim reads it from `SWARMCLAW_PORT_FILE`. There is no
  * fallback port: a shim that guessed 3456 would, on a machine where another
  * program owns 3456, hand an agent's requests to that program. Before a
- * request is sent, the file has to pass all three checks of the contract:
+ * request is sent, the file has to pass all four checks of the contract:
  *
- *   1. Shape: the JSON object `{ port, wsPort, pid, startedAt }` with both
- *      ports in 1..65535 and a positive integer pid (`readPortFile`).
+ *   1. Shape: the JSON object `{ port, wsPort, pid, startedAt, instanceId }`
+ *      with both ports in 1..65535, a positive integer pid and a non-empty
+ *      instance token (`readPortFile`).
  *   2. Boot time, then pid: a `startedAt` before this boot is stale even
  *      when its pid is alive, because a reboot restarts pid numbering and an
  *      old pid can name an unrelated process today; then `process.kill(pid,
  *      0)`, where EPERM still means alive (`isPortFileLive`).
- *   3. Identity: `GET /api/healthz` on the port has to answer JSON whose
+ *   3. Service: `GET /api/healthz` on the port has to answer JSON whose
  *      `service` is `"swarmclaw"`. Within one boot a pid can be reused after
  *      the server dies, so 1 and 2 only make 3 rare; they do not replace it.
  *      A refused connection is retried for a moment first, because the
  *      contract allows a fresh file to land a tick before the listener is
  *      ready (`confirmSwarmclaw`).
+ *   4. Identity: that same body's `instanceId` has to equal the file's. Check
+ *      3 says a SwarmClaw is on the port, not WHICH one, and this shim's
+ *      request is a paid one: sent to another instance it spends another
+ *      operator's Soniox balance, against another daily counter, and writes
+ *      the mp3 where that instance was told to write. A body without the
+ *      token is not this server either -- an answer that cannot be compared
+ *      is not an answer.
  *
  * A file that fails any check is reported as `swarmclaw_nem_fut` with a
  * `reason` naming which check failed and what was seen, so the operator can
@@ -52,19 +60,22 @@ import { setTimeout as sleep } from 'node:timers/promises'
  * one that writes its own port file and answers `service: "swarmclaw"` by
  * construction. That exercises this file's own logic and proves nothing about
  * the other side of the contract: that the host really writes `run/port.json`
- * where index.mjs computes it, with the four fields in the shape read below,
- * and that `/api/healthz` on that port really answers that service name. Only
- * a live run confirms those, and it has not happened. Treat a first live
+ * where index.mjs computes it, with the five fields in the shape read below,
+ * and that `/api/healthz` on that port really answers that service name and
+ * that instance token. Only a live run confirms those, and it has not
+ * happened. Treat a first live
  * failure here as the contract being wrong, not as this file being broken.
  *
- * TWO SWARMCLAW INSTANCES ON ONE MACHINE. `service: "swarmclaw"` says the
- * port belongs to some SwarmClaw server, not which one. The shim does not
- * try to tell them apart: it talks to the server whose port file the
- * operator named in `SWARMCLAW_PORT_FILE`, and each instance keeps its own
- * file under its own home, so the file path is what picks the instance. The
- * one case this cannot cover is two instances sharing one home, which the
- * host does not support either; there the file names whichever wrote it
- * last, and this shim follows it.
+ * TWO SWARMCLAW INSTANCES ON ONE MACHINE. The operator picks the instance by
+ * naming its port file in `SWARMCLAW_PORT_FILE`, and each instance keeps its
+ * own file under its own home. What check 4 adds is that the shim now notices
+ * when the port in that file no longer belongs to the instance that wrote it:
+ * the token in the file has to match the one `/api/healthz` returns, so a
+ * stale file whose port a second instance has taken is refused
+ * (`masik_peldany_a_porton`) instead of being followed. The one case this
+ * cannot cover is two instances sharing one home, which the host does not
+ * support either; there the file names whichever wrote it last, and this shim
+ * follows it.
  *
  * WHAT THIS FILE DOES WITH AN AGENT'S TEXT. `szoveg` and `celFajl` arrive
  * from an agent and are untrusted. They go into the JSON body of one HTTP
@@ -116,20 +127,20 @@ const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
 const TOOLS = [
   {
     name: 'tts_synthesize',
-    description: 'Egy mondatból mp3-at készít a SwarmClaw tts extensionjén át: a Soniox-kulcs, a cache és a napi keret a hostban van. celFajl: abszolút, .mp3 végű útvonal, ahova a fájl kerül. Más argumentumot (pl. hang) a host név szerint elutasít.',
+    description: 'Egy mondatból mp3-at készít a SwarmClaw tts extensionjén át: a Soniox-kulcs, a cache és a napi keret a hostban van. celFajl: abszolút, .mp3 végű útvonal a beállított hangGyoker könyvtár ALATT — a gyökeret a tts_status mondja meg, kérdezd le, ne találgasd. A gyökéren kívüli útvonalat és a már létező, nem a modul által készített fájlt a host elutasítja (tts_celfajl_ervenytelen, tts_celfajl_foglalt); ezek a fájlok az operátoré, és nem készíthetők el újra. Más argumentumot (pl. hang) a host név szerint elutasít.',
     inputSchema: {
       type: 'object',
       required: ['szoveg', 'celFajl'],
       properties: {
         szoveg: { type: 'string', description: 'A felolvasandó szöveg.' },
-        celFajl: { type: 'string', description: 'Abszolút, .mp3 végű útvonal; a host oda írja a fájlt.' },
+        celFajl: { type: 'string', description: 'Abszolút, .mp3 végű útvonal a tts_status hangGyoker értéke alatt; a host oda írja a fájlt. Meglévő fájlt nem ír felül, ha nem ő készítette.' },
       },
       additionalProperties: false,
     },
   },
   {
     name: 'tts_status',
-    description: 'A tts extension állapota: kulcs és végpont beállítva-e, mai másodpercek, napi keret, hang, modell, nyelv. Argumentumot nem vesz át.',
+    description: 'A tts extension állapota: kulcs és végpont beállítva-e, a hangGyoker (az egyetlen könyvtár, ahova a modul ír), mai másodpercek, napi keret, hang, modell, nyelv. A tts_synthesize celFajl argumentumát ez alapján kell megadni. Argumentumot nem vesz át.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   },
 ]
@@ -166,11 +177,16 @@ function readPortFile(file) {
     return { reason: 'port_fajl_ervenytelen' }
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { reason: 'port_fajl_ervenytelen' }
-  const { port, wsPort, pid, startedAt } = parsed
+  const { port, wsPort, pid, startedAt, instanceId } = parsed
   if (!isPort(port) || !isPort(wsPort)) return { reason: 'port_fajl_ervenytelen' }
   if (!isWholeNumber(pid) || pid < 1) return { reason: 'port_fajl_ervenytelen' }
   if (!isWholeNumber(startedAt)) return { reason: 'port_fajl_ervenytelen' }
-  return { info: { port, wsPort, pid, startedAt } }
+  // Without the token there is nothing to compare the server on the port
+  // against, and accepting the file anyway would be the pid check standing in
+  // for an identity check. A host old enough not to write it is a host this
+  // shim did not ship with.
+  if (typeof instanceId !== 'string' || instanceId === '') return { reason: 'port_fajl_ervenytelen' }
+  return { info: { port, wsPort, pid, startedAt, instanceId } }
 }
 
 /**
@@ -210,10 +226,11 @@ function isConnectionRefused(err) {
 }
 
 /**
- * Check 3. `null` when the server on `port` says it is SwarmClaw; a
- * `reason` otherwise. Only `service` is read from the body, and the body is
- * never quoted: it came from whatever owns the port, which at this point may
- * be anything.
+ * Checks 3 and 4. `null` when the server on `port` says it is SwarmClaw AND
+ * names the instance that wrote the port file; a `reason` otherwise. Only
+ * `service` and `instanceId` are read from the body, the token is compared
+ * and never repeated, and no part of the body is quoted: it came from whatever
+ * owns the port, which at this point may be anything.
  *
  * A refused connection is tried HEALTHZ_ATTEMPTS times, HEALTHZ_RETRY_MS
  * apart, because the contract lets a fresh file land a tick before the
@@ -222,7 +239,7 @@ function isConnectionRefused(err) {
  * HEALTHZ_TIMEOUT_MS is reported as exactly that: something listens there,
  * and the shim could not learn what.
  */
-async function confirmSwarmclaw(base) {
+async function confirmSwarmclaw(base, instanceId) {
   for (let attempt = 1; ; attempt += 1) {
     let res
     try {
@@ -245,6 +262,9 @@ async function confirmSwarmclaw(base) {
       return 'masik_program_a_porton'
     }
     if (!json || typeof json !== 'object' || json.service !== 'swarmclaw') return 'masik_program_a_porton'
+    // A SwarmClaw, but is it THIS one? A stale file plus a pid reused inside
+    // one boot plus a second instance on that port passes everything above.
+    if (typeof json.instanceId !== 'string' || json.instanceId === '' || json.instanceId !== instanceId) return 'masik_peldany_a_porton'
     return null
   }
 }
@@ -261,6 +281,7 @@ function notRunningMessage(reason, file, info) {
     case 'healthz_nem_valaszolt': return `valami hallgat a port-fájl portján, de ${HEALTHZ_TIMEOUT_MS} ms alatt nem felelt a /api/healthz-re (${at}); nem tudni, SwarmClaw-e`
     case 'healthz_nem_erheto_el': return `a /api/healthz nem érhető el a port-fájl portján (${at})`
     case 'masik_program_a_porton': return `a port-fájl portján nem SwarmClaw felel a /api/healthz-re (${at}); a fájl elavult`
+    case 'masik_peldany_a_porton': return `a port-fájl portján egy MÁSIK SwarmClaw-példány felel (${at}); a fájl elavult, és ez a példány más kulccsal, más cache-sel és más napi számlálóval dolgozna`
     case 'kapcsolat_megszakadt': return `a host a /api/healthz után, a kérés közben ment el (${at})`
     default: return `a SwarmClaw nem érhető el (${at})`
   }
@@ -285,7 +306,7 @@ async function resolveHost() {
   const stale = staleReason(info)
   if (stale) return notRunning(stale, file, info)
   const base = `http://127.0.0.1:${info.port}`
-  const identity = await confirmSwarmclaw(base)
+  const identity = await confirmSwarmclaw(base, info.instanceId)
   if (identity) return notRunning(identity, file, info)
   return { base, file, info }
 }

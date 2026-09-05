@@ -159,10 +159,23 @@ export function createRpc(state, ops) {
      *
      * `oszlopok` is keyed by every status in the module's vocabulary, empty
      * columns included, so the board draws the same shape on an empty
-     * install. The map is total because db.mjs is the only writer of the
-     * column and checks every write against `VIDEO_STATUSOK`
-     * (`setVideoStatus` throws otherwise, and `lezarVideo` writes the one
-     * status it excludes).
+     * install. It is NOT assumed to be total over what is in the table.
+     * Nothing enforces the vocabulary at the column: `ext_video_videos` has
+     * no CHECK constraint on `status` (db.mjs), `setVideoStatus` is one
+     * writer of several, and `openVideo` and `lezarVideo` write their status
+     * as a literal in raw SQL without consulting `VIDEO_STATUSOK` at all. A
+     * row with a status outside the list -- a literal that drifts, a
+     * hand-edited row, a half-applied migration -- is therefore possible, and
+     * an unknown key here used to throw. The throw is server-side, so the
+     * whole page went with it: the status bar, the health lines, the tabs and
+     * every view are behind this one response, and the operator got one line
+     * saying a property of undefined could not be read.
+     *
+     * So an unknown status makes its own column and is named in `statusok`
+     * after the known ones. The page already draws it that way: `statusLabel`
+     * (ui/format.ts) answers `{ label: <raw>, known: false }` for anything
+     * outside its map and `sor.tsx` renders it under `vid-badge-bad`, which
+     * was unreachable while this method died first.
      *
      * `utolsoFordulok` is NOT the host's schedule history: "the last three
      * runs per schedule" lives in the host's own store, which extension code
@@ -173,13 +186,23 @@ export function createRpc(state, ops) {
     async board() {
       const { katalogus } = catalogOrCode(state)
       markKodolva(repo(), katalogus)
-      const oszlopok = Object.fromEntries(VIDEO_STATUSOK.map((s) => [s, []]))
-      for (const v of repo().videos()) oszlopok[v.status].push(kartya(v))
+      // A null prototype, because the key comes from the table: on a plain
+      // object `oszlopok['constructor']` is inherited and truthy, so `??=`
+      // would not replace it and `.push` would be called on a function, and
+      // `__proto__` would be an assignment to the prototype rather than a
+      // column. With no prototype both are ordinary keys.
+      const oszlopok = Object.create(null)
+      for (const s of VIDEO_STATUSOK) oszlopok[s] = []
+      for (const v of repo().videos()) (oszlopok[v.status] ??= []).push(kartya(v))
+      // The vocabulary first, in its own order, then whatever else the table
+      // held, so the board's usual shape is unchanged and a stray status is
+      // drawn rather than dropped or fatal.
+      const ismeretlen = Object.keys(oszlopok).filter((s) => !VIDEO_STATUSOK.includes(s))
       const futo = repo().runningRender()
       const fordulok = repo().latestFordulok(UTOLSO_FORDULO_LIMIT)
       return {
         oszlopok,
-        statusok: VIDEO_STATUSOK,
+        statusok: [...VIDEO_STATUSOK, ...ismeretlen],
         futoRender: futo ? ops.summary(futo) : null,
         sapkak: sapkak(repo()),
         counts: repo().counts(),

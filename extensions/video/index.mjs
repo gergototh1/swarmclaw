@@ -118,10 +118,27 @@ const video = {
   // object into the extension's hook set, so the key is the host's hook name.
   hooks: { afterChatTurn: createAfterChatTurn(state) },
   /**
-   * The two contracts this module reads through `ctx.contracts`. Each `reason`
-   * is the sentence the operator reads on the extension card before granting
-   * access. A provider that is not installed is not a load failure: the host
-   * answers a missing one at call time, and the tool that asked names it
+   * The two contracts this module reads through `ctx.contracts`.
+   *
+   * WHAT `reason` IS, AND WHAT IT IS NOT. It is a sentence written here for
+   * whoever reads this declaration -- the operator on the extension card, and
+   * the next person to edit this file -- saying why this module asks for the
+   * other one. It is NOT a request that anybody approves. The host's check is
+   * `resolveExtensionContract`
+   * (src/lib/server/extensions/extension-contracts.ts): it looks for an entry
+   * in this array naming that extension and that contract, and if there is
+   * one, the call goes through. Nothing reads `reason`, nothing records a
+   * decision about it, and there is no grant, approve or revoke anywhere in
+   * the host. Declaring the consumption IS the access.
+   *
+   * So the only way to take this module's reach away is to remove the entry
+   * from this array -- editing the consumer's own source -- or to disable or
+   * uninstall the provider, which takes it away from every consumer at once.
+   * An operator who wants one consumer stopped and the others left alone has
+   * no button for it. Write these two entries as narrowly as they read.
+   *
+   * A provider that is not installed is not a load failure: the host answers a
+   * missing one at call time, and the tool that asked names it
    * (`szerzodes_hianyzik`).
    */
   consumes: [

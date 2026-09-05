@@ -171,6 +171,50 @@ const binaryLookupCache = new Map<string, { checkedAt: number; path: string | nu
 const BINARY_LOOKUP_TTL_MS = 30_000
 const isWindows = process.platform === 'win32'
 
+/**
+ * Whether a string is an absolute filesystem path on this platform: what
+ * `path.isAbsolute` answers, written out because this module keeps node
+ * built-ins out of its module scope and a two-line test is cheaper than a
+ * lazy import for it. A drive letter or a UNC share on Windows, a leading
+ * separator anywhere.
+ */
+function isAbsolutePath(value: string): boolean {
+  if (value === '') return false
+  if (!isWindows) return value.startsWith('/')
+  return /^[A-Za-z]:[\\/]/.test(value) || value.startsWith('\\\\') || value.startsWith('/') || value.startsWith('\\')
+}
+
+/**
+ * Where a binary is, according to a login shell, or null.
+ *
+ * WHAT IT COSTS THE CALLER. This is a synchronous `spawnSync` of the
+ * operator's login shell — `$SHELL -lc`, which sources their profile — on
+ * whatever thread calls it, for up to 2 seconds. In the server process that
+ * thread is the one running the HTTP handlers, the WebSocket hub and the
+ * scheduler tick, and nothing here is rate limited. A negative answer is
+ * cached for only 30 seconds, so a caller that asks about a binary that is
+ * not installed pays the full spawn again every half minute. Call it once per
+ * operation, not once per item, and never in a loop.
+ *
+ * WHAT COUNTS AS AN ANSWER. Only stderr is suppressed, so everything the
+ * profile prints to stdout — a banner, a version notice, an nvm or direnv
+ * line — arrives in front of `command -v`'s own output and used to be
+ * returned as if it were the path. Callers spawn what they get back or check
+ * it with `existsSync`, and a banner is neither a binary nor a missing one:
+ * it is an answer this function cannot read, and returning it made every
+ * caller's fallback list unreachable on any machine whose profile speaks.
+ *
+ * So exactly two answers are taken. An absolute path, which is what
+ * `command -v` prints for an installed program. Or the name itself, which is
+ * what it prints for a shell builtin, function or alias — the caller asked
+ * about that name and the shell said the name is what runs, so the caller
+ * spawning the bare name is doing what the shell would. Anything else — a
+ * banner, several lines, some other word — is treated as no answer at all
+ * rather than parsed for a line that might be the path, and the callers with
+ * their own fallback list (`resolveCliBinary` in
+ * src/lib/providers/cli-utils.ts, and `ctx.resolveBinary` above it) reach it,
+ * which is the whole reason those lists exist.
+ */
 export function findBinaryOnPath(binaryName: string): string | null {
   const now = Date.now()
   const cached = binaryLookupCache.get(binaryName)
@@ -193,7 +237,8 @@ export function findBinaryOnPath(binaryName: string): string | null {
   const probe = isWindows
     ? spawnSync('where', [binaryName], { encoding: 'utf-8', timeout: 2000, stdio: 'pipe' })
     : spawnSync(process.env.SHELL || '/bin/bash', ['-lc', `command -v ${binaryName} 2>/dev/null`], { encoding: 'utf-8', timeout: 2000 })
-  const resolved = (probe.stdout || '').trim() || null
+  const answer = (probe.stdout || '').trim()
+  const resolved = isAbsolutePath(answer) || answer === binaryName ? answer : null
   binaryLookupCache.set(binaryName, { checkedAt: now, path: resolved })
   return resolved
 }

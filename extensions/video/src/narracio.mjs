@@ -24,6 +24,19 @@ import { remotionDirOf } from './katalogus.mjs'
  * later task that removes narrations works from those rows, not from a
  * listing of the directory, for the reason above.
  *
+ * THE OTHER SIDE OF THAT DISCIPLINE IS A SETTING, NOT A PROMISE THIS MODULE
+ * CAN KEEP. The path below is only what this module ASKS for; the tts is
+ * what writes. Its `hangGyoker` setting is the one directory it will write
+ * into, checked through realpath, and it refuses to replace a file no
+ * request row of its own names. Set it to the Remotion project's
+ * `public/narracio/swarmclaw` -- this module's namespace, the deepest
+ * directory that still covers every path built here. Set to
+ * `public/narracio` instead, the containment stops covering the operator's
+ * own 150-odd mp3s one directory up, and only the tts's second rule stands
+ * between them and a synthesis call. The tts reports the configured root on
+ * its `status()` as `hangGyoker`, so what it will accept can be read rather
+ * than assumed.
+ *
  * WHAT IS MEASURED, AND BY WHOM. The tts answers with its own `hosszMs`, and
  * this module does not store it: the length on the row comes from this
  * module's ffprobe of the file that is actually on disk (`state.probeImpl`

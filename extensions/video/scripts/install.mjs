@@ -78,8 +78,9 @@ fs.writeFileSync(path.join(extDir, 'video.mjs'), "export { default } from './.wo
 // scans -- an extension's own directory is not a layer it looks in, so a skill
 // left in the repo tree is a skill the agent that names it never sees. A pin
 // matches on the SKILL.md's frontmatter `name`, not on the directory, so the
-// two have to agree. The repo ships no skills yet; this block is a no-op until
-// a skills/ directory exists beside it, and then it ships whatever is there.
+// two have to agree. This block is live, not a no-op waiting on a directory:
+// extensions/video/skills/ exists and holds the two skills the managed agents
+// name.
 //
 // A copy alone is not an upgrade. cpSync never removes anything, so after a
 // skill is renamed the old directory stays under <home>/skills, discovery
@@ -93,13 +94,48 @@ fs.writeFileSync(path.join(extDir, 'video.mjs'), "export { default } from './.wo
 // operator put there by hand is not this script's to remove, and the very
 // first install after this manifest existed has nothing to compare against,
 // so a rename that happened before that leaves its directory in place.
+
+/**
+ * A manifest entry this script will put after `<home>/skills/` and delete
+ * recursively, or null.
+ *
+ * THE MANIFEST IS A FILE ON DISK AND THIS IS A DELETE. It survives across
+ * installs inside the data directory, it is JSON, and nothing signs it. An
+ * entry of `""` makes `path.join(home, 'skills', '')` the skills directory
+ * itself; `".."` makes it `<home>`, which with SWARMCLAW_HOME set holds the
+ * data directory, the database and every extension. Both would then be
+ * removed with `recursive: true, force: true` and no message.
+ *
+ * So a name has to be a plain directory name: non-empty, no separator, not
+ * `.` and not `..`. The host applies exactly this rule where it removes the
+ * same directories on uninstall (`removeShippedSkillDirs` in
+ * src/lib/server/extensions/extension-managed-teardown.ts, and the non-empty
+ * part in `readShippedSkillNames` beside it); the two are one rule, and this
+ * copy is here because an install script may not import the host's `src/`.
+ * Anything refused is reported and left alone: a name this script cannot
+ * place is not a name it may delete.
+ */
+function plainDirectoryName(name) {
+  if (typeof name !== 'string') return null
+  if (name === '' || name === '.' || name === '..') return null
+  if (name !== path.basename(name)) return null
+  return name
+}
+
 const skillsRoot = path.join(root, 'skills')
 const shippedManifest = path.join(wsDir, 'shipped-skills.json')
 const shipped = fs.existsSync(skillsRoot) ? fs.readdirSync(skillsRoot) : []
 let previouslyShipped = []
 try {
   const parsed = JSON.parse(fs.readFileSync(shippedManifest, 'utf8'))
-  previouslyShipped = Array.isArray(parsed) ? parsed.filter((entry) => typeof entry === 'string') : []
+  for (const entry of Array.isArray(parsed) ? parsed : []) {
+    const name = plainDirectoryName(entry)
+    if (name === null) {
+      console.error(`figyelmen kívül hagyott manifest-bejegyzés (nem egyszerű könyvtárnév): ${JSON.stringify(entry)}`)
+      continue
+    }
+    previouslyShipped.push(name)
+  }
 } catch {
   // No manifest, or not one this script wrote: nothing was shipped that this run knows about.
 }
@@ -167,6 +203,7 @@ console.log(`video installed: ${extDir}/video.mjs, workspace ${wsDir}`)
 
   const lepesek = [
     ['tts extension telepítve, engedélyezve, apiKey beállítva', 'a /x/tts lapon látszik; nélküle a videoNarrate tts_szerzodes_hianyzik-kal utasít el', null],
+    ['a tts hangGyoker beállítása lefedi a narráció útját', 'a /x/tts lapon látszik; a videoNarrate a Remotion-projekt public/narracio/swarmclaw/... alá kér fájlt, és a tts csak a saját gyökere alá ír. A gyökér legyen maga a public/narracio/swarmclaw -- nem a public/narracio, mert abban az operátor saját, újra el nem készíthető narrációi vannak. Rossz gyökérrel a videoNarrate tts_visszautasitva / tts_celfajl_ervenytelen kóddal áll meg', null],
     ['aisignal telepítve és engedélyezve', 'nélküle a videoOpen csak kezi forrással megy; ez nem állít meg mást', null],
     [
       'remotionDir beállítva és benne a négy kötelező fájl',

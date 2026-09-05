@@ -114,6 +114,46 @@ describe('resolveExtensionBinary', () => {
     assert.equal(out.sameFromResolver, true, 'the per-extension resolver is not the same lookup')
   })
 
+  it('reaches the fallback directories when the login shell prints a banner in front of its answer', { skip: process.platform === 'win32' ? 'POSIX only' : false }, () => {
+    // THE DEFECT THIS CLOSES. The lookup asks a login shell first, and only
+    // stderr is suppressed: everything the operator's profile prints to
+    // stdout comes back in front of `command -v`'s own output. That string
+    // used to be accepted as the answer, so on any machine whose profile
+    // echoes anything the lookup returned a banner, `existsSync` said no, and
+    // the whole point of this module -- the Homebrew and nvm directories --
+    // was never consulted. The shell here stands in for such a profile: it
+    // prints a line and finds nothing, which is exactly the machine where the
+    // fallbacks have to answer.
+    const out = runWithTempDataDir<{ withBanner: string | null; bannerText: string | null }>(`
+      const fs = await import('node:fs')
+      const os = await import('node:os')
+      const path = await import('node:path')
+      const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-shell-'))
+      const shell = path.join(scratch, 'chatty-shell')
+      // A shell that greets, ignores what it was asked, and resolves nothing.
+      fs.writeFileSync(shell, '#!/bin/sh\\necho "nvm: v20.11.0 is now in use"\\nexit 1\\n', { mode: 0o755 })
+      process.env.SHELL = shell
+      const mod = await import('@/lib/server/extensions/extension-binaries')
+      const { resolveExtensionBinary } = mod.default || mod
+      const ctx = await import('@/lib/server/session-tools/context')
+      const { findBinaryOnPath } = ctx.default || ctx
+      try {
+        console.log(JSON.stringify({
+          withBanner: resolveExtensionBinary('sh'),
+          bannerText: findBinaryOnPath('swarmclaw-no-such-binary-' + process.pid),
+        }))
+      } finally {
+        fs.rmSync(scratch, { recursive: true, force: true })
+      }
+    `)
+    // /bin and /usr/bin are on the fallback list, and sh is there on every
+    // POSIX machine: the lookup answers from the list, not from the shell.
+    assert.equal(typeof out.withBanner, 'string', 'the fallback list was never reached')
+    assert.ok(path.isAbsolute(out.withBanner as string), `not an absolute path: ${out.withBanner}`)
+    // And the banner itself is never handed back as if it were a path.
+    assert.equal(out.bannerText, null)
+  })
+
   it('looks only where it says it looks, so a null is a real absence and not a filesystem walk that gave up', () => {
     const out = runWithTempDataDir<{ found: string | null }>(`
       const fs = await import('node:fs')

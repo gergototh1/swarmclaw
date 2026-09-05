@@ -300,6 +300,10 @@ async function main() {
     assert.equal(res.status, 200, `answered ${res.status}: ${JSON.stringify(res.body)}`)
     assert.equal(typeof res.body?.kulcsBeallitva, 'boolean', 'kulcsBeallitva is a boolean, never the key')
     assert.equal(typeof res.body?.hang, 'string', 'hang')
+    // The one directory this extension writes into. It is on the answer so a
+    // caller can name a target the module will accept; an empty one means
+    // every synthesis call on this deployment is refused by name.
+    assert.equal(typeof res.body?.hangGyoker, 'string', 'hangGyoker')
     assert.equal(typeof res.body?.napiKeret, 'number', 'napiKeret')
     assertNoAccessKey('status', res.text)
     return `hang=${res.body.hang} kulcsBeallitva=${res.body.kulcsBeallitva}`

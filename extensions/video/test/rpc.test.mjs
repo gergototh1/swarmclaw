@@ -89,6 +89,35 @@ test('board draws every status column, the caps and the module own turns', async
   assert.equal(JSON.stringify(b).includes(IDEGEN), false, 'the board carries no source text')
 })
 
+test('a status outside the vocabulary gets its own column instead of taking the page down', async () => {
+  const { repo, state, rpc } = setup()
+  const { videoId } = keszVideo(repo)
+  // Nothing enforces the vocabulary at the column: there is no CHECK
+  // constraint on ext_video_videos.status, and two writers put a literal in
+  // raw SQL without consulting VIDEO_STATUSOK. This is what such a row looks
+  // like from here, whatever wrote it.
+  state.storage.exec('UPDATE ext_video_videos SET status = ? WHERE id = ?', ['keszul_valami', videoId])
+
+  const b = await rpc.board()
+  assert.deepEqual(b.oszlopok.keszul_valami.map((k) => k.id), [videoId], 'the row is in a column of its own')
+  assert.deepEqual(b.statusok, [...VIDEO_STATUSOK, 'keszul_valami'], 'the vocabulary first, the stray status after it')
+  assert.deepEqual(b.oszlopok.qa_ok, [], 'the known columns are still all there')
+  assert.equal(Object.keys(b.oszlopok).length, VIDEO_STATUSOK.length + 1)
+  assert.equal(b.counts.videos, 1)
+
+  // Two names that are properties of Object.prototype, which is why the
+  // column map has none: on a plain object `??=` would leave the inherited
+  // value in place, and `__proto__` would be a write to the prototype.
+  for (const status of ['constructor', '__proto__', 'toString']) {
+    const { repo: r2, state: s2, rpc: rpc2 } = setup()
+    const { videoId: id2 } = keszVideo(r2)
+    s2.storage.exec('UPDATE ext_video_videos SET status = ? WHERE id = ?', [status, id2])
+    const b2 = await rpc2.board()
+    assert.deepEqual(b2.oszlopok[status].map((k) => k.id), [id2], status)
+    assert.ok(b2.statusok.includes(status), status)
+  }
+})
+
 test('board draws without a Remotion project and reports a running render', async () => {
   const { repo, rpc } = setup({ remotionDir: '' })
   const { videoId, tervId, tervHash, verdiktId } = keszVideo(repo)

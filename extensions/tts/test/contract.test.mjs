@@ -26,10 +26,11 @@ function setup({ settings = {}, fetchImpl } = {}) {
   const s = memStorage()
   for (const m of MIGRATIONS) s.raw.exec(m.sql)
   const calls = []
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tts-contract-'))
   const state = {
     repo: createRepo(s),
     log: { info() {}, warn() {}, error() {} },
-    settings: () => ({ apiKey: 'titkos-kulcs', endpoint: 'https://tts.example.test/v1', ...settings }),
+    settings: () => ({ apiKey: 'titkos-kulcs', endpoint: 'https://tts.example.test/v1', hangGyoker: dir, ...settings }),
     fetchImpl: fetchImpl || (async (url, init) => {
       calls.push({ url: String(url), init })
       return new Response(MP3, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
@@ -37,7 +38,6 @@ function setup({ settings = {}, fetchImpl } = {}) {
     execFileImpl: async () => ({ stdout: '1.2\n', stderr: '' }),
   }
   const synth = createSynthesizer(state)
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tts-contract-'))
   return { state, calls, dir, synth, contract: createNarrationContract(synth) }
 }
 

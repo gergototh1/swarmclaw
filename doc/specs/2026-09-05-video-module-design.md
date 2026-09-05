@@ -1256,6 +1256,18 @@ tts_szolgaltato_visszautasitott, tts_halozat, tts_celfajl_ervenytelen }`;
 abszolút út, és a metódus **oda** ír, nem a saját könyvtárába: a fogyasztó
 tudja, hova kell a fájl (a Remotion `public/`-ja), a tts nem.
 
+**Kiegészítés a záró review után (C1).** „Abszolút út, és oda ír” önmagában
+nem elég szabály: a `celFajl` a hívó — ügynök vagy másik extension — által
+választott argumentum, és írás. Ezért a tts-nek van egy `hangGyoker`
+beállítása (kötelező, abszolút út, nincs alapértéke), és a `synthesize`
+csak ez alá ír: az utat `realpath`-tal ellenőrzi, hogy symlinken keresztül
+se lehessen kilépni, és a már ott lévő fájlt csak akkor írja felül, ha egy
+`ext_tts_kerelmek` sor megnevezi. Két új kód: `tts_gyoker_hianyzik` (nincs
+beállítva a gyökér) és `tts_celfajl_foglalt` (van ott fájl, és nem a modul
+készítette). A videómodulhoz a gyökér a Remotion-projekt
+`public/narracio/swarmclaw` könyvtára — nem a `public/narracio`, mert abban
+az operátor saját, újra el nem készíthető narrációi vannak.
+
 A Soniox egyenleg-kimerülés HTTP-kódját a spec nem tudja: a fiók ma
 kimerült, és a felmérés szerint egyik repóban sincs narráció-generáló
 szkript, amiben a válasz alakja látszana. Az első éles hívás mondja meg;

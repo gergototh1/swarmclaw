@@ -22,11 +22,13 @@ import { RUN_DIR } from '@/lib/server/data-dir'
  * the pid check accepts a reused pid and sends an agent's requests to whatever
  * program listens on the port now.
  *
- * What it contains: one JSON object, `{ port, wsPort, pid, startedAt }`, and a
- * trailing newline. `port` is the HTTP listener, `wsPort` the WebSocket hub,
- * `pid` the process that owns both, `startedAt` the wall-clock millisecond it
- * wrote the file. Nothing in it is secret: a local `ps` and `lsof` show the
- * same numbers.
+ * What it contains: one JSON object, `{ port, wsPort, pid, startedAt,
+ * instanceId }`, and a trailing newline. `port` is the HTTP listener, `wsPort`
+ * the WebSocket hub, `pid` the process that owns both, `startedAt` the
+ * wall-clock millisecond it wrote the file, and `instanceId` a random token
+ * this process minted at boot (`serverInstanceId`). Nothing in it is secret: a
+ * local `ps` and `lsof` show the same numbers, and `/api/healthz` hands the
+ * token to anyone who asks, which is what makes it usable as a comparison.
  *
  * When it is written: once per server boot, from the instrumentation hook,
  * after Next has bound the HTTP listener (Next stores the port it actually
@@ -60,14 +62,24 @@ import { RUN_DIR } from '@/lib/server/data-dir'
  *      (`process.kill(pid, 0)`; EPERM means it exists and belongs to another
  *      user, which still counts as alive). `isPortFileLive` here is the
  *      reference. A reader that checks only the pid has skipped half of this.
- *   3. Identity. `GET /api/healthz` on `port` must answer with a JSON body
+ *   3. Service. `GET /api/healthz` on `port` must answer with a JSON body
  *      whose `service` is `"swarmclaw"` (src/app/api/healthz/route.ts);
  *      anything else, including a connection refused that persists past the
  *      retry noted above, is a reused pid and a stale file.
+ *   4. Identity. That same body's `instanceId` must equal the file's. Check 3
+ *      says a SwarmClaw is listening there; it does not say WHICH, and after a
+ *      SIGKILL, a pid reused inside one boot and a second instance -- another
+ *      home, another database, another provider key -- taking that port, all
+ *      of 1, 2 and 3 pass on a file the second instance never wrote. A reader
+ *      that stops at 3 then sends its request to the wrong server: for the tts
+ *      extension's shim that is a paid synthesis on the wrong key, against the
+ *      wrong daily counter, written into the wrong instance's directory. A
+ *      body with no `instanceId`, or a different one, is not this server.
  *
- * Only a file that passes all three names this server. Checks 1 and 2 are
- * the cheap ones and exist so a reader rarely reaches 3; they do not replace
- * it, because within one boot a pid can be reused after the server dies.
+ * Only a file that passes all four names this server. Checks 1 and 2 are
+ * the cheap ones and exist so a reader rarely reaches the request; they do not
+ * replace it, because within one boot a pid can be reused after the server
+ * dies.
  *
  * Two servers on one home: the file names whichever wrote it last. Two
  * servers sharing one `SWARMCLAW_HOME` also share one data directory, which
@@ -87,6 +99,8 @@ export interface PortFile {
   wsPort: number
   pid: number
   startedAt: number
+  /** This server process's random boot token; `/api/healthz` returns the same value. */
+  instanceId: string
 }
 
 /**
@@ -134,9 +148,9 @@ function isPort(value: unknown): value is number {
 
 /**
  * The file's content, or null when it is missing, unreadable, not JSON, or
- * not the shape above with ports in 1..65535 and a positive pid. Extra keys
- * are dropped, not rejected, so a later writer can add fields without
- * breaking an older reader.
+ * not the shape above with ports in 1..65535, a positive pid and a non-empty
+ * instance token. Extra keys are dropped, not rejected, so a later writer can
+ * add fields without breaking an older reader.
  */
 export function readPortFile(file: string = PORT_FILE): PortFile | null {
   let text: string
@@ -152,11 +166,15 @@ export function readPortFile(file: string = PORT_FILE): PortFile | null {
     return null
   }
   if (!parsed || typeof parsed !== 'object') return null
-  const { port, wsPort, pid, startedAt } = parsed as Record<string, unknown>
+  const { port, wsPort, pid, startedAt, instanceId } = parsed as Record<string, unknown>
   if (!isPort(port) || !isPort(wsPort)) return null
   if (!isWholeNumber(pid) || pid < 1) return null
   if (!isWholeNumber(startedAt)) return null
-  return { port, wsPort, pid, startedAt }
+  // A file with no token cannot be checked against the server on the port, and
+  // a reader that accepted it would be back to trusting the pid. It is refused
+  // here rather than downgraded to the weaker check.
+  if (typeof instanceId !== 'string' || instanceId.length === 0) return null
+  return { port, wsPort, pid, startedAt, instanceId }
 }
 
 /**

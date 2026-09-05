@@ -631,6 +631,87 @@ describe('managed schedules of an extension that is disabled or not loaded', () 
     assert.equal(output.tasksAfterEnabled, 1)
   })
 
+  it('defers a one-off run instead of completing it while the extension is not loaded, and fires it once the extension loads', () => {
+    // THE DEFECT THIS CLOSES. Every block used to advance the schedule, and
+    // `advanceSchedule` completes a `once` schedule outright. `not_loaded` is
+    // answered during a directory-watcher reload, during a slow import and
+    // after a one-off error the next reload clears -- windows of seconds that
+    // no operator chose. A one-off routine due inside one of those was marked
+    // completed and never ran, with nothing left to fire afterwards. Disabled
+    // still advances: that one is a decision somebody made.
+    const output = runSchedulerWithTempDataDir(`
+      import fs from 'node:fs'
+      import path from 'node:path'
+      const unwrap = (mod) => mod.default || mod
+      const { getExtensionManager } = unwrap(await import('@/lib/server/extensions'))
+      const { reconcileExtensionManagedResources } = unwrap(await import('@/lib/server/extension-managed-resources'))
+      const { loadSchedules, upsertSchedule } = unwrap(await import('@/lib/server/schedules/schedule-repository'))
+      const { loadTasks } = unwrap(await import('@/lib/server/tasks/task-repository'))
+      const { runSchedulerTickForTests } = unwrap(await import('@/lib/server/runtime/scheduler'))
+
+      const extensionId = 'sched_once.mjs'
+      const m = getExtensionManager()
+      const source = (setupBody) => \`export default {
+        name: 'One-Off Schedule Fixture',
+        tools: [],
+        setup() { \${setupBody} },
+        managedResources: {
+          agents: [{ agentKey: 'worker', displayName: 'One-Off Worker', provider: 'ollama', model: 'test-model', heartbeatEnabled: false }],
+          schedules: [{
+            scheduleKey: 'once', displayName: 'One-off managed run', taskPrompt: 'Do it once.', taskMode: 'task',
+            agentRef: { resourceKind: 'agent', resourceKey: 'worker' },
+            scheduleType: 'cron', cron: '0 * * * *', timezone: 'UTC', status: 'active',
+          }],
+        },
+      }\`
+      await m.saveExtensionSource(extensionId, source(''))
+      reconcileExtensionManagedResources(extensionId)
+      const managed = Object.values(loadSchedules()).find((s) => s.managedByExtension?.extensionId === extensionId)
+      if (!managed) throw new Error('reconcile did not create the managed schedule')
+
+      // The routine the operator cares about here is a one-off, and it is due.
+      const now = Date.now()
+      const due = now - 1_000
+      upsertSchedule(managed.id, { ...managed, scheduleType: 'once', cron: undefined, runAt: due, nextRunAt: due })
+
+      // The extension breaks after its schedule exists: written straight to
+      // disk so nothing but the reload re-acquires it.
+      fs.writeFileSync(path.join(process.env.DATA_DIR, 'extensions', extensionId), source("throw new Error('setup failed')"))
+      await m.reload()
+
+      await runSchedulerTickForTests(now)
+      await runSchedulerTickForTests(now + 1)
+      const blocked = loadSchedules()[managed.id]
+      const deferrals = (blocked.history || []).filter((h) => h.metadata?.reason === 'extension_not_loaded')
+
+      // The reload that fixes it: the same tick that follows has to run it.
+      fs.writeFileSync(path.join(process.env.DATA_DIR, 'extensions', extensionId), source(''))
+      await m.reload()
+      await runSchedulerTickForTests(now + 2)
+      const after = loadSchedules()[managed.id]
+
+      console.log(JSON.stringify({
+        statusWhileBroken: blocked.status,
+        nextRunAtWhileBroken: blocked.nextRunAt,
+        stillDue: blocked.nextRunAt === due,
+        deferralEntries: deferrals.length,
+        deferralSummary: deferrals[0]?.summary ?? null,
+        tasksWhileBroken: 0,
+        firedAction: (after.history || [])[0]?.action ?? null,
+        runNumberAfterFix: after.runNumber || 0,
+        tasksAfterFix: Object.keys(loadTasks()).length,
+      }))
+    `)
+
+    assert.equal(output.statusWhileBroken, 'active', 'a one-off due while the extension was not loaded must not be completed')
+    assert.equal(output.stillDue, true, 'the slot stays due rather than being advanced past')
+    assert.equal(output.deferralEntries, 1, 'the deferral is recorded once per run of deferrals, not once per tick')
+    assert.match(output.deferralSummary, /deferred/)
+    assert.equal(output.firedAction, 'run_started', 'the tick after the extension loaded ran it')
+    assert.equal(output.runNumberAfterFix, 1)
+    assert.equal(output.tasksAfterFix, 1)
+  })
+
   it('skips them with reason extension_not_loaded when the extension failed to load or was never installed', () => {
     const output = runSchedulerWithTempDataDir(`
       import fs from 'node:fs'

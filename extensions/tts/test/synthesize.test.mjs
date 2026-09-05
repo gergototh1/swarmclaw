@@ -21,17 +21,20 @@ function setup({ settings = {}, fetchImpl, probeMs = 1200, execFileImpl } = {}) 
   const s = memStorage()
   for (const m of MIGRATIONS) s.raw.exec(m.sql)
   const calls = []
+  // The root comes first because every target path is judged against it: a
+  // synthesizer built without one refuses every call, which is the point of
+  // the setting and not the subject of most tests here.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tts-test-'))
   const state = {
     repo: createRepo(s),
     log: { info() {}, warn() {}, error() {} },
-    settings: () => ({ apiKey: 'k', endpoint: 'https://tts.example.test/v1', ...settings }),
+    settings: () => ({ apiKey: 'k', endpoint: 'https://tts.example.test/v1', hangGyoker: dir, ...settings }),
     fetchImpl: fetchImpl || (async (url, init) => {
       calls.push({ url: String(url), init })
       return new Response(MP3, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
     }),
     execFileImpl: execFileImpl || (async () => ({ stdout: `${probeMs / 1000}\n`, stderr: '' })),
   }
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tts-test-'))
   return { state, calls, dir, synth: createSynthesizer(state), cel: (n) => path.join(dir, 'narracio', `${n}.mp3`) }
 }
 
@@ -85,13 +88,112 @@ test('a cache row whose file is gone is re-synthesised, not returned', async () 
   assert.equal(state.repo.counts().kesz, 1)
 })
 
+/**
+ * THE TARGET PATH IS AN ARGUMENT AN AGENT CHOOSES, AND IT IS A WRITE.
+ *
+ * `/…/public/narracio/valami.mp3` is an absolute `.mp3` with no `..` in it,
+ * and it is one of the operator's own narrations, made with a balance that is
+ * gone. These are the rules that stand between the argument and the write,
+ * each with the thing it protects named.
+ */
+test('a target outside the configured root is refused, before the provider and before the disk', async () => {
+  const { state, calls, synth, dir } = setup()
+  const kivul = fs.mkdtempSync(path.join(os.tmpdir(), 'tts-operator-'))
+  const operatore = path.join(kivul, 'sajat-narracio.mp3')
+  fs.writeFileSync(operatore, 'az operátor fájlja')
+
+  for (const [label, celFajl] of [
+    ['a sibling directory', operatore],
+    ['a parent of the root', path.join(path.dirname(dir), 'a.mp3')],
+    ['the root itself named as a file', `${dir}.mp3`],
+  ]) {
+    assert.equal(await codeOf(label, () => synth.synthesize({ szoveg: 'Ki innen.', celFajl, kerte: 'mcp' })), 'tts_celfajl_ervenytelen', label)
+  }
+  assert.equal(fs.readFileSync(operatore, 'utf8'), 'az operátor fájlja', 'the file outside the root is untouched')
+  assert.equal(calls.length, 0, 'no refused path reached the provider')
+  assert.deepEqual(state.repo.counts(), { kerelmek: 0, kesz: 0, hiba: 0 })
+
+  // A symlink inside the root that points out of it is the same escape with
+  // one more step, and the containment resolves it rather than reading the
+  // path it was given.
+  const link = path.join(dir, 'kifele.mp3')
+  fs.symlinkSync(operatore, link)
+  assert.equal(await codeOf('symlink out', () => synth.synthesize({ szoveg: 'Linken át.', celFajl: link, kerte: 'mcp' })), 'tts_celfajl_ervenytelen')
+  assert.equal(fs.readFileSync(operatore, 'utf8'), 'az operátor fájlja')
+
+  // A link to a file that is not there yet resolves to nothing, so the
+  // containment check sees only the directory it sits in and passes it. The
+  // write would follow the link and create the file at its destination, which
+  // is outside the root, so a link is refused whatever it points at.
+  const lelogo = path.join(dir, 'meg-nincs.mp3')
+  fs.symlinkSync(path.join(kivul, 'meg-nincs.mp3'), lelogo)
+  assert.equal(await codeOf('dangling symlink', () => synth.synthesize({ szoveg: 'Lelógó link.', celFajl: lelogo, kerte: 'mcp' })), 'tts_celfajl_foglalt')
+  assert.equal(fs.existsSync(path.join(kivul, 'meg-nincs.mp3')), false, 'nothing was created outside the root')
+  assert.equal(calls.length, 0)
+  fs.rmSync(kivul, { recursive: true, force: true })
+})
+
+test('a file already under the root that no request row names is refused, and a cache hit does not get around it', async () => {
+  const { state, calls, synth, cel, dir } = setup()
+  // The sentence is cached first, so the second call takes the cache path --
+  // the one that copies a stored mp3 to the caller's target, costs nothing
+  // and never touches the day's counter. That was the cheapest way there was
+  // to destroy a file, so it is checked before the cache is consulted.
+  await synth.synthesize({ szoveg: 'Egy mondat.', celFajl: cel('sajat'), kerte: 'mcp' })
+  assert.equal(calls.length, 1)
+
+  const idegen = path.join(dir, 'operator.mp3')
+  fs.writeFileSync(idegen, 'kézzel készült narráció')
+  assert.equal(await codeOf('cache hit onto a stranger file', () => synth.synthesize({ szoveg: 'Egy mondat.', celFajl: idegen, kerte: 'mcp' })), 'tts_celfajl_foglalt')
+  assert.equal(await codeOf('paid call onto a stranger file', () => synth.synthesize({ szoveg: 'Másik mondat.', celFajl: idegen, kerte: 'contract' })), 'tts_celfajl_foglalt')
+  assert.equal(fs.readFileSync(idegen, 'utf8'), 'kézzel készült narráció', 'the file is exactly as it was')
+  assert.equal(calls.length, 1, 'neither refusal reached the provider')
+
+  // A file this module made is its own to replace: that is what makes a
+  // re-narration of the same scene possible at all.
+  const sajat = cel('sajat')
+  assert.equal(fs.existsSync(sajat), true)
+  const ujra = await synth.synthesize({ szoveg: 'Egy mondat.', celFajl: sajat, kerte: 'mcp' })
+  assert.equal(ujra.cache, true)
+  assert.equal(state.repo.fajlIsmert(sajat), true)
+  assert.equal(state.repo.fajlIsmert(idegen), false)
+})
+
+test('without the root every call is refused by name, and a root that is not an absolute path is refused as a setting', async () => {
+  const nincs = setup({ settings: { hangGyoker: '' } })
+  assert.equal(await codeOf('no root', () => nincs.synth.synthesize({ szoveg: 'x', celFajl: nincs.cel('a'), kerte: 'mcp' })), 'tts_gyoker_hianyzik')
+  assert.equal(nincs.calls.length, 0)
+  assert.equal(fs.existsSync(nincs.cel('a')), false)
+  assert.equal(nincs.synth.status().hangGyoker, '', 'the page can see that the root is not set')
+
+  const relativ = setup({ settings: { hangGyoker: 'public/narracio' } })
+  assert.equal(await codeOf('relative root', () => relativ.synth.synthesize({ szoveg: 'x', celFajl: relativ.cel('a'), kerte: 'mcp' })), 'tts_beallitas_hibas')
+  assert.equal(relativ.calls.length, 0)
+
+  const nincsIlyen = setup({ settings: { hangGyoker: '/nincs/ilyen/konyvtar/sehol' } })
+  assert.equal(await codeOf('missing root directory', () => nincsIlyen.synth.synthesize({ szoveg: 'x', celFajl: '/nincs/ilyen/konyvtar/sehol/a.mp3', kerte: 'mcp' })), 'tts_celfajl_ervenytelen')
+  assert.equal(nincsIlyen.calls.length, 0)
+})
+
+test('celFajlEllenorzes judges a path against a root and nothing else', () => {
+  const gyoker = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'tts-root-')))
+  assert.equal(celFajlEllenorzes(path.join(gyoker, 'a', 'b.mp3'), gyoker), null)
+  assert.match(celFajlEllenorzes('/abs/ok.mp3', gyoker), /kívülre esik/)
+  assert.match(celFajlEllenorzes(path.join(gyoker, 'a.mp3'), ''), /hangGyoker/)
+  assert.match(celFajlEllenorzes(path.join(gyoker, 'a.mp3'), 'relativ'), /hangGyoker/)
+  assert.match(celFajlEllenorzes(path.join(gyoker, 'a.mp3'), path.join(gyoker, 'nincs-ilyen')), /nem létezik/)
+  assert.match(celFajlEllenorzes('relative.mp3', gyoker), /abszolút/)
+  assert.match(celFajlEllenorzes(path.join(gyoker, 'a.wav'), gyoker), /abszolút/)
+  fs.rmSync(gyoker, { recursive: true, force: true })
+})
+
 test('the settings decide the voice and the cache key, a blank field is the default', async () => {
-  const { calls, synth, cel } = setup({ settings: { hang: '  Mira ', modell: '', nyelv: 'en' } })
+  const { calls, dir, synth, cel } = setup({ settings: { hang: '  Mira ', modell: '', nyelv: 'en' } })
   const r = await synth.synthesize({ szoveg: 'Hello.', celFajl: cel('a'), kerte: 'mcp' })
   assert.equal(r.hang, 'Mira')
   assert.equal(r.modell, 'tts-rt-v1')
   assert.deepEqual(JSON.parse(calls[0].init.body), { text: 'Hello.', model: 'tts-rt-v1', voice: 'Mira', language: 'en', audio_format: 'mp3' })
-  assert.deepEqual(synth.status(), { kulcsBeallitva: true, vegpontBeallitva: true, maiMasodperc: 1.2, napiKeret: 900, hang: 'Mira', modell: 'tts-rt-v1', nyelv: 'en' })
+  assert.deepEqual(synth.status(), { kulcsBeallitva: true, vegpontBeallitva: true, hangGyoker: dir, maiMasodperc: 1.2, napiKeret: 900, hang: 'Mira', modell: 'tts-rt-v1', nyelv: 'en' })
 })
 
 test('refusals are named: missing key, missing endpoint, bad target, bad text, exhausted budget, bad setting', async () => {
@@ -362,10 +464,17 @@ test('a request that never answers is aborted on the deadline under tts_idotulle
 test('the deadline covers the body as well as the headers, and a reply in time leaves nothing armed', { timeout: 5000 }, async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] })
   const stalled = setup({ fetchImpl: stallingBody })
-  const pending = stalled.synth.synthesize({ szoveg: 'Csorog.', celFajl: stalled.cel('a'), kerte: 'mcp' })
+  const szoveg = 'a'.repeat(BECSULT_KARAKTER_PER_MP * 2)
+  const pending = stalled.synth.synthesize({ szoveg, celFajl: stalled.cel('a'), kerte: 'mcp' })
   await untilTheRequestIsOut()
   t.mock.timers.tick(REQUEST_TIMEOUT_MS)
-  await assert.rejects(pending, (e) => e.code === 'tts_idotullepes')
+  // A body that stalls arrived AFTER a 2xx: the provider took the work and
+  // started sending audio, so this is not the same fact as a request that
+  // never got a status line, and it does not get that fact's code or its
+  // refund. The estimate stands.
+  await assert.rejects(pending, (e) => e instanceof TtsError && e.code === 'tts_valasz_megszakadt' && e.httpStatus === 200)
+  assert.equal(stalled.state.repo.kerelmek(1)[0].hiba_kod, 'tts_valasz_megszakadt')
+  assert.equal(stalled.state.repo.maiMasodperc(today()), 2, 'a paid call keeps its reservation')
   t.mock.timers.reset()
 
   t.mock.timers.enable({ apis: ['setTimeout'] })
@@ -407,13 +516,30 @@ test('a measurement failure after a paid call is tts_hossz_meres_sikertelen, rec
     )
     assert.equal(state.repo.maiMasodperc(today()), 3, `${label}: the estimate is charged`)
     const row = state.repo.kerelmek(1)[0]
-    assert.equal(row.status, 'hiba', label)
+    // The audio is finished and on disk, so the row is finished: it is the
+    // measurement that is missing, and the code on the finished row says so.
+    assert.equal(row.status, 'kesz', label)
     assert.equal(row.hiba_kod, 'tts_hossz_meres_sikertelen', label)
+    assert.equal(row.hossz_ms, 0, `${label}: the length is absent, not guessed`)
     assert.equal(row.bajt, MP3.length, label)
     assert.equal(fs.existsSync(cel('a')), true, `${label}: the file the caller asked for is where it asked`)
-    // No finished row claims it, so the next call makes it again.
-    assert.equal(state.repo.counts().kesz, 0, label)
+    // The finished row holds the cache key, which is what makes the retry free.
+    assert.equal(state.repo.counts().kesz, 1, label)
   }
+
+  // The whole point of the finished row: a probe that fails on every call
+  // must not turn every retry into a fresh paid call. The second call for the
+  // same sentence crosses the provider zero times.
+  const { state, calls, synth, cel } = setup({ execFileImpl: async () => { throw Object.assign(new Error('spawn ffprobe ENOENT'), { code: 'ENOENT' }) } })
+  await assert.rejects(synth.synthesize({ szoveg: text, celFajl: cel('a'), kerte: 'mcp' }), (e) => e.code === 'tts_hossz_meres_sikertelen')
+  assert.equal(calls.length, 1)
+  const masodik = await synth.synthesize({ szoveg: text, celFajl: cel('b'), kerte: 'mcp' })
+  assert.equal(calls.length, 1, 'the retry did not reach the provider')
+  assert.equal(masodik.cache, true)
+  assert.equal(masodik.hosszMs, 0, 'the cached row carries no measurement, and does not invent one')
+  assert.equal(fs.readFileSync(cel('b')).equals(MP3), true)
+  // Only the first call was paid for, so only its estimate stands.
+  assert.equal(state.repo.maiMasodperc(today()), 3)
   // The probe passes the file as an argument, under a timeout, never through a shell.
   let seen
   await probeDurationMs('/abs/x.mp3', async (cmd, args, opts) => { seen = { cmd, args, opts }; return { stdout: '2.5\n', stderr: '' } })
@@ -502,14 +628,13 @@ test('the text reaches the request body verbatim and nothing else: not the file 
 test('status reports settings without the key value, and the code set is closed', () => {
   const { synth } = setup()
   const st = synth.status()
-  assert.deepEqual(Object.keys(st).sort(), ['hang', 'kulcsBeallitva', 'maiMasodperc', 'modell', 'napiKeret', 'nyelv', 'vegpontBeallitva'])
+  assert.deepEqual(Object.keys(st).sort(), ['hang', 'hangGyoker', 'kulcsBeallitva', 'maiMasodperc', 'modell', 'napiKeret', 'nyelv', 'vegpontBeallitva'])
   assert.equal(st.kulcsBeallitva, true)
   assert.equal(JSON.stringify(st).includes('"k"'), false)
   assert.equal(setup({ settings: { apiKey: '', endpoint: '' } }).synth.status().kulcsBeallitva, false)
   assert.equal(setup({ settings: { apiKey: '', endpoint: '' } }).synth.status().vegpontBeallitva, false)
-  assert.equal(celFajlEllenorzes('/abs/ok.mp3'), null)
   assert.equal(Object.isFrozen(TTS_KODOK), true)
-  for (const code of ['tts_egyenleg_kimerult', 'tts_idotullepes', 'tts_valasz_ertelmezhetetlen', 'tts_szolgaltato_visszautasitott', 'tts_halozat']) {
+  for (const code of ['tts_egyenleg_kimerult', 'tts_idotullepes', 'tts_valasz_ertelmezhetetlen', 'tts_valasz_megszakadt', 'tts_szolgaltato_visszautasitott', 'tts_halozat', 'tts_gyoker_hianyzik', 'tts_celfajl_foglalt']) {
     assert.ok(TTS_KODOK.includes(code), code)
   }
 })

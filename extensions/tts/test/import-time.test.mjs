@@ -64,7 +64,7 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.deepEqual(out.pages, ['/x/tts'])
   assert.equal(out.hooks, 'undefined', 'this extension registers no hooks')
   assert.equal(out.managedResources, 'undefined', 'this extension declares no managed agents or schedules')
-  assert.equal(out.migrations, 1)
+  assert.equal(out.migrations, 2)
   assert.equal(out.setup, 'function')
 })
 

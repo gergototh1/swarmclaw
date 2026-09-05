@@ -24,6 +24,15 @@ import { VideoView } from './video'
  * not be read makes the status bar say so rather than fall back to a calm
  * layout.
  *
+ * AND NONE OF THE THREE GATES THE OTHERS. Keeping the whole page behind
+ * `board` is what turned one refused response into a blank page: the status
+ * bar, the health lines, the Reconcile sentence and every tab were inside
+ * that branch, so the only thing the operator could read was the board's own
+ * error. What a failed board load costs is the queue, and nothing else. This
+ * is the shape the tts page has (extensions/tts/ui/main.tsx): every section
+ * draws in its own three states, and a section that failed sits under its
+ * message beside the sections that did not.
+ *
  * `version` counts successful board loads and keys the queue, so a reload
  * gives it a fresh subtree instead of new rows under old state.
  *
@@ -84,20 +93,27 @@ export function VideoPage({ extensionId, rpc }: { extensionId: string; rpc: Rpc 
         </p>
       )}
       {!board && !error && <p className="vid-muted">Betöltés…</p>}
-      {board && (
-        <>
-          <StatusBar board={board.value} health={health} healthError={healthError} managed={managed} onRefresh={refresh} rpc={rpc} />
-          <div className="vid-tabs" role="tablist">
-            {tab('sor', 'Sor')}
-            {tab('javaslatok', 'Javaslatok')}
-            {tab('sablonok', 'Sablonok')}
-          </div>
-          {nezet.kind === 'sor' && <Sor key={board.version} board={board.value} onOpen={(id) => setNezet({ kind: 'video', id })} />}
-          {nezet.kind === 'video' && <VideoView rpc={rpc} id={nezet.id} onBack={() => { setNezet({ kind: 'sor' }); refresh() }} />}
-          {nezet.kind === 'javaslatok' && <Javaslatok rpc={rpc} videoIdk={videoIdk} onOpenVideo={(id) => setNezet({ kind: 'video', id })} />}
-          {nezet.kind === 'sablonok' && <Sablonok rpc={rpc} />}
-        </>
-      )}
+      {/*
+        The status bar and the tabs do NOT wait on the board. They used to,
+        and one failed `board` call then took the whole page with it: the
+        health lines, the schedule sentence, the Reconcile warning and every
+        view were behind it, and all the operator got was the board's error
+        message. The three loads are three facts and are drawn as three: the
+        bar renders what it has, the queue says it could not be read, and the
+        other views make their own requests and answer for themselves.
+      */}
+      <StatusBar board={board ? board.value : null} health={health} healthError={healthError} managed={managed} onRefresh={refresh} rpc={rpc} />
+      <div className="vid-tabs" role="tablist">
+        {tab('sor', 'Sor')}
+        {tab('javaslatok', 'Javaslatok')}
+        {tab('sablonok', 'Sablonok')}
+      </div>
+      {nezet.kind === 'sor' && (board
+        ? <Sor key={board.version} board={board.value} onOpen={(id) => setNezet({ kind: 'video', id })} />
+        : <p className="vid-muted">A sor nem érhető el.</p>)}
+      {nezet.kind === 'video' && <VideoView rpc={rpc} id={nezet.id} onBack={() => { setNezet({ kind: 'sor' }); refresh() }} />}
+      {nezet.kind === 'javaslatok' && <Javaslatok rpc={rpc} videoIdk={videoIdk} onOpenVideo={(id) => setNezet({ kind: 'video', id })} />}
+      {nezet.kind === 'sablonok' && <Sablonok rpc={rpc} />}
     </div>
   )
 }

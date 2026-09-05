@@ -20,10 +20,11 @@ function setup({ settings = {}, fetchImpl, execFileImpl } = {}) {
   const s = memStorage()
   for (const m of MIGRATIONS) s.raw.exec(m.sql)
   const calls = []
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tts-rpc-'))
   const state = {
     repo: createRepo(s),
     log: { info() {}, warn() {}, error() {} },
-    settings: () => ({ apiKey: 'titkos-kulcs', endpoint: 'https://tts.example.test/v1', ...settings }),
+    settings: () => ({ apiKey: 'titkos-kulcs', endpoint: 'https://tts.example.test/v1', hangGyoker: dir, ...settings }),
     fetchImpl: fetchImpl || (async (url, init) => {
       calls.push({ url: String(url), init })
       return new Response(MP3, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
@@ -31,7 +32,6 @@ function setup({ settings = {}, fetchImpl, execFileImpl } = {}) {
     execFileImpl: execFileImpl || (async () => ({ stdout: '0.5\n', stderr: '' })),
   }
   const synth = createSynthesizer(state)
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tts-rpc-'))
   return { state, calls, dir, synth, rpc: createRpc(state, synth, { workspaceDir: '/ws/tts_mjs', portFile: '/home/run/port.json' }) }
 }
 
@@ -125,13 +125,15 @@ test('synthesize over rpc refuses an argument it cannot honour by name and never
 })
 
 test('synthesize over rpc lets a fault that is not a TtsError throw, so it reaches the log as a 500', async () => {
-  const { rpc } = setup({ execFileImpl: async () => { throw new TypeError('double fault') } })
+  // Each setup() has its own root, and a target is judged against the root of
+  // the synthesizer it is handed to, so the two are kept apart by name here.
+  const { rpc, dir: probeDir } = setup({ execFileImpl: async () => { throw new TypeError('double fault') } })
   // A failed probe is a TtsError (tts_hossz_meres_sikertelen) and comes back
   // as a value; a repository fault is not, and must not be dressed as one.
   const { state, dir } = setup()
   const broken = createRpc({ ...state, repo: { ...state.repo, cacheHit: () => { throw new RangeError('db gone') } } }, createSynthesizer({ ...state, repo: { ...state.repo, cacheHit: () => { throw new RangeError('db gone') } } }), { workspaceDir: '/ws', portFile: '/p' })
   await assert.rejects(broken.synthesize({ szoveg: 'x', celFajl: path.join(dir, 'a.mp3') }), RangeError)
-  const r = await rpc.synthesize({ szoveg: 'x', celFajl: path.join(dir, 'b.mp3') })
+  const r = await rpc.synthesize({ szoveg: 'x', celFajl: path.join(probeDir, 'b.mp3') })
   assert.equal(r.error.code, 'tts_hossz_meres_sikertelen')
 })
 

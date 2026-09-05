@@ -15,12 +15,12 @@ import { fileURLToPath } from 'node:url'
  * workspace with no node_modules. Every host here is a local `http` server
  * on 127.0.0.1 that the test itself started; nothing leaves the machine.
  *
- * A "swarmclaw" host answers `/api/healthz` with `service: "swarmclaw"`, as
- * the real route does, so the shim's identity check passes and the rpc
- * mapping is what gets exercised. The port file written for it carries the
- * test's own pid and a `startedAt` of now, which is what a live server's
- * file looks like; each of the three checks then gets a test that fails it
- * alone.
+ * A "swarmclaw" host answers `/api/healthz` with `service: "swarmclaw"` and
+ * the instance token its port file names, as the real route does, so the
+ * shim's checks pass and the rpc mapping is what gets exercised. The port
+ * file written for it carries the test's own pid and a `startedAt` of now,
+ * which is what a live server's file looks like; each of the four checks then
+ * gets a test that fails it alone.
  *
  * WHAT THESE TESTS CANNOT SHOW. The fake host answers `service: "swarmclaw"`
  * because this file makes it, and it writes the port file because this file
@@ -32,7 +32,14 @@ import { fileURLToPath } from 'node:url'
  * mcp/server.mjs.
  */
 const SHIM = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'mcp', 'server.mjs')
-const SWARMCLAW_HEALTHZ = { status: 200, json: { ok: true, service: 'swarmclaw', time: 1 } }
+/**
+ * The instance token the fake host and its port file share. A real host mints
+ * one per boot and answers it on /api/healthz; here the two sides are made to
+ * agree so the identity check passes and the rpc mapping is what is
+ * exercised. The check that they must agree gets its own test below.
+ */
+const INSTANCE = 'a1b2c3d4e5f60718293a4b5c6d7e8f90'
+const SWARMCLAW_HEALTHZ = { status: 200, json: { ok: true, service: 'swarmclaw', instanceId: INSTANCE, time: 1 } }
 
 /**
  * `handler` gets `{ url, method, key, body }` and returns `{ status, json }`
@@ -103,7 +110,7 @@ function writePort(content) {
   fs.writeFileSync(file, typeof content === 'string' ? content : `${JSON.stringify(content)}\n`)
   return file
 }
-const liveFile = (port, extra = {}) => writePort({ port, wsPort: port + 1, pid: process.pid, startedAt: Date.now(), ...extra })
+const liveFile = (port, extra = {}) => writePort({ port, wsPort: port + 1, pid: process.pid, startedAt: Date.now(), instanceId: INSTANCE, ...extra })
 
 async function statusCall(shim) {
   const r = await shim.call('tools/call', { name: 'tts_status', arguments: {} })
@@ -281,6 +288,58 @@ test('check 3: a live pid whose port refuses, answers something else, or answers
 
 // --- what the host answers ---
 
+test('check 4: a SwarmClaw on the port that is not the one the file names is refused, and no paid call is sent', async () => {
+  // The case: this instance was SIGKILLed, its port file stayed behind, its
+  // pid was handed to something else inside the same boot, and a second
+  // SwarmClaw -- another home, another database, another Soniox key -- now
+  // holds that port. Checks 1, 2 and 3 all pass on that file. Without the
+  // token the shim would send a synthesis there: paid on the wrong key,
+  // counted against the wrong daily cap, written into the wrong directory.
+  const masik = await fakeHost(() => ({ status: 200, json: { hang: 'Kenji' } }), {
+    healthz: { status: 200, json: { ok: true, service: 'swarmclaw', instanceId: 'ffffffffffffffffffffffffffffffff', time: 1 } },
+  })
+  try {
+    const shim = startShim({ SWARMCLAW_PORT_FILE: liveFile(masik.port), SWARMCLAW_ACCESS_KEY: 'k' })
+    try {
+      const { value } = await statusCall(shim)
+      assert.equal(value.error.code, 'swarmclaw_nem_fut')
+      assert.equal(value.error.reason, 'masik_peldany_a_porton')
+      assert.match(value.error.message, /MÁSIK SwarmClaw-példány/)
+      assert.equal(value.error.message.includes('ffffffff'), false, 'the other instance token is not repeated')
+      assert.deepEqual(masik.seen.map((r) => r.url), ['/api/healthz'], 'nothing was sent past the identity check')
+    } finally { await shim.stop() }
+  } finally { await masik.close() }
+
+  // A server that answers the service name but no token cannot be compared,
+  // and an answer that cannot be compared is not an answer.
+  const nevtelen = await fakeHost(() => ({ status: 200, json: { hang: 'Kenji' } }), {
+    healthz: { status: 200, json: { ok: true, service: 'swarmclaw', time: 1 } },
+  })
+  try {
+    const shim = startShim({ SWARMCLAW_PORT_FILE: liveFile(nevtelen.port), SWARMCLAW_ACCESS_KEY: 'k' })
+    try {
+      const { value } = await statusCall(shim)
+      assert.equal(value.error.reason, 'masik_peldany_a_porton')
+      assert.deepEqual(nevtelen.seen.map((r) => r.url), ['/api/healthz'])
+    } finally { await shim.stop() }
+  } finally { await nevtelen.close() }
+
+  // And a port file with no token at all is refused at check 1: without it
+  // there is nothing to compare, and accepting it would put the pid check
+  // back in the place of an identity check.
+  const jo = await fakeHost(() => ({ status: 200, json: { hang: 'Kenji' } }))
+  try {
+    const file = writePort({ port: jo.port, wsPort: jo.port + 1, pid: process.pid, startedAt: Date.now() })
+    const shim = startShim({ SWARMCLAW_PORT_FILE: file, SWARMCLAW_ACCESS_KEY: 'k' })
+    try {
+      const { value } = await statusCall(shim)
+      assert.equal(value.error.code, 'swarmclaw_nem_fut')
+      assert.equal(value.error.reason, 'port_fajl_ervenytelen')
+      assert.deepEqual(jo.seen, [], 'a file that cannot be checked is not followed at all')
+    } finally { await shim.stop() }
+  } finally { await jo.close() }
+})
+
 test('a 404 from the host is tts_extension_hianyzik, a 500 and an unreadable 200 are host_hiba, and a null is a value', async () => {
   const host = await fakeHost(({ url, body }) => {
     if (body && body.szoveg === 'five-hundred') return { status: 500, json: { error: { code: 'internal', message: 'boom in the handler' }, message: 'boom in the handler' } }
@@ -380,7 +439,9 @@ test('a host that restarts on a new port between two calls is found again, and o
     assert.equal(away.value.error.reason, 'kapcsolat_elutasitva')
     const second = await fakeHost(() => ({ status: 200, json: { which: 'second' } }))
     try {
-      fs.writeFileSync(file, `${JSON.stringify({ port: second.port, wsPort: second.port + 1, pid: process.pid, startedAt: Date.now() })}\n`)
+      // A restart rewrites the file, token and all; the shim reads it fresh on
+      // every call, so the new port and the new identity are both picked up.
+      fs.writeFileSync(file, `${JSON.stringify({ port: second.port, wsPort: second.port + 1, pid: process.pid, startedAt: Date.now(), instanceId: INSTANCE })}\n`)
       assert.equal((await statusCall(shim)).value.which, 'second')
     } finally { await second.close() }
   } finally { await shim.stop() }

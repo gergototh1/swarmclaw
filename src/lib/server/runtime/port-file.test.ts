@@ -36,7 +36,7 @@ test('writePortFile round-trips through readPortFile and leaves no temp file', a
   const { readPortFile, writePortFile } = await loadPortFile()
   withTempDir((dir) => {
     const file = path.join(dir, 'run', 'port.json')
-    const info = { port: 3499, wsPort: 3500, pid: process.pid, startedAt: 1 }
+    const info = { port: 3499, wsPort: 3500, pid: process.pid, startedAt: 1, instanceId: 'abc123' }
     writePortFile(info, file)
     assert.deepEqual(readPortFile(file), info)
     assert.deepEqual(fs.readdirSync(path.dirname(file)), ['port.json'])
@@ -48,9 +48,9 @@ test('writePortFile replaces an existing file in place', async () => {
   const { readPortFile, writePortFile } = await loadPortFile()
   withTempDir((dir) => {
     const file = path.join(dir, 'port.json')
-    writePortFile({ port: 1000, wsPort: 1001, pid: 1, startedAt: 1 }, file)
-    writePortFile({ port: 2000, wsPort: 2001, pid: 2, startedAt: 2 }, file)
-    assert.deepEqual(readPortFile(file), { port: 2000, wsPort: 2001, pid: 2, startedAt: 2 })
+    writePortFile({ port: 1000, wsPort: 1001, pid: 1, startedAt: 1, instanceId: 'first' }, file)
+    writePortFile({ port: 2000, wsPort: 2001, pid: 2, startedAt: 2, instanceId: 'second' }, file)
+    assert.deepEqual(readPortFile(file), { port: 2000, wsPort: 2001, pid: 2, startedAt: 2, instanceId: 'second' })
   })
 })
 
@@ -58,7 +58,7 @@ test('writePortFile creates the run directory 0700 and the file 0600', { skip: p
   const { writePortFile } = await loadPortFile()
   withTempDir((dir) => {
     const file = path.join(dir, 'run', 'port.json')
-    writePortFile({ port: 1, wsPort: 2, pid: 3, startedAt: 4 }, file)
+    writePortFile({ port: 1, wsPort: 2, pid: 3, startedAt: 4, instanceId: 'x' }, file)
     // umask can only clear bits, so assert on the group/other bits being clear
     // rather than on the exact mode.
     assert.equal(fs.statSync(path.dirname(file)).mode & 0o077, 0)
@@ -83,6 +83,11 @@ test('readPortFile returns null for a missing, malformed, or out-of-range file',
       '{"port":1,"wsPort":2,"pid":-5,"startedAt":4}',
       '{"port":1,"wsPort":2,"pid":3.5,"startedAt":4}',
       '{"port":1,"wsPort":2,"pid":3}',
+      // No instance token: a reader that took this would have nothing to
+      // check the server on the port against, which is the whole of check 4.
+      '{"port":1,"wsPort":2,"pid":3,"startedAt":4}',
+      '{"port":1,"wsPort":2,"pid":3,"startedAt":4,"instanceId":""}',
+      '{"port":1,"wsPort":2,"pid":3,"startedAt":4,"instanceId":7}',
     ]
     for (const text of rejected) {
       fs.writeFileSync(file, text)
@@ -95,41 +100,41 @@ test('readPortFile drops unknown keys instead of rejecting the file', async () =
   const { readPortFile } = await loadPortFile()
   withTempDir((dir) => {
     const file = path.join(dir, 'port.json')
-    fs.writeFileSync(file, '{"port":1,"wsPort":2,"pid":3,"startedAt":4,"later":true}')
-    assert.deepEqual(readPortFile(file), { port: 1, wsPort: 2, pid: 3, startedAt: 4 })
+    fs.writeFileSync(file, '{"port":1,"wsPort":2,"pid":3,"startedAt":4,"instanceId":"tok","later":true}')
+    assert.deepEqual(readPortFile(file), { port: 1, wsPort: 2, pid: 3, startedAt: 4, instanceId: 'tok' })
   })
 })
 
 test('isPortFileLive is true for this process started in this boot', async () => {
   const { isPortFileLive } = await loadPortFile()
-  assert.equal(isPortFileLive({ port: 1, wsPort: 2, pid: process.pid, startedAt: Date.now() }), true)
+  assert.equal(isPortFileLive({ port: 1, wsPort: 2, pid: process.pid, startedAt: Date.now(), instanceId: 'tok' }), true)
 })
 
 test('isPortFileLive is false for a pid whose process has exited', async () => {
   const { isPortFileLive } = await loadPortFile()
   const gone = spawnSync(process.execPath, ['-e', 'process.exit(0)'])
   assert.equal(typeof gone.pid, 'number')
-  assert.equal(isPortFileLive({ port: 1, wsPort: 2, pid: gone.pid, startedAt: Date.now() }), false)
+  assert.equal(isPortFileLive({ port: 1, wsPort: 2, pid: gone.pid, startedAt: Date.now(), instanceId: 'tok' }), false)
 })
 
 test('isPortFileLive is false when startedAt predates this boot, whatever the pid says', async () => {
   const { isPortFileLive } = await loadPortFile()
-  assert.equal(isPortFileLive({ port: 1, wsPort: 2, pid: process.pid, startedAt: 0 }), false)
+  assert.equal(isPortFileLive({ port: 1, wsPort: 2, pid: process.pid, startedAt: 0, instanceId: 'tok' }), false)
 })
 
 test('isPortFileLive is false for pid 0 rather than probing the process group', async () => {
   const { isPortFileLive } = await loadPortFile()
-  assert.equal(isPortFileLive({ port: 1, wsPort: 2, pid: 0, startedAt: Date.now() }), false)
+  assert.equal(isPortFileLive({ port: 1, wsPort: 2, pid: 0, startedAt: Date.now(), instanceId: 'tok' }), false)
 })
 
 test('removePortFile removes only a file written by this pid', async () => {
   const { removePortFile, writePortFile } = await loadPortFile()
   withTempDir((dir) => {
     const file = path.join(dir, 'port.json')
-    writePortFile({ port: 1, wsPort: 2, pid: process.pid + 100000, startedAt: 0 }, file)
+    writePortFile({ port: 1, wsPort: 2, pid: process.pid + 100000, startedAt: 0, instanceId: 'tok' }, file)
     removePortFile(file)
     assert.equal(fs.existsSync(file), true)
-    writePortFile({ port: 1, wsPort: 2, pid: process.pid, startedAt: 0 }, file)
+    writePortFile({ port: 1, wsPort: 2, pid: process.pid, startedAt: 0, instanceId: 'tok' }, file)
     removePortFile(file)
     assert.equal(fs.existsSync(file), false)
   })

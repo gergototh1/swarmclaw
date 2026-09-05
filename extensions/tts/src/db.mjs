@@ -39,6 +39,13 @@ import crypto from 'node:crypto'
  *
  * `ext_tts_kerelmek_created` (created_at)
  *   ordering for the page's list only. Not a decision.
+ *
+ * `ext_tts_kerelmek_fajl` (fajl)
+ *   blocks nothing either, but it is read as a decision: `fajlIsmert` asks it
+ *   before every write whether this extension has ever written the file that
+ *   is already at the target path, and a file no row names is not written
+ *   over. The index is there so that decision stays one lookup as the table
+ *   grows, rather than a scan of every request ever made.
  */
 export const MIGRATIONS = Object.freeze([{
   version: 1,
@@ -52,6 +59,11 @@ CREATE TABLE IF NOT EXISTS ext_tts_kerelmek (
 CREATE UNIQUE INDEX IF NOT EXISTS ext_tts_kerelmek_cache ON ext_tts_kerelmek (szolgaltato, modell, hang, nyelv, szoveg_hash) WHERE status = 'kesz';
 CREATE INDEX IF NOT EXISTS ext_tts_kerelmek_created ON ext_tts_kerelmek (created_at);
 CREATE TABLE IF NOT EXISTS ext_tts_napi (nap TEXT PRIMARY KEY, masodperc REAL NOT NULL DEFAULT 0);
+`,
+}, {
+  version: 2,
+  sql: `
+CREATE INDEX IF NOT EXISTS ext_tts_kerelmek_fajl ON ext_tts_kerelmek (fajl);
 `,
 }])
 
@@ -89,6 +101,19 @@ export function createRepo(storage) {
         [id, szolgaltato, modell, hang, nyelv, sha256(szoveg), szoveg, fajl, hosszMs, bajt, status, hibaKod, kerte, now()],
       )
       return { id }
+    },
+    /**
+     * Whether any row names this exact file, whatever its status.
+     *
+     * The write path asks before it replaces a file that is already on disk.
+     * All three statuses count: `kesz`, `hiba` and `elveszett` are alike rows
+     * this extension wrote about a file it made, and a retry of a call that
+     * failed after writing must not be refused its own target. A file no row
+     * names was made by somebody else, and this extension does not write over
+     * it (see `idegenFajlEllenorzes` in synthesize.mjs).
+     */
+    fajlIsmert(fajl) {
+      return Boolean(S.get('SELECT 1 AS van FROM ext_tts_kerelmek WHERE fajl = ? LIMIT 1', [fajl]))
     },
     /** A finished row whose file is gone releases the cache key; the next call synthesises again. */
     markLost(id) {

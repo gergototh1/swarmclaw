@@ -112,6 +112,15 @@ export function StatusPanel({ health }: { health: Health }) {
       <dd><YesNo value={health.kulcsBeallitva} yes="beállítva" no="nincs beállítva" /></dd>
       <dt>Végpont</dt>
       <dd><YesNo value={health.vegpontBeallitva} yes="beállítva" no="nincs beállítva" /></dd>
+      {/*
+        The root by value, not as a yes/no: it is the one directory this
+        extension writes into, the operator has to be able to read it back,
+        and a caller that names a path outside it is refused. An empty one
+        refuses every call, so it is said in those words rather than shown as
+        a blank line.
+      */}
+      <dt>Hangfájlok gyökere</dt>
+      <dd className="tts-mono">{health.hangGyoker === '' ? <span className="tts-no">nincs beállítva — minden hívás elutasítva (tts_gyoker_hianyzik)</span> : textOf(health.hangGyoker)}</dd>
       <dt>Mai felhasználás</dt>
       <dd>{formatSeconds(health.maiMasodperc)} / {formatSeconds(health.napiKeret)} napi keret</dd>
       <dt>Hang</dt>

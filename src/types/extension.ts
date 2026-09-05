@@ -840,6 +840,15 @@ export interface ExtensionContext {
    * separator, whitespace or a shell character is refused by name with a thrown
    * `TypeError` and never quietly rewritten. A binary at a known absolute path
    * needs none of this: spawn the path.
+   *
+   * IT IS EXPENSIVE AND IT BLOCKS. The lookup runs a synchronous `spawnSync`
+   * of the operator's login shell — which sources their profile — for up to 2
+   * seconds, on the calling thread. That thread also serves the HTTP routes,
+   * the WebSocket hub and the scheduler tick, so a slow profile stalls all of
+   * them, and a binary that is not installed costs the full spawn again every
+   * 30 seconds because negative answers are cached for only that long.
+   * Nothing here rate limits it. Resolve a binary once per operation and hold
+   * the answer; do not call this per tool invocation, per row, or in a loop.
    */
   resolveBinary: (name: string) => string | null
   /**

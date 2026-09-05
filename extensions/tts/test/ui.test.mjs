@@ -29,7 +29,8 @@ const render = (type, props) => renderToStaticMarkup(jsx(type, props))
 
 function health(overrides = {}) {
   return {
-    kulcsBeallitva: true, vegpontBeallitva: true, maiMasodperc: 12.4, napiKeret: 900, hang: 'Kenji', modell: 'tts-rt-v1', nyelv: 'hu',
+    kulcsBeallitva: true, vegpontBeallitva: true, hangGyoker: '/home/x/_remotion/public/narracio/swarmclaw',
+    maiMasodperc: 12.4, napiKeret: 900, hang: 'Kenji', modell: 'tts-rt-v1', nyelv: 'hu',
     counts: { kerelmek: 3, kesz: 2, hiba: 1 }, portFile: '/home/x/run/port.json', shim: '/home/x/data/extensions/.workspaces/tts_mjs/mcp/server.mjs',
     ...overrides,
   }
@@ -102,6 +103,7 @@ test('readHealth refuses a response without counts or without a field the page r
   assert.throws(() => readHealth({ ...health(), maiMasodperc: '12' }), /"maiMasodperc"/)
   assert.throws(() => readHealth({ ...health(), counts: { kerelmek: 1, kesz: 1 } }), /"hiba"/)
   assert.throws(() => readHealth({ ...health(), shim: undefined }), /"shim"/)
+  assert.throws(() => readHealth({ ...health(), hangGyoker: undefined }), /"hangGyoker"/)
   const ok = readHealth({ ...health(), extra: 'ignored' })
   assert.equal('extra' in ok, false)
   assert.equal(ok.counts.hiba, 1)

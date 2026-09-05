@@ -27,6 +27,7 @@ export interface Counts {
 export interface Health {
   kulcsBeallitva: boolean
   vegpontBeallitva: boolean
+  hangGyoker: string
   maiMasodperc: number
   napiKeret: number
   hang: string
@@ -95,6 +96,7 @@ export function readHealth(raw: unknown): Health {
   return {
     kulcsBeallitva: readBoolean('health', raw, 'kulcsBeallitva'),
     vegpontBeallitva: readBoolean('health', raw, 'vegpontBeallitva'),
+    hangGyoker: readString('health', raw, 'hangGyoker'),
     maiMasodperc: readNumber('health', raw, 'maiMasodperc'),
     napiKeret: readNumber('health', raw, 'napiKeret'),
     hang: readString('health', raw, 'hang'),

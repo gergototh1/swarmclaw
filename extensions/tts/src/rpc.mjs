@@ -215,6 +215,15 @@ export function createRpc(state, synth, { workspaceDir, portFile }) {
      * consumer as narration. The text is stored exactly as given, not
      * trimmed: the synthesizer hashes the caller's bytes as they are, so an
      * import that trimmed would fill the cache with rows no call can hit.
+     *
+     * The path rule includes the `hangGyoker` containment, which is not a
+     * formality here: an imported row is one a later call can hit, and a hit
+     * hands its file's path back as the answer and lets the write path
+     * replace it. A file outside the root could be imported and then written
+     * over through the row that named it, which is exactly the containment
+     * the import would otherwise be a way around. So the root is checked with
+     * the rest, and a file the operator keeps elsewhere is refused with the
+     * reason rather than imported.
      */
     async importCache(body = {}) {
       if (!Array.isArray(body.sorok)) throw new Error('sorok must be an array of { szoveg, fajl }')
@@ -228,7 +237,7 @@ export function createRpc(state, synth, { workspaceDir, portFile }) {
         if (!sor || typeof sor !== 'object' || Array.isArray(sor)) { refused.push({ index: i, ok: 'sor_ervenytelen' }); continue }
         const szovegHiba = szovegEllenorzes(sor.szoveg)
         if (szovegHiba) { refused.push({ index: i, ok: 'szoveg_ervenytelen', uzenet: szovegHiba }); continue }
-        const fajlHiba = celFajlEllenorzes(sor.fajl)
+        const fajlHiba = celFajlEllenorzes(sor.fajl, cfg.hangGyoker)
         if (fajlHiba) { refused.push({ index: i, ok: 'fajl_ervenytelen', uzenet: fajlHiba }); continue }
         const { szoveg, fajl } = sor
         let stat
