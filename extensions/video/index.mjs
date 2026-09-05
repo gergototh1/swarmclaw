@@ -1,4 +1,5 @@
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { createAfterChatTurn, createTanulsagTools } from './src/tanulsag.mjs'
 
 /**
  * Everything the host hands over in setup(), plus the seams a test injects.
@@ -57,11 +58,15 @@ const video = {
     state.contracts = ctx.contracts
     state.repo = createRepo(ctx.storage)
   },
-  // The tools, the rpc map and the two managed agents arrive in later tasks;
-  // an empty declaration is what the host accepts for an extension that has
-  // none yet, and nothing here pretends otherwise.
-  tools: [],
+  // The three tools of the daily review (material, close, propose). The
+  // catalogue, plan, narration and render tools, the rpc map and the two
+  // managed agents arrive in other tasks; an empty rpc declaration is what
+  // the host accepts for an extension that has none yet.
+  tools: [...createTanulsagTools(state)],
   rpc: {},
+  // The turn recorder for the daily review (spec 6.5). The host spreads this
+  // object into the extension's hook set, so the key is the host's hook name.
+  hooks: { afterChatTurn: createAfterChatTurn(state) },
   /**
    * The two contracts this module reads through `ctx.contracts`. Each `reason`
    * is the sentence the operator reads on the extension card before granting
