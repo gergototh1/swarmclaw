@@ -5,6 +5,7 @@ import path from 'node:path'
 import { refuse } from './args.mjs'
 import { resolvingSpawn } from './binaries.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
+import { ELONEZET_NEVTER } from './render.mjs'
 
 /**
  * A picture of each scene type, and the cache it lives in.
@@ -41,7 +42,17 @@ import { readCatalog, remotionDirOf } from './katalogus.mjs'
  * stops partway and an operator who presses the button again, which is
  * exactly what the button is for.
  */
-export const ELONEZET_NEVTER = path.join('out', 'swarmclaw', 'sablon-elonezet')
+/**
+ * The cache's root, IMPORTED and not spelled again.
+ *
+ * It used to be written out here as `out/swarmclaw/sablon-elonezet`, three
+ * segments beside `render.mjs`'s own `out/swarmclaw`, and the two had no way
+ * to know they described one tree. That is what let `orphanCount` walk this
+ * cache without recognising it and report the module's own stills as the
+ * operator's stray files. Re-exported so this file stays the one every
+ * caller and every test asks about the cache.
+ */
+export { ELONEZET_NEVTER }
 /**
  * The frame taken out of the one-scene video when the catalogue does not
  * state one for the type.
@@ -428,9 +439,30 @@ export function lathatoHosszFor(kocka) {
  * visible length this module writes rather than reads from the sample (spec
  * 3.2). The length is derived from the frame, so a type the catalogue says
  * settles late gets a scene that is still running when the still is taken.
+ *
+ * THE ORDER OF THE THREE PARTS IS THE WHOLE RULE, and both ends of it are
+ * this module overruling the other repository's file.
+ *
+ * `lathatoHossz` LAST: a length written into the sample loses. That is what
+ * makes `osszegzes` renderable at all -- its total appears at frame 109, and
+ * a sample carrying `lathatoHossz: 90` would end the scene before that frame
+ * exists, so no frame number whatsoever could draw the type's own point.
+ * The length belongs to the frame this module sampled at, and nothing else.
+ *
+ * `tipus` LAST TOO, and it used to be first, which was not a guard but the
+ * absence of one: a sample key called `tipus` overruled the loop's type, and
+ * the still of the type it named would have been written to THIS type's
+ * filename -- the gallery showing one scene under another's card, silently
+ * and with a successful render behind it. The file's name is the loop's
+ * type; so is the scene in it. A sample is a bag of props, and a key that is
+ * not a prop cannot decide what is drawn.
+ *
+ * Neither ordering was pinned before: no fixture sample carries either key,
+ * so swapping them left the suite green. test/elonezet.test.mjs carries one
+ * that does.
  */
 function propsFor(katalogus, tipus, kocka) {
-  return { lista: [{ tipus, ...katalogus.mintak[tipus], lathatoHossz: lathatoHosszFor(kocka) }], hatter: true }
+  return { lista: [{ ...katalogus.mintak[tipus], tipus, lathatoHossz: lathatoHosszFor(kocka) }], hatter: true }
 }
 
 /**
@@ -526,6 +558,49 @@ export async function indit(state, spawnImpl = state.spawnImpl || spawn) {
   // default. A logger that cannot log must not take the host down with it.
   menet(state, menetAllapot, { remotionDir, katalogus, dir, hianyzo, spawner: resolvingSpawn(state, spawnImpl) }).catch(() => {})
   return { indult: true }
+}
+
+/**
+ * The whole cache, taken.
+ *
+ * THIS IS NOT THE RUN'S SWEEP. `seper` is a disk-space decision inside a
+ * generation and keeps the hash directories that are still worth something;
+ * this is the page's Tisztítás and the uninstall guide's second step, where
+ * what is being asked is "leave nothing of yours behind". The cache has no
+ * row to bind a deletion to -- its key is a catalogue hash, not a render --
+ * so without this it survived an uninstall that had already dropped the
+ * tables, in a directory nothing was left to name it from.
+ *
+ * The same three conditions as the run's sweep, and for the same reason:
+ * 64 hex digits (so the name cannot be `.`, `..`, or carry a separator), a
+ * real directory rather than a symlink out of here, and the namespace root
+ * as its immediate parent. Inside a hash directory only this module's own
+ * two file kinds are unlinked, and a directory with anything else in it
+ * stays -- `torolHashMappa`'s rule, unchanged. Anything the operator put in
+ * the cache root under another name is untouched.
+ */
+export function torolElonezetCache(remotionDir) {
+  const root = path.join(remotionDir, ELONEZET_NEVTER)
+  let entries = []
+  try {
+    entries = fs.readdirSync(root, { withFileTypes: true })
+  } catch {
+    return { torolt: 0 }
+  }
+  let torolt = 0
+  for (const e of entries) {
+    if (!HASH_ALAK.test(e.name) || !e.isDirectory()) continue
+    const dir = path.join(root, e.name)
+    if (dir === root || path.dirname(dir) !== root) continue
+    torolHashMappa(dir)
+    torolt += 1
+  }
+  try {
+    fs.rmdirSync(root)
+  } catch {
+    // Something else is in there, or it was never created: it stays.
+  }
+  return { torolt }
 }
 
 /**

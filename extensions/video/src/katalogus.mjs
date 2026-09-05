@@ -223,7 +223,12 @@ export function validateDraft({ jelenetek, narracio, katalogus, remotionDir, kar
 export function createCatalogTool(state) {
   return {
     name: 'videoCatalog',
-    description: 'A Remotion-kit jelenettípusai és propjai a katalógusból, a JSON-ból küldhető tizenkilenc típussal, a sablon-számokkal és a katalógus hash-ével. Minden híváskor a fájlból olvas; a számok minden híváskor az összes sorból számolódnak.',
+    // The count is INTERPOLATED and never written out in words. It was
+    // "tizenkilenc" for as long as the table refused three types the kit
+    // had since made orderable, so the sentence the agent reads told it
+    // there were fewer templates than `kuldhetoTipusok` beside it listed.
+    // A number the table computes cannot say that.
+    description: `A Remotion-kit jelenettípusai és propjai a katalógusból, a JSON-ból küldhető ${KULDHETO_TIPUSOK.length} típussal, a sablon-számokkal és a katalógus hash-ével. Minden híváskor a fájlból olvas; a számok minden híváskor az összes sorból számolódnak.`,
     parameters: { type: 'object', properties: {} },
     execute() {
       return guard(() => {

@@ -41,11 +41,13 @@ import { VideoView } from './video'
  * no prefix. The set is built from the board here and passed down.
  *
  * `health` is passed to the Sablonok view for the same reason and by the same
- * route: its preview-generation button must be dark when `npx` cannot be
- * resolved, and that fact is already on this page. A second `health` request
+ * route: its preview-generation button must be dark whenever `health.blokkolt`
+ * names `render` -- the measured list, not one hand-picked code, so
+ * `chrome_hianyzik` and `platform_nem_mac` stop it exactly as `npx_hianyzik`
+ * does -- and that fact is already on this page. A second `health` request
  * from inside that view would ask the host a question this component has the
  * answer to, and would answer it at a different moment than the status bar
- * two rows above -- one page saying two things about the same tool.
+ * two rows above -- one page saying two things about the same measurement.
  */
 
 type Nezet = { kind: 'sor' } | { kind: 'video'; id: string } | { kind: 'javaslatok' } | { kind: 'sablonok' }

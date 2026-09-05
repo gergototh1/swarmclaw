@@ -36,13 +36,24 @@ const katalogusDirNelkul = (...mezok) => {
   return fakeProject({ catalogText: JSON.stringify(kat) })
 }
 
-test('the kit table covers every type and prop of the real catalogue, names the six asset props and the five unsendable types', () => {
+test('the kit table covers every type and prop of the real catalogue, names the ten asset props and the two unsendable types', () => {
   const kat = readCatalog(fakeProject())
   assert.deepEqual(tablaHianyai(kat), [])
   assert.equal(kat.tipusok.length, 24)
-  assert.deepEqual([...NEM_KULDHETO_TIPUSOK].sort(), ['cta', 'kartya-csere', 'keszulek-sor', 'nagyitas', 'osztott'])
-  assert.equal(KULDHETO_TIPUSOK.length, 19)
-  assert.deepEqual([...ASSET_PROPOK].sort(), ['allitas.hatterPergo', 'allitas.hatterVideo', 'cimlap.kepek', 'idezet.kep', 'kep-allitas.kep', 'lista.kep'])
+  // Two, not five: the kit routed `keszulek-sor.kepernyok`, `osztott.bal`,
+  // `osztott.jobb` and `nagyitas.kep` through `kepElem()`, which takes a
+  // `public/` filename from JSON, so only the two whose React-node prop has
+  // no filename form are left (`cta.sorok[].ikon`, `kartya-csere.kartyak`).
+  assert.deepEqual([...NEM_KULDHETO_TIPUSOK].sort(), ['cta', 'kartya-csere'])
+  assert.equal(KULDHETO_TIPUSOK.length, 22)
+  assert.equal(KULDHETO_TIPUSOK.length + NEM_KULDHETO_TIPUSOK.length, kat.tipusok.length)
+  // The four props that changed sides are asset props, not merely sendable
+  // ones: their filenames are resolved under public/ and hashed onto the plan.
+  assert.deepEqual([...ASSET_PROPOK].sort(), [
+    'allitas.hatterPergo', 'allitas.hatterVideo', 'cimlap.kepek', 'idezet.kep',
+    'kep-allitas.kep', 'keszulek-sor.kepernyok', 'lista.kep', 'nagyitas.kep',
+    'osztott.bal', 'osztott.jobb',
+  ])
   for (const tipus of kat.tipusok) assert.ok(KIT_TABLA[tipus], tipus)
   // The table lists nothing the catalogue lacks either: a stale name here would be a prop the check accepts and the kit ignores.
   for (const [tipus, t] of Object.entries(KIT_TABLA)) {
@@ -172,13 +183,16 @@ test('every shape and enumeration of the sendable set accepts a value the kit ac
     { tipus: 'fordulat', problemak: ['p'], megoldas: 'm' },
     { tipus: 'magyarazott', cim: 'c', reszek: [{ cimke: 'a', ertek: 1, szin: '#fff', magyarazat: 'm' }] },
     { tipus: 'osszegzes', cim: 'c', reszek: [{ ertek: 1, cimke: 'a' }], osszegCimke: 'o', utotag: 'u' },
+    { tipus: 'keszulek-sor', cim: 'c', kepernyok: ['usecase/kep.png', 'usecase/kep.png', 'usecase/kep.png'], teljes: true, tempo: 1 },
+    { tipus: 'osztott', cim: 'c', bal: 'usecase/kep.png', jobb: 'usecase/kep.png', balCimke: 'a', jobbCimke: 'b' },
+    { tipus: 'nagyitas', kep: 'usecase/kep.png', felirat: 'f', x: 0.5, y: 0.35, merteke: 2.1 },
     { tipus: 'allitas', mondat: 'Z.' },
   ]
   assert.equal(mind.length, KULDHETO_TIPUSOK.length + 1)
   const r = draft(dir, mind, mind.map((_, i) => ({ jelenet: i, szoveg: 'x'.repeat(30) })))
   assert.equal(r.refusal, null)
   assert.deepEqual(r.figyelmeztetesek, [])
-  assert.equal(r.assetUjjlenyomatok.length, 6)
+  assert.equal(r.assetUjjlenyomatok.length, 12)
 })
 
 test('each refusal has its own code', () => {
@@ -194,7 +208,7 @@ test('each refusal has its own code', () => {
   assert.equal(code(two({ tipus: 'szam', szam: 1, hang: 'x.mp3' })), 'prop_ismeretlen')
   assert.equal(code(two({ tipus: 'szam', szam: 1, lathatoHossz: 90 })), 'prop_ismeretlen')
   assert.equal(code(two({ tipus: 'cta', sorok: [{ ikon: 'bell', kicsi: 'a', nagy: 'b' }] })), 'tipus_nem_kuldheto')
-  assert.equal(code(two({ tipus: 'nagyitas', kep: 'usecase/kep.png', felirat: 'f' })), 'tipus_nem_kuldheto')
+  assert.equal(code(two({ tipus: 'kartya-csere', cim: 'c', felsorolas: ['a'], kartyak: [] })), 'tipus_nem_kuldheto')
   assert.equal(code(two({ tipus: 'cimlap', sorok: ['a'], grafika: 'x' })), 'prop_nem_kuldheto')
   assert.equal(code(two({ tipus: 'allitas', mondat: 'm', grafika: 'x' })), 'prop_nem_kuldheto')
   assert.equal(code(two({ tipus: 'racs', cim: 'c', elemek: [{ szoveg: 'a', jel: 'bell' }] })), 'prop_nem_kuldheto')
@@ -356,7 +370,7 @@ test('videoCatalog reads the file on every call and refuses a missing project by
   const first = await tool.execute({})
   assert.equal(first.error, undefined)
   assert.equal(first.tipusok.length, 24)
-  assert.equal(first.kuldhetoTipusok.length, 19)
+  assert.equal(first.kuldhetoTipusok.length, KULDHETO_TIPUSOK.length)
   assert.deepEqual(first.tablaHianyok, [])
   assert.equal(first.sablonStat.szam.hasznalat, 0)
   assert.equal(first.becsultKarakterPerMasodperc, 14)
@@ -368,4 +382,64 @@ test('videoCatalog reads the file on every call and refuses a missing project by
   assert.deepEqual(second.tablaHianyok, ['szam.szinatmenet'])
   fs.unlinkSync(path.join(remotionDir, 'src', 'kit', 'katalogus.generated.json'))
   assert.equal((await tool.execute({})).error.code, 'katalogus_hianyzik')
+})
+
+test('the three types the kit routed through kepElem() are orderable from JSON, filenames and all', () => {
+  const dir = fakeProject()
+  const jelenetek = [
+    { tipus: 'cimlap', sorok: ['Egy'], kiemelt: 'Egy' },
+    { tipus: 'keszulek-sor', cim: 'Sor', kepernyok: ['usecase/kep.png', 'usecase/kep.png'] },
+    { tipus: 'osztott', cim: 'Elotte-utana', bal: 'usecase/kep.png', jobb: 'usecase/kep.png', balCimke: 'A', jobbCimke: 'B' },
+    { tipus: 'nagyitas', kep: 'usecase/kep.png', felirat: 'Ide nézz.' },
+    { tipus: 'allitas', mondat: 'Zárlat.' },
+  ]
+  const narracio = jelenetek.map((_, i) => ({ jelenet: i, szoveg: 'Mondat.' }))
+  const r = draft(dir, jelenetek, narracio)
+  assert.equal(r.refusal, null)
+  // Every filename is hashed onto the plan's fingerprint, exactly like the
+  // asset props that were already in the table: five values, five entries.
+  assert.equal(r.assetUjjlenyomatok.length, 5)
+  assert.ok(r.assetUjjlenyomatok.every((a) => a.utvonal === 'usecase/kep.png' && /^[0-9a-f]{64}$/.test(a.sha256)))
+  // And a name that is not a file under public/ is still refused, by prop.
+  const rossz = draft(dir, [
+    { tipus: 'cimlap', sorok: ['Egy'], kiemelt: 'Egy' },
+    { tipus: 'keszulek-sor', cim: 'Sor', kepernyok: ['nincs-ilyen.png'] },
+    { tipus: 'allitas', mondat: 'Zárlat.' },
+  ])
+  assert.equal(rossz.refusal.code, 'asset_hianyzik')
+  assert.ok(rossz.refusal.message.includes('keszulek-sor).kepernyok'))
+})
+
+test('the tool description states the sendable count the table actually has, rather than a number written by hand', () => {
+  const { repo } = freshRepo()
+  const tool = createCatalogTool({ settings: () => ({ remotionDir: fakeProject() }), repo })
+  assert.ok(tool.description.includes(`${KULDHETO_TIPUSOK.length} típussal`), tool.description)
+  // The number that was written out in words is what drifted; no spelled-out
+  // count may come back, because nothing recomputes one.
+  assert.ok(!/tizenkilenc|huszonkettő/.test(tool.description))
+})
+
+test('a type literally named __proto__ becomes a sample and a frame, never a prototype', () => {
+  // `readCatalog` builds `mintak` and `mintaKockak` with `Object.fromEntries`
+  // and says why in a comment; an assignment loop leaves the suite green,
+  // because `NEV_ALAK` in elonezet.mjs refuses the name before it can become
+  // a path. The cost is not exploitable, it is silent: the type would come
+  // back with no sample at all and the gallery would report the other
+  // repository as owing it one.
+  //
+  // The three entries are spliced into the JSON TEXT: assigning `__proto__`
+  // on a JavaScript object is the very thing being tested against, so the
+  // fixture cannot be built with one.
+  const kat = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'))
+  kat.tipusok.push('__proto__')
+  const text = JSON.stringify(kat)
+    .replace('"propok":{', '"propok":{"__proto__":[{"nev":"cim","kotelezo":true,"mit":"x"}],')
+    .replace('"mintak":{', '"mintak":{"__proto__":{"cim":"minta"},')
+    .replace('"mintaKockak":{', '"mintaKockak":{"__proto__":42,')
+  const olvasott = readCatalog(fakeProject({ catalogText: text }))
+  assert.ok(Object.hasOwn(olvasott.mintak, '__proto__'), 'the sample is an own property')
+  assert.equal(Object.getPrototypeOf(olvasott.mintak), Object.prototype)
+  assert.ok(Object.hasOwn(olvasott.mintaKockak, '__proto__'), 'and so is the frame')
+  assert.equal(Object.getPrototypeOf(olvasott.mintaKockak), Object.prototype)
+  assert.equal(olvasott.mintaKockak['__proto__'], 42)
 })

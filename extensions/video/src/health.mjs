@@ -121,6 +121,12 @@ async function present(state, name, args) {
  * would read as "nothing left behind". The same rule is why `hossz`-style
  * absences elsewhere in this module are words rather than zeroes.
  *
+ * WHAT IT DOES NOT COUNT is the template-preview cache, which lives under the
+ * render namespace and is bound to a catalogue hash rather than to a row.
+ * `render.mjs` says why at the walk: the number stands for "something of
+ * yours is here", and the module's own cache counted in it made that sentence
+ * false and made it grow with every hash kept.
+ *
  * NOTHING HERE IS A SIDE EFFECT. The running render is read and summarised,
  * never adjudicated: the watchdog in render.mjs kills processes and closes
  * rows, and loading a page must not do that. `summary` carries

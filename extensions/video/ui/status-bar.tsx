@@ -201,7 +201,7 @@ export function StatusBarBody({ board, health, managed, healthError, dolgozik, l
         <summary>Uninstall előtt</summary>
         <ol>
           <li>Állítsd le a futó rendert (Leállít).</li>
-          <li>Tisztítás: a sorhoz kötött fájlok törlése a Remotion-projekt out/swarmclaw/ és public/narracio/swarmclaw/ alól.</li>
+          <li>Tisztítás: a sorhoz kötött fájlok törlése a Remotion-projekt out/swarmclaw/ és public/narracio/swarmclaw/ alól, és a sablon-előnézetek gyorsítótára (out/swarmclaw/sablon-elonezet/) — ez a modulé, sor nem köti, tehát csak innen tűnik el.</li>
           <li>Az eltávolítás eldobja az ext_video_ táblákat; utána már nincs sor, amihez a törlés kötődhetne.</li>
         </ol>
         <button type="button" className="vid-btn vid-btn-small" disabled={dolgozik} onClick={tisztit}>Tisztítás</button>
@@ -267,15 +267,18 @@ export function StatusBar({ board, health, managed, healthError, onRefresh, rpc 
   }, [rpc, onRefresh])
 
   const tisztit = useCallback(() => {
-    if (!window.confirm('Törlöm a sorhoz kötött fájlokat a Remotion-projekt out/swarmclaw/ és public/narracio/swarmclaw/ könyvtárából. Ez nem vonható vissza. Folytassam?')) return
+    if (!window.confirm('Törlöm a sorhoz kötött fájlokat a Remotion-projekt out/swarmclaw/ és public/narracio/swarmclaw/ könyvtárából, és a sablon-előnézetek gyorsítótárát. Ez nem vonható vissza. Folytassam?')) return
     setDolgozik(true)
     rpc('cleanup')
       .then((raw) => {
         const r = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
-        // The three numbers `cleanupAll` returns, and no fourth: `sorNelkul`
-        // is a recount, so a non-zero here after a cleanup means files the
-        // module never had a row for, which it does not delete.
-        setUzenet(`Tisztítás kész: ${szam(r.renderek)} render-fájl, ${szam(r.narraciok)} narráció törölve; sor nélkül maradt: ${szam(r.sorNelkul)}.`)
+        // Four numbers, and the fourth is kept apart on purpose: the preview
+        // cache is the module's own and is deleted by hash directory, not by
+        // row. `sorNelkul` is a recount and now excludes that cache, so a
+        // non-zero here after a cleanup means files the module never had a row
+        // for -- which it does not delete, and which this line does not claim
+        // it did.
+        setUzenet(`Tisztítás kész: ${szam(r.renderek)} render-fájl, ${szam(r.narraciok)} narráció és ${szam(r.elonezetek)} előnézet-gyorsítótár törölve; sor nélkül maradt: ${szam(r.sorNelkul)}.`)
       })
       .catch((err: unknown) => setUzenet(`A tisztítás nem futott le: ${errorText(err)}`))
       .finally(() => { setDolgozik(false); onRefresh() })

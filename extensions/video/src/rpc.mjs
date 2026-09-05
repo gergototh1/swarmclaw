@@ -1,6 +1,6 @@
 import { VideoError } from './args.mjs'
 import { VIDEO_STATUSOK } from './db.mjs'
-import { allapot, futasNezet, indit, kep, megszakit, vanMinta } from './elonezet.mjs'
+import { allapot, futasNezet, indit, kep, megszakit, torolElonezetCache } from './elonezet.mjs'
 import { runHealth } from './health.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
 import { KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, tablaHianyai } from './kit-tabla.mjs'
@@ -351,10 +351,23 @@ export function createRpc(state, ops) {
      * false statements about the kit, where the refusal code beside them is
      * a true one about the connection.
      *
-     * `mintaHianyzik` is answered here rather than inferred from a picture
-     * that failed to appear: the two repositories move independently, so a
-     * type the catalogue carries without a sample is an ordinary state the
-     * card says out loud.
+     * `tablaHianyok` IS DRAWN, and that is why it is still here. It names the
+     * types and props the catalogue declares and `kit-tabla.mjs` does not,
+     * which is the same `katalogus_valtozott` the agent gets on every plan
+     * while the gap is open; the gallery prints it above the grid, because
+     * the operator is the one who closes it and until now only the agent was
+     * told. A field nothing draws is a field nobody notices going wrong --
+     * this one carried the answer to a real skew for a whole feature without
+     * ever reaching the page.
+     *
+     * WHAT USED TO BE HERE AND IS NOT: `mintaHianyzik`. It listed the types
+     * the catalogue carries without a sample, and its docblock claimed the
+     * card said so out loud. The card does say so -- from `nincs_minta` on
+     * the per-card `templatePreview` round trip, and from
+     * `templatePreviewStatus`'s `mintaNelkul`, which is the same list from
+     * the module that actually decides it. Two transports for one fact, one
+     * of them read by nobody and described by a docblock promising UI that
+     * did not exist. The one the gallery draws is the one that stayed.
      */
     async templates() {
       const { katalogus, hiba } = catalogOrCode(state)
@@ -362,7 +375,7 @@ export function createRpc(state, ops) {
         return {
           hiba, katalogusHash: null, sablonStat: null, hetiSor: hetiSor(repo()),
           tipusok: null, leirasok: null, propok: null, kozosPropok: null,
-          kuldhetoTipusok: null, nemKuldhetoTipusok: null, mintaHianyzik: null, tablaHianyok: null,
+          kuldhetoTipusok: null, nemKuldhetoTipusok: null, tablaHianyok: null,
         }
       }
       return {
@@ -376,12 +389,6 @@ export function createRpc(state, ops) {
         kozosPropok: katalogus.kozosPropok,
         kuldhetoTipusok: KULDHETO_TIPUSOK,
         nemKuldhetoTipusok: NEM_KULDHETO_TIPUSOK,
-        // `vanMinta` and not `Object.hasOwn`, so this list and the gallery's
-        // own bookkeeping cannot disagree: an empty sample is no sample
-        // (src/elonezet.mjs says why at length), and a card that said "has a
-        // sample" beside a picture that will never be generated would be the
-        // page contradicting itself.
-        mintaHianyzik: katalogus.tipusok.filter((t) => !vanMinta(katalogus, t)),
         tablaHianyok: tablaHianyai(katalogus),
       }
     },
@@ -457,9 +464,16 @@ export function createRpc(state, ops) {
     async templatePreviewStatus() {
       const { hiba } = catalogOrCode(state)
       if (hiba) {
-        return { hiba, katalogusHash: null, katalogusTipusok: null, meglevo: null, hianyzo: null, mintaNelkul: null, fut: futasNezet() }
+        return { hiba, katalogusHash: null, meglevo: null, hianyzo: null, mintaNelkul: null, fut: futasNezet() }
       }
-      return { hiba: null, ...allapot(state) }
+      // Named one by one rather than spread, so what crosses to the page is a
+      // decision and not whatever `allapot` happens to return. `allapot`'s
+      // own `katalogusTipusok` is the catalogue's type order, which the page
+      // already has from `templates` and never asked for twice; it stopped
+      // here rather than becoming a second copy of the type list for the grid
+      // to disagree with.
+      const { katalogusHash, meglevo, hianyzo, mintaNelkul, fut } = allapot(state)
+      return { hiba: null, katalogusHash, meglevo, hianyzo, mintaNelkul, fut }
     },
     /** Stops the run before the next type. What is already generated stays. */
     async templatePreviewCancel() {
@@ -524,16 +538,33 @@ export function createRpc(state, ops) {
       return runHealth(state, ops)
     },
     /**
-     * The page's Tisztítás: every row-bound file in both namespaces. Refused
-     * while a render is running, because the files it is writing are named
-     * by a `fut` row and deleting them would be the module sabotaging its
-     * own child process. The refusal names the render so the page can offer
-     * `cancelRender`.
+     * The page's Tisztítás: every row-bound file in both namespaces, AND the
+     * template-preview cache. Refused while a render is running, because the
+     * files it is writing are named by a `fut` row and deleting them would be
+     * the module sabotaging its own child process. The refusal names the
+     * render so the page can offer `cancelRender`.
+     *
+     * WHY THE CACHE IS SWEPT HERE AND NOT IN `cleanupAll`. `renderOps` deletes
+     * what a ROW names -- that is the whole shape of it, and `orphanCount`
+     * beside it counts what no row names precisely so the module can promise
+     * never to delete those. The preview cache is neither: it is the module's
+     * own, keyed by a catalogue hash, and no row will ever name it. So it
+     * would survive an uninstall that had already dropped the tables, leaving
+     * files nothing could be asked about. This method is the operator's one
+     * "leave nothing of yours behind" lever, so it is the place the cache goes
+     * -- and `elonezetek` is reported separately rather than folded into
+     * `renderek`, because a hash directory is not a render.
+     *
+     * The cost is stated out loud: pressing Tisztítás throws away pictures
+     * that took a minute of the operator's machine. That is the same bargain
+     * the button already makes with finished renders, which cost far more, and
+     * the cache regenerates from a button two views away.
      */
     async cleanup() {
       const futo = repo().runningRender()
       need(!futo, `fut egy render (${futo ? futo.id : ''}); előbb állítsd le (cancelRender)`)
-      return ops.cleanupAll()
+      const remotionDir = remotionDirOf(state)
+      return { ...ops.cleanupAll(), elonezetek: torolElonezetCache(remotionDir).torolt }
     },
   }
 }

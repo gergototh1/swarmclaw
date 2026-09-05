@@ -266,6 +266,26 @@ export function SablonokBody({
       {data.hiba === null && (
         <p className="vid-muted vid-mono">katalógus-hash: {data.katalogusHash ?? '(nincs)'}</p>
       )}
+      {/*
+        THE SKEW THE AGENT ALREADY SEES, drawn for the one person who can
+        close it. `tablaHianyok` is what `videoCatalog` hands the producer and
+        what turns into `katalogus_valtozott` on every plan while the gap is
+        open: types and props the generated catalogue declares and the
+        module's kit table does not, which a plan may therefore not use. It
+        travelled to this page from the first version of the gallery and
+        nothing drew it, which is exactly how a table falls a kit behind
+        without anybody noticing.
+
+        The names are the catalogue's own, so they are shown as names; the
+        `role` is `status` and not `alert`, because a table one commit behind
+        is an ordinary state of two repositories, not a fault of this page.
+      */}
+      {data.tablaHianyok !== null && data.tablaHianyok.length > 0 && (
+        <p className="vid-warn" role="status">
+          A katalógus olyan típust vagy propot ad, amit a modul kit-táblája még nem ismer, ezért terv nem használhatja
+          (katalogus_valtozott): <span className="vid-mono">{data.tablaHianyok.join(', ')}</span>
+        </p>
+      )}
 
       <div className="vid-sablon-generalas">
         {fut === null || allapot === null ? (
@@ -280,6 +300,23 @@ export function SablonokBody({
         )}
         {fut === null && ok !== null && <span className={ok.rossz ? 'vid-bad' : 'vid-muted'}>{ok.szoveg}</span>}
       </div>
+      {/*
+        WHY THE MISSING COUNT CAN STAND AT ZERO WITH EMPTY CARDS ON SCREEN.
+        A type the catalogue declares without a sample is in neither
+        `meglevo` nor `hianyzo`: no picture is ever generated for it, the
+        button will never count it, and its card says `nincs_minta` in the
+        frame. Without this line the operator reads "minden mintával
+        rendelkező típusnak van képe" beside a grid with holes in it and has
+        only the wording of the sentence to go on. The list is the module's
+        own answer (`elonezet.mjs`'s `vanMinta`), so it and the frames cannot
+        disagree.
+      */}
+      {allapot !== null && allapot.mintaNelkul !== null && allapot.mintaNelkul.length > 0 && (
+        <p className="vid-muted">
+          {allapot.mintaNelkul.length} típushoz a katalógus nem ad mintát, ezekhez kép sem készül:{' '}
+          <span className="vid-mono">{allapot.mintaNelkul.join(', ')}</span>
+        </p>
+      )}
       {allapotHiba !== null && (
         <p className="vid-bad" role="alert">Az előnézetek állapotát nem tudtam lekérdezni: {allapotHiba}</p>
       )}
@@ -491,6 +528,31 @@ export function SablonokBody({
 }
 
 /**
+ * Whether the grid is drawing a catalogue that is no longer the one on disk.
+ *
+ * THE GRID WAS A SNAPSHOT AND THE BUTTON WAS NOT. `templates` is fetched once
+ * on mount; `templatePreviewStatus` is fetched again on every poll, and it
+ * carries the catalogue hash it just read. So an operator who edits the kit
+ * mid-session had the old type list in the grid beside a button counting the
+ * new one, and nothing on the page said which was current -- a reload fixed
+ * it, but only for someone who already suspected.
+ *
+ * A pure function rather than a comparison inline in the effect, for the
+ * reason `sablon-szuro.ts` is a separate file: the question is arithmetic on
+ * two strings, and a test that had to run an effect to ask it would be
+ * measuring React.
+ *
+ * TWO NULLS ARE NOT A CHANGE. Either side may be null -- the project could
+ * not be read, or that half has not answered yet -- and null is the page
+ * saying it does not know. A refetch fired on "unknown" would be a request
+ * loop over a project that is simply missing.
+ */
+export function katalogusElavult(rajzolt: string | null, mert: string | null): boolean {
+  if (rajzolt === null || mert === null) return false
+  return rajzolt !== mert
+}
+
+/**
  * The pictures that actually arrived, without the loading and refused
  * entries: what survives the end of a run, so those cards ask again.
  *
@@ -552,13 +614,28 @@ export function Sablonok({ rpc, health }: { rpc: Rpc; health: Health | null }) {
   const kepekRef = useRef<Record<string, KepAllapot>>({})
   useEffect(() => { kepekRef.current = kepek }, [kepek])
 
+  // Bumped when the catalogue on disk turns out to be a different one, so the
+  // grid is re-fetched instead of standing as a snapshot of the page load.
+  const [katalogusFordulo, setKatalogusFordulo] = useState(0)
+
   useEffect(() => {
     let stale = false
     rpc('templates')
       .then((raw) => { if (!stale) { setData(readTemplates(raw)); setError(null) } })
       .catch((err: unknown) => { if (!stale) setError(errorText(err)) })
     return () => { stale = true }
-  }, [rpc])
+  }, [rpc, katalogusFordulo])
+
+  // `templatePreviewStatus` reads the catalogue on every poll and `templates`
+  // read it once, so the status is where a mid-session kit edit shows up
+  // first. When the two hashes disagree the grid is drawing a kit that is no
+  // longer there; one refetch, and nothing more -- a `templates` that fails
+  // leaves `data` as it was, so these dependencies do not change and this
+  // does not retry in a loop.
+  useEffect(() => {
+    if (!katalogusElavult(data?.katalogusHash ?? null, allapot?.katalogusHash ?? null)) return
+    setKatalogusFordulo((n) => n + 1)
+  }, [data, allapot])
 
   const allapotot = useCallback(() => {
     rpc('templatePreviewStatus')

@@ -851,8 +851,12 @@ test('no text tells the producer to close on a cta, and both name the types no J
   const skill = readSkill('video-jelenetlista')
   for (const tipus of NEM_KULDHETO_TIPUSOK) assert.ok(skill.includes(`\`${tipus}\``), `the producer's skill must name ${tipus} as unsendable`)
   for (const tipus of KULDHETO_TIPUSOK) assert.ok(skill.includes(`\`${tipus}\``), `the producer's skill must name the sendable type ${tipus}`)
-  assert.equal(KULDHETO_TIPUSOK.length, 19)
-  assert.equal(NEM_KULDHETO_TIPUSOK.length, 5)
+  assert.equal(KULDHETO_TIPUSOK.length, 22)
+  assert.equal(NEM_KULDHETO_TIPUSOK.length, 2)
+  // The skill's prose carries no count of its own: it is a static file, and
+  // the number written into it in words is the one that went stale when the
+  // kit made three more types orderable.
+  assert.ok(!/tizenkilenc|huszonkét|huszonkettő/.test(skill))
   assert.ok(/záró \`allitas\`/.test(skill), 'the shape closes on allitas')
   assert.ok(/Nincs \`cta\`/.test(skill), 'the skill must say the call-to-action lives in the closing sentence')
   assert.ok(readSkill('video-lektoralas').includes('`cta` nincs'), 'the reviewer is told the same, because zarlat_nem_kovetkezik is where it shows up')

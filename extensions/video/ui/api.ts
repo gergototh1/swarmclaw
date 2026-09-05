@@ -287,9 +287,15 @@ export interface Templates {
   /** The types a plan may send as JSON, and the ones the kit takes only from React. Both come from the module's table, not from the catalogue file. */
   kuldhetoTipusok: string[] | null
   nemKuldhetoTipusok: string[] | null
-  /** Types the catalogue lists without a sample: the card says so rather than showing an empty frame. */
-  mintaHianyzik: string[] | null
-  /** Types and props the catalogue has and the kit table does not (`katalogus_valtozott`). */
+  /**
+   * Types and props the catalogue has and the kit table does not
+   * (`katalogus_valtozott`). Drawn above the grid: it is the operator who
+   * closes that gap, and the agent was the only one being told about it.
+   *
+   * Which types have no sample is NOT here. It is on `PreviewStatus` as
+   * `mintaNelkul`, answered by the module that decides it, and each card
+   * learns it a second time from its own `templatePreview` round trip.
+   */
   tablaHianyok: string[] | null
 }
 
@@ -334,11 +340,15 @@ export interface PreviewStatus {
   hiba: string | null
   katalogusHash: string | null
   /**
-   * Null beside a refusal code, never an empty list, for the reason
-   * `templates` gives at length: `hianyzo: []` would draw as "the gallery is
-   * complete" over a project nobody could read.
+   * Each list is null beside a refusal code, never an empty list, for the
+   * reason `templates` gives at length: `hianyzo: []` would draw as "the
+   * gallery is complete" over a project nobody could read.
+   *
+   * `mintaNelkul` is the types the catalogue declares without a sample -- no
+   * picture will ever be generated for them, which is why the gallery names
+   * them under the generate button rather than leaving the operator to
+   * wonder why the count of missing pictures never reaches zero.
    */
-  katalogusTipusok: string[] | null
   meglevo: string[] | null
   hianyzo: string[] | null
   mintaNelkul: string[] | null
@@ -403,7 +413,6 @@ export function readPreviewStatus(raw: unknown): PreviewStatus {
   return {
     hiba: typeof root.hiba === 'string' ? root.hiba : null,
     katalogusHash: typeof root.katalogusHash === 'string' ? root.katalogusHash : null,
-    katalogusTipusok: stringsOrNull(root.katalogusTipusok),
     meglevo: stringsOrNull(root.meglevo),
     hianyzo: stringsOrNull(root.hianyzo),
     mintaNelkul: stringsOrNull(root.mintaNelkul),
@@ -637,7 +646,6 @@ export function readTemplates(raw: unknown): Templates {
     kozosPropok: propsOrNull(root.kozosPropok),
     kuldhetoTipusok: stringsOrNull(root.kuldhetoTipusok),
     nemKuldhetoTipusok: stringsOrNull(root.nemKuldhetoTipusok),
-    mintaHianyzik: stringsOrNull(root.mintaHianyzik),
     tablaHianyok: stringsOrNull(root.tablaHianyok),
   }
 }

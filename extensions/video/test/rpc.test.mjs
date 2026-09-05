@@ -183,7 +183,9 @@ test('cancelRender and cleanup go through the shared renderOps', async () => {
   const { videoId, tervId, tervHash, verdiktId } = keszVideo(repo)
   assert.deepEqual(await rpc.cancelRender({ renderId: 'r-1' }), { renderId: 'r-1', status: 'hiba', hiba: { kod: 'render_megszakitva' } })
   await assert.rejects(rpc.cancelRender({}), /renderId/)
-  assert.deepEqual(await rpc.cleanup(), { renderek: 0, narraciok: 0, sorNelkul: 0 })
+  // The fourth number is the preview cache's, kept apart from the render
+  // count: a hash directory is not a render.
+  assert.deepEqual(await rpc.cleanup(), { renderek: 0, narraciok: 0, sorNelkul: 0, elonezetek: 0 })
   futoRender(repo, videoId, tervId, tervHash, verdiktId)
   await assert.rejects(rpc.cleanup(), /render/)
 })
@@ -291,23 +293,27 @@ test('templates hands the page the catalogue itself, not only the numbers', asyn
   assert.ok(r.kuldhetoTipusok.length > 0)
   assert.ok(r.nemKuldhetoTipusok.includes('cta'))
   assert.deepEqual(r.tablaHianyok, [])
-  // Which types have no sample is a fact the page shows on the card, so it
-  // is answered here rather than inferred from an empty picture.
-  assert.ok(Array.isArray(r.mintaHianyzik))
-  assert.ok(!r.mintaHianyzik.includes('cimlap'))
-  assert.ok(r.mintaHianyzik.includes('szam'))
+  // Which types have no sample is answered by `templatePreviewStatus`, the
+  // module that decides it, and by each card's own `templatePreview` round
+  // trip. `templates` used to carry a third copy that nothing read.
+  assert.equal(r.mintaHianyzik, undefined)
+  _resetFutas()
+  const a = await rpc.templatePreviewStatus()
+  assert.ok(!a.mintaNelkul.includes('cimlap'))
+  assert.ok(a.mintaNelkul.includes('szam'))
 })
 
-test('templates reads an empty sample as no sample, so the card and the gallery cannot disagree', async () => {
+test('the preview status reads an empty sample as no sample, so the card and the gallery cannot disagree', async () => {
   const dir = fakeProject()
   const katFile = path.join(dir, 'src', 'kit', 'katalogus.generated.json')
   const kat = JSON.parse(fs.readFileSync(katFile, 'utf8'))
   kat.mintak = { cimlap: { sorok: ['a'] }, lista: {} }
   fs.writeFileSync(katFile, JSON.stringify(kat))
   const { rpc } = setup({ remotionDir: dir })
-  const r = await rpc.templates()
-  assert.ok(!r.mintaHianyzik.includes('cimlap'))
-  assert.ok(r.mintaHianyzik.includes('lista'), 'an empty sample would draw a blank card, which is what "no sample" says')
+  _resetFutas()
+  const r = await rpc.templatePreviewStatus()
+  assert.ok(!r.mintaNelkul.includes('cimlap'))
+  assert.ok(r.mintaNelkul.includes('lista'), 'an empty sample would draw a blank card, which is what "no sample" says')
 })
 
 test('the four preview methods answer, and none of them starts a run by itself', async () => {
@@ -321,7 +327,9 @@ test('the four preview methods answer, and none of them starts a run by itself',
   assert.equal(a.fut, null)
   assert.equal(a.katalogusHash.length, 64)
   assert.equal(a.meglevo.length, 0)
-  assert.equal(a.mintaNelkul.length + a.hianyzo.length, a.katalogusTipusok.length)
+  // The two answers describe one catalogue: every type is drawable or is
+  // waiting for a sample, and the type list itself comes from `templates`.
+  assert.equal(a.mintaNelkul.length + a.hianyzo.length, (await rpc.templates()).tipusok.length)
   assert.deepEqual(await rpc.templatePreview({ tipus: 'cimlap' }), { dataUrl: null, ok: 'nincs_kep', hiba: null })
   assert.deepEqual(await rpc.templatePreview({ tipus: 'nincs-ilyen' }), { dataUrl: null, ok: 'tipus_ismeretlen', hiba: null })
   await assert.rejects(() => rpc.templatePreview({ tipus: 5 }), /tipus/)
@@ -352,7 +360,7 @@ test('all four preview methods answer an unreadable project, and none of them th
   assert.equal(a.fut, null)
   // Every catalogue-derived field is null, never an empty list: `hianyzo: []`
   // would draw as "the gallery is complete".
-  for (const mezo of ['katalogusHash', 'katalogusTipusok', 'meglevo', 'hianyzo', 'mintaNelkul']) {
+  for (const mezo of ['katalogusHash', 'meglevo', 'hianyzo', 'mintaNelkul']) {
     assert.equal(a[mezo], null, mezo)
   }
   assert.deepEqual(await rpc.templatePreview({ tipus: 'cimlap' }), { dataUrl: null, hiba: 'remotion_dir_hianyzik' })
@@ -418,7 +426,7 @@ test('templates without a readable project still answers the weekly row and says
   // Every catalogue-derived field is null, never an empty list: an empty
   // `tipusok` would draw as "this kit has no templates", which is a false
   // statement about the kit rather than a true one about the connection.
-  for (const mezo of ['tipusok', 'leirasok', 'propok', 'kozosPropok', 'kuldhetoTipusok', 'nemKuldhetoTipusok', 'mintaHianyzik', 'tablaHianyok']) {
+  for (const mezo of ['tipusok', 'leirasok', 'propok', 'kozosPropok', 'kuldhetoTipusok', 'nemKuldhetoTipusok', 'tablaHianyok']) {
     assert.equal(r[mezo], null, mezo)
   }
   assert.ok(Array.isArray(r.hetiSor))
@@ -617,4 +625,25 @@ test('an rpc refusal never repeats the value it refused', async () => {
     assert.ok(err instanceof Error)
     assert.equal(err.message.includes('script'), false, 'the refused value stays out of the message the route logs')
   }
+})
+
+test('Tisztítás takes the preview cache too: it is the module\'s own and no row can bind its deletion', async () => {
+  const dir = fakeProject()
+  const { rpc } = setup({ remotionDir: dir })
+  const root = path.join(dir, 'out', 'swarmclaw', 'sablon-elonezet')
+  const hashek = ['a'.repeat(64), 'b'.repeat(64)]
+  for (const h of hashek) {
+    fs.mkdirSync(path.join(root, h), { recursive: true })
+    fs.writeFileSync(path.join(root, h, 'cimlap.png'), 'png')
+    fs.writeFileSync(path.join(root, h, 'cimlap.props.json'), '{}')
+  }
+  // Not a hash directory: this is not the module's, so the sweep leaves it,
+  // the same three conditions the run's own sweep applies.
+  fs.mkdirSync(path.join(root, 'operatore'), { recursive: true })
+  fs.writeFileSync(path.join(root, 'operatore', 'sajat.png'), 'png')
+
+  const r = await rpc.cleanup()
+  assert.equal(r.elonezetek, 2, 'both hash directories go, and the answer says how many')
+  for (const h of hashek) assert.equal(fs.existsSync(path.join(root, h)), false)
+  assert.equal(fs.existsSync(path.join(root, 'operatore', 'sajat.png')), true)
 })

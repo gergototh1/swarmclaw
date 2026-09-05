@@ -80,6 +80,14 @@
  * that credential may not exist.
  */
 
+// The two counts below are the TABLE'S OWN, interpolated rather than spelled
+// out in words. The producer's prompt said "tizenkilenc" for as long as
+// kit-tabla.mjs refused three types the kit had since made orderable, so the
+// sentence contradicted the `kuldhetoTipusok` list the same tool returns
+// beside it. A number nothing recomputes is a number that goes stale here
+// exactly once and then stays wrong.
+import { KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK } from './kit-tabla.mjs'
+
 /**
  * How the producer introduces itself to itself.
  *
@@ -157,8 +165,8 @@ vár), \`elbukott\` (a \`talalatok\`-kal), \`lektoralt\` (narrálásra vár),
 tehát nem én ítélem meg.
 
 **\`videoCatalog\`**: \`tipusok\`, ebből \`kuldhetoTipusok\` a JSON-ból
-küldhető tizenkilenc és \`nemKuldhetoTipusok\` az öt, amit a tool
-visszautasít. A \`propok\` típusonként \`nev\`, \`kotelezo\` és \`mit\` (egy mondat a
+küldhető ${KULDHETO_TIPUSOK.length} típus és \`nemKuldhetoTipusok\` az a
+${NEM_KULDHETO_TIPUSOK.length}, amit a tool visszautasít. A \`propok\` típusonként \`nev\`, \`kotelezo\` és \`mit\` (egy mondat a
 propról) hármasokat ad, a \`leirasok\` típusonként egy mondatot, a \`kozosPropok\` a mindenhol értelmes
 propokat. A \`sablonStat\` típusonként \`hasznalat\`, \`lektoriTalalat\`,
 \`qaBukas\`, \`visszajelzes\` és \`megtartas\` -- szám, nem tiltás: négy

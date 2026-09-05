@@ -247,8 +247,9 @@ test('an empty sample is no sample: it is never drawn and never counted as drawa
 })
 
 test('a sample whose props are thin is still a sample: an empty node array is drawn, not refused', async () => {
-  // `kepernyok` is a required React node array, and while the kit did not
-  // route it through its filename helper the catalogue's own `keszulek-sor`
+  // `kepernyok` is a required list -- React nodes in the kit's own types,
+  // `public/` filenames from JSON -- and while the kit did not route it
+  // through its filename helper the catalogue's own `keszulek-sor`
   // sample carried it empty: a card with a title and nothing else, exit 0, a
   // valid PNG. That is not a failure. The kit has since given that sample
   // its screenshots, so the shape is stated here rather than borrowed from
@@ -521,4 +522,29 @@ test('the props file is temporary: the cache directory holds pictures and nothin
   const maradt = fs.readdirSync(hashDir)
   assert.ok(maradt.length > 0)
   assert.deepEqual(maradt.filter((f) => !f.endsWith('.png')), [], 'no props json is left behind, not even for a failed type')
+})
+
+test('the one-scene props keep the type and overrule a sample that carries its own lathatoHossz', async () => {
+  // The props are `{ tipus, ...minta, lathatoHossz }`, and the order of those
+  // three is the whole rule. `tipus` FIRST means a sample key called `tipus`
+  // could rename the scene -- and `remotion still` would then draw a
+  // different type under this type's filename. `lathatoHossz` LAST means the
+  // module's derived length wins over one written into the sample -- which is
+  // what makes `osszegzes` renderable at all: its total appears at frame 109,
+  // and a sample-supplied 90 would end the scene before the frame exists.
+  //
+  // Both orderings were silent: no fixture sample carries either key, so
+  // swapping them left the whole suite green. This sample carries both.
+  const { state } = harness({
+    mintak: { cimlap: { tipus: 'allitas', lathatoHossz: 5, sorok: ['a'], kiemelt: 'a' } },
+    mintaKockak: { cimlap: 120 },
+  })
+  const hivasok = []
+  await indit(state, fakeSpawn({ hivasok }))
+  await settle(() => allapot(state).fut === null, 'a menet vége')
+  assert.equal(hivasok.length, 1)
+  const jelenet = hivasok[0].props.lista[0]
+  assert.equal(jelenet.tipus, 'cimlap', 'a sample key named tipus cannot rename the scene')
+  assert.equal(jelenet.lathatoHossz, lathatoHosszFor(120), 'the derived length wins over one in the sample')
+  assert.deepEqual(jelenet.sorok, ['a'], 'and the rest of the sample is passed through untouched')
 })

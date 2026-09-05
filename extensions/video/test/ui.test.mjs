@@ -18,7 +18,7 @@ import { pixelbolMs, pontbolJelenet, szazalek, teljesHossz } from '../ui/idovona
 import { JavaslatokBody } from '../ui/javaslatok.tsx'
 import { MANAGED_RESOURCES_URL, loadManagedStatus } from '../ui/managed-state.ts'
 import { URES_SZURO, normal, szurtTipusok } from '../ui/sablon-szuro.ts'
-import { SablonokBody, csakKepek } from '../ui/sablonok.tsx'
+import { SablonokBody, csakKepek, katalogusElavult } from '../ui/sablonok.tsx'
 import { Sor } from '../ui/sor.tsx'
 import { StatusBar, StatusBarBody } from '../ui/status-bar.tsx'
 import { VideoBody } from '../ui/video.tsx'
@@ -349,11 +349,11 @@ test('readProposals, readTemplates and readHealth refuse by name, and a null sab
   assert.equal(readTemplates({ hiba: 'remotion_dir_hianyzik', sablonStat: null, hetiSor: [] }).sablonStat, null)
   // The catalogue fields degrade one by one: a `propok` this page cannot
   // draw costs the gallery its prop lists, not the numbers beside them.
-  const rossz = readTemplates({ hiba: null, sablonStat: {}, hetiSor: [], tipusok: ['cimlap'], propok: 'nem objektum', kozosPropok: 3, mintaHianyzik: [1] })
+  const rossz = readTemplates({ hiba: null, sablonStat: {}, hetiSor: [], tipusok: ['cimlap'], propok: 'nem objektum', kozosPropok: 3, tablaHianyok: [1] })
   assert.deepEqual(rossz.tipusok, ['cimlap'])
   assert.equal(rossz.propok, null)
   assert.equal(rossz.kozosPropok, null)
-  assert.equal(rossz.mintaHianyzik, null, 'a list of something other than type names is not a list of type names')
+  assert.equal(rossz.tablaHianyok, null, 'a list of something other than type names is not a list of type names')
   assert.deepEqual(rossz.sablonStat, {})
   assert.deepEqual(rossz.hetiSor, [])
   // The check goes as deep as the gallery walks: a `propok` entry that is
@@ -644,6 +644,10 @@ test('the status bar says which turn recorder is on, and the three uninstall ste
   assert.ok(sajat.includes('Uninstall előtt'))
   assert.ok(sajat.includes('Tisztítás'))
   assert.ok(sajat.includes('ext_video_ táblákat'))
+  // The preview cache is the module's own, has no row to bind a deletion to,
+  // and is therefore the one thing an uninstall would otherwise leave behind
+  // with nothing left to name it from. The guide names it.
+  assert.ok(sajat.includes('out/swarmclaw/sablon-elonezet/'), 'the uninstall guide names the preview cache')
 })
 
 test('a board that could not be read costs the queue and nothing else on the bar', () => {
@@ -762,14 +766,14 @@ function templatesData(overrides = {}) {
     hiba: null, katalogusHash: 'k1', sablonStat: {}, hetiSor: [],
     tipusok: KATALOGUS.tipusok, leirasok: KATALOGUS.leirasok, propok: KATALOGUS.propok,
     kozosPropok: KATALOGUS.kozosPropok, kuldhetoTipusok: KATALOGUS.tipusok,
-    nemKuldhetoTipusok: [], mintaHianyzik: [], tablaHianyok: [],
+    nemKuldhetoTipusok: [], tablaHianyok: [],
     ...overrides,
   }
 }
 
 function elonezetAllapot(overrides = {}) {
   return {
-    hiba: null, katalogusHash: 'k1', katalogusTipusok: KATALOGUS.tipusok,
+    hiba: null, katalogusHash: 'k1',
     meglevo: [], hianyzo: KATALOGUS.tipusok, mintaNelkul: [], fut: null, ...overrides,
   }
 }
@@ -795,7 +799,7 @@ test('a catalogue that could not be read shows its code and no grid, and keeps t
       hiba: 'remotion_dir_hianyzik', katalogusHash: null, sablonStat: null,
       hetiSor: [{ het: '2026-W36', renderek: 2, qaBukas: 1, lektoriTalalat: { horog_gyenge: 1 } }],
       tipusok: null, leirasok: null, propok: null, kozosPropok: null,
-      kuldhetoTipusok: null, nemKuldhetoTipusok: null, mintaHianyzik: null, tablaHianyok: null,
+      kuldhetoTipusok: null, nemKuldhetoTipusok: null, tablaHianyok: null,
     }),
   })
   assert.ok(html.includes('remotion_dir_hianyzik'))
@@ -858,6 +862,49 @@ test('a picture arrives as the data url it is, and a card that has none says whi
   assert.ok(html.includes('nincs kép'), 'the twenty-two cards nobody asked about say so rather than showing an empty box')
 })
 
+test('the grid notices that the catalogue changed under it, and does not chase an unknown one', () => {
+  // The gallery fetched `templates` once and polled `templatePreviewStatus`,
+  // so a mid-session kit edit left the old type list in the grid beside a
+  // button counting the new one. The status carries the hash it just read;
+  // when the two disagree, the grid is stale and is fetched again.
+  assert.equal(katalogusElavult('k1', 'k2'), true)
+  assert.equal(katalogusElavult('k1', 'k1'), false)
+  // Null is "this half does not know", on either side, and never a change:
+  // a refetch fired on an unreadable project would be a request loop.
+  assert.equal(katalogusElavult(null, 'k2'), false)
+  assert.equal(katalogusElavult('k1', null), false)
+  assert.equal(katalogusElavult(null, null), false)
+})
+
+test('the catalogue-table skew is drawn for the operator, not only handed to the agent', () => {
+  // `tablaHianyok` is the same `katalogus_valtozott` the producer is warned
+  // with on every plan. It reached this page from the first version of the
+  // gallery and nothing drew it, which is how the kit table fell three types
+  // behind the catalogue without the page ever saying so.
+  const van = renderSablonok({ data: templatesData({ tablaHianyok: ['szam.szinatmenet', 'hologram'] }) })
+  assert.ok(van.includes('katalogus_valtozott'))
+  assert.ok(van.includes('szam.szinatmenet, hologram'), 'the names are the catalogue\'s own, so the operator knows what to add')
+  // A table that is current says nothing, and a page that could not read the
+  // catalogue does not claim the table is current either.
+  assert.ok(!renderSablonok({ data: templatesData() }).includes('katalogus_valtozott'))
+  assert.ok(!renderSablonok({ data: templatesData({ tablaHianyok: null }) }).includes('katalogus_valtozott'))
+})
+
+test('a type the catalogue gives no sample for is named, so a zero missing count beside empty cards is explained', () => {
+  const html = renderSablonok({
+    data: templatesData(),
+    allapot: elonezetAllapot({ hianyzo: [], meglevo: KATALOGUS.tipusok.slice(2), mintaNelkul: ['gorbe', 'koriv'] }),
+    health: health(),
+  })
+  assert.ok(html.includes('2 típushoz a katalógus nem ad mintát'))
+  assert.ok(html.includes('gorbe, koriv'))
+  // And the button says the generation would do nothing, which is the
+  // sentence this line exists to make readable.
+  assert.ok(html.includes('Minden mintával rendelkező típusnak van képe.'))
+  // Nothing is said when every type has one.
+  assert.ok(!renderSablonok({ data: templatesData(), allapot: elonezetAllapot(), health: health() }).includes('nem ad mintát'))
+})
+
 test('a failure of one type sits on its own card with the exit code, and the other cards are unaffected', () => {
   const html = renderSablonok({
     data: templatesData(),
@@ -916,6 +963,19 @@ test('the generate button follows the measured blocker rather than one hand-list
     health: health({ ok: false, hibak: ['tts_szerzodes_hianyzik'], blokkolt: ['narracio'] }),
   })
   assert.ok(!/<button[^>]*disabled[^>]*>Előnézetek/.test(csakNarracio))
+})
+
+test('a preview state nobody could read darkens the button rather than offering a run that cannot be sized', () => {
+  // `hianyzo: null` is the status saying it does not know, which is not the
+  // same as zero. Without this branch the button stayed live beside a count
+  // of `?`, and pressing it would start a run over a list the page could not
+  // name -- with nothing red anywhere to say why.
+  const html = renderSablonok({
+    data: templatesData(), allapot: elonezetAllapot({ hianyzo: null }), health: health(),
+  })
+  assert.ok(/<button[^>]*disabled[^>]*>Előnézetek/.test(html))
+  assert.ok(html.includes('Előnézetek generálása (? hiányzik)'), '`?` and not 0: nobody counted')
+  assert.ok(html.includes('Az előnézetek állapota nem ismert, így a generálás nem indítható innen.'))
 })
 
 test('a running generation replaces the button with where it got to and a way to stop it', () => {
@@ -991,6 +1051,29 @@ test('the progress line drops the name when the run and the status describe diff
   })
   assert.ok(hashNelkul.includes('6/24'))
   assert.ok(!hashNelkul.includes('6/24 — '))
+})
+
+test('the search reaches the name, the sentence and the prop names, and stops there', () => {
+  // `sablon-szuro.ts` documents at length that the prop `mit` sentences are
+  // deliberately outside the haystack: they are the longest text on a card,
+  // and a two-letter query that matched them would match most of the kit --
+  // a filter that has stopped narrowing. Nothing pinned it, so adding them
+  // broke no test.
+  const forras = {
+    tipusok: ['cimlap', 'szam'],
+    leirasok: { cimlap: 'A nyitóképernyő.', szam: 'Egy szám a hír.' },
+    propok: {
+      cimlap: [{ nev: 'sorok', kotelezo: true, mit: 'A horog két-három rövid sora.' }],
+      szam: [{ nev: 'szam', kotelezo: true, mit: 'A kiírandó érték.' }],
+    },
+    kuldheto: null, hasznalat: null, vanKep: null,
+  }
+  const keres = (kereses) => szurtTipusok(forras, { ...URES_SZURO, kereses })
+  assert.deepEqual(keres('cimlap'), ['cimlap'], 'the type name')
+  assert.deepEqual(keres('nyitóképernyő'), ['cimlap'], 'the catalogue sentence')
+  assert.deepEqual(keres('sorok'), ['cimlap'], 'the prop names')
+  assert.deepEqual(keres('horog'), [], 'and not a word that only the prop sentence has')
+  assert.deepEqual(keres('kiírandó'), [])
 })
 
 test('a filter that cannot narrow says which fact it lacks, rather than being a grey box', () => {
@@ -1116,7 +1199,7 @@ test('the three preview readers honour hiba and ok as the two different facts th
   // Beside a refusal code every catalogue-derived list is null, never [],
   // and the run still answers because it does not live in the project.
   const vak = readPreviewStatus({
-    hiba: 'remotion_dir_hianyzik', katalogusHash: null, katalogusTipusok: null, meglevo: null, hianyzo: null, mintaNelkul: null,
+    hiba: 'remotion_dir_hianyzik', katalogusHash: null, meglevo: null, hianyzo: null, mintaNelkul: null,
     fut: { katalogusHash: 'k1', osszes: 2, kesz: ['cimlap'], hibak: { szam: { kod: 'idotullepes' } }, megszakitva: false, indultAt: 'x' },
   })
   assert.equal(vak.hianyzo, null)
