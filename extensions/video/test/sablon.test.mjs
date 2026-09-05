@@ -101,7 +101,7 @@ test('karakterPerMp is the estimate below ten narrated scenes and the measured r
   const jelenetek = Array.from({ length: 11 }, () => ({ tipus: 'szam', szam: 1 }))
   const narracio = jelenetek.map((_, i) => ({ jelenet: i, szoveg: 'x'.repeat(30) }))
   const t = terv(repo, videoId, jelenetek, narracio)
-  const row = (jelenet, hosszMs = 2000) => ({ tervHash: t.tervHash, jelenet, szovegHash: sha256('x'.repeat(30)), hang: 'h', modell: 'm', fajl: 'f', hosszMs, ttsKeresId: '' })
+  const row = (jelenet, hosszMs = 2000) => ({ tervHash: t.tervHash, jelenet, szovegHash: sha256('x'.repeat(30)), hang: 'h', modell: 'm', nyelv: 'hu', fajl: 'f', hosszMs, ttsKeresId: '' })
   assert.equal(karakterPerMp(repo), 14)
   repo.replaceNarraciok(t.id, Array.from({ length: 9 }, (_, i) => row(i)))
   assert.equal(karakterPerMp(repo), 14)

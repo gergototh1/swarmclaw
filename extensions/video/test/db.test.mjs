@@ -28,10 +28,16 @@ test('the migration creates the eleven tables the spec lists plus the agent tabl
   ])
 })
 
-test('the migration is idempotent: applying it twice neither fails nor duplicates', () => {
+test('v1 is idempotent (a leftover table survives a re-run) and v2 adds the nyelv column once', () => {
+  // The host applies a version once per extension id and never re-runs it;
+  // v1 is IF NOT EXISTS throughout because it may meet a table an uninstall
+  // left behind, while v2 is an ALTER TABLE and relies on that once-only rule.
   const { storage } = freshRepo()
-  for (const m of MIGRATIONS) storage.raw.exec(m.sql)
+  storage.raw.exec(MIGRATIONS[0].sql)
   assert.equal(storage.get("SELECT COUNT(*) AS c FROM sqlite_master WHERE name = 'ext_video_renderek_fut'").c, 1)
+  assert.deepEqual(MIGRATIONS.map((m) => m.version), [1, 2])
+  const cols = storage.all('PRAGMA table_info(ext_video_narraciok)').map((c) => c.name)
+  assert.ok(cols.includes('nyelv')); assert.equal(cols.filter((c) => c === 'nyelv').length, 1)
 })
 
 test('canonicalJson sorts keys at every depth and the terv hash follows content, not key order', () => {
@@ -251,10 +257,17 @@ test('videoForSignal finds the video opened from a card and counts opened-since 
 test('replaceNarraciok swaps the whole set and counts reflect the tables', () => {
   const { repo } = freshRepo()
   const v = openVideo(repo); const t = terv(repo, v)
-  const row = (jelenet) => ({ tervHash: t.tervHash, jelenet, szovegHash: `h${jelenet}`, hang: 'alloy', modell: 'tts-1', fajl: `narracio/swarmclaw/${jelenet}.mp3`, hosszMs: 1000, ttsKeresId: 'q' })
+  const row = (jelenet, extra = {}) => ({ tervHash: t.tervHash, jelenet, szovegHash: `h${jelenet}`, hang: 'alloy', modell: 'tts-1', nyelv: 'hu', fajl: `narracio/swarmclaw/${jelenet}.mp3`, hosszMs: 1000, ttsKeresId: 'q', ...extra })
   assert.equal(repo.replaceNarraciok(t.id, [row(0), row(1), row(2)]), 3)
   assert.equal(repo.replaceNarraciok(t.id, [row(1)]), 1)
   assert.deepEqual(repo.narraciok(t.id).map((n) => n.jelenet), [1])
+  assert.equal(repo.narraciok(t.id)[0].nyelv, 'hu')
   assert.equal(repo.narraciokAll().length, 1)
+  // A row missing any of the voice triple is a call-site bug, thrown before the DELETE so the old set stays.
+  for (const mezo of ['hang', 'modell', 'nyelv']) {
+    assert.throws(() => repo.replaceNarraciok(t.id, [row(0), row(2, { [mezo]: '' })]), new RegExp(`jelenet 2 row needs a non-empty ${mezo}`))
+    assert.throws(() => repo.replaceNarraciok(t.id, [row(2, { [mezo]: undefined })]), /non-empty/)
+  }
+  assert.deepEqual(repo.narraciok(t.id).map((n) => n.jelenet), [1])
   assert.deepEqual(repo.counts(), { videos: 1, tervek: 1, renderek: 0, qaOk: 0, nyitottJavaslatok: 0, fordulok: 0 })
 })

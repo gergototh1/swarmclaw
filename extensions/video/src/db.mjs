@@ -103,16 +103,27 @@ import crypto from 'node:crypto'
  *             false and would let a self-review through.
  *
  *   ext_video_narraciok -- PRIMARY KEY (terv_id, jelenet), plus terv_hash,
- *                          szoveg_hash, hang, modell on the row
+ *                          szoveg_hash, hang, modell, nyelv on the row
  *     gates   THE RENDER, one scene at a time. Every scene with a narration
  *             sentence needs a row whose `szoveg_hash` is the sha256 of the
- *             plan's CURRENT sentence and whose (hang, modell) pair is the
- *             TTS's current setting. A reworded sentence with an old mp3 is
- *             not renderable, and neither is a voice change with an old-voice
- *             mp3 (`narracio_hang_valtozott`): the TTS's cache key includes
- *             the voice, so a text hash alone would be blind to it. The
- *             primary key makes `replaceNarraciok` a whole-set replacement --
- *             a narration set is one thing, not a pile of rows to merge into.
+ *             plan's CURRENT sentence and whose (hang, modell, nyelv) triple
+ *             is the TTS's current setting. A reworded sentence with an old
+ *             mp3 is not renderable, and neither is a voice change with an
+ *             old-voice mp3 (`narracio_hang_valtozott`): the TTS's cache key
+ *             is (szolgaltato, modell, hang, nyelv, szoveg_hash), so a text
+ *             hash alone would be blind to it, and so would a (hang, modell)
+ *             pair -- the spec's table names those two, but the tts answers
+ *             with all three, and a language change under an unchanged voice
+ *             name is a different mp3 for the same sentence. `nyelv` is
+ *             therefore on the row and in the comparison (narracio.mjs,
+ *             `hangEgyezik`), and it arrived in migration v2: a row from
+ *             before it reads '' there, which matches no current setting and
+ *             so reads as "voice changed". That is the safe direction, since
+ *             a re-narration of an unchanged sentence is a tts cache hit and
+ *             costs nothing, while the other direction ships the wrong audio.
+ *             The primary key makes `replaceNarraciok` a whole-set
+ *             replacement -- a narration set is one thing, not a pile of rows
+ *             to merge into.
  *
  *   ext_video_renderek -- PRIMARY KEY (id)
  *     gates   which row `finishRender` closes. The id is minted by the tool
@@ -269,6 +280,25 @@ CREATE TABLE IF NOT EXISTS ext_video_tanulsagok (
 CREATE TABLE IF NOT EXISTS ext_video_ugynokok (
   agent_id TEXT PRIMARY KEY, szerep TEXT NOT NULL, first_seen_at TEXT NOT NULL
 );
+`,
+}, {
+  /*
+   * The language the narration was made in, beside the voice and the model:
+   * the third field of the tts cache key, missing from v1 (see the key list,
+   * ext_video_narraciok). '' for a row written before this version; no such
+   * row exists in practice, because the tool that writes this table arrived
+   * with this migration, and a '' row would only ever read as "voice changed".
+   *
+   * ALTER TABLE ADD COLUMN is not idempotent, and it does not need to be: the
+   * host applies a version once per extension id and never re-runs it
+   * (extension-storage.ts, runExtensionMigrations). v1 is all IF NOT EXISTS
+   * because it also has to survive a table left behind by an uninstall that
+   * missed it; a leftover table already carries this column or has never seen
+   * v2, and either way v2 runs against it exactly once.
+   */
+  version: 2,
+  sql: `
+ALTER TABLE ext_video_narraciok ADD COLUMN nyelv TEXT NOT NULL DEFAULT '';
 `,
 }])
 
@@ -428,13 +458,26 @@ export function createRepo(storage) {
     verdiktekAll() { return S.all('SELECT * FROM ext_video_verdiktek ORDER BY created_at ASC, rowid ASC') },
     verdiktekSince(iso) { return S.all('SELECT * FROM ext_video_verdiktek WHERE created_at >= ? ORDER BY created_at ASC, rowid ASC', [iso]) },
     // --- narraciok ---
-    /** Replaces the plan's whole narration set in one transaction; a set is one thing, and a partial one is not a set. */
+    /**
+     * Replaces the plan's whole narration set in one transaction; a set is one
+     * thing, and a partial one is not a set. Every row must carry the whole
+     * voice triple (hang, modell, nyelv) as non-empty strings: a row missing
+     * one would compare as "voice changed" forever, or, worse, a caller that
+     * dropped `nyelv` would be storing two thirds of the fingerprint the key
+     * list promises. That is a bug at the call site, so it throws rather than
+     * refusing, and it throws before the DELETE, so the old set stays.
+     */
     replaceNarraciok(tervId, rows) {
+      for (const r of rows) {
+        for (const mezo of ['hang', 'modell', 'nyelv']) {
+          if (typeof r[mezo] !== 'string' || r[mezo] === '') throw new Error(`replaceNarraciok: jelenet ${r.jelenet} row needs a non-empty ${mezo}`)
+        }
+      }
       return S.transaction(() => {
         S.exec('DELETE FROM ext_video_narraciok WHERE terv_id = ?', [tervId])
         for (const r of rows) {
-          S.exec('INSERT INTO ext_video_narraciok (terv_id, terv_hash, jelenet, szoveg_hash, hang, modell, fajl, hossz_ms, tts_keres_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
-            [tervId, r.tervHash, r.jelenet, r.szovegHash, r.hang, r.modell, r.fajl, r.hosszMs, r.ttsKeresId, now()])
+          S.exec('INSERT INTO ext_video_narraciok (terv_id, terv_hash, jelenet, szoveg_hash, hang, modell, nyelv, fajl, hossz_ms, tts_keres_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+            [tervId, r.tervHash, r.jelenet, r.szovegHash, r.hang, r.modell, r.nyelv, r.fajl, r.hosszMs, r.ttsKeresId, now()])
         }
         return rows.length
       })

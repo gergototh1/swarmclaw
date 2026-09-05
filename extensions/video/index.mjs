@@ -1,5 +1,6 @@
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { createCatalogTool } from './src/katalogus.mjs'
+import { createNarrateTool } from './src/narracio.mjs'
 import { createAfterChatTurn, createTanulsagTools } from './src/tanulsag.mjs'
 import { createTervTools } from './src/terv.mjs'
 
@@ -61,11 +62,11 @@ const video = {
     state.repo = createRepo(ctx.storage)
   },
   // The catalogue read, the five tools of a plan's life before narration
-  // (open, draft, verdict, lessons, queue), and the three of the daily review
-  // (material, close, propose). Narration and render tools, and the rpc map,
-  // arrive in later tasks; an empty rpc declaration is what the host accepts
-  // for an extension that has none yet.
-  tools: [createCatalogTool(state), ...createTervTools(state), ...createTanulsagTools(state)],
+  // (open, draft, verdict, lessons, queue), the narration over the tts
+  // contract, and the three of the daily review (material, close, propose).
+  // The render tools and the rpc map arrive in later tasks; an empty rpc
+  // declaration is what the host accepts for an extension that has none yet.
+  tools: [createCatalogTool(state), ...createTervTools(state), createNarrateTool(state), ...createTanulsagTools(state)],
   rpc: {},
   // The turn recorder for the daily review (spec 6.5). The host spreads this
   // object into the extension's hook set, so the key is the host's hook name.
