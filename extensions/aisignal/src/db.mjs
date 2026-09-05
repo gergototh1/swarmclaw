@@ -265,8 +265,8 @@ CREATE TABLE IF NOT EXISTS ext_aisignal_frontier (
    *
    * Migration 3 keyed the table on (kind, label), and `label` is a Gmail label
    * *name*: a mutable alias that a run resolves to an actual source at sweep
-   * time, through `gmail.labelId(name)`, inside whatever mailbox the stored
-   * Google credential currently opens. Both halves of that resolution move
+   * time, by matching it against the mailbox's own label list, inside whatever
+   * mailbox the credential behind the `mailbox` contract currently opens. Both halves of that resolution move
    * under ordinary operator action, and when either moves the new source
    * silently inherits the old source's watermark.
    *
@@ -614,12 +614,12 @@ export const MAIL_KIND = 'mail'
  *   kind      which series this is. A web sweep must never answer "when did we
  *             last read mail?".
  *   account   which mailbox the run was actually looking at. For mail this is
- *             the address `users.getProfile` reports for the credential in
- *             hand. The host stores one Google refresh token per purpose, so
- *             reconnecting a different account swaps the mailbox under a name
- *             that did not change.
+ *             the address the `mailbox` contract's `mailbox()` reports for the
+ *             credential in hand. One Google refresh token is stored per
+ *             purpose, so reconnecting a different account swaps the mailbox
+ *             under a name that did not change.
  *   sourceId  which source inside that account. For mail this is the Gmail
- *             label *id* `labelId(name)` resolved, never the name: the name is
+ *             label *id* the operator's name resolved to, never the name: it is
  *             a mutable alias an operator can repoint at another label in one
  *             click. Label ids are per-mailbox, which is why `account` is in
  *             the key with it.

@@ -51,10 +51,30 @@ export interface Sweep {
   kind: string
 }
 
-export type GmailState = 'connected' | 'missing' | 'error'
+/**
+ * The three answers `mailboxHealth` in rpc.mjs gives.
+ *
+ * `ready` says the `gmail` extension's `mailbox` contract resolves for this
+ * install. It does NOT say a mailbox is connected: this extension holds no
+ * Google credential any more and cannot see the one that matters, which lives
+ * with the `gmail` extension and is reported on its own page.
+ */
+export type GmailState = 'ready' | 'unavailable' | 'error'
+
+/** The host's four words for why a contract does not resolve. */
+export type GmailReason = 'not_declared' | 'provider_missing' | 'provider_disabled' | 'version_mismatch'
 
 export interface GmailStatus {
   status: GmailState
+  /**
+   * Present on `unavailable`. Typed as a plain string rather than `GmailReason`
+   * on purpose: the vocabulary is the host's, not this extension's, and a word
+   * added there must reach the page as itself rather than be refused or folded
+   * into one of the four. `describeGmail` has a sentence for each of the four
+   * and shows anything else as it arrived.
+   */
+  reason?: string
+  /** Present on `error`: this extension's own fixed code for a check it could not make. */
   code?: string
 }
 
@@ -92,7 +112,7 @@ export interface DecideResult {
 /** The status filters the list offers, a subset of what `reads.mjs` accepts. */
 export type ListStatus = 'all' | 'new' | 'saved' | 'archived'
 
-const GMAIL_STATES: readonly string[] = ['connected', 'missing', 'error']
+const GMAIL_STATES: readonly string[] = ['ready', 'unavailable', 'error']
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -147,7 +167,11 @@ export function readBoard(raw: unknown): Board {
       seen: readNumber('board', counts, 'seen'),
     },
     label: typeof raw.label === 'string' ? raw.label : refuse('board', 'label'),
-    gmail: { status: gmail.status as GmailState, code: typeof gmail.code === 'string' ? gmail.code : undefined },
+    gmail: {
+      status: gmail.status as GmailState,
+      reason: typeof gmail.reason === 'string' ? gmail.reason : undefined,
+      code: typeof gmail.code === 'string' ? gmail.code : undefined,
+    },
   }
 }
 

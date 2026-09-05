@@ -2,14 +2,15 @@ import type { Board, ManagedStatus, Sweep } from './api'
 import { cappedNote, describeGmail, describeManaged, describeOutcome, formatDateTime, kindLabel, noteSegments, sweepOutcome } from './format'
 
 /**
- * The line the operator reads before the deck: what the last run did, whether
- * Gmail can be swept at all, and which label is being read.
+ * The line the operator reads before the deck: what the last run did, whether a
+ * mailbox can be reached at all, and which label is being read.
  *
  * Nothing here is folded together. A sweep that is not closed, one that
  * failed, one that read the label and found nothing, and one that found rows
- * are four different sentences (see `describeOutcome`), and a Gmail credential
- * that is absent and a check that could not run are two (see `describeGmail`).
- * The connect link is offered only when the credential is known to be absent.
+ * are four different sentences (see `describeOutcome`), and a mailbox contract
+ * that does not resolve and a check that could not run are two more (see
+ * `describeGmail`). The link to the Gmail page is offered only where that page
+ * is the operator's next step, which `describeGmail` decides.
  *
  * The schedule line is the same rule applied to the one seam the sweep rows
  * cannot cover: "no sweep has run yet" is true both on an install whose two
@@ -20,10 +21,12 @@ import { cappedNote, describeGmail, describeManaged, describeOutcome, formatDate
  *
  * The href is root-relative, the same shape the host's own `assetUrl` builds,
  * so it works wherever the app is served from without this bundle knowing the
- * origin. The route sits behind the host's auth cookie, which a plain link
- * navigation carries, and its callback returns to this page.
+ * origin. It is an ordinary in-app page behind the host's auth cookie, which a
+ * plain link navigation carries. It is NOT an OAuth route: the consent this
+ * extension used to start is the `gmail` extension's now, and that page is
+ * where the operator connects the mailbox.
  */
-const CONNECT_HREF = '/api/oauth/google/start?purpose=aisignal'
+const GMAIL_PAGE_HREF = '/x/gmail'
 
 function SweepLine({ sweep }: { sweep: Sweep }) {
   const outcome = sweepOutcome(sweep)
@@ -72,8 +75,8 @@ export function StatusBar({ board, managed, onRefresh }: { board: Board; managed
       )}
       <div className="ais-status-row">
         <span>
-          <span className={board.gmail.status === 'connected' ? '' : 'ais-warn'}>{gmail.text}</span>
-          {gmail.canConnect && <a className="ais-link ais-connect" href={CONNECT_HREF}>Gmail bekötése</a>}
+          <span className={board.gmail.status === 'ready' ? '' : 'ais-warn'}>{gmail.text}</span>
+          {gmail.page && <a className="ais-link ais-gmail-page" href={GMAIL_PAGE_HREF}>Gmail lap</a>}
           <span className="ais-muted"> · címke: {board.label}</span>
         </span>
       </div>

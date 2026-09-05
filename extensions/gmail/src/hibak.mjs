@@ -10,9 +10,10 @@
  * 1. A CODE THAT ALREADY STANDS IN A STORED ROW NEVER CHANGES ITS SPELLING.
  *    The twelve `gmail_*_failed` / `gmail_token_*` / `gmail_timeout` /
  *    `gmail_unexpected` / `gmail_scope_missing` / `gmail_label_missing` codes
- *    come over unchanged from the Gmail client this module inherits
- *    (`extensions/aisignal/src/gmail.mjs`): AI Signal's stored sweep rows carry
- *    them, its page renders them, and its test suite speaks them. They are
+ *    come over unchanged from the Gmail client this module inherits, which was
+ *    `extensions/aisignal/src/gmail.mjs` until AI Signal moved onto this
+ *    module's `mailbox` contract and deleted it: AI Signal's stored sweep rows
+ *    carry them, its page renders them, and its test suite speaks them. They are
  *    English where the newer codes are Hungarian, and that inconsistency is the
  *    cost of not invalidating rows that are already on disk.
  *
@@ -51,7 +52,16 @@ export const HIBA_KODOK = Object.freeze([
   'gmail_token_missing',
   /** The stored grant does not cover the operation that was attempted. */
   'gmail_scope_missing',
-  /** A label name the caller asked for is not one this mailbox has. */
+  /**
+   * A label name the caller asked for is not one this mailbox has.
+   *
+   * Nothing in this module raises it, and that is deliberate rather than an
+   * omission: `labels()` hands the whole list over and only the CALLER knows
+   * which name it wanted and how it wants to compare, so the caller is where
+   * the refusal is raised -- `extensions/aisignal/src/mailbox.mjs` does exactly
+   * that. It is named here because it is the shared vocabulary: AI Signal's
+   * stored sweep rows carry this spelling.
+   */
   'gmail_label_missing',
   /** `users.messages.list` did not answer with a listing. */
   'gmail_list_failed',

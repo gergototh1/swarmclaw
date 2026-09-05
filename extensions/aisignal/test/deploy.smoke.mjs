@@ -285,14 +285,18 @@ async function main() {
     return `${res.text.length} bytes, ${enforced ? 'enforced' : 'report-only'} CSP with nonce`
   })
 
-  const health = await check('rpc health answers without a Google token', async () => {
+  const health = await check('rpc health answers without a mailbox behind it', async () => {
     const res = await rpc(headers, 'health')
     assert.equal(res.status, 200, `answered ${res.status}: ${JSON.stringify(res.body)}`)
     assert.equal(typeof res.body?.gmail?.status, 'string', 'gmail.status')
     assert.equal(typeof res.body?.label, 'string', 'label')
     assert.equal(typeof res.body?.counts?.items, 'number', 'counts.items')
     assert.equal(typeof res.body?.deckLimit, 'number', 'deckLimit')
-    return `gmail=${res.body.gmail.status}${res.body.gmail.code ? `/${res.body.gmail.code}` : ''} label=${JSON.stringify(res.body.label)} items=${res.body.counts.items}`
+    // `status` alone is not the whole answer: `unavailable` carries the host's
+    // reason word and `error` this extension's code, and the two say different
+    // things to do. Both are fixed strings out of closed sets.
+    const detail = res.body.gmail.reason || res.body.gmail.code
+    return `gmail=${res.body.gmail.status}${detail ? `/${detail}` : ''} label=${JSON.stringify(res.body.label)} items=${res.body.counts.items}`
   })
 
   await check('rpc board answers', async () => {

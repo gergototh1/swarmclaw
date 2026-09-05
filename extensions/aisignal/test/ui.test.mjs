@@ -52,7 +52,7 @@ function sweep(overrides = {}) {
 function board(overrides = {}) {
   return {
     deck: [], deckLimit: 50, undecided: 0, allLimit: 200, sweeps: [], sweepLimit: 10,
-    counts: { items: 0, undecided: 0, sweeps: 0, seen: 0 }, label: 'AI hírlevél', gmail: { status: 'connected' },
+    counts: { items: 0, undecided: 0, sweeps: 0, seen: 0 }, label: 'AI hírlevél', gmail: { status: 'ready' },
     ...overrides,
   }
 }
@@ -133,8 +133,8 @@ test('readBoard refuses a response without its lists instead of yielding an empt
   assert.throws(() => readBoard({ ...board(), counts: undefined }), /"counts"/)
   assert.throws(() => readBoard(null), /"board"/)
   assert.throws(() => readBoard('<!doctype html>'), /"board"/)
-  const ok = readBoard(board({ gmail: { status: 'missing', code: 'gmail_token_missing' } }))
-  assert.deepEqual(ok.gmail, { status: 'missing', code: 'gmail_token_missing' })
+  const ok = readBoard(board({ gmail: { status: 'unavailable', reason: 'provider_disabled' } }))
+  assert.deepEqual(ok.gmail, { status: 'unavailable', reason: 'provider_disabled', code: undefined })
   assert.equal(ok.allLimit, 200)
   assert.equal(ok.sweepLimit, 10)
   assert.throws(() => readItemsPage({ items: [] }), /"total"/)
@@ -152,16 +152,36 @@ test('readBoard requires only what the page reads: no row list beside the deck, 
 
 // --- words for facts ---
 
-test('describeGmail keeps absent and unverifiable apart and offers the connect link only for absent', () => {
-  const connected = describeGmail({ status: 'connected' })
-  const missing = describeGmail({ status: 'missing', code: 'gmail_token_missing' })
-  const error = describeGmail({ status: 'error', code: 'gmail_check_failed' })
-  assert.equal(connected.canConnect, false)
-  assert.equal(missing.canConnect, true)
-  assert.equal(error.canConnect, false)
-  assert.notEqual(missing.text, error.text)
-  assert.match(error.text, /gmail_check_failed/)
+test('describeGmail gives each reason its own sentence and offers the Gmail page only where it is the next step', () => {
+  const ready = describeGmail({ status: 'ready' })
+  const reasons = ['provider_missing', 'provider_disabled', 'version_mismatch', 'not_declared']
+  const lines = reasons.map((reason) => describeGmail({ status: 'unavailable', reason }))
+  const error = describeGmail({ status: 'error', code: 'aisignal_contract_check_failed' })
+
+  // Four reasons, four operator actions, four sentences: none folds into
+  // another and none folds into the ready one.
+  assert.equal(new Set([ready.text, ...lines.map((l) => l.text), error.text]).size, 6)
+
+  // `ready` says the contract resolves and does NOT say the mailbox is
+  // connected -- this extension holds no credential and cannot see that.
+  assert.equal(ready.page, true)
+  assert.match(ready.text, /Gmail lapon/)
+
+  // The link is offered only where the page it points at exists and is the
+  // remedy. A provider that is not loaded contributes no page at all.
+  assert.deepEqual(lines.map((l) => l.page), [false, false, true, false])
+  assert.equal(error.page, false)
+  assert.match(error.text, /aisignal_contract_check_failed/)
   assert.match(error.text, /nem tudni/)
+
+  // A reason this page has no word for is shown as it arrived rather than
+  // folded into one of the four, and it is not a reason to offer a link.
+  const strange = describeGmail({ status: 'unavailable', reason: 'valami_uj' })
+  assert.match(strange.text, /valami_uj/)
+  assert.equal(strange.page, false)
+  const silent = describeGmail({ status: 'unavailable' })
+  assert.equal(silent.page, false)
+  assert.match(silent.text, /nem mondta meg/)
 })
 
 test('sweepOutcome keeps unfinished, failed, nothing and found apart', () => {
@@ -269,7 +289,7 @@ test('deckKeyAction ignores editable targets and maps the keys', () => {
 
 /**
  * The review's failing sequence: with the deck mounted, Tab to the "Lista"
- * tab, "Gmail bekötése", "Ment →" or the "Korábbi futások" summary, press
+ * tab, "Gmail lap", "Ment →" or the "Korábbi futások" summary, press
  * Enter, and the control did not activate; the top card's url opened in a
  * new tab instead. Arrow keys on the tablist decided cards. The listener the
  * deck installs must leave the key -- default included -- to the control.
@@ -288,7 +308,7 @@ test("the deck's key listener leaves Enter and the arrows to a focused control a
   }
   const controls = [
     { tagName: 'BUTTON', tabIndex: 0, role: 'tab' },   // the "Lista" tab
-    { tagName: 'A', tabIndex: 0 },                      // "Gmail bekötése"
+    { tagName: 'A', tabIndex: 0 },                      // "Gmail lap"
     { tagName: 'BUTTON', tabIndex: 0 },                 // "Ment →"
     { tagName: 'SUMMARY', tabIndex: 0 },                // "Korábbi futások"
   ]
@@ -519,17 +539,24 @@ test('the list shows a decision that failed as a notice', () => {
 // --- rendering: the status bar ---
 
 test('the status bar tells an install that never swept from a sweep that found nothing', () => {
-  const never = render(StatusBar, { managed: null, board: board({ gmail: { status: 'missing', code: 'gmail_token_missing' } }), onRefresh: noop })
+  const never = render(StatusBar, { managed: null, board: board({ gmail: { status: 'unavailable', reason: 'provider_missing' } }), onRefresh: noop })
   assert.ok(never.includes('Még nem futott sweep'))
-  assert.ok(never.includes('Gmail: nincs bekötve'))
-  assert.ok(never.includes('href="/api/oauth/google/start?purpose=aisignal"'))
-  assert.ok(never.includes('Gmail bekötése'))
+  assert.ok(never.includes('a gmail extension nincs telepítve'))
+  // No link: the page the link would point at belongs to the extension that is
+  // not there, so it would land on the extension route's own "no such page".
+  assert.equal(never.includes('href="/x/gmail"'), false)
 
   const quiet = render(StatusBar, { managed: null, board: board({ sweeps: [sweep({ found: 0 })], counts: { items: 0, undecided: 0, sweeps: 1, seen: 0 } }), onRefresh: noop })
   assert.ok(quiet.includes('lefutott, 0 új sort talált'))
   assert.equal(quiet.includes('Még nem futott sweep'), false)
-  assert.equal(quiet.includes('Gmail bekötése'), false)
-  assert.ok(quiet.includes('Gmail: bekötve'))
+  assert.ok(quiet.includes('szerződése elérhető'))
+  // And there the link is offered, because the credential's own state is on
+  // that page and this one cannot report it.
+  assert.ok(quiet.includes('href="/x/gmail"'))
+  assert.ok(quiet.includes('Gmail lap'))
+  // The old OAuth start route is not linked from this page any more: the
+  // consent belongs to the gmail extension now.
+  assert.equal(quiet.includes('/api/oauth/google/start'), false)
 })
 
 test('the status bar keeps a failed, an unfinished and a truncated sweep distinct and shows their notes as text', () => {
@@ -548,11 +575,11 @@ test('the status bar keeps a failed, an unfinished and a truncated sweep distinc
   assert.ok(research.includes('meg sem lett kérdezve: hn'))
 })
 
-test('the status bar does not send an operator to reconnect when the check itself failed', () => {
-  const html = render(StatusBar, { managed: null, board: board({ gmail: { status: 'error', code: 'gmail_check_failed' } }), onRefresh: noop })
-  assert.ok(html.includes('gmail_check_failed'))
-  assert.equal(html.includes('Gmail bekötése'), false)
-  assert.equal(html.includes('nincs bekötve'), false)
+test('the status bar sends an operator nowhere when the check itself failed', () => {
+  const html = render(StatusBar, { managed: null, board: board({ gmail: { status: 'error', code: 'aisignal_contract_check_failed' } }), onRefresh: noop })
+  assert.ok(html.includes('aisignal_contract_check_failed'))
+  assert.equal(html.includes('href="/x/gmail"'), false)
+  assert.equal(html.includes('nincs telepítve'), false)
 })
 
 test('the status bar says the sweep history is capped, from the board&#x27;s own numbers'.replace('&#x27;', "'"), () => {
@@ -670,7 +697,7 @@ test('loadManagedStatus asks the host with the page own credentials and never tu
 })
 
 test('the status bar words a never-scheduled install apart from one whose runs are waiting for their slot, and from a check that failed', () => {
-  const never = board({ gmail: { status: 'connected' } })
+  const never = board({ gmail: { status: 'ready' } })
   const scheduled = render(StatusBar, { managed: { kind: 'ready', schedules: 2 }, board: never, onRefresh: noop })
   assert.ok(scheduled.includes('Még nem futott sweep'), 'no sweep has run')
   assert.ok(scheduled.includes('Ütemezés: mind a 2 futás be van állítva'), 'but two are scheduled')

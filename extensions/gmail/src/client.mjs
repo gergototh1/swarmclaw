@@ -217,7 +217,16 @@ const pad2 = (n) => String(n).padStart(2, '0')
  *
  * It stays in this file, and stays exported, because `list` no longer builds a
  * window of its own: the caller passes whatever `q` it wants, and this is the
- * one window that has been argued out. AI Signal imports it from here.
+ * one window that has been argued out.
+ *
+ * AI Signal carries a SECOND COPY of it, in
+ * `extensions/aisignal/src/mailbox.mjs`, and does not import this one -- it
+ * cannot, because each extension is installed into its own workspace under
+ * `data/extensions/.workspaces/` and nothing in this directory is on that
+ * module's resolution path at runtime. The contract is the only route between
+ * the two extensions and a pure string helper is not on it. The copies are held
+ * to each other by a test on that side, which may reach across the repository
+ * because test files are never installed; a drift fails there.
  */
 export function sinceQuery(iso) {
   if (!iso) return ''

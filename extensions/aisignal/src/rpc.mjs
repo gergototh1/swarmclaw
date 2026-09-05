@@ -1,6 +1,7 @@
 import { DECISIONS } from './db.mjs'
+import { MAILBOX_CONTRACT, MAILBOX_PROVIDER } from './mailbox.mjs'
 import { createItemReads, readWholeNumber } from './reads.mjs'
-import { DEFAULT_LABEL, OAUTH_PURPOSE, repoOf } from './sweep.mjs'
+import { DEFAULT_LABEL, repoOf } from './sweep.mjs'
 
 /**
  * The methods AI Signal's own page may call, and nothing else.
@@ -31,9 +32,9 @@ import { DEFAULT_LABEL, OAUTH_PURPOSE, repoOf } from './sweep.mjs'
  *     `ok: 1` with `found: 0`; a run still in flight, or one whose process
  *     died, is `finished_at: null`. An empty deck beside any of those means
  *     something different, and all three reach the page.
- *   - `board().gmail` and `health().gmail` separate a credential that is
- *     connected, one that is absent, and one this process could not ask about.
- *     See `gmailHealth`.
+ *   - `board().gmail` and `health().gmail` separate a mailbox this install can
+ *     reach, one it cannot and the named reason why, and a question this
+ *     process could not put at all. See `mailboxHealth`.
  *   - Every capped list says what it was capped at and how many rows are behind
  *     it, so a full page cannot be read as "that is all there is". `deck` has
  *     `deckLimit` and `undecided`, exactly as the repository built it;
@@ -67,38 +68,55 @@ const SWEEP_LIMIT = 10
 const MAX_SWEEPS = 100
 
 /**
- * The Gmail half of `board()` and `health()`: connected, absent, or unknown.
+ * The Gmail half of `board()` and `health()`: whether this install can reach a
+ * mailbox at all.
  *
- * `connected` means the host holds a credential filed under this extension's
- * purpose. It does not mean a sweep would succeed, and the page must not say
- * that it does: a token the user revoked at Google, or one whose scopes were
- * narrowed, still reads as `connected` here until a run actually asks Gmail and
- * comes back with a `gmail_*` code on the sweep row. This is a question about
- * what is stored, and the only honest thing to draw from it is whether there is
- * anything to sweep with at all.
+ * WHAT IT IS NOW A QUESTION ABOUT, AND WHAT IT IS NOT. It used to ask the host
+ * whether a Google credential was stored under this extension's own OAuth
+ * purpose. There is no such credential any more: the mailbox belongs to the
+ * `gmail` extension, and this one reaches it over that extension's `mailbox`
+ * contract. So the question this file can honestly put is whether the contract
+ * resolves, and nothing about a credential -- the page says so in as many
+ * words and links to `/x/gmail`, where the credential's own status is
+ * reported by the extension that holds it.
  *
- * Three states and not two, because `hasGoogleCredential` can fail rather than
- * answer -- the host reads the stored credential off disk to answer it -- and
- * the two failures a caller might otherwise be handed are both false reports.
- * Saying `missing` when the check itself blew up tells an operator to reconnect
- * an account that may be perfectly well connected; letting the throw escape
- * turns the whole board into a 500 over a status line. So a throw is its own
- * status, with a code from this file's own vocabulary.
+ * `ready` therefore means less than `connected` used to and must not be drawn
+ * as more: the provider is installed, enabled and serving the version this
+ * extension pinned. It does not mean a mailbox is connected, and it does not
+ * mean a sweep would succeed. A run that actually asks is the only thing that
+ * settles that, and it comes back with a `gmail_*` code on the sweep row.
  *
- * What is deliberately not in the return value: any part of the credential, and
- * any part of the thrown error. No token, no expiry, no account name -- the
- * page asks whether it may sweep, not what the secret is. The thrown message is
- * logged rather than returned for a narrower reason: it comes from the host's
- * credential store, this file cannot know what it quotes, and an rpc response
- * is the wrong place to find out. `code` is a fixed string, so a page may
- * safely branch on it; `status` is the only thing it needs to.
+ * `unavailable` carries the host's own reason word -- `provider_missing`,
+ * `provider_disabled`, `version_mismatch`, `not_declared` -- because each is a
+ * DIFFERENT OPERATOR ACTION: install it, switch it back on, upgrade one of the
+ * two, reinstall this one. Folding them into "not available" would leave the
+ * operator with four places to look.
+ *
+ * Three states and not two, for the reason there were three before:
+ * `contracts.why` can fail rather than answer -- resolving asks the host to
+ * make sure its extension map is loaded -- and both of the other answers would
+ * be false reports. Saying `unavailable` when the check blew up sends an
+ * operator to install an extension that may be sitting there working; letting
+ * the throw escape turns the whole board into a 500 over a status line.
+ *
+ * What is deliberately not in the return value: any part of the thrown error.
+ * It comes from the host, this file cannot know what it quotes, and an rpc
+ * response is the wrong place to find out; it is logged instead. `code` and
+ * `reason` are fixed strings out of closed sets, so a page may branch on
+ * either.
  */
-function gmailHealth(state, hasGoogleCredential) {
+function mailboxHealth(state) {
+  const contracts = state.contracts
+  // Null before `setup()` has run, and on a host that hands an extension no
+  // contracts at all. Neither is a provider that is missing, and reporting one
+  // as the other would send the operator to install something.
+  if (!contracts) return { status: 'error', code: 'aisignal_contracts_missing' }
   try {
-    return hasGoogleCredential(OAUTH_PURPOSE) ? { status: 'connected' } : { status: 'missing', code: 'gmail_token_missing' }
+    const reason = contracts.why(MAILBOX_PROVIDER, MAILBOX_CONTRACT)
+    return reason === null || reason === undefined ? { status: 'ready' } : { status: 'unavailable', reason }
   } catch (err) {
-    state.log?.warn?.('aisignal: could not check the Google credential', { message: err instanceof Error ? err.message : String(err) })
-    return { status: 'error', code: 'gmail_check_failed' }
+    state.log?.warn?.('aisignal: could not check the mailbox contract', { message: err instanceof Error ? err.message : String(err) })
+    return { status: 'error', code: 'aisignal_contract_check_failed' }
   }
 }
 
@@ -111,20 +129,15 @@ function labelOf(state) {
 /**
  * Builds the `rpc` map index.mjs declares.
  *
- * `hasGoogleCredential` arrives as a dependency rather than being read off
- * `state.oauth` here so a test can drive both a connected and a disconnected
- * install with no credential anywhere near it -- the seam `gmailFactory` is for
- * sweep.mjs and `fetchImpl` is for research.mjs. It is required at build time
- * rather than defaulted: a wiring mistake in index.mjs would otherwise surface
- * as `gmail: { status: 'error' }` on every board, which reads as a broken
- * credential and is a false report about Gmail.
+ * It takes no dependency object any more. The credential check that used to be
+ * injected here is gone with the credential: `mailboxHealth` reads
+ * `state.contracts`, which is the same shared object every other method here
+ * reads and which a test fills the way `setup()` does. There is nothing left
+ * for a wiring mistake in index.mjs to get wrong at this seam.
  */
-export function createRpc(state, deps) {
-  if (typeof deps?.hasGoogleCredential !== 'function') {
-    throw new Error('createRpc needs a hasGoogleCredential function: without one the board cannot say whether Gmail is connected')
-  }
+export function createRpc(state) {
   const reads = createItemReads(state)
-  const gmail = () => gmailHealth(state, deps.hasGoogleCredential)
+  const gmail = () => mailboxHealth(state)
   return {
     /**
      * Everything one page load needs: the deck to decide on, the sweep
@@ -200,16 +213,17 @@ export function createRpc(state, deps) {
       return repoOf(state).sweeps(readWholeNumber('limit', body.limit, { min: 1, max: MAX_SWEEPS, fallback: SWEEP_LIMIT }))
     },
     /**
-     * The status line: whether a Google credential is stored, which label the
+     * The status line: whether the mailbox contract resolves, which label the
      * sweep would read, and how much this install has.
      *
      * The repository is resolved first so an extension that has not been set up
-     * says exactly that, rather than reporting a Gmail status it has no business
-     * knowing yet.
+     * says exactly that, rather than reporting a mailbox status it has no
+     * business knowing yet.
      *
      * There is no token, no refresh token and no account address in this
-     * response, and there is nothing to add one to: `gmail` is a status and an
-     * optional fixed code.
+     * response, and there is nothing to add one to -- this extension holds no
+     * credential and never sees the mailbox address outside a run. `gmail` is a
+     * status plus one fixed word out of a closed set.
      */
     async health() {
       const repo = repoOf(state)

@@ -1,6 +1,7 @@
 import { AGENTS, SCHEDULES } from './src/agents.mjs'
 import { SIGNALS_CONTRACT, createSignalsContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { MAILBOX_CONTRACT, MAILBOX_PROVIDER, MAILBOX_VERSION } from './src/mailbox.mjs'
 import { createResearchTool } from './src/research.mjs'
 import { createRpc } from './src/rpc.mjs'
 import { createSweepTools } from './src/sweep.mjs'
@@ -16,12 +17,14 @@ import { createSweepTools } from './src/sweep.mjs'
  * assignment is idempotent, so re-running setup() is free.
  *
  * `gmailFactory` is the one key the host never fills, and it is listed here
- * precisely because it is not one of setup()'s: it is the seam sweep.mjs builds
- * its Gmail client through, so a test can inject a double and drive the whole
- * layer with no credential anywhere near it. Production leaves it null and the
- * client is built from the host's OAuth. Leaving it off the object made the
- * seam invisible to anyone reading this file, where every other key on the
- * shared state is declared.
+ * precisely because it is not one of setup()'s: it is the seam sweep.mjs
+ * reaches its mailbox through, so a test can inject a double and drive the
+ * whole layer with no credential anywhere near it. What that double stands in
+ * for is the `mailbox` CONTRACT HANDLE, not a Gmail client -- this extension no
+ * longer has one. Production leaves it null and the handle comes from
+ * `contracts` below. Leaving it off the object made the seam invisible to
+ * anyone reading this file, where every other key on the shared state is
+ * declared.
  *
  * `fetchImpl`, `researchTimeoutMs` and `researchBudgetMs` are the same kind of
  * key for research.mjs, and are declared here for the same reason. `fetchImpl`
@@ -34,7 +37,7 @@ export const state = {
   storage: null,
   settings: () => ({}),
   log: console,
-  oauth: null,
+  contracts: null,
   repo: null,
   gmailFactory: null,
   fetchImpl: null,
@@ -51,21 +54,53 @@ const aisignal = {
     state.storage = ctx.storage
     state.settings = ctx.settings
     state.log = ctx.log
-    state.oauth = ctx.oauth
+    // Stored, never resolved here. `ctx.contracts.get` called from inside
+    // `setup()` resolves against a half-built extension map -- `setup()` runs
+    // during the host's `load()` -- so a provider later in the directory
+    // listing would read as missing at this moment and correctly at every
+    // other. The seam is captured; the lookup happens per call, in
+    // `mailboxFor`.
+    state.contracts = ctx.contracts
     state.repo = createRepo(ctx.storage)
   },
   tools: [...createSweepTools(state), createResearchTool(state)],
   /**
+   * The one thing this extension asks another for: the mailbox behind the
+   * newsletter label.
+   *
+   * The `reason` is the sentence an operator reads on this extension's card
+   * before leaving the grant in place, so it says what is taken and what
+   * happens to it rather than naming a method list. It is plain ASCII on
+   * purpose: the host caps this field at 200 characters and the card renders it
+   * as text.
+   *
+   * The version is pinned. A `gmail` extension serving a different one is
+   * refused by the host with `version_mismatch` and no handle at all, which is
+   * what this extension wants: a mailbox read under a contract this code was
+   * not written against is exactly the silent wrong answer the whole frontier
+   * design exists to avoid.
+   */
+  consumes: [
+    {
+      extension: MAILBOX_PROVIDER,
+      contract: MAILBOX_CONTRACT,
+      version: MAILBOX_VERSION,
+      reason: 'A hirlevel-cimke uzeneteit listazza es olvassa be; a levelek szoveget sajat kartyakent tarolja.',
+    },
+  ],
+  /**
    * What this extension's own page may call, over
    * `POST /api/extensions/aisignal/call/<method>`.
    *
-   * `hasGoogleCredential` is passed as a closure over `state` rather than as
-   * `state.oauth.hasGoogleCredential`: `state.oauth` is null until `setup()`
-   * runs, and this map is built before it. Which purpose is asked about is
-   * rpc.mjs's decision, not this file's -- it names `OAUTH_PURPOSE` from
-   * sweep.mjs, so the page cannot report on a credential no sweep uses.
+   * There is no credential dependency to inject any more. The page's Gmail line
+   * used to be "is a Google credential stored under this extension's purpose?",
+   * which this extension can no longer answer and has no business answering:
+   * the credential is the `gmail` extension's, and its own page is where an
+   * operator connects it. What rpc.mjs reports instead is whether the contract
+   * resolves, which is a question about this install's wiring and one this
+   * extension really can answer -- see `mailboxHealth` there.
    */
-  rpc: createRpc(state, { hasGoogleCredential: (purpose) => state.oauth.hasGoogleCredential(purpose) }),
+  rpc: createRpc(state),
   /**
    * What *another* extension may call, once it has named this contract in its
    * own `consumes` and an operator has left it installed.

@@ -451,9 +451,10 @@ async function instrument(context) {
       window.__aisRecordCsp(`${e.violatedDirective} blocked ${e.blockedURI} at ${e.sourceFile}:${e.lineNumber}`)
     })
   })
-  // The OAuth start route is the host's and, configured, answers with a
-  // redirect to Google. The link sequence only needs the browser to issue the
-  // navigation, so the request is answered here and the run never leaves the
+  // Nothing on this page starts an OAuth flow any more -- the consent moved to
+  // the `gmail` extension's own page with the credential -- but the route is
+  // still answered here so that a regression which brought the old link back
+  // shows up as a failed assertion rather than as a request leaving the
   // machine.
   await context.route('**/api/oauth/google/start*', (route) => route.fulfill({ status: 200, contentType: 'text/plain', body: 'oauth start reached' }))
   return record
@@ -540,7 +541,7 @@ async function checkStatusBar(page, fixture) {
   const status = await page.evaluate(() => ({
     text: document.querySelector('.ais-status')?.textContent ?? '',
     injected: document.querySelectorAll('.ais-status script, .ais-status img, .ais-status b').length,
-    connect: document.querySelector('.ais-status a.ais-connect')?.getAttribute('href'),
+    gmailLink: document.querySelector('.ais-status a.ais-gmail-page')?.getAttribute('href') ?? null,
     summary: document.querySelector('.ais-status summary')?.textContent,
   }))
   assert.equal(status.injected, 0, 'no element from a sweep note or the label reached the DOM')
@@ -550,7 +551,16 @@ async function checkStatusBar(page, fixture) {
   assert.ok(status.text.includes(`hiba: gmail_error: ${HTML}`), 'the failed sweep shows its note as text')
   assert.ok(status.text.includes('lefutott, 0 új sort talált'), 'the sweep that found nothing says so')
   assert.ok(status.text.includes('3 levél kimaradt a sapka miatt'), 'the leftover is reported')
-  assert.equal(status.connect, '/api/oauth/google/start?purpose=aisignal', 'a missing credential offers the connect link')
+  // The scratch install has AI Signal and nothing else, so the `gmail`
+  // extension that provides the mailbox is not there. That is one of the four
+  // named reasons and the page says which -- it does not say "not connected",
+  // which would be a claim about a credential this extension can no longer see.
+  assert.ok(status.text.includes('a gmail extension nincs telepítve'), `the missing provider is named: ${status.text}`)
+  // And no link: the page it would point at belongs to the extension that is
+  // not installed, so it would land on the extension route's "no such page".
+  // The remedy the sentence names is the Extensions screen instead.
+  assert.equal(status.gmailLink, null, 'no link is offered to a page the missing extension would have contributed')
+  assert.equal(status.text.includes('nincs bekötve'), false, 'and nothing here claims to know about a credential')
   assert.equal(status.summary, `Korábbi futások (${fixture.counts.sweeps})`)
   // The scratch install was never reconciled, so the host has neither
   // schedule, and the page has to say so rather than let "no sweep has run
@@ -746,22 +756,24 @@ async function driveKeys(page, record, fixture) {
   assert.equal(record.opened.length, openedBeforeSave, `no card url opened: ${JSON.stringify(record.opened.slice(openedBeforeSave))}`)
   results.push('Enter on the focused "Ment →": the decision was written to the database; no card url opened')
 
-  // Sequence 2: Tab to "Gmail bekötése", Enter -> the OAuth link is followed.
-  // The route is the host's; what matters here is that the link, and not the
-  // card, is what Enter acted on, so the navigation request is the evidence.
+  // Sequence 2: Tab to the "Korábbi futások" summary, Enter -> the details
+  // opens and the card underneath is untouched. This used to press Enter on
+  // "Gmail bekötése"; that link is gone with the OAuth flow it started, and on
+  // this scratch install -- which has AI Signal and not the `gmail` extension
+  // -- the status bar offers no link at all. The summary is the control the
+  // status bar still has, and it exercises the same rule: a focused control in
+  // the status bar takes Enter, and the deck's own key listener does not.
   await page.locator('.ais-status button', { hasText: 'Frissítés' }).focus()
   await tabTo(page, { tag: 'SUMMARY', text: 'Korábbi futások' })
-  await tabTo(page, { tag: 'A', text: 'Gmail bekötése' })
-  const decidesBeforeLink = record.decides.length
-  const openedBeforeLink = record.opened.length
-  const followed = page.waitForRequest((req) => req.isNavigationRequest() && req.url().includes('/api/oauth/google/start?purpose=aisignal'), { timeout: WAIT_MS })
+  const decidesBeforeSummary = record.decides.length
+  const openedBeforeSummary = record.opened.length
   await page.keyboard.press('Enter')
-  const request = await followed
-  assert.equal(new URL(request.url()).pathname, '/api/oauth/google/start')
-  await page.waitForLoadState('domcontentloaded', { timeout: WAIT_MS }).catch(() => undefined)
-  assert.equal(record.decides.length, decidesBeforeLink, 'Enter on the link decided nothing')
-  assert.equal(record.opened.length, openedBeforeLink, `no card url opened: ${JSON.stringify(record.opened.slice(openedBeforeLink))}`)
-  results.push('Enter on the focused "Gmail bekötése": the OAuth start route was navigated to; no card url opened, no decision written')
+  await page.waitForFunction(() => document.querySelector('.ais-status details')?.open === true, null, { timeout: WAIT_MS })
+  assert.equal(record.decides.length, decidesBeforeSummary, 'Enter on the summary decided nothing')
+  assert.equal(record.opened.length, openedBeforeSummary, `no card url opened: ${JSON.stringify(record.opened.slice(openedBeforeSummary))}`)
+  // And the OAuth route this page used to link to was never asked for.
+  assert.equal(record.opened.some((href) => String(href).includes('/api/oauth/google/start')), false, 'no OAuth flow was started from this page')
+  results.push('Enter on the focused "Korábbi futások" summary: the history opened; no card url opened, no decision written')
 
   return results
 }

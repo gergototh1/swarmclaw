@@ -4,6 +4,7 @@ import { test } from 'node:test'
 import aisignal from '../index.mjs'
 import { SIGNALS_CONTRACT, SIGNALS_CONTRACT_VERSION, createSignalsContract } from '../src/contract.mjs'
 import { MIGRATIONS, createRepo } from '../src/db.mjs'
+import { MAILBOX_CONTRACT, MAILBOX_PROVIDER, MAILBOX_VERSION } from '../src/mailbox.mjs'
 import { SIGNAL_CONTRACT_COLUMNS } from '../src/reads.mjs'
 import { createRpc } from '../src/rpc.mjs'
 import { memStorage } from './helpers.mjs'
@@ -27,8 +28,8 @@ const MAX_DECLARATION_TEXT = 200
 function setup() {
   const s = memStorage()
   for (const m of MIGRATIONS) s.raw.exec(m.sql)
-  const state = { repo: createRepo(s), settings: () => ({ label: 'AI hírlevél' }), log: { info() {}, warn() {}, error() {} } }
-  return { state, storage: s, contract: createSignalsContract(state), rpc: createRpc(state, { hasGoogleCredential: () => true }) }
+  const state = { repo: createRepo(s), settings: () => ({ label: 'AI hírlevél' }), log: { info() {}, warn() {}, error() {} }, contracts: null }
+  return { state, storage: s, contract: createSignalsContract(state), rpc: createRpc(state) }
 }
 
 function withItems(state, count, { headline = (i) => `h${i}`, sourceName, sourceEmail } = {}) {
@@ -251,15 +252,32 @@ test('the contract hands untrusted text across unchanged', async () => {
 })
 
 /** The declaration the host actually reads is the one on the manifest. */
-test('index.mjs declares the signals contract and consumes nothing', () => {
+test('index.mjs declares the signals contract and consumes the gmail mailbox', () => {
   assert.deepEqual(Object.keys(aisignal.provides), [SIGNALS_CONTRACT])
   assert.deepEqual(Object.keys(aisignal.provides[SIGNALS_CONTRACT].methods), ['list', 'get'])
   assert.equal(aisignal.provides[SIGNALS_CONTRACT].version, SIGNALS_CONTRACT_VERSION)
   assert.equal(aisignal.provides[SIGNALS_CONTRACT].summary.length <= MAX_DECLARATION_TEXT, true)
   assert.deepEqual(Object.keys(aisignal.rpc), ['board', 'items', 'decide', 'sweeps', 'health'])
-  // Nothing here asks another extension for anything, so there is no grant for
-  // an operator to read on this extension's card.
-  assert.equal(aisignal.consumes, undefined)
+
+  // The one grant this extension asks for, and the only one: the mailbox behind
+  // the newsletter label. Without the declaration the host answers every call
+  // with `not_declared` however well the `gmail` extension is installed, so
+  // this entry is not decoration -- it is the whole access.
+  assert.equal(aisignal.consumes.length, 1)
+  const [{ extension, contract, version, reason, ...extra }] = aisignal.consumes
+  assert.deepEqual({ extension, contract, version }, { extension: MAILBOX_PROVIDER, contract: MAILBOX_CONTRACT, version: MAILBOX_VERSION })
+  assert.deepEqual(extra, {}, 'nothing else is on the entry: the host reads exactly these four fields')
+  // The sentence an operator reads before leaving the grant in place. Capped by
+  // the host at the same length a `summary` is, and a longer one makes the
+  // WHOLE extension fail to load rather than merely render badly.
+  assert.equal(typeof reason, 'string')
+  assert.ok(reason.length > 0 && reason.length <= MAX_DECLARATION_TEXT)
+  // It says what is taken and what happens to it, rather than naming methods.
+  assert.match(reason, /cimke/)
+  assert.match(reason, /tarolja/)
+  // The name matches the version the code is written against, so a provider on
+  // another version is refused by the host rather than read wrongly here.
+  assert.equal(MAILBOX_VERSION, 1)
 })
 
 /** Both surfaces are built before setup() runs, so neither may capture a repository. */

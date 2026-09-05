@@ -1,11 +1,11 @@
 import { MAIL_KIND, alreadyClosedMessage } from './db.mjs'
-import { createGmail, GmailError } from './gmail.mjs'
+import { MailboxError, codeOf, mailboxFor, resolveSource, sinceQuery } from './mailbox.mjs'
 
 /**
  * The three tools that drive one newsletter run: open a sweep and fetch
  * messages, record one signal from a message, close the sweep.
  *
- * The same two rules that shape the Gmail client shape this layer.
+ * The same two rules that shape the `gmail` extension's client shape this layer.
  *
  * The first: never report a false result in either direction. A sweep that
  * found nothing and a sweep that could not look are different facts, so no path
@@ -20,25 +20,28 @@ import { createGmail, GmailError } from './gmail.mjs'
  * The second: a newsletter's content is data, never instruction. Message text
  * reaches the agent on a field of a plain object and nothing here evaluates it,
  * dispatches on it, or interpolates it into a URL or a query -- every write
- * goes through the repository's bound parameters. The client's `stripHtml`
- * leaks HTML comments and attribute text into the prose, so hostile text is
- * assumed present in every subject, sender and body; the only thing that can
- * ever happen to it is being stored as a string.
+ * goes through the repository's bound parameters. The `stripHtml` the provider
+ * runs a body through leaks HTML comments and attribute text into the prose, so
+ * hostile text is assumed present in every subject, sender and body; the only
+ * thing that can ever happen to it is being stored as a string.
  *
- * The Gmail client arrives through `state.gmailFactory` when one is set, so the
- * whole layer is testable against a double with no credential anywhere near it.
- * Production leaves it unset and the client is built from the host's OAuth.
+ * The mailbox arrives through the `mailbox` contract the `gmail` extension
+ * provides, resolved in mailbox.mjs -- this extension no longer holds a Gmail
+ * credential or a Gmail client of its own. `state.gmailFactory` still names the
+ * seam a test injects, so the whole layer is drivable against a double with no
+ * credential anywhere near it; what that double stands in for is the contract
+ * handle now, not a client.
  */
 
 /**
  * Messages fetched per run when nothing says otherwise.
  *
- * The default belongs here rather than in `index.mjs` or in the client. The
- * client deliberately refuses a cap of zero: it owns the rule that an empty
- * list means Gmail was asked and had nothing, so it must not paper over a
- * blank setting with a guess. `index.mjs` only declares the settings field, and
- * its `placeholder: '5'` is UI text the host never substitutes -- a blank
- * setting arrives as `''`. This layer is the one place that sees both the tool
+ * The default belongs here rather than in `index.mjs` or in the provider. The
+ * provider's `list` deliberately refuses a cap below one: it owns the rule that
+ * an empty list means Gmail was asked and had nothing, so it must not paper
+ * over a blank setting with a guess. `index.mjs` only declares the settings
+ * field, and its `placeholder: '5'` is UI text the host never substitutes -- a
+ * blank setting arrives as `''`. This layer is the one place that sees both the tool
  * argument and the operator's setting, and turning "nobody said" into a working
  * run is exactly its job. The number matches the placeholder the operator sees.
  */
@@ -55,27 +58,15 @@ const DEFAULT_MAX = 5
 export const DEFAULT_LABEL = 'AI hírlevél'
 
 /**
- * The purpose the host's stored Google credential is filed under.
- *
- * Exported for the reason `DEFAULT_LABEL` is. rpc.mjs answers "is Gmail
- * connected?" by asking `hasGoogleCredential`, and that answer is about a
- * credential only if it names the same purpose `gmailFor` below opens. Keyed on
- * a second copy of the literal, a rename would leave the page reporting
- * `connected` about a credential no sweep uses, or `missing` about one that
- * works -- a false report in whichever direction the copies fell.
- */
-export const OAUTH_PURPOSE = 'aisignal'
-
-/**
  * How many ids one run will list, as opposed to fetch.
  *
- * Listing is deliberately much wider than the fetch cap, for two reasons that
- * both come from the client. `sinceQuery` over-widens the date window by up to
- * two days to survive the mailbox timezone, so a large share of what comes back
- * is mail already swept; listing only `max` ids would fill the whole budget
- * with duplicates and fetch nothing new. And `leftover` has to be a count, not
- * a guess: only a listing wider than the cap leaves ids in hand that were
- * genuinely listed, genuinely fresh, and genuinely not fetched.
+ * Listing is deliberately much wider than the fetch cap, for two reasons.
+ * `sinceQuery` over-widens the date window by up to two days to survive the
+ * mailbox timezone, so a large share of what comes back is mail already swept;
+ * listing only `max` ids would fill the whole budget with duplicates and fetch
+ * nothing new. And `leftover` has to be a count, not a guess: only a listing
+ * wider than the cap leaves ids in hand that were genuinely listed, genuinely
+ * fresh, and genuinely not fetched.
  */
 const LIST_BUDGET = 500
 
@@ -106,11 +97,6 @@ const BAD_INPUT = 'aisignal_bad_input'
 
 class InputError extends Error {}
 
-function gmailFor(state) {
-  if (state.gmailFactory) return state.gmailFactory()
-  return createGmail({ getToken: () => state.oauth.getGoogleAccessToken(OAUTH_PURPOSE) })
-}
-
 /**
  * Tools are declared at module scope in `index.mjs` and can only read `state`
  * once `setup(ctx)` has filled it. Reaching through a null repo throws a
@@ -135,8 +121,9 @@ export function repoOf(state) {
  * split matters because the two are not the same statement: an operator who
  * left the field empty wants a sensible run, while one who typed `2.5` or `0`
  * asked for something specific, and silently sweeping five messages instead
- * would report a run nobody requested. A fractional or zero cap would also
- * reach `listIds`, which refuses both for its own reasons.
+ * would report a run nobody requested. This is not the only guard: the
+ * provider's `list` refuses a fractional or sub-one cap of its own accord, for
+ * its own reasons.
  */
 function resolveMax(fromArgs, fromSettings) {
   for (const [what, raw] of [['maxMessages', fromArgs], ['the messages-per-run setting', fromSettings]]) {
@@ -176,8 +163,8 @@ function resolveMax(fromArgs, fromSettings) {
  * knows the answer, and written by `openSweep` before the agent is handed
  * anything:
  *
- *   drained     -- Gmail's walk finished (`listed.truncated === false`, the one
- *                  bit the client publishes for this) *and* every fresh id it
+ *   drained     -- Gmail's walk finished (`listed.complete === true`, the one
+ *                  bit the contract publishes for this) *and* every fresh id it
  *                  listed became a message (`leftover === 0`). The run cleared
  *                  its whole window, so `frontier_after` is the run's own
  *                  `ran_at` -- which is taken *before* the listing, so nothing
@@ -186,9 +173,9 @@ function resolveMax(fromArgs, fromSettings) {
  *   not drained -- the run left something behind, by either of the two ways a
  *                  run can. `leftover > 0` means it listed ids it did not
  *                  fetch, because the cap stopped it or a fetch failed. A
- *                  truncated listing means there is mail behind the point the
- *                  walk ended that the run never even listed -- and `leftover`
- *                  cannot show that, since a truncated listing whose every id
+ *                  listing that stopped short means there is mail behind the
+ *                  point the walk ended that the run never even listed -- and
+ *                  `leftover` cannot show that, since such a listing whose id
  *                  was already seen leaves `leftover` at 0 with an unknown
  *                  amount still waiting behind the cut. Either way
  *                  `frontier_after` is the run's own `since`, so the next run
@@ -302,27 +289,10 @@ function widenedFrontier(floor, frontier) {
 }
 
 /**
- * Anything that is not a `GmailError` still has to land on a name a caller can
- * switch on.
- *
- * The class is not the only carrier of a name. An error that crossed a module
- * boundary, or one raised by a layer under the client, can carry a perfectly
- * good string `code` and fail `instanceof`; degrading it to `gmail_unexpected`
- * throws away the one thing the row exists to record. So a string `code` is
- * honoured whatever the class, and only a genuinely unnamed error falls through
- * to the generic name.
- */
-function codeOf(e) {
-  if (e instanceof GmailError) return e.code
-  const code = e?.code
-  return typeof code === 'string' && code !== '' ? code : 'gmail_unexpected'
-}
-
-/**
  * What the agent is handed for one message.
  *
- * `textInAttachment` is carried through because the client draws a distinction
- * that would otherwise be lost here: an empty `text` with the flag set means
+ * `textInAttachment` is carried through because the provider draws a
+ * distinction that would otherwise be lost here: an empty `text` with the flag set means
  * the body is at the attachments endpoint, not that the newsletter was empty,
  * and an agent told the latter records nothing and is right to. `textTruncated`
  * is the same kind of fact about the hand-over limit -- a summary of the first
@@ -476,7 +446,7 @@ export function createSweepTools(state) {
          *
          * A drained run's frontier is this value, and a frontier must never be
          * newer than the listing it claims to describe: a newsletter that
-         * arrives while `listIds` is walking pages is not in what comes back,
+         * arrives while the listing is walking pages is not in what comes back,
          * and a timestamp taken after the walk would put it below the frontier
          * the run earns -- swept, according to the store, without ever having
          * been listed. Taken here it lands above, so the next window still
@@ -498,32 +468,38 @@ export function createSweepTools(state) {
           return failedSweep(repo, { label, since: null, code: BAD_INPUT, message: e.message, ranAt })
         }
 
-        const gmail = gmailFor(state)
-
         /*
-         * Which source this run is about, settled before any frontier is read.
+         * The mailbox this run reads, and which source in it, settled before
+         * any frontier is read.
+         *
+         * Both steps can fail and both are inside the same guard, because both
+         * are prerequisites of having a key at all. `mailboxFor` fails when the
+         * `gmail` extension is not installed, is switched off, or serves a
+         * version this extension is not written against -- three different
+         * operator actions under one code, `aisignal_mailbox_unavailable`, and
+         * the reason word travels in the message and on the page.
          *
          * `label` is a name the operator typed, and a name is an alias: the
          * operator can point it at a different Gmail label in one click, and
          * reconnecting Google with a different account swaps the whole mailbox
-         * underneath it without the name changing at all. So the run asks Gmail
-         * what the name resolves to, and in which mailbox, and that pair is the
-         * key it reads and later writes its frontier under -- see THE FRONTIER
-         * KEY in db.mjs. A run that cannot answer both halves has no key, so it
-         * fails here having read no frontier and, its row carrying no source,
-         * able to advance none either.
+         * underneath it without the name changing at all. So the run asks the
+         * mailbox what the name resolves to, and whose mailbox it is, and that
+         * pair is the key it reads and later writes its frontier under -- see
+         * THE FRONTIER KEY in db.mjs. A run that cannot answer both halves has
+         * no key, so it fails here having read no frontier and, its row
+         * carrying no source, able to advance none either.
          *
-         * The label lookup goes first because it is the failure an operator
-         * actually hits -- a typo in the setting -- and a run that has no label
-         * has no source whatever the mailbox says, so the profile request is
-         * not spent on it. Neither answer is cached anywhere: a remembered
-         * mailbox address outlives exactly the reconnect this key exists to
-         * notice.
+         * `resolveSource` looks the label up first, because a typo in the
+         * setting is the failure an operator actually hits and a run with no
+         * label has no source whatever the mailbox says. Neither answer is
+         * cached anywhere: a remembered mailbox address outlives exactly the
+         * reconnect this key exists to notice.
          */
+        let mb
         let source
         try {
-          const sourceId = await gmail.labelId(label)
-          source = { account: await gmail.mailbox(), sourceId }
+          mb = mailboxFor(state)
+          source = await resolveSource(mb, label)
         } catch (e) {
           return failedSweep(repo, { label, since: null, code: codeOf(e), message: e.message, ranAt })
         }
@@ -556,9 +532,31 @@ export function createSweepTools(state) {
         const since = widenedFrontier(sinceFloor, frontier)
         const clockNote = frontierAhead ? `${FRONTIER_AHEAD_NOTE}=${stored}` : ''
 
+        /*
+         * One listing of this source's window.
+         *
+         * `since` is an instant and the contract's `q` is a Gmail search term,
+         * so `sinceQuery` is what turns one into the other -- and it is the
+         * only thing that does. The `q` goes to Gmail literally, which is what
+         * makes a stored frontier hold: the same window names the same set
+         * until the mailbox changes.
+         *
+         * `ids` is checked for being an array because it is what the dedup and
+         * the counting of `leftover` are built out of, and anything else
+         * reaching `.filter` throws a `TypeError` whose `code` is undefined,
+         * OUTSIDE this guard, with the sweep row left open. The provider checks
+         * the shape of Gmail's own reply one layer further down, which is a
+         * different boundary from this one: the value here has crossed a
+         * contract, and the host does not inspect what crosses.
+         *
+         * `complete` and `stoppedOn` are deliberately NOT checked: an absent or
+         * unreadable `complete` must leave the window open rather than fail the
+         * run, and that is exactly what the `=== true` below does with it.
+         */
         let listed
         try {
-          listed = await gmail.listIds({ labelId: source.sourceId, since, max: LIST_BUDGET })
+          listed = await mb.list({ labelIds: [source.sourceId], q: sinceQuery(since), max: LIST_BUDGET })
+          if (!Array.isArray(listed?.ids)) throw new MailboxError('gmail_unexpected', 'the mailbox contract returned a listing with no ids array')
         } catch (e) {
           return failedSweep(repo, { label, source, since, code: codeOf(e), message: e.message, note: clockNote, ranAt })
         }
@@ -581,7 +579,17 @@ export function createSweepTools(state) {
         const fetchFailures = []
         for (const id of fresh.slice(0, max)) {
           try {
-            messages.push(handOver(await gmail.getMessage(id)))
+            const message = await mb.get({ id })
+            // The id everything downstream is addressed by: it is what the
+            // close marks seen and what a card is filed against. An absent one
+            // would become a `seen` row nothing can ever match and a
+            // `fetchedIds` entry standing for no message, so the run would be
+            // reporting a message it cannot name. The provider raises its own
+            // shape failure for a Gmail reply with no id; this is the check on
+            // the value that actually crossed the contract, which is where this
+            // extension's own rows are keyed from.
+            if (typeof message?.id !== 'string' || !message.id) throw new MailboxError('gmail_unexpected', 'the mailbox contract returned a message with no id')
+            messages.push(handOver(message))
           } catch (e) {
             // One unreadable message does not end the sweep. It is simply not
             // among the fetched ids, so finishSweep never marks it seen and the
@@ -600,8 +608,8 @@ export function createSweepTools(state) {
          * message: the ones the cap left behind, plus any whose fetch failed
          * and which are therefore still waiting. Every id in it was actually
          * listed and actually deduped, so it is counted rather than inferred --
-         * an `ids.length === max` guess is exactly what the client refuses to
-         * make, because a full page and a page that happened to be that size
+         * an `ids.length === max` guess is exactly what the provider refuses
+         * to make, because a full page and a page that happened to be that size
          * are the same number.
          *
          * When the listing itself stopped short, this is a floor rather than a
@@ -648,18 +656,26 @@ export function createSweepTools(state) {
          * `frontier_after`, and closing the sweep copies that into the frontier;
          * see THE FRONTIER above.
          *
-         * The listing half reads `truncated`, which the client publishes as the
-         * one bit every caller must respect, rather than re-deriving it from
-         * `stoppedOn`. The two agree only because the client nulls `stoppedOn`
-         * when nothing was cut off; a client that returned the raw stop reason
-         * -- it is already computed, so returning it is a plausible tidy-up --
-         * would make a walk that landed on the cap with the last page exhausted
-         * read as not drained here, and this file would be deriving the bit
-         * from a string the client says no caller should derive it from.
-         * Anything but an explicit `false` leaves the window open, which is the
-         * wide direction and the one this file is allowed to err in.
+         * The listing half reads `complete`, which is the bit the contract
+         * publishes for exactly this -- "Gmail told us there was nothing after
+         * the last page it answered" -- rather than re-deriving it from
+         * `stoppedOn`. The two agree only because the provider nulls
+         * `stoppedOn` when nothing was cut off; a provider that returned the
+         * raw stop reason -- it is already computed, so returning it is a
+         * plausible tidy-up -- would make a walk that landed on the cap with
+         * the last page exhausted read as not drained here, and this file would
+         * be deriving the bit from a string no caller should derive it from.
+         *
+         * `=== true` and not `listed.complete`, for the same reason it used to
+         * be `listed.truncated === false` and not `!listed.truncated`: ANYTHING
+         * THAT IS NOT AN EXPLICIT YES LEAVES THE WINDOW OPEN. A handle from a
+         * provider that does not send the field, a `null`, an object built by
+         * something older -- each of them is a run that proved nothing about
+         * its window, and the wide direction is the only one this file is
+         * allowed to err in. It costs a re-listing that lands on the dedup;
+         * the other direction steps the frontier over mail nobody read.
          */
-        const drained = listed.truncated === false && leftover === 0
+        const drained = listed.complete === true && leftover === 0
 
         const { id } = repo.openSweep({ label, source, since, fetchedIds: messages.map((m) => m.id), skipped: seen.size, leftover, note, drained, ranAt })
         return { sweepId: id, label, since, skipped: seen.size, leftover, listStoppedOn, fetchFailures, messages }

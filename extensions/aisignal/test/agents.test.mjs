@@ -36,7 +36,7 @@ import { memStorage } from './helpers.mjs'
  * BY, the two truncation reasons -- are each pinned against the source that
  * owns them. Nothing in the allowlist is a claim this file makes on its own.
  *
- * Nothing here reaches the network or a credential: the Gmail client and
+ * Nothing here reaches the network or a credential: the mailbox handle and
  * `fetch` are both injected.
  */
 
@@ -59,7 +59,7 @@ function toolState({ gmail, fetchImpl, settings = {} } = {}) {
     storage,
     settings: () => settings,
     log: { info() {}, warn() {}, error() {} },
-    oauth: null,
+    contracts: null,
     repo: createRepo(storage),
     gmailFactory: gmail ? () => gmail : null,
     fetchImpl: fetchImpl || null,
@@ -68,16 +68,16 @@ function toolState({ gmail, fetchImpl, settings = {} } = {}) {
   }
 }
 
-/** The Gmail client's shape, answering from canned data. */
-function fakeGmail({ ids = [], labelFail = null } = {}) {
+/** The `mailbox` contract handle's shape, answering from canned data. */
+function fakeGmail({ ids = [], labelName = 'AI hírlevél', labelsFail = null } = {}) {
   return {
-    labelId: async () => {
-      if (labelFail) throw labelFail
-      return 'LBL_AI'
+    labels: async () => {
+      if (labelsFail) throw labelsFail
+      return [{ id: 'LBL_AI', name: labelName, type: 'user' }]
     },
-    mailbox: async () => 'owner@example.test',
-    listIds: async () => ({ ids, truncated: false, stoppedOn: null }),
-    getMessage: async (id) => ({
+    mailbox: async () => ({ address: 'owner@example.test' }),
+    list: async () => ({ ids, nextCursor: null, complete: true, stoppedOn: null }),
+    get: async ({ id }) => ({
       id,
       subject: `S ${id}`,
       fromName: 'F',
@@ -226,7 +226,7 @@ async function observedReturnFields() {
   const mailOk = byName(toolState({ gmail: fakeGmail({ ids: ['m1'] }) })).get('signalSweep')
   collect(await mailOk.execute({}))
 
-  const mailFail = byName(toolState({ gmail: fakeGmail({ labelFail: new Error('no such label') }) })).get('signalSweep')
+  const mailFail = byName(toolState({ gmail: fakeGmail({ labelName: 'Valami más' }) })).get('signalSweep')
   const failed = await mailFail.execute({})
   collect(failed)
   assert.ok(failed.error, 'the failure path must answer with an error')
@@ -281,7 +281,7 @@ async function observedCandidateFields() {
 }
 
 test('a failed sweep answers with a sweepId and is already closed, which is what the prompts branch on', async () => {
-  const state = toolState({ gmail: fakeGmail({ labelFail: new Error('no such label') }) })
+  const state = toolState({ gmail: fakeGmail({ labelName: 'Valami más' }) })
   const tools = byName(state)
   const failed = await tools.get('signalSweep').execute({})
   assert.ok(failed.sweepId)
@@ -336,8 +336,8 @@ test('recordSignal answers merged rather than a rejection when the same key come
  */
 const PINNED_PROSE = Object.freeze({
   'apply_score DESC, score DESC': { file: 'src/db.mjs', why: "the deck's ORDER BY, which is what makes applyScore the axis" },
-  cap: { file: 'src/gmail.mjs', why: 'one of the two listStoppedOn values' },
-  page_ceiling: { file: 'src/gmail.mjs', why: 'the other listStoppedOn value' },
+  cap: { file: 'src/sweep.mjs', why: 'one of the two listStoppedOn values' },
+  page_ceiling: { file: 'src/sweep.mjs', why: 'the other listStoppedOn value' },
   seen: { file: 'src/db.mjs', why: 'the ext_aisignal_seen table the close marks' },
   'research_topics.json': { file: 'research_topics.json', why: 'the operator-owned topics file' },
 })
@@ -529,7 +529,7 @@ async function handedOverFields() {
   }
 
   const mailOk = byName(toolState({ gmail: fakeGmail({ ids: ['m1'] }) })).get('signalSweep')
-  const mailFail = byName(toolState({ gmail: fakeGmail({ labelFail: new Error('no such label') }) })).get('signalSweep')
+  const mailFail = byName(toolState({ gmail: fakeGmail({ labelName: 'Valami más' }) })).get('signalSweep')
   const researchOk = byName(toolState({ fetchImpl: fakeFetch() })).get('researchSweep')
   const researchFail = byName(toolState({ fetchImpl: fakeFetch({ fail: true }) })).get('researchSweep')
 

@@ -2,32 +2,41 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import { MIGRATIONS, createRepo } from '../src/db.mjs'
+import { MAILBOX_CONTRACT, MAILBOX_PROVIDER } from '../src/mailbox.mjs'
 import { createRpc } from '../src/rpc.mjs'
-import { OAUTH_PURPOSE } from '../src/sweep.mjs'
 import { memStorage } from './helpers.mjs'
 
 /**
  * The rpc surface, driven the way the page drives it.
  *
- * No credential and no network anywhere: `hasGoogleCredential` is injected, the
- * same seam `gmailFactory` is for sweep.mjs and `fetchImpl` is for
- * research.mjs. The repository runs against `memStorage`.
+ * No credential and no network anywhere, and after the move onto the `gmail`
+ * extension's `mailbox` contract there is no credential for this extension to
+ * have: the page's Gmail line is now a question about whether that contract
+ * resolves, so what is injected here is a `ctx.contracts` in the shape the host
+ * hands one over. The repository runs against `memStorage`.
+ *
+ * `resolves` is `true` for a contract that resolves, a reason word for one that
+ * does not, and a function for a check that throws.
  */
-function setup(hasCred = true) {
+function setup(resolves = true) {
   const s = memStorage()
   for (const m of MIGRATIONS) s.raw.exec(m.sql)
   const asked = []
+  const contracts = {
+    get: () => { throw new Error('the page asks `why`, which answers both halves in one call') },
+    why: (extension, contract) => {
+      asked.push(`${extension}.${contract}`)
+      if (typeof resolves === 'function') return resolves()
+      return resolves === true ? null : resolves
+    },
+  }
   const state = {
     repo: createRepo(s),
     settings: () => ({ label: 'AI hírlevél' }),
     log: { info() {}, warn() {}, error() {} },
+    contracts,
   }
-  const hasGoogleCredential = (purpose) => {
-    asked.push(purpose)
-    if (typeof hasCred === 'function') return hasCred(purpose)
-    return hasCred
-  }
-  return { state, storage: s, asked, rpc: createRpc(state, { hasGoogleCredential }) }
+  return { state, storage: s, asked, rpc: createRpc(state) }
 }
 
 /** One sweep row plus `count` cards on it, with everything the deck orders by set. */
@@ -43,7 +52,7 @@ function withItems(state, count, { label = 'AI hírlevél', headline = (i) => `h
   return { sweepId: sw.id, ids }
 }
 
-test('board returns deck, sweeps, undecided, label and gmail status', async () => {
+test('board returns deck, sweeps, undecided, label and mailbox status', async () => {
   const { state, rpc } = setup()
   const sw = state.repo.openSweep({ label: 'AI hírlevél', since: null, fetchedIds: ['m'], skipped: 0, leftover: 2 })
   state.repo.insertItem({ sweepId: sw.id, messageId: 'm', headline: 'h', summary: 's', url: 'https://x', score: 0.4, applyScore: 0.8, why: 'w', linkRead: 0 })
@@ -51,16 +60,21 @@ test('board returns deck, sweeps, undecided, label and gmail status', async () =
   assert.equal(b.deck.length, 1)
   assert.equal(b.undecided, 1)
   assert.equal(b.label, 'AI hírlevél')
-  assert.equal(b.gmail.status, 'connected')
+  assert.equal(b.gmail.status, 'ready')
   assert.equal(b.sweeps[0].finished_at, null)
 })
 
-test('decide validates and health reports missing credential', async () => {
-  const { rpc } = setup(false)
-  await assert.rejects(rpc.decide({ id: 'x', decision: 'nope' }), /decision/)
-  const h = await rpc.health({})
-  assert.equal(h.gmail.status, 'missing')
-  assert.equal('token' in h, false)
+test('decide validates and health reports each reason the mailbox contract can be unavailable', async () => {
+  await assert.rejects(setup().rpc.decide({ id: 'x', decision: 'nope' }), /decision/)
+
+  // Four reasons, four different things for the operator to do: install it,
+  // switch it on, upgrade one of the two, reinstall this one. Each crosses as
+  // the host's own word rather than folded into one "not available".
+  for (const reason of ['provider_missing', 'provider_disabled', 'version_mismatch', 'not_declared']) {
+    const h = await setup(reason).rpc.health({})
+    assert.deepEqual(h.gmail, { status: 'unavailable', reason })
+    assert.equal('token' in h, false)
+  }
 })
 
 /**
@@ -86,29 +100,41 @@ test('board keeps a sweep that failed distinguishable from one that found nothin
 })
 
 /**
- * The mirror of the same rule on the credential. A check that could not be run
- * is not a credential that is absent: reporting `missing` would send an
- * operator to reconnect an account that may be working, and letting the throw
- * escape would turn a status line into a failed page load.
+ * The mirror of the same rule on the mailbox. A check that could not be run is
+ * not a provider that is missing: reporting `unavailable` would send an
+ * operator off to install an extension that may be sitting there working, and
+ * letting the throw escape would turn a status line into a failed page load.
  */
-test('health reports an error, not a missing credential, when the check itself fails', async () => {
-  const { rpc } = setup(() => { throw new Error('credential store unreadable: /secret/path/token.json') })
+test('health reports an error, not an unavailable mailbox, when the check itself fails', async () => {
+  const { rpc } = setup(() => { throw new Error('extension map unreadable: /secret/path/extensions.json') })
   const h = await rpc.health({})
   assert.equal(h.gmail.status, 'error')
-  assert.equal(h.gmail.code, 'gmail_check_failed')
+  assert.equal(h.gmail.code, 'aisignal_contract_check_failed')
   // The host's own error text is logged, never returned: this layer cannot know
-  // what a credential store quotes into it.
-  assert.equal(JSON.stringify(h).includes('/secret/path/token.json'), false)
+  // what the host quotes into it.
+  assert.equal(JSON.stringify(h).includes('/secret/path/extensions.json'), false)
   const b = await rpc.board({})
   assert.equal(b.gmail.status, 'error')
 })
 
-/** Health must answer about the credential a sweep actually opens the mailbox with. */
-test('board and health ask about the purpose the sweep opens the mailbox with', async () => {
+/**
+ * And the third state, which is not the same as either: the host handed this
+ * extension no contract access at all. Reporting it as `unavailable` would name
+ * a provider as the fault when nothing has been asked about one.
+ */
+test('health separates a host that hands over no contracts from a provider that is not there', async () => {
+  const { state, rpc } = setup()
+  state.contracts = null
+  const h = await rpc.health({})
+  assert.deepEqual(h.gmail, { status: 'error', code: 'aisignal_contracts_missing' })
+})
+
+/** Health must answer about the contract a sweep actually opens the mailbox over. */
+test('board and health ask about the extension and contract the sweep opens the mailbox over', async () => {
   const { rpc, asked } = setup()
   await rpc.board({})
   await rpc.health({})
-  assert.deepEqual(asked, [OAUTH_PURPOSE, OAUTH_PURPOSE])
+  assert.deepEqual(asked, [`${MAILBOX_PROVIDER}.${MAILBOX_CONTRACT}`, `${MAILBOX_PROVIDER}.${MAILBOX_CONTRACT}`])
 })
 
 /** Every capped list says what it was capped at and how many rows are behind it. */
@@ -329,20 +355,10 @@ test('health names the configured label and falls back to the one a sweep would 
   assert.equal((await rpc.health()).label, 'AI hírlevél')
 })
 
-/**
- * A wiring mistake in index.mjs must be loud at load rather than reported as a
- * broken Gmail credential on every board.
- */
-test('createRpc refuses to build without a credential check', () => {
-  const { state } = setup()
-  assert.throws(() => createRpc(state, {}), /hasGoogleCredential/)
-  assert.throws(() => createRpc(state, { hasGoogleCredential: 'yes' }), /hasGoogleCredential/)
-})
-
 /** Before setup() there is no repository, and the missing step is named rather than thrown at from inside a query. */
 test('rpc names the missing setup step instead of failing inside a query', async () => {
-  const state = { repo: null, settings: () => ({}), log: { info() {}, warn() {}, error() {} } }
-  const rpc = createRpc(state, { hasGoogleCredential: () => true })
+  const state = { repo: null, settings: () => ({}), log: { info() {}, warn() {}, error() {} }, contracts: null }
+  const rpc = createRpc(state)
   await assert.rejects(rpc.board(), /not set up yet/)
   await assert.rejects(rpc.health(), /not set up yet/)
   await assert.rejects(rpc.items(), /not set up yet/)

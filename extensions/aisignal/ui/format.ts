@@ -1,4 +1,4 @@
-import type { GmailStatus, ManagedStatus, Sweep } from './api'
+import type { GmailReason, GmailStatus, ManagedStatus, Sweep } from './api'
 
 /**
  * The words the page puts next to the numbers, kept out of the components so
@@ -64,18 +64,55 @@ export function kindLabel(kind: unknown): string {
 }
 
 /**
- * The Gmail line. Three states, three sentences, and the reconnect link is
- * offered for exactly one of them: `error` means the host could not read its
- * own credential store, and sending an operator to reconnect an account that
- * may be connected is the false report `gmailHealth` in rpc.mjs refuses to
- * make. `canConnect` is what the status bar keys the link on.
+ * The sentence for each reason the host gives for a contract that does not
+ * resolve. Four reasons, four different things for the operator to do, and no
+ * two of them fold together.
  */
-export function describeGmail(gmail: GmailStatus): { text: string; canConnect: boolean } {
-  if (gmail.status === 'connected') return { text: 'Gmail: bekötve', canConnect: false }
-  if (gmail.status === 'missing') return { text: 'Gmail: nincs bekötve', canConnect: true }
+const GMAIL_REASON_HU: Readonly<Record<GmailReason, string>> = Object.freeze({
+  provider_missing: 'Gmail: a gmail extension nincs telepítve, enélkül egyetlen sweep sem tud postafiókot olvasni',
+  provider_disabled: 'Gmail: a gmail extension telepítve van, de ki van kapcsolva',
+  version_mismatch: 'Gmail: a gmail extension másik szerződés-verziót ad, mint amire ez épült; a kettő közül az egyiket frissíteni kell',
+  not_declared: 'Gmail: ez a telepített AI Signal nem kéri a mailbox szerződést; telepítsd újra az extensiont',
+})
+
+/**
+ * The Gmail line, and whether the `/x/gmail` page is where the operator should
+ * go next.
+ *
+ * WHAT `ready` MAY NOT BE DRAWN AS. It says the contract resolves, and that is
+ * all this extension can see: it holds no Google credential any more, so
+ * "connected" is not a word it is entitled to. The sentence says where the
+ * credential's own state is reported instead, and the link goes there.
+ *
+ * WHY THE LINK IS NOT ALWAYS OFFERED. `/x/gmail` is a page the `gmail`
+ * extension contributes, and an extension that is not loaded contributes none
+ * -- so under `provider_missing` and `provider_disabled` the link would land on
+ * the extension-page route's own "no such page". The operator's next step for
+ * those two is the Extensions screen, which the sentence names. Under
+ * `not_declared` the provider may well be loaded, but the fault is in THIS
+ * extension's installed copy and its page is not where that is fixed. Under
+ * `error` nothing is known at all, and sending an operator anywhere on a guess
+ * is the false report `mailboxHealth` in rpc.mjs refuses to make.
+ *
+ * A reason word this page has no sentence for is shown as it arrived, the way
+ * `statusBadge` shows an unknown status: "the host said something this page
+ * does not have a word for" is the fact, and inventing one of the four in its
+ * place would be a guess.
+ */
+export function describeGmail(gmail: GmailStatus): { text: string; page: boolean } {
+  if (gmail.status === 'ready') {
+    return { text: 'Gmail: a gmail extension szerződése elérhető; hogy a postafiók be van-e kötve, a Gmail lapon látszik', page: true }
+  }
+  if (gmail.status === 'unavailable') {
+    const known = gmail.reason !== undefined && Object.prototype.hasOwnProperty.call(GMAIL_REASON_HU, gmail.reason)
+    return {
+      text: known ? GMAIL_REASON_HU[gmail.reason as GmailReason] : `Gmail: a mailbox szerződés nem elérhető (${gmail.reason ?? 'a szolgáltató nem mondta meg, miért'})`,
+      page: gmail.reason === 'version_mismatch',
+    }
+  }
   return {
-    text: `Gmail: az ellenőrzés nem sikerült (${gmail.code ?? 'ismeretlen ok'}), nem tudni, be van-e kötve`,
-    canConnect: false,
+    text: `Gmail: az ellenőrzés nem sikerült (${gmail.code ?? 'ismeretlen ok'}), nem tudni, elérhető-e a postafiók`,
+    page: false,
   }
 }
 
