@@ -6,12 +6,13 @@ import { errorText, readManagedStatus } from './api'
  *
  * WHY THE PAGE ASKS, AND WHY IT ASKS THE HOST
  * -------------------------------------------
- * The host creates an extension's declared agents and schedules only when the
- * operator presses Reconcile on the extension's card in Extensions (or calls it
- * on the CLI); nothing runs it on install. So a correctly installed extension
- * loads, mounts this page, renders its settings and shows an empty queue with
- * no schedule anywhere, and without this the status bar could only say the
- * board is empty -- true, and not the fact the operator needed, which is that
+ * The host creates an extension's declared agents and schedules on install, on
+ * enable and on upgrade, and again whenever the operator asks -- the Reconcile
+ * control on the extension's card in Extensions, or the CLI. That reconcile can
+ * fail or skip a declaration, and an operator can delete a schedule by hand,
+ * and nothing retries either on its own. So an extension can load, mount this
+ * page, render its settings and show an empty queue with no schedule anywhere,
+ * and without this the status bar could only say the board is empty -- true, and not the fact the operator needed, which is that
  * nothing is going to fill it. This is also the one health code `runHealth`
  * structurally cannot answer (`reconcile_hianyzik`, reported there in
  * `nemValaszolt`): whether Reconcile was pressed lives in the host's own

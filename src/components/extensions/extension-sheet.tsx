@@ -9,6 +9,31 @@ import { getExtensionSourceLabel } from '@/lib/extension-sources'
 import { toast } from 'sonner'
 import type { ExtensionMeta, ExtensionSettingsField, MarketplaceExtension } from '@/types'
 import { dedup } from '@/lib/shared-utils'
+import {
+  summarizeLifecycleReconcile,
+  type ManagedReconcileLifecycleOutcomeShape,
+} from '@/lib/extensions/reconcile-summary'
+
+/** What the install route returns alongside the install's own result. */
+interface InstallResponse {
+  managedResources?: ManagedReconcileLifecycleOutcomeShape | null
+}
+
+/**
+ * Report the reconcile the host ran for an install, and stay silent when there
+ * is nothing to report.
+ *
+ * An extension that declares no agents and no routines produces no message.
+ * A skipped declaration or a failure produces one, because otherwise
+ * "Installed" is the only thing the operator is told and it is true of the
+ * extension while being wrong about its resources.
+ */
+function reportInstallReconcile(response: InstallResponse | null | undefined) {
+  const summary = summarizeLifecycleReconcile(response?.managedResources)
+  if (!summary) return
+  if (summary.ok) toast.success(summary.text)
+  else toast.error(summary.text, { duration: 10_000 })
+}
 
 function extensionDescription(ext: ExtensionMeta): string {
   const raw = (ext.description || '').trim()
@@ -187,7 +212,7 @@ export function ExtensionSheet() {
     const toastId = toast.loading(`Installing ${p.name}...`)
     try {
       const safeFilename = `${p.id.replace(/[^a-zA-Z0-9.-]/g, '_')}.js`
-      await api('POST', '/extensions/install', {
+      const response = await api<InstallResponse>('POST', '/extensions/install', {
         url: p.url,
         filename: safeFilename,
         installMethod: 'marketplace',
@@ -196,6 +221,7 @@ export function ExtensionSheet() {
       })
       await loadExtensions()
       toast.success(`Installed ${p.name}`, { id: toastId })
+      reportInstallReconcile(response)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Install failed', { id: toastId })
     }
@@ -207,10 +233,11 @@ export function ExtensionSheet() {
     setUrlStatus(null)
     setInstalling('url')
     try {
-      await api('POST', '/extensions/install', { url: urlInput, filename: urlFilename })
+      const response = await api<InstallResponse>('POST', '/extensions/install', { url: urlInput, filename: urlFilename })
       await loadExtensions()
       setUrlStatus({ ok: true, message: 'Installed successfully' })
       toast.success('Extension installed from URL')
+      reportInstallReconcile(response)
       setUrlInput('')
       setUrlFilename('')
     } catch (err: unknown) {

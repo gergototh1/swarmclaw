@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { safeParseBody } from '@/lib/server/safe-parse-body'
 import { getExtensionManager, sanitizeExtensionFilename } from '@/lib/server/extensions'
+import { reconcileManagedResourcesForLifecycleChange } from '@/lib/server/extension-managed-resources'
 import { logActivity } from '@/lib/server/storage'
 import { errorMessage } from '@/lib/shared-utils'
 import {
@@ -56,7 +57,13 @@ export async function POST(req: Request) {
       installSource,
     })
     logActivity({ entityType: 'extension', entityId: installed.filename, action: 'installed', actor: 'user', summary: `Extension "${installed.filename}" installed from ${installSource}` })
-    return json({ ok: true, filename: installed.filename, hash: installed.sourceHash }, 200, origin)
+    // A freshly installed extension is enabled and loaded by here
+    // (`saveExtensionSource` reloads on the way out), so the agents and
+    // routines it declares are created now instead of never. The outcome
+    // rides along in the response: the install succeeded whatever the
+    // reconcile did, and the caller is the one that has to say both.
+    const managedResources = reconcileManagedResourcesForLifecycleChange(installed.filename, 'install')
+    return json({ ok: true, filename: installed.filename, hash: installed.sourceHash, managedResources }, 200, origin)
   } catch (err: unknown) {
     const msg = errorMessage(err)
     const isTimeout = /abort|timeout/i.test(msg)

@@ -31,12 +31,14 @@ import {
   listExtensionLocalFolderEntries,
   listExtensionManagedResources,
   reconcileExtensionManagedResources,
+  reconcileManagedResourcesForLifecycleChange,
   setExtensionLocalFolderConfig,
 } from './extension-managed-resources'
 import { DATA_DIR, WORKSPACE_DIR } from './data-dir'
 import { buildRuntimeSkillPromptBlocks, resolveRuntimeSkills } from './skills/runtime-skill-resolver'
 import { loadAgents, loadSchedules, loadSettings, saveAgents, saveSchedules, saveSettings } from './storage'
 import { DEFAULT_AGENT_ROUTE } from '@/lib/setup-defaults'
+import type { ExtensionManagedScheduleDeclaration } from '@/types'
 import { AGENTS as AISIGNAL_AGENTS } from '../../../extensions/aisignal/src/agents.mjs'
 
 // Outside any test() on purpose: a test that only detects the wrong directory
@@ -755,4 +757,141 @@ test('uninstalling an extension deletes its managed schedules, trashes its manag
   assert.equal(out.shippedSkillGone, true, 'the shipped skill directory is removed')
   assert.equal(out.operatorSkillKept, true, 'a skill the operator wrote is not touched')
   assert.equal(out.wakesAfterSecondTick, 1, 'after the uninstall the next tick dispatches nothing new')
+})
+
+/*
+ * THE LIFECYCLE RECONCILE
+ * =======================
+ * `reconcileManagedResourcesForLifecycleChange` is what the install, enable and
+ * upgrade routes call. It has one job the manual reconcile does not: it must
+ * never turn a reconcile problem into a failed install, and it must never let a
+ * reconcile problem disappear behind a successful one either.
+ */
+
+test('enabling an extension creates the agents and routines it declares', () => {
+  const id = extensionId('lifecycle_enable')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Lifecycle Enable Fixture',
+    managedResources: {
+      agents: [
+        { agentKey: 'sweeper', displayName: 'Lifecycle Sweeper', provider: 'openai', model: 'gpt-4o-mini' },
+      ],
+      schedules: [
+        {
+          scheduleKey: 'daily',
+          displayName: 'Lifecycle Daily',
+          agentRef: { resourceKind: 'agent', resourceKey: 'sweeper' },
+          cron: '0 9 * * *',
+        },
+      ],
+    },
+  })
+
+  const outcome = reconcileManagedResourcesForLifecycleChange(id, 'enable')
+
+  assert.equal(outcome.status, 'reconciled')
+  assert.equal(outcome.trigger, 'enable')
+  assert.equal(outcome.extensionId, id)
+  assert.equal(outcome.result?.createdAgents.length, 1)
+  assert.equal(outcome.result?.createdSchedules.length, 1)
+  assert.equal(outcome.result?.skipped.length, 0)
+  const agentId = outcome.result?.createdAgents[0] as string
+  assert.equal(loadAgents()[agentId]?.managedByExtension?.extensionId, id)
+  assert.ok(loadSchedules()[outcome.result?.createdSchedules[0] as string])
+})
+
+test('a second lifecycle reconcile updates rather than duplicating, so an upgrade is idempotent', () => {
+  const id = extensionId('lifecycle_upgrade')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Lifecycle Upgrade Fixture',
+    managedResources: {
+      agents: [
+        { agentKey: 'sweeper', displayName: 'Upgrade Sweeper', provider: 'openai', model: 'gpt-4o-mini' },
+      ],
+    },
+  })
+
+  const first = reconcileManagedResourcesForLifecycleChange(id, 'install')
+  const second = reconcileManagedResourcesForLifecycleChange(id, 'upgrade')
+
+  assert.equal(first.result?.createdAgents.length, 1)
+  assert.equal(second.result?.createdAgents.length, 0, 'the upgrade created a second copy of the agent')
+  assert.deepEqual(second.result?.updatedAgents, first.result?.createdAgents)
+})
+
+test('an extension that declares no agents or routines is left alone rather than reported as a run that did nothing', () => {
+  const id = extensionId('lifecycle_no_declarations')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Lifecycle Folder Only Fixture',
+    // Declares a local folder and nothing a reconcile creates. Running one
+    // here would produce a result with every count at zero, which the shared
+    // summariser reports as a failed run -- true of the numbers, and a wrong
+    // verdict on an extension that never asked for an agent.
+    managedResources: {
+      localFolders: [{ folderKey: 'workspace', displayName: 'Workspace Folder', access: 'read' }],
+    },
+  })
+
+  const outcome = reconcileManagedResourcesForLifecycleChange(id, 'install')
+
+  assert.equal(outcome.status, 'not_declared')
+  assert.equal(outcome.result, undefined)
+  assert.equal(outcome.error, undefined)
+})
+
+test('an extension the host has never heard of is not declared, not a failure', () => {
+  const outcome = reconcileManagedResourcesForLifecycleChange('never_installed.mjs', 'enable')
+  assert.equal(outcome.status, 'not_declared')
+})
+
+test('a refused declaration is reported as skipped, never dropped because the install succeeded', () => {
+  const id = extensionId('lifecycle_skips')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Lifecycle Skip Fixture',
+    managedResources: {
+      schedules: [
+        // Names an agent this extension does not declare, and no stored agent
+        // carries that marker, so the host refuses it by name.
+        {
+          scheduleKey: 'orphan',
+          displayName: 'Orphan Routine',
+          agentRef: { resourceKind: 'agent', resourceKey: 'not_declared_here' },
+          cron: '0 9 * * *',
+        },
+      ],
+    },
+  })
+
+  const outcome = reconcileManagedResourcesForLifecycleChange(id, 'install')
+
+  assert.equal(outcome.status, 'reconciled')
+  assert.deepEqual(outcome.result?.skipped, [
+    { resourceKind: 'schedule', resourceKey: 'orphan', reason: 'missing_agent_ref' },
+  ])
+  assert.equal(outcome.result?.createdSchedules.length, 0)
+})
+
+test('a reconcile that throws is returned as a failure and never escapes into the install', () => {
+  const id = extensionId('lifecycle_throws')
+  // A real declaration list that throws when the reconcile reads it. It stands
+  // for any failure inside the reconcile -- a storage write that cannot
+  // complete, a declaration source that stops answering -- none of which the
+  // host can provoke on demand, and all of which must come back as this
+  // outcome rather than as a thrown install.
+  const unreadableRoutines: ExtensionManagedScheduleDeclaration[] = [
+    { scheduleKey: 'unreadable', displayName: 'Unreadable Routine', cron: '0 9 * * *' },
+  ]
+  Object.defineProperty(unreadableRoutines, Symbol.iterator, {
+    value() { throw new Error('routine declarations could not be read') },
+  })
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Lifecycle Throw Fixture',
+    managedResources: { routines: unreadableRoutines },
+  })
+
+  const outcome = reconcileManagedResourcesForLifecycleChange(id, 'install')
+
+  assert.equal(outcome.status, 'failed')
+  assert.equal(outcome.error, 'routine declarations could not be read')
+  assert.equal(outcome.result, undefined)
 })

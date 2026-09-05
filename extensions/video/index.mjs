@@ -184,11 +184,14 @@ const video = {
     ],
   },
   /**
-   * The two agents and their three schedules (src/agents.mjs). Nothing here
-   * exists on the operator's instance until they press Reconcile once on
-   * the Extensions list -- the Reconcile button on this extension's own card,
-   * or `swarmclaw extensions reconcile --extension-id video.mjs`. No host path
-   * runs a reconcile on install, enable or upgrade.
+   * The two agents and their three schedules (src/agents.mjs). The host
+   * reconciles these on install, on enable and on upgrade, so a normal install
+   * has them. A reconcile can still fail or skip a declaration, and an
+   * operator can delete an agent or a routine by hand, so nothing here may be
+   * assumed to exist: the page reads the host's managed-resources payload and
+   * says what is missing. Asking again is the Reconcile control on this
+   * extension's own card in the Extensions list, or
+   * `swarmclaw extensions reconcile --extension-id video.mjs`.
    *
    * `setupChecks` is the install's conditions by name, from the same list
    * `health` answers (src/health.mjs). The host counts them for the card and

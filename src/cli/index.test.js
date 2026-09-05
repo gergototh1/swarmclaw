@@ -800,3 +800,29 @@ test('extensions reconcile is listed in the group help, so it can be found', asy
   assert.match(stdout.toString(), /\breconcile\b/)
   assert.match(stdout.toString(), /--extension-id/)
 })
+
+test('the extensions help names the reconcile that install, set and update now run', async () => {
+  // The three verbs create agents and routines on the operator's instance as a
+  // side effect. A help line reading "Enable or disable an extension" is true
+  // and understates what the verb does, and understating it is why nobody
+  // knew a reconcile had to happen at all. The help also must not still claim
+  // the host never reconciles, which is what it said before.
+  const stdout = makeWritable()
+  const stderr = makeWritable()
+
+  const exitCode = await runCli(['extensions', '--help'], {
+    fetchImpl: async () => { throw new Error('help must not call the API') },
+    stdout,
+    stderr,
+    env: {},
+    cwd: process.cwd(),
+  })
+
+  assert.equal(exitCode, 0)
+  const help = stdout.toString()
+  const lineFor = (verb) => help.split('\n').find((line) => line.trim().startsWith(verb)) || ''
+  assert.match(lineFor('set'), /agents and routines it declares/)
+  assert.match(lineFor('install'), /agents and routines it declares/)
+  assert.match(lineFor('update'), /reconcile/)
+  assert.doesNotMatch(help, /nothing in the host does this on install/)
+})

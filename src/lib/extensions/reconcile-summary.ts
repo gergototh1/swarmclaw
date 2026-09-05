@@ -26,6 +26,8 @@ export interface ManagedReconcileSkip {
 }
 
 export interface ManagedReconcileResultShape {
+  /** Set when the reconcile was asked for one extension; absent for all of them. */
+  extensionId?: string
   createdAgents?: string[]
   updatedAgents?: string[]
   createdSchedules?: string[]
@@ -82,7 +84,68 @@ export function summarizeManagedReconcile(result: ManagedReconcileResultShape | 
   }
 
   if (touched === 0 && skipped.length === 0) {
-    return { ok: false, text: 'Reconcile created and updated nothing: this extension declared no agents or routines the host could act on.' }
+    // The subject of the sentence follows what was asked for. A run over every
+    // extension that reports "this extension declared no agents or routines"
+    // names an extension the operator never picked.
+    return {
+      ok: false,
+      text: result?.extensionId
+        ? 'Reconcile created and updated nothing: this extension declared no agents or routines the host could act on.'
+        : 'Reconcile created and updated nothing: no installed extension declared agents or routines the host could act on.',
+    }
   }
   return { ok: skipped.length === 0, text: `Reconcile: ${parts.join('; ')}.` }
+}
+
+/**
+ * The outcome the host attaches to an install, an enable or an upgrade.
+ *
+ * Mirrors `ExtensionLifecycleReconcileOutcome` in
+ * `src/lib/server/extension-managed-resources.ts`, restated here because this
+ * module is imported by client components and must not pull in server code.
+ * Every field is optional: it arrives as parsed JSON from a route, so nothing
+ * here may assume the shape it hoped for.
+ */
+export interface ManagedReconcileLifecycleOutcomeShape {
+  trigger?: string
+  extensionId?: string
+  status?: string
+  result?: ManagedReconcileResultShape
+  error?: string
+}
+
+/**
+ * One sentence about the reconcile a lifecycle transition ran, or `null` when
+ * there is nothing to say.
+ *
+ * `null` is returned for a missing outcome and for `not_declared`, and those
+ * are the same answer: the extension declared no agents and no routines, so no
+ * reconcile was attempted and the operator has no reason to be told about one.
+ * A caller shows no message on `null` rather than inventing a reassuring one.
+ *
+ * A status this code does not recognise is reported as unrecognised rather
+ * than treated as a success, because the alternative is a silent pass for a
+ * shape a future host might send.
+ */
+export function summarizeLifecycleReconcile(
+  outcome: ManagedReconcileLifecycleOutcomeShape | null | undefined,
+): ManagedReconcileSummary | null {
+  if (!outcome || outcome.status === 'not_declared') return null
+
+  if (outcome.status === 'failed') {
+    const reason = typeof outcome.error === 'string' && outcome.error ? outcome.error : 'no reason given'
+    return {
+      ok: false,
+      text: `The extension is installed, but creating the agents and routines it declares failed: ${reason}. Use Reconcile on its card to retry.`,
+    }
+  }
+
+  if (outcome.status === 'reconciled') {
+    return summarizeManagedReconcile(outcome.result)
+  }
+
+  return {
+    ok: false,
+    text: `The host reported an unrecognised reconcile status (${outcome.status ?? 'none'}); whether the declared agents and routines exist is unknown. Use Reconcile on the extension's card to find out.`,
+  }
 }

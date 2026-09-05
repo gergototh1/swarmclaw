@@ -6,13 +6,14 @@ import { errorText, readManagedStatus } from './api'
  *
  * WHY THE PAGE ASKS, AND WHY IT ASKS THE HOST
  * -------------------------------------------
- * The host creates an extension's declared agents and schedules only when the
- * operator presses Reconcile on Extensions > Managed resources (or calls it
- * on the CLI); nothing runs it on install. So a correctly installed extension
- * loads, mounts this page, renders its settings and connects Gmail with no
- * schedule anywhere, and before this the status bar could only say "no sweep
- * has run yet" -- true, and not the fact the operator needed, which is that
- * none is going to. The two are told apart here by the same rule the sweep
+ * The host creates an extension's declared agents and schedules on install, on
+ * enable and on upgrade, and again whenever the operator asks -- the Reconcile
+ * control on this extension's card in Extensions, or the CLI. That reconcile
+ * can fail or skip a declaration, and an operator can delete a schedule by
+ * hand, and nothing retries either on its own. So an extension can load, mount
+ * this page, render its settings and connect Gmail with no schedule anywhere,
+ * and before this the status bar could only say "no sweep has run yet" --
+ * true, and not the fact the operator needed, which is that none is going to. The two are told apart here by the same rule the sweep
  * layer is built on: a source that answered "none" and a source that could
  * not be asked are different facts, so the failure of this request is its own
  * state and never reads as "not scheduled".

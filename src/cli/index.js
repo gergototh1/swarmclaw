@@ -542,10 +542,15 @@ const COMMAND_GROUPS = [
     description: 'Manage extensions and marketplace',
     commands: [
       cmd('list', 'GET', '/extensions', 'List installed extensions'),
-      cmd('set', 'POST', '/extensions', 'Enable or disable an extension', { expectsJsonBody: true }),
+      // The three verbs below reconcile as a side effect, and the help says so.
+      // An operator who enables an extension gets agents and routines created
+      // on their instance; a help line reading "Enable or disable an extension"
+      // understates that, and understating it is how the reconcile went unnoticed
+      // in the first place.
+      cmd('set', 'POST', '/extensions', 'Enable or disable an extension; enabling also creates or updates the agents and routines it declares', { expectsJsonBody: true }),
       cmd('delete', 'DELETE', '/extensions', 'Delete an external extension (use --query filename=extension.js)'),
-      cmd('update', 'PATCH', '/extensions', 'Update an extension (use --query id=extension.js or --query all=true)'),
-      cmd('install', 'POST', '/extensions/install', 'Install an extension from URL', { expectsJsonBody: true }),
+      cmd('update', 'PATCH', '/extensions', 'Update an extension and reconcile what it declares (use --query id=extension.js or --query all=true)'),
+      cmd('install', 'POST', '/extensions/install', 'Install an extension from URL and create the agents and routines it declares', { expectsJsonBody: true }),
       cmd('install-deps', 'POST', '/extensions/dependencies', 'Install or refresh extension workspace dependencies', { expectsJsonBody: true }),
       cmd('marketplace', 'GET', '/extensions/marketplace', 'Get extension marketplace catalog'),
       cmd('settings-get', 'GET', '/extensions/settings', 'Get extension settings (use --query extensionId=extension_name)'),
@@ -555,11 +560,13 @@ const COMMAND_GROUPS = [
       cmd('ui', 'GET', '/extensions/ui', 'List extension UI modules (use --query type=sidebar|header|chat_actions|connectors)'),
       cmd('builtins', 'GET', '/extensions/builtins', 'List built-in extensions'),
       cmd('managed-resources', 'GET', '/extensions/managed-resources', 'Preview extension-managed agents, routines, folders, gateways, and setup checks'),
-      // Nothing in the host reconciles on install, enable or upgrade, so this
-      // is the step that turns an extension's declared agents and routines
-      // into real ones. It was reachable only through the generic
-      // managed-resources-action verb below, which the help never names as a
-      // reconcile, so an operator following the CLI had no way to find it.
+      // The host reconciles on install, enable and upgrade, so this verb is for
+      // asking again: after a run that failed or skipped a declaration, after
+      // an agent or routine was deleted by hand, and for a built-in whose
+      // declarations changed in an application upgrade -- that last one has no
+      // install and no enable to hang a reconcile off. It was reachable only
+      // through the generic managed-resources-action verb below, which the help
+      // never names as a reconcile.
       cmd('reconcile', 'POST', '/extensions/managed-resources', 'Create or update the agents and routines extensions declare (all of them, or one with --extension-id video.mjs)', {
         expectsJsonBody: true,
         defaultBody: { action: 'reconcile' },

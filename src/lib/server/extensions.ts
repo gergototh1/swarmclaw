@@ -3296,17 +3296,31 @@ class ExtensionManager {
     return true
   }
 
-  async updateAllExtensions() {
+  /**
+   * Update every external extension, and say which ones that reached.
+   *
+   * The per-extension failures are collected rather than thrown: one extension
+   * whose source URL is gone must not stop the others from updating. They are
+   * returned because the caller reports the result to an operator, and the
+   * previous `return true` made a run where every download failed
+   * indistinguishable from one where they all succeeded.
+   */
+  async updateAllExtensions(): Promise<{ updated: string[]; failed: Array<{ extensionId: string; error: string }> }> {
     this.load()
     const ids = Array.from(this.extensions.entries())
       .filter(([, entry]) => !entry.isBuiltin)
       .map(([id]) => id)
+    const updated: string[] = []
+    const failed: Array<{ extensionId: string; error: string }> = []
     for (const id of ids) {
       try {
         await this.updateExtension(id)
-      } catch { /* ignore individual failures */ }
+        updated.push(id)
+      } catch (err: unknown) {
+        failed.push({ extensionId: id, error: errorMessage(err) })
+      }
     }
-    return true
+    return { updated, failed }
   }
 
   setMeta(filename: string, meta: Record<string, unknown>) {

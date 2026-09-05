@@ -11,9 +11,31 @@ import type { Agent, MarketplaceExtension, ExtensionContractConsumedMeta, Extens
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { dedup, errorMessage } from '@/lib/shared-utils'
-import { summarizeManagedReconcile, type ManagedReconcileResultShape } from '@/lib/extensions/reconcile-summary'
+import {
+  summarizeLifecycleReconcile,
+  summarizeManagedReconcile,
+  type ManagedReconcileLifecycleOutcomeShape,
+  type ManagedReconcileResultShape,
+} from '@/lib/extensions/reconcile-summary'
+
+/** What every lifecycle route now returns alongside its own result. */
+interface LifecycleResponse {
+  managedResources?: ManagedReconcileLifecycleOutcomeShape | null
+}
 
 type TopTab = 'extensions' | 'marketplace'
+
+/**
+ * `reconciling` holds the filename of the extension being reconciled; this
+ * value stands in for "all of them".
+ *
+ * It cannot collide with an installed extension: `sanitizeExtensionFilename`
+ * refuses anything that does not end in `.js` or `.mjs`, so no card is keyed
+ * by this. It is only ever compared against a filename here, never sent to the
+ * host, so a built-in registered under some other id shape cannot be reached
+ * by it either.
+ */
+const ALL_EXTENSIONS = '*all-extensions*'
 
 export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
   const extensions = useAppStore((s) => s.extensions)
@@ -83,11 +105,37 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
     setExtensionSheetOpen(true)
   }
 
+  /**
+   * Report the reconcile the host ran for an install, an enable or an upgrade.
+   *
+   * Silent when there is nothing to report: an extension that declares no
+   * agents and no routines produces no message at all, rather than a
+   * reassuring one about work that was never attempted. A skipped declaration
+   * or a failure is a toast the operator has to see, because otherwise the
+   * surrounding "Extension enabled" is the only thing they are told and it is
+   * true of the extension while being wrong about its resources.
+   */
+  const reportLifecycleReconcile = (response: LifecycleResponse | null | undefined) => {
+    const summary = summarizeLifecycleReconcile(response?.managedResources)
+    if (!summary) return
+    if (summary.ok) toast.success(summary.text)
+    else toast.error(summary.text, { duration: 10_000 })
+  }
+
   const handleToggle = async (e: React.MouseEvent, filename: string, enabled: boolean) => {
     e.stopPropagation()
     try {
-      await api('POST', '/extensions', { filename, enabled: !enabled })
+      // Enabling reconciles server-side, which can take longer than a plain
+      // config flip, so this call gets the reconcile timeout rather than the
+      // client default.
+      const response = await api<LifecycleResponse>(
+        'POST',
+        '/extensions',
+        { filename, enabled: !enabled },
+        { timeoutMs: 30_000 },
+      )
       toast.success(!enabled ? 'Extension enabled' : 'Extension disabled')
+      reportLifecycleReconcile(response)
       loadExtensions()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to toggle extension')
@@ -97,33 +145,37 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
   /**
    * Create or update the agents and routines an extension declares.
    *
-   * WHY THIS BUTTON EXISTS HERE. No host path runs a reconcile on install, on
-   * enable or on upgrade, so an extension that declares two agents and three
-   * routines arrives with none of them and stays that way until somebody asks
-   * for one. Until this control there was nowhere in the shipped product to
-   * ask: the only reconcile buttons live in `src/views/settings/extension-manager.tsx`,
-   * which nothing imports, and the CLI reached it through a generic
-   * route-mapped verb the help never named. An operator reading "no routines --
-   * Reconcile needed" on an extension's own page had nothing to press.
+   * WHY THIS CONTROL STILL EXISTS NOW THAT THE HOST RECONCILES BY ITSELF. The
+   * host runs a reconcile on install, on enable and on upgrade, so the first
+   * install is no longer the case this covers. What it covers is every case
+   * after it: a reconcile that failed or skipped a declaration and has to be
+   * retried once the cause is fixed, an agent or routine the operator deleted
+   * and wants back, and a declaration that changed under a running host. There
+   * is no other way to ask for any of those from the interface.
    *
    * The result is reported by `summarizeManagedReconcile`, which is where the
    * numbers -- including the ones that are zero, and any declaration the host
    * refused -- become the sentence. A run that skipped everything shows as a
    * failure, because it is one.
+   *
+   * `filename` null means every extension, which is what the header control
+   * sends. The request body then carries no `extensionId` at all rather than a
+   * null one: an absent argument is the host's own way of spelling "all of
+   * them", and a null would be an argument it has to refuse.
    */
-  const handleReconcile = async (e: React.MouseEvent, filename: string) => {
+  const handleReconcile = async (e: React.MouseEvent, filename: string | null) => {
     e.stopPropagation()
-    setReconciling(filename)
+    setReconciling(filename ?? ALL_EXTENSIONS)
     try {
       const result = await api<ManagedReconcileResultShape>(
         'POST',
         '/extensions/managed-resources',
-        { action: 'reconcile', extensionId: filename },
+        { action: 'reconcile', ...(filename ? { extensionId: filename } : {}) },
         { timeoutMs: 30_000 },
       )
       const summary = summarizeManagedReconcile(result)
       if (summary.ok) toast.success(summary.text)
-      else toast.error(summary.text)
+      else toast.error(summary.text, { duration: 10_000 })
       await loadExtensions()
     } catch (err: unknown) {
       toast.error(errorMessage(err))
@@ -157,7 +209,7 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
     const toastId = toast.loading(`Installing ${p.name}...`)
     try {
       const safeFilename = `${p.id.replace(/[^a-zA-Z0-9.-]/g, '_')}.js`
-      await api('POST', '/extensions/install', {
+      const response = await api<LifecycleResponse>('POST', '/extensions/install', {
         url: p.url,
         filename: safeFilename,
         installMethod: 'marketplace',
@@ -166,6 +218,7 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
       })
       await loadExtensions()
       toast.success(`Installed ${p.name}`, { id: toastId })
+      reportLifecycleReconcile(response)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Install failed', { id: toastId })
     }
@@ -191,6 +244,13 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
   const enabledCount = extensionList.filter((p) => p.enabled).length
   const totalTools = extensionList.reduce((acc, p) => acc + (p.toolCount ?? 0), 0)
   const totalHooks = extensionList.reduce((acc, p) => acc + (p.hookCount ?? 0), 0)
+  // Declared, not created: these are manifest counts, and the host does not
+  // report per-extension how many of them exist. Used only to decide whether a
+  // reconcile could do anything, never shown as a number.
+  const declaredManagedCount = extensionList.reduce(
+    (acc, p) => acc + (p.managedAgentCount ?? 0) + (p.managedScheduleCount ?? 0),
+    0,
+  )
 
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-6">
@@ -201,6 +261,36 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
         <Stat label="Tools" value={totalTools} />
         <Stat label="Hooks" value={totalHooks} />
         <div className="flex-1" />
+        {/*
+          Reconcile every extension at once.
+
+          The per-card control cannot cover one case: a built-in extension that
+          gained a declaration in an application upgrade. There is no install
+          and no enable to hang a reconcile off, and finding which card grew a
+          declaration means opening each one. This is the only control in the
+          product that reaches those, and it is the "Reconcile All" the
+          unreachable settings view carried before it was deleted.
+
+          Shown only when something declares agents or routines, so it does not
+          offer an action that could not do anything.
+
+          It reaches every extension the host has loaded, and a built-in that is
+          switched off is still loaded, so this creates that one's agents and
+          routines too. That is the host's existing rule for a reconcile with no
+          extension named -- the same one `swarmclaw extensions reconcile`
+          follows -- and not something this control decides.
+        */}
+        {declaredManagedCount > 0 && (
+          <button
+            type="button"
+            onClick={(e) => { void handleReconcile(e, null) }}
+            disabled={reconciling !== null}
+            title="Create or update the agents and routines every installed extension declares"
+            className="h-8 px-3 rounded-[9px] bg-white/[0.05] hover:bg-white/[0.08] text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-white/[0.06] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {reconciling === ALL_EXTENSIONS ? 'Reconciling...' : 'Reconcile all'}
+          </button>
+        )}
         {/* Search */}
         <div className="relative w-[260px]">
           <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3/40" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -415,7 +505,7 @@ function InstalledGrid({ extensions, allowDelete, search, agents, reconciling, o
           ext={ext}
           allowDelete={allowDelete}
           agents={agents}
-          reconciling={reconciling === ext.filename}
+          reconciling={reconciling === ext.filename || reconciling === ALL_EXTENSIONS}
           onEdit={onEdit}
           onToggle={onToggle}
           onDelete={onDelete}
@@ -548,10 +638,10 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
       )}
 
       {/*
-        Managed resources. Nothing in the host creates these on install, on
-        enable or on upgrade, so an extension that declares agents and routines
-        ships with none of them until somebody reconciles. This is the control
-        that does it, next to the counts it acts on.
+        Managed resources. The host creates these on install, on enable and on
+        upgrade, and this is the control that asks for the same run again --
+        after a reconcile that failed or skipped a declaration, or after the
+        operator deleted an agent or a routine and wants it back.
 
         The counts are what the extension declared, not what exists: the host
         does not report per-extension how many were actually created, and

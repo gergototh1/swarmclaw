@@ -9,6 +9,8 @@ import { loadSettings, saveSettings } from '@/lib/server/settings/settings-repos
 import { DEFAULT_AGENT_ROUTE } from '@/lib/setup-defaults'
 import { logActivity } from '@/lib/server/activity/activity-log'
 import { notify } from '@/lib/server/ws-hub'
+import { log } from '@/lib/server/logger'
+import { errorMessage } from '@/lib/shared-utils'
 import { WORKSPACE_DIR } from '@/lib/server/data-dir'
 import type {
   Agent,
@@ -416,11 +418,11 @@ function buildManagedAgent(
   // The pin list is shared with the operator. The agent sheet, `manage_skills`
   // attach, the agents API and the reconcile control all write into
   // the same `skillIds`, so a reconcile that replaced it with the declaration
-  // deleted every pin an operator had added by hand. A reconcile runs only
-  // when the operator asks for one -- the Reconcile button on the extension's
-  // card in Extensions, or `swarmclaw extensions reconcile` on the CLI;
-  // nothing in the host runs it on install, enable or upgrade -- but it is an action an
-  // operator may repeat at any time, so it must not eat their pins. So it is
+  // deleted every pin an operator had added by hand. A reconcile runs on
+  // install, enable and upgrade, and whenever the operator asks for one -- the
+  // Reconcile control on the extension's card in Extensions, or
+  // `swarmclaw extensions reconcile` on the CLI -- so it is an action that
+  // repeats at any time, and it must not eat their pins. So it is
   // a union: what is on the stored agent, plus every declared pin that is not
   // there yet. A declared pin the operator removed by hand therefore comes
   // back on the next reconcile, because the declaration has to reach its
@@ -803,6 +805,112 @@ export function reconcileExtensionManagedResources(extensionId?: string | null):
   }
 
   return result
+}
+
+/** Which lifecycle transition asked for the reconcile. */
+export type ExtensionLifecycleReconcileTrigger = 'install' | 'enable' | 'upgrade'
+
+/**
+ * What the reconcile a lifecycle transition ran did, or why it did not run.
+ *
+ * `not_declared` is the absence of an opinion, not a success: the extension
+ * declared no agents and no routines, so there was nothing for a reconcile to
+ * create and none was attempted. `failed` carries the reason and is never
+ * folded into the transition's own result, because the install, the enable or
+ * the upgrade did happen.
+ */
+export interface ExtensionLifecycleReconcileOutcome {
+  trigger: ExtensionLifecycleReconcileTrigger
+  extensionId: string
+  status: 'not_declared' | 'reconciled' | 'failed'
+  /** Present only when `status` is `reconciled`. */
+  result?: ManagedResourceReconcileResult
+  /** Present only when `status` is `failed`. */
+  error?: string
+}
+
+/**
+ * Whether a reconcile has anything to do for this extension.
+ *
+ * Deliberately narrower than `getManagedResourceExtensions`, which also lists
+ * an extension whose only declarations are local folders, gateway platforms or
+ * setup checks. A reconcile creates agents and schedules and nothing else, so
+ * running it for those would produce a result with every count at zero, which
+ * `summarizeManagedReconcile` correctly reports as a run that did nothing --
+ * true of the numbers and misleading as a verdict on an extension that never
+ * asked for an agent. Asking here keeps that case out of the report entirely.
+ */
+function declaresReconcilableResources(managedResources: ExtensionManagedResources): boolean {
+  return (managedResources.agents?.length || 0)
+    + (managedResources.schedules?.length || 0)
+    + (managedResources.routines?.length || 0) > 0
+}
+
+/**
+ * Create or update the agents and routines an extension declares, right after
+ * the host installed it, switched it on, or upgraded it.
+ *
+ * WHY THIS EXISTS. Until this function, `reconcileExtensionManagedResources`
+ * ran only when an operator asked for it by hand -- the Reconcile control on
+ * the extension's card, or `swarmclaw extensions reconcile`. An extension that
+ * declares two agents and three routines therefore arrived with none of them
+ * and stayed that way indefinitely, and the only hint in the product was a
+ * sentence on the extension's own page saying to press a button elsewhere. That
+ * is a defect a customer hits on their first install and a developer never
+ * does, because a developer knows about the button.
+ *
+ * WHY IT NEVER THROWS. The transition that called it has already committed:
+ * the file is written, the config entry is flipped, the module is loaded.
+ * Turning a reconcile failure into a failed install would report an install
+ * that did happen as one that did not. So the failure is returned, and every
+ * caller puts the outcome in its own response body -- a reconcile that skipped
+ * a declaration or failed outright must reach the operator, never be swallowed
+ * because the surrounding action succeeded.
+ *
+ * WHAT DOES NOT CALL IT. The three routes do: `/api/extensions/install`,
+ * `/api/extensions` on an enable, and `/api/extensions` on an update. An
+ * extension an agent writes through the `extension_creator` tool does not go
+ * through any of them -- it calls `saveExtensionSource` directly -- so its
+ * declared agents and routines wait for the operator's next enable or for the
+ * Reconcile control. Putting the call inside `saveExtensionSource` would cover
+ * that path and would also fire on every intermediate save of a scaffold, so
+ * it is deliberately not there, and the tool's own guidance tells the agent to
+ * check the resources exist rather than to assume them.
+ *
+ * WHY NOT ON BOOT. A reconcile recreates the agents its declarations name. On
+ * install, enable and upgrade that is the operator's own act asking for them.
+ * On every boot it would also resurrect an agent the operator had deliberately
+ * deleted, with no way to keep it deleted short of uninstalling the extension.
+ * So the host still does not reconcile at startup, and this comment is the only
+ * place that says so.
+ */
+export function reconcileManagedResourcesForLifecycleChange(
+  extensionId: string,
+  trigger: ExtensionLifecycleReconcileTrigger,
+): ExtensionLifecycleReconcileOutcome {
+  const declaring = getExtensionManager().getManagedResourceExtensions()
+    .find((entry) => entry.extensionId === extensionId)
+  if (!declaring || !declaresReconcilableResources(declaring.managedResources)) {
+    return { trigger, extensionId, status: 'not_declared' }
+  }
+
+  try {
+    const result = reconcileExtensionManagedResources(extensionId)
+    log.info('extensions', 'Reconciled extension managed resources after lifecycle change', {
+      extensionId,
+      trigger,
+      createdAgents: result.createdAgents.length,
+      updatedAgents: result.updatedAgents.length,
+      createdSchedules: result.createdSchedules.length,
+      updatedSchedules: result.updatedSchedules.length,
+      skipped: result.skipped.length,
+    })
+    return { trigger, extensionId, status: 'reconciled', result }
+  } catch (err: unknown) {
+    const error = errorMessage(err)
+    log.warn('extensions', 'Reconcile after lifecycle change failed', { extensionId, trigger, error })
+    return { trigger, extensionId, status: 'failed', error }
+  }
 }
 
 export function setExtensionLocalFolderConfig(input: {
