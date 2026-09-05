@@ -330,13 +330,24 @@ function sentAtFrom(internalDate) {
  * addresses standing in Gmail against the ones the row recorded, so there the
  * header is the point rather than a leak.
  *
+ * `withRfcMessageId` adds the message's own `Message-ID` header, and only the
+ * reply path asks for it. A reply has to carry `In-Reply-To` and `References`
+ * or it is not a reply in anybody's mail client, and that value exists nowhere
+ * but in this header. It is a string a stranger wrote, so it travels under an
+ * opt-in like `to` does and never by default: the read projection in
+ * `olvasas.mjs` names the ten fields it copies, so neither of these two reaches
+ * a contract consumer whatever is added here. It is not the same thing as the
+ * `id` beside it -- `id` is Gmail's own handle on the message and is what every
+ * call in this file addresses, while this is the RFC 5322 header, hence the
+ * longer name.
+ *
  * `threadId`, `labelIds` and `sizeEstimate` are carried but not required: none
  * of the three is something a later fetch or a dedup turns on, so an absent one
  * is reported as absent ('' , [] and null) instead of failing a message that is
  * otherwise complete. `id` is the opposite and is checked, because it is what
  * the caller dedups on.
  */
-function projectMessage(j, { withTo = false } = {}) {
+function projectMessage(j, { withTo = false, withRfcMessageId = false } = {}) {
   // The id is what the caller dedups on. Passing `undefined` through would
   // put a message in the store that no later sweep can recognise.
   if (typeof j?.id !== 'string' || !j.id) throw unexpectedShape('message with no id')
@@ -370,6 +381,10 @@ function projectMessage(j, { withTo = false } = {}) {
     sizeEstimate: Number.isFinite(j.sizeEstimate) ? j.sizeEstimate : null,
   }
   if (withTo) message.to = headers.to || ''
+  // An absent header is reported as '' rather than failing the message: a
+  // message with no Message-ID is unusual but readable, and the reply path
+  // answers for what an unthreadable reply means, not this projection.
+  if (withRfcMessageId) message.rfcMessageId = headers['message-id'] || ''
   return message
 }
 
@@ -613,9 +628,16 @@ export function createGmail({ getToken, fetchImpl = fetch }) {
       return { ids: ids.slice(0, limit), nextCursor: pageToken || null, complete: pageToken === '', stoppedOn }
     },
 
-    /** One message as plain text plus the few fields a reader needs. See projectMessage. */
-    async get(id) {
-      return projectMessage(await call(`/messages/${encodeURIComponent(id)}?format=full`, 'gmail_fetch_failed'))
+    /**
+     * One message as plain text plus the few fields a reader needs. See
+     * projectMessage.
+     *
+     * `withRfcMessageId` is off unless a caller asks, so the read surface goes
+     * on getting exactly what it got before this option existed. The reply path
+     * in `kimeno.mjs` is the only caller that asks.
+     */
+    async get(id, { withRfcMessageId = false } = {}) {
+      return projectMessage(await call(`/messages/${encodeURIComponent(id)}?format=full`, 'gmail_fetch_failed'), { withRfcMessageId })
     },
 
     /**
