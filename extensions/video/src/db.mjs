@@ -331,9 +331,10 @@ const isoDaysAgo = (days) => new Date(Date.now() - days * 86_400_000).toISOStrin
  * `slice` counts UTF-16 units, so a cut that lands between the two halves of
  * an emoji or a supplementary character would store a lone surrogate, which
  * is not text and which JSON.stringify escapes into something the review
- * agent then reads as noise.
+ * agent then reads as noise. Exported for the one other cut this module
+ * makes, the title `videoOpen` derives from a source text (terv.mjs).
  */
-function head(text, max) {
+export function head(text, max) {
   if (text.length <= max) return text
   const cut = text.charCodeAt(max - 1)
   return text.slice(0, cut >= 0xd800 && cut <= 0xdbff ? max - 1 : max)

@@ -106,6 +106,9 @@ test('guard names a contract failure after the extension that failed', async () 
   assert.deepEqual(await guard(() => { throw threw }), { error: { code: 'szerzodes_hiba', message: 'tts.narration threw: tts_keret_kimerult', extension: 'tts.mjs' } })
   const missing = Object.assign(new Error('tts is not installed'), { code: 'provider_missing', extensionId: 'tts.mjs', consumerId: 'video.mjs' })
   assert.deepEqual(await guard(() => { throw missing }), { error: { code: 'szerzodes_hianyzik', message: 'tts is not installed', extension: 'tts.mjs' } })
+  // The host's own shape: code `unavailable` with the reason beside it, which the answer carries as `why`.
+  const disabled = Object.assign(new Error('contract aisignal.signals.list is no longer available to video.mjs: provider_disabled'), { code: 'unavailable', reason: 'provider_disabled', extensionId: 'aisignal', consumerId: 'video.mjs' })
+  assert.deepEqual(await guard(() => { throw disabled }), { error: { code: 'szerzodes_hianyzik', message: disabled.message, extension: 'aisignal', why: 'provider_disabled' } })
 })
 
 test('agentIdOf reads the session only and answers blank for a session with no agent', () => {

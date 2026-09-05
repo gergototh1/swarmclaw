@@ -65,7 +65,11 @@ function isContractError(err) {
  * `szerzodes_hianyzik` for every other contract code -- the provider is not
  * installed, is disabled, or does not serve the version this module pinned.
  * The provider's own message is appended when it carried one, because that is
- * the text that says which of the provider's own limits was hit.
+ * the text that says which of the provider's own limits was hit. The host's
+ * `reason` (`not_declared`, `provider_missing`, `provider_disabled`,
+ * `version_mismatch`) travels as `why` when the error carried one: "the
+ * operator switched the provider off" and "the provider is not installed" are
+ * different facts, and the operator needs the one that happened.
  *
  * Any other throw is a bug in this module and propagates as one, so the host's
  * failure counter sees it instead of the agent reading it as a refusal and
@@ -79,7 +83,8 @@ export async function guard(fn) {
     if (isContractError(err)) {
       const code = err.code === 'provider_threw' ? 'szerzodes_hiba' : 'szerzodes_hianyzik'
       const cause = err.cause instanceof Error ? err.cause.message : ''
-      return { error: { code, message: cause ? `${err.message}: ${cause}` : err.message, extension: err.extensionId } }
+      const why = typeof err.reason === 'string' && err.reason !== '' ? { why: err.reason } : {}
+      return { error: { code, message: cause ? `${err.message}: ${cause}` : err.message, extension: err.extensionId, ...why } }
     }
     throw err
   }

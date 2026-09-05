@@ -1,5 +1,7 @@
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { createCatalogTool } from './src/katalogus.mjs'
 import { createAfterChatTurn, createTanulsagTools } from './src/tanulsag.mjs'
+import { createTervTools } from './src/terv.mjs'
 
 /**
  * Everything the host hands over in setup(), plus the seams a test injects.
@@ -58,11 +60,12 @@ const video = {
     state.contracts = ctx.contracts
     state.repo = createRepo(ctx.storage)
   },
-  // The three tools of the daily review (material, close, propose). The
-  // catalogue, plan, narration and render tools, the rpc map and the two
-  // managed agents arrive in other tasks; an empty rpc declaration is what
-  // the host accepts for an extension that has none yet.
-  tools: [...createTanulsagTools(state)],
+  // The catalogue read, the five tools of a plan's life before narration
+  // (open, draft, verdict, lessons, queue), and the three of the daily review
+  // (material, close, propose). Narration and render tools, and the rpc map,
+  // arrive in later tasks; an empty rpc declaration is what the host accepts
+  // for an extension that has none yet.
+  tools: [createCatalogTool(state), ...createTervTools(state), ...createTanulsagTools(state)],
   rpc: {},
   // The turn recorder for the daily review (spec 6.5). The host spreads this
   // object into the extension's hook set, so the key is the host's hook name.
