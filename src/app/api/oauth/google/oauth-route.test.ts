@@ -85,8 +85,10 @@ describe('GET /api/oauth/google/start', () => {
     assert.equal(out.body, 'unknown purpose')
   })
 
-  it('says the client is missing rather than redirecting nowhere useful', () => {
-    const out = runWithTempDataDir<{ status: number; error: string }>(`
+  it('answers a missing client with 409 and what to create, not a 500 on a blank tab', () => {
+    const out = runWithTempDataDir<{
+      status: number; error: string; mode: string; detail: string; body: string
+    }>(`
       delete process.env.SWARMCLAW_DEPLOY_MODE
       delete process.env.GOOGLE_OAUTH_CLIENT_WEB_ID
       delete process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET
@@ -94,10 +96,75 @@ describe('GET /api/oauth/google/start', () => {
       delete process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_SECRET
       ${LOAD_ROUTES}
       const res = await start(new Request('http://127.0.0.1:4321/api/oauth/google/start?purpose=aisignal'))
-      console.log(JSON.stringify({ status: res.status, error: (await res.json()).error }))
+      const body = await res.text()
+      console.log(JSON.stringify({ status: res.status, ...JSON.parse(body), body }))
     `)
-    assert.equal(out.status, 500)
+    // 409, not 500: the operator's configuration is missing, the server is fine.
+    assert.equal(out.status, 409)
     assert.equal(out.error, 'google_oauth_client_missing')
+    assert.equal(out.mode, 'vps')
+    // Names the client type and the two variables. Variable names only -- a
+    // response body is the last place a secret may appear.
+    assert.match(out.detail, /Web application/)
+    assert.match(out.detail, /GOOGLE_OAUTH_CLIENT_WEB_ID/)
+    assert.match(out.detail, /GOOGLE_OAUTH_CLIENT_WEB_SECRET/)
+    assert.doesNotMatch(out.body, /DESKTOP/)
+  })
+
+  it('names the desktop client pair when the host runs in desktop mode', () => {
+    // The two client types are not interchangeable, so the remedy printed has
+    // to be the one for this deployment.
+    const out = runWithTempDataDir<{ status: number; mode: string; detail: string }>(`
+      process.env.SWARMCLAW_DEPLOY_MODE = 'desktop'
+      delete process.env.GOOGLE_OAUTH_CLIENT_WEB_ID
+      delete process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET
+      delete process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_ID
+      delete process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_SECRET
+      ${LOAD_ROUTES}
+      const res = await start(new Request('http://127.0.0.1:4321/api/oauth/google/start?purpose=gmail'))
+      console.log(JSON.stringify({ status: res.status, ...(await res.json()) }))
+    `)
+    assert.equal(out.status, 409)
+    assert.equal(out.mode, 'desktop')
+    assert.match(out.detail, /Desktop app/)
+    assert.match(out.detail, /GOOGLE_OAUTH_CLIENT_DESKTOP_ID/)
+    assert.match(out.detail, /GOOGLE_OAUTH_CLIENT_DESKTOP_SECRET/)
+  })
+
+  it('asks for gmail.modify on the gmail purpose, and for nothing wider', () => {
+    const out = runWithTempDataDir<{ status: number; location: string; scope: string }>(`
+      ${DESKTOP_ENV}
+      ${LOAD_ROUTES}
+      const res = await start(new Request('http://127.0.0.1:4321/api/oauth/google/start?purpose=gmail'))
+      const location = res.headers.get('location') || ''
+      console.log(JSON.stringify({
+        status: res.status,
+        location,
+        scope: new URL(location).searchParams.get('scope') || '',
+      }))
+    `)
+    assert.equal(out.status, 302)
+    assert.equal(out.scope, 'https://www.googleapis.com/auth/gmail.modify')
+    // Neither of the two scopes that would let this app delete a message for
+    // good or rewrite a mailbox setting is ever requested.
+    assert.doesNotMatch(out.location, /mail\.google\.com/)
+    assert.doesNotMatch(out.location, /gmail\.settings/)
+  })
+
+  it('keeps the aisignal purpose on gmail.readonly when gmail asks for more', () => {
+    // The two purposes key two separate credentials. Adding the wider grant
+    // must not widen the one the newsletter sweep already holds.
+    const out = runWithTempDataDir<{ aisignal: string; gmail: string }>(`
+      ${DESKTOP_ENV}
+      ${LOAD_ROUTES}
+      const scopeOf = async (purpose) => {
+        const res = await start(new Request('http://127.0.0.1:4321/api/oauth/google/start?purpose=' + purpose))
+        return new URL(res.headers.get('location')).searchParams.get('scope') || ''
+      }
+      console.log(JSON.stringify({ aisignal: await scopeOf('aisignal'), gmail: await scopeOf('gmail') }))
+    `)
+    assert.equal(out.aisignal, 'https://www.googleapis.com/auth/gmail.readonly')
+    assert.equal(out.gmail, 'https://www.googleapis.com/auth/gmail.modify')
   })
 })
 
@@ -126,6 +193,30 @@ describe('GET /api/oauth/google/callback', () => {
     // The refresh token must not ride back out on the response in any form.
     assert.doesNotMatch(out.body, /rt-1/)
     assert.doesNotMatch(out.location, /rt-1/)
+  })
+
+  it('sends a connected gmail purpose to its own page and stores its own credential', () => {
+    const out = runWithTempDataDir<{ status: number; location: string; ids: string[] }>(`
+      ${DESKTOP_ENV}
+      ${LOAD_ROUTES}
+      const repo = await import('@/lib/server/credentials/credential-repository')
+      const { loadCredentials } = repo.default || repo
+      globalThis.fetch = async () => new Response(JSON.stringify({ refresh_token: 'rt-2', access_token: 'at-0', expires_in: 3600 }), { status: 200 })
+
+      const started = await start(new Request('http://127.0.0.1:4321/api/oauth/google/start?purpose=gmail'))
+      const state = new URL(started.headers.get('location')).searchParams.get('state')
+      const res = await callback(new Request('http://127.0.0.1:4321/api/oauth/google/callback?code=auth-code&state=' + encodeURIComponent(state)))
+      console.log(JSON.stringify({
+        status: res.status,
+        location: res.headers.get('location') || '',
+        ids: Object.keys(loadCredentials()),
+      }))
+    `)
+    assert.equal(out.status, 302)
+    assert.equal(out.location, 'http://127.0.0.1:4321/x/gmail?connected=1')
+    // A separate row from google-oauth:aisignal, because the two carry
+    // different grants and one must not silently widen the other.
+    assert.deepEqual(out.ids, ['google-oauth:gmail'])
   })
 
   it('reports a denied consent as a denial, not as a missing parameter', () => {

@@ -258,6 +258,50 @@ describe('setup(ctx) through the manager', () => {
     assert.equal(out.name, 'GoogleOAuthNotConfiguredError')
     assert.match(out.message, /not configured/i)
   })
+
+  it('lets setup ask whether a Google client exists at all, apart from whether an account is connected', () => {
+    const out = runWithTempDataDir<{ unconfigured: boolean; configured: boolean; credential: boolean }>(`
+      delete process.env.SWARMCLAW_DEPLOY_MODE
+      delete process.env.GOOGLE_OAUTH_CLIENT_WEB_ID
+      delete process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET
+      delete process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_ID
+      delete process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_SECRET
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const m = getExtensionManager()
+      await m.saveExtensionSource('st_client.mjs', \`
+        let seen = null
+        export default {
+          name: 'STClient',
+          setup(ctx) { seen = ctx.oauth },
+          tools: [{ name: 'st_client_probe', description: 'x', parameters: { type: 'object', properties: {} },
+            execute: async () => JSON.stringify({
+              configured: seen.googleClientConfigured(),
+              credential: seen.hasGoogleCredential('gmail'),
+            }) }],
+        }\`)
+      await m.reload()
+      const entry = m.getTools(['st_client.mjs']).find((t) => t.tool.name === 'st_client_probe')
+      const unconfigured = JSON.parse(await entry.tool.execute({}, { session: {}, message: '' }))
+
+      // Captured in setup(), asked now: an operator who sets the variables and
+      // restarts must not need the extension reloaded on top of that.
+      process.env.GOOGLE_OAUTH_CLIENT_WEB_ID = 'web-id'
+      process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET = 'web-secret'
+      const after = JSON.parse(await entry.tool.execute({}, { session: {}, message: '' }))
+
+      console.log(JSON.stringify({
+        unconfigured: unconfigured.configured,
+        configured: after.configured,
+        credential: after.credential,
+      }))
+    `)
+    assert.equal(out.unconfigured, false)
+    assert.equal(out.configured, true)
+    // Still no mailbox connected. The extension can now say which of the two is
+    // missing instead of showing one sentence for both.
+    assert.equal(out.credential, false)
+  })
 })
 
 describe('deleteExtension drops the extension schema', () => {

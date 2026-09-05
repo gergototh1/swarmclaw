@@ -74,7 +74,7 @@ import {
   removeExtensionManagedResources,
   removeShippedSkillDirs,
 } from './extensions/extension-managed-teardown'
-import { getGoogleAccessToken, hasGoogleCredential } from './oauth/google'
+import { getGoogleAccessToken, hasGoogleCredential, isGoogleClientConfigured } from './oauth/google'
 import { errorMessage, hmrSingleton } from '@/lib/shared-utils'
 
 const EXTENSIONS_CONFIG = path.join(DATA_DIR, 'extensions.json')
@@ -1813,6 +1813,10 @@ class ExtensionManager {
                 oauth: {
                   getGoogleAccessToken: (purpose) => getGoogleAccessToken(purpose),
                   hasGoogleCredential: (purpose) => hasGoogleCredential(purpose),
+                  // Reads the environment on each call, so an extension that
+                  // captures this context in setup() and asks later sees the
+                  // variables as they are then, not as they were at load.
+                  googleClientConfigured: () => isGoogleClientConfigured(),
                 },
                 // Safe to capture in setup(): the lookup runs when it is
                 // called, not now, so an extension that stores this and asks

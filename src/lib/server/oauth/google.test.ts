@@ -226,6 +226,97 @@ describe('google oauth', () => {
     assert.equal(out.has, false)
   })
 
+  it('reports a configured client per deploy mode, and only from that mode\'s own pair', () => {
+    // One subprocess for every combination on purpose: the predicate reads the
+    // environment on each call, so mutating it between calls is exactly the
+    // operator editing their env file, and a cached answer would show up here.
+    const out = runWithTempDataDir<{
+      desktopBoth: boolean; desktopIdOnly: boolean; desktopSecretOnly: boolean
+      desktopFromWebPair: boolean; desktopBlank: boolean
+      vpsBoth: boolean; vpsIdOnly: boolean; vpsSecretOnly: boolean; vpsFromDesktopPair: boolean
+      neither: boolean
+    }>(`
+      const gm = await import('@/lib/server/oauth/google'); const g = gm.default || gm
+      const clear = () => {
+        delete process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_ID
+        delete process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_SECRET
+        delete process.env.GOOGLE_OAUTH_CLIENT_WEB_ID
+        delete process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET
+      }
+
+      process.env.SWARMCLAW_DEPLOY_MODE = 'desktop'
+      clear(); const neither = g.isGoogleClientConfigured()
+      process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_ID = 'desk-id'
+      const desktopIdOnly = g.isGoogleClientConfigured()
+      process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_SECRET = 'desk-secret'
+      const desktopBoth = g.isGoogleClientConfigured()
+      clear()
+      process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_SECRET = 'desk-secret'
+      const desktopSecretOnly = g.isGoogleClientConfigured()
+      clear()
+      // A whitespace-only value is a variable an operator set and left empty.
+      process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_ID = '   '
+      process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_SECRET = 'desk-secret'
+      const desktopBlank = g.isGoogleClientConfigured()
+      clear()
+      process.env.GOOGLE_OAUTH_CLIENT_WEB_ID = 'web-id'
+      process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET = 'web-secret'
+      const desktopFromWebPair = g.isGoogleClientConfigured()
+
+      process.env.SWARMCLAW_DEPLOY_MODE = 'vps'
+      const vpsBoth = g.isGoogleClientConfigured()
+      clear()
+      process.env.GOOGLE_OAUTH_CLIENT_WEB_ID = 'web-id'
+      const vpsIdOnly = g.isGoogleClientConfigured()
+      clear()
+      process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET = 'web-secret'
+      const vpsSecretOnly = g.isGoogleClientConfigured()
+      clear()
+      process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_ID = 'desk-id'
+      process.env.GOOGLE_OAUTH_CLIENT_DESKTOP_SECRET = 'desk-secret'
+      const vpsFromDesktopPair = g.isGoogleClientConfigured()
+
+      console.log(JSON.stringify({
+        desktopBoth, desktopIdOnly, desktopSecretOnly, desktopFromWebPair, desktopBlank,
+        vpsBoth, vpsIdOnly, vpsSecretOnly, vpsFromDesktopPair, neither,
+      }))
+    `)
+    assert.equal(out.desktopBoth, true)
+    assert.equal(out.vpsBoth, true)
+    // Half a pair is not a client: consent would fail at the token exchange
+    // instead of at the button, which is the later, more confusing place.
+    assert.equal(out.desktopIdOnly, false)
+    assert.equal(out.desktopSecretOnly, false)
+    assert.equal(out.desktopBlank, false)
+    assert.equal(out.vpsIdOnly, false)
+    assert.equal(out.vpsSecretOnly, false)
+    assert.equal(out.neither, false)
+    // The pairs are not interchangeable. A Web client cannot serve a desktop
+    // build's varying loopback port, so borrowing the other mode's pair would
+    // enable a button that can only fail.
+    assert.equal(out.desktopFromWebPair, false)
+    assert.equal(out.vpsFromDesktopPair, false)
+  })
+
+  it('separates a missing client from a missing credential, which hasGoogleCredential alone cannot', () => {
+    const out = runWithTempDataDir<{ configuredNoCredential: boolean; hasCredential: boolean; noClient: boolean }>(`
+      process.env.SWARMCLAW_DEPLOY_MODE = 'vps'
+      process.env.GOOGLE_OAUTH_CLIENT_WEB_ID = 'web-id'
+      process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET = 'web-secret'
+      const gm = await import('@/lib/server/oauth/google'); const g = gm.default || gm
+      const configuredNoCredential = g.isGoogleClientConfigured()
+      const hasCredential = g.hasGoogleCredential('gmail')
+      delete process.env.GOOGLE_OAUTH_CLIENT_WEB_ID
+      delete process.env.GOOGLE_OAUTH_CLIENT_WEB_SECRET
+      console.log(JSON.stringify({ configuredNoCredential, hasCredential, noClient: g.isGoogleClientConfigured() }))
+    `)
+    // Both facts are false-looking through hasGoogleCredential; only one of
+    // them is fixed by pressing connect.
+    assert.equal(out.hasCredential, false)
+    assert.equal(out.configuredNoCredential, true)
+    assert.equal(out.noClient, false)
+  })
+
   it('picks the web client pair in vps mode and reports the credential once stored', () => {
     const out = runWithTempDataDir<{ mode: string; clientId: string; hasBefore: boolean; hasAfter: boolean }>(`
       process.env.SWARMCLAW_DEPLOY_MODE = 'vps'

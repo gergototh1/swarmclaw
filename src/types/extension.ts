@@ -803,6 +803,19 @@ export interface ExtensionContext {
   oauth: {
     getGoogleAccessToken: (purpose: string) => Promise<string>
     hasGoogleCredential: (purpose: string) => boolean
+    /**
+     * Whether this host has a Google OAuth client id and secret at all, which
+     * is a different fact from `hasGoogleCredential` and has a different
+     * remedy: the operator sets two environment variables and restarts, rather
+     * than clicking through a consent screen. False here means a connect link
+     * for a listed purpose answers 409 `google_oauth_client_missing` instead of
+     * redirecting to consent, so an extension should say that and disable the
+     * control rather than offer one that cannot work.
+     *
+     * True says only that both strings are present. Whether they name a client
+     * Google still accepts is not knowable without a consent round trip.
+     */
+    googleClientConfigured: () => boolean
   }
   /**
    * Where an external command this extension shells out to actually lives, or

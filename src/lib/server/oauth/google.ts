@@ -164,6 +164,34 @@ export function resolveGoogleClient(): GoogleOAuthClient {
   return client
 }
 
+/**
+ * Whether a client id and secret are both present in this process's
+ * environment for the deploy mode it is running in. Not "whether an account is
+ * connected": that is `hasGoogleCredential`. The two are different facts with
+ * different remedies -- two environment variables and a host restart, against
+ * one trip through a consent screen -- and a page that cannot tell them apart
+ * necessarily says the wrong one to somebody.
+ *
+ * It exists because neither of the members `ctx.oauth` already hands an
+ * extension answers this cheaply. `hasGoogleCredential` returns false in both
+ * cases: it reports only that no refresh token is stored, never why none could
+ * be stored. And
+ * `getGoogleAccessToken` does separate them by name --
+ * `GoogleOAuthNotConfiguredError` against `gmail_token_missing` -- but only by
+ * asking for a token, which on an install that is both configured and
+ * connected means a refresh round trip to Google. A health check that runs
+ * whenever an operator opens a page must not pay for that, so the question
+ * gets its own predicate.
+ *
+ * True says the two strings are there and nothing else: not that they name a
+ * client that still exists, not that the redirect URI is registered, not that
+ * Google will accept them. The first honest test of any of that is a consent
+ * screen.
+ */
+export function isGoogleClientConfigured(): boolean {
+  return resolveGoogleClientOrNull() !== null
+}
+
 export function credentialIdFor(purpose: string): string {
   return `google-oauth:${purpose}`
 }

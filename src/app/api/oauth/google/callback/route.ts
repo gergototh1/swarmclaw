@@ -14,9 +14,16 @@ import { discardGoogleOAuthState, handleGoogleCallback, resolveCallbackOrigin } 
 
 export const dynamic = 'force-dynamic'
 
-/** Where to send the browser once a purpose is connected. */
+/**
+ * Where to send the browser once a purpose is connected. Each path belongs to
+ * an extension page, and `/x/[[...slug]]` says in its own words that no
+ * installed extension contributes that path when the extension behind one is
+ * absent. The credential is stored before the redirect either way, so a consent
+ * completed ahead of the install is not lost.
+ */
 const RETURN_PATH: Record<string, string> = {
   aisignal: '/x/aisignal',
+  gmail: '/x/gmail',
 }
 
 /** Google's own error codes are a fixed vocabulary; anything else is not echoed back. */
