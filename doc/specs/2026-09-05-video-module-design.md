@@ -1272,7 +1272,7 @@ Ezt egy `SELECT` a Studio-ban dönti el, amit az operátor futtat.
 
 **MCP-szerver.** `mcp/server.mjs` a workspace-ben, stdio transport, két
 tool: `tts_synthesize` és `tts_status`. **Nem** hívja a Sonioxot maga: a
-host rpc-jére (`POST /api/extensions/tts/call/synthesize`) továbbít, mert a
+host rpc-jére (`POST /api/extensions/tts.mjs/call/synthesize`) továbbít, mert a
 kulcs, a cache és a napi keret **egy** helyen él, a host processzben, és
 egy második processz, ami maga hív, a keretet megkerülné. Az rpc-t a host
 access-key ellenőrzése védi, ezért a McpServerConfig `env`-je viszi a
