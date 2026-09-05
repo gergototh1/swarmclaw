@@ -72,7 +72,8 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   ])
   assert.deepEqual(out.rpc.slice().sort(), [
     'board', 'cancelRender', 'cleanup', 'decideProposal', 'feedback', 'health', 'importFeedback',
-    'importRetention', 'lezar', 'proposals', 'retireLesson', 'templates', 'video',
+    'importRetention', 'lezar', 'proposals', 'retireLesson', 'templatePreview', 'templatePreviewCancel',
+    'templatePreviewStart', 'templatePreviewStatus', 'templates', 'video',
   ])
   assert.deepEqual(out.provides, ['videos'])
   assert.deepEqual(out.consumes, ['aisignal.signals', 'tts.narration'])

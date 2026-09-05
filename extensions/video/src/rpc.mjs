@@ -1,5 +1,6 @@
 import { VideoError } from './args.mjs'
 import { VIDEO_STATUSOK } from './db.mjs'
+import { allapot, indit, kep, megszakit, vanMinta } from './elonezet.mjs'
 import { runHealth } from './health.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
 import { KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, tablaHianyai } from './kit-tabla.mjs'
@@ -375,9 +376,55 @@ export function createRpc(state, ops) {
         kozosPropok: katalogus.kozosPropok,
         kuldhetoTipusok: KULDHETO_TIPUSOK,
         nemKuldhetoTipusok: NEM_KULDHETO_TIPUSOK,
-        mintaHianyzik: katalogus.tipusok.filter((t) => !Object.hasOwn(katalogus.mintak, t)),
+        // `vanMinta` and not `Object.hasOwn`, so this list and the gallery's
+        // own bookkeeping cannot disagree: an empty sample is no sample
+        // (src/elonezet.mjs says why at length), and a card that said "has a
+        // sample" beside a picture that will never be generated would be the
+        // page contradicting itself.
+        mintaHianyzik: katalogus.tipusok.filter((t) => !vanMinta(katalogus, t)),
         tablaHianyok: tablaHianyai(katalogus),
       }
+    },
+    /**
+     * One template's picture as a data URL, or null with a code. The grid
+     * asks per card, as cards become visible, so nothing loads twenty-four
+     * images to draw the six the operator can see.
+     */
+    async templatePreview(body = {}) {
+      need(typeof body.tipus === 'string' && body.tipus.length <= 64, 'tipus: szöveg kell')
+      return kep(state, body.tipus)
+    },
+    /**
+     * Starts the generation of every missing picture and returns at once.
+     *
+     * Refuses a second run BY NAME and does not queue it: the answer carries
+     * `ok: 'mar_fut'` rather than a 500, the way `templates` carries a
+     * catalogue's refusal code, so the page can say "it is already running"
+     * instead of showing an error over a run that is going fine.
+     */
+    async templatePreviewStart() {
+      try {
+        return await indit(state)
+      } catch (err) {
+        if (err instanceof VideoError) return { indult: false, ok: err.code }
+        throw err
+      }
+    },
+    /**
+     * Where a run is, or null. The page polls this while a run is on.
+     *
+     * These three, unlike `templates`, refuse rather than answer when the
+     * project cannot be read: they are the gallery's controls, and the
+     * gallery is drawn from a `templates` answer that already carried the
+     * catalogue. A page that got `hiba` from `templates` has no cards to put
+     * pictures on and must not ask for them.
+     */
+    async templatePreviewStatus() {
+      return allapot(state)
+    },
+    /** Stops the run before the next type. What is already generated stays. */
+    async templatePreviewCancel() {
+      return megszakit()
     },
     /**
      * Notes exported from the operator's own analytics, as rows they mapped

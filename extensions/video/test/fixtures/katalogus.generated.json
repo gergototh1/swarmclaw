@@ -597,6 +597,274 @@
       }
     ]
   },
+  "mintak": {
+    "cimlap": {
+      "sorok": [
+        "Igy nez ki egy",
+        "cimlap"
+      ],
+      "kiemelt": "cimlap"
+    },
+    "atvezeto": {
+      "sorszam": "02",
+      "nev": "Atvezeto"
+    },
+    "lista": {
+      "cim": "Igy nez ki egy lista",
+      "felsorolas": [
+        "Elso sor",
+        "Masodik sor",
+        "Harmadik sor"
+      ],
+      "zaroSor": "A sorok egyesevel epulnek fel."
+    },
+    "kartya-csere": {
+      "cim": "Igy nez ki a kartya-csere",
+      "felsorolas": [
+        "Elso pelda",
+        "Masodik pelda",
+        "Harmadik pelda"
+      ],
+      "kartyak": [
+        {
+          "cim": "Elso pelda",
+          "szam": "01",
+          "leiras": "Minden kartya egy pelda, egyesevel."
+        },
+        {
+          "cim": "Masodik pelda",
+          "szam": "02",
+          "leiras": "A kartya a szolista mellett valt."
+        },
+        {
+          "cim": "Harmadik pelda",
+          "szam": "03",
+          "leiras": "Az utolso a jelenet vegeig all."
+        }
+      ]
+    },
+    "allitas": {
+      "mondat": "Igy nez ki egy allitas.",
+      "kiemelt": [
+        "allitas"
+      ]
+    },
+    "szam": {
+      "felvezeto": "Ennyi jelenettipus van a szotarban:",
+      "szam": 24,
+      "utoszo": "Igy nez ki a szam jelenet."
+    },
+    "cta": {
+      "sorok": [
+        {
+          "kicsi": "Igy nez ki",
+          "nagy": "egy zaro felhivas"
+        },
+        {
+          "kicsi": "Ket sorban",
+          "nagy": "a video vegen"
+        }
+      ]
+    },
+    "gorbe": {
+      "cim": "Igy nez ki egy gorbe",
+      "ertekek": [
+        8,
+        13,
+        21,
+        30,
+        44,
+        63
+      ],
+      "zaroSzam": 63,
+      "egyseg": "%"
+    },
+    "oszlop": {
+      "cim": "Igy nez ki egy oszlop",
+      "adatok": [
+        {
+          "cimke": "Elotte",
+          "ertek": 12
+        },
+        {
+          "cimke": "Utana",
+          "ertek": 38
+        }
+      ],
+      "egyseg": "db"
+    },
+    "koriv": {
+      "cim": "Igy nez ki egy koriv",
+      "szazalek": 72,
+      "alaSzoveg": "Aranyt mutat, nem egesz szamot."
+    },
+    "osszehuzas": {
+      "cim": "Igy nez ki egy osszehuzas",
+      "rol": "8 ora",
+      "ra": "2 ora",
+      "arany": 0.25
+    },
+    "keszulek-sor": {
+      "cim": "Igy nez ki egy keszulek-sor",
+      "kepernyok": []
+    },
+    "idezet": {
+      "idezet": "Igy nez ki egy idezet, a forrasaval egyutt.",
+      "kitol": "A szotar",
+      "hol": "szotar.ts, minta"
+    },
+    "racs": {
+      "cim": "Igy nez ki egy racs",
+      "elemek": [
+        {
+          "szoveg": "Elso"
+        },
+        {
+          "szoveg": "Masodik"
+        },
+        {
+          "szoveg": "Harmadik"
+        },
+        {
+          "szoveg": "Negyedik"
+        },
+        {
+          "szoveg": "Otodik"
+        },
+        {
+          "szoveg": "Hatodik"
+        }
+      ],
+      "oszlop": 3
+    },
+    "szam-racs": {
+      "cim": "Igy nez ki egy szam-racs",
+      "szamok": [
+        {
+          "ertek": 24,
+          "cimke": "Jelenettipus"
+        },
+        {
+          "ertek": 3,
+          "cimke": "Kozos prop"
+        },
+        {
+          "ertek": 100,
+          "cimke": "Lefedettseg",
+          "utotag": "%"
+        }
+      ]
+    },
+    "kep-allitas": {
+      "kep": "taste-banner.png",
+      "sor": "Igy nez ki egy kep-allitas."
+    },
+    "lepessor": {
+      "cim": "Igy nez ki egy lepessor",
+      "lepesek": [
+        "Elso lepes",
+        "Masodik lepes",
+        "Harmadik lepes"
+      ]
+    },
+    "osztott": {
+      "cim": "Igy nez ki egy osztott",
+      "bal": "emilkowalski-repo.png",
+      "jobb": "emilkowalski-repo-sotet.png",
+      "balCimke": "Elotte",
+      "jobbCimke": "Utana"
+    },
+    "osszetetel": {
+      "cim": "Igy nez ki egy osszetetel",
+      "reszek": [
+        {
+          "cimke": "Elso resz",
+          "ertek": 50,
+          "szin": "#4f7cff"
+        },
+        {
+          "cimke": "Masodik resz",
+          "ertek": 30,
+          "szin": "#f5a524"
+        },
+        {
+          "cimke": "Harmadik resz",
+          "ertek": 20,
+          "szin": "#20343f"
+        }
+      ]
+    },
+    "bizonyitek": {
+      "allitas": "Igy nez ki egy bizonyitek.",
+      "kulcsszo": "bizonyitek",
+      "adatok": [
+        {
+          "cimke": "Elotte",
+          "ertek": 12
+        },
+        {
+          "cimke": "Utana",
+          "ertek": 38
+        }
+      ],
+      "egyseg": "db"
+    },
+    "fordulat": {
+      "problemak": [
+        "Elso problema",
+        "Masodik problema",
+        "Harmadik problema"
+      ],
+      "megoldas": "Es igy nez ki a fordulat."
+    },
+    "magyarazott": {
+      "cim": "Igy nez ki egy magyarazott",
+      "reszek": [
+        {
+          "cimke": "Elso resz",
+          "ertek": 50,
+          "szin": "#4f7cff",
+          "magyarazat": "Minden reszhez tartozik egy mondat."
+        },
+        {
+          "cimke": "Masodik resz",
+          "ertek": 30,
+          "szin": "#f5a524",
+          "magyarazat": "A magyarazat a sav alatt all."
+        },
+        {
+          "cimke": "Harmadik resz",
+          "ertek": 20,
+          "szin": "#20343f",
+          "magyarazat": "Egyesevel erkeznek, sorrendben."
+        }
+      ]
+    },
+    "osszegzes": {
+      "cim": "Igy nez ki egy osszegzes",
+      "reszek": [
+        {
+          "ertek": 12,
+          "cimke": "Elso resz"
+        },
+        {
+          "ertek": 8,
+          "cimke": "Masodik resz"
+        },
+        {
+          "ertek": 4,
+          "cimke": "Harmadik resz"
+        }
+      ],
+      "osszegCimke": "Osszesen",
+      "utotag": "ora"
+    },
+    "nagyitas": {
+      "kep": "lib-remocn.png",
+      "felirat": "Igy nez ki egy nagyitas.",
+      "y": 0.35
+    }
+  },
   "kozosPropok": [
     {
       "nev": "lathatoHossz",

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
 import path from 'node:path'
 import { test } from 'node:test'
@@ -6,6 +7,7 @@ import { test } from 'node:test'
 import { VIDEO_STATUSOK } from '../src/db.mjs'
 import { HEALTH_CODES, HEALTH_NEM_VALASZOLT, setupChecks } from '../src/health.mjs'
 import { SZABALYKESZLET } from '../src/qa.mjs'
+import { _resetFutas } from '../src/elonezet.mjs'
 import { createRpc } from '../src/rpc.mjs'
 import { BACKLOG_SAPKA, JAVASLAT_NYITOTT_SAPKA, TANULSAG_SAPKA } from '../src/tanulsag.mjs'
 import { PELDA_JELENETEK, PELDA_NARRACIO, fakeProject, freshRepo } from './helpers.mjs'
@@ -294,6 +296,44 @@ test('templates hands the page the catalogue itself, not only the numbers', asyn
   assert.ok(Array.isArray(r.mintaHianyzik))
   assert.ok(!r.mintaHianyzik.includes('cimlap'))
   assert.ok(r.mintaHianyzik.includes('szam'))
+})
+
+test('templates reads an empty sample as no sample, so the card and the gallery cannot disagree', async () => {
+  const dir = fakeProject()
+  const katFile = path.join(dir, 'src', 'kit', 'katalogus.generated.json')
+  const kat = JSON.parse(fs.readFileSync(katFile, 'utf8'))
+  kat.mintak = { cimlap: { sorok: ['a'] }, lista: {} }
+  fs.writeFileSync(katFile, JSON.stringify(kat))
+  const { rpc } = setup({ remotionDir: dir })
+  const r = await rpc.templates()
+  assert.ok(!r.mintaHianyzik.includes('cimlap'))
+  assert.ok(r.mintaHianyzik.includes('lista'), 'an empty sample would draw a blank card, which is what "no sample" says')
+})
+
+test('the four preview methods answer, and none of them starts a run by itself', async () => {
+  const { state, rpc } = setup()
+  _resetFutas()
+  // A page load calls status and preview; neither may spawn anything, which
+  // is why this state carries no spawn seam at all -- a call that reached
+  // `spawn` would launch npx on the machine running the suite.
+  const a = await rpc.templatePreviewStatus()
+  assert.equal(a.fut, null)
+  assert.equal(a.katalogusHash.length, 64)
+  assert.equal(a.meglevo.length, 0)
+  assert.equal(a.mintaNelkul.length + a.hianyzo.length, a.katalogusTipusok.length)
+  assert.deepEqual(await rpc.templatePreview({ tipus: 'cimlap' }), { dataUrl: null, ok: 'nincs_kep' })
+  assert.deepEqual(await rpc.templatePreview({ tipus: 'nincs-ilyen' }), { dataUrl: null, ok: 'tipus_ismeretlen' })
+  await assert.rejects(() => rpc.templatePreview({ tipus: 5 }), /tipus/)
+  await assert.rejects(() => rpc.templatePreview({ tipus: 'x'.repeat(65) }), /tipus/)
+  assert.deepEqual(await rpc.templatePreviewCancel(), { megszakitva: false })
+  // And the injected spawn is what a start uses, so still nothing is run.
+  state.spawnImpl = () => { const c = new EventEmitter(); c.kill = () => {}; return c }
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: true })
+  // A second press is refused by name and carries the code to the page
+  // rather than a 500 over a run that is going fine.
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: false, ok: 'mar_fut' })
+  assert.deepEqual(await rpc.templatePreviewCancel(), { megszakitva: true })
+  _resetFutas()
 })
 
 test('templates without a readable project still answers the weekly row and says the code', async () => {
