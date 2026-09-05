@@ -1,0 +1,617 @@
+{
+  "generatedFrom": "src/kit/szotar.ts",
+  "tipusok": [
+    "cimlap",
+    "atvezeto",
+    "lista",
+    "kartya-csere",
+    "allitas",
+    "szam",
+    "cta",
+    "gorbe",
+    "oszlop",
+    "koriv",
+    "osszehuzas",
+    "keszulek-sor",
+    "idezet",
+    "racs",
+    "szam-racs",
+    "kep-allitas",
+    "lepessor",
+    "osztott",
+    "osszetetel",
+    "bizonyitek",
+    "fordulat",
+    "magyarazott",
+    "osszegzes",
+    "nagyitas"
+  ],
+  "leirasok": {
+    "cimlap": "A video elso jelenete. Kimondja, mirol lesz szo.",
+    "atvezeto": "Temavaltasnal hasznald: megmondja, hogy ami jon, mas, mint ami eddig volt.",
+    "lista": "Felsorolashoz valo jelenet: kiserotarssal (telefon-kepernyo vagy kartya) vagy anelkul, ha a szoveg maga a tartalom.",
+    "kartya-csere": "Tobb pelda egymas utan, ahol mindegyik szamit, nem a listajuk.",
+    "allitas": "Zaro vagy hangsulyos kijelenteshez valo, egy vagy ket mondatban -- zarlatnal, fordulopontnal, vagy amikor egy mondat onmagaban kell megallni.",
+    "szam": "Egy felszamlalt szamot mutat a kep kozepen, opcionalis mondattal elotte es utana -- ha EGY szam a hir.",
+    "cta": "A video utolso jelenete: felhivas-sorok ikonnal, kis es nagy szoveggel -- megallitva is olvashatonak kell lennie.",
+    "gorbe": "Idobeli valtozast mutat vonaldiagrammal, zaro szammal -- csak akkor, ha tobb adatpontod van, nem csak kettonel.",
+    "oszlop": "Ket vagy nehany ertek osszehasonlitasa novekvo oszlopokkal.",
+    "koriv": "Arany vagy szazalek bemutatasara valo, gyuruvel -- egesz szamhoz a Szam jelenetet hasznald.",
+    "osszehuzas": "Ha valami rovidebb lett -- ido, koltseg, lepesszam --, egy zsugorodo sav mutatja.",
+    "keszulek-sor": "Egy folyamat tobb kepernyojet mutatja sorrendben, tobb telefon egy csoportban, a kozepso elorebb es magasabban; a teljes valtozat legyezobe rendezi oket.",
+    "idezet": "Masodkezes allitasnal kotelezo: idezet a forras nevevel es helyevel egy kartyan.",
+    "racs": "Sok egyenrangu elemet mutat racsban (eszkozok, logok) -- ha rangsor van, a Lista jobb valasztas.",
+    "szam-racs": "Harom-negy szamot mutat egyszerre racsban -- egyetlen szamhoz a Szam jelenet jobb.",
+    "kep-allitas": "Egy stockkep all a kozepen, dolve es arnyekkal, alatta egy mondat epul fel szavankent -- akkor hasznald, ha maga a kep a tartalom, nem csak kiseroje egy felsorolasnak.",
+    "lepessor": "Szamozott lepesek egymas utan -- ha a sorrend szamit; ha nem, a Lista vagy a Racs jobb.",
+    "osztott": "Elotte-utana vagy mi-ok szembeallitashoz: egy kep, amin a jobb oldal jobbrol balra atfedi a balt, sajat cimkevel mindket oldalon.",
+    "osszetetel": "Ha egy szam reszekbol all ossze, es a bontas a hir -- a reszek aranyosan, halmozott savban jelennek meg.",
+    "bizonyitek": "Ha az allitas es a bizonyito adat egy kepen kell legyen -- kijelentes kiemelt kulcsszoval, alatta oszlopos adatok.",
+    "fordulat": "A video fordulopontja: problemak sorban athuzva, majd egy megoldas valtja fel oket.",
+    "magyarazott": "Felsorolas, ahol minden elemhez egy mondat magyarazat tartozik -- ha a puszta lista nem erheto onmagaban.",
+    "osszegzes": "Ha a lenyeg az osszeg, es a reszek csak odavezetnek -- reszertekek adodnak ossze vegosszegge.",
+    "nagyitas": "Ha egy kepernyokep egy resze szamit, nem az egesz -- rakozelites a pontra, felirattal."
+  },
+  "propok": {
+    "cimlap": [
+      {
+        "nev": "sorok",
+        "kotelezo": true,
+        "mit": "A horog sorai, sorrendben; a masodik sor a nagy."
+      },
+      {
+        "nev": "kiemelt",
+        "kotelezo": false,
+        "mit": "Ez a szo/kifejezes fekete dobozba kerul -- a horog utese."
+      },
+      {
+        "nev": "hatter",
+        "kotelezo": false,
+        "mit": "A cimlap hatterenek tipusa -- pontosan ezek egyike: 'csillagok', 'csillagok-remotion', 'racs', 'tiszta', 'kepek', 'kep-teljes', 'kep-sotet'."
+      },
+      {
+        "nev": "kepek",
+        "kotelezo": false,
+        "mit": "hatter: 'kepek' eseten ezek a kepek allnak a ket Claude-jel helyen, kivagott, lebego kartyakent (public/-beli fajlnevek)."
+      },
+      {
+        "nev": "grafika",
+        "kotelezo": false,
+        "mit": "Sajat grafika a horog-szoveg mogott, kozepre -- React-csomopont, JSON-bol nem kuldheto."
+      },
+      {
+        "nev": "lepes",
+        "kotelezo": false,
+        "mit": "Hany kockankent jelenjen meg egy-egy szo a horogban; ez szamit bele a jelenet hosszaba is."
+      },
+      {
+        "nev": "meret",
+        "kotelezo": false,
+        "mit": "A horog alap-betumerete; a sorok ebbol skalazodnak (0,58 / 1,15 / 0,5)."
+      }
+    ],
+    "atvezeto": [
+      {
+        "nev": "sorszam",
+        "kotelezo": false,
+        "mit": "Kis felvezeto szoveg a fo cim felett (pl. sorszam vagy kategoria)."
+      },
+      {
+        "nev": "nev",
+        "kotelezo": true,
+        "mit": "A nagy, kozepre irt cim -- ez a temavaltas neve."
+      },
+      {
+        "nev": "meret",
+        "kotelezo": false,
+        "mit": "A cim betumerete."
+      }
+    ],
+    "lista": [
+      {
+        "nev": "cim",
+        "kotelezo": false,
+        "mit": "A jelenet cime a felsorolas felett."
+      },
+      {
+        "nev": "felsorolas",
+        "kotelezo": true,
+        "mit": "A felsorolando sorok szovege, sorrendben."
+      },
+      {
+        "nev": "kep",
+        "kotelezo": false,
+        "mit": "Kep-fajlnev a public/ mappabol. A tipus sajat React-csomopontot is elfogad, de azt JSON-bol nem lehet kuldeni -- fajlnevet adj."
+      },
+      {
+        "nev": "makett",
+        "kotelezo": false,
+        "mit": "Milyen keretben jelenjen meg a kep -- 'telefon', 'kartya', vagy 'nincs'."
+      },
+      {
+        "nev": "zaroSor",
+        "kotelezo": false,
+        "mit": "Opcionalis zaro mondat a lista alatt."
+      },
+      {
+        "nev": "lepes",
+        "kotelezo": false,
+        "mit": "Hany kockankent jelenjen meg egy-egy lista-elem."
+      }
+    ],
+    "kartya-csere": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime, a kartyak felett."
+      },
+      {
+        "nev": "felsorolas",
+        "kotelezo": true,
+        "mit": "A kartyakkal parhuzamosan, a bal oldalon felepulo szolista."
+      },
+      {
+        "nev": "kartyak",
+        "kotelezo": true,
+        "mit": "Az egymast valto kartyak; mindegyiknek van jele (ikon -- React-csomopont, JSON-bol nem kuldheto), cime, szama (string, nem szam tipus, pl. \"01\") es leirasa."
+      }
+    ],
+    "allitas": [
+      {
+        "nev": "mondat",
+        "kotelezo": true,
+        "mit": "A jelenet fo mondata."
+      },
+      {
+        "nev": "kiemelt",
+        "kotelezo": false,
+        "mit": "Ezek a szavak dolt szerifet kapnak (a mi kiemelesunk)."
+      },
+      {
+        "nev": "masodik",
+        "kotelezo": false,
+        "mit": "Masodik sor -- csak ott hasznald, ahol a hangban is ket kulon mondat van, szunettel kozottuk."
+      },
+      {
+        "nev": "meret",
+        "kotelezo": false,
+        "mit": "A fo mondat betumerete."
+      },
+      {
+        "nev": "hatterVideo",
+        "kotelezo": false,
+        "mit": "Hatter-video keretben, a mondat mogott; a masodik mondattal erkezik (Geri kerese: 'kesz MP4' bizonyitekkent)."
+      },
+      {
+        "nev": "hatterVideoTeljes",
+        "kotelezo": false,
+        "mit": "A hatter-video teljes kepernyon, keret nelkul, keret helyett. Alapbol ki."
+      },
+      {
+        "nev": "hatterPergo",
+        "kotelezo": false,
+        "mit": "Pergo kepernyokepek a hatterben (15. jelenet); a public/ alatti utvonalak."
+      },
+      {
+        "nev": "grafika",
+        "kotelezo": false,
+        "mit": "Temara szabott grafika a mondat FOLOTT, a 0. kockatol erkezik. Alapbol nincs -- React-csomopont, JSON-bol nem kuldheto."
+      }
+    ],
+    "szam": [
+      {
+        "nev": "felvezeto",
+        "kotelezo": false,
+        "mit": "Bevezeto mondat a szam elott."
+      },
+      {
+        "nev": "szam",
+        "kotelezo": true,
+        "mit": "A felszamlalt szam maga."
+      },
+      {
+        "nev": "utoszo",
+        "kotelezo": false,
+        "mit": "Zaro mondat a szam utan."
+      },
+      {
+        "nev": "meret",
+        "kotelezo": false,
+        "mit": "A szam betumerete."
+      }
+    ],
+    "cta": [
+      {
+        "nev": "sorok",
+        "kotelezo": true,
+        "mit": "A felhivas-sorok listaja; mindegyiknek van ikonja (ikon -- React-csomopont, JSON-bol nem kuldheto), kis (kicsi) es nagy (nagy) szovege."
+      }
+    ],
+    "gorbe": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime a gorbe felett (vagy a teljes valtozatnal, a gorbe folott)."
+      },
+      {
+        "nev": "ertekek",
+        "kotelezo": true,
+        "mit": "Az adatpontok, idorendben -- ezekbol rajzolodik a vonal."
+      },
+      {
+        "nev": "zaroSzam",
+        "kotelezo": false,
+        "mit": "A gorbe vegen megjeleno kiemelt zaroszam."
+      },
+      {
+        "nev": "egyseg",
+        "kotelezo": false,
+        "mit": "A zaroszam mertekegysege. Alap: '%'."
+      },
+      {
+        "nev": "teljes",
+        "kotelezo": false,
+        "mit": "Teljes vaszon: a gorbe a kep aljarol indul es a kep teteje kozeleben er veget, a cim tabla folotte."
+      },
+      {
+        "nev": "tempo",
+        "kotelezo": false,
+        "mit": "Animacio-tempo: 1 az alap, 0,5 ketszer olyan gyors -- akkor csokkentsd, ha a narracio kevesebb idot ad, mint amennyit a jelenet alapbol kerne. Alap: 1."
+      }
+    ],
+    "oszlop": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime az oszlopok felett."
+      },
+      {
+        "nev": "adatok",
+        "kotelezo": true,
+        "mit": "Az osszehasonlitando oszlopok; mindegyiknek van cimkeje, erteke, opcionalis szin mezoje, es opcionalis cimkeSzin mezoje (a cimke szine, ha a cimke a savon belul all)."
+      },
+      {
+        "nev": "egyseg",
+        "kotelezo": false,
+        "mit": "Az ertekek mertekegysege."
+      },
+      {
+        "nev": "teljes",
+        "kotelezo": false,
+        "mit": "Teljes vaszon: az oszlopok a kep aljarol indulnak szolid gradienssel, a cimke a savon belul."
+      },
+      {
+        "nev": "tempo",
+        "kotelezo": false,
+        "mit": "Animacio-tempo: 1 az alap, 0,5 ketszer olyan gyors -- akkor csokkentsd, ha a narracio kevesebb idot ad, mint amennyit a jelenet alapbol kerne. Alap: 1."
+      }
+    ],
+    "koriv": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime a koriv alatt."
+      },
+      {
+        "nev": "szazalek",
+        "kotelezo": true,
+        "mit": "A koriv altal mutatott szazalek."
+      },
+      {
+        "nev": "alaSzoveg",
+        "kotelezo": false,
+        "mit": "Opcionalis magyarazo mondat a koriv alatt."
+      },
+      {
+        "nev": "tempo",
+        "kotelezo": false,
+        "mit": "Animacio-tempo: 1 az alap, 0,5 ketszer olyan gyors -- akkor csokkentsd, ha a narracio kevesebb idot ad, mint amennyit a jelenet alapbol kerne. Alap: 1."
+      }
+    ],
+    "osszehuzas": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime a zsugorodo sav felett."
+      },
+      {
+        "nev": "rol",
+        "kotelezo": true,
+        "mit": "A regi ertek felirata (ami volt)."
+      },
+      {
+        "nev": "ra",
+        "kotelezo": true,
+        "mit": "Az uj ertek felirata (ami lett)."
+      },
+      {
+        "nev": "arany",
+        "kotelezo": true,
+        "mit": "A zsugorodas aranya 0..1 kozott -- ennyire zsugorodik a sav."
+      },
+      {
+        "nev": "savMeret",
+        "kotelezo": false,
+        "mit": "A sav feletti felirat merete. Alap: 76."
+      },
+      {
+        "nev": "savSuly",
+        "kotelezo": false,
+        "mit": "A sav feletti felirat betuvastagsaga. Alap: 800."
+      },
+      {
+        "nev": "tempo",
+        "kotelezo": false,
+        "mit": "Animacio-tempo: 1 az alap, 0,5 ketszer olyan gyors -- akkor csokkentsd, ha a narracio kevesebb idot ad, mint amennyit a jelenet alapbol kerne. Alap: 1."
+      }
+    ],
+    "keszulek-sor": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime a keszulek-sor felett."
+      },
+      {
+        "nev": "kepernyok",
+        "kotelezo": true,
+        "mit": "A keszulekek kepernyotartalmai, sorrendben -- React-csomopont lista, JSON-bol nem kuldheto."
+      },
+      {
+        "nev": "teljes",
+        "kotelezo": false,
+        "mit": "Teljes vaszon: a kepek sokkal nagyobbak, atlosan legyezoszeruen egymast takarva."
+      },
+      {
+        "nev": "tempo",
+        "kotelezo": false,
+        "mit": "Animacio-tempo: 1 az alap, 0,5 ketszer olyan gyors -- akkor csokkentsd, ha a narracio kevesebb idot ad, mint amennyit a jelenet alapbol kerne. Alap: 1."
+      }
+    ],
+    "idezet": [
+      {
+        "nev": "idezet",
+        "kotelezo": true,
+        "mit": "Az idezet szovege."
+      },
+      {
+        "nev": "kitol",
+        "kotelezo": true,
+        "mit": "A beszelo neve."
+      },
+      {
+        "nev": "hol",
+        "kotelezo": false,
+        "mit": "A forras: mu es idobelyeg. Forditasnal KOTELEZO -- forditott mondatnal oda kell irni, honnan van."
+      },
+      {
+        "nev": "kep",
+        "kotelezo": false,
+        "mit": "A beszelo kepe a public/-bol; ha van, a kartya a kepes, majdnem teljes vasznas valtozat."
+      },
+      {
+        "nev": "egyben",
+        "kotelezo": false,
+        "mit": "Ha igaz, az idezet egyben jelenik meg, nem szavankent felepulve -- rovid idezethez valo."
+      },
+      {
+        "nev": "tempo",
+        "kotelezo": false,
+        "mit": "Animacio-tempo: 1 az alap, 0,5 ketszer olyan gyors -- akkor csokkentsd, ha a narracio kevesebb idot ad, mint amennyit a jelenet alapbol kerne. Alap: 1."
+      }
+    ],
+    "racs": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime a racs felett."
+      },
+      {
+        "nev": "elemek",
+        "kotelezo": true,
+        "mit": "A racs elemei; mindegyiknek van opcionalis jele (ikon -- React-csomopont, JSON-bol nem kuldheto) es szovege."
+      },
+      {
+        "nev": "oszlop",
+        "kotelezo": false,
+        "mit": "Hany oszlopban rendezodjenek az elemek. Alap: 3."
+      }
+    ],
+    "szam-racs": [
+      {
+        "nev": "cim",
+        "kotelezo": false,
+        "mit": "Opcionalis cim a szamok felett."
+      },
+      {
+        "nev": "szamok",
+        "kotelezo": true,
+        "mit": "A racsban megjeleno szamok; mindegyiknek van erteke, cimkeje es opcionalis utotagja."
+      }
+    ],
+    "kep-allitas": [
+      {
+        "nev": "kep",
+        "kotelezo": true,
+        "mit": "Kep a public/-bol."
+      },
+      {
+        "nev": "sor",
+        "kotelezo": true,
+        "mit": "Egy sor a kep ala; szavankent epul, ahogy a hang halad."
+      },
+      {
+        "nev": "doles",
+        "kotelezo": false,
+        "mit": "A kep dolese fokban. Ket egymas utani jelenetnel ellentetes elojelet adj."
+      },
+      {
+        "nev": "grafikaMeret",
+        "kotelezo": false,
+        "mit": "A kep merete keppontban (negyzet oldalhossza)."
+      }
+    ],
+    "lepessor": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime a lepesek felett."
+      },
+      {
+        "nev": "lepesek",
+        "kotelezo": true,
+        "mit": "A szamozott lepesek szovege, sorrendben."
+      }
+    ],
+    "osztott": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime a kepek felett."
+      },
+      {
+        "nev": "bal",
+        "kotelezo": true,
+        "mit": "A bal oldali (elotte/ok) kep vagy tartalom -- React-csomopont, JSON-bol nem kuldheto."
+      },
+      {
+        "nev": "jobb",
+        "kotelezo": true,
+        "mit": "A jobb oldali (utana/okozat) kep vagy tartalom, ami jobbrol balra atfedi a balt -- React-csomopont, JSON-bol nem kuldheto."
+      },
+      {
+        "nev": "balCimke",
+        "kotelezo": true,
+        "mit": "A bal oldal cimkeje."
+      },
+      {
+        "nev": "jobbCimke",
+        "kotelezo": true,
+        "mit": "A jobb oldal cimkeje."
+      }
+    ],
+    "osszetetel": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime a halmozott sav felett."
+      },
+      {
+        "nev": "reszek",
+        "kotelezo": true,
+        "mit": "A sav reszei; mindegyiknek KOTELEZOEN van cimkeje, erteke, es szine (szin -- kotelezo CSS szin-ertek, pl. \"#4f7cff\" vagy \"rgb(79,124,255)\"); ezek aranyosan jelennek meg a savban."
+      }
+    ],
+    "bizonyitek": [
+      {
+        "nev": "allitas",
+        "kotelezo": true,
+        "mit": "A jelenet fo allitasa (mondata), ami alatt felepul a bizonyitek."
+      },
+      {
+        "nev": "kulcsszo",
+        "kotelezo": true,
+        "mit": "Ez a szo emelodik ki az allitasban a bizonyitek utan."
+      },
+      {
+        "nev": "adatok",
+        "kotelezo": true,
+        "mit": "Az allitast alatamaszto oszlopos adatok, ugyanazzal a szerkezettel, mint az Oszlop jelenet adatok mezoje: mindegyiknek van cimkeje, erteke, opcionalis szin mezoje, es opcionalis cimkeSzin mezoje."
+      },
+      {
+        "nev": "egyseg",
+        "kotelezo": false,
+        "mit": "Az adatok mertekegysege."
+      }
+    ],
+    "fordulat": [
+      {
+        "nev": "problemak",
+        "kotelezo": true,
+        "mit": "A sorban felepulo, majd athuzott problemak listaja."
+      },
+      {
+        "nev": "megoldas",
+        "kotelezo": true,
+        "mit": "Az egyetlen megoldas-sor, ami a problemak helyere lep."
+      }
+    ],
+    "magyarazott": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime a sav felett."
+      },
+      {
+        "nev": "reszek",
+        "kotelezo": true,
+        "mit": "A sav reszei magyarazattal egyutt; mindegyiknek van cimkeje, erteke, szine es egy mondatnyi magyarazata."
+      }
+    ],
+    "osszegzes": [
+      {
+        "nev": "cim",
+        "kotelezo": true,
+        "mit": "A jelenet cime a reszszamok felett."
+      },
+      {
+        "nev": "reszek",
+        "kotelezo": true,
+        "mit": "A reszszamok, amik osszeadva az osszeget adjak; mindegyiknek van erteke es cimkeje."
+      },
+      {
+        "nev": "osszegCimke",
+        "kotelezo": true,
+        "mit": "Az osszeg alatti cimke."
+      },
+      {
+        "nev": "utotag",
+        "kotelezo": false,
+        "mit": "Az osszeg utani utotag (pl. mertekegyseg)."
+      }
+    ],
+    "nagyitas": [
+      {
+        "nev": "kep",
+        "kotelezo": true,
+        "mit": "A teljes kep, amire ra fogunk nagyitani -- React-csomopont, JSON-bol nem kuldheto."
+      },
+      {
+        "nev": "felirat",
+        "kotelezo": true,
+        "mit": "A nagyitott reszlet alatti felirat."
+      },
+      {
+        "nev": "x",
+        "kotelezo": false,
+        "mit": "A nagyitas kozeppontja a kepen, 0..1 (vizszintes)."
+      },
+      {
+        "nev": "y",
+        "kotelezo": false,
+        "mit": "A nagyitas kozeppontja a kepen, 0..1 (fuggoleges)."
+      },
+      {
+        "nev": "merteke",
+        "kotelezo": false,
+        "mit": "A nagyitas merteke (szorzo). Alap: 2,1."
+      }
+    ]
+  },
+  "kozosPropok": [
+    {
+      "nev": "lathatoHossz",
+      "kotelezo": false,
+      "mit": "A jelenet LATHATO hossza kockaban, felulirva a sajat *Hossz szamitast -- narraciora vagott videonal ide kerul a mondat hossza, kockaban."
+    },
+    {
+      "nev": "racs",
+      "kotelezo": false,
+      "mit": "Perspektiva-racs a jelenet hatterben. Minden jelenet-tipuson elerheto, alapertelmezesben bekapcsolva (true)."
+    },
+    {
+      "nev": "hang",
+      "kotelezo": false,
+      "mit": "Jelenetenkenti narracio-klip fajlneve a public/ mappabol; a jelenet 10. kockajatol (HANG_ELORETART) indul."
+    }
+  ]
+}
