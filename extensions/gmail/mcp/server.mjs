@@ -74,16 +74,19 @@ import { setTimeout as sleep } from 'node:timers/promises'
  * restarted between two calls has a new port, and a shim that cached the old
  * one would send the second call to whatever now owns it.
  *
- * WHAT HAS NEVER BEEN TRIED. This shim has not been run against a running
- * SwarmClaw. Every test of it in test/mcp.test.mjs drives it against a fake
- * HTTP server in the same test process -- one that writes its own port file
- * and answers `service: "swarmclaw"` by construction. That exercises this
- * file's own logic and proves nothing about the other side of the contract:
- * that the host really writes `run/port.json` where index.mjs computes it,
- * with the five fields read below, and that `/api/healthz` on that port really
- * answers that service name and that instance token. Only a live run confirms
- * those, and it has not happened. Treat a first live failure here as the
- * contract being wrong, not as this file being broken.
+ * WHERE THE OTHER SIDE OF THE CONTRACT IS CHECKED. Every test in
+ * test/mcp.test.mjs drives this file against a fake HTTP server in the same
+ * test process -- one that writes its own port file and answers `service:
+ * "swarmclaw"` by construction. That exercises this file's own logic and proves
+ * nothing about the other side: that the host really writes `run/port.json`
+ * where index.mjs computes it, with the five fields read below, and that
+ * `/api/healthz` on that port really answers that service name and that
+ * instance token. Only a live run confirms those, and test/deploy.smoke.mjs is
+ * that run -- it starts this file with the `command`, `args` and `env` the
+ * running host's own `mcpConfig` printed and requires `tools/list` and one
+ * `gmail_outbox` call to come back from that host. So a failure there is
+ * evidence about the contract; what remains unproven is only the deployments
+ * that smoke has not been pointed at yet.
  *
  * WHAT THIS FILE DOES WITH UNTRUSTED TEXT. Two kinds pass through it and
  * neither steers anything. Going out: an agent's arguments (`query`, `szoveg`,

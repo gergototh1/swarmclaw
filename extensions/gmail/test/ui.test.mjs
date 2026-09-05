@@ -17,7 +17,7 @@ import { CimzettekNezet, KonyvTabla } from '../ui/cimzettek.tsx'
 import { HEALTH_CODES } from '../src/health.mjs'
 import { KiadasPanel, LezartSor, PiszkozatKartya } from '../ui/kimeno.tsx'
 import { KiserletekTabla } from '../ui/kiserletek.tsx'
-import { LAP_HEALTH_CODES, allapotLabel, bekothetoE, cimEntrybol, cimekFejlecbol, healthMondat, keretSzoveg, konyvKiiras, konyvonKivuliek, mcpJson } from '../ui/format.ts'
+import { LAP_HEALTH_CODES, allapotLabel, bekothetoE, bizonytalanKiiras, cimEntrybol, cimekFejlecbol, healthMondat, keretSzoveg, konyvKiiras, konyvonKivuliek, mcpJson } from '../ui/format.ts'
 import { McpBlokk, UninstallBlokk } from '../ui/lablec.tsx'
 import { StatusBar } from '../ui/status-bar.tsx'
 
@@ -544,7 +544,12 @@ test('the MCP block prints the entry, warns about the absolute path and prints n
 })
 
 test('the uninstall guide names every step the host does not do, and prints the book to copy', () => {
-  const html = render(UninstallBlokk, { konyv: [konyvSor(), konyvSor({ handle: 'peter', cim: 'peter@example.test', visszavontAt: '2026-09-03T10:00:00.000Z' })], nyitottPiszkozat: 3 })
+  const html = render(UninstallBlokk, {
+    konyv: [konyvSor(), konyvSor({ handle: 'peter', cim: 'peter@example.test', visszavontAt: '2026-09-03T10:00:00.000Z' })],
+    kimeno: [],
+    bizonytalanSzam: 0,
+    nyitottPiszkozat: 3,
+  })
   assert.ok(html.includes('Most 3 nyitott piszkozat van'))
   assert.ok(html.includes('google-oauth:gmail'))
   assert.ok(html.includes('google-oauth:aisignal'))
@@ -556,10 +561,60 @@ test('the uninstall guide names every step the host does not do, and prints the 
 })
 
 test('an unknown draft count and an unreadable book are said, not printed as zero and empty', () => {
-  const html = render(UninstallBlokk, { konyv: null, nyitottPiszkozat: null })
+  const html = render(UninstallBlokk, { konyv: null, kimeno: null, bizonytalanSzam: null, nyitottPiszkozat: null })
   assert.ok(html.includes('azt most nem tudni'))
   assert.ok(html.includes('nem sikerült betölteni, tehát nem tudni, mi van benne'))
+  assert.ok(html.includes('nem tudni, van-e bizonytalan küldés'))
   assert.equal(konyvKiiras([]), '(a címzettkönyv üres)')
+})
+
+/*
+ * The uncertain rows are the one thing an uninstall destroys that nothing else
+ * records. A released letter is in the Sent folder, a draft is in Drafts, a
+ * refused row never went anywhere -- but a `bizonytalan` row IS the record that
+ * a send was attempted and never answered, and after `deleteExtension` drops
+ * the tables there is nothing left to raise the question from. So the page
+ * prints them before anything is deleted, and the three cases below are the
+ * three ways that block could lie: printing nothing when it could not look,
+ * printing a partial page as if it were the whole list, and printing the body.
+ */
+test('the uninstall guide prints the uncertain rows, because nothing else records that a send may have gone out', () => {
+  const sor = kimenoSor({
+    id: 'ffffffffffffffff',
+    allapot: 'bizonytalan',
+    targy: 'Ajánlat',
+    torzs: 'EZ A TORZS NEM MEHET A VAGOLAPRA',
+    cimzettCimek: ['dorina@example.test'],
+    hibaKod: 'gmail_kiadas_bizonytalan',
+    updatedAt: '2026-09-04T08:00:00.000Z',
+  })
+  const html = render(UninstallBlokk, { konyv: [], kimeno: [kimenoSor(), sor], bizonytalanSzam: 1, nyitottPiszkozat: 1 })
+  assert.ok(html.includes('Most 1 ilyen sor van'))
+  assert.ok(html.includes('ffffffffffffffff'))
+  assert.ok(html.includes('2026-09-04T08:00:00.000Z'))
+  assert.ok(html.includes('gmail_kiadas_bizonytalan'))
+  assert.ok(html.includes('Elküldött mappájában'))
+  // The one field a copied block would spread furthest, and the one a person
+  // does not need to find the letter in the Sent folder.
+  assert.ok(!html.includes('EZ A TORZS NEM MEHET A VAGOLAPRA'))
+  // The row that is not uncertain is not in the block either.
+  assert.ok(!html.includes('a1b2c3d4e5f60718'))
+})
+
+test('a capped outbound page cannot pass for the whole list of uncertain rows', () => {
+  // `board` carries at most `kimenoLimit` rows and does not sort the uncertain
+  // ones to the front, so the page can hold fewer of them than exist. The
+  // health block counts all of them; when the two disagree the block says how
+  // many are missing rather than printing a short list as a complete one.
+  const one = kimenoSor({ id: '0'.repeat(16), allapot: 'bizonytalan' })
+  const text = bizonytalanKiiras([one], 4)
+  assert.ok(text.includes('3 további bizonytalan sor nem fért bele'))
+  assert.ok(text.includes('0'.repeat(16)))
+})
+
+test('no uncertain row and an unreadable outbound page are different sentences', () => {
+  assert.equal(bizonytalanKiiras([kimenoSor()], 0), '(nincs bizonytalan sor: minden küldésre jött válasz)')
+  assert.equal(bizonytalanKiiras(null, null), '(a kimenő sorokat nem sikerült betölteni, tehát nem tudni, van-e bizonytalan küldés)')
 })
 
 // --- the readers: a refusal is a refusal, never an empty list ---

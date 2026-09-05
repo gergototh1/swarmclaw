@@ -101,6 +101,37 @@ test('401 -> gmail_token_invalid, 403 -> gmail_scope_missing, token errors pass 
   await assert.rejects(gTok.list({ labelIds: ['L'], max: 1 }), (e) => e.code === 'gmail_token_revoked')
 })
 
+/*
+ * The host's one token failure that does not arrive as a code, and the reason
+ * it may not fall through to `gmail_refresh_failed`.
+ *
+ * `getGoogleAccessToken` looks for an OAuth client before it looks for a
+ * credential, and when the host has none it throws a
+ * `GoogleOAuthNotConfiguredError` whose message is an English sentence. On the
+ * fallback that read as `gmail_refresh_failed`, whose remedy is "reconnect the
+ * mailbox" -- and on a host with no client there is no button that could: the
+ * connect control is disabled and the fix is two environment variables and a
+ * restart. Seen on a scratch host started without those variables, where
+ * `health` said `google_oauth_client_missing` and `search` said
+ * `gmail_refresh_failed` about the same wall.
+ */
+test('a host with no OAuth client is named as that, not as a failed refresh', async () => {
+  const err = new Error('Google OAuth is not configured, so no access token can be issued for "gmail".')
+  err.name = 'GoogleOAuthNotConfiguredError'
+  const g = createGmail({ getToken: async () => { throw err }, fetchImpl: async () => json({}) })
+  await assert.rejects(g.list({ labelIds: ['L'], max: 1 }), (e) => e.code === 'google_oauth_client_missing')
+  await assert.rejects(g.mailbox(), (e) => e.code === 'google_oauth_client_missing')
+  // The sentence is prose and gets reworded; the class name is the contract.
+  const reworded = new Error('some other wording entirely')
+  reworded.name = 'GoogleOAuthNotConfiguredError'
+  const g2 = createGmail({ getToken: async () => { throw reworded }, fetchImpl: async () => json({}) })
+  await assert.rejects(g2.mailbox(), (e) => e.code === 'google_oauth_client_missing')
+  // And a plain error with that message but no such name is still the fallback:
+  // matching on prose would let any host sentence claim this code.
+  const g3 = createGmail({ getToken: async () => { throw new Error('Google OAuth is not configured') }, fetchImpl: async () => json({}) })
+  await assert.rejects(g3.mailbox(), (e) => e.code === 'gmail_refresh_failed')
+})
+
 test('get decodes text/plain and falls back to stripped html', async () => {
   const b64 = (s) => Buffer.from(s, 'utf8').toString('base64url')
   const msg = { id: 'a', internalDate: '1756684800000', payload: { headers: [{ name: 'From', value: 'News <n@x.com>' }, { name: 'Subject', value: 'Hi' }],

@@ -33,10 +33,10 @@ import { createRpc } from '../src/rpc.mjs'
  * because this file makes it, and it writes the port file because this file
  * writes it. So everything below is a test of the shim against the contract as
  * this repository understands it, and nothing below is evidence that a running
- * SwarmClaw matches that understanding. The shim has never been run against a
- * real host; a live run is the only thing that can confirm the port-file
- * contract end to end, and it is still owed. See the same note in
- * mcp/server.mjs.
+ * SwarmClaw matches that understanding. The live run is test/deploy.smoke.mjs,
+ * which starts this same shim against a real host with the entry that host's
+ * own `mcpConfig` printed; it needs a running server and is therefore not in
+ * this suite. See the same note in mcp/server.mjs.
  */
 const SHIM = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'mcp', 'server.mjs')
 

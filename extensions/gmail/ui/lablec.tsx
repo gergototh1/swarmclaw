@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 
-import type { KonyvSor, McpConfig, Rpc } from './api'
+import type { KimenoSor, KonyvSor, McpConfig, Rpc } from './api'
 import { errorText, readMcpConfig } from './api'
-import { konyvKiiras, mcpJson } from './format'
+import { bizonytalanKiiras, konyvKiiras, mcpJson } from './format'
 
 /**
  * The foot of the page: the MCP entry to copy, and what to do before
@@ -58,12 +58,19 @@ export function McpBlokk({ config }: { config: McpConfig }) {
 /**
  * The uninstall guide.
  *
- * `nyitottPiszkozat` is `null` when the health block could not be read: the
- * count is then unknown, and the guide says that rather than printing a 0 next
- * to the one step whose whole point is that unreleased drafts survive the
- * uninstall.
+ * `nyitottPiszkozat` and `bizonytalanSzam` are `null` when the health block
+ * could not be read, and `kimeno` is `null` when the outbound page could not
+ * be. The count is then unknown, and the guide says that rather than printing a
+ * 0 next to the one step whose whole point is that unreleased drafts survive
+ * the uninstall, or an empty box next to the one step whose whole point is that
+ * an unanswered send has no other record.
  */
-export function UninstallBlokk({ konyv, nyitottPiszkozat }: { konyv: readonly KonyvSor[] | null; nyitottPiszkozat: number | null }) {
+export function UninstallBlokk({ konyv, kimeno, bizonytalanSzam, nyitottPiszkozat }: {
+  konyv: readonly KonyvSor[] | null
+  kimeno: readonly KimenoSor[] | null
+  bizonytalanSzam: number | null
+  nyitottPiszkozat: number | null
+}) {
   return (
     <details className="gm-uninstall">
       <summary>Uninstall előtt</summary>
@@ -92,11 +99,25 @@ export function UninstallBlokk({ konyv, nyitottPiszkozat }: { konyv: readonly Ko
         </li>
       </ol>
       <pre className="gm-szoveg gm-konyv-kiiras">{konyvKiiras(konyv)}</pre>
+      <p className="gm-line">
+        <strong>A bizonytalan sorok is elvesznek, és ezeket máshonnan nem lehet pótolni.</strong>{' '}
+        {bizonytalanSzam === null
+          ? 'Hány van, azt most nem tudni: az állapotot nem sikerült lekérdezni.'
+          : `Most ${bizonytalanSzam} ilyen sor van.`}{' '}
+        Egy ilyen sornál a küldés elindult, és a Gmail nem válaszolt rá: nem tudjuk, kiment-e a levél, és az eltávolítás után nem marad semmi, amiből ez a kérdés egyáltalán felvethető volna. Másold ki, mielőtt bármit törölnél, és a választ a postafiók Elküldött mappájában keresd.
+      </p>
+      <pre className="gm-szoveg gm-bizonytalan-kiiras">{bizonytalanKiiras(kimeno, bizonytalanSzam)}</pre>
     </details>
   )
 }
 
-export function Lablec({ rpc, konyv, nyitottPiszkozat }: { rpc: Rpc; konyv: readonly KonyvSor[] | null; nyitottPiszkozat: number | null }) {
+export function Lablec({ rpc, konyv, kimeno, bizonytalanSzam, nyitottPiszkozat }: {
+  rpc: Rpc
+  konyv: readonly KonyvSor[] | null
+  kimeno: readonly KimenoSor[] | null
+  bizonytalanSzam: number | null
+  nyitottPiszkozat: number | null
+}) {
   const [config, setConfig] = useState<McpConfig | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -116,7 +137,7 @@ export function Lablec({ rpc, konyv, nyitottPiszkozat }: { rpc: Rpc; konyv: read
       {config !== null && <McpBlokk config={config} />}
 
       <h3>Eltávolítás</h3>
-      <UninstallBlokk konyv={konyv} nyitottPiszkozat={nyitottPiszkozat} />
+      <UninstallBlokk konyv={konyv} kimeno={kimeno} bizonytalanSzam={bizonytalanSzam} nyitottPiszkozat={nyitottPiszkozat} />
     </div>
   )
 }

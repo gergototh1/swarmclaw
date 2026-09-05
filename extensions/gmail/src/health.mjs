@@ -185,8 +185,15 @@ const isPort = (v) => isWholeNumber(v) && v >= 1 && v <= 65535
  * The file's contents are never returned. The port and the pid are facts about
  * this host and not secrets, but nothing on the page needs them, and a status
  * line is the wrong place to widen what it prints.
+ *
+ * EXPORTED FOR scripts/install.mjs, which reports the same fact before there is
+ * a host to ask. That script runs in a terminal with no host in the process, so
+ * it cannot call `health`; what it can do is look at the file, and it looks at
+ * it through this function rather than through a second copy of these checks.
+ * A second copy is how the installer's row and the status bar's row come to
+ * disagree about the same file.
  */
-function portFajlAllapot(portFile) {
+export function portFajlAllapot(portFile) {
   const out = { utvonal: portFile, letezik: false, elo: false }
   let parsed
   try {

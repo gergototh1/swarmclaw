@@ -1,4 +1,4 @@
-import type { HealthItem, KonyvSor, McpConfig } from './api'
+import type { HealthItem, KimenoSor, KonyvSor, McpConfig } from './api'
 
 /**
  * The words the page puts next to the facts, kept out of the components so
@@ -318,6 +318,54 @@ export function mcpJson(config: McpConfig): string {
  * are different facts, and the second one is the one where the operator must
  * not start deleting.
  */
+/**
+ * The rows whose send neither succeeded nor failed, in a form the operator can
+ * copy out before uninstalling.
+ *
+ * WHY THIS BOX EXISTS AT ALL. `deleteExtension` drops the `ext_gmail_` tables,
+ * so every outbound row goes with them. For four of the five states that is
+ * only a loss of history: a released row's letter is in the Sent folder, a
+ * discarded one is gone on purpose, a draft is in the Drafts folder, an errored
+ * one never went anywhere. `bizonytalan` is the fifth and it is different in
+ * kind, because the row IS the record: `drafts.send` was called and never
+ * answered, so nobody knows whether the letter left, and this row is the only
+ * place that says a send was attempted at all. Deleting a record of "we do not
+ * know" leaves the operator with no question rather than with an answer, which
+ * is strictly worse than keeping it. Nothing on this side can stop the host
+ * dropping the table, so what the page can do is make the record survive
+ * outside it -- as text the operator copies, before anything is deleted.
+ *
+ * WHAT IT PRINTS, and why the body is not in it: the id, when the send was
+ * attempted, the subject, the resolved addresses and the refusal code. Those
+ * are what a person needs to find the letter in the Sent folder or to ask the
+ * recipient. The body is not, and it is the one field a copied block would
+ * spread furthest.
+ *
+ * THE COUNT IS CHECKED AGAINST THE ONE THE HEALTH BLOCK REPORTS, because the
+ * page's outbound list is a capped page (`kimenoLimit` rows) and the uncertain
+ * rows are not sorted to the front of it. A block that printed three of five
+ * without saying so would be a false report in exactly the direction that
+ * matters here. When the two disagree, the line above the rows says how many
+ * are missing and where to read them.
+ */
+export function bizonytalanKiiras(kimeno: readonly KimenoSor[] | null, varhato: number | null): string {
+  if (kimeno === null) return '(a kimenő sorokat nem sikerült betölteni, tehát nem tudni, van-e bizonytalan küldés)'
+  const sorok = kimeno.filter((sor) => sor.allapot === 'bizonytalan')
+  const hiany = typeof varhato === 'number' && Number.isFinite(varhato) ? varhato - sorok.length : 0
+  const fejlec = hiany > 0
+    ? `(${hiany} további bizonytalan sor nem fért bele a betöltött lapba; a Kimenő nézetben, teljes listával nézd meg)\n`
+    : ''
+  if (sorok.length === 0) return `${fejlec}(nincs bizonytalan sor: minden küldésre jött válasz)`
+  return fejlec + sorok
+    .map((sor) => {
+      const mikor = sor.updatedAt === '' ? '(nincs időbélyeg)' : sor.updatedAt
+      const cimek = sor.cimzettCimek.length === 0 ? '(nincs cím)' : sor.cimzettCimek.join(', ')
+      const kod = sor.hibaKod === '' ? '(nincs kód)' : sor.hibaKod
+      return `${sor.id}\t${mikor}\t${cimek}\t${sor.targy}\t${kod}`
+    })
+    .join('\n')
+}
+
 export function konyvKiiras(konyv: readonly KonyvSor[] | null): string {
   if (konyv === null) return '(a címzettkönyvet nem sikerült betölteni, tehát nem tudni, mi van benne)'
   if (konyv.length === 0) return '(a címzettkönyv üres)'

@@ -44,6 +44,10 @@ RUN cd /app/extensions/tts && npm ci && npm run build && rm -rf node_modules
 # deletes again. `npm ci` needs the whole dev tree because esbuild, which does
 # the build, is in it too.
 RUN cd /app/extensions/video && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci && npm run build && rm -rf node_modules
+# The gmail extension the same way. It needs no system package of its own: it
+# spawns nothing, and the MCP shim it ships is started by the operator's MCP
+# client with this image's own Node and no node_modules in reach.
+RUN cd /app/extensions/gmail && npm ci && npm run build && rm -rf node_modules
 
 # Production
 FROM node:22-slim AS runner
@@ -65,15 +69,16 @@ COPY --from=base /app/package.json ./
 COPY --from=base /app/extensions/aisignal ./extensions/aisignal
 COPY --from=base /app/extensions/tts ./extensions/tts
 COPY --from=base /app/extensions/video ./extensions/video
+COPY --from=base /app/extensions/gmail ./extensions/gmail
 
 # Data directory (mount as volume for persistence)
 RUN mkdir -p /app/data
 
 ENV NODE_ENV=production
 # The port the server binds, and the port it writes into run/port.json, which is
-# how the tts extension's MCP shim finds the host (extensions/tts/mcp/server.mjs).
-# Changing this changes both together; the shim reads the file and never assumes
-# a port.
+# how the tts and gmail extensions' MCP shims find the host
+# (extensions/tts/mcp/server.mjs, extensions/gmail/mcp/server.mjs). Changing
+# this changes both together; a shim reads the file and never assumes a port.
 ENV PORT=3456
 ENV HOSTNAME=0.0.0.0
 # One fixed public origin, so Google OAuth uses a "Web application" client with

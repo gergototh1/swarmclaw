@@ -54,9 +54,10 @@ import crypto from 'node:crypto'
  *             is on the page's surface only, and neither the contract nor the
  *             MCP shim declares one (design spec 3.3). A book a consumer could
  *             write to is not a gate, it is an extra step to the same place.
- *             That method is a later step; what holds today is that this file
- *             offers exactly one way in, `addCimzett`, and that the surfaces
- *             which would expose it do not exist yet.
+ *             That method is `addRecipient` on rpc.mjs and nowhere else: this
+ *             file offers exactly one way in, `addCimzett`, the rpc is the only
+ *             caller of it, and neither contract.mjs nor the MCP shim's
+ *             allowlist carries a name that reaches it.
  *     note    a retired row STAYS. `retireCimzett` sets `visszavonva_at`
  *             rather than deleting, so an outbound row that names the handle
  *             still resolves to something a reader can understand.
@@ -233,9 +234,11 @@ export const KIMENO_ALLAPOTOK = Object.freeze(['piszkozat', 'kiadva', 'elvetve',
  * records which of this module's own files made the call, as a constant in each
  * of those files rather than as an argument, which is what makes it the one
  * field a caller cannot lie about. It does not say which agent or which module
- * asked. The two files that will spell these -- `contract.mjs` writing
- * `szerzodes` and `rpc.mjs` writing `rpc` -- are later steps; this constant is
- * the vocabulary they are held to, and nothing writes the column yet.
+ * asked. The two files that spell these are `contract.mjs`, which passes
+ * `AJTOK.SZERZODES`, and `rpc.mjs`, which passes `AJTOK.RPC`; in both the value
+ * is a constant in the calling file and a positional argument, never something
+ * read off the caller's arguments. This constant is the vocabulary they are
+ * held to.
  */
 export const AJTOK = Object.freeze(['szerzodes', 'rpc'])
 

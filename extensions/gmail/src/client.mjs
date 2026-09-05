@@ -17,6 +17,7 @@ import { GmailError, TOKEN_CODES } from './hibak.mjs'
  * `hibak.mjs` -- one list for the whole module rather than a copy per file --
  * and these are the members this file can throw:
  *
+ *   google_oauth_client_missing  this host has no Google OAuth client at all (from the host)
  *   gmail_token_missing     no Google credential stored (from the host)
  *   gmail_token_unreadable  the stored refresh token cannot be decrypted (host)
  *   gmail_token_revoked     the refresh token was revoked or expired (host)
@@ -456,7 +457,23 @@ export function createGmail({ getToken, fetchImpl = fetch }) {
         // anything unrecognised is still a failure of the token stage, so it
         // lands on the code that sends the user to reconnect rather than on a
         // code that blames Gmail.
+        //
+        // THE HOST'S ONE FAILURE THAT IS NOT A MESSAGE-CODE gets its own line,
+        // and it is the difference between two remedies. `getGoogleAccessToken`
+        // checks for an OAuth client BEFORE it looks for a credential, and when
+        // there is none it throws a `GoogleOAuthNotConfiguredError` whose
+        // message is an English sentence rather than one of `TOKEN_CODES`. Left
+        // to the fallback that reads as `gmail_refresh_failed`, which tells the
+        // operator to reconnect the mailbox -- and on a host with no client
+        // there is no button that could: the connect control is disabled and
+        // the remedy is two environment variables and a restart. `health` got
+        // this right because it asks `googleClientConfigured()` first; every
+        // other method reached this line, so a host that was never configured
+        // and a grant that went bad answered the same way. The class name is
+        // matched rather than the sentence for the same reason the codes are:
+        // a sentence is prose and gets reworded.
         if (deadline.signal.aborted) throw tokenTimedOut()
+        if (e?.name === 'GoogleOAuthNotConfiguredError') throw new GmailError('google_oauth_client_missing', e?.message)
         const code = TOKEN_CODES.has(e?.message) ? e.message : 'gmail_refresh_failed'
         throw new GmailError(code, e?.message)
       }

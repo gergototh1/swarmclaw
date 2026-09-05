@@ -248,6 +248,14 @@ export async function guard(fn) {
  * of the token stage, so it lands on `gmail_refresh_failed` rather than on a
  * code that blames Gmail for a request Gmail never received.
  *
+ * WITH ONE EXCEPTION, WHICH IS NOT IN THIS SET AND MUST NOT BE. A host with no
+ * OAuth client at all throws `GoogleOAuthNotConfiguredError`, whose message is
+ * a sentence rather than a code, and client.mjs matches it by CLASS NAME and
+ * answers `google_oauth_client_missing`. It is not a member here because
+ * membership means "the host spelled a code in its message", and this one does
+ * not; and it may not reach the fallback either, because "reconnect the
+ * mailbox" is not the remedy for a host where the connect button is disabled.
+ *
  * A subset of `HIBA_KODOK` rather than four fresh literals, and derived from it
  * by name so a respelling in one place cannot leave the other behind: a code
  * listed here that is not in the closed set would be a code no caller could

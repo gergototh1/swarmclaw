@@ -19,9 +19,10 @@ import { createRpc } from './src/rpc.mjs'
  * `clientFactory` and issues its requests through `fetchImpl`, falling back to
  * the module's own constructor and the global `fetch` when they are null. A
  * test sets both to doubles, so no request leaves the machine and no mailbox is
- * needed to run the suite. Nothing in this file reads either yet -- the client
- * that does is a later step -- and they are declared now so that neither
- * surface has to invent its own seam later.
+ * needed to run the suite. This file declares them and reads neither: the layer
+ * that does is src/client.mjs, and both seams are on the shared state rather
+ * than inside it so the reading surface, the outbound surface and the release
+ * all reach one client instead of inventing three.
  */
 export const state = {
   storage: null,
@@ -129,13 +130,11 @@ const gmail = {
       // <workspace>/dist is ever served. scripts/build.mjs bundles ui/ into
       // dist/ and scripts/install.mjs copies dist/ into the workspace; an
       // install made without a build carries no dist/, the asset route answers
-      // 404 for both files, and the rail lists a page that never registers.
-      //
-      // WHICH IS THE STATE OF THIS CHECKOUT: ui/ arrives with the page itself,
-      // a later step, so nothing builds these two files yet and the entry names
-      // a bundle that is not there. The declaration is here now because the id,
-      // the path and the icon are what the rest of the module is written
-      // against, not because the page works today.
+      // 404 for both files, and the rail lists a page that never registers --
+      // which looks exactly like an install that failed. That failure mode is
+      // silent from the host's side, so scripts/install.mjs checks for these
+      // two files by name and reports a missing build as a step still to do,
+      // and test/deploy.smoke.mjs fetches both off a running host.
       entry: 'dist/index.js',
       css: 'dist/style.css',
       position: 'end',

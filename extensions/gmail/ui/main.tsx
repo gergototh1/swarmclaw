@@ -137,6 +137,8 @@ export function GmailPage({ extensionId, rpc }: { extensionId: string; rpc: Rpc 
       <Lablec
         rpc={rpc}
         konyv={board ? board.value.konyv : null}
+        kimeno={board ? board.value.kimeno.items : null}
+        bizonytalanSzam={board ? board.value.health.szamok.bizonytalan : null}
         nyitottPiszkozat={board ? board.value.health.szamok.piszkozat : null}
       />
     </div>
