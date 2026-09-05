@@ -21,7 +21,7 @@ import { cappedNote, describeGmail, describeManaged, describeOutcome, formatDate
 import { ListBody } from '../ui/list.tsx'
 import { loadList } from '../ui/list-state.ts'
 import { MANAGED_RESOURCES_URL, loadManagedStatus } from '../ui/managed-state.ts'
-import { StatusBar } from '../ui/status-bar.tsx'
+import { StatusBar, StatusBarBody } from '../ui/status-bar.tsx'
 
 /**
  * The page, driven without a browser.
@@ -61,6 +61,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const source = (rel) => fs.readFileSync(path.join(root, rel), 'utf8')
 
 const render = (type, props) => renderToStaticMarkup(jsx(type, props))
+
+/**
+ * The OPEN bar. The shell owns the fold; what a state looks like once drawn is
+ * the body's. The closed bar's one line is pinned separately, on the shell.
+ */
+const renderStatus = ({ onRefresh, ...props }) => render(StatusBarBody, props)
 const noop = () => {}
 const decideOk = async (id) => ({ ok: true, id, status: 'saved' })
 const noAct = async () => {}
@@ -538,15 +544,37 @@ test('the list shows a decision that failed as a notice', () => {
 
 // --- rendering: the status bar ---
 
+test('the aisignal bar is closed on first draw and shows none of the detail', () => {
+  const html = render(StatusBar, { board: board(), managed: { kind: 'ready', schedules: 2 }, onRefresh: noop })
+  assert.ok(html.includes('aria-expanded="false"'))
+  assert.equal(html.includes('Utolsó sweep:'), false)
+  assert.equal(html.includes('címke:'), false)
+})
+
+test('an unreachable mailbox is named on the closed bar, because no card will arrive until it is fixed', () => {
+  const html = render(StatusBar, {
+    board: board({ gmail: { status: 'provider_missing' } }), managed: { kind: 'ready', schedules: 2 }, onRefresh: noop,
+  })
+  assert.ok(html.includes('aria-expanded="false"'), 'still closed')
+  assert.ok(html.includes('ais-warn'))
+})
+
+test('a never-scheduled install is named on the closed bar', () => {
+  const html = render(StatusBar, {
+    board: board(), managed: { kind: 'unscheduled', missing: ['AI Signal sweep'], total: 2 }, onRefresh: noop,
+  })
+  assert.ok(html.includes('ais-warn'))
+})
+
 test('the status bar tells an install that never swept from a sweep that found nothing', () => {
-  const never = render(StatusBar, { managed: null, board: board({ gmail: { status: 'unavailable', reason: 'provider_missing' } }), onRefresh: noop })
+  const never = renderStatus({ managed: null, board: board({ gmail: { status: 'unavailable', reason: 'provider_missing' } }), onRefresh: noop })
   assert.ok(never.includes('Még nem futott sweep'))
   assert.ok(never.includes('a gmail extension nincs telepítve'))
   // No link: the page the link would point at belongs to the extension that is
   // not there, so it would land on the extension route's own "no such page".
   assert.equal(never.includes('href="/x/gmail"'), false)
 
-  const quiet = render(StatusBar, { managed: null, board: board({ sweeps: [sweep({ found: 0 })], counts: { items: 0, undecided: 0, sweeps: 1, seen: 0 } }), onRefresh: noop })
+  const quiet = renderStatus({ managed: null, board: board({ sweeps: [sweep({ found: 0 })], counts: { items: 0, undecided: 0, sweeps: 1, seen: 0 } }), onRefresh: noop })
   assert.ok(quiet.includes('lefutott, 0 új sort talált'))
   assert.equal(quiet.includes('Még nem futott sweep'), false)
   assert.ok(quiet.includes('szerződése elérhető'))
@@ -560,23 +588,23 @@ test('the status bar tells an install that never swept from a sweep that found n
 })
 
 test('the status bar keeps a failed, an unfinished and a truncated sweep distinct and shows their notes as text', () => {
-  const failed = render(StatusBar, { managed: null, board: board({ sweeps: [sweep({ ok: 0, note: 'gmail_unauthorized: <b>refused</b>' })] }), onRefresh: noop })
+  const failed = renderStatus({ managed: null, board: board({ sweeps: [sweep({ ok: 0, note: 'gmail_unauthorized: <b>refused</b>' })] }), onRefresh: noop })
   assert.ok(failed.includes('hiba: gmail_unauthorized: &lt;b&gt;refused&lt;/b&gt;'))
   assert.equal(failed.includes('<b>refused</b>'), false)
-  const unfinished = render(StatusBar, { managed: null, board: board({ sweeps: [sweep({ finished_at: null })] }), onRefresh: noop })
+  const unfinished = renderStatus({ managed: null, board: board({ sweeps: [sweep({ finished_at: null })] }), onRefresh: noop })
   assert.ok(unfinished.includes('nincs lezárva'))
   assert.equal(unfinished.includes('hiba:'), false)
-  const truncated = render(StatusBar, { managed: null, board: board({ sweeps: [sweep({ found: 4, leftover: 9 })] }), onRefresh: noop })
+  const truncated = renderStatus({ managed: null, board: board({ sweeps: [sweep({ found: 4, leftover: 9 })] }), onRefresh: noop })
   assert.ok(truncated.includes('4 új sor'))
   assert.ok(truncated.includes('9 levél kimaradt a sapka miatt'))
-  const research = render(StatusBar, { managed: null, board: board({ sweeps: [sweep({ kind: 'research', found: 2, note: 'unavailable=reddit,hn; unasked=hn' })] }), onRefresh: noop })
+  const research = renderStatus({ managed: null, board: board({ sweeps: [sweep({ kind: 'research', found: 2, note: 'unavailable=reddit,hn; unasked=hn' })] }), onRefresh: noop })
   assert.ok(research.includes('kutatás'))
   assert.ok(research.includes('nem válaszolt: reddit, hn'))
   assert.ok(research.includes('meg sem lett kérdezve: hn'))
 })
 
 test('the status bar sends an operator nowhere when the check itself failed', () => {
-  const html = render(StatusBar, { managed: null, board: board({ gmail: { status: 'error', code: 'aisignal_contract_check_failed' } }), onRefresh: noop })
+  const html = renderStatus({ managed: null, board: board({ gmail: { status: 'error', code: 'aisignal_contract_check_failed' } }), onRefresh: noop })
   assert.ok(html.includes('aisignal_contract_check_failed'))
   assert.equal(html.includes('href="/x/gmail"'), false)
   assert.equal(html.includes('nincs telepítve'), false)
@@ -584,9 +612,9 @@ test('the status bar sends an operator nowhere when the check itself failed', ()
 
 test('the status bar says the sweep history is capped, from the board&#x27;s own numbers'.replace('&#x27;', "'"), () => {
   const sweeps = Array.from({ length: 10 }, (_, i) => sweep({ id: `s${i}` }))
-  const html = render(StatusBar, { managed: null, board: board({ sweeps, sweepLimit: 10, counts: { items: 0, undecided: 0, sweeps: 43, seen: 0 } }), onRefresh: noop })
+  const html = renderStatus({ managed: null, board: board({ sweeps, sweepLimit: 10, counts: { items: 0, undecided: 0, sweeps: 43, seen: 0 } }), onRefresh: noop })
   assert.ok(html.includes('Korábbi futások (10 futás látszik, összesen 43)'))
-  const whole = render(StatusBar, { managed: null, board: board({ sweeps: sweeps.slice(0, 3), sweepLimit: 10, counts: { items: 0, undecided: 0, sweeps: 3, seen: 0 } }), onRefresh: noop })
+  const whole = renderStatus({ managed: null, board: board({ sweeps: sweeps.slice(0, 3), sweepLimit: 10, counts: { items: 0, undecided: 0, sweeps: 3, seen: 0 } }), onRefresh: noop })
   assert.ok(whole.includes('Korábbi futások (3)'))
   assert.ok(html.includes('címke: AI hírlevél'))
 })
@@ -698,12 +726,12 @@ test('loadManagedStatus asks the host with the page own credentials and never tu
 
 test('the status bar words a never-scheduled install apart from one whose runs are waiting for their slot, and from a check that failed', () => {
   const never = board({ gmail: { status: 'ready' } })
-  const scheduled = render(StatusBar, { managed: { kind: 'ready', schedules: 2 }, board: never, onRefresh: noop })
+  const scheduled = renderStatus({ managed: { kind: 'ready', schedules: 2 }, board: never, onRefresh: noop })
   assert.ok(scheduled.includes('Még nem futott sweep'), 'no sweep has run')
   assert.ok(scheduled.includes('Ütemezés: mind a 2 futás be van állítva'), 'but two are scheduled')
   assert.equal(scheduled.includes('Reconcile'), false)
 
-  const unscheduled = render(StatusBar, { managed: { kind: 'unscheduled', missing: ['AI Signal: hírlevél-sweep (2 óránként)', 'AI Signal: KKV-kutatás (naponta 06:30)'], total: 2 }, board: never, onRefresh: noop })
+  const unscheduled = renderStatus({ managed: { kind: 'unscheduled', missing: ['AI Signal: hírlevél-sweep (2 óránként)', 'AI Signal: KKV-kutatás (naponta 06:30)'], total: 2 }, board: never, onRefresh: noop })
   assert.ok(unscheduled.includes('Még nem futott sweep'), 'no sweep has run')
   assert.ok(unscheduled.includes('Ütemezés: 2 a 2 futásból nincs beállítva (AI Signal: hírlevél-sweep (2 óránként), AI Signal: KKV-kutatás (naponta 06:30))'), 'and none is going to')
   assert.ok(unscheduled.includes('Magától egyetlen sweep sem indul el'))
@@ -711,17 +739,17 @@ test('the status bar words a never-scheduled install apart from one whose runs a
   assert.ok(unscheduled.includes('Reconcile'))
   assert.ok(/class="ais-warn">Ütemezés: 2 a 2/.test(unscheduled), 'the line is flagged')
 
-  const unknown = render(StatusBar, { managed: { kind: 'unknown', reason: 'a host 500-tal válaszolt' }, board: never, onRefresh: noop })
+  const unknown = renderStatus({ managed: { kind: 'unknown', reason: 'a host 500-tal válaszolt' }, board: never, onRefresh: noop })
   assert.ok(unknown.includes('Ütemezés: az ellenőrzés nem sikerült (a host 500-tal válaszolt), nem tudni, be van-e állítva'))
   assert.equal(unknown.includes('nincs beállítva'), false, 'a failed check is not reported as not scheduled')
   assert.equal(unknown.includes('Reconcile'), false, 'and does not send the operator to fix what may not be broken')
 
-  const pending = render(StatusBar, { managed: null, board: never, onRefresh: noop })
+  const pending = renderStatus({ managed: null, board: never, onRefresh: noop })
   assert.ok(pending.includes('Ütemezés: ellenőrzés folyamatban'))
   assert.equal(pending.includes('ais-warn">Ütemezés'), false)
 
   // The line escapes what the host sends, like every other line here.
-  const hostile = render(StatusBar, { managed: { kind: 'unscheduled', missing: ['<b>x</b>'], total: 1 }, board: never, onRefresh: noop })
+  const hostile = renderStatus({ managed: { kind: 'unscheduled', missing: ['<b>x</b>'], total: 1 }, board: never, onRefresh: noop })
   assert.ok(hostile.includes('&lt;b&gt;x&lt;/b&gt;'))
   assert.equal(hostile.includes('<b>x</b>'), false)
 

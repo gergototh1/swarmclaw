@@ -87,42 +87,30 @@ function szerzodesMondat(nev: string, why: string | null, kovetkezmeny: string, 
   return { text: `${nev}: ${why} — ${kovetkezmeny}`, kind: blokkolo ? 'bad' : 'warn' }
 }
 
-export function StatusBar({ board, health, managed, healthError, onRefresh, rpc }: {
+/**
+ * Everything the bar says once it is open -- every condition on its own line,
+ * which is the separation `health.mjs` makes and this file refuses to fold.
+ *
+ * It is split out for the same reason `VideoBody` and `SablonokBody` are: the
+ * shell above owns state (the fold, the message, the in-flight flag) and a
+ * server render never runs an effect or a click, so the tests that pin what a
+ * state LOOKS like render this half directly and pass the state as props.
+ *
+ * The two write buttons stay here, with the sentences they belong to. Their
+ * RESULT does not: `uzenet` is drawn by the shell, outside the fold, so
+ * closing the bar right after a cleanup does not throw away what it reported.
+ */
+export function StatusBarBody({ board, health, managed, healthError, dolgozik, leallit, tisztit }: {
   board: Board | null
   health: Health | null
   managed: ManagedStatus | null
   healthError: string | null
-  onRefresh: () => void
-  rpc: Rpc
+  dolgozik: boolean
+  leallit: (renderId: string) => void
+  tisztit: () => void
 }) {
-  const [uzenet, setUzenet] = useState<string | null>(null)
-  const [dolgozik, setDolgozik] = useState(false)
-
-  const leallit = useCallback((renderId: string) => {
-    setDolgozik(true)
-    rpc('cancelRender', { renderId })
-      .then(() => { setUzenet('A leállítást elküldtem; a render sora a következő frissítésen mutatja az eredményt.') })
-      .catch((err: unknown) => setUzenet(`A leállítás nem sikerült: ${errorText(err)}`))
-      .finally(() => { setDolgozik(false); onRefresh() })
-  }, [rpc, onRefresh])
-
-  const tisztit = useCallback(() => {
-    if (!window.confirm('Törlöm a sorhoz kötött fájlokat a Remotion-projekt out/swarmclaw/ és public/narracio/swarmclaw/ könyvtárából. Ez nem vonható vissza. Folytassam?')) return
-    setDolgozik(true)
-    rpc('cleanup')
-      .then((raw) => {
-        const r = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
-        // The three numbers `cleanupAll` returns, and no fourth: `sorNelkul`
-        // is a recount, so a non-zero here after a cleanup means files the
-        // module never had a row for, which it does not delete.
-        setUzenet(`Tisztítás kész: ${szam(r.renderek)} render-fájl, ${szam(r.narraciok)} narráció törölve; sor nélkül maradt: ${szam(r.sorNelkul)}.`)
-      })
-      .catch((err: unknown) => setUzenet(`A tisztítás nem futott le: ${errorText(err)}`))
-      .finally(() => { setDolgozik(false); onRefresh() })
-  }, [rpc, onRefresh])
-
   const schedule = describeManaged(managed)
-  // The board is its own load and can fail on its own. When it did, this bar
+  // The board is its own load and can fail on its own. When it did, this body
   // still draws everything that does not come from it -- the health lines,
   // the schedules, the two buttons -- because a queue that could not be read
   // says nothing about whether ffmpeg is installed or whether Reconcile has
@@ -133,21 +121,8 @@ export function StatusBar({ board, health, managed, healthError, onRefresh, rpc 
   const remotion = health ? remotionMondat(health) : null
   const eszkoz = health ? eszkozMondat(health) : null
   const platform = health ? platformMondat(health) : null
-
   return (
-    <div className="vid-status">
-      <div className="vid-status-head">
-        <strong>Állapot</strong>
-        <button type="button" className="vid-btn vid-btn-small" onClick={onRefresh}>Frissítés</button>
-      </div>
-
-      {uzenet && (
-        <p className="vid-line vid-notice" role="status">
-          {uzenet}
-          <button type="button" className="vid-btn vid-btn-small" onClick={() => setUzenet(null)}>Elrejt</button>
-        </p>
-      )}
-
+    <>
       {healthError && <Mondat kind="bad" text={`Az állapotot nem tudtam lekérdezni: ${healthError}`} />}
       {!health && !healthError && <Mondat kind="muted" text="Az állapot lekérdezése folyamatban." />}
 
@@ -231,6 +206,109 @@ export function StatusBar({ board, health, managed, healthError, onRefresh, rpc 
         </ol>
         <button type="button" className="vid-btn vid-btn-small" disabled={dolgozik} onClick={tisztit}>Tisztítás</button>
       </details>
+    </>
+  )
+}
+
+/**
+ * The one line the bar shows while it is closed.
+ *
+ * The bar opens closed (the operator asked for that), which puts a duty on
+ * this line: a fault the operator cannot see is a fault they cannot act on,
+ * so NOTHING THAT BLOCKS IS HIDDEN BEHIND THE FOLD. What the fold hides is
+ * the calm detail -- the tool list, the platform, the contracts, the turn
+ * recorder -- and what it never hides is the name of what is blocked.
+ *
+ * The order is the order of the operator's next move: a health call that did
+ * not answer, then blocked capabilities by name, then the schedule, then
+ * blocking codes that named no capability, then the count of non-blocking
+ * warnings. `figyelmeztetesek` is COUNTED, not listed: it is the one group
+ * that blocks nothing, and the open bar spells each out.
+ */
+function osszefoglalo({ health, healthError, scheduleTrouble, utemezetlen }: {
+  health: Health | null
+  healthError: string | null
+  scheduleTrouble: boolean
+  utemezetlen: boolean
+}): { text: string; kind: 'plain' | 'warn' | 'bad' | 'muted' } {
+  if (healthError) return { text: 'nem tudtam lekérdezni', kind: 'bad' }
+  if (!health) return { text: 'lekérdezés folyamatban', kind: 'muted' }
+  const gond: string[] = []
+  if (health.blokkolt.length > 0) gond.push(`blokkolt: ${health.blokkolt.join(', ')}`)
+  if (utemezetlen) gond.push('nincs ütemezés — Reconcile kell')
+  else if (scheduleTrouble) gond.push('ütemezés: gond')
+  // A blocking code that named no capability is still blocking, and the
+  // closed bar says its code rather than calling the module calm.
+  if (gond.length === 0 && health.hibak.length > 0) gond.push(health.hibak.join(', '))
+  if (gond.length > 0) return { text: gond.join(' · '), kind: 'bad' }
+  if (health.figyelmeztetesek.length > 0) return { text: `${health.figyelmeztetesek.length} figyelmeztetés`, kind: 'warn' }
+  return { text: 'rendben', kind: 'plain' }
+}
+
+export function StatusBar({ board, health, managed, healthError, onRefresh, rpc }: {
+  board: Board | null
+  health: Health | null
+  managed: ManagedStatus | null
+  healthError: string | null
+  onRefresh: () => void
+  rpc: Rpc
+}) {
+  const [uzenet, setUzenet] = useState<string | null>(null)
+  const [dolgozik, setDolgozik] = useState(false)
+  // Closed by default: the operator reads the queue on this page, not the bar.
+  const [nyitva, setNyitva] = useState(false)
+
+  const leallit = useCallback((renderId: string) => {
+    setDolgozik(true)
+    rpc('cancelRender', { renderId })
+      .then(() => { setUzenet('A leállítást elküldtem; a render sora a következő frissítésen mutatja az eredményt.') })
+      .catch((err: unknown) => setUzenet(`A leállítás nem sikerült: ${errorText(err)}`))
+      .finally(() => { setDolgozik(false); onRefresh() })
+  }, [rpc, onRefresh])
+
+  const tisztit = useCallback(() => {
+    if (!window.confirm('Törlöm a sorhoz kötött fájlokat a Remotion-projekt out/swarmclaw/ és public/narracio/swarmclaw/ könyvtárából. Ez nem vonható vissza. Folytassam?')) return
+    setDolgozik(true)
+    rpc('cleanup')
+      .then((raw) => {
+        const r = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+        // The three numbers `cleanupAll` returns, and no fourth: `sorNelkul`
+        // is a recount, so a non-zero here after a cleanup means files the
+        // module never had a row for, which it does not delete.
+        setUzenet(`Tisztítás kész: ${szam(r.renderek)} render-fájl, ${szam(r.narraciok)} narráció törölve; sor nélkül maradt: ${szam(r.sorNelkul)}.`)
+      })
+      .catch((err: unknown) => setUzenet(`A tisztítás nem futott le: ${errorText(err)}`))
+      .finally(() => { setDolgozik(false); onRefresh() })
+  }, [rpc, onRefresh])
+
+  const schedule = describeManaged(managed)
+  const utemezetlen = managed !== null && managed.kind === 'unscheduled'
+  const ossz = osszefoglalo({ health, healthError, scheduleTrouble: schedule.trouble, utemezetlen })
+
+  return (
+    <div className="vid-status">
+      <div className="vid-status-head">
+        <button
+          type="button"
+          className="vid-status-toggle"
+          aria-expanded={nyitva}
+          onClick={() => setNyitva((v) => !v)}
+        >
+          <span className="vid-caret" aria-hidden="true">{nyitva ? '▾' : '▸'}</span>
+          <strong>Állapot</strong>
+          <span className={ossz.kind === 'plain' ? 'vid-muted' : `vid-${ossz.kind}`}>{ossz.text}</span>
+        </button>
+        <button type="button" className="vid-btn vid-btn-small" onClick={onRefresh}>Frissítés</button>
+      </div>
+
+      {uzenet && (
+        <p className="vid-line vid-notice" role="status">
+          {uzenet}
+          <button type="button" className="vid-btn vid-btn-small" onClick={() => setUzenet(null)}>Elrejt</button>
+        </p>
+      )}
+
+      {nyitva && <StatusBarBody board={board} health={health} managed={managed} healthError={healthError} dolgozik={dolgozik} leallit={leallit} tisztit={tisztit} />}
     </div>
   )
 }

@@ -641,7 +641,21 @@ async function checkQueue(page, fixture) {
  * particular answer would make the test fail on a machine rather than on a
  * defect. Everything else here is decided by the fixture and is exact.
  */
+/**
+ * The bar opens closed, so a browser check opens it before reading it -- and
+ * the click is itself the assertion that the fold works at all.
+ *
+ * Idempotent: it clicks only while the toggle still reports itself closed, so
+ * a second caller on the same page does not fold the bar back up.
+ */
+async function openStatusBar(page) {
+  const zarva = await page.$('.vid-status-toggle[aria-expanded="false"]')
+  if (zarva) await zarva.click()
+  await page.waitForSelector('.vid-status-toggle[aria-expanded="true"]', { timeout: WAIT_MS })
+}
+
 async function checkStatusBar(page) {
+  await openStatusBar(page)
   // Two of the bar's three requests are still in flight when the queue has
   // drawn: `health` runs a version probe of three binaries and the schedule
   // check is a second round trip to the host. Both say so in words while they
@@ -697,6 +711,9 @@ async function driveKeyboardToProposals(page, record) {
   const before = record.calls.length
   const results = []
 
+  // The uninstall guide is inside the fold; the keyboard walk starts from the
+  // refresh button, which is outside it, so the bar has to be open first.
+  await openStatusBar(page)
   await page.locator('.vid-status button', { hasText: 'Frissítés' }).focus()
   await tabTo(page, { tag: 'SUMMARY', text: 'Uninstall előtt' })
   await page.keyboard.press('Enter')

@@ -869,7 +869,21 @@ async function openPage(page, baseUrl) {
  * naming the other mode's pair sends somebody to set two variables nothing
  * will read.
  */
+/**
+ * The bar opens closed, so a browser check opens it before reading it -- and
+ * the click is itself the assertion that the fold works at all.
+ *
+ * Idempotent: it clicks only while the toggle still reports itself closed, so
+ * a second caller on the same page does not fold the bar back up.
+ */
+async function openStatusBar(page) {
+  const zarva = await page.$('.gm-status-toggle[aria-expanded="false"]')
+  if (zarva) await zarva.click()
+  await page.waitForSelector('.gm-status-toggle[aria-expanded="true"]', { timeout: WAIT_MS })
+}
+
 async function checkStatusBar(page) {
+  await openStatusBar(page)
   const status = await page.evaluate(() => {
     const item = document.querySelector('.gm-health-item[data-kod="google_oauth_client_missing"]')
     const connect = document.querySelector('.gm-connect button')

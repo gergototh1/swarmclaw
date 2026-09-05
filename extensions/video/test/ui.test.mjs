@@ -18,7 +18,7 @@ import { JavaslatokBody } from '../ui/javaslatok.tsx'
 import { MANAGED_RESOURCES_URL, loadManagedStatus } from '../ui/managed-state.ts'
 import { SablonokBody } from '../ui/sablonok.tsx'
 import { Sor } from '../ui/sor.tsx'
-import { StatusBar } from '../ui/status-bar.tsx'
+import { StatusBar, StatusBarBody } from '../ui/status-bar.tsx'
 import { VideoBody } from '../ui/video.tsx'
 
 /**
@@ -37,6 +37,14 @@ import { VideoBody } from '../ui/video.tsx'
 
 const render = (type, props) => renderToStaticMarkup(jsx(type, props))
 const noop = () => {}
+
+/**
+ * The OPEN bar. The shell owns the fold, the message and the in-flight flag;
+ * what a state looks like once drawn is the body's, so these tests render the
+ * body directly, the same split `VideoBody` and `SablonokBody` already use.
+ * The closed bar's one line is pinned separately, on the shell.
+ */
+const renderStatus = ({ onRefresh, rpc, ...props }) => render(StatusBarBody, { dolgozik: false, leallit: noop, tisztit: noop, ...props })
 
 function summary(overrides = {}) {
   return {
@@ -164,7 +172,7 @@ test('the built video bundle registers the declared page with the host React and
   assert.ok(html.includes('data-extension="video.mjs"'))
   assert.ok(html.includes('Betöltés'))
   assert.ok(html.includes('vid-status'), 'the status bar is drawn without the board')
-  assert.ok(html.includes('Az állapot lekérdezése folyamatban'), 'and says which of its own loads is missing')
+  assert.ok(html.includes('lekérdezés folyamatban'), 'and the closed bar says which of its own loads is missing')
   assert.ok(html.includes('role="tablist"'), 'the tabs are drawn without the board')
 })
 
@@ -367,10 +375,75 @@ test('propokSzoveg prints every prop but the type, as JSON text', () => {
   assert.equal(propokSzoveg(['a']), '[\n  "a"\n]')
 })
 
+// --- the bar opens closed, and what the fold may not hide ---
+
+test('the bar is closed on first draw and shows none of the detail', () => {
+  const html = render(StatusBar, {
+    board: board(), health: health(), healthError: null, managed: { kind: 'ready', schedules: 3 }, onRefresh: noop, rpc: async () => ({}),
+  })
+  assert.ok(html.includes('aria-expanded="false"'))
+  assert.ok(html.includes('rendben'))
+  // Not one line of the open bar is in the markup: the fold does not merely
+  // hide with CSS, it does not render.
+  assert.equal(html.includes('Remotion-könyvtár: rendben'), false)
+  assert.equal(html.includes('Uninstall előtt'), false)
+  assert.equal(html.includes('Fordulók rögzítése'), false)
+})
+
+test('a blocked capability is named on the closed bar, not only behind the fold', () => {
+  const html = render(StatusBar, {
+    board: board(),
+    health: health({ ok: false, hibak: ['npx_hianyzik'], blokkolt: ['render'] }),
+    healthError: null, managed: { kind: 'ready', schedules: 3 }, onRefresh: noop, rpc: async () => ({}),
+  })
+  assert.ok(html.includes('aria-expanded="false"'), 'still closed')
+  assert.ok(html.includes('blokkolt: render'), 'and the operator can read what is blocked without opening it')
+  assert.ok(html.includes('vid-bad'))
+})
+
+test('a blocking code that named no capability still reaches the closed bar', () => {
+  const html = render(StatusBar, {
+    board: board(),
+    health: health({ ok: false, hibak: ['ffmpeg_hianyzik'], blokkolt: [] }),
+    healthError: null, managed: { kind: 'ready', schedules: 3 }, onRefresh: noop, rpc: async () => ({}),
+  })
+  assert.ok(html.includes('ffmpeg_hianyzik'))
+  assert.equal(html.includes('rendben'), false, 'a module with a blocking code is never summarised as fine')
+})
+
+test('a missing schedule is on the closed bar, because no run will happen until it is fixed', () => {
+  const html = render(StatusBar, {
+    board: board(), health: health(), healthError: null,
+    managed: { kind: 'unscheduled', missing: ['Videó gyártó'], total: 3 }, onRefresh: noop, rpc: async () => ({}),
+  })
+  assert.ok(html.includes('nincs ütemezés — Reconcile kell'))
+})
+
+test('warnings are counted on the closed bar and spelled out only inside', () => {
+  const props = {
+    board: board(),
+    health: health({ figyelmeztetesek: ['signals_szerzodes_hianyzik'], szerzodesek: { tts: null, signals: 'provider_disabled' } }),
+    healthError: null, managed: { kind: 'ready', schedules: 3 }, onRefresh: noop, rpc: async () => ({}),
+  }
+  const zarva = render(StatusBar, props)
+  assert.ok(zarva.includes('1 figyelmeztetés'))
+  assert.equal(zarva.includes('aisignal.signals: provider_disabled'), false)
+  // The same state, opened: the code itself, in the host's words.
+  assert.ok(renderStatus(props).includes('aisignal.signals: provider_disabled'))
+})
+
+test('a health that could not be read says so on the closed bar', () => {
+  const html = render(StatusBar, {
+    board: board(), health: null, healthError: 'a szerver 500-zal válaszolt', managed: null, onRefresh: noop, rpc: async () => ({}),
+  })
+  assert.ok(html.includes('nem tudtam lekérdezni'))
+  assert.ok(html.includes('vid-bad'))
+})
+
 // --- the status bar keeps the three kinds of fact apart ---
 
 test('the status bar names the Reconcile remedy in its own sentence and class', () => {
-  const html = render(StatusBar, {
+  const html = renderStatus({
     board: board(),
     health: health(),
     healthError: null,
@@ -394,7 +467,7 @@ test('the status bar tells three schedule states apart', () => {
 })
 
 test('the status bar repeats a contract refusal in the host words rather than paraphrasing it', () => {
-  const html = render(StatusBar, {
+  const html = renderStatus({
     board: board(),
     health: health({ szerzodesek: { tts: 'provider_missing', signals: 'provider_disabled' }, hibak: ['tts_szerzodes_hianyzik'], figyelmeztetesek: ['signals_szerzodes_hianyzik'], blokkolt: ['narracio'], ok: false }),
     healthError: null,
@@ -410,7 +483,7 @@ test('the status bar repeats a contract refusal in the host words rather than pa
 })
 
 test('the status bar reports a broken install condition by condition, not as one red dot', () => {
-  const html = render(StatusBar, {
+  const html = renderStatus({
     board: board(),
     health: health({
       ok: false,
@@ -434,7 +507,7 @@ test('the status bar reports a broken install condition by condition, not as one
 })
 
 test('a health that could not be read is drawn as unqueried rather than as calm', () => {
-  const html = render(StatusBar, {
+  const html = renderStatus({
     board: board(), health: null, healthError: 'a szerver 500-zal válaszolt', managed: null, onRefresh: noop, rpc: async () => ({}),
   })
   assert.ok(html.includes('Az állapotot nem tudtam lekérdezni: a szerver 500-zal válaszolt'))
@@ -442,7 +515,7 @@ test('a health that could not be read is drawn as unqueried rather than as calm'
 })
 
 test('a running render shows its id and its minutes, and offers the stop button', () => {
-  const html = render(StatusBar, {
+  const html = renderStatus({
     board: board({ futoRender: summary({ status: 'fut', finishedAt: null, elteltMs: 7 * 60_000 }) }),
     health: health(), healthError: null, managed: { kind: 'ready', schedules: 3 }, onRefresh: noop, rpc: async () => ({}),
   })
@@ -451,9 +524,9 @@ test('a running render shows its id and its minutes, and offers the stop button'
 })
 
 test('the status bar says which turn recorder is on, and the three uninstall steps', () => {
-  const mind = render(StatusBar, { board: board(), health: health({ forduloRogzites: 'mind' }), healthError: null, managed: null, onRefresh: noop, rpc: async () => ({}) })
+  const mind = renderStatus({ board: board(), health: health({ forduloRogzites: 'mind' }), healthError: null, managed: null, onRefresh: noop, rpc: async () => ({}) })
   assert.ok(mind.includes('Fordulók rögzítése: minden csatolt ügynök, 60 napig'))
-  const sajat = render(StatusBar, { board: board(), health: health(), healthError: null, managed: null, onRefresh: noop, rpc: async () => ({}) })
+  const sajat = renderStatus({ board: board(), health: health(), healthError: null, managed: null, onRefresh: noop, rpc: async () => ({}) })
   assert.ok(sajat.includes('Fordulók rögzítése: csak a modul két ügynöke'))
   assert.ok(sajat.includes('Uninstall előtt'))
   assert.ok(sajat.includes('Tisztítás'))
@@ -466,7 +539,7 @@ test('a board that could not be read costs the queue and nothing else on the bar
   // unknown; every health line, the schedule sentence and both buttons are
   // still drawn, because that is what an operator needs in order to act on a
   // module whose queue would not load.
-  const html = render(StatusBar, {
+  const html = renderStatus({
     board: null, health: health(), healthError: null, managed: { kind: 'unscheduled', missing: ['Videó gyártó'], total: 3 }, onRefresh: noop, rpc: async () => ({}),
   })
   assert.ok(html.includes('Remotion-könyvtár: rendben'), 'the health lines are drawn')
@@ -478,7 +551,7 @@ test('a board that could not be read costs the queue and nothing else on the bar
 })
 
 test('the last turns are labelled as this module own record, not as the host run history', () => {
-  const html = render(StatusBar, {
+  const html = renderStatus({
     board: board({ utolsoFordulok: [{ agentId: 'agent:gyarto', forras: 'schedule', at: '2026-09-01T10:00:00.000Z' }] }),
     health: health(), healthError: null, managed: null, onRefresh: noop, rpc: async () => ({}),
   })

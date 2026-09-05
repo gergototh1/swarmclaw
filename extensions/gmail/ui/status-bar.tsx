@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import type { Health, HealthItem } from './api'
 import { bekothetoE, healthMondat, keretSzoveg } from './format'
 
@@ -77,25 +79,23 @@ function HealthSor({ item, kind }: { item: HealthItem; kind: 'warn' | 'bad' }) {
   )
 }
 
-export function StatusBar({ health, healthError, onRefresh }: {
-  health: Health | null
-  healthError: string | null
-  onRefresh: () => void
-}) {
+/**
+ * Everything the bar says once it is open -- every condition on its own line,
+ * which is the separation `health.mjs` makes and this file refuses to fold.
+ *
+ * It is split out for the same reason the other bodies in this bundle are:
+ * the shell owns the fold, and a server render never runs a click, so the
+ * tests that pin what a state LOOKS like render this half directly.
+ */
+export function StatusBarBody({ health, healthError }: { health: Health | null; healthError: string | null }) {
   // Not knowing and knowing there is no client are two different answers, and
   // only the second may disable the button. With no health at all the control
   // stays live and the route's 409 carries the remedy; disabling it here would
   // be this page reporting a missing client it never checked.
   const bekotheto = health === null ? true : bekothetoE(health.hibak)
   const ujra = health !== null && health.hibak.some((item) => UJRA_BEKOTES.includes(item.kod))
-
   return (
-    <div className="gm-status">
-      <div className="gm-status-head">
-        <strong>Állapot</strong>
-        <button type="button" className="gm-btn gm-btn-small" onClick={onRefresh}>Frissítés</button>
-      </div>
-
+    <>
       {healthError && <Mondat kind="bad" text={`Az állapotot nem tudtam lekérdezni: ${healthError}`} />}
       {!health && !healthError && <Mondat kind="muted" text="Az állapot lekérdezése folyamatban." />}
 
@@ -171,7 +171,59 @@ export function StatusBar({ health, healthError, onRefresh }: {
           text={`Port-fájl: ${health.portFajl.utvonal} — ${health.portFajl.elo ? 'megvan, és élő folyamatot nevez meg ebből az indításból' : health.portFajl.letezik ? 'megvan, de nem ebből az indításból való élő folyamatot nevez meg' : 'nincs ott'}. Ez a fájl-létezés ellenőrzése, nem ígéret arra, hogy az MCP-szerver csatlakozni fog.`}
         />
       )}
+    </>
+  )
+}
 
+/**
+ * The one line the bar shows while it is closed.
+ *
+ * The bar opens closed (the operator asked for that), which puts a duty on
+ * this line: a fault the operator cannot see is a fault they cannot act on,
+ * so NOTHING THAT BLOCKS IS HIDDEN BEHIND THE FOLD. What the fold hides is
+ * the calm detail -- the frames, the row counts, the port file -- and what it
+ * never hides is the name of what is blocked.
+ *
+ * `figyelmeztetesek` is COUNTED, not listed: it is the group that blocks
+ * nothing, and the open bar spells each out with its own remedy.
+ */
+function osszefoglalo(health: Health | null, healthError: string | null): { text: string; kind: 'plain' | 'warn' | 'bad' | 'muted' } {
+  if (healthError) return { text: 'nem tudtam lekérdezni', kind: 'bad' }
+  if (!health) return { text: 'lekérdezés folyamatban', kind: 'muted' }
+  if (health.blokkolt.length > 0) return { text: `blokkolt: ${health.blokkolt.join(', ')}`, kind: 'bad' }
+  // A blocking code that named no capability is still blocking, and the closed
+  // bar says its code rather than calling the mailbox ready.
+  if (health.hibak.length > 0) return { text: health.hibak.map((h) => h.kod).join(', '), kind: 'bad' }
+  if (health.figyelmeztetesek.length > 0) return { text: `${health.figyelmeztetesek.length} figyelmeztetés`, kind: 'warn' }
+  return { text: health.postafiok ? `postafiók: ${health.postafiok}` : 'nincs bekötött postafiók', kind: health.postafiok ? 'plain' : 'warn' }
+}
+
+export function StatusBar({ health, healthError, onRefresh }: {
+  health: Health | null
+  healthError: string | null
+  onRefresh: () => void
+}) {
+  // Closed by default: the operator reads the board on this page, not the bar.
+  const [nyitva, setNyitva] = useState(false)
+  const ossz = osszefoglalo(health, healthError)
+
+  return (
+    <div className="gm-status">
+      <div className="gm-status-head">
+        <button
+          type="button"
+          className="gm-status-toggle"
+          aria-expanded={nyitva}
+          onClick={() => setNyitva((v) => !v)}
+        >
+          <span className="gm-caret" aria-hidden="true">{nyitva ? '▾' : '▸'}</span>
+          <strong>Állapot</strong>
+          <span className={ossz.kind === 'plain' ? 'gm-muted' : `gm-${ossz.kind}`}>{ossz.text}</span>
+        </button>
+        <button type="button" className="gm-btn gm-btn-small" onClick={onRefresh}>Frissítés</button>
+      </div>
+
+      {nyitva && <StatusBarBody health={health} healthError={healthError} />}
     </div>
   )
 }

@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import type { Board, ManagedStatus, Sweep } from './api'
 import { cappedNote, describeGmail, describeManaged, describeOutcome, formatDateTime, kindLabel, noteSegments, sweepOutcome } from './format'
 
@@ -44,45 +46,97 @@ function SweepLine({ sweep }: { sweep: Sweep }) {
   )
 }
 
-export function StatusBar({ board, managed, onRefresh }: { board: Board; managed: ManagedStatus | null; onRefresh: () => void }) {
+/**
+ * Everything the bar says once it is open: the last sweep and its note, the
+ * earlier runs, the mailbox and the label, the schedule. Nothing here is
+ * folded together, which is why it is a list of rows and not a verdict.
+ *
+ * Split out from the shell because the shell owns the fold, and a server
+ * render never runs a click: the tests that pin what a state LOOKS like
+ * render this half directly.
+ */
+export function StatusBarBody({ board, managed }: { board: Board; managed: ManagedStatus | null }) {
   const last = board.sweeps[0]
   const gmail = describeGmail(board.gmail)
   const schedule = describeManaged(managed)
   const sweepsCap = cappedNote(board.sweeps.length, board.counts.sweeps, 'futás')
   return (
-    <div className="ais-status">
-      <div className="ais-status-row">
-        {last ? (
-          <span>
-            <span>Utolsó sweep: </span>
-            <SweepLine sweep={last} />
-            <span> · {board.undecided} eldöntetlen</span>
-          </span>
-        ) : (
-          <span>Még nem futott sweep, így nincs mit eldönteni.</span>
+    <>
+        <div className="ais-status-row">
+          {last ? (
+            <span>
+              <span>Utolsó sweep: </span>
+              <SweepLine sweep={last} />
+              <span> · {board.undecided} eldöntetlen</span>
+            </span>
+          ) : (
+            <span>Még nem futott sweep, így nincs mit eldönteni.</span>
+          )}
+        </div>
+        {board.sweeps.length > 1 && (
+          <details className="ais-sweeps">
+            <summary>Korábbi futások{sweepsCap ? ` (${sweepsCap})` : ` (${board.sweeps.length})`}</summary>
+            <ul>
+              {board.sweeps.map((sweep) => (
+                <li key={sweep.id}><SweepLine sweep={sweep} /></li>
+              ))}
+            </ul>
+          </details>
         )}
+        <div className="ais-status-row">
+          <span>
+            <span className={board.gmail.status === 'ready' ? '' : 'ais-warn'}>{gmail.text}</span>
+            {gmail.page && <a className="ais-link ais-gmail-page" href={GMAIL_PAGE_HREF}>Gmail lap</a>}
+            <span className="ais-muted"> · címke: {board.label}</span>
+          </span>
+        </div>
+        <div className="ais-status-row">
+          <span className={schedule.trouble ? 'ais-warn' : ''}>{schedule.text}</span>
+        </div>
+    </>
+  )
+}
+
+/**
+ * The one line the bar shows while it is closed.
+ *
+ * The bar opens closed (the operator asked for that), which puts a duty on
+ * this line: NOTHING THAT STOPS THE SWEEP IS HIDDEN BEHIND THE FOLD. A
+ * mailbox that cannot be reached and a schedule that does not exist are both
+ * named here, in that order, because either one means no new cards will
+ * appear no matter how long the operator waits. Only when both are fine does
+ * the line fall back to the number the operator came for: how many cards are
+ * still undecided.
+ */
+function osszefoglalo(board: Board, scheduleText: string, scheduleTrouble: boolean, gmailText: string): { text: string; kind: 'plain' | 'warn' } {
+  if (board.gmail.status !== 'ready') return { text: gmailText, kind: 'warn' }
+  if (scheduleTrouble) return { text: scheduleText, kind: 'warn' }
+  if (board.sweeps.length === 0) return { text: 'még nem futott sweep', kind: 'warn' }
+  return { text: `${board.undecided} eldöntetlen`, kind: 'plain' }
+}
+
+export function StatusBar({ board, managed, onRefresh }: { board: Board; managed: ManagedStatus | null; onRefresh: () => void }) {
+  const gmail = describeGmail(board.gmail)
+  const schedule = describeManaged(managed)
+  // Closed by default: the operator reads the deck on this page, not the bar.
+  const [nyitva, setNyitva] = useState(false)
+  const ossz = osszefoglalo(board, schedule.text, schedule.trouble, gmail.text)
+  return (
+    <div className="ais-status">
+      <div className="ais-status-head">
+        <button
+          type="button"
+          className="ais-status-toggle"
+          aria-expanded={nyitva}
+          onClick={() => setNyitva((v) => !v)}
+        >
+          <span className="ais-caret" aria-hidden="true">{nyitva ? '▾' : '▸'}</span>
+          <strong>Állapot</strong>
+          <span className={ossz.kind === 'plain' ? 'ais-muted' : 'ais-warn'}>{ossz.text}</span>
+        </button>
         <button type="button" className="ais-btn ais-btn-small" onClick={onRefresh}>Frissítés</button>
       </div>
-      {board.sweeps.length > 1 && (
-        <details className="ais-sweeps">
-          <summary>Korábbi futások{sweepsCap ? ` (${sweepsCap})` : ` (${board.sweeps.length})`}</summary>
-          <ul>
-            {board.sweeps.map((sweep) => (
-              <li key={sweep.id}><SweepLine sweep={sweep} /></li>
-            ))}
-          </ul>
-        </details>
-      )}
-      <div className="ais-status-row">
-        <span>
-          <span className={board.gmail.status === 'ready' ? '' : 'ais-warn'}>{gmail.text}</span>
-          {gmail.page && <a className="ais-link ais-gmail-page" href={GMAIL_PAGE_HREF}>Gmail lap</a>}
-          <span className="ais-muted"> · címke: {board.label}</span>
-        </span>
-      </div>
-      <div className="ais-status-row">
-        <span className={schedule.trouble ? 'ais-warn' : ''}>{schedule.text}</span>
-      </div>
+      {nyitva && <StatusBarBody board={board} managed={managed} />}
     </div>
   )
 }

@@ -61,6 +61,24 @@
   font-size: 13px;
 }
 .vid-status-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+/*
+ * The closed bar's one control. It is a button, not a <summary>, because the
+ * bar's open state is React state the rest of the view already reads; a
+ * <details> would keep a second copy of it in the DOM.
+ *
+ * It carries the summary line, so it must wrap rather than clip: a blocked
+ * capability's name is the whole point of the closed state and may not be
+ * cut off at the edge of the row.
+ */
+.vid-status-toggle {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  background: none; border: 0; padding: 0; margin: 0;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+  min-width: 0;
+}
+.vid-status-toggle:hover strong { text-decoration: underline; }
+.vid-status-toggle:focus-visible { outline: 2px solid var(--color-focus, #2563eb); outline-offset: 2px; border-radius: 3px; }
+.vid-caret { display: inline-block; width: 1em; color: var(--color-text-muted, #6b7280); }
 .vid-line { margin: 3px 0; overflow-wrap: anywhere; }
 /*
  * The one sentence on this page that names a remedy. It is deliberately not

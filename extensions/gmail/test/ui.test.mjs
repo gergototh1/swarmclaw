@@ -19,7 +19,7 @@ import { KiadasPanel, LezartSor, PiszkozatKartya } from '../ui/kimeno.tsx'
 import { KiserletekTabla } from '../ui/kiserletek.tsx'
 import { LAP_HEALTH_CODES, allapotLabel, bekothetoE, bizonytalanKiiras, cimEntrybol, cimekFejlecbol, healthMondat, keretSzoveg, konyvKiiras, konyvonKivuliek, mcpJson } from '../ui/format.ts'
 import { McpBlokk, UninstallBlokk } from '../ui/lablec.tsx'
-import { StatusBar } from '../ui/status-bar.tsx'
+import { StatusBar, StatusBarBody } from '../ui/status-bar.tsx'
 
 /**
  * The page, driven without a browser.
@@ -41,6 +41,12 @@ import { StatusBar } from '../ui/status-bar.tsx'
  */
 
 const render = (type, props) => renderToStaticMarkup(jsx(type, props))
+
+/**
+ * The OPEN bar. The shell owns the fold; what a state looks like once drawn is
+ * the body's. The closed bar's one line is pinned separately, on the shell.
+ */
+const renderStatus = ({ onRefresh, ...props }) => render(StatusBarBody, props)
 const noop = () => {}
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -191,7 +197,7 @@ test('the built gmail bundle registers the declared page with the host React and
   assert.ok(html.includes('data-extension="gmail.mjs"'))
   assert.ok(html.includes('Betöltés'))
   assert.ok(html.includes('gm-status'), 'the status bar is drawn without the board')
-  assert.ok(html.includes('Az állapot lekérdezése folyamatban'))
+  assert.ok(html.includes('lekérdezés folyamatban'), 'and the closed bar says which of its own loads is missing')
   assert.ok(html.includes('role="tablist"'))
   assert.ok(html.includes('Uninstall előtt'), 'the uninstall guide is readable before anything loads')
 })
@@ -273,8 +279,30 @@ test('bekothetoE disables the button only for a client that is known to be missi
 
 // --- the status bar as drawn ---
 
-test('with no OAuth client the connect button is disabled with the sentence, not hidden', () => {
+test('the gmail bar is closed on first draw and shows none of the detail', () => {
+  const html = render(StatusBar, { health: health(), healthError: null, onRefresh: noop })
+  assert.ok(html.includes('aria-expanded="false"'))
+  assert.equal(html.includes('Nincs blokkolt képesség.'), false)
+  assert.equal(html.includes('Port-fájl:'), false)
+})
+
+test('a blocked capability is named on the closed gmail bar, not only behind the fold', () => {
   const html = render(StatusBar, {
+    health: health({ ok: false, blokkolt: ['kiadas'] }), healthError: null, onRefresh: noop,
+  })
+  assert.ok(html.includes('aria-expanded="false"'), 'still closed')
+  assert.ok(html.includes('blokkolt: kiadas'))
+  assert.ok(html.includes('gm-bad'))
+})
+
+test('a health that could not be read says so on the closed gmail bar', () => {
+  const html = render(StatusBar, { health: null, healthError: 'a host 500-zal válaszolt', onRefresh: noop })
+  assert.ok(html.includes('nem tudtam lekérdezni'))
+  assert.ok(html.includes('gm-bad'))
+})
+
+test('with no OAuth client the connect button is disabled with the sentence, not hidden', () => {
+  const html = renderStatus({
     health: health({
       ok: false,
       hibak: [{ kod: 'google_oauth_client_missing', mode: 'vps' }],
@@ -293,20 +321,20 @@ test('with no OAuth client the connect button is disabled with the sentence, not
 })
 
 test('a health that has not arrived leaves the button live and says the 409 will carry the remedy', () => {
-  const html = render(StatusBar, { health: null, healthError: null, onRefresh: noop })
+  const html = renderStatus({ health: null, healthError: null, onRefresh: noop })
   assert.equal(/<button[^>]*disabled[^>]*>Postafiók bekötése<\/button>/.test(html), false)
   assert.ok(html.includes('409-cel válaszol'))
   assert.ok(html.includes('Az állapot lekérdezése folyamatban'))
 })
 
 test('a health that could not be read says so instead of drawing a calm bar', () => {
-  const html = render(StatusBar, { health: null, healthError: 'a host 500-zal válaszolt', onRefresh: noop })
+  const html = renderStatus({ health: null, healthError: 'a host 500-zal válaszolt', onRefresh: noop })
   assert.ok(html.includes('Az állapotot nem tudtam lekérdezni: a host 500-zal válaszolt'))
   assert.equal(html.includes('Nincs blokkolt képesség'), false)
 })
 
 test('a warning is drawn as a warning and never folded into the failures', () => {
-  const html = render(StatusBar, {
+  const html = renderStatus({
     health: health({ figyelmeztetesek: [{ kod: 'gmail_port_fajl_hianyzik' }], blokkolt: ['mcp'] }),
     healthError: null,
     onRefresh: noop,
@@ -319,7 +347,7 @@ test('a warning is drawn as a warning and never folded into the failures', () =>
 })
 
 test('a question nobody answered is its own line, and the bar says the absence is not a pass', () => {
-  const html = render(StatusBar, {
+  const html = renderStatus({
     health: health({ nemValaszolt: [{ mit: 'postafiok', kod: 'gmail_timeout' }, { mit: 'hitelesites', kod: null }] }),
     healthError: null,
     onRefresh: noop,
