@@ -14,20 +14,30 @@ import { fakeProject } from './helpers.mjs'
 const quiet = { info() {}, warn() {}, error() {} }
 
 /**
+ * Says "this field is not in the catalogue at all", which `undefined` cannot:
+ * `harness()` with no argument leaves the fixture's own fields alone, so a
+ * test about a catalogue from before a field has to ask for its absence
+ * rather than inherit it from a fixture that happens to be old.
+ */
+const NINCS = Symbol('nincs ilyen mező')
+
+/**
  * A project, a state and the pieces a test needs to talk about the cache.
  *
  * `mintak` and `mintaKockak` are written over the fixture catalogue rather
  * than read from it, so a test says out loud which types it expects a
  * picture for; the fixture is a copy of the real catalogue and carries all
- * twenty-four.
+ * twenty-four, with a sample and a frame for each.
  */
 function harness({ mintak, mintaKockak } = {}) {
   const dir = fakeProject()
   const katFile = path.join(dir, 'src', 'kit', 'katalogus.generated.json')
   if (mintak !== undefined || mintaKockak !== undefined) {
     const kat = JSON.parse(fs.readFileSync(katFile, 'utf8'))
-    if (mintak !== undefined) kat.mintak = mintak
-    if (mintaKockak !== undefined) kat.mintaKockak = mintaKockak
+    if (mintak === NINCS) delete kat.mintak
+    else if (mintak !== undefined) kat.mintak = mintak
+    if (mintaKockak === NINCS) delete kat.mintaKockak
+    else if (mintaKockak !== undefined) kat.mintaKockak = mintaKockak
     fs.writeFileSync(katFile, JSON.stringify(kat))
   }
   const state = { log: quiet, settings: () => ({ remotionDir: dir }) }
@@ -236,11 +246,14 @@ test('an empty sample is no sample: it is never drawn and never counted as drawa
   assert.deepEqual(hivasok.map((h) => h.tipus), ['lista'], 'no browser is spawned for an empty sample')
 })
 
-test('a sample whose props are thin is still a sample: keszulek-sor is drawn, not refused', async () => {
-  // Its `kepernyok` is legitimately [] -- a required React node array the kit
-  // does not route through its filename helper -- and it renders a card with
-  // a title and nothing else, exit 0, a valid PNG. That is not a failure.
-  const { state, katalogus } = harness()
+test('a sample whose props are thin is still a sample: an empty node array is drawn, not refused', async () => {
+  // `kepernyok` is a required React node array, and while the kit did not
+  // route it through its filename helper the catalogue's own `keszulek-sor`
+  // sample carried it empty: a card with a title and nothing else, exit 0, a
+  // valid PNG. That is not a failure. The kit has since given that sample
+  // its screenshots, so the shape is stated here rather than borrowed from
+  // the fixture -- the rule outlived the sample that used to demonstrate it.
+  const { state, katalogus } = harness({ mintak: { 'keszulek-sor': { cim: 'Csak egy cím', kepernyok: [] } } })
   assert.deepEqual(katalogus.mintak['keszulek-sor'].kepernyok, [])
   assert.equal(vanMinta(katalogus, 'keszulek-sor'), true)
   const hivasok = []
@@ -283,7 +296,10 @@ test('the frame is per type, with 85 only as the fallback for a catalogue that s
   const { katalogus } = harness({ mintaKockak: { fordulat: 140 } })
   assert.equal(kockaFor(katalogus, 'fordulat'), 140)
   assert.equal(kockaFor(katalogus, 'cimlap'), KOCKA)
-  const regi = harness({ mintaKockak: undefined }).katalogus
+  // A catalogue from before the field, asked for by name: the fixture now
+  // carries `mintaKockak` for all twenty-four, so a test about its absence
+  // has to remove it rather than rely on the fixture being behind the kit.
+  const regi = harness({ mintaKockak: NINCS }).katalogus
   assert.deepEqual(regi.mintaKockak, {}, 'a catalogue from before the field is not an error')
   assert.equal(kockaFor(regi, 'fordulat'), KOCKA)
   // The length follows the frame, with the spec's 90 as the floor: a scene
@@ -365,10 +381,24 @@ test('the sweep touches nothing but 64-hex directories of this module own files,
   const root = path.join(dir, ELONEZET_NEVTER)
   fs.mkdirSync(root, { recursive: true })
   // Four things the sweep must leave exactly where they are.
+  //
+  // THE TWO NON-HASH DIRECTORIES ARE AGED, and that is the whole test. Left
+  // with a fresh mtime they sort into the keep window and the sweep never
+  // reaches them, so the name check they are here to pin is never asked the
+  // question: the guard could be deleted outright and this test would still
+  // pass. Aged past the two newer hash directories below, they are real
+  // candidates, and only `HASH_ALAK` stands between `narracio/cimlap.png`
+  // and an unlink. Each also holds a `.png` -- a name this module DOES
+  // unlink inside a hash directory of its own -- because a directory whose
+  // contents no other guard would save is the only honest way to ask.
   const nemHash = path.join(root, 'narracio')
-  fs.mkdirSync(nemHash); fs.writeFileSync(path.join(nemHash, 'hang.mp3'), 'audio')
+  fs.mkdirSync(nemHash)
+  fs.writeFileSync(path.join(nemHash, 'hang.mp3'), 'audio')
+  fs.writeFileSync(path.join(nemHash, 'cimlap.png'), 'egy kép a narráció mellett')
+  fs.utimesSync(nemHash, new Date(1000), new Date(1000))
   const rovid = path.join(root, 'a'.repeat(63))
   fs.mkdirSync(rovid); fs.writeFileSync(path.join(rovid, 'cimlap.png'), 'x')
+  fs.utimesSync(rovid, new Date(1000), new Date(1000))
   fs.writeFileSync(path.join(root, `${'4'.repeat(64)}`), 'a file, not a directory')
   // A hash-shaped directory old enough to sweep, holding something that is
   // not this module's: the file stays and so does the directory.
@@ -387,11 +417,101 @@ test('the sweep touches nothing but 64-hex directories of this module own files,
   await settle(() => allapot(state).fut === null, 'a menet vége')
   assert.ok(fs.existsSync(root), 'the namespace root is never a candidate')
   assert.ok(fs.existsSync(path.join(nemHash, 'hang.mp3')), 'a directory whose name is not 64 hex is not touched')
+  assert.ok(fs.existsSync(path.join(nemHash, 'cimlap.png')), 'not even the file kind this module would unlink in a hash directory')
   assert.ok(fs.existsSync(path.join(rovid, 'cimlap.png')), '63 hex is not 64 hex')
+  assert.ok(fs.existsSync(rovid), 'and the 63-hex directory itself is still there')
   assert.ok(fs.existsSync(path.join(root, '4'.repeat(64))), 'a file with a hash name is not a hash directory')
   assert.ok(fs.existsSync(idegen), 'a directory holding a file this module did not write stays')
   assert.ok(fs.existsSync(path.join(idegen, 'video.mp4')), 'and so does the file')
   assert.equal(fs.existsSync(path.join(idegen, 'cimlap.png')), false, 'only this module own files are unlinked')
+})
+
+test('a run never sweeps its own cache, however old the directory it is writing into looks', async () => {
+  // The operator's ordinary path here: edit the kit, edit it again, then
+  // revert to an earlier catalogue and press generate. Two other hash
+  // directories are now newer than the one this run belongs to, nothing is
+  // missing so the run draws nothing, and `mkdirSync(dir, {recursive:true})`
+  // on a directory that already exists does not refresh its mtime. Sorted by
+  // age alone, the run's own complete cache is the oldest of the three and
+  // the sweep takes it: 24 pictures in, 0 out, and the operator pressed the
+  // button that was supposed to fill the gallery.
+  const { state, dir, hashDir } = harness()
+  const root = path.join(dir, ELONEZET_NEVTER)
+  await indit(state, fakeSpawn())
+  await settle(() => allapot(state).fut === null, 'az első menet vége')
+  assert.equal(allapot(state).meglevo.length, 24, 'a complete cache for this catalogue')
+  assert.deepEqual(allapot(state).hianyzo, [], 'so the second run has nothing to draw')
+  fs.utimesSync(hashDir, new Date(1000), new Date(1000))
+  for (const h of ['1'.repeat(64), '2'.repeat(64)]) {
+    const d = path.join(root, h)
+    fs.mkdirSync(d, { recursive: true })
+    fs.writeFileSync(path.join(d, 'cimlap.png'), 'x')
+    fs.utimesSync(d, new Date(2000), new Date(2000))
+  }
+  await indit(state, fakeSpawn())
+  await settle(() => allapot(state).fut === null, 'a második menet vége')
+  const a = allapot(state)
+  assert.equal(a.meglevo.length, 24, 'the run kept the cache it had just decided was complete')
+  assert.deepEqual(a.hianyzo, [])
+  assert.ok(fs.existsSync(path.join(hashDir, 'cimlap.png')))
+  // And the keep-two rule still means two: the current one, and the newest
+  // of the others.
+  assert.equal(fs.readdirSync(root).length, MEGTARTOTT_HASHEK)
+})
+
+test('a hash-named symlink is not a hash directory: the sweep never follows one out of the namespace', async () => {
+  // `isDirectory()` is false for a symlink, and this is what it buys. A
+  // hash-shaped FILE is saved twice over -- by this guard and, behind it, by
+  // `torolHashMappa`'s readdir throwing ENOTDIR -- so a file alone cannot
+  // tell whether the guard is doing anything. A symlink can: `readdirSync`
+  // and `unlinkSync` both follow it, so without the guard the sweep reads
+  // the TARGET's entries and unlinks this module's file kinds from a
+  // directory that was never in the namespace at all.
+  const { state, dir } = harness()
+  const root = path.join(dir, ELONEZET_NEVTER)
+  fs.mkdirSync(root, { recursive: true })
+  const kivul = path.join(dir, 'out', 'swarmclaw', 'render')
+  fs.mkdirSync(kivul, { recursive: true })
+  fs.writeFileSync(path.join(kivul, 'cimlap.png'), 'nem a cache-ben van')
+  fs.writeFileSync(path.join(kivul, 'video.mp4'), 'és ez sem')
+  // `statSync` follows the link, so the age the sweep would sort on is the
+  // target's: old enough to be swept.
+  fs.utimesSync(kivul, new Date(1000), new Date(1000))
+  const link = path.join(root, '8'.repeat(64))
+  fs.symlinkSync(kivul, link)
+  // Two real hash directories newer than it, so the keep window reaches it.
+  for (const h of ['6'.repeat(64), '7'.repeat(64)]) {
+    const d = path.join(root, h)
+    fs.mkdirSync(d); fs.writeFileSync(path.join(d, 'lista.png'), 'x')
+    fs.utimesSync(d, new Date(2000), new Date(2000))
+  }
+  await indit(state, fakeSpawn())
+  await settle(() => allapot(state).fut === null, 'a menet vége')
+  assert.ok(fs.existsSync(path.join(kivul, 'cimlap.png')), 'the sweep did not reach through the link')
+  assert.ok(fs.existsSync(path.join(kivul, 'video.mp4')))
+  assert.ok(fs.existsSync(link), 'and the link itself is not a candidate either')
+})
+
+test('a run whose own last resort throws does not become an unhandled rejection', async () => {
+  // `menet`'s body is wrapped, so the only way its promise rejects is the
+  // logging in its catch failing too. Nobody holds that promise, and Node
+  // ends the process on an unhandled rejection by default: a logger that
+  // cannot log would take the host down with it.
+  const { dir, katalogus } = harness()
+  const hashDir = elonezetDir(dir, katalogus.katalogusHash)
+  fs.mkdirSync(path.dirname(hashDir), { recursive: true })
+  // A file where the cache directory goes, so the run's first statement --
+  // `mkdirSync` -- throws and the catch is what runs.
+  fs.writeFileSync(hashDir, 'nem könyvtár')
+  const robbano = {
+    log: { info() {}, warn() { throw new Error('a naplózó is elszállt') }, error() {} },
+    settings: () => ({ remotionDir: dir }),
+  }
+  await indit(robbano, fakeSpawn())
+  await settle(() => allapot(robbano).fut === null, 'a menet vége')
+  // Long enough for a rejection nobody caught to be reported against this test.
+  await new Promise((r) => setTimeout(r, 50))
+  assert.equal(allapot(robbano).fut, null, 'and the lock is released either way')
 })
 
 test('the props file is temporary: the cache directory holds pictures and nothing else', async () => {

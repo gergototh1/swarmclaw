@@ -125,12 +125,13 @@ let futas = null
  * still owes it one.
  *
  * THIS IS NOT A CONTENT CHECK, and must not become one. `keszulek-sor`'s
- * sample is `{ cim: ..., kepernyok: [] }` -- one real prop and one empty
- * list, because `kepernyok` is a required React node array the kit does not
- * route through its filename helper -- and it draws a card with a title and
- * nothing else. That is a true picture of what the kit does with that
- * sample, the process exits 0, the file is a valid PNG, and none of it is a
- * failure of anything here. The rule is about a sample with no keys, not
+ * sample was `{ cim: ..., kepernyok: [] }` for as long as the kit did not
+ * route `kepernyok` through its filename helper -- one real prop and one
+ * empty list -- and it drew a card with a title and nothing else. That was
+ * a true picture of what the kit did with that sample: the process exits 0,
+ * the file is a valid PNG, and none of it is a failure of anything here.
+ * The kit has since given that sample its screenshots, which changed the
+ * picture and not the rule: the rule is about a sample with no keys, not
  * about a sample whose keys are thin.
  */
 export function vanMinta(katalogus, tipus) {
@@ -202,8 +203,17 @@ function listak(katalogus, dir) {
   return { meglevo, hianyzo, mintaNelkul }
 }
 
-/** The run as the page may read it: counts, codes and names, never the child process handle. */
-function futasNezet() {
+/**
+ * The run as the page may read it: counts, codes and names, never the child
+ * process handle.
+ *
+ * Exported because it is the one part of `allapot` that does not need the
+ * project. A run started before the operator changed the setting is still
+ * on, and `templatePreviewStatus` answers with it beside the refusal code
+ * rather than reporting `null` at a moment the cancel button is the thing
+ * the operator wants.
+ */
+export function futasNezet() {
   if (futas === null) return null
   return {
     katalogusHash: futas.katalogusHash,
@@ -333,7 +343,20 @@ function torolHashMappa(dir) {
 }
 
 /**
- * Keeps the newest `MEGTARTOTT_HASHEK` hash directories and takes the rest.
+ * Keeps the run's own hash directory and the newest of the others, and takes
+ * the rest.
+ *
+ * THE CURRENT HASH IS NOT SORTED, IT IS KEPT. Age is a bad proxy for "live":
+ * `mkdirSync(dir, { recursive: true })` on a directory that already exists
+ * does not touch its mtime, so a run that finds nothing missing never
+ * refreshes its own directory, and two other hashes edited later are both
+ * newer than the cache the operator is looking at. The precondition is
+ * ordinary -- edit the kit twice, revert to an earlier catalogue, press the
+ * button -- and the outcome was a complete cache swept away by the run that
+ * had just decided it was complete. So the live hash is named to this
+ * function and taken out of the candidates before the sort, which is also
+ * what `MEGTARTOTT_HASHEK` has always said out loud: the current one and the
+ * one before it.
  *
  * Three independent conditions before any path is deleted, because one bug
  * elsewhere must not be enough: the entry's name is 64 hex digits (so it
@@ -342,7 +365,7 @@ function torolHashMappa(dir) {
  * from it has the namespace root as its immediate parent -- which is also
  * what makes it impossible for this to name the root itself.
  */
-function seper(remotionDir) {
+function seper(remotionDir, jelenlegiHash) {
   const root = path.join(remotionDir, ELONEZET_NEVTER)
   let entries = []
   try {
@@ -351,9 +374,15 @@ function seper(remotionDir) {
     return { torolt: 0 }
   }
   const mappak = []
+  let jelenlegiVan = false
   for (const e of entries) {
     if (!HASH_ALAK.test(e.name)) continue
     if (!e.isDirectory()) continue
+    // Never a candidate, whatever its mtime says.
+    if (e.name === jelenlegiHash) {
+      jelenlegiVan = true
+      continue
+    }
     const dir = path.join(root, e.name)
     if (dir === root || path.dirname(dir) !== root) continue
     let mtime = 0
@@ -365,8 +394,11 @@ function seper(remotionDir) {
     mappak.push({ dir, mtime })
   }
   mappak.sort((a, b) => b.mtime - a.mtime)
+  // `MEGTARTOTT_HASHEK` counts what survives, the current directory
+  // included, so it takes one of the places when it is there.
+  const megtartottRegi = Math.max(0, MEGTARTOTT_HASHEK - (jelenlegiVan ? 1 : 0))
   let torolt = 0
-  for (const m of mappak.slice(MEGTARTOTT_HASHEK)) {
+  for (const m of mappak.slice(megtartottRegi)) {
     torolHashMappa(m.dir)
     torolt += 1
   }
@@ -437,7 +469,7 @@ async function menet(state, menetAllapot, { remotionDir, katalogus, dir, hianyzo
       if (hiba === null) menetAllapot.kesz.push(tipus)
       else menetAllapot.hibak[tipus] = hiba
     }
-    seper(remotionDir)
+    seper(remotionDir, katalogus.katalogusHash)
   } catch (err) {
     state.log.warn('video: az előnézet-generálás megszakadt', { message: err instanceof Error ? err.message : String(err) })
   } finally {
@@ -486,7 +518,13 @@ export async function indit(state, spawnImpl = state.spawnImpl || spawn) {
   futas = menetAllapot
   // Not awaited: the run outlives this call, and `menet` clears `futas` in a
   // finally of its own, so nothing here can leave the lock held.
-  menet(state, menetAllapot, { remotionDir, katalogus, dir, hianyzo, spawner: resolvingSpawn(state, spawnImpl) })
+  //
+  // The `.catch` is not decoration. `menet`'s body is wrapped, so the only
+  // way it rejects is its own last resort throwing -- `state.log.warn`
+  // itself failing inside the catch -- and a promise nobody is holding that
+  // rejects is an unhandled rejection, which Node ends the process on by
+  // default. A logger that cannot log must not take the host down with it.
+  menet(state, menetAllapot, { remotionDir, katalogus, dir, hianyzo, spawner: resolvingSpawn(state, spawnImpl) }).catch(() => {})
   return { indult: true }
 }
 

@@ -317,22 +317,96 @@ test('the four preview methods answer, and none of them starts a run by itself',
   // is why this state carries no spawn seam at all -- a call that reached
   // `spawn` would launch npx on the machine running the suite.
   const a = await rpc.templatePreviewStatus()
+  assert.equal(a.hiba, null)
   assert.equal(a.fut, null)
   assert.equal(a.katalogusHash.length, 64)
   assert.equal(a.meglevo.length, 0)
   assert.equal(a.mintaNelkul.length + a.hianyzo.length, a.katalogusTipusok.length)
-  assert.deepEqual(await rpc.templatePreview({ tipus: 'cimlap' }), { dataUrl: null, ok: 'nincs_kep' })
-  assert.deepEqual(await rpc.templatePreview({ tipus: 'nincs-ilyen' }), { dataUrl: null, ok: 'tipus_ismeretlen' })
+  assert.deepEqual(await rpc.templatePreview({ tipus: 'cimlap' }), { dataUrl: null, ok: 'nincs_kep', hiba: null })
+  assert.deepEqual(await rpc.templatePreview({ tipus: 'nincs-ilyen' }), { dataUrl: null, ok: 'tipus_ismeretlen', hiba: null })
   await assert.rejects(() => rpc.templatePreview({ tipus: 5 }), /tipus/)
   await assert.rejects(() => rpc.templatePreview({ tipus: 'x'.repeat(65) }), /tipus/)
   assert.deepEqual(await rpc.templatePreviewCancel(), { megszakitva: false })
   // And the injected spawn is what a start uses, so still nothing is run.
   state.spawnImpl = () => { const c = new EventEmitter(); c.kill = () => {}; return c }
-  assert.deepEqual(await rpc.templatePreviewStart(), { indult: true })
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: true, hiba: null })
   // A second press is refused by name and carries the code to the page
-  // rather than a 500 over a run that is going fine.
-  assert.deepEqual(await rpc.templatePreviewStart(), { indult: false, ok: 'mar_fut' })
+  // rather than a 500 over a run that is going fine. It is the method's own
+  // vocabulary, so it rides `ok` and not `hiba`: a broken connection and a
+  // run that is going fine must never be the same shape.
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: false, ok: 'mar_fut', hiba: null })
   assert.deepEqual(await rpc.templatePreviewCancel(), { megszakitva: true })
+  _resetFutas()
+})
+
+test('all four preview methods answer an unreadable project, and none of them throws over it', async () => {
+  // An unreadable project is an ordinary operator state -- the setting is
+  // empty on a fresh install -- and the gallery has to draw something either
+  // way. So these answer with a code in `hiba`, the same field and the same
+  // codes `templates` uses, rather than making the page handle a second,
+  // harder shape for the same state.
+  const { rpc } = setup({ remotionDir: '' })
+  _resetFutas()
+  const a = await rpc.templatePreviewStatus()
+  assert.equal(a.hiba, 'remotion_dir_hianyzik')
+  assert.equal(a.fut, null)
+  // Every catalogue-derived field is null, never an empty list: `hianyzo: []`
+  // would draw as "the gallery is complete".
+  for (const mezo of ['katalogusHash', 'katalogusTipusok', 'meglevo', 'hianyzo', 'mintaNelkul']) {
+    assert.equal(a[mezo], null, mezo)
+  }
+  assert.deepEqual(await rpc.templatePreview({ tipus: 'cimlap' }), { dataUrl: null, hiba: 'remotion_dir_hianyzik' })
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: false, hiba: 'remotion_dir_hianyzik' })
+  // Cancel reads nothing but this module's own run state, so it has no
+  // project to fail on and carries no `hiba` it could never fill.
+  assert.deepEqual(await rpc.templatePreviewCancel(), { megszakitva: false })
+})
+
+test('a catalogue the other repository left unreadable is the same answer, by its own code', async () => {
+  const dir = fakeProject()
+  fs.writeFileSync(path.join(dir, 'src', 'kit', 'katalogus.generated.json'), 'nem json')
+  const { rpc } = setup({ remotionDir: dir })
+  _resetFutas()
+  assert.equal((await rpc.templatePreviewStatus()).hiba, 'katalogus_ervenytelen')
+  assert.deepEqual(await rpc.templatePreview({ tipus: 'cimlap' }), { dataUrl: null, hiba: 'katalogus_ervenytelen' })
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: false, hiba: 'katalogus_ervenytelen' })
+})
+
+test('a run in flight is still reported when the project stops being readable under it', async () => {
+  // The run lives in this extension and not in the operator's project, so a
+  // setting changed mid-run does not make the run disappear -- and that is
+  // exactly the moment the cancel button matters.
+  let olvashato = true
+  const dir = fakeProject()
+  const { rpc, state } = setup({ remotionDir: dir })
+  state.settings = () => ({ remotionDir: olvashato ? dir : '' })
+  _resetFutas()
+  state.spawnImpl = () => { const c = new EventEmitter(); c.kill = () => {}; return c }
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: true, hiba: null })
+  olvashato = false
+  const a = await rpc.templatePreviewStatus()
+  assert.equal(a.hiba, 'remotion_dir_hianyzik')
+  assert.equal(a.katalogusHash, null)
+  assert.equal(a.fut.osszes, 24, 'the run is answered beside the refusal, not hidden behind it')
+  assert.deepEqual(await rpc.templatePreviewCancel(), { megszakitva: true })
+  _resetFutas()
+})
+
+test('a start answers "already running" and nothing else: an error it has no answer for is not dressed up as one', async () => {
+  // The project is read here first, deliberately, and only the run-already-on
+  // refusal is converted into an answer afterwards. Everything else `indit`
+  // can throw is something this method does not understand, and
+  // `{ indult: false, ok }` over it would tell the page a run did not start
+  // for a reason the page can draw -- when in truth nobody here knows what
+  // happened. The seam is the settings read: the guard sees the project, and
+  // `indit` reads it again a moment later.
+  const dir = fakeProject()
+  const { rpc, state } = setup({ remotionDir: dir })
+  _resetFutas()
+  let olvasas = 0
+  state.settings = () => { olvasas += 1; return { remotionDir: olvasas === 1 ? dir : '' } }
+  await assert.rejects(() => rpc.templatePreviewStart(), (err) => err.code === 'remotion_dir_hianyzik')
+  assert.equal((await rpc.templatePreviewStatus()).fut, null, 'and no lock is left behind')
   _resetFutas()
 })
 

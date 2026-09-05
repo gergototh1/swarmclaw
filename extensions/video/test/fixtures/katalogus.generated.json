@@ -354,7 +354,7 @@
       {
         "nev": "kepernyok",
         "kotelezo": true,
-        "mit": "A keszulekek kepernyotartalmai, sorrendben -- React-csomopont lista, JSON-bol nem kuldheto."
+        "mit": "A keszulekek kepernyotartalmai, sorrendben: kep-fajlnevek a public/ mappabol. A tipus sajat React-csomopontokat is elfogad, de azokat JSON-bol nem lehet kuldeni -- fajlneveket adj."
       },
       {
         "nev": "teljes",
@@ -471,12 +471,12 @@
       {
         "nev": "bal",
         "kotelezo": true,
-        "mit": "A bal oldali (elotte/ok) kep vagy tartalom -- React-csomopont, JSON-bol nem kuldheto."
+        "mit": "A bal oldali (elotte/ok) kep: kep-fajlnev a public/ mappabol. A tipus sajat React-csomopontot is elfogad, de azt JSON-bol nem lehet kuldeni -- fajlnevet adj."
       },
       {
         "nev": "jobb",
         "kotelezo": true,
-        "mit": "A jobb oldali (utana/okozat) kep vagy tartalom, ami jobbrol balra atfedi a balt -- React-csomopont, JSON-bol nem kuldheto."
+        "mit": "A jobb oldali (utana/okozat) kep, ami jobbrol balra atfedi a balt: kep-fajlnev a public/ mappabol. A tipus sajat React-csomopontot is elfogad, de azt JSON-bol nem lehet kuldeni -- fajlnevet adj."
       },
       {
         "nev": "balCimke",
@@ -573,7 +573,7 @@
       {
         "nev": "kep",
         "kotelezo": true,
-        "mit": "A teljes kep, amire ra fogunk nagyitani -- React-csomopont, JSON-bol nem kuldheto."
+        "mit": "A teljes kep, amire ra fogunk nagyitani: kep-fajlnev a public/ mappabol. A tipus sajat React-csomopontot is elfogad, de azt JSON-bol nem lehet kuldeni -- fajlnevet adj."
       },
       {
         "nev": "felirat",
@@ -706,7 +706,11 @@
     },
     "keszulek-sor": {
       "cim": "Igy nez ki egy keszulek-sor",
-      "kepernyok": []
+      "kepernyok": [
+        "chatgpt-felulet.png",
+        "lib-remocn.png",
+        "gt-letoltesek-oldal.png"
+      ]
     },
     "idezet": {
       "idezet": "Igy nez ki egy idezet, a forrasaval egyutt.",
@@ -864,6 +868,32 @@
       "felirat": "Igy nez ki egy nagyitas.",
       "y": 0.35
     }
+  },
+  "mintaKockak": {
+    "cimlap": 56,
+    "atvezeto": 24,
+    "lista": 190,
+    "kartya-csere": 92,
+    "allitas": 44,
+    "szam": 104,
+    "cta": 76,
+    "gorbe": 80,
+    "oszlop": 66,
+    "koriv": 106,
+    "osszehuzas": 82,
+    "keszulek-sor": 72,
+    "idezet": 62,
+    "racs": 72,
+    "szam-racs": 74,
+    "kep-allitas": 64,
+    "lepessor": 90,
+    "osztott": 36,
+    "osszetetel": 74,
+    "bizonyitek": 124,
+    "fordulat": 162,
+    "magyarazott": 134,
+    "osszegzes": 148,
+    "nagyitas": 108
   },
   "kozosPropok": [
     {

@@ -1,6 +1,6 @@
 import { VideoError } from './args.mjs'
 import { VIDEO_STATUSOK } from './db.mjs'
-import { allapot, indit, kep, megszakit, vanMinta } from './elonezet.mjs'
+import { allapot, futasNezet, indit, kep, megszakit, vanMinta } from './elonezet.mjs'
 import { runHealth } from './health.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
 import { KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, tablaHianyai } from './kit-tabla.mjs'
@@ -386,41 +386,80 @@ export function createRpc(state, ops) {
       }
     },
     /**
-     * One template's picture as a data URL, or null with a code. The grid
-     * asks per card, as cards become visible, so nothing loads twenty-four
-     * images to draw the six the operator can see.
+     * The gallery's four controls, and what an unreadable project does to
+     * them.
+     *
+     * ALL FOUR ANSWER, exactly the way `templates` does, and none of them
+     * throws over a project the operator has not connected. An unreadable
+     * project is an ordinary operator state -- the setting is empty on a
+     * fresh install, and the other repository can be moved or half-written
+     * at any moment -- and the view has to draw something either way. The
+     * page already handles `templates`' `hiba` plus its null branch, so a
+     * throw here would only mean the gallery had a second, harder shape to
+     * handle for the same state: a poll that turns red over a page that is
+     * otherwise fine.
+     *
+     * TWO FIELDS, NEVER ONE. `hiba` is "the other repository could not be
+     * read", by the same code and the same field name `templates` uses;
+     * `ok` is the method's own vocabulary -- `mar_fut`, `nincs_kep`,
+     * `nincs_minta`, `tipus_ismeretlen`. Folding a project refusal into
+     * `ok` would give a broken connection the same shape as a run that is
+     * going fine, which is the one thing the page must not confuse.
+     *
+     * `templatePreviewCancel` carries no `hiba`: it reads nothing but this
+     * module's own run state, so there is no project for it to fail on, and
+     * a field that could never be anything but null would be a promise it
+     * does not make.
      */
     async templatePreview(body = {}) {
       need(typeof body.tipus === 'string' && body.tipus.length <= 64, 'tipus: szöveg kell')
-      return kep(state, body.tipus)
+      const { hiba } = catalogOrCode(state)
+      if (hiba) return { dataUrl: null, hiba }
+      // The grid asks per card, as cards become visible, so nothing loads
+      // twenty-four images to draw the six the operator can see.
+      return { ...kep(state, body.tipus), hiba: null }
     },
     /**
      * Starts the generation of every missing picture and returns at once.
      *
      * Refuses a second run BY NAME and does not queue it: the answer carries
-     * `ok: 'mar_fut'` rather than a 500, the way `templates` carries a
-     * catalogue's refusal code, so the page can say "it is already running"
-     * instead of showing an error over a run that is going fine.
+     * `ok: 'mar_fut'` rather than a 500, so the page can say "it is already
+     * running" instead of showing an error over a run that is going fine.
+     *
+     * THE CATCH IS THAT ONE REFUSAL AND NOTHING ELSE. The project is read
+     * here, deliberately, before the run is asked for; what `indit` can
+     * still throw afterwards is not something this method has an answer
+     * for, and `{ indult: false, ok }` over it would tell the page a run
+     * did not start for a reason it can draw, when in truth nobody here
+     * knows what happened.
      */
     async templatePreviewStart() {
+      const { hiba } = catalogOrCode(state)
+      if (hiba) return { indult: false, hiba }
       try {
-        return await indit(state)
+        return { ...(await indit(state)), hiba: null }
       } catch (err) {
-        if (err instanceof VideoError) return { indult: false, ok: err.code }
+        if (err instanceof VideoError && err.code === 'mar_fut') return { indult: false, ok: err.code, hiba: null }
         throw err
       }
     },
     /**
      * Where a run is, or null. The page polls this while a run is on.
      *
-     * These three, unlike `templates`, refuse rather than answer when the
-     * project cannot be read: they are the gallery's controls, and the
-     * gallery is drawn from a `templates` answer that already carried the
-     * catalogue. A page that got `hiba` from `templates` has no cards to put
-     * pictures on and must not ask for them.
+     * Every catalogue-derived field is `null` beside the code when the
+     * project cannot be read, never an empty list, for the reason
+     * `templates` gives at length: `hianyzo: []` would draw as "the gallery
+     * is complete". `fut` is answered either way, because the run lives in
+     * this module and not in the project: a run started before the operator
+     * changed the setting is still on, and that is the moment the cancel
+     * button matters most.
      */
     async templatePreviewStatus() {
-      return allapot(state)
+      const { hiba } = catalogOrCode(state)
+      if (hiba) {
+        return { hiba, katalogusHash: null, katalogusTipusok: null, meglevo: null, hianyzo: null, mintaNelkul: null, fut: futasNezet() }
+      }
+      return { hiba: null, ...allapot(state) }
     },
     /** Stops the run before the next type. What is already generated stays. */
     async templatePreviewCancel() {
