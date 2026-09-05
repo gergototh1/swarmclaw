@@ -7,6 +7,7 @@ import type { ExtensionMeta, MarketplaceExtension } from '@/types'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { errorMessage } from '@/lib/shared-utils'
+import { summarizeManagedReconcile, type ManagedReconcileResultShape } from '@/lib/extensions/reconcile-summary'
 
 type ManagedResourceStatus = 'declared' | 'resolved' | 'missing' | 'missing_ref' | 'unsupported_trigger'
 type ManagedResourceSummary = {
@@ -130,14 +131,21 @@ export function ExtensionManager() {
     const id = extensionId || 'all'
     setReconciling(id)
     try {
-      const result = await api<{ createdAgents: string[]; updatedAgents: string[]; createdSchedules: string[]; updatedSchedules: string[] }>(
+      const result = await api<ManagedReconcileResultShape>(
         'POST',
         '/extensions/managed-resources',
         { action: 'reconcile', ...(extensionId ? { extensionId } : {}) },
         { timeoutMs: 30_000 },
       )
       await Promise.all([loadExtensions(), loadManagedResources()])
-      toast.success(`Reconciled ${result.createdAgents.length + result.updatedAgents.length} agents and ${result.createdSchedules.length + result.updatedSchedules.length} schedules`)
+      // Counting only created + updated reported a run that skipped every
+      // declaration as "Reconciled 0 agents and 0 schedules", which reads as
+      // success. summarizeManagedReconcile names the skips and marks such a
+      // run as the failure it is; the same helper writes the sentence on the
+      // extension list's own Reconcile button, so the two agree.
+      const summary = summarizeManagedReconcile(result)
+      if (summary.ok) toast.success(summary.text)
+      else toast.error(summary.text)
     } catch (err: unknown) {
       toast.error(errorMessage(err))
     } finally {

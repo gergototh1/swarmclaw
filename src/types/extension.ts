@@ -805,6 +805,31 @@ export interface ExtensionContext {
     hasGoogleCredential: (purpose: string) => boolean
   }
   /**
+   * Where an external command this extension shells out to actually lives, or
+   * null when the lookup found nothing.
+   *
+   * An extension that spawns `ffprobe` by its bare name gets whatever `PATH`
+   * the host process inherited, and the packaged desktop app does not inherit
+   * the operator's login `PATH`: a Homebrew or nvm binary that works from a
+   * terminal is simply absent there. This asks a login shell first and then the
+   * well-known install directories, the same way the host resolves the CLI
+   * providers' binaries — which extensions cannot call themselves, since they
+   * may not import from the host's `src/`.
+   *
+   * A non-null answer is a path that existed when the lookup ran and nothing
+   * more: not that it is executable by this process, not that it is the version
+   * wanted, not that it is still there at spawn time. On null, spawn the bare
+   * name anyway so the operating system's own ENOENT is what the operator
+   * reads, rather than a guess dressed up as a fact.
+   *
+   * Only a plain command name is accepted (letters, digits and `. _ + -`). The
+   * lookup puts the name in a login shell's `command -v`, so a name with a path
+   * separator, whitespace or a shell character is refused by name with a thrown
+   * `TypeError` and never quietly rewritten. A binary at a known absolute path
+   * needs none of this: spawn the path.
+   */
+  resolveBinary: (name: string) => string | null
+  /**
    * Access to the contracts other extensions declare. Safe to capture: every
    * call re-resolves, so a captured handle follows the provider being disabled
    * or deleted instead of going stale -- true for every extension regardless

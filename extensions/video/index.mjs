@@ -20,7 +20,9 @@ import { createTervTools } from './src/terv.mjs'
  * here reads a file. Plain assignment is idempotent, so re-running setup() is
  * free.
  *
- * The seven seams after `repo` are the keys the host never fills, listed here
+ * `resolveBinary` is the host's own, filled by setup() below.
+ *
+ * The seven seams after it are the keys the host never fills, listed here
  * so a reader of this file sees every key the shared state can carry:
  *
  *   spawnImpl, execFileImpl, killImpl  -- render.mjs's child process, ffprobe
@@ -47,6 +49,7 @@ export const state = {
   log: console,
   contracts: null,
   repo: null,
+  resolveBinary: null,
   spawnImpl: null,
   execFileImpl: null,
   killImpl: null,
@@ -89,6 +92,11 @@ const video = {
     state.settings = ctx.settings
     state.log = ctx.log
     state.contracts = ctx.contracts
+    // Where ffmpeg, ffprobe and npx actually live on this machine, which the
+    // bare PATH of a packaged desktop app does not answer (src/binaries.mjs).
+    // A host without the surface leaves this null and every call falls back
+    // to the bare name, which is what the module did before.
+    state.resolveBinary = typeof ctx.resolveBinary === 'function' ? ctx.resolveBinary : null
     state.repo = createRepo(ctx.storage)
   },
   // The catalogue read, the six tools of a plan's life before narration
@@ -161,8 +169,9 @@ const video = {
   /**
    * The two agents and their three schedules (src/agents.mjs). Nothing here
    * exists on the operator's instance until they press Reconcile once on
-   * Extensions > Managed resources: no host path runs a reconcile on install,
-   * enable or upgrade.
+   * the Extensions list -- the Reconcile button on this extension's own card,
+   * or `swarmclaw extensions reconcile --extension-id video.mjs`. No host path
+   * runs a reconcile on install, enable or upgrade.
    *
    * `setupChecks` is the install's conditions by name, from the same list
    * `health` answers (src/health.mjs). The host counts them for the card and

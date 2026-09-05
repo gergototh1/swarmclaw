@@ -731,3 +731,72 @@ test('all command definitions execute with a mocked API transport', async () => 
 
   fs.rmSync(tmpDir, { recursive: true, force: true })
 })
+
+test('extensions reconcile posts the reconcile action for every extension', async () => {
+  const stdout = makeWritable()
+  const stderr = makeWritable()
+  const calls = []
+
+  const fetchImpl = async (url, init) => {
+    calls.push({ url: String(url), init })
+    return jsonResponse({ createdAgents: ['a1'], updatedAgents: [], createdSchedules: ['s1'], updatedSchedules: [], skipped: [] })
+  }
+
+  const exitCode = await runCli(['extensions', 'reconcile', '--json'], {
+    fetchImpl,
+    stdout,
+    stderr,
+    env: {},
+    cwd: process.cwd(),
+  })
+
+  assert.equal(exitCode, 0)
+  assert.equal(calls.length, 1)
+  assert.match(calls[0].url, /\/api\/extensions\/managed-resources$/)
+  assert.equal(calls[0].init.method, 'POST')
+  // The action is the verb's own, so an operator never has to know the body
+  // shape to reach a reconcile from the CLI.
+  assert.deepEqual(JSON.parse(calls[0].init.body), { action: 'reconcile' })
+  assert.match(stdout.toString(), /"createdAgents"/)
+  assert.equal(stderr.toString(), '')
+})
+
+test('extensions reconcile targets one extension with --extension-id', async () => {
+  const stdout = makeWritable()
+  const stderr = makeWritable()
+  const calls = []
+
+  const fetchImpl = async (url, init) => {
+    calls.push({ url: String(url), init })
+    return jsonResponse({ createdAgents: [], updatedAgents: [], createdSchedules: [], updatedSchedules: [], skipped: [] })
+  }
+
+  const exitCode = await runCli(['extensions', 'reconcile', '--extension-id', 'video.mjs', '--json'], {
+    fetchImpl,
+    stdout,
+    stderr,
+    env: {},
+    cwd: process.cwd(),
+  })
+
+  assert.equal(exitCode, 0)
+  assert.deepEqual(JSON.parse(calls[0].init.body), { action: 'reconcile', extensionId: 'video.mjs' })
+  assert.equal(stderr.toString(), '')
+})
+
+test('extensions reconcile is listed in the group help, so it can be found', async () => {
+  const stdout = makeWritable()
+  const stderr = makeWritable()
+
+  const exitCode = await runCli(['extensions', '--help'], {
+    fetchImpl: async () => { throw new Error('help must not call the API') },
+    stdout,
+    stderr,
+    env: {},
+    cwd: process.cwd(),
+  })
+
+  assert.equal(exitCode, 0)
+  assert.match(stdout.toString(), /\breconcile\b/)
+  assert.match(stdout.toString(), /--extension-id/)
+})

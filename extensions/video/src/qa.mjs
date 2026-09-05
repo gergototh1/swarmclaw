@@ -135,7 +135,11 @@ const round = (n, digits) => Number(n.toFixed(digits))
  * `qa_fajl_hianyzik`. `execFileImpl` is the runner for `ffprobe` and
  * `ffmpeg`, in the shape of the promisified `execFile`: resolves with
  * `{ stdout, stderr }`, rejects on a non-zero exit. It is injected so the
- * gate can be tested without either binary; absent, the real one runs.
+ * gate can be tested without either binary; absent, the real one runs. The
+ * production caller (render.mjs) injects a runner that resolves the tool's
+ * name to a path first, which is what finds ffmpeg and ffprobe in the
+ * packaged desktop app; a caller that passes nothing gets the bare names and
+ * the operating system's own PATH search, as before.
  *
  * Returns `{ ok, meresek, bukasok, figyelmeztetesek, fileSha256, szabalykeszlet }`.
  * `meresek` carries the original's fact names (`size_bytes`, `duration_s`,

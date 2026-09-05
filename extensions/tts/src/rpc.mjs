@@ -4,6 +4,7 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 
 import { readNoArgs, readSynthesisArgs } from './args.mjs'
+import { resolvingExecFile } from './binaries.mjs'
 import { sha256 } from './db.mjs'
 import { TtsError, looksLikeMp3 } from './soniox.mjs'
 import { SZOLGALTATO, celFajlEllenorzes, probeDurationMs, readSettings, szovegEllenorzes } from './synthesize.mjs'
@@ -194,7 +195,7 @@ export function createRpc(state, synth, { workspaceDir, portFile }) {
         if (state.repo.cacheHit(key)) { skipped += 1; continue }
         let hosszMs
         try {
-          hosszMs = await probeDurationMs(fajl, state.execFileImpl || execFileAsync)
+          hosszMs = await probeDurationMs(fajl, resolvingExecFile(state, state.execFileImpl || execFileAsync))
         } catch (err) {
           refused.push({ index: i, ok: 'hossz_meres_sikertelen', uzenet: err instanceof Error ? err.message : String(err) })
           continue

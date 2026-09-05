@@ -14,6 +14,8 @@ import { createSynthesizer } from './src/synthesize.mjs'
  * listener or a subscription: a reload would leak one per load. Plain
  * assignment is idempotent, so re-running setup() is free.
  *
+ * `resolveBinary` is the host's own, filled by setup() below.
+ *
  * `fetchImpl` and `execFileImpl` are the two keys the host never fills. They
  * are declared here, beside setup()'s own, so the seams are visible where every
  * other key on the shared state is: the synthesis layer will build its Soniox
@@ -29,6 +31,7 @@ export const state = {
   log: console,
   contracts: null,
   repo: null,
+  resolveBinary: null,
   fetchImpl: null,
   execFileImpl: null,
 }
@@ -79,6 +82,11 @@ const tts = {
     state.settings = ctx.settings
     state.log = ctx.log
     state.contracts = ctx.contracts
+    // Where ffprobe actually lives on this machine, which the bare PATH of a
+    // packaged desktop app does not answer (src/binaries.mjs). A host without
+    // the surface leaves this null and the probe falls back to the bare name,
+    // which is what the module did before.
+    state.resolveBinary = typeof ctx.resolveBinary === 'function' ? ctx.resolveBinary : null
     state.repo = createRepo(ctx.storage)
   },
   tools: [],

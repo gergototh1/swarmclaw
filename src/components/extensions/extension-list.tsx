@@ -10,7 +10,8 @@ import { useMountedRef } from '@/hooks/use-mounted-ref'
 import type { Agent, MarketplaceExtension, ExtensionContractConsumedMeta, ExtensionMeta } from '@/types'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
-import { dedup } from '@/lib/shared-utils'
+import { dedup, errorMessage } from '@/lib/shared-utils'
+import { summarizeManagedReconcile, type ManagedReconcileResultShape } from '@/lib/extensions/reconcile-summary'
 
 type TopTab = 'extensions' | 'marketplace'
 
@@ -34,6 +35,7 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
   const [mpLoading, setMpLoading] = useState(false)
   const [installing, setInstalling] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [reconciling, setReconciling] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<{ filename: string; name: string } | null>(null)
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState<string | null>(null)
@@ -89,6 +91,44 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
       loadExtensions()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to toggle extension')
+    }
+  }
+
+  /**
+   * Create or update the agents and routines an extension declares.
+   *
+   * WHY THIS BUTTON EXISTS HERE. No host path runs a reconcile on install, on
+   * enable or on upgrade, so an extension that declares two agents and three
+   * routines arrives with none of them and stays that way until somebody asks
+   * for one. Until this control there was nowhere in the shipped product to
+   * ask: the only reconcile buttons live in `src/views/settings/extension-manager.tsx`,
+   * which nothing imports, and the CLI reached it through a generic
+   * route-mapped verb the help never named. An operator reading "no routines --
+   * Reconcile needed" on an extension's own page had nothing to press.
+   *
+   * The result is reported by `summarizeManagedReconcile`, which is where the
+   * numbers -- including the ones that are zero, and any declaration the host
+   * refused -- become the sentence. A run that skipped everything shows as a
+   * failure, because it is one.
+   */
+  const handleReconcile = async (e: React.MouseEvent, filename: string) => {
+    e.stopPropagation()
+    setReconciling(filename)
+    try {
+      const result = await api<ManagedReconcileResultShape>(
+        'POST',
+        '/extensions/managed-resources',
+        { action: 'reconcile', extensionId: filename },
+        { timeoutMs: 30_000 },
+      )
+      const summary = summarizeManagedReconcile(result)
+      if (summary.ok) toast.success(summary.text)
+      else toast.error(summary.text)
+      await loadExtensions()
+    } catch (err: unknown) {
+      toast.error(errorMessage(err))
+    } finally {
+      setReconciling(null)
     }
   }
 
@@ -193,9 +233,11 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
           allowDelete
           search={search}
           agents={agents}
+          reconciling={reconciling}
           onEdit={handleEdit}
           onToggle={handleToggle}
           onDelete={handleDeleteClick}
+          onReconcile={handleReconcile}
           onNavigateToAgent={navigateToAgentChat}
           emptyMessage={search ? 'No extensions match your search' : 'No extensions installed'}
           emptyAction={!search ? (
@@ -332,14 +374,16 @@ function ContractConsumptions({ consumed }: { consumed: ExtensionContractConsume
 
 // --- Installed extensions grid ---
 
-function InstalledGrid({ extensions, allowDelete, search, agents, onEdit, onToggle, onDelete, onNavigateToAgent, emptyMessage, emptyAction }: {
+function InstalledGrid({ extensions, allowDelete, search, agents, reconciling, onEdit, onToggle, onDelete, onReconcile, onNavigateToAgent, emptyMessage, emptyAction }: {
   extensions: ExtensionMeta[]
   allowDelete: boolean
   search: string
   agents: Record<string, Agent>
+  reconciling: string | null
   onEdit: (filename: string) => void
   onToggle: (e: React.MouseEvent, filename: string, enabled: boolean) => void
   onDelete: (e: React.MouseEvent, filename: string, name: string) => void
+  onReconcile: (e: React.MouseEvent, filename: string) => void
   onNavigateToAgent: (agentId: string) => void
   emptyMessage: string
   emptyAction?: React.ReactNode
@@ -371,9 +415,11 @@ function InstalledGrid({ extensions, allowDelete, search, agents, onEdit, onTogg
           ext={ext}
           allowDelete={allowDelete}
           agents={agents}
+          reconciling={reconciling === ext.filename}
           onEdit={onEdit}
           onToggle={onToggle}
           onDelete={onDelete}
+          onReconcile={onReconcile}
           onNavigateToAgent={onNavigateToAgent}
           highlight={search}
         />
@@ -384,18 +430,21 @@ function InstalledGrid({ extensions, allowDelete, search, agents, onEdit, onTogg
 
 // --- Extension card ---
 
-function ExtensionCard({ ext, allowDelete, agents, onEdit, onToggle, onDelete, onNavigateToAgent, highlight }: {
+function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle, onDelete, onReconcile, onNavigateToAgent, highlight }: {
   ext: ExtensionMeta
   allowDelete: boolean
   agents: Record<string, Agent>
+  reconciling: boolean
   onEdit: (filename: string) => void
   onToggle: (e: React.MouseEvent, filename: string, enabled: boolean) => void
   onDelete: (e: React.MouseEvent, filename: string, name: string) => void
+  onReconcile: (e: React.MouseEvent, filename: string) => void
   onNavigateToAgent: (agentId: string) => void
   highlight: string
 }) {
   const badges = extensionCapabilityBadges(ext)
   const agent = ext.createdByAgentId ? agents[ext.createdByAgentId] : null
+  const managedCount = (ext.managedAgentCount ?? 0) + (ext.managedScheduleCount ?? 0)
 
   return (
     <div
@@ -496,6 +545,52 @@ function ExtensionCard({ ext, allowDelete, agents, onEdit, onToggle, onDelete, o
       {/* Declared data access */}
       {ext.contractsConsumed && ext.contractsConsumed.length > 0 && (
         <ContractConsumptions consumed={ext.contractsConsumed} />
+      )}
+
+      {/*
+        Managed resources. Nothing in the host creates these on install, on
+        enable or on upgrade, so an extension that declares agents and routines
+        ships with none of them until somebody reconciles. This is the control
+        that does it, next to the counts it acts on.
+
+        The counts are what the extension declared, not what exists: the host
+        does not report per-extension how many were actually created, and
+        writing "2 agents" beside a number that came from the manifest would
+        claim more than the card knows. The wording says declared for that
+        reason. What was really created is the routines list and the agents
+        list, and the toast after a run names the numbers.
+
+        A switched-off extension is not loaded, and the reconcile reads its
+        declarations off the loaded map: asking would answer with an error
+        about an extension that "has no managed resources", which is true of
+        the running system and misleading to read next to a card that lists
+        two agents. So the button is disabled with the actual reason.
+
+        Which cards that reaches differs by kind, and the difference is the
+        host's, not this component's: an external extension that is switched
+        off reports no counts at all (`describeCapabilities` has only the
+        loaded module to read), so this whole row disappears with it, while a
+        built-in one declares its resources whether or not it is on and shows
+        the disabled button. Both are honest; neither claims a reconcile is
+        available when it is not.
+      */}
+      {managedCount > 0 && (
+        <div className="mt-2.5 pt-2.5 border-t border-white/[0.05] flex items-center justify-between gap-2">
+          <span className="text-[11px] text-text-3/55">
+            Declares {ext.managedAgentCount ?? 0} agent{(ext.managedAgentCount ?? 0) === 1 ? '' : 's'} and {ext.managedScheduleCount ?? 0} routine{(ext.managedScheduleCount ?? 0) === 1 ? '' : 's'}
+          </span>
+          <button
+            type="button"
+            onClick={(e) => onReconcile(e, ext.filename)}
+            disabled={reconciling || !ext.enabled}
+            title={ext.enabled
+              ? 'Create or update the agents and routines this extension declares'
+              : 'Switch the extension on first: a disabled extension is not loaded, so the host has no declarations to reconcile'}
+            className="shrink-0 h-6 px-2 rounded-[8px] bg-white/[0.05] hover:bg-white/[0.08] text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-white/[0.06] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {reconciling ? 'Reconciling...' : 'Reconcile'}
+          </button>
+        </div>
       )}
 
       {/* Failure warning */}

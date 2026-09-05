@@ -4,6 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import { guard, readString, refuse } from './args.mjs'
+import { resolvingExecFile, resolvingSpawn } from './binaries.mjs'
 import { uid } from './db.mjs'
 import { idovonal } from './idozites.mjs'
 import { assetUtvonal } from './kit-tabla.mjs'
@@ -40,8 +41,13 @@ function wholeSetting(state, key, fallback, min) {
 
 export function createRenderOps(state) {
   const repo = () => state.repo
-  const spawnImpl = () => state.spawnImpl || spawn
-  const execFileImpl = () => state.execFileImpl || execFileAsync
+  // Both runners resolve the tool's name to a path before spawning it, so
+  // `npx`, `ffmpeg` and `ffprobe` are found in the packaged desktop app, where
+  // the inherited PATH holds neither Homebrew nor nvm (src/binaries.mjs). The
+  // wrapping is here rather than at each call site so the QA gate, which is
+  // handed `execFileImpl()`, resolves by the same rule as the preflight.
+  const spawnImpl = () => resolvingSpawn(state, state.spawnImpl || spawn)
+  const execFileImpl = () => resolvingExecFile(state, state.execFileImpl || execFileAsync)
   const killImpl = () => state.killImpl || ((pid, signal) => process.kill(pid, signal))
   const platform = () => state.platform || process.platform
   const bootAt = () => (state.bootAt ? state.bootAt() : hostBootAtNow())

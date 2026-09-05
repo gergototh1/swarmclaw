@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { promisify } from 'node:util'
 
+import { resolvingExecFile } from './binaries.mjs'
 import { napOf, sha256 } from './db.mjs'
 import { HANG_KITERJESZTES, TtsError, synthesizeRemote } from './soniox.mjs'
 
@@ -272,7 +273,7 @@ export function createSynthesizer(state) {
 
       let hosszMs
       try {
-        hosszMs = await probeDurationMs(celFajl, state.execFileImpl || execFileAsync)
+        hosszMs = await probeDurationMs(celFajl, resolvingExecFile(state, state.execFileImpl || execFileAsync))
       } catch (err) {
         // The provider answered and was paid, and the measurement failed.
         // Releasing the reservation would let a broken ffprobe spend past the

@@ -461,7 +461,7 @@ export function errorText(err: unknown): string {
  * Whether the host has the agents and schedules this extension declares.
  *
  * Read off the host's own `GET /api/extensions/managed-resources`, which is
- * what the Extensions > Managed resources screen shows, rather than off
+ * what the Extensions list's own reconcile control acts on, rather than off
  * anything this extension's server side could compute: the extension is not
  * handed the host's agent or schedule tables, and `runHealth` says as much by
  * reporting `reconcile_hianyzik` in `nemValaszolt` rather than in `hibak`.

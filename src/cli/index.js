@@ -555,6 +555,16 @@ const COMMAND_GROUPS = [
       cmd('ui', 'GET', '/extensions/ui', 'List extension UI modules (use --query type=sidebar|header|chat_actions|connectors)'),
       cmd('builtins', 'GET', '/extensions/builtins', 'List built-in extensions'),
       cmd('managed-resources', 'GET', '/extensions/managed-resources', 'Preview extension-managed agents, routines, folders, gateways, and setup checks'),
+      // Nothing in the host reconciles on install, enable or upgrade, so this
+      // is the step that turns an extension's declared agents and routines
+      // into real ones. It was reachable only through the generic
+      // managed-resources-action verb below, which the help never names as a
+      // reconcile, so an operator following the CLI had no way to find it.
+      cmd('reconcile', 'POST', '/extensions/managed-resources', 'Create or update the agents and routines extensions declare (all of them, or one with --extension-id video.mjs)', {
+        expectsJsonBody: true,
+        defaultBody: { action: 'reconcile' },
+        bodyFlagMap: { extensionId: 'extensionId' },
+      }),
       cmd('managed-resources-action', 'POST', '/extensions/managed-resources', 'Reconcile or inspect extension-managed resources', { expectsJsonBody: true }),
     ],
   },
@@ -1110,6 +1120,7 @@ function parseArgv(argv) {
       filename: '',
       secret: '',
       event: '',
+      extensionId: '',
       help: false,
       version: false,
     },
@@ -1130,6 +1141,7 @@ function parseArgv(argv) {
     'filename',
     'secret',
     'event',
+    'extension-id',
   ])
 
   const tokens = [...argv]
@@ -1224,6 +1236,9 @@ function parseArgv(argv) {
           break
         case 'event':
           result.opts.event = value
+          break
+        case 'extension-id':
+          result.opts.extensionId = value
           break
         default:
           throw new Error(`Unhandled option parser branch: --${rawName}`)

@@ -414,12 +414,12 @@ function buildManagedAgent(
   // declaration may reasonably name a stored skill and a shipped file at once.
   const declaredSkillPins = Array.from(new Set([...list(declaration.skillIds), ...list(declaration.skills)]))
   // The pin list is shared with the operator. The agent sheet, `manage_skills`
-  // attach, the agents API and Extensions > Managed Resources all write into
+  // attach, the agents API and the reconcile control all write into
   // the same `skillIds`, so a reconcile that replaced it with the declaration
   // deleted every pin an operator had added by hand. A reconcile runs only
-  // when the operator asks for one -- the Reconcile button on Extensions >
-  // Managed resources, or `managed-resources-action` on the CLI; nothing in
-  // the host runs it on install, enable or upgrade -- but it is an action an
+  // when the operator asks for one -- the Reconcile button on the extension's
+  // card in Extensions, or `swarmclaw extensions reconcile` on the CLI;
+  // nothing in the host runs it on install, enable or upgrade -- but it is an action an
   // operator may repeat at any time, so it must not eat their pins. So it is
   // a union: what is on the stored agent, plus every declared pin that is not
   // there yet. A declared pin the operator removed by hand therefore comes

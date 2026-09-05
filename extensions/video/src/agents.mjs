@@ -462,7 +462,7 @@ export const AGENTS = Object.freeze([
  * for good is to archive it, to disable the extension, or to uninstall.
  * Declared active anyway because a schedule that arrives paused is a schedule
  * nobody turns on. And nothing exists at all until the operator presses
- * Reconcile once on Extensions > Managed resources: a fresh install has no
+ * Reconcile once on the Videó card in Extensions: a fresh install has no
  * agents and no schedules.
  *
  * WHAT THE HOST DOES WITH A FAILED RUN, AN OVERLAPPING ONE, AND A DISABLED

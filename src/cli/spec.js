@@ -394,6 +394,7 @@ const COMMAND_GROUPS = {
       'settings-get': { description: 'Read extension settings (supports --query extensionId=...)', method: 'GET', path: '/extensions/settings' },
       'settings-set': { description: 'Write extension settings (supports --query extensionId=... and --data JSON)', method: 'PUT', path: '/extensions/settings' },
       'managed-resources': { description: 'Preview extension-managed agents, routines, folders, gateways, and setup checks', method: 'GET', path: '/extensions/managed-resources' },
+      reconcile: { description: 'Create or update the agents and routines extensions declare (all of them, or one with --extension-id video.mjs); nothing in the host does this on install, enable or upgrade', method: 'POST', path: '/extensions/managed-resources' },
       'managed-resources-action': { description: 'Reconcile or inspect extension-managed resources', method: 'POST', path: '/extensions/managed-resources' },
     },
   },

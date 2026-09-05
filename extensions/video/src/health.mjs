@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { promisify } from 'node:util'
 
+import { resolvingExecFile } from './binaries.mjs'
 import { ESZKOZ_PROBA, KOTELEZO_FAJLOK } from './render.mjs'
 import { BACKLOG_SAPKA, JAVASLAT_NYITOTT_SAPKA, TANULSAG_SAPKA } from './tanulsag.mjs'
 
@@ -54,7 +55,7 @@ export const HEALTH_CODES = Object.freeze([
   { checkKey: 'platform_nem_mac', displayName: 'macOS host a renderhez', description: 'Máshol a render névvel utasít el, a linuxRenderEngedely beállítás kapcsolja', kind: 'manual', required: false, blokkol: Object.freeze(['render']) },
   { checkKey: 'tts_szerzodes_hianyzik', displayName: 'tts extension telepítve, engedélyezve, kulccsal', description: 'Nélküle a videoNarrate névvel utasít el', kind: 'manual', required: true, blokkol: Object.freeze(['narracio']) },
   { checkKey: 'signals_szerzodes_hianyzik', displayName: 'aisignal engedélyezve', description: 'Nélküle a videoOpen csak kezi forrással megy', kind: 'manual', required: false, blokkol: Object.freeze([]) },
-  { checkKey: 'reconcile_hianyzik', displayName: 'Reconcile az Extensions → Managed resources lapon', description: 'Nélküle nincs ügynök és nincs ütemezés; a lap állapotsávja mondja', kind: 'manual', required: true, blokkol: Object.freeze(['utemezes']) },
+  { checkKey: 'reconcile_hianyzik', displayName: 'Reconcile az Extensions lapon, a Videó kártyán', description: 'Nélküle nincs ügynök és nincs ütemezés; a lap állapotsávja mondja. CLI-ből: swarmclaw extensions reconcile --extension-id video.mjs', kind: 'manual', required: true, blokkol: Object.freeze(['utemezes']) },
 ])
 
 /** The fields `ExtensionSetupCheckDeclaration` (src/types/extension.ts) declares. `blokkol` is not among them. */
@@ -87,10 +88,12 @@ const BLOKKOL = new Map(HEALTH_CODES.map((c) => [c.checkKey, c.blokkol]))
  * That is deliberate: if this probe were stricter or more patient than the
  * preflight's, the page could say a tool is missing while `videoRender`
  * finds it, or the reverse, and an operator has no way to tell which of the
- * two lied. A test sets the seam so the suite never runs a binary.
+ * two lied. The name is resolved by the same rule as the preflight's, for
+ * the same reason (src/binaries.mjs). A test sets the seam so the suite
+ * never runs a binary.
  */
 async function present(state, name, args) {
-  const run = state.execFileImpl || execFileAsync
+  const run = resolvingExecFile(state, state.execFileImpl || execFileAsync)
   try {
     await run(name, args)
     return true

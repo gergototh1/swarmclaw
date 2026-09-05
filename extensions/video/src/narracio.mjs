@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import { guard, readString, refuse } from './args.mjs'
+import { resolvingExecFile } from './binaries.mjs'
 import { sha256 } from './db.mjs'
 import { fedettseg, idovonal } from './idozites.mjs'
 import { remotionDirOf } from './katalogus.mjs'
@@ -238,7 +239,10 @@ export function createNarrateTool(state) {
         // video_id is this module's hex id and terv_hash its sha256: nothing
         // a stranger wrote is in this path, and the scene index is an integer.
         const celDir = path.join(publicDir, NARRACIO_NEVTER, terv.video_id, terv.terv_hash)
-        const probe = state.probeImpl || probeDurationMs
+        // The probe runs ffprobe by name; resolving it first is what makes it
+        // findable in the packaged desktop app (src/binaries.mjs). A test's
+        // `probeImpl` takes the file alone and ignores the runner, as before.
+        const probe = state.probeImpl || ((file) => probeDurationMs(file, resolvingExecFile(state, state.execFileImpl || execFileAsync)))
         const sorok = narracioSorok(terv)
         // A tts `status()` that throws is not this tool's refusal to make: the
         // same tts is about to refuse the synthesize call with its own code,

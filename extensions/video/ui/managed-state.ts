@@ -7,7 +7,7 @@ import { errorText, readManagedStatus } from './api'
  * WHY THE PAGE ASKS, AND WHY IT ASKS THE HOST
  * -------------------------------------------
  * The host creates an extension's declared agents and schedules only when the
- * operator presses Reconcile on Extensions > Managed resources (or calls it
+ * operator presses Reconcile on the extension's card in Extensions (or calls it
  * on the CLI); nothing runs it on install. So a correctly installed extension
  * loads, mounts this page, renders its settings and shows an empty queue with
  * no schedule anywhere, and without this the status bar could only say the

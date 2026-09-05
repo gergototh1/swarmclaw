@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -121,4 +122,86 @@ if (copied.includes('mcp')) {
   console.log('A MCP-bejegyzést kézzel kell felvenni: Settings → MCP Servers; a pontos JSON a /x/tts lapon.')
 } else {
   console.log('Ez a kiadás még nem szállít MCP-szervert (nincs mcp/ könyvtár); MCP-bejegyzést nem kell felvenni.')
+}
+
+/**
+ * The closing report: what an install produces, what is still missing, and
+ * what the operator has to do next.
+ *
+ * Copying the files is not an install. Without the Soniox key every call is
+ * refused with `tts_kulcs_hianyzik`, and without the MCP entry the agents have
+ * no route to this extension at all -- both silent from here, since this
+ * script exits 0 either way. An install that did nothing and an install that
+ * worked must not look the same.
+ *
+ * There is no running host at this point, so `health` cannot be called. The
+ * key and the endpoint live in the host's own settings database
+ * (`loadSettings()` in src/lib/server/storage.ts, under
+ * `extensionSettings['tts.mjs']`), not in a file this script can read, and the
+ * MCP registration lives in the host's MCP servers list. Both are printed as
+ * `[ ? ]` with where to look, never as a pass. The key's value is not read
+ * here and is not printed anywhere.
+ */
+{
+  const tool = (name, args) => {
+    try {
+      return spawnSync(name, args, { stdio: 'ignore' }).status === 0
+    } catch {
+      return false
+    }
+  }
+
+  const lepesek = [
+    ['apiKey és endpoint beállítva', 'Extensions → a Narráció (TTS) kártyán; a /x/tts lap mutatja, be van-e állítva (az értéket sehol nem mutatja)', null],
+    ['ffprobe a PATH-on', 'az ffmpeg csomag része (brew install ffmpeg); enélkül minden szintézis tts_hossz_meres_sikertelen', tool('ffprobe', ['-version'])],
+    ['MCP-bejegyzés felvéve', 'Settings → MCP Servers; a pontos JSON a /x/tts lapon, a SWARMCLAW_ACCESS_KEY értékét kézzel írd be a host .env.local fájljából', null],
+  ]
+
+  console.log('\nA telepítés akkor fut, ha az alábbi mind igaz:')
+  for (const [mit, hogyan, ok] of lepesek) {
+    const jel = ok === null ? '[ ? ]' : ok ? '[ ok]' : '[ ! ]'
+    console.log(`${jel} ${mit}${ok === false ? ` -- HIÁNYZIK: ${hogyan}` : ok === null ? ` -- ${hogyan}` : ''}`)
+  }
+
+  console.log(`
+A lap: /x/tts. Ha a menüben nem jelenik meg közvetlenül a telepítés után, töltsd
+újra a böngészőlapot. A szerver oldalon már minden kész -- az extension betöltött,
+az assetek kiszolgálva, a /x/tts 200-zal válaszol --, de a már megnyitott kliens a
+lapok listáját a betöltéskor kapta meg, és magától nem kérdezi újra.
+
+Ez az extension nem deklarál se ügynököt, se ütemezést, se toolt: Reconcile-ra
+nincs szüksége, és magától egyetlen hívást sem indít. Amit fizet, azt mindig
+valaki más kérte: egy másik extension a narration szerződésen át, vagy egy ügynök
+az MCP-shimen át.
+
+Hiba, betöltés közben és futás közben:
+  - A betöltésnek 30 másodperce van. Az entry modulban ezért nincs top-level await,
+    fájlolvasás és hálózati hívás: egy soha be nem teljesülő top-level await nem
+    lassú betöltés, hanem a host indulását tartja fel a teljes határidőig.
+  - Egy hibás extension nem viszi magával a hostot: a betöltés hibája a kártyára
+    kerül, a többi extension fut.
+  - Kulcs nélkül, keret felett vagy szolgáltatói hiba esetén a hívás névvel bukik
+    (tts_kulcs_hianyzik, tts_keret_kimerult és a többi), és a napi keret a hívás
+    ELŐTT foglal, tehát egy hibás válasz sem költ a kereten túl.
+
+Letiltás (Extensions → a kártya kapcsolója):
+  - a modul nem lesz betöltve, a lapja eltűnik;
+  - a narration szerződés fogyasztói a következő hívásukra provider_disabled-et
+    kapnak, tehát a videómodul videoNarrate-je névvel utasít el, nem hallgat el;
+  - az MCP-shim tts_extension_hianyzik-kal válaszol, nem csendben;
+  - ez az extension nem deklarál ütemezést, tehát letiltva sem indít semmit.
+
+Eltávolítás (Extensions → törlés):
+  - Előtte: a Settings → MCP Servers alól töröld a tts bejegyzést. A host nem
+    veszi ki magától, és amíg ott van, minden ügynöki hívás a shimen át bukik.
+  - Az eltávolítás eldobja az ext_tts_ táblákat: a cache és a napi számláló is
+    velük megy. A cache-fájlok a hívók könyvtáraiban MARADNAK -- a videómoduléi a
+    Remotion-projekt public/narracio/swarmclaw/ alatt --, ez az extension nem
+    törli más repó fájljait.
+  - Újratelepítés után a táblák üresek: a lemezen álló mp3-ak nem számítanak
+    találatnak, amíg az importCache vissza nem tölti őket, tehát a következő
+    kérés újra fizet. Ezért van importCache.
+  - Ami PÉNZBE KERÜLNE, ha túlélné: semmi. Ez az extension magától nem hív;
+    eltávolítva a két útja (a szerződés és a shim) egyszerre szűnik meg.
+`)
 }

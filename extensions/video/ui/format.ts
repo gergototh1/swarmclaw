@@ -191,7 +191,7 @@ export function describeManaged(managed: ManagedStatus | null): { text: string; 
   if (managed.kind === 'ready') return { text: `Ütemezés: ${managed.schedules} ütemezés él`, trouble: false }
   if (managed.kind === 'unscheduled') {
     return {
-      text: `Ütemezés: nincs ütemezés — Reconcile kell (${managed.missing.length} a ${managed.total} ütemezésből hiányzik: ${managed.missing.join(', ')}). Amíg az Extensions → Managed resources lapon meg nem nyomod a Reconcile gombot, magától egyetlen futás sem indul el.`,
+      text: `Ütemezés: nincs ütemezés — Reconcile kell (${managed.missing.length} a ${managed.total} ütemezésből hiányzik: ${managed.missing.join(', ')}). Amíg az Extensions lapon a Videó kártya Reconcile gombját meg nem nyomod (vagy le nem futtatod a swarmclaw extensions reconcile --extension-id video.mjs parancsot), magától egyetlen futás sem indul el.`,
       trouble: true,
     }
   }

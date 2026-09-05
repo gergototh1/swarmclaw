@@ -42,6 +42,7 @@ import { createNotification } from './create-notification'
 import { notify } from './ws-hub'
 import { decryptKey, encryptKey, loadSettings, saveSettings } from './storage'
 import { buildExtensionHooks } from './extensions-approval-guidance'
+import { createExtensionBinaryResolver } from './extensions/extension-binaries'
 import { validateExtensionPages } from './extensions/extension-pages'
 import { createExtensionStorage, dropExtensionStorage, extensionTablePrefix, runExtensionMigrations } from './extensions/extension-storage'
 import {
@@ -1813,6 +1814,12 @@ class ExtensionManager {
                   getGoogleAccessToken: (purpose) => getGoogleAccessToken(purpose),
                   hasGoogleCredential: (purpose) => hasGoogleCredential(purpose),
                 },
+                // Safe to capture in setup(): the lookup runs when it is
+                // called, not now, so an extension that stores this and asks
+                // later sees the machine as it is then. See
+                // extensions/extension-binaries.ts for what it will and will
+                // not answer.
+                resolveBinary: createExtensionBinaryResolver(),
                 // Two closures, nothing resolved yet. Safe to capture, and
                 // safe to build here even though the extension is not
                 // registered yet: the consumer's own declarations are read
