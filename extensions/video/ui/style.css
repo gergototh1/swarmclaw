@@ -301,3 +301,74 @@
 .vid-sapka-mondat { margin: 0; }
 .vid-bizonyitek { overflow-wrap: anywhere; }
 .vid-backlog li, .vid-rejected li, .vid-kodolva li { margin: 4px 0; overflow-wrap: anywhere; }
+
+/*
+ * template gallery
+ *
+ * `auto-fill` and a 150px floor, so the grid is six cards wide on the
+ * operator's window and one on a narrow one without a media query. The frame
+ * is 9:16 because the kit renders 1080x1920 and a card that let its own
+ * picture decide its height would reflow the whole grid as the images arrive
+ * one by one.
+ *
+ * No new colours: every value below is one of the tokens the top of this
+ * sheet already falls back on.
+ */
+.vid-sablon-generalas { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 10px 0; }
+.vid-szuro-sor { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin: 12px 0 6px; }
+.vid-root .vid-szuro-mezo { display: flex; flex-direction: column; gap: 2px; margin: 0; font-size: 12px; color: var(--color-text-3, #8282a0); }
+.vid-szuro-mezo .vid-input { margin-top: 0; width: auto; min-width: 150px; color: var(--card-foreground, inherit); }
+.vid-sablon-szamlalo { margin: 4px 0 8px; }
+.vid-sablon-racs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0 0 12px;
+}
+.vid-sablon-kartya {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  background: var(--card, transparent);
+  color: inherit;
+  font: inherit;
+  padding: 8px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.vid-sablon-kartya:hover { border-color: var(--accent, #6366f1); }
+.vid-sablon-kartya:focus-visible { outline: 2px solid var(--color-focus, #2563eb); outline-offset: 2px; }
+.vid-sablon-kartya-nyitva { border-color: var(--accent, #6366f1); }
+/*
+ * The frame keeps its 9:16 whether or not there is a picture in it, which is
+ * what makes an empty one READ as empty rather than as a card that lost its
+ * image: the dashed border is the mark, and the reason is written inside it.
+ */
+.vid-sablon-keret {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 9 / 16;
+  width: 100%;
+  border: 1px dashed var(--border, rgba(127, 127, 127, 0.4));
+  border-radius: 8px;
+  overflow: hidden;
+}
+.vid-sablon-kep { width: 100%; height: 100%; object-fit: contain; border-radius: 8px; }
+.vid-sablon-ures { font-size: 11px; text-align: center; padding: 4px; overflow-wrap: anywhere; }
+.vid-sablon-nev { font-weight: 600; }
+.vid-sablon-leiras { font-size: 12px; }
+.vid-sablon-szam, .vid-sablon-jel { font-size: 11px; }
+.vid-sablon-panel {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 0 0 16px;
+  overflow-wrap: anywhere;
+}
+.vid-sablon-panel h3, .vid-sablon-panel h4 { margin: 8px 0 4px; }
+.vid-sablon-propok, .vid-sablon-szamok { padding-left: 18px; margin: 4px 0; }
+.vid-sablon-propok li, .vid-sablon-szamok li { margin: 2px 0; overflow-wrap: anywhere; }

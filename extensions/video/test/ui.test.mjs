@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -10,12 +11,13 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { jsx } from 'react/jsx-runtime'
 
-import { readBoard, readHealth, readManagedStatus, readProposals, readTemplates, readVideo } from '../ui/api.ts'
+import { readBoard, readHealth, readManagedStatus, readPreviewStart, readPreviewStatus, readProposals, readTemplatePreview, readTemplates, readVideo } from '../ui/api.ts'
 import { bundle } from '../scripts/build.mjs'
 import { describeManaged, formatMs, megtartasSzoveg, propokSzoveg, sapkaBetelt, statusLabel } from '../ui/format.ts'
 import { pixelbolMs, pontbolJelenet, szazalek, teljesHossz } from '../ui/idovonal-state.ts'
 import { JavaslatokBody } from '../ui/javaslatok.tsx'
 import { MANAGED_RESOURCES_URL, loadManagedStatus } from '../ui/managed-state.ts'
+import { URES_SZURO, normal, szurtTipusok } from '../ui/sablon-szuro.ts'
 import { SablonokBody } from '../ui/sablonok.tsx'
 import { Sor } from '../ui/sor.tsx'
 import { StatusBar, StatusBarBody } from '../ui/status-bar.tsx'
@@ -235,6 +237,86 @@ test('teljesHossz and szazalek lay the scenes out to scale', () => {
   assert.deepEqual(szazalek(0, 1000, 4000), { left: 0, width: 25 })
   assert.deepEqual(szazalek(1000, 4000, 4000), { left: 25, width: 75 })
   assert.deepEqual(szazalek(0, 1000, 0), { left: 0, width: 0 })
+})
+
+// --- the gallery's filtering ---
+
+/**
+ * The real catalogue, not a hand-written stand-in.
+ *
+ * Its prose is written WITHOUT accents ("Temavaltasnal hasznald") while the
+ * operator types WITH them, which is the whole reason `normal` exists; a
+ * fixture invented here would have whatever accents this file happened to
+ * type and would pin nothing.
+ */
+const KATALOGUS = JSON.parse(readFileSync(path.join(root, 'test/fixtures/katalogus.generated.json'), 'utf8'))
+
+function forras(overrides = {}) {
+  return {
+    tipusok: KATALOGUS.tipusok,
+    leirasok: KATALOGUS.leirasok,
+    propok: KATALOGUS.propok,
+    kuldheto: ['cimlap', 'atvezeto', 'szam'],
+    hasznalat: { cimlap: 3, 'kartya-csere': 1 },
+    vanKep: ['cimlap', 'lista'],
+    ...overrides,
+  }
+}
+
+const szuroval = (overrides = {}) => ({ ...URES_SZURO, ...overrides })
+
+test('an empty filter keeps every type, in the catalogue own order', () => {
+  assert.equal(KATALOGUS.tipusok.length, 24)
+  assert.deepEqual(szurtTipusok(forras(), URES_SZURO), KATALOGUS.tipusok)
+  // Whitespace is not a query: a cleared box must not empty the grid.
+  assert.deepEqual(szurtTipusok(forras(), szuroval({ kereses: '   ' })), KATALOGUS.tipusok)
+})
+
+test('the search is accent-insensitive in both directions, because the catalogue writes none and the operator types them', () => {
+  assert.equal(normal('Átvezető'), 'atvezeto')
+  assert.equal(normal('atvezeto'), 'atvezeto')
+  assert.deepEqual(szurtTipusok(forras(), szuroval({ kereses: 'átvezető' })), ['atvezeto'])
+  assert.deepEqual(szurtTipusok(forras(), szuroval({ kereses: 'atvezeto' })), ['atvezeto'])
+  // And into the prose, which is where the accents are actually missing.
+  assert.deepEqual(szurtTipusok(forras(), szuroval({ kereses: 'Témaváltásnál' })), ['atvezeto'])
+})
+
+test('the search reaches prop names, not only the type name and its sentence', () => {
+  assert.deepEqual(szurtTipusok(forras(), szuroval({ kereses: 'makett' })), ['lista'])
+  assert.deepEqual(szurtTipusok(forras(), szuroval({ kereses: 'nincs-ilyen-szo' })), [])
+})
+
+test('each of the three toggles narrows on its own fact, and the four filters are ANDed', () => {
+  const f = forras()
+  assert.deepEqual(szurtTipusok(f, szuroval({ kuldhetoseg: 'kuldheto' })), ['cimlap', 'atvezeto', 'szam'])
+  const nem = szurtTipusok(f, szuroval({ kuldhetoseg: 'nem' }))
+  assert.equal(nem.length, 21)
+  assert.ok(!nem.includes('cimlap'))
+
+  // A type the statistic does not name is a type nothing used, which is 0.
+  assert.deepEqual(szurtTipusok(f, szuroval({ hasznalat: 'hasznalt' })), ['cimlap', 'kartya-csere'])
+  assert.ok(!szurtTipusok(f, szuroval({ hasznalat: 'nem' })).includes('cimlap'))
+
+  assert.deepEqual(szurtTipusok(f, szuroval({ elonezet: 'van' })), ['cimlap', 'lista'])
+  assert.ok(!szurtTipusok(f, szuroval({ elonezet: 'nincs' })).includes('lista'))
+
+  // All four at once, and the order is still the catalogue's.
+  assert.deepEqual(
+    szurtTipusok(f, szuroval({ kereses: 'a', kuldhetoseg: 'kuldheto', hasznalat: 'hasznalt', elonezet: 'van' })),
+    ['cimlap'],
+  )
+  // AND, not OR: one clause that matches nothing empties the result.
+  assert.deepEqual(szurtTipusok(f, szuroval({ kuldhetoseg: 'kuldheto', hasznalat: 'hasznalt', elonezet: 'nincs' })), [])
+})
+
+test('a fact the page does not have cannot narrow, so an unrelated missing field never empties the grid', () => {
+  const vak = forras({ kuldheto: null, hasznalat: null, vanKep: null })
+  const mind = szuroval({ kuldhetoseg: 'kuldheto', hasznalat: 'hasznalt', elonezet: 'van' })
+  assert.deepEqual(szurtTipusok(vak, mind), KATALOGUS.tipusok)
+  // The search still works on what IS there, and a null prose field costs
+  // the prose rather than the card.
+  assert.deepEqual(szurtTipusok(forras({ leirasok: null, propok: null }), szuroval({ kereses: 'makett' })), [])
+  assert.deepEqual(szurtTipusok(forras({ leirasok: null, propok: null }), szuroval({ kereses: 'lista' })), ['lista'])
 })
 
 // --- api readers: a malformed answer is refused, not drawn as an empty page ---
@@ -663,12 +745,42 @@ test('sapkaBetelt is inclusive, because the server refuses at the cap and not pa
 
 // --- templates: two sentinels, and a catalogue that could not be read ---
 
+/**
+ * The gallery half owns state -- the filter, the open card, the pictures as
+ * they arrive, the run -- and a server render runs no effect, so these pass
+ * that state as props to the body, the same split `StatusBarBody` uses.
+ */
+const renderSablonok = (props) => render(SablonokBody, {
+  health: null, allapot: null, allapotHiba: null, szuro: URES_SZURO, onSzuro: noop,
+  kepek: {}, futasHibak: {}, nyitott: null, onNyit: noop,
+  onGeneral: noop, onMegszakit: noop, dolgozik: false, uzenet: null,
+  ...props,
+})
+
+function templatesData(overrides = {}) {
+  return {
+    hiba: null, katalogusHash: 'k1', sablonStat: {}, hetiSor: [],
+    tipusok: KATALOGUS.tipusok, leirasok: KATALOGUS.leirasok, propok: KATALOGUS.propok,
+    kozosPropok: KATALOGUS.kozosPropok, kuldhetoTipusok: KATALOGUS.tipusok,
+    nemKuldhetoTipusok: [], mintaHianyzik: [], tablaHianyok: [],
+    ...overrides,
+  }
+}
+
+function elonezetAllapot(overrides = {}) {
+  return {
+    hiba: null, katalogusHash: 'k1', katalogusTipusok: KATALOGUS.tipusok,
+    meglevo: [], hianyzo: KATALOGUS.tipusok, mintaNelkul: [], fut: null, ...overrides,
+  }
+}
+
+const kartyaDb = (html) => html.split('data-tipus="').length - 1
+
 test('the template table prints the two sentinels as the words they are', () => {
-  const html = render(SablonokBody, {
-    data: {
-      hiba: null, katalogusHash: 'k1', hetiSor: [],
+  const html = renderSablonok({
+    data: templatesData({
       sablonStat: { cimlap: { hasznalat: 3, lektoriTalalat: { horog_gyenge: 2 }, qaBukas: 'nincs_idokodos_szabaly', visszajelzes: 1, megtartas: 'meretlen' } },
-    },
+    }),
   })
   assert.ok(html.includes('nincs_idokodos_szabaly'))
   assert.ok(html.includes('meretlen'))
@@ -677,13 +789,168 @@ test('the template table prints the two sentinels as the words they are', () => 
   assert.ok(html.includes('<td>3</td>'))
 })
 
-test('a catalogue that could not be read shows its code and no table, and keeps the weekly row', () => {
-  const html = render(SablonokBody, {
-    data: { hiba: 'remotion_dir_hianyzik', katalogusHash: null, sablonStat: null, hetiSor: [{ het: '2026-W36', renderek: 2, qaBukas: 1, lektoriTalalat: { horog_gyenge: 1 } }] },
+test('a catalogue that could not be read shows its code and no grid, and keeps the weekly row', () => {
+  const html = renderSablonok({
+    data: templatesData({
+      hiba: 'remotion_dir_hianyzik', katalogusHash: null, sablonStat: null,
+      hetiSor: [{ het: '2026-W36', renderek: 2, qaBukas: 1, lektoriTalalat: { horog_gyenge: 1 } }],
+      tipusok: null, leirasok: null, propok: null, kozosPropok: null,
+      kuldhetoTipusok: null, nemKuldhetoTipusok: null, mintaHianyzik: null, tablaHianyok: null,
+    }),
   })
   assert.ok(html.includes('remotion_dir_hianyzik'))
   assert.ok(html.includes('Katalógus nélkül nincs típusonkénti táblázat'))
-  assert.ok(html.includes('2026-W36'))
+  assert.ok(html.includes('2026-W36'), 'the weekly row comes from stored rows and answers without the project')
+  assert.equal(kartyaDb(html), 0)
+  // The refusal code and the counter together are what keep this state
+  // apart from a filter nobody matched.
+  assert.ok(html.includes('0/0 típus látszik'))
+  assert.ok(!html.includes('Egy típus sem felel meg'))
+})
+
+test('the grid draws all twenty-four types and the counter follows a filter that narrows', () => {
+  const teljes = renderSablonok({ data: templatesData({ nemKuldhetoTipusok: ['osszegzes'] }) })
+  assert.equal(kartyaDb(teljes), 24)
+  assert.ok(teljes.includes('24/24 típus látszik'))
+  // The one thing a card says about the kit table, and it says it once.
+  assert.equal(teljes.split('<span class="vid-sablon-jel vid-warn">nem küldhető</span>').length - 1, 1)
+
+  const szukitve = renderSablonok({ data: templatesData(), szuro: { ...URES_SZURO, kereses: 'átvezető' } })
+  assert.equal(kartyaDb(szukitve), 1)
+  assert.ok(szukitve.includes('1/24 típus látszik'))
+
+  // An empty grid is never silent: the count says the catalogue has 24 and
+  // the sentence says the filters are what hid them.
+  const semmi = renderSablonok({ data: templatesData(), szuro: { ...URES_SZURO, kereses: 'nincs-ilyen' } })
+  assert.equal(kartyaDb(semmi), 0)
+  assert.ok(semmi.includes('0/24 típus látszik'))
+  assert.ok(semmi.includes('Egy típus sem felel meg a szűrőknek'))
+})
+
+test('nincs_minta stands on the card as missing dictionary data, not as a failure', () => {
+  const html = renderSablonok({
+    data: templatesData(),
+    allapot: elonezetAllapot({ mintaNelkul: ['gorbe'] }),
+    kepek: { gorbe: { kind: 'nincs', ok: 'nincs_minta' } },
+  })
+  assert.ok(html.includes('nincs_minta'))
+  const keret = html.slice(html.indexOf('nincs_minta') - 120, html.indexOf('nincs_minta'))
+  assert.ok(keret.includes('vid-muted'), 'the frame is muted, not the failure colour')
+  assert.ok(!keret.includes('vid-bad'))
+  assert.ok(!html.includes('role="alert"'), 'a type without a sample is not an alert')
+})
+
+test('a picture arrives as the data url it is, and a card that has none says which of the reasons', () => {
+  const html = renderSablonok({
+    data: templatesData(),
+    allapot: elonezetAllapot({ meglevo: ['cimlap'] }),
+    kepek: {
+      cimlap: { kind: 'kep', dataUrl: 'data:image/png;base64,AAAA' },
+      lista: { kind: 'hiba', szoveg: 'remotion_dir_hianyzik' },
+    },
+  })
+  assert.ok(html.includes('src="data:image/png;base64,AAAA"'))
+  // No file: link and no second http route: the picture is the rpc answer.
+  assert.ok(!html.includes('file:'))
+  assert.ok(html.includes('remotion_dir_hianyzik'))
+  assert.ok(html.includes('nincs kép'), 'the twenty-two cards nobody asked about say so rather than showing an empty box')
+})
+
+test('a failure of one type sits on its own card with the exit code, and the other cards are unaffected', () => {
+  const html = renderSablonok({
+    data: templatesData(),
+    allapot: elonezetAllapot(),
+    futasHibak: { szam: { kod: 'kilepesi_kod', kilepesiKod: 3 }, gorbe: { kod: 'idotullepes' } },
+  })
+  assert.ok(html.includes('kilepesi_kod (kilépési kód: 3)'))
+  assert.ok(html.includes('idotullepes'))
+  assert.equal(kartyaDb(html), 24)
+})
+
+test('the generate button names how many are missing and is dark when the catalogue or npx is', () => {
+  const jo = renderSablonok({ data: templatesData(), allapot: elonezetAllapot(), health: health() })
+  assert.ok(jo.includes('Előnézetek generálása (24 hiányzik)'))
+  assert.ok(!/<button[^>]*disabled[^>]*>Előnézetek/.test(jo))
+
+  const npxNelkul = renderSablonok({
+    data: templatesData(), allapot: elonezetAllapot(),
+    health: health({ eszkozok: { ffmpeg: true, ffprobe: true, npx: false }, hibak: ['npx_hianyzik'], blokkolt: ['render'] }),
+  })
+  assert.ok(/<button[^>]*disabled[^>]*>Előnézetek/.test(npxNelkul))
+  assert.ok(npxNelkul.includes('npx_hianyzik'))
+
+  const katalogusNelkul = renderSablonok({
+    data: templatesData({ hiba: 'remotion_dir_hianyzik', sablonStat: null, tipusok: null }),
+    allapot: elonezetAllapot({ hiba: 'remotion_dir_hianyzik', hianyzo: null }),
+    health: health(),
+  })
+  assert.ok(/<button[^>]*disabled[^>]*>Előnézetek/.test(katalogusNelkul))
+  assert.ok(katalogusNelkul.includes('A generálás katalógus nélkül nem indulhat.'))
+})
+
+test('a running generation replaces the button with where it got to and a way to stop it', () => {
+  const html = renderSablonok({
+    data: templatesData(),
+    allapot: elonezetAllapot({
+      hianyzo: KATALOGUS.tipusok.slice(6),
+      fut: { katalogusHash: 'k1', osszes: 24, kesz: KATALOGUS.tipusok.slice(0, 6), hibak: {}, megszakitva: false, indultAt: '2026-09-05T10:00:00.000Z' },
+    }),
+    health: health(),
+  })
+  assert.ok(html.includes('6/24 — cta'), 'the numbers, and the type the run is on')
+  assert.ok(html.includes('Megszakít'))
+  assert.ok(!html.includes('Előnézetek generálása'))
+})
+
+test('the detail panel draws a prop with no sentence by name rather than dropping it or printing undefined', () => {
+  const html = renderSablonok({
+    data: templatesData({
+      propok: { ...KATALOGUS.propok, cimlap: [{ nev: 'sorok', kotelezo: true }, { nev: 'hatter', kotelezo: false, mit: 'A háttér.' }] },
+      sablonStat: { cimlap: { hasznalat: 3, lektoriTalalat: {}, qaBukas: 'nincs_idokodos_szabaly', visszajelzes: 0, megtartas: 'meretlen' } },
+    }),
+    nyitott: 'cimlap',
+  })
+  assert.ok(html.includes('sorok (kötelező)'))
+  assert.ok(!html.includes('undefined'))
+  assert.ok(html.includes('hatter (opcionális) — A háttér.'))
+  assert.ok(html.includes('lathatoHossz'), 'the common props are on the panel too')
+})
+
+test('catalogue prose is a stranger text and arrives as text, tags and all', () => {
+  const html = renderSablonok({
+    data: templatesData({ leirasok: { ...KATALOGUS.leirasok, cimlap: '<script>alert(1)</script>' } }),
+  })
+  assert.ok(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'))
+  assert.ok(!html.includes('<script>'))
+})
+
+test('the three preview readers honour hiba and ok as the two different facts they are', () => {
+  // Absent `ok` is success and is not tested for falsiness.
+  const kep = readTemplatePreview({ dataUrl: 'data:image/png;base64,AAAA', hiba: null })
+  assert.equal(kep.dataUrl, 'data:image/png;base64,AAAA')
+  assert.equal(kep.ok, null)
+  assert.equal(readTemplatePreview({ dataUrl: null, ok: 'nincs_minta', hiba: null }).ok, 'nincs_minta')
+  assert.equal(readTemplatePreview({ dataUrl: null, hiba: 'remotion_dir_hianyzik' }).hiba, 'remotion_dir_hianyzik')
+  // Only a png data url may reach an <img src>; anything else is refused by name.
+  const hamis = readTemplatePreview({ dataUrl: 'javascript:alert(1)', hiba: null })
+  assert.equal(hamis.dataUrl, null)
+  assert.equal(hamis.ok, 'nem_kep')
+
+  assert.equal(readPreviewStart({ indult: false, ok: 'mar_fut', hiba: null }).ok, 'mar_fut')
+  assert.equal(readPreviewStart({ indult: true, hiba: null }).ok, null)
+  assert.equal(readPreviewStart({ indult: false, hiba: 'remotion_dir_hianyzik' }).hiba, 'remotion_dir_hianyzik')
+
+  // Beside a refusal code every catalogue-derived list is null, never [],
+  // and the run still answers because it does not live in the project.
+  const vak = readPreviewStatus({
+    hiba: 'remotion_dir_hianyzik', katalogusHash: null, katalogusTipusok: null, meglevo: null, hianyzo: null, mintaNelkul: null,
+    fut: { katalogusHash: 'k1', osszes: 2, kesz: ['cimlap'], hibak: { szam: { kod: 'idotullepes' } }, megszakitva: false, indultAt: 'x' },
+  })
+  assert.equal(vak.hianyzo, null)
+  assert.equal(vak.meglevo, null)
+  assert.deepEqual(vak.fut.kesz, ['cimlap'])
+  assert.equal(vak.fut.hibak.szam.kod, 'idotullepes')
+  assert.equal(readPreviewStatus({ hiba: null, fut: null, meglevo: [], hianyzo: ['szam'] }).fut, null)
 })
 
 test('megtartasSzoveg keeps the sign and passes the word through', () => {

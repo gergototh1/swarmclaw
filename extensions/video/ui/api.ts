@@ -293,6 +293,133 @@ export interface Templates {
   tablaHianyok: string[] | null
 }
 
+/**
+ * The three gallery methods answer with TWO error fields and the page must
+ * honour both, because they are two different facts.
+ *
+ * `hiba` is "the other repository could not be read", carrying the same codes
+ * and the same field name `templates` uses. `ok` is the method's OWN
+ * vocabulary -- `mar_fut`, `nincs_kep`, `nincs_minta`, `tipus_ismeretlen` --
+ * and is ABSENT on success, which is why every reader below turns a missing
+ * `ok` into `null` rather than testing it for falsiness. Folding the two
+ * together would give a broken connection the shape of a run that is going
+ * fine.
+ */
+export interface TemplatePreview {
+  /** A `data:image/png;base64,` url, or null. Anything else is not a picture and is not put in a `src`. */
+  dataUrl: string | null
+  ok: string | null
+  hiba: string | null
+}
+
+/** One type's failure inside a run, as `elonezet.mjs` recorded it: a code, and the process's exit code when there was one. */
+export interface PreviewHiba {
+  kod: string
+  kilepesiKod?: number
+  jel?: string
+}
+
+/** A generation in flight. It lives in the module, not in the project, so it is answered even beside a refusal code. */
+export interface PreviewFutas {
+  katalogusHash: string
+  /** How many pictures this run set out to make -- the missing ones at the moment it started, not the size of the kit. */
+  osszes: number
+  kesz: string[]
+  hibak: Record<string, PreviewHiba>
+  megszakitva: boolean
+  indultAt: string
+}
+
+export interface PreviewStatus {
+  hiba: string | null
+  katalogusHash: string | null
+  /**
+   * Null beside a refusal code, never an empty list, for the reason
+   * `templates` gives at length: `hianyzo: []` would draw as "the gallery is
+   * complete" over a project nobody could read.
+   */
+  katalogusTipusok: string[] | null
+  meglevo: string[] | null
+  hianyzo: string[] | null
+  mintaNelkul: string[] | null
+  fut: PreviewFutas | null
+}
+
+export interface PreviewStart {
+  indult: boolean
+  ok: string | null
+  hiba: string | null
+}
+
+/**
+ * The one gate between an rpc string and an `<img src>`.
+ *
+ * `safe-href.ts` guards `href` and refuses `data:` outright; this is the
+ * other direction and the narrower rule. `elonezet.mjs` builds exactly one
+ * kind of string here -- a base64 PNG it read off its own cache directory --
+ * so that prefix is the whole allowed set, and anything else (an svg with a
+ * script in it, a `javascript:` url, a bare path) is drawn as no picture at
+ * all rather than handed to the browser to interpret.
+ */
+const KEP_ELOTAG = 'data:image/png;base64,'
+
+export function readTemplatePreview(raw: unknown): TemplatePreview {
+  const root = readRoot('templatePreview', raw)
+  const dataUrl = root.dataUrl
+  const kep = typeof dataUrl === 'string' && dataUrl.startsWith(KEP_ELOTAG)
+  const ok = typeof root.ok === 'string' ? root.ok : null
+  return {
+    dataUrl: kep ? (dataUrl as string) : null,
+    // A string that is not a PNG data url is a REFUSED picture, not an
+    // absent one, and `nem_kep` says so: the card would otherwise print
+    // "nincs kép" over a server that did send something, and nobody would
+    // know to look at what it sent.
+    ok: ok !== null ? ok : (!kep && typeof dataUrl === 'string' ? 'nem_kep' : null),
+    hiba: typeof root.hiba === 'string' ? root.hiba : null,
+  }
+}
+
+/** A run, or null. A run reported in a shape this page cannot draw is null too: the progress line prints numbers and cannot invent either half. */
+function futasOrNull(value: unknown): PreviewFutas | null {
+  if (!isRecord(value)) return null
+  const kesz = stringsOrNull(value.kesz)
+  if (kesz === null || typeof value.osszes !== 'number' || !isRecord(value.hibak)) return null
+  const hibak: Record<string, PreviewHiba> = {}
+  for (const [tipus, hiba] of Object.entries(value.hibak)) {
+    if (isRecord(hiba) && typeof hiba.kod === 'string') hibak[tipus] = hiba as unknown as PreviewHiba
+  }
+  return {
+    katalogusHash: typeof value.katalogusHash === 'string' ? value.katalogusHash : '',
+    osszes: value.osszes,
+    kesz,
+    hibak,
+    megszakitva: value.megszakitva === true,
+    indultAt: typeof value.indultAt === 'string' ? value.indultAt : '',
+  }
+}
+
+export function readPreviewStatus(raw: unknown): PreviewStatus {
+  const root = readRoot('templatePreviewStatus', raw)
+  return {
+    hiba: typeof root.hiba === 'string' ? root.hiba : null,
+    katalogusHash: typeof root.katalogusHash === 'string' ? root.katalogusHash : null,
+    katalogusTipusok: stringsOrNull(root.katalogusTipusok),
+    meglevo: stringsOrNull(root.meglevo),
+    hianyzo: stringsOrNull(root.hianyzo),
+    mintaNelkul: stringsOrNull(root.mintaNelkul),
+    fut: futasOrNull(root.fut),
+  }
+}
+
+export function readPreviewStart(raw: unknown): PreviewStart {
+  const root = readRoot('templatePreviewStart', raw)
+  return {
+    indult: root.indult === true,
+    ok: typeof root.ok === 'string' ? root.ok : null,
+    hiba: typeof root.hiba === 'string' ? root.hiba : null,
+  }
+}
+
 export interface Health {
   ok: boolean
   /** Codes that block a capability. */

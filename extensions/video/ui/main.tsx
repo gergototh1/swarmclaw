@@ -39,6 +39,13 @@ import { VideoView } from './video'
  * The evidence links on the Javaslatok view need to know which stored ids are
  * videos, and only the board can say: ids in this module are opaque hex with
  * no prefix. The set is built from the board here and passed down.
+ *
+ * `health` is passed to the Sablonok view for the same reason and by the same
+ * route: its preview-generation button must be dark when `npx` cannot be
+ * resolved, and that fact is already on this page. A second `health` request
+ * from inside that view would ask the host a question this component has the
+ * answer to, and would answer it at a different moment than the status bar
+ * two rows above -- one page saying two things about the same tool.
  */
 
 type Nezet = { kind: 'sor' } | { kind: 'video'; id: string } | { kind: 'javaslatok' } | { kind: 'sablonok' }
@@ -113,7 +120,7 @@ export function VideoPage({ extensionId, rpc }: { extensionId: string; rpc: Rpc 
         : <p className="vid-muted">A sor nem érhető el.</p>)}
       {nezet.kind === 'video' && <VideoView rpc={rpc} id={nezet.id} onBack={() => { setNezet({ kind: 'sor' }); refresh() }} />}
       {nezet.kind === 'javaslatok' && <Javaslatok rpc={rpc} videoIdk={videoIdk} onOpenVideo={(id) => setNezet({ kind: 'video', id })} />}
-      {nezet.kind === 'sablonok' && <Sablonok rpc={rpc} />}
+      {nezet.kind === 'sablonok' && <Sablonok rpc={rpc} health={health} />}
     </div>
   )
 }
