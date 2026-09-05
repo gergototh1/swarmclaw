@@ -508,6 +508,7 @@ const FIELDS_NEEDING_NO_MENTION = Object.freeze({
   candidates: 'the research hand-over list, for the same reason as `messages`',
   linksRead: "same: a counter recomputed by the close from `link_read`, not a fact the run has to report",
   seenMarked: "same: how many seen rows the close wrote. The RULE behind it is what the agent must know, and both prompts state it under `ok`",
+  frontierHeld: 'whether the close held the frontier because the machine clock was ahead of it (THE CLOCK in db.mjs). A fact about the host clock, which the agent can neither cause nor fix; the sweep row carries it as `frontier_held=clock_ahead` for the operator, and the agent has nothing to do differently on its next turn',
 })
 
 /**

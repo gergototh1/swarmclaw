@@ -182,3 +182,50 @@ export function errorText(err: unknown): string {
   if (err instanceof Error) return err.message
   return String(err)
 }
+
+/**
+ * Whether the host has the agents and schedules this extension declares.
+ *
+ * Read off the host's own `GET /api/extensions/managed-resources`, which is
+ * what the Extensions > Managed resources screen shows, rather than off
+ * anything this extension's server side could compute: the extension is not
+ * handed the host's agent or schedule tables, and a second opinion on whether
+ * a schedule exists would be a second place for the answer to be wrong.
+ *
+ * Three states, for the same reason `GmailStatus` has three: "scheduled" and
+ * "not scheduled" are two different facts, and a check that could not be
+ * made is a third and must not be reported as either.
+ *
+ *   - `ready`: every declared schedule resolves to a stored schedule.
+ *   - `unscheduled`: at least one does not. The names are the declared ones,
+ *     so the operator can find them on the Extensions screen.
+ *   - `unknown`: the summary could not be read; `reason` is the text of the
+ *     failure, shown as text.
+ */
+export type ManagedStatus =
+  | { kind: 'ready'; schedules: number }
+  | { kind: 'unscheduled'; missing: string[]; total: number }
+  | { kind: 'unknown'; reason: string }
+
+/**
+ * The host's managed-resources summary, reduced to the one question the
+ * status bar asks about `extensionId`. Throws, naming the field, on a shape
+ * it cannot read; the loader turns that into `unknown`.
+ */
+export function readManagedStatus(raw: unknown, extensionId: string): ManagedStatus {
+  if (!isRecord(raw)) refuse('managed-resources', 'summary')
+  const extensions = readArray<unknown>('managed-resources', raw, 'extensions')
+  const entry = extensions.find((candidate) => isRecord(candidate) && candidate.extensionId === extensionId)
+  if (!isRecord(entry)) throw new Error(`a host managed-resources listája nem tartalmazza ezt az extensiont (${extensionId})`)
+  const schedules = readArray<unknown>('managed-resources', entry, 'schedules')
+  const missing: string[] = []
+  for (const schedule of schedules) {
+    if (!isRecord(schedule)) refuse('managed-resources', 'schedules')
+    if (schedule.status === 'resolved') continue
+    missing.push(typeof schedule.displayName === 'string' && schedule.displayName !== '' ? schedule.displayName : String(schedule.resourceKey ?? '?'))
+  }
+  if (schedules.length === 0) throw new Error('a host szerint ez az extension egyetlen ütemezést sem deklarál')
+  return missing.length === 0
+    ? { kind: 'ready', schedules: schedules.length }
+    : { kind: 'unscheduled', missing, total: schedules.length }
+}

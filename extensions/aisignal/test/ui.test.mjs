@@ -11,15 +11,16 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { jsx } from 'react/jsx-runtime'
 
-import { readBoard, readItemsPage } from '../ui/api.ts'
+import { readBoard, readItemsPage, readManagedStatus } from '../ui/api.ts'
 import { bundle } from '../scripts/build.mjs'
 import { Deck } from '../ui/deck.tsx'
 import {
   UNDO_DEPTH, beginDecision, createDeckController, deckKeyAction, deckKeyListener, initialDeck, remainingUndecided, stampFor,
 } from '../ui/deck-state.ts'
-import { cappedNote, describeGmail, describeOutcome, formatDate, formatScore, noteSegments, statusBadge, sweepOutcome } from '../ui/format.ts'
+import { cappedNote, describeGmail, describeManaged, describeOutcome, formatDate, formatScore, noteSegments, statusBadge, sweepOutcome } from '../ui/format.ts'
 import { ListBody } from '../ui/list.tsx'
 import { loadList } from '../ui/list-state.ts'
+import { MANAGED_RESOURCES_URL, loadManagedStatus } from '../ui/managed-state.ts'
 import { StatusBar } from '../ui/status-bar.tsx'
 
 /**
@@ -181,6 +182,15 @@ test('sweepOutcome keeps unfinished, failed, nothing and found apart', () => {
   // A failure with no finished_at is still reported as not closed: the row
   // says nothing about why, and "failed" would claim more than it knows.
   assert.equal(sweepOutcome(sweep({ ok: 0, finished_at: null })), 'unfinished')
+})
+
+test('noteSegments words the two clock segments as what the run did, not as what the agent said', () => {
+  const held = noteSegments('frontier_held=clock_ahead')
+  assert.deepEqual(held, [{ key: 'frontier_held', text: 'a vízjel nem mozdult: a gép órája előrébb járt a lezáráskor' }])
+  const ahead = noteSegments('frontier_ahead=2026-09-05T15:00:00.000Z; skipped=3')
+  assert.equal(ahead[0].key, 'frontier_ahead')
+  assert.equal(ahead[0].text, 'a tárolt vízjel (2026-09-05T15:00:00.000Z) a jövőben volt, a futás a korábbi biztos ablaktól indult')
+  assert.deepEqual(ahead[1], { key: 'skipped', text: 'skipped=3' })
 })
 
 test('noteSegments keeps a source that failed apart from one that was never asked', () => {
@@ -509,13 +519,13 @@ test('the list shows a decision that failed as a notice', () => {
 // --- rendering: the status bar ---
 
 test('the status bar tells an install that never swept from a sweep that found nothing', () => {
-  const never = render(StatusBar, { board: board({ gmail: { status: 'missing', code: 'gmail_token_missing' } }), onRefresh: noop })
+  const never = render(StatusBar, { managed: null, board: board({ gmail: { status: 'missing', code: 'gmail_token_missing' } }), onRefresh: noop })
   assert.ok(never.includes('Még nem futott sweep'))
   assert.ok(never.includes('Gmail: nincs bekötve'))
   assert.ok(never.includes('href="/api/oauth/google/start?purpose=aisignal"'))
   assert.ok(never.includes('Gmail bekötése'))
 
-  const quiet = render(StatusBar, { board: board({ sweeps: [sweep({ found: 0 })], counts: { items: 0, undecided: 0, sweeps: 1, seen: 0 } }), onRefresh: noop })
+  const quiet = render(StatusBar, { managed: null, board: board({ sweeps: [sweep({ found: 0 })], counts: { items: 0, undecided: 0, sweeps: 1, seen: 0 } }), onRefresh: noop })
   assert.ok(quiet.includes('lefutott, 0 új sort talált'))
   assert.equal(quiet.includes('Még nem futott sweep'), false)
   assert.equal(quiet.includes('Gmail bekötése'), false)
@@ -523,23 +533,23 @@ test('the status bar tells an install that never swept from a sweep that found n
 })
 
 test('the status bar keeps a failed, an unfinished and a truncated sweep distinct and shows their notes as text', () => {
-  const failed = render(StatusBar, { board: board({ sweeps: [sweep({ ok: 0, note: 'gmail_unauthorized: <b>refused</b>' })] }), onRefresh: noop })
+  const failed = render(StatusBar, { managed: null, board: board({ sweeps: [sweep({ ok: 0, note: 'gmail_unauthorized: <b>refused</b>' })] }), onRefresh: noop })
   assert.ok(failed.includes('hiba: gmail_unauthorized: &lt;b&gt;refused&lt;/b&gt;'))
   assert.equal(failed.includes('<b>refused</b>'), false)
-  const unfinished = render(StatusBar, { board: board({ sweeps: [sweep({ finished_at: null })] }), onRefresh: noop })
+  const unfinished = render(StatusBar, { managed: null, board: board({ sweeps: [sweep({ finished_at: null })] }), onRefresh: noop })
   assert.ok(unfinished.includes('nincs lezárva'))
   assert.equal(unfinished.includes('hiba:'), false)
-  const truncated = render(StatusBar, { board: board({ sweeps: [sweep({ found: 4, leftover: 9 })] }), onRefresh: noop })
+  const truncated = render(StatusBar, { managed: null, board: board({ sweeps: [sweep({ found: 4, leftover: 9 })] }), onRefresh: noop })
   assert.ok(truncated.includes('4 új sor'))
   assert.ok(truncated.includes('9 levél kimaradt a sapka miatt'))
-  const research = render(StatusBar, { board: board({ sweeps: [sweep({ kind: 'research', found: 2, note: 'unavailable=reddit,hn; unasked=hn' })] }), onRefresh: noop })
+  const research = render(StatusBar, { managed: null, board: board({ sweeps: [sweep({ kind: 'research', found: 2, note: 'unavailable=reddit,hn; unasked=hn' })] }), onRefresh: noop })
   assert.ok(research.includes('kutatás'))
   assert.ok(research.includes('nem válaszolt: reddit, hn'))
   assert.ok(research.includes('meg sem lett kérdezve: hn'))
 })
 
 test('the status bar does not send an operator to reconnect when the check itself failed', () => {
-  const html = render(StatusBar, { board: board({ gmail: { status: 'error', code: 'gmail_check_failed' } }), onRefresh: noop })
+  const html = render(StatusBar, { managed: null, board: board({ gmail: { status: 'error', code: 'gmail_check_failed' } }), onRefresh: noop })
   assert.ok(html.includes('gmail_check_failed'))
   assert.equal(html.includes('Gmail bekötése'), false)
   assert.equal(html.includes('nincs bekötve'), false)
@@ -547,9 +557,9 @@ test('the status bar does not send an operator to reconnect when the check itsel
 
 test('the status bar says the sweep history is capped, from the board&#x27;s own numbers'.replace('&#x27;', "'"), () => {
   const sweeps = Array.from({ length: 10 }, (_, i) => sweep({ id: `s${i}` }))
-  const html = render(StatusBar, { board: board({ sweeps, sweepLimit: 10, counts: { items: 0, undecided: 0, sweeps: 43, seen: 0 } }), onRefresh: noop })
+  const html = render(StatusBar, { managed: null, board: board({ sweeps, sweepLimit: 10, counts: { items: 0, undecided: 0, sweeps: 43, seen: 0 } }), onRefresh: noop })
   assert.ok(html.includes('Korábbi futások (10 futás látszik, összesen 43)'))
-  const whole = render(StatusBar, { board: board({ sweeps: sweeps.slice(0, 3), sweepLimit: 10, counts: { items: 0, undecided: 0, sweeps: 3, seen: 0 } }), onRefresh: noop })
+  const whole = render(StatusBar, { managed: null, board: board({ sweeps: sweeps.slice(0, 3), sweepLimit: 10, counts: { items: 0, undecided: 0, sweeps: 3, seen: 0 } }), onRefresh: noop })
   assert.ok(whole.includes('Korábbi futások (3)'))
   assert.ok(html.includes('címke: AI hírlevél'))
 })
@@ -616,4 +626,79 @@ test("the extension's package declares every package its own test run imports", 
   for (const name of [...imported, 'tsx'].sort()) {
     assert.ok(declared.includes(name), `${name} is imported but not declared in package.json`)
   }
+})
+
+// --- the schedule line: scheduled, not scheduled, and could not ask ---
+
+/** The host's managed-resources summary, as `GET /api/extensions/managed-resources` returns it. */
+function summary(schedules, extensionId = 'aisignal.mjs') {
+  return { extensions: [{ extensionId, extensionName: 'AI Signal', agents: [], schedules, localFolders: [], gatewayPlatforms: [], setupChecks: [] }], totals: {} }
+}
+const resolved = (name) => ({ resourceKind: 'schedule', resourceKey: name, displayName: name, status: 'resolved', resourceId: 'x', declarationHash: 'h' })
+const missingRef = (name) => ({ resourceKind: 'schedule', resourceKey: name, displayName: name, status: 'missing_ref', resourceId: null, declarationHash: 'h' })
+
+test('the managed-status reader tells every schedule resolved from any schedule missing, and refuses a summary that says nothing about this extension', () => {
+  assert.deepEqual(readManagedStatus(summary([resolved('A'), resolved('B')]), 'aisignal.mjs'), { kind: 'ready', schedules: 2 })
+  assert.deepEqual(readManagedStatus(summary([resolved('A'), missingRef('B')]), 'aisignal.mjs'), { kind: 'unscheduled', missing: ['B'], total: 2 })
+  // A fresh install: nothing was reconciled, so neither schedule resolves.
+  assert.deepEqual(readManagedStatus(summary([missingRef('A'), missingRef('B')]), 'aisignal.mjs'), { kind: 'unscheduled', missing: ['A', 'B'], total: 2 })
+  // Not this extension, no schedules at all, or not the shape at all: each is
+  // refused by name rather than read as "scheduled" or as "not scheduled".
+  assert.throws(() => readManagedStatus(summary([resolved('A')], 'other.mjs'), 'aisignal.mjs'), /nem tartalmazza ezt az extensiont/)
+  assert.throws(() => readManagedStatus(summary([]), 'aisignal.mjs'), /egyetlen ütemezést sem deklarál/)
+  assert.throws(() => readManagedStatus({ extensions: 'no' }, 'aisignal.mjs'), /"extensions"/)
+  assert.throws(() => readManagedStatus(null, 'aisignal.mjs'), /"summary"/)
+})
+
+test('loadManagedStatus asks the host with the page own credentials and never turns a failed request into an answer', async () => {
+  const asked = []
+  const answering = (body, ok = true, status = 200) => async (url, init) => { asked.push({ url, init }); return { ok, status, json: async () => body } }
+
+  assert.deepEqual(await loadManagedStatus(answering(summary([resolved('A'), resolved('B')])), 'aisignal.mjs'), { kind: 'ready', schedules: 2 })
+  assert.deepEqual(asked[0], { url: MANAGED_RESOURCES_URL, init: { credentials: 'same-origin' } })
+  assert.equal(MANAGED_RESOURCES_URL, '/api/extensions/managed-resources')
+
+  assert.deepEqual(await loadManagedStatus(answering(summary([missingRef('A'), missingRef('B')])), 'aisignal.mjs'), { kind: 'unscheduled', missing: ['A', 'B'], total: 2 })
+  // A 401, a malformed body and a thrown fetch are three failures of the
+  // check, and all three come back as the third state with their reason.
+  assert.deepEqual(await loadManagedStatus(answering({}, false, 401), 'aisignal.mjs'), { kind: 'unknown', reason: 'a host 401-tal válaszolt' })
+  const malformed = await loadManagedStatus(answering({ extensions: [] }), 'aisignal.mjs')
+  assert.equal(malformed.kind, 'unknown')
+  assert.match(malformed.reason, /nem tartalmazza ezt az extensiont/)
+  const offline = await loadManagedStatus(async () => { throw new Error('offline') }, 'aisignal.mjs')
+  assert.deepEqual(offline, { kind: 'unknown', reason: 'offline' })
+})
+
+test('the status bar words a never-scheduled install apart from one whose runs are waiting for their slot, and from a check that failed', () => {
+  const never = board({ gmail: { status: 'connected' } })
+  const scheduled = render(StatusBar, { managed: { kind: 'ready', schedules: 2 }, board: never, onRefresh: noop })
+  assert.ok(scheduled.includes('Még nem futott sweep'), 'no sweep has run')
+  assert.ok(scheduled.includes('Ütemezés: mind a 2 futás be van állítva'), 'but two are scheduled')
+  assert.equal(scheduled.includes('Reconcile'), false)
+
+  const unscheduled = render(StatusBar, { managed: { kind: 'unscheduled', missing: ['AI Signal: hírlevél-sweep (2 óránként)', 'AI Signal: KKV-kutatás (naponta 06:30)'], total: 2 }, board: never, onRefresh: noop })
+  assert.ok(unscheduled.includes('Még nem futott sweep'), 'no sweep has run')
+  assert.ok(unscheduled.includes('Ütemezés: 2 a 2 futásból nincs beállítva (AI Signal: hírlevél-sweep (2 óránként), AI Signal: KKV-kutatás (naponta 06:30))'), 'and none is going to')
+  assert.ok(unscheduled.includes('Magától egyetlen sweep sem indul el'))
+  assert.ok(unscheduled.includes('Extensions → Managed resources'), 'the remedy is named')
+  assert.ok(unscheduled.includes('Reconcile'))
+  assert.ok(/class="ais-warn">Ütemezés: 2 a 2/.test(unscheduled), 'the line is flagged')
+
+  const unknown = render(StatusBar, { managed: { kind: 'unknown', reason: 'a host 500-tal válaszolt' }, board: never, onRefresh: noop })
+  assert.ok(unknown.includes('Ütemezés: az ellenőrzés nem sikerült (a host 500-tal válaszolt), nem tudni, be van-e állítva'))
+  assert.equal(unknown.includes('nincs beállítva'), false, 'a failed check is not reported as not scheduled')
+  assert.equal(unknown.includes('Reconcile'), false, 'and does not send the operator to fix what may not be broken')
+
+  const pending = render(StatusBar, { managed: null, board: never, onRefresh: noop })
+  assert.ok(pending.includes('Ütemezés: ellenőrzés folyamatban'))
+  assert.equal(pending.includes('ais-warn">Ütemezés'), false)
+
+  // The line escapes what the host sends, like every other line here.
+  const hostile = render(StatusBar, { managed: { kind: 'unscheduled', missing: ['<b>x</b>'], total: 1 }, board: never, onRefresh: noop })
+  assert.ok(hostile.includes('&lt;b&gt;x&lt;/b&gt;'))
+  assert.equal(hostile.includes('<b>x</b>'), false)
+
+  assert.deepEqual(describeManaged(null), { text: 'Ütemezés: ellenőrzés folyamatban', trouble: false })
+  assert.equal(describeManaged({ kind: 'ready', schedules: 1 }).trouble, false)
+  assert.equal(describeManaged({ kind: 'unknown', reason: 'x' }).trouble, true)
 })

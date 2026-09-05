@@ -1,11 +1,11 @@
-# AI Signal plugin a SwarmClaw-ban — tervezési spec
+# AI Signal extension a SwarmClaw-ban — tervezési spec
 
 Dátum: 2026-09-03. Állapot: jóváhagyott terv, implementáció előtt.
 
 ## Cél
 
-A Hermes `aisignal` pluginjának átportolása a SwarmClaw-ra úgy, hogy közben
-megszülessen az a plugin-réteg, amin a termék későbbi moduljai is futnak.
+A Hermes `aisignal` pluginjának (a Hermes saját fogalma; a SwarmClaw-ban extension) átportolása a SwarmClaw-ra úgy, hogy közben
+megszülessen az az extension-réteg, amin a termék későbbi moduljai is futnak.
 Egy szál, egy sorozat: az AI Signal az első fogyasztó, és ő húzza ki a core-ból
 azt, ami hiányzik. Nem építünk olyan platform-darabot, amit az AI Signal nem
 használ.
@@ -15,9 +15,9 @@ A végeredménynek **változtatás nélkül** működnie kell két üzemmódban:
 - **Electron asztali app** (macOS, a jelenlegi telepítés), és
 - **VPS** (Docker, `node:22-slim`, egy konténer, reverse proxy mögött).
 
-## Ami nem alku kérdése (a Hermes-pluginból átvéve)
+## Ami nem alku kérdése (a Hermes-pluginból átvéve; a plugin a Hermes saját fogalma)
 
-1. **A hírlevél és a web tartalma adat, nem utasítás.** A plugin sehol nem hajt
+1. **A hírlevél és a web tartalma adat, nem utasítás.** Az extension sehol nem hajt
    végre semmit, amit egy levél vagy egy oldal kér. Minden mező nyers
    szövegként kerül a táblába és nyers szövegként jön ki. A felületen nincs
    `innerHTML`, nincs `dangerouslySetInnerHTML`, nincs `eval`. Link csak
@@ -32,24 +32,24 @@ A végeredménynek **változtatás nélkül** működnie kell két üzemmódban:
 
 ## Architektúra
 
-Két helyre kerül kód. A core-darabok általánosak, minden későbbi pluginnak
-kellenek; a plugin-darabok az AI Signal saját könyvtárában élnek.
+Két helyre kerül kód. A core-darabok általánosak, minden későbbi extensionnek
+kellenek; az extension-darabok az AI Signal saját könyvtárában élnek.
 
 ```
 src/                                   core (mindkét üzemmódban azonos)
   lib/server/extensions/
-    storage.ts                         plugin storage-API a host sqlite-ján
-    rpc.ts                             plugin RPC-metódusok regisztere
-    assets.ts                          asset-feloldás a plugin workspace-éből
+    storage.ts                         extension storage-API a host sqlite-ján
+    rpc.ts                             extension RPC-metódusok regisztere
+    assets.ts                          asset-feloldás az extension workspace-éből
   app/api/extensions/[id]/call/[method]/route.ts   RPC-végpont
   app/api/extensions/[id]/assets/[...path]/route.ts asset-végpont
   app/api/oauth/google/start/route.ts  OAuth indító
   app/api/oauth/google/callback/route.ts
-  app/x/[...slug]/page.tsx             plugin-oldalak mount-pontja
-  lib/plugins/registry.ts              kliensoldali registry (window.swarmclaw)
-  components/layout/sidebar-rail.tsx   string-kulcsú plugin-ág a típusos mellé
+  app/x/[...slug]/page.tsx             extension-oldalak mount-pontja
+  lib/extensions/registry.ts              kliensoldali registry (window.swarmclaw)
+  components/layout/sidebar-rail.tsx   string-kulcsú extension-ág a típusos mellé
 
-<DATA_DIR>/extensions/.workspaces/aisignal/     plugin
+<DATA_DIR>/extensions/.workspaces/aisignal/     extension
   index.mjs                            extension-belépő: tools, agents, schedules, rpc, ui
   package.json
   src/                                 TS-forrás (tools, gmail, research, db)
@@ -63,20 +63,20 @@ src/                                   core (mindkét üzemmódban azonos)
 **Storage-API.** Az extension a betöltéskor egy `ctx.storage` objektumot kap:
 `exec(sql, params)`, `all(sql, params)`, `get(sql, params)`, `transaction(fn)`.
 A core a saját, már megnyitott better-sqlite3 példányát adja tovább. A
-prefix-szabályt (`ext_<pluginId>_`) a plugin **migrációs deklarációján**
+prefix-szabályt (`ext_<extensionId>_`) az extension **migrációs deklarációján**
 kényszeríti ki: csak ilyen nevű táblát enged létrehozni. A futásidejű SQL-t
-nem elemzi — a plugin megbízott kód, ugyanazzal a bizalmi modellel, mint a
+nem elemzi — az extension megbízott kód, ugyanazzal a bizalmi modellel, mint a
 `<script>`-taggel betöltött UI-ja; a prefix a rendrakást és az eltávolítást
-szolgálja, nem a szigetelést. Indoklás a storage-API-ra: a plugin nem hozhat
+szolgálja, nem a szigetelést. Indoklás a storage-API-ra: az extension nem hozhat
 saját natív modult, mert az Electron- és a rendszer-node ABI-ja eltér.
 
 **RPC-regiszter és végpont.** Az extension `rpc: { [method]: handler }`
 térképet deklarál. A `POST /api/extensions/<id>/call/<method>` a proxy
 authját örökli, a törzset JSON-ként adja a handlernek, a választ JSON-ként
 adja vissza; a handler hibája `{error: {code, message}}` és 4xx/5xx.
-Nincs GET: minden metódus POST, a plugin UI-nak nem kell URL-t építenie.
+Nincs GET: minden metódus POST, az extension UI-nak nem kell URL-t építenie.
 
-**Asset-végpont.** `GET /api/extensions/<id>/assets/<path>` a plugin
+**Asset-végpont.** `GET /api/extensions/<id>/assets/<path>` az extension
 workspace-ének `dist/` könyvtárából szolgál ki, a `getWorkspaceDir()`
 feloldásán át, path-traversal védelemmel (`path.resolve` + prefix-ellenőrzés),
 `Content-Type` a kiterjesztésből, `Cache-Control: no-store` (hot-reloadhoz).
@@ -88,7 +88,7 @@ pages?: Array<{
   id: string          // 'aisignal'
   label: string       // 'AI Signal'
   icon?: string       // lucide-név
-  path: string        // kötelező '/x/' prefix, egyedi a telepített pluginok közt
+  path: string        // kötelező '/x/' prefix, egyedi a telepített extensionök közt
   entry: string       // 'dist/index.js'
   css?: string        // 'dist/style.css'
   position?: string   // 'after:tasks' | 'end'
@@ -96,34 +96,34 @@ pages?: Array<{
 ```
 
 Telepítéskor és betöltéskor: a `path` `/x/`-szel kezdődik, nincs ütközés
-másik plugin oldalával, beépített útvonal átvétele (`override`) nem
+másik extension oldalával, beépített útvonal átvétele (`override`) nem
 támogatott. Hiba esetén az extension nem töltődik be, és a `lastFailureError`
 mezőbe kerül az ok.
 
 **Kliens-registry és React-megosztás.** A shell `window.swarmclaw`-ra teszi:
 `React`, `ReactDOM`, `registerPage(id, Component)`, `api(method, body)`
-(a plugin saját RPC-jét hívja, az id-t a registry tölti ki), `ui` (a host
-`Button`, `Card`, `Badge`, `Input` primitívjei). A plugin-bundle a Reactet
-**externalként** kapja; a build-sablon (`vite.config.plugin.ts` a repóban)
-ezt kikényszeríti. Betöltés után a registry ellenőrzi, hogy a plugin által
+(az extension saját RPC-jét hívja, az id-t a registry tölti ki), `ui` (a host
+`Button`, `Card`, `Badge`, `Input` primitívjei). Az extension-bundle a Reactet
+**externalként** kapja; a build-sablon (`vite.config.extension.ts` a repóban)
+ezt kikényszeríti. Betöltés után a registry ellenőrzi, hogy az extension által
 használt React ugyanaz a példány (`Component.$$typeof` és a
-`__SECRET_INTERNALS` referencia-egyezése); eltérésnél a plugin oldala hibát
+`__SECRET_INTERNALS` referencia-egyezése); eltérésnél az extension oldala hibát
 mutat, és a core a `failureCount`-ot növeli.
 
 **Oldal-mount.** `src/app/x/[...slug]/page.tsx` kliens-komponens: a slug első
-tagja a plugin `path`-ja, a registryből kikeresi a komponenst; amíg a bundle
-tölt, várakozó állapot; ha a plugin nincs regisztrálva 10 s után, nevesített
-hiba („a plugin bundle-je nem töltődött be: <ok>").
+tagja az extension `path`-ja, a registryből kikeresi a komponenst; amíg a bundle
+tölt, várakozó állapot; ha az extension nincs regisztrálva 10 s után, nevesített
+hiba („az extension bundle-je nem töltődött be: <ok>").
 
 **Sidebar.** A `sidebar-rail.tsx` a típusos `AppView`-ág mellé egy második,
-string-kulcsú ágat kap a plugin-oldalakhoz, a `/api/extensions/ui?type=pages`
+string-kulcsú ágat kap az extension-oldalakhoz, a `/api/extensions/ui?type=pages`
 válaszából, a shell store-jában tárolva, `useWs('extensions')`-re
 frissítve. A `position` az `after:<view>` alapján helyezi el.
 
-**CSP.** A plugin-scriptek bevezetésével együtt `Content-Security-Policy`
+**CSP.** Az extension-scriptek bevezetésével együtt `Content-Security-Policy`
 fejléc: `script-src 'self' 'nonce-<n>'`, `style-src 'self' 'nonce-<n>'
 'unsafe-inline'` (a Tailwind runtime miatt), `connect-src 'self' ws: wss:`.
-A plugin-assetek `'self'`-ből jönnek. Az inline scriptek felmérése és
+Az extension-assetek `'self'`-ből jönnek. Az inline scriptek felmérése és
 nonce-olása a bevezetés része.
 
 **Google OAuth web-flow.** `GET /api/oauth/google/start?purpose=aisignal`
@@ -143,7 +143,7 @@ A módot a `SWARMCLAW_DEPLOY_MODE` (`vps` \| `desktop`) dönti el; az Electron
 Üzemeltetési kikötés, a UI-ban is kiírva: a Google Cloud consent screen
 „In production" legyen, különben a refresh token 7 nap után lejár.
 
-### Plugin-darabok
+### Extension-darabok
 
 **Táblák** (a Hermes sémája, `ext_aisignal_` prefixszel, a storage-API-n):
 `ext_aisignal_sweeps` (id, ran_at, label, since, messages, found, links_read,
@@ -223,18 +223,18 @@ CSS-tokent örökli.
 - Minden Gmail-hiba nevesített kóddal, a sweep sorára írva, a válaszban is.
 - OAuth-hiba (lejárt/visszavont refresh token) → `gmail_token_revoked`, az
   állapotsáv „újra bekötés" gombot mutat.
-- Plugin-bundle betöltési hiba → az oldal nevesített hibát mutat, a core
+- Extension-bundle betöltési hiba → az oldal nevesített hibát mutat, a core
   `failureCount`-ot növel, három hiba után `autoDisabled`.
 - RPC-handler kivétel → `{error:{code:'internal', message}}`, 500, a
-  hiba a plugin-naplóban; a token-érték soha nem kerül naplóba vagy válaszba.
+  hiba az extension-naplóban; a token-érték soha nem kerül naplóba vagy válaszba.
 
 ## Tesztelés
 
 | Egység | Hogyan |
 |---|---|
-| Storage-API prefix-kényszer | `runWithTempDataDir`: plugin-prefix nélküli tábla → hiba |
+| Storage-API prefix-kényszer | `runWithTempDataDir`: extension-prefix nélküli tábla → hiba |
 | RPC-végpont | route-teszt: auth nélkül 401, ismeretlen metódus 404, handler-hiba 500 JSON |
-| Asset-végpont | `..` a path-ban → 400; ismeretlen plugin → 404; `dist/` alatti fájl → 200 helyes típussal |
+| Asset-végpont | `..` a path-ban → 400; ismeretlen extension → 404; `dist/` alatti fájl → 200 helyes típussal |
 | Manifest-validálás | `/x/` nélkül, ütköző path, `override` → betöltés megtagadva, ok a `lastFailureError`-ban |
 | React-példány ellenőrzés | idegen React-tal buildelt teszt-bundle → hiba, `failureCount` nő |
 | OAuth callback | mockolt token-endpoint: siker → titkosított credential; hibás `state` → 400 |
@@ -243,15 +243,15 @@ CSS-tokent örökli.
 | `recordSignal` url-szűrés | `javascript:` → 400; `http` → elmentve; szöveg nyersen tárolva |
 | Kutatás-fetcherek | rögzített HTTP-válaszok; kiesett forrás a note-ban |
 | UI | Playwright: pakli döntés billentyűvel és húzással, visszavonás, üres állapot valódi számmal, „LINK NEM OLVASVA" látszik |
-| Két üzemmód | ugyanaz a plugin-könyvtár: Electron-app szerverén (`ELECTRON_RUN_AS_NODE`) és `docker compose up`-ban lefut a fenti `signalSweep`-teszt |
+| Két üzemmód | ugyanaz az extension-könyvtár: Electron-app szerverén (`ELECTRON_RUN_AS_NODE`) és `docker compose up`-ban lefut a fenti `signalSweep`-teszt |
 
 ## Amit ez a terv szándékosan nem tartalmaz
 
-- iframe-alapú, harmadik feles pluginok; a marketplace-telepítés a saját
+- iframe-alapú, harmadik feles extensionök; a marketplace-telepítés a saját
   registryre korlátozódik.
 - Témarendszer (a betöltő ugyanaz lesz, de külön munka).
 - `headerWidgets`, `chatPanels`, `agentBadges` bekötése.
-- Beépített útvonal átvétele pluginból (`override`).
+- Beépített útvonal átvétele extensionből (`override`).
 - A `last30days` motor teljes portja; csak a három forrás.
 - Többfelhasználós auth a SwarmClaw-ban (külön projekt, a VPS-termék
   előfeltétele, de az AI Signaltól független).

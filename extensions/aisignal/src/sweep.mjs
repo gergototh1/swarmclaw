@@ -96,6 +96,8 @@ const TEXT_LIMIT = 20000
  * what an operator reads to tell a full mailbox from a struggling query.
  */
 const TRUNCATED_NOTE = 'list_truncated'
+/** The note segment a run writes when it set a future frontier aside; the value is the frontier it did not resume from. */
+const FRONTIER_AHEAD_NOTE = 'frontier_ahead'
 
 const HTTP_RE = /^https?:\/\//i
 
@@ -212,6 +214,13 @@ function resolveMax(fromArgs, fromSettings) {
  * `note`, `ok`, `sinceDays` -- can produce a value newer than one of those two,
  * and a run that never got as far as a listing carries the default
  * `frontier_after`, so it cannot move the frontier at all.
+ *
+ * The one input none of that covers is the clock `ran_at` is read from. A
+ * machine hours ahead earns a frontier hours ahead, and that is handled in two
+ * places rather than one: `finishSweep` will not write a `frontier_after`
+ * newer than its own clock at close, and `signalSweep` will not resume from a
+ * stored frontier newer than its own clock at open, falling back to the
+ * newest window a clean run actually opened at. See THE CLOCK in db.mjs.
  */
 
 /**
@@ -528,13 +537,30 @@ export function createSweepTools(state) {
         // object holds", which is how a `kind` on the source came to override
         // the parameter in `openSweep`. Two reads of one run's identity should
         // not be spelled two ways.
-        const since = widenedFrontier(sinceFloor, repo.frontier({ kind: MAIL_KIND, account: source.account, sourceId: source.sourceId }))
+        //
+        // Then the second of the two clock barriers (the first is at close, in
+        // `finishSweep`; THE CLOCK there says why there are two). A stored
+        // frontier newer than this run's own clock was earned under a clock
+        // that was ahead, and resuming from it lists nothing until the day the
+        // clock catches up -- by which time a drained run has stamped a
+        // correct `ran_at` past everything that arrived meanwhile. So it is
+        // not resumed from. The run opens instead at the newest window start a
+        // clean run of this source was ever opened at, which is no newer than
+        // the last frontier a sane clock wrote, and at the whole source when
+        // there is none. The note names the value that was set aside, so the
+        // history shows why this window was wider than the last.
+        const sourceKey = { kind: MAIL_KIND, account: source.account, sourceId: source.sourceId }
+        const stored = repo.frontier(sourceKey)
+        const frontierAhead = Date.parse(stored) > Date.parse(ranAt)
+        const frontier = frontierAhead ? repo.latestTrustworthySince(sourceKey, ranAt) : stored
+        const since = widenedFrontier(sinceFloor, frontier)
+        const clockNote = frontierAhead ? `${FRONTIER_AHEAD_NOTE}=${stored}` : ''
 
         let listed
         try {
           listed = await gmail.listIds({ labelId: source.sourceId, since, max: LIST_BUDGET })
         } catch (e) {
-          return failedSweep(repo, { label, source, since, code: codeOf(e), message: e.message, ranAt })
+          return failedSweep(repo, { label, source, since, code: codeOf(e), message: e.message, note: clockNote, ranAt })
         }
 
         // The date window is deliberately too wide, so this dedup is not
@@ -599,6 +625,7 @@ export function createSweepTools(state) {
          */
         const listStoppedOn = listed.stoppedOn ?? null
         const note = [
+          clockNote,
           listStoppedOn ? `${TRUNCATED_NOTE}=${listStoppedOn}` : '',
           fetchFailures.length ? `fetch_failed=${fetchFailures.length}` : '',
         ].filter(Boolean).join('; ')

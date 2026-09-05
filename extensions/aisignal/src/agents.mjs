@@ -1020,11 +1020,21 @@ export const AGENTS = Object.freeze([
  * `normalizeScheduleStatus(declaration.status, ...)` wins over `existing.status`
  * for every value except `archived`. So an operator who pauses either of these
  * from /schedules has it set back to active by the next reconcile of this
- * extension, and a reconcile runs on install, enable and upgrade. The way to
- * stop one of these for good is therefore to archive it, or to disable the
- * extension; pausing it is temporary in a way the UI does not say. Declared
- * active anyway because a schedule that arrives paused is a schedule nobody
- * turns on, and this extension is nothing without its two runs.
+ * extension. A reconcile runs only when the operator asks for one -- the
+ * Reconcile button on Extensions > Managed resources, or
+ * `swarmclaw extensions managed-resources-action` -- and nothing in the host
+ * runs it on install, enable or upgrade; `reconcileExtensionManagedResources`
+ * has no other caller. Two things follow. A pause lasts until the operator
+ * next presses Reconcile, which the UI does not say, so the way to stop one
+ * of these for good is to archive it or to uninstall the extension (an
+ * uninstall deletes both schedules and trashes both agents). And a fresh
+ * install has NO agents and NO schedules until the operator presses
+ * Reconcile once: the page's status bar reads the host's managed-resources
+ * summary and says so (see ui/managed-state.ts), because "no sweep has run
+ * yet" and "no sweep is scheduled" are different facts and the operator has
+ * to be told which one they are looking at. Declared active anyway because a
+ * schedule that arrives paused is a schedule nobody turns on, and this
+ * extension is nothing without its two runs.
  *
  * WHAT THE HOST DOES WITH A FAILED RUN, AND WITH AN OVERLAPPING ONE
  * -----------------------------------------------------------------

@@ -522,6 +522,65 @@ describe('extension manager hook execution', () => {
     assert.equal(out.afterReload, 2, 'a reload runs setup() again, once')
   })
 
+  it('records an extension whose import never settles as a failure and finishes the load without it', () => {
+    // The boot path awaits ensureLoaded() before the HTTP listener binds
+    // (src/instrumentation.ts), and acquisition imports every enabled
+    // extension in turn. An entry module with a top-level `await` that never
+    // settles used to hold that await open forever: no listener, no
+    // /api/healthz, and no Extensions screen to disable it from. A throw was
+    // always caught; this is the hang, which a catch cannot see. The deadline
+    // is shortened through the environment so the test does not wait 30 s.
+    //
+    // The sibling extension is there to show the load completed with the
+    // hung one recorded and the healthy one registered, rather than the load
+    // being abandoned as a whole. The subprocess exiting at all is the third
+    // assertion: a pending promise with no timer behind it does not keep the
+    // event loop alive, so the host is not kept up by the module it gave up on.
+    const out = runWithTempDataDir<{
+      elapsedMs: number
+      hungFailure: string
+      healthyFailure: string
+      healthyToolPresent: boolean
+    }>(`
+      import fs from 'node:fs'
+      import path from 'node:path'
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const extensionsDir = path.join(process.env.DATA_DIR, 'extensions')
+      fs.mkdirSync(extensionsDir, { recursive: true })
+      fs.writeFileSync(path.join(extensionsDir, 'hung_import.mjs'), [
+        "await new Promise(() => {})",
+        "export default { name: 'Never Settles', tools: [] }",
+      ].join('\\n'))
+      fs.writeFileSync(path.join(extensionsDir, 'healthy_sibling.mjs'), [
+        "export default {",
+        "  name: 'Healthy Sibling',",
+        "  tools: [{ name: 'healthy_sibling_noop', description: 'x', parameters: { type: 'object', properties: {} }, execute: () => 'ok' }],",
+        "}",
+      ].join('\\n'))
+
+      const m = getExtensionManager()
+      const startedAt = Date.now()
+      await m.ensureLoaded()
+      const elapsedMs = Date.now() - startedAt
+      const listed = m.listExtensions()
+      const hung = listed.find((e) => e.filename === 'hung_import.mjs')
+      const healthy = listed.find((e) => e.filename === 'healthy_sibling.mjs')
+      const tools = m.getTools(['healthy_sibling.mjs'])
+      console.log(JSON.stringify({
+        elapsedMs,
+        hungFailure: (hung && hung.lastFailureError) || '',
+        healthyFailure: (healthy && healthy.lastFailureError) || '',
+        healthyToolPresent: tools.some((entry) => entry.tool.name === 'healthy_sibling_noop'),
+      }))
+    `, { env: { SWARMCLAW_EXTENSION_IMPORT_TIMEOUT_MS: '500' }, timeoutMs: 60_000 })
+
+    assert.match(out.hungFailure, /did not finish importing within 500 ms/, 'the hang is recorded against the extension that hung')
+    assert.equal(out.healthyFailure, '', 'the sibling that imports cleanly carries no failure')
+    assert.equal(out.healthyToolPresent, true, 'the load completed and registered the sibling')
+    assert.ok(out.elapsedMs < 20_000, `ensureLoaded returned in ${out.elapsedMs} ms rather than waiting on the hung import`)
+  })
+
   it('re-executes an edited ESM extension on reload, through the manager', () => {
     // The module-system half of this is pinned on the shipped runtimes by
     // extension-module-loader.test.ts. This is the manager half: that reload()
@@ -999,19 +1058,27 @@ describe('extension manager source paths, reloads and watchers', () => {
     assert.equal(out.stillEnabled, true, 'two genuine failures must not reach a threshold of three')
   })
 
-  it('reports that an upgraded dependency needs a restart, and that a first install does not', () => {
+  it('reports that an upgraded dependency needs a restart, and that a first install and a no-op reinstall do not', () => {
     // The narrowed cache eviction leaves a workspace's node_modules evaluated
     // once per process on purpose, so an install that upgraded a package
     // reports 'installed' while the copy already loaded is what still runs.
-    // Nothing said so outside a loader comment.
+    // Nothing said so outside a loader comment. The flag used to be "there
+    // was a node_modules before", which told the operator to restart after a
+    // reinstall that changed nothing; it is now whether the manager's own
+    // record of the installed tree changed.
     //
     // The package manager is a stub on PATH: the claim under test is about
     // what the host reports, and a real install would be a network request.
+    // The stub writes npm's hidden lockfile from a file the test controls, so
+    // the same install can be made a no-op or an upgrade at will.
     const binDir = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-stub-npm-'))
     const stubNpm = path.join(binDir, 'npm')
+    const lockSource = path.join(binDir, 'lock.json')
+    fs.writeFileSync(lockSource, '{"packages":{"node_modules/left-pad":{"version":"1.3.0"}}}')
     fs.writeFileSync(
       stubNpm,
-      '#!/bin/sh\nmkdir -p node_modules/left-pad\nprintf \'{"name":"left-pad"}\' > node_modules/left-pad/package.json\nexit 0\n',
+      '#!/bin/sh\nmkdir -p node_modules/left-pad\nprintf \'{"name":"left-pad"}\' > node_modules/left-pad/package.json\n'
+      + 'cat "$SWARMCLAW_STUB_LOCK" > node_modules/.package-lock.json\nexit 0\n',
     )
     fs.chmodSync(stubNpm, 0o755)
 
@@ -1019,6 +1086,8 @@ describe('extension manager source paths, reloads and watchers', () => {
       const out = runWithTempDataDir<{
         firstInstall: boolean
         secondInstall: boolean
+        thirdInstall: boolean
+        fourthInstall: boolean
         hadNodeModulesAfterFirst: boolean
       }>(`
         import fs from 'node:fs'
@@ -1026,6 +1095,7 @@ describe('extension manager source paths, reloads and watchers', () => {
         const extensionsMod = await import('@/lib/server/extensions')
         const { getExtensionManager } = extensionsMod.default || extensionsMod
         const m = getExtensionManager()
+        const lockSource = ${JSON.stringify(lockSource)}
 
         await m.saveExtensionSource(
           'dependency_probe.mjs',
@@ -1038,18 +1108,30 @@ describe('extension manager source paths, reloads and watchers', () => {
         )
         const first = await m.installExtensionDependencies('dependency_probe.mjs')
         const hadNodeModulesAfterFirst = fs.existsSync(nodeModules)
+        // Same lockfile: the reinstall resolved to the same tree.
         const second = await m.installExtensionDependencies('dependency_probe.mjs')
+        // A different tree: an upgrade this process may already hold the old copy of.
+        fs.writeFileSync(lockSource, '{"packages":{"node_modules/left-pad":{"version":"1.3.1"}}}')
+        const third = await m.installExtensionDependencies('dependency_probe.mjs')
+        // No record of the tree at all: the host cannot tell, and says restart.
+        fs.rmSync(path.join(nodeModules, '.package-lock.json'))
+        fs.writeFileSync(lockSource, '')
+        const fourth = await m.installExtensionDependencies('dependency_probe.mjs')
 
         console.log(JSON.stringify({
           firstInstall: first.restartRequiredForUpgrades,
           secondInstall: second.restartRequiredForUpgrades,
+          thirdInstall: third.restartRequiredForUpgrades,
+          fourthInstall: fourth.restartRequiredForUpgrades,
           hadNodeModulesAfterFirst,
         }))
-      `, { env: { PATH: `${binDir}${path.delimiter}${process.env.PATH || ''}` } })
+      `, { env: { PATH: `${binDir}${path.delimiter}${process.env.PATH || ''}`, SWARMCLAW_STUB_LOCK: lockSource } })
 
       assert.equal(out.hadNodeModulesAfterFirst, true, 'the stub package manager must actually populate node_modules')
       assert.equal(out.firstInstall, false, 'a first install has nothing already loaded to go stale')
-      assert.equal(out.secondInstall, true, 'an install over existing packages may have upgraded one this process holds')
+      assert.equal(out.secondInstall, false, 'a reinstall that resolved to the same tree upgraded nothing this process holds')
+      assert.equal(out.thirdInstall, true, 'an install that changed the tree may have upgraded a package this process holds')
+      assert.equal(out.fourthInstall, true, 'with no record of the tree the host cannot tell, and errs toward the restart')
     } finally {
       fs.rmSync(binDir, { recursive: true, force: true })
     }

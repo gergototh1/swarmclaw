@@ -514,3 +514,43 @@ test('a pinned skill past the inline cap is cut behind a marker, which is what t
     fs.rmSync(cwd, { recursive: true, force: true })
   }
 })
+
+test('the prompt budget counts what the prompt carries, so a long skill is pinned and does not starve the ones behind it', () => {
+  /*
+   * `selectPromptSkills` measured `skill.content.length` against the 30 000
+   * character budget and `sectionFromSkills` then cut each skill to 3 000. A
+   * 24 KB skill spent 24 KB of budget for a 3 KB contribution; a 40 KB one was
+   * never selected at all, however little it would have cost the turn; and
+   * because an over-budget skill is skipped rather than ending the loop,
+   * which skills reached a turn depended on the order they were walked in.
+   */
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-skill-budget-'))
+  try {
+    const big = makeSkill('big_guide', { content: `# big\n${'x'.repeat(40_000)}` })
+    const small = makeSkill('small_rule', { content: '# small\nOne rule.' })
+    const snapshot = resolveRuntimeSkills({
+      cwd,
+      enabledExtensions: [],
+      storedSkills: { big_guide: big, small_rule: small },
+      learnedSkills: {},
+      agentSkillIds: ['big_guide', 'small_rule'],
+    })
+    assert.ok(snapshot.promptSkills.some((skill) => skill.name === 'big_guide'), 'a skill longer than the whole budget is still pinned')
+    assert.ok(snapshot.promptSkills.some((skill) => skill.name === 'small_rule'))
+    const block = buildRuntimeSkillPromptBlocks(snapshot).join('\n')
+    assert.match(block, /\[Skill content truncated at 3000 chars/)
+    assert.ok(block.length < 8_000, `the section is bounded by the cap, not by the file: ${block.length}`)
+
+    // Nine skills of 3 400 characters each: charged at the file length only
+    // eight fit and the ninth was dropped; charged at what is inlined all
+    // nine fit, so what reaches the turn no longer depends on the walk order.
+    const nine = Object.fromEntries(Array.from({ length: 9 }, (_, i) => {
+      const id = `guide_${i}`
+      return [id, makeSkill(id, { content: `# ${id}\n${'y'.repeat(3_400)}` })]
+    }))
+    const all = resolveRuntimeSkills({ cwd, enabledExtensions: [], storedSkills: nine, learnedSkills: {}, agentSkillIds: Object.keys(nine) })
+    assert.equal(all.promptSkills.length, 9)
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true })
+  }
+})

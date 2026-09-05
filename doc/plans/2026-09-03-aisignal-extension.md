@@ -1,25 +1,25 @@
-# AI Signal plugin + plugin-réteg — implementációs terv
+# AI Signal extension + extension-réteg — implementációs terv
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A Hermes `aisignal` plugin fut a SwarmClaw-ban mint leválasztható extension (backend + UI), és közben elkészül az a core plugin-réteg, amin fut — Electronban és VPS-en változtatás nélkül.
+**Goal:** A Hermes `aisignal` pluginja fut a SwarmClaw-ban mint leválasztható extension (backend + UI), és közben elkészül az a core extension-réteg, amin fut — Electronban és VPS-en változtatás nélkül.
 
 **Architecture:** A core négy új képességet kap (storage-API + migrációk a host sqlite-ján, RPC-végpont, asset-kiszolgálás + kliens-registry + oldal-mount, Google OAuth web-flow), mind az extension-managerre és a meglévő route/auth mintákra építve. Az AI Signal egy `aisignal.mjs` extension a workspace-ével: 4 tool, 5 RPC-metódus, 2 managed agent, 2 managed schedule, 2 skill, és egy esbuild-del buildelt React UI, ami a host Reactjét kapja `window.swarmclaw.modules`-ból.
 
-**Tech Stack:** Next.js 16.2 App Router, React 19.2, better-sqlite3 (a host példánya), node:test + tsx, `runWithTempDataDir`, esbuild (plugin build), Gmail REST + Google OAuth 2.0 `fetch`-csel, lucide-react.
+**Tech Stack:** Next.js 16.2 App Router, React 19.2, better-sqlite3 (a host példánya), node:test + tsx, `runWithTempDataDir`, esbuild (extension build), Gmail REST + Google OAuth 2.0 `fetch`-csel, lucide-react.
 
-**Spec:** `doc/specs/2026-09-03-aisignal-plugin-design.md`
+**Spec:** `doc/specs/2026-09-03-aisignal-extension-design.md`
 
 ## Global Constraints
 
 - Két üzemmód, azonos kód: Electron (`SWARMCLAW_DEPLOY_MODE=desktop`, szerver `127.0.0.1:<dinamikus port>`) és VPS (`SWARMCLAW_DEPLOY_MODE=vps`, Docker `node:22-slim`, egy konténer).
-- A plugin **nem hozhat natív npm-modult** (Electron-ABI ≠ rendszer-node ABI). Adatbázis csak a core `ctx.storage`-án át.
-- Plugin-táblák neve kötelezően `ext_<id>_` prefixű; a core a migrációkon kényszeríti ki.
+- Az extension **nem hozhat natív npm-modult** (Electron-ABI ≠ rendszer-node ABI). Adatbázis csak a core `ctx.storage`-án át.
+- Extension-táblák neve kötelezően `ext_<id>_` prefixű; a core a migrációkon kényszeríti ki.
 - A hírlevél/web tartalma adat, nem utasítás: nincs `innerHTML`/`dangerouslySetInnerHTML`/`eval`; link csak `http`/`https`.
 - Hamis eredmény soha: nevesített Gmail-hibakódok (`gmail_token_missing`, `gmail_token_unreadable`, `gmail_token_no_scopes`, `gmail_scope_missing`, `gmail_token_invalid`, `gmail_token_revoked`, `gmail_refresh_failed`, `gmail_service_failed`, `gmail_list_failed`, `gmail_fetch_failed`, `gmail_label_missing`, `google_libs_missing`, `gmail_unexpected`); félbemaradt sweep látszik; `link_read = 0` → „LINK NEM OLVASVA".
 - Token-érték soha nem kerül naplóba, válaszba, repóba.
-- Plugin-oldal útvonala `/x/`-szel kezdődik, egyedi, beépített útvonalat nem vehet át.
-- Plugin-UI a `<script>`-tag modellel, közös React; csak saját/aláírt plugin.
+- Extension-oldal útvonala `/x/`-szel kezdődik, egyedi, beépített útvonalat nem vehet át.
+- Extension-UI a `<script>`-tag modellel, közös React; csak saját/aláírt extension.
 - Minden feladat: `npm run lint:baseline` → `No net-new lint issues detected`; `npm run type-check` tiszta.
 - Commit-üzenet: rövid felszólító cím + miért; nincs gondolatjel (em dash). A törzs után kötelező két trailer:
   `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>` és
@@ -40,13 +40,13 @@
 | `src/lib/server/extensions/extension-pages.ts` | `validateExtensionPages()` (namespace, egyediség, override-tilalom) |
 | `src/lib/server/oauth/google.ts` | auth-URL, kód-beváltás, refresh, credential-tárolás `google-oauth:<purpose>` id-n, deploy-mód szerinti kliens |
 | `src/app/api/extensions/[id]/call/[method]/route.ts` | RPC-végpont |
-| `src/app/api/extensions/[id]/assets/[...path]/route.ts` | asset-végpont a plugin workspace `dist/`-jéből |
+| `src/app/api/extensions/[id]/assets/[...path]/route.ts` | asset-végpont az extension workspace `dist/`-jéből |
 | `src/app/api/oauth/google/start/route.ts`, `.../callback/route.ts` | OAuth-flow |
 | `src/lib/extensions/registry.ts` | `window.swarmclaw` (modules, registerPage, rpc), bundle-betöltő, React-példány ellenőrzés |
-| `src/hooks/use-extension-pages.ts` | plugin-oldalak lekérése + `useWs('extensions')` frissítés |
+| `src/hooks/use-extension-pages.ts` | extension-oldalak lekérése + `useWs('extensions')` frissítés |
 | `src/components/layout/extension-host.tsx` | a registry felállítása a shellben |
 | `src/components/layout/extension-nav-items.tsx` | `ExtensionPagesAfter` a railbe |
-| `src/app/x/[...slug]/page.tsx` | plugin-oldal mount |
+| `src/app/x/[...slug]/page.tsx` | extension-oldal mount |
 
 **Core — módosított fájlok**
 
@@ -62,7 +62,7 @@
 | `electron/server-lifecycle.ts` | `SWARMCLAW_DEPLOY_MODE: 'desktop'` |
 | `package.json` | új tesztfájlok a `test:runtime`-ban |
 
-**Plugin — `<DATA_DIR>/extensions/aisignal.mjs` + `<DATA_DIR>/extensions/.workspaces/aisignal_mjs/`** (a forrás a repóban `extensions/aisignal/` alatt él, egy install-script másolja a helyére)
+**Extension — `<DATA_DIR>/extensions/aisignal.mjs` + `<DATA_DIR>/extensions/.workspaces/aisignal_mjs/`** (a forrás a repóban `extensions/aisignal/` alatt él, egy install-script másolja a helyére)
 
 | Fájl | Felelősség |
 |---|---|
@@ -77,11 +77,11 @@
 | `extensions/aisignal/skills/ai-hirlevel-kinyeres/SKILL.md`, `.../kkv-kutatas/SKILL.md` | a Hermesből átmásolt skillek |
 | `extensions/aisignal/ui/main.tsx`, `deck.tsx`, `list.tsx`, `status-bar.tsx`, `style.css` | UI |
 | `extensions/aisignal/scripts/install.mjs` | másol a `DATA_DIR`-be, skilleket a `SWARMCLAW_HOME/skills/`-be |
-| `extensions/aisignal/test/*.test.mjs` | plugin-egységtesztek (mock storage, mock fetch) |
+| `extensions/aisignal/test/*.test.mjs` | extension-egységtesztek (mock storage, mock fetch) |
 
 ---
 
-## 1. mérföldkő: plugin-oldalak a railben (a legkockázatosabb darab elöl)
+## 1. mérföldkő: extension-oldalak a railben (a legkockázatosabb darab elöl)
 
 ### Task 1: `ui.pages` típus, validálás, `?type=pages`
 
@@ -104,9 +104,9 @@ export interface ExtensionPageDefinition {
   id: string
   label: string
   icon?: string
-  /** Kötelező '/x/' prefix; egyedi a telepített pluginok közt. */
+  /** Kötelező '/x/' prefix; egyedi a telepített extensionök közt. */
   path: string
-  /** A plugin workspace `dist/`-jéhez képest, pl. 'dist/index.js'. */
+  /** Az extension workspace `dist/`-jéhez képest, pl. 'dist/index.js'. */
   entry: string
   css?: string
   /** 'end' (alap) vagy 'after:<AppView>', pl. 'after:tasks'. */
@@ -117,7 +117,7 @@ export interface ExtensionPageDefinition {
 és az `ExtensionUIDefinition`-be, az `agentBadges` után:
 
 ```ts
-  /** Teljes oldalak, amiket a plugin a saját bundle-jéből renderel a /x/ névtér alatt. */
+  /** Teljes oldalak, amiket az extension a saját bundle-jéből renderel a /x/ névtér alatt. */
   pages?: ExtensionPageDefinition[]
 ```
 
@@ -142,12 +142,12 @@ describe('validateExtensionPages', () => {
     assert.equal(r.ok, false)
     if (!r.ok) assert.match(r.error, /\/x\//)
   })
-  it('rejects a path already taken by another plugin', () => {
+  it('rejects a path already taken by another extension', () => {
     const r = validateExtensionPages([good], new Set(['/x/aisignal']))
     assert.equal(r.ok, false)
     if (!r.ok) assert.match(r.error, /taken/)
   })
-  it('rejects duplicates inside one plugin and missing entry', () => {
+  it('rejects duplicates inside one extension and missing entry', () => {
     assert.equal(validateExtensionPages([good, { ...good, id: 'b' }], new Set()).ok, false)
     assert.equal(validateExtensionPages([{ ...good, entry: '' }], new Set()).ok, false)
   })
@@ -260,7 +260,7 @@ Hozzáfűzés az `extension-pages.test.ts`-hez:
 import { runWithTempDataDir } from '@/lib/server/test-utils/run-with-temp-data-dir'
 
 describe('manager.getPages', () => {
-  it('lists pages with extensionId and refuses a colliding second plugin', () => {
+  it('lists pages with extensionId and refuses a colliding second extension', () => {
     const out = runWithTempDataDir<{ pages: Array<{ extensionId: string; path: string }>; failed: string | null }>(`
       const { getExtensionManager } = await import('@/lib/server/extensions')
       const m = getExtensionManager()
@@ -286,7 +286,7 @@ git add src/types/extension.ts src/lib/server/extensions/extension-pages.ts src/
 git commit -m "Declare and validate extension pages under /x/"
 ```
 
-### Task 2: plugin-oldalak a railben
+### Task 2: extension-oldalak a railben
 
 **Files:**
 - Create: `src/hooks/use-extension-pages.ts`
@@ -380,14 +380,14 @@ export function ExtensionNavItem({ href, label, expanded, isActive, onClick, chi
     )
   }
   return (
-    <RailTooltip label={label} description="Plugin page">
+    <RailTooltip label={label} description="Extension page">
       <Link href={href} onClick={onClick} className={`rail-btn ${isActive ? 'active' : ''}`}>{children}</Link>
     </RailTooltip>
   )
 }
 ```
 
-Egyeztesd a tényleges `NavItem` JSX-ével (osztálynevek, `Link` import): a cél, hogy egy plugin-oldal vizuálisan ne különbözzön a beépítettektől.
+Egyeztesd a tényleges `NavItem` JSX-ével (osztálynevek, `Link` import): a cél, hogy egy extension-oldal vizuálisan ne különbözzön a beépítettektől.
 
 - [ ] **Step 4: `ExtensionPagesAfter`**
 
@@ -447,10 +447,10 @@ git add src/hooks/use-extension-pages.ts src/hooks/use-extension-pages.test.ts s
 git commit -m "Show extension pages in the sidebar rail"
 ```
 
-**1. mérföldkő után kipróbálható a gépeden:** egy plugin-deklaráció megjelenik a railben, kattintható.
+**1. mérföldkő után kipróbálható a gépeden:** egy extension-deklaráció megjelenik a railben, kattintható.
 
 ---
-## 2. mérföldkő: a plugin bundle-je eljut a böngészőbe
+## 2. mérföldkő: az extension bundle-je eljut a böngészőbe
 
 ### Task 3: asset-végpont
 
@@ -502,7 +502,7 @@ Run: `npx tsx --test "src/app/api/extensions/[id]/assets/route.test.ts"` → FAI
 `src/lib/server/extensions.ts`: az `extensionWorkspaceKey` elé `export`; a `getWorkspaceDir` mellé:
 
 ```ts
-  /** A plugin workspace könyvtára (assetek, dist/). Létezés nélkül is visszaadja az útvonalat. */
+  /** Az extension workspace könyvtára (assetek, dist/). Létezés nélkül is visszaadja az útvonalat. */
   getWorkspaceDirFor(filename: string): string {
     return this.getWorkspaceDir(sanitizeExtensionFilename(filename))
   }
@@ -558,7 +558,7 @@ Run a teszt → `# pass 1`. `package.json` `test:runtime`: add hozzá a tesztfá
 ```bash
 npm run type-check && npm run lint:baseline
 git add src/lib/server/extensions.ts "src/app/api/extensions/[id]/assets" package.json
-git commit -m "Serve extension dist assets from the plugin workspace"
+git commit -m "Serve extension dist assets from the extension workspace"
 ```
 
 ### Task 4: kliens-registry és bundle-betöltő
@@ -629,7 +629,7 @@ export function createExtensionRegistry(host: { react: unknown }): ExtensionRegi
   return {
     registerPage(id, Component, opts) {
       if (!opts || opts.react !== host.react) {
-        throw new Error(`Plugin page "${id}" was built against a different React instance; build with react as an external`)
+        throw new Error(`Extension page "${id}" was built against a different React instance; build with react as an external`)
       }
       pages.set(id, { Component })
       for (const cb of waiters.get(id) || []) cb(id)
@@ -659,13 +659,13 @@ export function loadExtensionPage(page: { extensionId: string; entry: string; cs
   return new Promise((resolve, reject) => {
     if (page.css) {
       const link = document.createElement('link')
-      link.rel = 'stylesheet'; link.href = assetUrl(page.extensionId, page.css); link.dataset.plugin = page.extensionId
+      link.rel = 'stylesheet'; link.href = assetUrl(page.extensionId, page.css); link.dataset.extension = page.extensionId
       document.head.appendChild(link)
     }
     const script = document.createElement('script')
-    script.src = assetUrl(page.extensionId, page.entry); script.async = true; script.dataset.plugin = page.extensionId
+    script.src = assetUrl(page.extensionId, page.entry); script.async = true; script.dataset.extension = page.extensionId
     script.onload = () => { loaded.add(key); resolve() }
-    script.onerror = () => reject(new Error(`a plugin bundle-je nem töltődött be: ${script.src}`))
+    script.onerror = () => reject(new Error(`az extension bundle-je nem töltődött be: ${script.src}`))
     document.head.appendChild(script)
   })
 }
@@ -683,7 +683,7 @@ import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import * as jsxRuntime from 'react/jsx-runtime'
 import { useEffect } from 'react'
-import { createExtensionRegistry, type ExtensionRegistry } from '@/lib/plugins/registry'
+import { createExtensionRegistry, type ExtensionRegistry } from '@/lib/extensions/registry'
 import { api } from '@/lib/app/api-client'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -701,7 +701,7 @@ declare global {
 }
 
 export function getHostRegistry(): NonNullable<Window['swarmclaw']> {
-  if (typeof window === 'undefined') throw new Error('plugin registry is browser-only')
+  if (typeof window === 'undefined') throw new Error('extension registry is browser-only')
   if (!window.swarmclaw) {
     const reg = createExtensionRegistry({ react: React })
     window.swarmclaw = {
@@ -728,11 +728,11 @@ export function ExtensionHost() {
 ```bash
 npm run type-check && npm run lint:baseline
 git add src/lib/extensions/registry.ts src/lib/extensions/registry.test.ts src/components/layout/extension-host.tsx src/components/layout/dashboard-shell.tsx package.json
-git commit -m "Expose a plugin registry with the host React on window.swarmclaw"
+git commit -m "Expose an extension registry with the host React on window.swarmclaw"
 ```
 (`test:runtime`-ba: `src/lib/extensions/registry.test.ts`.)
 
-### Task 5: plugin-oldal mount `/x/[...slug]`
+### Task 5: extension-oldal mount `/x/[...slug]`
 
 **Files:**
 - Create: `src/app/x/[...slug]/page.tsx`
@@ -747,7 +747,7 @@ git commit -m "Expose a plugin registry with the host React on window.swarmclaw"
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useExtensionPages } from '@/hooks/use-extension-pages'
-import { loadExtensionPage } from '@/lib/plugins/registry'
+import { loadExtensionPage } from '@/lib/extensions/registry'
 import { getHostRegistry } from '@/components/layout/extension-host'
 
 const REGISTER_TIMEOUT_MS = 10_000
@@ -764,16 +764,16 @@ export default function ExtensionPageRoute() {
     let cancelled = false
     const reg = getHostRegistry()
     const timer = setTimeout(() => {
-      if (!cancelled && !reg.getPage(page.id)) setState({ status: 'error', error: `a plugin bundle-je betöltődött, de nem regisztrálta a(z) "${page.id}" oldalt ${REGISTER_TIMEOUT_MS / 1000} s alatt` })
+      if (!cancelled && !reg.getPage(page.id)) setState({ status: 'error', error: `az extension bundle-je betöltődött, de nem regisztrálta a(z) "${page.id}" oldalt ${REGISTER_TIMEOUT_MS / 1000} s alatt` })
     }, REGISTER_TIMEOUT_MS)
     const off = reg.onPageRegistered(page.id, () => { if (!cancelled) { clearTimeout(timer); setState({ status: 'ready' }) } })
     loadExtensionPage(page).catch((err: Error) => { if (!cancelled) { clearTimeout(timer); setState({ status: 'error', error: err.message }) } })
     return () => { cancelled = true; clearTimeout(timer); off() }
   }, [page])
 
-  if (!page) return <div className="p-6 text-text-3">Nincs ilyen plugin-oldal: /x/{slug}</div>
-  if (state.status === 'error') return <div className="p-6 text-red-400">A plugin oldala nem tölthető be: {state.error}</div>
-  if (state.status === 'loading') return <div className="p-6 text-text-3">Plugin betöltése…</div>
+  if (!page) return <div className="p-6 text-text-3">Nincs ilyen extension-oldal: /x/{slug}</div>
+  if (state.status === 'error') return <div className="p-6 text-red-400">Az extension oldala nem tölthető be: {state.error}</div>
+  if (state.status === 'loading') return <div className="p-6 text-text-3">Extension betöltése…</div>
   const reg = getHostRegistry()
   const entry = reg.getPage(page.id)
   if (!entry) return null
@@ -788,9 +788,9 @@ A Task 3 tesztjének mintájára a `pg_a.mjs` workspace `dist/index.js`-ébe:
 
 ```js
 (function(){ const R = window.swarmclaw.modules.react
-  window.swarmclaw.registerPage('a', function Page(props){ return R.createElement('div', { style: { padding: 24 } }, 'Hello from plugin ', props.extensionId) }, { react: R }) })()
+  window.swarmclaw.registerPage('a', function Page(props){ return R.createElement('div', { style: { padding: 24 } }, 'Hello from extension ', props.extensionId) }, { react: R }) })()
 ```
-`/x/a` → „Hello from plugin pg_a.mjs" a shell rail-jével körbevéve.
+`/x/a` → „Hello from extension pg_a.mjs" a shell rail-jével körbevéve.
 
 - [ ] **Step 3: Gates + commit**
 
@@ -858,7 +858,7 @@ git commit -m "Add a nonce-based Content-Security-Policy"
 ```
 
 ---
-## 3. mérföldkő: a plugin backendje beszélhet a core-ral
+## 3. mérföldkő: az extension backendje beszélhet a core-ral
 
 ### Task 7: `setup(ctx)`, storage-API, migrációk
 
@@ -911,7 +911,7 @@ Az `Extension` interface-be:
   /** Egyszer fut betöltéskor, a migrációk után. Szinkron: a load() szinkron. */
   setup?: (ctx: ExtensionContext) => void
   migrations?: ExtensionMigration[]
-  /** A plugin UI-ja hívja: POST /api/extensions/<id>/call/<method>. */
+  /** Az extension UI-ja hívja: POST /api/extensions/<id>/call/<method>. */
   rpc?: Record<string, ExtensionRpcHandler>
 ```
 
@@ -928,7 +928,7 @@ import { extensionTablePrefix, validateMigrationSql } from './extension-storage'
 describe('extensionTablePrefix', () => {
   it('derives ext_<id>_ from the filename', () => {
     assert.equal(extensionTablePrefix('aisignal.mjs'), 'ext_aisignal_')
-    assert.equal(extensionTablePrefix('my-plugin.js'), 'ext_my_plugin_')
+    assert.equal(extensionTablePrefix('my-extension.js'), 'ext_my_extension_')
   })
 })
 
@@ -2540,9 +2540,18 @@ export function List({ rpc, onDecide, onChanged }: { rpc: Rpc; onDecide: (id: st
   const [status, setStatus] = useState<'all' | 'saved' | 'archived' | 'new'>('all')
   const [q, setQ] = useState('')
   const [rows, setRows] = useState<{ total: number; items: Item[] }>({ total: 0, items: [] })
-  const load = () => { rpc('items', { status, q, order: 'recent', limit: 200 }).then((r) => setRows(r as { total: number; items: Item[] })).catch(() => {}) }
-  useEffect(load, [status, q]) // eslint-disable-line react-hooks/exhaustive-deps
-  const act = async (id: string, d: 'save' | 'archive' | 'undo') => { await onDecide(id, d); load(); onChanged() }
+  // Bumped after a decision so the effect below re-reads the same query. The
+  // effect names every value it reads, so no lint rule has to be silenced;
+  // a stale flag drops a response that arrives after the query changed.
+  const [reload, setReload] = useState(0)
+  useEffect(() => {
+    let stale = false
+    void rpc('items', { status, q, order: 'recent', limit: 200 })
+      .then((r) => { if (!stale) setRows(r as { total: number; items: Item[] }) })
+      .catch(() => {})
+    return () => { stale = true }
+  }, [rpc, status, q, reload])
+  const act = async (id: string, d: 'save' | 'archive' | 'undo') => { await onDecide(id, d); setReload((n) => n + 1); onChanged() }
   return (
     <div className="ais-list">
       <div className="ais-chips">

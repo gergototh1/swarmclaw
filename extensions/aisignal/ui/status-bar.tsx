@@ -1,5 +1,5 @@
-import type { Board, Sweep } from './api'
-import { cappedNote, describeGmail, describeOutcome, formatDateTime, kindLabel, noteSegments, sweepOutcome } from './format'
+import type { Board, ManagedStatus, Sweep } from './api'
+import { cappedNote, describeGmail, describeManaged, describeOutcome, formatDateTime, kindLabel, noteSegments, sweepOutcome } from './format'
 
 /**
  * The line the operator reads before the deck: what the last run did, whether
@@ -10,6 +10,13 @@ import { cappedNote, describeGmail, describeOutcome, formatDateTime, kindLabel, 
  * are four different sentences (see `describeOutcome`), and a Gmail credential
  * that is absent and a check that could not run are two (see `describeGmail`).
  * The connect link is offered only when the credential is known to be absent.
+ *
+ * The schedule line is the same rule applied to the one seam the sweep rows
+ * cannot cover: "no sweep has run yet" is true both on an install whose two
+ * schedules are waiting for their first slot and on one where the operator
+ * never pressed Reconcile and nothing is scheduled at all. `managed` is the
+ * host's answer to which (see managed-state.ts), and `null` is "not answered
+ * yet", which is worded as such rather than as either.
  *
  * The href is root-relative, the same shape the host's own `assetUrl` builds,
  * so it works wherever the app is served from without this bundle knowing the
@@ -34,9 +41,10 @@ function SweepLine({ sweep }: { sweep: Sweep }) {
   )
 }
 
-export function StatusBar({ board, onRefresh }: { board: Board; onRefresh: () => void }) {
+export function StatusBar({ board, managed, onRefresh }: { board: Board; managed: ManagedStatus | null; onRefresh: () => void }) {
   const last = board.sweeps[0]
   const gmail = describeGmail(board.gmail)
+  const schedule = describeManaged(managed)
   const sweepsCap = cappedNote(board.sweeps.length, board.counts.sweeps, 'futás')
   return (
     <div className="ais-status">
@@ -68,6 +76,9 @@ export function StatusBar({ board, onRefresh }: { board: Board; onRefresh: () =>
           {gmail.canConnect && <a className="ais-link ais-connect" href={CONNECT_HREF}>Gmail bekötése</a>}
           <span className="ais-muted"> · címke: {board.label}</span>
         </span>
+      </div>
+      <div className="ais-status-row">
+        <span className={schedule.trouble ? 'ais-warn' : ''}>{schedule.text}</span>
       </div>
     </div>
   )

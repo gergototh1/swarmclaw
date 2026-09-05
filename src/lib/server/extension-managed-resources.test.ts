@@ -25,6 +25,7 @@ import os from 'node:os'
 import { assertIsolatedDataDir } from '@/lib/server/test-support/isolated-data-dir'
 
 import { getExtensionManager } from './extensions'
+import { runWithTempDataDir } from './test-utils/run-with-temp-data-dir'
 import {
   inspectExtensionLocalFolder,
   listExtensionLocalFolderEntries,
@@ -629,4 +630,129 @@ test('the rule that a stranger claim is not a fact reaches both aisignal agents 
     assert.match(prompt, /Ha idézek, jelölöm, hogy idézet, és megmondom, honnan/, `${agent.name}: a quote is not marked as a quote in the prompt`)
     assert.match(prompt, /nem tény/, `${agent.name}: the prompt does not say a stranger's claim is not a fact`)
   }
+})
+
+test('uninstalling an extension deletes its managed schedules, trashes its managed agents and prunes its shipped skills, so the scheduler stops dispatching', () => {
+  /*
+   * The reviewer's sequence: install, reconcile, uninstall. Before the delete
+   * branch existed, `deleteExtension` dropped the tables and the files and
+   * left the schedule active on its cron, resolving to an agent that still
+   * existed and whose tools were gone, so every tick from then on dispatched
+   * a run that could only fail.
+   *
+   * Driven through the real manager against a scratch data directory in a
+   * subprocess, because the uninstall path is `deleteExtension` on an
+   * EXTERNAL extension file and the scheduler is the thing that has to stop.
+   * The schedule is wake-only so a dispatch is observable as a pending
+   * heartbeat wake rather than as a board task that would try to run a turn.
+   */
+  const out = runWithTempDataDir<{
+    wakesAfterFirstTick: number
+    scheduleIdsBefore: string[]
+    agentIdsBefore: string[]
+    deleted: boolean
+    managedSchedulesAfter: number
+    failedSchedulesAfter: number
+    agentListedAfter: boolean
+    agentTrashedAfter: boolean
+    shippedSkillGone: boolean
+    operatorSkillKept: boolean
+    wakesAfterSecondTick: number
+  }>(`
+    import fs from 'node:fs'
+    import path from 'node:path'
+    const extensionsMod = await import('@/lib/server/extensions')
+    const managedMod = await import('@/lib/server/extension-managed-resources')
+    const scheduleRepoMod = await import('@/lib/server/schedules/schedule-repository')
+    const agentRepoMod = await import('@/lib/server/agents/agent-repository')
+    const schedulerMod = await import('@/lib/server/runtime/scheduler')
+    const heartbeatWakeMod = await import('@/lib/server/runtime/heartbeat-wake')
+    const { getExtensionManager } = extensionsMod.default || extensionsMod
+    const { reconcileExtensionManagedResources } = managedMod.default || managedMod
+    const scheduler = schedulerMod.default || schedulerMod
+    const heartbeatWake = heartbeatWakeMod.default || heartbeatWakeMod
+    const scheduleRepo = scheduleRepoMod.default || scheduleRepoMod
+    const agentRepo = agentRepoMod.default || agentRepoMod
+
+    const file = 'managed_teardown.mjs'
+    const extensionsDir = path.join(process.env.DATA_DIR, 'extensions')
+    fs.mkdirSync(extensionsDir, { recursive: true })
+    fs.writeFileSync(path.join(extensionsDir, file), [
+      "export default {",
+      "  name: 'Managed Teardown Fixture',",
+      "  tools: [{ name: 'teardown_noop', description: 'x', parameters: { type: 'object', properties: {} }, execute: () => 'ok' }],",
+      "  managedResources: {",
+      "    agents: [{ agentKey: 'worker', displayName: 'Teardown Worker', systemPrompt: 'Call teardown_noop.' }],",
+      "    schedules: [{",
+      "      scheduleKey: 'hourly', displayName: 'Teardown Hourly', taskMode: 'wake_only', message: 'wake',",
+      "      agentRef: { resourceKind: 'agent', resourceKey: 'worker' }, cron: '0 * * * *', timezone: 'UTC', status: 'active',",
+      "    }],",
+      "  },",
+      "}",
+    ].join('\\n'))
+
+    // The skills layer this host scans, with one directory the installer
+    // shipped (and recorded) and one the operator wrote by hand.
+    const skillsDir = path.join(process.env.SWARMCLAW_HOME, 'skills')
+    for (const name of ['shipped-one', 'operator-own']) {
+      fs.mkdirSync(path.join(skillsDir, name), { recursive: true })
+      fs.writeFileSync(path.join(skillsDir, name, 'SKILL.md'), '---\\nname: ' + name + '\\n---\\n# ' + name + '\\n')
+    }
+    const workspaceDir = path.join(extensionsDir, '.workspaces', 'managed_teardown_mjs')
+    fs.mkdirSync(workspaceDir, { recursive: true })
+    fs.writeFileSync(path.join(workspaceDir, 'shipped-skills.json'), JSON.stringify(['shipped-one']))
+
+    const m = getExtensionManager()
+    await m.ensureLoaded()
+    const result = reconcileExtensionManagedResources(file)
+    const scheduleIdsBefore = result.createdSchedules
+    const agentIdsBefore = result.createdAgents
+
+    const now = Date.parse('2030-01-01T09:00:30.000Z')
+    for (const id of scheduleIdsBefore) {
+      scheduleRepo.upsertSchedule(id, { ...scheduleRepo.loadSchedule(id), nextRunAt: now - 1_000 })
+    }
+    await scheduler.runSchedulerTickForTests(now)
+    const wakesAfterFirstTick = heartbeatWake.snapshotPendingHeartbeatWakesForTests().length
+
+    const deleted = await m.deleteExtension(file)
+
+    const schedulesAfter = Object.values(scheduleRepo.loadSchedules())
+    const managed = (s) => s.managedByExtension && s.managedByExtension.extensionId === file
+    const trashedAgent = agentRepo.loadAgents({ includeTrashed: true })[agentIdsBefore[0]]
+    for (const id of scheduleIdsBefore) {
+      const stale = scheduleRepo.loadSchedule(id)
+      if (stale) scheduleRepo.upsertSchedule(id, { ...stale, nextRunAt: now + 3_600_000 - 1_000 })
+    }
+    await scheduler.runSchedulerTickForTests(now + 3_600_000)
+
+    console.log(JSON.stringify({
+      wakesAfterFirstTick,
+      scheduleIdsBefore,
+      agentIdsBefore,
+      deleted,
+      managedSchedulesAfter: schedulesAfter.filter(managed).length,
+      failedSchedulesAfter: schedulesAfter.filter((s) => s.status === 'failed').length,
+      agentListedAfter: Boolean(agentRepo.loadAgents()[agentIdsBefore[0]]),
+      agentTrashedAfter: Boolean(trashedAgent && trashedAgent.trashedAt),
+      shippedSkillGone: !fs.existsSync(path.join(skillsDir, 'shipped-one')),
+      operatorSkillKept: fs.existsSync(path.join(skillsDir, 'operator-own', 'SKILL.md')),
+      wakesAfterSecondTick: heartbeatWake.snapshotPendingHeartbeatWakesForTests().length,
+    }))
+  `, {
+    env: { SWARMCLAW_BUILD_MODE: '1', SWARMCLAW_HOME: path.join(os.tmpdir(), `swarmclaw-teardown-home-${process.pid}-${Date.now()}`) },
+    timeoutMs: 90_000,
+  })
+
+  assert.equal(out.scheduleIdsBefore.length, 1, 'the reconcile created the schedule')
+  assert.equal(out.agentIdsBefore.length, 1, 'the reconcile created the agent')
+  assert.equal(out.wakesAfterFirstTick, 1, 'before the uninstall the schedule dispatches')
+  assert.equal(out.deleted, true)
+  assert.equal(out.managedSchedulesAfter, 0, 'the managed schedule is gone')
+  assert.equal(out.failedSchedulesAfter, 0, 'nothing was left behind to be marked failed')
+  assert.equal(out.agentListedAfter, false, 'the managed agent is out of every listing')
+  assert.equal(out.agentTrashedAfter, true, 'and it is in the trash, restorable with whatever the operator changed on it')
+  assert.equal(out.shippedSkillGone, true, 'the shipped skill directory is removed')
+  assert.equal(out.operatorSkillKept, true, 'a skill the operator wrote is not touched')
+  assert.equal(out.wakesAfterSecondTick, 1, 'after the uninstall the next tick dispatches nothing new')
 })

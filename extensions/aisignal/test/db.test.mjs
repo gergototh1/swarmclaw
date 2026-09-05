@@ -1148,3 +1148,60 @@ test('a sweep that names both a source and an id space is refused rather than re
     /either a source or an id space/,
   )
 })
+
+// --- The clock ---------------------------------------------------------------
+
+test('a close whose frontier_after is ahead of the clock holds the frontier, marks seen, and says so', () => {
+  /*
+   * The write-side clock barrier. `ran_at` is the machine clock and nothing
+   * else guards it: a container that booted hours ahead of NTP earned a
+   * frontier hours ahead of any mail, and the first drained run after the
+   * clock came back stamped a correct `ran_at` past everything that had
+   * arrived in between. A `frontier_after` newer than the clock at close is
+   * therefore not written. The seen marks are: the agent did read those
+   * messages, and holding the frontier is what keeps the window wide.
+   */
+  const { repo } = freshWithStorage()
+  const earned = repo.openSweep({ label: 'News', source: src('Label_7'), since: null, fetchedIds: ['m1'], skipped: 0, leftover: 0, drained: true })
+  repo.finishSweep({ sweepId: earned.id, ok: true })
+  const before = frontierOf(repo, 'Label_7')
+  assert.ok(before, 'a sane drained run earned a frontier')
+
+  const ahead = new Date(Date.now() + 3 * 3600_000).toISOString()
+  const skewed = repo.openSweep({ label: 'News', source: src('Label_7'), since: before, fetchedIds: ['m2'], skipped: 0, leftover: 0, drained: true, ranAt: ahead })
+  assert.equal(repo.sweepById(skewed.id).frontier_after, ahead, 'openSweep settles the future value; it is the close that refuses it')
+
+  const closed = repo.finishSweep({ sweepId: skewed.id, ok: true })
+  assert.equal(closed.frontierHeld, true)
+  assert.equal(closed.seenMarked, 1, 'what the agent read is still marked')
+  assert.equal(frontierOf(repo, 'Label_7'), before, 'the frontier did not move to the future')
+  assert.match(repo.sweepById(skewed.id).note, /frontier_held=clock_ahead/)
+
+  // A sane close after it moves the frontier as before, and does not carry
+  // the segment: the hold is a fact about one close, not a sticky state.
+  const sane = repo.openSweep({ label: 'News', source: src('Label_7'), since: before, fetchedIds: [], skipped: 0, leftover: 0, drained: true })
+  const saneClosed = repo.finishSweep({ sweepId: sane.id, ok: true })
+  assert.equal(saneClosed.frontierHeld, false)
+  assert.equal(frontierOf(repo, 'Label_7'), repo.sweepById(sane.id).ran_at)
+  assert.doesNotMatch(repo.sweepById(sane.id).note, /frontier_held/)
+})
+
+test('latestTrustworthySince is the newest window start a clean run opened at that is not past the clock', () => {
+  const { repo } = freshWithStorage()
+  const key = { kind: MAIL_KIND, account: ACCOUNT, sourceId: 'Label_7' }
+  const clock = '2026-09-05T10:00:00.000Z'
+  assert.equal(repo.latestTrustworthySince(key, clock), null, 'no clean run, no window: the whole source')
+
+  const a = repo.openSweep({ label: 'News', source: src('Label_7'), since: '2026-09-01T00:00:00.000Z', fetchedIds: [], skipped: 0, leftover: 0 })
+  repo.finishSweep({ sweepId: a.id, ok: true })
+  const b = repo.openSweep({ label: 'News', source: src('Label_7'), since: '2026-09-03T00:00:00.000Z', fetchedIds: [], skipped: 0, leftover: 0 })
+  repo.finishSweep({ sweepId: b.id, ok: false })
+  const c = repo.openSweep({ label: 'News', source: src('Label_7'), since: '2026-09-09T00:00:00.000Z', fetchedIds: [], skipped: 0, leftover: 0 })
+  repo.finishSweep({ sweepId: c.id, ok: true })
+  const other = repo.openSweep({ label: 'Other', source: src('Label_8'), since: '2026-09-04T00:00:00.000Z', fetchedIds: [], skipped: 0, leftover: 0 })
+  repo.finishSweep({ sweepId: other.id, ok: true })
+
+  // b did not close clean, c opened past the clock, other is another source.
+  assert.equal(repo.latestTrustworthySince(key, clock), '2026-09-01T00:00:00.000Z')
+  assert.throws(() => repo.latestTrustworthySince({ kind: MAIL_KIND, account: ACCOUNT }, clock), /latestTrustworthySince/, 'a source with a half missing is refused by name')
+})

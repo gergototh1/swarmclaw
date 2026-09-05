@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import type { Board, Decision, Rpc } from './api'
+import type { Board, Decision, ManagedStatus, Rpc } from './api'
 import { errorText, readBoard } from './api'
 import { Deck } from './deck'
 import { currentExtensionId, hostOf, hostReact } from './host'
 import { List } from './list'
+import { loadManagedStatus } from './managed-state'
 import { StatusBar } from './status-bar'
 
 /**
@@ -20,9 +21,15 @@ import { StatusBar } from './status-bar'
  *
  * `version` counts successful loads and keys the deck, so a reload gives the
  * deck a fresh controller rather than an old undo stack over new rows.
+ *
+ * The schedule check is a second request, to the host rather than to this
+ * extension's rpc, and it is refreshed with the board so a Reconcile pressed
+ * in another tab shows up on the next Frissítés. It never fails the page: its
+ * own failure is one of its three states (see managed-state.ts).
  */
 export function AiSignalPage({ extensionId, rpc }: { extensionId: string; rpc: Rpc }) {
   const [board, setBoard] = useState<{ value: Board; version: number } | null>(null)
+  const [managed, setManaged] = useState<ManagedStatus | null>(null)
   const [view, setView] = useState<'deck' | 'list'>('deck')
   const [error, setError] = useState<string | null>(null)
 
@@ -34,7 +41,8 @@ export function AiSignalPage({ extensionId, rpc }: { extensionId: string; rpc: R
         setError(null)
       })
       .catch((err: unknown) => setError(errorText(err)))
-  }, [rpc])
+    void loadManagedStatus((input, init) => fetch(input, init), extensionId).then(setManaged)
+  }, [rpc, extensionId])
 
   useEffect(() => { refresh() }, [refresh])
 
@@ -50,7 +58,7 @@ export function AiSignalPage({ extensionId, rpc }: { extensionId: string; rpc: R
       {!board && !error && <p className="ais-muted">Betöltés…</p>}
       {board && (
         <>
-          <StatusBar board={board.value} onRefresh={refresh} />
+          <StatusBar board={board.value} managed={managed} onRefresh={refresh} />
           <div className="ais-tabs" role="tablist">
             <button type="button" role="tab" aria-selected={view === 'deck'} className={`ais-tab${view === 'deck' ? ' ais-tab-active' : ''}`} onClick={() => setView('deck')}>Pakli</button>
             <button type="button" role="tab" aria-selected={view === 'list'} className={`ais-tab${view === 'list' ? ' ais-tab-active' : ''}`} onClick={() => setView('list')}>Lista</button>

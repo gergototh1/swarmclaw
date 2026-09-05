@@ -10,6 +10,7 @@ import type {
   SkillSecuritySummary,
 } from '@/types'
 import { dedup, hmrSingleton } from '@/lib/shared-utils'
+import { log } from '@/lib/server/logger'
 import { expandExtensionIds, getExtensionAliases, normalizeExtensionId } from '@/lib/server/tool-aliases'
 import { cosineSimilarity, getEmbedding } from '@/lib/server/embeddings'
 import { loadSettings } from '@/lib/server/settings/settings-repository'
@@ -681,6 +682,20 @@ export function resolveRuntimeSkills(options: ResolveRuntimeSkillsOptions = {}):
   }
 }
 
+// Hard cap on how much skill content we inline per pinned skill. Long skill
+// files (multi-page markdown guides) were dominating the system prompt — one
+// coordinator agent had 24,402 chars (39% of its 62 k budget) from a single
+// pinned skill. When content exceeds the cap we truncate and instruct the
+// agent to pull the rest on demand via `use_skill` action="load".
+const INLINED_SKILL_CHAR_CAP = 3000
+
+function truncateInlinedSkillContent(content: string, skillName: string): string {
+  const trimmed = content.trim()
+  if (trimmed.length <= INLINED_SKILL_CHAR_CAP) return trimmed
+  const head = trimmed.slice(0, INLINED_SKILL_CHAR_CAP)
+  return `${head}\n\n[Skill content truncated at ${INLINED_SKILL_CHAR_CAP} chars to save context. Call \`use_skill\` with action="load" and skillId for "${skillName}" to load the full guide when you need it.]`
+}
+
 // Dedicated sub-budget for auto-attached learned skills. buildSeedFromLearned
 // marks every learned skill as `attached`, which means a single coordinator
 // agent with 100+ historical learnings could flood the whole 30 k pinned-skill
@@ -711,7 +726,14 @@ function selectPromptSkills(skills: ResolvedRuntimeSkill[]): ResolvedRuntimeSkil
   let learnedCount = 0
   for (const skill of ordered) {
     if (selected.length >= MAX_SKILLS_IN_PROMPT) break
-    const contentLen = skill.name.length + skill.content.length + 12
+    // Budgeted on what the prompt will actually carry, not on the file. The
+    // section builder cuts every inlined skill at INLINED_SKILL_CHAR_CAP, so
+    // charging a 24 KB skill 24 KB of a 30 KB budget for a 3 KB contribution
+    // starved every skill after it, and because an over-budget skill is
+    // skipped rather than ending the loop, a long skill was dropped while
+    // shorter ones behind it still got in: which skills reached a turn
+    // depended on the iteration order rather than on the space they took.
+    const contentLen = skill.name.length + truncateInlinedSkillContent(skill.content, skill.name).length + 12
     if (totalChars + contentLen > MAX_SKILLS_PROMPT_CHARS) continue
     const isLearned = skill.source === 'learned'
     if (isLearned) {
@@ -726,19 +748,14 @@ function selectPromptSkills(skills: ResolvedRuntimeSkill[]): ResolvedRuntimeSkil
   return selected
 }
 
-// Hard cap on how much skill content we inline per pinned skill. Long skill
-// files (multi-page markdown guides) were dominating the system prompt — one
-// coordinator agent had 24,402 chars (39% of its 62 k budget) from a single
-// pinned skill. When content exceeds the cap we truncate and instruct the
-// agent to pull the rest on demand via `use_skill` action="load".
-const INLINED_SKILL_CHAR_CAP = 3000
-
-function truncateInlinedSkillContent(content: string, skillName: string): string {
-  const trimmed = content.trim()
-  if (trimmed.length <= INLINED_SKILL_CHAR_CAP) return trimmed
-  const head = trimmed.slice(0, INLINED_SKILL_CHAR_CAP)
-  return `${head}\n\n[Skill content truncated at ${INLINED_SKILL_CHAR_CAP} chars to save context. Call \`use_skill\` with action="load" and skillId for "${skillName}" to load the full guide when you need it.]`
-}
+/**
+ * Which skills have already been reported as cut, keyed by name and length,
+ * so the warning below fires once per skill per process rather than on every
+ * turn. A skill edited to a different length is reported again, because the
+ * operator's next question is whether the edit brought it under the cap.
+ * `hmrSingleton` so the dev server's hot reload does not re-warn per edit.
+ */
+const truncationWarned = hmrSingleton<Set<string>>('__swarmclaw_skill_truncation_warned__', () => new Set())
 
 function sectionFromSkills(params: {
   title: string
@@ -748,7 +765,26 @@ function sectionFromSkills(params: {
   const usable = params.skills.filter((skill) => skill.content.trim())
   if (usable.length === 0) return ''
   const body = usable
-    .map((skill) => `### ${skill.name}\n${truncateInlinedSkillContent(skill.content, skill.name)}`)
+    .map((skill) => {
+      const inlined = truncateInlinedSkillContent(skill.content, skill.name)
+      const length = skill.content.trim().length
+      if (length > INLINED_SKILL_CHAR_CAP) {
+        // The only surface that says a skill is being cut. The marker inside
+        // the prompt tells the agent; nothing told the operator whose own
+        // SKILL.md was losing its tail on every turn.
+        const key = `${skill.name}:${length}`
+        if (!truncationWarned.has(key)) {
+          truncationWarned.add(key)
+          log.warn('skills', 'Skill content is cut in the prompt; the agent gets the rest only by calling use_skill', {
+            skill: skill.name,
+            source: skill.source,
+            chars: length,
+            cap: INLINED_SKILL_CHAR_CAP,
+          })
+        }
+      }
+      return `### ${skill.name}\n${inlined}`
+    })
     .join('\n\n')
   return [params.title, params.preface, '', body].join('\n')
 }

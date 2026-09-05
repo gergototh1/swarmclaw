@@ -19,8 +19,19 @@ export async function register() {
     // the synchronous caller to wait for it. Loading here is the same work the
     // first request used to do inline; it moves the cost from first request to
     // boot and removes the window in which the host reports no extensions.
-    // A broken extension must not stop the server, so failures are logged and
-    // the boot continues: the manager records per-extension failures itself.
+    //
+    // A broken extension must not stop the server, and there are two ways an
+    // extension breaks a load. One that THROWS on import is caught by the
+    // manager, recorded against that extension, and the boot continues. One
+    // that HANGS on import -- a top-level `await` that never settles -- is
+    // not something a catch can see, and because this await sits before the
+    // listener binds, a hang here would have been a server that never comes
+    // up and cannot be reached to disable the culprit. So the manager bounds
+    // every import with a deadline (`SWARMCLAW_EXTENSION_IMPORT_TIMEOUT_MS`,
+    // 30 s by default) and records a timeout as a failure the same way it
+    // records a throw. What the deadline does not do is stop the module: it
+    // keeps evaluating in the background, and nothing is listening if it
+    // eventually settles.
     try {
       const { getExtensionManager } = await import('@/lib/server/extensions')
       await getExtensionManager().ensureLoaded()

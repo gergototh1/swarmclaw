@@ -1343,3 +1343,76 @@ test('the three tools are declared with the names and required parameters the ag
   assert.deepEqual(tools.finishSweep.parameters.required, ['sweepId', 'ok'])
   for (const t of Object.values(tools)) assert.equal(typeof t.description, 'string')
 })
+
+// --- The clock ---------------------------------------------------------------
+
+test('a frontier earned under a clock that ran ahead is not resumed from once the clock is back, so mail that arrived meanwhile is still listed', async (t) => {
+  /*
+   * The reviewer's sequence. A container boots with its clock hours ahead;
+   * the schedule fires; the quiet label lists nothing; zero fresh and zero
+   * leftover read as drained; the close stamps the future `ran_at` into the
+   * frontier. The clock corrects. Before the read-side barrier, every later
+   * run opened at that future point, listed nothing, and the first of them to
+   * drain pulled the frontier back to a correct `ran_at` PAST the newsletter
+   * that had arrived in the meantime; `sinceQuery` re-opens about 62 hours,
+   * so a skew wider than that lost it for good.
+   *
+   * The Gmail double lists whatever is in `ids` regardless of `since`, so the
+   * evidence is the `since` the sweep asked for: the last window a sane clock
+   * opened, not the future frontier.
+   */
+  const ids = []
+  const gmail = fakeGmail({ ids })
+  const { state, run } = setup(gmail)
+  closedSweep(state.repo, ['old'])
+  const sane = swept(state.repo)
+  const realNow = Date.now()
+
+  t.mock.timers.enable({ apis: ['Date'], now: realNow + 5 * 3600_000 })
+  const skewed = await run('signalSweep', {})
+  assert.equal(gmail.calls.list.at(-1).since, sane, 'under the skewed clock the run opens at the sane frontier')
+  assert.deepEqual(skewed.messages, [])
+  await run('finishSweep', { sweepId: skewed.sweepId, ok: true })
+  const ahead = swept(state.repo)
+  assert.ok(Date.parse(ahead) > realNow + 4 * 3600_000, 'the skewed drained run earned a frontier hours in the future')
+  t.mock.timers.reset()
+
+  ids.push('late')
+  const back = await run('signalSweep', {})
+  assert.equal(gmail.calls.list.at(-1).since, sane, 'the future frontier is set aside for the last window a sane clock opened')
+  assert.deepEqual(back.messages.map((m) => m.id), ['late'], 'so the mail that arrived meanwhile is handed over')
+  assert.match(state.repo.sweepById(back.sweepId).note, /frontier_ahead=/)
+  assert.ok(state.repo.sweepById(back.sweepId).note.includes(ahead), 'the note names the value it did not resume from')
+
+  await run('finishSweep', { sweepId: back.sweepId, ok: true })
+  const restored = swept(state.repo)
+  assert.equal(restored, state.repo.sweepById(back.sweepId).ran_at, 'the drained run under the sane clock earns its own ran_at')
+  assert.ok(Date.parse(restored) <= Date.now(), 'and the frontier is back on the clock')
+  assert.equal(state.repo.seenIds({ kind: MAIL_KIND, account: MAILBOX }, ['late']).has('late'), true)
+
+  // With the barrier in place a third run resumes from the restored frontier
+  // and lists the same window Gmail would: no note, nothing set aside.
+  const third = await run('signalSweep', {})
+  assert.equal(gmail.calls.list.at(-1).since, restored)
+  assert.doesNotMatch(state.repo.sweepById(third.sweepId).note, /frontier_ahead/)
+})
+
+test('a frontier ahead of the clock with no clean window behind it falls back to the whole source, and the failure rows carry the note', async (t) => {
+  // The first-ever run under a skewed clock: no earlier clean window to fall
+  // back to, so the fallback is null, the whole source, which is wider still.
+  const gmail = fakeGmail({ ids: [] })
+  const { state, run } = setup(gmail)
+  const realNow = Date.now()
+  t.mock.timers.enable({ apis: ['Date'], now: realNow + 5 * 3600_000 })
+  const skewed = await run('signalSweep', {})
+  await run('finishSweep', { sweepId: skewed.sweepId, ok: true })
+  t.mock.timers.reset()
+  assert.ok(Date.parse(swept(state.repo)) > realNow, 'the skewed run earned a future frontier')
+
+  const failing = fakeGmail({ ids: [] })
+  failing.listIds = async (opts) => { failing.calls.list.push(opts); throw new GmailError('gmail_timeout', 'no answer') }
+  const failed = await (Object.fromEntries(createSweepTools({ ...state, gmailFactory: () => failing }).map((tool) => [tool.name, tool])).signalSweep.execute({}, { session: {}, message: '' }))
+  assert.equal(failing.calls.list.at(-1).since, null, 'no clean window to fall back to: the whole source')
+  assert.equal(failed.error.code, 'gmail_timeout')
+  assert.match(state.repo.sweepById(failed.sweepId).note, /frontier_ahead=/, 'the failure row still says the frontier was set aside')
+})

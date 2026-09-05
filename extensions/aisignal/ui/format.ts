@@ -1,4 +1,4 @@
-import type { GmailStatus, Sweep } from './api'
+import type { GmailStatus, ManagedStatus, Sweep } from './api'
 
 /**
  * The words the page puts next to the numbers, kept out of the components so
@@ -115,6 +115,9 @@ export function describeOutcome(sweep: Sweep): string {
  * research sweep writes `unavailable=a,b`, `unasked=c` and `dropped=N`; the
  * two source lists are different facts (a source that failed when asked, and
  * one this run could not put its question to at all) and get different words.
+ * The mail sweep writes `frontier_ahead=<iso>` when it set a stored frontier
+ * aside for being ahead of the clock, and `finishSweep` writes
+ * `frontier_held=clock_ahead` when it held the frontier for the same reason.
  * Any other segment is shown as it was stored.
  */
 export interface NoteSegment {
@@ -131,6 +134,8 @@ export function noteSegments(note: string | null | undefined): NoteSegment[] {
     if (key === 'unavailable') return { key, text: `nem válaszolt: ${value.split(',').join(', ')}` }
     if (key === 'unasked') return { key, text: `meg sem lett kérdezve: ${value.split(',').join(', ')}` }
     if (key === 'dropped') return { key, text: `${value} jelölt kimaradt a sapka miatt` }
+    if (key === 'frontier_held') return { key, text: 'a vízjel nem mozdult: a gép órája előrébb járt a lezáráskor' }
+    if (key === 'frontier_ahead') return { key, text: `a tárolt vízjel (${value}) a jövőben volt, a futás a korábbi biztos ablaktól indult` }
     return { key, text: segment }
   })
 }
@@ -142,4 +147,24 @@ export function noteSegments(note: string | null | undefined): NoteSegment[] {
 export function cappedNote(shown: number, total: number, noun: string): string {
   if (total <= shown) return ''
   return `${shown} ${noun} látszik, összesen ${total}`
+}
+
+/**
+ * The schedule line. Three states, three sentences, and the remedy is named
+ * for exactly one of them: `unscheduled` sends the operator to the Reconcile
+ * button, because that is the only thing that creates the runs; `unknown`
+ * sends them nowhere, because a check that could not be made says nothing
+ * about whether the runs exist. The missing names are the declared display
+ * names, shown as text.
+ */
+export function describeManaged(managed: ManagedStatus | null): { text: string; trouble: boolean } {
+  if (managed === null) return { text: 'Ütemezés: ellenőrzés folyamatban', trouble: false }
+  if (managed.kind === 'ready') return { text: `Ütemezés: mind a ${managed.schedules} futás be van állítva`, trouble: false }
+  if (managed.kind === 'unscheduled') {
+    return {
+      text: `Ütemezés: ${managed.missing.length} a ${managed.total} futásból nincs beállítva (${managed.missing.join(', ')}). Magától egyetlen sweep sem indul el, amíg az Extensions → Managed resources oldalon meg nem nyomod a Reconcile gombot.`,
+      trouble: true,
+    }
+  }
+  return { text: `Ütemezés: az ellenőrzés nem sikerült (${managed.reason}), nem tudni, be van-e állítva`, trouble: true }
 }

@@ -780,6 +780,13 @@ function joinNote(existing, addition) {
 const SEEN_CHUNK = 500
 
 /**
+ * The note segment `finishSweep` appends when it holds the frontier because
+ * the sweep's `frontier_after` was ahead of the clock at close. A structured
+ * segment, like `skipped=N`, so the page can word it (see ui/format.ts).
+ */
+export const FRONTIER_HELD_NOTE = 'frontier_held=clock_ahead'
+
+/**
  * How many ids this mailbox has marked seen.
  *
  * Read either side of the marking loop so `finishSweep` can report rows
@@ -1040,12 +1047,37 @@ export function createRepo(storage) {
         const seenMarked = countSeen(S, sweep.kind, sweep.account) - seenBefore
         const found = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ?', [sweepId]).c
         const linksRead = S.get('SELECT COUNT(*) AS c FROM ext_aisignal_items WHERE sweep_id = ? AND link_read = 1', [sweepId]).c
-        S.exec('UPDATE ext_aisignal_sweeps SET found = ?, links_read = ?, ok = ?, note = ?, finished_at = ? WHERE id = ?', [found, linksRead, ok ? 1 : 0, joinNote(sweep.note, note), now(), sweepId])
-        if (ok && sweep.account && sweep.source_id) {
+        // THE CLOCK, the one input the frontier design does not otherwise
+        // cover. Every value `frontier_after` can hold is a `ran_at` a run
+        // earned or a `since` clamped no newer than the frontier it opened
+        // against, and neither can be pushed forward by anything the agent
+        // says -- but `ran_at` is the machine clock, and a machine whose clock
+        // is hours ahead (a container booting before NTP has synced) earns a
+        // frontier hours ahead of any mail that exists. Once the clock comes
+        // back, every run opens at that future point and lists nothing, and
+        // the first of them to drain stamps a correct `ran_at` that lands
+        // PAST everything that arrived in between; `sinceQuery` re-opens only
+        // about 62 hours, so a wider skew loses that mail for good.
+        //
+        // Two barriers, because neither alone sees every case. This one is at
+        // the write: a `frontier_after` newer than the clock at close is not
+        // written, the frontier stays where it was, and the note says so. It
+        // catches a clock corrected between open and close. It cannot see a
+        // clock that is still ahead at close, since `now()` is then ahead too;
+        // that case is caught at the next open, by `signalSweep` in sweep.mjs,
+        // which refuses to resume from a frontier newer than the wall clock
+        // and falls back to `latestTrustworthySince`. Holding the frontier
+        // rather than clamping it is the wide direction: the next run re-lists
+        // a window it has already read, which lands on the dedup.
+        const closedAt = now()
+        const ahead = Boolean(ok && sweep.account && sweep.source_id) && Date.parse(sweep.frontier_after) > Date.parse(closedAt)
+        const closingNote = ahead ? joinNote(note, FRONTIER_HELD_NOTE) : note
+        S.exec('UPDATE ext_aisignal_sweeps SET found = ?, links_read = ?, ok = ?, note = ?, finished_at = ? WHERE id = ?', [found, linksRead, ok ? 1 : 0, joinNote(sweep.note, closingNote), closedAt, sweepId])
+        if (ok && sweep.account && sweep.source_id && !ahead) {
           S.exec('INSERT INTO ext_aisignal_frontier (kind, account, source_id, frontier, moved_at, sweep_id) VALUES (?,?,?,?,?,?) ON CONFLICT (kind, account, source_id) DO UPDATE SET frontier = excluded.frontier, moved_at = excluded.moved_at, sweep_id = excluded.sweep_id',
-            [sweep.kind, sweep.account, sweep.source_id, sweep.frontier_after, now(), sweepId])
+            [sweep.kind, sweep.account, sweep.source_id, sweep.frontier_after, closedAt, sweepId])
         }
-        return { sweepId, found, linksRead, seenMarked, ok: Boolean(ok) }
+        return { sweepId, found, linksRead, seenMarked, ok: Boolean(ok), frontierHeld: ahead }
       })
     },
     /**
@@ -1079,6 +1111,28 @@ export function createRepo(storage) {
     frontier(source) {
       const { kind, account, sourceId } = requireSource('frontier', source)
       return S.get('SELECT frontier FROM ext_aisignal_frontier WHERE kind = ? AND account = ? AND source_id = ?', [kind, account, sourceId])?.frontier ?? null
+    },
+    /**
+     * The newest window start this source was ever opened at by a run that
+     * closed clean and that is not later than `notAfter`, or null.
+     *
+     * This is what a run resumes from when the stored frontier is newer than
+     * the wall clock (see THE CLOCK in `finishSweep`). Any `since` of a clean
+     * run is a point the extension actually listed forward from: a run that
+     * drained went on to earn its own `ran_at`, and one that did not left the
+     * frontier at that very `since`, so mail after it was either swept or is
+     * still fetchable. Resuming from the newest of them re-lists what has
+     * been read since, which the dedup eats, and misses nothing. Null means
+     * no such run, and null is the whole source, which is wider still.
+     *
+     * `notAfter` is the caller's clock, so a `since` a skewed run wrote from a
+     * frontier that was itself ahead is skipped by the same test that skipped
+     * the frontier. Nothing here reads `ran_at`: under the clock this method
+     * exists for, `ran_at` is exactly the column that cannot be trusted.
+     */
+    latestTrustworthySince(source, notAfter) {
+      const { kind, account, sourceId } = requireSource('latestTrustworthySince', source)
+      return S.get('SELECT MAX(since) AS since FROM ext_aisignal_sweeps WHERE kind = ? AND account = ? AND source_id = ? AND ok = 1 AND since IS NOT NULL AND since <= ?', [kind, account, sourceId, notAfter])?.since ?? null
     },
     sweeps(limit = 10) { return S.all(`SELECT * FROM ext_aisignal_sweeps ORDER BY ${SWEEP_ORDER} LIMIT ?`, [limit]) },
     /**

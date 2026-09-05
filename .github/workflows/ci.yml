@@ -65,3 +65,48 @@ jobs:
         run: |
           echo "Lint baseline failed. See lint-baseline-report artifact and workflow summary for details."
           exit 1
+
+  # The AI Signal extension on the runtimes the unit suite cannot see. Its own
+  # job, so a browser or a slow first compile cannot eat the unit gate's budget
+  # and a failure here reads as what it is.
+  #
+  # The deploy smoke runs against the BUILT standalone server, which is the
+  # webpack output. It is the only guard for a defect class no unit test can
+  # catch: webpack once compiled `createRequire(<expr>)` to `undefined` and
+  # silently disabled every external extension in production while `next dev`
+  # loaded them fine. A container step would prove the same thing against the
+  # image's Node; the standalone server is what the image runs, and building
+  # the image here would add minutes for no extra coverage of that seam.
+  #
+  # The browser smoke drives the real page in Chromium against a scratch dev
+  # server: hostile rows rendered as text, no CSP violation, the keyboard
+  # sequences. It needs Playwright's Chromium, which is why it is not in
+  # `npm test`.
+  aisignal-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build:ci
+
+      - name: Deploy smoke against the built server
+        run: npm run test:deploy:aisignal
+
+      - name: Install Chromium for the browser smoke
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser smoke
+        run: npm run test:e2e:aisignal

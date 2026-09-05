@@ -68,6 +68,11 @@ import {
   hasExtensionWorkspace,
   resolveExtensionSourcePath,
 } from './extensions/extension-source-paths'
+import {
+  readShippedSkillNames,
+  removeExtensionManagedResources,
+  removeShippedSkillDirs,
+} from './extensions/extension-managed-teardown'
 import { getGoogleAccessToken, hasGoogleCredential } from './oauth/google'
 import { errorMessage, hmrSingleton } from '@/lib/shared-utils'
 
@@ -106,6 +111,92 @@ const MAX_CONSECUTIVE_EXTENSION_FAILURES = (() => {
   if (!Number.isFinite(raw)) return 3
   return Math.max(2, Math.min(20, raw))
 })()
+/**
+ * How long one extension's `import()` may take before the host gives up on it
+ * for this load.
+ *
+ * `import()` has no timeout of its own, and the boot path awaits every
+ * enabled extension's import in turn (see `acquireExternalModules` and
+ * `src/instrumentation.ts`). An entry module with a top-level `await` that
+ * never settles -- a `fetch` against a host that drops packets, a lock file
+ * nobody releases, a promise nothing resolves -- therefore held `register()`
+ * open forever: the HTTP listener never bound, `/api/healthz` never answered,
+ * and the Extensions screen that could have disabled the extension was
+ * unreachable because there was no server to serve it. This is the deadline
+ * that turns that hang into an ordinary per-extension failure.
+ *
+ * Read per call rather than once, so a test can shorten it without a second
+ * module instance. The floor keeps a typo from failing every extension on the
+ * host; the default is generous because a workspace with real dependencies
+ * evaluates them on first import.
+ */
+const DEFAULT_EXTENSION_IMPORT_TIMEOUT_MS = 30 * 1000
+function extensionImportTimeoutMs(): number {
+  const raw = Number.parseInt(process.env.SWARMCLAW_EXTENSION_IMPORT_TIMEOUT_MS || '', 10)
+  if (!Number.isFinite(raw)) return DEFAULT_EXTENSION_IMPORT_TIMEOUT_MS
+  return Math.max(100, raw)
+}
+
+/**
+ * A fingerprint of the installed dependency tree, or null when the package
+ * manager left no record of it.
+ *
+ * Each manager writes one file that changes whenever the installed tree does:
+ * npm's hidden lockfile, pnpm's per-store lock, yarn classic's integrity file,
+ * bun's binary lockfile. Hashing that file is what tells a no-op reinstall
+ * from an upgrade without walking `node_modules`. A tree with none of them
+ * (a manager this list does not know, or a tree copied in by hand) is null,
+ * and the caller treats null as "cannot tell", which reports a restart.
+ */
+function installedTreeFingerprint(workspaceDir: string): string | null {
+  const candidates = [
+    path.join(workspaceDir, 'node_modules', '.package-lock.json'),
+    path.join(workspaceDir, 'node_modules', '.pnpm', 'lock.yaml'),
+    path.join(workspaceDir, 'node_modules', '.yarn-integrity'),
+    path.join(workspaceDir, 'bun.lockb'),
+    path.join(workspaceDir, 'bun.lock'),
+  ]
+  const hash = crypto.createHash('sha1')
+  let found = false
+  for (const candidate of candidates) {
+    let contents: Buffer
+    try {
+      contents = fs.readFileSync(candidate)
+    } catch {
+      continue
+    }
+    found = true
+    hash.update(candidate).update(contents)
+  }
+  return found ? hash.digest('hex') : null
+}
+
+/**
+ * The import, or a rejection once the deadline passes.
+ *
+ * What this does not do is stop the import. There is no way to cancel a
+ * module evaluation in Node: the promise stays pending, whatever the module
+ * started keeps running, and if the module does settle later nothing is
+ * listening. The `catch` on the original promise is what keeps a late
+ * rejection from surfacing as an unhandled rejection after the host has
+ * already recorded the timeout and moved on.
+ */
+function importWithDeadline(
+  pending: Promise<Record<string, unknown>>,
+  file: string,
+  timeoutMs: number,
+): Promise<Record<string, unknown>> {
+  let timer: NodeJS.Timeout | null = null
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`Extension "${file}" did not finish importing within ${timeoutMs} ms; its entry module is still evaluating and the host is continuing without it`))
+    }, timeoutMs)
+  })
+  return Promise.race([pending, deadline]).finally(() => {
+    if (timer) clearTimeout(timer)
+    pending.catch(() => undefined)
+  })
+}
 
 interface ExtensionFailureRecord {
   count: number
@@ -1452,6 +1543,11 @@ class ExtensionManager {
    * omitted. `loadOnce` needs to tell "this file was tried and is broken" from
    * "this file has not been tried yet"; only the second means the module map is
    * not usable yet.
+   *
+   * An extension whose import never settles is recorded the same way, once
+   * `extensionImportTimeoutMs` has passed. The loop is serial and the boot
+   * path awaits it, so without that deadline one hanging entry module was
+   * enough to keep the HTTP listener from ever binding; see the constant.
    */
   private async acquireExternalModules(generation: number): Promise<Map<string, ExternalModuleRecord>> {
     const acquired = new Map<string, ExternalModuleRecord>()
@@ -1492,7 +1588,7 @@ class ExtensionManager {
       // below reports.
       const sourcePath = this.resolveExtensionSourcePath(file)
       try {
-        const namespace = await importExtensionModule(sourcePath, generation)
+        const namespace = await importWithDeadline(importExtensionModule(sourcePath, generation), file, extensionImportTimeoutMs())
         acquired.set(file, { ok: true, namespace })
       } catch (err: unknown) {
         // An extension whose file an operator removed while the host was
@@ -2950,10 +3046,18 @@ class ExtensionManager {
 
     this.ensureExtensionDirs()
     const workspaceDir = this.getWorkspaceDir(sanitizedFilename)
-    // Read before the install, because it is the only cheap way to tell a first
-    // install from one that could have upgraded a package this process has
-    // already evaluated. See `restartRequiredForUpgrades`.
+    // Read before the install. A package this process has already evaluated
+    // is not re-evaluated on reload (`node_modules` is excluded from both the
+    // ESM generation stamp and the CommonJS eviction), so an install that
+    // CHANGED the installed tree needs a restart to take effect, and one that
+    // did not -- a reinstall that resolved to the same versions -- does not.
+    // `hadInstalledPackages` alone told the operator to restart after every
+    // no-op reinstall; the fingerprint is what tells the two apart. It stays
+    // conservative where it cannot tell: a tree that existed but left no
+    // manager-written record still reports a restart. See
+    // `restartRequiredForUpgrades`.
     const hadInstalledPackages = fs.existsSync(path.join(workspaceDir, 'node_modules'))
+    const treeBefore = installedTreeFingerprint(workspaceDir)
     const sourcePath = this.resolveExtensionSourcePath(sanitizedFilename)
     const currentCode = fs.existsSync(sourcePath) ? fs.readFileSync(sourcePath, 'utf8') : ''
 
@@ -2997,9 +3101,10 @@ class ExtensionManager {
       await this.reload()
     }
 
+    const treeAfter = installedTreeFingerprint(workspaceDir)
     return {
       ...this.getDependencyInfo(sanitizedFilename, this.readConfigEntry(sanitizedFilename)),
-      restartRequiredForUpgrades: hadInstalledPackages,
+      restartRequiredForUpgrades: hadInstalledPackages && (treeBefore === null || treeAfter === null || treeBefore !== treeAfter),
     }
   }
 
@@ -3025,7 +3130,35 @@ class ExtensionManager {
     const otherExtensionIds = this.listExtensionFilenames().filter((name) => name !== sanitizedFilename)
     fs.unlinkSync(fullPath)
     const workspaceDir = this.getWorkspaceDir(sanitizedFilename)
+    // Read before the workspace goes: the manifest of skill directories the
+    // installer shipped lives in it, and it is the only record of which
+    // directories under the workspace skills layer are this extension's to
+    // remove. See extension-managed-teardown.ts.
+    const shippedSkills = readShippedSkillNames(workspaceDir)
     if (fs.existsSync(workspaceDir)) fs.rmSync(workspaceDir, { recursive: true, force: true })
+    // The agents and schedules a reconcile created for this extension, and the
+    // skill files its installer shipped. Without this the schedules stayed
+    // active on their cron, pointing at agents whose tools had just been
+    // removed, and the scheduler dispatched runs that could only fail. The
+    // files are already gone by here, so a failure is logged rather than
+    // thrown, for the same reason the storage drop below is.
+    try {
+      const removed = removeExtensionManagedResources(sanitizedFilename)
+      const removedSkillDirs = removeShippedSkillDirs(shippedSkills)
+      if (removed.deletedSchedules.length > 0 || removed.trashedAgents.length > 0 || removedSkillDirs.length > 0) {
+        log.info('extensions', 'Removed extension-managed resources on delete', {
+          extensionId: sanitizedFilename,
+          deletedSchedules: removed.deletedSchedules.join(', '),
+          trashedAgents: removed.trashedAgents.join(', '),
+          removedSkillDirs: removedSkillDirs.join(', '),
+        })
+      }
+    } catch (err: unknown) {
+      log.warn('extensions', 'Failed to remove extension-managed resources on delete', {
+        extensionId: sanitizedFilename,
+        error: errorMessage(err),
+      })
+    }
     this.updateConfigEntry(sanitizedFilename, null)
     const settings = loadSettings()
     const settingsMap = (settings.extensionSettings as Record<string, Record<string, unknown>> | undefined) ?? {}

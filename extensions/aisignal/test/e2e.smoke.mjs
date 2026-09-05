@@ -552,6 +552,14 @@ async function checkStatusBar(page, fixture) {
   assert.ok(status.text.includes('3 levél kimaradt a sapka miatt'), 'the leftover is reported')
   assert.equal(status.connect, '/api/oauth/google/start?purpose=aisignal', 'a missing credential offers the connect link')
   assert.equal(status.summary, `Korábbi futások (${fixture.counts.sweeps})`)
+  // The scratch install was never reconciled, so the host has neither
+  // schedule, and the page has to say so rather than let "no sweep has run
+  // yet" stand for it. This is the real host's summary endpoint answering the
+  // real page, over the cookie the page was served with.
+  await page.waitForFunction(() => !(document.querySelector('.ais-status')?.textContent ?? '').includes('ellenőrzés folyamatban'), null, { timeout: WAIT_MS })
+  const scheduleLine = await page.evaluate(() => Array.from(document.querySelectorAll('.ais-status-row span')).map((s) => s.textContent).find((t) => t?.startsWith('Ütemezés:')) ?? '')
+  assert.ok(scheduleLine.includes('2 a 2 futásból nincs beállítva'), `the never-reconciled install says its schedules are missing: ${scheduleLine}`)
+  assert.ok(scheduleLine.includes('Reconcile'), 'and names the remedy')
 }
 
 async function checkListRendering(page, fixture, listLimit) {
