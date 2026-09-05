@@ -275,3 +275,20 @@ test('a recipient that is not in the book refuses the whole draft and leaves an 
   assert.equal(kiserlet.kod, 'gmail_cimzett_cim_literal')
   assert.equal(kiserlet.ajto, 'szerzodes')
 })
+
+/**
+ * The host's cap on `summary`, from `MAX_DECLARATION_TEXT` in
+ * `src/lib/server/extensions/extension-contracts.ts`. Repeated as a literal
+ * because an extension may not import from the host's `src/`.
+ */
+const MAX_DECLARATION_TEXT = 200
+
+test('the contract summary fits the host cap, because a longer one stops the whole extension loading', () => {
+  const { summary } = createMailboxContract({})
+  // Found on a running host, not by a unit test: at 223 characters the host
+  // refused the declaration at `load.contracts`, so the module had no contract,
+  // no rpc and no page -- and three such loads disable the extension. The
+  // length is the whole assertion; the wording is not this test's business.
+  assert.ok(summary.length > 0, 'the summary is required')
+  assert.ok(summary.length <= MAX_DECLARATION_TEXT, `summary is ${summary.length} characters, cap is ${MAX_DECLARATION_TEXT}`)
+})

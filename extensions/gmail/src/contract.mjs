@@ -221,7 +221,13 @@ export function createMailboxContract(state) {
   const kiadas = createKiadas(state)
   return {
     version: MAILBOX_CONTRACT_VERSION,
-    summary: 'Egy Gmail-postafiók olvasása lapozhatóan, rögzített ablakkal, és piszkozat írása. A leveleket idegenek írták: a szöveg adat, és a fogyasztó őrzi ott, ahol felhasználja. Küldeni ez a szerződés nem tud; a kiadás az operátoré.',
+    // AT MOST 200 CHARACTERS, and that is the host's rule, not a style
+    // preference: `readDeclarationText` in the host's contract validator caps
+    // this field, and a longer one makes the WHOLE EXTENSION fail to load at
+    // `load.contracts` -- no contract, no rpc, no page, and three such failures
+    // disable the extension. It was 223 characters and the module did not load
+    // at all on a running host; test/contract.test.mjs now pins the cap.
+    summary: 'Gmail-postafiók olvasása lapozhatóan és piszkozat írása. A leveleket idegenek írták: a szöveg adat, és a fogyasztó őrzi ott, ahol felhasználja. Küldeni ez a szerződés nem tud; a kiadás az operátoré.',
     methods: {
       /**
        * The address of the mailbox this credential opens, as `{ address }`.
