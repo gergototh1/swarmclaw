@@ -255,7 +255,16 @@ export interface HetiSor {
 export interface Prop {
   nev: string
   kotelezo: boolean
-  mit: string
+  /**
+   * Optional, because it is optional at the other end too: `katalogus.mjs`
+   * requires a prop to carry `nev` and `kotelezo` and says nothing about
+   * `mit`. A required `mit` here would be a guarantee only this file makes
+   * -- either a lie, if nothing checks it, or a page that refuses a
+   * catalogue its own server accepted and loses every prop list over one
+   * missing sentence. The card draws the sentence when the catalogue has
+   * one and says nothing when it does not.
+   */
+  mit?: string
 }
 
 export interface Templates {
@@ -418,9 +427,40 @@ function stringsOrNull(value: unknown): string[] | null {
   return Array.isArray(value) && value.every((v) => typeof v === 'string') ? value : null
 }
 
-/** A record, or null, on the same terms. */
-function recordOrNull(value: unknown): Record<string, unknown> | null {
-  return isRecord(value) ? value : null
+/** A record of strings, or null, on the same terms: one non-string value and the field is not the record this page would draw. */
+function stringRecordOrNull(value: unknown): Record<string, string> | null {
+  if (!isRecord(value)) return null
+  return Object.values(value).every((v) => typeof v === 'string') ? (value as Record<string, string>) : null
+}
+
+/**
+ * The two fields the gallery walks INTO, checked to the depth it walks.
+ *
+ * `stringsOrNull` element-checks for the same reason: a cast is not a check,
+ * and a `propok` entry that arrived as a string would survive one only to
+ * throw inside the render, where it costs the page `sablonStat` and
+ * `hetiSor` as well -- the whole point of degrading these fields one by one.
+ * One unreadable entry nulls the whole field rather than half of it: a prop
+ * table missing a type without saying so is a false statement about the kit,
+ * and the page already has a word for a field it could not read.
+ */
+function isProp(value: unknown): value is Prop {
+  return isRecord(value) && typeof value.nev === 'string' && typeof value.kotelezo === 'boolean'
+}
+
+function propsOrNull(value: unknown): Prop[] | null {
+  return Array.isArray(value) && value.every(isProp) ? value : null
+}
+
+function propRecordOrNull(value: unknown): Record<string, Prop[]> | null {
+  if (!isRecord(value)) return null
+  const entries: Array<[string, Prop[]]> = []
+  for (const [tipus, lista] of Object.entries(value)) {
+    const propok = propsOrNull(lista)
+    if (propok === null) return null
+    entries.push([tipus, propok])
+  }
+  return Object.fromEntries(entries)
 }
 
 /**
@@ -446,9 +486,9 @@ export function readTemplates(raw: unknown): Templates {
     sablonStat: stat === null ? null : (stat as unknown as Record<string, SablonStat>),
     hetiSor: readArray<HetiSor>('templates', root, 'hetiSor'),
     tipusok: stringsOrNull(root.tipusok),
-    leirasok: recordOrNull(root.leirasok) as Record<string, string> | null,
-    propok: recordOrNull(root.propok) as unknown as Record<string, Prop[]> | null,
-    kozosPropok: Array.isArray(root.kozosPropok) ? (root.kozosPropok as unknown as Prop[]) : null,
+    leirasok: stringRecordOrNull(root.leirasok),
+    propok: propRecordOrNull(root.propok),
+    kozosPropok: propsOrNull(root.kozosPropok),
     kuldhetoTipusok: stringsOrNull(root.kuldhetoTipusok),
     nemKuldhetoTipusok: stringsOrNull(root.nemKuldhetoTipusok),
     mintaHianyzik: stringsOrNull(root.mintaHianyzik),

@@ -274,6 +274,23 @@ test('readProposals, readTemplates and readHealth refuse by name, and a null sab
   assert.equal(rossz.mintaHianyzik, null, 'a list of something other than type names is not a list of type names')
   assert.deepEqual(rossz.sablonStat, {})
   assert.deepEqual(rossz.hetiSor, [])
+  // The check goes as deep as the gallery walks: a `propok` entry that is
+  // not a list of props, or a `leirasok` value that is not a sentence, would
+  // otherwise throw inside the render and take the numbers down with it.
+  const sekely = readTemplates({ hiba: null, sablonStat: {}, hetiSor: [], propok: { cimlap: 'x' }, leirasok: { cimlap: 42 }, kozosPropok: [{ nev: 'racs' }] })
+  assert.equal(sekely.propok, null)
+  assert.equal(sekely.leirasok, null)
+  assert.equal(sekely.kozosPropok, null, 'a prop without a boolean kotelezo is not a prop')
+  assert.deepEqual(sekely.sablonStat, {})
+  // One unreadable entry costs the whole field: a prop table missing a type
+  // without saying so would be a false statement about the kit.
+  assert.equal(readTemplates({ hiba: null, sablonStat: {}, hetiSor: [], propok: { cimlap: [{ nev: 'sorok', kotelezo: true, mit: 'a' }], szam: [3] } }).propok, null)
+  // `mit` is not required, because `katalogus.mjs` does not require it: the
+  // page draws what the catalogue has rather than refusing what it lacks.
+  const jo = readTemplates({ hiba: null, sablonStat: {}, hetiSor: [], propok: { cimlap: [{ nev: 'sorok', kotelezo: true }] }, leirasok: { cimlap: 'A nyitókép.' }, kozosPropok: [{ nev: 'racs', kotelezo: false, mit: 'rács' }] })
+  assert.deepEqual(jo.propok, { cimlap: [{ nev: 'sorok', kotelezo: true }] })
+  assert.deepEqual(jo.leirasok, { cimlap: 'A nyitókép.' })
+  assert.deepEqual(jo.kozosPropok, [{ nev: 'racs', kotelezo: false, mit: 'rács' }])
   // A catalogue that could not be read leaves every one of them null, and
   // `hetiSor` still answers.
   const nelkul = readTemplates({ hiba: 'remotion_dir_hianyzik', sablonStat: null, hetiSor: [], tipusok: null, propok: null })

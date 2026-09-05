@@ -78,14 +78,33 @@ export function readCatalog(remotionDir) {
   // are OPTIONAL on purpose: this module and the Remotion project are two
   // repositories and one is sometimes a commit behind, and a catalogue
   // without samples must cost the gallery its pictures, not the whole page.
-  // What is not optional is the shape: a type's sample is a plain object of
-  // props or the file is refused, because a string or an array here would
-  // reach `remotion still` as the scene's props.
-  const mintak = Object.hasOwn(parsed, 'mintak') ? parsed.mintak : {}
-  if (!plainObject(mintak)) refuse('katalogus_ervenytelen', 'a katalógus mintak mezője nem objektum')
-  for (const tipus of Object.keys(mintak)) {
-    if (!plainObject(mintak[tipus])) refuse('katalogus_ervenytelen', `a(z) ${tipus} típus mintája nem objektum`)
+  // What is not optional is the shape: a declared type's sample is a plain
+  // object of props or the file is refused, because a string or an array
+  // here would reach `remotion still` as the scene's props.
+  //
+  // The loop walks `tipusok`, not the sample keys, for two reasons that are
+  // the same reason twice. A key that is not a declared type is DROPPED
+  // rather than refused, because that is how the rest of this module already
+  // reads skew between the two repositories: `tablaHianyai` reports a type
+  // the newer catalogue has and the table does not as `katalogus_valtozott`,
+  // a warning on the plan, and refusing the file here would cost every check
+  // and every render over a picture that would not have been drawn anyway.
+  // And a dropped key is a key nothing downstream can spell: it is never in
+  // a message, so no text out of the file can ride a refusal into the
+  // agent's next prompt, and it is never in the returned `mintak`, so the
+  // gallery's one-file-per-type still cannot be named by it either. Only a
+  // type the catalogue itself declares is ever named here.
+  const nyersMintak = Object.hasOwn(parsed, 'mintak') ? parsed.mintak : {}
+  if (!plainObject(nyersMintak)) refuse('katalogus_ervenytelen', 'a katalógus mintak mezője nem objektum')
+  const mintaParok = []
+  for (const tipus of parsed.tipusok) {
+    if (!Object.hasOwn(nyersMintak, tipus)) continue
+    if (!plainObject(nyersMintak[tipus])) refuse('katalogus_ervenytelen', `a(z) ${tipus} típus mintája nem objektum`)
+    mintaParok.push([tipus, nyersMintak[tipus]])
   }
+  // `fromEntries` and not an assignment loop: a type literally named
+  // `__proto__` would otherwise set the prototype instead of a sample.
+  const mintak = Object.fromEntries(mintaParok)
   return { katalogusHash: sha256(text), tipusok: parsed.tipusok, propok: parsed.propok, leirasok: parsed.leirasok, kozosPropok: parsed.kozosPropok, mintak, file }
 }
 
