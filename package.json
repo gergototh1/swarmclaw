@@ -92,6 +92,7 @@
     "test:builder": "tsx --test src/features/protocols/builder/utils/builder-template-access.test.ts src/features/protocols/builder/utils/nodes-to-template.test.ts src/features/protocols/builder/utils/template-to-nodes.test.ts src/features/protocols/builder/validators/dag-validator.test.ts",
     "test:e2e": "node --import tsx scripts/browser-e2e-smoke.ts",
     "test:e2e:aisignal": "node extensions/aisignal/test/e2e.smoke.mjs",
+    "test:e2e:video": "node extensions/video/test/e2e.smoke.mjs",
     "test:deploy:aisignal": "node ./scripts/aisignal-deploy-smoke.mjs",
     "test:deploy:video": "node ./scripts/video-deploy-smoke.mjs",
     "test:deploy:tts": "node ./scripts/tts-deploy-smoke.mjs",
