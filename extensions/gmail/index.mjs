@@ -1,0 +1,111 @@
+import { MIGRATIONS, createRepo } from './src/db.mjs'
+
+/**
+ * Everything the host hands over in setup(), plus the two seams a test injects.
+ *
+ * Repopulated on every load and every reload -- setup() is called again on any
+ * write under data/extensions -- which is why nothing here is a timer, a
+ * listener or a subscription: a reload would leak one per load. Plain
+ * assignment is idempotent, so re-running setup() is free.
+ *
+ * `clientFactory` and `fetchImpl` are the two keys the host never fills. They
+ * are declared here, beside setup()'s own, so the seams are visible where every
+ * other key on the shared state is: the Gmail client is built through
+ * `clientFactory` and issues its requests through `fetchImpl`, falling back to
+ * the module's own constructor and the global `fetch` when they are null. A
+ * test sets both to doubles, so no request leaves the machine and no mailbox is
+ * needed to run the suite. Nothing in this file reads either yet -- the client
+ * that does is a later step -- and they are declared now so that neither
+ * surface has to invent its own seam later.
+ */
+export const state = {
+  storage: null,
+  settings: () => ({}),
+  log: console,
+  oauth: null,
+  repo: null,
+  clientFactory: null,
+  fetchImpl: null,
+}
+
+const gmail = {
+  name: 'Gmail',
+  version: '0.1.0',
+  description: 'Egy Gmail-postafiók egy hitelesítés mögött: szerződés a kódnak valódi lapkurzorral, MCP-szerver az ügynököknek. Küldeni nem tud: a kiadás az operátoré, a lapról.',
+  migrations: MIGRATIONS,
+  /**
+   * Synchronous and idempotent: it fills `state` and does nothing else. No
+   * timer, no listener, no subscription and no file read, because the host
+   * calls this again on every reload and the entry module has 30 seconds to
+   * import before the host gives up on it.
+   */
+  setup(ctx) {
+    state.storage = ctx.storage
+    state.settings = ctx.settings
+    state.log = ctx.log
+    state.oauth = ctx.oauth
+    state.repo = createRepo(ctx.storage)
+  },
+  /**
+   * No tools, on purpose (design spec 2.4).
+   *
+   * An agent running in this host reaches the mailbox through the same MCP
+   * server as an agent running anywhere else, and that is the intent: the
+   * difference between the two routes should be registration, not capability. A
+   * tool set beside the MCP server would be one more surface over one
+   * implementation, with a refusal translation of its own to keep in step.
+   *
+   * It has a price and the spec names it rather than hiding it: a tool would
+   * receive `ctx.session.agentId` and an MCP call does not. That is why the
+   * outbound rows record which DOOR a request came through and not who made it,
+   * and why releasing a letter is a person's click rather than a caller's
+   * permission.
+   */
+  tools: [],
+  /**
+   * What this extension's own page and its MCP shim may call, over
+   * `POST /api/extensions/gmail.mjs/call/<method>` -- the host keys that route
+   * on the extension's file id, which is `gmail.mjs`, not `gmail`.
+   *
+   * Empty until the methods exist. An empty map is not a placeholder that
+   * behaves like something: the route answers "no such method" for every name,
+   * which is the truth about this build.
+   */
+  rpc: {},
+  ui: {
+    pages: [{
+      id: 'gmail',
+      label: 'Gmail',
+      // One of EXTENSION_PAGE_ICON_NAMES (src/lib/extension-page-nav.ts);
+      // anything outside that list silently renders the puzzle-piece fallback.
+      // 'Mail' is in the list, so this is the name itself and not a stand-in.
+      icon: 'Mail',
+      path: '/x/gmail',
+      // Workspace-relative and required to start with dist/: only
+      // <workspace>/dist is ever served. scripts/build.mjs bundles ui/ into
+      // dist/ and scripts/install.mjs copies dist/ into the workspace; an
+      // install made without a build carries no dist/, the asset route answers
+      // 404 for both files, and the rail lists a page that never registers.
+      //
+      // WHICH IS THE STATE OF THIS CHECKOUT: ui/ arrives with the page itself,
+      // a later step, so nothing builds these two files yet and the entry names
+      // a bundle that is not there. The declaration is here now because the id,
+      // the path and the icon are what the rest of the module is written
+      // against, not because the page works today.
+      entry: 'dist/index.js',
+      css: 'dist/style.css',
+      position: 'end',
+    }],
+    settingsFields: [
+      // The two budgets of design spec 5.5, and they guard two different
+      // risks rather than one in two sizes. A runaway consumer fills the
+      // Drafts folder and stops; a runaway sequence of clicks, or a bundle on
+      // an already logged-in page of this same app, sends. Enforcing them is
+      // the outbound layer's, not this file's: nothing here reads these.
+      { key: 'napiPiszkozat', label: 'Napi piszkozat-keret', type: 'number', placeholder: '20', defaultValue: 20, help: 'Ennyi piszkozat készülhet naponta. A keret betelte után a draft gmail_piszkozat_keret_kimerult-tal utasít el, névvel, nem csendben.' },
+      { key: 'napiKiadas', label: 'Napi kiadási keret', type: 'number', placeholder: '10', defaultValue: 10, help: 'Ennyi levél adható ki naponta a lapról. A kiadás az egyetlen művelet, ami ténylegesen küld, és csak innen érhető el.' },
+    ],
+  },
+}
+
+export default gmail
