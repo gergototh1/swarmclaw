@@ -73,7 +73,10 @@ test('the key list in db.mjs names every primary key and every unique index the 
 
 test('the two closed vocabularies are frozen and say what the schema stores', () => {
   assert.ok(Object.isFrozen(KIMENO_ALLAPOTOK) && Object.isFrozen(AJTOK))
-  assert.deepEqual(KIMENO_ALLAPOTOK, ['piszkozat', 'kiadva', 'elvetve', 'hiba'])
+  // Five, not four: a send that was asked for and not answered is neither
+  // `kiadva` nor `hiba`, and calling it either would be a false report about the
+  // one operation in this module that cannot be taken back.
+  assert.deepEqual(KIMENO_ALLAPOTOK, ['piszkozat', 'kiadva', 'elvetve', 'hiba', 'bizonytalan'])
   // The door, not the caller. No verifiable caller identity reaches this
   // module, so there are exactly two values and each is a constant in one file.
   assert.deepEqual(AJTOK, ['szerzodes', 'rpc'])
@@ -331,6 +334,32 @@ test('counts reports what is stored', () => {
   repo.markKiadva(a.id, { gmailMessageId: 'm-1' })
   repo.insertKiserlet({ ajto: 'rpc', kod: 'gmail_cimzett_ismeretlen', mit: 'nincs-ilyen' })
   assert.deepEqual(repo.counts(), {
-    cimzettek: 2, eloCimzettek: 1, piszkozat: 1, kiadva: 1, elvetve: 0, hiba: 0, kiserletek: 1,
+    cimzettek: 2, eloCimzettek: 1, piszkozat: 1, kiadva: 1, elvetve: 0, hiba: 0, bizonytalan: 0, kiserletek: 1,
   })
+})
+
+test('an unknown send outcome is closed as neither sent nor failed, and keeps no receipt it does not have', () => {
+  const { repo } = fresh()
+  const { id } = repo.insertKimeno(piszkozatRow())
+  repo.setKimenoDraftId(id, 'r-123')
+
+  // The claim: written before the send is asked for, so a process that dies
+  // mid-send leaves the state that is true of it.
+  repo.markBizonytalan(id)
+  assert.equal(repo.kimeno(id).allapot, 'bizonytalan')
+  assert.equal(repo.kimeno(id).hiba_kod, '')
+
+  // The second write adds the cause. The state does not change, because the
+  // cause is what Gmail said and the state is what we know.
+  repo.markBizonytalan(id, { kod: 'gmail_timeout', szoveg: 'a hatarido letelt' })
+  const row = repo.kimeno(id)
+  assert.equal(row.allapot, 'bizonytalan')
+  assert.equal(row.hiba_kod, 'gmail_timeout')
+  assert.equal(row.hiba_szoveg, 'a hatarido letelt')
+  // Neither receipt of a send that is known to have happened is invented here.
+  assert.equal(row.gmail_message_id, null)
+  assert.equal(row.kiadva_at, null)
+  assert.equal(repo.counts().bizonytalan, 1)
+  assert.equal(repo.counts().hiba, 0, 'an unknown outcome is not counted as a failure')
+  assert.equal(repo.counts().kiadva, 0, 'and it is not counted as a send either')
 })

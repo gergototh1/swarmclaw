@@ -106,12 +106,21 @@ import crypto from 'node:crypto'
  *             which. The vocabulary is closed (`KIMENO_ALLAPOTOK`) and the
  *             transitions are written only by the methods below.
  *     note    THE CHECK IS THE CALLER'S, NOT THIS LAYER'S. `markKiadva`,
- *             `markElvetve` and `setKimenoHiba` write unconditionally; they do
- *             not carry `AND allapot = 'piszkozat'` in their WHERE clauses,
- *             because a write that silently matched no row would report success
- *             for something that did not happen. A caller that skips the state
- *             check therefore overwrites a released row rather than being
- *             stopped here.
+ *             `markElvetve`, `markBizonytalan` and `setKimenoHiba` write
+ *             unconditionally; they do not carry `AND allapot = 'piszkozat'` in
+ *             their WHERE clauses, because a write that silently matched no row
+ *             would report success for something that did not happen. A caller
+ *             that skips the state check therefore overwrites a released row
+ *             rather than being stopped here.
+ *     note    IT IS ALSO THE MUTUAL EXCLUSION, and that is why the release
+ *             writes `bizonytalan` BEFORE it asks Gmail to send rather than
+ *             after it learns the answer. Two overlapping releases both read
+ *             `piszkozat` while the first one is awaiting its draft read; the
+ *             first to come back moves the column, and the second finds a state
+ *             that is not `piszkozat` and is refused. Node runs one of these at
+ *             a time, so the read and the write around that claim have nothing
+ *             between them; two PROCESSES on one database would still both pass
+ *             it, and nothing in this extension runs two.
  *
  *   ext_gmail_kimeno -- INDEX (allapot, created_at)
  *     gates   nothing. The page lists drafts first and then the rest in time
@@ -190,11 +199,28 @@ CREATE TABLE IF NOT EXISTS ext_gmail_napi (
  * The closed state vocabulary of an outbound row.
  *
  * `piszkozat` is the only state a release or a discard may start from;
- * `kiadva`, `elvetve` and `hiba` are ends. Exported because the outbox filter
- * and the release step both name it, and a second copy is how one of them ends
- * up accepting a state the other does not.
+ * `kiadva`, `elvetve`, `hiba` and `bizonytalan` are ends. Exported because the
+ * outbox filter and the release step both name it, and a second copy is how one
+ * of them ends up accepting a state the other does not.
+ *
+ * `bizonytalan` IS THE THIRD FACT, and it is here because the other four cannot
+ * say it. A send is irreversible, so the three things this schema may have to
+ * record about one are: the letter went out (`kiadva`, with the message id
+ * beside it), the letter did not go out (the row stays `piszkozat`, and the
+ * caller is refused by name), and WE CANNOT TELL. The third happens whenever
+ * `drafts.send` was asked for and did not answer -- a timeout, a dropped
+ * connection, a 5xx -- and neither of the other two states may hold it: `kiadva`
+ * would report a letter that may never have left, and `hiba` would report a
+ * failure for one that may already be in somebody's inbox. Both are false
+ * reports, in opposite directions, about the one operation in this module that
+ * cannot be taken back.
+ *
+ * It is an END like the other three: a `bizonytalan` row is never released or
+ * discarded again, because a second send would be the one mistake worse than
+ * not knowing. What it asks of the operator is to look in Sent, which is the
+ * only place the answer actually exists.
  */
-export const KIMENO_ALLAPOTOK = Object.freeze(['piszkozat', 'kiadva', 'elvetve', 'hiba'])
+export const KIMENO_ALLAPOTOK = Object.freeze(['piszkozat', 'kiadva', 'elvetve', 'hiba', 'bizonytalan'])
 
 /**
  * The two doors a request can arrive through, and the value of the `ajto`
@@ -511,6 +537,31 @@ export function createRepo(storage) {
     },
 
     /**
+     * Closes a row as a send whose outcome is not known.
+     *
+     * WRITTEN TWICE ON THE RELEASE PATH, and both writes mean the same thing.
+     * The first goes in immediately before `drafts.send` with no code and no
+     * text, because from that instant on nobody can say whether the letter left;
+     * the second goes in when the request comes back a failure, and adds the
+     * code and the sentence that say what went wrong. A crash between the two
+     * leaves the first, which is the correct record of a process that died
+     * mid-send.
+     *
+     * `kod` is the CAUSE (`gmail_timeout`, `gmail_send_failed`), not a name for
+     * the uncertainty: the state column already says we cannot tell, and the
+     * code says what we were told instead. `szoveg` is bounded by the caller,
+     * which is the layer that knows how much of a transport message is worth
+     * showing.
+     *
+     * `gmail_message_id` and `kiadva_at` are deliberately left alone. Both are
+     * the receipt of a send that is known to have happened, and writing either
+     * here would be this row claiming an outcome it does not have.
+     */
+    markBizonytalan(id, { kod = '', szoveg = '' } = {}) {
+      touchKimeno(id, "allapot = 'bizonytalan', hiba_kod = ?, hiba_szoveg = ?", [kod, szoveg])
+    },
+
+    /**
      * Closes a row as failed, with the code and the text.
      *
      * The state moves to `hiba` as well as the columns being written, because
@@ -607,6 +658,7 @@ export function createRepo(storage) {
         kiadva: S.get("SELECT COUNT(*) AS c FROM ext_gmail_kimeno WHERE allapot = 'kiadva'").c,
         elvetve: S.get("SELECT COUNT(*) AS c FROM ext_gmail_kimeno WHERE allapot = 'elvetve'").c,
         hiba: S.get("SELECT COUNT(*) AS c FROM ext_gmail_kimeno WHERE allapot = 'hiba'").c,
+        bizonytalan: S.get("SELECT COUNT(*) AS c FROM ext_gmail_kimeno WHERE allapot = 'bizonytalan'").c,
         kiserletek: S.get('SELECT COUNT(*) AS c FROM ext_gmail_kiserletek').c,
       }
     },

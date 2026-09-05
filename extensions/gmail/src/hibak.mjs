@@ -111,6 +111,15 @@ export const HIBA_KODOK = Object.freeze([
   'gmail_kimeno_allapot',
   /** The confirmation hash does not match the draft standing in Gmail: the page showed something that no longer holds. */
   'gmail_lap_elavult',
+  /**
+   * `drafts.send` was asked for and did not answer, so nobody can say whether
+   * the letter left. NOT a synonym for failure: this code exists because
+   * reporting a send that may have happened as a failure is a false report, and
+   * a send is the one thing in this module that cannot be taken back. The row
+   * is closed `bizonytalan`, the cause travels as `okKod`, and the only place
+   * the real answer exists is the mailbox's Sent folder.
+   */
+  'gmail_kiadas_bizonytalan',
   /** An `allapot` filter value outside the closed vocabulary. */
   'gmail_allapot_ismeretlen',
   /** `users.drafts.create` did not answer with a draft. */
