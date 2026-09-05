@@ -1,0 +1,285 @@
+/*
+ * Video page. Every class is `vid-` prefixed: the host injects this sheet into
+ * its own document, so an unprefixed rule would restyle the shell.
+ *
+ * Colours come from the host's tokens with a fallback beside each, so the page
+ * follows the host's light and dark themes and still reads when a token is
+ * renamed. Metadata, ids, hashes and paths are set in the host's mono face.
+ *
+ * `overflow-wrap: anywhere` is on every box that holds stored text. All of it
+ * -- a newsletter headline, a scene's props, a reviewer's finding, an imported
+ * note -- was written by somebody else, and a single 4000-character word must
+ * push nothing off the screen and cover nothing up.
+ */
+.vid-root {
+  padding: 20px 24px 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+  color: var(--card-foreground, inherit);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.vid-mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; }
+.vid-muted { color: var(--color-text-3, #8282a0); }
+.vid-warn { color: var(--color-warning, #d97706); font-weight: 600; }
+.vid-bad { color: var(--color-danger, #dc2626); font-weight: 600; }
+.vid-error {
+  color: var(--color-danger, #dc2626);
+  border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 35%, transparent);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 0 0 16px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.vid-notice {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  border-radius: 10px;
+  padding: 8px 14px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.vid-notice .vid-btn { margin-left: 10px; }
+.vid-link { color: var(--accent, #6366f1); text-decoration: underline; overflow-wrap: anywhere; }
+.vid-linklike {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent, #6366f1);
+  text-decoration: underline;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+/* status bar */
+.vid-status {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.vid-status-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+.vid-line { margin: 3px 0; overflow-wrap: anywhere; }
+/*
+ * The one sentence on this page that names a remedy. It is deliberately not
+ * the same visual as a health failure: "no schedule exists" is a thing the
+ * operator fixes with one button, and it is not the module being broken.
+ */
+.vid-reconcile-warning {
+  color: var(--color-warning, #d97706);
+  font-weight: 700;
+  border-left: 3px solid var(--color-warning, #d97706);
+  padding-left: 10px;
+}
+.vid-status-run { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 3px 0; overflow-wrap: anywhere; }
+.vid-fordulok { margin: 3px 0; padding-left: 18px; }
+.vid-fordulok li { overflow-wrap: anywhere; }
+.vid-uninstall { margin-top: 8px; }
+.vid-uninstall summary { cursor: pointer; color: var(--color-text-3, #8282a0); font-size: 12px; }
+.vid-uninstall ol { margin: 6px 0; padding-left: 20px; }
+
+/* tabs */
+.vid-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border, rgba(127, 127, 127, 0.2)); }
+.vid-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  margin-bottom: -1px;
+  cursor: pointer;
+  color: var(--color-text-3, #8282a0);
+  font: inherit;
+  font-weight: 600;
+}
+.vid-tab-active { color: inherit; border-bottom-color: var(--accent, #6366f1); }
+
+/* buttons and inputs */
+.vid-btn {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  background: var(--card, transparent);
+  color: inherit;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+.vid-btn:hover:not(:disabled) { border-color: var(--accent, #6366f1); }
+.vid-btn:disabled { opacity: 0.45; cursor: default; }
+.vid-btn-small { padding: 4px 10px; font-size: 12px; }
+.vid-accept { border-color: var(--color-success, #16a34a); }
+.vid-reject { border-color: var(--color-danger, #dc2626); }
+.vid-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  background: var(--card, transparent);
+  color: inherit;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  margin-top: 4px;
+}
+.vid-root label { display: block; margin: 8px 0; }
+
+/* queue */
+.vid-columns { display: flex; gap: 14px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
+.vid-column { flex: 0 0 260px; min-width: 0; }
+.vid-column h3 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-3, #8282a0); }
+.vid-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--card, transparent);
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.vid-card:hover { border-color: var(--accent, #6366f1); }
+/*
+ * Clamped, with the ellipsis the clamp draws. A title is a stranger's first
+ * line and can be 200 characters of one unbroken word; left alone it makes a
+ * card several screens tall and pushes every card under it out of view, which
+ * is the long-string failure this page has to avoid. The ellipsis says there
+ * is more, and the whole title is one click away on the Video view -- nothing
+ * is lost, only deferred.
+ */
+.vid-card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.vid-card-meta { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 12px; color: var(--color-text-3, #8282a0); }
+.vid-badge { border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; font-size: 11px; }
+.vid-badge-bad { color: var(--color-danger, #dc2626); font-weight: 700; }
+.vid-ures { margin-top: 12px; }
+.vid-sapkak { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 14px; font-size: 12px; color: var(--color-text-3, #8282a0); }
+
+/* video view */
+.vid-video-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.vid-video-head h2 { font-size: 20px; margin: 0; overflow-wrap: anywhere; min-width: 0; }
+.vid-forras-cimke { font-size: 13px; margin: 18px 0 4px; color: var(--color-warning, #d97706); }
+/*
+ * The two boxes that hold text the operator will want to copy out whole: a
+ * stranger's source, and a file path. `user-select: all` makes one click
+ * select the entire block, and `pre-wrap` keeps the stored line breaks
+ * without letting a long line widen the page.
+ */
+.vid-forras,
+.vid-path {
+  white-space: pre-wrap;
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+.vid-forras {
+  display: block;
+  border: 1px solid var(--color-warning, #d97706);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  max-height: 320px;
+  overflow: auto;
+}
+.vid-path { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; }
+.vid-terv, .vid-render { border-top: 1px solid var(--border, rgba(127, 127, 127, 0.2)); padding-top: 10px; margin-top: 14px; }
+.vid-scene { border-left: 3px solid var(--border, rgba(127, 127, 127, 0.3)); padding-left: 10px; margin: 10px 0; }
+.vid-scene h4 { margin: 0 0 6px; font-size: 13px; }
+.vid-props {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  background: var(--card, transparent);
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0 0 6px;
+  max-height: 240px;
+  overflow: auto;
+}
+.vid-narracio { margin: 0 0 4px; font-style: italic; overflow-wrap: anywhere; }
+.vid-verdikt { margin: 10px 0; overflow-wrap: anywhere; }
+.vid-finding { margin: 2px 0 2px 12px; overflow-wrap: anywhere; }
+.vid-tabla, .vid-qa-meresek, .vid-qa-bukasok { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 12px; }
+.vid-tabla th, .vid-tabla td,
+.vid-qa-meresek th, .vid-qa-meresek td,
+.vid-qa-bukasok th, .vid-qa-bukasok td {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  padding: 4px 8px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.vid-feedback-form { border: 1px solid var(--border, rgba(127, 127, 127, 0.2)); border-radius: 12px; padding: 10px 14px; margin: 16px 0; }
+.vid-feedback-list { padding-left: 18px; }
+.vid-feedback-list li { margin: 4px 0; overflow-wrap: anywhere; }
+
+/* timeline */
+.vid-timeline {
+  position: relative;
+  height: 46px;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  border-radius: 8px;
+  background: var(--card, transparent);
+  overflow: hidden;
+  cursor: crosshair;
+}
+.vid-timeline-scene {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border: none;
+  border-right: 1px solid var(--border, rgba(127, 127, 127, 0.4));
+  background: color-mix(in srgb, var(--accent, #6366f1) 12%, transparent);
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: crosshair;
+  overflow: hidden;
+}
+.vid-timeline-scene:focus-visible { outline: 2px solid var(--accent, #6366f1); outline-offset: -2px; }
+.vid-timeline-scene-no { font-size: 10px; color: var(--color-text-3, #8282a0); }
+.vid-timeline-mark {
+  position: absolute;
+  top: 2px;
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--color-warning, #d97706);
+  pointer-events: none;
+}
+.vid-timeline-curve {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--color-danger, #dc2626);
+  pointer-events: none;
+}
+.vid-timeline-legend { margin: 4px 0 0; font-size: 12px; }
+
+/* proposals */
+.vid-proposal, .vid-lesson {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.vid-proposal h4 { margin: 0 0 4px; }
+.vid-proposal-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.vid-proposal-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.vid-sapka-mondat { margin: 0; }
+.vid-bizonyitek { overflow-wrap: anywhere; }
+.vid-backlog li, .vid-rejected li, .vid-kodolva li { margin: 4px 0; overflow-wrap: anywhere; }
