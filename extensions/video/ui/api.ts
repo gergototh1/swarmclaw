@@ -251,12 +251,37 @@ export interface HetiSor {
   lektoriTalalat: Record<string, number>
 }
 
+/** One prop as the catalogue spells it: its name, whether the type requires it, and the catalogue's own sentence about what it is for. */
+export interface Prop {
+  nev: string
+  kotelezo: boolean
+  mit: string
+}
+
 export interface Templates {
-  /** The catalogue refusal code, or null. With one, `sablonStat` is null rather than an empty table. */
+  /** The catalogue refusal code, or null. With one, every catalogue-derived field below is null rather than an empty one. */
   hiba: string | null
   katalogusHash: string | null
   sablonStat: Record<string, SablonStat> | null
   hetiSor: HetiSor[]
+  /**
+   * The kit's vocabulary, as the catalogue carries it. Every one of these is
+   * null when the catalogue could not be read, and null again when the field
+   * came back in a shape this page cannot draw -- an empty list here would
+   * read as a fact about the kit ("no templates", "nothing is sendable")
+   * instead of a fact about the answer.
+   */
+  tipusok: string[] | null
+  leirasok: Record<string, string> | null
+  propok: Record<string, Prop[]> | null
+  kozosPropok: Prop[] | null
+  /** The types a plan may send as JSON, and the ones the kit takes only from React. Both come from the module's table, not from the catalogue file. */
+  kuldhetoTipusok: string[] | null
+  nemKuldhetoTipusok: string[] | null
+  /** Types the catalogue lists without a sample: the card says so rather than showing an empty frame. */
+  mintaHianyzik: string[] | null
+  /** Types and props the catalogue has and the kit table does not (`katalogus_valtozott`). */
+  tablaHianyok: string[] | null
 }
 
 export interface Health {
@@ -388,10 +413,28 @@ export function readProposals(raw: unknown): Proposals {
   }
 }
 
+/** A list of strings, or null. Anything else is a field the gallery leaves out, not a load the page refuses. */
+function stringsOrNull(value: unknown): string[] | null {
+  return Array.isArray(value) && value.every((v) => typeof v === 'string') ? value : null
+}
+
+/** A record, or null, on the same terms. */
+function recordOrNull(value: unknown): Record<string, unknown> | null {
+  return isRecord(value) ? value : null
+}
+
 /**
  * The `templates` response. `sablonStat` is allowed to be null and that is
  * not a missing field: it is what the server sends when the catalogue could
  * not be read, and the page draws the refusal code instead of a table.
+ *
+ * The catalogue fields degrade ONE BY ONE. `sablonStat` and `hetiSor` come
+ * from stored rows and stand on their own, so a `propok` that arrived in a
+ * shape this page cannot draw costs the gallery its prop lists and nothing
+ * else -- refusing the whole response there would take the numbers away too,
+ * over a field they do not depend on. A field that did not survive the check
+ * is null, which the page already knows how to say: the same word it says
+ * when the Remotion project could not be read at all.
  */
 export function readTemplates(raw: unknown): Templates {
   const root = readRoot('templates', raw)
@@ -402,6 +445,14 @@ export function readTemplates(raw: unknown): Templates {
     katalogusHash: typeof root.katalogusHash === 'string' ? root.katalogusHash : null,
     sablonStat: stat === null ? null : (stat as unknown as Record<string, SablonStat>),
     hetiSor: readArray<HetiSor>('templates', root, 'hetiSor'),
+    tipusok: stringsOrNull(root.tipusok),
+    leirasok: recordOrNull(root.leirasok) as Record<string, string> | null,
+    propok: recordOrNull(root.propok) as unknown as Record<string, Prop[]> | null,
+    kozosPropok: Array.isArray(root.kozosPropok) ? (root.kozosPropok as unknown as Prop[]) : null,
+    kuldhetoTipusok: stringsOrNull(root.kuldhetoTipusok),
+    nemKuldhetoTipusok: stringsOrNull(root.nemKuldhetoTipusok),
+    mintaHianyzik: stringsOrNull(root.mintaHianyzik),
+    tablaHianyok: stringsOrNull(root.tablaHianyok),
   }
 }
 

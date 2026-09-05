@@ -2,6 +2,7 @@ import { VideoError } from './args.mjs'
 import { VIDEO_STATUSOK } from './db.mjs'
 import { runHealth } from './health.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
+import { KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, tablaHianyai } from './kit-tabla.mjs'
 import { KODOLT_JAVASLAT_IDK, SZABALYKESZLET } from './qa.mjs'
 import { hetiSor, sablonStat } from './sablon.mjs'
 import { BACKLOG_SAPKA, DUPLIKAT_NAP, JAVASLAT_NYITOTT_SAPKA, TANULSAG_SAPKA } from './tanulsag.mjs'
@@ -333,16 +334,50 @@ export function createRpc(state, ops) {
       return { id: body.id, aktiv: 0 }
     },
     /**
-     * The Sablonok view. `hetiSor` is computed either way -- renders, QA
-     * failures and findings by week are stored rows and do not need the
-     * project -- while `sablonStat` is per catalogue type and cannot exist
-     * without a catalogue, so it is null beside the refusal code rather than
-     * an empty table that would read as "no type was ever used".
+     * The Sablonok view: the numbers of spec 6.3, and the vocabulary those
+     * numbers are about.
+     *
+     * Until now this answered only the statistics, which left the operator
+     * knowing LESS about the templates than the agent does -- `videoCatalog`
+     * hands the agent every type, its prose and its props. The gallery is
+     * that same answer, drawn.
+     *
+     * `hetiSor` is computed either way -- renders, QA failures and findings
+     * by week are stored rows and do not need the project -- while every
+     * catalogue-derived field is `null` when the catalogue could not be
+     * read, never an empty list. `sablonStat: {}` would read as "no type was
+     * ever used" and `tipusok: []` as "this kit has no templates"; both are
+     * false statements about the kit, where the refusal code beside them is
+     * a true one about the connection.
+     *
+     * `mintaHianyzik` is answered here rather than inferred from a picture
+     * that failed to appear: the two repositories move independently, so a
+     * type the catalogue carries without a sample is an ordinary state the
+     * card says out loud.
      */
     async templates() {
       const { katalogus, hiba } = catalogOrCode(state)
-      if (!katalogus) return { hiba, katalogusHash: null, sablonStat: null, hetiSor: hetiSor(repo()) }
-      return { hiba: null, katalogusHash: katalogus.katalogusHash, sablonStat: sablonStat(repo(), katalogus), hetiSor: hetiSor(repo()) }
+      if (!katalogus) {
+        return {
+          hiba, katalogusHash: null, sablonStat: null, hetiSor: hetiSor(repo()),
+          tipusok: null, leirasok: null, propok: null, kozosPropok: null,
+          kuldhetoTipusok: null, nemKuldhetoTipusok: null, mintaHianyzik: null, tablaHianyok: null,
+        }
+      }
+      return {
+        hiba: null,
+        katalogusHash: katalogus.katalogusHash,
+        sablonStat: sablonStat(repo(), katalogus),
+        hetiSor: hetiSor(repo()),
+        tipusok: katalogus.tipusok,
+        leirasok: katalogus.leirasok,
+        propok: katalogus.propok,
+        kozosPropok: katalogus.kozosPropok,
+        kuldhetoTipusok: KULDHETO_TIPUSOK,
+        nemKuldhetoTipusok: NEM_KULDHETO_TIPUSOK,
+        mintaHianyzik: katalogus.tipusok.filter((t) => !Object.hasOwn(katalogus.mintak, t)),
+        tablaHianyok: tablaHianyai(katalogus),
+      }
     },
     /**
      * Notes exported from the operator's own analytics, as rows they mapped

@@ -74,7 +74,19 @@ export function readCatalog(remotionDir) {
     if (!Object.hasOwn(parsed.propok, tipus) || !propLista(parsed.propok[tipus])) refuse('katalogus_ervenytelen', `a(z) ${tipus} típus propjai nem olvashatók a katalógusból`)
   }
   if (!propLista(parsed.kozosPropok)) refuse('katalogus_ervenytelen', 'a katalógus közös propjai nem olvashatók')
-  return { katalogusHash: sha256(text), tipusok: parsed.tipusok, propok: parsed.propok, leirasok: parsed.leirasok, kozosPropok: parsed.kozosPropok, file }
+  // The samples are what makes a type viewable as a picture (spec 3.2). They
+  // are OPTIONAL on purpose: this module and the Remotion project are two
+  // repositories and one is sometimes a commit behind, and a catalogue
+  // without samples must cost the gallery its pictures, not the whole page.
+  // What is not optional is the shape: a type's sample is a plain object of
+  // props or the file is refused, because a string or an array here would
+  // reach `remotion still` as the scene's props.
+  const mintak = Object.hasOwn(parsed, 'mintak') ? parsed.mintak : {}
+  if (!plainObject(mintak)) refuse('katalogus_ervenytelen', 'a katalógus mintak mezője nem objektum')
+  for (const tipus of Object.keys(mintak)) {
+    if (!plainObject(mintak[tipus])) refuse('katalogus_ervenytelen', `a(z) ${tipus} típus mintája nem objektum`)
+  }
+  return { katalogusHash: sha256(text), tipusok: parsed.tipusok, propok: parsed.propok, leirasok: parsed.leirasok, kozosPropok: parsed.kozosPropok, mintak, file }
 }
 
 /**

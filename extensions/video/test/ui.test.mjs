@@ -265,6 +265,20 @@ test('readProposals, readTemplates and readHealth refuse by name, and a null sab
   assert.throws(() => readTemplates({ hetiSor: [], sablonStat: 3 }), /sablonStat/)
   assert.throws(() => readTemplates({ sablonStat: null }), /hetiSor/)
   assert.equal(readTemplates({ hiba: 'remotion_dir_hianyzik', sablonStat: null, hetiSor: [] }).sablonStat, null)
+  // The catalogue fields degrade one by one: a `propok` this page cannot
+  // draw costs the gallery its prop lists, not the numbers beside them.
+  const rossz = readTemplates({ hiba: null, sablonStat: {}, hetiSor: [], tipusok: ['cimlap'], propok: 'nem objektum', kozosPropok: 3, mintaHianyzik: [1] })
+  assert.deepEqual(rossz.tipusok, ['cimlap'])
+  assert.equal(rossz.propok, null)
+  assert.equal(rossz.kozosPropok, null)
+  assert.equal(rossz.mintaHianyzik, null, 'a list of something other than type names is not a list of type names')
+  assert.deepEqual(rossz.sablonStat, {})
+  assert.deepEqual(rossz.hetiSor, [])
+  // A catalogue that could not be read leaves every one of them null, and
+  // `hetiSor` still answers.
+  const nelkul = readTemplates({ hiba: 'remotion_dir_hianyzik', sablonStat: null, hetiSor: [], tipusok: null, propok: null })
+  assert.equal(nelkul.tipusok, null)
+  assert.equal(nelkul.kuldhetoTipusok, null)
   // Every one of health's four lists is required: an absent `nemValaszolt`
   // drawn as an empty one would read as "everything was checked".
   for (const field of ['hibak', 'figyelmeztetesek', 'blokkolt', 'nemValaszolt', 'eszkozok']) {

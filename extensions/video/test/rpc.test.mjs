@@ -274,6 +274,42 @@ test('templates gives the per-type stats and the weekly row, and the weekly row 
   assert.equal(without.hetiSor.length, 1)
 })
 
+test('templates hands the page the catalogue itself, not only the numbers', async () => {
+  const dir = fakeProject()
+  const katFile = path.join(dir, 'src', 'kit', 'katalogus.generated.json')
+  const kat = JSON.parse(fs.readFileSync(katFile, 'utf8'))
+  kat.mintak = { cimlap: { sorok: ['a'] } }
+  fs.writeFileSync(katFile, JSON.stringify(kat))
+  const { rpc } = setup({ remotionDir: dir })
+  const r = await rpc.templates()
+  assert.ok(r.tipusok.includes('cimlap'))
+  assert.equal(typeof r.leirasok.cimlap, 'string')
+  assert.ok(Array.isArray(r.propok.cimlap))
+  assert.ok(Array.isArray(r.kozosPropok))
+  assert.ok(r.kuldhetoTipusok.length > 0)
+  assert.ok(r.nemKuldhetoTipusok.includes('cta'))
+  assert.deepEqual(r.tablaHianyok, [])
+  // Which types have no sample is a fact the page shows on the card, so it
+  // is answered here rather than inferred from an empty picture.
+  assert.ok(Array.isArray(r.mintaHianyzik))
+  assert.ok(!r.mintaHianyzik.includes('cimlap'))
+  assert.ok(r.mintaHianyzik.includes('szam'))
+})
+
+test('templates without a readable project still answers the weekly row and says the code', async () => {
+  const { repo, rpc } = setup({ remotionDir: '' })
+  keszVideo(repo)
+  const r = await rpc.templates()
+  assert.equal(r.hiba, 'remotion_dir_hianyzik')
+  // Every catalogue-derived field is null, never an empty list: an empty
+  // `tipusok` would draw as "this kit has no templates", which is a false
+  // statement about the kit rather than a true one about the connection.
+  for (const mezo of ['tipusok', 'leirasok', 'propok', 'kozosPropok', 'kuldhetoTipusok', 'nemKuldhetoTipusok', 'mintaHianyzik', 'tablaHianyok']) {
+    assert.equal(r[mezo], null, mezo)
+  }
+  assert.ok(Array.isArray(r.hetiSor))
+})
+
 test('importFeedback refuses each bad row by index and is idempotent', async () => {
   const { repo, rpc } = setup()
   const { videoId } = keszVideo(repo)

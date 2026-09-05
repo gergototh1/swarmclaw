@@ -14,6 +14,13 @@ const FIXTURE = path.join(here, 'fixtures', 'katalogus.generated.json')
 
 const draft = (dir, jelenetek, narracio = PELDA_NARRACIO) => validateDraft({ jelenetek, narracio, katalogus: readCatalog(dir), remotionDir: dir })
 
+/**
+ * The fixture catalogue with the given fields written over it, as a project
+ * on disk. The samples arrive from the other repository, so the fixture is
+ * one commit behind by design and a test that needs them writes them here.
+ */
+const katalogusDir = (extra) => fakeProject({ catalogText: JSON.stringify({ ...JSON.parse(fs.readFileSync(FIXTURE, 'utf8')), ...extra }) })
+
 test('the kit table covers every type and prop of the real catalogue, names the six asset props and the five unsendable types', () => {
   const kat = readCatalog(fakeProject())
   assert.deepEqual(tablaHianyai(kat), [])
@@ -49,6 +56,24 @@ test('readCatalog refuses a missing dir, a missing file and a malformed file by 
   assert.equal(code(() => readCatalog(fakeProject({ catalogText: '{"tipusok":["szam"],"propok":{},"leirasok":{},"kozosPropok":[]}' }))), 'katalogus_ervenytelen')
   assert.equal(code(() => readCatalog(fakeProject({ catalogText: '{"tipusok":["szam"],"propok":{"szam":[{"nev":"szam"}]},"leirasok":{},"kozosPropok":[]}' }))), 'katalogus_ervenytelen')
   assert.equal(readCatalog(fakeProject()).katalogusHash.length, 64)
+})
+
+test('readCatalog carries the samples, and an old project without them is not an error', () => {
+  const dir = katalogusDir({ mintak: { cimlap: { sorok: ['a'] } } })
+  assert.deepEqual(readCatalog(dir).mintak, { cimlap: { sorok: ['a'] } })
+  // A Remotion project from before the samples existed still loads: the
+  // module is one repo behind sometimes, and a missing sample costs a
+  // picture, not the catalogue.
+  const regi = katalogusDir({})
+  assert.deepEqual(readCatalog(regi).mintak, {})
+})
+
+test('readCatalog refuses a samples field that is not an object of objects', () => {
+  const code = (fn) => { try { fn(); return null } catch (e) { return e.code } }
+  // A string or a list here would reach `remotion still` as a scene's props.
+  assert.equal(code(() => readCatalog(katalogusDir({ mintak: { cimlap: 'nem objektum' } }))), 'katalogus_ervenytelen')
+  assert.equal(code(() => readCatalog(katalogusDir({ mintak: ['lista'] }))), 'katalogus_ervenytelen')
+  assert.equal(code(() => readCatalog(katalogusDir({ mintak: 'szoveg' }))), 'katalogus_ervenytelen')
 })
 
 test('remotionDirOf reads the setting on every call and refuses a blank or a dir without package.json', () => {
