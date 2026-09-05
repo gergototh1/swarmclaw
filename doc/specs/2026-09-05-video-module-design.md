@@ -114,7 +114,7 @@ A decisions-fájl négy átmenő dolga így néz ki:
 | Irány | Mi | Hol |
 |---|---|---|
 | Remotion → SwarmClaw | `src/kit/katalogus.generated.json` | `videoCatalog` olvassa, hash-eli, a hash a terv sorára kerül |
-| SwarmClaw → Remotion | a jelenetlista | `out/swarmclaw/<videoId>/<draftHash>/props.json`, `{ lista, hatter }` alakban, ahogy a `FosVideo` propja várja |
+| SwarmClaw → Remotion | a jelenetlista | `out/swarmclaw/<videoId>/<renderId>/props.json`, `{ lista, hatter }` alakban, ahogy a `FosVideo` propja várja. A könyvtárat a render id-je nevezi, nem a terv hash-e: egy tervből több render is indulhat (egy megszakadt után egy új), és a props, a napló meg a kimenet egy render három fájlja |
 | SwarmClaw → Remotion | a render-parancs | `spawn('npx', ['remotion', 'render', 'src/index.ts', 'fos-video', <out.mp4>, '--props', <props.json>])`, `shell: false`, `cwd` a projekt, `detached: true` (3.4) |
 | Remotion → SwarmClaw | a kész fájl útja és a mérések | a render sorára: `out_path`, `file_sha256`; a QA sorára a mérések |
 
@@ -234,7 +234,7 @@ fájlkészlet.
 | `terv_hash` TEXT | |
 | `jelenet` INTEGER | 0-tól, a lista indexe |
 | `szoveg_hash` TEXT | a jelenet narráció-szövegének sha256-ja |
-| `hang`, `modell` TEXT | a tts válaszából: melyik hanggal és modellel készült; a render ezt veti össze a tts jelenlegi beállításával (3.2) |
+| `hang`, `modell`, `nyelv` TEXT | a tts válaszából: melyik hanggal, modellel és nyelven készült; a render mindhármat veti össze a tts jelenlegi beállításával (3.2) |
 | `fajl` TEXT | `public/`-relatív útvonal a Remotion-projektben, a `narracio/swarmclaw/` névtér alatt |
 | `hossz_ms` INTEGER | ffprobe-bal mérve |
 | `tts_keres_id` TEXT | a tts szerződés válaszából, cache-találatnál is |
@@ -251,7 +251,7 @@ PRIMARY KEY `(terv_id, jelenet)`.
 | `verdikt_id` TEXT | az `atmegy` verdikt, ami alapján indult |
 | `status` TEXT | `fut`, `kesz`, `hiba`, `elveszett` |
 | `pid` INTEGER NULL | a gyerekfolyamat (`npx`) pid-je, ami `detached: true` mellett a folyamatcsoport id-je is (3.4) |
-| `host_boot_at` TEXT | a host gép indulási ideje az indításkor (`Date.now() − os.uptime()·1000`, másodpercre kerekítve); ettől ismerhető fel egy újraindítás előtti sor (3.4) |
+| `host_boot_at` INTEGER | a host gép indulási ideje az indításkor, **másodpercben** (`Date.now() − os.uptime()·1000`, másodpercre kerekítve); ettől ismerhető fel egy újraindítás előtti sor (3.4), és ezért másodperc a 3.4 öt másodperces tűrése is |
 | `jelenet_hatarok` TEXT | JSON: a renderelt lista jelenet-határai kockában, az indításkor számolva (6.3) |
 | `props_path`, `out_path`, `log_path` TEXT | a projekt `out/swarmclaw/<videoId>/<renderId>/` alatt |
 | `torolve_at` TEXT NULL | a lemez-takarítás ideje, ha a kimenetet a modul törölte (11.2) |
@@ -349,7 +349,15 @@ ujjlenyomatára van kötve, nem a tétel id-jére.
   verdikt így egy elbukott v2 után egy azonos tartalmú v3-at újra
   engedélyezne, anélkül hogy a lektor a v3-at valaha látta volna; a
   gyártónak ilyenkor a lektor új futására kell várnia, és ez az ára annak,
-  hogy a verdikt egy konkrét beadásról szól.
+  hogy a verdikt egy konkrét beadásról szól. A verdiktek append-only-k, tehát
+  ugyanarra a `(terv_id, terv_hash)` párra több sor is állhat, ha a lektor
+  másodszor is megnézte a beadást; a kapu ilyenkor a **legfrissebb** sort
+  olvassa, bármi is a verdiktje, és csak akkor ad `atmegy`-et, ha az a
+  legfrissebb sor maga `atmegy`. Egy szűrés, ami előbb `verdikt = 'atmegy'`-re
+  szűr és csak utána rendez, egy korábbi jóváhagyást találna meg akkor is,
+  ha a lektor azt egy későbbi `elbukik`-kal azóta visszavonta — pontosan az a
+  visszajátszható, visszavont jóváhagyás, ami ellen ennek a modulnak az egész
+  ujjlenyomat-terve épül.
 - **Mi van a `terv_hash`-ben, és mi nincs, szándékosan.** Benne: a
   `jelenetek`, a `narracio` és a hivatkozott `public/` fájlok sha256-ja
   (`asset_ujjlenyomatok`). A fájlok azért, mert a lektor a képet is
@@ -358,10 +366,11 @@ ujjlenyomatára van kötve, nem a tétel id-jére.
   **újraméri** a fájlokat, és eltérésnél `asset_valtozott`-tal utasít el,
   nem renderel. Nincs benne a katalógus: a `katalogus_hash` külön oszlop és
   figyelmeztetés (4.1), mert a kit bővülése nem változtatja meg azt, amit a
-  lektor olvasott. Nincs benne a TTS hangja és modellje: a verdikt a
+  lektor olvasott. Nincs benne a TTS hangja, modellje és nyelve: a verdikt a
   szövegről szól, nem a hangról; a hang a narráció során van (`hang`,
-  `modell`), és a render azt a tts jelenlegi beállításával veti össze
-  (`narracio_hang_valtozott`), tehát egy hangváltás új `videoNarrate`-et
+  `modell`, `nyelv`), és a render mindhármat a tts jelenlegi beállításával
+  veti össze (`narracio_hang_valtozott`), tehát egy hangváltás vagy
+  nyelvváltás új `videoNarrate`-et
   kér, nem új verdiktet. Nincs benne a Remotion-projekt forrása: azt a
   modul nem figyeli (2.2), és egy kit-változás hatása a QA-n és a lektor
   következő videóján látszik, nem a hash-en.
@@ -370,13 +379,16 @@ ujjlenyomatára van kötve, nem a tétel id-jére.
   session `agentId`-je azonos a terv szerzőjével (`onlektoralas`). Nem a
   managed agent id-jét ismeri; azt ismeri, hogy a két tett ugyanattól jött.
 - `ext_video_narraciok (terv_id, jelenet)` PK + `terv_hash` + `hang`,
-  `modell` — **gátol**: a render. Minden jelenethez, amelynek van
+  `modell`, `nyelv` — **gátol**: a render. Minden jelenethez, amelynek van
   narráció-szövege, kell egy sor, amelynek `szoveg_hash`-e a terv jelenlegi
-  szövegének hash-e, és amelynek `hang`/`modell` párja a tts jelenlegi
-  beállítása. Egy átfogalmazott mondat régi mp3-mal nem renderelhető, és
-  egy hangváltás után egy régi hangú mp3 sem (`narracio_hang_valtozott`):
-  a tts cache-kulcsa a hangot is tartalmazza, tehát a szöveg-hash egyedül
-  vak lenne rá.
+  szövegének hash-e, és amelynek `hang`/`modell`/`nyelv` hármasa a tts
+  jelenlegi beállítása. Egy átfogalmazott mondat régi mp3-mal nem
+  renderelhető, és egy hangváltás vagy nyelvváltás után egy régi hangú mp3
+  sem (`narracio_hang_valtozott`): a tts cache-kulcsa a nyelvet is
+  tartalmazza, tehát egy két mezőt néző összevetés (`hang`, `modell`) vakon
+  átengedne egy nyelvváltást; a render ezért a `hangEgyezik` függvényt hívja
+  (`narracio.mjs`), ami mindhárom mezőt veti össze, nem kézzel másolja a
+  logikáját.
 - `ext_video_renderek_fut` — részleges UNIQUE INDEX `(status) WHERE status
   = 'fut'` — **gátol**: egyszerre egy render. A render telíti a gépet, és két egyidejű
   futás mindkettőt lassítja a watchdog küszöbe fölé. A refusal kódja
@@ -662,7 +674,7 @@ a jelenet szövegével és a célfájllal
 operátoré, 1.). A tts-extension a saját cache-éből válaszol, ha ugyanaz a
 szöveg ugyanazzal a hanggal már el volt készítve, és a válaszban `cache:
 true` áll. A modul `ffprobe`-bal méri a hosszt, és a sorra írja a hosszt
-meg a tts válaszának `hang`/`modell` párját.
+meg a tts válaszának `hang`/`modell`/`nyelv` hármasát.
 
 Ebből a mérésből lesz a jelenet `lathatoHossz`-a a rendernél:
 
@@ -714,7 +726,8 @@ Az indítás előtt, ebben a sorrendben, és mindegyik a saját kódjával:
 2. a hivatkozott asset-fájlok sha256-ja ma is az, ami a terv
    `asset_ujjlenyomatok` mezőjében áll (`asset_valtozott`);
 3. minden narrált jelenethez van sor a jelenlegi szöveg-hash-sel, és a
-   sorok `hang`/`modell` párja a tts `status()` szerinti jelenlegi
+   sorok `hang`/`modell`/`nyelv` hármasa (a `hangEgyezik` függvénnyel
+   összevetve, `narracio.mjs`) a tts `status()` szerinti jelenlegi
    beállítás (`narracio_hang_valtozott`);
 4. nincs `fut` render (a részleges unique index az utolsó barrier, de a
    tool előbb mondja meg névvel);

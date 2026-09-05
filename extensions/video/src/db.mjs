@@ -80,8 +80,10 @@ import crypto from 'node:crypto'
  *             it against the TTS's current setting); the Remotion source
  *             (not watched by this module at all).
  *
- *   ext_video_verdiktek -- INDEX (terv_id, terv_hash); read by passingVerdikt
- *                          WHERE terv_id = ? AND terv_hash = ? AND verdikt = 'atmegy'
+ *   ext_video_verdiktek -- INDEX (terv_id, terv_hash); read by passingVerdikt,
+ *                          which takes the LATEST row for (terv_id, terv_hash)
+ *                          -- any verdikt value -- and answers with it only
+ *                          when THAT row says 'atmegy'
  *     gates   THE RENDER. `videoRender` asks for a passing verdict on the
  *             latest plan's id AND that plan's current hash. Both halves are
  *             load-bearing: the id says which submission the reviewer read,
@@ -93,6 +95,16 @@ import crypto from 'node:crypto'
  *             one submission. `terv_hash` on the verdict row is COPIED from
  *             the plan at the moment of judgement, so a verdict cannot drift
  *             onto content written later.
+ *             Verdicts are append-only, so a reviewer may revisit the same
+ *             submission: pass it, then later fail it after a second look, or
+ *             the reverse. Filtering on `verdikt = 'atmegy'` before ordering
+ *             would let an earlier pass answer for a hash the same reviewer
+ *             has since failed -- the stale-approval-replay shape this module
+ *             exists to close. `passingVerdikt` therefore orders by
+ *             `created_at` first, over every verdikt on the pair, and reads
+ *             the newest one's own `verdikt`; a pass that was later reversed
+ *             is never returned, because the row `passingVerdikt` looks at is
+ *             the reversal, not the pass.
  *
  *   ext_video_verdiktek.lektor_agent_id versus ext_video_tervek.szerzo_agent_id
  *     gates   self-review (`onlektoralas`). Not a database key: enforced in
@@ -112,9 +124,10 @@ import crypto from 'node:crypto'
  *             old-voice mp3 (`narracio_hang_valtozott`): the TTS's cache key
  *             is (szolgaltato, modell, hang, nyelv, szoveg_hash), so a text
  *             hash alone would be blind to it, and so would a (hang, modell)
- *             pair -- the spec's table names those two, but the tts answers
- *             with all three, and a language change under an unchanged voice
- *             name is a different mp3 for the same sentence. `nyelv` is
+ *             pair: the tts answers with all three, and a language change
+ *             under an unchanged voice name is a different mp3 for the same
+ *             sentence. The spec's narration table named only the two until
+ *             this row taught it otherwise; it now names three. `nyelv` is
  *             therefore on the row and in the comparison (narracio.mjs,
  *             `hangEgyezik`), and it arrived in migration v2: a row from
  *             before it reads '' there, which matches no current setting and
@@ -450,9 +463,17 @@ export function createRepo(storage) {
         [id, tervId, tervHash, lektorAgentId, lektorSessionId, verdikt, JSON.stringify(talalatok), now()])
       return { id }
     },
-    /** The render gate's read: a pass on exactly this plan id and exactly this hash, or null. */
+    /**
+     * The render gate's read: the LATEST verdict on exactly this plan id and
+     * exactly this hash, returned only when that latest verdict is 'atmegy'.
+     * Verdicts are append-only, so a reviewer's second look at the same
+     * submission is a new row, never a rewrite of the first; ordering by
+     * `created_at` before reading `verdikt` is what makes a later `elbukik`
+     * withdraw an earlier `atmegy` rather than leaving it discoverable.
+     */
     passingVerdikt(tervId, tervHash) {
-      return S.get("SELECT * FROM ext_video_verdiktek WHERE terv_id = ? AND terv_hash = ? AND verdikt = 'atmegy' ORDER BY created_at DESC, rowid DESC LIMIT 1", [tervId, tervHash]) || null
+      const latest = S.get('SELECT * FROM ext_video_verdiktek WHERE terv_id = ? AND terv_hash = ? ORDER BY created_at DESC, rowid DESC LIMIT 1', [tervId, tervHash])
+      return latest && latest.verdikt === 'atmegy' ? latest : null
     },
     verdiktek(tervId) { return S.all('SELECT * FROM ext_video_verdiktek WHERE terv_id = ? ORDER BY created_at ASC, rowid ASC', [tervId]) },
     verdiktekAll() { return S.all('SELECT * FROM ext_video_verdiktek ORDER BY created_at ASC, rowid ASC') },

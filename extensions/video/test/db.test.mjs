@@ -85,6 +85,24 @@ test('a passing verdict is found only for the exact terv id and hash pair', () =
   assert.equal(repo.verdiktek(t2.id).length, 1); assert.equal(repo.verdiktekAll().length, 2)
 })
 
+test('passingVerdikt: a later verdict on the same id and hash withdraws an earlier pass', () => {
+  // Verdicts are append-only. A reviewer who first passes a plan and later,
+  // on a second look at the SAME submission (same terv id, same terv hash),
+  // fails it, leaves both rows in the table; the earlier `atmegy` must not
+  // still be findable, or a render gate reading it would start from an
+  // approval the reviewer has since withdrawn.
+  const { repo } = freshRepo()
+  const v = openVideo(repo)
+  const t = terv(repo, v)
+  repo.insertVerdikt({ tervId: t.id, tervHash: t.tervHash, lektorAgentId: 'lektor', lektorSessionId: 's', verdikt: 'atmegy', talalatok: [] })
+  assert.ok(repo.passingVerdikt(t.id, t.tervHash), 'the first pass stands on its own')
+  repo.insertVerdikt({ tervId: t.id, tervHash: t.tervHash, lektorAgentId: 'lektor', lektorSessionId: 's', verdikt: 'elbukik', talalatok: [{ jelenet: 0, kod: 'horog_gyenge', szoveg: 'x' }] })
+  assert.equal(repo.passingVerdikt(t.id, t.tervHash), null, 'the later fail withdraws the earlier pass')
+  repo.insertVerdikt({ tervId: t.id, tervHash: t.tervHash, lektorAgentId: 'lektor', lektorSessionId: 's', verdikt: 'atmegy', talalatok: [] })
+  assert.ok(repo.passingVerdikt(t.id, t.tervHash), 'a later pass reinstates it')
+  assert.equal(repo.verdiktek(t.id).length, 3)
+})
+
 test('one running render at a time: the partial unique index is the barrier and claimRender names the running id', () => {
   const { repo } = freshRepo()
   const v = openVideo(repo); const t = terv(repo, v)

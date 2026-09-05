@@ -1,6 +1,7 @@
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { createCatalogTool } from './src/katalogus.mjs'
 import { createNarrateTool } from './src/narracio.mjs'
+import { createRenderOps, createRenderTools } from './src/render.mjs'
 import { createAfterChatTurn, createTanulsagTools } from './src/tanulsag.mjs'
 import { createTervTools } from './src/terv.mjs'
 
@@ -49,6 +50,22 @@ export const state = {
   now: null,
 }
 
+/**
+ * One instance at module scope, so the rpc handlers that arrive with the page
+ * (`cancelRender`, `cleanup`, `health`) call the same object the two render
+ * tools call, and the page and the tools cannot drift apart in what they mean
+ * by a cancel or a cleanup.
+ *
+ * Sharing it is not what makes the render survive a reload. Every operation
+ * here starts from the render row and writes through the same host storage, so
+ * a second instance over this same `state` would answer identically; what a
+ * reload would lose is the child process's `exit` handler, which belongs to
+ * whichever instance called `start`. That handler closes through the row too,
+ * which is why losing it costs nothing a `videoRenderStatus` call cannot
+ * recover (render.mjs, `finalize`).
+ */
+export const renderOps = createRenderOps(state)
+
 const video = {
   name: 'Videó',
   version: '0.1.0',
@@ -63,10 +80,11 @@ const video = {
   },
   // The catalogue read, the five tools of a plan's life before narration
   // (open, draft, verdict, lessons, queue), the narration over the tts
-  // contract, and the three of the daily review (material, close, propose).
-  // The render tools and the rpc map arrive in later tasks; an empty rpc
-  // declaration is what the host accepts for an extension that has none yet.
-  tools: [createCatalogTool(state), ...createTervTools(state), createNarrateTool(state), ...createTanulsagTools(state)],
+  // contract, the render and its watchdog, and the three of the daily
+  // review (material, close, propose). The rpc map arrives in a later task;
+  // an empty rpc declaration is what the host accepts for an extension that
+  // has none yet.
+  tools: [createCatalogTool(state), ...createTervTools(state), createNarrateTool(state), ...createRenderTools(state, renderOps), ...createTanulsagTools(state)],
   rpc: {},
   // The turn recorder for the daily review (spec 6.5). The host spreads this
   // object into the extension's hook set, so the key is the host's hook name.
