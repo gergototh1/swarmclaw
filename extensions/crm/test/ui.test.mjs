@@ -53,3 +53,9 @@ test('a bundle tartalmazza a sopres gombjat', async () => {
   const js = out.outputFiles[0].text
   assert.ok(js.includes('Levelek behúzása'), 'hiányzik a bundle-ből: Levelek behúzása')
 })
+
+test('a bundle tartalmazza a nem iktatott hozzarendeles jelzeset', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.ok(js.includes('még nincs ügyfele'), 'hiányzik a bundle-ből: a nem iktatott hozzárendelés üzenete')
+})
