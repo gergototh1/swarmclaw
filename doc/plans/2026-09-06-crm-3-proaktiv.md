@@ -117,15 +117,19 @@ Expected: FAIL — a kimenő levél `email_in`-ként vagy sehogy nem jön be.
 
 - [ ] **Step 4: A SENT címke elérhetővé tétele**
 
-A CRM-2 `INBOX`-ra szűkítette a listázást. A kimenő levelekhez a `SENT` is kell. `index.mjs` `settingsFields`-ében a címke-mezőt cseréld egy vesszős listára:
+A CRM-2 `INBOX`-ra szűkítette a listázást. A kimenő levelekhez a `SENT` is kell.
+
+**A meglévő kulcs neve `sopresCimke`** (`index.mjs` `settingsFields`, egyes szám) — ezt ellenőrizd, mielőtt hozzányúlsz. Cseréld egy vesszős listára:
 
 ```js
-      { key: 'gmailCimkek', label: 'Gmail címkék', type: 'text', defaultValue: 'INBOX,SENT',
+      { key: 'sopresCimkek', label: 'Söprés Gmail-címkéi', type: 'text', defaultValue: 'INBOX,SENT',
         placeholder: 'INBOX,SENT',
         help: 'Vesszővel elválasztva. A SENT nélkül nem látszik, hogy válaszoltál-e — a „válasz nélküli levél” jelzés ettől működik. Tágítani lehet, de minden címke annyi levelet jelent, amennyit tényleg be is húzunk.' },
 ```
 
-`sweep.mjs` bontsa vesszőnél, vágja a szóközöket, és dobja az üreseket. **A régi `gmailCimke` kulcsot olvassa be tartalékként**, hogy egy már beállított érték ne vesszen el: ha az új kulcs üres és a régi nem, használd a régit.
+`sweep.mjs` bontsa vesszőnél, vágja a szóközöket, és dobja az üreseket.
+
+**A régi `sopresCimke` kulcsot olvassa be tartalékként.** Az operátor telepítésén ez a mező már be van állítva; ha az új kulcs üres és a régi nem, a régit kell használni. Enélkül egy frissítés némán visszaállítaná az alapértéket, és az operátor beállítása elveszne anélkül, hogy bármi jelezné.
 
 - [ ] **Step 5: Futtasd és commitolj**
 
@@ -1155,9 +1159,64 @@ Expected: FAIL — `rpc.acceptSuggestion is not a function`
     },
 ```
 
-`hostFetch` egy kis segéd ugyanebben a fájlban: kiolvassa a portot a `state.portFile`-ból, hozzáadja az `x-access-key` fejlécet a `SWARMCLAW_ACCESS_KEY` környezetből ha van, és `state.fetchImpl || globalThis.fetch`-csel hív. **A `fetchImpl` a teszt varrata** — a CRM-1 óta ott van a tervben, most kap először használót.
+Ugyanebbe a fájlba, a `createRpc` fölé:
 
-A `state.portFile` és a `state.crmProjectId` az `index.mjs`-ből jön: a port-fájl a CRM-2-ben már feloldott útvonal, a projekt-azonosítót pedig a `managedResourceId`-vel egyező módon nem tudjuk kiszámolni — **olvasd ki a host `/api/projects`-éből** a `managedByExtension.resourceKey === 'crm'` sor alapján, és gyorsítótárazd a `state`-en.
+```js
+import fs from 'node:fs'
+
+/**
+ * Hívás a host saját API-jára, a port-fájlon át.
+ *
+ * Ez az egyetlen út: az `ExtensionContext` nem ad task-API-t, és egy extension
+ * nem importálhat a host `src/`-jéből. Ugyanaz a minta, amit a gmail MCP-shimje
+ * használ — a port-fájl a futó szerver egyetlen megbízható önleírása.
+ *
+ * A `fetchImpl` a teszt varrata: a CRM-1 óta a `state`-en ül, és itt kap
+ * először használót. Éles kódban `globalThis.fetch`.
+ */
+async function hostFetch(state, utvonal, body) {
+  const file = state.portFile
+  if (!file || !fs.existsSync(file)) throw new Error('crm_nincs_port_fajl')
+  let port
+  try {
+    port = JSON.parse(fs.readFileSync(file, 'utf8')).port
+  } catch {
+    throw new Error('crm_olvashatatlan_port_fajl')
+  }
+  if (!port) throw new Error('crm_nincs_port_fajl')
+
+  const kulcs = process.env.ACCESS_KEY || process.env.SWARMCLAW_ACCESS_KEY || ''
+  const fetchFn = state.fetchImpl || globalThis.fetch
+  const res = await fetchFn(`http://127.0.0.1:${port}${utvonal}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...(kulcs ? { 'x-access-key': kulcs } : {}) },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error('crm_host_hivas_sikertelen')
+  return res.json()
+}
+
+/**
+ * A CRM projekt azonosítója, a host projekt-listájából.
+ *
+ * Nem számoljuk ki: a host a `managedResourceId`-t egy hash-ből képzi, és egy
+ * második, kézzel írt példány abban a pillanatban elcsúszna, amint a host
+ * megváltoztatja a képzést. Megkérdezzük, és a `state`-en tartjuk — a projekt
+ * a telepítés élettartama alatt nem változik.
+ */
+async function crmProjektId(state) {
+  if (state.crmProjectId) return state.crmProjectId
+  const lista = await hostFetch(state, '/api/projects', {}).catch(() => null)
+  const sorok = Array.isArray(lista) ? lista : Object.values(lista || {})
+  const crm = sorok.find((p) => p && p.managedByExtension && p.managedByExtension.resourceKey === 'crm')
+  state.crmProjectId = crm ? crm.id : null
+  return state.crmProjectId
+}
+```
+
+**A `/api/projects` GET-et vár, nem POST-ot** — ellenőrizd az útvonalat, és ha GET kell, adj a `hostFetch`-nek egy `method` paramétert alapértelmezett `POST`-tal. A feladat-létrehozás POST.
+
+A `state.portFile` az `index.mjs`-ből jön: a CRM-2-ben már feloldott útvonal ott áll (`resolvePortFile`), csak a `state`-re kell tenni a `setup()`-ban.
 
 - [ ] **Step 4: A feladatlista az ügyfél lapon**
 
