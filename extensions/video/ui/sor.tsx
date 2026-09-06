@@ -194,12 +194,28 @@ function UjVideo({ rpc, onNyitva }: { rpc: Rpc; onNyitva: () => void }) {
  * fix a channel url, widen the window -- and a single "0 új ötlet" would send
  * the operator looking in the wrong place for all three.
  *
+ * AND THE PER-CHANNEL REPORT IS TWO LISTS. `csatornaHibak` carries both the
+ * channels that could not be read and the ones that were read and had nothing
+ * (`csatorna_nincs_friss`); only the first kind is something to fix, so only
+ * the first kind is printed as a failure.
+ *
  * THE CHANNELS ARE NAMED. "3 csatornából 1 nem válaszolt" is a count of a
  * fact the page already has in full; the operator cannot act on it without
  * going to look up which one, and the answer carries the name.
  */
+/**
+ * The one per-channel code that is not a failure: everything worked and the
+ * channel simply had nothing inside the window. It travels in `csatornaHibak`
+ * because that is the module's per-channel report, and it is pulled out here
+ * because printing it under "nem válaszolt" would be a false statement about
+ * a channel that answered perfectly well.
+ */
+const NINCS_FRISS = 'csatorna_nincs_friss'
+
 export function otletMondatok(eredmeny: YoutubeOtletekValasz): string[] {
   const { nyitott, marVolt, jelolt, maradek, csatornaHibak, eldobott } = eredmeny
+  const nema = csatornaHibak.filter((h) => h.ok !== NINCS_FRISS)
+  const csendes = csatornaHibak.filter((h) => h.ok === NINCS_FRISS)
   const mondatok: string[] = []
   if (nyitott.length > 0) mondatok.push(`${nyitott.length} új ötlet nyílt kártyaként a táblára.`)
   // Not "no channel answered": the answer carries the failures but not how
@@ -207,15 +223,17 @@ export function otletMondatok(eredmeny: YoutubeOtletekValasz): string[] {
   // with nothing would make that sentence false. What is true, and is the
   // fact the operator needs, is that the empty result is not necessarily the
   // channels' own answer.
-  else if (csatornaHibak.length > 0 && jelolt === 0) mondatok.push('Nem jött egyetlen jelölt sem, és közben volt csatorna, ami nem válaszolt.')
+  else if (nema.length > 0 && jelolt === 0) mondatok.push('Nem jött egyetlen jelölt sem, és közben volt csatorna, ami nem válaszolt.')
   else if (marVolt > 0 && jelolt === marVolt) mondatok.push('Nem nyílt új kártya: mindegyikből van már videó a táblán.')
-  else mondatok.push('A modul nem talált új feltöltést a csatornákon ebben az ablakban.')
+  else mondatok.push('A csatornák válaszoltak, de nem volt köztük új feltöltés ebben az ablakban.')
   if (marVolt > 0 && nyitott.length > 0) mondatok.push(`${marVolt} feltöltésből már volt videó, azokat a modul kihagyta.`)
   if (maradek > 0) mondatok.push(`${maradek} ötlet maradt a gomb egy-nyomásos korlátján kívül; nyomd meg még egyszer, ha kell.`)
-  if (csatornaHibak.length > 0) {
-    mondatok.push(`Nem válaszolt: ${csatornaHibak.map((h) => `${h.csatorna} (${h.ok})`).join(', ')}.`)
-  }
-  if (eldobott > 0) mondatok.push(`${eldobott} listasort a modul nem vett át: az ablakon kívüli dátum, vagy olyan sor, amiből nem épít videó-hivatkozást.`)
+  // Two lists, never one. A channel that could not be read needs fixing; a
+  // channel that has not uploaded lately needs nothing at all, and folding
+  // them together would send the operator checking a url that is fine.
+  if (nema.length > 0) mondatok.push(`Nem válaszolt: ${nema.map((h) => `${h.csatorna} (${h.ok})`).join(', ')}.`)
+  if (csendes.length > 0) mondatok.push(`Nem volt friss feltöltése: ${csendes.map((h) => h.csatorna).join(', ')}.`)
+  if (eldobott > 0) mondatok.push(`${eldobott} bejegyzést a modul nem vett át: az ablakon kívüli feltöltés, vagy olyan sor, amiből nem épít videó-hivatkozást.`)
   return mondatok
 }
 

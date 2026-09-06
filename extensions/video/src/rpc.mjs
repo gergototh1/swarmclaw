@@ -341,9 +341,10 @@ export function createRpc(state, ops) {
      * reach.
      *
      * WHAT IT WRITES. `openVideo` directly, with `forrasTipus: 'youtube'`,
-     * `forrasId` the checked video id, and a source text of the title and the
-     * url this module built from that id -- never a url that came back in the
-     * listing text. The opener is '' rather than an agent id, for the same
+     * `forrasId` the checked video id, and a source text of the title, the
+     * url this module built from that id -- never a url that came back over
+     * the network -- and the upload date, so the card says how fresh the idea
+     * is. The opener is '' rather than an agent id, for the same
      * reason `nyit`'s is: an operator is not an agent, and nothing gates on
      * the opener. `forras_tipus` has no CHECK constraint (db.mjs), so the
      * third value needed no migration; the tool's own source list
@@ -359,6 +360,7 @@ export function createRpc(state, ops) {
           napok,
           ytDlp: ytDlpUtvonalOf(state),
           execFileImpl: state.execFileImpl || undefined,
+          fetchImpl: state.fetchImpl || undefined,
         })
         // One card per video id, whatever brought it: the same channel listed
         // twice in the setting is a typo, not two ideas.
@@ -372,7 +374,13 @@ export function createRpc(state, ops) {
         }
         const nyitando = ujak.slice(0, YOUTUBE_OTLET_MAX)
         const nyitott = nyitando.map((j) => {
-          const { id } = repo().openVideo({ cim: j.cim, forrasTipus: 'youtube', forrasId: j.id, forrasSzoveg: `${j.cim}\n\n${j.url}`, nyitottaAgentId: '' })
+          // The date is DISPLAY MATERIAL and nothing else: it goes into the
+          // source text so the operator can see how fresh an idea is without
+          // opening the video, and no column, key or gate reads it. The day
+          // rather than the instant, because "how old is this" is the question
+          // the card answers and a timestamp to the second is noise in a box
+          // the Video view labels as a stranger's text.
+          const { id } = repo().openVideo({ cim: j.cim, forrasTipus: 'youtube', forrasId: j.id, forrasSzoveg: `${j.cim}\n\n${j.url}\n\nFeltöltve: ${j.feltoltve.slice(0, 10)}`, nyitottaAgentId: '' })
           return { videoId: id, cim: j.cim }
         })
         return { nyitott, marVolt: latott.size - ujak.length, jelolt: latott.size, maradek: ujak.length - nyitott.length, csatornaHibak, eldobott }

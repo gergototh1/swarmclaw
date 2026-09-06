@@ -2125,31 +2125,51 @@ test('every branch of the YouTube answer gets its own sentence, and none reads a
   assert.ok(teli.includes('2 új ötlet'))
   assert.ok(teli.includes('3'), 'the ones already on the board are counted separately')
   assert.ok(teli.includes('10'), 'and so is what a second press would still find')
-  assert.ok(teli.includes('4'), 'the rows the module dropped are named, so a drifted listing is not an empty one')
+  assert.ok(teli.includes('4'), 'the entries the module dropped are named, so a drifted feed is not a quiet one')
 
   // Zero because every candidate is already a video on this board.
   const marMind = otletMondatok(ytOtletek({ jelolt: 6, marVolt: 6 })).join(' | ')
   assert.ok(marMind.includes('mindegyikből'))
-  assert.equal(marMind.includes('egy csatorna sem válaszolt'), false)
+  assert.equal(marMind.includes('volt csatorna, ami nem válaszolt'), false)
 
-  // Zero because nothing answered. NOT the same sentence as the one above.
+  // Zero because nothing could be read. NOT the same sentence as the one above.
   const nemaCsatornak = otletMondatok(ytOtletek({
-    csatornaHibak: [{ csatorna: '@a', ok: 'csatorna_idotullepes' }, { csatorna: '@b', ok: 'csatorna_nem_valaszolt' }],
+    csatornaHibak: [{ csatorna: '@a', ok: 'csatorna_feed_idotullepes' }, { csatorna: '@b', ok: 'csatorna_azonosito_ismeretlen' }],
   })).join(' | ')
   assert.ok(nemaCsatornak.includes('volt csatorna, ami nem válaszolt'))
   assert.equal(nemaCsatornak.includes('mindegyikből'), false)
   // The page knows WHICH channels failed, so "1 of 3 did not answer" is not enough.
   assert.ok(nemaCsatornak.includes('@a'))
   assert.ok(nemaCsatornak.includes('@b'))
-  assert.ok(nemaCsatornak.includes('csatorna_idotullepes'))
+  assert.ok(nemaCsatornak.includes('csatorna_feed_idotullepes'))
+  assert.ok(nemaCsatornak.includes('csatorna_azonosito_ismeretlen'))
 
   // Zero because the channels answered and had nothing inside the window.
   const uresHet = otletMondatok(ytOtletek({ jelolt: 0 })).join(' | ')
-  assert.ok(uresHet.includes('nem talált'))
+  assert.ok(uresHet.includes('válaszoltak, de nem volt köztük új feltöltés'))
   assert.equal(uresHet.includes('mindegyikből'), false)
   assert.equal(uresHet.includes('volt csatorna, ami nem válaszolt'), false)
 
-  for (const mondatok of [teli, marMind, nemaCsatornak, uresHet]) assert.equal(mondatok.includes('sikertelen'), false)
+  // A channel that was read fine and simply has not uploaded lately is NOT a
+  // failure and must not be printed as one: the operator would go and check a
+  // url that is perfectly correct.
+  const csendes = otletMondatok(ytOtletek({
+    nyitott: [{ videoId: 'v1', cim: 'Egy' }], jelolt: 1,
+    csatornaHibak: [{ csatorna: '@lassu', ok: 'csatorna_nincs_friss' }],
+  })).join(' | ')
+  assert.ok(csendes.includes('Nem volt friss feltöltése: @lassu'))
+  assert.equal(csendes.includes('Nem válaszolt'), false)
+
+  // Both kinds at once stay two sentences, each naming only its own channels.
+  const vegyes = otletMondatok(ytOtletek({
+    csatornaHibak: [{ csatorna: '@lassu', ok: 'csatorna_nincs_friss' }, { csatorna: '@torott', ok: 'csatorna_nem_valaszolt' }],
+  }))
+  const nemValaszolt = vegyes.find((m) => m.startsWith('Nem válaszolt:'))
+  const nincsFriss = vegyes.find((m) => m.startsWith('Nem volt friss feltöltése:'))
+  assert.ok(nemValaszolt.includes('@torott') && !nemValaszolt.includes('@lassu'))
+  assert.ok(nincsFriss.includes('@lassu') && !nincsFriss.includes('@torott'))
+
+  for (const mondatok of [teli, marMind, nemaCsatornak, uresHet, csendes]) assert.equal(mondatok.includes('sikertelen'), false)
 })
 
 test('the YouTube button tells a refusal, a rejected request and a real press apart, and reloads the board only on the last', async () => {

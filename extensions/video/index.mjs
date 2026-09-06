@@ -23,14 +23,19 @@ import { createTervTools } from './src/terv.mjs'
  *
  * `resolveBinary` is the host's own, filled by setup() below.
  *
- * The seven seams after it are the keys the host never fills, listed here
+ * The eight seams after it are the keys the host never fills, listed here
  * so a reader of this file sees every key the shared state can carry:
  *
  *   spawnImpl, execFileImpl, killImpl  -- render.mjs's child process, ffprobe
- *                                         and signal calls, and health.mjs's
+ *                                         and signal calls, health.mjs's
  *                                         version probe of ffmpeg, ffprobe and
- *                                         npx; default to node:child_process
- *                                         and process.kill
+ *                                         npx, and youtube.mjs's resolve of a
+ *                                         channel handle; default to
+ *                                         node:child_process and process.kill
+ *   fetchImpl                          -- youtube.mjs's read of a channel's
+ *                                         Atom feed, the only request this
+ *                                         module makes on its own; defaults
+ *                                         to the global fetch
  *   probeImpl                          -- narracio.mjs's ffprobe of an mp3
  *   platform                           -- process.platform
  *   bootAt                             -- the host machine's boot time, by the
@@ -53,6 +58,7 @@ export const state = {
   resolveBinary: null,
   spawnImpl: null,
   execFileImpl: null,
+  fetchImpl: null,
   killImpl: null,
   probeImpl: null,
   platform: null,

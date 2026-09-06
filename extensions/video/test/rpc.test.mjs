@@ -39,7 +39,10 @@ const opsDouble = () => {
 /** Every version probe answers "present" unless a test says otherwise; no binary is ever run. */
 const eszkozOk = async () => ({ stdout: '', stderr: '' })
 
-function setup({ remotionDir = fakeProject(), settings = {}, ttsWhy = null, signalsWhy = null, execFileImpl = eszkozOk, platform = 'darwin', ops = opsDouble(), handles = {}, probeImpl = async () => 4000, log = quiet } = {}) {
+/** No test may reach the network. A suite that grew a request fails here rather than making one. */
+const nincsHalo = async (url) => { throw new Error(`a test reached the network: ${url}`) }
+
+function setup({ remotionDir = fakeProject(), settings = {}, ttsWhy = null, signalsWhy = null, execFileImpl = eszkozOk, fetchImpl = nincsHalo, platform = 'darwin', ops = opsDouble(), handles = {}, probeImpl = async () => 4000, log = quiet } = {}) {
   const { storage, repo } = freshRepo()
   const state = {
     storage,
@@ -48,6 +51,7 @@ function setup({ remotionDir = fakeProject(), settings = {}, ttsWhy = null, sign
     settings: () => ({ remotionDir, ...settings }),
     contracts: { get: (e, c) => handles[`${e}.${c}`] ?? null, why: (ext) => (ext === 'tts' ? ttsWhy : signalsWhy) },
     execFileImpl,
+    fetchImpl,
     probeImpl,
     platform,
   }
@@ -824,31 +828,55 @@ test('a bug in one of the three levers arrives as ismeretlen_hiba and is logged,
 // --- the YouTube ideas button, end to end through the rpc ---
 
 /**
- * An `execFileImpl` for `youtubeOtletek`: one stdout per channel url, or a
- * thrown error. No test below starts a process; the seam is the same one
- * `setup` already fills for the version probes.
+ * The two seams `youtubeOtletek` reaches, as doubles: yt-dlp resolving a
+ * channel handle to a channel id, and the GET of that channel's Atom feed.
+ * No test below starts a process or makes a request.
  */
-function ytRunner(valaszok) {
-  return async (command, args) => {
+function ytSeamek(csatornaIdk, feedek) {
+  const execFileImpl = async (command, args) => {
     const cel = args[0]
-    const valasz = valaszok[cel]
-    assert.ok(valasz !== undefined, `the module asked for a channel this test did not stub: ${cel}`)
+    const valasz = csatornaIdk[cel]
+    assert.ok(valasz !== undefined, `the module resolved a channel this test did not stub: ${cel}`)
     if (typeof valasz === 'function') throw valasz()
     return { stdout: valasz, stderr: '' }
   }
+  const fetchImpl = async (url) => {
+    const valasz = feedek[url]
+    assert.ok(valasz !== undefined, `the module fetched a feed this test did not stub: ${url}`)
+    return { status: 200, ok: true, text: async () => valasz }
+  }
+  return { execFileImpl, fetchImpl }
 }
 
-const ytSor = (id, cim) => `${id}|NA|NA|${cim}`
+const YT_FEED = (id) => `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`
 
-const ytSetup = (csatornak, valaszok) => setup({
-  settings: { youtubeCsatornak: csatornak, ytDlpUtvonal: '/nem/futtatjuk/yt-dlp' },
-  execFileImpl: ytRunner(valaszok),
-})
+/** One Atom entry, dated inside the default window unless a test moves it. */
+const ytEntry = (id, cim, kiadva = new Date(Date.now() - 86_400_000).toISOString()) =>
+  `<entry><yt:videoId>${id}</yt:videoId><title>${cim}</title><published>${kiadva}</published><media:group><media:community><media:statistics views="12"/></media:community></media:group></entry>`
+
+const ytFeed = (entries) => `<?xml version="1.0"?><feed><title>A csatorna</title><published>2006-09-20T05:17:16+00:00</published>${entries.join('')}</feed>`
+
+/** A module whose channels all resolve and whose feeds all answer, keyed by the handle letter. */
+function ytSetup(handles) {
+  const csatornaIdk = {}
+  const feedek = {}
+  for (const [betu, entries] of Object.entries(handles)) {
+    const id = `UC${betu.repeat(22)}`
+    csatornaIdk[`https://www.youtube.com/@${betu}/videos`] = id
+    feedek[YT_FEED(id)] = ytFeed(entries)
+  }
+  const { execFileImpl, fetchImpl } = ytSeamek(csatornaIdk, feedek)
+  return setup({
+    settings: { youtubeCsatornak: Object.keys(handles).map((b) => `@${b}`).join(', '), ytDlpUtvonal: '/nem/futtatjuk/yt-dlp' },
+    execFileImpl,
+    fetchImpl,
+  })
+}
 
 test('youtubeOtletek opens a card per fresh upload and puts it in the nyitott column', async () => {
-  const { repo, rpc } = ytSetup('@a, @b', {
-    'https://www.youtube.com/@a/videos': [ytSor('NYFGCESmikA', 'Egy cím'), ytSor('l6USUAIKJls', 'Másik | cím')].join('\n'),
-    'https://www.youtube.com/@b/videos': ytSor('XyXBwO5jYpw', 'Harmadik'),
+  const { repo, rpc } = ytSetup({
+    a: [ytEntry('NYFGCESmikA', 'Egy cím'), ytEntry('l6USUAIKJls', 'Másik &amp; cím')],
+    b: [ytEntry('XyXBwO5jYpw', 'Harmadik')],
   })
   const r = await rpc.youtubeOtletek({})
   assert.equal(r.hiba, undefined)
@@ -856,42 +884,50 @@ test('youtubeOtletek opens a card per fresh upload and puts it in the nyitott co
   assert.equal(r.marVolt, 0)
   assert.equal(r.maradek, 0)
   assert.deepEqual(r.csatornaHibak, [])
-  assert.deepEqual(r.nyitott.map((n) => n.cim), ['Egy cím', 'Másik | cím', 'Harmadik'])
+  assert.deepEqual(r.nyitott.map((n) => n.cim), ['Egy cím', 'Másik & cím', 'Harmadik'])
 
   const b = await rpc.board()
-  assert.deepEqual(b.oszlopok.nyitott.map((k) => k.cim).sort(), ['Egy cím', 'Harmadik', 'Másik | cím'])
+  assert.deepEqual(b.oszlopok.nyitott.map((k) => k.cim).sort(), ['Egy cím', 'Harmadik', 'Másik & cím'])
   for (const k of b.oszlopok.nyitott) assert.equal(k.forrasTipus, 'youtube')
-  // The stored source is the module's own two lines: the title as it came,
-  // and a url this module built from an id it checked.
+  // The stored source is the module's own three lines: the title as the feed
+  // wrote it, a url this module built from an id it checked, and the upload
+  // date so the operator can see how fresh the idea is.
   const reszlet = await rpc.video({ id: r.nyitott[0].videoId })
-  assert.equal(reszlet.forrasSzoveg, 'Egy cím\n\nhttps://www.youtube.com/watch?v=NYFGCESmikA')
+  const sorok = reszlet.forrasSzoveg.split('\n\n')
+  assert.equal(sorok[0], 'Egy cím')
+  assert.equal(sorok[1], 'https://www.youtube.com/watch?v=NYFGCESmikA')
+  assert.match(sorok[2], /^Feltöltve: \d{4}-\d{2}-\d{2}$/, 'the card can say how old the idea is')
   assert.equal(reszlet.forrasId, 'NYFGCESmikA')
   assert.equal(reszlet.nyitottaAgentId, '', 'an operator is not an agent')
   assert.equal(repo.videoForYoutube('NYFGCESmikA').id, r.nyitott[0].videoId)
 })
 
 test('a video already opened from a YouTube id does not open a second time', async () => {
-  const { repo, rpc } = ytSetup('@a', {
-    'https://www.youtube.com/@a/videos': [ytSor('NYFGCESmikA', 'Egy cím'), ytSor('l6USUAIKJls', 'Másik')].join('\n'),
-  })
+  const { repo, rpc } = ytSetup({ a: [ytEntry('NYFGCESmikA', 'Egy cím'), ytEntry('l6USUAIKJls', 'Másik')] })
   await rpc.youtubeOtletek({})
   const ujra = await rpc.youtubeOtletek({})
   assert.equal(ujra.jelolt, 2)
   assert.equal(ujra.marVolt, 2, 'both are known, so nothing new opened')
   assert.deepEqual(ujra.nyitott, [])
   assert.equal(repo.videos().length, 2, 'and no second row for either id')
-  // The same id listed twice in one press is one card, not two: an operator
-  // who pasted the same channel into the setting twice gets one row.
-  const ketszer = ytSetup('@a, @a', { 'https://www.youtube.com/@a/videos': ytSor('pv1TUJSEM2k', 'Egy') })
-  const r = await ketszer.rpc.youtubeOtletek({})
+})
+
+test('the same channel listed twice in the setting is one card, not two', async () => {
+  const id = 'UCaaaaaaaaaaaaaaaaaaaaa'
+  const { execFileImpl, fetchImpl } = ytSeamek(
+    { 'https://www.youtube.com/@a/videos': id },
+    { [YT_FEED(id)]: ytFeed([ytEntry('pv1TUJSEM2k', 'Egy')]) },
+  )
+  const { rpc } = setup({ settings: { youtubeCsatornak: '@a, @a' }, execFileImpl, fetchImpl })
+  const r = await rpc.youtubeOtletek({})
   assert.equal(r.jelolt, 1)
   assert.equal(r.nyitott.length, 1)
 })
 
 test('one press opens at most YOUTUBE_OTLET_MAX, and says how many are left over', async () => {
-  const sorok = []
-  for (let n = 0; n < YOUTUBE_OTLET_MAX + 4; n += 1) sorok.push(ytSor(`videoid${String(n).padStart(3, '0')}`, `Cím ${n}`))
-  const { repo, rpc } = ytSetup('@a', { 'https://www.youtube.com/@a/videos': sorok.join('\n') })
+  const entries = []
+  for (let n = 0; n < YOUTUBE_OTLET_MAX + 4; n += 1) entries.push(ytEntry(`videoid${String(n).padStart(3, '0')}`, `Cím ${n}`))
+  const { repo, rpc } = ytSetup({ a: entries })
   const r = await rpc.youtubeOtletek({})
   assert.equal(r.nyitott.length, YOUTUBE_OTLET_MAX)
   assert.equal(r.maradek, 4, 'the answer says what a second press would still find')
@@ -904,26 +940,49 @@ test('one press opens at most YOUTUBE_OTLET_MAX, and says how many are left over
   assert.equal(masodik.maradek, 0)
 })
 
+test('napok filters on the feed own published date, and the window is the caller opinion', async () => {
+  const regen = (n) => new Date(Date.now() - n * 86_400_000).toISOString()
+  const { rpc } = ytSetup({ a: [ytEntry('friss000001', 'Friss', regen(2)), ytEntry('regi0000001', 'Régi', regen(20))] })
+  const szuk = await rpc.youtubeOtletek({ napok: 7 })
+  assert.deepEqual(szuk.nyitott.map((n) => n.cim), ['Friss'])
+  assert.equal(szuk.eldobott, 1, 'the one outside the window is dropped and counted, not silently absent')
+
+  const tag = await ytSetup({ a: [ytEntry('friss000001', 'Friss', regen(2)), ytEntry('regi0000001', 'Régi', regen(20))] }).rpc.youtubeOtletek({ napok: 30 })
+  assert.deepEqual(tag.nyitott.map((n) => n.cim), ['Friss', 'Régi'], 'a wider window really does reach further back')
+  assert.equal(tag.eldobott, 0)
+})
+
 test('youtubeOtletek answers its refusals as data, so the button can print the sentence', async () => {
   const nincsCsatorna = await setup().rpc.youtubeOtletek({})
   assert.equal(nincsCsatorna.hiba, 'youtube_nincs_csatorna')
   assert.ok(nincsCsatorna.uzenet.includes('youtubeCsatornak'))
 
-  const nincsBinaris = await ytSetup('@a', {
-    'https://www.youtube.com/@a/videos': () => Object.assign(new Error('spawn ENOENT'), { code: 'ENOENT' }),
+  const { execFileImpl, fetchImpl } = ytSeamek(
+    { 'https://www.youtube.com/@a/videos': () => Object.assign(new Error('spawn ENOENT'), { code: 'ENOENT' }) },
+    {},
+  )
+  const nincsBinaris = await setup({
+    settings: { youtubeCsatornak: '@a', ytDlpUtvonal: '/nem/futtatjuk/yt-dlp' }, execFileImpl, fetchImpl,
   }).rpc.youtubeOtletek({})
   assert.equal(nincsBinaris.hiba, 'ytdlp_hianyzik')
   assert.equal(nincsBinaris.uzenet.includes('/nem/futtatjuk/yt-dlp'), false, 'a refusal never repeats a stored setting')
 
-  const rosszNapok = await ytSetup('@a', {}).rpc.youtubeOtletek({ napok: 0 })
+  // Read before anything is resolved or fetched, so a bad window is a named
+  // refusal rather than a run that half happened.
+  const rosszNapok = await setup({ settings: { youtubeCsatornak: '@a' } }).rpc.youtubeOtletek({ napok: 0 })
   assert.equal(rosszNapok.hiba, 'argumentum_hibas')
 })
 
 test('a channel that did not answer is named beside the ideas the others gave', async () => {
-  const { rpc } = ytSetup('@a, @b', {
-    'https://www.youtube.com/@a/videos': () => Object.assign(new Error('Command failed'), { code: 1 }),
-    'https://www.youtube.com/@b/videos': ytSor('NYFGCESmikA', 'Egy cím'),
-  })
+  const idB = 'UCbbbbbbbbbbbbbbbbbbbbb'
+  const { execFileImpl, fetchImpl } = ytSeamek(
+    {
+      'https://www.youtube.com/@a/videos': () => Object.assign(new Error('Command failed'), { code: 1 }),
+      'https://www.youtube.com/@b/videos': idB,
+    },
+    { [YT_FEED(idB)]: ytFeed([ytEntry('NYFGCESmikA', 'Egy cím')]) },
+  )
+  const { rpc } = setup({ settings: { youtubeCsatornak: '@a, @b' }, execFileImpl, fetchImpl })
   const r = await rpc.youtubeOtletek({})
   assert.deepEqual(r.csatornaHibak, [{ csatorna: 'https://www.youtube.com/@a', ok: 'csatorna_nem_valaszolt' }])
   assert.equal(r.nyitott.length, 1, 'the channel that answered still produced a card')
@@ -934,9 +993,15 @@ test('youtubeOtletek never throws: a bug in it arrives as ismeretlen_hiba and is
   // goes through `nemDob` like the other three levers: a thrown bug would
   // reach the browser as a 500 whose body the page prints as "500".
   const hibak = []
+  const id = 'UCaaaaaaaaaaaaaaaaaaaaa'
+  const { execFileImpl, fetchImpl } = ytSeamek(
+    { 'https://www.youtube.com/@a/videos': id },
+    { [YT_FEED(id)]: ytFeed([ytEntry('NYFGCESmikA', 'Egy cím')]) },
+  )
   const { repo, rpc } = setup({
     settings: { youtubeCsatornak: '@a' },
-    execFileImpl: ytRunner({ 'https://www.youtube.com/@a/videos': ytSor('NYFGCESmikA', 'Egy cím') }),
+    execFileImpl,
+    fetchImpl,
     log: { info() {}, warn() {}, error: (...a) => hibak.push(a) },
   })
   repo.openVideo = () => { throw new TypeError('cannot read properties of undefined') }
