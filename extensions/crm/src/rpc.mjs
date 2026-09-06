@@ -65,7 +65,9 @@ export function createRpc(state) {
     },
 
     async eventBody({ eventId }) {
-      return { content: repo().getEventBody(eventId) }
+      const r = repo()
+      if (!r.getEvent(eventId)) throw new Error('crm_ismeretlen_esemeny')
+      return { content: r.getEventBody(eventId) }
     },
 
     async createAccount(args) { return repo().createAccount(args) },
@@ -83,6 +85,7 @@ export function createRpc(state) {
     async updateDeal({ dealId, ...patch }) { mustDeal(dealId); return repo().updateDeal(dealId, patch) },
     async closeDeal({ dealId, stage, reason }) {
       mustDeal(dealId)
+      if (stage !== 'won' && stage !== 'lost') throw new Error('crm_ismeretlen_ugy_szakasz')
       return repo().closeDeal(dealId, { stage, reason })
     },
 

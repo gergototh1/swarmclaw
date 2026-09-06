@@ -96,7 +96,14 @@ töltsd újra a böngészőlapot -- a szerver oldalon már minden kész, de a m�
 megnyitott kliens a lapok listáját a betöltéskor kapta meg.
 
 Ennek a modulnak nincs setup-lépése ezen a telepítőn túl: nincs hitelesítés,
-nincs MCP-bejegyzés, nincs beállítandó mező. A managedResources.projects alatt
-deklarált CRM projektet a host reconcile-ja hozza létre az engedélyezéskor és
-viszi el a törléskor -- ez a szkript nem nyúl hozzá.
+nincs MCP-bejegyzés, nincs beállítandó mező.
+
+FONTOS: ez a szkript csak fájlokat másol a data-könyvtárba, semmi mást. A
+managedResources.projects alatt deklarált CRM projektet a host reconcile-ja
+hozza létre -- de azt csak a host saját install/enable/upgrade API route-jai
+indítják el (reconcileManagedResourcesForLifecycleChange), amiken ez a szkript
+nem megy keresztül. Amíg nem történik ilyen átmenet, a CRM projekt NEM létezik.
+Kapcsold ki-be az extension-t az Extensions lapon (vagy nyomd meg a kártyáján
+a Reconcile gombot, esetleg: swarmclaw extensions reconcile --extension-id
+crm.mjs), és csak utána van CRM projekt.
 `)

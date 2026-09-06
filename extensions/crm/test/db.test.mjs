@@ -68,6 +68,23 @@ test('a searchContacts névre keres, ügyfél-határon és account nélküli kap
   assert.deepEqual(repo.searchContacts('nincs ilyen'), [])
 })
 
+test('a searchContacts a %-ot és a _-t szó szerinti karakterként kezeli, nem jokerként', () => {
+  // Escape nélkül egy '_' keresés minden kapcsolatot visszaadná (a LIKE
+  // '%_%' mintaként bármely egyetlen karakterre illeszkedik, tehát gyakorlatilag
+  // minden nem üres névre), és egy '%' hasonlóan mindenre. Escape-elve a '_'
+  // csakis a szó szerinti aláhúzást tartalmazó nevekre talál.
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  repo.createContact({ accountId: acc.id, name: 'Dorina' })
+  repo.createContact({ accountId: acc.id, name: 'A_B' })
+
+  assert.deepEqual(repo.searchContacts('_').map((c) => c.name), ['A_B'])
+  assert.deepEqual(repo.searchContacts('%'), [])
+
+  const found = repo.searchContacts('a_b').map((c) => c.name)
+  assert.deepEqual(found, ['A_B'])
+})
+
 test('a kapcsolat ügyfél nélkül is létezhet', () => {
   const { repo } = repoOf()
   const c = repo.createContact({ name: 'Ismeretlen' })

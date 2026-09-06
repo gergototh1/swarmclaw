@@ -4,7 +4,7 @@ import type { Rpc } from './api'
 
 type Event = { id: string; kind: string; occurred_at: string; title: string; excerpt: string }
 type SummaryView = { summary: { text: string; covers_event_at: string }; stale: boolean; newerEvents: number }
-type Commitment = { id: string; text: string; direction: string; task_id: string | null }
+type Commitment = { id: string; text: string; direction: string; task_id: string | null; status: string }
 type Contact = { id: string; name: string; role: string }
 type Lap = {
   account: { id: string; name: string; status: string }
@@ -63,11 +63,17 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
         : <p className="crm-halvany">Még nincs összefoglaló.</p>}
 
       <h3>Nyitott ígéretek</h3>
-      {lap.commitments.filter((c) => !c.task_id).length === 0
+      {/* A repo `openOnly`-ja (src/db.mjs listCommitments) is így definiálja a
+          nyitottat: status = 'open' ÉS nincs task_id. Ma a kettő egybeesik --
+          minden ígéret 'open'-ként jön létre --, de csak azért, mert semmi
+          nem állít mást. A `task_id`-ra szűrés önmagában akkor is a régi
+          eredményt adná, ha egy ígéret státusza már 'done' vagy 'cancelled'
+          lenne. */}
+      {lap.commitments.filter((c) => c.status === 'open' && !c.task_id).length === 0
         ? <p className="crm-halvany">Nincs nyitott ígéret.</p>
         : (
           <ul>
-            {lap.commitments.filter((c) => !c.task_id).map((c) => (
+            {lap.commitments.filter((c) => c.status === 'open' && !c.task_id).map((c) => (
               <li key={c.id}>
                 <span className="crm-cimke">{c.direction === 'ours' ? 'Én ígértem' : 'Nekem ígérték'}</span>
                 {c.text}

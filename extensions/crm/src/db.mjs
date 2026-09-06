@@ -93,6 +93,16 @@ const now = () => new Date().toISOString()
 const str = (v) => (typeof v === 'string' ? v.trim() : '')
 
 /**
+ * A `%` és `_` LIKE-joker escape-elése, hátraper-jellel.
+ *
+ * A `\` maga is escape-elendő, mert az `ESCAPE '\'` klauzula épp azt a
+ * karaktert vezeti be jokerként. Escape nélkül egy `_` keresés minden
+ * kapcsolatot visszaadna -- nem SQL-injekció (a lekérdezés paraméteres),
+ * csak rossz eredmény.
+ */
+const escapeLike = (v) => v.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
+
+/**
  * Egy email-cím kanonikus alakja: levágva és kisbetűsítve.
  *
  * Egy helyen, mert a cím a hozzárendelés kulcsa: ha az írás és az olvasás
@@ -219,9 +229,9 @@ export function createRepo(storage) {
      * ügyfélhez van (vagy egyáltalán van-e) rendelve.
      */
     searchContacts(query) {
-      const like = `%${str(query).toLowerCase()}%`
+      const like = `%${escapeLike(str(query).toLowerCase())}%`
       return S.all(
-        'SELECT * FROM ext_crm_contact WHERE LOWER(name) LIKE ? ORDER BY name',
+        "SELECT * FROM ext_crm_contact WHERE LOWER(name) LIKE ? ESCAPE '\\' ORDER BY name",
         [like],
       ).map(contactOut)
     },

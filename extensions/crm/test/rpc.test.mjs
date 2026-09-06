@@ -112,3 +112,33 @@ test('az üres feladó-cím nélküli besorolatlan sor is feloldható, kivétel 
 
   assert.ok(!repo.listUnmatched().some((u) => u.id === row.id))
 })
+
+test('az ismeretlen esemény törzsének kérése nevesített hibát ad, nem üres tartalmat', async () => {
+  // Ugyanaz a szerződés, mint az ügynök felületén (src/tools.mjs
+  // crm_event_body): egy ismeretlen eventId ugyanazt a hibát dobja, nem
+  // { content: '' }-t.
+  const { rpc } = rpcOf()
+  await assert.rejects(() => rpc.eventBody({ eventId: 'ev_nincs' }), /crm_ismeretlen_esemeny/)
+})
+
+test('az esemény törzse visszaadódik ismert eseményre', async () => {
+  const { rpc, repo } = rpcOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const res = await rpc.addNote({ accountId: acc.id, text: 'A törzs szövege.' })
+  const body = await rpc.eventBody({ eventId: res.event.id })
+  assert.equal(body.content, 'A törzs szövege.')
+})
+
+test('az ügy lezárása csak won/lost szakaszt fogad el, mást nevesített hibával utasít el', async () => {
+  const { rpc, repo } = rpcOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const deal = repo.createDeal({ accountId: acc.id, kind: 'lead', title: 'Ajánlat' })
+
+  await assert.rejects(
+    () => rpc.closeDeal({ dealId: deal.id, stage: 'talking', reason: 'x' }),
+    /crm_ismeretlen_ugy_szakasz/,
+  )
+
+  const closed = await rpc.closeDeal({ dealId: deal.id, stage: 'won', reason: 'aláírva' })
+  assert.equal(closed.stage, 'won')
+})
