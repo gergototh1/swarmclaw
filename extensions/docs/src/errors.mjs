@@ -23,6 +23,19 @@ export const HIBA = Object.freeze({
   mar_letezik: 'mar_letezik',
   /** A required argument was missing, or had the wrong shape. */
   rossz_parameter: 'rossz_parameter',
+  /**
+   * A contract this module `consumes` did not resolve to a handle.
+   *
+   * The eighth code, and it was not free. The alternative was
+   * `rossz_parameter`, and it is wrong here in the direction that costs the
+   * most: nothing about the call was wrong, so an agent reading it would fix
+   * its arguments forever and never get anywhere. The move is the operator's --
+   * install the provider, switch it back on, or update one of the two modules
+   * -- and none of the seven existing sentences says any of that. The message
+   * this code carries names the host's own reason word, because those four
+   * reasons are four different operator actions.
+   */
+  szerzodes_hianyzik: 'szerzodes_hianyzik',
 })
 
 /**

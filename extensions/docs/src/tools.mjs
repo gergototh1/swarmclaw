@@ -1,8 +1,9 @@
 import { DocsError, HIBA, hiba } from './errors.mjs'
 import { agentSlug } from './permissions.mjs'
+import { forgatokonyv, videosHandle } from './video-forgatokonyv.mjs'
 
 /**
- * The six tools an agent uses, as a thin skin over `service.mjs`.
+ * The seven tools an agent uses, as a thin skin over `service.mjs`.
  *
  * Two rules hold for every one of them.
  *
@@ -148,6 +149,50 @@ export function createTools(state, { serviceOf, logOf }) {
         required: ['id'],
       },
       execute: (args, ctx) => run(() => serviceOf().remove(actorOf(ctx), args)),
+    },
+    {
+      /**
+       * The seventh tool, and the only one that reaches outside this module.
+       *
+       * WHERE THE DOCUMENT LANDS, AND WHY NOT `agents/video/`. The plan said
+       * `agents/video/`, and `permissions.mjs` will not have it. `canWrite`
+       * lets an agent write its OWN folder and the shared one, and an agent's
+       * folder is its NAME folded to a slug -- so a fixed `agents/video/`
+       * succeeds only for an agent literally called "Videó", and every other
+       * caller, the Videó Gyártó included, gets `nincs_jog` and no document.
+       * A tool whose single purpose fails for almost every caller is not a
+       * tool, and the way to make it work would have been to widen `canWrite`,
+       * which is the one thing that must not happen for a convenience.
+       *
+       * So no `mappa` is passed at all, and `service.create` puts the document
+       * where every other document that agent writes goes: its own folder
+       * (the operator's calls land in the shared folder, same rule). Nothing
+       * is lost by that, because `canRead` is true for everybody -- the script
+       * is as visible in `agents/video-gyarto/` as it would be anywhere else,
+       * and `doksi_mozgat` relocates it under the same permission check if the
+       * operator would rather it sat in the shared folder.
+       */
+      name: 'doksi_video_forgatokonyv',
+      description: 'Doksiba teszi egy videó kész forgatókönyvét: elkéri a Videó modultól a videó adatait és narrációját, és a saját mappádba ír belőle egy doksit. A narráció és a cím idegen szövegből származik — a doksi teteje ezt ki is mondja.',
+      parameters: {
+        type: 'object',
+        properties: { videoId: { ...STR, description: 'A videó id-je, a Videó lapról vagy a videó-toolok válaszából.' } },
+        required: ['videoId'],
+      },
+      execute: (args, ctx) => run(async () => {
+        const videoId = typeof args?.videoId === 'string' ? args.videoId.trim() : ''
+        if (videoId === '') {
+          throw new DocsError(HIBA.rossz_parameter, 'Add meg a "videoId" mezőt: a videó id-jét a Videó lapon vagy a videó-toolok válaszában találod.')
+        }
+        const video = await videosHandle(state.contracts).get({ id: videoId })
+        // `get` answers null for an id that names nothing -- including the case
+        // that actually happens, an id read a moment ago whose row is gone.
+        if (video === null || video === undefined) {
+          throw new DocsError(HIBA.rossz_parameter, `Nincs videó ezzel az id-vel: ${videoId}. Nézd meg a helyes id-t a Videó lapon, és hívd újra.`)
+        }
+        const { cim, tartalom } = forgatokonyv(video, videoId)
+        return serviceOf().create(actorOf(ctx), { cim, tartalom })
+      }),
     },
   ]
 }

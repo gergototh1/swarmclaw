@@ -40,6 +40,21 @@ test('every migration table carries the ext_docs_ prefix, lower case', () => {
   }
 })
 
+test('the module declares the one contract it reaches for, with a reason the operator reads', () => {
+  // A deklaráció maga a hozzáférés: nincs jóváhagyás, nincs visszavonás. Ha
+  // ez a bejegyzés elveszik, a doksi_video_forgatokonyv not_declared-ot kap,
+  // és a hetedik tool minden hívónál elutasít.
+  assert.deepEqual(docs.consumes, [
+    {
+      extension: 'video',
+      contract: 'videos',
+      version: 1,
+      reason: docs.consumes[0].reason,
+    },
+  ])
+  assert.ok(docs.consumes[0].reason.length > 30, 'az indoklás túl rövid ahhoz, hogy az operátornak mondjon valamit')
+})
+
 test('the page declaration satisfies the host validator rules', () => {
   const [page] = docs.ui.pages
   assert.equal(page.id, 'docs')
