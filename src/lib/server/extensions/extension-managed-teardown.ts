@@ -56,6 +56,20 @@ import { notify } from '@/lib/server/ws-hub'
  * its schedules with a `suspendedByTrash` marker for restore, and a schedule
  * that is about to be deleted has no business being marked for restore.
  *
+ * WHAT HAPPENS TO A MANAGED PROJECT
+ * ----------------------------------
+ * The opposite choice from the one just justified for agents. A project is
+ * not trashed, it is hard-deleted through `deleteProjectAndDetachReferences`,
+ * and there is no Trash view for a project to come back from: an operator who
+ * uninstalls the extension that owned it loses it in one click and cannot get
+ * it back in one click. Every task, agent and schedule the project held is
+ * not deleted with it -- it is detached, its `projectId` cleared, and it goes
+ * on existing outside any project, silently. An operator who had filed real
+ * work under a managed project (the CRM project, say) finds that work still
+ * there after an uninstall, just no longer grouped under anything. This is
+ * accepted rather than fixed because a project has no restore path to build
+ * on top of; if that changes, this deletion should change with it.
+ *
  * WHAT HAPPENS TO THE SKILL FILES
  * -------------------------------
  * An installer that copies skill directories into the workspace skills layer
@@ -142,7 +156,7 @@ export function removeExtensionManagedResources(extensionId: string): Omit<Manag
   const deletedProjects: string[] = []
   for (const project of Object.values(loadProjects())) {
     const marker: unknown = project?.managedByExtension
-    if (!isRecord(marker) || marker.extensionId !== extensionId) continue
+    if (!isRecord(marker) || marker.extensionId !== extensionId || marker.resourceKind !== 'project') continue
     // Not a plain delete: the tasks, agents and schedules that reference this
     // project must have their projectId cleared too, or an uninstall leaves
     // them pointing at a project that no longer exists. The service does that.

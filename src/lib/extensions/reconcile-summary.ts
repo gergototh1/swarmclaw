@@ -32,6 +32,8 @@ export interface ManagedReconcileResultShape {
   updatedAgents?: string[]
   createdSchedules?: string[]
   updatedSchedules?: string[]
+  createdProjects?: string[]
+  updatedProjects?: string[]
   skipped?: ManagedReconcileSkip[]
 }
 
@@ -72,12 +74,15 @@ export function summarizeManagedReconcile(result: ManagedReconcileResultShape | 
   const updatedAgents = count(result?.updatedAgents)
   const createdSchedules = count(result?.createdSchedules)
   const updatedSchedules = count(result?.updatedSchedules)
+  const createdProjects = count(result?.createdProjects)
+  const updatedProjects = count(result?.updatedProjects)
   const skipped = Array.isArray(result?.skipped) ? result.skipped : []
-  const touched = createdAgents + updatedAgents + createdSchedules + updatedSchedules
+  const touched = createdAgents + updatedAgents + createdSchedules + updatedSchedules + createdProjects + updatedProjects
 
   const parts = [
     `agents ${createdAgents} created, ${updatedAgents} updated`,
     `routines ${createdSchedules} created, ${updatedSchedules} updated`,
+    `projects ${createdProjects} created, ${updatedProjects} updated`,
   ]
   if (skipped.length > 0) {
     parts.push(`${plural(skipped.length, 'declaration', 'declarations')} skipped (${skipReasons(skipped).join(', ')})`)

@@ -289,7 +289,7 @@ function buildManagedProject(
     createdAt: existing?.createdAt || now,
     updatedAt: now,
     managedByExtension: managedMarker(extension, 'project', key, declarationHash(declaration)),
-  } as Project
+  }
 }
 
 function agentRefKey(ref: ExtensionManagedResourceRef | null | undefined): string {
@@ -869,13 +869,13 @@ export function reconcileExtensionManagedResources(extensionId?: string | null):
   if (scheduleEntries.length > 0) {
     upsertSchedules(scheduleEntries)
   }
-  if (agentEntries.length > 0 || scheduleEntries.length > 0) {
+  if (agentEntries.length > 0 || scheduleEntries.length > 0 || projectEntries.length > 0) {
     logActivity({
       entityType: 'extension',
       entityId: extensionId || 'managed-resources',
       action: 'reconciled',
       actor: 'user',
-      summary: `Extension managed resources reconciled (${agentEntries.length} agents, ${scheduleEntries.length} schedules)`,
+      summary: `Extension managed resources reconciled (${agentEntries.length} agents, ${scheduleEntries.length} schedules, ${projectEntries.length} projects)`,
       detail: result as unknown as Record<string, unknown>,
     })
     notify('agents')
@@ -913,8 +913,9 @@ export interface ExtensionLifecycleReconcileOutcome {
  *
  * Deliberately narrower than `getManagedResourceExtensions`, which also lists
  * an extension whose only declarations are local folders, gateway platforms or
- * setup checks. A reconcile creates agents and schedules and nothing else, so
- * running it for those would produce a result with every count at zero, which
+ * setup checks. A reconcile creates agents, schedules and projects and nothing
+ * else, so running it for those would produce a result with every count at
+ * zero, which
  * `summarizeManagedReconcile` correctly reports as a run that did nothing --
  * true of the numbers and misleading as a verdict on an extension that never
  * asked for an agent. Asking here keeps that case out of the report entirely.

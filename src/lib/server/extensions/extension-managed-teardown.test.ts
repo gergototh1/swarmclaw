@@ -31,7 +31,7 @@ test('teardown deletes a managed project and detaches its tasks', () => {
     id: 't1',
     title: 'x',
     description: '',
-    status: 'todo',
+    status: 'backlog',
     agentId: 'a1',
     projectId: 'managed_project_x',
     createdAt: Date.now(),
@@ -43,4 +43,30 @@ test('teardown deletes a managed project and detaches its tasks', () => {
   assert.deepEqual(result.deletedProjects, ['managed_project_x'])
   assert.equal(loadProjects()['managed_project_x'], undefined)
   assert.equal(getTask('t1')?.projectId, undefined)
+})
+
+test('teardown only deletes a project whose marker names resourceKind "project", matching findManagedProject on the reconcile side', () => {
+  // Same extensionId, but the marker's resourceKind is not 'project'. The
+  // reconcile side's findManagedProject (extension-managed-resources.ts)
+  // checks both fields before treating a record as its own; the teardown
+  // loop must refuse the same way, or an uninstall could hard-delete a
+  // record whose marker was never meant to say "this is my project".
+  upsertProject('managed_project_wrong_kind', {
+    id: 'managed_project_wrong_kind',
+    name: 'Not Actually A Managed Project',
+    description: '',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    managedByExtension: {
+      extensionId: 'crm.mjs',
+      resourceKind: 'agent',
+      resourceKey: 'crm',
+      reconciledAt: Date.now(),
+    },
+  })
+
+  const result = removeExtensionManagedResources('crm.mjs')
+
+  assert.ok(!result.deletedProjects.includes('managed_project_wrong_kind'))
+  assert.ok(loadProjects()['managed_project_wrong_kind'])
 })

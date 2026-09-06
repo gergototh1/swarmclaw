@@ -19,7 +19,7 @@ test('a reconcile that created the declared resources reports them and is ok', (
     skipped: [],
   })
   assert.equal(summary.ok, true)
-  assert.equal(summary.text, 'Reconcile: agents 2 created, 0 updated; routines 3 created, 0 updated.')
+  assert.equal(summary.text, 'Reconcile: agents 2 created, 0 updated; routines 3 created, 0 updated; projects 0 created, 0 updated.')
 })
 
 test('a second reconcile that only updates is still ok and says so with its own numbers', () => {
@@ -30,7 +30,25 @@ test('a second reconcile that only updates is still ok and says so with its own 
     updatedSchedules: ['s1', 's2', 's3'],
   })
   assert.equal(summary.ok, true)
-  assert.equal(summary.text, 'Reconcile: agents 0 created, 2 updated; routines 0 created, 3 updated.')
+  assert.equal(summary.text, 'Reconcile: agents 0 created, 2 updated; routines 0 created, 3 updated; projects 0 created, 0 updated.')
+})
+
+test('a reconcile that only creates a project reports it and is ok, not "created and updated nothing"', () => {
+  // The exact defect this module was fixed for: an extension whose only
+  // managed resource is a project used to compute touched === 0 (only agents
+  // and schedules were counted) and report ok: false, so a successful
+  // project-only install read as a failure to the operator.
+  const summary = summarizeManagedReconcile({
+    createdAgents: [],
+    updatedAgents: [],
+    createdSchedules: [],
+    updatedSchedules: [],
+    createdProjects: ['p1'],
+    updatedProjects: [],
+    skipped: [],
+  })
+  assert.equal(summary.ok, true)
+  assert.equal(summary.text, 'Reconcile: agents 0 created, 0 updated; routines 0 created, 0 updated; projects 1 created, 0 updated.')
 })
 
 test('a reconcile that skipped a declaration is not ok, and names the reason', () => {
@@ -128,7 +146,7 @@ test('a lifecycle reconcile that created the declared resources reports them and
     result: { extensionId: 'video.mjs', createdAgents: ['a1'], createdSchedules: ['s1', 's2'] },
   })
   assert.equal(summary?.ok, true)
-  assert.equal(summary?.text, 'Reconcile: agents 1 created, 0 updated; routines 2 created, 0 updated.')
+  assert.equal(summary?.text, 'Reconcile: agents 1 created, 0 updated; routines 2 created, 0 updated; projects 0 created, 0 updated.')
 })
 
 test('a lifecycle reconcile that skipped a declaration is not ok, so the install toast is not the last word', () => {
