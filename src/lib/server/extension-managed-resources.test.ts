@@ -37,6 +37,7 @@ import {
 import { DATA_DIR, WORKSPACE_DIR } from './data-dir'
 import { buildRuntimeSkillPromptBlocks, resolveRuntimeSkills } from './skills/runtime-skill-resolver'
 import { loadAgents, loadSchedules, loadSettings, saveAgents, saveSchedules, saveSettings } from './storage'
+import { loadProjects } from './projects/project-repository'
 import { DEFAULT_AGENT_ROUTE } from '@/lib/setup-defaults'
 import type { ExtensionManagedScheduleDeclaration } from '@/types'
 import { AGENTS as AISIGNAL_AGENTS } from '../../../extensions/aisignal/src/agents.mjs'
@@ -894,4 +895,45 @@ test('a reconcile that throws is returned as a failure and never escapes into th
   assert.equal(outcome.status, 'failed')
   assert.equal(outcome.error, 'routine declarations could not be read')
   assert.equal(outcome.result, undefined)
+})
+
+test('reconcile creates a declared project and marks it', () => {
+  const id = extensionId('managed_project')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Managed Project Fixture',
+    managedResources: {
+      projects: [
+        { projectKey: 'crm', displayName: 'CRM', objective: 'Ügyfélkezelés' },
+      ],
+    },
+  })
+
+  const result = reconcileExtensionManagedResources(id)
+  assert.equal(result.createdProjects.length, 1)
+
+  const project = Object.values(loadProjects()).find(
+    (p) => p.managedByExtension?.extensionId === id,
+  )
+  assert.ok(project)
+  assert.equal(project.name, 'CRM')
+  assert.equal(project.objective, 'Ügyfélkezelés')
+  assert.equal(project.managedByExtension?.extensionId, id)
+  assert.equal(project.managedByExtension?.resourceKind, 'project')
+})
+
+test('reconcile is idempotent for an unchanged project declaration', () => {
+  const id = extensionId('managed_project_idempotent')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Managed Project Idempotent Fixture',
+    managedResources: {
+      projects: [
+        { projectKey: 'crm', displayName: 'CRM', objective: 'Ügyfélkezelés' },
+      ],
+    },
+  })
+
+  reconcileExtensionManagedResources(id)
+  const second = reconcileExtensionManagedResources(id)
+  assert.equal(second.createdProjects.length, 0)
+  assert.equal(second.updatedProjects.length, 0)
 })

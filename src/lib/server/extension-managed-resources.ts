@@ -5,6 +5,7 @@ import crypto from 'crypto'
 import { getExtensionManager } from '@/lib/server/extensions'
 import { loadAgents, saveAgentMany } from '@/lib/server/agents/agent-repository'
 import { loadSchedules, upsertSchedules } from '@/lib/server/schedules/schedule-repository'
+import { loadProjects, saveProjects } from '@/lib/server/projects/project-repository'
 import { loadSettings, saveSettings } from '@/lib/server/settings/settings-repository'
 import { DEFAULT_AGENT_ROUTE } from '@/lib/setup-defaults'
 import { logActivity } from '@/lib/server/activity/activity-log'
@@ -17,11 +18,13 @@ import type {
   AppSettings,
   ExtensionManagedAgentDeclaration,
   ExtensionManagedLocalFolderDeclaration,
+  ExtensionManagedProjectDeclaration,
   ExtensionManagedResourceKind,
   ExtensionManagedResourceMarker,
   ExtensionManagedResourceRef,
   ExtensionManagedResources,
   ExtensionManagedScheduleDeclaration,
+  Project,
   Schedule,
   ScheduleStatus,
   ScheduleType,
@@ -91,7 +94,9 @@ export interface ManagedResourceReconcileResult {
   updatedAgents: string[]
   createdSchedules: string[]
   updatedSchedules: string[]
-  skipped: Array<{ resourceKind: 'agent' | 'schedule'; resourceKey: string; reason: string }>
+  createdProjects: string[]
+  updatedProjects: string[]
+  skipped: Array<{ resourceKind: 'agent' | 'schedule' | 'project'; resourceKey: string; reason: string }>
 }
 
 export interface ExtensionLocalFolderProblem {
@@ -167,7 +172,7 @@ function declarationHash(value: unknown): string {
   return crypto.createHash('sha1').update(stableJson(value)).digest('hex')
 }
 
-function managedResourceId(extensionId: string, kind: 'agent' | 'schedule', key: string): string {
+function managedResourceId(extensionId: string, kind: 'agent' | 'schedule' | 'project', key: string): string {
   const hash = crypto.createHash('sha1').update(`${extensionId}:${kind}:${key}`).digest('hex').slice(0, 20)
   return `managed_${kind}_${hash}`
 }
@@ -236,6 +241,55 @@ function findManagedSchedule(
     && schedule.managedByExtension.resourceKind === 'schedule'
     && schedule.managedByExtension.resourceKey === scheduleKey
   ) || null
+}
+
+function getManagedProjectKey(declaration: ExtensionManagedProjectDeclaration): string {
+  return text(declaration.projectKey)
+}
+
+function findManagedProject(
+  projects: Record<string, Project>,
+  extensionId: string,
+  projectKey: string,
+): Project | null {
+  const stableId = managedResourceId(extensionId, 'project', projectKey)
+  if (projects[stableId]) return projects[stableId]
+  return Object.values(projects).find((project) =>
+    project?.managedByExtension?.extensionId === extensionId
+    && project.managedByExtension.resourceKind === 'project'
+    && project.managedByExtension.resourceKey === projectKey
+  ) || null
+}
+
+/**
+ * A deklarációból épített projekt, vagy null, ha a kulcs üres.
+ *
+ * Ami az operátoré, az marad az övé: a `color`, a `heartbeatPrompt`, a
+ * `heartbeatIntervalSec` és az `openObjectives` az `existing`-ből öröklődik,
+ * mert azokat a deklaráció nem is nevezi. A reconcile csak azt írja felül,
+ * amit a manifest kimond.
+ */
+function buildManagedProject(
+  existing: Project | null,
+  extension: ManagedExtensionEntry,
+  declaration: ExtensionManagedProjectDeclaration,
+): Project | null {
+  const key = getManagedProjectKey(declaration)
+  if (!key) return null
+  const now = Date.now()
+  return {
+    ...(existing || {}),
+    id: existing?.id || managedResourceId(extension.extensionId, 'project', key),
+    name: text(declaration.displayName) || key,
+    description: text(declaration.description),
+    objective: text(declaration.objective),
+    priorities: list(declaration.priorities),
+    successMetrics: list(declaration.successMetrics),
+    capabilityHints: list(declaration.capabilityHints),
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+    managedByExtension: managedMarker(extension, 'project', key, declarationHash(declaration)),
+  } as Project
 }
 
 function agentRefKey(ref: ExtensionManagedResourceRef | null | undefined): string {
@@ -741,16 +795,41 @@ export function reconcileExtensionManagedResources(extensionId?: string | null):
     updatedAgents: [],
     createdSchedules: [],
     updatedSchedules: [],
+    createdProjects: [],
+    updatedProjects: [],
     skipped: [],
   }
   const agents = loadAgents()
   const schedules = loadSchedules()
+  const projects = loadProjects()
   // Resolved once per reconcile, off the same snapshot the loop writes into, so
   // one extension's freshly created agent cannot become the route the next one
   // inherits.
   const fallbackRoute = instanceDefaultRoute(agents)
   const agentEntries: Array<[string, Agent]> = []
   const scheduleEntries: Array<[string, Schedule]> = []
+  const projectEntries: Array<[string, Project]> = []
+
+  for (const extension of candidates) {
+    for (const declaration of extension.managedResources.projects || []) {
+      const resourceKey = getManagedProjectKey(declaration)
+      const existing = resourceKey ? findManagedProject(projects, extension.extensionId, resourceKey) : null
+      const next = buildManagedProject(existing, extension, declaration)
+      if (!next) {
+        result.skipped.push({ resourceKind: 'project', resourceKey: resourceKey || 'unknown', reason: 'missing_key' })
+        continue
+      }
+      if (existing && existing.managedByExtension?.declarationHash === next.managedByExtension?.declarationHash) continue
+      projects[next.id] = next
+      projectEntries.push([next.id, next])
+      ;(existing ? result.updatedProjects : result.createdProjects).push(next.id)
+    }
+  }
+
+  if (projectEntries.length > 0) {
+    saveProjects(projects)
+    notify('projects')
+  }
 
   for (const extension of candidates) {
     for (const declaration of extension.managedResources.agents || []) {

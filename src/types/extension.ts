@@ -279,7 +279,7 @@ export interface ExtensionUIDefinition {
   pages?: ExtensionPageDefinition[]
 }
 
-export type ExtensionManagedResourceKind = 'agent' | 'schedule' | 'local_folder'
+export type ExtensionManagedResourceKind = 'agent' | 'schedule' | 'local_folder' | 'project'
 
 export interface ExtensionManagedResourceRef {
   extensionId?: string
@@ -396,7 +396,24 @@ export interface ExtensionSetupCheckDeclaration {
   required?: boolean
 }
 
+/**
+ * Egy projekt, amit az extension telepítése hoz létre és a törlése visz el.
+ *
+ * A `Project` heartbeat-mezőit szándékosan nem vesszük fel: azok az operátor
+ * beállításai, és egy reconcile felülírná őket minden mentésnél.
+ */
+export interface ExtensionManagedProjectDeclaration {
+  projectKey: string
+  displayName: string
+  description?: string | null
+  objective?: string | null
+  priorities?: string[]
+  successMetrics?: string[]
+  capabilityHints?: string[]
+}
+
 export interface ExtensionManagedResources {
+  projects?: ExtensionManagedProjectDeclaration[]
   agents?: ExtensionManagedAgentDeclaration[]
   schedules?: ExtensionManagedScheduleDeclaration[]
   /** Routine alias. SwarmClaw reconciles routines as managed schedules. */
@@ -458,6 +475,7 @@ export interface Extension {
   connectors?: ExtensionConnectorDefinition[]
   managedResources?: ExtensionManagedResources
   /** Top-level managed-resource aliases. Prefer managedResources for new SwarmClaw extensions. */
+  projects?: ExtensionManagedProjectDeclaration[]
   agents?: ExtensionManagedAgentDeclaration[]
   schedules?: ExtensionManagedScheduleDeclaration[]
   routines?: ExtensionManagedScheduleDeclaration[]
