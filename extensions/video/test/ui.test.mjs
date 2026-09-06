@@ -16,12 +16,13 @@ import { bundle } from '../scripts/build.mjs'
 import { describeManaged, formatMs, megtartasSzoveg, propokSzoveg, sapkaBetelt, statusLabel } from '../ui/format.ts'
 import { pixelbolMs, pontbolJelenet, szazalek, teljesHossz } from '../ui/idovonal-state.ts'
 import { JavaslatokBody } from '../ui/javaslatok.tsx'
+import { VideoPage } from '../ui/main.tsx'
 import { MANAGED_RESOURCES_URL, loadManagedStatus } from '../ui/managed-state.ts'
 import { URES_SZURO, normal, szurtTipusok } from '../ui/sablon-szuro.ts'
 import { SablonokBody, csakKepek, katalogusElavult } from '../ui/sablonok.tsx'
 import { Sor, UjVideoBody } from '../ui/sor.tsx'
 import { StatusBar, StatusBarBody } from '../ui/status-bar.tsx'
-import { VideoBody } from '../ui/video.tsx'
+import { VideoBody, VideoView } from '../ui/video.tsx'
 
 /**
  * The page, driven without a browser.
@@ -38,6 +39,118 @@ import { VideoBody } from '../ui/video.tsx'
  */
 
 const render = (type, props) => renderToStaticMarkup(jsx(type, props))
+
+/**
+ * The stateful halves, driven -- because markup alone cannot see a handler.
+ *
+ * WHY THIS EXISTS. `renderToStaticMarkup` pins what a state LOOKS like and
+ * nothing else: it runs no effect and no click, so `VideoView.onNarral`,
+ * `UjVideo.onKuld` and `onRenderel` were code no test had ever executed. What
+ * they decide is the rule this whole view turns on -- a resolved answer
+ * carrying `hiba` is a refusal, a resolved answer without one is the act, and
+ * a REJECTED promise is a third fact -- and reading it wrong prints "elkészült"
+ * over a module that refused. That has to be driven, not inspected.
+ *
+ * WHY NOT A DOM. This module's devDependencies are esbuild, playwright, react,
+ * react-dom and tsx; there is no jsdom, and `react-dom/client` needs a real
+ * one. Adding a DOM to run four handlers would be a heavier dependency than
+ * the thing under test. So the component function is called directly with a
+ * hand-written hook dispatcher: `useState` gets a cell and a setter that
+ * re-renders, `useCallback`/`useMemo` memoise on their deps exactly as React's
+ * do (without that, an effect keyed on a callback would re-fire forever), and
+ * `useEffect` runs after the render with its predecessor's cleanup called
+ * first. React is pinned to one version in this module's devDependencies, and
+ * the dispatcher slot is where that version dispatches every hook.
+ *
+ * WHAT THIS IS NOT. There is no reconciler here: a child element is not
+ * mounted by its parent, so a subtree's state and a `key` change are not
+ * modelled. `mount` returns the ELEMENT TREE the component produced, and the
+ * tests read a child's props out of it -- which is also how they reach a
+ * handler to call. Where a test is about reconciliation, it says so and pins
+ * the element identity React would reconcile on.
+ */
+const REACT_DISPATCHER = React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE
+
+const sameDeps = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, n) => Object.is(x, b[n]))
+
+function mount(Component, props) {
+  const cells = []
+  const pending = []
+  let tree = null
+  let cell = 0
+  let depth = 0
+  const slot = (init) => {
+    const idx = cell++
+    if (!(idx in cells)) cells[idx] = init()
+    return cells[idx]
+  }
+  const dispatcher = {
+    useState(initial) {
+      const c = slot(() => ({ value: typeof initial === 'function' ? initial() : initial }))
+      return [c.value, (next) => { c.value = typeof next === 'function' ? next(c.value) : next; draw() }]
+    },
+    useCallback(fn, deps) {
+      const c = slot(() => ({ fn, deps }))
+      if (!sameDeps(c.deps, deps)) { c.fn = fn; c.deps = deps }
+      return c.fn
+    },
+    useMemo(fn, deps) {
+      const c = slot(() => ({ value: fn(), deps }))
+      if (!sameDeps(c.deps, deps)) { c.value = fn(); c.deps = deps }
+      return c.value
+    },
+    useRef(initial) { return slot(() => ({ current: initial })) },
+    useEffect(fn, deps) {
+      const c = slot(() => ({ deps: null, cleanup: null }))
+      if (!sameDeps(c.deps, deps)) { c.deps = deps; pending.push([c, fn]) }
+    },
+  }
+  function draw() {
+    // A render that sets state that renders again is how these components
+    // work; one that never stops is a bug, and this says so instead of hanging
+    // the test run.
+    depth += 1
+    assert.ok(depth < 50, 'the component re-rendered itself 50 times without settling')
+    try {
+      const before = REACT_DISPATCHER.H
+      REACT_DISPATCHER.H = dispatcher
+      cell = 0
+      try { tree = Component(props) } finally { REACT_DISPATCHER.H = before }
+      while (pending.length > 0) {
+        const [c, fn] = pending.shift()
+        if (typeof c.cleanup === 'function') c.cleanup()
+        const cleanup = fn()
+        c.cleanup = typeof cleanup === 'function' ? cleanup : null
+      }
+    } finally { depth -= 1 }
+  }
+  draw()
+  return { tree: () => tree }
+}
+
+/** The first element in a rendered tree that matches, or null. Children only: props are otherwise opaque. */
+function findElement(node, matches) {
+  if (node === null || node === undefined || typeof node !== 'object') return null
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const hit = findElement(child, matches)
+      if (hit !== null) return hit
+    }
+    return null
+  }
+  if (matches(node)) return node
+  return findElement(node.props === undefined ? null : node.props.children, matches)
+}
+
+/** The props a mounted component handed to one of its children -- read fresh, because every re-render makes new ones. */
+const childProps = (mounted, Child) => {
+  const el = findElement(mounted.tree(), (n) => n.type === Child)
+  assert.ok(el !== null, 'the component did not render the child this test reads')
+  return el.props
+}
+
+/** A `.then(...).finally(...)` chain, and the re-render it triggers, need more than one turn of the loop to settle. */
+const settle = async () => { for (let n = 0; n < 4; n += 1) await new Promise((resolve) => { setImmediate(resolve) }) }
 const noop = () => {}
 
 /**
@@ -653,6 +766,236 @@ test('Render inditasa asks for a narrated plan, and every dark state names itsel
   const uton = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] }), { renderInditas: true }))
   assert.ok(renderSotet.test(uton))
   assert.ok(uton.includes('A render indítása elment, a válaszra várok.'))
+})
+
+/** How many times a sentence stands in the markup. Both levers can name the same state, and "at least once" would not see one of them missing it. */
+const elofordulas = (html, mondat) => html.split(mondat).length - 1
+
+test('a closed video names its closure, and never a lesser reason the operator cannot act on', () => {
+  // THE ORDER IS THE MODULE'S. `narralTerv` refuses `video_lezart` before it
+  // reads the verdict (src/narracio.mjs) and `renderOps.start` before it
+  // weighs anything else about the plan (src/render.mjs). Closure used to be
+  // the LAST test in both sentence functions, and on a closed video whose plan
+  // was never reviewed the page then said "nincs lektori ítélet" -- sending
+  // the operator to fetch a review that would have changed nothing. The Lezár
+  // button is live in every status, so that video is reachable in one click.
+  const zarva = 'A videó le van zárva, a modul nem dolgozik rajta tovább.'
+
+  const nincsItelet = render(VideoBody, videoProps(videoDetail({ status: 'lezart', tervek: [terv()] })))
+  assert.ok(narracioSotet.test(nincsItelet))
+  assert.ok(renderSotet.test(nincsItelet))
+  assert.equal(elofordulas(nincsItelet, zarva), 2, 'both levers name the closure, not one of them')
+  // The tail, not the whole sentence: the plan panel says "Ehhez a
+  // tervverzióhoz még nincs lektori ítélet." on its own, as a fact about the
+  // plan, and that one stays. What must be gone is the LEVER saying it as the
+  // reason it is dark.
+  assert.equal(nincsItelet.includes('nincs lektori ítélet; narrálni csak átmegy után lehet'), false)
+  assert.equal(nincsItelet.includes('Ehhez a tervhez még nincs narráció-fájl'), false)
+
+  // No plan either. A plan is not something the operator can usefully be sent
+  // to have written on a video the module has stopped working on.
+  const tervNelkul = render(VideoBody, videoProps(videoDetail({ status: 'lezart' })))
+  assert.equal(elofordulas(tervNelkul, zarva), 2)
+  assert.equal(tervNelkul.includes('Terv nélkül nincs mit narrálni.'), false)
+  assert.equal(tervNelkul.includes('Terv nélkül nincs mit renderelni.'), false)
+
+  // And a running render on a closed video: `video_lezart` comes before
+  // `render_folyamatban` there too, so waiting for the render is not the
+  // sentence -- the render finishing would not make either lever live.
+  const futoRenderrel = render(VideoBody, videoProps(videoDetail({
+    status: 'lezart',
+    tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })],
+    renderek: [renderSor({ status: 'fut', finishedAt: null })],
+  })))
+  assert.equal(elofordulas(futoRenderrel, zarva), 2)
+  assert.equal(futoRenderrel.includes('most fut egy render'), false)
+  assert.equal(futoRenderrel.includes('már fut egy render'), false)
+})
+
+test('a plan that already has a narration still offers Narracio kerese', () => {
+  // A DELIBERATE DEVIATION, PINNED HERE SO IT STAYS ONE. The brief scoped this
+  // button to a plan with NO narration yet. The obvious test for that --
+  // `terv.narraciok.length > 0` means dark -- is not in `narracioTiltasOka`,
+  // because `narraciok` is keyed on `tervHash`: the rows belong to the plan as
+  // it stands, so an emptiness test would darken the lever exactly after a
+  // plan revision, which is the moment narration is most needed and the one
+  // the rows say nothing about. And an unnecessary press costs nothing:
+  // `narralTerv` answers `valtozatlan: true` without a single tts call when
+  // every sentence already has its current file.
+  const html = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] })))
+  assert.equal(narracioSotet.test(html), false, 'a narrated plan may be narrated again')
+  assert.equal(html.includes('Ehhez a tervhez még nincs narráció-fájl'), false)
+  assert.equal(renderSotet.test(html), false)
+})
+
+// --- the three levers pressed: what each of the three outcomes says ---
+
+/** One answer per rpc method, and the log of what the page actually asked for. A method the page calls unstubbed fails the test rather than resolving to undefined. */
+function stubRpc(answers) {
+  const hivasok = []
+  const rpc = (method, params) => {
+    hivasok.push({ method, params })
+    assert.ok(answers[method] !== undefined, `the page called an rpc method this test did not stub: ${method}`)
+    return answers[method](params)
+  }
+  return { rpc, hivasok }
+}
+
+const betoltesek = (hivasok) => hivasok.filter((h) => h.method === 'video').length
+
+test('the narration lever tells a refusal, an unchanged set and a synthesised one apart', async () => {
+  let narral = () => Promise.resolve({ hiba: 'verdikt_hianyzik', uzenet: 'ehhez a tervhez nincs atmegy verdikt a jelenlegi hash-sel' })
+  const { rpc, hivasok } = stubRpc({
+    video: () => Promise.resolve(videoDetail({ tervek: [terv({ verdiktek: [verdikt()] })] })),
+    narral: (params) => narral(params),
+  })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+  assert.equal(body().video.id, 'v1', 'the effect ran and the detail loaded')
+
+  // 1. RESOLVED WITH `hiba`: the module refused. `narral` does not throw its
+  //    refusals, so a resolved promise is not proof that anything happened.
+  body().onNarral('t1')
+  await settle()
+  assert.deepEqual(hivasok.at(-1), { method: 'narral', params: { tervId: 't1' } })
+  assert.ok(body().uzenet.includes('verdikt_hianyzik'), 'the code the operator can look up comes first')
+  assert.ok(body().uzenet.includes('nincs atmegy verdikt'))
+  assert.equal(body().uzenet.includes('sikertelen'), false)
+  assert.equal(body().uzenet.includes('elkészült'), false)
+  assert.equal(betoltesek(hivasok), 1, 'a refusal is not an event, so nothing was re-read over it')
+
+  // 2. RESOLVED WITH `valtozatlan`: the set was already current and no tts
+  //    call was made. Printing "elkészült" over this would claim work the
+  //    module explicitly says it did not do.
+  narral = () => Promise.resolve({ valtozatlan: true, jelenetek: [], osszHosszMs: 0, teljesMs: 0, fedettseg: 1, hang: null })
+  body().onNarral('t1')
+  await settle()
+  assert.ok(body().uzenet.includes('változatlan'))
+  assert.equal(body().uzenet.includes('elkészült'), false)
+
+  // 3. RESOLVED WITHOUT `hiba`: it happened, and the detail is re-read from
+  //    the module's own rows rather than patched from the answer.
+  const eddig = betoltesek(hivasok)
+  narral = () => Promise.resolve({ valtozatlan: false, jelenetek: [{ jelenet: 0, fajl: 'a.mp3', hosszMs: 1200 }], osszHosszMs: 1200, teljesMs: 1200, fedettseg: 1, hang: 'anna' })
+  body().onNarral('t1')
+  await settle()
+  assert.ok(body().uzenet.includes('elkészült'))
+  assert.ok(betoltesek(hivasok) > eddig, 'what the operator reads next comes from a fresh detail load')
+})
+
+test('the render lever says started rather than finished, and names a refusal', async () => {
+  let renderel = () => Promise.resolve({ hiba: 'render_folyamatban', uzenet: 'már fut egy render', renderId: 'r0' })
+  const { rpc, hivasok } = stubRpc({
+    video: () => Promise.resolve(videoDetail({ tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] })),
+    renderel: (params) => renderel(params),
+  })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+
+  body().onRenderel('t1')
+  await settle()
+  assert.deepEqual(hivasok.at(-1), { method: 'renderel', params: { tervId: 't1' } })
+  assert.ok(body().uzenet.includes('render_folyamatban'))
+  assert.equal(betoltesek(hivasok), 1)
+
+  renderel = () => Promise.resolve({ renderId: 'r2', videoId: 'v1', tervId: 't1', status: 'fut' })
+  body().onRenderel('t1')
+  await settle()
+  assert.ok(body().uzenet.includes('elindult'))
+  assert.equal(body().uzenet.includes('elkészült'), false, 'a started render is not a finished one')
+  assert.equal(betoltesek(hivasok), 2)
+})
+
+test('a lever whose request never reached the module says exactly that, and nothing else', async () => {
+  // The third outcome, and the one neither of the other two may absorb: the
+  // promise REJECTED, so there is no answer to read for a refusal and no act
+  // to report. `refusalText` never sees this one.
+  const { rpc, hivasok } = stubRpc({
+    video: () => Promise.resolve(videoDetail({ tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] })),
+    narral: () => Promise.reject(new Error('Failed to fetch')),
+    renderel: () => Promise.reject(new Error('a host 502-tal válaszolt')),
+  })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+
+  body().onNarral('t1')
+  await settle()
+  assert.equal(body().uzenet, 'A narráció kérése el sem jutott a modulhoz: Failed to fetch')
+
+  body().onRenderel('t1')
+  await settle()
+  assert.equal(body().uzenet, 'A render indítása el sem jutott a modulhoz: a host 502-tal válaszolt')
+
+  assert.equal(betoltesek(hivasok), 1, 'nothing happened, so there was nothing to re-read')
+})
+
+test('the Uj video box clears what was typed only when a video really opened, and then reloads the queue', async () => {
+  let nyit = () => Promise.resolve({ hiba: 'napi_sapka', uzenet: 'ma már 1 videó nyílt; a napi sapka 1' })
+  let ujratoltesek = 0
+  const { rpc, hivasok } = stubRpc({ nyit: (params) => nyit(params) })
+  const sor = mount(Sor, sorProps({ rpc, onNyitva: () => { ujratoltesek += 1 } }))
+  // `UjVideo` holds the state and is not exported; it is reached as the
+  // element `Sor` renders for it, which is also what proves the queue offers
+  // it at all.
+  const doboz = findElement(sor.tree(), (n) => typeof n.type === 'function')
+  assert.equal(doboz.type.name, 'UjVideo')
+  const box = mount(doboz.type, doboz.props)
+  const body = () => childProps(box, UjVideoBody)
+
+  body().onForras('Egy hír a hétről.')
+  body().onCim('Egy cím')
+  body().onKuld()
+  await settle()
+  // The text goes as it was pasted, and the blank title with it: `cimOf` has
+  // the rule for an absent one, this box does not.
+  assert.deepEqual(hivasok.at(-1), { method: 'nyit', params: { forras: 'kezi', forrasSzoveg: 'Egy hír a hétről.', cim: 'Egy cím' } })
+  assert.ok(body().uzenet.includes('napi_sapka'))
+  assert.equal(body().forrasSzoveg, 'Egy hír a hétről.', 'a refusal keeps the text: the operator has to be able to press again tomorrow')
+  assert.equal(ujratoltesek, 0, 'nothing opened, so the queue has nothing new to show')
+
+  nyit = () => Promise.reject(new Error('Failed to fetch'))
+  body().onKuld()
+  await settle()
+  assert.equal(body().uzenet, 'A nyitás kérése el sem jutott a modulhoz: Failed to fetch')
+  assert.equal(body().forrasSzoveg, 'Egy hír a hétről.')
+  assert.equal(ujratoltesek, 0)
+
+  nyit = () => Promise.resolve({ videoId: 'v9', cim: 'Egy cím', forrasSzoveg: 'Egy hír a hétről.', forrasFigyelmeztetes: null })
+  body().onKuld()
+  await settle()
+  assert.ok(body().uzenet.includes('megnyílt'))
+  assert.equal(body().forrasSzoveg, '', 'the box empties only on the act itself')
+  assert.equal(body().cim, '')
+  assert.equal(ujratoltesek, 1, 'the queue behind the box is reloaded, or the new video is nowhere to be seen')
+})
+
+test('a board reload does not remount the queue, so a half-typed source text survives it', async () => {
+  // THE DEFECT THIS PINS. `<Sor>` used to be keyed on a counter that went up
+  // on every successful board load, and the Uj video box now lives inside that
+  // subtree: a Frissít pressed while a source text was half typed would have
+  // thrown the text away, along with the sentence saying what the last open
+  // did. This harness has no reconciler, so what is pinned is the element
+  // identity React itself reconciles on -- a key that moves between loads is
+  // exactly what remounts the subtree.
+  const { rpc, hivasok } = stubRpc({
+    board: () => Promise.resolve(board()),
+    health: () => Promise.resolve(health()),
+  })
+  const page = mount(VideoPage, { extensionId: 'video', rpc })
+  await settle()
+  const elso = findElement(page.tree(), (n) => n.type === Sor)
+  assert.ok(elso !== null, 'the queue is drawn')
+  assert.equal(elso.key, null, 'the queue carries no key at all: nothing about a load may remount it')
+
+  const bar = findElement(page.tree(), (n) => n.type === StatusBar)
+  bar.props.onRefresh()
+  await settle()
+  assert.ok(hivasok.filter((h) => h.method === 'board').length >= 2, 'the reload really happened')
+  const masodik = findElement(page.tree(), (n) => n.type === Sor)
+  assert.equal(masodik.key, elso.key)
 })
 
 // --- the bar opens closed, and what the fold may not hide ---

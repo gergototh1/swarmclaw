@@ -197,9 +197,32 @@ function Szekcio({ cim, jelzo, jelzoRossz, szam, ures, uresSzoveg, children }: {
  * response carries, and the sentences say "ezen a videón" for that reason:
  * claiming the module-wide lock from a per-video list would be a fact this
  * page has not measured.
+ *
+ * THE ORDER OF THE TESTS IS THE MODULE'S OWN ORDER, and that is not a detail.
+ * Both functions may be true of several states at once -- a closed video whose
+ * plan was never reviewed is both -- and the sentence the operator reads is
+ * whichever test comes first. `narralTerv` refuses `video_lezart` BEFORE it
+ * looks at the verdict (src/narracio.mjs), and `renderOps.start` does the same
+ * (src/render.mjs), so closure is what these two say first as well. It used to
+ * come last, and on exactly that video the page asked for a review that would
+ * have changed nothing: naming a subordinate reason sends the operator away to
+ * do work the binding one makes pointless. A reason is only worth printing if
+ * acting on it makes the button live.
  */
 function narracioTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null, lezart: boolean, dolgozik: boolean): string | null {
+  if (lezart) return 'A videó le van zárva, a modul nem dolgozik rajta tovább.'
   if (terv === undefined) return 'Terv nélkül nincs mit narrálni.'
+  // WHY AN ALREADY-NARRATED PLAN STILL OFFERS THE BUTTON. The obvious extra
+  // test -- dark once `terv.narraciok` is non-empty, "there is already a
+  // narration" -- is deliberately not here. `narraciok` is keyed on
+  // `tervHash`, and the detail response carries the rows of the plan as it
+  // stands, so an emptiness test would darken the lever exactly after a plan
+  // revision, which is the moment narration is most needed and the one moment
+  // the rows say nothing about. And a press that turns out to be unnecessary
+  // costs nothing: `narralTerv` answers `valtozatlan: true` without a single
+  // tts call when every sentence already has its current file, and the notice
+  // line prints that answer as its own sentence. A dark button that is wrong
+  // is worse than a live one that answers "semmi dolgom volt".
   // `passingVerdikt` answers from the LATEST verdict on (plan, hash), so a
   // pass a reviewer has since reversed is not one (db.mjs). The page reads it
   // the same way, and then tells the three failures apart: never reviewed,
@@ -213,13 +236,26 @@ function narracioTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null,
     return 'Ehhez a tervverzióhoz még nincs lektori ítélet; narrálni csak átmegy után lehet.'
   }
   if (futoRender !== null) return `Ezen a videón most fut egy render (${futoRender.renderId}); a narráció megvárja a végét.`
-  if (lezart) return 'A videó le van zárva, a modul nem dolgozik rajta tovább.'
   if (dolgozik) return 'A narráció kérése elment, a válaszra várok: jelenetenként egy tts-hívás, ez percekig is eltarthat.'
   return null
 }
 
 function renderTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null, lezart: boolean, dolgozik: boolean): string | null {
+  // Closure first, for the reason the comment above gives: `renderOps.start`
+  // refuses `video_lezart` before it weighs anything else about the plan.
+  if (lezart) return 'A videó le van zárva, a modul nem dolgozik rajta tovább.'
   if (terv === undefined) return 'Terv nélkül nincs mit renderelni.'
+  // NO VERDICT TEST HERE, AND THAT IS DELIBERATE. `renderOps.start` does
+  // require a passing verdict on the current hash, exactly as `narralTerv`
+  // does, so the asymmetry with the function above is real. It is here
+  // because the narration lever already stands in front of this one: a plan
+  // with narration rows is a plan that passed when they were written, so the
+  // only way to reach a live Render indítása without a pass is a reviewer
+  // reversing a verdict after the narration was made. Repeating the three
+  // verdict sentences here would put a second, longer explanation of the
+  // review state under a section that is about renders, for a state that is
+  // rare and that the module names on the spot: the refusal comes back as
+  // `verdikt_hianyzik` or `verdikt_elavult` and the notice line prints it.
   // The honest signal this page has, and no more. `videoRender` checks a
   // narration row PER SCENE, against the current sentence hash, the current
   // tts voice and the file on disk; an empty list is the one half of that the
@@ -227,7 +263,6 @@ function renderTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null, l
   // is measured rather than being guessed at here.
   if (terv.narraciok.length === 0) return 'Ehhez a tervhez még nincs narráció-fájl; előbb a Narráció kérése kell.'
   if (futoRender !== null) return `Ezen a videón már fut egy render (${futoRender.renderId}); a modul egyszerre egyet enged.`
-  if (lezart) return 'A videó le van zárva, a modul nem dolgozik rajta tovább.'
   if (dolgozik) return 'A render indítása elment, a válaszra várok.'
   return null
 }
@@ -482,7 +517,13 @@ export function VideoView({ rpc, id, onBack }: { rpc: Rpc; id: string; onBack: (
         // had its file", and it is not the same event as a set that was just
         // synthesized. Reporting both as "kész" would hide a tts call that
         // never had to happen -- and, on the other side, one that did.
-        const r = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+        //
+        // The cast is not a shortcut past a check: `refusalText` returns null
+        // only after its own `isRecord` has passed, so by this line `raw` has
+        // already been proved an object. The guard that used to stand here
+        // fell back to `{}` on a branch nothing could reach, which read as if
+        // a non-object answer were still possible after the line above.
+        const r = raw as Record<string, unknown>
         setUzenet(r.valtozatlan === true
           ? 'A narráció változatlan: minden mondathoz megvolt már a hangfájl.'
           : 'A narráció elkészült; a mért hosszak a jelenetek alatt frissültek.')
