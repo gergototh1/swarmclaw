@@ -202,5 +202,122 @@ export function createRepo(storage) {
         [accountId],
       ).map(contactOut)
     },
+
+    // ---- deal ----------------------------------------------------------
+    createDeal({ accountId, kind = 'lead', title, stage = 'new', valueHuf = 0, expectedClose = '', source = '' }) {
+      const id = newId('deal')
+      const at = now()
+      S.exec(
+        `INSERT INTO ext_crm_deal
+           (id, account_id, kind, title, stage, value_huf, expected_close, source, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, accountId, kind, str(title), stage, Number(valueHuf) || 0, str(expectedClose), str(source), at, at],
+      )
+      return S.get('SELECT * FROM ext_crm_deal WHERE id = ?', [id])
+    },
+
+    updateDeal(id, patch) {
+      const existing = S.get('SELECT * FROM ext_crm_deal WHERE id = ?', [id])
+      if (!existing) return null
+      S.exec(
+        `UPDATE ext_crm_deal SET kind = ?, title = ?, stage = ?, value_huf = ?,
+           expected_close = ?, source = ?, updated_at = ? WHERE id = ?`,
+        [patch.kind ?? existing.kind,
+         patch.title === undefined ? existing.title : str(patch.title),
+         patch.stage ?? existing.stage,
+         patch.valueHuf === undefined ? existing.value_huf : Number(patch.valueHuf) || 0,
+         patch.expectedClose === undefined ? existing.expected_close : str(patch.expectedClose),
+         patch.source === undefined ? existing.source : str(patch.source),
+         now(), id],
+      )
+      return S.get('SELECT * FROM ext_crm_deal WHERE id = ?', [id])
+    },
+
+    /**
+     * Lezárás. Külön metódus a frissítéstől, mert ez az a művelet, amit az
+     * ügynök nem hívhat (spec 5.4), és egy külön néven ez a diffből látszik.
+     */
+    closeDeal(id, { stage, reason = '' }) {
+      const at = now()
+      S.exec(
+        'UPDATE ext_crm_deal SET stage = ?, closed_at = ?, close_reason = ?, updated_at = ? WHERE id = ?',
+        [stage, at, str(reason), at, id],
+      )
+      return S.get('SELECT * FROM ext_crm_deal WHERE id = ?', [id])
+    },
+
+    listDeals({ accountId, openOnly } = {}) {
+      const where = []
+      const params = []
+      if (accountId) { where.push('account_id = ?'); params.push(accountId) }
+      if (openOnly) where.push('closed_at IS NULL')
+      const sql = `SELECT * FROM ext_crm_deal${where.length ? ` WHERE ${where.join(' AND ')}` : ''}
+                   ORDER BY updated_at DESC`
+      return S.all(sql, params)
+    },
+
+    // ---- event ---------------------------------------------------------
+    /**
+     * Egy esemény felvétele, idempotensen.
+     *
+     * A `(source_system, source_id)` unique indexe dönt, nem egy előzetes
+     * SELECT: két egyszerre futó söprés között a SELECT és az INSERT közé
+     * befér a másik írása. Az `ON CONFLICT DO NOTHING` után visszaolvasunk,
+     * és a `created` abból derül ki, hogy a visszakapott sor a mi id-nkat
+     * viseli-e.
+     */
+    recordEvent({ accountId, dealId = null, contactId = null, kind, occurredAt,
+                  title = '', excerpt = '', sourceSystem = 'manual', sourceId, body = '' }) {
+      const id = newId('evt')
+      return S.transaction(() => {
+        S.exec(
+          `INSERT INTO ext_crm_event
+             (id, account_id, deal_id, contact_id, kind, occurred_at, title, excerpt,
+              source_system, source_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(source_system, source_id) DO NOTHING`,
+          [id, accountId, dealId, contactId, kind, occurredAt, str(title), str(excerpt),
+           sourceSystem, sourceId, now()],
+        )
+        const event = S.get(
+          'SELECT * FROM ext_crm_event WHERE source_system = ? AND source_id = ?',
+          [sourceSystem, sourceId],
+        )
+        const created = event.id === id
+        if (created && body) {
+          S.exec('INSERT INTO ext_crm_event_body (event_id, content) VALUES (?, ?)', [event.id, body])
+        }
+        return { event, created }
+      })
+    },
+
+    getEventBody(eventId) {
+      const row = S.get('SELECT content FROM ext_crm_event_body WHERE event_id = ?', [eventId])
+      return row ? row.content : ''
+    },
+
+    /**
+     * Az idővonal egy lapja, a legfrissebbel kezdve.
+     *
+     * A `content` szándékosan nincs a SELECT-ben. Ha itt lenne, egy húsz
+     * levelet és három leiratot tartó ügyfél minden lekérdezésnél
+     * kontextus-ablakot töltene (spec 5.2).
+     */
+    listEvents({ accountId, before, limit = 50 }) {
+      const params = [accountId]
+      let sql = 'SELECT * FROM ext_crm_event WHERE account_id = ?'
+      if (before) { sql += ' AND occurred_at < ?'; params.push(before) }
+      sql += ' ORDER BY occurred_at DESC LIMIT ?'
+      params.push(limit)
+      return S.all(sql, params)
+    },
+
+    lastEventAt(accountId) {
+      const row = S.get(
+        'SELECT MAX(occurred_at) AS at FROM ext_crm_event WHERE account_id = ?',
+        [accountId],
+      )
+      return row && row.at ? row.at : null
+    },
   }
 }
