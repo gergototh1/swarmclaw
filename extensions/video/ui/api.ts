@@ -808,9 +808,8 @@ export function errorText(err: unknown): string {
  * the states the module refuses -- the day's cap is spent, the plan has no
  * passing verdict, a render is already running, no YouTube channel is
  * configured -- and a thrown refusal reaches the page as a 500 whose sentence
- * is lost. A resolved promise from those three is
- * therefore not proof that anything happened, and every caller here asks this
- * before it says one did. A REJECTED promise is still possible and is a
+ * is lost. A resolved promise from those four is therefore not proof that
+ * anything happened, and every caller here asks this before it says one did. A REJECTED promise is still possible and is a
  * different fact: the request did not reach the module at all, and
  * `errorText` is what names that one.
  *
@@ -820,7 +819,7 @@ export function errorText(err: unknown): string {
  * page must never print in its place.
  *
  * An answer that is not an object is refused here too, under a name of its
- * own. All three levers answer with one, so anything else is a shape this
+ * own. All four levers answer with one, so anything else is a shape this
  * page cannot read rather than an act it may report, and printing "a render
  * elindult" over it would be exactly the false statement the readers above
  * exist to prevent.

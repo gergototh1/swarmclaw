@@ -665,6 +665,16 @@ const videoProps = (video, overrides = {}) => ({
   onNarral: noop, onRenderel: noop, onTervKeres: noop, onLektorKeres: noop, onJavitasKeres: noop, onFrissit: noop, ...overrides,
 })
 
+/**
+ * How many times a sentence stands in the markup.
+ *
+ * Several controls on this page can name the SAME state -- a running render is
+ * a reason for the narration lever, the render lever and Lezár all at once --
+ * and `includes` cannot tell which of them said it. On a sentence two controls
+ * share, an `includes` assertion passes with one of the two branches deleted.
+ */
+const elofordulas = (html, mondat) => html.split(mondat).length - 1
+
 const narracioSotet = /<button[^>]*disabled[^>]*>Narráció kérése/
 const renderSotet = /<button[^>]*disabled[^>]*>Render indítása/
 
@@ -764,7 +774,10 @@ test('every dark Narracio kerese says which state it is in', () => {
     renderek: [renderSor({ status: 'fut', finishedAt: null })],
   })))
   assert.ok(narracioSotet.test(futoRender))
-  assert.ok(futoRender.includes('Ezen a videón most fut egy render (r1)'))
+  // TWO, not "at least one": `lezarTiltasOka` emits a sentence with this exact
+  // prefix on the same render, so `includes` passed with `narracioTiltasOka`'s
+  // render branch deleted.
+  assert.equal(elofordulas(futoRender, 'Ezen a videón most fut egy render (r1)'), 2, 'the narration lever and Lezár each name the running render')
 
   const lezart = render(VideoBody, videoProps(videoDetail({ status: 'lezart', tervek: [terv({ verdiktek: [verdikt()] })] })))
   assert.ok(narracioSotet.test(lezart))
@@ -792,6 +805,34 @@ test('an operator fix is never told it is missing a verdict it can never have', 
   assert.equal(html.includes('narrálni csak átmegy után lehet'), false)
 })
 
+test('a revision the reviewer failed keeps the sentence that is true about it', () => {
+  // THE GUARD IS AS NARROW AS THE FACT IT WAS WRITTEN FOR. Only the EMPTY
+  // verdict list is ambiguous on a revision. A revision is a reviewable row --
+  // `videoVerdict` has no `szarmazas` gate, a revision is the latest plan the
+  // moment it is submitted, and `javitas_elbukott` exists for this outcome --
+  // and this page offers the press that creates one: `lektorKeresTiltasOka` has
+  // no `szarmazas` test, so Lektorálás kérése is live on a revision at the
+  // usual price. Widening the guard in `narracioTiltasOka` back to the whole
+  // verdict block suppresses a true, actionable sentence and lights a lever
+  // whose press buys a round trip to `javitas_elbukott`.
+  const html = render(VideoBody, videoProps(videoDetail({
+    tervek: [terv(), javitas({ verdiktek: [verdikt({ id: 'vd9', verdikt: 'elbukik', tervHash: 'h2' })] })],
+  })))
+  assert.ok(narracioSotet.test(html), 'a failed revision may not be narrated')
+  assert.ok(html.includes('A lektor ítélete a jelenlegi terv-hashre: elbukik'))
+  assert.equal(html.includes('Ehhez a tervverzióhoz még nincs lektori ítélet'), false, 'and never the sentence a revision can never act on')
+})
+
+test('a revision the reviewer passed on its own hash is narratable, like any other plan', () => {
+  // `verdiktJog` answers ok on a revision's OWN passing verdict before it walks
+  // anywhere (src/verdikt-kapu.mjs), so the page must not darken this one
+  // either.
+  const html = render(VideoBody, videoProps(videoDetail({
+    tervek: [terv(), javitas({ verdiktek: [verdikt({ id: 'vd9', tervHash: 'h2' })] })],
+  })))
+  assert.equal(narracioSotet.test(html), false)
+})
+
 test('a revision still darkens on the states the page can actually see', () => {
   // Only the verdict sentences are skipped for a revision. Everything the page
   // has measured for itself still binds, in the module's own order.
@@ -803,13 +844,28 @@ test('a revision still darkens on the states the page can actually see', () => {
     tervek: [javitas()], renderek: [renderSor({ status: 'fut', finishedAt: null })],
   })))
   assert.ok(narracioSotet.test(futo))
-  assert.ok(futo.includes('Ezen a videón most fut egy render (r1)'))
+  assert.equal(elofordulas(futo, 'Ezen a videón most fut egy render (r1)'), 2, 'the narration lever says it too, not only Lezár')
 })
 
 test('the plan panel says a version is a fix and whose, so an empty verdict list is not read as a gap', () => {
   const html = render(VideoBody, videoProps(videoDetail({ tervek: [terv(), javitas()] })))
   assert.ok(html.includes('Operátori javítás, a(z) t1 verzióból'))
-  assert.ok(html.includes('a jogot a lánc alján álló, átengedett tervtől örökli'))
+  assert.ok(html.includes('a továbbmenés jogát a lánc alján álló, átengedett tervtől örökli'))
+  assert.equal(html.includes('Ehhez a tervverzióhoz még nincs lektori ítélet'), false)
+})
+
+test('a fix that WAS ruled on does not carry a paragraph denying the ruling exists', () => {
+  // `videoVerdict` has no `szarmazas` gate and a revision is the latest plan
+  // the moment it is submitted, so this row is reachable. The provenance half
+  // is always true and stays; the inheritance clause was absolute, and stood
+  // directly above the verdict block it denied. Widening the clause back to
+  // every revision fails here.
+  const html = render(VideoBody, videoProps(videoDetail({
+    tervek: [terv(), javitas({ verdiktek: [verdikt({ id: 'vd9', verdikt: 'elbukik', tervHash: 'h2', talalatok: [{ jelenet: 0, kod: 'horog_gyenge', szoveg: 'gyenge' }] })] })],
+  })))
+  assert.ok(html.includes('Operátori javítás, a(z) t1 verzióból'))
+  assert.equal(html.includes('nem született lektori ítélet'), false, 'a paragraph may not deny a verdict the block below it draws')
+  assert.ok(html.includes('horog_gyenge'), 'and the ruling itself is still drawn')
 })
 
 test('Render inditasa asks for a narrated plan, and every dark state names itself', () => {
@@ -885,9 +941,6 @@ test('Lezar and Kuld explain themselves when they are dark, like every other con
   const kuldheto = render(VideoBody, videoProps(videoDetail(), { szoveg: 'a horog lassú' }))
   assert.equal(/<button[^>]*disabled[^>]*>Küld/.test(kuldheto), false)
 })
-
-/** How many times a sentence stands in the markup. Both levers can name the same state, and "at least once" would not see one of them missing it. */
-const elofordulas = (html, mondat) => html.split(mondat).length - 1
 
 test('a closed video names its closure, and never a lesser reason the operator cannot act on', () => {
   // THE ORDER IS THE MODULE'S. `narralTerv` refuses `video_lezart` before it

@@ -83,16 +83,31 @@ function TervPanel({ terv, cim }: { terv: Terv; cim: string }) {
       <p className="vid-mono vid-muted">terv-hash: {terv.tervHash} · katalógus-hash: {terv.katalogusHash}</p>
       {/*
         WHERE THE VERSION CAME FROM, said out loud, because the verdict list
-        below reads differently for a revision: it is empty on purpose, and
-        without this line an operator would read the empty list as work the
+        below reads differently for a revision: an empty one is empty on
+        purpose, and without this line an operator would read it as work the
         reviewer has not got to yet. The parent id is a value the module
         generated, the same kind of thing the hashes above already are.
+
+        THE PROVENANCE IS ALWAYS TRUE; THE INHERITANCE CLAUSE IS NOT. It used
+        to say, of every revision, that no reviewer ruling is ever made on one
+        -- and `videoVerdict` has no `szarmazas` gate, a revision is the latest
+        plan the moment it is submitted, and `verdiktJog` answers `ok` on a
+        revision's OWN passing verdict (src/verdikt-kapu.mjs). So on a revision
+        carrying a verdict the paragraph stood directly above the verdict block
+        denying such a thing exists: the page arguing with itself, which is the
+        one failure this whole section is here to prevent. The clause is
+        therefore scoped to the state it describes -- the empty list, which is
+        also the only state where the "még nincs lektori ítélet" sentence below
+        is suppressed. Where a ruling exists, the block itself says so and needs
+        no gloss.
       */}
       {terv.szarmazas === 'operator_javitas' && (
         <p className="vid-muted">
           Operátori javítás{typeof terv.szuloTervId === 'string' && terv.szuloTervId !== ''
             ? `, a(z) ${terv.szuloTervId} verzióból`
-            : ''}. Javításra nem születik külön lektori ítélet: a jogot a lánc alján álló, átengedett tervtől örökli.
+            : ''}.{terv.verdiktek.length === 0
+            ? ' Erre a verzióra nem született lektori ítélet, és nem is kell: a továbbmenés jogát a lánc alján álló, átengedett tervtől örökli.'
+            : ''}
         </p>
       )}
       {terv.jelenetek.map((jelenet, i) => (
@@ -113,9 +128,11 @@ function TervPanel({ terv, cim }: { terv: Terv; cim: string }) {
       {/*
         THE EMPTY-LIST SENTENCE IS NOT SAID ABOUT A REVISION. "Ehhez a
         tervverzióhoz még nincs lektori ítélet" reads as work outstanding, and
-        on a revision there is none to do: nobody judges one. The paragraph
-        above has already said what the empty list means here, so a second
-        sentence contradicting it would be the page arguing with itself.
+        on a revision with no ruling there is none to do: the right came down
+        the chain. The paragraph above has already said what THAT empty list
+        means, so a second sentence contradicting it would be the page arguing
+        with itself. A revision that WAS ruled on takes this branch's other
+        half, like any other plan.
       */}
       {terv.verdiktek.length === 0
         ? (terv.szarmazas === 'operator_javitas'
@@ -424,37 +441,50 @@ function narracioTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null,
   // reviewed and failed, and passed on a hash the plan no longer has are
   // three different things to do next.
   //
-  // NONE OF THE THREE IS SAID ABOUT A REVISION, AND THAT IS THE POINT OF THE
-  // TEST BELOW. A plan `videoRevise` submitted carries
-  // `szarmazas === 'operator_javitas'` and, BY DESIGN, no verdict of its own:
-  // nobody reviews a revision, the right to go on is inherited down the fix
-  // chain from the last plan a reviewer really passed
-  // (src/verdikt-kapu.mjs). So "Ehhez a tervverzióhoz még nincs lektori
-  // ítélet" is exactly the misleading sentence that file exists to stop the
-  // module saying -- it sends the operator to have a revision reviewed, which
-  // is not a thing that happens -- and it darkened this lever on every
-  // successful "Javítás kérése" turn, which is the one moment the operator is
-  // here to narrate.
+  // EXACTLY ONE OF THE THREE IS NOT SAID ABOUT A REVISION, AND IT IS THE LAST.
+  // A plan `videoRevise` submitted carries `szarmazas === 'operator_javitas'`
+  // and, by design, no verdict of ITS OWN AT SUBMISSION: the right to go on is
+  // inherited down the fix chain from the last plan a reviewer really passed
+  // (src/verdikt-kapu.mjs). So on a revision the empty verdict list means "no
+  // ruling was ever needed", not "the ruling has not been made yet", and
+  // "Ehhez a tervverzióhoz még nincs lektori ítélet; narrálni csak átmegy után
+  // lehet" is the misleading sentence that file exists to stop the module
+  // saying -- it sends the operator to have a revision reviewed. It darkened
+  // this lever on every successful "Javítás kérése" turn, which is the one
+  // moment the operator is here to narrate.
   //
-  // WHY THE LEVER GOES LIVE RATHER THAN THE PAGE WALKING THE CHAIN. The detail
-  // response does carry every version whole, so the walk would be local. It is
-  // still not done here: `verdikt-kapu.mjs` is a separate file precisely
+  // THE OTHER TWO STAND FOR A REVISION, AND THAT MATTERS. A revision IS a
+  // reviewable row: `videoVerdict` has no `szarmazas` gate, a revision is the
+  // latest plan the moment it is submitted, and `javitas_elbukott` exists for
+  // exactly that outcome (src/verdikt-kapu.mjs:104-115). This page offers the
+  // press that creates one -- `lektorKeresTiltasOka` below has no `szarmazas`
+  // test either, so Lektorálás kérése is live on a revision. In the reachable
+  // state "revision, reviewed, failed", `A lektor ítélete a jelenlegi
+  // terv-hashre: elbukik` is TRUE, actionable, and computed from this row's own
+  // `verdiktek` on its own hash. Suppressing it would trade a real sentence for
+  // a live lever whose press buys a round trip to `javitas_elbukott`. A guard
+  // wider than the fact it was written for is how a fix becomes a defect.
+  //
+  // WHY THE EMPTY CASE GOES LIVE RATHER THAN THE PAGE WALKING THE CHAIN. The
+  // detail response does carry every version whole, so the walk would be local.
+  // It is still not done here: `verdikt-kapu.mjs` is a separate file precisely
   // because its three callers must not each say the rule in their own words,
   // and a fourth copy in TypeScript is the same drift with a compile step in
-  // front of it. `renderTiltasOka` below already settles this the same way for
-  // the same reason -- the module re-checks on the press, and its refusal
-  // (`szulo_verdikt_hianyzik`, `javitas_elbukott`, `javitas_lanc_hibas`,
-  // `javitas_lanc_tul_hosszu`) arrives named in the notice line. A press that
-  // is refused costs a round trip; a dark lever with a false sentence costs a
-  // day, because only the scheduled run carries the work forward.
-  if (terv.szarmazas !== 'operator_javitas') {
-    const ehhezAHashhez = terv.verdiktek.filter((v) => v.tervHash === terv.tervHash)
-    const utolso = ehhezAHashhez.length === 0 ? null : ehhezAHashhez[ehhezAHashhez.length - 1]
-    if (utolso === null || utolso.verdikt !== 'atmegy') {
-      if (utolso !== null) return `A lektor ítélete a jelenlegi terv-hashre: ${utolso.verdikt}; narrálni csak átmegy után lehet.`
-      if (terv.verdiktek.some((v) => v.verdikt === 'atmegy')) return 'Van átmegy ítélet erre a tervre, de nem a jelenlegi terv-hashre; a lektornak újra kell néznie.'
-      return 'Ehhez a tervverzióhoz még nincs lektori ítélet; narrálni csak átmegy után lehet.'
-    }
+  // front of it. That argument covers the CHAIN and nothing else -- a sentence
+  // about this plan's own verdict restates no rule and needs no walk, which is
+  // why only the empty branch is guarded. `renderTiltasOka` below settles the
+  // chain the same way for the same reason: the module re-checks on the press,
+  // and its refusal (`szulo_verdikt_hianyzik`, `javitas_elbukott`,
+  // `javitas_lanc_hibas`, `javitas_lanc_tul_hosszu`) arrives named in the
+  // notice line. A press that is refused costs a round trip; a dark lever with
+  // a false sentence costs a day, because only the scheduled run carries the
+  // work forward.
+  const ehhezAHashhez = terv.verdiktek.filter((v) => v.tervHash === terv.tervHash)
+  const utolso = ehhezAHashhez.length === 0 ? null : ehhezAHashhez[ehhezAHashhez.length - 1]
+  if (utolso === null || utolso.verdikt !== 'atmegy') {
+    if (utolso !== null) return `A lektor ítélete a jelenlegi terv-hashre: ${utolso.verdikt}; narrálni csak átmegy után lehet.`
+    if (terv.verdiktek.some((v) => v.verdikt === 'atmegy')) return 'Van átmegy ítélet erre a tervre, de nem a jelenlegi terv-hashre; a lektornak újra kell néznie.'
+    if (terv.szarmazas !== 'operator_javitas') return 'Ehhez a tervverzióhoz még nincs lektori ítélet; narrálni csak átmegy után lehet.'
   }
   if (futoRender !== null) return `Ezen a videón most fut egy render (${futoRender.renderId}); a narráció megvárja a végét.`
   if (dolgozik) return 'A narráció kérése elment, a válaszra várok: jelenetenként egy tts-hívás, ez percekig is eltarthat.'

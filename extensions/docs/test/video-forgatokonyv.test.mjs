@@ -159,7 +159,9 @@ test('a handle that carries no get is a named contract failure, not a TypeError'
   const contracts = contractsDouble({ handle: { lista: async () => [] } })
   const err = await refusalOf(videoLekerdez(contracts, 'vid_1'))
   assert.equal(err.code, HIBA.szerzodes_hianyzik)
-  assert.match(err.message, /get/)
+  // Idézőjelekkel: a `/get/` egy magyar mondatra nézve majdnem bármire illik,
+  // és a metódus NEVE az, amit a mondatnak ki kell mondania.
+  assert.match(err.message, /"get"/)
   assert.doesNotMatch(err.message, /is not a function/)
 })
 
