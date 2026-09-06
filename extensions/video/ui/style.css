@@ -373,3 +373,105 @@
 .vid-sablon-panel h3, .vid-sablon-panel h4 { margin: 8px 0 4px; }
 .vid-sablon-propok, .vid-sablon-szamok { padding-left: 18px; margin: 4px 0; }
 .vid-sablon-propok li, .vid-sablon-szamok li { margin: 2px 0; overflow-wrap: anywhere; }
+
+/* --- A részletnézet szekciói ------------------------------------------------
+ *
+ * The detail view was a flat run of <h3>s and paragraphs in one div, at one
+ * level, so a heading over nothing weighed exactly as much as a heading over a
+ * render list, and five absences in a row read as five findings. These rules
+ * give each block a container and put absence in a quieter register.
+ */
+
+.vid-video-meta { margin: 2px 0 14px; }
+
+/*
+ * Two columns where there is room. Reading matter down the left, the two
+ * things the operator acts on down the right; one column below 1080px in the
+ * same source order, so nothing depends on the split.
+ */
+.vid-video-grid { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+@media (min-width: 1080px) {
+  .vid-video-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+}
+.vid-video-col { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+
+.vid-sec {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  padding: 12px 14px 14px;
+  min-width: 0;
+}
+
+/*
+ * An empty section still names what is missing, but stops competing: the solid
+ * border becomes dashed and the padding tightens, so a column of absences
+ * reads as a list of things not done yet rather than as content.
+ */
+.vid-sec-is-ures {
+  border-style: dashed;
+  border-color: var(--border, rgba(127, 127, 127, 0.14));
+  padding-bottom: 10px;
+}
+
+.vid-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.vid-sec-head h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-2, #b6b6c8);
+}
+.vid-sec-is-ures .vid-sec-head { margin-bottom: 6px; }
+
+/* The count sits at the far end of the header, so a glance down the column
+ * answers "how many" without reading a word. */
+.vid-sec-szam {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--border, rgba(127, 127, 127, 0.16));
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--color-text-2, #b6b6c8);
+}
+
+/* The source's warning label, on the header line rather than as its own
+ * heading above the box. */
+.vid-sec-jelzo { font-size: 11px; color: var(--color-text-3, #8282a0); text-transform: none; letter-spacing: 0; }
+.vid-sec-jelzo-rossz { color: var(--color-warning, #d97706); }
+
+/* Absence, and the small print under a box. Both are things the eye should be
+ * able to skip; neither is a paragraph of body text. */
+.vid-sec-ures,
+.vid-sec-lab {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-3, #8282a0);
+}
+.vid-sec-lab { margin-top: 6px; }
+
+/* The form is inside its section now, so it brings no border of its own. */
+.vid-sec .vid-feedback-form { border: none; border-radius: 0; padding: 0; margin: 0 0 12px; }
+.vid-feedback-pont { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 520px) { .vid-feedback-pont { grid-template-columns: 1fr; } }
+.vid-sec .vid-feedback-list { margin: 10px 0 0; }
+
+/* The source box was the tallest thing on the page and pushed the working
+ * areas below the fold; it scrolls at eight lines instead. */
+.vid-sec .vid-forras { max-height: 15em; overflow: auto; margin: 0; }
+
+/* Nested panels lose their own frame: the section is the frame now. */
+.vid-sec > .vid-terv,
+.vid-sec > .vid-render { border: none; padding: 0; margin: 0 0 14px; }
+.vid-sec > .vid-render + .vid-render { padding-top: 14px; border-top: 1px solid var(--border, rgba(127, 127, 127, 0.16)); }
+.vid-sec > .vid-terv > h3 { font-size: 13px; margin-top: 0; }

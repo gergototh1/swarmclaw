@@ -194,6 +194,12 @@ test('the stylesheet only names vid- prefixed selectors, so it cannot restyle th
     for (const selector of match[1].split(',')) {
       const trimmed = selector.trim()
       if (trimmed === '') continue
+      // An at-rule's prelude -- `@media (min-width: 1080px)` -- is not a
+      // selector and selects nothing. Skipping it costs the guard nothing:
+      // the rules nested inside the block are followed by their own `{` and
+      // are therefore checked by this same loop, so a selector cannot escape
+      // `.vid-` by hiding in a media query.
+      if (trimmed.startsWith('@')) continue
       assert.ok(trimmed.startsWith('.vid-'), `every selector starts inside the page: ${trimmed}`)
     }
   }

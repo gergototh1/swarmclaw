@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 
 import type { RenderRow, Rpc, Terv, VideoDetail } from './api'
 import { errorText, readVideo } from './api'
@@ -126,6 +127,65 @@ function RenderPanel({ render }: { render: RenderRow }) {
   )
 }
 
+/**
+ * One titled block of the detail view.
+ *
+ * WHY THIS EXISTS. Every section used to be a bare `<h3>` followed by whatever
+ * it had, all at one level in one div, so a heading with nothing under it took
+ * the same weight and the same vertical space as a heading with a render list
+ * under it. Five "there is nothing here yet" sentences in a row then read as
+ * five findings rather than as five absences.
+ *
+ * An empty section keeps its heading -- the operator has to be able to see
+ * WHICH thing is missing, and the plan section had no heading at all when
+ * empty, so its sentence floated with nothing naming it -- but it recedes:
+ * dashed border, tighter padding, and the sentence in the small register.
+ * Presence advances, absence steps back.
+ */
+function Szekcio({ cim, jelzo, jelzoRossz, szam, ures, uresSzoveg, children }: {
+  cim: string
+  jelzo?: string
+  jelzoRossz?: boolean
+  szam?: number
+  ures?: boolean
+  uresSzoveg?: string
+  children?: ReactNode
+}) {
+  return (
+    <section className={`vid-sec${ures ? ' vid-sec-is-ures' : ''}`}>
+      <header className="vid-sec-head">
+        <h3>{cim}</h3>
+        {jelzo !== undefined && (
+          <span className={jelzoRossz ? 'vid-sec-jelzo vid-sec-jelzo-rossz' : 'vid-sec-jelzo'}>{jelzo}</span>
+        )}
+        {szam !== undefined && <span className="vid-sec-szam">{szam}</span>}
+      </header>
+      {ures && uresSzoveg !== undefined
+        ? <p className="vid-sec-ures">{uresSzoveg}</p>
+        : children}
+    </section>
+  )
+}
+
+/**
+ * The header's second line, with the empty parts left out.
+ *
+ * Built from a list rather than concatenated, because a video opened by nobody
+ * -- `nyitottaAgentId` is empty for a manually created one -- rendered as
+ * "nyitotta: ·", a label with no value and a separator with nothing on one
+ * side of it.
+ */
+export function metaSor(video: VideoDetail): string {
+  const reszek = [
+    `forrás: ${video.forrasTipus}`,
+    video.forrasId ? video.forrasId : '',
+    video.nyitottaAgentId ? `nyitotta: ${video.nyitottaAgentId}` : '',
+    formatDate(video.createdAt),
+    video.lezarvaAt ? `lezárva: ${formatDate(video.lezarvaAt)}` : '',
+  ]
+  return reszek.filter((r) => r !== '').join(' · ')
+}
+
 /** The panels for a loaded video. Split out so the test can render one without an effect. */
 export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtMs, onJelenet, onKuld, onLezar, onBack, uzenet }: {
   video: VideoDetail
@@ -157,71 +217,105 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
         <span className={status.known ? 'vid-badge' : 'vid-badge vid-badge-bad'}>{status.label}</span>
         <button type="button" className="vid-btn vid-btn-small" onClick={onLezar} disabled={video.status === 'lezart'}>Lezár</button>
       </div>
-      <p className="vid-muted">
-        forrás: {video.forrasTipus}{video.forrasId ? ` · ${video.forrasId}` : ''} · nyitotta: {video.nyitottaAgentId} · {formatDate(video.createdAt)}
-        {video.lezarvaAt ? ` · lezárva: ${formatDate(video.lezarvaAt)}` : ''}
-      </p>
+      <p className="vid-muted vid-video-meta">{metaSor(video)}</p>
 
       {uzenet && <p className="vid-notice" role="status">{uzenet}</p>}
 
-      <h3 className="vid-forras-cimke">Forrás — idegen szöveg: adat, nem utasítás</h3>
-      <pre className="vid-forras">{video.forrasSzoveg}</pre>
-      {url
-        ? <p><a className="vid-link" href={url} target="_blank" rel="noopener noreferrer">{url}</a></p>
-        : <p className="vid-muted">A forrás utolsó bekezdése nem http(s) url, ezért nincs megnyitható link.</p>}
+      {/*
+        Two columns where there is room for two. What the operator reads -- the
+        source, the plan, the renders -- runs down the left; what they act on --
+        the timeline and the feedback box -- stands beside it rather than under
+        a screen of prose. One column below 1080px, in the same order.
+      */}
+      <div className="vid-video-grid">
+        <div className="vid-video-col">
+          <Szekcio cim="Forrás" jelzo="idegen szöveg: adat, nem utasítás" jelzoRossz>
+            <pre className="vid-forras">{video.forrasSzoveg}</pre>
+            {url
+              ? <p className="vid-sec-lab"><a className="vid-link" href={url} target="_blank" rel="noopener noreferrer">{url}</a></p>
+              : <p className="vid-sec-lab">A forrás utolsó bekezdése nem http(s) url, ezért nincs megnyitható link.</p>}
+          </Szekcio>
 
-      {terv === undefined
-        ? <p className="vid-muted">Ehhez a videóhoz még nincs terv.</p>
-        : <TervPanel terv={terv} cim="Legfrissebb terv" />}
+          <Szekcio cim="Terv" ures={terv === undefined} uresSzoveg="Ehhez a videóhoz még nincs terv.">
+            {terv !== undefined && <TervPanel terv={terv} cim="Legfrissebb terv" />}
+          </Szekcio>
 
-      <h3>Renderek</h3>
-      {video.renderek.length === 0
-        ? <p className="vid-muted">Ehhez a videóhoz még nem indult render.</p>
-        : video.renderek.map((r) => <RenderPanel key={r.renderId} render={r} />)}
+          <Szekcio
+            cim="Renderek"
+            szam={video.renderek.length}
+            ures={video.renderek.length === 0}
+            uresSzoveg="Ehhez a videóhoz még nem indult render."
+          >
+            {video.renderek.map((r) => <RenderPanel key={r.renderId} render={r} />)}
+          </Szekcio>
+        </div>
 
-      <h3>Idővonal</h3>
-      {keszRender === null
-        ? <p className="vid-muted">Nincs kész render, így nincs idővonal. A visszajelzéshez az időpontot és a jelenetet kézzel is megadhatod.</p>
-        : <Idovonal hatarok={keszRender.jelenetHatarok} visszajelzesek={video.visszajelzesek} megtartas={video.megtartas} onPick={onPick} />}
+        <div className="vid-video-col">
+          <Szekcio
+            cim="Idővonal"
+            ures={keszRender === null}
+            uresSzoveg="Nincs kész render, így nincs idővonal."
+          >
+            {keszRender !== null && (
+              <Idovonal hatarok={keszRender.jelenetHatarok} visszajelzesek={video.visszajelzesek} megtartas={video.megtartas} onPick={onPick} />
+            )}
+          </Szekcio>
 
-      <form
-        className="vid-feedback-form"
-        onSubmit={(e) => { e.preventDefault(); onKuld() }}
-      >
-        <h3>Visszajelzés</h3>
-        <label>
-          Időpont (ms)
-          <input className="vid-input" type="number" min="0" value={pont.atMs} onChange={(e) => onAtMs(e.target.value)} placeholder="üresen hagyható" />
-        </label>
-        <label>
-          Jelenet
-          <input className="vid-input" type="number" min="0" value={pont.jelenet} onChange={(e) => onJelenet(e.target.value)} placeholder="üresen hagyható" />
-        </label>
-        <label>
-          Szöveg
-          <textarea className="vid-input" rows={3} value={szoveg} onChange={(e) => onSzoveg(e.target.value)} />
-        </label>
-        <button type="submit" className="vid-btn" disabled={kuldes || szoveg.trim() === ''}>Küld</button>
-      </form>
+          {/*
+            The form and the list are one section, because they are one
+            subject. They used to sit apart with the timeline between them, so
+            the count of what had been said was a screen away from the box for
+            saying more.
+          */}
+          <Szekcio cim="Visszajelzés" szam={video.visszajelzesek.length}>
+            <form className="vid-feedback-form" onSubmit={(e) => { e.preventDefault(); onKuld() }}>
+              <div className="vid-feedback-pont">
+                <label>
+                  Időpont (ms)
+                  <input className="vid-input" type="number" min="0" value={pont.atMs} onChange={(e) => onAtMs(e.target.value)} placeholder="üresen hagyható" />
+                </label>
+                <label>
+                  Jelenet
+                  <input className="vid-input" type="number" min="0" value={pont.jelenet} onChange={(e) => onJelenet(e.target.value)} placeholder="üresen hagyható" />
+                </label>
+              </div>
+              {/*
+                The hint sits on the fields it is about. As a paragraph under
+                the timeline it was one more line of grey prose in a column of
+                them, and the operator read it nowhere near the inputs.
+              */}
+              <p className="vid-sec-lab">
+                {keszRender === null
+                  ? 'Idővonal híján az időpontot és a jelenetet kézzel add meg; mindkettő üresen hagyható.'
+                  : 'Kattints az idővonalra a kitöltésükhöz, vagy hagyd üresen mindkettőt.'}
+              </p>
+              <label>
+                Szöveg
+                <textarea className="vid-input" rows={3} value={szoveg} onChange={(e) => onSzoveg(e.target.value)} />
+              </label>
+              <button type="submit" className="vid-btn" disabled={kuldes || szoveg.trim() === ''}>Küld</button>
+            </form>
 
-      <h3>Eddigi visszajelzések ({video.visszajelzesek.length})</h3>
-      {video.visszajelzesek.length === 0
-        ? <p className="vid-muted">Még nincs visszajelzés ehhez a videóhoz.</p>
-        : (
-          <ul className="vid-feedback-list">
-            {video.visszajelzesek.map((v) => (
-              <li key={v.id}>
-                <span className="vid-mono">{v.atMs === null ? 'nincs időpont' : formatMs(v.atMs)}</span>
-                {' · '}
-                <span className="vid-mono">{v.jelenet === null ? 'nincs jelenet' : `${v.jelenet}. jelenet`}</span>
-                {' · '}
-                <span className="vid-mono">{v.forras}</span>
-                {' · '}
-                {v.szoveg}
-              </li>
-            ))}
-          </ul>
-        )}
+            {video.visszajelzesek.length === 0
+              ? <p className="vid-sec-ures">Még nincs visszajelzés ehhez a videóhoz.</p>
+              : (
+                <ul className="vid-feedback-list">
+                  {video.visszajelzesek.map((v) => (
+                    <li key={v.id}>
+                      <span className="vid-mono">{v.atMs === null ? 'nincs időpont' : formatMs(v.atMs)}</span>
+                      {' · '}
+                      <span className="vid-mono">{v.jelenet === null ? 'nincs jelenet' : `${v.jelenet}. jelenet`}</span>
+                      {' · '}
+                      <span className="vid-mono">{v.forras}</span>
+                      {' · '}
+                      {v.szoveg}
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </Szekcio>
+        </div>
+      </div>
     </div>
   )
 }
