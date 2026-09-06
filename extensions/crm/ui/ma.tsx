@@ -7,12 +7,35 @@ type Suggestion = { id: string; text: string; reason: string }
 type Account = { id: string; name: string }
 type Kapcsolat = { id: string; name: string; accountId: string | null; accountName: string }
 
+/**
+ * A besorolatlan sor kapcsolat-választójának listája.
+ *
+ * A találgatás (`guessAccountId`) alapból szűkít -- ez a sweep egy kattintással
+ * megspórolt találata --, de sosem dönt. Két eset nem eshet ki a listából:
+ *
+ * 1. A találgatás téves: a helyes kapcsolat másik ügyfélhez tartozik. Erre
+ *    való a `mindet` jelölőnégyzet, ami soronként feloldja a szűkítést.
+ * 2. A helyes kapcsolat még nincs ügyfélhez kötve (`accountId: null`) -- ez a
+ *    leggyakoribb ok, amiért a levél egyáltalán a besorolatlan sorba került,
+ *    ezért a kötetlen kapcsolatok a találgatással szűkített listában is
+ *    mindig ott vannak.
+ */
+export function valaszthatoKapcsolatok(
+  kapcsolatok: Kapcsolat[],
+  guessAccountId: string | null,
+  mindet: boolean,
+): Kapcsolat[] {
+  if (!guessAccountId || mindet) return kapcsolatok
+  return kapcsolatok.filter((c) => c.accountId === guessAccountId || c.accountId === null)
+}
+
 export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => void }) {
   const [unmatched, setUnmatched] = useState<Unmatched[]>([])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
   const [kapcsolatok, setKapcsolatok] = useState<Kapcsolat[]>([])
   const [valasztott, setValasztott] = useState<Record<string, string>>({})
+  const [mindet, setMindet] = useState<Record<string, boolean>>({})
   const [hiba, setHiba] = useState('')
   const [sopres, setSopres] = useState<string>('')
   const [fut, setFut] = useState(false)
@@ -98,11 +121,19 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
                   </span>
                 )}
                 <button disabled={!u.guess_account_id} onClick={() => u.guess_account_id && onOpen(u.guess_account_id)}>Megnyit</button>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={!!mindet[u.id]}
+                    aria-label={`${u.sender_address}: összes kapcsolat, találgatás nélkül`}
+                    onChange={(e) => setMindet({ ...mindet, [u.id]: e.target.checked })}
+                  />
+                  Összes kapcsolat
+                </label>
                 <select value={valasztott[u.id] || ''} aria-label={`${u.sender_address} hozzárendelése`}
                         onChange={(e) => setValasztott({ ...valasztott, [u.id]: e.target.value })}>
                   <option value="">Válassz kapcsolatot…</option>
-                  {kapcsolatok
-                    .filter((c) => !u.guess_account_id || c.accountId === u.guess_account_id)
+                  {valaszthatoKapcsolatok(kapcsolatok, u.guess_account_id, !!mindet[u.id])
                     .map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}{c.accountName && ` — ${c.accountName}`}

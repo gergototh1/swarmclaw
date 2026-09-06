@@ -33,3 +33,9 @@ test('a bundle tartalmazza a besorolatlan hozzárendelő sorát', async () => {
     assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
   }
 })
+
+test('a bundle tartalmazza a találgatást feloldó "összes kapcsolat" jelölőnégyzetet', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.ok(js.includes('Összes kapcsolat'), 'hiányzik a bundle-ből: Összes kapcsolat')
+})
