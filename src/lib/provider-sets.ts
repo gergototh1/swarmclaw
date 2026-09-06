@@ -16,4 +16,4 @@ export const NATIVE_CAPABILITY_PROVIDER_IDS = new Set([...CLI_PROVIDER_IDS, 'ope
 export const WORKER_ONLY_PROVIDER_IDS = new Set([...CLI_PROVIDER_IDS, 'openclaw', 'hermes'])
 
 /** CLI providers that support MCP server and skill injection at runtime (via provider-specific config mechanisms). */
-export const MCP_INJECTION_PROVIDER_IDS = new Set(['copilot-cli', 'codex-cli'])
+export const MCP_INJECTION_PROVIDER_IDS = new Set(['copilot-cli', 'codex-cli', 'claude-cli'])

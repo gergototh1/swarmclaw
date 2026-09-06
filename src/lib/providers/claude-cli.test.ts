@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { addAssignedMcpServers } from './claude-cli'
+import { MCP_INJECTION_PROVIDER_IDS } from '@/lib/provider-sets'
 
 /**
  * The Claude CLI runs its own tool loop and never sees the LangChain array
@@ -126,5 +127,16 @@ describe('addAssignedMcpServers — caller stamp', () => {
       s: { name: 'video', transport: 'stdio', command: 'node' },
     })
     assert.deepEqual(out.video, { command: 'node', args: [] })
+  })
+})
+
+describe('provider registry', () => {
+  it('declares claude-cli as an MCP-injecting provider', () => {
+    // The agent editor hides the MCP servers picker for a worker-only provider
+    // unless it is in this set (agent-sheet.tsx). While claude-cli ignored
+    // agent.mcpServerIds the omission was correct; now it would leave the one
+    // provider every agent in a CLI-only fleet uses unable to be given a
+    // server from the UI at all.
+    assert.ok(MCP_INJECTION_PROVIDER_IDS.has('claude-cli'))
   })
 })
