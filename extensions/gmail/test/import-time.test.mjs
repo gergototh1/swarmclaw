@@ -79,7 +79,7 @@ test('index.mjs imports under plain node well inside the host deadline and decla
             .map((list) => (list || []).length).join(','),
       migrations: ext.migrations.length,
       setup: typeof ext.setup,
-      pages: ext.ui.pages.map((p) => p.path),
+      pages: (ext.ui.pages ?? []).map((p) => p.path),
     }))
   `
   const r = spawnSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' })
@@ -103,7 +103,9 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.ok(out.managed === 'absent' || out.managed === '0,0,0', `managedResources: ${out.managed}`)
   assert.equal(out.migrations, 1)
   assert.equal(out.setup, 'function')
-  assert.deepEqual(out.pages, ['/x/gmail'])
+  // A modul nem hoz lapot: az ügynökök az mcp/ shimen, a kód a
+  // szerződésen át éri el. A rail-bejegyzés szándékosan nincs.
+  assert.deepEqual(out.pages, [])
 })
 
 test('the entry does no work at import: no top-level await, no file read, no timer, no fetch', () => {

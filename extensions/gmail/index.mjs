@@ -118,27 +118,15 @@ const gmail = {
    */
   provides: { [MAILBOX_CONTRACT]: createMailboxContract(state) },
   ui: {
-    pages: [{
-      id: 'gmail',
-      label: 'Gmail',
-      // One of EXTENSION_PAGE_ICON_NAMES (src/lib/extension-page-nav.ts);
-      // anything outside that list silently renders the puzzle-piece fallback.
-      // 'Mail' is in the list, so this is the name itself and not a stand-in.
-      icon: 'Mail',
-      path: '/x/gmail',
-      // Workspace-relative and required to start with dist/: only
-      // <workspace>/dist is ever served. scripts/build.mjs bundles ui/ into
-      // dist/ and scripts/install.mjs copies dist/ into the workspace; an
-      // install made without a build carries no dist/, the asset route answers
-      // 404 for both files, and the rail lists a page that never registers --
-      // which looks exactly like an install that failed. That failure mode is
-      // silent from the host's side, so scripts/install.mjs checks for these
-      // two files by name and reports a missing build as a step still to do,
-      // and test/deploy.smoke.mjs fetches both off a running host.
-      entry: 'dist/index.js',
-      css: 'dist/style.css',
-      position: 'end',
-    }],
+    // NO PAGE. Both this module's surfaces are reachable without one: agents
+    // call it over the MCP shim in `mcp/`, registered under Settings > MCP
+    // Servers, and other extensions call the contract above. The page existed
+    // mainly to hand the operator that MCP entry to copy, and once the entry is
+    // registered it had nothing left to do, so the rail entry was dropped
+    // rather than kept as a menu item nobody opens.
+    //
+    // `ui/` and its build script are still here. Restoring the page is putting
+    // the `pages` declaration back and running `npm run build`.
     settingsFields: [
       // The two budgets of design spec 5.5, and they guard two different
       // risks rather than one in two sizes. A runaway consumer fills the

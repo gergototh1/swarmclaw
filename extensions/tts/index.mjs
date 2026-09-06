@@ -108,23 +108,15 @@ const tts = {
    */
   provides: { [NARRATION_CONTRACT]: createNarrationContract(synth) },
   ui: {
-    pages: [{
-      id: 'tts',
-      label: 'Narráció',
-      // One of EXTENSION_PAGE_ICON_NAMES (src/lib/extension-page-nav.ts);
-      // anything outside that list silently renders the puzzle-piece fallback.
-      // There is no microphone in the list, so the speech bubble stands in.
-      icon: 'MessageSquare',
-      path: '/x/tts',
-      // Workspace-relative and required to start with dist/: only
-      // <workspace>/dist is ever served. scripts/build.mjs writes dist/ from
-      // ui/ and scripts/install.mjs copies it into the workspace; an install
-      // made without a build carries no dist/, the asset route answers 404 for
-      // both files, and the rail lists a page that never registers.
-      entry: 'dist/index.js',
-      css: 'dist/style.css',
-      position: 'end',
-    }],
+    // NO PAGE. Both this module's surfaces are reachable without one: agents
+    // call it over the MCP shim in `mcp/`, registered under Settings > MCP
+    // Servers, and other extensions call the contract above. The page existed
+    // mainly to hand the operator that MCP entry to copy, and once the entry is
+    // registered it had nothing left to do, so the rail entry was dropped
+    // rather than kept as a menu item nobody opens.
+    //
+    // `ui/` and its build script are still here. Restoring the page is putting
+    // the `pages` declaration back and running `npm run build`.
     settingsFields: [
       // The host blanks a secret before it reaches the page and rejects a
       // save that leaves a required field empty. Neither is this file's

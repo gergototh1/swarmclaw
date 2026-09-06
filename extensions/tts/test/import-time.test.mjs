@@ -48,7 +48,7 @@ test('index.mjs imports under plain node well inside the host deadline and decla
       managedResources: typeof ext.managedResources,
       migrations: ext.migrations.length,
       setup: typeof ext.setup,
-      pages: ext.ui.pages.map((p) => p.path),
+      pages: (ext.ui.pages ?? []).map((p) => p.path),
     }))
   `
   const r = spawnSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' })
@@ -61,7 +61,9 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.deepEqual(out.rpc.slice().sort(), ['health', 'importCache', 'kerelmek', 'mcpConfig', 'status', 'synthesize'])
   assert.deepEqual(out.provides, ['narration'])
   assert.deepEqual(out.consumes, [])
-  assert.deepEqual(out.pages, ['/x/tts'])
+  // A modul nem hoz lapot: az ügynökök az mcp/ shimen, a kód a
+  // szerződésen át éri el. A rail-bejegyzés szándékosan nincs.
+  assert.deepEqual(out.pages, [])
   assert.equal(out.hooks, 'undefined', 'this extension registers no hooks')
   assert.equal(out.managedResources, 'undefined', 'this extension declares no managed agents or schedules')
   assert.equal(out.migrations, 2)
