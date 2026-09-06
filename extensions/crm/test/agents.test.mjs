@@ -37,3 +37,14 @@ test('az ugynok promptja megtiltja a talalgatast', () => {
   assert.match(AGENTS[0].systemPrompt, /crm_attention/)
   assert.match(AGENTS[0].systemPrompt, /ne (talalgass|találgass)/i)
 })
+
+test('minden granted tool-nak van megnevezett alkalma a promptban', () => {
+  assert.ok(AGENTS[0].tools.includes('memory'),
+    'a teszt felteszi, hogy a memory grant megmarad')
+  assert.ok(AGENTS[0].tools.includes('crm_search'),
+    'a teszt felteszi, hogy a crm_search grant megmarad')
+  assert.match(AGENTS[0].systemPrompt, /memory/,
+    'a memory eszköznek meg kell jelennie a promptban, nem csak a tools listaban')
+  assert.match(AGENTS[0].systemPrompt, /crm_search/,
+    'a crm_search eszköznek meg kell jelennie a promptban, nem csak a tools listaban')
+})

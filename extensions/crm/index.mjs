@@ -100,10 +100,13 @@ const crm = {
       position: 'end',
     }],
     settingsFields: [
-      // A négy proaktív trigger küszöbe (spec 6.). A figyelem-motor
-      // (src/attention.mjs, a `crm_attention` eszköz) azóta olvassa őket,
-      // hogy megszületett -- itt születnek, mert az operátor a beállítást a
-      // CRM oldalán találja, nem egy későbbi frissítés changelogjában.
+      // A négy proaktív trigger küszöbe (spec 6.). A `src/attention.mjs`
+      // szándékosan tiszta és import nélküli -- saját docstringje mondja,
+      // hogy nem olvas settings-et --, a küszöböket ténylegesen a
+      // `src/attention-service.mjs` olvassa be (`kuszobokOf`), amikor a
+      // `crm_attention` eszközt kiszolgálja. Itt születnek, mert az operátor
+      // a beállítást a CRM oldalán találja, nem egy későbbi frissítés
+      // changelogjában.
       { key: 'nemaNapok', label: 'Néma ügy küszöbe (nap)', type: 'number', defaultValue: 9,
         help: 'Ennyi esemény nélküli nap után jelez egy nyitott ügyre.' },
       { key: 'valaszNapok', label: 'Válasz nélküli levél küszöbe (nap)', type: 'number', defaultValue: 3,
