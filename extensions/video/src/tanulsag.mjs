@@ -33,8 +33,19 @@ export const JAVASLAT_SZOVEG_MAX = 400
 export const JAVASLAT_FUTAS_SAPKA = 5
 /** Open proposals across all runs; above it the reviewer must wait for decisions. */
 export const JAVASLAT_NYITOTT_SAPKA = 20
-/** A rejected proposal blocks the same title, or half its evidence, for this long. */
+/** A rejected proposal blocks the same claim, for the same target, for this long. */
 export const DUPLIKAT_NAP = 30
+/**
+ * How alike two proposals must READ before the second one is the first one
+ * again: the share of words they have in common (twice the shared words over
+ * the two word counts), where 1 is the same words and 0 is none of them.
+ *
+ * 0.8 is "the same sentence, reordered or a word apart", not "about the same
+ * subject". On a two-word title one word in common scores 0.5 and passes; on
+ * a four-word title three in common scores 0.75 and still passes. What does
+ * not pass is a text whose words are the earlier one's words.
+ */
+export const DUPLIKAT_HASONLOSAG = 0.8
 /**
  * The two backlog caps the page enforces when it accepts a proposal (spec
  * 6.4): active lessons per target, and accepted-but-uncoded `szabaly` and
@@ -68,6 +79,25 @@ export function verdiktekVsQa(repo, sinceIso) {
     }
   }
   return out
+}
+
+/**
+ * The words of a text, for comparing how two proposals read: lowercased,
+ * accents dropped, and every character that is not a letter or a digit taken
+ * as a separator. The accents go because a sentence retyped without them is
+ * the same sentence, and Hungarian is a language where that happens; the
+ * punctuation goes because a full stop is not a difference of claim.
+ */
+const szavak = (s) => new Set(s.toLowerCase().normalize('NFD').replace(/\p{M}+/gu, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(' ').filter((w) => w !== ''))
+
+/** Twice the words two texts share over the two word counts; 0 when either has no words. */
+function hasonlosag(a, b) {
+  const egyik = szavak(a)
+  const masik = szavak(b)
+  if (egyik.size === 0 || masik.size === 0) return 0
+  let kozos = 0
+  for (const szo of egyik) if (masik.has(szo)) kozos += 1
+  return (2 * kozos) / (egyik.size + masik.size)
 }
 
 const javaslatView = (j) => ({ id: j.id, cel: j.cel, fajta: j.fajta, cim: j.cim, szoveg: j.szoveg, bizonyitek: JSON.parse(j.bizonyitek), status: j.status, dontesMegjegyzes: j.dontes_megjegyzes, createdAt: j.created_at, decidedAt: j.decided_at })
@@ -156,7 +186,7 @@ export function createTanulsagTools(state) {
     },
     {
       name: 'videoPropose',
-      description: 'Egy javaslat a javaslat-táblába (tanulsag: ≤ 400 karakter; szabaly: mérhető feltétel; sablon: hiányzó képesség, a szoveg első sora a javasolt típusnév), létező sorok id-jével bizonyítékként. Futásonként legfeljebb 5; 20 nyitott fölött nem nyit újat; ugyanaz a cím vagy a bizonyíték fele ugyanarra a célra 30 napig duplikát.',
+      description: 'Egy javaslat a javaslat-táblába (tanulsag: ≤ 400 karakter; szabaly: mérhető feltétel; sablon: hiányzó képesség, a szoveg első sora a javasolt típusnév), létező sorok id-jével bizonyítékként. Futásonként legfeljebb 5; 20 nyitott fölött nem nyit újat; ugyanarra a célra a gyakorlatilag azonos cím, vagy ugyanabban a fajtában a gyakorlatilag azonos szöveg 30 napig duplikát -- ugyanaz a bizonyíték több különböző javaslat alatt nem az.',
       parameters: { type: 'object', required: ['cel', 'fajta', 'cim', 'szoveg', 'bizonyitek'], properties: { cel: { type: 'string', enum: [...JAVASLAT_CELOK] }, fajta: { type: 'string', enum: [...JAVASLAT_FAJTAK] }, cim: { type: 'string' }, szoveg: { type: 'string' }, bizonyitek: { type: 'array', items: { type: 'string' } } } },
       /**
        * Every refusal is by name, in this order: the arguments themselves,
@@ -167,9 +197,56 @@ export function createTanulsagTools(state) {
        * because the cap is on what one run may ask, not on what it got.
        *
        * A duplicate is an open or 30-day-rejected proposal for the SAME
-       * target with the same title, or with at least half of the new
-       * evidence in common. The refusal carries the existing id, so the
-       * reviewer can read the earlier decision instead of retrying.
+       * target that makes the same CLAIM: a title that reads the same, or --
+       * in the same `fajta` -- a text that reads the same, "the same" being
+       * `DUPLIKAT_HASONLOSAG` of the words in common. The refusal carries the
+       * existing id, so the reviewer can read the earlier decision instead of
+       * retrying.
+       *
+       * WHAT THIS RULE USED TO BE, AND WHY IT IS NOT THAT ANY MORE.
+       *
+       * Until the first live run of this module the test also refused a
+       * proposal that shared at least half of its evidence with an earlier
+       * one, for the same target, regardless of what the two proposals said.
+       * That run is what showed the rule was wrong. The reviewer failed one
+       * plan with three separate findings -- a template in the wrong place, a
+       * claim with no source, and the same template fault in another scene --
+       * and tried to turn each into its own lesson. All three cited the same
+       * two rows, the plan and the verdict, because that is honestly where
+       * all three findings live. The first proposal went in; the second and
+       * the third were refused as duplicates on evidence that overlapped two
+       * of two. The reviewer got the rest of its work through by citing an
+       * older plan and an older verdict instead -- weaker evidence for the
+       * same true claim. A guard that pushes an agent toward worse citations
+       * is doing the opposite of its job, and in the ordinary case -- one
+       * review, several findings -- it silences this module's own learning
+       * loop entirely: before that run both `ext_video_javaslatok` and
+       * `ext_video_tanulsagok` had never held a row.
+       *
+       * The mistake was treating "cites the same rows" as "says the same
+       * thing". Evidence answers where the reviewer saw it; the title and the
+       * text are what it is asking the operator to decide. One verdict can
+       * ground any number of different claims, so an overlap between two
+       * evidence lists carries no information at all about whether the two
+       * claims are the same one twice. It is not kept as a weaker signal
+       * either: a signal that means nothing on its own means nothing in
+       * combination, and a second threshold nobody could tune would be a knob
+       * with no run behind it.
+       *
+       * What the guard still has to do, it still does. A reviewer that
+       * re-proposes its idea every morning writes the same title or the same
+       * sentence, and is refused; a proposal the operator turned down cannot
+       * come back inside `DUPLIKAT_NAP` under its own wording. The title test
+       * is the old exact-title test widened, not replaced: an identical title
+       * scores 1 and is still refused, and now so is the same title with a
+       * word moved or a comma dropped, which the old `===` let through.
+       *
+       * The title test ignores `fajta` and the text test does not, because a
+       * title is the claim's name: two proposals for one target under one
+       * name are one claim however they were filed. A body of text only means
+       * the same thing when it is the same kind of thing -- a `szabaly` and a
+       * `tanulsag` worded alike are a measurable condition and a sentence for
+       * an agent's prompt, and the operator has to decide those separately.
        */
       execute(args, ctx) {
         return guard(() => {
@@ -187,9 +264,10 @@ export function createTanulsagTools(state) {
           const uj = new Set(bizonyitek)
           const jeloltek = [...repo().openJavaslatok(), ...repo().rejectedSince(isoDaysAgo(DUPLIKAT_NAP))].filter((j) => j.cel === cel)
           for (const j of jeloltek) {
-            const kozos = JSON.parse(j.bizonyitek).filter((id) => uj.has(id)).length
-            if (j.cim === cim || kozos * 2 >= uj.size) {
-              refuse('javaslat_duplikat', `${j.status === 'nyitott' ? 'nyitott' : 'elutasított'} javaslat ugyanerre a célra, ${j.cim === cim ? 'ugyanezzel a címmel' : 'a bizonyíték felével'}: ${j.id}`, { javaslatId: j.id })
+            const cimAzonos = hasonlosag(j.cim, cim) >= DUPLIKAT_HASONLOSAG
+            const szovegAzonos = j.fajta === fajta && hasonlosag(j.szoveg, szoveg) >= DUPLIKAT_HASONLOSAG
+            if (cimAzonos || szovegAzonos) {
+              refuse('javaslat_duplikat', `${j.status === 'nyitott' ? 'nyitott' : 'elutasított'} javaslat ugyanerre a célra, ${cimAzonos ? 'gyakorlatilag ugyanazzal a címmel' : 'ugyanabban a fajtában gyakorlatilag ugyanazzal a szöveggel'}: ${j.id}`, { javaslatId: j.id })
             }
           }
           const { id } = repo().insertJavaslat({ cel, fajta, cim, szoveg, bizonyitek: [...uj], javasoltaAgentId: agentIdOf(ctx), futasSessionId: sessionId })
