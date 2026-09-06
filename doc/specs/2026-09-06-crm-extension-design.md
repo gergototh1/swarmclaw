@@ -529,9 +529,9 @@ kivitelezési terv** készül (`doc/plans/`), nem újabb spec.
 
 | # | Fázis | Tartalma |
 |---|---|---|
-| **CRM-1** | **Mag** | Táblák, migrációk, oldal, kézi bevitel, olvasó tools/MCP, a CRM projekt + a `managedResources.projects` host-kiegészítés. Önmagában használható CRM. |
+| **CRM-1** | **Mag** | Táblák, migrációk, oldal, kézi bevitel, olvasó tools, a CRM projekt + a `managedResources.projects` host-kiegészítés. Önmagában használható CRM. |
 | **CRM-2** | **Email** | `consumes` a gmail szerződést, hozzárendelési lánc, besorolatlan sor és a tanulás. |
-| **CRM-3** | **Proaktív** | `crm_attention`, az „Ügyfélkezelő" ügynök deklarációja, összefoglaló és javaslat, ígéret-radar. |
+| **CRM-3** | **Proaktív** | `crm_attention`, az „Ügyfélkezelő" ügynök deklarációja, összefoglaló és javaslat, ígéret-radar, és az MCP-szerver a házon kívüli ügynöknek. |
 | **CRM-4** | **Leiratok** | Webhook-bevitel és token, naptár-olvasás, meeting-eligazítás, elmaradt leirat. |
 
 A CRM-1..3 semmit nem tud a leiratokról; a CRM-4 külön elvihető vagy elhagyható.
