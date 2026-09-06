@@ -150,6 +150,19 @@ async function refusalOf(promise) {
   return null
 }
 
+test('a handle that carries no get is a named contract failure, not a TypeError', async () => {
+  // A host a szerződés NEVÉT és VERZIÓJÁT egyezteti, a metódusait nem. Egy
+  // `videos@1`-et kínáló szolgáltató `get` nélkül ép handle-t ad, és a hívás
+  // sima TypeError-ral dőlne el: azt a `szerzodesHiba` nem ismeri fel, tehát a
+  // tool generikus ága `rossz_parameter: "videos.get is not a function"`-t
+  // adna az ügynöknek. Ez az utolsó ajtó, amin ez a párosítás bejöhetett.
+  const contracts = contractsDouble({ handle: { lista: async () => [] } })
+  const err = await refusalOf(videoLekerdez(contracts, 'vid_1'))
+  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.match(err.message, /get/)
+  assert.doesNotMatch(err.message, /is not a function/)
+})
+
 test('a provider that went away between the handle and the call is named, not generic', async () => {
   // A host minden híváskor újra feloldja a szerződést (callContractMethod),
   // tehát ugyanaz a verseny, amit a videosHandle egy sorral feljebb kezel,

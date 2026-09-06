@@ -333,12 +333,23 @@ test('a missing provider is a named refusal and writes nothing', async () => {
 })
 
 test('a video id that names nothing is refused by name, and no empty doc is left behind', async () => {
+  // KÉT KÜLÖNBÖZŐ TÉNY, KÉT KÓD. A hiányzó `videoId` a hívás alakjáról szól,
+  // ez pedig a világról: a mező ki van töltve, a sor nincs meg. Egy kódon
+  // osztozva az ügynök a saját argumentumait javítgatná egy sor fölött, ami
+  // nem létezik.
+  //
+  // ÉS AZ ÜZENET NEM ISMÉTLI MEG AZ ID-T. A tool-határ naplózza a
+  // visszautasítás szövegét, a `videoId` sémája pedig puszta string hossz
+  // nélkül: egy ügynök által összerakott, tetszőleges méretű id szó szerint a
+  // hostnaplóba kerülne, és onnan az ügynök következő promptjába.
   const h = harness({ contracts: contractsDouble({ videos: { get: async () => null } }) })
   try {
     const ctx = agentCtx('abc123', 'Videó Gyártó')
     const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_nincs' }, ctx)
-    assert.equal(res.hiba, HIBA.rossz_parameter)
-    assert.match(res.uzenet, /vid_nincs/)
+    assert.equal(res.hiba, HIBA.nincs_ilyen_video)
+    assert.notEqual(res.hiba, HIBA.rossz_parameter, 'a hiányzó mező és az eltűnt sor nem ugyanaz a teendő')
+    assert.match(res.uzenet, /videoId/, 'a mező NEVE elmondja, mit kell javítani')
+    assert.equal(res.uzenet.includes('vid_nincs'), false, 'a visszautasítás soha nem ismétli meg a hívó által küldött értéket')
     assert.equal((await h.byName.doksi_lista.execute({}, ctx)).doksik.length, 0)
   } finally { h.cleanup() }
 })

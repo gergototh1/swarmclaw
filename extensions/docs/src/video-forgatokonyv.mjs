@@ -181,6 +181,22 @@ function hivasMondat(err) {
  */
 export async function videoLekerdez(contracts, videoId) {
   const videos = videosHandle(contracts)
+  // A HANDLE MEGVAN, A METÓDUS NEM FELTÉTLENÜL. A host a `videos@1` nevet és
+  // verziót egyezteti, a metódus-listát nem: egy szolgáltató, ami ezt a
+  // szerződést kínálja `get` nélkül, ép handle-t ad, és a hívás egy sorral
+  // lejjebb sima TypeError-ral dől el. Azt a `szerzodesHiba` nem ismeri fel --
+  // nincs `extensionId`-je --, tehát a tool generikus ágára esik, és
+  // `rossz_parameter: "videos.get is not a function"` érkezik az ügynökhöz:
+  // pontosan az a párosítás, ami ellen az `errors.mjs` nyolcadik kódja
+  // született, csak az egyetlen ajtón át, amit nem zárt be. A hívó tettei
+  // ugyanazok, mint a `version_mismatch`-nél -- frissítsd a régebbi
+  // bővítményt --, tehát ugyanaz a kód, a saját mondatával.
+  if (typeof videos.get !== 'function') {
+    throw new DocsError(
+      HIBA.szerzodes_hianyzik,
+      `${NEM_KERHETO}a Videó bővítmény ${VIDEOS_CONTRACT} szerződése nem kínálja a "get" metódust, amire ennek a toolnak szüksége van. Frissítsd a két bővítmény közül a régebbit a Bővítmények lapon, aztán hívd újra ezt a toolt.`,
+    )
+  }
   try {
     return await videos.get({ id: videoId })
   } catch (err) {

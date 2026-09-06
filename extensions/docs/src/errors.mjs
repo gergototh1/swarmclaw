@@ -36,6 +36,22 @@ export const HIBA = Object.freeze({
    * reasons are four different operator actions.
    */
   szerzodes_hianyzik: 'szerzodes_hianyzik',
+  /**
+   * The contract answered, and there is no video at that id.
+   *
+   * The ninth code, and it is here for the reason the eighth is. It used to
+   * share `rossz_parameter` with the refusal one line above it -- "you sent no
+   * videoId" -- and those are two different facts about the same argument. The
+   * first is the call's shape and the agent fixes it by filling the field in;
+   * the second is the world, and the agent fixes it by looking the id up again
+   * or accepting that the row is gone. One code for both leaves an agent
+   * re-checking its arguments over a row that no longer exists.
+   *
+   * `nincs_ilyen_doksi` was not reused: that one is about this vault's own
+   * documents, and the page switches on it. This is about another module's
+   * row.
+   */
+  nincs_ilyen_video: 'nincs_ilyen_video',
 })
 
 /**

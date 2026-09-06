@@ -187,8 +187,17 @@ export function createTools(state, { serviceOf, logOf }) {
         const video = await videoLekerdez(state.contracts, videoId)
         // `get` answers null for an id that names nothing -- including the case
         // that actually happens, an id read a moment ago whose row is gone.
+        //
+        // THE MESSAGE DOES NOT REPEAT THE ID. The tool boundary writes a
+        // refusal's message to the host log, and `videoId` is a value the
+        // caller passed: the schema is a bare string with no length of its own,
+        // so an agent-assembled id of any size would land in the log verbatim
+        // and come back in that agent's next prompt. Naming the ARGUMENT is
+        // enough to say what to fix; the value never was the part that helped.
+        // The rule is extensions/video/src/args.mjs's, and commit 58547a6 took
+        // three of these out of the video tree.
         if (video === null || video === undefined) {
-          throw new DocsError(HIBA.rossz_parameter, `Nincs videó ezzel az id-vel: ${videoId}. Nézd meg a helyes id-t a Videó lapon, és hívd újra.`)
+          throw new DocsError(HIBA.nincs_ilyen_video, 'A "videoId" mezőben megadott videó nincs meg a Videó modulban — vagy elírás, vagy a sor azóta eltűnt. Nézd meg a helyes id-t a Videó lapon, és hívd újra.')
         }
         const { cim, tartalom } = forgatokonyv(video, videoId)
         return serviceOf().create(actorOf(ctx), { cim, tartalom })
