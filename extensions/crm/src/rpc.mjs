@@ -52,13 +52,19 @@ async function hostFetch(state, utvonal, body, method = 'POST') {
  * Nem számoljuk ki: a host a `managedResourceId`-t egy hash-ből képzi, és egy
  * második, kézzel írt példány abban a pillanatban elcsúszna, amint a host
  * megváltoztatja a képzést. Megkérdezzük, és a `state`-en tartjuk -- a projekt
- * a telepítés élettartama alatt nem változik.
+ * a telepítés élettartama alatt nem változik, tehát a második és minden
+ * további hívás a gyorsítótárból felel, GET nélkül.
  *
- * Az `acceptSuggestion` szándékosan NEM ezt hívja: az a hívás egyetlen POST-ra
- * (a feladat-létrehozásra) épít a saját tesztjében, és egy itteni GET a
- * `/api/projects`-hez elcsúsztatná a hívás sorrendjét. A `board()` hívja meg
- * -- egyszer, lapmegnyitáskor --, hogy mire az operátor egy javaslatot
- * elfogad, a `state.crmProjectId` már megvan a gyorsítótárban.
+ * Az `acceptSuggestion` EZT hívja, közvetlenül, mielőtt a feladat törzsét
+ * összeállítja -- nem a `state.crmProjectId`-t olvassa ki nyersen. A mező
+ * korábban csak a `board()` oldalhatásaként töltődött fel, ami azt
+ * jelentette, hogy bármelyik út, ami `board()` nélkül ér el ide (másik lap,
+ * szerver-újraindítás a lapmegnyitás és az elfogadás kattintás között,
+ * közvetlen rpc-hívás), `null` projekttel filézte a feladatot -- csendben,
+ * a CRM projekten kívülre. A memoizálás ide, ebbe a függvénybe került, nem
+ * a hívó felelőssége: `acceptSuggestion` így minden hívási úton a valódi
+ * azonosítót kapja, `board()` warm-up hívása pedig legfeljebb egy hálózati
+ * kört spórol meg, semmi nem függ attól, hogy lefutott-e előbb.
  */
 async function crmProjektId(state) {
   if (state.crmProjectId) return state.crmProjectId
@@ -108,9 +114,14 @@ export function createRpc(state) {
      *
      * Itt kérjük le (és gyorsítótárazzuk a `state.crmProjectId`-n) a CRM projekt
      * azonosítóját is -- lapmegnyitáskor, jóval azelőtt, hogy az operátor egy
-     * javaslatot elfogadna. A hívás önmagában sosem dob (lásd `crmProjektId`
-     * doksiját): egy hiányzó port-fájl vagy egy elhasaló hívás legfeljebb
-     * `null`-t hagy a gyorsítótárban, a lap többi része ettől függetlenül betölt.
+     * javaslatot elfogadna. Ez KIZÁRÓLAG egy latencia-előmelegítés: mire az
+     * operátor elfogad egy javaslatot, `acceptSuggestion` a gyorsítótárból
+     * felel, GET nélkül. Semmi nem függ attól, hogy ez a hívás lefutott-e --
+     * `acceptSuggestion` a saját `crmProjektId(state)` hívásával mindig a
+     * valódi azonosítót kapja, akkor is, ha ez a `board()` sosem futott le. A
+     * hívás önmagában sosem dob (lásd `crmProjektId` doksiját): egy hiányzó
+     * port-fájl vagy egy elhasaló hívás legfeljebb `null`-t hagy a
+     * gyorsítótárban, a lap többi része ettől függetlenül betölt.
      */
     async board() {
       const r = repo()
@@ -275,21 +286,31 @@ export function createRpc(state) {
      * A javaslat elfogadása — és EZ az, ami feladatot csinál belőle.
      *
      * Az ügynök javasol, az operátor dönt; a döntés helye ez a metódus, és
-     * ezért nincs `crm_accept_suggestion` eszköz. A `fingerprint` a javaslatra
-     * mutat, tehát ugyanabból kétszer nem lesz két feladat.
+     * ezért nincs `crm_accept_suggestion` eszköz.
+     *
+     * NEM küldünk `fingerprint` mezőt a törzsben: a host `task-service.ts`
+     * `createTaskFromRoute`-ja a `task.fingerprint`-et minden hívásra
+     * feltétel nélkül felülírja a saját, cím + agentId alapú
+     * `computeTaskFingerprint`-jével (`task.fingerprint =
+     * computeTaskFingerprint(...)`, közvetlenül a `buildBoardTask` után,
+     * mielőtt a dedup-keresés lefutna) -- egy itt küldött érték se nem
+     * tárolódik, se a dedupra nem hat, tehát nincs mit vele küldeni. A dedup
+     * ezért a hoszt saját, újraszámolt fingerprintjén dől el: két azonos című,
+     * azonos agentId-jú, még nem lezárt feladat ütközik, függetlenül attól,
+     * hogy melyik javaslatból születtek.
      */
     async acceptSuggestion({ suggestionId }) {
       const r = repo()
       const sug = r.listSuggestions({}).find((s) => s.id === suggestionId)
       if (!sug) throw new Error('crm_ismeretlen_javaslat')
 
+      const projectId = await crmProjektId(state)
       const acc = r.getAccount(sug.account_id)
       const body = {
         title: String(sug.text || '').slice(0, 120),
         description: sug.reason ? `${sug.text}\n\nMiért: ${sug.reason}` : String(sug.text || ''),
-        projectId: state.crmProjectId || null,
+        projectId,
         tags: ['crm'],
-        fingerprint: `crm:suggestion:${sug.id}`,
         customFields: {
           crm_account: sug.account_id,
           ...(sug.deal_id ? { crm_deal: sug.deal_id } : {}),

@@ -340,17 +340,32 @@ test('az attention a kiuritett (ures string) kuszobmezot is alapertekre valtja, 
   assert.equal(r.kuszobok.nemaNapok, 9)
 })
 
+/**
+ * A `hostFetch` GET hívásain (pl. `/api/projects`) az `init`-nek nincs
+ * `body`-ja -- a `fetchImpl`-nek ezt is ki kell bírnia, nem csak a POST-okat.
+ * `projektSorok` a `/api/projects` GET válasza; alapból üres, tehát a
+ * `crmProjektId` `null`-t gyorsítótáraz, ahogy egy port nélküli tesztkörnyezet
+ * tenné.
+ */
+function fetchImplNyomkovetve(hivasok, projektSorok = []) {
+  return async (url, init) => {
+    const rec = { url, method: init.method }
+    if (init.body) rec.body = JSON.parse(init.body)
+    hivasok.push(rec)
+    if (url.endsWith('/api/projects')) return { ok: true, json: async () => projektSorok }
+    if (url.endsWith('/api/tasks')) return { ok: true, json: async () => ({ id: 'task_uj' }) }
+    throw new Error(`fetchImplNyomkovetve: varatlan ut -- ${url}`)
+  }
+}
+
 test('a javaslat elfogadasa feladatot ker a hosttol, es rogziti az azonositot', async () => {
   const S = memStorage()
   for (const m of MIGRATIONS) S.raw.exec(m.sql)
   const repo = createRepo(S)
-  const hivalok = []
+  const hivasok = []
   const state = {
     storage: S, repo, log: console, settings: () => ({}),
-    fetchImpl: async (url, init) => {
-      hivalok.push({ url, body: JSON.parse(init.body) })
-      return { ok: true, json: async () => ({ id: 'task_uj' }) }
-    },
+    fetchImpl: fetchImplNyomkovetve(hivasok),
   }
   const rpc = createRpc(state)
   const acc = repo.createAccount({ name: 'Morvai Kft.' })
@@ -360,10 +375,52 @@ test('a javaslat elfogadasa feladatot ker a hosttol, es rogziti az azonositot', 
 
   assert.equal(out.taskId, 'task_uj')
   assert.equal(repo.listSuggestions({ status: 'new' }).length, 0, 'a javaslat mar nem uj')
-  const b = hivalok[0].body
+  // A hivasok koze idekozben bekerult a `/api/projects` GET is (a
+  // `crmProjektId` lekerdezese) -- ezert a feladat-POST-ot az utvonala
+  // alapjan keressuk, nem a tomb elso elemekent.
+  const taskHivas = hivasok.find((h) => h.url.endsWith('/api/tasks'))
+  assert.ok(taskHivas, 'a feladat-POST megtortent')
+  const b = taskHivas.body
   assert.equal(b.customFields.crm_account, acc.id)
   assert.deepEqual(b.tags, ['crm'])
-  assert.ok(b.fingerprint.includes(sug.id), 'a fingerprint a javaslatra mutat, hogy ne szulessen ketszer')
+  // Nincs `fingerprint` mező a törzsben -- a host úgyis felülírja a sajátjával
+  // (lásd az `acceptSuggestion` doksiját), tehát a küldése csak látszólagos
+  // garancia lenne.
+  assert.ok(!('fingerprint' in b), 'nem küldünk fingerprint mezőt, amit a host úgyis felülír')
+})
+
+test('a javaslat elfogadasa a CRM projektbe filezi a feladatot, akkor is, ha a board() sosem futott le', async () => {
+  // Ez a teszt azt a hibaosztalyt fogja meg, amit a `state.crmProjectId`
+  // mezore epito, `board()` altal vegzett elomelegites okozott: ha
+  // `acceptSuggestion` ele nem fut le `board()` -- mas lap, szerver-ujrainditas
+  // a lapmegnyitas es az elfogadas kattintas kozott, kozvetlen rpc-hivas --,
+  // a projekt-lekerdezesnek MAGABAN az `acceptSuggestion`-ben kell megtortennie,
+  // nem a `state.crmProjectId || null` kiertekelesenek egy sosem toltott
+  // mezon.
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const hivasok = []
+  const projektSorok = [
+    { id: 'proj_egyeb', managedByExtension: { resourceKey: 'mas', extensionId: 'mas' } },
+    { id: 'proj_crm', managedByExtension: { resourceKey: 'crm', extensionId: 'crm' } },
+  ]
+  const state = {
+    storage: S, repo, log: console, settings: () => ({}),
+    fetchImpl: fetchImplNyomkovetve(hivasok, projektSorok),
+    // Szandekosan NINCS state.crmProjectId elore beallitva, es a `board()`
+    // sem fut le -- ez a friss rpc-peldany egyenesen `acceptSuggestion`-t
+    // hivja.
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'Kuldj ajanlatot', reason: '9 napja nema' })
+
+  await rpc.acceptSuggestion({ suggestionId: sug.id })
+
+  const taskHivas = hivasok.find((h) => h.url.endsWith('/api/tasks'))
+  assert.ok(taskHivas, 'a feladat-POST megtortent')
+  assert.equal(taskHivas.body.projectId, 'proj_crm', 'a feladat a valodi CRM projektbe kerult, nem null-ba')
 })
 
 test('az igeretbol szuletett javaslat elfogadasa LEZARJA az igeretet is', async () => {
