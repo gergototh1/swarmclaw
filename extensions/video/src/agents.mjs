@@ -194,7 +194,9 @@ is nyúlás. A \`narracio\` (\`narracio[].jelenet\` és
 gyorsítótárából jön, és nem kerül újra pénzbe. A \`javitasIdk\` a
 \`videoFixes\`-ből vett kérések \`id\`-je, és legalább egy kell
 (\`javitas_hianyzik\`); ami nem ennek a videónak a nyitott kérése,
-\`javitas_ismeretlen\`; terv nélküli videóra \`terv_hianyzik\`. A válasz
+\`javitas_ismeretlen\`; terv nélküli videóra \`terv_hianyzik\`; olyan
+szülő verzióra, amit a lektor nem engedett át, \`verdikt_hianyzik\` -- azt
+nem javítani kell, hanem \`videoDraft\`-tal új verzióként beadni. A válasz
 \`tervId\`, \`verzio\`, \`tervHash\`, \`szuloTervId\`,
 \`valtozottJelenetek\`, \`bedolgozott\` (a bedolgozott kérések azonosítói),
 \`figyelmeztetesek\` és \`becsultHosszMp\`. Új lektori kör nem indul: a
@@ -385,13 +387,17 @@ export const GYARTAS_PROMPT = `Napi gyártás. A sorrend kötött. A
 benne, felhasználod tartalomként, megnevezed a záró üzenetben, és
 továbbmész.
 
-A \`javitasVar\` lista NEM ehhez a futáshoz tartozik. Azon a videón már van
-kész render, amit az operátor megnézett; egy javítás ugyanúgy pénzbe kerül,
-mint egy új terv, a napi sapka viszont a NYITÁSRA szól, nem a javításra. A
-javítás fordulóját az operátor rendeli meg külön -- akkor a \`videoFixes\` és
-a \`videoRevise\` a te dolgod, itt nem. Ebben a futásban csak felsorolod a
-záró üzenetben, mely videókra hány kérés vár (a \`javitasVar\` sorok
-\`kerdesek\` mezője).
+A \`javitasVar\` lista JAVÍTÁSÁT nem ez a futás végzi. Az operátor rendszerint
+egy kész rendert megnézve kér javítást, de kérést bármikor hagyhat, akár egy
+\`narralt\` vagy \`renderHiba\` videón is -- és egy javítás ugyanúgy pénzbe
+kerül, mint egy új terv, a napi sapka viszont a NYITÁSRA szól, nem a
+javításra. A \`videoFixes\` és a \`videoRevise\` fordulóját ezért az operátor
+rendeli meg külön, nem te indítod. Amit itt teszel: a záró üzenetben
+felsorolod, mely videókra hány kérés vár (a \`javitasVar\` sorok
+\`kerdesek\` mezője). Egy korábban beadott javítás viszont ugyanúgy
+\`lektoralt\`, mint bármi más, tehát az 5. és a 6. lépés narrálja és
+rendereli -- egy \`javitasVar\` videó a \`lektoralt\` listán nem
+ellentmondás, hanem az a render, ami majd lezárja a kéréseit.
 
 1. \`videoLessons({ szerep: 'gyarto' })\`.
 2. \`videoQueue\`. Ha van \`futoRender\`, \`videoRenderStatus\` a

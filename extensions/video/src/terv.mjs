@@ -553,8 +553,8 @@ export function createTervTools(state) {
      * jelenetenkéntre bontva. Ez a fele páros a `videoQueue` `javitasVar`
      * sorával -- az megmondja, HOGY van kérés és hány, ez adja a kérések
      * SZÖVEGÉT, amit a gyártó elolvas és eldönt, mit jelent (a leírás mondja
-     * meg neki, hogy nem utasítás). A beadás -- a `videoRevise` -- a 3.
-     * feladaté; ez itt csak olvas.
+     * meg neki, hogy nem utasítás). A beadás a `videoRevise`, közvetlenül ez
+     * alatt; ez itt csak olvas.
      *
      * `nyitottDb` kimondott szám, nem a hívóra bízott összeadás. Három
      * különböző tény: "nulla nyitott kérés van" (`nyitottDb: 0`, mindkét lista
@@ -673,6 +673,22 @@ export function createTervTools(state) {
           refuseIfRendering(videoId)
           const szulo = repo().latestTerv(videoId)
           if (!szulo) refuse('terv_hianyzik', 'ennek a videónak még nincs terve; javítani csak meglévő tervet lehet')
+          // A SZÜLŐNEK ÁT KELL MENNIE. Ez a tool azon áll, hogy a szülő verziót
+          // a lektor átengedte: ezért nem kell rá új ítélet, ezért marad a videó
+          // `lektoralt`, és ezért mehet a különbség egyenesen renderre. A
+          // `latestTerv` viszont a LEGÚJABB verziót adja, ítélettel vagy anélkül
+          // -- egy `videoDraft` vagy egy `elbukik` után az a terv áll itt, amit
+          // senki nem engedett át. Ellenőrzés nélkül ez a tool egy meg nem
+          // ítélt tervet vinne `lektoralt`-ba: kivenné a videót az `elbukott`
+          // vagy a `terv` sorból, ahol a lektor órás futása keresi, a
+          // `talalatok` gazdátlanul maradnának, és a verdikt-kaput szűkítő
+          // következő lépés után egy sosem ítélt terv jutna el a renderig.
+          // Egy meg nem ítélt terv javítása nem javítás, hanem terv -- arra a
+          // `videoDraft` van, és a mondat ezt mondja meg. A státusz-írás előtt,
+          // hogy egy elutasított javítás semmit ne mozdítson.
+          if (!repo().passingVerdikt(szulo.id, szulo.terv_hash)) {
+            refuse('verdikt_hianyzik', 'a szülő verziót nem engedte át a lektor; javítani csak átment tervet lehet, meg nem ítéltet a videoDraft ad be új verzióként')
+          }
 
           // A kérések a mi soraink, nem a hívó szava: a megnevezett id-knek
           // NYITOTT, ehhez a videóhoz tartozó operátori kérésnek kell lenniük.

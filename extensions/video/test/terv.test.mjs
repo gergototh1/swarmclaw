@@ -524,6 +524,18 @@ test('videoRevise csak a megnevezett jeleneteket írja át, a többit bájtra á
   assert.deepEqual(uj[0], eredeti[0], 'a 0. jelenet bájtra ugyanaz')
   assert.deepEqual(uj[2], eredeti[2], 'a 2. jelenet bájtra ugyanaz')
   assert.equal(repo.terv(r.tervId).szarmazas, 'operator_javitas')
+  // A `bedolgozott` a hívó saját szava visszhangozva, a `szuloTervId` helyben
+  // számolva -- egyik sem mondja meg, hogy a SORBA is beírtuk-e őket. Ha a
+  // `javitas_idk` üresen marad, a `finishRender` (src/db.mjs) semmit nem zár le:
+  // a válasz azt jelentené, hogy a kérés be van dolgozva, a videó meg örökre a
+  // `javitasVar` sorban ülne egy sikeres render után is.
+  assert.deepEqual(JSON.parse(repo.terv(r.tervId).javitas_idk), [kert.id], 'a kérés id-je a sorba is beíródik')
+  assert.equal(repo.terv(r.tervId).szulo_terv_id, tervId)
+  // A tulajdonos kérése egyetlen sorban: "ne kezdődjön előről". Ez az a sor.
+  // `terv` státusz új lektori kört rendelne -- pontosan azt, ami ellen ez a
+  // tool van --, ezért a negatív állítás is itt van, nem csak a pozitív.
+  assert.equal(repo.video(videoId).status, 'lektoralt')
+  assert.notEqual(repo.video(videoId).status, 'terv', 'a javítás nem viszi vissza lektorálásra')
 })
 
 test('videoRevise a narrációt is csak a megnevezett jeleneten engedi', async () => {
@@ -577,6 +589,34 @@ test('videoRevise terv nélküli videóra megnevezett hibát ad, nem üres terve
   const kert = repo.insertFeedback({ videoId, szoveg: 'x', forras: 'operator' })
   const r = await run('videoRevise', { videoId, jelenetek: [{ index: 0, jelenet: { tipus: 'szam', szam: 1, felvezeto: 'a' } }], javitasIdk: [kert.id] })
   assert.equal(r.error.code, 'terv_hianyzik')
+})
+
+/**
+ * A szülő verziónak át kellett mennie a lektoron.
+ *
+ * `latestTerv` a legújabb verziót adja, ítélettel vagy anélkül -- egy
+ * `videoDraft` vagy egy `elbukik` után az áll ott, amit senki nem engedett át.
+ * Ellenőrzés nélkül a `videoRevise` egy meg nem ítélt tervről másolna, és a
+ * videót `lektoralt`-ba vinné: kivenné az `elbukott` sorból, ahol a lektor
+ * órás futása keresi, a `talalatok` gazdátlanul maradnának, és a
+ * verdikt-kaput szűkítő következő lépés után egy sosem ítélt terv jutna el a
+ * renderig. A teszt mindkét felét állítja: nem íródik verzió, és a státusz
+ * sem mozdul.
+ */
+test('videoRevise nem javít meg nem ítélt tervet, és közben semmit nem mozdít', async () => {
+  const { repo, run } = setup()
+  const { videoId, tervId, tervHash } = keszTerv(repo)
+  repo.insertVerdikt({ tervId, tervHash, lektorAgentId: 'lektor-1', lektorSessionId: 's2', verdikt: 'elbukik', talalatok: [{ jelenet: 0, kod: 'horog_gyenge', szoveg: 'x' }] })
+  repo.setVideoStatus(videoId, 'elbukott')
+  const kert = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'x', forras: 'operator' })
+  const r = await run('videoRevise', {
+    videoId,
+    jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam: 99, felvezeto: 'Ennyi.' } }],
+    javitasIdk: [kert.id],
+  })
+  assert.equal(r.error.code, 'verdikt_hianyzik')
+  assert.equal(repo.tervekForVideo(videoId).length, 1, 'nem íródott új verzió')
+  assert.equal(repo.video(videoId).status, 'elbukott', 'a videó ott marad, ahol a lektor keresi')
 })
 
 test('videoRevise a katalógus-ellenőrzésen ugyanúgy átmegy, mint a videoDraft', async () => {

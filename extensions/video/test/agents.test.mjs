@@ -814,6 +814,21 @@ test('both skills are under the per-skill cap the turn actually inlines them at'
   assert.ok(cap, 'the host no longer caps inlined skill content under that name; find what replaced it before trusting this test')
   const inlineCap = Number(cap[1])
   assert.ok(resolver.includes('truncateInlinedSkillContent(skill.content, skill.name)'), 'the cap is no longer applied where the pinned block is built')
+  /*
+   * HOW LITTLE ROOM IS LEFT, written here rather than in the skill.
+   *
+   * `video-jelenetlista` runs within ~20 characters of the cap: adding the
+   * fix-request section in the revise task needed three sentences trimmed out
+   * of it first. The note belongs here and not in the file itself because
+   * `skillBody` counts EVERY character of the body -- an HTML comment saying
+   * "there is no room" would itself consume the room it warns about -- and
+   * this is the assertion whose failure the next author will read.
+   *
+   * What to do when it fails: trim, do not raise. The first candidates are
+   * sentences the agent already has in front of it on the same turn -- its
+   * soul and its schedule prompt (`textsFor`) carry the run order and the
+   * refusal handling, and the skill's own opening line says so.
+   */
   const sizes = AGENTS.flatMap((a) => a.skills).map((skill) => ({ skill, body: skillBody(skill).length }))
   for (const { skill, body } of sizes) {
     assert.ok(body <= inlineCap, `${skill} is ${body} characters; past ${inlineCap} the host cuts it and the agent only gets the rest by calling use_skill`)
