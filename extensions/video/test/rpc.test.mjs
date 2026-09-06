@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { test } from 'node:test'
 
+import { VideoError } from '../src/args.mjs'
 import { VIDEO_STATUSOK } from '../src/db.mjs'
 import { HEALTH_CODES, HEALTH_NEM_VALASZOLT, setupChecks } from '../src/health.mjs'
 import { SZABALYKESZLET } from '../src/qa.mjs'
@@ -20,25 +21,33 @@ const IDEGEN = 'Idegen szöveg a hírlevélből.'
  * is here and nothing else, so a call that grew a new dependency fails loudly
  * instead of spawning a process on the machine running the suite.
  */
-const opsDouble = () => ({
-  summary: (r) => ({ renderId: r.id, status: r.status }),
-  cancel: (id) => ({ renderId: id, status: 'hiba', hiba: { kod: 'render_megszakitva' } }),
-  cleanupAll: () => ({ renderek: 0, narraciok: 0, sorNelkul: 0 }),
-  orphanCount: () => 0,
-})
+const opsDouble = () => {
+  const indult = []
+  return {
+    indult,
+    summary: (r) => ({ renderId: r.id, status: r.status }),
+    cancel: (id) => ({ renderId: id, status: 'hiba', hiba: { kod: 'render_megszakitva' } }),
+    cleanupAll: () => ({ renderek: 0, narraciok: 0, sorNelkul: 0 }),
+    orphanCount: () => 0,
+    // `renderel` is `videoRender` by another door: both call this, so a cancel
+    // and a start mean one thing in the module (index.mjs).
+    start: (tervId) => { indult.push(tervId); return { renderId: 'r-uj', videoId: 'v', tervId, status: 'fut' } },
+  }
+}
 
 /** Every version probe answers "present" unless a test says otherwise; no binary is ever run. */
 const eszkozOk = async () => ({ stdout: '', stderr: '' })
 
-function setup({ remotionDir = fakeProject(), settings = {}, ttsWhy = null, signalsWhy = null, execFileImpl = eszkozOk, platform = 'darwin', ops = opsDouble() } = {}) {
+function setup({ remotionDir = fakeProject(), settings = {}, ttsWhy = null, signalsWhy = null, execFileImpl = eszkozOk, platform = 'darwin', ops = opsDouble(), handles = {}, probeImpl = async () => 4000, log = quiet } = {}) {
   const { storage, repo } = freshRepo()
   const state = {
     storage,
     repo,
-    log: quiet,
+    log,
     settings: () => ({ remotionDir, ...settings }),
-    contracts: { get: () => null, why: (ext) => (ext === 'tts' ? ttsWhy : signalsWhy) },
+    contracts: { get: (e, c) => handles[`${e}.${c}`] ?? null, why: (ext) => (ext === 'tts' ? ttsWhy : signalsWhy) },
     execFileImpl,
+    probeImpl,
     platform,
   }
   return { repo, state, ops, rpc: createRpc(state, ops), remotionDir }
@@ -646,4 +655,167 @@ test('Tisztítás takes the preview cache too: it is the module\'s own and no ro
   assert.equal(r.elonezetek, 2, 'both hash directories go, and the answer says how many')
   for (const h of hashek) assert.equal(fs.existsSync(path.join(root, h)), false)
   assert.equal(fs.existsSync(path.join(root, 'operatore', 'sajat.png')), true)
+})
+
+/**
+ * The three mechanical levers the page pulls without ordering a chat turn:
+ * `nyit`, `narral` and `renderel`. Each is the tool's own service function by
+ * another door, and NONE OF THE THREE THROWS -- a thrown rpc handler reaches
+ * the browser as a bare 500 whose message the operator never sees, and these
+ * three are the ones an operator presses in a state the module refuses.
+ */
+
+/** A tts double over the `narration` contract's shape; writes the mp3 the module then probes. */
+function ttsDouble({ fail = null } = {}) {
+  const calls = []
+  return {
+    calls,
+    handle: {
+      synthesize: async ({ szoveg, celFajl }) => {
+        calls.push({ szoveg, celFajl })
+        if (fail) {
+          const cause = Object.assign(new Error('a szolgáltató egyenlege kimerült'), { code: fail })
+          throw Object.assign(new Error(`contract tts.mjs.narration.synthesize threw: ${cause.message}`), { code: 'provider_threw', extensionId: 'tts.mjs', consumerId: 'video.mjs', cause })
+        }
+        fs.mkdirSync(path.dirname(celFajl), { recursive: true })
+        fs.writeFileSync(celFajl, 'mp3')
+        return { kerelemId: 'k', fajl: celFajl, hosszMs: 1, cache: false, hang: 'Kenji', modell: 'tts-rt-v1', nyelv: 'hu' }
+      },
+      status: async () => ({ hang: 'Kenji', modell: 'tts-rt-v1', nyelv: 'hu' }),
+    },
+  }
+}
+
+/** A video with a plan and a passing verdict, and nothing after it: what `narral` is pressed on. */
+function lektoraltVideo(repo, { scenes = 8 } = {}) {
+  const jelenetek = Array.from({ length: scenes }, (_, i) => (i === 0 ? PELDA_JELENETEK[0] : i === scenes - 1 ? PELDA_JELENETEK[2] : PELDA_JELENETEK[1]))
+  const narracio = jelenetek.map((_, i) => ({ jelenet: i, szoveg: `Mondat ${i}.` }))
+  const { id: videoId } = repo.openVideo({ cim: 'c', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: IDEGEN, nyitottaAgentId: '' })
+  const terv = repo.insertTerv({ videoId, jelenetek, narracio, assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {} })
+  repo.insertVerdikt({ tervId: terv.id, tervHash: terv.tervHash, lektorAgentId: 'l', lektorSessionId: 's', verdikt: 'atmegy', talalatok: [] })
+  return { videoId, tervId: terv.id }
+}
+
+test('nyit opens a manual video through the same service videoOpen calls, and the row says the operator opened it', async () => {
+  const { repo, rpc } = setup()
+  const r = await rpc.nyit({ forras: 'kezi', forrasSzoveg: IDEGEN, cim: 'Kézi cím' })
+  assert.equal(r.hiba, undefined, 'a successful open carries no refusal')
+  assert.equal(r.cim, 'Kézi cím')
+  assert.equal(r.forrasFigyelmeztetes.length > 0, true, 'the page gets the same stranger-text warning the agent gets')
+  const v = repo.video(r.videoId)
+  assert.equal(v.forras_tipus, 'kezi')
+  assert.equal(v.forras_szoveg, IDEGEN, 'the source text is stored byte for byte')
+  assert.equal(v.nyitotta_agent_id, '', 'the page is not an agent and does not name one')
+  assert.equal(v.status, 'nyitott')
+})
+
+test('nyit takes the title from the source text when the operator gave none', async () => {
+  const { rpc } = setup()
+  const r = await rpc.nyit({ forras: 'kezi', forrasSzoveg: 'Első sor.\n\nMásodik.' })
+  assert.equal(r.cim, 'Első sor.')
+})
+
+test('nyit refuses by name instead of throwing: a missing text, an unknown source, and the daily cap', async () => {
+  const { repo, rpc } = setup()
+  const ures = await rpc.nyit({ forras: 'kezi' })
+  assert.equal(ures.hiba, 'argumentum_hibas')
+  assert.equal(typeof ures.uzenet, 'string')
+  assert.ok(ures.uzenet.includes('szoveg'), 'the message names the argument')
+
+  const ismeretlen = await rpc.nyit({ forras: 'nincsilyen', forrasSzoveg: 'x' })
+  assert.equal(ismeretlen.hiba, 'argumentum_hibas')
+
+  assert.equal((await rpc.nyit({ forras: 'kezi', forrasSzoveg: 'Egy.' })).hiba, undefined)
+  const sapka = await rpc.nyit({ forras: 'kezi', forrasSzoveg: 'Kettő.' })
+  assert.equal(sapka.hiba, 'napi_sapka', 'the default cap is one a day and the page is told which cap it hit')
+  assert.equal(sapka.sapka, 1, 'the refusal carries its numbers, so the page can say 1/1')
+  assert.equal(sapka.maNyilt, 1)
+  assert.equal(repo.videos().length, 1)
+})
+
+test('nyit passes the source through to the signals branch, and its refusal arrives named', async () => {
+  const { rpc } = setup({ signalsWhy: 'provider_missing' })
+  const r = await rpc.nyit({ forras: 'signal' })
+  assert.equal(r.hiba, 'signals_szerzodes_hianyzik')
+  assert.equal(r.why, 'provider_missing', 'the host\'s own reason travels, so the operator knows which fix')
+})
+
+test('narral runs the tts contract for every scene and writes the set the render gate reads', async () => {
+  const tts = ttsDouble()
+  const { repo, rpc } = setup({ handles: { 'tts.narration': tts.handle } })
+  const { videoId, tervId } = lektoraltVideo(repo)
+  const r = await rpc.narral({ tervId })
+  assert.equal(r.hiba, undefined)
+  assert.equal(r.valtozatlan, false)
+  assert.equal(tts.calls.length, 8, 'one synthesize per scene, through the contract')
+  assert.equal(repo.narraciok(tervId).length, 8)
+  assert.equal(repo.video(videoId).status, 'narralt')
+})
+
+test('narral refuses by name instead of throwing: an unknown plan, a plan with no passing verdict, and a tts that is not there', async () => {
+  const tts = ttsDouble()
+  const { repo, rpc } = setup({ handles: { 'tts.narration': tts.handle } })
+  const ismeretlen = await rpc.narral({ tervId: 'nincs-ilyen' })
+  assert.equal(ismeretlen.hiba, 'terv_ismeretlen')
+  assert.equal(typeof ismeretlen.uzenet, 'string')
+
+  const { videoId } = keszVideo(repo, { cim: 'másik', sha: 'sha-2' })
+  const uj = repo.insertTerv({ videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {} })
+  const nincsVerdikt = await rpc.narral({ tervId: uj.id })
+  assert.equal(nincsVerdikt.hiba, 'verdikt_hianyzik')
+
+  const nincsTts = setup({ ttsWhy: 'provider_disabled' })
+  const { tervId } = lektoraltVideo(nincsTts.repo)
+  const r = await nincsTts.rpc.narral({ tervId })
+  assert.equal(r.hiba, 'tts_szerzodes_hianyzik')
+  assert.equal(r.why, 'provider_disabled')
+})
+
+test('narral reports the tts own code word for word, so a spent balance does not read as "the tts failed"', async () => {
+  const tts = ttsDouble({ fail: 'tts_egyenleg_kimerult' })
+  const { repo, rpc } = setup({ handles: { 'tts.narration': tts.handle } })
+  const { tervId } = lektoraltVideo(repo)
+  const r = await rpc.narral({ tervId })
+  assert.equal(r.hiba, 'tts_visszautasitva')
+  assert.equal(r.ttsKod, 'tts_egyenleg_kimerult')
+  assert.equal(r.jelenet, 0)
+  assert.equal(repo.narraciok(tervId).length, 0, 'a refused set writes no row')
+})
+
+test('renderel starts the render through the same renderOps videoRender uses', async () => {
+  const { repo, rpc, ops } = setup()
+  const { tervId } = lektoraltVideo(repo)
+  const r = await rpc.renderel({ tervId })
+  assert.deepEqual(ops.indult, [tervId], 'the page and the tool share one start')
+  assert.equal(r.renderId, 'r-uj')
+  assert.equal(r.hiba, undefined)
+})
+
+test('renderel refuses by name instead of throwing when the render side refuses', async () => {
+  const ops = opsDouble()
+  ops.start = () => { throw new VideoError('narracio_hianyos', 'ehhez a tervhez nincs teljes narráció', { hianyzo: [3] }) }
+  const { repo, rpc } = setup({ ops })
+  const { tervId } = lektoraltVideo(repo)
+  const r = await rpc.renderel({ tervId })
+  assert.equal(r.hiba, 'narracio_hianyos')
+  assert.deepEqual(r.hianyzo, [3], 'the refusal\'s own fields travel, so the page can say which scene')
+})
+
+test('renderel refuses a missing tervId by name rather than handing the render side an empty string', async () => {
+  const { rpc, ops } = setup()
+  const r = await rpc.renderel({})
+  assert.equal(r.hiba, 'argumentum_hibas')
+  assert.deepEqual(ops.indult, [], 'nothing was started')
+})
+
+test('a bug in one of the three levers arrives as ismeretlen_hiba and is logged, never as a silent 500', async () => {
+  const ops = opsDouble()
+  ops.start = () => { throw new TypeError('cannot read properties of undefined') }
+  const hibak = []
+  const { repo, rpc } = setup({ ops, log: { info() {}, warn() {}, error: (...a) => hibak.push(a) } })
+  const { tervId } = lektoraltVideo(repo)
+  const r = await rpc.renderel({ tervId })
+  assert.equal(r.hiba, 'ismeretlen_hiba')
+  assert.ok(r.uzenet.includes('cannot read properties'), 'the operator gets something to report')
+  assert.equal(hibak.length, 1, 'and the host log still sees the bug')
 })

@@ -224,137 +224,155 @@ export function naprakeszNarracio({ rows, sorok, tervHash, publicDir, jelenlegiH
   return rendezett
 }
 
+/**
+ * `videoNarrate`'s whole body, as a function two front doors call.
+ *
+ * The tool and the page's `narral` rpc method are two entrances onto one
+ * rule. Narration is mechanical -- the sentences are already written and
+ * approved, the tts turns each into an mp3 and ffprobe measures it -- so
+ * there is nothing here for an agent to decide, and the operator's button
+ * must be able to run it without ordering a chat turn. Putting the body in a
+ * function rather than copying it into `rpc.mjs` is what keeps the N-rules,
+ * the up-to-date check and the eleven refusal codes stated once.
+ *
+ * It THROWS its refusals as `VideoError`s and wraps nothing: `guard` is the
+ * tool's answer shape and `nemDob` is the page's, and a body that had already
+ * chosen one of them could not serve the other.
+ */
+export async function narralTerv(state, tervIdRaw) {
+  const repo = state.repo
+  const tervId = readString('tervId', tervIdRaw, { required: true, max: 64 })
+  const terv = repo.terv(tervId)
+  if (!terv) refuse('terv_ismeretlen', 'nincs terv a megadott tervId-vel')
+  const video = repo.video(terv.video_id)
+  if (video && video.status === 'lezart') refuse('video_lezart', 'a videó le van zárva')
+  const latest = repo.latestTerv(terv.video_id)
+  if (latest.id !== terv.id) refuse('terv_elavult', `a(z) ${terv.verzio}. verzió nem a legfrissebb; a legfrissebb a v${latest.verzio}`, { legfrissebbTervId: latest.id })
+  if (!repo.passingVerdikt(terv.id, terv.terv_hash)) refuse('verdikt_hianyzik', 'ehhez a tervhez nincs atmegy verdikt a jelenlegi hash-sel')
+  // A render on this video reads the narration rows at its start and
+  // writes the video's status at its end; a set replaced under it and a
+  // `narralt` written over `renderel` would both be overwritten by the
+  // render's close. Same rule as videoDraft and videoVerdict.
+  const futo = repo.runningRender()
+  if (futo && futo.video_id === terv.video_id) refuse('render_folyamatban', 'ezen a videón render fut; várd meg a végét', { renderId: futo.id })
+  const remotionDir = remotionDirOf(state)
+  const publicDir = path.join(remotionDir, 'public')
+  const tts = ttsHandle(state)
+  // video_id is this module's hex id and terv_hash its sha256: nothing
+  // a stranger wrote is in this path, and the scene index is an integer.
+  const celDir = path.join(publicDir, NARRACIO_NEVTER, terv.video_id, terv.terv_hash)
+  // The probe runs ffprobe by name; resolving it first is what makes it
+  // findable in the packaged desktop app (src/binaries.mjs). A test's
+  // `probeImpl` takes the file alone and ignores the runner, as before.
+  const probe = state.probeImpl || ((file) => probeDurationMs(file, resolvingExecFile(state, state.execFileImpl || execFileAsync)))
+  const sorok = narracioSorok(terv)
+  // A tts `status()` that throws is not this tool's refusal to make: the
+  // same tts is about to refuse the synthesize call with its own code,
+  // and that code is the sentence the operator needs. An unreadable
+  // status only means the set cannot be called current.
+  let jelenlegiHang = null
+  try {
+    jelenlegiHang = await tts.status()
+  } catch {
+    jelenlegiHang = null
+  }
+  const naprakesz = naprakeszNarracio({ rows: repo.narraciok(terv.id), sorok, tervHash: terv.terv_hash, publicDir, jelenlegiHang })
+  if (naprakesz !== null) {
+    // Nothing was asked of the tts and nothing is written -- not even
+    // the video's status: a call that changed nothing must not move a
+    // video that has since been rendered back to `narralt`. `cache` is
+    // absent from the scenes for the same reason. A cache hit is
+    // something the tts reports about a call, and no call was made; a
+    // `cache: true` here would be this module inventing an answer. The
+    // N-rules are not re-run either: they were measured on these exact
+    // lengths when the set was written, and nothing since has changed.
+    const megvanHosszak = naprakesz.map((n) => n.hossz_ms)
+    const megvanIv = idovonal(megvanHosszak)
+    return {
+      valtozatlan: true,
+      jelenetek: naprakesz.map((n) => ({ jelenet: n.jelenet, fajl: n.fajl, hosszMs: n.hossz_ms })),
+      osszHosszMs: megvanHosszak.reduce((sum, x) => sum + x, 0),
+      teljesMs: megvanIv.teljesMs,
+      fedettseg: Number(fedettseg(megvanHosszak).toFixed(3)),
+      hang: { hang: naprakesz[0].hang, modell: naprakesz[0].modell, nyelv: naprakesz[0].nyelv },
+    }
+  }
+  const eredmeny = []
+  for (const sor of sorok) {
+    const celFajl = path.join(celDir, `${sor.jelenet}.mp3`)
+    let valasz
+    try {
+      valasz = await tts.synthesize({ szoveg: sor.szoveg, celFajl })
+    } catch (err) {
+      const kod = ttsKodOf(err)
+      // An uncoded throw is not a tts refusal and is not dressed as one;
+      // guard names it szerzodes_hiba with the provider's message. The
+      // cause's message is quoted because it is the tts's own, and the
+      // tts's TtsError never carries the sentence, the key or the
+      // endpoint (extensions/tts/src/soniox.mjs); the sentence this
+      // module sent is in no message of its own either.
+      if (!kod) throw err
+      refuse('tts_visszautasitva', `jelenet ${sor.jelenet}: ${kod}: ${err.cause.message}`, { ttsKod: kod, jelenet: sor.jelenet, ...keretMezok(err.cause) })
+    }
+    // The answer's shape is checked field by field, not trusted for
+    // having arrived: a voice triple with a field missing would be
+    // stored as a fingerprint the render gate compares two thirds of.
+    const alak = valasz !== null && typeof valasz === 'object' && typeof valasz.fajl === 'string'
+      && HANG_MEZOK.every((mezo) => typeof valasz[mezo] === 'string' && valasz[mezo] !== '')
+    if (!alak) refuse('tts_valasz_hibas', `jelenet ${sor.jelenet}: a tts válaszából hiányzik a fajl, hang, modell vagy nyelv mező`, { jelenet: sor.jelenet })
+    const relativ = path.relative(publicDir, valasz.fajl).split(path.sep).join('/')
+    if (relativ !== `${NARRACIO_NEVTER}/${terv.video_id}/${terv.terv_hash}/${sor.jelenet}.mp3`) {
+      refuse('tts_valasz_hibas', `jelenet ${sor.jelenet}: a tts nem a kért fájlt nevezte meg a válaszban`, { jelenet: sor.jelenet })
+    }
+    // "It answered" and "the file is there" are two facts; a probe on a
+    // missing file would report a measurement failure that never ran.
+    if (!fs.existsSync(valasz.fajl)) refuse('tts_valasz_hibas', `jelenet ${sor.jelenet}: a tts által megnevezett fájl nincs a lemezen`, { jelenet: sor.jelenet })
+    let hosszMs
+    try {
+      hosszMs = await probe(valasz.fajl)
+    } catch (err) {
+      refuse('narracio_meres_sikertelen', `jelenet ${sor.jelenet}: ${err instanceof Error ? err.message : String(err)}`, { jelenet: sor.jelenet })
+    }
+    if (!Number.isFinite(hosszMs) || hosszMs <= 0) refuse('narracio_meres_sikertelen', `jelenet ${sor.jelenet}: a mért hossz nem pozitív szám`, { jelenet: sor.jelenet })
+    eredmeny.push({
+      jelenet: sor.jelenet, fajl: relativ, hosszMs, cache: valasz.cache === true,
+      hang: valasz.hang, modell: valasz.modell, nyelv: valasz.nyelv,
+      ttsKeresId: typeof valasz.kerelemId === 'string' ? valasz.kerelemId : '', szovegHash: sor.szovegHash,
+    })
+  }
+  const hosszak = eredmeny.map((e) => e.hosszMs)
+  const fed = fedettseg(hosszak)
+  const iv = idovonal(hosszak)
+  const teljesMp = iv.teljesMs / 1000
+  if (fed < N2_MIN_FEDETTSEG) {
+    refuse('fedettseg_alacsony', `a narrált hossz a látható hossz ${Math.round(fed * 100)}%-a; legalább ${N2_MIN_FEDETTSEG * 100}% kell`, { fedettseg: Number(fed.toFixed(3)), teljesMs: iv.teljesMs })
+  }
+  if (teljesMp < N3_MIN_MP || teljesMp > N3_MAX_MP) {
+    refuse('hossz_tartomanyon_kivul', `a teljes látható hossz ${teljesMp.toFixed(1)} s; ${N3_MIN_MP} és ${N3_MAX_MP} s között kell`, { teljesMp: Number(teljesMp.toFixed(1)), teljesMs: iv.teljesMs })
+  }
+  repo.replaceNarraciok(terv.id, eredmeny.map((e) => ({
+    tervHash: terv.terv_hash, jelenet: e.jelenet, szovegHash: e.szovegHash,
+    hang: e.hang, modell: e.modell, nyelv: e.nyelv, fajl: e.fajl, hosszMs: e.hosszMs, ttsKeresId: e.ttsKeresId,
+  })))
+  repo.setVideoStatus(terv.video_id, 'narralt')
+  return {
+    valtozatlan: false,
+    jelenetek: eredmeny.map((e) => ({ jelenet: e.jelenet, fajl: e.fajl, hosszMs: e.hosszMs, cache: e.cache })),
+    osszHosszMs: hosszak.reduce((s, x) => s + x, 0),
+    teljesMs: iv.teljesMs,
+    fedettseg: Number(fed.toFixed(3)),
+    hang: { hang: eredmeny[0].hang, modell: eredmeny[0].modell, nyelv: eredmeny[0].nyelv },
+  }
+}
+
 export function createNarrateTool(state) {
   return {
     name: 'videoNarrate',
     description: 'Jelenetenkénti narrációt kér a tts extensiontől a legfrissebb, átment tervhez, ffprobe-bal méri a hosszakat, és ha a fedettség és a teljes hossz megfelel (N1–N3), a készletet a tervre írja és a videó narralt lesz. Ha a tervhez már megvan a teljes, aktuális, a mostani hanggal készült narráció, egyetlen tts-hívás sem megy ki (valtozatlan: true). Bukásnál nem ír sort; a már elkészült mp3-ak a lemezen maradnak, és amíg ott vannak, az újrahívás a tts cache-éből szolgál ki.',
     parameters: { type: 'object', required: ['tervId'], properties: { tervId: { type: 'string' } } },
     execute(args) {
-      return guard(async () => {
-        const repo = state.repo
-        const tervId = readString('tervId', args.tervId, { required: true, max: 64 })
-        const terv = repo.terv(tervId)
-        if (!terv) refuse('terv_ismeretlen', 'nincs terv a megadott tervId-vel')
-        const video = repo.video(terv.video_id)
-        if (video && video.status === 'lezart') refuse('video_lezart', 'a videó le van zárva')
-        const latest = repo.latestTerv(terv.video_id)
-        if (latest.id !== terv.id) refuse('terv_elavult', `a(z) ${terv.verzio}. verzió nem a legfrissebb; a legfrissebb a v${latest.verzio}`, { legfrissebbTervId: latest.id })
-        if (!repo.passingVerdikt(terv.id, terv.terv_hash)) refuse('verdikt_hianyzik', 'ehhez a tervhez nincs atmegy verdikt a jelenlegi hash-sel')
-        // A render on this video reads the narration rows at its start and
-        // writes the video's status at its end; a set replaced under it and a
-        // `narralt` written over `renderel` would both be overwritten by the
-        // render's close. Same rule as videoDraft and videoVerdict.
-        const futo = repo.runningRender()
-        if (futo && futo.video_id === terv.video_id) refuse('render_folyamatban', 'ezen a videón render fut; várd meg a végét', { renderId: futo.id })
-        const remotionDir = remotionDirOf(state)
-        const publicDir = path.join(remotionDir, 'public')
-        const tts = ttsHandle(state)
-        // video_id is this module's hex id and terv_hash its sha256: nothing
-        // a stranger wrote is in this path, and the scene index is an integer.
-        const celDir = path.join(publicDir, NARRACIO_NEVTER, terv.video_id, terv.terv_hash)
-        // The probe runs ffprobe by name; resolving it first is what makes it
-        // findable in the packaged desktop app (src/binaries.mjs). A test's
-        // `probeImpl` takes the file alone and ignores the runner, as before.
-        const probe = state.probeImpl || ((file) => probeDurationMs(file, resolvingExecFile(state, state.execFileImpl || execFileAsync)))
-        const sorok = narracioSorok(terv)
-        // A tts `status()` that throws is not this tool's refusal to make: the
-        // same tts is about to refuse the synthesize call with its own code,
-        // and that code is the sentence the operator needs. An unreadable
-        // status only means the set cannot be called current.
-        let jelenlegiHang = null
-        try {
-          jelenlegiHang = await tts.status()
-        } catch {
-          jelenlegiHang = null
-        }
-        const naprakesz = naprakeszNarracio({ rows: repo.narraciok(terv.id), sorok, tervHash: terv.terv_hash, publicDir, jelenlegiHang })
-        if (naprakesz !== null) {
-          // Nothing was asked of the tts and nothing is written -- not even
-          // the video's status: a call that changed nothing must not move a
-          // video that has since been rendered back to `narralt`. `cache` is
-          // absent from the scenes for the same reason. A cache hit is
-          // something the tts reports about a call, and no call was made; a
-          // `cache: true` here would be this module inventing an answer. The
-          // N-rules are not re-run either: they were measured on these exact
-          // lengths when the set was written, and nothing since has changed.
-          const megvanHosszak = naprakesz.map((n) => n.hossz_ms)
-          const megvanIv = idovonal(megvanHosszak)
-          return {
-            valtozatlan: true,
-            jelenetek: naprakesz.map((n) => ({ jelenet: n.jelenet, fajl: n.fajl, hosszMs: n.hossz_ms })),
-            osszHosszMs: megvanHosszak.reduce((sum, x) => sum + x, 0),
-            teljesMs: megvanIv.teljesMs,
-            fedettseg: Number(fedettseg(megvanHosszak).toFixed(3)),
-            hang: { hang: naprakesz[0].hang, modell: naprakesz[0].modell, nyelv: naprakesz[0].nyelv },
-          }
-        }
-        const eredmeny = []
-        for (const sor of sorok) {
-          const celFajl = path.join(celDir, `${sor.jelenet}.mp3`)
-          let valasz
-          try {
-            valasz = await tts.synthesize({ szoveg: sor.szoveg, celFajl })
-          } catch (err) {
-            const kod = ttsKodOf(err)
-            // An uncoded throw is not a tts refusal and is not dressed as one;
-            // guard names it szerzodes_hiba with the provider's message. The
-            // cause's message is quoted because it is the tts's own, and the
-            // tts's TtsError never carries the sentence, the key or the
-            // endpoint (extensions/tts/src/soniox.mjs); the sentence this
-            // module sent is in no message of its own either.
-            if (!kod) throw err
-            refuse('tts_visszautasitva', `jelenet ${sor.jelenet}: ${kod}: ${err.cause.message}`, { ttsKod: kod, jelenet: sor.jelenet, ...keretMezok(err.cause) })
-          }
-          // The answer's shape is checked field by field, not trusted for
-          // having arrived: a voice triple with a field missing would be
-          // stored as a fingerprint the render gate compares two thirds of.
-          const alak = valasz !== null && typeof valasz === 'object' && typeof valasz.fajl === 'string'
-            && HANG_MEZOK.every((mezo) => typeof valasz[mezo] === 'string' && valasz[mezo] !== '')
-          if (!alak) refuse('tts_valasz_hibas', `jelenet ${sor.jelenet}: a tts válaszából hiányzik a fajl, hang, modell vagy nyelv mező`, { jelenet: sor.jelenet })
-          const relativ = path.relative(publicDir, valasz.fajl).split(path.sep).join('/')
-          if (relativ !== `${NARRACIO_NEVTER}/${terv.video_id}/${terv.terv_hash}/${sor.jelenet}.mp3`) {
-            refuse('tts_valasz_hibas', `jelenet ${sor.jelenet}: a tts nem a kért fájlt nevezte meg a válaszban`, { jelenet: sor.jelenet })
-          }
-          // "It answered" and "the file is there" are two facts; a probe on a
-          // missing file would report a measurement failure that never ran.
-          if (!fs.existsSync(valasz.fajl)) refuse('tts_valasz_hibas', `jelenet ${sor.jelenet}: a tts által megnevezett fájl nincs a lemezen`, { jelenet: sor.jelenet })
-          let hosszMs
-          try {
-            hosszMs = await probe(valasz.fajl)
-          } catch (err) {
-            refuse('narracio_meres_sikertelen', `jelenet ${sor.jelenet}: ${err instanceof Error ? err.message : String(err)}`, { jelenet: sor.jelenet })
-          }
-          if (!Number.isFinite(hosszMs) || hosszMs <= 0) refuse('narracio_meres_sikertelen', `jelenet ${sor.jelenet}: a mért hossz nem pozitív szám`, { jelenet: sor.jelenet })
-          eredmeny.push({
-            jelenet: sor.jelenet, fajl: relativ, hosszMs, cache: valasz.cache === true,
-            hang: valasz.hang, modell: valasz.modell, nyelv: valasz.nyelv,
-            ttsKeresId: typeof valasz.kerelemId === 'string' ? valasz.kerelemId : '', szovegHash: sor.szovegHash,
-          })
-        }
-        const hosszak = eredmeny.map((e) => e.hosszMs)
-        const fed = fedettseg(hosszak)
-        const iv = idovonal(hosszak)
-        const teljesMp = iv.teljesMs / 1000
-        if (fed < N2_MIN_FEDETTSEG) {
-          refuse('fedettseg_alacsony', `a narrált hossz a látható hossz ${Math.round(fed * 100)}%-a; legalább ${N2_MIN_FEDETTSEG * 100}% kell`, { fedettseg: Number(fed.toFixed(3)), teljesMs: iv.teljesMs })
-        }
-        if (teljesMp < N3_MIN_MP || teljesMp > N3_MAX_MP) {
-          refuse('hossz_tartomanyon_kivul', `a teljes látható hossz ${teljesMp.toFixed(1)} s; ${N3_MIN_MP} és ${N3_MAX_MP} s között kell`, { teljesMp: Number(teljesMp.toFixed(1)), teljesMs: iv.teljesMs })
-        }
-        repo.replaceNarraciok(terv.id, eredmeny.map((e) => ({
-          tervHash: terv.terv_hash, jelenet: e.jelenet, szovegHash: e.szovegHash,
-          hang: e.hang, modell: e.modell, nyelv: e.nyelv, fajl: e.fajl, hosszMs: e.hosszMs, ttsKeresId: e.ttsKeresId,
-        })))
-        repo.setVideoStatus(terv.video_id, 'narralt')
-        return {
-          valtozatlan: false,
-          jelenetek: eredmeny.map((e) => ({ jelenet: e.jelenet, fajl: e.fajl, hosszMs: e.hosszMs, cache: e.cache })),
-          osszHosszMs: hosszak.reduce((s, x) => s + x, 0),
-          teljesMs: iv.teljesMs,
-          fedettseg: Number(fed.toFixed(3)),
-          hang: { hang: eredmeny[0].hang, modell: eredmeny[0].modell, nyelv: eredmeny[0].nyelv },
-        }
-      })
+      return guard(() => narralTerv(state, args.tervId))
     },
   }
 }
+

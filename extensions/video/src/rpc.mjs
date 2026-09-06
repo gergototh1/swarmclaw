@@ -1,12 +1,14 @@
-import { VideoError } from './args.mjs'
+import { VideoError, guard, readString } from './args.mjs'
 import { VIDEO_STATUSOK } from './db.mjs'
 import { allapot, futasNezet, indit, kep, megszakit, torolElonezetCache } from './elonezet.mjs'
 import { runHealth } from './health.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
 import { KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, tablaHianyai } from './kit-tabla.mjs'
 import { KODOLT_JAVASLAT_IDK, SZABALYKESZLET } from './qa.mjs'
+import { narralTerv } from './narracio.mjs'
 import { hetiSor, sablonStat } from './sablon.mjs'
 import { BACKLOG_SAPKA, DUPLIKAT_NAP, JAVASLAT_NYITOTT_SAPKA, TANULSAG_SAPKA } from './tanulsag.mjs'
+import { nyissVideot } from './terv.mjs'
 
 /**
  * The methods this module's own page calls, over
@@ -134,6 +136,50 @@ function sapkak(repo) {
   }
 }
 
+/**
+ * The answer shape of the three mechanical levers, and the one place in this
+ * file that does not refuse by throwing.
+ *
+ * EVERY OTHER METHOD HERE THROWS ITS REFUSALS and that is right for them:
+ * they are reads and small writes the page only offers next to a row it has
+ * already loaded, so a refusal there means the page asked for something that
+ * is not on screen. `nyit`, `narral` and `renderel` are the opposite. They
+ * are buttons an operator presses in exactly the states this module refuses
+ * -- the day's cap is spent, the plan has no passing verdict, the tts has no
+ * balance left, a render is already running -- and each of those refusals is
+ * a sentence the operator has to read to know what to do next. A thrown one
+ * reaches the browser as a 500 whose body the page shows as "500", and the
+ * sentence is lost.
+ *
+ * So the refusal comes back as data: `{ hiba, uzenet }` plus whatever fields
+ * the refusal itself carried (`sapka`, `maNyilt`, `ttsKod`, `renderId`), the
+ * same fields the agent gets from the tool. `guard` decides what counts as a
+ * refusal, so the tool and the page agree on that too -- a VideoError, and a
+ * contract failure named after the extension that failed.
+ *
+ * WHAT IS LEFT IS A BUG IN THIS MODULE, and it is answered rather than
+ * thrown, under a code of its own. `ismeretlen_hiba` is not one of this
+ * module's refusals and must not be read as one; it means the lever broke.
+ * The message is the throw's own -- the operator needs something to report,
+ * and a bug's message carries this module's own text and paths, never a
+ * stored source text -- and the host log still gets it, so the failure is not
+ * quieter than it was.
+ */
+async function nemDob(state, fn) {
+  try {
+    const r = await guard(fn)
+    if (r !== null && typeof r === 'object' && r.error) {
+      const { code, message, ...extra } = r.error
+      return { hiba: code, uzenet: message, ...extra }
+    }
+    return r
+  } catch (err) {
+    const uzenet = err instanceof Error ? err.message : String(err)
+    state.log.error('video rpc lever threw', { error: uzenet })
+    return { hiba: 'ismeretlen_hiba', uzenet }
+  }
+}
+
 export function createRpc(state, ops) {
   const repo = () => state.repo
   const requireVideo = (id) => {
@@ -239,6 +285,47 @@ export function createRpc(state, ops) {
         visszajelzesek: repo().feedbackFor(v.id).map((f) => ({ id: f.id, renderId: f.render_id, atMs: f.at_ms, jelenet: f.jelenet, szoveg: f.szoveg, forras: f.forras, at: f.created_at })),
         megtartas: repo().retentionFor(v.id).map((p) => ({ platform: p.platform, tS: p.t_s, arany: p.arany })),
       }
+    },
+    /**
+     * The Sor view's Uj video: one row from text the operator pasted.
+     *
+     * `videoOpen` by another door -- the same service function, the same
+     * daily cap, the same refusals (src/terv.mjs, `nyissVideot`) -- and the
+     * opener is '' rather than an agent id, because an operator is not an
+     * agent and nothing gates on the opener (spec 3.3).
+     *
+     * The page's field is `forrasSzoveg`, which is what the `video` response
+     * calls the same text; the service's argument is `szoveg`, which is what
+     * the tool's schema calls it. One rename here rather than two vocabularies
+     * on the page.
+     */
+    async nyit(body = {}) {
+      return nemDob(state, () => nyissVideot(state, { forras: body.forras, szoveg: body.forrasSzoveg, cim: body.cim, signalId: body.signalId }, ''))
+    },
+    /**
+     * The Terv section's Narracio kerese. `videoNarrate` by another door
+     * (src/narracio.mjs, `narralTerv`): the tts contract per scene, ffprobe on
+     * every file that comes back, the N-rules, and the set written whole or
+     * not at all.
+     *
+     * Nothing about it needs an agent -- the sentences were written and passed
+     * review before this button appeared -- so the page runs it directly
+     * rather than paying for a chat turn to press it.
+     */
+    async narral(body = {}) {
+      return nemDob(state, () => narralTerv(state, body.tervId))
+    },
+    /**
+     * The Renderek section's Render inditasa. `videoRender` by another door:
+     * the same `renderOps` instance the two render tools use (index.mjs), so
+     * a start means one thing in this module.
+     *
+     * `tervId` is read here rather than inside `ops.start`, because the render
+     * side takes an id it can look up and an empty string is not one; the tool
+     * reads it the same way before calling the same method.
+     */
+    async renderel(body = {}) {
+      return nemDob(state, () => ops.start(readString('tervId', body.tervId, { required: true, max: 64 })))
     },
     /**
      * One note from the operator. `atMs` and `jelenet` are optional and
