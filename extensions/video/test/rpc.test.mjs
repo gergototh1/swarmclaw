@@ -9,6 +9,7 @@ import { VIDEO_STATUSOK } from '../src/db.mjs'
 import { HEALTH_CODES, HEALTH_NEM_VALASZOLT, setupChecks } from '../src/health.mjs'
 import { SZABALYKESZLET } from '../src/qa.mjs'
 import { _resetFutas } from '../src/elonezet.mjs'
+import { createRenderOps } from '../src/render.mjs'
 import { createRpc } from '../src/rpc.mjs'
 import { BACKLOG_SAPKA, JAVASLAT_NYITOTT_SAPKA, TANULSAG_SAPKA } from '../src/tanulsag.mjs'
 import { YOUTUBE_OTLET_MAX } from '../src/youtube.mjs'
@@ -641,6 +642,21 @@ test('an rpc refusal never repeats the value it refused', async () => {
     assert.ok(err instanceof Error)
     assert.equal(err.message.includes('script'), false, 'the refused value stays out of the message the route logs')
   }
+  // The same discipline on the lever that ANSWERS its refusal instead of
+  // throwing it, against the REAL render ops rather than the double: the
+  // first live run pressed Render with a made-up id and the page showed
+  // `nincs terv ezzel az id-vel: nincs-ilyen`, which the route also wrote to
+  // the host log. `renderel` is a new door onto `renderOps.start`, so start's
+  // wording is what the operator reads.
+  const { state } = setup()
+  const igazi = createRpc(state, createRenderOps(state))
+  const valasz = await igazi.renderel({ tervId: gonosz })
+  assert.equal(valasz.hiba, 'terv_ismeretlen')
+  assert.equal(valasz.uzenet, 'nincs terv a megadott tervId-vel')
+  assert.equal(valasz.uzenet.includes('script'), false, 'the refused value stays out of the sentence the page shows and the route logs')
+  const megszakit = await igazi.cancelRender({ renderId: gonosz }).then(() => null, (e) => e)
+  assert.equal(megszakit.code, 'render_ismeretlen')
+  assert.equal(megszakit.message.includes('script'), false)
 })
 
 test('Tisztítás takes the preview cache too: it is the module\'s own and no row can bind its deletion', async () => {

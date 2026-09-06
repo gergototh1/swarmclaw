@@ -284,9 +284,24 @@ export function createRenderOps(state) {
     }
   }
 
+  /**
+   * The three "nincs ilyen id" refusals in this file -- twice for a
+   * `renderId`, once for a `tervId` -- name the ARGUMENT and never the value
+   * it carried. Each of them used to read `nincs render ezzel az id-vel:
+   * ${renderId}`, which is the one thing `args.mjs` says a refusal must not
+   * do: the id is a tool argument an agent assembled from text strangers
+   * wrote, the page's `renderel` and `cancelRender` levers hand the same
+   * message to the host log with `log.warn`, and a message that quoted the
+   * value would carry that text into the log line and into the agent's next
+   * prompt as this module's own words. The caller already knows what it
+   * passed; what it does not know is which argument was wrong, and that is
+   * what the sentence says. `videoPlan` and `videoNarrate` have worded the
+   * same refusal this way all along -- these three were the odd ones out, and
+   * the live run found the plan one the moment the page grew a Render button.
+   */
   async function status(renderId) {
     const render = repo().render(renderId)
-    if (!render) refuse('render_ismeretlen', `nincs render ezzel az id-vel: ${renderId}`)
+    if (!render) refuse('render_ismeretlen', 'nincs render a megadott renderId-vel')
     if (render.status === 'fut') {
       if (Math.abs(render.host_boot_at - bootAt()) > BOOT_TURES_S) {
         await closeDead(render, 'a gép a render indítása óta újraindult; a pid egy másik folyamaté lehet, jel nem ment ki')
@@ -305,7 +320,7 @@ export function createRenderOps(state) {
 
   function cancel(renderId) {
     const render = repo().render(renderId)
-    if (!render) refuse('render_ismeretlen', `nincs render ezzel az id-vel: ${renderId}`)
+    if (!render) refuse('render_ismeretlen', 'nincs render a megadott renderId-vel')
     if (render.status !== 'fut') refuse('render_nem_fut', `a render státusza ${render.status}`)
     // The row closes first so the exit event that follows the kill finds
     // nothing to do; what the signals returned is written onto it afterwards,
@@ -327,7 +342,7 @@ export function createRenderOps(state) {
 
   async function start(tervId) {
     const terv = repo().terv(tervId)
-    if (!terv) refuse('terv_ismeretlen', `nincs terv ezzel az id-vel: ${tervId}`)
+    if (!terv) refuse('terv_ismeretlen', 'nincs terv a megadott tervId-vel')
     // A closed video is closed for the render too, and the refusal is the one
     // videoNarrate, videoDraft and videoVerdict already make. Without it this
     // render's close would call `videoStatusAfterRender`, and `setVideoStatus`
