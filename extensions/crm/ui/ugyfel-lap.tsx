@@ -20,12 +20,16 @@ type Lap = {
  * A lapozott idővonal következő állapota: a már látott események, kiegészítve
  * egy újonnan behúzott lappal.
  *
- * A `before` a lista végén lévő (legrégebbi) esemény `occurred_at`-ja --
- * ugyanaz az érték, amit a hívás elküldött --, ezért egy visszatérő oldal
- * elvben nem fedhetné át a meglévőt. A `before` mégis csak másodperc
- * pontosságú, és két esemény ugyanabban a másodpercben rögzülhet: az id
- * szerinti szűrés emiatt véd, nem elmélet ellen, hanem a repo tényleges
- * `occurred_at < ?` határa ellen.
+ * A repo (`src/db.mjs` `listEvents`) szigorú `occurred_at < ?` határral lapoz,
+ * ezért egy már látott esemény nem térhet vissza egy későbbi lapon -- az itteni
+ * id szerinti szűrés csak védekező jellegű, nem egy ismert hiba ellen szól.
+ * A határ valódi kockázata a fordítottja: ha egy esemény `occurred_at`-ja
+ * pontosan egybeesik a határoló (legrégebbi látott) eseményével, de az nem
+ * fért rá az előző lapra, akkor egyetlen későbbi lekérés sem kéri le --
+ * `< before` nem engedi át --, így az az esemény véglegesen kimarad a
+ * nézetből. Ennek orvoslásához a lapozásnak a `occurred_at`-nál finomabb
+ * (pl. id szerinti másodlagos) rendezésre és határra lenne szüksége, ami
+ * `src/db.mjs`-t érintené -- ezen a fájlon kívül esik.
  */
 export function lapozottIdovonal(meglevo: Event[], ujOldal: Event[]): Event[] {
   if (ujOldal.length === 0) return meglevo
@@ -69,7 +73,10 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
       .then((x) => {
         const uj = (x as { events: Event[] }).events
         if (uj.length === 0) { setNincsTobbEsemeny(true); return }
-        setLap({ ...lap, events: lapozottIdovonal(lap.events, uj) })
+        // Funkcionális frissítő: a válasz akkor is a beérkezéskori (nem a
+        // kattintáskori) lapra épül, ha közben pl. egy jegyzetelés újratöltötte
+        // a lapot. Ha a lap időközben null lett, nincs mire visszaírni.
+        setLap((elozo) => (elozo ? { ...elozo, events: lapozottIdovonal(elozo.events, uj) } : elozo))
         setHiba('')
       })
       .catch((e: Error) => setHiba(e.message))
