@@ -5,11 +5,14 @@ import type { Rpc } from './api'
 type Unmatched = { id: string; sender_address: string; subject: string; guess_account_id: string | null }
 type Suggestion = { id: string; text: string; reason: string }
 type Account = { id: string; name: string }
+type Kapcsolat = { id: string; name: string; accountId: string | null; accountName: string }
 
 export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => void }) {
   const [unmatched, setUnmatched] = useState<Unmatched[]>([])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [kapcsolatok, setKapcsolatok] = useState<Kapcsolat[]>([])
+  const [valasztott, setValasztott] = useState<Record<string, string>>({})
   const [hiba, setHiba] = useState('')
   const [sopres, setSopres] = useState<string>('')
   const [fut, setFut] = useState(false)
@@ -23,8 +26,19 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
         setAccounts(board.accounts)
       })
       .catch((e: Error) => setHiba(e.message))
+    rpc('contactsForPicker')
+      .then((c) => setKapcsolatok(c as Kapcsolat[]))
+      .catch((e: Error) => setHiba(e.message))
   }
   useEffect(tolt, [rpc])
+
+  const hozzarendel = (u: Unmatched) => {
+    const contactId = valasztott[u.id]
+    if (!contactId) return
+    rpc('assignUnmatched', { unmatchedId: u.id, contactId })
+      .then(tolt)
+      .catch((e: Error) => setHiba(e.message))
+  }
 
   const elvet = (suggestionId: string) => {
     rpc('setSuggestionStatus', { suggestionId, status: 'dismissed' })
@@ -84,6 +98,18 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
                   </span>
                 )}
                 <button disabled={!u.guess_account_id} onClick={() => u.guess_account_id && onOpen(u.guess_account_id)}>Megnyit</button>
+                <select value={valasztott[u.id] || ''} aria-label={`${u.sender_address} hozzárendelése`}
+                        onChange={(e) => setValasztott({ ...valasztott, [u.id]: e.target.value })}>
+                  <option value="">Válassz kapcsolatot…</option>
+                  {kapcsolatok
+                    .filter((c) => !u.guess_account_id || c.accountId === u.guess_account_id)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}{c.accountName && ` — ${c.accountName}`}
+                      </option>
+                    ))}
+                </select>
+                <button onClick={() => hozzarendel(u)} disabled={!valasztott[u.id]}>Hozzárendel</button>
               </li>
             ))}
           </ul>

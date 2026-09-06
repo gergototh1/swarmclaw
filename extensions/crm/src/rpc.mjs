@@ -103,6 +103,25 @@ export function createRpc(state) {
     },
 
     /**
+     * A hozzárendelő választója: minden kapcsolat, az ügyfele nevével.
+     *
+     * Az ügyfél nélküli kapcsolatokat is viszi. Egy levél épp attól kerülhet
+     * besorolatlanba, hogy az embert ismerjük, de még nincs ügyfélhez kötve --
+     * kihagyni őket pont a leggyakoribb esetet nehezítené meg.
+     *
+     * A `searchContacts('')` üres mintára minden kapcsolatot ad -- az üres
+     * minta escape-elve is üres marad, tehát a `LIKE '%%'` mindenre illeszkedik.
+     */
+    async contactsForPicker() {
+      const r = repo()
+      const nevek = Object.fromEntries(r.listAccounts({}).map((a) => [a.id, a.name]))
+      return r.searchContacts('').map((c) => ({
+        id: c.id, name: c.name, accountId: c.accountId,
+        accountName: c.accountId ? (nevek[c.accountId] || '') : '',
+      }))
+    },
+
+    /**
      * A besorolatlan levél hozzárendelése -- és ugyanez a hívás tanítja meg a
      * címet.
      *

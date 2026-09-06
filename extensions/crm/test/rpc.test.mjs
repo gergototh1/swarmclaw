@@ -66,6 +66,17 @@ test('a besorolatlan hozzárendelése tanult címet ír', async () => {
   assert.equal(repo.listUnmatched().length, 0)
 })
 
+test('a contactsForPicker minden kapcsolatot ad, az ügyfél nevével', async () => {
+  const { rpc, repo } = rpcOf()
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const c1 = repo.createContact({ accountId: acc.id, name: 'Dorina' })
+  const c2 = repo.createContact({ name: 'Ügyfél nélküli' })
+  const lista = await rpc.contactsForPicker({})
+  const byId = Object.fromEntries(lista.map((c) => [c.id, c]))
+  assert.equal(byId[c1.id].accountName, 'Morvai Kft.')
+  assert.equal(byId[c2.id].accountName, '')
+})
+
 test('az ismeretlen ügyfél nevesített hibát ad, nem üres választ', async () => {
   const { rpc } = rpcOf()
   await assert.rejects(() => rpc.account({ accountId: 'acc_nincs' }), /crm_ismeretlen_ugyfel/)
