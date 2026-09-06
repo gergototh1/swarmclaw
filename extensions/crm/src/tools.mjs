@@ -1,3 +1,5 @@
+import crypto from 'node:crypto'
+
 import { createAttention } from './attention-service.mjs'
 import { createSweep } from './sweep.mjs'
 
@@ -17,11 +19,21 @@ import { createSweep } from './sweep.mjs'
  * a besorolatlan sorba teszi, ahol az operátoré a szó. Ugyanazt a törzset
  * hívja, mint az rpc `sweepNow`, hogy a két belépési pont soha ne térjen el.
  *
+ * A CRM-3 ÖT ÍRÓ ESZKÖZT AD: jegyzet, összefoglaló, ígéret, ígéret-feladat
+ * kötés, javaslat. Egyik `execute` sem továbbítja az `args`-ot szórással a
+ * repo felé -- minden mezőt nevesítve olvasunk ki. Egy `coversEventId`
+ * spread mellett átcsúszna a `writeSummary`-hoz, és az ügynök állíthatná,
+ * hogy többet fedett le, mint amennyit ténylegesen olvasott -- lásd a
+ * `writeSummary` megjegyzését a `db.mjs`-ben.
+ *
  * AMI NINCS ITT, AZ SZÁNDÉKOSAN NINCS. Ügyfél, kapcsolat és ügy létrehozása
  * és törlése, `deal.stage` és `account.status` állítása, a besorolatlan
  * hozzárendelése, és a javaslat elfogadása mind az operátoré (spec 5.4).
  * A besorolatlan hozzárendelése a tanuló-kapu: ha az ügynök átléphetné,
- * akkor nem volna kapu, és a `crm_sweep` ezt nem érinti.
+ * akkor nem volna kapu, és a `crm_sweep` ezt nem érinti. A javaslat
+ * elfogadása ugyanez okból hiányzik: az ügynök javasol, az operátor dönt, és
+ * az elfogadás az, ami feladatot csinál a javaslatból -- ha az ügynök saját
+ * magának fogadhatná el, a javaslat már nem javaslat volna.
  */
 export function createTools(state) {
   const repo = () => {
@@ -129,6 +141,106 @@ export function createTools(state) {
       },
       async execute({ limit }) {
         return createAttention(state).list({ limit: Number(limit) || 50 })
+      },
+    },
+    {
+      name: 'crm_note',
+      description: 'Jegyzet az ügyfél idővonalára. Arra való, hogy rögzítsd, amit megtudtál — nem arra, hogy összefoglalj.',
+      parameters: {
+        type: 'object',
+        properties: { accountId: { type: 'string' }, text: { type: 'string' } },
+        required: ['accountId', 'text'],
+      },
+      async execute({ accountId, text }, ctx) {
+        const r = repo()
+        if (!r.getAccount(accountId)) throw new Error('crm_ismeretlen_ugyfel')
+        const at = new Date().toISOString()
+        // A `sourceId` a `(source_system, source_id)` egyedi indexbe fut: két
+        // jegyzet ugyanattól az ügynöktől ugyanabban az ezredmásodpercben
+        // névileg ütközne, és a második `recordEvent` `{ created: false }`-t
+        // adna vissza -- csendben eldobva a második jegyzetet. A jegyzet nem
+        // idempotens művelet (nem söprés, nem levél-behúzás), tehát ez itt
+        // adatvesztés volna, nem védelem. A rövid véletlen utótag ezt zárja
+        // ki, miközben az id maga -- ügynök, időbélyeg -- olvasható marad.
+        const sourceId = `agent:${ctx?.session?.agentId || 'ismeretlen'}:${at}:${crypto.randomBytes(4).toString('hex')}`
+        return r.recordEvent({
+          accountId, kind: 'note', occurredAt: at,
+          excerpt: String(text || '').slice(0, 200),
+          sourceSystem: 'agent',
+          sourceId,
+          body: String(text || ''),
+        })
+      },
+    },
+    {
+      name: 'crm_summary_write',
+      description: 'Összefoglaló az ügyfélről. Azt írd le, ami az idővonalon tényleg szerepel. A lefedettséget a rendszer bélyegzi rá — nem tudod és nem is kell megadnod.',
+      parameters: {
+        type: 'object',
+        properties: { accountId: { type: 'string' }, text: { type: 'string' } },
+        required: ['accountId', 'text'],
+      },
+      async execute({ accountId, text }, ctx) {
+        const r = repo()
+        if (!r.getAccount(accountId)) throw new Error('crm_ismeretlen_ugyfel')
+        return r.writeSummary({ accountId, text: String(text || ''), agentId: ctx?.session?.agentId || '' })
+      },
+    },
+    {
+      name: 'crm_commitment_write',
+      description: 'Egy elhangzott ígéret rögzítése egy eseményből. A direction az ígérő oldala: "ours" amit az operátor ígért, "theirs" amit neki ígértek.',
+      parameters: {
+        type: 'object',
+        properties: {
+          accountId: { type: 'string' }, eventId: { type: 'string' }, text: { type: 'string' },
+          direction: { type: 'string', enum: ['ours', 'theirs'] },
+          dueHint: { type: 'string', description: 'Ha elhangzott határidő, szó szerint.' },
+        },
+        required: ['accountId', 'eventId', 'text', 'direction'],
+      },
+      async execute({ accountId, eventId, text, direction, dueHint }) {
+        const r = repo()
+        if (!r.getAccount(accountId)) throw new Error('crm_ismeretlen_ugyfel')
+        if (!r.getEvent(eventId)) throw new Error('crm_ismeretlen_esemeny')
+        if (direction !== 'ours' && direction !== 'theirs') throw new Error('crm_ismeretlen_igeret_irany')
+        return r.writeCommitment({ accountId, eventId, text: String(text || ''), direction, dueHint: String(dueHint || '') })
+      },
+    },
+    {
+      name: 'crm_commitment_link',
+      description: 'Egy ígéret összekötése a belőle született feladattal. Ezután az ígéret nem szerepel többé a figyelem-listán.',
+      parameters: {
+        type: 'object',
+        properties: { commitmentId: { type: 'string' }, taskId: { type: 'string' } },
+        required: ['commitmentId', 'taskId'],
+      },
+      async execute({ commitmentId, taskId }) {
+        const out = repo().linkCommitmentTask(commitmentId, String(taskId || ''))
+        if (!out) throw new Error('crm_ismeretlen_igeret')
+        return out
+      },
+    },
+    {
+      name: 'crm_suggestion_write',
+      description: 'Javaslat az operátornak egy következő lépésre. Te javasolsz, ő dönt — elfogadni nem tudod, és az elfogadás az, ami feladatot csinál belőle.',
+      parameters: {
+        type: 'object',
+        properties: {
+          accountId: { type: 'string' }, text: { type: 'string' },
+          reason: { type: 'string', description: 'Egy mondat arról, mire alapozod.' },
+          triggerKind: { type: 'string', description: 'A crm_attention sorának kind mezője, ha abból jött.' },
+          triggerEventId: { type: 'string' },
+        },
+        required: ['accountId', 'text'],
+      },
+      async execute({ accountId, text, reason, triggerKind, triggerEventId }, ctx) {
+        const r = repo()
+        if (!r.getAccount(accountId)) throw new Error('crm_ismeretlen_ugyfel')
+        return r.writeSuggestion({
+          accountId, text: String(text || ''), reason: String(reason || ''),
+          triggerKind: String(triggerKind || ''), triggerEventId: triggerEventId || null,
+          agentId: ctx?.session?.agentId || '',
+        })
       },
     },
   ]
