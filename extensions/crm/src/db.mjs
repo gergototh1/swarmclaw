@@ -96,6 +96,18 @@ CREATE TABLE IF NOT EXISTS ext_crm_sweep_state (
   last_seen_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL
 );
 `,
+}, {
+  // A 2-es verzió a CRM-3-mal együtt már kiment -- lásd a 0407fa1 commitot --,
+  // tehát ugyanúgy nem írható át, mint az 1-es: egy már lefutott migráció SQL-jét
+  // szerkeszteni azon a telepítésen nem csinál semmit (lásd
+  // `applyExtensionMigrations` a hoszt `extension-storage.ts`-ében: egy verzió
+  // legfeljebb egyszer fut le, és soha nem fut újra). A `thread_id` ezért új,
+  // 3-as verzióban érkezik.
+  version: 3,
+  sql: `
+ALTER TABLE ext_crm_event ADD COLUMN thread_id TEXT NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS ext_crm_event_thread ON ext_crm_event (thread_id);
+`,
 }])
 
 const now = () => new Date().toISOString()
@@ -176,6 +188,24 @@ export function createRepo(storage) {
         ? S.all('SELECT * FROM ext_crm_account WHERE status = ? ORDER BY name', [status])
         : S.all('SELECT * FROM ext_crm_account ORDER BY name')
       return rows.map(accountOut)
+    },
+
+    /**
+     * Az ügyfelek id-i, akiknek `domains`-je pontosan tartalmazza ezt a
+     * domaint -- a `matching.mjs` 3. (tipp) ágának keresője.
+     *
+     * A `domains` JSON-tömbként van tárolva, tehát a szűrés memóriában
+     * történik (`listAccounts({})` + `domains.includes(d)`), nem SQL
+     * `LIKE`-kal. Egy szóló CRM ügyfélszámánál ez helyes döntés -- a
+     * CRM-1 `mustDeal`-jénél ugyanez a mérlegelés már megtörtént.
+     */
+    accountsByDomain(domain) {
+      const d = str(domain).toLowerCase()
+      if (!d) return []
+      return S.all('SELECT * FROM ext_crm_account ORDER BY name')
+        .map(accountOut)
+        .filter((acc) => acc.domains.includes(d))
+        .map((acc) => acc.id)
     },
 
     // ---- contact -------------------------------------------------------
@@ -309,17 +339,18 @@ export function createRepo(storage) {
      * viseli-e.
      */
     recordEvent({ accountId, dealId = null, contactId = null, kind, occurredAt,
-                  title = '', excerpt = '', sourceSystem = 'manual', sourceId, body = '' }) {
+                  title = '', excerpt = '', sourceSystem = 'manual', sourceId, body = '',
+                  threadId = '' }) {
       const id = newId('evt')
       return S.transaction(() => {
         S.exec(
           `INSERT INTO ext_crm_event
              (id, account_id, deal_id, contact_id, kind, occurred_at, title, excerpt,
-              source_system, source_id, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              source_system, source_id, thread_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(source_system, source_id) DO NOTHING`,
           [id, accountId, dealId, contactId, kind, occurredAt, str(title), str(excerpt),
-           sourceSystem, sourceId, now()],
+           sourceSystem, sourceId, str(threadId), now()],
         )
         const event = S.get(
           'SELECT * FROM ext_crm_event WHERE source_system = ? AND source_id = ?',
@@ -362,6 +393,18 @@ export function createRepo(storage) {
         [accountId],
       )
       return row && row.at ? row.at : null
+    },
+
+    /**
+     * Melyik ügyfélhez tartozik ez a levélszál, a szál már besorolt
+     * üzeneteiből -- a `matching.mjs` 2. ága ezt hívja.
+     */
+    accountIdByThread(threadId) {
+      const row = S.get(
+        'SELECT account_id FROM ext_crm_event WHERE thread_id = ? LIMIT 1',
+        [str(threadId)],
+      )
+      return row ? row.account_id : null
     },
 
     // ---- commitment ----------------------------------------------------

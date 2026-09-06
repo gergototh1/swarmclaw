@@ -257,3 +257,20 @@ test('a sopres-allapot irhato es visszaolvashato', () => {
   repo.setSweepState('gmail', { cursor: 'c2', lastSeenAt: '2026-09-02T10:00:00.000Z' })
   assert.equal(repo.getSweepState('gmail').cursor, 'c2', 'a masodik iras felulir, nem duplikal')
 })
+
+test('accountIdByThread a szal mar besorolt uzenetebol dolgozik', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-09-01T10:00:00.000Z',
+                     excerpt: 'e', sourceSystem: 'gmail', sourceId: 'msg_1', threadId: 'thr_1' })
+  assert.equal(repo.accountIdByThread('thr_1'), acc.id)
+  assert.equal(repo.accountIdByThread('thr_nincs'), null)
+})
+
+test('accountsByDomain csak a pontos domain-egyezest adja', () => {
+  const { repo } = repoOf()
+  const a = repo.createAccount({ name: 'A', domains: ['morvai.hu'] })
+  repo.createAccount({ name: 'B', domains: ['mas.hu'] })
+  assert.deepEqual(repo.accountsByDomain('morvai.hu'), [a.id])
+  assert.deepEqual(repo.accountsByDomain('nincs.hu'), [])
+})
