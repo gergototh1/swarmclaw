@@ -52,7 +52,11 @@ import type { Agent } from '@/types'
 export const PLATFORM_MCP_TOOL_NAMES: readonly string[] = [
   // Coordination — the point of the exercise.
   'spawn_subagent',
-  'delegate',
+  // `delegate` is deliberately absent. It hands work to a coding CLI, and every
+  // agent reaching this bridge is already running on one, so offering it would
+  // let Claude Code delegate to Claude Code: a second subscription-spending
+  // process to do what the caller was about to do itself. Agent-to-agent
+  // delegation is `spawn_subagent`, which is the one this fleet needs.
   'manage_tasks',
   'manage_agents',
   'manage_schedules',

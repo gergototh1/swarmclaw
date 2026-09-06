@@ -31,6 +31,13 @@ describe('PLATFORM_MCP_TOOL_NAMES', () => {
     }
   })
 
+  it('does not offer `delegate`, which would be Claude Code delegating to Claude Code', () => {
+    // Every agent reaching this bridge already runs on a coding CLI, so this
+    // tool would spend a second subscription to do what the caller was about
+    // to do itself. Agent-to-agent delegation is spawn_subagent.
+    assert.equal(PLATFORM_MCP_TOOL_NAMES.includes('delegate'), false)
+  })
+
   it('has no duplicates, so a name cannot be advertised twice', () => {
     assert.equal(new Set(PLATFORM_MCP_TOOL_NAMES).size, PLATFORM_MCP_TOOL_NAMES.length)
   })

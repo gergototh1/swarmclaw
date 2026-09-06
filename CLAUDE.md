@@ -266,6 +266,36 @@ and what names the docs extension's per-agent folder. Consequences for new code:
 - `tts` and `gmail` predate this and declare `tools: []` with hand-written rpc
   methods instead. They work; they are not the pattern to copy.
 
+### Fork Divergence: CLI-Provider Agents May Delegate
+
+`storage-normalization.ts` upstream forces `delegationEnabled = false` for every
+worker-only provider (all CLI providers, plus openclaw and hermes) on **every
+load**, not only on write. That line is removed on this fork. Its premise was
+that a CLI-provider agent has no host tool loop and so has nothing to delegate
+with; `src/lib/server/platform-mcp.ts` gives it one, so the premise no longer
+holds.
+
+**Re-apply this after any upstream merge that touches that block.** Nothing
+fails loudly if the line comes back: the operator ticks "Assign to Other
+Agents", the UI accepts it, the next load clears it, and the coordinating agent
+silently stops being able to hand out work.
+`src/lib/server/storage-normalization-delegation.test.ts` is what turns that
+silence into a failing test — keep it.
+
+The two rules beside it are deliberately kept:
+
+- `role = 'worker'` — orchestrator mode is gated separately on the provider
+  (`NON_ORCHESTRATOR_PROVIDERS`), and delegation does not need it.
+- `heartbeatEnabled = false` — the expensive one. A CLI provider spends a
+  subscription rather than an API key, and autonomous wakes across a fleet of
+  them must not switch on as a side effect of allowing delegation. Schedules
+  drive the fleet instead.
+
+`PLATFORM_MCP_TOOL_NAMES` deliberately omits `delegate` for the same family of
+reason: every agent reaching that bridge already runs on a coding CLI, so
+offering it would let Claude Code delegate to Claude Code. Agent-to-agent
+delegation is `spawn_subagent`.
+
 ### Writing an Extension
 
 `/docs/extension-tutorial` gives exactly one worked example, and it is the whole
