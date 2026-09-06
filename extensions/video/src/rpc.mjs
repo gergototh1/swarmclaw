@@ -159,19 +159,24 @@ function sapkak(repo) {
 }
 
 /**
- * The answer shape of the three mechanical levers, and the one place in this
- * file that does not refuse by throwing.
+ * The answer shape of the four levers the page presses, and the one place in
+ * this file that does not refuse by throwing.
  *
  * EVERY OTHER METHOD HERE THROWS ITS REFUSALS and that is right for them:
  * they are reads and small writes the page only offers next to a row it has
  * already loaded, so a refusal there means the page asked for something that
- * is not on screen. `nyit`, `narral` and `renderel` are the opposite. They
- * are buttons an operator presses in exactly the states this module refuses
- * -- the day's cap is spent, the plan has no passing verdict, the tts has no
- * balance left, a render is already running -- and each of those refusals is
+ * is not on screen. `nyit`, `narral`, `renderel` and `youtubeOtletek` are the
+ * opposite. They are buttons an operator presses in exactly the states this
+ * module refuses -- the day's cap is spent, the plan has no passing verdict,
+ * the tts has no balance left, a render is already running, no channel is
+ * configured, the yt-dlp path names nothing -- and each of those refusals is
  * a sentence the operator has to read to know what to do next. A thrown one
  * reaches the browser as a 500 whose body the page shows as "500", and the
  * sentence is lost.
+ *
+ * `youtubeOtletek` is the fourth and was added after this paragraph was
+ * written; it is named here because a list of three beside four call sites
+ * sends its next reader looking for the difference.
  *
  * So the refusal comes back as data: `{ hiba, uzenet }` plus whatever fields
  * the refusal itself carried (`sapka`, `maNyilt`, `ttsKod`, `renderId`), the

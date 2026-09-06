@@ -856,6 +856,36 @@ test('a revision reaches Render inditasa THROUGH the narration lever, never arou
   assert.equal(renderSotet.test(narralt), false, 'a narrated revision renders: the module weighs the fix chain when the lever is pressed')
 })
 
+test('Lezar and Kuld explain themselves when they are dark, like every other control here', () => {
+  // A DARK CONTROL ON THIS PAGE EXPLAINS ITSELF -- the rule this file declares
+  // for the levers, and the two controls that were exempt from it. Lezár was
+  // disabled on a closed video with nothing said, and never on the state the
+  // module actually refuses (`lezar` will not close a video with a render in
+  // flight, src/rpc.mjs); Küld was dark on an empty form without saying that
+  // the time and the scene are the parts that may stay empty.
+  const lezart = render(VideoBody, videoProps(videoDetail({ status: 'lezart' })))
+  assert.ok(/<button[^>]*disabled[^>]*>Lezár/.test(lezart))
+  assert.ok(lezart.includes('Ez a videó már le van zárva'))
+
+  const futo = render(VideoBody, videoProps(videoDetail({ renderek: [renderSor({ status: 'fut', finishedAt: null })] })))
+  assert.ok(/<button[^>]*disabled[^>]*>Lezár/.test(futo), 'a press the module could only refuse is not offered')
+  assert.ok(futo.includes('a modul lezárni csak render nélkül enged'))
+
+  const eles = render(VideoBody, videoProps(videoDetail()))
+  assert.equal(/<button[^>]*disabled[^>]*>Lezár/.test(eles), false)
+
+  const uresUrlap = render(VideoBody, videoProps(videoDetail()))
+  assert.ok(/<button[^>]*disabled[^>]*>Küld/.test(uresUrlap))
+  assert.ok(uresUrlap.includes('az időpont és a jelenet üresen hagyható, a szöveg nem'))
+
+  const kuldesFut = render(VideoBody, videoProps(videoDetail(), { szoveg: 'valami', kuldes: true }))
+  assert.ok(/<button[^>]*disabled[^>]*>Küld/.test(kuldesFut))
+  assert.ok(kuldesFut.includes('A visszajelzés mentése elment, a válaszra várok.'))
+
+  const kuldheto = render(VideoBody, videoProps(videoDetail(), { szoveg: 'a horog lassú' }))
+  assert.equal(/<button[^>]*disabled[^>]*>Küld/.test(kuldheto), false)
+})
+
 /** How many times a sentence stands in the markup. Both levers can name the same state, and "at least once" would not see one of them missing it. */
 const elofordulas = (html, mondat) => html.split(mondat).length - 1
 

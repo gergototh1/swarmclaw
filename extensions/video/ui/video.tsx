@@ -38,7 +38,9 @@ import { safeHref } from './safe-href'
  * else -- no row records that a turn was ordered, and nothing on the page
  * asks -- so leaving the video and opening it again mounts a view whose three
  * ordering levers are live, while a turn ordered from the previous mount may
- * still be running. The operator can buy a second one that way, and there is nothing on
+ * still be running. (Within the mount the guard is whole: Frissítés takes back
+ * a `fut` -- a turn on an agent's queue, which looking again is what ends --
+ * and deliberately not a `kuldes`, a host call this page has had no answer to.) The operator can buy a second one that way, and there is nothing on
  * this screen that would tell them they had.
  *
  * IT IS ACCEPTED, NOT OVERLOOKED. Closing the hole means the page learning
@@ -586,6 +588,42 @@ function javitasTiltasOka(video: VideoDetail, futoRender: RenderRow | null, nyit
 }
 
 /**
+ * Why Lezár is dark, in one sentence, or null when it is live.
+ *
+ * A DARK CONTROL ON THIS PAGE EXPLAINS ITSELF, and this one did not: it was
+ * disabled on `status === 'lezart'` with nothing said, in the file that
+ * declares the rule for the levers below it.
+ *
+ * THE RUNNING RENDER IS THE SECOND TEST BECAUSE THE MODULE REFUSES ON IT.
+ * `lezar` (src/rpc.mjs) will not close a video with a render in flight, and
+ * names the render so the page can offer to stop it. That is a state this page
+ * can see for itself, so a press that could only come back refused is not
+ * offered -- the same rule the mechanical levers are built on. Waiting for the
+ * render to end, or stopping it, makes the button live, which is the test of
+ * whether a reason is worth printing.
+ */
+function lezarTiltasOka(video: VideoDetail, futoRender: RenderRow | null): string | null {
+  if (video.status === 'lezart') return 'Ez a videó már le van zárva; a modul nem dolgozik rajta tovább.'
+  if (futoRender !== null) return `Ezen a videón most fut egy render (${futoRender.renderId}); a modul lezárni csak render nélkül enged. Várd meg a végét, vagy állítsd le.`
+  return null
+}
+
+/**
+ * Why Küld is dark, in one sentence, or null when it is live.
+ *
+ * Both states are this page's own and neither is a failure: one is a request
+ * that has not come back, the other the ordinary empty form. The sentence for
+ * the second says what to type rather than reporting that something is
+ * missing, and names what may stay empty -- the time and the scene both may,
+ * and the operator cannot see that from a dark button.
+ */
+function kuldTiltasOka(kuldes: boolean, szoveg: string): string | null {
+  if (kuldes) return 'A visszajelzés mentése elment, a válaszra várok.'
+  if (szoveg.trim() === '') return 'Írj szöveget: az időpont és a jelenet üresen hagyható, a szöveg nem.'
+  return null
+}
+
+/**
  * The header's second line, with the empty parts left out.
  *
  * Built from a list rather than concatenated, because a video opened by nobody
@@ -603,6 +641,9 @@ export function metaSor(video: VideoDetail): string {
   ]
   return reszek.filter((r) => r !== '').join(' · ')
 }
+
+/** Frissítés's own transition: a queued turn ends when the operator looks, a host call that is still out does not. */
+const vissza = (allapot: RendelesAllapot): RendelesAllapot => (allapot === 'fut' ? null : allapot)
 
 /** The panels for a loaded video. Split out so the test can render one without an effect. */
 export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtMs, onJelenet, onKuld, onLezar, onBack, onFrissit, uzenet, narralas, renderInditas, tervRendeles, lektorRendeles, javitasRendeles, onNarral, onRenderel, onTervKeres, onLektorKeres, onJavitasKeres }: {
@@ -651,6 +692,8 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
   const nyitott = nyitottKeresek(video)
   const lezartak = lezartKeresek(video)
   const javitasOk = javitasTiltasOka(video, futoRender, nyitott, javitasRendeles)
+  const lezarOk = lezarTiltasOka(video, futoRender)
+  const kuldOk = kuldTiltasOka(kuldes, szoveg)
   const url = forrasUrl(video.forrasSzoveg, safeHref)
 
   return (
@@ -666,7 +709,8 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
           also what takes the ordering levers out of their `fut` state.
         */}
         <button type="button" className="vid-btn vid-btn-small" onClick={onFrissit}>Frissítés</button>
-        <button type="button" className="vid-btn vid-btn-small" onClick={onLezar} disabled={video.status === 'lezart'}>Lezár</button>
+        <button type="button" className="vid-btn vid-btn-small" onClick={onLezar} disabled={lezarOk !== null}>Lezár</button>
+        {lezarOk !== null && <span className="vid-muted vid-lepes-ok">{lezarOk}</span>}
       </div>
       <p className="vid-muted vid-video-meta">{metaSor(video)}</p>
 
@@ -760,7 +804,7 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
                 Szöveg
                 <textarea className="vid-input" rows={3} value={szoveg} onChange={(e) => onSzoveg(e.target.value)} />
               </label>
-              <button type="submit" className="vid-btn" disabled={kuldes || szoveg.trim() === ''}>Küld</button>
+              <Lepes cimke="Küld" ok={kuldOk} type="submit" />
             </form>
 
             {video.visszajelzesek.length === 0
@@ -1083,11 +1127,27 @@ export function VideoView({ rpc, id, onBack, hostFetch = HOST_FETCH }: { rpc: Rp
    * The message is cleared with it: it was about the order, and the reload is
    * the operator saying they have read it. Leaving "a forduló fut" on screen
    * beside a lever that is live again would be the page contradicting itself.
+   *
+   * IT TAKES BACK `fut` AND NOT `kuldes`, AND THAT IS THE WHOLE OF THE FIX.
+   * `fut` is a turn on an agent's queue, and looking again is exactly what ends
+   * it. `kuldes` is a host call this page has not had an answer to yet: clearing
+   * it made the lever live again while the order was still in the air, so a
+   * second press bought a second turn -- and the in-flight `.then` then wrote
+   * `fut` over the fresh state a moment later. This file's own head docblock
+   * says the operator cannot buy the same turn twice, and in that window it was
+   * false.
+   *
+   * A staleness flag on the three handlers would be the other way to close it,
+   * the way the load effect above guards its own write. It is not needed once
+   * `kuldes` is never cleared underneath a pending call: the lever is dark for
+   * the whole of that state, so no second order can start, and the answer
+   * always lands on the state it was sent from. One rule, in one place, rather
+   * than a generation counter three handlers have to remember to read.
    */
   const onFrissit = useCallback(() => {
-    setTervRendeles(null)
-    setLektorRendeles(null)
-    setJavitasRendeles(null)
+    setTervRendeles(vissza)
+    setLektorRendeles(vissza)
+    setJavitasRendeles(vissza)
     setUzenet(null)
     setReload((n) => n + 1)
   }, [])

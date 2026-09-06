@@ -322,7 +322,16 @@ export function YoutubeOtletekBody({ dolgozik, mondatok, onKattint }: {
       <Lepes cimke="Ötletek a YouTube-ról" ok={ok} onKattint={onKattint} />
       {mondatok.length > 0 && (
         <ul className="vid-youtube-valasz" role="status">
-          {mondatok.map((m) => <li key={m}>{m}</li>)}
+          {/*
+            THE INDEX IS THE KEY, AND THE SENTENCE IS NOT. `csatornakOf` does
+            not deduplicate, so a settings field reading "@a, @a" with a
+            failing channel produces the same composed sentence twice, and two
+            identical keys is a React warning over a list that is otherwise
+            correct. Nothing here is reordered, inserted into or stateful: the
+            whole array is replaced by the next press, so the position IS the
+            identity.
+          */}
+          {mondatok.map((m, i) => <li key={i}>{m}</li>)}
         </ul>
       )}
     </section>

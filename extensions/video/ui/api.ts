@@ -802,12 +802,13 @@ export function errorText(err: unknown): string {
  * The refusal carried by a lever's answer, named, or null when the answer is
  * the act having happened.
  *
- * `nyit`, `narral` and `renderel` are the three methods in `rpc.mjs` that
- * RESOLVE with their refusals instead of throwing them (`nemDob` there says
- * why): each is a button the operator presses in exactly the states the
- * module refuses -- the day's cap is spent, the plan has no passing verdict,
- * a render is already running -- and a thrown refusal reaches the page as a
- * 500 whose sentence is lost. A resolved promise from those three is
+ * `nyit`, `narral`, `renderel` and `youtubeOtletek` are the four methods in
+ * `rpc.mjs` that RESOLVE with their refusals instead of throwing them
+ * (`nemDob` there says why): each is a button the operator presses in exactly
+ * the states the module refuses -- the day's cap is spent, the plan has no
+ * passing verdict, a render is already running, no YouTube channel is
+ * configured -- and a thrown refusal reaches the page as a 500 whose sentence
+ * is lost. A resolved promise from those three is
  * therefore not proof that anything happened, and every caller here asks this
  * before it says one did. A REJECTED promise is still possible and is a
  * different fact: the request did not reach the module at all, and
