@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import type { RenderRow, Rpc, Terv, VideoDetail } from './api'
+import type { RenderRow, Rpc, Terv, VideoDetail, Visszajelzes } from './api'
 import { errorText, readVideo, refusalText } from './api'
 import { forrasUrl, formatDate, formatMs, jelenetTipus, mertSzoveg, propokSzoveg, renderStatusLabel, statusLabel } from './format'
 import { Idovonal, type Pont } from './idovonal'
@@ -11,8 +11,9 @@ import { HOST_FETCH, rendelj } from './megrendeles'
 import { safeHref } from './safe-href'
 
 /**
- * Everything stored about one video, and the four things the operator can do
- * to it: ask for its narration, start its render, leave a note, and close it.
+ * Everything stored about one video, and the five things the operator can do
+ * to it: ask for its narration, start its render, leave a note, order a fix for
+ * the notes already left, and close it.
  *
  * TWO KINDS OF LEVER, AND THE DIFFERENCE IS WHO DOES THE WORK. Narráció
  * kérése and Render indítása need no agent: the sentences were written and
@@ -21,12 +22,13 @@ import { safeHref } from './safe-href'
  * functions `videoNarrate` and `videoRender` call, run on the spot, answered
  * in the same tick.
  *
- * Terv kérése and Lektorálás kérése cannot work that way, because writing a
- * plan and judging one are judgement and nothing else: there is no service
- * function to call, only a model that has to read the source and choose. So
- * those two do not DO anything -- they ORDER, through `megrendeles.ts`, and
- * what comes back is that an agent turn is on the queue. That turn costs money
- * and runs for minutes, which is why both say so beside the button while it
+ * Terv kérése, Lektorálás kérése and Javítás kérése cannot work that way,
+ * because writing a plan, judging one, and reading what the operator wrote
+ * about a finished film are judgement and nothing else: there is no service
+ * function to call, only a model that has to read prose and choose. So those
+ * three do not DO anything -- they ORDER, through `megrendeles.ts`, and what
+ * comes back is that an agent turn is on the queue. That turn costs money and
+ * runs for minutes, which is why all three say so beside the button while it
  * can still be pressed.
  *
  * WHAT THE DOUBLE-ORDER GUARD ACTUALLY COVERS, SAID EXACTLY. An ordered turn
@@ -34,9 +36,9 @@ import { safeHref } from './safe-href'
  * this view, the operator cannot buy the same turn twice by clicking twice.
  * That is the whole of it. `RendelesAllapot` is component state and nothing
  * else -- no row records that a turn was ordered, and nothing on the page
- * asks -- so leaving the video and opening it again mounts a view whose two
- * levers are live, while the turn ordered from the previous mount may still be
- * running. The operator can buy a second one that way, and there is nothing on
+ * asks -- so leaving the video and opening it again mounts a view whose three
+ * ordering levers are live, while a turn ordered from the previous mount may
+ * still be running. The operator can buy a second one that way, and there is nothing on
  * this screen that would tell them they had.
  *
  * IT IS ACCEPTED, NOT OVERLOOKED. Closing the hole means the page learning
@@ -436,6 +438,67 @@ function renderTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null, l
 }
 
 /**
+ * The operator's fix requests, split by whether a render has answered them.
+ *
+ * `forras === 'operator'` is the half that matters, and it is `repo.openFeedback`'s
+ * own filter said again on this side: an imported row came out of the
+ * operator's analytics export and is an OBSERVATION, not a request -- nobody
+ * asked for it to be fixed, and no render could honestly close it. The full
+ * Visszajelzés list below still draws both, because that list is the record of
+ * everything said about this video; these two are the working view of the one
+ * thing that has a lifecycle.
+ */
+const nyitottKeresek = (video: VideoDetail): Visszajelzes[] =>
+  video.visszajelzesek.filter((f) => f.forras === 'operator' && f.kezelteRenderId === null)
+
+const lezartKeresek = (video: VideoDetail): Visszajelzes[] =>
+  video.visszajelzesek.filter((f) => f.kezelteRenderId !== null)
+
+/**
+ * Why Javítás kérése is dark, in one sentence, or null when it is live.
+ *
+ * THE ORDER IS THE MODULE'S, AND THE FIRST TEST IS THE MODULE'S FIRST TEST.
+ * `videoRevise` weighs `video_lezart` before it looks at the parent version,
+ * at the verdict chain or at a single request id (src/terv.mjs) -- the same
+ * place `videoDraft`, `videoVerdict`, `narralTerv` and `renderOps.start` put
+ * it -- so closure is what this lever says first as well. On a closed video
+ * with no finished render, naming the render would send the operator to make
+ * one the module would then refuse to revise: a reason is only worth printing
+ * if acting on it makes the button live.
+ *
+ * THE NEXT TWO ARE NOT MODULE REFUSALS, AND THEY ARE STILL IN THIS ORDER FOR
+ * THE SAME RULE. `videoRevise` has nothing to say about a video that has never
+ * rendered; what it has is `javitas_hianyzik`, which is the third test here.
+ * The missing render comes first anyway, because writing another request on a
+ * video nobody has watched yet would not make this button live, while making
+ * the render might.
+ *
+ * "NINCS NYITOTT KÉRÉS" IS NOT A FAULT, it is the ordinary resting state: the
+ * lever is dark because there is nothing to order yet. So the sentence says
+ * what to do -- write one -- rather than reporting that something broke.
+ *
+ * WHAT IS DELIBERATELY NOT TESTED HERE. A render running on this video, which
+ * `videoRevise` does refuse (`refuseIfRendering`). Neither ordering lever
+ * beside it tests it either, though `videoDraft` and `videoVerdict` refuse it
+ * just the same: an ordering lever names the facts that make the ORDER
+ * pointless, and every other refusal arrives from the module by name, through
+ * the turn, where the notice line prints it. Repeating the module's whole
+ * refusal list on the page would be a second copy of it to keep in step.
+ *
+ * `kuldes` AND `fut` GET TWO SENTENCES, exactly as the other two ordering
+ * levers do: the three host calls being out and a turn being on an agent's
+ * queue are different facts, and only the second one has cost money.
+ */
+function javitasTiltasOka(video: VideoDetail, nyitott: Visszajelzes[], allapot: RendelesAllapot): string | null {
+  if (video.status === 'lezart') return 'A videó le van zárva, a modul nem dolgozik rajta tovább.'
+  if (video.renderek.every((r) => r.status !== 'kesz')) return 'Nincs kész render, amire javítást lehetne kérni.'
+  if (nyitott.length === 0) return 'Előbb írj legalább egy kérést a fenti űrlappal — globálisan, vagy egy jelenetre.'
+  if (allapot === 'kuldes') return 'A megrendelés elment a hosthoz, a válaszra várok.'
+  if (allapot === 'fut') return `A(z) ${GYARTO_NEV} javító fordulója fut; percekig is eltarthat. A Frissítés gomb mutatja meg, megszületett-e az új verzió.`
+  return null
+}
+
+/**
  * The header's second line, with the empty parts left out.
  *
  * Built from a list rather than concatenated, because a video opened by nobody
@@ -455,7 +518,7 @@ export function metaSor(video: VideoDetail): string {
 }
 
 /** The panels for a loaded video. Split out so the test can render one without an effect. */
-export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtMs, onJelenet, onKuld, onLezar, onBack, onFrissit, uzenet, narralas, renderInditas, tervRendeles, lektorRendeles, onNarral, onRenderel, onTervKeres, onLektorKeres }: {
+export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtMs, onJelenet, onKuld, onLezar, onBack, onFrissit, uzenet, narralas, renderInditas, tervRendeles, lektorRendeles, javitasRendeles, onNarral, onRenderel, onTervKeres, onLektorKeres, onJavitasKeres }: {
   video: VideoDetail
   pont: { atMs: string; jelenet: string }
   szoveg: string
@@ -476,11 +539,15 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
   /** How far each ordered agent turn has got. Separate, because one running turn is no reason to darken the other lever. */
   tervRendeles: RendelesAllapot
   lektorRendeles: RendelesAllapot
+  /** The fix order is a third, separate one: it is ordered from the feedback column and has nothing to do with the plan section's two. */
+  javitasRendeles: RendelesAllapot
   /** All three take the plan id rather than reading it back out of the video: which plan is the latest is decided here, once, where the panel is drawn. */
   onNarral: (tervId: string) => void
   onRenderel: (tervId: string) => void
   onTervKeres: () => void
   onLektorKeres: (tervId: string) => void
+  /** Takes no id: the turn reads the open requests itself with `videoFixes`, so the page names only the video. */
+  onJavitasKeres: () => void
 }) {
   const status = statusLabel(video.status)
   const terv = video.tervek[video.tervek.length - 1]
@@ -494,6 +561,9 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
   const renderOk = renderTiltasOka(terv, futoRender, lezart, renderInditas)
   const tervKeresOk = tervKeresTiltasOka(lezart, tervRendeles)
   const lektorKeresOk = lektorKeresTiltasOka(terv, lezart, lektorRendeles)
+  const nyitott = nyitottKeresek(video)
+  const lezartak = lezartKeresek(video)
+  const javitasOk = javitasTiltasOka(video, nyitott, javitasRendeles)
   const url = forrasUrl(video.forrasSzoveg, safeHref)
 
   return (
@@ -624,6 +694,65 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
                 </ul>
               )}
           </Szekcio>
+
+          {/*
+            THE LIFECYCLE, DRAWN AS TWO LISTS RATHER THAN ONE FLAG. The section
+            above is the record: everything anyone ever said about this video,
+            the imported analytics observations included. These two are the only
+            rows that have a lifecycle -- the operator's own requests -- and
+            they are apart because the operator does something different with
+            each. What is open is what the next fix has to answer, and it stands
+            with the lever that orders it. What is closed is evidence, and it
+            names the render that closed it: a file the operator can go and
+            watch, which "kezelve" as a tick would not be.
+
+            An operator row therefore appears twice on this screen, once in the
+            record and once in the list it belongs to. That is deliberate: the
+            record answers "what has been said", these answer "what is still
+            owed", and folding them together would cost one of the two answers.
+          */}
+          <Szekcio cim="Nyitott javítás-kérések" szam={nyitott.length} ures={nyitott.length === 0}>
+            {/*
+              The empty sentence is a CHILD and not `uresSzoveg`, because
+              `Szekcio` draws `uresSzoveg` INSTEAD of its children -- and this
+              section carries the lever. An empty section with no button would
+              be the one state in which the operator cannot see what the next
+              step is called.
+            */}
+            {nyitott.length === 0
+              ? <p className="vid-sec-ures">Nincs nyitott kérés ehhez a videóhoz.</p>
+              : (
+                <ul className="vid-feedback-list">
+                  {nyitott.map((v) => (
+                    <li key={v.id}>
+                      <span className="vid-mono">{v.jelenet === null ? 'globális' : `${v.jelenet}. jelenet`}</span>
+                      {' · '}
+                      <span className="vid-mono">{v.atMs === null ? 'nincs időpont' : formatMs(v.atMs)}</span>
+                      {' · '}
+                      {v.szoveg}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            <Lepes cimke="Javítás kérése" ok={javitasOk} figyelmeztetes={FORDULO_ARA} onKattint={onJavitasKeres} />
+          </Szekcio>
+
+          <Szekcio cim="Lezárt javítás-kérések" szam={lezartak.length} ures={lezartak.length === 0}
+            uresSzoveg="Egyetlen kérést sem zárt le még render.">
+            <ul className="vid-feedback-list vid-lezart-keresek">
+              {lezartak.map((v) => (
+                <li key={v.id}>
+                  <span className="vid-mono">{v.jelenet === null ? 'globális' : `${v.jelenet}. jelenet`}</span>
+                  {' · '}
+                  <span className="vid-mono">{v.atMs === null ? 'nincs időpont' : formatMs(v.atMs)}</span>
+                  {' · '}
+                  <span className="vid-mono">{`lezárta: ${v.kezelteRenderId}`}</span>
+                  {' · '}
+                  {v.szoveg}
+                </li>
+              ))}
+            </ul>
+          </Szekcio>
         </div>
       </div>
     </div>
@@ -654,6 +783,7 @@ export function VideoView({ rpc, id, onBack, hostFetch = HOST_FETCH }: { rpc: Rp
   const [renderInditas, setRenderInditas] = useState(false)
   const [tervRendeles, setTervRendeles] = useState<RendelesAllapot>(null)
   const [lektorRendeles, setLektorRendeles] = useState<RendelesAllapot>(null)
+  const [javitasRendeles, setJavitasRendeles] = useState<RendelesAllapot>(null)
   const [reload, setReload] = useState(0)
 
   useEffect(() => {
@@ -803,6 +933,46 @@ export function VideoView({ rpc, id, onBack, hostFetch = HOST_FETCH }: { rpc: Rp
   }, [id, hostFetch])
 
   /**
+   * The third order, and the one the operator's own words set off.
+   *
+   * IT NAMES BOTH TOOLS AND NOTHING ELSE, and it does not repeat what the tool
+   * descriptions already say. `videoRevise` declares its own scope rule --
+   * every scene not named is taken over from the parent version unchanged, and
+   * a narration line written onto an untouched scene is refused by name -- so
+   * the module enforces the narrowness rather than this sentence asking for it.
+   * What the message must NOT say is "only touch the scenes the requests are
+   * about": a global request is about no scene at all, while `videoRevise`
+   * refuses a submission with no rewritten scene, so that instruction would
+   * send the turn at a refusal.
+   *
+   * NO REQUEST IDS IN THE MESSAGE. The turn reads them itself with
+   * `videoFixes`, off the module's own rows, at the moment it runs -- which is
+   * later than now, and by then the page's copy could be stale.
+   *
+   * The daily producer run deliberately does not do this work (`GYARTAS_PROMPT`
+   * says so in as many words): a fix costs an agent turn just like a new plan,
+   * and the daily cap is on OPENING videos, not on fixing them. So this button
+   * is the only thing that orders one.
+   */
+  const onJavitasKeres = useCallback(() => {
+    setJavitasRendeles('kuldes')
+    void rendelj({
+      agentNev: GYARTO_NEV,
+      sessionNev: `Videó javítás: ${id}`,
+      uzenet: `Az operátor javítást kért a ${id} videóra. Olvasd el a videoFixes-szel a nyitott kéréseket, és add be a javítást a videoRevise-zal: nevezd meg, mely jeleneteket írod át és mely kéréseket dolgozod be. Ne csinálj mást.`,
+    }, hostFetch).then((valasz) => {
+      const hiba = megrendelesHiba(valasz)
+      if (hiba !== null) {
+        setUzenet(`A javítás kérése nem ment el — ${hiba}`)
+        setJavitasRendeles(null)
+        return
+      }
+      setUzenet(`A javítás kérése elment: a(z) ${GYARTO_NEV} fordulója fut. A lap nem olvassa a választ; a Frissítés gomb mutatja meg, megszületett-e az új verzió.`)
+      setJavitasRendeles('fut')
+    })
+  }, [id, hostFetch])
+
+  /**
    * The operator looking again, which is the only thing that ends a `fut`.
    *
    * There is no poller behind this on purpose. A page that asked the module
@@ -818,6 +988,7 @@ export function VideoView({ rpc, id, onBack, hostFetch = HOST_FETCH }: { rpc: Rp
   const onFrissit = useCallback(() => {
     setTervRendeles(null)
     setLektorRendeles(null)
+    setJavitasRendeles(null)
     setUzenet(null)
     setReload((n) => n + 1)
   }, [])
@@ -858,10 +1029,12 @@ export function VideoView({ rpc, id, onBack, hostFetch = HOST_FETCH }: { rpc: Rp
         renderInditas={renderInditas}
         tervRendeles={tervRendeles}
         lektorRendeles={lektorRendeles}
+        javitasRendeles={javitasRendeles}
         onNarral={onNarral}
         onRenderel={onRenderel}
         onTervKeres={onTervKeres}
         onLektorKeres={onLektorKeres}
+        onJavitasKeres={onJavitasKeres}
       />
     </>
   )

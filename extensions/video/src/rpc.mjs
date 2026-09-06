@@ -340,7 +340,12 @@ export function createRpc(state, ops) {
         id: v.id, cim: v.cim, status: v.status, forrasTipus: v.forras_tipus, forrasId: v.forras_id, forrasSzoveg: v.forras_szoveg,
         nyitottaAgentId: v.nyitotta_agent_id, createdAt: v.created_at, lezarvaAt: v.lezarva_at,
         tervek, renderek,
-        visszajelzesek: repo().feedbackFor(v.id).map((f) => ({ id: f.id, renderId: f.render_id, atMs: f.at_ms, jelenet: f.jelenet, szoveg: f.szoveg, forras: f.forras, at: f.created_at })),
+        // `kezelteRenderId` és `kezeltAt` NEM ugyanaz, mint a `renderId`: az
+        // utóbbi az a render, amit az operátor NÉZETT, amikor a kérést írta,
+        // az előbbi kettő pedig az a render, ami a kérést LEZÁRTA, és mikor.
+        // A lap ezen a különbségen áll: a nyitott kérés az, amire még nem
+        // született fájl, és a lezárt mellett a lezáró render a bizonyíték.
+        visszajelzesek: repo().feedbackFor(v.id).map((f) => ({ id: f.id, renderId: f.render_id, atMs: f.at_ms, jelenet: f.jelenet, szoveg: f.szoveg, forras: f.forras, at: f.created_at, kezelteRenderId: f.kezelte_render_id, kezeltAt: f.kezelt_at })),
         megtartas: repo().retentionFor(v.id).map((p) => ({ platform: p.platform, tS: p.t_s, arany: p.arany })),
       }
     },

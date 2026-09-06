@@ -509,6 +509,11 @@
 @media (max-width: 520px) { .vid-feedback-pont { grid-template-columns: 1fr; } }
 .vid-sec .vid-feedback-list { margin: 10px 0 0; }
 
+/* An answered request is history: it keeps its text and the id of the render
+ * that closed it, so the operator can go and watch the file, but it recedes so
+ * the open list beside it reads as the one that still needs work. */
+.vid-lezart-keresek li { color: var(--color-text-3, #8282a0); }
+
 /* The source box was the tallest thing on the page and pushed the working
  * areas below the fold; it scrolls at eight lines instead. */
 .vid-sec .vid-forras { max-height: 15em; overflow: auto; margin: 0; }

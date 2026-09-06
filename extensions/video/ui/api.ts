@@ -107,12 +107,25 @@ export interface Terv {
 
 export interface Visszajelzes {
   id: string
+  /** The render the operator was WATCHING when they wrote this, or null if they wrote it without one. */
   renderId: string | null
   atMs: number | null
   jelenet: number | null
   szoveg: string
   forras: string
   at: string
+  /**
+   * The render that ANSWERED this request, and when -- null while it is still
+   * open. NOT the same field as `renderId` above, and the difference is the
+   * whole of the fix lifecycle: one says what the operator was looking at, the
+   * other says whether anything has been made about it since.
+   *
+   * They are two fields rather than one boolean because the id is the
+   * evidence: "this was dealt with" is a claim, and `r-2` is the file the
+   * operator can go and watch.
+   */
+  kezelteRenderId: string | null
+  kezeltAt: string | null
 }
 
 export interface MegtartasPont {
