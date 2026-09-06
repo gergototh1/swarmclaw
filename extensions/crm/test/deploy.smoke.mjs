@@ -58,7 +58,7 @@ for (const [nev, tipus] of [['index.js', 'javascript'], ['style.css', 'css']]) {
 //    ugyanúgy néz ki, mint egy elgépelt URL; egy név megmondja, mi történt.
 {
   const { body } = await call('account', { accountId: 'acc_nincs' })
-  ok('nevesített hiba ismeretlen ügyfélre', String(body?.error || '').includes('crm_ismeretlen_ugyfel'),
+  ok('nevesített hiba ismeretlen ügyfélre', String(body?.error?.message || '').includes('crm_ismeretlen_ugyfel'),
      JSON.stringify(body))
 }
 

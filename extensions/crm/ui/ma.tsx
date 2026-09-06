@@ -64,7 +64,7 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
                     valószínűleg {accounts.find((a) => a.id === u.guess_account_id)?.name}
                   </span>
                 )}
-                <button onClick={() => u.guess_account_id && onOpen(u.guess_account_id)}>Megnyit</button>
+                <button disabled={!u.guess_account_id} onClick={() => u.guess_account_id && onOpen(u.guess_account_id)}>Megnyit</button>
               </li>
             ))}
           </ul>
