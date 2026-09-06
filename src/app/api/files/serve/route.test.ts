@@ -37,6 +37,15 @@ describe('files/serve media', () => {
     assert.equal(res.headers.get('content-disposition'), 'inline')
     assert.equal(res.headers.get('accept-ranges'), 'bytes')
     assert.equal(res.headers.get('content-length'), '1024')
+    // Content-Length is COMPUTED from the range arithmetic, never measured
+    // from the stream, so the header above says nothing about whether a body
+    // was attached. Read it. A branch that streams only on the 206 path
+    // satisfies every header assertion here and hands <video> an empty 200 on
+    // the very first request it makes.
+    const body = Buffer.from(await res.arrayBuffer())
+    assert.equal(body.byteLength, 1024)
+    assert.equal(body[0], 0)
+    assert.equal(body[1023], 1023 % 251, 'the stream must run to the last byte of the file')
   })
 
   it('does not apply the 10 MB cap to media -- that cap is why the render could not be watched', async () => {
@@ -72,6 +81,24 @@ describe('files/serve media', () => {
 
   it('answers a Range past the end of the file with 416, naming the size', async () => {
     const res = await serve(tempMp4(1000), 'bytes=5000-6000')
+    assert.equal(res.status, 416)
+    assert.equal(res.headers.get('content-range'), 'bytes */1000')
+  })
+
+  /**
+   * An inverted range is the only input that reaches the 416 guard without
+   * also being past the end of the file, so it is the only test that holds
+   * `start > end` up on its own.
+   *
+   * It is also a deliberate deviation: RFC 9110 calls this an invalid
+   * ranges-specifier and leans toward ignoring the header, which would mean
+   * the whole file with 200. 416 is the more informative answer to a client
+   * that has confused itself, no <video> ever sends this, and pinning the
+   * choice here is worth more than leaving the case we are least sure about
+   * unguarded.
+   */
+  it('answers an inverted range with 416 rather than guessing at what was meant', async () => {
+    const res = await serve(tempMp4(1000), 'bytes=500-100')
     assert.equal(res.status, 416)
     assert.equal(res.headers.get('content-range'), 'bytes */1000')
   })

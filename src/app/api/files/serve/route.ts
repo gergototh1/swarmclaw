@@ -60,11 +60,19 @@ const MEDIA_MIME: Record<string, string> = {
 /**
  * The single byte range of a `Range` header, or null.
  *
- * NULL FOR THREE DIFFERENT REASONS, AND ALL THREE MEAN THE SAME THING HERE:
- * there is no header, it is not of the `bytes=` form, or it asks for several
- * ranges (`bytes=0-9,20-29`). The caller answers all three with the whole file
- * and a 200, because a range this route does not understand is not a range it
- * may guess at: `<video>` asks again anyway if the server does not chunk.
+ * NULL FOR SEVERAL DIFFERENT REASONS, AND ALL OF THEM MEAN THE SAME THING
+ * HERE: there is no header; it is not of the `bytes=` form; it asks for
+ * several ranges (`bytes=0-9,20-29`); it is a zero-length suffix (`bytes=-0`),
+ * which asks for nothing; or a bound is a number this route will not do
+ * arithmetic on (beyond `Number.MAX_SAFE_INTEGER`). The caller answers every
+ * one of them with the whole file and a 200, because a range this route does
+ * not understand is not a range it may guess at: `<video>` asks again anyway
+ * if the server does not chunk, and RFC 9110 lets a server ignore a `Range` it
+ * cannot act on.
+ *
+ * Note what is NOT in that list: a range this route understood and cannot
+ * satisfy. That one gets a 416 from the caller, because there the client is
+ * owed an answer rather than a substitute.
  *
  * `bytes=-500` (the last 500 bytes) is included, because browsers really do
  * send it.
@@ -122,7 +130,15 @@ export async function GET(req: Request) {
     // A request past the end of the file gets HTTP's own answer for it, with
     // the size: without this the <video> would get an empty 206 and playback
     // would stop without anyone finding out why.
-    if (range && (range.start >= stat.size || range.start > range.end)) {
+    //
+    // `start > end` is the whole test, and it covers being past the end too,
+    // because `byteRange` has already clamped `end` to `size - 1` -- a start
+    // at or beyond `size` is therefore always beyond `end`, and on an empty
+    // file `end` is -1, so every start is. A separate `start >= stat.size`
+    // disjunct would be unreachable, and unreachable conditions cannot be
+    // tested and so rot. If the clamp ever leaves `byteRange`, this line has
+    // to come back.
+    if (range && range.start > range.end) {
       return new NextResponse(null, { status: 416, headers: { 'Content-Range': `bytes */${stat.size}` } })
     }
     const start = range ? range.start : 0
