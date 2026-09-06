@@ -249,12 +249,12 @@ export async function narralTerv(state, tervIdRaw) {
   if (video && video.status === 'lezart') refuse('video_lezart', 'a videó le van zárva')
   const latest = repo.latestTerv(terv.video_id)
   if (latest.id !== terv.id) refuse('terv_elavult', `a(z) ${terv.verzio}. verzió nem a legfrissebb; a legfrissebb a v${latest.verzio}`, { legfrissebbTervId: latest.id })
-  // A KAPU SZŰKÍTÉSE, NEM A LEBONTÁSA, ÉS ITT ÁLL A FIZETÉS ELŐTT. Ez a sor
-  // dönti el, hogy a tts megszólal-e egyáltalán: egy javítás, amit ez a kapu
-  // beenged és a render nem, egy kifizetett hangfájl egy videóhoz, ami soha
-  // nem készül el -- és a megváltozott mondat épp az, ami nincs a tts
-  // gyorsítótárában. Ezért kérdez mindkét kapu ugyanabból a modulból, és ezért
-  // engedi át a kódot és a mondatot változatlanul: `verdikt-kapu.mjs`.
+  // The gate is narrowed here, not dismantled, and this is the one of the two
+  // that stands BEFORE the money: this line decides whether the tts is called
+  // at all, and the sentence an operator changed is precisely the one its
+  // cache does not hold. So the rule is not restated here -- both callers ask
+  // `verdikt-kapu.mjs`, which owns the argument for why they must agree, and
+  // its code and sentence are passed through untouched.
   const jog = verdiktJog(repo, terv)
   if (!jog.ok) refuse(jog.kod, jog.uzenet)
   // A render on this video reads the narration rows at its start and

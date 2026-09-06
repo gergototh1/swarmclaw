@@ -277,13 +277,9 @@ test('the unchanged short circuit asks exactly what the render gate asks: a miss
 })
 
 /**
- * A NARRÁCIÓ VERDIKT-KAPUJA UGYANAZT A SZABÁLYT KÉRDEZI, MINT A RENDER.
- *
- * Ez a kapu áll elöl: ha itt szűkebb a szabály, mint a rendernél, az operátor
- * javítása addig jut, hogy a megváltozott mondatot kifizeti a tts-nél, és utána
- * akad el -- egy kifizetett hangfájl egy videóhoz, ami soha nem készül el. A
- * `verdikt-kapu.mjs` ezért egy modul két hívóval, és ezek a tesztek azt mérik,
- * hogy a `videoNarrate` tényleg onnan kérdez.
+ * The narration gate asks `verdikt-kapu.mjs`, which owns the rule and the
+ * argument for why both gates must ask it; these measure that `videoNarrate`
+ * really does, and that it refuses before the tts is called.
  */
 
 /** Az operátor kért javítása a setup terve fölé: ugyanaz a tartalom egy megváltozott mondattal. */

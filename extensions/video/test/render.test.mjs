@@ -99,16 +99,10 @@ test('start refuses in the spec order, each with its code', async () => {
 })
 
 /**
- * AZ OPERÁTORI JAVÍTÁS RENDERE, ÉS A KAPU, AMI NEM TŰNT EL.
- *
- * A render és a `videoNarrate` ugyanazt kérdezi: van-e joga ennek a tervnek
- * továbbmenni. Egy operátori javításnak SOHA nincs saját verdiktje -- épp ez a
- * feature --, tehát a kapu a saját `passingVerdikt` olvasásával mindkét helyen
- * elakasztaná, a narrációnál már azután, hogy a megváltozott mondat tts-számláját
- * kifizettette. A szabály ezért a `verdikt-kapu.mjs`-ben áll, egy helyen; ezek a
- * tesztek azt mérik, hogy a render TÉNYLEG onnan kérdez, változatlanul engedi át
- * a kódot és a mondatot, és a render sorába annak az ítéletnek az id-je kerül,
- * amire a jog támaszkodik -- javításnál a szülőé.
+ * The render gate asks `verdikt-kapu.mjs`, which owns the rule and the
+ * argument for why both gates must ask it; these measure that the render
+ * really does, passes its code and sentence through untouched, and writes the
+ * id of the judgement the run rests on -- a parent's, for an operator's fix.
  */
 
 /** Az operátor kért javítása a megadott terv fölé: ugyanaz a tartalom egy megváltozott mondattal. */

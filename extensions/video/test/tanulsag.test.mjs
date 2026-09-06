@@ -74,6 +74,45 @@ test('verdiktekVsQa pairs a passing verdict with a failed QA on its render', asy
   assert.equal(verdiktekVsQa(repo, new Date(0).toISOString()).length, 1, 'a failing verdict is not a miss')
 })
 
+/**
+ * A REVISION'S FAILED RENDER IS NOT THE REVIEWER'S MISS.
+ *
+ * `verdiktekVsQa` joins renders to verdicts on the render row's `verdikt_id`,
+ * and that id stopped meaning "the verdict on this render's plan" the moment
+ * the verdict gate started letting a plan inherit its right from an ancestor
+ * (`src/verdikt-kapu.mjs`): a revision's render row carries the PARENT's
+ * verdict id, because that is the judgement the run rests on. Left alone, the
+ * first QA failure on an operator's fix would be filed as a named reviewer's
+ * miss, against a plan id they did judge, for a sentence they never saw -- a
+ * false report about a person's work, fed into the one mechanism this module
+ * learns from.
+ */
+test('egy javítás elbukott rendere nem a lektor hibája, mert az örökölt verdikt nem erről a tervről szól', async () => {
+  const { repo, videoId } = setup()
+  const szulo = repo.insertTerv({ videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {} })
+  const v = repo.insertVerdikt({ tervId: szulo.id, tervHash: szulo.tervHash, lektorAgentId: 'l', lektorSessionId: 's', verdikt: 'atmegy', talalatok: [] })
+  // Az operátor egy mondatot kért másképp; a javításnak nincs és nem is lesz
+  // saját verdiktje, tehát a render sorára a szülő ítéletének id-je kerül.
+  const javitas = repo.insertTerv({
+    videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO.map((n) => (n.jelenet === 1 ? { ...n, szoveg: 'Az operátor által kért mondat.' } : n)),
+    assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {},
+    szarmazas: 'operator_javitas', javitasIdk: [], szuloTervId: szulo.id,
+  })
+  repo.claimRender({ id: 'r1', videoId, tervId: javitas.id, tervHash: javitas.tervHash, verdiktId: v.id, hostBootAt: 1, jelenetHatarok: [], propsPath: '/p', outPath: '/o', logPath: '/l', platform: 'darwin' })
+  repo.finishRender('r1', { status: 'kesz', fileSha256: 'sha' })
+  repo.insertQa({ renderId: 'r1', fileSha256: 'sha', szabalykeszlet: 1, ok: false, meresek: {}, bukasok: [{ kod: 'Q5', nev: 'audio_stream' }] })
+  assert.deepEqual(verdiktekVsQa(repo, new Date(0).toISOString()), [], 'a lektor nem látta ezt a mondatot')
+
+  // ...és ugyanannak a verdiktnek a SAJÁT terve továbbra is beleszámít: a
+  // szűrés a terv-egyezésről szól, nem arról, hogy a videón volt javítás.
+  repo.claimRender({ id: 'r2', videoId, tervId: szulo.id, tervHash: szulo.tervHash, verdiktId: v.id, hostBootAt: 1, jelenetHatarok: [], propsPath: '/p', outPath: '/o', logPath: '/l', platform: 'darwin' })
+  repo.finishRender('r2', { status: 'kesz', fileSha256: 'sha2' })
+  repo.insertQa({ renderId: 'r2', fileSha256: 'sha2', szabalykeszlet: 1, ok: false, meresek: {}, bukasok: [{ kod: 'Q1', nev: 'x' }] })
+  const out = verdiktekVsQa(repo, new Date(0).toISOString())
+  assert.deepEqual(out.map((x) => x.renderId), ['r2'])
+  assert.equal(out[0].tervId, szulo.id)
+})
+
 test('videoPropose refuses by name: no evidence, unknown evidence, unknown target or kind, long lesson, duplicates by title and by text, the sixth per run, the 21st open', async () => {
   const { repo, run, f1, f2, videoId } = setup()
   assert.equal((await propose(run, { bizonyitek: [] })).error.code, 'bizonyitek_hianyzik')

@@ -99,7 +99,7 @@ export function verdiktJog(repo, terv) {
       // tárgya. A név is ezt követi: nem a hash más, hanem volt már átengedés.
       const voltAtmegy = repo.verdiktek(jelen.id).some((v) => v.verdikt === 'atmegy')
       return voltAtmegy
-        ? { ok: false, kod: 'verdikt_elavult', uzenet: 'volt atmegy verdikt ezen a terven, de a lektor egy későbbi ítélettel visszavonta; újra kell lektorálnia' }
+        ? { ok: false, kod: 'verdikt_elavult', uzenet: 'volt atmegy verdikt ezen a terven, de egy későbbi ítélet visszavonta; új lektori ítélet kell rá, mielőtt továbbmehet' }
         : { ok: false, kod: 'verdikt_hianyzik', uzenet: 'erre a tervre nincs atmegy verdikt' }
     }
     // A LEKTOR NEMET MONDHATOTT ERRE A JAVÍTÁSRA IS. `passingVerdikt` a

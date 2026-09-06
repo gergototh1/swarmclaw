@@ -66,6 +66,20 @@ const isoDaysAgo = (d) => new Date(Date.now() - d * 86_400_000).toISOString()
  * render without one was never measured. The QA row is read under the
  * current rule set: a failure under an older set is a fact about that set,
  * not about the verdict.
+ *
+ * THE RENDER'S PLAN MUST BE THE VERDICT'S PLAN, AND THAT IS NO LONGER FREE.
+ * The join reads the render row's `verdikt_id`, which used to be the verdict
+ * on that render's own plan and nothing else. Since the verdict gate lets a
+ * plan inherit its right to proceed from an ancestor (`verdikt-kapu.mjs`), an
+ * operator's revision -- which has no verdict of its own by design -- renders
+ * under the PARENT's verdict id, because that is the judgement the run rests
+ * on. Counting that failure here would file it as a named reviewer's miss,
+ * against the parent plan's id, for a sentence the reviewer never saw. It
+ * feeds no gate, only the lessons loop, which makes it worse rather than
+ * better: it would teach the review from a falsehood about a person's work.
+ * So the pair is dropped, and what is dropped is exactly the pair -- the same
+ * verdict's own plan still counts, and a revision's QA failure is not lost,
+ * it stays on the render and QA rows the page and `videoRenderStatus` read.
  */
 export function verdiktekVsQa(repo, sinceIso) {
   const renderek = repo.rendersAll()
@@ -73,7 +87,7 @@ export function verdiktekVsQa(repo, sinceIso) {
   for (const v of repo.verdiktekSince(sinceIso)) {
     if (v.verdikt !== 'atmegy') continue
     for (const r of renderek) {
-      if (r.verdikt_id !== v.id || !r.file_sha256) continue
+      if (r.verdikt_id !== v.id || r.terv_id !== v.terv_id || !r.file_sha256) continue
       const qa = repo.qaFor(r.id, r.file_sha256, SZABALYKESZLET)
       if (qa && qa.ok === 0) out.push({ verdiktId: v.id, tervId: v.terv_id, renderId: r.id, qaId: qa.id, bukasok: JSON.parse(qa.bukasok) })
     }
