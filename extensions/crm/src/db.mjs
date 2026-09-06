@@ -643,5 +643,67 @@ export function createRepo(storage) {
       )
       return S.get('SELECT * FROM ext_crm_sweep_state WHERE key = ?', [key])
     },
+
+    // ---- figyelem-triggerek ----
+    /**
+     * Nyitott ügyek, amiken a küszöb óta nem történt semmi.
+     *
+     * A `LEFT JOIN` szándékos: egy ügy, amin SOHA nem történt semmi, a
+     * legnémább, és egy `INNER JOIN` pont azt hagyná ki. A `HAVING` a
+     * `NULL`-t is átengedi, mert a `MAX()` üres halmazon `NULL`.
+     */
+    silentDeals(cutoffIso) {
+      return S.all(
+        `SELECT d.id AS deal_id, d.account_id, d.title, MAX(e.occurred_at) AS last_event_at
+         FROM ext_crm_deal d
+         LEFT JOIN ext_crm_event e ON e.deal_id = d.id
+         WHERE d.closed_at IS NULL
+         GROUP BY d.id
+         HAVING last_event_at IS NULL OR last_event_at < ?
+         ORDER BY last_event_at ASC`,
+        [cutoffIso],
+      )
+    },
+
+    /**
+     * Bejövő levelek, amikre a szálban NEM ment későbbi válasz.
+     *
+     * A „későbbi" a lényeg: egy hónapja küldött válasz nem válasz a tegnapi
+     * kérdésre. A NOT EXISTS ezért hasonlítja az időpontokat, nem csak azt
+     * nézi, van-e egyáltalán kimenő levél a szálban.
+     */
+    unansweredThreads(cutoffIso) {
+      return S.all(
+        `SELECT e.account_id, e.thread_id, e.id AS event_id, e.title AS subject, e.occurred_at
+         FROM ext_crm_event e
+         WHERE e.kind = 'email_in'
+           AND e.thread_id <> ''
+           AND e.occurred_at < ?
+           AND NOT EXISTS (
+             SELECT 1 FROM ext_crm_event v
+             WHERE v.thread_id = e.thread_id
+               AND v.kind = 'email_out'
+               AND v.occurred_at > e.occurred_at
+           )
+         ORDER BY e.occurred_at ASC`,
+        [cutoffIso],
+      )
+    },
+
+    /**
+     * Nyitott, feladat nélküli ígéretek egy irányból, a küszöbnél régebbiek.
+     *
+     * Az irány nem díszítés: amit én ígértem, az az én tartozásom, amit nekem
+     * ígértek, az az ő tartozásuk — más a sürgősségük és más a teendő.
+     */
+    openCommitmentsOlderThan(cutoffIso, direction) {
+      return S.all(
+        `SELECT id, account_id, deal_id, event_id, text, direction, created_at
+         FROM ext_crm_commitment
+         WHERE status = 'open' AND task_id IS NULL AND direction = ? AND created_at < ?
+         ORDER BY created_at ASC`,
+        [direction, cutoffIso],
+      )
+    },
   }
 }

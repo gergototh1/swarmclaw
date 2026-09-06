@@ -362,3 +362,76 @@ test('accountsByDomain csak a pontos domain-egyezest adja', () => {
   assert.deepEqual(repo.accountsByDomain('morvai.hu'), [a.id])
   assert.deepEqual(repo.accountsByDomain('nincs.hu'), [])
 })
+
+test('silentDeals csak a NYITOTT ugyeket adja, es csak a nemakat', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const nema = repo.createDeal({ accountId: acc.id, title: 'Nema' })
+  const friss = repo.createDeal({ accountId: acc.id, title: 'Friss' })
+  const zart = repo.createDeal({ accountId: acc.id, title: 'Zart' })
+  repo.closeDeal(zart.id, { stage: 'won', reason: '' })
+
+  repo.recordEvent({ accountId: acc.id, dealId: nema.id, kind: 'note',
+    occurredAt: '2026-08-01T10:00:00.000Z', excerpt: 'regi', sourceSystem: 'manual', sourceId: 'r1' })
+  repo.recordEvent({ accountId: acc.id, dealId: friss.id, kind: 'note',
+    occurredAt: '2026-09-05T10:00:00.000Z', excerpt: 'uj', sourceSystem: 'manual', sourceId: 'r2' })
+  repo.recordEvent({ accountId: acc.id, dealId: zart.id, kind: 'note',
+    occurredAt: '2026-08-01T10:00:00.000Z', excerpt: 'regi', sourceSystem: 'manual', sourceId: 'r3' })
+
+  const nemak = repo.silentDeals('2026-09-01T00:00:00.000Z')
+  assert.deepEqual(nemak.map((d) => d.title), ['Nema'])
+})
+
+test('silentDeals az esemeny nelkuli nyitott ugyet is nemanak szamolja', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  repo.createDeal({ accountId: acc.id, title: 'Sosem tortent semmi' })
+  const nemak = repo.silentDeals('2026-09-01T00:00:00.000Z')
+  assert.equal(nemak.length, 1, 'egy ugy, amin SOHA nem tortent semmi, a legnemabb')
+  assert.equal(nemak[0].last_event_at, null)
+})
+
+test('unansweredThreads csak azt adja, amire nem ment valasz', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-08-20T10:00:00.000Z',
+    title: 'Varok valaszt', excerpt: 'e', sourceSystem: 'gmail', sourceId: 'a1', threadId: 'thr_a' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-08-20T10:00:00.000Z',
+    title: 'Ez megvalaszolva', excerpt: 'e', sourceSystem: 'gmail', sourceId: 'b1', threadId: 'thr_b' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_out', occurredAt: '2026-08-21T10:00:00.000Z',
+    excerpt: 'valasz', sourceSystem: 'gmail', sourceId: 'b2', threadId: 'thr_b' })
+
+  const varok = repo.unansweredThreads('2026-09-01T00:00:00.000Z')
+  assert.deepEqual(varok.map((x) => x.thread_id), ['thr_a'])
+})
+
+test('unansweredThreads a KESOBBI valaszt szamitja, nem barmelyiket', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_out', occurredAt: '2026-08-10T10:00:00.000Z',
+    excerpt: 'regi valasz', sourceSystem: 'gmail', sourceId: 'o1', threadId: 'thr_c' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-08-20T10:00:00.000Z',
+    title: 'Ujabb kerdes', excerpt: 'e', sourceSystem: 'gmail', sourceId: 'i1', threadId: 'thr_c' })
+
+  const varok = repo.unansweredThreads('2026-09-01T00:00:00.000Z')
+  assert.deepEqual(varok.map((x) => x.thread_id), ['thr_c'],
+    'a valasz KORABBI mint a kerdes, tehat nem valasz ra')
+})
+
+test('openCommitmentsOlderThan iranyra szur es a feladat nelkulieket adja', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const { event } = repo.recordEvent({ accountId: acc.id, kind: 'meeting',
+    occurredAt: '2026-08-01T10:00:00.000Z', excerpt: 'x', sourceSystem: 'manual', sourceId: 'm1' })
+  const enyem = repo.writeCommitment({ accountId: acc.id, eventId: event.id, text: 'Kuldom', direction: 'ours' })
+  repo.writeCommitment({ accountId: acc.id, eventId: event.id, text: 'Kuldi', direction: 'theirs' })
+  const mar = repo.writeCommitment({ accountId: acc.id, eventId: event.id, text: 'Ez kesz', direction: 'ours' })
+  repo.linkCommitmentTask(mar.id, 'task_1')
+
+  // A commitment `created_at`-je a valodi orajarasbol (`now()`) szarmazik --
+  // a kuszobnek ezert a futtatas pillanatahoz kepest kesobbinek kell lennie,
+  // nem egy fixre irt datumnak, kulonben a teszt a naptartol fuggne.
+  const cutoff = new Date(Date.now() + 60_000).toISOString()
+  const sajat = repo.openCommitmentsOlderThan(cutoff, 'ours')
+  assert.deepEqual(sajat.map((c) => c.id), [enyem.id])
+})
