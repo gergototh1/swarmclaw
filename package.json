@@ -199,6 +199,7 @@
     "@tiptap/extension-table-row": "^2.27.3",
     "@tiptap/react": "^2.27.3",
     "@tiptap/starter-kit": "^2.27.3",
+    "@types/turndown": "^5.0.6",
     "electron": "^33.3.0",
     "electron-builder": "^25.1.8",
     "eslint": "^9",
