@@ -1,0 +1,102 @@
+/**
+ * Amit a lap hívhat, `POST /api/extensions/crm.mjs/call/<method>` alatt.
+ *
+ * A hosztnak ez a szélesebb ajtó: itt van minden művelet, amit a spec 5.4
+ * az operátornak tart fenn -- ügyfél és ügy létrehozása, szakaszváltás, a
+ * besorolatlan hozzárendelése, a javaslat elfogadása. Az ügynök felülete
+ * (src/tools.mjs) ezekből egyet sem visz, és külön fájlban van, hogy egy
+ * átvitel a diffből látsszon, ne egy megosztott listából.
+ */
+export function createRpc(state) {
+  const repo = () => {
+    if (!state.repo) throw new Error('crm_nincs_tar')
+    return state.repo
+  }
+
+  const mustAccount = (accountId) => {
+    const acc = repo().getAccount(accountId)
+    if (!acc) throw new Error('crm_ismeretlen_ugyfel')
+    return acc
+  }
+
+  return {
+    /** A lap alapállapota egy hívásból: ügyfelek, nyitott ügyek, besorolatlan, javaslatok. */
+    async board() {
+      const r = repo()
+      return {
+        accounts: r.listAccounts({}),
+        deals: r.listDeals({ openOnly: true }),
+        unmatched: r.listUnmatched(),
+        suggestions: r.listSuggestions({ status: 'new' }),
+      }
+    },
+
+    async account({ accountId }) {
+      const r = repo()
+      const account = mustAccount(accountId)
+      return {
+        account,
+        contacts: r.listContacts(accountId),
+        deals: r.listDeals({ accountId }),
+        events: r.listEvents({ accountId, limit: 50 }),
+        summary: r.latestSummary(accountId),
+        commitments: r.listCommitments({ accountId }),
+        lastEventAt: r.lastEventAt(accountId),
+      }
+    },
+
+    async timeline({ accountId, before, limit }) {
+      mustAccount(accountId)
+      return { events: repo().listEvents({ accountId, before, limit: limit || 50 }) }
+    },
+
+    async eventBody({ eventId }) {
+      return { content: repo().getEventBody(eventId) }
+    },
+
+    async createAccount(args) { return repo().createAccount(args) },
+    async updateAccount({ accountId, ...patch }) {
+      mustAccount(accountId)
+      return repo().updateAccount(accountId, patch)
+    },
+    async createContact(args) { return repo().createContact(args) },
+    async attachEmail({ contactId, address }) { return repo().attachEmail(contactId, address, 'manual') },
+
+    async createDeal(args) { mustAccount(args.accountId); return repo().createDeal(args) },
+    async updateDeal({ dealId, ...patch }) { return repo().updateDeal(dealId, patch) },
+    async closeDeal({ dealId, stage, reason }) { return repo().closeDeal(dealId, { stage, reason }) },
+
+    /** Kézi jegyzet. A forrás `manual`, az azonosító az eseményé, tehát mindig új sor. */
+    async addNote({ accountId, dealId = null, text, occurredAt }) {
+      mustAccount(accountId)
+      const at = occurredAt || new Date().toISOString()
+      return repo().recordEvent({
+        accountId, dealId, kind: 'note', occurredAt: at,
+        excerpt: String(text || '').slice(0, 200),
+        sourceSystem: 'manual', sourceId: `note:${at}:${Math.random().toString(16).slice(2, 10)}`,
+        body: text,
+      })
+    },
+
+    /**
+     * A besorolatlan levél hozzárendelése -- és ugyanez a hívás tanítja meg a
+     * címet.
+     *
+     * A tanulás nem külön gomb: ha az lenne, az operátor a felét nem nyomná
+     * meg, a besorolatlan sor nem apadna, és néhány hét után abbahagyná az
+     * egészet. A megerősítés és a tanulás egy művelet.
+     */
+    async assignUnmatched({ unmatchedId, contactId }) {
+      const r = repo()
+      const rows = r.listUnmatched().filter((x) => x.id === unmatchedId)
+      if (rows.length === 0) throw new Error('crm_ismeretlen_besorolatlan')
+      if (rows[0].sender_address) r.attachEmail(contactId, rows[0].sender_address, 'learned')
+      return r.resolveUnmatched(unmatchedId)
+    },
+
+    async setSuggestionStatus({ suggestionId, status }) {
+      if (status !== 'accepted' && status !== 'dismissed') throw new Error('crm_ismeretlen_javaslat_allapot')
+      return repo().setSuggestionStatus(suggestionId, status)
+    },
+  }
+}

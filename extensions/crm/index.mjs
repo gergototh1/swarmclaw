@@ -1,4 +1,5 @@
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { createRpc } from './src/rpc.mjs'
 
 /**
  * Amit a host a setup()-ban átad, plusz a teszt egyetlen varrata.
@@ -35,7 +36,7 @@ const crm = {
     state.repo = createRepo(ctx.storage)
   },
   tools: [],
-  rpc: {},
+  rpc: createRpc(state),
   managedResources: {
     projects: [{
       projectKey: 'crm',

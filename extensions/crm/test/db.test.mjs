@@ -189,3 +189,30 @@ test('a besorolatlan sor forrásra idempotens és lezárható', () => {
   repo.resolveUnmatched(repo.listUnmatched()[0].id)
   assert.equal(repo.listUnmatched().length, 0)
 })
+
+test('a javaslat megíródik és az "new" státuszú listában visszajön', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  repo.writeSuggestion({ accountId: acc.id, text: 'Küldj emlékeztetőt',
+    reason: 'két hete nincs válasz', triggerKind: 'silence' })
+
+  const rows = repo.listSuggestions({ status: 'new' })
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].trigger_kind, 'silence')
+  assert.equal(rows[0].reason, 'két hete nincs válasz')
+})
+
+test('a javaslat státusza módosítható, és utána kikerül az "new" listából', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'Küldj emlékeztetőt' })
+
+  const updated = repo.setSuggestionStatus(sug.id, 'dismissed')
+  assert.equal(updated.status, 'dismissed')
+  assert.equal(repo.listSuggestions({ status: 'new' }).length, 0)
+})
+
+test('az ismeretlen javaslat státusz-állítása pontosan null-t ad', () => {
+  const { repo } = repoOf()
+  assert.strictEqual(repo.setSuggestionStatus('sug_nincs', 'dismissed'), null)
+})
