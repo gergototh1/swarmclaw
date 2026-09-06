@@ -1,6 +1,6 @@
 ---
 name: video-jelenetlista
-description: Mi egy jó jelenetlista a Remotion-kit JSON-ból küldhető tizenkilenc típusából, és hogyan írod hozzá a narrációt.
+description: Mi egy jó jelenetlista a Remotion-kit JSON-ból küldhető típusaiból, és hogyan írod hozzá a narrációt.
 version: 1.0.0
 license: MIT
 tags: [video, jelenetlista, Remotion]
@@ -31,10 +31,14 @@ Nincs `cta`: a felszólítás a záró `allitas` `mondat`-ában van.
 - másodkezes állítás → `idezet` (a `kitol` és a `hol` kötelező);
   témaváltás → `atvezeto`; a kép maga a tartalom → `kep-allitas`
 - hangsúlyos mondat, zárlat → `allitas`
+- egy folyamat több képernyője → `keszulek-sor`; előtte-utána ugyanazon a
+  helyen → `osztott`; egy képernyőkép egy részlete számít → `nagyitas`.
+  Mindhárom `public/`-beli kép-fájlneveket kap, ugyanúgy, mint a `lista`
+  `kep`-je
 
 **JSON-ból nem küldhető** (a `videoDraft` `tipus_nem_kuldheto`-val utasítja
-el, mert kötelező propja React-csomópont): `cta`, `kartya-csere`,
-`keszulek-sor`, `osztott`, `nagyitas`. Ugyanígy a `grafika` és a `jel` prop.
+el, mert kötelező propja React-csomópont, aminek nincs fájlnév-alakja):
+`cta`, `kartya-csere`. Ugyanígy a `grafika` és a `jel` prop.
 Ha ilyesmi kellene, `videoPropose` a `fajta: sablon`-nal (a `szoveg` első
 sora a javasolt típusnév), és a videót a meglévő típusokból fejezed be.
 

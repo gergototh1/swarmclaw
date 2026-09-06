@@ -402,3 +402,21 @@ test('videoRender refuses a closed video, so no render close can write qa_ok ove
   assert.equal((await s.run('videoRender', { tervId: s.terv.id })).error.code, 'video_lezart')
   assert.equal(s.spawned.length, 0)
 })
+
+test('the preview cache is the module\'s own, so it is not counted as the operator\'s stray files', () => {
+  const s = setup()
+  // What `elonezet.mjs` writes: one directory per catalogue hash, under the
+  // render namespace, with one still per scene type in it. No render row can
+  // ever name these -- there is no render -- so a walk of the namespace that
+  // does not know about them reports every one as a file the operator left.
+  const hash = 'a'.repeat(64)
+  const cacheDir = path.join(s.dir, 'out', 'swarmclaw', 'sablon-elonezet', hash)
+  fs.mkdirSync(cacheDir, { recursive: true })
+  for (const tipus of ['cimlap', 'lista', 'allitas']) fs.writeFileSync(path.join(cacheDir, `${tipus}.png`), 'png')
+  assert.equal(s.ops.orphanCount(), 0, 'the cache is this module\'s, and the count is of the operator\'s files')
+
+  // And a real stray beside it is still counted: the exclusion is the one
+  // namespace, not the whole walk.
+  fs.writeFileSync(path.join(s.dir, 'out', 'swarmclaw', 'idegen.mp4'), 'x')
+  assert.equal(s.ops.orphanCount(), 1)
+})

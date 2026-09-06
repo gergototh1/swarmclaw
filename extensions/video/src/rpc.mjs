@@ -1,5 +1,6 @@
 import { VideoError } from './args.mjs'
 import { VIDEO_STATUSOK } from './db.mjs'
+import { allapot, futasNezet, indit, kep, megszakit, torolElonezetCache } from './elonezet.mjs'
 import { runHealth } from './health.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
 import { KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, tablaHianyai } from './kit-tabla.mjs'
@@ -350,10 +351,23 @@ export function createRpc(state, ops) {
      * false statements about the kit, where the refusal code beside them is
      * a true one about the connection.
      *
-     * `mintaHianyzik` is answered here rather than inferred from a picture
-     * that failed to appear: the two repositories move independently, so a
-     * type the catalogue carries without a sample is an ordinary state the
-     * card says out loud.
+     * `tablaHianyok` IS DRAWN, and that is why it is still here. It names the
+     * types and props the catalogue declares and `kit-tabla.mjs` does not,
+     * which is the same `katalogus_valtozott` the agent gets on every plan
+     * while the gap is open; the gallery prints it above the grid, because
+     * the operator is the one who closes it and until now only the agent was
+     * told. A field nothing draws is a field nobody notices going wrong --
+     * this one carried the answer to a real skew for a whole feature without
+     * ever reaching the page.
+     *
+     * WHAT USED TO BE HERE AND IS NOT: `mintaHianyzik`. It listed the types
+     * the catalogue carries without a sample, and its docblock claimed the
+     * card said so out loud. The card does say so -- from `nincs_minta` on
+     * the per-card `templatePreview` round trip, and from
+     * `templatePreviewStatus`'s `mintaNelkul`, which is the same list from
+     * the module that actually decides it. Two transports for one fact, one
+     * of them read by nobody and described by a docblock promising UI that
+     * did not exist. The one the gallery draws is the one that stayed.
      */
     async templates() {
       const { katalogus, hiba } = catalogOrCode(state)
@@ -361,7 +375,7 @@ export function createRpc(state, ops) {
         return {
           hiba, katalogusHash: null, sablonStat: null, hetiSor: hetiSor(repo()),
           tipusok: null, leirasok: null, propok: null, kozosPropok: null,
-          kuldhetoTipusok: null, nemKuldhetoTipusok: null, mintaHianyzik: null, tablaHianyok: null,
+          kuldhetoTipusok: null, nemKuldhetoTipusok: null, tablaHianyok: null,
         }
       }
       return {
@@ -375,9 +389,95 @@ export function createRpc(state, ops) {
         kozosPropok: katalogus.kozosPropok,
         kuldhetoTipusok: KULDHETO_TIPUSOK,
         nemKuldhetoTipusok: NEM_KULDHETO_TIPUSOK,
-        mintaHianyzik: katalogus.tipusok.filter((t) => !Object.hasOwn(katalogus.mintak, t)),
         tablaHianyok: tablaHianyai(katalogus),
       }
+    },
+    /**
+     * The gallery's four controls, and what an unreadable project does to
+     * them.
+     *
+     * ALL FOUR ANSWER, exactly the way `templates` does, and none of them
+     * throws over a project the operator has not connected. An unreadable
+     * project is an ordinary operator state -- the setting is empty on a
+     * fresh install, and the other repository can be moved or half-written
+     * at any moment -- and the view has to draw something either way. The
+     * page already handles `templates`' `hiba` plus its null branch, so a
+     * throw here would only mean the gallery had a second, harder shape to
+     * handle for the same state: a poll that turns red over a page that is
+     * otherwise fine.
+     *
+     * TWO FIELDS, NEVER ONE. `hiba` is "the other repository could not be
+     * read", by the same code and the same field name `templates` uses;
+     * `ok` is the method's own vocabulary -- `mar_fut`, `nincs_kep`,
+     * `nincs_minta`, `tipus_ismeretlen`. Folding a project refusal into
+     * `ok` would give a broken connection the same shape as a run that is
+     * going fine, which is the one thing the page must not confuse.
+     *
+     * `templatePreviewCancel` carries no `hiba`: it reads nothing but this
+     * module's own run state, so there is no project for it to fail on, and
+     * a field that could never be anything but null would be a promise it
+     * does not make.
+     */
+    async templatePreview(body = {}) {
+      need(typeof body.tipus === 'string' && body.tipus.length <= 64, 'tipus: szöveg kell')
+      const { hiba } = catalogOrCode(state)
+      if (hiba) return { dataUrl: null, hiba }
+      // The grid asks per card, as cards become visible, so nothing loads
+      // twenty-four images to draw the six the operator can see.
+      return { ...kep(state, body.tipus), hiba: null }
+    },
+    /**
+     * Starts the generation of every missing picture and returns at once.
+     *
+     * Refuses a second run BY NAME and does not queue it: the answer carries
+     * `ok: 'mar_fut'` rather than a 500, so the page can say "it is already
+     * running" instead of showing an error over a run that is going fine.
+     *
+     * THE CATCH IS THAT ONE REFUSAL AND NOTHING ELSE. The project is read
+     * here, deliberately, before the run is asked for; what `indit` can
+     * still throw afterwards is not something this method has an answer
+     * for, and `{ indult: false, ok }` over it would tell the page a run
+     * did not start for a reason it can draw, when in truth nobody here
+     * knows what happened.
+     */
+    async templatePreviewStart() {
+      const { hiba } = catalogOrCode(state)
+      if (hiba) return { indult: false, hiba }
+      try {
+        return { ...(await indit(state)), hiba: null }
+      } catch (err) {
+        if (err instanceof VideoError && err.code === 'mar_fut') return { indult: false, ok: err.code, hiba: null }
+        throw err
+      }
+    },
+    /**
+     * Where a run is, or null. The page polls this while a run is on.
+     *
+     * Every catalogue-derived field is `null` beside the code when the
+     * project cannot be read, never an empty list, for the reason
+     * `templates` gives at length: `hianyzo: []` would draw as "the gallery
+     * is complete". `fut` is answered either way, because the run lives in
+     * this module and not in the project: a run started before the operator
+     * changed the setting is still on, and that is the moment the cancel
+     * button matters most.
+     */
+    async templatePreviewStatus() {
+      const { hiba } = catalogOrCode(state)
+      if (hiba) {
+        return { hiba, katalogusHash: null, meglevo: null, hianyzo: null, mintaNelkul: null, fut: futasNezet() }
+      }
+      // Named one by one rather than spread, so what crosses to the page is a
+      // decision and not whatever `allapot` happens to return. `allapot`'s
+      // own `katalogusTipusok` is the catalogue's type order, which the page
+      // already has from `templates` and never asked for twice; it stopped
+      // here rather than becoming a second copy of the type list for the grid
+      // to disagree with.
+      const { katalogusHash, meglevo, hianyzo, mintaNelkul, fut } = allapot(state)
+      return { hiba: null, katalogusHash, meglevo, hianyzo, mintaNelkul, fut }
+    },
+    /** Stops the run before the next type. What is already generated stays. */
+    async templatePreviewCancel() {
+      return megszakit()
     },
     /**
      * Notes exported from the operator's own analytics, as rows they mapped
@@ -438,16 +538,33 @@ export function createRpc(state, ops) {
       return runHealth(state, ops)
     },
     /**
-     * The page's Tisztítás: every row-bound file in both namespaces. Refused
-     * while a render is running, because the files it is writing are named
-     * by a `fut` row and deleting them would be the module sabotaging its
-     * own child process. The refusal names the render so the page can offer
-     * `cancelRender`.
+     * The page's Tisztítás: every row-bound file in both namespaces, AND the
+     * template-preview cache. Refused while a render is running, because the
+     * files it is writing are named by a `fut` row and deleting them would be
+     * the module sabotaging its own child process. The refusal names the
+     * render so the page can offer `cancelRender`.
+     *
+     * WHY THE CACHE IS SWEPT HERE AND NOT IN `cleanupAll`. `renderOps` deletes
+     * what a ROW names -- that is the whole shape of it, and `orphanCount`
+     * beside it counts what no row names precisely so the module can promise
+     * never to delete those. The preview cache is neither: it is the module's
+     * own, keyed by a catalogue hash, and no row will ever name it. So it
+     * would survive an uninstall that had already dropped the tables, leaving
+     * files nothing could be asked about. This method is the operator's one
+     * "leave nothing of yours behind" lever, so it is the place the cache goes
+     * -- and `elonezetek` is reported separately rather than folded into
+     * `renderek`, because a hash directory is not a render.
+     *
+     * The cost is stated out loud: pressing Tisztítás throws away pictures
+     * that took a minute of the operator's machine. That is the same bargain
+     * the button already makes with finished renders, which cost far more, and
+     * the cache regenerates from a button two views away.
      */
     async cleanup() {
       const futo = repo().runningRender()
       need(!futo, `fut egy render (${futo ? futo.id : ''}); előbb állítsd le (cancelRender)`)
-      return ops.cleanupAll()
+      const remotionDir = remotionDirOf(state)
+      return { ...ops.cleanupAll(), elonezetek: torolElonezetCache(remotionDir).torolt }
     },
   }
 }

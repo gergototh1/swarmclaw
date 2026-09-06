@@ -16,6 +16,20 @@ const execFileAsync = promisify(execFile)
 
 export const OUT_NEVTER = 'out/swarmclaw'
 export const NARRACIO_PUBLIC_NEVTER = 'public/narracio/swarmclaw'
+/**
+ * The template-preview cache's root, declared HERE rather than where it is
+ * filled (src/elonezet.mjs imports it from this file).
+ *
+ * It is DERIVED from `OUT_NEVTER` and that is the whole point. The cache
+ * lives inside the render namespace, so two things in this file walk over
+ * it -- `orphanCount`, which must not count it, and nothing else -- while a
+ * second file writes it. When the two spelled the root separately they
+ * drifted in exactly the way that is invisible: both were correct, neither
+ * knew about the other, and `orphanCount` reported twenty-four cached
+ * stills as twenty-four files the operator had left behind. One spelling,
+ * derived once, cannot say that.
+ */
+export const ELONEZET_NEVTER = path.join(OUT_NEVTER, 'sablon-elonezet')
 export const DEFAULT_RENDER_MAX_PERC = 40
 export const DEFAULT_MEGTARTOTT = 3
 export const KOTELEZO_FAJLOK = Object.freeze(['package.json', 'src/index.ts', 'src/FosVideo.tsx', 'src/kit/katalogus.generated.json'])
@@ -476,7 +490,7 @@ export function createRenderOps(state) {
     return { torolt }
   }
 
-  function walk(dir, out) {
+  function walk(dir, out, kihagy = null) {
     let entries
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true })
@@ -485,19 +499,42 @@ export function createRenderOps(state) {
     }
     for (const e of entries) {
       const p = path.join(dir, e.name)
-      if (e.isDirectory()) walk(p, out)
-      else if (e.isFile()) out.push(p)
+      if (e.isDirectory()) {
+        if (kihagy !== null && p === kihagy) continue
+        walk(p, out, kihagy)
+      } else if (e.isFile()) out.push(p)
     }
     return out
   }
 
-  /** Files under the two namespaces that no row names. Counted, never deleted: they are the operator's. */
+  /**
+   * Files under the two namespaces that no row names. Counted, never
+   * deleted: they are the operator's.
+   *
+   * WHICH IS WHY THE PREVIEW CACHE IS SKIPPED. It sits under `OUT_NEVTER`,
+   * it is bound to a catalogue hash and not to a row, and no row will ever
+   * name it -- so a walk that did not know about it reported every cached
+   * still as a file the operator had left behind, and the status bar printed
+   * "24 sor nélküli fájl a két névtérben (az operátoré)" over files this
+   * module wrote and this module deletes. The number is meant to say "there
+   * is something here that is yours and I will not touch it"; counting our
+   * own cache in it makes that sentence false and makes it grow with every
+   * catalogue hash kept. `cleanup` in rpc.mjs is what takes the cache away.
+   *
+   * The exclusion is ONE directory, not a rule about names: a real stray
+   * beside the cache is still counted, and anything the operator put inside
+   * the cache root but outside a hash directory is neither counted nor
+   * deleted -- an honest gap, and a smaller one than counting our own files.
+   */
   function orphanCount() {
     const remotionDir = remotionDirOf(state)
     const known = new Set()
     for (const r of repo().rendersAll()) for (const f of [r.out_path, r.props_path, r.log_path]) if (f !== null) known.add(f)
     for (const n of repo().narraciokAll()) known.add(path.join(remotionDir, 'public', n.fajl))
-    const files = [...walk(path.join(remotionDir, OUT_NEVTER), []), ...walk(path.join(remotionDir, NARRACIO_PUBLIC_NEVTER), [])]
+    const files = [
+      ...walk(path.join(remotionDir, OUT_NEVTER), [], path.join(remotionDir, ELONEZET_NEVTER)),
+      ...walk(path.join(remotionDir, NARRACIO_PUBLIC_NEVTER), []),
+    ]
     return files.filter((f) => !known.has(f)).length
   }
 

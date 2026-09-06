@@ -27,6 +27,8 @@ export const L7_MIN_MP = 25
 export const L7_MAX_MP = 130
 /** L8: a cimlap and a closing allitas alone are not a video. */
 export const L8_MIN_JELENET = 3
+/** The largest per-type preview frame the catalogue may state: an hour of video at 30fps, far beyond any scene. */
+export const KOCKA_MAX = 108_000
 
 /**
  * The configured Remotion project, or a refusal. Read from the settings on
@@ -105,7 +107,34 @@ export function readCatalog(remotionDir) {
   // `fromEntries` and not an assignment loop: a type literally named
   // `__proto__` would otherwise set the prototype instead of a sample.
   const mintak = Object.fromEntries(mintaParok)
-  return { katalogusHash: sha256(text), tipusok: parsed.tipusok, propok: parsed.propok, leirasok: parsed.leirasok, kozosPropok: parsed.kozosPropok, mintak, file }
+  // The frame at which a type's sample has finished animating, per type.
+  //
+  // IT IS THE REMOTION PROJECT'S ANSWER AND NOBODY ELSE'S. Each type's
+  // timing is a formula in the kit -- `fordulat` strikes its problems
+  // through at 2 + 3*26 + 10 and reveals its solution at 120, `osszegzes`
+  // adds its total at 37 + 60 + 12 -- and those formulas depend on the
+  // sample's own contents. A single frame chosen in this repository is
+  // therefore wrong for some type by construction, and wrong again whenever
+  // a sample gains a list item. So the number travels with the sample.
+  //
+  // Optional and shape-checked exactly like `mintak`, for the same reason:
+  // the two repositories move independently and a catalogue that predates
+  // the field must cost the gallery a good frame, not the page. Undeclared
+  // keys are dropped by the same rule and never named anywhere.
+  const nyersKockak = Object.hasOwn(parsed, 'mintaKockak') ? parsed.mintaKockak : {}
+  if (!plainObject(nyersKockak)) refuse('katalogus_ervenytelen', 'a katalógus mintaKockak mezője nem objektum')
+  const kockaParok = []
+  for (const tipus of parsed.tipusok) {
+    if (!Object.hasOwn(nyersKockak, tipus)) continue
+    const k = nyersKockak[tipus]
+    // A frame number reaches `remotion still --frame=` as a command
+    // argument, so it is a whole number in a sane range or the file is
+    // refused: a string, a float or a negative here is not a frame.
+    if (!Number.isSafeInteger(k) || k < 0 || k > KOCKA_MAX) refuse('katalogus_ervenytelen', `a(z) ${tipus} típus mintaKockak értéke nem 0 és ${KOCKA_MAX} közötti egész`)
+    kockaParok.push([tipus, k])
+  }
+  const mintaKockak = Object.fromEntries(kockaParok)
+  return { katalogusHash: sha256(text), tipusok: parsed.tipusok, propok: parsed.propok, leirasok: parsed.leirasok, kozosPropok: parsed.kozosPropok, mintak, mintaKockak, file }
 }
 
 /**
@@ -194,7 +223,12 @@ export function validateDraft({ jelenetek, narracio, katalogus, remotionDir, kar
 export function createCatalogTool(state) {
   return {
     name: 'videoCatalog',
-    description: 'A Remotion-kit jelenettípusai és propjai a katalógusból, a JSON-ból küldhető tizenkilenc típussal, a sablon-számokkal és a katalógus hash-ével. Minden híváskor a fájlból olvas; a számok minden híváskor az összes sorból számolódnak.',
+    // The count is INTERPOLATED and never written out in words. It was
+    // "tizenkilenc" for as long as the table refused three types the kit
+    // had since made orderable, so the sentence the agent reads told it
+    // there were fewer templates than `kuldhetoTipusok` beside it listed.
+    // A number the table computes cannot say that.
+    description: `A Remotion-kit jelenettípusai és propjai a katalógusból, a JSON-ból küldhető ${KULDHETO_TIPUSOK.length} típussal, a sablon-számokkal és a katalógus hash-ével. Minden híváskor a fájlból olvas; a számok minden híváskor az összes sorból számolódnak.`,
     parameters: { type: 'object', properties: {} },
     execute() {
       return guard(() => {

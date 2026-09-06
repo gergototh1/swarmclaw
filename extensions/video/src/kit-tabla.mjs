@@ -36,6 +36,29 @@ import { sha256 } from './db.mjs'
  * zero or a negative `tempo`, `lepes` or `meret` does not crash a render;
  * the table therefore bounds only `osszehuzas.arany`, which the catalogue
  * itself states as 0..1.
+ *
+ * THREE TYPES CHANGED SIDES ON 2026-09-05, and it is written down because
+ * this table said the opposite for a while. `keszulek-sor.kepernyok`,
+ * `osztott.bal`, `osztott.jobb` and `nagyitas.kep` are React nodes in the
+ * kit's TypeScript to this day -- the hand-written videos pass finished
+ * elements into them -- but the kit now routes all four through its
+ * `kepElem()` helper, whose rule is: a STRING is a filename under `public/`,
+ * anything else is a finished element. A filename is precisely what JSON can
+ * carry, so the three types became orderable, and the catalogue's own prose
+ * was corrected to say it ("...fajlnevet adj"). This table had read the
+ * TypeScript type and marked them `kuldheto: false`; that verdict outlived
+ * the kit change, and while it did, the agent was refused a type the kit
+ * accepts and the gallery printed "nem küldhető" three lines above the
+ * catalogue's own instruction to send a filename. They are `kep`/`kep[]`
+ * here, which is not only a flag: it puts them under the asset rule, so the
+ * filename is checked against `public/` and hashed onto the plan's
+ * fingerprint like every other file-valued prop.
+ *
+ * NOTHING AUTOMATED CATCHES THAT CLASS. `tablaHianyai` compares the PRESENCE
+ * of types and props and never this verdict, and the catalogue does not
+ * state sendability at all, so there is no second source to compare against.
+ * A kit change that turns a React-only prop into a filename prop is read by
+ * a person and written here.
  */
 
 const S = 'string'
@@ -65,19 +88,19 @@ export const KIT_TABLA = Object.freeze({
   oszlop: { kuldheto: true, propok: { cim: S, adatok: OSZLOP, egyseg: S, teljes: B, tempo: N } },
   koriv: { kuldheto: true, propok: { cim: S, szazalek: N, alaSzoveg: S, tempo: N } },
   osszehuzas: { kuldheto: true, propok: { cim: S, rol: S, ra: S, arany: Object.freeze({ alak: 'number', min: 0, max: 1 }), savMeret: N, savSuly: N, tempo: N } },
-  'keszulek-sor': { kuldheto: false, ok: 'kepernyok', propok: { cim: S, kepernyok: NEM, teljes: B, tempo: N } },
+  'keszulek-sor': { kuldheto: true, propok: { cim: S, kepernyok: KL, teljes: B, tempo: N } },
   idezet: { kuldheto: true, propok: { idezet: S, kitol: S, hol: S, kep: K, egyben: B, tempo: N } },
   racs: { kuldheto: true, propok: { cim: S, elemek: Object.freeze({ alak: 'objektum[]', mezok: Object.freeze({ szoveg: S }), tiltott: Object.freeze(['jel']) }), oszlop: N } },
   'szam-racs': { kuldheto: true, propok: { cim: S, szamok: Object.freeze({ alak: 'objektum[]', mezok: Object.freeze({ ertek: N, cimke: S, utotag: 'string?' }) }) } },
   'kep-allitas': { kuldheto: true, propok: { kep: K, sor: S, doles: N, grafikaMeret: N } },
   lepessor: { kuldheto: true, propok: { cim: S, lepesek: SL } },
-  osztott: { kuldheto: false, ok: 'bal, jobb', propok: { cim: S, bal: NEM, jobb: NEM, balCimke: S, jobbCimke: S } },
+  osztott: { kuldheto: true, propok: { cim: S, bal: K, jobb: K, balCimke: S, jobbCimke: S } },
   osszetetel: { kuldheto: true, propok: { cim: S, reszek: RESZ } },
   bizonyitek: { kuldheto: true, propok: { allitas: S, kulcsszo: S, adatok: OSZLOP, egyseg: S } },
   fordulat: { kuldheto: true, propok: { problemak: SL, megoldas: S } },
   magyarazott: { kuldheto: true, propok: { cim: S, reszek: Object.freeze({ alak: 'objektum[]', mezok: Object.freeze({ cimke: S, ertek: N, szin: S, magyarazat: S }) }) } },
   osszegzes: { kuldheto: true, propok: { cim: S, reszek: Object.freeze({ alak: 'objektum[]', mezok: Object.freeze({ ertek: N, cimke: S }) }), osszegCimke: S, utotag: S } },
-  nagyitas: { kuldheto: false, ok: 'kep', propok: { kep: NEM, felirat: S, x: N, y: N, merteke: N } },
+  nagyitas: { kuldheto: true, propok: { kep: K, felirat: S, x: N, y: N, merteke: N } },
 })
 
 /**
@@ -100,9 +123,10 @@ const assetAlak = (leiro) => leiro !== NEM && (alakOf(leiro) === 'kep' || alakOf
 
 /**
  * `tipus.prop` for every prop whose value becomes a path in the kit's
- * staticFile() (spec 4.2.2). Derived from the table, so a seventh asset prop
- * a later catalogue brings is not here until the table names it, and until
- * then the allowlist rule refuses it rather than passing text into a path.
+ * staticFile() (spec 4.2.2). Derived from the table, so an eleventh asset
+ * prop a later catalogue brings is not here until the table names it, and
+ * until then the allowlist rule refuses it rather than passing text into a
+ * path.
  */
 export const ASSET_PROPOK = Object.freeze(Object.entries(KIT_TABLA).flatMap(([tipus, t]) =>
   Object.entries(t.propok).filter(([, leiro]) => assetAlak(leiro)).map(([nev]) => `${tipus}.${nev}`)))

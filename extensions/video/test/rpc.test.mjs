@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
 import path from 'node:path'
 import { test } from 'node:test'
@@ -6,6 +7,7 @@ import { test } from 'node:test'
 import { VIDEO_STATUSOK } from '../src/db.mjs'
 import { HEALTH_CODES, HEALTH_NEM_VALASZOLT, setupChecks } from '../src/health.mjs'
 import { SZABALYKESZLET } from '../src/qa.mjs'
+import { _resetFutas } from '../src/elonezet.mjs'
 import { createRpc } from '../src/rpc.mjs'
 import { BACKLOG_SAPKA, JAVASLAT_NYITOTT_SAPKA, TANULSAG_SAPKA } from '../src/tanulsag.mjs'
 import { PELDA_JELENETEK, PELDA_NARRACIO, fakeProject, freshRepo } from './helpers.mjs'
@@ -181,7 +183,9 @@ test('cancelRender and cleanup go through the shared renderOps', async () => {
   const { videoId, tervId, tervHash, verdiktId } = keszVideo(repo)
   assert.deepEqual(await rpc.cancelRender({ renderId: 'r-1' }), { renderId: 'r-1', status: 'hiba', hiba: { kod: 'render_megszakitva' } })
   await assert.rejects(rpc.cancelRender({}), /renderId/)
-  assert.deepEqual(await rpc.cleanup(), { renderek: 0, narraciok: 0, sorNelkul: 0 })
+  // The fourth number is the preview cache's, kept apart from the render
+  // count: a hash directory is not a render.
+  assert.deepEqual(await rpc.cleanup(), { renderek: 0, narraciok: 0, sorNelkul: 0, elonezetek: 0 })
   futoRender(repo, videoId, tervId, tervHash, verdiktId)
   await assert.rejects(rpc.cleanup(), /render/)
 })
@@ -289,11 +293,129 @@ test('templates hands the page the catalogue itself, not only the numbers', asyn
   assert.ok(r.kuldhetoTipusok.length > 0)
   assert.ok(r.nemKuldhetoTipusok.includes('cta'))
   assert.deepEqual(r.tablaHianyok, [])
-  // Which types have no sample is a fact the page shows on the card, so it
-  // is answered here rather than inferred from an empty picture.
-  assert.ok(Array.isArray(r.mintaHianyzik))
-  assert.ok(!r.mintaHianyzik.includes('cimlap'))
-  assert.ok(r.mintaHianyzik.includes('szam'))
+  // Which types have no sample is answered by `templatePreviewStatus`, the
+  // module that decides it, and by each card's own `templatePreview` round
+  // trip. `templates` used to carry a third copy that nothing read.
+  assert.equal(r.mintaHianyzik, undefined)
+  _resetFutas()
+  const a = await rpc.templatePreviewStatus()
+  assert.ok(!a.mintaNelkul.includes('cimlap'))
+  assert.ok(a.mintaNelkul.includes('szam'))
+})
+
+test('the preview status reads an empty sample as no sample, so the card and the gallery cannot disagree', async () => {
+  const dir = fakeProject()
+  const katFile = path.join(dir, 'src', 'kit', 'katalogus.generated.json')
+  const kat = JSON.parse(fs.readFileSync(katFile, 'utf8'))
+  kat.mintak = { cimlap: { sorok: ['a'] }, lista: {} }
+  fs.writeFileSync(katFile, JSON.stringify(kat))
+  const { rpc } = setup({ remotionDir: dir })
+  _resetFutas()
+  const r = await rpc.templatePreviewStatus()
+  assert.ok(!r.mintaNelkul.includes('cimlap'))
+  assert.ok(r.mintaNelkul.includes('lista'), 'an empty sample would draw a blank card, which is what "no sample" says')
+})
+
+test('the four preview methods answer, and none of them starts a run by itself', async () => {
+  const { state, rpc } = setup()
+  _resetFutas()
+  // A page load calls status and preview; neither may spawn anything, which
+  // is why this state carries no spawn seam at all -- a call that reached
+  // `spawn` would launch npx on the machine running the suite.
+  const a = await rpc.templatePreviewStatus()
+  assert.equal(a.hiba, null)
+  assert.equal(a.fut, null)
+  assert.equal(a.katalogusHash.length, 64)
+  assert.equal(a.meglevo.length, 0)
+  // The two answers describe one catalogue: every type is drawable or is
+  // waiting for a sample, and the type list itself comes from `templates`.
+  assert.equal(a.mintaNelkul.length + a.hianyzo.length, (await rpc.templates()).tipusok.length)
+  assert.deepEqual(await rpc.templatePreview({ tipus: 'cimlap' }), { dataUrl: null, ok: 'nincs_kep', hiba: null })
+  assert.deepEqual(await rpc.templatePreview({ tipus: 'nincs-ilyen' }), { dataUrl: null, ok: 'tipus_ismeretlen', hiba: null })
+  await assert.rejects(() => rpc.templatePreview({ tipus: 5 }), /tipus/)
+  await assert.rejects(() => rpc.templatePreview({ tipus: 'x'.repeat(65) }), /tipus/)
+  assert.deepEqual(await rpc.templatePreviewCancel(), { megszakitva: false })
+  // And the injected spawn is what a start uses, so still nothing is run.
+  state.spawnImpl = () => { const c = new EventEmitter(); c.kill = () => {}; return c }
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: true, hiba: null })
+  // A second press is refused by name and carries the code to the page
+  // rather than a 500 over a run that is going fine. It is the method's own
+  // vocabulary, so it rides `ok` and not `hiba`: a broken connection and a
+  // run that is going fine must never be the same shape.
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: false, ok: 'mar_fut', hiba: null })
+  assert.deepEqual(await rpc.templatePreviewCancel(), { megszakitva: true })
+  _resetFutas()
+})
+
+test('all four preview methods answer an unreadable project, and none of them throws over it', async () => {
+  // An unreadable project is an ordinary operator state -- the setting is
+  // empty on a fresh install -- and the gallery has to draw something either
+  // way. So these answer with a code in `hiba`, the same field and the same
+  // codes `templates` uses, rather than making the page handle a second,
+  // harder shape for the same state.
+  const { rpc } = setup({ remotionDir: '' })
+  _resetFutas()
+  const a = await rpc.templatePreviewStatus()
+  assert.equal(a.hiba, 'remotion_dir_hianyzik')
+  assert.equal(a.fut, null)
+  // Every catalogue-derived field is null, never an empty list: `hianyzo: []`
+  // would draw as "the gallery is complete".
+  for (const mezo of ['katalogusHash', 'meglevo', 'hianyzo', 'mintaNelkul']) {
+    assert.equal(a[mezo], null, mezo)
+  }
+  assert.deepEqual(await rpc.templatePreview({ tipus: 'cimlap' }), { dataUrl: null, hiba: 'remotion_dir_hianyzik' })
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: false, hiba: 'remotion_dir_hianyzik' })
+  // Cancel reads nothing but this module's own run state, so it has no
+  // project to fail on and carries no `hiba` it could never fill.
+  assert.deepEqual(await rpc.templatePreviewCancel(), { megszakitva: false })
+})
+
+test('a catalogue the other repository left unreadable is the same answer, by its own code', async () => {
+  const dir = fakeProject()
+  fs.writeFileSync(path.join(dir, 'src', 'kit', 'katalogus.generated.json'), 'nem json')
+  const { rpc } = setup({ remotionDir: dir })
+  _resetFutas()
+  assert.equal((await rpc.templatePreviewStatus()).hiba, 'katalogus_ervenytelen')
+  assert.deepEqual(await rpc.templatePreview({ tipus: 'cimlap' }), { dataUrl: null, hiba: 'katalogus_ervenytelen' })
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: false, hiba: 'katalogus_ervenytelen' })
+})
+
+test('a run in flight is still reported when the project stops being readable under it', async () => {
+  // The run lives in this extension and not in the operator's project, so a
+  // setting changed mid-run does not make the run disappear -- and that is
+  // exactly the moment the cancel button matters.
+  let olvashato = true
+  const dir = fakeProject()
+  const { rpc, state } = setup({ remotionDir: dir })
+  state.settings = () => ({ remotionDir: olvashato ? dir : '' })
+  _resetFutas()
+  state.spawnImpl = () => { const c = new EventEmitter(); c.kill = () => {}; return c }
+  assert.deepEqual(await rpc.templatePreviewStart(), { indult: true, hiba: null })
+  olvashato = false
+  const a = await rpc.templatePreviewStatus()
+  assert.equal(a.hiba, 'remotion_dir_hianyzik')
+  assert.equal(a.katalogusHash, null)
+  assert.equal(a.fut.osszes, 24, 'the run is answered beside the refusal, not hidden behind it')
+  assert.deepEqual(await rpc.templatePreviewCancel(), { megszakitva: true })
+  _resetFutas()
+})
+
+test('a start answers "already running" and nothing else: an error it has no answer for is not dressed up as one', async () => {
+  // The project is read here first, deliberately, and only the run-already-on
+  // refusal is converted into an answer afterwards. Everything else `indit`
+  // can throw is something this method does not understand, and
+  // `{ indult: false, ok }` over it would tell the page a run did not start
+  // for a reason the page can draw -- when in truth nobody here knows what
+  // happened. The seam is the settings read: the guard sees the project, and
+  // `indit` reads it again a moment later.
+  const dir = fakeProject()
+  const { rpc, state } = setup({ remotionDir: dir })
+  _resetFutas()
+  let olvasas = 0
+  state.settings = () => { olvasas += 1; return { remotionDir: olvasas === 1 ? dir : '' } }
+  await assert.rejects(() => rpc.templatePreviewStart(), (err) => err.code === 'remotion_dir_hianyzik')
+  assert.equal((await rpc.templatePreviewStatus()).fut, null, 'and no lock is left behind')
+  _resetFutas()
 })
 
 test('templates without a readable project still answers the weekly row and says the code', async () => {
@@ -304,7 +426,7 @@ test('templates without a readable project still answers the weekly row and says
   // Every catalogue-derived field is null, never an empty list: an empty
   // `tipusok` would draw as "this kit has no templates", which is a false
   // statement about the kit rather than a true one about the connection.
-  for (const mezo of ['tipusok', 'leirasok', 'propok', 'kozosPropok', 'kuldhetoTipusok', 'nemKuldhetoTipusok', 'mintaHianyzik', 'tablaHianyok']) {
+  for (const mezo of ['tipusok', 'leirasok', 'propok', 'kozosPropok', 'kuldhetoTipusok', 'nemKuldhetoTipusok', 'tablaHianyok']) {
     assert.equal(r[mezo], null, mezo)
   }
   assert.ok(Array.isArray(r.hetiSor))
@@ -503,4 +625,25 @@ test('an rpc refusal never repeats the value it refused', async () => {
     assert.ok(err instanceof Error)
     assert.equal(err.message.includes('script'), false, 'the refused value stays out of the message the route logs')
   }
+})
+
+test('Tisztítás takes the preview cache too: it is the module\'s own and no row can bind its deletion', async () => {
+  const dir = fakeProject()
+  const { rpc } = setup({ remotionDir: dir })
+  const root = path.join(dir, 'out', 'swarmclaw', 'sablon-elonezet')
+  const hashek = ['a'.repeat(64), 'b'.repeat(64)]
+  for (const h of hashek) {
+    fs.mkdirSync(path.join(root, h), { recursive: true })
+    fs.writeFileSync(path.join(root, h, 'cimlap.png'), 'png')
+    fs.writeFileSync(path.join(root, h, 'cimlap.props.json'), '{}')
+  }
+  // Not a hash directory: this is not the module's, so the sweep leaves it,
+  // the same three conditions the run's own sweep applies.
+  fs.mkdirSync(path.join(root, 'operatore'), { recursive: true })
+  fs.writeFileSync(path.join(root, 'operatore', 'sajat.png'), 'png')
+
+  const r = await rpc.cleanup()
+  assert.equal(r.elonezetek, 2, 'both hash directories go, and the answer says how many')
+  for (const h of hashek) assert.equal(fs.existsSync(path.join(root, h)), false)
+  assert.equal(fs.existsSync(path.join(root, 'operatore', 'sajat.png')), true)
 })
