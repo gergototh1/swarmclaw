@@ -617,11 +617,20 @@ export function Sablonok({ rpc, health }: { rpc: Rpc; health: Health | null }) {
   // Bumped when the catalogue on disk turns out to be a different one, so the
   // grid is re-fetched instead of standing as a snapshot of the page load.
   const [katalogusFordulo, setKatalogusFordulo] = useState(0)
+  // The grid's own copy of the catalogue hash, readable from the status
+  // callback without putting `data` in its dependency list.
+  const dataRef = useRef<Templates | null>(null)
 
   useEffect(() => {
     let stale = false
     rpc('templates')
-      .then((raw) => { if (!stale) { setData(readTemplates(raw)); setError(null) } })
+      .then((raw) => {
+        if (stale) return
+        const olvasott = readTemplates(raw)
+        dataRef.current = olvasott
+        setData(olvasott)
+        setError(null)
+      })
       .catch((err: unknown) => { if (!stale) setError(errorText(err)) })
     return () => { stale = true }
   }, [rpc, katalogusFordulo])
@@ -630,12 +639,16 @@ export function Sablonok({ rpc, health }: { rpc: Rpc; health: Health | null }) {
   // read it once, so the status is where a mid-session kit edit shows up
   // first. When the two hashes disagree the grid is drawing a kit that is no
   // longer there; one refetch, and nothing more -- a `templates` that fails
-  // leaves `data` as it was, so these dependencies do not change and this
+  // leaves `data` as it was, so the hash it carries does not change and this
   // does not retry in a loop.
-  useEffect(() => {
-    if (!katalogusElavult(data?.katalogusHash ?? null, allapot?.katalogusHash ?? null)) return
-    setKatalogusFordulo((n) => n + 1)
-  }, [data, allapot])
+  //
+  // The comparison lives in the status callback below rather than in an effect
+  // over `[data, allapot]`. Setting state synchronously inside an effect is
+  // what makes a render cascade, and there is nothing to synchronise here: the
+  // fact arrives from outside, in a response, which is exactly where the state
+  // belongs. `data` is mirrored into a ref because that callback is memoised on
+  // `rpc` alone and must not be rebuilt every time the grid reloads -- the
+  // two-second interval closes over it.
 
   const allapotot = useCallback(() => {
     rpc('templatePreviewStatus')
@@ -643,6 +656,9 @@ export function Sablonok({ rpc, health }: { rpc: Rpc; health: Health | null }) {
         const olvasott = readPreviewStatus(raw)
         setAllapot(olvasott)
         setAllapotHiba(null)
+        if (katalogusElavult(dataRef.current?.katalogusHash ?? null, olvasott.katalogusHash ?? null)) {
+          setKatalogusFordulo((n) => n + 1)
+        }
         const fut = olvasott.fut
         if (fut !== null) setFutasHibak((prev) => ({ ...prev, ...fut.hibak }))
         // A run that has ended is the moment the empty cards become

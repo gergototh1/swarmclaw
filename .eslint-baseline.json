@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-05-05T14:53:22.998Z",
-  "totalIssues": 352,
-  "uniqueIssues": 119,
+  "generatedAt": "2026-09-06T09:53:43.130Z",
+  "totalIssues": 348,
+  "uniqueIssues": 116,
   "issues": [
     {
       "filePath": "bin/worker-cmd.js",
@@ -58,13 +58,6 @@
       "ruleId": "@typescript-eslint/no-unused-vars",
       "severity": 1,
       "message": "'_req' is defined but never used.",
-      "count": 1
-    },
-    {
-      "filePath": "src/app/api/secrets/route.ts",
-      "ruleId": "@typescript-eslint/no-unused-vars",
-      "severity": 1,
-      "message": "'encryptedValue' is assigned a value but never used.",
       "count": 1
     },
     {
@@ -657,13 +650,6 @@
     },
     {
       "filePath": "src/lib/server/session-tools/crud.ts",
-      "ruleId": "@typescript-eslint/no-unused-vars",
-      "severity": 1,
-      "message": "'encryptedValue' is assigned a value but never used.",
-      "count": 2
-    },
-    {
-      "filePath": "src/lib/server/session-tools/crud.ts",
       "ruleId": "@typescript-eslint/no-explicit-any",
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
@@ -779,13 +765,6 @@
       "ruleId": "@typescript-eslint/no-unused-vars",
       "severity": 1,
       "message": "'saveWalletsStore' is defined but never used.",
-      "count": 1
-    },
-    {
-      "filePath": "src/lib/server/wallets/wallet-service.ts",
-      "ruleId": "@typescript-eslint/no-unused-vars",
-      "severity": 1,
-      "message": "'_' is assigned a value but never used.",
       "count": 1
     },
     {
