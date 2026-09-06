@@ -30,6 +30,11 @@ export const state = {
   contracts: null,
   portFile: null,
   fetchImpl: null,
+  // A CRM projekt host oldali azonosítója, a `crmProjektId` (`src/rpc.mjs`)
+  // gyorsítótára. Itt kell deklarálni, nem csak `crmProjektId`-ban rá írni:
+  // ez a doksi enumerálja, mi mindent visz a `state`, és egy oda csak
+  // futásidőben felkerülő mező ezt hallgatólagosan hazuggá tenné.
+  crmProjectId: null,
 }
 
 /**

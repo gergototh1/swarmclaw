@@ -287,6 +287,23 @@ test('a feladat nélküli saját ígéret külön kérdezhető', () => {
   assert.equal(repo.listCommitments({ direction: 'ours', openOnly: true }).length, 0)
 })
 
+/**
+ * I4 (code review): a `getCommitment` a `crm_suggestion_write` (src/tools.mjs)
+ * ownership-ellenőrzésének az alapja -- egy ügynök által küldött
+ * `commitmentId`-t csak úgy lehet a saját ügyfeléhez tartozónak ellenőrizni,
+ * ha az ígéret sora egyáltalán lekérdezhető id szerint.
+ */
+test('a getCommitment az igeretet adja vissza id szerint, vagy undefined-et', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const { event } = repo.recordEvent({ accountId: acc.id, kind: 'meeting',
+    occurredAt: '2026-09-01T10:00:00.000Z', excerpt: 'x', sourceSystem: 'manual', sourceId: 'm1' })
+  const igeret = repo.writeCommitment({ accountId: acc.id, eventId: event.id, text: 'Küldöm', direction: 'ours' })
+
+  assert.equal(repo.getCommitment(igeret.id).account_id, acc.id)
+  assert.equal(repo.getCommitment('cmt_nincs'), undefined)
+})
+
 test('a besorolatlan sor forrásra idempotens és lezárható', () => {
   const { repo } = repoOf()
   const args = { sourceSystem: 'gmail', sourceId: 'thr_9', senderAddress: 'a@b.hu',

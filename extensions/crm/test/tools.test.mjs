@@ -235,6 +235,43 @@ test('a crm_suggestion_write commitmentId nelkul null-t rogzit', async () => {
   assert.equal(sug.commitment_id, null)
 })
 
+test('a crm_suggestion_write ismeretlen commitmentId-re nevesitett hibat ad', async () => {
+  const { byName, repo } = toolsOf()
+  const acc = repo.createAccount({ name: 'X' })
+  await assert.rejects(
+    byName.crm_suggestion_write.execute(
+      { accountId: acc.id, text: 'Kuldd el', commitmentId: 'cmt_nincs' },
+      { session: { agentId: 'ugyfelkezelo' } }),
+    /crm_ismeretlen_igeret/,
+  )
+})
+
+/**
+ * I4: a `commitmentId` az ügynöktől jön, tehát ellenőrizni kell, hogy a
+ * megadott ígéret TÉNYLEG ehhez az ügyfélhez tartozik-e -- ugyanaz az elv,
+ * ami miatt a `covers_event_id`-t a `writeSummary` maga bélyegzi (lásd
+ * `src/db.mjs`), nem a hívó. Enélkül egy ügynök egy MÁSIK ügyfél nyitott
+ * ígéretét zárhatná le csendben, amikor az operátor egy teljesen más
+ * javaslatot fogad el.
+ */
+test('a crm_suggestion_write elutasitja a mas ugyfelhez tartozo commitmentId-t', async () => {
+  const { byName, repo } = toolsOf()
+  const sajat = repo.createAccount({ name: 'Sajat ugyfel' })
+  const masik = repo.createAccount({ name: 'Masik ugyfel' })
+  const { event } = repo.recordEvent({ accountId: masik.id, kind: 'meeting',
+    occurredAt: '2026-09-01T10:00:00.000Z', excerpt: 'x', sourceSystem: 'manual', sourceId: 'm1' })
+  const masikIgeret = repo.writeCommitment({ accountId: masik.id, eventId: event.id, text: 'Kuldom', direction: 'ours' })
+
+  await assert.rejects(
+    byName.crm_suggestion_write.execute(
+      { accountId: sajat.id, text: 'Kuldd el', commitmentId: masikIgeret.id },
+      { session: { agentId: 'ugyfelkezelo' } }),
+    /crm_igeret_mas_ugyfele/,
+  )
+  // A tevesen atadott igeret erintetlen marad -- nem lett hozza feladat rendelve.
+  assert.equal(repo.listCommitments({ accountId: masik.id, openOnly: true }).length, 1)
+})
+
 test('a keresés névre és címre is talál', async () => {
   const { byName, repo } = toolsOf()
   const acc = repo.createAccount({ name: 'Morvai Kft.' })

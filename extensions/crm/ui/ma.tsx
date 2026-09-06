@@ -135,6 +135,29 @@ function postafiokUzenet(p: PostafiokAllapot): string {
   return POSTAFIOK_OK_HU[reason] ?? `A levelek behúzása áll: ismeretlen ok (${reason || 'nincs megadva'}).`
 }
 
+/**
+ * A javaslat elfogadásának (`rpc.mjs` `acceptSuggestion`) nevesített hibakódjai,
+ * magyar mondatra fordítva -- CLAUDE.md UX-szabálya szerint egy hibaállapot
+ * mondja meg, mi történt ÉS mi a teendő, nem a nyers kódot mutatja
+ * (`crm_host_hivas_sikertelen`) az operátornak. Ez a tábla KIZÁRÓLAG az
+ * `elfogad` hívás hibáira vonatkozik -- az `elvet` és a `soper` saját hibái
+ * (`setSuggestionStatus`, `sweepNow`) más okhalmazból jönnek, és nem osztoznak
+ * ezen a szótáron.
+ */
+const ELFOGADAS_HIBA_HU: Readonly<Record<string, string>> = Object.freeze({
+  crm_ismeretlen_javaslat: 'Ez a javaslat már nem létezik -- valaki más időközben elfogadta vagy elvetette. Frissítsd az oldalt.',
+  crm_nincs_port_fajl: 'A hoszt port-fájlja nem található -- a szerver talán most indul vagy indul újra. Próbáld újra néhány másodperc múlva.',
+  crm_olvashatatlan_port_fajl: 'A hoszt port-fájlja nem olvasható -- ez rendszerhiba, forduljon az üzemeltetőhöz.',
+  crm_regi_port_fajl: 'A port-fájl egy korábbi, már leállt szerverpéldányról maradt vissza -- próbáld újra, vagy ha a hiba marad, indítsd újra a hosztot.',
+  crm_host_hivas_sikertelen: 'A hoszt nem válaszolt a feladat létrehozására -- próbáld újra.',
+  crm_projekt_nem_talalhato: 'A CRM projekt nem található a hoszton, a feladat emiatt nem jött létre -- ellenőrizd, hogy a CRM extension telepítése rendben van-e, vagy forduljon az üzemeltetőhöz.',
+  crm_feladat_nem_jott_letre: 'A hoszt nem adott vissza feladat-azonosítót -- a feladat lehet, hogy mégsem jött létre. Ellenőrizd a feladatlistán.',
+})
+
+function elfogadasHibaUzenete(message: string): string {
+  return ELFOGADAS_HIBA_HU[message] ?? `A javaslat elfogadása nem sikerült: ${message}`
+}
+
 export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => void }) {
   const [unmatched, setUnmatched] = useState<Unmatched[]>([])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
@@ -201,17 +224,34 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
    * `acceptSuggestion`). A válasz feladat-azonosítóját kiírjuk, hogy az
    * operátor lássa, tényleg született valami, ne csak azt, hogy a javaslat
    * eltűnt a listáról.
+   *
+   * A `deduplicated` mezőt megkülönböztetjük: ha igaz, a hoszt NEM hozott
+   * létre új feladatot, hanem egy már létező, azonos című feladatot adott
+   * vissza (`acceptSuggestion` doksija a `rpc.mjs`-ben). Ezt a "Feladat
+   * létrehozva"-tól eltérő mondat mutatja -- különben az operátor azt
+   * hinné, most született valami, miközben csak egy korábbi feladatra
+   * kaptunk vissza mutatót.
+   *
+   * MINDKÉT `setElfogadFut` hívás funkcionális formában frissít
+   * (`(elozo) => ...`), nem a render-closure `elfogadFut`-ját olvassa: két
+   * javaslat gyors egymás utáni elfogadása esetén a második hívás
+   * indításakor a closure még a frissítés előtti állapotot látná, és
+   * elveszítené az elsőn időközben beállított `true`-t.
    */
   const elfogad = (suggestionId: string) => {
-    setElfogadFut({ ...elfogadFut, [suggestionId]: true })
+    setElfogadFut((elozo) => ({ ...elozo, [suggestionId]: true }))
     setElfogadEredmeny('')
     rpc('acceptSuggestion', { suggestionId })
       .then((r) => {
-        const eredmeny = r as { taskId: string }
-        setElfogadEredmeny(`Feladat létrehozva: ${eredmeny.taskId}`)
+        const eredmeny = r as { taskId: string; deduplicated?: boolean }
+        setElfogadEredmeny(
+          eredmeny.deduplicated
+            ? `Ez a javaslat már korábban létrehozott egy feladatot -- nem jött létre új: ${eredmeny.taskId}`
+            : `Feladat létrehozva: ${eredmeny.taskId}`,
+        )
         tolt()
       })
-      .catch((e: Error) => setHiba(e.message))
+      .catch((e: Error) => setHiba(elfogadasHibaUzenete(e.message)))
       .finally(() => setElfogadFut((elozo) => ({ ...elozo, [suggestionId]: false })))
   }
 

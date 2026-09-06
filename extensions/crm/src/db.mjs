@@ -184,6 +184,8 @@ export function createRepo(storage) {
 
   const getEvent = (id) => S.get('SELECT * FROM ext_crm_event WHERE id = ?', [id])
 
+  const getCommitment = (id) => S.get('SELECT * FROM ext_crm_commitment WHERE id = ?', [id])
+
   return {
     // ---- account -------------------------------------------------------
     createAccount({ type = 'company', status = 'lead', name, domains = [], notes = '' }) {
@@ -493,6 +495,19 @@ export function createRepo(storage) {
       S.exec('UPDATE ext_crm_commitment SET task_id = ?, updated_at = ? WHERE id = ?', [taskId, now(), id])
       return S.get('SELECT * FROM ext_crm_commitment WHERE id = ?', [id]) || null
     },
+
+    /**
+     * Egy ígéret, azonosító szerint, vagy `undefined`, ha nincs ilyen.
+     *
+     * A hívó (`tools.mjs` `crm_suggestion_write`) ezt egyetlen okból hívja:
+     * hogy egy ügynök által küldött `commitmentId` ne állíthasson be egy
+     * MÁSIK ügyfélhez tartozó ígéretet. Enélkül a `linkCommitmentTask` bare
+     * `UPDATE ... WHERE id = ?`-je bármelyik ígéretet elfogadná -- egy
+     * ügynök tévedésből (vagy szándékosan) egy másik ügyfél nyitott
+     * ígéretét zárná le, amikor az operátor egy teljesen más javaslatot
+     * fogad el.
+     */
+    getCommitment,
 
     /** `openOnly` itt azt jelenti: nyitott ÉS még nincs feladata. Ez a spec 6. trigger-3-a. */
     listCommitments({ accountId, direction, openOnly } = {}) {

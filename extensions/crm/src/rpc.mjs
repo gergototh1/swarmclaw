@@ -1,47 +1,117 @@
 import fs from 'node:fs'
+import os from 'node:os'
 
 import { createAttention } from './attention-service.mjs'
 import { newId } from './ids.mjs'
 import { createSweep } from './sweep.mjs'
 
 /**
+ * Mennyi ideig vár egy hívás a hoszt saját HTTP-jére, mielőtt feladja.
+ *
+ * A hívás UGYANABBA a folyamatba megy vissza, amiben ez a kód fut (lásd a
+ * `hostFetch` doksiját lejjebb) -- egy válasz nélkül ragadt kérés a `board()`-ot
+ * (ami ezt bevárja, mielőtt a lap egyáltalán renderelne) végérvényesen
+ * felfüggesztené. 10s bőven elég egy `/api/projects` GET-nek vagy egy
+ * `/api/tasks` POST-nak, mindkettő helyi SQLite-ot ér el, hálózatot nem.
+ *
+ * `state.hostFetchTimeoutMs` felülírhatja -- ez a teszt varrata, hogy egy
+ * időtúllépést ne kelljen a teszt futásában ténylegesen kivárni.
+ */
+const HOST_FETCH_TIMEOUT_MS = 10_000
+
+/**
+ * Mennyivel eshet a port-fájl `startedAt`-ja a jelen rendszerindítás becsült
+ * pillanata elé, és még ugyanennek a boot-nak számítson.
+ *
+ * Egy az egyben a hoszt saját szabálya (`src/lib/server/runtime/port-file.ts`
+ * `BOOT_TOLERANCE_MS`, és a testvér `gmail` extension `src/health.mjs`-e
+ * ugyanezzel a névvel) -- egy extension nem importálhatja azt a fájlt, ezért
+ * itt is meg kell ismételni.
+ */
+const BOOT_TOLERANCE_MS = 60_000
+
+const isWholeNumber = (v) => typeof v === 'number' && Number.isSafeInteger(v)
+const isPort = (v) => isWholeNumber(v) && v >= 1 && v <= 65535
+
+/**
+ * Igaz, ha a port-fájl tartalma a JELEN rendszerindításból, ÉLŐ folyamatot ír
+ * le.
+ *
+ * A hoszt port-file.ts-e négy ellenőrzést ír elő minden olvasónak: 1. alak,
+ * 2. boot-idő + pid, 3. `/api/healthz` szolgáltatás, 4. `/api/healthz`
+ * azonosító. Ez a függvény csak az 1-2-t adja vissza -- ELTÉRVE
+ * `extensions/crm/mcp/server.mjs` mintájától, ami mind a négyet elvégzi.
+ *
+ * A különbség oka nem hanyagság: a mcp/server.mjs egy KÜLÖN folyamat (egy
+ * ügynök által indított stdio shim), aminek a port-fájl portján valóban a
+ * host felel-e, kizárólag egy `/api/healthz` híváson dől el -- nincs más
+ * módja megtudni, kié az a port. Ez a hívás viszont MAGÁBAN A HOSZT
+ * FOLYAMATÁBAN fut: `src/lib/server/extensions.ts` egy `import()`-tal tölti
+ * be az extensiont, nem gyerek-processzben indítja -- tehát ha a port-fájl
+ * a jelen boot-ból való és élő pid-et ír le, a kérdés "ez a mi pid-ünk-e"
+ * `process.pid === info.pid`-del EGYENESEN eldönthető, healthz-hívás nélkül.
+ * Ez szigorúbb ellenőrzés, mint amit egy külső folyamat tehetne (az csak azt
+ * kérdezheti, létezik-e ilyen pid, sosem azt, hogy ez ő maga-e), nem gyengébb
+ * -- ezért marad el a 3-4. lépés, nem azért, mert kihagyható lenne egy külön
+ * folyamat esetén is.
+ */
+function portFajlElo(info) {
+  if (!isWholeNumber(info.pid) || info.pid < 1) return false
+  if (!isWholeNumber(info.startedAt)) return false
+  if (info.startedAt < Date.now() - os.uptime() * 1000 - BOOT_TOLERANCE_MS) return false
+  return info.pid === process.pid
+}
+
+/**
  * Hívás a host saját API-jára, a port-fájlon át.
  *
  * Ez az egyetlen út: az `ExtensionContext` nem ad task-API-t, és egy extension
- * nem importálhat a host `src/`-jéből. Ugyanaz a minta, amit a gmail MCP-shimje
- * használ -- a port-fájl a futó szerver egyetlen megbízható önleírása.
+ * nem importálhat a host `src/`-jéből. A port-fájl a futó szerver egyetlen
+ * megbízható önleírása -- de csak azután, hogy alakra és élő voltra
+ * ellenőriztük (`portFajlElo`), mert egy szerver-újraindítás után visszamaradt
+ * `run/port.json` egy MÁSIK, mára meghalt (vagy pid-újrahasznosítás esetén
+ * egy teljesen idegen) folyamat portjára mutatna -- csendben odaküldött
+ * feladat-létrehozó POST-tal.
  *
- * A `fetchImpl` a teszt varrata: a CRM-1 óta a `state`-en ül, és itt kap
- * először használót. Éles kódban `globalThis.fetch`.
- *
- * A port-fájl csak akkor kötelező, ha a hívás ténylegesen a hálózatra megy --
- * `fetchImpl` jelenlétében a hívás magát a fetch-et helyettesíti, tehát nincs
- * mit feloldani, és egy teszt nem kell hogy egy valódi, futó szerverre mutasson
- * ahhoz, hogy a hívás alakját (metódus, fejlécek, törzs) ellenőrizhesse.
+ * A `fetchImpl` a teszt varrata: a CRM-1 óta a `state`-en ül. Éles kódban
+ * `globalThis.fetch`. A port-fájl ellenőrzése `fetchImpl` jelenlététől
+ * FÜGGETLENÜL mindig lefut -- korábban ez a szakasz teljesen kimaradt, ha
+ * `state.fetchImpl` be volt állítva, ami azt jelentette, hogy az itt élő
+ * hibaágak (`crm_nincs_port_fajl`, `crm_olvashatatlan_port_fajl`, egy
+ * elavult port-fájl) egyetlen tesztből sem voltak elérhetők, hiszen minden
+ * teszt épp a `fetchImpl` varratot használja. Egy teszt, aminek erre a
+ * hívásra ténylegesen szüksége van, egy valódi, ideiglenes `port.json`-t ír
+ * (lásd `test/rpc.test.mjs` `irPortFajlt`), nem egy külön kódutat kap.
  *
  * A `method` alapértelmezetten `POST` -- a feladat-létrehozás ilyen --, de a
  * `/api/projects` GET-et vár, ezért a hívó felülírhatja.
  */
 async function hostFetch(state, utvonal, body, method = 'POST') {
-  let port = 0
-  if (!state.fetchImpl) {
-    const file = state.portFile
-    if (!file || !fs.existsSync(file)) throw new Error('crm_nincs_port_fajl')
-    try {
-      port = JSON.parse(fs.readFileSync(file, 'utf8')).port
-    } catch {
-      throw new Error('crm_olvashatatlan_port_fajl')
-    }
-    if (!port) throw new Error('crm_nincs_port_fajl')
+  const file = state.portFile
+  if (!file || !fs.existsSync(file)) throw new Error('crm_nincs_port_fajl')
+  let info
+  try {
+    info = JSON.parse(fs.readFileSync(file, 'utf8'))
+  } catch {
+    throw new Error('crm_olvashatatlan_port_fajl')
   }
+  if (!info || typeof info !== 'object' || !isPort(info.port)) throw new Error('crm_nincs_port_fajl')
+  if (!portFajlElo(info)) throw new Error('crm_regi_port_fajl')
 
   const kulcs = process.env.ACCESS_KEY || process.env.SWARMCLAW_ACCESS_KEY || ''
   const fetchFn = state.fetchImpl || globalThis.fetch
-  const res = await fetchFn(`http://127.0.0.1:${port}${utvonal}`, {
-    method,
-    headers: { 'content-type': 'application/json', ...(kulcs ? { 'x-access-key': kulcs } : {}) },
-    ...(method === 'GET' ? {} : { body: JSON.stringify(body) }),
-  })
+  const timeoutMs = state.hostFetchTimeoutMs || HOST_FETCH_TIMEOUT_MS
+  let res
+  try {
+    res = await fetchFn(`http://127.0.0.1:${info.port}${utvonal}`, {
+      method,
+      headers: { 'content-type': 'application/json', ...(kulcs ? { 'x-access-key': kulcs } : {}) },
+      ...(method === 'GET' ? {} : { body: JSON.stringify(body) }),
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+  } catch {
+    throw new Error('crm_host_hivas_sikertelen')
+  }
   if (!res.ok) throw new Error('crm_host_hivas_sikertelen')
   return res.json()
 }
@@ -51,9 +121,31 @@ async function hostFetch(state, utvonal, body, method = 'POST') {
  *
  * Nem számoljuk ki: a host a `managedResourceId`-t egy hash-ből képzi, és egy
  * második, kézzel írt példány abban a pillanatban elcsúszna, amint a host
- * megváltoztatja a képzést. Megkérdezzük, és a `state`-en tartjuk -- a projekt
- * a telepítés élettartama alatt nem változik, tehát a második és minden
- * további hívás a gyorsítótárból felel, GET nélkül.
+ * megváltoztatja a képzést. Megkérdezzük, és SIKERES találat esetén a
+ * `state`-en tartjuk -- a projekt a telepítés élettartama alatt nem változik,
+ * tehát egy már megtalált azonosítóra a második és minden további hívás a
+ * gyorsítótárból felel, GET nélkül. Egy SIKERTELEN keresés (a hívás elhasal,
+ * vagy a projekt még nincs a listában) NEM kerül gyorsítótárba -- a guard
+ * `if (state.crmProjectId)`, és a `null` ezen a feltételen elesik --, tehát
+ * minden további hívás újra megpróbálja. Ez szándékos, nem hiányzó
+ * optimalizáció: egy induláskor még nem rekonciliált projekt vagy egy
+ * pillanatnyi hálózati hiba idővel magától gyógyul, egy örökre `null`-ra
+ * fagyott gyorsítótár viszont nem.
+ *
+ * A talált projektet HÁROM mezőre illesztjük, nem csak a `resourceKey`-re:
+ * `extensionId === 'crm'`, `resourceKind === 'project'`, `resourceKey ===
+ * 'crm'`. Ugyanezt a hármat követeli meg a host saját `findManagedProject`-je
+ * (`src/lib/server/extension-managed-resources.ts`) is -- egy másik
+ * extension, ami szintén `projectKey: 'crm'`-et deklarál (a kulcs csak az őt
+ * deklaráló extensionön belül egyedi, host-szinten nem), pusztán a
+ * `resourceKey`-re illesztve elnyerné a CRM feladatait, ha előbb szerepelne
+ * a listában.
+ *
+ * MINDKÉT SIKERTELEN ÁG NEVESÍTVE KERÜL A LOGBA (`state.log.warn`), nem
+ * hallgat el. Feladat-filézés szempontjából ez a hely a tét: ha itt csendben
+ * `null`-t adnánk, az `acceptSuggestion` (ami ide fordul, lásd ott) egy
+ * feladatot a CRM projekten KÍVÜLRE filézne, névtelenül -- épp az, amit ez a
+ * feladat (7.) meg akart szüntetni.
  *
  * Az `acceptSuggestion` EZT hívja, közvetlenül, mielőtt a feladat törzsét
  * összeállítja -- nem a `state.crmProjectId`-t olvassa ki nyersen. A mező
@@ -68,9 +160,26 @@ async function hostFetch(state, utvonal, body, method = 'POST') {
  */
 async function crmProjektId(state) {
   if (state.crmProjectId) return state.crmProjectId
-  const lista = await hostFetch(state, '/api/projects', {}, 'GET').catch(() => null)
+  let lista
+  try {
+    lista = await hostFetch(state, '/api/projects', {}, 'GET')
+  } catch (err) {
+    state.log?.warn?.(
+      'crm crmProjektId: nem sikerult lekerdezni a projekt-listat a hoszttol -- a feladat a CRM projekten kivul kerulhet',
+      { reason: err instanceof Error ? err.message : String(err) },
+    )
+    return null
+  }
   const sorok = Array.isArray(lista) ? lista : Object.values(lista || {})
-  const crm = sorok.find((p) => p && p.managedByExtension && p.managedByExtension.resourceKey === 'crm')
+  const crm = sorok.find((p) => p && p.managedByExtension
+    && p.managedByExtension.extensionId === 'crm'
+    && p.managedByExtension.resourceKind === 'project'
+    && p.managedByExtension.resourceKey === 'crm')
+  if (!crm) {
+    state.log?.warn?.(
+      'crm crmProjektId: a CRM projekt meg nincs a hoszt projekt-listajaban (nincs rekonciliálva?) -- a feladat a CRM projekten kivul kerulhet',
+    )
+  }
   state.crmProjectId = crm ? crm.id : null
   return state.crmProjectId
 }
@@ -298,6 +407,29 @@ export function createRpc(state) {
      * ezért a hoszt saját, újraszámolt fingerprintjén dől el: két azonos című,
      * azonos agentId-jú, még nem lezárt feladat ütközik, függetlenül attól,
      * hogy melyik javaslatból születtek.
+     *
+     * A CÍM AZ ÜGYFÉL NEVÉVEL KEZDŐDIK (`${acc.name} — ${sug.text}`), nem
+     * pusztán a javaslat szövege. A `findDuplicateTask` (`src/lib/task-
+     * dedupe.ts`) a hoszt TELJES tábláján keres egyezést, nem csak ezen
+     * ügyfél feladatai közt, és sosem küldünk `agentId`-t (lásd fent) --
+     * tehát a fingerprint csak a címen áll. Két ügyfél rövid, egyforma
+     * felszólító javaslata ("Küldj ajánlatot", "Hívd fel") a saját nevük
+     * nélkül ütközne: az egyik ügyfél elfogadása a MÁSIK ügyfél nyitott
+     * javaslatát/ígéretét zárná le csendben, a másik ügyfél oldala pedig
+     * "nincs feladat"-ot mutatna. Az ügyfél neve a címben ezt zárja ki: két
+     * különböző ügyfél cím-fingerprintje emiatt nem eshet egybe pusztán a
+     * javaslat szövege miatt.
+     *
+     * A TELJES cím van 120 karakterre vágva (nem csak a javaslat szövege
+     * előtte), hogy a host oldali cím-mező korlátja alatt maradjunk azzal a
+     * névvel együtt is, amit elé fűzünk.
+     *
+     * HA A HOSZT `deduplicated: true`-t ad vissza, ez NEM hiba: ugyanaz a
+     * javaslat kétszeri elfogadása (dupla kattintás, két lap) a hoszt saját
+     * fingerprintjén ütközik, és a válasz a MÁR LÉTEZŐ feladatot adja vissza,
+     * nem egy újat. Ezt továbbadjuk a hívónak (`deduplicated`), hogy a
+     * felület ne mondja "Feladat létrehozva"-t egy olyan hívásra, ami
+     * valójában semmit nem hozott létre -- lásd `ui/ma.tsx`.
      */
     async acceptSuggestion({ suggestionId }) {
       const r = repo()
@@ -305,9 +437,17 @@ export function createRpc(state) {
       if (!sug) throw new Error('crm_ismeretlen_javaslat')
 
       const projectId = await crmProjektId(state)
+      // A CRM projekt megléte ennek a feladatnak a teljes indoka -- egy
+      // `null` itt azt jelentené, hogy a feladat a CRM projekten kívülre
+      // kerülne, néma "Feladat létrehozva" mellett. A `crmProjektId` már
+      // naplózta a konkrét okot (hiányzó/olvashatatlan/elavult port-fájl,
+      // vagy a projekt még nincs rekonciliálva), ezért itt egy stabil,
+      // névvel ellátott hibával állunk meg, nem folytatjuk `projectId: null`-lal.
+      if (!projectId) throw new Error('crm_projekt_nem_talalhato')
       const acc = r.getAccount(sug.account_id)
+      const cim = `${acc ? acc.name : ''} — ${sug.text}`.slice(0, 120)
       const body = {
-        title: String(sug.text || '').slice(0, 120),
+        title: cim,
         description: sug.reason ? `${sug.text}\n\nMiért: ${sug.reason}` : String(sug.text || ''),
         projectId,
         tags: ['crm'],
@@ -321,13 +461,20 @@ export function createRpc(state) {
       const res = await hostFetch(state, '/api/tasks', body)
       const taskId = res && res.id ? String(res.id) : ''
       if (!taskId) throw new Error('crm_feladat_nem_jott_letre')
-      r.setSuggestionStatus(suggestionId, 'accepted')
-      // Ha a javaslat egy igeretbol jott, a feladat lezarja azt is. Enelkul a
-      // figyelem-lista orokre ujra felhozna ugyanazt az igeretet, mikozben az
-      // operator mar intezkedett -- es egy figyelmeztetes, ami nem mulik el,
-      // az, amit a hasznalo megtanul atlapozni.
+      // Sorrend: ELŐBB az ígéret lezárása, UTÁNA a javaslat elfogadottá
+      // jelölése. Ha a kettő közt bármi elhasalna, a javaslat "new" marad --
+      // ez az operátornak látható, újra elfogadható állapot --, nem pedig
+      // "accepted", de a mögötte álló ígéret örökre nyitva ragadva. A
+      // fordított sorrend épp azt az állapotot hozná vissza, amit ez a
+      // feladat (7.) meg akart szüntetni: egy elfogadottnak jelölt javaslat,
+      // ami mögött nincs valódi lezárás.
       if (sug.commitment_id) r.linkCommitmentTask(sug.commitment_id, taskId)
-      return { suggestion: r.listSuggestions({}).find((s) => s.id === suggestionId), taskId }
+      r.setSuggestionStatus(suggestionId, 'accepted')
+      return {
+        suggestion: r.listSuggestions({}).find((s) => s.id === suggestionId),
+        taskId,
+        deduplicated: Boolean(res && res.deduplicated),
+      }
     },
 
     /**

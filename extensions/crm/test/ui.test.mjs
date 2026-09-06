@@ -100,3 +100,46 @@ test('a bundle a sopres-osszegzesben a kimeno levelet es a kihagyast is mutatja'
     assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
   }
 })
+
+/**
+ * I5 (code review): a fenti bundle-tesztek csak a felirat-szövegek jelenlétét
+ * ellenőrzik, nem a BEKÖTÉST -- a code review kimutatta, hogy a
+ * `useEffect(feladatokatTolt, [accountId])` sor törlése (`ugyfel-lap.tsx`)
+ * a feladatlista örökre "Feladatok betöltése…" állapotban ragad, és a
+ * `disabled={!!elfogadFut[s.id]}` törlése (`ma.tsx`) az Elfogad gombról egy
+ * explicit követelményt vesz le -- MINDKETTŐ mellett a teljes csomag zölden
+ * fut le, mert egyik szöveges felirat sem tűnik el. Ez a két teszt magára a
+ * bekötésre illeszkedik a build (nem minifikált, `esbuild jsx: 'automatic'`)
+ * kimenetében, ezért egy törölt sorra hiányzó szövegként bukik el.
+ *
+ * A reviewer mindkét mutációt kipróbálta a javítás előtt: a `useEffect`
+ * sor törlésével 17/17 teszt zölden futott (a jelen két teszt nélkül), a
+ * `disabled` prop törlésével 12/12 zölden futott. A jelen két teszt mindkét
+ * mutációra pirosra vált -- lásd a "Fix pass 2" szakaszt a task-7-report.md-ben
+ * a konkrét előtte/utána kimenetért.
+ */
+test('a feladatlista betoltese TENYLEGESEN be van kotve az accountId valtozasara (useEffect)', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(
+    js,
+    /\.useEffect\)\(feladatokatTolt,\s*\[accountId\]\)/,
+    'hiányzik a bundle-ből a `useEffect(feladatokatTolt, [accountId])` bekötés -- ' +
+    'a feladatlista lekérdezése nélküle sosem indul el',
+  )
+})
+
+test('az Elfogad gomb TENYLEGESEN le van tiltva, amig a sajat elfogadasa fut', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  // A `disabled: !!elfogadFut[s.id]` szöveg ÖNMAGÁBAN nem elég -- az Elvet
+  // gomb is ugyanezt a kifejezést hordozza, tehát egy sima `includes` nem
+  // venné észre, ha pont az Elfogad gombról tűnne el. A minta ezért az
+  // `onClick: () => elfogad(s.id)` UTÁN, ugyanazon a jsx-hívásban követeli
+  // meg a `disabled`-et.
+  assert.match(
+    js,
+    /onClick:\s*\(\)\s*=>\s*elfogad\(s\.id\),\s*disabled:\s*!!elfogadFut\[s\.id\]/,
+    'hiányzik a bundle-ből az Elfogad gomb `disabled={!!elfogadFut[s.id]}` prop-ja',
+  )
+})

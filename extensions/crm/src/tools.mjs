@@ -241,6 +241,18 @@ export function createTools(state) {
       async execute({ accountId, text, reason, triggerKind, triggerEventId, commitmentId }, ctx) {
         const r = repo()
         if (!r.getAccount(accountId)) throw new Error('crm_ismeretlen_ugyfel')
+        // A `commitmentId` az ügynöktől jön -- ugyanaz az elv, ami miatt a
+        // `covers_event_id`-t a `writeSummary` maga bélyegzi, nem a hívó
+        // (lásd ott): ha az ügynök adhatna meg bármilyen commitmentId-t
+        // ellenőrzés nélkül, egy tévesen (vagy szándékosan) átadott,
+        // MÁSIK ügyfélhez tartozó azonosító az operátor elfogadásakor annak
+        // az ügyfélnek zárná le csendben egy nyitott ígéretét, akinek
+        // semmi köze ehhez a javaslathoz.
+        if (commitmentId) {
+          const igeret = r.getCommitment(commitmentId)
+          if (!igeret) throw new Error('crm_ismeretlen_igeret')
+          if (igeret.account_id !== accountId) throw new Error('crm_igeret_mas_ugyfele')
+        }
         return r.writeSuggestion({
           accountId, text: String(text || ''), reason: String(reason || ''),
           triggerKind: String(triggerKind || ''), triggerEventId: triggerEventId || null,
