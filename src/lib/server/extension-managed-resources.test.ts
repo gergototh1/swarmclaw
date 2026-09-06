@@ -840,6 +840,25 @@ test('an extension that declares no agents or routines is left alone rather than
   assert.equal(outcome.error, undefined)
 })
 
+test('an extension whose only declared resource is a project is still reconciled on install', () => {
+  const id = extensionId('lifecycle_project_only')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Lifecycle Project Only Fixture',
+    // No agents, schedules or routines -- a project is the only declared
+    // resource. `declaresReconcilableResources` must count it, or this
+    // extension is reported as 'not_declared' and its project never gets
+    // created on install.
+    managedResources: {
+      projects: [{ projectKey: 'proj_only', displayName: 'Project Only' }],
+    },
+  })
+
+  const outcome = reconcileManagedResourcesForLifecycleChange(id, 'install')
+
+  assert.equal(outcome.status, 'reconciled')
+  assert.equal(outcome.result?.createdProjects.length, 1)
+})
+
 test('an extension the host has never heard of is not declared, not a failure', () => {
   const outcome = reconcileManagedResourcesForLifecycleChange('never_installed.mjs', 'enable')
   assert.equal(outcome.status, 'not_declared')

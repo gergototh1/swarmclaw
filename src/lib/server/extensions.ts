@@ -617,6 +617,11 @@ function coerceManagedResources(raw: Record<string, unknown>): ExtensionManagedR
   const explicit = isRecord(raw.managedResources)
     ? raw.managedResources as Record<string, unknown>
     : {}
+  const projects = Array.isArray(explicit.projects)
+    ? explicit.projects
+    : Array.isArray(raw.projects)
+      ? raw.projects
+      : undefined
   const agents = Array.isArray(explicit.agents)
     ? explicit.agents
     : Array.isArray(raw.agents)
@@ -649,6 +654,7 @@ function coerceManagedResources(raw: Record<string, unknown>): ExtensionManagedR
       : undefined
 
   const managedResources: ExtensionManagedResources = {
+    projects: projects as ExtensionManagedResources['projects'],
     agents: agents as ExtensionManagedResources['agents'],
     schedules: schedules as ExtensionManagedResources['schedules'],
     routines: routines as ExtensionManagedResources['routines'],

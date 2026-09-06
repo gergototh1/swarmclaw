@@ -1137,3 +1137,60 @@ describe('extension manager source paths, reloads and watchers', () => {
     }
   })
 })
+
+describe('extension manager managed resources normalization', () => {
+  // `coerceManagedResources` is what actually runs for an externally loaded
+  // .mjs/.js extension -- `normalizeExtension` calls it unconditionally, and
+  // the result becomes `entry.managedResources` on the loaded extension,
+  // which is what `getManagedResources`/`getManagedResourceExtensions` read.
+  // `registerBuiltin` (used by every test in
+  // extension-managed-resources.test.ts) stores whatever object it is given
+  // directly and never touches `coerceManagedResources`, so a `projects`
+  // declaration silently dropped by that function would still pass every
+  // test in that file. These tests go through the real external-load path
+  // via `saveExtensionSource`, which writes the extension's source to disk
+  // and reloads it exactly as an install would.
+  it('preserves a nested managedResources.projects declaration from an externally loaded extension', () => {
+    const out = runWithTempDataDir<{ projects: unknown }>(`
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const m = getExtensionManager()
+
+      await m.saveExtensionSource('project_nested_probe.mjs', [
+        "export default {",
+        "  name: 'Project Nested Probe',",
+        "  tools: [],",
+        "  managedResources: {",
+        "    projects: [{ projectKey: 'nested_proj', displayName: 'Nested Project' }],",
+        "  },",
+        "}",
+      ].join('\\n'))
+
+      const managed = m.getManagedResources('project_nested_probe.mjs')
+      console.log(JSON.stringify({ projects: managed && managed.projects || null }))
+    `)
+
+    assert.deepEqual(out.projects, [{ projectKey: 'nested_proj', displayName: 'Nested Project' }])
+  })
+
+  it('preserves the top-level projects alias from an externally loaded extension', () => {
+    const out = runWithTempDataDir<{ projects: unknown }>(`
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const m = getExtensionManager()
+
+      await m.saveExtensionSource('project_alias_probe.mjs', [
+        "export default {",
+        "  name: 'Project Alias Probe',",
+        "  tools: [],",
+        "  projects: [{ projectKey: 'alias_proj', displayName: 'Alias Project' }],",
+        "}",
+      ].join('\\n'))
+
+      const managed = m.getManagedResources('project_alias_probe.mjs')
+      console.log(JSON.stringify({ projects: managed && managed.projects || null }))
+    `)
+
+    assert.deepEqual(out.projects, [{ projectKey: 'alias_proj', displayName: 'Alias Project' }])
+  })
+})

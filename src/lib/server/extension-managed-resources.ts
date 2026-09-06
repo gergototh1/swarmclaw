@@ -920,7 +920,8 @@ export interface ExtensionLifecycleReconcileOutcome {
  * asked for an agent. Asking here keeps that case out of the report entirely.
  */
 function declaresReconcilableResources(managedResources: ExtensionManagedResources): boolean {
-  return (managedResources.agents?.length || 0)
+  return (managedResources.projects?.length || 0)
+    + (managedResources.agents?.length || 0)
     + (managedResources.schedules?.length || 0)
     + (managedResources.routines?.length || 0) > 0
 }
