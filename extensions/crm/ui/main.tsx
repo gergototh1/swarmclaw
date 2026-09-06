@@ -1,11 +1,15 @@
 import { useState } from 'react'
 
+import { makeRpc, type Rpc } from './api'
 import { currentExtensionId, hostOf, hostReact } from './host'
+import { UgyfelLap } from './ugyfel-lap'
+import { UgyfelekNezet } from './ugyfelek'
 
 type Nezet = 'ma' | 'ugyfelek' | 'ugyek'
 
-export function CrmPage() {
+export function CrmPage({ rpc }: { extensionId: string; rpc: Rpc }) {
   const [nezet, setNezet] = useState<Nezet>('ma')
+  const [nyitottAccount, setNyitottAccount] = useState<string | null>(null)
   return (
     <div className="crm">
       <nav className="crm-nav">
@@ -15,7 +19,9 @@ export function CrmPage() {
       </nav>
       <main className="crm-fo">
         {nezet === 'ma' && <p>Ma — a figyelem-lista a CRM-3-ban érkezik.</p>}
-        {nezet === 'ugyfelek' && <p>Ügyfelek</p>}
+        {nezet === 'ugyfelek' && (nyitottAccount
+          ? <UgyfelLap rpc={rpc} accountId={nyitottAccount} onBack={() => setNyitottAccount(null)} />
+          : <UgyfelekNezet rpc={rpc} onOpen={setNyitottAccount} />)}
         {nezet === 'ugyek' && <p>Ügyek</p>}
       </main>
     </div>
@@ -24,9 +30,10 @@ export function CrmPage() {
 
 const extensionId = currentExtensionId()
 if (extensionId) {
+  const rpc = makeRpc(extensionId)
   hostOf().registerPage(
     'crm',
-    () => <CrmPage />,
+    (props: Record<string, unknown>) => <CrmPage extensionId={extensionId} rpc={rpc} {...props} />,
     { react: hostReact(), extensionId },
   )
 }

@@ -65,6 +65,10 @@ export async function bundle({ write = true } = {}) {
     outfile: path.join(root, 'dist/index.js'),
     plugins: [hostModules],
     minify: false,
+    // esbuild's default charset ('ascii') escapes every non-ASCII character
+    // (e.g. "Ügyfelek" -> "\xDCgyfelek"). The UI copy is Hungarian, so 'utf8'
+    // keeps the source text readable in the built file.
+    charset: 'utf8',
     sourcemap: write ? true : false,
     logLevel: 'silent',
   })

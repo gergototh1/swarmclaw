@@ -2,3 +2,9 @@
 .crm-nav { display: flex; gap: .5rem; }
 .crm-nav button[aria-pressed="true"] { font-weight: 600; text-decoration: underline; }
 .crm-fo { min-height: 12rem; }
+.crm-sor { display: flex; gap: .5rem; align-items: center; margin: .5rem 0; }
+.crm-lista, .crm-idovonal { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
+.crm-cimke { font-size: .75rem; padding: .1rem .4rem; border: 1px solid currentColor; border-radius: .25rem; opacity: .7; }
+.crm-halvany { opacity: .6; }
+.crm-hiba { color: #b00020; }
+.crm-elavult { font-weight: 600; }
