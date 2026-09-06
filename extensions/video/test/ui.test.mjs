@@ -2136,7 +2136,8 @@ test('every branch of the YouTube answer gets its own sentence, and none reads a
   const nemaCsatornak = otletMondatok(ytOtletek({
     csatornaHibak: [{ csatorna: '@a', ok: 'csatorna_feed_idotullepes' }, { csatorna: '@b', ok: 'csatorna_azonosito_ismeretlen' }],
   })).join(' | ')
-  assert.ok(nemaCsatornak.includes('volt csatorna, ami nem válaszolt'))
+  assert.ok(nemaCsatornak.includes('volt csatorna, amit nem sikerült beolvasni'))
+  assert.equal(nemaCsatornak.includes('nem válaszolt.'), false, 'a 200 carrying an interstitial IS an answer; the headline may not deny it')
   assert.equal(nemaCsatornak.includes('mindegyikből'), false)
   // The page knows WHICH channels failed, so "1 of 3 did not answer" is not enough.
   assert.ok(nemaCsatornak.includes('@a'))
@@ -2150,9 +2151,9 @@ test('every branch of the YouTube answer gets its own sentence, and none reads a
 
   // Zero because the channels answered and had nothing inside the window.
   const uresHet = otletMondatok(ytOtletek({ jelolt: 0 })).join(' | ')
-  assert.ok(uresHet.includes('válaszoltak, de nem volt köztük új feltöltés'))
+  assert.ok(uresHet.includes('válaszoltak, de nem jött belőlük új ötlet'))
   assert.equal(uresHet.includes('mindegyikből'), false)
-  assert.equal(uresHet.includes('volt csatorna, ami nem válaszolt'), false)
+  assert.equal(uresHet.includes('nem sikerült beolvasni'), false)
 
   // A channel that was read fine and simply has not uploaded lately is NOT a
   // failure and must not be printed as one: the operator would go and check a
@@ -2180,10 +2181,25 @@ test('every branch of the YouTube answer gets its own sentence, and none reads a
     csatornaHibak: [{ csatorna: '@a', ok: 'csatorna_feed_ertelmezhetetlen' }],
   })).join(' | ')
   assert.ok(olvashatatlan.startsWith('Nem jött egyetlen jelölt sem'))
+  assert.ok(olvashatatlan.includes('amit nem sikerült beolvasni'), 'the headline must not say the channel did not answer: a 200 is an answer')
   assert.ok(olvashatatlan.includes('Nem sikerült beolvasni: @a'))
-  assert.ok(olvashatatlan.includes('nem feeddel'), 'the operator is told the channel answered but not with a feed')
+  assert.ok(olvashatatlan.includes('egyetlen bejegyzést sem tudott kiolvasni'), 'the sentence covers both a non-feed body and a feed whose entries drifted')
   assert.ok(olvashatatlan.includes('böngészőben'), 'and what to do about it')
   assert.equal(olvashatatlan.includes('Nem volt friss feltöltése'), false, 'the sentence that means "do nothing" must not cover an unreadable body')
+  assert.equal(olvashatatlan.includes('Nincs nyilvános feltöltése'), false)
+
+  // A channel with no public uploads at all is READ FINE and is not a
+  // failure -- and it is not a freshness story either: telling this operator
+  // "nincs friss feltöltése" implies there are older ones and that widening
+  // the window is worth trying, which it never will be.
+  const nincsFeltoltes = otletMondatok(ytOtletek({
+    csatornaHibak: [{ csatorna: '@ures', ok: 'csatorna_nincs_feltoltes' }],
+  })).join(' | ')
+  assert.ok(nincsFeltoltes.includes('Nincs nyilvános feltöltése: @ures'))
+  assert.equal(nincsFeltoltes.includes('Nem sikerült beolvasni'), false, 'the advice for an unreadable feed is false about a channel that is fine')
+  assert.equal(nincsFeltoltes.includes('böngészőben'), false)
+  assert.equal(nincsFeltoltes.includes('Nem volt friss feltöltése'), false, 'a freshness sentence implies older uploads that do not exist')
+  assert.ok(nincsFeltoltes.startsWith('A csatornák válaszoltak'), 'it answered, so the headline says so')
 
   // A code this page has not learnt yet is still named, with a line saying the
   // page has no advice for it -- a channel missing from the report entirely
@@ -2192,7 +2208,7 @@ test('every branch of the YouTube answer gets its own sentence, and none reads a
   assert.ok(ismeretlen.includes('@uj'))
   assert.ok(ismeretlen.includes('csatorna_valami_uj'))
 
-  for (const mondatok of [teli, marMind, nemaCsatornak, uresHet, csendes, olvashatatlan]) assert.equal(mondatok.includes('sikertelen'), false)
+  for (const mondatok of [teli, marMind, nemaCsatornak, uresHet, csendes, olvashatatlan, nincsFeltoltes]) assert.equal(mondatok.includes('sikertelen'), false)
 })
 
 test('the YouTube button tells a refusal, a rejected request and a real press apart, and reloads the board only on the last', async () => {

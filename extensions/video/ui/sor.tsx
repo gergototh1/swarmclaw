@@ -194,23 +194,36 @@ function UjVideo({ rpc, onNyitva }: { rpc: Rpc; onNyitva: () => void }) {
  * fix a channel url, widen the window -- and a single "0 új ötlet" would send
  * the operator looking in the wrong place for all three.
  *
- * AND THE PER-CHANNEL REPORT IS TWO LISTS. `csatornaHibak` carries both the
- * channels that could not be read and the ones that were read and had nothing
- * (`csatorna_nincs_friss`); only the first kind is something to fix, so only
- * the first kind is printed as a failure.
+ * AND THE PER-CHANNEL REPORT IS THREE LISTS. `csatornaHibak` carries the
+ * channels that could not be read, the ones that were read and have nothing
+ * fresh (`csatorna_nincs_friss`), and the ones that have published nothing at
+ * all (`csatorna_nincs_feltoltes`). Only the first kind is something to fix,
+ * so only the first kind is printed as a failure -- and the headline above it
+ * says "nem sikerült beolvasni" rather than "nem válaszolt", because a 200
+ * carrying an interstitial IS an answer and the per-channel line two
+ * sentences below would contradict the headline.
  *
  * THE CHANNELS ARE NAMED. "3 csatornából 1 nem válaszolt" is a count of a
  * fact the page already has in full; the operator cannot act on it without
  * going to look up which one, and the answer carries the name.
  */
 /**
- * The one per-channel code that is not a failure: everything worked and the
- * channel simply had nothing inside the window. It travels in `csatornaHibak`
- * because that is the module's per-channel report, and it is pulled out here
- * because printing it under "nem válaszolt" would be a false statement about
- * a channel that answered perfectly well.
+ * The two per-channel codes that are not failures: the channel was read
+ * perfectly well and has nothing to offer -- because none of its uploads is
+ * inside the window, or because it has no public uploads at all. They travel
+ * in `csatornaHibak` because that is the module's per-channel report, and
+ * they are pulled out here because printing either under "Nem sikerült
+ * beolvasni" would be a false statement about a channel that answered fine.
+ *
+ * They stay two rather than one for the reason src/youtube.mjs gives at
+ * length: a sentence about FRESHNESS is misleading to a channel that has
+ * never published, in the direction that costs the operator time -- it
+ * implies there are older uploads and that widening the window is worth
+ * trying.
  */
 const NINCS_FRISS = 'csatorna_nincs_friss'
+const NINCS_FELTOLTES = 'csatorna_nincs_feltoltes'
+const RENDBEN_VAN = [NINCS_FRISS, NINCS_FELTOLTES]
 
 /**
  * What the operator DOES about each per-channel code.
@@ -237,7 +250,7 @@ const CSATORNA_TEENDO: Record<string, string> = {
   csatorna_feed_nem_valaszolt: 'a csatornát megtaláltuk, de a feedje nem válaszolt; próbáld meg újra',
   csatorna_feed_idotullepes: 'a csatorna feedje nem válaszolt időben; próbáld meg újra',
   csatorna_feed_tul_nagy: 'a csatorna feedje nagyobb, mint amit a modul beolvas; a modul inkább nem vett át belőle semmit, mint hogy csonkán olvassa',
-  csatorna_feed_ertelmezhetetlen: 'a csatorna 200-zal válaszolt, de nem feeddel — ez lehet beleegyezés-kérő vagy hibaoldal; nyisd meg a csatornát böngészőben',
+  csatorna_feed_ertelmezhetetlen: 'a csatorna válaszolt, de a modul egyetlen bejegyzést sem tudott kiolvasni belőle — vagy nem feed jött (beleegyezés-kérő vagy hibaoldal), vagy megváltozott a feed alakja; nyisd meg a csatornát böngészőben',
 }
 
 const csatornaMondat = (h: { csatorna: string; ok: string }) => {
@@ -247,8 +260,9 @@ const csatornaMondat = (h: { csatorna: string; ok: string }) => {
 
 export function otletMondatok(eredmeny: YoutubeOtletekValasz): string[] {
   const { nyitott, marVolt, jelolt, maradek, csatornaHibak, eldobott } = eredmeny
-  const nema = csatornaHibak.filter((h) => h.ok !== NINCS_FRISS)
+  const nema = csatornaHibak.filter((h) => !RENDBEN_VAN.includes(h.ok))
   const csendes = csatornaHibak.filter((h) => h.ok === NINCS_FRISS)
+  const nemaddigSem = csatornaHibak.filter((h) => h.ok === NINCS_FELTOLTES)
   const mondatok: string[] = []
   if (nyitott.length > 0) mondatok.push(`${nyitott.length} új ötlet nyílt kártyaként a táblára.`)
   // Not "no channel answered": the answer carries the failures but not how
@@ -256,9 +270,9 @@ export function otletMondatok(eredmeny: YoutubeOtletekValasz): string[] {
   // with nothing would make that sentence false. What is true, and is the
   // fact the operator needs, is that the empty result is not necessarily the
   // channels' own answer.
-  else if (nema.length > 0 && jelolt === 0) mondatok.push('Nem jött egyetlen jelölt sem, és közben volt csatorna, ami nem válaszolt.')
+  else if (nema.length > 0 && jelolt === 0) mondatok.push('Nem jött egyetlen jelölt sem, és közben volt csatorna, amit nem sikerült beolvasni.')
   else if (marVolt > 0 && jelolt === marVolt) mondatok.push('Nem nyílt új kártya: mindegyikből van már videó a táblán.')
-  else mondatok.push('A csatornák válaszoltak, de nem volt köztük új feltöltés ebben az ablakban.')
+  else mondatok.push('A csatornák válaszoltak, de nem jött belőlük új ötlet.')
   if (marVolt > 0 && nyitott.length > 0) mondatok.push(`${marVolt} feltöltésből már volt videó, azokat a modul kihagyta.`)
   if (maradek > 0) mondatok.push(`${maradek} ötlet maradt a gomb egy-nyomásos korlátján kívül; nyomd meg még egyszer, ha kell.`)
   // Two lists, never one. A channel that could not be read needs fixing; a
@@ -266,6 +280,7 @@ export function otletMondatok(eredmeny: YoutubeOtletekValasz): string[] {
   // them together would send the operator checking a url that is fine.
   for (const h of nema) mondatok.push(`Nem sikerült beolvasni: ${csatornaMondat(h)}.`)
   if (csendes.length > 0) mondatok.push(`Nem volt friss feltöltése: ${csendes.map((h) => h.csatorna).join(', ')}.`)
+  if (nemaddigSem.length > 0) mondatok.push(`Nincs nyilvános feltöltése: ${nemaddigSem.map((h) => h.csatorna).join(', ')}.`)
   if (eldobott > 0) mondatok.push(`${eldobott} bejegyzést a modul nem vett át: az ablakon kívülre eső feltöltés, vagy olyan bejegyzés, amiből nem épít videó-hivatkozást.`)
   return mondatok
 }

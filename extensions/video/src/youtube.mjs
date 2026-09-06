@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
@@ -249,20 +250,35 @@ function nezettsegOf(entry) {
  * filter cannot judge, and one with a date and no id would be a card that
  * cannot become a url.
  *
- * `blokkok` IS THE THIRD NUMBER AND IT IS NOT DECORATION. It is how many
- * `<entry>` blocks the body carried, before any of them was judged, and the
- * caller needs it because zero candidates has two causes that must not be
- * reported as one. A feed with fifteen entries none of which is fresh is a
- * quiet channel; a body with NO entry block at all -- a consent interstitial,
- * a rate-limit page, an error page served with HTTP 200, or a drift in the
- * delimiter this reader splits on -- is a channel that could not be read, and
- * `eldobott` cannot tell them apart because an unparseable body produces zero
- * drops rather than fifteen.
+ * `atom` AND `blokkok` ARE OBSERVATIONS, NOT DECORATION, and between them
+ * they let the caller tell four states apart that all yield no candidate:
+ *
+ *   atom false                 the body was never an Atom document -- a
+ *                              consent interstitial, a rate-limit page, an
+ *                              error page served with HTTP 200, or a drift in
+ *                              the tag this reader splits on
+ *   atom, blokkok 0            a REAL feed carrying no entry: a channel with
+ *                              no public uploads at all
+ *   atom, blokkok > 0, none
+ *   of them usable             the feed's entries drifted out of the shape
+ *                              this reader knows
+ *   atom, usable entries       an ordinary feed; whether any of them is fresh
+ *                              is the caller's window to decide
+ *
+ * `eldobott` cannot make the first distinction and that is the whole reason
+ * these two exist: it counts entries the module refused, and a body with no
+ * entry block produces ZERO drops rather than fifteen.
+ *
+ * `atom` is one cheap observation over a string this function already walks --
+ * an opening `<feed` tag, or the Atom namespace uri. Either alone is enough:
+ * requiring both would fail a feed whose namespaces are arranged differently,
+ * and neither appears in the error pages this is meant to catch.
  */
 export function feedJeloltek(xml) {
   const jeloltek = []
   let eldobott = 0
   const szoveg = typeof xml === 'string' ? xml : ''
+  const atom = /<feed[\s>]/.test(szoveg) || szoveg.includes('http://www.w3.org/2005/Atom')
   const blokkok = szoveg.split('<entry>').slice(1)
   for (const darab of blokkok) {
     const entry = darab.split('</entry>')[0]
@@ -279,7 +295,7 @@ export function feedJeloltek(xml) {
       nezettseg: nezettsegOf(entry),
     })
   }
-  return { jeloltek, eldobott, blokkok: blokkok.length }
+  return { jeloltek, eldobott, blokkok: blokkok.length, atom }
 }
 
 /** Whether a rejection is this call's own deadline firing rather than the host failing. `fetch` reports its cancellation as an AbortError, sometimes wrapped. */
@@ -338,7 +354,9 @@ async function feedSzoveg({ url, fetchImpl }) {
     } catch (e) {
       return { ok: false, kod: hataridoVolt(e) ? 'csatorna_feed_idotullepes' : 'csatorna_feed_nem_valaszolt' }
     }
-    if (szoveg.length > MAX_FEED_BYTE) return { ok: false, kod: 'csatorna_feed_tul_nagy' }
+    // Bytes, not UTF-16 code units: the header check above compares real
+    // bytes, and one constant may not mean two units.
+    if (Buffer.byteLength(szoveg, 'utf8') > MAX_FEED_BYTE) return { ok: false, kod: 'csatorna_feed_tul_nagy' }
     return { ok: true, szoveg }
   } finally {
     clearTimeout(timer)
@@ -398,8 +416,8 @@ async function csatornaId({ csatorna, ytDlp, execFileImpl }) {
  * that needs it. The operator's fix is a setting.
  *
  * EVERY OTHER FACT IS ABOUT ONE CHANNEL and lands in `csatornaHibak`, which
- * is a per-channel report and not only a failure list. Seven codes, because
- * seven different things happen and the operator does something different
+ * is a per-channel report and not only a failure list. Eight codes, because
+ * eight different things happen and the operator does something different
  * about each:
  *
  *   csatorna_nem_valaszolt          yt-dlp could not read the channel page
@@ -412,34 +430,49 @@ async function csatornaId({ csatorna, ytDlp, execFileImpl }) {
  *   csatorna_feed_tul_nagy          it answered with more than this module
  *                                   will read, and a cut feed is a different
  *                                   feed
- *   csatorna_feed_ertelmezhetetlen  IT ANSWERED 200 WITH SOMETHING THAT IS
- *                                   NOT A FEED -- see below
- *   csatorna_nincs_friss            EVERYTHING WORKED and the channel simply
- *                                   had nothing inside the window. Not a
- *                                   failure, and the page words it as the
- *                                   fact it is -- but it belongs here,
- *                                   because "this channel had nothing" and
- *                                   "this channel could not be read" are the
- *                                   two states a quiet board most needs
- *                                   telling apart.
+ *   csatorna_feed_ertelmezhetetlen  it answered 200 with something this module
+ *                                   could get nothing out of: a body that was
+ *                                   never Atom, or an Atom feed whose entries
+ *                                   all drifted out of shape
+ *   csatorna_nincs_feltoltes        a REAL, well-formed feed carrying no entry
+ *                                   at all: the channel has no public uploads
+ *   csatorna_nincs_friss            EVERYTHING WORKED, the channel has
+ *                                   uploads, and none of them is inside the
+ *                                   window. Not a failure, and the page words
+ *                                   it as the fact it is.
  *
- * WHY THE UNPARSEABLE BODY NEEDED A CODE OF ITS OWN. It used to be filed as
- * `csatorna_nincs_friss`, and that is exactly the collapse the rest of this
- * file exists to prevent. A consent interstitial, a rate-limit page or an
- * error page served with HTTP 200 all reach `feedJeloltek`, which finds no
- * `<entry>` in them and answers with an empty list -- and an empty list from
- * a body that was never a feed used to be reported to the operator as "this
- * channel has nothing new", the one sentence that means "do nothing". The
- * `eldobott` counter cannot catch it either, for a reason worth writing down:
- * it counts entries the module refused, and a body with no entry block
- * produces ZERO drops rather than fifteen. `blokkok` is the number that can
- * tell the two apart, so it is the number this decision is made on.
+ * THE FOUR WAYS A CHANNEL YIELDS NO CANDIDATE, AND WHY THEY ARE NOT TWO.
+ * Every round of review on this file has found the same defect rotated one
+ * notch: several distinct facts sharing one sentence, and the sentence being
+ * false about at least one of them. The states are
+ *
+ *   1. the body was not a feed          -> ertelmezhetetlen. Go and look.
+ *   2. a real feed with no entry        -> nincs_feltoltes. Nothing is wrong;
+ *                                          this channel has published nothing.
+ *   3. a real feed, entries unreadable  -> ertelmezhetetlen. Go and look: the
+ *                                          feed's shape moved under us.
+ *   4. a real feed, all uploads stale   -> nincs_friss. Wait, or widen napok.
+ *
+ * 1 AND 3 SHARE A CODE ON PURPOSE and it is not a fold: the code says "this
+ * module could read nothing out of this channel's feed", which is exactly
+ * true of both, and the operator's move is the same for both -- open the
+ * channel and see what is being served. Merging either of them with 2 or 4
+ * would be the fold, because "nothing is wrong here" is the opposite advice.
+ *
+ * 2 GETS A CODE OF ITS OWN rather than borrowing `nincs_friss`. The sentence
+ * for `nincs_friss` is about FRESHNESS, and to a channel that has never
+ * published it is misleading in the one direction that costs the operator
+ * time: it implies there are older uploads, so widening `napok` is worth
+ * trying, and it never will be. `nincs_feltoltes` was not free -- it is an
+ * eighth code -- but no existing sentence is TRUE of this state, and this
+ * module does not print a sentence that is not.
  *
  * `eldobott` counts feed entries the module would not take: a `published`
  * outside the window, an entry missing an id, a title or a readable date, and
- * the entries past `PER_CSATORNA_LIMIT` on a channel that hit the cap. The
- * number exists so a feed whose entries drifted reads as "the module dropped
- * 15 entries" rather than as a quiet channel.
+ * the entries past `PER_CSATORNA_LIMIT` on a channel that hit the cap. It is
+ * a SUM ACROSS CHANNELS and so cannot say which channel drifted -- which is
+ * why state 3 above is a per-channel code rather than being left to this
+ * number to imply.
  */
 export async function fetchYoutube({ csatornak, napok, ytDlp, execFileImpl = execFileAsync, fetchImpl = fetch }) {
   const kuszob = Date.now() - napok * 86_400_000
@@ -454,11 +487,14 @@ export async function fetchYoutube({ csatornak, napok, ytDlp, execFileImpl = exe
     const feed = await feedSzoveg({ url: `https://www.youtube.com/feeds/videos.xml?channel_id=${azonosito.id}`, fetchImpl })
     if (!feed.ok) { csatornaHibak.push({ csatorna, ok: feed.kod }); continue }
     const olvasott = feedJeloltek(feed.szoveg)
-    // A 200 that carried no entry block at all is not a quiet channel; it is a
-    // body this module could not read, and saying "nothing new" over it would
-    // tell the operator to do nothing about a channel that needs looking at.
-    if (olvasott.blokkok === 0) { csatornaHibak.push({ csatorna, ok: 'csatorna_feed_ertelmezhetetlen' }); continue }
+    // Counted before the branches: entries the reader refused were dropped
+    // whether or not this channel goes on to produce a candidate.
     eldobott += olvasott.eldobott
+    // The three states that are NOT "this channel has nothing new". Each gets
+    // its own code because the operator's move differs; see the docblock.
+    if (!olvasott.atom) { csatornaHibak.push({ csatorna, ok: 'csatorna_feed_ertelmezhetetlen' }); continue }
+    if (olvasott.blokkok === 0) { csatornaHibak.push({ csatorna, ok: 'csatorna_nincs_feltoltes' }); continue }
+    if (olvasott.jeloltek.length === 0) { csatornaHibak.push({ csatorna, ok: 'csatorna_feed_ertelmezhetetlen' }); continue }
     let db = 0
     for (const [n, jelolt] of olvasott.jeloltek.entries()) {
       // The cap bounds a feed this module did not expect. It counts what it
