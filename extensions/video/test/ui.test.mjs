@@ -13,7 +13,7 @@ import { jsx } from 'react/jsx-runtime'
 
 import { readBoard, readHealth, readManagedStatus, readPreviewCancel, readPreviewStart, readPreviewStatus, readProposals, readTemplatePreview, readTemplates, readVideo, readYoutubeOtletek, refusalText } from '../ui/api.ts'
 import { bundle } from '../scripts/build.mjs'
-import { describeManaged, formatMs, megtartasSzoveg, propokSzoveg, sapkaBetelt, statusLabel } from '../ui/format.ts'
+import { describeManaged, formatDate, formatMs, megtartasSzoveg, propokSzoveg, sapkaBetelt, statusLabel } from '../ui/format.ts'
 import { pixelbolMs, pontbolJelenet, szazalek, teljesHossz } from '../ui/idovonal-state.ts'
 import { JavaslatokBody } from '../ui/javaslatok.tsx'
 import { VideoPage } from '../ui/main.tsx'
@@ -2147,6 +2147,11 @@ test('a nyitott kérés a lezárttól külön látszik, és megnevezi a rendert,
   // The render that closed it is the whole point of drawing the closed ones at
   // all: it is the evidence a file was actually made for that request.
   assert.ok(html.includes('lezárta: r-2'))
+  // WHEN it was answered, not only what answered it: a request closed three
+  // days ago and one closed a minute ago are different facts to an operator
+  // deciding whether to write another. Compared against `formatDate` itself
+  // rather than a hand-typed date, so a locale change is not a false failure.
+  assert.ok(html.includes(formatDate('2026-09-06T11:00:00.000Z')))
   // EXACTLY TWICE EACH. Once in the Visszajelzés log, which lists everything
   // anyone ever said about this video, imported observations included, and once
   // in the ONE lifecycle list it belongs to. A row in both lifecycle lists --
@@ -2169,6 +2174,24 @@ test('a Javítás kérése gomb sötét, ha nincs nyitott kérés, és megmondja
   assert.ok(html.includes('Nincs nyitott kérés ehhez a videóhoz.'))
 })
 
+test('a Javítás kérése gomb sötét, amíg render fut, mert a modul is ott utasítja vissza', () => {
+  // `videoRevise` a `refuseIfRendering`-et RÖGTÖN a `video_lezart` után hívja,
+  // egyetlen kérés-azonosító elolvasása előtt (src/terv.mjs). Egy futó render
+  // alatti kattintás tehát olyan ügynök-fordulót venne meg, amit a modul kapásból
+  // visszautasít -- és a render végét megvárni ELÉLESÍTI a gombot, ami pontosan
+  // az a próba, amitől egy ok kiírásra érdemes.
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor(), renderSor({ renderId: 'r-fut', status: 'fut', finishedAt: null })],
+    visszajelzesek: [visszajelzes()],
+  })))
+  assert.ok(javitasSotet.test(html))
+  assert.ok(html.includes('Ezen a videón már fut egy render (r-fut); a javítás megvárja a végét.'))
+  // A később jövő okok egyike sem: kész render is van, nyitott kérés is van, és
+  // egyikük sem az, amitől most sötét.
+  assert.equal(html.includes('Nincs kész render, amire javítást lehetne kérni'), false)
+  assert.equal(html.includes('Előbb írj legalább egy kérést'), false)
+})
+
 test('a Javítás kérése gomb sötét, ha nincs kész render, és megmondja miért', () => {
   const html = render(VideoBody, videoProps(videoDetail({
     renderek: [],
@@ -2189,14 +2212,38 @@ test('egy importált megfigyelés nem nyitott kérés, és nem élesíti a gombo
   // lezárása hazugság lenne róla.
   const html = render(VideoBody, videoProps(videoDetail({
     renderek: [renderSor()],
-    visszajelzesek: [visszajelzes({ forras: 'importalt', szoveg: 'a nézők a 4. másodpercnél elmennek' })],
+    visszajelzesek: [
+      visszajelzes({ forras: 'importalt', szoveg: 'a nézők a 4. másodpercnél elmennek' }),
+      // ÉS A LEZÁRT OLDALON UGYANÍGY. Egy lezáró azonosítót viselő importált sor
+      // azt állítaná, hogy egy kérést elintéztek, holott kérés sosem volt.
+      visszajelzes({ id: 'f2', forras: 'importalt', szoveg: 'a 9. másodpercnél is', kezelteRenderId: 'r-9', kezeltAt: '2026-09-06T11:00:00.000Z' }),
+    ],
   })))
   assert.ok(javitasSotet.test(html), 'egy megfigyelésre nem lehet javítást rendelni')
   assert.ok(html.includes('Előbb írj legalább egy kérést'))
   assert.ok(html.includes('Nincs nyitott kérés ehhez a videóhoz.'))
-  // A Visszajelzés napló viszont továbbra is kirajzolja: ez az a lista, ami
-  // mindent mutat, amit valaha bárki mondott erről a videóról.
+  assert.ok(html.includes('Egyetlen kérést sem zárt le még render.'))
+  assert.equal(html.includes('lezárta: r-9'), false)
+  // A Visszajelzés napló viszont továbbra is kirajzolja mindkettőt: ez az a
+  // lista, ami mindent mutat, amit valaha bárki mondott erről a videóról.
   assert.equal(elofordulas(html, 'a nézők a 4. másodpercnél elmennek'), 1)
+  assert.equal(elofordulas(html, 'a 9. másodpercnél is'), 1)
+})
+
+test('egy válasz, amiből hiányzik a kezelteRenderId, egyik listába sem kerül bele', () => {
+  // `undefined !== null` IGAZ, tehát egy `!== null` szűrő a hiányzó mezőt a
+  // LEZÁRT listába tenné, és `lezárta: undefined`-ot írna ki: a lap azt
+  // állítaná egy nyitott kérésről, hogy megválaszolták. A `typeof === 'string'`
+  // ehelyett mindkét listából kiejti, a Visszajelzés napló pedig továbbra is
+  // kirajzolja a sort.
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor()],
+    visszajelzesek: [visszajelzes({ szoveg: 'mező nélküli sor', kezelteRenderId: undefined, kezeltAt: undefined })],
+  })))
+  assert.equal(html.includes('lezárta: undefined'), false)
+  assert.ok(html.includes('Egyetlen kérést sem zárt le még render.'))
+  assert.ok(html.includes('Nincs nyitott kérés ehhez a videóhoz.'))
+  assert.equal(elofordulas(html, 'mező nélküli sor'), 1, 'a napló továbbra is mutatja')
 })
 
 test('a kiküldött és a futó javítás-forduló két külön mondat a gomb mellett', () => {
@@ -2230,7 +2277,10 @@ test('a Javitas kerese gomb a gyartot rendeli meg, es a videoFixes-t meg a video
   // The producer, not the reviewer: `videoFixes` and `videoRevise` are on the
   // producer's tool list only, so ordering this from the reviewer would be a
   // turn spent on an agent that cannot do it.
-  assert.equal(JSON.parse(hivasok[1].init.body).agentId, 'a-1')
+  // The WHOLE body, not just the agent id: `sessionNev` travels as `name` in
+  // this same call, and it is the title the operator looks for in the chat
+  // list, so a silent change to it should fail here.
+  assert.deepEqual(JSON.parse(hivasok[1].init.body), { agentId: 'a-1', name: 'Videó javítás: v1' })
   assert.deepEqual(JSON.parse(hivasok[2].init.body), { message: JAVITAS_UZENET })
   assert.equal(body().javitasRendeles, 'fut', 'the button stays dark: the turn is out and the page is not waiting on it')
   assert.ok(body().uzenet.includes(GYARTO_NEV))

@@ -451,8 +451,24 @@ function renderTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null, l
 const nyitottKeresek = (video: VideoDetail): Visszajelzes[] =>
   video.visszajelzesek.filter((f) => f.forras === 'operator' && f.kezelteRenderId === null)
 
+/**
+ * The complement of the one above, and it has to be spelled as one.
+ *
+ * `forras === 'operator'` again, because the same argument runs both ways: an
+ * imported observation is not a request, so no render could have ANSWERED it
+ * either, and a row that somehow carried a closing id would be drawn as a
+ * request that was dealt with when nobody ever made one.
+ *
+ * `typeof === 'string'` and not `!== null`, because `!== null` is true of
+ * `undefined` as well. A response that did not carry the field at all -- an
+ * older host, a shape drift -- would then land every request in the CLOSED
+ * list and print `lezárta: undefined`: the page claiming an open request was
+ * answered, which is the one lie these two lists exist to prevent. Asking for
+ * the id itself makes a missing field fall out of both lists instead, where
+ * the Visszajelzés record above still draws the row.
+ */
 const lezartKeresek = (video: VideoDetail): Visszajelzes[] =>
-  video.visszajelzesek.filter((f) => f.kezelteRenderId !== null)
+  video.visszajelzesek.filter((f) => f.forras === 'operator' && typeof f.kezelteRenderId === 'string')
 
 /**
  * Why Javítás kérése is dark, in one sentence, or null when it is live.
@@ -466,9 +482,19 @@ const lezartKeresek = (video: VideoDetail): Visszajelzes[] =>
  * one the module would then refuse to revise: a reason is only worth printing
  * if acting on it makes the button live.
  *
+ * A RUNNING RENDER IS SECOND BECAUSE THE MODULE PUTS IT SECOND.
+ * `videoRevise` calls `refuseIfRendering` immediately after `video_lezart` and
+ * before it reads a single request id (src/terv.mjs), so a press during a
+ * render buys a turn the module refuses outright -- the operator's money for
+ * nothing. Waiting for the render to end DOES make this button live, which is
+ * the whole test of whether a reason is worth printing, and it is why
+ * `renderTiltasOka` already prints the same fact. The sentence is that one's,
+ * with the tail that says what THIS lever is waiting for, the way
+ * `narracioTiltasOka` does.
+ *
  * THE NEXT TWO ARE NOT MODULE REFUSALS, AND THEY ARE STILL IN THIS ORDER FOR
  * THE SAME RULE. `videoRevise` has nothing to say about a video that has never
- * rendered; what it has is `javitas_hianyzik`, which is the third test here.
+ * rendered; what it has is `javitas_hianyzik`, which is the fourth test here.
  * The missing render comes first anyway, because writing another request on a
  * video nobody has watched yet would not make this button live, while making
  * the render might.
@@ -477,20 +503,24 @@ const lezartKeresek = (video: VideoDetail): Visszajelzes[] =>
  * lever is dark because there is nothing to order yet. So the sentence says
  * what to do -- write one -- rather than reporting that something broke.
  *
- * WHAT IS DELIBERATELY NOT TESTED HERE. A render running on this video, which
- * `videoRevise` does refuse (`refuseIfRendering`). Neither ordering lever
- * beside it tests it either, though `videoDraft` and `videoVerdict` refuse it
- * just the same: an ordering lever names the facts that make the ORDER
- * pointless, and every other refusal arrives from the module by name, through
- * the turn, where the notice line prints it. Repeating the module's whole
- * refusal list on the page would be a second copy of it to keep in step.
+ * WHAT IS DELIBERATELY NOT TESTED HERE, AND IT IS A REAL GAP. `videoRevise`
+ * also refuses on the PARENT VERSION'S RIGHT TO GO ON (`verdiktJog`,
+ * src/terv.mjs), before it reaches `javitas_hianyzik`: a `videoDraft` run after
+ * the finished render leaves an unreviewed plan as `latestTerv`, and the tool
+ * answers `verdikt_hianyzik` -- while this button is live, because a finished
+ * render and an open request both still exist. Closing that would mean the page
+ * walking the verdict chain itself, which is a second copy of
+ * `verdikt-kapu.mjs` to keep in step; the refusal arrives from the module
+ * named, and the notice line prints it. Named here rather than left for the
+ * next reader to rediscover.
  *
  * `kuldes` AND `fut` GET TWO SENTENCES, exactly as the other two ordering
  * levers do: the three host calls being out and a turn being on an agent's
  * queue are different facts, and only the second one has cost money.
  */
-function javitasTiltasOka(video: VideoDetail, nyitott: Visszajelzes[], allapot: RendelesAllapot): string | null {
+function javitasTiltasOka(video: VideoDetail, futoRender: RenderRow | null, nyitott: Visszajelzes[], allapot: RendelesAllapot): string | null {
   if (video.status === 'lezart') return 'A videó le van zárva, a modul nem dolgozik rajta tovább.'
+  if (futoRender !== null) return `Ezen a videón már fut egy render (${futoRender.renderId}); a javítás megvárja a végét.`
   if (video.renderek.every((r) => r.status !== 'kesz')) return 'Nincs kész render, amire javítást lehetne kérni.'
   if (nyitott.length === 0) return 'Előbb írj legalább egy kérést a fenti űrlappal — globálisan, vagy egy jelenetre.'
   if (allapot === 'kuldes') return 'A megrendelés elment a hosthoz, a válaszra várok.'
@@ -563,7 +593,7 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
   const lektorKeresOk = lektorKeresTiltasOka(terv, lezart, lektorRendeles)
   const nyitott = nyitottKeresek(video)
   const lezartak = lezartKeresek(video)
-  const javitasOk = javitasTiltasOka(video, nyitott, javitasRendeles)
+  const javitasOk = javitasTiltasOka(video, futoRender, nyitott, javitasRendeles)
   const url = forrasUrl(video.forrasSzoveg, safeHref)
 
   return (
@@ -747,6 +777,18 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
                   <span className="vid-mono">{v.atMs === null ? 'nincs időpont' : formatMs(v.atMs)}</span>
                   {' · '}
                   <span className="vid-mono">{`lezárta: ${v.kezelteRenderId}`}</span>
+                  {' · '}
+                  {/*
+                    WHEN, not only what. A request answered three days ago and
+                    one answered a minute ago are different facts to an
+                    operator deciding whether to write another one, and every
+                    other stored moment on this page goes through `formatDate`.
+                    A row with a closing render but no closing moment says so
+                    in words: `formatDate` answers '' for a missing value, and
+                    a label with nothing after it is the failure `metaSor`
+                    already exists to avoid.
+                  */}
+                  <span className="vid-mono">{v.kezeltAt === null ? 'nincs időpont' : formatDate(v.kezeltAt)}</span>
                   {' · '}
                   {v.szoveg}
                 </li>

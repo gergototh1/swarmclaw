@@ -173,17 +173,20 @@ test('a video válasza megmondja, melyik kérést zárta le melyik render', asyn
   const { videoId, renderId } = keszVideo(repo)
   const nyitott = repo.insertFeedback({ videoId, szoveg: 'nyitott kérés', forras: 'operator' })
   const zart = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'lezárt kérés', forras: 'operator' })
-  repo.storage.exec('UPDATE ext_video_visszajelzesek SET kezelte_render_id = ?, kezelt_at = ? WHERE id = ?', [renderId, new Date().toISOString(), zart.id])
+  const kezeltAt = '2026-09-06T11:00:00.000Z'
+  repo.storage.exec('UPDATE ext_video_visszajelzesek SET kezelte_render_id = ?, kezelt_at = ? WHERE id = ?', [renderId, kezeltAt, zart.id])
 
   const v = await rpc.video({ id: videoId })
   const byId = new Map(v.visszajelzesek.map((f) => [f.id, f]))
   assert.equal(byId.get(nyitott.id).kezelteRenderId, null)
   assert.equal(byId.get(zart.id).kezelteRenderId, renderId)
-  // A lezárás IDEJE külön tény a lezáró rendertől: a lap a kettőt együtt
-  // rajzolja ki bizonyítékként, és egy hiányzó `kezeltAt` ugyanúgy néma
-  // undefined lenne, mint a `kezelteRenderId` volt.
+  // A lezárás IDEJE külön tény a lezáró rendertől: a lap a kettőt egymás
+  // mellett rajzolja ki, mert egy három napja és egy egy perce lezárt kérés
+  // más tény. A leírt időbélyeghez hasonlítva, nem `typeof`-fal: `typeof ===
+  // 'string'` bármelyik másik szöveges oszlopra is igaz lenne, tehát egy
+  // elgépelt leképezés (`kezeltAt: f.kezelte_render_id`) átcsúszna rajta.
   assert.equal(byId.get(nyitott.id).kezeltAt, null)
-  assert.equal(typeof byId.get(zart.id).kezeltAt, 'string')
+  assert.equal(byId.get(zart.id).kezeltAt, kezeltAt)
 })
 
 test('feedback files a note, deduplicates it, and refuses an argument it cannot honour', async () => {
