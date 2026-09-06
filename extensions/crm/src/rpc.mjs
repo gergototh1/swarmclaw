@@ -204,6 +204,25 @@ export function createRpc(state) {
      * paramétere. Amikor `get` null-t ad, `why` mondja meg, melyik a négy ok
      * közül; ha `state.contracts` maga sincs (a hoszt nem is ad contracts-ot),
      * az egy ötödik, ettől független állapot, saját névvel.
+     *
+     * A `handle.mailbox()` ÉLŐ GMAIL API-HÍVÁS -- ez a testvér `aisignal`
+     * extension `mailboxHealth`-jétől eltér, ami csak `contracts.why(...)`-t
+     * kérdez és sosem megy ki a hálózatra. A döntés itt szándékosan más: a
+     * négy szerződés-szintű ok (`not_declared`, `provider_missing`,
+     * `provider_disabled`, `version_mismatch`) mind arról szól, hogy a
+     * SZERZŐDÉS feloldódik-e, de egy feloldódott szerződés mögött állhat
+     * lejárt vagy hiányzó Google-hitelesítő is -- ezt kizárólag egy tényleges
+     * hívás látja. Az `aisignal`-nak ez a különbség nem éri meg (ő csak
+     * jelez, ha a sweep elakad), a CRM lapja viszont a postafiók CÍMÉT is
+     * kiírja, amit csak a hívás ad -- tehát itt a hívásnak amúgy is meg
+     * kellene történnie ahhoz, hogy a lap egyáltalán mondhasson valamit.
+     *
+     * ÉPPEN EZÉRT try/catch-BEN: hiányzó vagy lejárt hitelesítőn a hívás
+     * elutasít, és enélkül a catch nélkül ez a lap betöltésekor 500-as hibává
+     * válna -- pont az a csapda, amit ez a metódus a saját dokumentációja
+     * szerint el akar kerülni. A hiba ekkor is nevesített marad, csak nem a
+     * hoszt szerződés-szintű okai közül, mert nem is az a hiba: a szerződés
+     * feloldódott, a hívás maga hasalt el.
      */
     async mailboxHealth() {
       if (!state.contracts) return { available: false, reason: 'crm_nincs_contracts' }
@@ -211,8 +230,16 @@ export function createRpc(state) {
       if (!handle) {
         return { available: false, reason: state.contracts.why('gmail', 'mailbox') }
       }
-      const box = await handle.mailbox()
-      return { available: true, address: box.address }
+      try {
+        const box = await handle.mailbox()
+        return { available: true, address: box.address }
+      } catch (err) {
+        state.log?.warn?.(
+          'crm mailboxHealth: a postafiók-szerződés feloldódott, de a hívás elhasalt',
+          { message: err instanceof Error ? err.message : String(err) },
+        )
+        return { available: false, reason: 'crm_postafiok_hiba' }
+      }
     },
   }
 }

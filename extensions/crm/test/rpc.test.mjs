@@ -228,6 +228,16 @@ test('a mailboxHealth a postafiók címét adja vissza, ha a szerződés felold�
   assert.equal(h.address, 'dorina@morvai.hu')
 })
 
+test('a mailboxHealth nevesitett okot ad -- nem 500-at --, ha a szerzodes feloldodik de a hivas elhasal', async () => {
+  const { rpc } = rpcWithContracts({
+    get: () => ({ mailbox: async () => { throw new Error('lejart hitelesito') } }),
+    why: () => null,
+  })
+  const h = await rpc.mailboxHealth({})
+  assert.equal(h.available, false)
+  assert.equal(h.reason, 'crm_postafiok_hiba')
+})
+
 /** A `mailbox` szerződés dublőre, ugyanaz az alak, mint a sweep sajét tesztjeiben. */
 function fakeMailbox(uzenetek) {
   return {
