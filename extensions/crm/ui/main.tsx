@@ -1,11 +1,10 @@
 import { useState } from 'react'
 
-import { makeRpc, type Rpc } from './api'
 import { currentExtensionId, hostOf, hostReact } from './host'
 
 type Nezet = 'ma' | 'ugyfelek' | 'ugyek'
 
-export function CrmPage({ rpc }: { extensionId: string; rpc: Rpc }) {
+export function CrmPage() {
   const [nezet, setNezet] = useState<Nezet>('ma')
   return (
     <div className="crm">
@@ -25,10 +24,9 @@ export function CrmPage({ rpc }: { extensionId: string; rpc: Rpc }) {
 
 const extensionId = currentExtensionId()
 if (extensionId) {
-  const rpc = makeRpc(extensionId)
   hostOf().registerPage(
     'crm',
-    (props: Record<string, unknown>) => <CrmPage extensionId={extensionId} rpc={rpc} {...props} />,
+    () => <CrmPage />,
     { react: hostReact(), extensionId },
   )
 }
