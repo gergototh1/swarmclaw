@@ -31,7 +31,12 @@ export const SOCIAL_DOMAINS = new Set([
 
 const domainOf = (address) => {
   const at = String(address || '').lastIndexOf('@')
-  return at < 0 ? '' : String(address).slice(at + 1).trim().toLowerCase()
+  if (at < 0) return ''
+  const raw = String(address).slice(at + 1).trim().toLowerCase()
+  // A `gmail.com.` és a `gmail.com` ugyanaz a domain -- a záró pont csak a
+  // teljesen minősített (FQDN) forma jelölése. Ha nem egyenlítenénk ki
+  // őket, az egyik forma megkerülné a közösségi domain elleni védelmet.
+  return raw.endsWith('.') ? raw.slice(0, -1) : raw
 }
 
 /**

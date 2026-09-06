@@ -88,6 +88,24 @@ const ESETEK = [
     vart: { kind: 'none' },
   },
   {
+    nev: '3. lepes: zaro pontos kozossegi domain (gmail.com.) sem kerulhet a vedelem moge',
+    msg: { fromEmail: 'x@gmail.com.', threadId: 't11' },
+    lookups: { domains: { 'gmail.com.': ['acc_trail'] } },
+    vart: { kind: 'none' },
+  },
+  {
+    nev: '3. lepes: zaro pontos es zaro pont nelkuli domain ugyanaz -- a normalizalas osszeer',
+    msg: { fromEmail: 'x@morvai.hu.', threadId: 't12' },
+    lookups: { domains: { 'morvai.hu': ['acc_dotted'] } },
+    vart: { kind: 'guess', guessAccountId: 'acc_dotted' },
+  },
+  {
+    nev: 'kukac nelkuli cim ures domaint ad, nem tippel',
+    msg: { fromEmail: 'nincskukac.hu', threadId: 't13' },
+    lookups: { domains: { 'nincskukac.hu': ['acc_never'] } },
+    vart: { kind: 'none' },
+  },
+  {
     nev: 'hianyzo felado nem borit fel semmit',
     msg: { fromEmail: '', threadId: 't8' },
     lookups: { threads: { t8: 'acc_8' } },
