@@ -117,6 +117,8 @@ export function createRepo(storage) {
   const getContact = (id) =>
     contactOut(S.get('SELECT * FROM ext_crm_contact WHERE id = ?', [id]))
 
+  const getEvent = (id) => S.get('SELECT * FROM ext_crm_event WHERE id = ?', [id])
+
   return {
     // ---- account -------------------------------------------------------
     createAccount({ type = 'company', status = 'lead', name, domains = [], notes = '' }) {
@@ -208,6 +210,22 @@ export function createRepo(storage) {
       ).map(contactOut)
     },
 
+    /**
+     * Kapcsolat keresése névre, az ügyfél-határtól függetlenül.
+     *
+     * A `listContacts` egy ügyfélhez köt; egy `account_id IS NULL` kapcsolat
+     * oda soha nem kerül be. A keresésnek viszont nem szabad ügyfélhez
+     * kötnie: az ügynök a nevet ismeri, nem azt, hogy a kapcsolat melyik
+     * ügyfélhez van (vagy egyáltalán van-e) rendelve.
+     */
+    searchContacts(query) {
+      const like = `%${str(query).toLowerCase()}%`
+      return S.all(
+        'SELECT * FROM ext_crm_contact WHERE LOWER(name) LIKE ? ORDER BY name',
+        [like],
+      ).map(contactOut)
+    },
+
     // ---- deal ----------------------------------------------------------
     createDeal({ accountId, kind = 'lead', title, stage = 'new', valueHuf = 0, expectedClose = '', source = '' }) {
       const id = newId('deal')
@@ -295,6 +313,8 @@ export function createRepo(storage) {
         return { event, created }
       })
     },
+
+    getEvent,
 
     getEventBody(eventId) {
       const row = S.get('SELECT content FROM ext_crm_event_body WHERE event_id = ?', [eventId])

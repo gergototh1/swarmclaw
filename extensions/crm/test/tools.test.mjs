@@ -39,6 +39,53 @@ test('a keresés névre és címre is talál', async () => {
   assert.equal(byCim.contacts[0].id, con.id)
 })
 
+test('a keresés a kapcsolat nevén is talál, még ha az ügyfél neve nem egyezik', async () => {
+  const { byName, repo } = toolsOf()
+  const acc = repo.createAccount({ name: 'Acme Kft.' })
+  const con = repo.createContact({ accountId: acc.id, name: 'Dorina Nagy' })
+  repo.attachEmail(con.id, 'dorina@acme.hu')
+
+  const result = await byName.crm_search.execute({ query: 'dorina nagy' }, { session: {} })
+  assert.equal(result.contacts.length, 1)
+  assert.equal(result.contacts[0].id, con.id)
+})
+
+test('az ügyfél nélküli kapcsolat is megtalálható névre', async () => {
+  const { byName, repo } = toolsOf()
+  const con = repo.createContact({ name: 'Ismeretlen Sandor' })
+
+  const result = await byName.crm_search.execute({ query: 'ismeretlen sandor' }, { session: {} })
+  assert.equal(result.contacts.length, 1)
+  assert.equal(result.contacts[0].id, con.id)
+})
+
+test('a pontos email-találat egyszer szerepel, még ha a név is egyezne', async () => {
+  const { byName, repo } = toolsOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const con = repo.createContact({ accountId: acc.id, name: 'Kiss Anna' })
+  repo.attachEmail(con.id, 'anna@x.hu')
+
+  const result = await byName.crm_search.execute({ query: 'anna@x.hu' }, { session: {} })
+  assert.equal(result.contacts.length, 1)
+  assert.equal(result.contacts[0].id, con.id)
+})
+
+test('a crm_timeline ismeretlen ügyfélre elutasít', async () => {
+  const { byName } = toolsOf()
+  await assert.rejects(
+    byName.crm_timeline.execute({ accountId: 'acc_nincs' }, { session: {} }),
+    /crm_ismeretlen_ugyfel/,
+  )
+})
+
+test('a crm_event_body ismeretlen eseményre elutasít', async () => {
+  const { byName } = toolsOf()
+  await assert.rejects(
+    byName.crm_event_body.execute({ eventId: 'evt_nincs' }, { session: {} }),
+    /crm_ismeretlen_esemeny/,
+  )
+})
+
 test('az idővonal nem hozza a teljes szöveget; azt külön kell kérni', async () => {
   const { byName, repo } = toolsOf()
   const acc = repo.createAccount({ name: 'X' })

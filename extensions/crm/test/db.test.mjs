@@ -53,6 +53,21 @@ test('ugyanaz a cím másodszor a másik kapcsolatra íródik át, nem duplikál
   assert.equal(S.all('SELECT * FROM ext_crm_contact_email').length, 1)
 })
 
+test('a searchContacts névre keres, ügyfél-határon és account nélküli kapcsolaton át is', () => {
+  const { repo } = repoOf()
+  const acc1 = repo.createAccount({ name: 'Acme Kft.' })
+  const acc2 = repo.createAccount({ name: 'Beta Bt.' })
+  const c1 = repo.createContact({ accountId: acc1.id, name: 'Dorina Nagy' })
+  const c2 = repo.createContact({ accountId: acc2.id, name: 'dorina Kis' })
+  const c3 = repo.createContact({ name: 'Ismeretlen Dorina' })
+  repo.createContact({ accountId: acc1.id, name: 'Nem Talalt' })
+
+  const found = repo.searchContacts('dorina').map((c) => c.id).sort()
+  assert.deepEqual(found, [c1.id, c2.id, c3.id].sort())
+
+  assert.deepEqual(repo.searchContacts('nincs ilyen'), [])
+})
+
 test('a kapcsolat ügyfél nélkül is létezhet', () => {
   const { repo } = repoOf()
   const c = repo.createContact({ name: 'Ismeretlen' })

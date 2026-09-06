@@ -38,9 +38,10 @@ export function createTools(state) {
         const byEmail = r.contactByEmail(q)
         const accounts = r.listAccounts({}).filter((a) =>
           a.name.toLowerCase().includes(q) || a.domains.some((d) => d.includes(q)))
+        const byName = r.searchContacts(q)
         const contacts = byEmail
-          ? [byEmail]
-          : accounts.flatMap((a) => r.listContacts(a.id)).filter((c) => c.name.toLowerCase().includes(q))
+          ? [byEmail, ...byName.filter((c) => c.id !== byEmail.id)]
+          : byName
         const deals = r.listDeals({}).filter((d) => d.title.toLowerCase().includes(q))
         return { accounts, contacts, deals }
       },
@@ -80,7 +81,9 @@ export function createTools(state) {
         required: ['accountId'],
       },
       async execute({ accountId, before, limit }) {
-        return { events: repo().listEvents({ accountId, before, limit: limit || 50 }) }
+        const r = repo()
+        if (!r.getAccount(accountId)) throw new Error('crm_ismeretlen_ugyfel')
+        return { events: r.listEvents({ accountId, before, limit: limit || 50 }) }
       },
     },
     {
@@ -92,7 +95,9 @@ export function createTools(state) {
         required: ['eventId'],
       },
       async execute({ eventId }) {
-        return { content: repo().getEventBody(eventId) }
+        const r = repo()
+        if (!r.getEvent(eventId)) throw new Error('crm_ismeretlen_esemeny')
+        return { content: r.getEventBody(eventId) }
       },
     },
   ]
