@@ -72,8 +72,9 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
     setFut(true)
     rpc('sweepNow', { max: 50 })
       .then((r) => {
-        const x = r as { scanned: number; recorded: number; unmatched: number }
-        setSopres(`${x.scanned} levél átnézve · ${x.recorded} idővonalra · ${x.unmatched} besorolatlan`)
+        const x = r as { scanned: number; recorded: number; unmatched: number; failed: number }
+        const hibaResz = x.failed > 0 ? ` · ${x.failed} hibás (kihagyva)` : ''
+        setSopres(`${x.scanned} levél átnézve · ${x.recorded} idővonalra · ${x.unmatched} besorolatlan${hibaResz}`)
         tolt()
       })
       .catch((e: Error) => setHiba(e.message))

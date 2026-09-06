@@ -13,11 +13,11 @@ function fakeMailbox(uzenetek) {
   }
 }
 
-function sweepOf(uzenetek) {
+function sweepOf(uzenetek, { mailbox } = {}) {
   const S = memStorage()
   for (const m of MIGRATIONS) S.raw.exec(m.sql)
   const repo = createRepo(S)
-  const state = { repo, log: console, contracts: { get: () => fakeMailbox(uzenetek) } }
+  const state = { repo, log: console, contracts: { get: () => mailbox || fakeMailbox(uzenetek) } }
   return { sweep: createSweep(state), repo }
 }
 
@@ -78,4 +78,58 @@ test('a szerzodes hianya nevesitett hiba, nem csendes nulla', async () => {
   const { sweep } = sweepOf([])
   sweep.__state.contracts = { get: () => null }
   await assert.rejects(() => sweep.runSweep({}), /crm_nincs_postafiok/)
+})
+
+// ---- C1: a sentAt nullazhato, es egy hibazo level nem allithatja meg a lapot ----
+
+test('a sentAt nelkuli level kimarad es szamolodik, nem dobja el a sopres futasat', async () => {
+  const { sweep, repo } = sweepOf([
+    LEVEL({ id: 'msg_ok' }),
+    LEVEL({ id: 'msg_null_sentat', sentAt: null, fromEmail: 'masik@morvai.hu' }),
+  ])
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const con = repo.createContact({ accountId: acc.id, name: 'Dorina' })
+  repo.attachEmail(con.id, 'dorina@morvai.hu')
+
+  const r = await sweep.runSweep({})
+  assert.equal(r.scanned, 2)
+  assert.equal(r.recorded, 1, 'a rendes level bekerul')
+  assert.equal(r.failed, 1, 'a nullazott sentAt-u level szamolt, nem dobott hibat')
+  assert.equal(repo.listEvents({ accountId: acc.id }).length, 1)
+  assert.equal(
+    repo.listEvents({ accountId: acc.id }).some((e) => e.source_id === 'msg_null_sentat'),
+    false,
+    'a nullazott sentAt-u level nem talalgatott datummal kerult be',
+  )
+})
+
+test('egy hibazo uzenet nem allitja meg a lap tobbi levelenek behuzasat, es a kurzor akkor is frissul', async () => {
+  const uzenetek = [
+    LEVEL({ id: 'ok1' }),
+    LEVEL({ id: 'bad' }),
+    LEVEL({ id: 'ok2', fromEmail: 'masik@morvai.hu' }),
+  ]
+  const mailbox = {
+    list: async () => ({ ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }),
+    get: async ({ id }) => {
+      if (id === 'bad') throw new Error('gmail_fetch_failed')
+      return uzenetek.find((u) => u.id === id)
+    },
+  }
+  const { sweep, repo } = sweepOf(uzenetek, { mailbox })
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const con1 = repo.createContact({ accountId: acc.id, name: 'Dorina' })
+  repo.attachEmail(con1.id, 'dorina@morvai.hu')
+  const con2 = repo.createContact({ accountId: acc.id, name: 'Masik' })
+  repo.attachEmail(con2.id, 'masik@morvai.hu')
+
+  const r = await sweep.runSweep({})
+  assert.equal(r.scanned, 3)
+  assert.equal(r.failed, 1, 'a hibazo level szamolt')
+  assert.equal(r.recorded, 2, 'a ket ep level bekerult a hibazo ellenere')
+  assert.deepEqual(
+    repo.listEvents({ accountId: acc.id }).map((e) => e.source_id).sort(),
+    ['ok1', 'ok2'],
+  )
+  assert.equal(repo.getSweepState('gmail').cursor, '', 'a kurzor akkor is frissult, ha volt hiba')
 })

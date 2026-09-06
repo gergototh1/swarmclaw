@@ -14,6 +14,12 @@ import { matchMessage } from './matching.mjs'
  * kattintás egyben megtanulja a címet (rpc `assignUnmatched`). Ha a tipp
  * automatikusan besorolna, a `noreply@`, a könyvelő és a külsős alvállalkozó
  * mind az ügyfél idővonalára kerülne, onnan az összefoglalójába.
+ *
+ * EGY LAPON EGY ROSSZ LEVÉL NEM ÁLLÍTHATJA MEG A TÖBBIT. Minden üzenet saját
+ * try/catch-ben fut: egy dobott hiba (lekérés, ismeretlen alak) a `failed`
+ * számlálóba kerül és névvel a logba, a lap többi levele változatlanul
+ * feldolgozódik, és a kurzor a lap végén akkor is előrébb áll, ha közben volt
+ * hiba. Egy üzenet önmagában soha nem teheti behúzhatatlanná az összeset.
  */
 export function createSweep(state) {
   const repo = () => {
@@ -51,44 +57,66 @@ export function createSweep(state) {
       const lap = await box.list({ labelIds, max, cursor: r.getSweepState('gmail')?.cursor || undefined })
       let recorded = 0
       let unmatched = 0
+      let failed = 0
 
       for (const id of lap.ids) {
-        const msg = await box.get({ id })
-        if (!msg) continue
-        const talalat = matchMessage({ fromEmail: msg.fromEmail, threadId: msg.threadId }, lookups)
+        try {
+          const msg = await box.get({ id })
 
-        if (talalat.kind === 'exact' || talalat.kind === 'thread') {
-          const { created } = r.recordEvent({
-            accountId: talalat.accountId,
-            contactId: talalat.contactId || null,
-            kind: 'email_in',
-            occurredAt: msg.sentAt,
-            title: msg.subject || '',
-            excerpt: String(msg.text || '').slice(0, 200),
+          // A szolgáltató a `sentAt`-ot deliberáltan `null`-ra hagyja, ha a
+          // Gmail `internalDate`-je nem használható -- nem tippel dátumot.
+          // Egy kitalált időpont csendben rossz adat volna az idővonalon
+          // (lásd a fájl tetején), ezért a levél kimarad, és a `failed`
+          // számlálóban látszik, nem egy dobott SQL-hibában.
+          if (!msg.sentAt) {
+            failed += 1
+            state.log?.warn?.('crm sweep: sentAt hianyzik, level kihagyva', { id })
+            continue
+          }
+
+          const talalat = matchMessage({ fromEmail: msg.fromEmail, threadId: msg.threadId }, lookups)
+
+          if (talalat.kind === 'exact' || talalat.kind === 'thread') {
+            const { created } = r.recordEvent({
+              accountId: talalat.accountId,
+              contactId: talalat.contactId || null,
+              kind: 'email_in',
+              occurredAt: msg.sentAt,
+              title: msg.subject || '',
+              excerpt: String(msg.text || '').slice(0, 200),
+              sourceSystem: 'gmail',
+              sourceId: msg.id,
+              threadId: msg.threadId || '',
+              body: msg.text || '',
+            })
+            if (created) recorded += 1
+            continue
+          }
+
+          const { created } = r.recordUnmatched({
             sourceSystem: 'gmail',
             sourceId: msg.id,
-            threadId: msg.threadId || '',
-            body: msg.text || '',
+            senderAddress: msg.fromEmail || '',
+            senderName: msg.fromName || '',
+            subject: msg.subject || '',
+            excerpt: String(msg.text || '').slice(0, 200),
+            receivedAt: msg.sentAt,
+            guessAccountId: talalat.kind === 'guess' ? talalat.guessAccountId : null,
           })
-          if (created) recorded += 1
-          continue
+          if (created) unmatched += 1
+        } catch (err) {
+          failed += 1
+          state.log?.warn?.('crm sweep: level feldolgozasa sikertelen', {
+            id, message: err instanceof Error ? err.message : String(err),
+          })
         }
-
-        const { created } = r.recordUnmatched({
-          sourceSystem: 'gmail',
-          sourceId: msg.id,
-          senderAddress: msg.fromEmail || '',
-          senderName: msg.fromName || '',
-          subject: msg.subject || '',
-          excerpt: String(msg.text || '').slice(0, 200),
-          receivedAt: msg.sentAt,
-          guessAccountId: talalat.kind === 'guess' ? talalat.guessAccountId : null,
-        })
-        if (created) unmatched += 1
       }
 
+      // A kurzor akkor is előrébb áll, ha a lapon volt hiba -- a hibás
+      // levelek elszámoltak a `failed`-ben, de nem tarthatják a kurzort
+      // örökre a lap elején.
       r.setSweepState('gmail', { cursor: lap.complete ? '' : (lap.nextCursor || ''), lastSeenAt: new Date().toISOString() })
-      return { scanned: lap.ids.length, recorded, unmatched, complete: lap.complete, cursor: lap.nextCursor || '' }
+      return { scanned: lap.ids.length, recorded, unmatched, failed, complete: lap.complete, cursor: lap.nextCursor || '' }
     },
   }
 }
