@@ -454,6 +454,69 @@ test('unansweredThreads a KESOBBI valaszt szamitja, nem barmelyiket', () => {
     'a valasz KORABBI mint a kerdes, tehat nem valasz ra')
 })
 
+/**
+ * I1: a fuggveny neve, a docstringje es a spec is SZALAT mond, a lekerdezes
+ * viszont `email_in`-enkent adott egy sort. Egy sokat surgeto szal igy ot
+ * majdnem azonos `valasz_nelkul` sort termel, es a napi kor (`agents.mjs`:
+ * "vedd az elso legfeljebb ot sort") egyetlen beszelgetesre egeti el az egesz
+ * napi keretet.
+ */
+test('unansweredThreads szalankent EGY sort ad, tobb valasz nelkuli level eseten is', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const idok = ['2026-08-20T10:00:00.000Z', '2026-08-22T10:00:00.000Z', '2026-08-24T10:00:00.000Z',
+                '2026-08-26T10:00:00.000Z', '2026-08-28T10:00:00.000Z']
+  idok.forEach((ts, i) => {
+    repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: ts,
+      title: `Surgetes ${i}`, excerpt: 'e', sourceSystem: 'gmail', sourceId: `i${i}`, threadId: 'thr_a' })
+  })
+
+  const varok = repo.unansweredThreads('2026-09-01T00:00:00.000Z')
+  assert.equal(varok.length, 1, 'egy szal, egy sor -- nem levelenkent egy')
+  assert.equal(varok[0].thread_id, 'thr_a')
+  assert.equal(varok[0].occurred_at, idok[0],
+    'a LEGREGEBBI valasz nelkuli level kepviseli a szalat: a rangsort a kor hajtja, es az adossag ott kezdodott')
+  assert.equal(varok[0].subject, 'Surgetes 0')
+})
+
+/**
+ * A kepviselo nem a szal ELSO levele, hanem az utolso valasz UTANI elso: egy
+ * regen megvalaszolt szal nem "harminc napja valasz nelkul", hanem annyi ideje,
+ * amiota tenylegesen adosak vagyunk.
+ */
+test('unansweredThreads kepviseloje az utolso valasz UTANI elso level', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-08-01T10:00:00.000Z',
+    title: 'Regi kerdes', excerpt: 'e', sourceSystem: 'gmail', sourceId: 'r1', threadId: 'thr_d' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_out', occurredAt: '2026-08-05T10:00:00.000Z',
+    excerpt: 'valasz', sourceSystem: 'gmail', sourceId: 'r2', threadId: 'thr_d' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-08-10T10:00:00.000Z',
+    title: 'Ujabb kerdes', excerpt: 'e', sourceSystem: 'gmail', sourceId: 'r3', threadId: 'thr_d' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-08-15T10:00:00.000Z',
+    title: 'Surgetes', excerpt: 'e', sourceSystem: 'gmail', sourceId: 'r4', threadId: 'thr_d' })
+
+  const varok = repo.unansweredThreads('2026-09-01T00:00:00.000Z')
+  assert.equal(varok.length, 1)
+  assert.equal(varok[0].occurred_at, '2026-08-10T10:00:00.000Z')
+  assert.equal(varok[0].subject, 'Ujabb kerdes')
+})
+
+/** Ket szal ket sor marad, es a regebbi szal all elol. */
+test('unansweredThreads tobb szalnal szalankent egy sort ad, a regebbi elol', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-08-10T10:00:00.000Z',
+    title: 'Regebbi szal', excerpt: 'e', sourceSystem: 'gmail', sourceId: 'a1', threadId: 'thr_regi' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-08-12T10:00:00.000Z',
+    title: 'Regebbi szal surgetes', excerpt: 'e', sourceSystem: 'gmail', sourceId: 'a2', threadId: 'thr_regi' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-08-20T10:00:00.000Z',
+    title: 'Ujabb szal', excerpt: 'e', sourceSystem: 'gmail', sourceId: 'b1', threadId: 'thr_uj' })
+
+  const varok = repo.unansweredThreads('2026-09-01T00:00:00.000Z')
+  assert.deepEqual(varok.map((x) => x.thread_id), ['thr_regi', 'thr_uj'])
+})
+
 test('openCommitmentsOlderThan iranyra szur es a feladat nelkulieket adja', () => {
   const { repo } = repoOf()
   const acc = repo.createAccount({ name: 'X' })

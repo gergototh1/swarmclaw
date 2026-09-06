@@ -13,10 +13,10 @@ function toolsOf(contracts) {
   return { byName: Object.fromEntries(list.map((t) => [t.name, t])), repo: state.repo, list }
 }
 
-test('a CRM-3 tizenegy eszkozt ad: negy olvasot, a sopres inditasat, a figyelem-listat, es ot iro eszkozt', () => {
+test('a CRM-3 tiz eszkozt ad: negy olvasot, a sopres inditasat, a figyelem-listat, es negy iro eszkozt', () => {
   const { list } = toolsOf()
   assert.deepEqual(list.map((t) => t.name).sort(),
-    ['crm_account', 'crm_attention', 'crm_commitment_link', 'crm_commitment_write',
+    ['crm_account', 'crm_attention', 'crm_commitment_write',
      'crm_event_body', 'crm_note', 'crm_search', 'crm_suggestion_write', 'crm_summary_write',
      'crm_sweep', 'crm_timeline'])
 })
@@ -26,9 +26,25 @@ test('a CRM-3 utan a crm_attention es az iro eszkozok is a listaban vannak', () 
   const names = list.map((t) => t.name)
   assert.ok(names.includes('crm_attention'))
   for (const iro of ['crm_note', 'crm_summary_write', 'crm_commitment_write',
-                      'crm_commitment_link', 'crm_suggestion_write']) {
+                      'crm_suggestion_write']) {
     assert.ok(names.includes(iro), `${iro} hianyzik`)
   }
+})
+
+/**
+ * I2: a `crm_commitment_link` volt az EGYETLEN eszkoz, amivel egy figyelem-sor
+ * veglegesen eltunhetett -- `linkCommitmentTask` (`db.mjs`) csupasz
+ * `UPDATE ... WHERE id = ?`, ami sem a feladat letezeset, sem az ugyfelet nem
+ * nezte, tehat egy kitalalt `taskId` is lezarta az igeretet.
+ *
+ * A "nem adjuk oda az ugynoknek" nem volt vedelem: az `AGENTS[*].tools` nem
+ * szukiti, amit egy MCP-n elerkezo ugynok hivhat -- a hid (`mcp-bridge.mjs`)
+ * a TELJES tablat hirdeti. Amit vissza akarunk tartani, azt ki kell venni.
+ */
+test('a crm_commitment_link NINCS a tool-tablaban -- egy figyelem-sor nem tunhet el az ugynok kezetol', () => {
+  const { list } = toolsOf()
+  assert.equal(list.some((t) => t.name === 'crm_commitment_link'), false,
+    'a kotest az operator dontese (`acceptSuggestion`, rpc.mjs) vegzi, nem az ugynok')
 })
 
 test('a covers_event_id-t a SZERVER belyegzi, az ugynok nem adhatja meg', async () => {
@@ -167,25 +183,29 @@ test('a crm_commitment_write ismeretlen ugyfelre, esemenyre es iranyra is nevesi
   )
 })
 
-test('a crm_commitment_link osszekoti az igeretet a feladattal, es utana mar nem "nyitott"', async () => {
+/**
+ * I3: az ugyfel letezik, az esemeny letezik -- de a ketto viszonyat semmi nem
+ * nezte, tehat az egyik ugyfel levelebol elhangzott igeret a MASIK ugyfel
+ * lapjara volt filezheto, hibauzenet nelkul. A testvere, a
+ * `crm_suggestion_write`, pont ezt a sort mar tartja (`crm_igeret_mas_ugyfele`);
+ * a felreiktatas az a hibaosztaly, ami ellen ez az egesz extension van.
+ */
+test('a crm_commitment_write elutasitja a MAS ugyfelhez tartozo esemenyt', async () => {
   const { byName, repo } = toolsOf()
-  const acc = repo.createAccount({ name: 'X' })
-  const { event } = repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: '2026-09-01T10:00:00.000Z',
-    excerpt: 'e', sourceSystem: 'manual', sourceId: 'n1' })
-  const cmt = repo.writeCommitment({ accountId: acc.id, eventId: event.id, text: 'x', direction: 'ours' })
+  const sajat = repo.createAccount({ name: 'Sajat' })
+  const masik = repo.createAccount({ name: 'Masik' })
+  const { event } = repo.recordEvent({ accountId: masik.id, kind: 'email_in',
+    occurredAt: '2026-09-01T10:00:00.000Z', title: 'Masik ugyfel levele',
+    excerpt: 'x', sourceSystem: 'gmail', sourceId: 'g1' })
 
-  const linked = await byName.crm_commitment_link.execute(
-    { commitmentId: cmt.id, taskId: 'task_1' }, { session: {} })
-  assert.equal(linked.task_id, 'task_1')
-  assert.equal(repo.listCommitments({ accountId: acc.id, openOnly: true }).length, 0)
-})
-
-test('a crm_commitment_link ismeretlen igeretre nevesitett hibat ad', async () => {
-  const { byName } = toolsOf()
   await assert.rejects(
-    byName.crm_commitment_link.execute({ commitmentId: 'cmt_nincs', taskId: 'task_1' }, { session: {} }),
-    /crm_ismeretlen_igeret/,
+    byName.crm_commitment_write.execute(
+      { accountId: sajat.id, eventId: event.id, text: 'Kuldom a szerzodest', direction: 'ours' },
+      { session: { agentId: 'ugyfelkezelo' } }),
+    /crm_esemeny_mas_ugyfele/,
   )
+  assert.equal(repo.listCommitments({ accountId: sajat.id }).length, 0,
+    'a felreiktatott igeret nem szuletett meg')
 })
 
 test('a crm_suggestion_write rogziti az okot, a kivalto sort, es hogy melyik ugynok javasolta', async () => {

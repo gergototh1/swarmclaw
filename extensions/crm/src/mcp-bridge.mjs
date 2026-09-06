@@ -29,6 +29,22 @@
  * already holds the host's access key, and could equally edit the database; the
  * route's own header says extensions are trusted same-process code. Do not
  * build a permission model on the ids in the body.
+ *
+ * THIS BRIDGE IS NOT A FILTER. It reflects over the WHOLE `tools` array and
+ * advertises every entry. It never reads the agent's declaration, and it could
+ * not usefully: a managed agent's `tools` field holds host capability ids
+ * (a capability group, or an extension's filename), not the names of the tools
+ * inside an extension. So for an agent that reaches this extension over MCP --
+ * which is every agent on a CLI provider, since a CLI provider is handed no
+ * extension tool layer at all -- a declaration's `tools` is NOT a restriction
+ * on what it can call here. Leaving a tool out of the grant list, or out of the
+ * system prompt, withholds nothing. A capability that must not be in an agent's
+ * hands has to be absent from the tool table itself.
+ *
+ * Do not add a filter here to fix that. This file is byte-identical in every
+ * extension that fronts its tools over MCP and `extensions/mcp-shim-parity.test.mjs`
+ * holds it that way; a per-extension policy living in it would diverge the
+ * copies and bury the same decision in each of them.
  */
 
 /** The shape a failure takes, matching what the tools themselves return. */

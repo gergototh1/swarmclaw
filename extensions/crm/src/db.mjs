@@ -491,6 +491,22 @@ export function createRepo(storage) {
       return S.get('SELECT * FROM ext_crm_commitment WHERE id = ?', [id])
     },
 
+    /**
+     * Az ígéret hozzákötése a belőle született feladathoz.
+     *
+     * CSUPASZ `UPDATE`, ÉS AZ IS MARAD -- de csak azért, mert egyetlen hívója
+     * van: az `acceptSuggestion` (`rpc.mjs`), ami a `taskId`-t abból a
+     * válaszból veszi, amit a host `/api/tasks` végpontja adott vissza az
+     * imént, az operátor kattintására. A feladat létezése tehát nem hit
+     * kérdése, hanem az előző lépés eredménye.
+     *
+     * Volt egy második hívója, a `crm_commitment_link` tool, és ott ez a
+     * csupaszság hiba volt: egy kitalált `taskId` is lezárta az ígéretet, és
+     * azzal véglegesen eltüntetett egy sort a figyelem-listáról. Az az eszköz
+     * ezért nincs többé (lásd `tools.mjs` fejléce). Ha ez a függvény valaha
+     * ismét olyan helyről kap `taskId`-t, ami nem a hosttól jött, akkor ide
+     * ellenőrzés kell -- nem a hívóba.
+     */
     linkCommitmentTask(id, taskId) {
       S.exec('UPDATE ext_crm_commitment SET task_id = ?, updated_at = ? WHERE id = ?', [taskId, now(), id])
       return S.get('SELECT * FROM ext_crm_commitment WHERE id = ?', [id]) || null
@@ -693,26 +709,56 @@ export function createRepo(storage) {
     },
 
     /**
-     * Bejövő levelek, amikre a szálban NEM ment későbbi válasz.
+     * Válasz nélküli levélSZÁLAK, szálanként EGY sorral.
      *
      * A „későbbi" a lényeg: egy hónapja küldött válasz nem válasz a tegnapi
      * kérdésre. A NOT EXISTS ezért hasonlítja az időpontokat, nem csak azt
      * nézi, van-e egyáltalán kimenő levél a szálban.
+     *
+     * MIÉRT SZÁLANKÉNT EGY. A név, ez a leírás és a spec is szálat mond, a
+     * figyelem-lista pedig szálanként egy teendőt jelent: ötször sürgetni
+     * ugyanabban a beszélgetésben egy dolog, nem öt. A levelenkénti sor a napi
+     * kört is elégette volna — az „első legfeljebb öt sor" (`agents.mjs`) egy
+     * bőbeszédű szálra ment volna el, öt majdnem azonos javaslattal.
+     *
+     * MIÉRT A LEGRÉGEBBI KÉPVISELI. A rangsort a sor KORA hajtja
+     * (`attention.mjs`), tehát a választás azt dönti el, mennyire sürgősnek
+     * látszik a szál. A legrégebbi válasz nélküli levél az a pillanat, amióta
+     * adósak vagyunk; a legfrissebb azt mondaná, hogy egy hónapja sürgető
+     * ügyfél „tegnapi" — vagyis minél többször ír valaki, annál lejjebb
+     * csúszna. Nem a szál első levele: a `NOT EXISTS` miatt csak az utolsó
+     * kimenő levél UTÁNI bejövők maradnak bent, tehát a legrégebbi bennmaradó
+     * pontosan az első olyan levél, amire már nem válaszoltunk.
+     *
+     * A `MIN()` melletti csupasz oszlopokra nem támaszkodunk: SQLite-ban az
+     * döntetlennél nem meghatározott, hogy melyik sorból jönnek, és egy
+     * ingadozó figyelem-lista olvashatatlan. A képviselőt ezért kifejezett,
+     * `(occurred_at, id)` szerint rendezett részlekérdezés választja.
      */
     unansweredThreads(cutoffIso) {
       return S.all(
-        `SELECT e.account_id, e.thread_id, e.id AS event_id, e.title AS subject, e.occurred_at
-         FROM ext_crm_event e
-         WHERE e.kind = 'email_in'
-           AND e.thread_id <> ''
-           AND e.occurred_at < ?
-           AND NOT EXISTS (
-             SELECT 1 FROM ext_crm_event v
-             WHERE v.thread_id = e.thread_id
-               AND v.kind = 'email_out'
-               AND v.occurred_at > e.occurred_at
-           )
-         ORDER BY e.occurred_at ASC`,
+        `WITH valasz_nelkul AS (
+           SELECT e.account_id, e.thread_id, e.id, e.title, e.occurred_at
+           FROM ext_crm_event e
+           WHERE e.kind = 'email_in'
+             AND e.thread_id <> ''
+             AND e.occurred_at < ?
+             AND NOT EXISTS (
+               SELECT 1 FROM ext_crm_event v
+               WHERE v.thread_id = e.thread_id
+                 AND v.kind = 'email_out'
+                 AND v.occurred_at > e.occurred_at
+             )
+         )
+         SELECT u.account_id, u.thread_id, u.id AS event_id, u.title AS subject, u.occurred_at
+         FROM valasz_nelkul u
+         WHERE u.id = (
+           SELECT u2.id FROM valasz_nelkul u2
+           WHERE u2.thread_id = u.thread_id
+           ORDER BY u2.occurred_at ASC, u2.id ASC
+           LIMIT 1
+         )
+         ORDER BY u.occurred_at ASC, u.id ASC`,
         [cutoffIso],
       )
     },

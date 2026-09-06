@@ -8,6 +8,16 @@
  * mellékhatásként. Az ütemezés az egyetlen működő út, és az `aisignal` mindkét
  * ügynöke ugyanígy áll.
  *
+ * MIÉRT NINCS PROVIDER. A deklaráció egyetlen providert sem nevez meg, tehát a
+ * `buildManagedAgent` (`src/lib/server/extension-managed-resources.ts`) a
+ * `resolveManagedRoute`-on át a példány alapértelmezett útvonalára esik vissza
+ * (`instanceDefaultRoute`). Vagyis „ebben a telepítésben minden ügynök
+ * `claude-cli`-n fut" TELEPÍTÉSI TÉNY, amit ez a fájl nem kényszerít ki: ha a
+ * példány alapértelmezése egy API-provider, ez az ügynök oda kerül, és onnantól
+ * a `tools` réteget tényleg megkapja. Ezért kell a `tools`-nak host-helyesnek
+ * lennie akkor is, amikor ma inert. Provider megnevezése ITT nem megoldás: az
+ * operátor útvonal-választását írná felül minden reconcile-nál.
+ *
  * MIÉRT NINCS `mcpServerIds`. A host ismeri a mezőt, de a szerver azonosítója
  * telepítésenként generálódik, tehát egy deklaráció nem tudja megnevezni. Az
  * operátor rendeli hozzá; a telepítő kiírja a bemásolandó blokkot. Ebben a
@@ -66,8 +76,14 @@ export const AGENTS = Object.freeze([
     displayName: 'Ügyfélkezelő',
     description: 'Figyeli, mi igényel figyelmet az ügyfeleknél, összefoglal és javasol.',
     systemPrompt: UGYFELKEZELO_SOUL,
-    tools: ['crm_attention', 'crm_account', 'crm_timeline', 'crm_event_body', 'crm_search',
-            'crm_summary_write', 'crm_commitment_write', 'crm_suggestion_write', 'memory'],
+    // A `tools` a hostnak szól, nem a promptnak: capability-csoport azonosítót
+    // VAGY egy extension-fájlnevet vesz, mást a
+    // `listScopedToolAccessExtensionIds` csendben eldob. A CRM rétegét ezért a
+    // telepített fájlnév hozza (`crm.mjs`), nem a benne lakó `crm_*` tool-nevek
+    // -- azok mind a nyolcan eldobódtak volna. Hogy melyik eszközt mikor
+    // használja, az a promptban áll; a kettő együttállását a
+    // `test/agents.test.mjs` őrzi.
+    tools: ['crm.mjs', 'memory'],
     heartbeatEnabled: false,
   }),
 ])

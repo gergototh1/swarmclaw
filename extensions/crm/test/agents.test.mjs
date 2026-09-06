@@ -38,13 +38,51 @@ test('az ugynok promptja megtiltja a talalgatast', () => {
   assert.match(AGENTS[0].systemPrompt, /ne (talalgass|találgass)/i)
 })
 
+/**
+ * I5: az `agent.tools` a hostnal capability-csoport azonositot VAGY egy
+ * extension-fajlnevet vesz (`src/lib/capability-selection.ts`
+ * `isExternalExtensionId`: `.js`/`.mjs` vegzodes), es a
+ * `listScopedToolAccessExtensionIds` (`src/lib/server/universal-tool-access.ts`)
+ * mindent CSENDBEN eldob, ami nincs ebben az univerzumban. A `crm_*`
+ * tool-nevek egyike sem az; a CRM retegenek helyes irasmodja a telepitett
+ * fajlnev, `crm.mjs`.
+ */
+test('a tools csak host altal ertelmezett erteket sorol -- tool-nevet nem', () => {
+  for (const grant of AGENTS[0].tools) {
+    assert.equal(/^crm_/.test(grant), false,
+      `"${grant}" egy tool neve, nem host capability -- a host csendben eldobna`)
+  }
+  assert.ok(AGENTS[0].tools.includes('crm.mjs'),
+    'a CRM reteget a telepitett extension fajlneve hozza, nem a benne lako toolok nevei')
+})
+
+/**
+ * I4: a teszt targya az, hogy MINDEN megadott kepessegnek legyen megnevezett
+ * ALKALMA a promptban -- nem az, hogy ket hardcode-olt nev szerepel benne. Az
+ * `ALKALOM` terkep ezert a grant -> promptban kotelezoen megnevezett eszkozok
+ * iranyt rogziti: egy uj grant (`execute`, `browser`) nem "csendben atmegy",
+ * hanem elbukik, mert nincs bejegyzese.
+ *
+ * A CRM tool-nevei I5 ota nem a `tools`-ban allnak (ott a `crm.mjs` all), hanem
+ * itt -- ez a helyuk: a `tools` a hostnak szol, ez a lista a promptnak.
+ */
+const ALKALOM = Object.freeze({
+  'crm.mjs': ['crm_attention', 'crm_account', 'crm_timeline', 'crm_event_body', 'crm_search',
+              'crm_summary_write', 'crm_commitment_write', 'crm_suggestion_write'],
+  memory: ['memory_search', 'memory_update'],
+})
+
 test('minden granted tool-nak van megnevezett alkalma a promptban', () => {
-  assert.ok(AGENTS[0].tools.includes('memory'),
-    'a teszt felteszi, hogy a memory grant megmarad')
-  assert.ok(AGENTS[0].tools.includes('crm_search'),
-    'a teszt felteszi, hogy a crm_search grant megmarad')
-  assert.match(AGENTS[0].systemPrompt, /memory/,
-    'a memory eszköznek meg kell jelennie a promptban, nem csak a tools listaban')
-  assert.match(AGENTS[0].systemPrompt, /crm_search/,
-    'a crm_search eszköznek meg kell jelennie a promptban, nem csak a tools listaban')
+  assert.ok(AGENTS[0].tools.length > 0, 'ures tools-listan a teszt semmit nem allitana')
+  for (const grant of AGENTS[0].tools) {
+    const alkalmak = ALKALOM[grant]
+    assert.ok(alkalmak,
+      `a(z) "${grant}" grantnak nincs megnevezett alkalma: vagy vedd ki a tools-bol, ` +
+      'vagy ird meg a promptban, mikor hasznalja -- es vedd fel ide')
+    assert.ok(alkalmak.length > 0, `a(z) "${grant}" bejegyzese ures, tehat semmit nem kovetel`)
+    for (const nev of alkalmak) {
+      assert.ok(AGENTS[0].systemPrompt.includes(nev),
+        `a(z) "${nev}" eszkoznek meg kell jelennie a promptban, nem csak a grantban (grant: ${grant})`)
+    }
+  }
 })

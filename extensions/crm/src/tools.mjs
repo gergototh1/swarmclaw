@@ -19,12 +19,29 @@ import { createSweep } from './sweep.mjs'
  * a besorolatlan sorba teszi, ahol az operátoré a szó. Ugyanazt a törzset
  * hívja, mint az rpc `sweepNow`, hogy a két belépési pont soha ne térjen el.
  *
- * A CRM-3 ÖT ÍRÓ ESZKÖZT AD: jegyzet, összefoglaló, ígéret, ígéret-feladat
- * kötés, javaslat. Egyik `execute` sem továbbítja az `args`-ot szórással a
- * repo felé -- minden mezőt nevesítve olvasunk ki. Egy `coversEventId`
- * spread mellett átcsúszna a `writeSummary`-hoz, és az ügynök állíthatná,
- * hogy többet fedett le, mint amennyit ténylegesen olvasott -- lásd a
- * `writeSummary` megjegyzését a `db.mjs`-ben.
+ * A CRM-3 NÉGY ÍRÓ ESZKÖZT AD: jegyzet, összefoglaló, ígéret, javaslat.
+ * Egyik `execute` sem továbbítja az `args`-ot szórással a repo felé -- minden
+ * mezőt nevesítve olvasunk ki. Egy `coversEventId` spread mellett átcsúszna a
+ * `writeSummary`-hoz, és az ügynök állíthatná, hogy többet fedett le, mint
+ * amennyit ténylegesen olvasott -- lásd a `writeSummary` megjegyzését a
+ * `db.mjs`-ben.
+ *
+ * AZ ÖTÖDIK ÍRÓ ESZKÖZ, A `crm_commitment_link`, KIKERÜLT. Ez volt az egyetlen,
+ * amivel egy figyelem-sor VÉGLEGESEN eltűnhetett: a `linkCommitmentTask`
+ * (`db.mjs`) csupasz `UPDATE ... WHERE id = ?`, ami sem a feladat létezését,
+ * sem az ügyfelet, sem azt nem nézte, hogy a feladat egyáltalán a hosttól
+ * származik-e -- egy kitalált `taskId` is lezárta az ígéretet, napló és
+ * esemény nélkül. Ez pontosan az a döntés, amit ez a szakasz kimond, hogy nem
+ * az ügynöké: a kiváltó determinisztikus, csak a megfogalmazás a modellé. A
+ * kötés útja azóta az `acceptSuggestion` (`rpc.mjs`), ahol az operátor
+ * kattintása hozza létre a feladatot, és a hozzákötés abból a valódi feladatból
+ * történik.
+ *
+ * ÉS NEM ELÉG „NEM ODAADNI". Kimaradt az `AGENTS[0].tools`-ból és a promptból
+ * is, mégis hívható volt: ebben a telepítésben minden ügynök `claude-cli`-n fut
+ * és a CRM-et kizárólag az MCP-hídon éri el, a híd (`mcp-bridge.mjs`) pedig a
+ * TELJES tool-táblát hirdeti. Amit vissza akarunk tartani, azt innen kell
+ * kivenni, nem a grant-listáról lehagyni.
  *
  * AMI NINCS ITT, AZ SZÁNDÉKOSAN NINCS. Ügyfél, kapcsolat és ügy létrehozása
  * és törlése, `deal.stage` és `account.status` állítása, a besorolatlan
@@ -201,23 +218,17 @@ export function createTools(state) {
       async execute({ accountId, eventId, text, direction, dueHint }) {
         const r = repo()
         if (!r.getAccount(accountId)) throw new Error('crm_ismeretlen_ugyfel')
-        if (!r.getEvent(eventId)) throw new Error('crm_ismeretlen_esemeny')
+        const esemeny = r.getEvent(eventId)
+        if (!esemeny) throw new Error('crm_ismeretlen_esemeny')
+        // Az ügyfél létezik, az esemény létezik -- de a kettő ÖSSZETARTOZÁSA
+        // nélkül az egyik ügyfél leveléből elhangzott ígéret a másik ügyfél
+        // lapjára filézhető, hibaüzenet nélkül. A félreiktatás az a hibaosztály,
+        // ami ellen ez az egész extension van, és a testvére, a
+        // `crm_suggestion_write`, pontosan ezt a sort már tartja
+        // (`crm_igeret_mas_ugyfele`, néhány sorral lejjebb).
+        if (esemeny.account_id !== accountId) throw new Error('crm_esemeny_mas_ugyfele')
         if (direction !== 'ours' && direction !== 'theirs') throw new Error('crm_ismeretlen_igeret_irany')
         return r.writeCommitment({ accountId, eventId, text: String(text || ''), direction, dueHint: String(dueHint || '') })
-      },
-    },
-    {
-      name: 'crm_commitment_link',
-      description: 'Egy ígéret összekötése a belőle született feladattal. Ezután az ígéret nem szerepel többé a figyelem-listán.',
-      parameters: {
-        type: 'object',
-        properties: { commitmentId: { type: 'string' }, taskId: { type: 'string' } },
-        required: ['commitmentId', 'taskId'],
-      },
-      async execute({ commitmentId, taskId }) {
-        const out = repo().linkCommitmentTask(commitmentId, String(taskId || ''))
-        if (!out) throw new Error('crm_ismeretlen_igeret')
-        return out
       },
     },
     {

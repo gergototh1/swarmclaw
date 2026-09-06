@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import { createMcpBridge } from '../src/mcp-bridge.mjs'
 import crm from '../index.mjs'
+import { AGENTS } from '../src/agents.mjs'
 
 /**
  * A híd az, amit egy CLI-provideres ügynök ér el a tool-réteg helyett, mert
@@ -157,6 +158,37 @@ test('a tool with required arguments still declares them after translation', () 
  * de ez nevesítve őrzi, hogy a `max` paraméter -- ami nem kötelező -- tényleg
  * `inputSchema.properties.max`-ként landol, `required` nélkül.
  */
+/**
+ * I2: a hid a TELJES tool-tablat hirdeti, es nem nezi meg az ugynok
+ * deklaraciojat. Ebben a telepitesben minden ugynok `claude-cli`-n fut, tehat
+ * a CRM-et KIZAROLAG ezen a hidon eri el -- vagyis az `AGENTS[*].tools` nem
+ * korlatozza, mit hivhat meg. Egy eszkoz "visszatartasa" azzal, hogy nem
+ * soroljuk fel a grantok kozott, semmit nem tart vissza; ki kell venni a
+ * `tools` tablabol (lasd `crm_commitment_link`).
+ */
+test('a hid a TELJES tool-tablat hirdeti -- az AGENTS[*].tools nem szukiti', () => {
+  const listed = crm.rpc.mcpTools().tools.map((t) => t.name)
+  assert.deepEqual(listed.slice().sort(), crm.tools.map((t) => t.name).sort())
+  // A grantok kozott egyetlen tool-nev sincs (host capability azonositok
+  // allnak ott), megis minden tool atmegy a hidon:
+  assert.equal(AGENTS[0].tools.some((grant) => listed.includes(grant)), false,
+    'a grantok nem tool-nevek, tehat a hid nem is tudna beloluk szurni')
+  for (const nev of ['crm_sweep', 'crm_note', 'crm_attention']) {
+    assert.ok(listed.includes(nev), `${nev} atmegy a hidon, fuggetlenul a grantoktol`)
+  }
+})
+
+/**
+ * A `crm_commitment_link` az egyetlen eszkoz volt, ami egy figyelem-sort
+ * VEGLEGESEN el tudott tuntetni (`linkCommitmentTask`: csupasz UPDATE, a
+ * feladat letezesenek ellenorzese nelkul). A hidon at elerheto volt, barmit is
+ * mond a deklaracio -- ezert nem "visszatartva", hanem torolve lett.
+ */
+test('a crm_commitment_link a hidon sem erheto el', () => {
+  const listed = crm.rpc.mcpTools().tools.map((t) => t.name)
+  assert.equal(listed.includes('crm_commitment_link'), false)
+})
+
 test('a crm_sweep is elerheto a hidon, opcionalis max parameterrel', () => {
   const listed = crm.rpc.mcpTools().tools
   const sweep = listed.find((t) => t.name === 'crm_sweep')
