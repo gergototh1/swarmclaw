@@ -8,26 +8,10 @@ import {
   VIDEOS_CONTRACT_VERSION,
   VIDEO_EXTENSION,
   forgatokonyv,
+  videoLekerdez,
   videosHandle,
 } from '../src/video-forgatokonyv.mjs'
-
-/** A projection as `video.videos` `get` promises one: exactly eleven columns. */
-function videoRow(over = {}) {
-  return {
-    id: 'vid_1',
-    cim: 'Miért drágul a kávé',
-    status: 'kesz',
-    forras_tipus: 'signal',
-    forras_id: 'sig_9',
-    out_path: 'out/vid_1.mp4',
-    file_sha256: 'aabb',
-    hossz_ms: 42300,
-    narracio_szoveg: 'Első mondat. Második mondat.',
-    created_at: '2026-09-01T10:00:00.000Z',
-    qa_ok_at: '2026-09-01T11:00:00.000Z',
-    ...over,
-  }
-}
+import { contractError, videoRow } from './helpers.mjs'
 
 /** A `ctx.contracts` double: `get` answers a handle or null, `why` answers the reason. */
 function contractsDouble({ handle = null, why = null } = {}) {
@@ -155,4 +139,82 @@ test('a video with no narration says so instead of leaving an empty section', ()
   const { tartalom } = forgatokonyv(videoRow({ narracio_szoveg: '' }), 'vid_1')
   assert.match(tartalom, /## Narráció/)
   assert.match(tartalom, /nincs (még )?narráció/i)
+})
+
+async function refusalOf(promise) {
+  try {
+    await promise
+  } catch (err) {
+    return err
+  }
+  return null
+}
+
+test('a provider that went away between the handle and the call is named, not generic', async () => {
+  // A host minden híváskor újra feloldja a szerződést (callContractMethod),
+  // tehát ugyanaz a verseny, amit a videosHandle egy sorral feljebb kezel,
+  // itt dobott `unavailable`-ként érkezik. Kezeletlenül a tool generikus
+  // ágára esne, és rossz_parameter-t adna egy stack-szövegre.
+  const contracts = contractsDouble({
+    handle: { get: async () => { throw contractError('unavailable', { reason: 'provider_disabled' }) } },
+  })
+  const err = await refusalOf(videoLekerdez(contracts, 'vid_1'))
+  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.match(err.message, /unavailable/)
+  // Az ok szava a hosté; ugyanaz a mondat jár rá, mint feloldáskor.
+  assert.match(err.message, /provider_disabled/)
+  assert.match(err.message, /kapcsold be/i)
+})
+
+test('an unavailable with no reason word says to retry rather than guessing one', async () => {
+  const contracts = contractsDouble({ handle: { get: async () => { throw contractError('unavailable') } } })
+  const err = await refusalOf(videoLekerdez(contracts, 'vid_1'))
+  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.match(err.message, /unavailable/)
+  for (const why of ['not_declared', 'provider_missing', 'provider_disabled', 'version_mismatch']) {
+    assert.doesNotMatch(err.message, new RegExp(why), `nem megfigyelt okot állít: ${why}`)
+  }
+})
+
+test('a provider whose own code threw is a different fact from a provider that is gone', async () => {
+  const contracts = contractsDouble({ handle: { get: async () => { throw contractError('provider_threw') } } })
+  const err = await refusalOf(videoLekerdez(contracts, 'vid_1'))
+  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.match(err.message, /provider_threw/)
+  // A bővítmény telepítve van és be van kapcsolva: a Bővítmények lapon nincs
+  // mit tenni, a napló a következő lépés.
+  assert.match(err.message, /napló/i)
+  assert.doesNotMatch(err.message, /Bővítmények lapon/)
+})
+
+test('a host code this module has not learnt is still a contract failure, not a bad argument', async () => {
+  const contracts = contractsDouble({ handle: { get: async () => { throw contractError('unknown_method') } } })
+  const err = await refusalOf(videoLekerdez(contracts, 'vid_1'))
+  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.match(err.message, /unknown_method/)
+})
+
+test('an error that is not the host contract shape is rethrown untouched', async () => {
+  // Ez a modul nem birtokolja, és nem talál ki rá mondatot: a tool generikus
+  // ága a helye.
+  const boom = new Error('ETIMEDOUT')
+  const contracts = contractsDouble({ handle: { get: async () => { throw boom } } })
+  assert.equal(await refusalOf(videoLekerdez(contracts, 'vid_1')), boom)
+})
+
+test('videoLekerdez hands the video back untouched when the call goes through', async () => {
+  const contracts = contractsDouble({ handle: { get: async (args) => ({ ...videoRow(), id: args.id }) } })
+  assert.equal((await videoLekerdez(contracts, 'vid_9')).id, 'vid_9')
+})
+
+test('a reason word that names an Object prototype member takes the unknown fallback', async () => {
+  // A kulcsot a host adja, nem ez a modul: sima objektumon a
+  // SZERZODES_OKOK['constructor'] egy függvényt adna vissza, és az kerülne
+  // bele az operátor üzenetébe.
+  for (const why of ['constructor', 'toString', '__proto__']) {
+    const err = refusal(() => videosHandle(contractsDouble({ why })))
+    assert.equal(err.code, HIBA.szerzodes_hianyzik, why)
+    assert.match(err.message, /nem oldható fel/, why)
+    assert.doesNotMatch(err.message, /function|\[object/i, `${why}: prototípus-tag szivárgott az üzenetbe`)
+  }
 })

@@ -36,3 +36,48 @@ export function memStorage() {
     raw: db,
   }
 }
+
+/**
+ * One video as the `video.videos` contract's `get` promises one: exactly the
+ * eleven columns of `VIDEO_CONTRACT_COLUMNS`, and no twelfth.
+ *
+ * Shared rather than copied into each suite, because two hand-maintained
+ * copies of a projection drift, and the drift is invisible: a suite testing
+ * against a stale eleven columns passes while the real contract has moved.
+ * `extensions/mcp-shim-parity.test.mjs` is what checks this shape against the
+ * provider's own column list.
+ */
+export function videoRow(over = {}) {
+  return {
+    id: 'vid_1',
+    cim: 'Miért drágul a kávé',
+    status: 'kesz',
+    forras_tipus: 'signal',
+    forras_id: 'sig_9',
+    out_path: 'out/vid_1.mp4',
+    file_sha256: 'aabb',
+    hossz_ms: 42300,
+    narracio_szoveg: 'Első mondat. Második mondat.',
+    created_at: '2026-09-01T10:00:00.000Z',
+    qa_ok_at: '2026-09-01T11:00:00.000Z',
+    ...over,
+  }
+}
+
+/**
+ * An `ExtensionContractError` as the host raises one, built by shape.
+ *
+ * The host's class is in `src/lib/server/extensions/extension-contracts.ts`
+ * and an extension may not import from there, so the double carries the four
+ * fields the consumer recognises it by and nothing else.
+ */
+export function contractError(code, extra = {}) {
+  return Object.assign(new Error(`contract video.videos.get failed: ${code}`), {
+    code,
+    consumerId: 'docs.mjs',
+    extensionId: 'video',
+    contract: 'videos',
+    method: 'get',
+    ...extra,
+  })
+}

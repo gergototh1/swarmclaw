@@ -11,7 +11,7 @@ import { createIndexWriter } from '../src/index-writer.mjs'
 import { createService } from '../src/service.mjs'
 import { actorOf, createTools } from '../src/tools.mjs'
 import { createVault } from '../src/vault.mjs'
-import { memStorage } from './helpers.mjs'
+import { contractError, memStorage, videoRow } from './helpers.mjs'
 
 /** A session as the host attaches it to a tool call. */
 function agentCtx(agentId, agentName) {
@@ -27,24 +27,6 @@ function contractsDouble({ videos = null, why = null } = {}) {
   return {
     get: (ext, contract) => (ext === 'video' && contract === 'videos' ? videos : null),
     why: () => why,
-  }
-}
-
-/** One video as the eleven-column projection promises it. */
-function videoRow(over = {}) {
-  return {
-    id: 'vid_1',
-    cim: 'Miért drágul a kávé',
-    status: 'kesz',
-    forras_tipus: 'signal',
-    forras_id: 'sig_9',
-    out_path: 'out/vid_1.mp4',
-    file_sha256: 'aabb',
-    hossz_ms: 42300,
-    narracio_szoveg: 'Első mondat. Második mondat.',
-    created_at: '2026-09-01T10:00:00.000Z',
-    qa_ok_at: '2026-09-01T11:00:00.000Z',
-    ...over,
   }
 }
 
@@ -401,4 +383,23 @@ test('the operator calling the tool lands in the shared folder, not in an agent 
     const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_1' }, operatorCtx)
     assert.equal(res.utvonal, 'kozos/miert-dragul-a-kave.md')
   } finally { h.cleanup() }
+})
+
+test('a provider that dies at call time reaches the agent as a contract failure, not a bad argument', async () => {
+  // A hetedik tool az első, amelynek a bukásai nem ebben a modulban
+  // keletkeznek. A generikus ág `rossz_parameter`-t adna egy stack-szövegre:
+  // az ügynök a hibátlan argumentumait javítgatná a végtelenségig.
+  for (const code of ['unavailable', 'provider_threw']) {
+    const h = harness({
+      contracts: contractsDouble({ videos: { get: async () => { throw contractError(code) } } }),
+    })
+    try {
+      const ctx = agentCtx('abc123', 'Videó Gyártó')
+      const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_1' }, ctx)
+      assert.equal(res.hiba, HIBA.szerzodes_hianyzik, code)
+      assert.match(res.uzenet, new RegExp(code), code)
+      assert.doesNotMatch(res.uzenet, /A művelet nem sikerült/, `${code}: a generikus ágra esett`)
+      assert.equal((await h.byName.doksi_lista.execute({}, ctx)).doksik.length, 0, code)
+    } finally { h.cleanup() }
+  }
 })

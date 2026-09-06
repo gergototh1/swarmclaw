@@ -1,6 +1,6 @@
 import { DocsError, HIBA, hiba } from './errors.mjs'
 import { agentSlug } from './permissions.mjs'
-import { forgatokonyv, videosHandle } from './video-forgatokonyv.mjs'
+import { forgatokonyv, videoLekerdez } from './video-forgatokonyv.mjs'
 
 /**
  * The seven tools an agent uses, as a thin skin over `service.mjs`.
@@ -173,7 +173,7 @@ export function createTools(state, { serviceOf, logOf }) {
        * operator would rather it sat in the shared folder.
        */
       name: 'doksi_video_forgatokonyv',
-      description: 'Doksiba teszi egy videó kész forgatókönyvét: elkéri a Videó modultól a videó adatait és narrációját, és a saját mappádba ír belőle egy doksit. A narráció és a cím idegen szövegből származik — a doksi teteje ezt ki is mondja.',
+      description: 'Doksiba teszi egy videó kész forgatókönyvét: elkéri a Videó modultól a videó adatait és narrációját, és a saját mappádba ír belőle egy doksit. A narráció és a cím idegen szövegből származik — a doksi teteje ezt ki is mondja. Minden hívás ÚJ doksit ír: ugyanarra a videóra kétszer hívva két külön doksid lesz, nem frissül a régi. Új render vagy új narráció után hívd újra, egyébként ne.',
       parameters: {
         type: 'object',
         properties: { videoId: { ...STR, description: 'A videó id-je, a Videó lapról vagy a videó-toolok válaszából.' } },
@@ -184,7 +184,7 @@ export function createTools(state, { serviceOf, logOf }) {
         if (videoId === '') {
           throw new DocsError(HIBA.rossz_parameter, 'Add meg a "videoId" mezőt: a videó id-jét a Videó lapon vagy a videó-toolok válaszában találod.')
         }
-        const video = await videosHandle(state.contracts).get({ id: videoId })
+        const video = await videoLekerdez(state.contracts, videoId)
         // `get` answers null for an id that names nothing -- including the case
         // that actually happens, an id read a moment ago whose row is gone.
         if (video === null || video === undefined) {

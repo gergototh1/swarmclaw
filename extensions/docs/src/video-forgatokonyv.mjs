@@ -62,12 +62,30 @@ export const FORRAS_FIGYELMEZTETES = 'A cím és a narráció szövege a Videó 
  * sentence, so a report that reaches a maintainer carries the host's own
  * vocabulary and not a translation of it.
  */
-const SZERZODES_OKOK = Object.freeze({
+const SZERZODES_OKOK = Object.freeze(Object.assign(Object.create(null), {
   not_declared: 'a Doksik modul nem kéri a video.videos szerződést (not_declared). Ez a Doksik bővítmény hibája, nem a tiéd: telepítsd újra vagy frissítsd a Bővítmények lapon.',
   provider_missing: 'a Videó bővítmény nincs telepítve (provider_missing). Telepítsd a Bővítmények lapon, aztán hívd újra ezt a toolt.',
   provider_disabled: 'a Videó bővítmény ki van kapcsolva (provider_disabled). Kapcsold be a Bővítmények lapon, aztán hívd újra ezt a toolt.',
   version_mismatch: `a Videó bővítmény nem a(z) ${VIDEOS_CONTRACT_VERSION}. verziójú videos szerződést kínálja (version_mismatch). Frissítsd a két bővítmény közül a régebbit, aztán hívd újra ezt a toolt.`,
-})
+}))
+
+/**
+ * One of the four sentences, or a passed-through reason word.
+ *
+ * The table has a null prototype, because the lookup key is not this module's
+ * to choose: it is whatever word the host puts in `reason`, and on an ordinary
+ * object literal `SZERZODES_OKOK['constructor']` answers a function, which
+ * would stringify into the operator's message instead of taking the fallback.
+ * The host uses `Object.create(null)` for its own handles for exactly this
+ * (extension-contracts.ts, `buildContractHandle`).
+ *
+ * An unknown word is passed through rather than folded into one of the four:
+ * naming an unknown state as a known one is the failure an operator cannot
+ * debug.
+ */
+function okMondat(why) {
+  return SZERZODES_OKOK[why] ?? `a szerződés nem oldható fel (${why}). Nézd meg a Videó bővítmény állapotát a Bővítmények lapon.`
+}
 
 /** Prefixes every refusal, so the sentence reads whole wherever it is quoted. */
 const NEM_KERHETO = 'A videó forgatókönyve nem kérhető le, mert '
@@ -102,11 +120,73 @@ export function videosHandle(contracts) {
       `${NEM_KERHETO}a szerződés nem oldható fel, és az ok a két lekérdezés között megváltozott. Hívd újra ezt a toolt.`,
     )
   }
-  // A reason word this module has not learnt yet is passed through rather than
-  // folded into one of the four: naming an unknown state as a known one is the
-  // one failure an operator cannot debug.
-  const mondat = SZERZODES_OKOK[why] ?? `a szerződés nem oldható fel (${why}). Nézd meg a Videó bővítmény állapotát a Bővítmények lapon.`
-  throw new DocsError(HIBA.szerzodes_hianyzik, `${NEM_KERHETO}${mondat}`)
+  throw new DocsError(HIBA.szerzodes_hianyzik, `${NEM_KERHETO}${okMondat(why)}`)
+}
+
+/**
+ * An `ExtensionContractError`, recognised by shape.
+ *
+ * The host's class lives in `src/lib/server/extensions/extension-contracts.ts`
+ * and an extension may not import from the host's `src/`, so `instanceof` is
+ * not available across this boundary and would silently answer false if it
+ * were tried. The four string fields are the ones the host sets on every such
+ * error and on nothing else. This is the same recognition
+ * `extensions/video/src/args.mjs` does, for the same reason.
+ */
+function szerzodesHiba(err) {
+  return err instanceof Error
+    && typeof err.code === 'string'
+    && typeof err.extensionId === 'string'
+    && typeof err.consumerId === 'string'
+    && typeof err.contract === 'string'
+}
+
+/** What the operator does about a call that did not go through, by host code. */
+function hivasMondat(err) {
+  if (err.code === 'unavailable') {
+    // The same race `videosHandle` guards one step earlier, and the host loses
+    // it too: `callContractMethod` re-resolves on every call, so a bővítmény
+    // switched off between the handle and the call fails here rather than
+    // there. `reason` is the host's own word for why, so it gets the same four
+    // sentences -- the operator's move is identical either side of the race.
+    const reason = typeof err.reason === 'string' && err.reason !== '' ? err.reason : null
+    return reason === null
+      ? 'a Videó bővítmény elérése a hívás közben szűnt meg (unavailable). Hívd újra ezt a toolt; ha újra ezt kapod, nézd meg a Videó bővítmény állapotát a Bővítmények lapon.'
+      : `a Videó bővítmény elérése a hívás közben szűnt meg (unavailable): ${okMondat(reason)}`
+  }
+  if (err.code === 'provider_threw') {
+    // Not the same fact at all: the bővítmény is installed, switched on and
+    // answered -- its own code raised. Nothing the agent can change about the
+    // call fixes it, and no page the operator can toggle does either; the next
+    // step is the Videó modul's log.
+    return 'a Videó bővítmény saját kódja hibára futott a hívás közben (provider_threw). A hívásod rendben volt: nézd meg a Videó modul naplóját, és ha ott nincs nyom, szólj az operátornak.'
+  }
+  return `a szerződéshívás nem ment át (${err.code}). Nézd meg a Videó bővítmény állapotát a Bővítmények lapon, és szólj az operátornak.`
+}
+
+/**
+ * One video from the provider, or a named refusal.
+ *
+ * The call is wrapped and not just the resolution, because the host re-resolves
+ * on EVERY call (`callContractMethod`): everything `videosHandle` refuses by
+ * name can happen one line later instead, and arrive as a thrown
+ * `unavailable` rather than as a null handle. Unwrapped, both that and a
+ * provider whose own code raised would fall through to the tool's generic
+ * catch and reach the agent as `rossz_parameter` over a stack string -- the
+ * exact pairing `errors.mjs` argues against, since nothing about the call was
+ * wrong and the message would name no next step.
+ *
+ * An error that is not the host's is rethrown untouched. This module does not
+ * own it and must not guess a sentence for it.
+ */
+export async function videoLekerdez(contracts, videoId) {
+  const videos = videosHandle(contracts)
+  try {
+    return await videos.get({ id: videoId })
+  } catch (err) {
+    if (szerzodesHiba(err)) throw new DocsError(HIBA.szerzodes_hianyzik, `${NEM_KERHETO}${hivasMondat(err)}`)
+    throw err
+  }
 }
 
 /** A column the contract answered null for. Never the word "null" in a document. */
