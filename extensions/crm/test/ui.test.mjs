@@ -17,3 +17,11 @@ test('a bundle mind a három nézetet tartalmazza', async () => {
     assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
   }
 })
+
+test('a bundle tartalmazza a kézi bevitel űrlapjait', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  for (const jel of ['Új kapcsolat', 'Cím hozzáadása', 'Új ügy']) {
+    assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
+  }
+})
