@@ -101,6 +101,20 @@ export interface Terv {
   szerzoAgentId: string
   ellenorzes: unknown
   createdAt: string
+  /**
+   * How this version came about: `'terv'` for a plan an agent wrote on its
+   * own, `'operator_javitas'` for one `videoRevise` submitted against the
+   * operator's fix requests.
+   *
+   * Typed as a plain `string` and tested for equality with the one value that
+   * matters, never for inequality. `readVideo` casts the plan list rather than
+   * checking each field, so a host that does not carry this key at all leaves
+   * it `undefined` at runtime; equality then answers "not a revision", which
+   * is the state the page drew before the field existed.
+   */
+  szarmazas: string
+  /** The version this one revises, or null for a plan that revises nothing. */
+  szuloTervId: string | null
   verdiktek: Verdikt[]
   narraciok: Narracio[]
 }

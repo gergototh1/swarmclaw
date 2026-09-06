@@ -332,6 +332,16 @@ export function createRpc(state, ops) {
         id: t.id, verzio: t.verzio, jelenetek: JSON.parse(t.jelenetek), narracio: JSON.parse(t.narracio),
         assetUjjlenyomatok: JSON.parse(t.asset_ujjlenyomatok), tervHash: t.terv_hash, katalogusHash: t.katalogus_hash,
         szerzoAgentId: t.szerzo_agent_id, ellenorzes: JSON.parse(t.ellenorzes), createdAt: t.created_at,
+        // A SOR SZÁRMAZÁSA NÉLKÜL A LAP HAZUDIK. Egy `videoRevise` beadta
+        // javításnak tervezetten SOHA nincs saját verdiktje (src/verdikt-kapu.mjs),
+        // tehát a `verdiktek` üressége önmagában két különböző tényt takar: egy
+        // rendes tervet, amit senki nem lektorált, és egy javítást, amire nem is
+        // szokás ítéletet mondani. E két oszlop nélkül a lap a másodikra az
+        // elsőnek járó mondatot írta ki, és a narrációs kart elsötétítette
+        // pontosan az operátori javítás után -- épp a lépésnél, amiért a
+        // javítást kérte. A `szuloTervId` a verzió szülőjét nevezi meg, hogy a
+        // terv-panel ki tudja írni, melyik verzióból lett.
+        szarmazas: t.szarmazas, szuloTervId: t.szulo_terv_id,
         verdiktek: repo().verdiktek(t.id).map((vd) => ({ id: vd.id, verdikt: vd.verdikt, tervHash: vd.terv_hash, lektorAgentId: vd.lektor_agent_id, talalatok: JSON.parse(vd.talalatok), at: vd.created_at })),
         narraciok: repo().narraciok(t.id).map((n) => ({ jelenet: n.jelenet, fajl: n.fajl, hosszMs: n.hossz_ms, hang: n.hang, modell: n.modell, nyelv: n.nyelv, tervHash: n.terv_hash, szovegHash: n.szoveg_hash })),
       }))

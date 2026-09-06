@@ -168,6 +168,27 @@ test('video returns the source text raw, every plan version, the renders and the
   await assert.rejects(rpc.video({}), /videoId/)
 })
 
+test('a video válasza megmondja, melyik tervverzió operátori javítás, és melyikből lett', async () => {
+  // A LAP EBBŐL TUDJA, HOGY AZ ÜRES VERDIKT-LISTA NEM HIÁNY. Egy javításnak
+  // tervezetten nincs saját ítélete (src/verdikt-kapu.mjs), tehát e két mező
+  // nélkül a Videó lap ugyanazt mondja rá, mint egy le nem lektorált tervre --
+  // és elsötétíti a narrációs kart pontosan a javítás után.
+  const { repo, rpc } = setup()
+  const { videoId, tervId } = keszVideo(repo)
+  const javitas = repo.insertTerv({
+    videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'kh',
+    szerzoAgentId: 'gyarto-1', szerzoSessionId: 's3', ellenorzes: { figyelmeztetesek: [] },
+    szarmazas: 'operator_javitas', javitasIdk: [], szuloTervId: tervId,
+  })
+
+  const v = await rpc.video({ id: videoId })
+  const byId = new Map(v.tervek.map((t) => [t.id, t]))
+  assert.equal(byId.get(tervId).szarmazas, 'terv')
+  assert.equal(byId.get(tervId).szuloTervId, null)
+  assert.equal(byId.get(javitas.id).szarmazas, 'operator_javitas')
+  assert.equal(byId.get(javitas.id).szuloTervId, tervId)
+})
+
 test('a video válasza megmondja, melyik kérést zárta le melyik render', async () => {
   const { repo, rpc } = setup()
   const { videoId, renderId } = keszVideo(repo)

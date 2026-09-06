@@ -79,6 +79,20 @@ function TervPanel({ terv, cim }: { terv: Terv; cim: string }) {
     <section className="vid-terv">
       <h3>{cim} — v{terv.verzio} · {terv.szerzoAgentId} · {formatDate(terv.createdAt)}</h3>
       <p className="vid-mono vid-muted">terv-hash: {terv.tervHash} · katalógus-hash: {terv.katalogusHash}</p>
+      {/*
+        WHERE THE VERSION CAME FROM, said out loud, because the verdict list
+        below reads differently for a revision: it is empty on purpose, and
+        without this line an operator would read the empty list as work the
+        reviewer has not got to yet. The parent id is a value the module
+        generated, the same kind of thing the hashes above already are.
+      */}
+      {terv.szarmazas === 'operator_javitas' && (
+        <p className="vid-muted">
+          Operátori javítás{typeof terv.szuloTervId === 'string' && terv.szuloTervId !== ''
+            ? `, a(z) ${terv.szuloTervId} verzióból`
+            : ''}. Javításra nem születik külön lektori ítélet: a jogot a lánc alján álló, átengedett tervtől örökli.
+        </p>
+      )}
       {terv.jelenetek.map((jelenet, i) => (
         <div key={i} className="vid-scene" data-jelenet={i}>
           <h4>{i}. jelenet — {jelenetTipus(jelenet)}</h4>
@@ -94,8 +108,17 @@ function TervPanel({ terv, cim }: { terv: Terv; cim: string }) {
           </p>
         </div>
       ))}
+      {/*
+        THE EMPTY-LIST SENTENCE IS NOT SAID ABOUT A REVISION. "Ehhez a
+        tervverzióhoz még nincs lektori ítélet" reads as work outstanding, and
+        on a revision there is none to do: nobody judges one. The paragraph
+        above has already said what the empty list means here, so a second
+        sentence contradicting it would be the page arguing with itself.
+      */}
       {terv.verdiktek.length === 0
-        ? <p className="vid-muted">Ehhez a tervverzióhoz még nincs lektori ítélet.</p>
+        ? (terv.szarmazas === 'operator_javitas'
+          ? null
+          : <p className="vid-muted">Ehhez a tervverzióhoz még nincs lektori ítélet.</p>)
         : terv.verdiktek.map((v) => (
           <div key={v.id} className="vid-verdikt">
             <p>
@@ -398,12 +421,38 @@ function narracioTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null,
   // the same way, and then tells the three failures apart: never reviewed,
   // reviewed and failed, and passed on a hash the plan no longer has are
   // three different things to do next.
-  const ehhezAHashhez = terv.verdiktek.filter((v) => v.tervHash === terv.tervHash)
-  const utolso = ehhezAHashhez.length === 0 ? null : ehhezAHashhez[ehhezAHashhez.length - 1]
-  if (utolso === null || utolso.verdikt !== 'atmegy') {
-    if (utolso !== null) return `A lektor ítélete a jelenlegi terv-hashre: ${utolso.verdikt}; narrálni csak átmegy után lehet.`
-    if (terv.verdiktek.some((v) => v.verdikt === 'atmegy')) return 'Van átmegy ítélet erre a tervre, de nem a jelenlegi terv-hashre; a lektornak újra kell néznie.'
-    return 'Ehhez a tervverzióhoz még nincs lektori ítélet; narrálni csak átmegy után lehet.'
+  //
+  // NONE OF THE THREE IS SAID ABOUT A REVISION, AND THAT IS THE POINT OF THE
+  // TEST BELOW. A plan `videoRevise` submitted carries
+  // `szarmazas === 'operator_javitas'` and, BY DESIGN, no verdict of its own:
+  // nobody reviews a revision, the right to go on is inherited down the fix
+  // chain from the last plan a reviewer really passed
+  // (src/verdikt-kapu.mjs). So "Ehhez a tervverzióhoz még nincs lektori
+  // ítélet" is exactly the misleading sentence that file exists to stop the
+  // module saying -- it sends the operator to have a revision reviewed, which
+  // is not a thing that happens -- and it darkened this lever on every
+  // successful "Javítás kérése" turn, which is the one moment the operator is
+  // here to narrate.
+  //
+  // WHY THE LEVER GOES LIVE RATHER THAN THE PAGE WALKING THE CHAIN. The detail
+  // response does carry every version whole, so the walk would be local. It is
+  // still not done here: `verdikt-kapu.mjs` is a separate file precisely
+  // because its three callers must not each say the rule in their own words,
+  // and a fourth copy in TypeScript is the same drift with a compile step in
+  // front of it. `renderTiltasOka` below already settles this the same way for
+  // the same reason -- the module re-checks on the press, and its refusal
+  // (`szulo_verdikt_hianyzik`, `javitas_elbukott`, `javitas_lanc_hibas`,
+  // `javitas_lanc_tul_hosszu`) arrives named in the notice line. A press that
+  // is refused costs a round trip; a dark lever with a false sentence costs a
+  // day, because only the scheduled run carries the work forward.
+  if (terv.szarmazas !== 'operator_javitas') {
+    const ehhezAHashhez = terv.verdiktek.filter((v) => v.tervHash === terv.tervHash)
+    const utolso = ehhezAHashhez.length === 0 ? null : ehhezAHashhez[ehhezAHashhez.length - 1]
+    if (utolso === null || utolso.verdikt !== 'atmegy') {
+      if (utolso !== null) return `A lektor ítélete a jelenlegi terv-hashre: ${utolso.verdikt}; narrálni csak átmegy után lehet.`
+      if (terv.verdiktek.some((v) => v.verdikt === 'atmegy')) return 'Van átmegy ítélet erre a tervre, de nem a jelenlegi terv-hashre; a lektornak újra kell néznie.'
+      return 'Ehhez a tervverzióhoz még nincs lektori ítélet; narrálni csak átmegy után lehet.'
+    }
   }
   if (futoRender !== null) return `Ezen a videón most fut egy render (${futoRender.renderId}); a narráció megvárja a végét.`
   if (dolgozik) return 'A narráció kérése elment, a válaszra várok: jelenetenként egy tts-hívás, ez percekig is eltarthat.'
@@ -419,9 +468,11 @@ function renderTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null, l
   // require a passing verdict on the current hash, exactly as `narralTerv`
   // does, so the asymmetry with the function above is real. It is here
   // because the narration lever already stands in front of this one: a plan
-  // with narration rows is a plan that passed when they were written, so the
-  // only way to reach a live Render indítása without a pass is a reviewer
-  // reversing a verdict after the narration was made. Repeating the three
+  // with narration rows is a plan `narralTerv` let through, which means
+  // `verdiktJog` granted it the right to go on -- its own reviewer pass, or,
+  // for a revision, the pass it inherits down the fix chain -- so the only way
+  // to reach a live Render indítása without one is a reviewer reversing a
+  // verdict after the narration was made. Repeating the three
   // verdict sentences here would put a second, longer explanation of the
   // review state under a section that is about renders, for a state that is
   // rare and that the module names on the spot: the refusal comes back as
@@ -513,6 +564,12 @@ const lezartKeresek = (video: VideoDetail): Visszajelzes[] =>
  * `verdikt-kapu.mjs` to keep in step; the refusal arrives from the module
  * named, and the notice line prints it. Named here rather than left for the
  * next reader to rediscover.
+ *
+ * `szarmazas` and `szuloTervId` now reach the page, so the walk is possible --
+ * and the answer is still no, for the reason above and no other.
+ * `narracioTiltasOka` settles the same question the same way: the page stops
+ * saying anything about verdicts where it cannot be right, rather than taking
+ * over a rule that has one home.
  *
  * `kuldes` AND `fut` GET TWO SENTENCES, exactly as the other two ordering
  * levers do: the three host calls being out and a turn being on an agent's

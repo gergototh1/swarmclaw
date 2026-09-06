@@ -240,13 +240,31 @@ function proposals(overrides = {}) {
 /** What `Sor` needs now that it also carries the manual open box. `rpc` is never called in a server render: nothing there submits the form. */
 const sorProps = (overrides = {}) => ({ board: board(), onOpen: noop, rpc: noop, onNyitva: noop, ...overrides })
 
-/** One plan version. `tervHash` is what a verdict and a narration row are both keyed on, so it is a field these tests move. */
+/**
+ * One plan version. `tervHash` is what a verdict and a narration row are both
+ * keyed on, so it is a field these tests move.
+ *
+ * `szarmazas` defaults to a plan an agent wrote on its own, because that is
+ * what the seven-odd tests below are about; `javitas()` is the other one, and
+ * the difference decides whether the page may say anything about verdicts at
+ * all.
+ */
 function terv(overrides = {}) {
   return {
     id: 't1', verzio: 1, jelenetek: [{ tipus: 'cimlap', sorok: ['Egy'] }], narracio: [{ jelenet: 0, szoveg: 'Első mondat.' }],
     assetUjjlenyomatok: {}, tervHash: 'h1', katalogusHash: 'k1', szerzoAgentId: 'agent:gyarto', ellenorzes: {},
-    createdAt: '2026-09-01T10:00:00.000Z', verdiktek: [], narraciok: [], ...overrides,
+    createdAt: '2026-09-01T10:00:00.000Z', szarmazas: 'terv', szuloTervId: null, verdiktek: [], narraciok: [], ...overrides,
   }
+}
+
+/**
+ * The version `videoRevise` submits, and the whole of what makes it different:
+ * `szarmazas`, a parent, and NO verdict of its own -- ever. Nobody reviews a
+ * revision; the right to go on is inherited down the fix chain
+ * (extensions/video/src/verdikt-kapu.mjs).
+ */
+function javitas(overrides = {}) {
+  return terv({ id: 't2', verzio: 2, tervHash: 'h2', szarmazas: 'operator_javitas', szuloTervId: 't1', verdiktek: [], ...overrides })
 }
 
 function verdikt(overrides = {}) {
@@ -713,14 +731,14 @@ test('propokSzoveg prints every prop but the type, as JSON text', () => {
 
 // --- the two mechanical levers on the video view ---
 
-test('Narracio kerese is live exactly when the plan has a passing verdict on its current hash', () => {
+test('Narracio kerese is live when a plan an agent wrote has a passing verdict on its current hash', () => {
   const html = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt()] })] })))
   assert.ok(html.includes('Narráció kérése'))
   assert.equal(narracioSotet.test(html), false)
   assert.equal(html.includes('Terv nélkül nincs mit narrálni.'), false)
 })
 
-test('every dark Narracio kerese says which of the five states it is in', () => {
+test('every dark Narracio kerese says which state it is in', () => {
   const nincsTerv = render(VideoBody, videoProps(videoDetail()))
   assert.ok(narracioSotet.test(nincsTerv))
   assert.ok(nincsTerv.includes('Terv nélkül nincs mit narrálni.'))
@@ -757,6 +775,43 @@ test('every dark Narracio kerese says which of the five states it is in', () => 
   assert.ok(uton.includes('jelenetenként egy tts-hívás'), 'a lever that takes minutes says so while it runs')
 })
 
+test('an operator fix is never told it is missing a verdict it can never have', () => {
+  // THE HEADLINE FEATURE USED TO DEAD-END HERE. `videoRevise` writes a plan
+  // with `szarmazas: 'operator_javitas'` and, by design, no verdict of its
+  // own: the right to go on is inherited down the fix chain
+  // (src/verdikt-kapu.mjs). Reading `terv.verdiktek` alone, the page called
+  // that "nincs lektori ítélet" and went dark -- the exact sentence that file
+  // exists to stop this module saying about a revision -- so after a
+  // successful Javítás kérése turn the operator pressed Frissítés and found
+  // both mechanical levers dead, with only the scheduled run to carry the work
+  // on. Breaking the `szarmazas` test in `narracioTiltasOka` fails this.
+  const html = render(VideoBody, videoProps(videoDetail({ tervek: [terv(), javitas()] })))
+  assert.equal(narracioSotet.test(html), false, 'a revision may be narrated: the module judges the chain when the lever is pressed')
+  assert.equal(html.includes('Ehhez a tervverzióhoz még nincs lektori ítélet'), false)
+  assert.equal(html.includes('Van átmegy ítélet erre a tervre'), false)
+  assert.equal(html.includes('narrálni csak átmegy után lehet'), false)
+})
+
+test('a revision still darkens on the states the page can actually see', () => {
+  // Only the verdict sentences are skipped for a revision. Everything the page
+  // has measured for itself still binds, in the module's own order.
+  const lezart = render(VideoBody, videoProps(videoDetail({ status: 'lezart', tervek: [javitas()] })))
+  assert.ok(narracioSotet.test(lezart))
+  assert.ok(lezart.includes('A videó le van zárva, a modul nem dolgozik rajta tovább.'))
+
+  const futo = render(VideoBody, videoProps(videoDetail({
+    tervek: [javitas()], renderek: [renderSor({ status: 'fut', finishedAt: null })],
+  })))
+  assert.ok(narracioSotet.test(futo))
+  assert.ok(futo.includes('Ezen a videón most fut egy render (r1)'))
+})
+
+test('the plan panel says a version is a fix and whose, so an empty verdict list is not read as a gap', () => {
+  const html = render(VideoBody, videoProps(videoDetail({ tervek: [terv(), javitas()] })))
+  assert.ok(html.includes('Operátori javítás, a(z) t1 verzióból'))
+  assert.ok(html.includes('a jogot a lánc alján álló, átengedett tervtől örökli'))
+})
+
 test('Render inditasa asks for a narrated plan, and every dark state names itself', () => {
   const kesz = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] })))
   assert.ok(kesz.includes('Render indítása'))
@@ -784,6 +839,21 @@ test('Render inditasa asks for a narrated plan, and every dark state names itsel
   const uton = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] }), { renderInditas: true }))
   assert.ok(renderSotet.test(uton))
   assert.ok(uton.includes('A render indítása elment, a válaszra várok.'))
+})
+
+test('a revision reaches Render inditasa THROUGH the narration lever, never around it', () => {
+  // The render lever has no verdict test of its own; what it has is the
+  // narration row, and for a revision that sentence is both true and
+  // actionable only because the lever it names is live (the test above). The
+  // two together are the chain: before `szarmazas` reached the page the
+  // sentence sent the operator to a button that was itself dark.
+  const nincsNarracio = render(VideoBody, videoProps(videoDetail({ tervek: [terv(), javitas()] })))
+  assert.ok(renderSotet.test(nincsNarracio))
+  assert.ok(nincsNarracio.includes('Ehhez a tervhez még nincs narráció-fájl'))
+  assert.equal(narracioSotet.test(nincsNarracio), false, 'and the lever that sentence names is the one the operator can press')
+
+  const narralt = render(VideoBody, videoProps(videoDetail({ tervek: [terv(), javitas({ narraciok: [narracioSor({ tervHash: 'h2' })] })] })))
+  assert.equal(renderSotet.test(narralt), false, 'a narrated revision renders: the module weighs the fix chain when the lever is pressed')
 })
 
 /** How many times a sentence stands in the markup. Both levers can name the same state, and "at least once" would not see one of them missing it. */
