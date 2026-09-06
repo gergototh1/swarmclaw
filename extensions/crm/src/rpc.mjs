@@ -123,19 +123,60 @@ export function createRpc(state) {
 
     /**
      * A besorolatlan levél hozzárendelése -- és ugyanez a hívás tanítja meg a
-     * címet.
+     * címet ÉS viszi fel a levelet magát az idővonalra.
      *
      * A tanulás nem külön gomb: ha az lenne, az operátor a felét nem nyomná
      * meg, a besorolatlan sor nem apadna, és néhány hét után abbahagyná az
      * egészet. A megerősítés és a tanulás egy művelet.
+     *
+     * AZ ESEMÉNY FELVÉTELE UGYANEBBEN A HÍVÁSBAN TÖRTÉNIK, NEM KÜLÖN
+     * LÉPÉSBEN. A megerősített levél a sor `source_system`/`source_id`,
+     * `subject`, `excerpt`, `received_at` és `thread_id` mezőiből épül fel --
+     * pontosan azok az adatok, amiket az operátor épp most nézett át --, és a
+     * `recordEvent` a `(source_system, source_id)` unique indexén idempotens:
+     * ha egy későbbi söprés ugyanezt a levelet a tanult cím miatt már
+     * pontosan besorolná, az újraírás nem duplikál.
+     *
+     * HA A KIVÁLASZTOTT KAPCSOLATNAK NINCS ÜGYFELE, ESEMÉNY NEM KÉSZÜL. Az
+     * `ext_crm_event.account_id` NOT NULL, tehát ügyfél nélkül nincs hova
+     * írni -- ugyanez a szabály, amit a `matching.mjs` is követ (`exact` csak
+     * `contact.accountId`-val jár). A cím ekkor is megtanulódik és a sor
+     * ekkor is kiürül, mert ezek önmagukban is hasznosak, de ez a döntés
+     * nem hallgat el: a válasz `eventFiled: false`-t ad, és a szerver-logba
+     * is kerül egy sor, hogy az operátor a felületen (vagy a logban) lássa,
+     * miért nincs új idővonal-bejegyzés.
      */
     async assignUnmatched({ unmatchedId, contactId }) {
       const r = repo()
       const rows = r.listUnmatched().filter((x) => x.id === unmatchedId)
       if (rows.length === 0) throw new Error('crm_ismeretlen_besorolatlan')
-      mustContact(contactId)
-      if (rows[0].sender_address) r.attachEmail(contactId, rows[0].sender_address, 'learned')
-      return r.resolveUnmatched(unmatchedId)
+      const row = rows[0]
+      const contact = mustContact(contactId)
+      if (row.sender_address) r.attachEmail(contactId, row.sender_address, 'learned')
+
+      let event = null
+      if (contact.accountId) {
+        const filed = r.recordEvent({
+          accountId: contact.accountId,
+          contactId: contact.id,
+          kind: 'email_in',
+          occurredAt: row.received_at,
+          title: row.subject || '',
+          excerpt: row.excerpt || '',
+          sourceSystem: row.source_system,
+          sourceId: row.source_id,
+          threadId: row.thread_id || '',
+        })
+        event = filed.event
+      } else {
+        state.log?.warn?.(
+          'crm assignUnmatched: a kivalasztott kapcsolatnak nincs ugyfele, esemeny nem keszult',
+          { unmatchedId, contactId },
+        )
+      }
+
+      const resolved = r.resolveUnmatched(unmatchedId)
+      return { ...resolved, event, eventFiled: Boolean(event) }
     },
 
     /** A söprés az operátor gombjáról. Ugyanaz a törzs, mint az eszközé. */

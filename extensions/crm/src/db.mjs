@@ -108,6 +108,16 @@ CREATE TABLE IF NOT EXISTS ext_crm_sweep_state (
 ALTER TABLE ext_crm_event ADD COLUMN thread_id TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS ext_crm_event_thread ON ext_crm_event (thread_id);
 `,
+}, {
+  // A besorolatlan sor mostantól a szál azonosítóját is viszi, hogy az rpc
+  // `assignUnmatched` a hozzárendeléskor a besorolt eseményre is rá tudja
+  // írni -- enélkül a hozzárendelés a címet tanítja meg, de a szálat nem.
+  // Additív, mint a 3-as: a v1, v2 és v3 SQL-je byte-identikus marad, ez csak
+  // egy oszlopot told hozzá egy már létező táblához.
+  version: 4,
+  sql: `
+ALTER TABLE ext_crm_inbox_unmatched ADD COLUMN thread_id TEXT NOT NULL DEFAULT '';
+`,
 }])
 
 const now = () => new Date().toISOString()
@@ -511,18 +521,24 @@ export function createRepo(storage) {
     },
 
     // ---- inbox_unmatched ------------------------------------------------
+    /**
+     * `threadId` (v4) utazik a sorral, hogy az rpc `assignUnmatched` a
+     * hozzárendeléskor a besorolt eseményre is rá tudja írni a szálat -- a
+     * levél maga nem kerül a `matching.mjs` 2. ágába, amíg besorolatlan, de a
+     * szála attól még ismert, és a hozzárendelés pillanatában érdemes.
+     */
     recordUnmatched({ sourceSystem, sourceId, senderAddress = '', senderName = '', subject = '',
-                      excerpt = '', receivedAt, guessAccountId = null }) {
+                      excerpt = '', receivedAt, guessAccountId = null, threadId = '' }) {
       const id = newId('unm')
       return S.transaction(() => {
         S.exec(
           `INSERT INTO ext_crm_inbox_unmatched
              (id, source_system, source_id, sender_address, sender_name, subject, excerpt,
-              received_at, guess_account_id, state, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)
+              received_at, guess_account_id, thread_id, state, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)
            ON CONFLICT(source_system, source_id) DO NOTHING`,
           [id, sourceSystem, sourceId, normalizeAddress(senderAddress), str(senderName),
-           str(subject), str(excerpt), receivedAt, guessAccountId, now()],
+           str(subject), str(excerpt), receivedAt, guessAccountId, str(threadId), now()],
         )
         const row = S.get(
           'SELECT * FROM ext_crm_inbox_unmatched WHERE source_system = ? AND source_id = ?',

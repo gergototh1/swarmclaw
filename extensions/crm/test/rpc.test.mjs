@@ -53,17 +53,52 @@ test('a jegyzet eseményt ír, kézi forrással', async () => {
   assert.equal(repo.getEventBody(res.event.id), 'Telefonon egyeztettünk.')
 })
 
-test('a besorolatlan hozzárendelése tanult címet ír', async () => {
+test('a besorolatlan hozzárendelése tanult címet ír, es magat az uzenetet is felviszi az idovonalra', async () => {
   const { rpc, repo } = rpcOf()
   const acc = repo.createAccount({ name: 'Morvai Kft.' })
   const con = repo.createContact({ accountId: acc.id, name: 'Dorina' })
   const { row } = repo.recordUnmatched({ sourceSystem: 'gmail', sourceId: 't1',
-    senderAddress: 'dorina@morvai.hu', receivedAt: '2026-09-01T10:00:00.000Z' })
+    senderAddress: 'dorina@morvai.hu', subject: 'Ajanlat kerese', excerpt: 'Kerek egy ajanlatot.',
+    receivedAt: '2026-09-01T10:00:00.000Z', threadId: 'thr_1' })
 
   await rpc.assignUnmatched({ unmatchedId: row.id, contactId: con.id })
 
-  assert.equal(repo.contactByEmail('dorina@morvai.hu').id, con.id)
-  assert.equal(repo.listUnmatched().length, 0)
+  assert.equal(repo.contactByEmail('dorina@morvai.hu').id, con.id, 'a cim tanult')
+  assert.equal(repo.listUnmatched().length, 0, 'a sor kiurult')
+
+  const events = repo.listEvents({ accountId: acc.id })
+  assert.equal(events.length, 1, 'a besorolt uzenet felkerult az idovonalra')
+  assert.equal(events[0].kind, 'email_in')
+  assert.equal(events[0].title, 'Ajanlat kerese')
+  assert.equal(events[0].source_system, 'gmail')
+  assert.equal(events[0].source_id, 't1')
+  assert.equal(events[0].thread_id, 'thr_1')
+  assert.equal(events[0].contact_id, con.id)
+
+  // Ujra behuzva ugyanaz a forras (source_system, source_id) -- a
+  // recordEvent idempotens, tehat egy kesobbi ujra-sopres nem duplikal.
+  const ismet = repo.recordEvent({ accountId: acc.id, contactId: con.id, kind: 'email_in',
+    occurredAt: '2026-09-01T10:00:00.000Z', title: 'Ajanlat kerese', sourceSystem: 'gmail', sourceId: 't1' })
+  assert.equal(ismet.created, false)
+  assert.equal(repo.listEvents({ accountId: acc.id }).length, 1)
+})
+
+test('a besorolatlan hozzarendelese ugyfel nelkuli kapcsolathoz tanul, de esemenyt nem visz fel', async () => {
+  const { rpc, repo } = rpcOf()
+  const con = repo.createContact({ name: 'Ismeretlen kapcsolat' }) // nincs accountId
+  const { row } = repo.recordUnmatched({ sourceSystem: 'gmail', sourceId: 't5',
+    senderAddress: 'valaki@sehol.hu', subject: 'Erdeklodes', receivedAt: '2026-09-01T10:00:00.000Z' })
+
+  const res = await rpc.assignUnmatched({ unmatchedId: row.id, contactId: con.id })
+
+  assert.equal(repo.contactByEmail('valaki@sehol.hu').id, con.id, 'a cim akkor is tanult')
+  assert.equal(repo.listUnmatched().length, 0, 'a sor akkor is kiurul')
+  // Nincs ugyfel, amire az esemenyt irni lehetne (`account_id NOT NULL`) --
+  // ez a dontes, nem baleset: a matching.mjs sem ad 'exact' talalatot ugyfel
+  // nelkuli kapcsolatra, es assignUnmatched ugyanezt a szabalyt koveti, es ezt
+  // a valaszban is jelzi, nem csendben hagyja el.
+  assert.equal(res.eventFiled, false)
+  assert.equal(res.event, null)
 })
 
 test('a contactsForPicker minden kapcsolatot ad, az ügyfél nevével', async () => {
