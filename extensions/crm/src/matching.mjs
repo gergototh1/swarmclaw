@@ -26,11 +26,28 @@ export const SOCIAL_DOMAINS = new Set([
   'gmail.com', 'googlemail.com', 'freemail.hu', 'citromail.hu', 'indamail.hu',
   't-online.hu', 'vipmail.hu', 'outlook.com', 'hotmail.com', 'live.com',
   'yahoo.com', 'yahoo.co.uk', 'icloud.com', 'me.com', 'proton.me', 'protonmail.com',
+  'upcmail.hu', 'gmx.com', 'gmx.net', 'mail.com',
 ])
 
 const domainOf = (address) => {
   const at = String(address || '').lastIndexOf('@')
   return at < 0 ? '' : String(address).slice(at + 1).trim().toLowerCase()
+}
+
+/**
+ * Egy domain akkor számít közösséginek, ha pontosan szerepel a
+ * `SOCIAL_DOMAINS` listán, VAGY egy listás domain al-domainje (pl.
+ * `mail.gmail.com` a `gmail.com` alá tartozik, mert utána a levélcím
+ * ugyanúgy bárkié lehet). A pont a döntő a végén: enélkül `notgmail.com` is
+ * egyezne a `gmail.com`-mal, pedig az csak véletlen szóvégi egyezés, nem
+ * al-domain -- a `.` nélküli `endsWith` ezt a hibás találatot is beengedné.
+ */
+export function isSocialDomain(domain) {
+  if (SOCIAL_DOMAINS.has(domain)) return true
+  for (const social of SOCIAL_DOMAINS) {
+    if (domain.endsWith(`.${social}`)) return true
+  }
+  return false
 }
 
 /**
@@ -54,7 +71,7 @@ export function matchMessage({ fromEmail, threadId }, lookups) {
 
   // 3. Domain. Csak TIPP, és csak akkor, ha egyértelmű.
   const domain = domainOf(fromEmail)
-  if (domain && !SOCIAL_DOMAINS.has(domain)) {
+  if (domain && !isSocialDomain(domain)) {
     const jeloltek = lookups.accountsByDomain(domain)
     // Két ügyfél ugyanazon a domainen nem tipp, hanem érme feldobás. Inkább
     // semmit, mint ötven százalékot.
