@@ -3199,11 +3199,17 @@ class ExtensionManager {
     try {
       const removed = removeExtensionManagedResources(sanitizedFilename)
       const removedSkillDirs = removeShippedSkillDirs(shippedSkills)
-      if (removed.deletedSchedules.length > 0 || removed.trashedAgents.length > 0 || removedSkillDirs.length > 0) {
+      if (
+        removed.deletedSchedules.length > 0
+        || removed.trashedAgents.length > 0
+        || removed.deletedProjects.length > 0
+        || removedSkillDirs.length > 0
+      ) {
         log.info('extensions', 'Removed extension-managed resources on delete', {
           extensionId: sanitizedFilename,
           deletedSchedules: removed.deletedSchedules.join(', '),
           trashedAgents: removed.trashedAgents.join(', '),
+          deletedProjects: removed.deletedProjects.join(', '),
           removedSkillDirs: removedSkillDirs.join(', '),
         })
       }

@@ -3,6 +3,8 @@ import path from 'node:path'
 import { loadAgents } from '@/lib/server/agents/agent-repository'
 import { trashAgent } from '@/lib/server/agents/agent-service'
 import { deleteSchedule, loadSchedules } from '@/lib/server/schedules/schedule-repository'
+import { loadProjects } from '@/lib/server/projects/project-repository'
+import { deleteProjectAndDetachReferences } from '@/lib/server/projects/project-service'
 import { resolveWorkspaceSkillsDir } from '@/lib/server/skills/skill-discovery'
 import { log } from '@/lib/server/logger'
 import { notify } from '@/lib/server/ws-hub'
@@ -75,6 +77,7 @@ export interface ManagedResourceTeardownResult {
   deletedSchedules: string[]
   trashedAgents: string[]
   removedSkillDirs: string[]
+  deletedProjects: string[]
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -114,8 +117,9 @@ export function removeShippedSkillDirs(names: string[]): string[] {
 }
 
 /**
- * Deletes every schedule and trashes every agent marked as managed by
- * `extensionId`. Idempotent: an extension with nothing marked removes nothing.
+ * Deletes every schedule and project, and trashes every agent, marked as
+ * managed by `extensionId`. Idempotent: an extension with nothing marked
+ * removes nothing.
  */
 export function removeExtensionManagedResources(extensionId: string): Omit<ManagedResourceTeardownResult, 'removedSkillDirs'> {
   const deletedSchedules: string[] = []
@@ -135,7 +139,17 @@ export function removeExtensionManagedResources(extensionId: string): Omit<Manag
     if (result.ok) trashedAgents.push(agent.id)
   }
 
+  const deletedProjects: string[] = []
+  for (const project of Object.values(loadProjects())) {
+    const marker: unknown = project?.managedByExtension
+    if (!isRecord(marker) || marker.extensionId !== extensionId) continue
+    // Not a plain delete: the tasks, agents and schedules that reference this
+    // project must have their projectId cleared too, or an uninstall leaves
+    // them pointing at a project that no longer exists. The service does that.
+    if (deleteProjectAndDetachReferences(project.id)) deletedProjects.push(project.id)
+  }
+
   if (deletedSchedules.length > 0) notify('schedules')
   if (trashedAgents.length > 0) notify('agents')
-  return { deletedSchedules, trashedAgents }
+  return { deletedSchedules, trashedAgents, deletedProjects }
 }
