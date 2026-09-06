@@ -59,11 +59,21 @@ test('az ügyfél nélküli kapcsolat is megtalálható névre', async () => {
   assert.equal(result.contacts[0].id, con.id)
 })
 
-test('a pontos email-találat egyszer szerepel, még ha a név is egyezne', async () => {
+test('a pontos email-találat egyszer szerepel, még ha a névtalálat is ugyanő', async () => {
   const { byName, repo } = toolsOf()
   const acc = repo.createAccount({ name: 'X' })
-  const con = repo.createContact({ accountId: acc.id, name: 'Kiss Anna' })
+  // A kapcsolat neve tartalmazza a saját email-címét, hogy a névkeresés
+  // (LOWER(name) LIKE '%anna@x.hu%') és az email-keresés (contactByEmail)
+  // ténylegesen ugyanarra a rekordra találjon rá.
+  const con = repo.createContact({ accountId: acc.id, name: 'Kiss Anna anna@x.hu' })
   repo.attachEmail(con.id, 'anna@x.hu')
+
+  // Előbb ellenőrizzük, hogy a két keresési út valóban átfedi egymást --
+  // ha bármelyik üres lenne, a fixtúra még mindig nem tesztelne semmit.
+  const emailFound = repo.contactByEmail('anna@x.hu')
+  const nameFound = repo.searchContacts('anna@x.hu')
+  assert.equal(emailFound?.id, con.id)
+  assert.ok(nameFound.some((c) => c.id === con.id))
 
   const result = await byName.crm_search.execute({ query: 'anna@x.hu' }, { session: {} })
   assert.equal(result.contacts.length, 1)
