@@ -80,5 +80,56 @@ for (const [nev, tipus] of [['index.js', 'javascript'], ['style.css', 'css']]) {
      JSON.stringify(body), status)
 }
 
+// 5. mailboxHealth. EZ AZ EGYETLEN PONT, AMI A PINGELT SZERZŐDÉS-VERZIÓT, A
+//    `consumes` deklarációt és az operátor tényleges engedélyét együtt méri:
+//    egy verzió-eltérés vagy egy elfelejtett deklaráció itt csendben halott
+//    modulként válaszolna, egyébként semmilyen más hívás nem venné észre. A
+//    válasz alakja `{ available: true, address }` VAGY `{ available: false,
+//    reason }` -- élő Gmail-hitelesítő nélkül a második ág a várt, ezért ez a
+//    pont csak az alakot és a 200-as státuszt kéri számon, a `available`
+//    tényleges értékét nem.
+{
+  const { status, body } = await call('mailboxHealth')
+  const alakHelyes = typeof body?.available === 'boolean'
+    && (body.available ? typeof body.address === 'string' : typeof body.reason === 'string')
+  ok('mailboxHealth 200-at es ismert alakot ad', status === 200 && alakHelyes, JSON.stringify(body), status)
+}
+
+// 6. Az extension ténylegesen betöltve fut -- nem csak a fájlrendszeren van,
+//    hanem a hoszt is engedélyezettként és hiba nélkül tartja számon. Egy
+//    olyan migráció, ami az operátor feltöltött adatbázisán elhasal, itt
+//    látszik, nem egy üres lapon.
+{
+  const { status, body } = await get(`${BASE}/api/extensions`)
+  const lista = Array.isArray(body) ? body : []
+  const crmBejegyzes = lista.find((e) => e?.filename === EXT)
+  ok('a CRM extension szerepel a listaban', Boolean(crmBejegyzes), `${lista.length} extension, egyik sem ${EXT}`, status)
+  ok('a CRM extension engedelyezett', crmBejegyzes?.enabled === true, JSON.stringify(crmBejegyzes), status)
+  ok('a CRM extensionnek nincs betoltesi hibaja', !crmBejegyzes?.lastFailureError, String(crmBejegyzes?.lastFailureError), status)
+}
+
+// 7. contactsForPicker -- a hozzárendelő választója tömböt ad, éles
+//    adatbázison is (üresen vagy sorokkal, de sosem hibával vagy objektummal).
+{
+  const { status, body } = await call('contactsForPicker')
+  ok('contactsForPicker tombot ad', status === 200 && Array.isArray(body), JSON.stringify(body), status)
+}
+
+// 8. Az MCP-híd HTTP fölött. A `mcpTools` a `crm_*` eszközöket adja vissza,
+//    a `mcpCall` egy ismeretlen tool-névre NEVESÍTETT HIBÁT ad ÉRTÉKKÉNT --
+//    nem 500-at --, mert egy 500 az ügynöknek úgy néz ki, mintha az extension
+//    törött lenne, egy elgépelt eszköznév helyett.
+{
+  const { status, body } = await call('mcpTools')
+  const nevek = Array.isArray(body?.tools) ? body.tools.map((t) => t?.name) : []
+  ok('mcpTools crm_ eszkozoket ad', status === 200 && nevek.some((n) => String(n || '').startsWith('crm_')),
+     JSON.stringify(nevek), status)
+}
+{
+  const { status, body } = await call('mcpCall', { tool: 'crm_nincs_ilyen_eszkoz' })
+  ok('mcpCall ismeretlen tool-ra nevesitett hibat ad ertekkent, nem 500-at',
+     status === 200 && body?.error?.code === 'mcp_ismeretlen_tool', JSON.stringify(body), status)
+}
+
 console.log(bukott === 0 ? 'MIND ZOLD' : `${bukott} pont bukott`)
 process.exit(bukott === 0 ? 0 : 1)
