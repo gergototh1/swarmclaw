@@ -239,9 +239,25 @@ tegyél>" }`, hogy az ügynök a szövegből tudjon cselekedni.
 tizenegy oszlopából doksit ír a hívó saját mappájába (l. 8. pont: **nem** egy
 fix `agents/video/` mappába, mert a `canWrite` szerint azt csak egy `video`
 slugú ügynök írhatná). A doksi első sora kimondja, hogy a cím és a narráció
-ügynök- és idegen szöveg. Szolgáltató nélkül `szerzodes_hianyzik`-ot ad, benne a
-host okszavával — nem néma kihagyást. Minden hívás új doksit ír; a régit nem
-frissíti.
+ügynök- és idegen szöveg. Minden hívás új doksit ír; a régit nem frissíti.
+
+Négy külön visszautasítás, mert négy külön teendő, és egyik sem néma
+kihagyás — egy üres válasz azt hazudná az ügynöknek, hogy nincs mit letenni:
+
+- `rossz_parameter` — nincs `videoId` a hívásban. A hívás alakja a hibás, és
+  a szerződéshez hozzá se nyúlunk.
+- `nincs_ilyen_video` — a `get` `null`-t adott: a mező ki van töltve, és a
+  sor nincs meg (elírás, vagy azóta eltűnt sor). Ez **külön kód** a fentitől,
+  mert a teendő más: nem az argumentumot kell javítani, hanem az id-t
+  megkeresni. Az üzenet a mező NEVÉT mondja ki, és **soha nem ismétli meg a
+  kapott értéket**: a tool-határ naplózza a visszautasítás szövegét, a
+  `videoId` sémája pedig hossz nélküli string.
+- `szerzodes_hianyzik` — a `video.videos` szerződés nem oldható fel, vagy a
+  handle nem hordoz `get`-et, vagy a hívás közben szűnt meg a szolgáltató. Az
+  üzenet a host saját okszavát viszi tovább (`provider_missing`,
+  `provider_disabled`, `version_mismatch`, `not_declared`, `unavailable`,
+  `provider_threw`), mert azok más-más operátori mozdulatok.
+- minden más a tool generikus ága, változatlanul.
 
 ### `doksi_lista`
 Mappafa vagy lapos lista. Szűrhető mappára, ügynökre, tagre. Alapból a hívó
