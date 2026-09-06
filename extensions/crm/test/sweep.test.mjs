@@ -167,6 +167,7 @@ test('a kimeno level, aminek se pontos cime, se szala, a besorolatlanba sem keru
   assert.equal(r.recordedOut, 0)
   assert.equal(r.unmatched, 0)
   assert.equal(repo.listUnmatched().length, 0)
+  assert.equal(r.skippedOut, 1, 'a kimarado kimeno level szamolodik, nem tunik el nyomtalanul')
 })
 
 test('a listazas alapbol az INBOX es SENT cimkere es 90 napra hatarolt', async () => {

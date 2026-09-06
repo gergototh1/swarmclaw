@@ -119,6 +119,7 @@ export function createSweep(state) {
       let recordedOut = 0
       let unmatched = 0
       let failed = 0
+      let skippedOut = 0
 
       for (const id of lap.ids) {
         try {
@@ -174,8 +175,15 @@ export function createSweep(state) {
           // besorolatlanba SEM kerül: a `sender_address` ott a mi saját
           // címünk volna, és az rpc `assignUnmatched` ezt tanulná meg egy
           // ügyfél címeként (`attachEmail`) -- csendben elrontva a jövőbeli
-          // címillesztést. Inkább kimarad, mint egy rossz tanulás.
-          if (kimeno) continue
+          // címillesztést. Inkább kimarad, mint egy rossz tanulás -- de a
+          // kimaradás nem lehet néma: a `skippedOut` számlálóban és a logban
+          // is látszik, különben egy sopres nyomtalanul dobhatna el kimenő
+          // levelet.
+          if (kimeno) {
+            skippedOut += 1
+            state.log?.warn?.('crm sweep: kimeno level ismeretlen szallal, kihagyva', { id })
+            continue
+          }
 
           const { created } = r.recordUnmatched({
             sourceSystem: 'gmail',
@@ -201,7 +209,7 @@ export function createSweep(state) {
       // levelek elszámoltak a `failed`-ben, de nem tarthatják a kurzort
       // örökre a lap elején.
       r.setSweepState('gmail', { cursor: lap.complete ? '' : (lap.nextCursor || ''), lastSeenAt: new Date().toISOString() })
-      return { scanned: lap.ids.length, recorded, recordedOut, unmatched, failed, complete: lap.complete, cursor: lap.nextCursor || '' }
+      return { scanned: lap.ids.length, recorded, recordedOut, unmatched, failed, skippedOut, complete: lap.complete, cursor: lap.nextCursor || '' }
     },
   }
 }
