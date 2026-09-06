@@ -212,6 +212,39 @@ function UjVideo({ rpc, onNyitva }: { rpc: Rpc; onNyitva: () => void }) {
  */
 const NINCS_FRISS = 'csatorna_nincs_friss'
 
+/**
+ * What the operator DOES about each per-channel code.
+ *
+ * The code alone satisfies "say which channel and why" and stops one step
+ * short of useful: `csatorna_azonosito_ismeretlen` is precise, quotable, and
+ * tells somebody who has not read src/youtube.mjs nothing about whether to
+ * fix a url, wait, or go and look at the channel. The two whole-source
+ * refusals each carry a sentence saying where to go, and these are the same
+ * kind of thing at a smaller scale.
+ *
+ * The code is still printed beside the sentence, because it is what the
+ * operator can search for and hand to an agent -- the sentence is the
+ * addition, not the replacement.
+ *
+ * A code this map does not know still prints, with its own line saying so:
+ * the module's vocabulary may grow ahead of this page, and a channel silently
+ * missing from the report would be worse than one named without advice.
+ */
+const CSATORNA_TEENDO: Record<string, string> = {
+  csatorna_nem_valaszolt: 'a csatorna oldalát nem sikerült beolvasni; ellenőrizd az URL-t a beállításokban',
+  csatorna_idotullepes: 'a csatorna oldala nem válaszolt időben; próbáld meg újra',
+  csatorna_azonosito_ismeretlen: 'a válaszban nem volt csatorna-azonosító: átnevezhették a handle-t, vagy megszűnt a csatorna',
+  csatorna_feed_nem_valaszolt: 'a csatornát megtaláltuk, de a feedje nem válaszolt; próbáld meg újra',
+  csatorna_feed_idotullepes: 'a csatorna feedje nem válaszolt időben; próbáld meg újra',
+  csatorna_feed_tul_nagy: 'a csatorna feedje nagyobb, mint amit a modul beolvas; a modul inkább nem vett át belőle semmit, mint hogy csonkán olvassa',
+  csatorna_feed_ertelmezhetetlen: 'a csatorna 200-zal válaszolt, de nem feeddel — ez lehet beleegyezés-kérő vagy hibaoldal; nyisd meg a csatornát böngészőben',
+}
+
+const csatornaMondat = (h: { csatorna: string; ok: string }) => {
+  const teendo = CSATORNA_TEENDO[h.ok] ?? 'a modul ezt a kódot adta rá, de ez a lap még nem tud hozzá mondatot'
+  return `${h.csatorna} — ${teendo} (${h.ok})`
+}
+
 export function otletMondatok(eredmeny: YoutubeOtletekValasz): string[] {
   const { nyitott, marVolt, jelolt, maradek, csatornaHibak, eldobott } = eredmeny
   const nema = csatornaHibak.filter((h) => h.ok !== NINCS_FRISS)
@@ -231,9 +264,9 @@ export function otletMondatok(eredmeny: YoutubeOtletekValasz): string[] {
   // Two lists, never one. A channel that could not be read needs fixing; a
   // channel that has not uploaded lately needs nothing at all, and folding
   // them together would send the operator checking a url that is fine.
-  if (nema.length > 0) mondatok.push(`Nem válaszolt: ${nema.map((h) => `${h.csatorna} (${h.ok})`).join(', ')}.`)
+  for (const h of nema) mondatok.push(`Nem sikerült beolvasni: ${csatornaMondat(h)}.`)
   if (csendes.length > 0) mondatok.push(`Nem volt friss feltöltése: ${csendes.map((h) => h.csatorna).join(', ')}.`)
-  if (eldobott > 0) mondatok.push(`${eldobott} bejegyzést a modul nem vett át: az ablakon kívüli feltöltés, vagy olyan sor, amiből nem épít videó-hivatkozást.`)
+  if (eldobott > 0) mondatok.push(`${eldobott} bejegyzést a modul nem vett át: az ablakon kívülre eső feltöltés, vagy olyan bejegyzés, amiből nem épít videó-hivatkozást.`)
   return mondatok
 }
 

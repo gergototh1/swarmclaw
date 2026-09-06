@@ -486,13 +486,18 @@ export interface YoutubeOtletek {
   nyitott: Array<{ videoId: string; cim: string }>
   /** Candidates this module already had a video for. */
   marVolt: number
-  /** Candidates the listing produced at all, after the window filter. */
+  /** Distinct candidates that survived the window filter, counted after the module deduplicated them by video id -- a channel listed twice in the settings contributes each of its uploads once. */
   jelolt: number
   /** New candidates the press's own bound left unopened; a second press would find them. */
   maradek: number
-  /** The channels that did not answer, each with the module's own code for why. Named, never counted. */
+  /**
+   * The per-channel report: one entry per channel that has something to say for
+   * itself, named and never counted. Mostly failures, plus the one code that is
+   * not one (`csatorna_nincs_friss`, the channel was read fine and has nothing
+   * new), which is why the page sorts them into two sentences rather than one.
+   */
   csatornaHibak: Array<{ csatorna: string; ok: string }>
-  /** Printed lines the module did not take: a stale date, an id it would not build a url from, a drifted format. */
+  /** Feed entries the module did not take: an upload outside the window, an entry missing an id, a title or a readable date, and anything past the per-channel cap. */
   eldobott: number
 }
 

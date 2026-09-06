@@ -80,7 +80,12 @@ function ytdlp(valaszok) {
   return { impl, hivasok }
 }
 
-/** A `fetchImpl` that answers per feed url and records what it was asked. */
+/**
+ * A `fetchImpl` that answers per feed url and records what it was asked. A
+ * number is an HTTP status, a function is a rejection, an object is a
+ * hand-built response (so a `content-length` can be tested), anything else is
+ * a 200 carrying that string.
+ */
 function halo(valaszok) {
   const hivasok = []
   const impl = async (url, init) => {
@@ -89,10 +94,14 @@ function halo(valaszok) {
     assert.ok(valasz !== undefined, `the module fetched a feed this test did not stub: ${url}`)
     if (typeof valasz === 'function') throw valasz()
     if (typeof valasz === 'number') return { status: valasz, ok: false, text: async () => '' }
-    return { status: 200, ok: true, text: async () => valasz }
+    if (typeof valasz === 'object' && valasz !== null) return valasz
+    return { status: 200, ok: true, headers: fejlecek({}), text: async () => valasz }
   }
   return { impl, hivasok }
 }
+
+/** `Headers`'s one method this module uses. A response with no headers at all is also a shape a transport can produce. */
+const fejlecek = (map) => ({ get: (k) => map[k.toLowerCase()] ?? null })
 
 const settings = (youtubeCsatornak, extra = {}) => ({ settings: () => ({ youtubeCsatornak, ...extra }) })
 
@@ -134,8 +143,9 @@ test('csatornaIdBol reads a channel id the operator already wrote, and nothing e
 // --- the feed reader ---
 
 test('feedJeloltek reads one entry and builds the watch url from a checked id', () => {
-  const { jeloltek, eldobott } = feedJeloltek(feed([entry({ kiadva: '2026-08-26T21:44:41+00:00' })]))
+  const { jeloltek, eldobott, blokkok } = feedJeloltek(feed([entry({ kiadva: '2026-08-26T21:44:41+00:00' })]))
   assert.equal(eldobott, 0)
+  assert.equal(blokkok, 1, 'how many entry blocks the body carried, before any of them was judged')
   assert.deepEqual(jeloltek, [{
     id: 'NYFGCESmikA',
     cim: 'Egy cím',
@@ -169,7 +179,7 @@ test('the ampersand is undone last, so an escaped entity does not become markup'
 })
 
 test('an entry missing an id, a title or a readable date is dropped whole and counted', () => {
-  const { jeloltek, eldobott } = feedJeloltek(feed([
+  const { jeloltek, eldobott, blokkok } = feedJeloltek(feed([
     entry({ id: null }),
     entry({ id: '../../etc/passwd' }),
     entry({ id: 'abc' }),
@@ -181,6 +191,7 @@ test('an entry missing an id, a title or a readable date is dropped whole and co
   ]))
   assert.deepEqual(jeloltek.map((j) => j.id), ['joVideoId12'], 'nothing half-built ever reaches a card')
   assert.equal(eldobott, 7, 'a feed the module took almost nothing from must not read as a quiet channel')
+  assert.equal(blokkok, 8, 'the body WAS read; it is the entries that were refused')
 })
 
 test('a missing view count is null rather than zero', () => {
@@ -188,10 +199,35 @@ test('a missing view count is null rather than zero', () => {
   assert.equal(jeloltek[0].nezettseg, null, 'a video nobody watched and a feed that did not say are two facts')
 })
 
-test('feedJeloltek answers empty for a body that is not a feed at all', () => {
-  for (const rossz of ['', '<html><body>404</body></html>', null, undefined]) {
-    assert.deepEqual(feedJeloltek(rossz), { jeloltek: [], eldobott: 0 })
+test('feedJeloltek does not throw on a body that is not a string', () => {
+  // The guard exists because `res.text()` is a double's return value as much
+  // as a real fetch's, and a reader that threw here would turn one odd
+  // response into a bug report rather than a per-channel code.
+  for (const rossz of [null, undefined, 42, {}]) {
+    assert.deepEqual(feedJeloltek(rossz), { jeloltek: [], eldobott: 0, blokkok: 0 })
   }
+})
+
+test('a body carrying no entry block is reported as unreadable, not as an empty feed', () => {
+  // THE DEFECT THIS PINS. A consent interstitial, a rate-limit page or an
+  // error page served with HTTP 200 all parse to zero candidates AND zero
+  // drops, and used to be filed as `csatorna_nincs_friss` -- "this channel has
+  // nothing new", the one sentence that tells the operator to do nothing.
+  // `blokkok` is the only number that separates the two, because `eldobott`
+  // counts refused entries and there are none to refuse.
+  for (const rossz of ['', '<html><body>404</body></html>', '<feed><title>Üres</title></feed>']) {
+    const r = feedJeloltek(rossz)
+    assert.deepEqual(r.jeloltek, [])
+    assert.equal(r.eldobott, 0, 'there is nothing to drop, which is exactly why eldobott cannot catch this')
+    assert.equal(r.blokkok, 0)
+  }
+  // A feed WITH entries that are all unusable is the other fact: the body was
+  // read, and fifteen entries were refused.
+  // `ro` is too short for ID_ALAK; `rossz` would have been five characters and
+  // therefore a perfectly acceptable id.
+  const mind = feedJeloltek(feed([entry({ id: 'ro' }), entry({ kiadva: null })]))
+  assert.equal(mind.blokkok, 2)
+  assert.equal(mind.eldobott, 2)
 })
 
 // --- resolve, then read ---
@@ -258,13 +294,17 @@ test('a channel whose uploads are all older than the window says so rather than 
     '"this channel had nothing" and "this channel could not be read" are the two states a quiet board most needs told apart')
 })
 
-test('at most PER_CSATORNA_LIMIT candidates come from one channel', async () => {
+test('the per-channel cap counts what it leaves behind rather than walking away from it', async () => {
   const entries = []
   for (let n = 0; n < PER_CSATORNA_LIMIT + 20; n += 1) entries.push(entry({ id: `videoid${String(n).padStart(4, '0')}` }))
   const yt = ytdlp({ 'https://www.youtube.com/@a/videos': 'UCSHZKyawb77ixDdsGog4iWA' })
   const net = halo({ [FEED_URL('UCSHZKyawb77ixDdsGog4iWA')]: feed(entries) })
   const r = await fetchYoutube({ csatornak: ['https://www.youtube.com/@a'], napok: 30, ytDlp: '/y', execFileImpl: yt.impl, fetchImpl: net.impl })
   assert.equal(r.jeloltek.length, PER_CSATORNA_LIMIT)
+  // A break that walked away would answer "0 dropped" over twenty unread
+  // entries -- under-reporting exactly when the input is strangest, which is
+  // the one moment the counter is for.
+  assert.equal(r.eldobott, 20)
 })
 
 // --- one fact about the machine, five about a channel ---
@@ -324,4 +364,70 @@ test('a feed answering with something that is not a response is not read as an e
   })
   assert.deepEqual(r.csatornaHibak, [{ csatorna: 'https://www.youtube.com/@a', ok: 'csatorna_feed_nem_valaszolt' }])
   assert.deepEqual(r.jeloltek, [])
+})
+
+test('a 200 that is not a feed is a channel that could not be read, not a channel with nothing new', async () => {
+  // THE DEFECT THIS PINS, end to end. `csatorna_nincs_friss` is the code whose
+  // own sentence on the page is "Nem volt friss feltöltése" -- do nothing. A
+  // consent page, a rate-limit page or an error page served with HTTP 200 must
+  // never reach the operator as that sentence.
+  const yt = ytdlp({ 'https://www.youtube.com/@a/videos': 'UCSHZKyawb77ixDdsGog4iWA' })
+  const net = halo({ [FEED_URL('UCSHZKyawb77ixDdsGog4iWA')]: '<html><body>Before you continue to YouTube</body></html>' })
+  const r = await fetchYoutube({ csatornak: ['https://www.youtube.com/@a'], napok: 30, ytDlp: '/y', execFileImpl: yt.impl, fetchImpl: net.impl })
+  assert.deepEqual(r.jeloltek, [])
+  assert.deepEqual(r.csatornaHibak, [{ csatorna: 'https://www.youtube.com/@a', ok: 'csatorna_feed_ertelmezhetetlen' }])
+  assert.equal(r.csatornaHibak[0].ok === 'csatorna_nincs_friss', false, 'the one sentence that means "do nothing" must not cover an unreadable body')
+})
+
+test('a real feed whose entries are all stale is still a quiet channel, not an unreadable one', async () => {
+  // The other side of the same decision: the body WAS a feed, so the fact is
+  // about the channel's uploads and not about the response.
+  const yt = ytdlp({ 'https://www.youtube.com/@a/videos': 'UCSHZKyawb77ixDdsGog4iWA' })
+  const net = halo({ [FEED_URL('UCSHZKyawb77ixDdsGog4iWA')]: feed([entry({ kiadva: napokkalEzelott(300) })]) })
+  const r = await fetchYoutube({ csatornak: ['https://www.youtube.com/@a'], napok: 7, ytDlp: '/y', execFileImpl: yt.impl, fetchImpl: net.impl })
+  assert.deepEqual(r.csatornaHibak, [{ csatorna: 'https://www.youtube.com/@a', ok: 'csatorna_nincs_friss' }])
+  assert.equal(r.eldobott, 1)
+})
+
+test('a feed bigger than the module will read is refused by name rather than truncated', async () => {
+  const yt = ytdlp({
+    'https://www.youtube.com/@a/videos': 'UCaaaaaaaaaaaaaaaaaaaaa',
+    'https://www.youtube.com/@b/videos': 'UCbbbbbbbbbbbbbbbbbbbbb',
+  })
+  let olvasott = false
+  const net = halo({
+    // Refused on the header, before a byte of the body is read.
+    [FEED_URL('UCaaaaaaaaaaaaaaaaaaaaa')]: {
+      status: 200, ok: true, headers: fejlecek({ 'content-length': String(9 * 1024 * 1024) }),
+      text: async () => { olvasott = true; return 'x' },
+    },
+    // Chunked, so there is no header to refuse on; the length is checked once
+    // it is in hand, and a cut feed is never handed on as a whole one.
+    [FEED_URL('UCbbbbbbbbbbbbbbbbbbbbb')]: {
+      status: 200, ok: true, headers: fejlecek({}),
+      text: async () => feed([entry()]) + 'x'.repeat(5 * 1024 * 1024),
+    },
+  })
+  const r = await fetchYoutube({
+    csatornak: ['https://www.youtube.com/@a', 'https://www.youtube.com/@b'],
+    napok: 30, ytDlp: '/y', execFileImpl: yt.impl, fetchImpl: net.impl,
+  })
+  assert.equal(olvasott, false, 'a content-length over the cap is refused before the body is read')
+  assert.deepEqual(r.csatornaHibak, [
+    { csatorna: 'https://www.youtube.com/@a', ok: 'csatorna_feed_tul_nagy' },
+    { csatorna: 'https://www.youtube.com/@b', ok: 'csatorna_feed_tul_nagy' },
+  ])
+  assert.deepEqual(r.jeloltek, [], 'nothing is taken from a body the module would only have half of')
+})
+
+test('a response with no headers at all is read rather than refused', async () => {
+  // Not every transport gives a `headers` object; the cap must not turn that
+  // into a failure on a feed that is perfectly ordinary.
+  const yt = ytdlp({ 'https://www.youtube.com/@a/videos': 'UCSHZKyawb77ixDdsGog4iWA' })
+  const net = halo({
+    [FEED_URL('UCSHZKyawb77ixDdsGog4iWA')]: { status: 200, ok: true, text: async () => feed([entry()]) },
+  })
+  const r = await fetchYoutube({ csatornak: ['https://www.youtube.com/@a'], napok: 30, ytDlp: '/y', execFileImpl: yt.impl, fetchImpl: net.impl })
+  assert.equal(r.jeloltek.length, 1)
+  assert.deepEqual(r.csatornaHibak, [])
 })

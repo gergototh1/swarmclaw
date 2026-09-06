@@ -2141,8 +2141,12 @@ test('every branch of the YouTube answer gets its own sentence, and none reads a
   // The page knows WHICH channels failed, so "1 of 3 did not answer" is not enough.
   assert.ok(nemaCsatornak.includes('@a'))
   assert.ok(nemaCsatornak.includes('@b'))
+  // The code is still there to look up and quote -- and so is a sentence
+  // saying what to do, because a code is not advice.
   assert.ok(nemaCsatornak.includes('csatorna_feed_idotullepes'))
   assert.ok(nemaCsatornak.includes('csatorna_azonosito_ismeretlen'))
+  assert.ok(nemaCsatornak.includes('próbáld meg újra'))
+  assert.ok(nemaCsatornak.includes('átnevezhették'), 'the operator is told what a missing channel id usually means')
 
   // Zero because the channels answered and had nothing inside the window.
   const uresHet = otletMondatok(ytOtletek({ jelolt: 0 })).join(' | ')
@@ -2160,16 +2164,35 @@ test('every branch of the YouTube answer gets its own sentence, and none reads a
   assert.ok(csendes.includes('Nem volt friss feltöltése: @lassu'))
   assert.equal(csendes.includes('Nem válaszolt'), false)
 
-  // Both kinds at once stay two sentences, each naming only its own channels.
+  // Both kinds at once stay separate, each naming only its own channels.
   const vegyes = otletMondatok(ytOtletek({
     csatornaHibak: [{ csatorna: '@lassu', ok: 'csatorna_nincs_friss' }, { csatorna: '@torott', ok: 'csatorna_nem_valaszolt' }],
   }))
-  const nemValaszolt = vegyes.find((m) => m.startsWith('Nem válaszolt:'))
+  const nemOlvashato = vegyes.find((m) => m.startsWith('Nem sikerült beolvasni:'))
   const nincsFriss = vegyes.find((m) => m.startsWith('Nem volt friss feltöltése:'))
-  assert.ok(nemValaszolt.includes('@torott') && !nemValaszolt.includes('@lassu'))
+  assert.ok(nemOlvashato.includes('@torott') && !nemOlvashato.includes('@lassu'))
   assert.ok(nincsFriss.includes('@lassu') && !nincsFriss.includes('@torott'))
 
-  for (const mondatok of [teli, marMind, nemaCsatornak, uresHet, csendes]) assert.equal(mondatok.includes('sikertelen'), false)
+  // A body that was not a feed is its own sentence, and it is NOT the one that
+  // means "do nothing". This is the branch the review caught: an interstitial
+  // or an error page served with HTTP 200 used to arrive as "nothing new".
+  const olvashatatlan = otletMondatok(ytOtletek({
+    csatornaHibak: [{ csatorna: '@a', ok: 'csatorna_feed_ertelmezhetetlen' }],
+  })).join(' | ')
+  assert.ok(olvashatatlan.startsWith('Nem jött egyetlen jelölt sem'))
+  assert.ok(olvashatatlan.includes('Nem sikerült beolvasni: @a'))
+  assert.ok(olvashatatlan.includes('nem feeddel'), 'the operator is told the channel answered but not with a feed')
+  assert.ok(olvashatatlan.includes('böngészőben'), 'and what to do about it')
+  assert.equal(olvashatatlan.includes('Nem volt friss feltöltése'), false, 'the sentence that means "do nothing" must not cover an unreadable body')
+
+  // A code this page has not learnt yet is still named, with a line saying the
+  // page has no advice for it -- a channel missing from the report entirely
+  // would be worse than one named without advice.
+  const ismeretlen = otletMondatok(ytOtletek({ csatornaHibak: [{ csatorna: '@uj', ok: 'csatorna_valami_uj' }] })).join(' | ')
+  assert.ok(ismeretlen.includes('@uj'))
+  assert.ok(ismeretlen.includes('csatorna_valami_uj'))
+
+  for (const mondatok of [teli, marMind, nemaCsatornak, uresHet, csendes, olvashatatlan]) assert.equal(mondatok.includes('sikertelen'), false)
 })
 
 test('the YouTube button tells a refusal, a rejected request and a real press apart, and reloads the board only on the last', async () => {

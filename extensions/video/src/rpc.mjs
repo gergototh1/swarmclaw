@@ -58,9 +58,22 @@ const SZOVEG_MAX = 4000
 const MEGJEGYZES_MAX = 2000
 /**
  * The window one press of the YouTube button looks back over when the page
- * names none. Measured against `upload_date`, which the listing does not in
- * practice carry (src/youtube.mjs says what was measured); it is the bound
- * that would apply the day it does.
+ * names none.
+ *
+ * IT IS A REAL BOUND. Each channel's Atom feed dates every entry it carries,
+ * and `fetchYoutube` filters on that date (src/youtube.mjs), so this number
+ * decides what comes back. Two weeks because the feed only holds about
+ * fifteen entries anyway: a wider window mostly reaches past the end of what
+ * YouTube will hand over, and a narrower one would hide a channel that
+ * publishes fortnightly.
+ *
+ * WHAT USED TO BE HERE AND WHY IT IS NOT. This said the window was measured
+ * against yt-dlp's `upload_date`, "which the listing does not in practice
+ * carry", and called itself the bound that would apply the day it did. That
+ * was true of the first version, which listed with `--flat-playlist` and got
+ * `NA` for every date; it stopped being true when the source moved to the
+ * feed, and a comment asserting that this default is inert would send its
+ * next reader looking for a filter that has been working all along.
  */
 const YOUTUBE_NAPOK_ALAP = 14
 const YOUTUBE_NAPOK_MAX = 365

@@ -110,6 +110,19 @@ const FEED_TIMEOUT_MS = 20_000
 const MAX_BUFFER = 1024 * 1024
 
 /**
+ * The most feed this module will accept from a channel. The real feed is about
+ * sixty kilobytes for fifteen entries, so this is twenty times the observed
+ * size and will not bind on anything YouTube sends.
+ *
+ * It exists because the process side has an explicit `maxBuffer` and the
+ * request side had nothing: `res.text()` reads whatever arrives. A body over
+ * the cap is REFUSED BY NAME and not truncated -- a truncated feed is a
+ * different feed, and this module would then report a channel's newest videos
+ * from a document that stops mid-entry.
+ */
+const MAX_FEED_BYTE = 4 * 1024 * 1024
+
+/**
  * A YouTube video id, as this module will accept one before building a url
  * out of it. Eleven characters is what YouTube issues today; the range is
  * wider so an id scheme that grows is not refused for a cosmetic reason,
@@ -235,12 +248,23 @@ function nezettsegOf(entry) {
  * half-built: a candidate with an id and no date would be a card the window
  * filter cannot judge, and one with a date and no id would be a card that
  * cannot become a url.
+ *
+ * `blokkok` IS THE THIRD NUMBER AND IT IS NOT DECORATION. It is how many
+ * `<entry>` blocks the body carried, before any of them was judged, and the
+ * caller needs it because zero candidates has two causes that must not be
+ * reported as one. A feed with fifteen entries none of which is fresh is a
+ * quiet channel; a body with NO entry block at all -- a consent interstitial,
+ * a rate-limit page, an error page served with HTTP 200, or a drift in the
+ * delimiter this reader splits on -- is a channel that could not be read, and
+ * `eldobott` cannot tell them apart because an unparseable body produces zero
+ * drops rather than fifteen.
  */
 export function feedJeloltek(xml) {
   const jeloltek = []
   let eldobott = 0
   const szoveg = typeof xml === 'string' ? xml : ''
-  for (const darab of szoveg.split('<entry>').slice(1)) {
+  const blokkok = szoveg.split('<entry>').slice(1)
+  for (const darab of blokkok) {
     const entry = darab.split('</entry>')[0]
     const id = mezo(entry, 'yt:videoId')
     const cim = mezo(entry, 'title')
@@ -255,7 +279,7 @@ export function feedJeloltek(xml) {
       nezettseg: nezettsegOf(entry),
     })
   }
-  return { jeloltek, eldobott }
+  return { jeloltek, eldobott, blokkok: blokkok.length }
 }
 
 /** Whether a rejection is this call's own deadline firing rather than the host failing. `fetch` reports its cancellation as an AbortError, sometimes wrapped. */
@@ -277,10 +301,20 @@ function hataridoVolt(e) {
  *
  * A reply this call will not read is aborted rather than left open: on a real
  * fetch an uncollected body holds its connection.
+ *
+ * THE BODY IS BOUNDED, in the two places it can be. A `content-length` over
+ * the cap is refused before a byte is read. A body that arrives chunked
+ * carries no such header, so the length is checked again once it is in hand;
+ * that second check refuses rather than truncates, but it does so AFTER the
+ * string exists, and what actually bounds the reading in that case is the
+ * deadline above. That residual is stated rather than papered over: closing
+ * it means reading `res.body` as a stream, and a stream path that only the
+ * real fetch takes -- the test doubles here answer with `text()` -- would be
+ * a branch no test covers guarding the case that matters most.
  */
-async function feedSzoveg({ url, fetchImpl, timeoutMs }) {
+async function feedSzoveg({ url, fetchImpl }) {
   const hatarido = new AbortController()
-  const timer = setTimeout(() => hatarido.abort(), timeoutMs)
+  const timer = setTimeout(() => hatarido.abort(), FEED_TIMEOUT_MS)
   try {
     let res
     try {
@@ -293,11 +327,19 @@ async function feedSzoveg({ url, fetchImpl, timeoutMs }) {
       hatarido.abort()
       return { ok: false, kod: 'csatorna_feed_nem_valaszolt' }
     }
+    const jelzettHossz = Number(typeof res.headers?.get === 'function' ? res.headers.get('content-length') : null)
+    if (Number.isFinite(jelzettHossz) && jelzettHossz > MAX_FEED_BYTE) {
+      hatarido.abort()
+      return { ok: false, kod: 'csatorna_feed_tul_nagy' }
+    }
+    let szoveg
     try {
-      return { ok: true, szoveg: await res.text() }
+      szoveg = await res.text()
     } catch (e) {
       return { ok: false, kod: hataridoVolt(e) ? 'csatorna_feed_idotullepes' : 'csatorna_feed_nem_valaszolt' }
     }
+    if (szoveg.length > MAX_FEED_BYTE) return { ok: false, kod: 'csatorna_feed_tul_nagy' }
+    return { ok: true, szoveg }
   } finally {
     clearTimeout(timer)
   }
@@ -356,8 +398,8 @@ async function csatornaId({ csatorna, ytDlp, execFileImpl }) {
  * that needs it. The operator's fix is a setting.
  *
  * EVERY OTHER FACT IS ABOUT ONE CHANNEL and lands in `csatornaHibak`, which
- * is a per-channel report and not only a failure list. Five codes, because
- * five different things happen and the operator does something different
+ * is a per-channel report and not only a failure list. Seven codes, because
+ * seven different things happen and the operator does something different
  * about each:
  *
  *   csatorna_nem_valaszolt          yt-dlp could not read the channel page
@@ -367,6 +409,11 @@ async function csatornaId({ csatorna, ytDlp, execFileImpl }) {
  *                                   url that is not a channel at all
  *   csatorna_feed_nem_valaszolt     the id resolved; the feed did not answer
  *   csatorna_feed_idotullepes       ...within the deadline
+ *   csatorna_feed_tul_nagy          it answered with more than this module
+ *                                   will read, and a cut feed is a different
+ *                                   feed
+ *   csatorna_feed_ertelmezhetetlen  IT ANSWERED 200 WITH SOMETHING THAT IS
+ *                                   NOT A FEED -- see below
  *   csatorna_nincs_friss            EVERYTHING WORKED and the channel simply
  *                                   had nothing inside the window. Not a
  *                                   failure, and the page words it as the
@@ -376,12 +423,25 @@ async function csatornaId({ csatorna, ytDlp, execFileImpl }) {
  *                                   two states a quiet board most needs
  *                                   telling apart.
  *
+ * WHY THE UNPARSEABLE BODY NEEDED A CODE OF ITS OWN. It used to be filed as
+ * `csatorna_nincs_friss`, and that is exactly the collapse the rest of this
+ * file exists to prevent. A consent interstitial, a rate-limit page or an
+ * error page served with HTTP 200 all reach `feedJeloltek`, which finds no
+ * `<entry>` in them and answers with an empty list -- and an empty list from
+ * a body that was never a feed used to be reported to the operator as "this
+ * channel has nothing new", the one sentence that means "do nothing". The
+ * `eldobott` counter cannot catch it either, for a reason worth writing down:
+ * it counts entries the module refused, and a body with no entry block
+ * produces ZERO drops rather than fifteen. `blokkok` is the number that can
+ * tell the two apart, so it is the number this decision is made on.
+ *
  * `eldobott` counts feed entries the module would not take: a `published`
- * outside the window, and an entry missing an id, a title or a readable date.
- * The number exists so a feed whose shape drifted reads as "the module
- * dropped 15 entries" rather than as a quiet channel.
+ * outside the window, an entry missing an id, a title or a readable date, and
+ * the entries past `PER_CSATORNA_LIMIT` on a channel that hit the cap. The
+ * number exists so a feed whose entries drifted reads as "the module dropped
+ * 15 entries" rather than as a quiet channel.
  */
-export async function fetchYoutube({ csatornak, napok, ytDlp, execFileImpl = execFileAsync, fetchImpl = fetch, feedTimeoutMs = FEED_TIMEOUT_MS }) {
+export async function fetchYoutube({ csatornak, napok, ytDlp, execFileImpl = execFileAsync, fetchImpl = fetch }) {
   const kuszob = Date.now() - napok * 86_400_000
   const jeloltek = []
   const csatornaHibak = []
@@ -391,13 +451,21 @@ export async function fetchYoutube({ csatornak, napok, ytDlp, execFileImpl = exe
     if (!azonosito.ok) { csatornaHibak.push({ csatorna, ok: azonosito.kod }); continue }
     // The url is built here from an id that matched `CSATORNA_ID_ALAK`, never
     // concatenated from whatever the resolve step printed.
-    const feed = await feedSzoveg({ url: `https://www.youtube.com/feeds/videos.xml?channel_id=${azonosito.id}`, fetchImpl, timeoutMs: feedTimeoutMs })
+    const feed = await feedSzoveg({ url: `https://www.youtube.com/feeds/videos.xml?channel_id=${azonosito.id}`, fetchImpl })
     if (!feed.ok) { csatornaHibak.push({ csatorna, ok: feed.kod }); continue }
     const olvasott = feedJeloltek(feed.szoveg)
+    // A 200 that carried no entry block at all is not a quiet channel; it is a
+    // body this module could not read, and saying "nothing new" over it would
+    // tell the operator to do nothing about a channel that needs looking at.
+    if (olvasott.blokkok === 0) { csatornaHibak.push({ csatorna, ok: 'csatorna_feed_ertelmezhetetlen' }); continue }
     eldobott += olvasott.eldobott
     let db = 0
-    for (const jelolt of olvasott.jeloltek) {
-      if (db >= PER_CSATORNA_LIMIT) break
+    for (const [n, jelolt] of olvasott.jeloltek.entries()) {
+      // The cap bounds a feed this module did not expect. It counts what it
+      // leaves behind rather than walking away from it: an answer that says
+      // "0 dropped" while fifty entries went unread would under-report exactly
+      // when the input is strangest.
+      if (db >= PER_CSATORNA_LIMIT) { eldobott += olvasott.jeloltek.length - n; break }
       if (Date.parse(jelolt.feltoltve) < kuszob) { eldobott += 1; continue }
       jeloltek.push(jelolt)
       db += 1

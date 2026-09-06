@@ -193,7 +193,7 @@ const video = {
       // an install has no business guessing whose uploads the operator wants
       // to make videos from, and an empty list is a NAMED refusal from the
       // button (`youtube_nincs_csatorna`) rather than a silent zero.
-      { key: 'youtubeCsatornak', label: 'YouTube-csatornák', type: 'text', placeholder: '@lexfridman, https://www.youtube.com/@masik', help: 'Vesszővel elválasztva: csatorna-URL-ek vagy @handle-ök. Ezekből listáz ötleteket a Sor nézet gombja.' },
+      { key: 'youtubeCsatornak', label: 'YouTube-csatornák', type: 'text', placeholder: '@lexfridman, https://www.youtube.com/@masik', help: 'Vesszővel elválasztva: csatorna-URL-ek vagy @handle-ök. Ezekből listáz ötleteket a Sor nézet gombja. Egy @handle-t a modul minden gombnyomáskor yt-dlp-vel old fel csatorna-azonosítóvá — ha a csatorna https://www.youtube.com/channel/UC… alakját írod be (vagy csak a UC…-azonosítót), ez a lépés elmarad, és a gomb feleannyi ideig tart.' },
       { key: 'ytDlpUtvonal', label: 'yt-dlp útvonala', type: 'text', defaultValue: '/Users/tothgergo/DEV/gergototh.co/apps/yt-dlp/bin/yt-dlp', help: 'A bináris teljes útvonala. Nem a hoston feloldott eszközök egyike, ezért teljes út és nem puszta név.' },
     ],
   },
