@@ -592,7 +592,7 @@ test('videoRevise terv nélküli videóra megnevezett hibát ad, nem üres terve
 })
 
 /**
- * A szülő verziónak át kellett mennie a lektoron.
+ * A szülő verziónak joga kell legyen továbbmenni.
  *
  * `latestTerv` a legújabb verziót adja, ítélettel vagy anélkül -- egy
  * `videoDraft` vagy egy `elbukik` után az áll ott, amit senki nem engedett át.
@@ -600,23 +600,95 @@ test('videoRevise terv nélküli videóra megnevezett hibát ad, nem üres terve
  * videót `lektoralt`-ba vinné: kivenné az `elbukott` sorból, ahol a lektor
  * órás futása keresi, a `talalatok` gazdátlanul maradnának, és a
  * verdikt-kaput szűkítő következő lépés után egy sosem ítélt terv jutna el a
- * renderig. A teszt mindkét felét állítja: nem íródik verzió, és a státusz
- * sem mozdul.
+ * renderig.
+ *
+ * Két állapot, két kód, mert a `verdikt-kapu.mjs` két külön tényként tartja
+ * őket: egy terv, amiről nem született ítélet (`verdikt_hianyzik`), és egy,
+ * amit a lektor átengedett, majd egy későbbi fordulóban elbuktatott
+ * (`verdikt_elavult` -- a `passingVerdikt` a LEGFRISSEBB ítéletet nézi). A
+ * teszt mindkettőnél a másik felét is állítja: nem íródik verzió, és a
+ * státusz sem mozdul.
  */
-test('videoRevise nem javít meg nem ítélt tervet, és közben semmit nem mozdít', async () => {
+test('videoRevise nem javít olyan tervet, aminek nincs joga továbbmenni, és közben semmit nem mozdít', async () => {
   const { repo, run } = setup()
+  const iteletNelkul = repo.openVideo({ cim: 'c', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: 'f', nyitottaAgentId: '' })
+  repo.insertTerv({ videoId: iteletNelkul.id, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'kh', szerzoAgentId: 'gyarto-1', szerzoSessionId: 's1', ellenorzes: { figyelmeztetesek: [] } })
+  repo.setVideoStatus(iteletNelkul.id, 'terv')
+  const k1 = repo.insertFeedback({ videoId: iteletNelkul.id, jelenet: 1, szoveg: 'x', forras: 'operator' })
+  const a = await run('videoRevise', {
+    videoId: iteletNelkul.id,
+    jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam: 99, felvezeto: 'Ennyi.' } }],
+    javitasIdk: [k1.id],
+  })
+  assert.equal(a.error.code, 'verdikt_hianyzik')
+  assert.equal(repo.tervekForVideo(iteletNelkul.id).length, 1, 'nem íródott új verzió')
+  assert.equal(repo.video(iteletNelkul.id).status, 'terv', 'a videó ott marad, ahol a lektor keresi')
+
   const { videoId, tervId, tervHash } = keszTerv(repo)
   repo.insertVerdikt({ tervId, tervHash, lektorAgentId: 'lektor-1', lektorSessionId: 's2', verdikt: 'elbukik', talalatok: [{ jelenet: 0, kod: 'horog_gyenge', szoveg: 'x' }] })
   repo.setVideoStatus(videoId, 'elbukott')
+  const k2 = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'x', forras: 'operator' })
+  const b = await run('videoRevise', {
+    videoId,
+    jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam: 99, felvezeto: 'Ennyi.' } }],
+    javitasIdk: [k2.id],
+  })
+  assert.equal(b.error.code, 'verdikt_elavult')
+  assert.equal(repo.tervekForVideo(videoId).length, 1, 'nem íródott új verzió')
+  assert.equal(repo.video(videoId).status, 'elbukott')
+})
+
+/**
+ * A MÁSODIK JAVÍTÁSI KÖR. Ez az a teszt, ami az első javítás-körös
+ * megoldásomat elbuktatta volna.
+ *
+ * Egy javításnak sosem lesz saját verdiktje -- épp ez a feature --, tehát a
+ * második kör szülője (a v2) `passingVerdikt`-re üres. Egy közvetlen
+ * `passingVerdikt(szulo.id, ...)` ellenőrzés itt elutasítana, és az operátor
+ * második kérése soha nem lenne beadható: a spec 7. pontja szerint viszont
+ * pontosan ez történik, ha a javítás nem sikerült ("az operátor új kérést
+ * ír"). A jogot a `verdikt-kapu.mjs` sétája örökli le a v1-ről.
+ */
+test('videoRevise a második és a harmadik javítási kört is beengedi: a jog a láncon öröklődik', async () => {
+  const { repo, run } = setup()
+  const { videoId, tervId } = keszTerv(repo)
+  const ujKeres = (n) => repo.insertFeedback({ videoId, jelenet: 1, szoveg: `kérés ${n}`, forras: 'operator' })
+  const kor = async (szam) => {
+    const kert = ujKeres(szam)
+    const r = await run('videoRevise', {
+      videoId,
+      jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam, felvezeto: 'Ennyi.' } }],
+      javitasIdk: [kert.id],
+    })
+    assert.equal(r.error, undefined, JSON.stringify(r.error))
+    return r
+  }
+  const v2 = await kor(41)
+  assert.equal(v2.szuloTervId, tervId)
+  const v3 = await kor(42)
+  assert.equal(v3.szuloTervId, v2.tervId, 'a második kör a javításra épül, nem a v1-re')
+  assert.equal(repo.terv(v3.tervId).szarmazas, 'operator_javitas')
+  // Harmadik kör: a séta már két ugrás a v1-ig, és a videó végig `lektoralt`.
+  const v4 = await kor(43)
+  assert.equal(v4.szuloTervId, v3.tervId)
+  assert.equal(repo.video(videoId).status, 'lektoralt')
+})
+
+test('videoRevise elutasítja azt a javítás-láncot, aminek a gyökerét soha nem engedték át', async () => {
+  const { repo, run } = setup()
+  const { id: videoId } = repo.openVideo({ cim: 'c', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: 'f', nyitottaAgentId: '' })
+  const gyoker = repo.insertTerv({ videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'kh', szerzoAgentId: 'gyarto-1', szerzoSessionId: 's1', ellenorzes: { figyelmeztetesek: [] } })
+  repo.insertTerv({ videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'kh', szerzoAgentId: 'gyarto-1', szerzoSessionId: 's1', ellenorzes: { figyelmeztetesek: [] }, szarmazas: 'operator_javitas', javitasIdk: [], szuloTervId: gyoker.id })
   const kert = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'x', forras: 'operator' })
   const r = await run('videoRevise', {
     videoId,
     jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam: 99, felvezeto: 'Ennyi.' } }],
     javitasIdk: [kert.id],
   })
-  assert.equal(r.error.code, 'verdikt_hianyzik')
-  assert.equal(repo.tervekForVideo(videoId).length, 1, 'nem íródott új verzió')
-  assert.equal(repo.video(videoId).status, 'elbukott', 'a videó ott marad, ahol a lektor keresi')
+  // Nem `verdikt_hianyzik`: az a hívó saját beadásáról szólna, és egy
+  // javításnak sosem lesz saját verdiktje. Amit lektorálni kell, az a lánc alja.
+  assert.equal(r.error.code, 'szulo_verdikt_hianyzik')
+  assert.equal(repo.tervekForVideo(videoId).length, 2, 'nem íródott új verzió')
 })
 
 test('videoRevise a katalógus-ellenőrzésen ugyanúgy átmegy, mint a videoDraft', async () => {

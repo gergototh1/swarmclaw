@@ -194,9 +194,16 @@ is nyúlás. A \`narracio\` (\`narracio[].jelenet\` és
 gyorsítótárából jön, és nem kerül újra pénzbe. A \`javitasIdk\` a
 \`videoFixes\`-ből vett kérések \`id\`-je, és legalább egy kell
 (\`javitas_hianyzik\`); ami nem ennek a videónak a nyitott kérése,
-\`javitas_ismeretlen\`; terv nélküli videóra \`terv_hianyzik\`; olyan
-szülő verzióra, amit a lektor nem engedett át, \`verdikt_hianyzik\` -- azt
-nem javítani kell, hanem \`videoDraft\`-tal új verzióként beadni. A válasz
+\`javitas_ismeretlen\`; terv nélküli videóra \`terv_hianyzik\`. A szülő
+verziónak joga kell legyen továbbmenni: ha az egy meg nem ítélt terv,
+\`verdikt_hianyzik\` (ha volt már rajta atmegy, amit a lektor visszavont,
+\`verdikt_elavult\`) -- olyat nem javítani kell, hanem \`videoDraft\`-tal
+új verzióként beadni és lektoráltatni. Javítást viszont lehet javítani: a
+második és a harmadik kört is beengedi, mert a jog a láncon öröklődik attól
+a verziótól, amit a lektor átengedett. Ha annak a láncnak az alján nincs
+ilyen, \`szulo_verdikt_hianyzik\` -- azt kell lektoráltatni, nem a saját
+beadásomat --, és ha a lánc maga romlott el, \`javitas_lanc_hibas\`, amin
+lektorálás nem segít. A válasz
 \`tervId\`, \`verzio\`, \`tervHash\`, \`szuloTervId\`,
 \`valtozottJelenetek\`, \`bedolgozott\` (a bedolgozott kérések azonosítói),
 \`figyelmeztetesek\` és \`becsultHosszMp\`. Új lektori kör nem indul: a

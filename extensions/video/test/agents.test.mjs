@@ -464,7 +464,7 @@ test('the extension declares both agents and all three schedules', () => {
 // The vocabulary, read off the source rather than typed out here
 // ---------------------------------------------------------------------------
 
-const CODE_FILES = Object.freeze(['src/args.mjs', 'src/terv.mjs', 'src/katalogus.mjs', 'src/kit-tabla.mjs', 'src/narracio.mjs', 'src/render.mjs', 'src/qa.mjs', 'src/sablon.mjs', 'src/tanulsag.mjs'])
+const CODE_FILES = Object.freeze(['src/args.mjs', 'src/terv.mjs', 'src/katalogus.mjs', 'src/kit-tabla.mjs', 'src/narracio.mjs', 'src/render.mjs', 'src/qa.mjs', 'src/sablon.mjs', 'src/tanulsag.mjs', 'src/verdikt-kapu.mjs'])
 
 /** Every refusal code the module can answer with, read off the calls that raise them. */
 function refusalCodes() {
@@ -473,6 +473,13 @@ function refusalCodes() {
     const text = readSource(file)
     for (const m of text.matchAll(/(?:refuse|bad)\(\s*'([a-z][a-z0-9_]*)'/g)) out.add(m[1])
     for (const m of text.matchAll(/\bcode:\s*'([a-z][a-z0-9_]*)'/g)) out.add(m[1])
+    // `src/verdikt-kapu.mjs` does not raise its refusals, it RETURNS them --
+    // it has three callers whose refusal shapes differ, so it names the code
+    // and lets each caller raise it (`refuse(jog.kod, jog.uzenet)`). Those
+    // call sites pass a variable, so without this pattern the codes that gate
+    // narration, render and revision would be the only ones no prompt could
+    // name and no vocabulary check could see.
+    for (const m of text.matchAll(/\bkod:\s*'([a-z][a-z0-9_]*)'/g)) out.add(m[1])
   }
   assert.ok(out.size > 30, 'the refusal codes are no longer written as literals; find what replaced them before trusting this test')
   return out

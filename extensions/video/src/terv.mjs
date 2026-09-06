@@ -2,6 +2,7 @@ import { agentIdOf, guard, readArray, readEnum, readString, readWholeNumber, ref
 import { head } from './db.mjs'
 import { readCatalog, remotionDirOf, validateDraft } from './katalogus.mjs'
 import { karakterPerMp } from './sablon.mjs'
+import { verdiktJog } from './verdikt-kapu.mjs'
 
 /**
  * A video's life before narration (spec 2.3, 4, 4.3, 6.2), as eight tools:
@@ -651,7 +652,7 @@ export function createTervTools(state) {
      */
     {
       name: 'videoRevise',
-      description: 'Célzott javítás egy kész render után: megnevezed, mely jeleneteket írod át és mely operátori kéréseket dolgozod be, és a modul MINDEN MÁS jelenetet változatlanul vesz át a szülő verzióból. Ha olyanhoz nyúlsz, amiről nem esett szó, a beadás elutasul. A narrációt is csak a megnevezett jeleneteken írhatod át -- így a többi mondat a tts gyorsítótárából jön, és nem kerül újra pénzbe. Erre a verzióra nem kell új lektori ítélet: a szülő verzió átment, és a különbséget az operátor kérte.',
+      description: 'Célzott javítás egy kész render után: megnevezed, mely jeleneteket írod át és mely operátori kéréseket dolgozod be, és a modul MINDEN MÁS jelenetet változatlanul vesz át a szülő verzióból. Ha olyanhoz nyúlsz, amiről nem esett szó, a beadás elutasul. A narrációt is csak a megnevezett jeleneteken írhatod át -- így a többi mondat a tts gyorsítótárából jön, és nem kerül újra pénzbe. Erre a verzióra nem kell új lektori ítélet: a szülő verzió átment, és a különbséget az operátor kérte. Egy javítás tovább javítható: a jog a láncon öröklődik attól a verziótól, amit a lektor átengedett.',
       parameters: {
         type: 'object',
         required: ['videoId', 'jelenetek', 'javitasIdk'],
@@ -673,22 +674,29 @@ export function createTervTools(state) {
           refuseIfRendering(videoId)
           const szulo = repo().latestTerv(videoId)
           if (!szulo) refuse('terv_hianyzik', 'ennek a videónak még nincs terve; javítani csak meglévő tervet lehet')
-          // A SZÜLŐNEK ÁT KELL MENNIE. Ez a tool azon áll, hogy a szülő verziót
-          // a lektor átengedte: ezért nem kell rá új ítélet, ezért marad a videó
-          // `lektoralt`, és ezért mehet a különbség egyenesen renderre. A
-          // `latestTerv` viszont a LEGÚJABB verziót adja, ítélettel vagy anélkül
-          // -- egy `videoDraft` vagy egy `elbukik` után az a terv áll itt, amit
-          // senki nem engedett át. Ellenőrzés nélkül ez a tool egy meg nem
-          // ítélt tervet vinne `lektoralt`-ba: kivenné a videót az `elbukott`
-          // vagy a `terv` sorból, ahol a lektor órás futása keresi, a
-          // `talalatok` gazdátlanul maradnának, és a verdikt-kaput szűkítő
-          // következő lépés után egy sosem ítélt terv jutna el a renderig.
-          // Egy meg nem ítélt terv javítása nem javítás, hanem terv -- arra a
-          // `videoDraft` van, és a mondat ezt mondja meg. A státusz-írás előtt,
-          // hogy egy elutasított javítás semmit ne mozdítson.
-          if (!repo().passingVerdikt(szulo.id, szulo.terv_hash)) {
-            refuse('verdikt_hianyzik', 'a szülő verziót nem engedte át a lektor; javítani csak átment tervet lehet, meg nem ítéltet a videoDraft ad be új verzióként')
-          }
+          // A SZÜLŐNEK JOGA KELL LEGYEN TOVÁBBMENNI. Ez a tool azon áll, hogy a
+          // szülő verziót a lektor átengedte: ezért nem kell rá új ítélet,
+          // ezért marad a videó `lektoralt`, és ezért mehet a különbség
+          // egyenesen renderre. A `latestTerv` viszont a LEGÚJABB verziót adja,
+          // ítélettel vagy anélkül -- egy `videoDraft` vagy egy `elbukik` után
+          // az a terv áll itt, amit senki nem engedett át. Ellenőrzés nélkül ez
+          // a tool egy meg nem ítélt tervet vinne `lektoralt`-ba: kivenné a
+          // videót az `elbukott` vagy a `terv` sorból, ahol a lektor órás
+          // futása keresi, a `talalatok` gazdátlanul maradnának, és a
+          // verdikt-kaput szűkítő következő lépés után egy sosem ítélt terv
+          // jutna el a renderig.
+          //
+          // A kérdés NEM `passingVerdikt(szulo.id, ...)`. Egy javításnak sosem
+          // lesz saját verdiktje -- épp ez a feature --, tehát a szülő maga is
+          // lehet javítás, és akkor a jogot a saját szülőjétől örökli. Egy
+          // közvetlen `passingVerdikt` a MÁSODIK javítási kört tenné
+          // lehetetlenné, pont azt, amit a spec 7. pontja kimond: ha a javítás
+          // nem sikerült, az operátor új kérést ír. A rekurzív séta a
+          // `verdikt-kapu.mjs`-ben van, mert a narráció és a render ugyanezt
+          // kérdezi. A státusz-írás előtt, hogy egy elutasított javítás semmit
+          // ne mozdítson.
+          const jog = verdiktJog(repo(), szulo)
+          if (!jog.ok) refuse(jog.kod, jog.uzenet)
 
           // A kérések a mi soraink, nem a hívó szava: a megnevezett id-knek
           // NYITOTT, ehhez a videóhoz tartozó operátori kérésnek kell lenniük.
