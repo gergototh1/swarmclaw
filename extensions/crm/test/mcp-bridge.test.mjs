@@ -150,3 +150,18 @@ test('a tool with required arguments still declares them after translation', () 
   const account = listed.find((t) => t.name === 'crm_account')
   assert.deepEqual(account.inputSchema.required, ['accountId'])
 })
+
+/**
+ * A CRM-2 egyetlen író eszköze, `crm_sweep`, névvel is átmegy a hídon: a
+ * séma-tükrözés generikus (a fenti két teszt bármelyik eszközre igaz lenne),
+ * de ez nevesítve őrzi, hogy a `max` paraméter -- ami nem kötelező -- tényleg
+ * `inputSchema.properties.max`-ként landol, `required` nélkül.
+ */
+test('a crm_sweep is elerheto a hidon, opcionalis max parameterrel', () => {
+  const listed = crm.rpc.mcpTools().tools
+  const sweep = listed.find((t) => t.name === 'crm_sweep')
+  assert.ok(sweep, 'a crm_sweep-nek meg kell jelennie a hidon')
+  assert.equal(sweep.inputSchema.type, 'object')
+  assert.equal(sweep.inputSchema.properties.max.type, 'number')
+  assert.equal('required' in sweep.inputSchema, false, 'a max opcionalis, nincs required tomb')
+})

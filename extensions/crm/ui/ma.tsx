@@ -11,6 +11,8 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
   const [hiba, setHiba] = useState('')
+  const [sopres, setSopres] = useState<string>('')
+  const [fut, setFut] = useState(false)
 
   const tolt = () => {
     rpc('board')
@@ -29,10 +31,27 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
       .then(tolt).catch((e: Error) => setHiba(e.message))
   }
 
+  const soper = () => {
+    setFut(true)
+    rpc('sweepNow', { max: 50 })
+      .then((r) => {
+        const x = r as { scanned: number; recorded: number; unmatched: number }
+        setSopres(`${x.scanned} levél átnézve · ${x.recorded} idővonalra · ${x.unmatched} besorolatlan`)
+        tolt()
+      })
+      .catch((e: Error) => setHiba(e.message))
+      .finally(() => setFut(false))
+  }
+
   return (
     <section>
       <h2>Ma</h2>
       {hiba && <p className="crm-hiba" role="alert">{hiba}</p>}
+
+      <div className="crm-sor">
+        <button onClick={soper} disabled={fut}>{fut ? 'Söprés fut…' : 'Levelek behúzása'}</button>
+        {sopres && <span className="crm-halvany">{sopres}</span>}
+      </div>
 
       <h3>Figyelmet igényel</h3>
       {/* A figyelem-lista a CRM-3-ban érkezik. Addig a javaslat-sor áll itt,

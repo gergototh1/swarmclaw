@@ -181,3 +181,45 @@ test('a mailboxHealth a postafiók címét adja vissza, ha a szerződés felold�
   assert.equal(h.available, true)
   assert.equal(h.address, 'dorina@morvai.hu')
 })
+
+/** A `mailbox` szerződés dublőre, ugyanaz az alak, mint a sweep sajét tesztjeiben. */
+function fakeMailbox(uzenetek) {
+  return {
+    list: async () => ({ ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }),
+    get: async ({ id }) => uzenetek.find((u) => u.id === id),
+  }
+}
+
+const LEVEL = (over) => ({
+  id: 'msg_1', threadId: 'thr_1', labelIds: ['INBOX'], subject: 'Ajanlat',
+  fromName: 'Morvai Dorina', fromEmail: 'dorina@morvai.hu',
+  sentAt: '2026-09-01T10:00:00.000Z', text: 'Kerek egy ajanlatot.',
+  textInAttachment: false, sizeEstimate: 100, ...over,
+})
+
+test('a sweepNow ugyanazt a torzset hivja, mint az ugynok crm_sweep eszkoze', async () => {
+  const uzenetek = [LEVEL()]
+  const { rpc, repo } = rpcWithContracts({ get: () => fakeMailbox(uzenetek) })
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const con = repo.createContact({ accountId: acc.id, name: 'Dorina' })
+  repo.attachEmail(con.id, 'dorina@morvai.hu')
+
+  const r = await rpc.sweepNow({ max: 50 })
+  assert.equal(r.scanned, 1)
+  assert.equal(r.recorded, 1)
+  assert.equal(r.unmatched, 0)
+  assert.equal(repo.listEvents({ accountId: acc.id }).length, 1)
+})
+
+test('a sweepNow max nelkul is fut, 50-es alapertelmezettel', async () => {
+  const uzenetek = [LEVEL({ id: 'msg_2', fromEmail: 'senki@sehol.hu' })]
+  const { rpc } = rpcWithContracts({ get: () => fakeMailbox(uzenetek) })
+  const r = await rpc.sweepNow({})
+  assert.equal(r.scanned, 1)
+  assert.equal(r.unmatched, 1)
+})
+
+test('a sweepNow szerzodes hianyaban nevesitett hibat ad', async () => {
+  const { rpc } = rpcOf()
+  await assert.rejects(() => rpc.sweepNow({}), /crm_nincs_postafiok/)
+})

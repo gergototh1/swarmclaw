@@ -1,4 +1,5 @@
 import { newId } from './ids.mjs'
+import { createSweep } from './sweep.mjs'
 
 /**
  * Amit a lap hívhat, `POST /api/extensions/crm.mjs/call/<method>` alatt.
@@ -116,6 +117,11 @@ export function createRpc(state) {
       mustContact(contactId)
       if (rows[0].sender_address) r.attachEmail(contactId, rows[0].sender_address, 'learned')
       return r.resolveUnmatched(unmatchedId)
+    },
+
+    /** A söprés az operátor gombjáról. Ugyanaz a törzs, mint az eszközé. */
+    async sweepNow({ max } = {}) {
+      return createSweep(state).runSweep({ max: Number(max) || 50 })
     },
 
     async setSuggestionStatus({ suggestionId, status }) {

@@ -1,5 +1,7 @@
+import { createSweep } from './sweep.mjs'
+
 /**
- * Amit az ügynök olvashat. A CRM-1-ben csak olvasás.
+ * Amit az ügynök olvashat, és a CRM-2 óta egy dolog, amit elindíthat.
  *
  * MIÉRT VAN EGYÁLTALÁN `tools`, A GMAIL MINTÁJÁVAL SZEMBEN. A gmail
  * szándékosan nem ad eszközt: nem akarta tudni, melyik ügynök hívta. A
@@ -9,11 +11,16 @@
  * gépitől. A CRM-1 még nem ír, de az eszközök itt születnek, hogy a CRM-3 ne
  * egy második felületet nyisson melléjük.
  *
+ * A CRM-2 EGY ÍRÓ ESZKÖZT AD, DE NEM TÖRI A SZABÁLYT. A `crm_sweep` nem
+ * ítélet, hanem behúzás: idempotens, és amit nem tud biztosan besorolni, azt
+ * a besorolatlan sorba teszi, ahol az operátoré a szó. Ugyanazt a törzset
+ * hívja, mint az rpc `sweepNow`, hogy a két belépési pont soha ne térjen el.
+ *
  * AMI NINCS ITT, AZ SZÁNDÉKOSAN NINCS. Ügyfél, kapcsolat és ügy létrehozása
  * és törlése, `deal.stage` és `account.status` állítása, a besorolatlan
  * hozzárendelése, és a javaslat elfogadása mind az operátoré (spec 5.4).
  * A besorolatlan hozzárendelése a tanuló-kapu: ha az ügynök átléphetné,
- * akkor nem volna kapu.
+ * akkor nem volna kapu, és a `crm_sweep` ezt nem érinti.
  */
 export function createTools(state) {
   const repo = () => {
@@ -22,6 +29,17 @@ export function createTools(state) {
   }
 
   return [
+    {
+      name: 'crm_sweep',
+      description: 'Behúzza az új leveleket a Gmail-postafiókból az ügyfelek idővonalára. Idempotens: kétszer futtatva nem duplikál. Amit nem tud biztosan ügyfélhez kötni, azt a besorolatlan sorba teszi, ahol az operátor rendeli hozzá.',
+      parameters: {
+        type: 'object',
+        properties: { max: { type: 'number', description: 'Legfeljebb ennyi levelet néz meg egy futásban.' } },
+      },
+      async execute({ max }) {
+        return createSweep(state).runSweep({ max: Number(max) || 50 })
+      },
+    },
     {
       name: 'crm_search',
       description: 'Ügyfél, kapcsolat és ügy keresése név, email-cím vagy ügycím részlete alapján.',
