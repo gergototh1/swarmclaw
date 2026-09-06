@@ -2,6 +2,8 @@ import { useState } from 'react'
 
 import { makeRpc, type Rpc } from './api'
 import { currentExtensionId, hostOf, hostReact } from './host'
+import { MaNezet } from './ma'
+import { UgyekNezet } from './ugyek'
 import { UgyfelLap } from './ugyfel-lap'
 import { UgyfelekNezet } from './ugyfelek'
 
@@ -18,11 +20,11 @@ export function CrmPage({ rpc }: { extensionId: string; rpc: Rpc }) {
         <button onClick={() => setNezet('ugyek')} aria-pressed={nezet === 'ugyek'}>Ügyek</button>
       </nav>
       <main className="crm-fo">
-        {nezet === 'ma' && <p>Ma — a figyelem-lista a CRM-3-ban érkezik.</p>}
+        {nezet === 'ma' && <MaNezet rpc={rpc} onOpen={(id) => { setNyitottAccount(id); setNezet('ugyfelek') }} />}
         {nezet === 'ugyfelek' && (nyitottAccount
           ? <UgyfelLap rpc={rpc} accountId={nyitottAccount} onBack={() => setNyitottAccount(null)} />
           : <UgyfelekNezet rpc={rpc} onOpen={setNyitottAccount} />)}
-        {nezet === 'ugyek' && <p>Ügyek</p>}
+        {nezet === 'ugyek' && <UgyekNezet rpc={rpc} />}
       </main>
     </div>
   )

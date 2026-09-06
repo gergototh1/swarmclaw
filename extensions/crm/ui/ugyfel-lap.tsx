@@ -21,7 +21,7 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
 
   const tolt = () => {
     rpc('account', { accountId })
-      .then((x) => setLap(x as Lap))
+      .then((x) => { setLap(x as Lap); setHiba('') })
       .catch((e: Error) => setHiba(e.message))
   }
   useEffect(tolt, [accountId, rpc])
@@ -33,12 +33,17 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
       .catch((e: Error) => setHiba(e.message))
   }
 
-  if (hiba) return <p className="crm-hiba" role="alert">{hiba} <button onClick={onBack}>Vissza</button></p>
+  // Ha még semmi nincs betöltve, a hiba a teljes felület: nincs mit megmutatni
+  // mögötte. Ha viszont a lap már állt egyszer, egy későbbi hiba (pl. a
+  // jegyzetelés hálózati hibája) csak egy sávot kap felül -- az adat, ami már
+  // betöltődött, érvényes marad, és nem szabad eldobni.
+  if (hiba && !lap) return <p className="crm-hiba" role="alert">{hiba} <button onClick={onBack}>Vissza</button></p>
   if (!lap) return <p>Betöltés…</p>
 
   return (
     <section>
       <button onClick={onBack}>← Vissza</button>
+      {hiba && <p className="crm-hiba" role="alert">{hiba}</p>}
       <h2>{lap.account.name}</h2>
 
       <h3>Összefoglaló</h3>

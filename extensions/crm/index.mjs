@@ -50,6 +50,11 @@ const crm = {
         'Minden levél, leirat és feladat ügyfélhez van kötve.',
       ],
     }],
+    setupChecks: [
+      { checkKey: 'gmail_extension', displayName: 'Gmail extension telepítve',
+        description: 'Enélkül az email-behúzás áll. A CRM-1 nem használja; a CRM-2-től kell.',
+        kind: 'manual', required: false },
+    ],
   },
   ui: {
     pages: [{
@@ -63,7 +68,19 @@ const crm = {
       css: 'dist/style.css',
       position: 'end',
     }],
-    settingsFields: [],
+    settingsFields: [
+      // A három proaktív trigger küszöbe (spec 6.). A CRM-1 még nem olvassa
+      // őket -- a figyelem-motor a CRM-3-ban jön --, de itt születnek, hogy az
+      // operátor a beállítást ne egy későbbi frissítés után találja meg először.
+      { key: 'nemaNapok', label: 'Néma ügy küszöbe (nap)', type: 'number', defaultValue: 9,
+        help: 'Ennyi esemény nélküli nap után jelez egy nyitott ügyre.' },
+      { key: 'valaszNapok', label: 'Válasz nélküli levél küszöbe (nap)', type: 'number', defaultValue: 3,
+        help: 'Ennyi nap után jelez egy bejövő levélre, amire nem ment válasz.' },
+      { key: 'igeretNapok', label: 'Saját ígéret küszöbe (nap)', type: 'number', defaultValue: 2,
+        help: 'Ennyi nap után jelez egy elhangzott ígéretre, amiből nem lett feladat.' },
+      { key: 'idegenIgeretNapok', label: 'Nekem ígért dolog küszöbe (nap)', type: 'number', defaultValue: 7,
+        help: 'Lazább, mint a sajátod: egy tőled elvárt és egy neked ígért dolog nem egyforma sürgős.' },
+    ],
   },
 }
 

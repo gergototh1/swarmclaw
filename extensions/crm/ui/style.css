@@ -8,3 +8,7 @@
 .crm-halvany { opacity: .6; }
 .crm-hiba { color: #b00020; }
 .crm-elavult { font-weight: 600; }
+.crm-pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; }
+.crm-oszlop { border: 1px solid currentColor; border-radius: .25rem; padding: .5rem; opacity: .95; }
+.crm-kartya { display: flex; flex-direction: column; gap: .25rem; padding: .4rem; margin: .35rem 0;
+              border: 1px solid currentColor; border-radius: .25rem; }
