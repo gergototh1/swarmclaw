@@ -6,8 +6,8 @@ import { promisify } from 'node:util'
 import { guard, readString, refuse } from './args.mjs'
 import { resolvingExecFile, resolvingSpawn } from './binaries.mjs'
 import { uid } from './db.mjs'
-import { idovonal } from './idozites.mjs'
-import { assetUtvonal } from './kit-tabla.mjs'
+import { idovonal, lepesKocka } from './idozites.mjs'
+import { assetUtvonal, idozitettOf } from './kit-tabla.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
 import { hangEgyezik, narracioSorok, ttsHandle } from './narracio.mjs'
 import { SZABALYKESZLET, fileSha256, runQaGate } from './qa.mjs'
@@ -411,7 +411,23 @@ export function createRenderOps(state) {
     const figyelmeztetesek = katalogus.katalogusHash === terv.katalogus_hash ? [] : ['katalogus_valtozott']
     const hosszak = sorok.map((sor) => narraciok.get(sor.jelenet).hossz_ms)
     const iv = idovonal(hosszak)
-    const lista = JSON.parse(terv.jelenetek).map((j, i) => ({ ...j, hang: narraciok.get(i).fajl, lathatoHossz: iv.elemek[i].lathato }))
+    // The three props the plan may not carry and this line writes, all three
+    // from the same measurement: the narration file, the scene's visible
+    // length, and -- since the owner watched the first render and found the
+    // beats running ahead of the voice -- the beat between a scene's revealed
+    // elements. `lepes` is spread LAST for the same reason `lathatoHossz` is:
+    // the stored scene cannot overrule what the measurement says, and
+    // `validateDraft` refuses a plan that tried. A type with no beat prop, or
+    // one with fewer than two elements to reveal, gets nothing and keeps the
+    // kit's own default -- absent is no opinion, not a zero.
+    const lista = JSON.parse(terv.jelenetek).map((j, i) => {
+      const idozitett = idozitettOf(j.tipus)
+      const lepes = idozitett === null ? null : lepesKocka({
+        elemSzam: idozitett.elemSzam(j), hosszMs: narraciok.get(i).hossz_ms, elsoKocka: idozitett.elsoKocka, erkezes: idozitett.erkezes,
+      })
+      const idozites = lepes === null ? {} : { [idozitett.prop]: lepes }
+      return { ...j, hang: narraciok.get(i).fajl, lathatoHossz: iv.elemek[i].lathato, ...idozites }
+    })
     const renderId = uid()
     const dir = path.join(remotionDir, OUT_NEVTER, terv.video_id, renderId)
     const propsPath = path.join(dir, 'props.json')

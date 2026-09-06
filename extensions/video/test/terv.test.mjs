@@ -48,7 +48,7 @@ test('the extension declares the catalogue tool and the five plan tools, in that
   // Later tasks append their own tools after these; the order of these six is what this suite pins.
   assert.deepEqual(names.filter((n) => mine.includes(n)), mine)
   assert.equal(new Set(names).size, names.length)
-  assert.equal(DEFAULT_NAPI_SAPKA, 1); assert.equal(LESSONS_MAX, 12); assert.equal(LEKTOR_KODOK.length, 8)
+  assert.equal(DEFAULT_NAPI_SAPKA, 1); assert.equal(LESSONS_MAX, 12); assert.equal(LEKTOR_KODOK.length, 9)
 })
 
 test('videoOpen kezi stores the text raw, warns that it is foreign, and the daily cap refuses the third', async () => {

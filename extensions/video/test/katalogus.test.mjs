@@ -4,8 +4,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { FPS, HANG_ELORETART, OVERLAP, UTOLSO_ZARO_TARTAS, ZARO_TARTAS, fedettseg, idovonal, lathatoHossz } from '../src/idozites.mjs'
-import { ASSET_PROPOK, KIT_TABLA, KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, assetUtvonal, ellenorizProp, tablaHianyai } from '../src/kit-tabla.mjs'
+import { FPS, HANG_ELORETART, MIN_LEPES, OVERLAP, UTOLSO_ZARO_TARTAS, ZARO_TARTAS, fedettseg, idovonal, lathatoHossz, lepesKocka, lepesZsufolt } from '../src/idozites.mjs'
+import { ASSET_PROPOK, IDOZITETT_PROPOK, KIT_TABLA, KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, assetUtvonal, ellenorizProp, idozitettOf, tablaHianyai } from '../src/kit-tabla.mjs'
 import { KOCKA_MAX, createCatalogTool, readCatalog, remotionDirOf, validateDraft } from '../src/katalogus.mjs'
 import { PELDA_JELENETEK, PELDA_NARRACIO, fakeProject, freshRepo } from './helpers.mjs'
 
@@ -164,9 +164,9 @@ test('a valid plan passes with no refusal and its asset fingerprints', () => {
 test('every shape and enumeration of the sendable set accepts a value the kit accepts', () => {
   const dir = fakeProject()
   const mind = [
-    { tipus: 'cimlap', sorok: ['a', 'b'], kiemelt: 'b', hatter: 'kepek', kepek: ['usecase/kep.png'], lepes: 8, meret: 96, racs: false },
+    { tipus: 'cimlap', sorok: ['a', 'b'], kiemelt: 'b', hatter: 'kepek', kepek: ['usecase/kep.png'], meret: 96, racs: false },
     { tipus: 'atvezeto', sorszam: '01', nev: 'n', meret: 96 },
-    { tipus: 'lista', cim: 'c', felsorolas: ['x'], kep: 'usecase/kep.png', makett: 'telefon', zaroSor: 'z', lepes: 40 },
+    { tipus: 'lista', cim: 'c', felsorolas: ['x'], kep: 'usecase/kep.png', makett: 'telefon', zaroSor: 'z' },
     { tipus: 'allitas', mondat: 'm', kiemelt: ['m'], masodik: 's', meret: 80, hatterVideo: 'usecase/kep.png', hatterVideoTeljes: true, hatterPergo: ['usecase/kep.png'] },
     { tipus: 'szam', felvezeto: 'f', szam: 40, utoszo: 'u', meret: 150 },
     { tipus: 'gorbe', cim: 'c', ertekek: [1, 2, 3], zaroSzam: 3, egyseg: '%', teljes: false, tempo: 0.5 },
@@ -442,4 +442,128 @@ test('a type literally named __proto__ becomes a sample and a frame, never a pro
   assert.ok(Object.hasOwn(olvasott.mintaKockak, '__proto__'), 'and so is the frame')
   assert.equal(Object.getPrototypeOf(olvasott.mintaKockak), Object.prototype)
   assert.equal(olvasott.mintaKockak['__proto__'], 42)
+})
+
+// ---------------------------------------------------------------------------
+// The beat between a scene's revealed elements (the owner's finding, 2026-09-06)
+// ---------------------------------------------------------------------------
+
+/**
+ * The kit's own `illesztettLepes` (src/kit/motion.ts), copied here so this
+ * suite can ask what the kit would do with a value the module sends. It is a
+ * copy for the same reason KIT_TABLA is: no test reads the operator's live
+ * project. If the kit's formula moves, this copy and the module's margin are
+ * brought forward together -- and until then `katalogus_valtozott` is what
+ * warns on every plan.
+ */
+const illesztettLepes = (tokenSzam, lathato, start, fade, fixLepes) =>
+  (tokenSzam <= 1 ? fixLepes : Math.max(1, Math.min(fixLepes, Math.floor((lathato - start - fade) / (tokenSzam - 1)))))
+
+test('the beat is fitted to the measured sentence, and the worked case the owner reported', () => {
+  // A three-item `lista` whose sentence measures 2.4 s, at 30 fps. The audio
+  // starts at frame 10 and runs 72 frames, so it ends at 82; GatheringList
+  // reveals from frame 34 and takes 11 frames to arrive.
+  const lista = idozitettOf('lista')
+  assert.deepEqual({ elsoKocka: lista.elsoKocka, erkezes: lista.erkezes }, { elsoKocka: 34, erkezes: 11 })
+  const lepes = lepesKocka({ elemSzam: 3, hosszMs: 2400, elsoKocka: lista.elsoKocka, erkezes: lista.erkezes })
+  assert.equal(lepes, 18)
+  const reveals = [0, 1, 2].map((i) => lista.elsoKocka + i * lepes)
+  assert.deepEqual(reveals, [34, 52, 70])
+  const hangVeg = HANG_ELORETART + 72
+  assert.equal(hangVeg, 82)
+  // What the fix is FOR: the last element has finished arriving before the
+  // sentence ends, rather than after it.
+  assert.ok(reveals[2] + lista.erkezes <= hangVeg, 'the last element is fully on screen by the end of the sentence')
+  // ...and it is not so early that the scene stares at a finished picture.
+  assert.ok(reveals[2] + lista.erkezes > hangVeg - lista.erkezes)
+  // The same scene WITHOUT the fix: the kit's constant 40, unclamped on a
+  // closing scene, put the third element a second past the voice.
+  const utolsoJelenet = lathatoHossz(2400, true)
+  assert.equal(illesztettLepes(3, utolsoJelenet, 34, 11, 40), 40)
+  assert.equal(34 + 2 * 40, 114)
+  assert.ok(114 > hangVeg, 'the drift the owner watched: the picture says the word after the voice did')
+})
+
+test('a fitted beat always survives the kit own clamp, on both types and at every length', () => {
+  // `illesztettLepes` takes the MINIMUM of what it is sent and what fits the
+  // SCENE. The module fits to the AUDIO, which the scene outlasts by its
+  // closing hold, so the kit must take the module's number verbatim -- if it
+  // ever shrank it, the beats would drift again and nothing else would say so.
+  for (const tipus of ['cimlap', 'lista']) {
+    const sor = idozitettOf(tipus)
+    for (const hosszMs of [500, 1200, 2400, 4000, 7000, 12_000]) {
+      for (const elemSzam of [2, 3, 5, 9]) {
+        for (const utolso of [false, true]) {
+          const lepes = lepesKocka({ elemSzam, hosszMs, elsoKocka: sor.elsoKocka, erkezes: sor.erkezes })
+          const kite = illesztettLepes(elemSzam, lathatoHossz(hosszMs, utolso), sor.elsoKocka, sor.erkezes, lepes)
+          assert.equal(kite, lepes, `${tipus} ${hosszMs}ms ${elemSzam} elem: the kit shrank the module's beat`)
+          assert.ok(lepes >= MIN_LEPES && Number.isInteger(lepes))
+          // Whenever the beat was not clamped to the floor, the last element
+          // has arrived by the end of the audio -- that is the whole promise.
+          if (lepes > MIN_LEPES) {
+            assert.ok(sor.elsoKocka + (elemSzam - 1) * lepes + sor.erkezes <= HANG_ELORETART + Math.ceil((hosszMs / 1000) * FPS), `${tipus} ${hosszMs}ms ${elemSzam} elem`)
+          }
+        }
+      }
+    }
+  }
+  // Fewer than two elements is no beat at all: absent is no opinion, and the
+  // kit keeps its own default rather than being handed a zero.
+  assert.equal(lepesKocka({ elemSzam: 1, hosszMs: 4000, elsoKocka: 34, erkezes: 11 }), null)
+  assert.equal(lepesKocka({ elemSzam: 0, hosszMs: 4000, elsoKocka: 34, erkezes: 11 }), null)
+  // A sentence too short for the elements is clamped, not negative.
+  assert.equal(lepesKocka({ elemSzam: 4, hosszMs: 300, elsoKocka: 34, erkezes: 11 }), MIN_LEPES)
+  assert.equal(lepesZsufolt({ elemSzam: 4, hosszMs: 300, elsoKocka: 34, erkezes: 11 }), true)
+  assert.equal(lepesZsufolt({ elemSzam: 4, hosszMs: 6000, elsoKocka: 34, erkezes: 11 }), false)
+})
+
+test('the timing table names exactly the types the kit table gives a lepes prop, and counts elements the kit way', () => {
+  // The type list is DERIVED, not chosen: a kit table that grows a third
+  // `lepes` prop and a timing table that does not would silently leave that
+  // type on the kit's constant, which is the defect this whole change fixes.
+  const tablabol = Object.entries(KIT_TABLA).filter(([, t]) => Object.hasOwn(t.propok, 'lepes')).map(([tipus]) => tipus)
+  assert.deepEqual(tablabol.sort(), Object.keys(IDOZITETT_PROPOK).sort())
+  for (const sor of Object.values(IDOZITETT_PROPOK)) assert.equal(sor.prop, 'lepes')
+  // `tempo` is a different mechanism (a multiplier over a scene's whole
+  // internal animation) and stays the agent's to send.
+  for (const tipus of Object.keys(KIT_TABLA)) {
+    if (Object.hasOwn(KIT_TABLA[tipus].propok, 'tempo')) assert.equal(idozitettOf(tipus), null, `${tipus}: tempo is not this fix's business`)
+  }
+  // `cimlap` steps through the hook's WORDS plus the highlighted one, the way
+  // jelenetek.tsx tokenises them; `lista` steps through its bullets.
+  const cimlap = idozitettOf('cimlap')
+  assert.equal(cimlap.elemSzam({ sorok: ['Egy ketto', 'harom'] }), 3)
+  assert.equal(cimlap.elemSzam({ sorok: ['Egy ketto', 'harom'], kiemelt: 'negy' }), 4)
+  assert.equal(cimlap.elemSzam({ sorok: ['Egy'], kiemelt: '' }), 1)
+  assert.equal(idozitettOf('lista').elemSzam({ felsorolas: ['a', 'b', 'c'] }), 3)
+  assert.equal(idozitettOf('szam'), null)
+  assert.equal(idozitettOf('constructor'), null)
+})
+
+test('videoDraft refuses a plan that sends lepes, by name and per type, and L10 warns when the elements do not fit the sentence', () => {
+  const dir = fakeProject()
+  const zaro = { tipus: 'allitas', mondat: 'Z.' }
+  const refusal = (j) => draft(dir, [{ tipus: 'cimlap', sorok: ['a'] }, j, zaro]).refusal
+  const lista = refusal({ tipus: 'lista', felsorolas: ['a', 'b'], lepes: 40 })
+  assert.equal(lista.code, 'prop_ismeretlen')
+  assert.match(lista.message, /a\(z\) lepes propot a modul számolja a mért narrációból/)
+  assert.equal(draft(dir, [{ tipus: 'cimlap', sorok: ['a'], lepes: 8 }, zaro, zaro]).refusal.code, 'prop_ismeretlen')
+  // A type that has no beat prop is refused by the ordinary unknown-prop rule,
+  // not by this one: the verdict is per type, not a flat list of names.
+  assert.doesNotMatch(refusal({ tipus: 'szam', szam: 1, lepes: 8 }).message, /a modul számolja/)
+
+  // L10 is an ESTIMATE, from the same character count L7 uses: six bullets
+  // behind a five-character sentence cannot be named in it.
+  const jelenetek = [{ tipus: 'cimlap', sorok: ['a'] }, { tipus: 'lista', felsorolas: ['a', 'b', 'c', 'd', 'e', 'f'] }, zaro]
+  const szuk = draft(dir, jelenetek, [{ jelenet: 0, szoveg: 'x'.repeat(200) }, { jelenet: 1, szoveg: 'Hat.' }, { jelenet: 2, szoveg: 'x'.repeat(200) }])
+  assert.equal(szuk.refusal, null)
+  assert.ok(szuk.figyelmeztetesek.includes('L10:elem_nem_fer_a_mondatba'))
+  const tag = draft(dir, jelenetek, jelenetek.map((_, i) => ({ jelenet: i, szoveg: 'x'.repeat(200) })))
+  assert.equal(tag.figyelmeztetesek.includes('L10:elem_nem_fer_a_mondatba'), false)
+  // Once, not per scene, like every other L code.
+  const ketto = draft(dir, [...jelenetek, { tipus: 'lista', felsorolas: ['a', 'b', 'c', 'd', 'e', 'f'] }, zaro], [
+    { jelenet: 0, szoveg: 'x'.repeat(200) }, { jelenet: 1, szoveg: 'Hat.' }, { jelenet: 2, szoveg: 'x'.repeat(200) },
+    { jelenet: 3, szoveg: 'Hat.' }, { jelenet: 4, szoveg: 'x'.repeat(200) },
+  ])
+  assert.equal(ketto.figyelmeztetesek.filter((f) => f === 'L10:elem_nem_fer_a_mondatba').length, 1)
 })

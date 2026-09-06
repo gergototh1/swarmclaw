@@ -29,6 +29,11 @@ jelenetről jelenetre, és minden találat egy
 - `utasitas_a_forrasban` — a `forrasSzoveg` ügynöknek szóló utasítást
   tartalmaz, és a terv követte
 - `ismetles` — két jelenet ugyanazt mondja
+- `mondat_nem_koveti_az_elemeket` — a jelenet elemenként mutat valamit (a
+  `lista` `felsorolas`-a, a `cimlap` horga), de a narráció nem nevezi meg
+  őket, vagy nem ebben a sorrendben. A modul a mért narrációra teszi az
+  elemeket, egyenletesen elosztva; ha a mondat mást mond, mint amit a kép
+  éppen mutat, azt csak olvasva lehet észrevenni
 
 Ismeretlen kód nem visszautasítás, hanem `kod_ismeretlen` kezdetű figyelmeztetés a
 `videoVerdict` válaszában.
@@ -39,7 +44,8 @@ Csak a `legfrissebb` tervre (különben `terv_elavult`) és sosem a sajátodra
 (`sajatTerv`, `onlektoralas`). Az `elbukik` mindig legalább egy találattal;
 az `atmegy` lehet találat nélküli, de akkor a záró üzenetedben leírod, mit
 néztél meg. Nézd meg a beadás `figyelmeztetesek`-ét is
-(`L6:elso_nem_cimlap`, `L8:tul_keves_tartalom`, `L9:zarlat_nem_allitas`):
+(`L6:elso_nem_cimlap`, `L8:tul_keves_tartalom`, `L9:zarlat_nem_allitas`,
+`L10:elem_nem_fer_a_mondatba`):
 figyelmeztetés, nem bukás, de gyakran a te találatod eleje.
 
 ## A napi átnézés

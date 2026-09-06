@@ -50,7 +50,10 @@
  *      is stored -- an unknown type, an unknown prop, a prop of the wrong
  *      shape, a picture that is not a file under `public/`. The draft that
  *      "almost passed" does not exist, and neither does a silently corrected
- *      one. The same rule is why `hang` and `lathatoHossz` may never be sent.
+ *      one. The same rule is why `hang` and `lathatoHossz` may never be
+ *      sent, and why `lepes` joined them on 2026-09-06: the module computes
+ *      the beat between a scene's revealed elements from the measured
+ *      narration, so a value the producer sent would be overwritten.
  *   5. L7 IS A WARNING, NOT A REFUSAL. The spec's tool table lists
  *      `hossz_tartomanyon_kivul` among `videoDraft`'s refusals; the rule table
  *      calls L7 an estimate and `validateDraft` warns. The refusal of that
@@ -190,7 +193,8 @@ mentett kártya, amiből még nincs videó. A válasz \`videoId\`, \`cim\`,
 \`verzio\`, \`tervHash\`, \`figyelmeztetesek\` és \`becsultHosszMp\`. A
 \`figyelmeztetesek\` nem bukás, de a lektor is látja őket:
 \`L6:elso_nem_cimlap\`, \`L7:hossz_tartomanyon_kivul\` (becslés, nem mérés),
-\`L8:tul_keves_tartalom\`, \`L9:zarlat_nem_allitas\`, \`katalogus_valtozott\`.
+\`L8:tul_keves_tartalom\`, \`L9:zarlat_nem_allitas\`,
+\`L10:elem_nem_fer_a_mondatba\` (szintén becslés), \`katalogus_valtozott\`.
 Amit visszautasít, azt nem javítja: \`tipus_ismeretlen\`,
 \`tipus_nem_kuldheto\`, \`prop_ismeretlen\`, \`prop_kotelezo_hianyzik\`,
 \`prop_alak_hibas\`, \`prop_ertek_ismeretlen\`, \`asset_hianyzik\`,

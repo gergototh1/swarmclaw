@@ -474,6 +474,7 @@ const PINNED_PROSE = Object.freeze({
   'L7:hossz_tartomanyon_kivul': 'src/katalogus.mjs',
   'L8:tul_keves_tartalom': 'src/katalogus.mjs',
   'L9:zarlat_nem_allitas': 'src/katalogus.mjs',
+  'L10:elem_nem_fer_a_mondatba': 'src/katalogus.mjs',
   katalogus_valtozott: 'src/katalogus.mjs',
   kod_ismeretlen: 'src/terv.mjs',
   apply_score: 'src/terv.mjs',

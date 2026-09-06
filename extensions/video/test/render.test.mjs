@@ -4,6 +4,7 @@ import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
 import path from 'node:path'
 import { test } from 'node:test'
+import { lepesKocka } from '../src/idozites.mjs'
 import { createRenderOps, createRenderTools } from '../src/render.mjs'
 import { PELDA_JELENETEK, fakeProject, freshRepo } from './helpers.mjs'
 
@@ -142,6 +143,31 @@ test('start writes the props with hang and lathatoHossz, spawns detached with a 
   assert.ok(row.out_path.startsWith(path.join(s.dir, 'out', 'swarmclaw', s.videoId, r.renderId)))
   const again = await s.run('videoRender', { tervId: s.terv.id })
   assert.equal(again.error.code, 'render_folyamatban'); assert.equal(again.error.renderId, r.renderId)
+})
+
+test('the props carry a lepes computed from the measured narration, on the types that reveal elements and on no others', async () => {
+  /*
+   * The owner watched the first rendered video and found the on-screen beats
+   * running ahead of the voice. The scene bounds were already exact; what was
+   * missing was that nothing INSIDE a scene was tied to the narration, so the
+   * kit's own constant answered for `lepes` on every render. This is the line
+   * that writes it (src/render.mjs, where `hang` and `lathatoHossz` are
+   * written from the same measurement) -- if it goes, the beats drift back.
+   */
+  const s = setup(); s.narrate()
+  const r = await s.run('videoRender', { tervId: s.terv.id })
+  const lista = JSON.parse(fs.readFileSync(s.repo.render(r.renderId).props_path, 'utf8')).lista
+  // Scene 0 is the `cimlap` of PELDA_JELENETEK: two lines of one word each
+  // plus `kiemelt`, three tokens, on a narration measured at 4000 ms.
+  assert.equal(lista[0].tipus, 'cimlap')
+  assert.equal(lista[0].lepes, lepesKocka({ elemSzam: 3, hosszMs: 4000, elsoKocka: 4, erkezes: 9 }))
+  assert.equal(lista[0].lepes, 58)
+  // Scene 1 is a one-item `lista`: one element is no beat, so nothing is
+  // written and the kit keeps its own default -- absent is no opinion.
+  assert.equal(lista[1].tipus, 'lista')
+  assert.equal(Object.hasOwn(lista[1], 'lepes'), false)
+  // Every other type has no beat prop at all.
+  for (const j of lista.slice(2)) assert.equal(Object.hasOwn(j, 'lepes'), false)
 })
 
 test('exit 0 with a file closes as kesz, runs the QA, binds the pass to the sha, and a second exit changes nothing', async () => {

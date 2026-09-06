@@ -115,6 +115,79 @@ export const KULDHETO_TIPUSOK = Object.freeze(Object.keys(KIT_TABLA).filter((t) 
 export const NEM_KULDHETO_TIPUSOK = Object.freeze(Object.keys(KIT_TABLA).filter((t) => !KIT_TABLA[t].kuldheto))
 /** The common props the caller may not send: the module writes both from the narration measurement at render time (spec 4.2). */
 export const KOZOS_TILTOTT = Object.freeze(['hang', 'lathatoHossz'])
+
+/** Words the kit would split out of a `cimlap`'s lines: `sor.split(' ')`, exactly as jelenetek.tsx tokenises them. */
+const szavakSzama = (sorok) => (Array.isArray(sorok) ? sorok.reduce((n, sor) => n + (typeof sor === 'string' ? sor.split(' ').length : 0), 0) : 0)
+
+/**
+ * THE PROPS THE MODULE COMPUTES FROM THE MEASURED NARRATION, PER TYPE, AND
+ * THE KIT NUMBERS THAT ARITHMETIC NEEDS (the owner's beat-sync finding,
+ * 2026-09-06 -- src/idozites.mjs `lepesKocka` states the whole reasoning).
+ *
+ * WHY THIS IS NOT IN `KOZOS_TILTOTT`. That list is the COMMON props: `hang`
+ * and `lathatoHossz` are in the catalogue's `kozosPropok`, every type has
+ * them, and a name is enough to refuse them. `lepes` is neither common nor
+ * uniform: only `cimlap` and `lista` have it, and it counts a different
+ * thing on each (`cimlap` steps through the hook's WORDS, `lista` through
+ * the felsorolas ITEMS -- the catalogue's own two sentences say so). Pushing
+ * it into a flat list of names would refuse `lepes` on a type that does not
+ * have it and would still leave the counting rule somewhere else. So it is a
+ * table keyed by type, and the same table is both the refusal's source at
+ * `videoDraft` and the render's source when it writes the value: one place,
+ * so the two cannot drift into refusing a prop nobody writes.
+ *
+ * HOW THE TYPE LIST WAS DERIVED, AND WHY IT IS NOT LONGER. Two `lepes`
+ * entries exist in KIT_TABLA above (`cimlap`, `lista`) and the catalogue
+ * lists the same two, so the list is the whole of it -- not a judgement
+ * about which types "feel" like they reveal things. `lepessor.lepesek` is a
+ * value, not a step, and that type has no beat prop at all. And `tempo` is
+ * deliberately NOT here: it is a MULTIPLIER over a scene's whole internal
+ * animation (`jelenetek2.tsx`: `T(ertek, tempo, min)`), not a frame count
+ * between reveals, so fitting it to a sentence is a different question with
+ * a different answer, and it stays the agent's to send.
+ *
+ * `elsoKocka` and `erkezes` are read off the kit's call sites, like
+ * everything else in this file: `Lista` passes `firstAt={34}` and
+ * `illesztettLepes(..., 34, 11, lepes)`, `Cimlap` passes `start={4}` and
+ * `illesztettLepes(..., 4, 9, lepes)`. The 11 and the 9 are the kit's two
+ * MEASURED arrival lengths (GatheringList settles over 11 frames, WordFlow
+ * over 9); motion.ts refuses to default either, and neither does this table.
+ * They go stale the same way the shapes above do, and the same way: a person
+ * reads the kit and writes them here.
+ */
+export const IDOZITETT_PROPOK = Object.freeze({
+  cimlap: Object.freeze({
+    prop: 'lepes',
+    elsoKocka: 4,
+    erkezes: 9,
+    // The kit builds one token per word of every `sorok` line plus one for
+    // `kiemelt`, drops the line breaks, and steps through what is left:
+    // `tokens.filter((tk) => !tk.br).length`. `kiemelt` is counted on the
+    // kit's own truthiness (`if (kiemelt)`), so a blank one adds nothing.
+    elemSzam: (j) => szavakSzama(j.sorok) + (typeof j.kiemelt === 'string' && j.kiemelt !== '' ? 1 : 0),
+  }),
+  lista: Object.freeze({
+    prop: 'lepes',
+    elsoKocka: 34,
+    erkezes: 11,
+    // One beat per bullet. `zaroSor` also arrives on a step, but on the
+    // kit's own hard-coded 6 rather than on `lepes`, so it is not this
+    // prop's to place -- see the report's note on `zaroAt`.
+    elemSzam: (j) => (Array.isArray(j.felsorolas) ? j.felsorolas.length : 0),
+  }),
+})
+
+/**
+ * The timing row for a type, or null. `Object.hasOwn` for the same reason
+ * `tablaOf` uses it: the name comes from a scene an agent wrote.
+ */
+export const idozitettOf = (tipus) => (typeof tipus === 'string' && Object.hasOwn(IDOZITETT_PROPOK, tipus) ? IDOZITETT_PROPOK[tipus] : null)
+
+/** True when this type's prop of that name is one the module computes, so the plan may not carry it. */
+export function idozitettTiltott(tipus, nev) {
+  const sor = idozitettOf(tipus)
+  return sor !== null && sor.prop === nev
+}
 /** The common props the catalogue lists; `racs` is the caller's, the other two are the module's. */
 const KOZOS_ISMERT = Object.freeze(['hang', 'lathatoHossz', 'racs'])
 
