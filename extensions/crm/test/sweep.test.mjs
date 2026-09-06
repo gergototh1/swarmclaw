@@ -13,12 +13,15 @@ function fakeMailbox(uzenetek) {
   }
 }
 
-function sweepOf(uzenetek, { mailbox } = {}) {
+function sweepOf(uzenetek, { settings = () => ({}), mailbox } = {}) {
   const S = memStorage()
   for (const m of MIGRATIONS) S.raw.exec(m.sql)
   const repo = createRepo(S)
-  const state = { repo, log: console, contracts: { get: () => mailbox || fakeMailbox(uzenetek) } }
-  return { sweep: createSweep(state), repo }
+  const state = {
+    repo, log: console, settings,
+    contracts: { get: () => mailbox || fakeMailbox(uzenetek) },
+  }
+  return { sweep: createSweep(state), repo, state }
 }
 
 const LEVEL = (over) => ({
@@ -132,4 +135,54 @@ test('egy hibazo uzenet nem allitja meg a lap tobbi levelenek behuzasat, es a ku
     ['ok1', 'ok2'],
   )
   assert.equal(repo.getSweepState('gmail').cursor, '', 'a kurzor akkor is frissult, ha volt hiba')
+})
+
+// ---- C2: a listazas hatarolt, es a sajat kimeno level nem kerul be email_in-kent ----
+
+test('a SENT cimkeju level nem kerul be email_in-kent, es a besorolatlanba sem', async () => {
+  const { sweep, repo } = sweepOf([LEVEL({ id: 'msg_sent', labelIds: ['SENT'] })])
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const con = repo.createContact({ accountId: acc.id, name: 'Dorina' })
+  repo.attachEmail(con.id, 'dorina@morvai.hu')
+
+  const r = await sweep.runSweep({})
+  assert.equal(r.recorded, 0, 'a sajat kimeno level nem kerul az idovonalra')
+  assert.equal(r.unmatched, 0, 'a sajat kimeno level a besorolatlanba sem kerul')
+  assert.equal(repo.listEvents({ accountId: acc.id }).length, 0)
+  assert.equal(repo.listUnmatched().length, 0)
+})
+
+test('a listazas alapbol az INBOX cimkere es 90 napra hatarolt', async () => {
+  const kapott = []
+  const uzenetek = [LEVEL()]
+  const mailbox = {
+    list: async (args) => {
+      kapott.push(args)
+      return { ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }
+    },
+    get: async ({ id }) => uzenetek.find((u) => u.id === id),
+  }
+  const { sweep } = sweepOf(uzenetek, { mailbox })
+  await sweep.runSweep({})
+  assert.deepEqual(kapott[0].labelIds, ['INBOX'])
+  assert.equal(kapott[0].q, 'newer_than:90d')
+})
+
+test('a beallitott cimke es lekerdezes felulirja az alapertelmezettet', async () => {
+  const kapott = []
+  const uzenetek = [LEVEL()]
+  const mailbox = {
+    list: async (args) => {
+      kapott.push(args)
+      return { ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }
+    },
+    get: async ({ id }) => uzenetek.find((u) => u.id === id),
+  }
+  const { sweep } = sweepOf(uzenetek, {
+    mailbox,
+    settings: () => ({ sopresCimke: 'Ugyfelek', sopresLekerdezes: 'newer_than:30d' }),
+  })
+  await sweep.runSweep({})
+  assert.deepEqual(kapott[0].labelIds, ['Ugyfelek'])
+  assert.equal(kapott[0].q, 'newer_than:30d')
 })

@@ -21,6 +21,24 @@ import { matchMessage } from './matching.mjs'
  * feldolgozódik, és a kurzor a lap végén akkor is előrébb áll, ha közben volt
  * hiba. Egy üzenet önmagában soha nem teheti behúzhatatlanná az összeset.
  */
+
+/** A söprés alapértelmezett Gmail-címkéje és keresési szűrője, ha az operátor nem állított be sajátot. */
+const DEFAULT_LABEL = 'INBOX'
+const DEFAULT_QUERY = 'newer_than:90d'
+
+/**
+ * Ezekkel a címkékkel jelölt levél a saját kimenő postánk, nem bejövő -- a
+ * söprés soha nem sorolja be `email_in`-ként, és a besorolatlanba sem teszi.
+ *
+ * A CRM ma nem támogat `email_out` eseményt (ez a 3. fázis kizárási listáján
+ * van), tehát a kimenő levél helye SEHOL nincs -- ez szándékos, nem hiányzó
+ * ág. Az alapértelmezett `labelIds` (INBOX) már önmagában kizárja a SENT és a
+ * DRAFT mappát, de ez a szűrő azt a helyzetet is fedezi, amikor az operátor a
+ * beállított címkét tágítja, vagy egy szál mindkét irányú levelet hoz vissza
+ * ugyanazon a listázáson.
+ */
+const EXCLUDED_LABELS = new Set(['SENT', 'DRAFT'])
+
 export function createSweep(state) {
   const repo = () => {
     if (!state.repo) throw new Error('crm_nincs_tar')
@@ -45,16 +63,40 @@ export function createSweep(state) {
     /** Teszt-varrat: a szerződés-forrás cserélhető. Éles kódból ne olvasd. */
     __state: state,
 
-    async runSweep({ labelIds, max = 50 } = {}) {
+    /**
+     * Egy lap behúzása. `labelIds` és `q` a hívóé, de a gyakorlatban egyik
+     * belépési pont (rpc `sweepNow`, ügynök `crm_sweep`) sem ad meg egyiket
+     * sem -- ilyenkor a beállított (`sopresCimke`, `sopresLekerdezes`) vagy
+     * ennek híján az alapértelmezett érték határolja a listázást, hogy a
+     * gomb és az eszköz pontosan ugyanazt csinálja.
+     *
+     * Egy üresre állított beállítás (`''`) is az alapértelmezettre esik
+     * vissza -- a `state.settings()` egy törölt mezőre üres stringet ad,
+     * sosem `undefined`-et, tehát az `||` mindkét esetben a helyes ágra visz.
+     */
+    async runSweep({ labelIds, q, max = 50 } = {}) {
       const r = repo()
       const box = mailbox()
+      const settings = (state.settings ? state.settings() : {}) || {}
       const lookups = {
         contactByEmail: (a) => r.contactByEmail(a),
         accountIdByThread: (t) => r.accountIdByThread(t),
         accountsByDomain: (d) => r.accountsByDomain(d),
       }
 
-      const lap = await box.list({ labelIds, max, cursor: r.getSweepState('gmail')?.cursor || undefined })
+      const effectiveLabelIds = Array.isArray(labelIds) && labelIds.length
+        ? labelIds
+        : [String(settings.sopresCimke || DEFAULT_LABEL)]
+      const effectiveQ = typeof q === 'string' && q
+        ? q
+        : String(settings.sopresLekerdezes || DEFAULT_QUERY)
+
+      const lap = await box.list({
+        labelIds: effectiveLabelIds,
+        q: effectiveQ,
+        max,
+        cursor: r.getSweepState('gmail')?.cursor || undefined,
+      })
       let recorded = 0
       let unmatched = 0
       let failed = 0
@@ -62,6 +104,10 @@ export function createSweep(state) {
       for (const id of lap.ids) {
         try {
           const msg = await box.get({ id })
+
+          // A saját kimenő levelünk soha nem bejövő esemény -- se az
+          // idővonalra, se a besorolatlanba.
+          if ((msg.labelIds || []).some((l) => EXCLUDED_LABELS.has(l))) continue
 
           // A szolgáltató a `sentAt`-ot deliberáltan `null`-ra hagyja, ha a
           // Gmail `internalDate`-je nem használható -- nem tippel dátumot.
@@ -102,6 +148,7 @@ export function createSweep(state) {
             excerpt: String(msg.text || '').slice(0, 200),
             receivedAt: msg.sentAt,
             guessAccountId: talalat.kind === 'guess' ? talalat.guessAccountId : null,
+            threadId: msg.threadId || '',
           })
           if (created) unmatched += 1
         } catch (err) {
