@@ -577,3 +577,34 @@ a halasztás indoka. Azóta a minta három extensionben (`aisignal`, `docs`,
 szét. A munka két fájl másolása két konstans cseréjével.
 
 Vagyis a halasztás indoka megszűnt, a halasztás ára viszont megmaradt volna.
+
+
+---
+
+## 15. Kiegészítés: két korrekció az ügynök-deklarációhoz
+
+A CRM-3 tervezésekor a kód két állítást megcáfolt a 2. és az 5. fejezetből.
+Mindkettő olyan, ami implementálva csendben nem működött volna.
+
+**Az „Ügyfélkezelő" nem kaphat heartbeat-et.** A 2. fejezet
+`heartbeatEnabled`-del hirdette az ügynök-deklarációt, mintha az autonóm
+ébredés ott bekapcsolható lenne. Nem az:
+`src/lib/server/storage-normalization.ts` **minden betöltéskor** `false`-ra
+állítja CLI-provideres ügynöknél, és a `CLAUDE.md` meg is indokolja — egy
+CLI-provider előfizetést éget, nem API-kulcsot, és egy flottányi autonóm
+ébredés nem kapcsolódhat be mellékhatásként. Ebben a telepítésben minden
+ügynök `claude-cli`-n fut, tehát a `true` deklaráció némán felülíródna.
+
+A működő mechanizmus a **deklarált cron-ütemezés**, ami feladatot ad az
+ügynöknek. Az `aisignal` mindkét ügynöke így áll, és a CRM is így fog.
+
+**Az MCP-hozzárendelést a manifest nem tudja elvégezni.** Az
+`ExtensionManagedAgentDeclaration` ismer `mcpServerIds` mezőt, de a szerver
+azonosítója telepítéskor generálódik, tehát egy repóban álló deklaráció nem
+tudja megnevezni. Az `aisignal` sem próbálja: az operátor rendeli hozzá a
+Settings → MCP Servers alatt, és a telepítő kiírja a bemásolandó blokkot.
+
+Ez nem kényelmi kérdés: a 14. fejezet szerint egy CLI-provider csak az
+MCP-réteget kapja meg, tehát **az ügynök az MCP-hozzárendelésig némán semmit
+nem tud csinálni** a CRM-mel. A telepítőnek ezt ki kell mondania, nem
+opcionális lépésként.
