@@ -492,3 +492,134 @@ test('videoFixes renderId is the newest finished render on the video, not the fi
   const r = await run('videoFixes', { videoId })
   assert.equal(r.renderId, 'r2')
 })
+
+/**
+ * A `videoRevise` gate, from both sides.
+ *
+ * The scene half and the narration half are guarded by two DIFFERENT
+ * mechanisms, so they need two tests. The scene list is COPIED from the parent
+ * and only the named indices are overwritten, so an unnamed scene cannot
+ * change -- the test asserts byte-equality on the two it did not name. The
+ * narration is a list the caller sends, and there it could write any index, so
+ * the tool refuses `erintetlen_jelenet_valtozott` by name.
+ */
+test('videoRevise csak a megnevezett jeleneteket írja át, a többit bájtra átveszi', async () => {
+  const { repo, run } = setup()
+  const { videoId, tervId } = keszTerv(repo)
+  const kert = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'más szám kell', forras: 'operator' })
+  const eredeti = JSON.parse(repo.terv(tervId).jelenetek)
+
+  const r = await run('videoRevise', {
+    videoId,
+    jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam: 99, felvezeto: 'Ennyi.' } }],
+    javitasIdk: [kert.id],
+  })
+  assert.equal(r.error, undefined)
+  assert.deepEqual(r.valtozottJelenetek, [1])
+  assert.deepEqual(r.bedolgozott, [kert.id])
+  assert.equal(r.szuloTervId, tervId)
+
+  const uj = JSON.parse(repo.terv(r.tervId).jelenetek)
+  assert.equal(uj[1].szam, 99)
+  assert.deepEqual(uj[0], eredeti[0], 'a 0. jelenet bájtra ugyanaz')
+  assert.deepEqual(uj[2], eredeti[2], 'a 2. jelenet bájtra ugyanaz')
+  assert.equal(repo.terv(r.tervId).szarmazas, 'operator_javitas')
+})
+
+test('videoRevise a narrációt is csak a megnevezett jeleneten engedi', async () => {
+  const { repo, run } = setup()
+  const { videoId, tervId } = keszTerv(repo)
+  const kert = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'más mondat', forras: 'operator' })
+  const r = await run('videoRevise', {
+    videoId,
+    jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam: 40, felvezeto: 'Ennyi.' } }],
+    narracio: [{ jelenet: 1, szoveg: 'Új mondat.' }],
+    javitasIdk: [kert.id],
+  })
+  const n = JSON.parse(repo.terv(r.tervId).narracio)
+  assert.equal(n.find((x) => x.jelenet === 1).szoveg, 'Új mondat.')
+  const eredetiN = JSON.parse(repo.terv(tervId).narracio)
+  assert.equal(n.find((x) => x.jelenet === 0).szoveg, eredetiN.find((x) => x.jelenet === 0).szoveg)
+})
+
+test('videoRevise elutasítja a nem megnevezett jelenet narrációjának átírását', async () => {
+  const { repo, run } = setup()
+  const { videoId } = keszTerv(repo)
+  const kert = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'x', forras: 'operator' })
+  const r = await run('videoRevise', {
+    videoId,
+    jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam: 40, felvezeto: 'Ennyi.' } }],
+    narracio: [{ jelenet: 2, szoveg: 'ehhez nem nyúlhatsz' }],
+    javitasIdk: [kert.id],
+  })
+  assert.equal(r.error.code, 'erintetlen_jelenet_valtozott')
+  assert.equal(r.error.jelenet, 2)
+})
+
+test('videoRevise megnevezetlen kérésre nem indul', async () => {
+  const { repo, run } = setup()
+  const { videoId } = keszTerv(repo)
+  const r = await run('videoRevise', { videoId, jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam: 1, felvezeto: 'a' } }], javitasIdk: [] })
+  assert.equal(r.error.code, 'javitas_hianyzik')
+})
+
+test('videoRevise idegen vagy már lezárt kérésre megnevezett hibát ad', async () => {
+  const { repo, run } = setup()
+  const { videoId } = keszTerv(repo)
+  const r = await run('videoRevise', { videoId, jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam: 1, felvezeto: 'a' } }], javitasIdk: ['nincs-ilyen'] })
+  assert.equal(r.error.code, 'javitas_ismeretlen')
+  assert.equal(r.error.message.includes('nincs-ilyen'), false)
+})
+
+test('videoRevise terv nélküli videóra megnevezett hibát ad, nem üres tervet ír', async () => {
+  const { repo, run } = setup()
+  const { id: videoId } = repo.openVideo({ cim: 'c', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: 'f', nyitottaAgentId: '' })
+  const kert = repo.insertFeedback({ videoId, szoveg: 'x', forras: 'operator' })
+  const r = await run('videoRevise', { videoId, jelenetek: [{ index: 0, jelenet: { tipus: 'szam', szam: 1, felvezeto: 'a' } }], javitasIdk: [kert.id] })
+  assert.equal(r.error.code, 'terv_hianyzik')
+})
+
+test('videoRevise a katalógus-ellenőrzésen ugyanúgy átmegy, mint a videoDraft', async () => {
+  const { repo, run } = setup()
+  const { videoId } = keszTerv(repo)
+  const kert = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'x', forras: 'operator' })
+  const r = await run('videoRevise', {
+    videoId,
+    jelenetek: [{ index: 1, jelenet: { tipus: 'nincs-ilyen-tipus', valami: 1 } }],
+    javitasIdk: [kert.id],
+  })
+  assert.equal(r.error.code, 'tipus_ismeretlen')
+})
+
+/**
+ * A hiányzó index és a hiányzó jelenetszám külön néven bukik.
+ *
+ * `readWholeNumber` a hiányzó értékre a `fallback`-et adja vissza, ami itt
+ * nincs megadva, tehát `undefined` -- és egy `undefined` index a
+ * `jelenetek[undefined] = ...`-en keresztül olyan tulajdonságot írna az
+ * (amúgy tömb) jelenetlistára, amit a `JSON.stringify` eldob: a modul azt
+ * jelentené, hogy javított, közben a terv bájtra a szülő maradna, és a
+ * következő render lezárná az operátor kéréseit egy javítás nélkül. Ez az a
+ * hamis jelentés, amit ez a modul nem tesz meg. A narrációs sornál pedig a
+ * hiányzó `jelenet` az `erintetlen_jelenet_valtozott` nevén bukna, ami mást
+ * mond, mint ami történt.
+ */
+test('videoRevise megnevezi, ha egy átírás nem mondja meg, melyik jelenetről szól', async () => {
+  const { repo, run } = setup()
+  const { videoId } = keszTerv(repo)
+  const kert = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'x', forras: 'operator' })
+  const jelenet = { tipus: 'szam', szam: 40, felvezeto: 'Ennyi.' }
+  const indexNelkul = await run('videoRevise', { videoId, jelenetek: [{ jelenet }], javitasIdk: [kert.id] })
+  assert.equal(indexNelkul.error.code, 'argumentum_hibas')
+  assert.equal(repo.tervekForVideo(videoId).length, 1, 'nem íródott új verzió')
+  const nullElem = await run('videoRevise', { videoId, jelenetek: [null], javitasIdk: [kert.id] })
+  assert.equal(nullElem.error.code, 'argumentum_hibas')
+  const mondatIndexNelkul = await run('videoRevise', {
+    videoId,
+    jelenetek: [{ index: 1, jelenet }],
+    narracio: [{ szoveg: 'Melyik jelenethez?' }],
+    javitasIdk: [kert.id],
+  })
+  assert.equal(mondatIndexNelkul.error.code, 'argumentum_hibas')
+  assert.equal(repo.tervekForVideo(videoId).length, 1, 'nem íródott új verzió')
+})

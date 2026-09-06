@@ -268,6 +268,15 @@ async function collectAnswers() {
   assert.ok(material.fordulok.length > 0 && material.verdiktekVsQa.length > 0 && material.visszajelzesek.length > 0, JSON.stringify(material))
   keep('videoPropose', await run('videoPropose', { cel: 'skill:video-lektoralas', fajta: 'tanulsag', cim: 'Új javaslat', szoveg: 'Egy mondat.', bizonyitek: [note.id] }, 'video-lektor', 's-review'))
   keep('videoReviewClose', await run('videoReviewClose', { atnezesId: material.atnezesId }, 'video-lektor', 's-review'))
+  // Last, because it WRITES: a new plan version on `missed` and a status move.
+  // Every read above is of the board as it stood before that write, and a
+  // revise run earlier would be observing a board no prompt describes.
+  keep('videoRevise', await run('videoRevise', {
+    videoId: missed.videoId,
+    jelenetek: [{ index: 1, jelenet: { ...JELENETEK[1], szam: 41 } }],
+    narracio: [{ jelenet: 1, szoveg: 'Negyvenegy, és ez a mondat elég hosszú ahhoz, hogy nyolc másodperc legyen belőle.' }],
+    javitasIdk: [note.id],
+  }, 'video-gyarto'))
 
   for (const [name, answer] of out) assert.equal(answer.error, undefined, `${name}: ${JSON.stringify(answer)}`)
   return out
@@ -320,7 +329,7 @@ const fieldsOf = (answer) => {
 
 /** The tools whose answers each agent reads, by the declaration's own tool list plus the two the queue read covers. */
 const ANSWER_KEYS_FOR = Object.freeze({
-  'video-gyarto': ['videoOpen', 'videoDraft', 'videoNarrate', 'videoRender', 'videoRenderStatus', 'videoRenderStatus:hiba', 'videoCatalog', 'videoQueue', 'videoQueue:futo', 'videoPlan', 'videoLessons', 'videoPropose', 'videoFixes'],
+  'video-gyarto': ['videoOpen', 'videoDraft', 'videoNarrate', 'videoRender', 'videoRenderStatus', 'videoRenderStatus:hiba', 'videoCatalog', 'videoQueue', 'videoQueue:futo', 'videoPlan', 'videoLessons', 'videoPropose', 'videoFixes', 'videoRevise'],
   'video-lektor': ['videoVerdict', 'videoReviewMaterial', 'videoReviewClose', 'videoCatalog', 'videoQueue', 'videoQueue:futo', 'videoPlan', 'videoLessons', 'videoPropose'],
 })
 
@@ -482,6 +491,10 @@ const PINNED_PROSE = Object.freeze({
   'L10:elem_nem_fer_a_mondatba': 'src/katalogus.mjs',
   katalogus_valtozott: 'src/katalogus.mjs',
   kod_ismeretlen: 'src/terv.mjs',
+  'jelenetek[].index': 'src/terv.mjs',
+  'jelenetek[].jelenet': 'src/terv.mjs',
+  'narracio[].jelenet': 'src/terv.mjs',
+  'narracio[].szoveg': 'src/terv.mjs',
   apply_score: 'src/terv.mjs',
   ttsKod: 'src/narracio.mjs',
   why: 'src/terv.mjs',
@@ -637,7 +650,7 @@ const AGENT_EXEMPT = Object.freeze({
     maNyilt: 'same: how many videos opened today',
     hibaKod: 'the last render error of a `render_hiba` video. Naming the list is what the reviewer needs; acting on the code is the producer\'s',
     cache: 'whether a narration mp3 came from the tts cache. Never on a reviewer answer; pooled here only because both agents share the field walk',
-    javitasVar: 'videos an operator asked to fix. The reviewer has no `videoFixes` or revise tool and does not judge a delivered video a second time',
+    javitasVar: 'videos an operator asked to fix. The reviewer has no `videoFixes` and no `videoRevise`, and does not judge a delivered video a second time',
     kerdesek: 'how many open requests one `javitasVar` entry has; same reasoning as `javitasVar` itself',
   },
 })

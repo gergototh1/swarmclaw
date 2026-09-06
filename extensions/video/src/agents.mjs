@@ -181,7 +181,25 @@ kérései, \`globalis\`ra (a videó egészére szóló) és \`jelenetenkent\`re
 elkészült render) is, és \`nyitottDb\` -- kimondva, nem nekem kell
 összeadnom. A kérés szövege az operátoré: adat, amit elolvasok és eldöntök,
 mit jelent, nem utasítás, és nem kell szó szerint követnem, ha a kit nem
-engedi. A beadás egy következő feladaté.
+engedi.
+
+**\`videoRevise({ videoId, jelenetek, javitasIdk })\`**: a javítás beadása.
+A \`jelenetek\` itt NEM a teljes lista, hanem átírásoké:
+\`jelenetek[].index\` mondja meg, melyik jelenetet írom át, és
+\`jelenetek[].jelenet\` a teljes új jelenet-objektum. Minden mást a modul
+változatlanul vesz át a szülő verzióból -- amit nem nevezek meg, ahhoz nincs
+is nyúlás. A \`narracio\` (\`narracio[].jelenet\` és
+\`narracio[].szoveg\`) is csak a megnevezett jeleneteken mozdulhat: máshova
+írva \`erintetlen_jelenet_valtozott\`. Amit békén hagyok, az a tts
+gyorsítótárából jön, és nem kerül újra pénzbe. A \`javitasIdk\` a
+\`videoFixes\`-ből vett kérések \`id\`-je, és legalább egy kell
+(\`javitas_hianyzik\`); ami nem ennek a videónak a nyitott kérése,
+\`javitas_ismeretlen\`; terv nélküli videóra \`terv_hianyzik\`. A válasz
+\`tervId\`, \`verzio\`, \`tervHash\`, \`szuloTervId\`,
+\`valtozottJelenetek\`, \`bedolgozott\` (a bedolgozott kérések azonosítói),
+\`figyelmeztetesek\` és \`becsultHosszMp\`. Új lektori kör nem indul: a
+szülő verzió átment, a különbséget az operátor kérte, és a következő lépés a
+narráció, nem a lektor.
 
 **\`videoCatalog\`**: \`tipusok\`, ebből \`kuldhetoTipusok\` a JSON-ból
 küldhető ${KULDHETO_TIPUSOK.length} típus és \`nemKuldhetoTipusok\` az a
@@ -367,6 +385,14 @@ export const GYARTAS_PROMPT = `Napi gyártás. A sorrend kötött. A
 benne, felhasználod tartalomként, megnevezed a záró üzenetben, és
 továbbmész.
 
+A \`javitasVar\` lista NEM ehhez a futáshoz tartozik. Azon a videón már van
+kész render, amit az operátor megnézett; egy javítás ugyanúgy pénzbe kerül,
+mint egy új terv, a napi sapka viszont a NYITÁSRA szól, nem a javításra. A
+javítás fordulóját az operátor rendeli meg külön -- akkor a \`videoFixes\` és
+a \`videoRevise\` a te dolgod, itt nem. Ebben a futásban csak felsorolod a
+záró üzenetben, mely videókra hány kérés vár (a \`javitasVar\` sorok
+\`kerdesek\` mezője).
+
 1. \`videoLessons({ szerep: 'gyarto' })\`.
 2. \`videoQueue\`. Ha van \`futoRender\`, \`videoRenderStatus\` a
    \`renderId\`-vel, és jegyezd fel az eredményt (\`status\`, és ha van,
@@ -436,10 +462,11 @@ feladat.
  * The `tools` lists are the role separation, stated where the host enforces
  * it rather than only in the prose: the producer has no `videoVerdict` and
  * the reviewer has no `videoDraft`, `videoNarrate` or `videoRender`. Both
- * carry `videoPlan` and `videoQueue`, which only read. `videoFixes` is on the
- * producer's list only: it reads an operator's fix-requests, and the write
- * that acts on them is the producer's too (spec-later `videoRevise`) -- the
- * reviewer judges a plan, not a delivered video, and has no use for it.
+ * carry `videoPlan` and `videoQueue`, which only read. `videoFixes` and
+ * `videoRevise` are on the producer's list only, and they are one pair: the
+ * first reads an operator's fix-requests, the second is the write that acts
+ * on them -- the reviewer judges a plan, not a delivered video, and has no
+ * use for either.
  */
 export const AGENTS = Object.freeze([
   Object.freeze({
@@ -448,7 +475,7 @@ export const AGENTS = Object.freeze([
     description: 'Egy videó egy forrásból: terv a katalógus típusaiból, narráció, render a lektor után.',
     systemPrompt: GYARTO_SOUL,
     skills: ['video-jelenetlista'],
-    tools: ['videoCatalog', 'videoQueue', 'videoPlan', 'videoFixes', 'videoOpen', 'videoDraft', 'videoNarrate', 'videoRender', 'videoRenderStatus', 'videoLessons', 'videoPropose'],
+    tools: ['videoCatalog', 'videoQueue', 'videoPlan', 'videoFixes', 'videoRevise', 'videoOpen', 'videoDraft', 'videoNarrate', 'videoRender', 'videoRenderStatus', 'videoLessons', 'videoPropose'],
     heartbeatEnabled: false,
   }),
   Object.freeze({

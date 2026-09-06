@@ -1,18 +1,19 @@
-import { agentIdOf, guard, readArray, readEnum, readString, refuse, sessionIdOf } from './args.mjs'
+import { agentIdOf, guard, readArray, readEnum, readString, readWholeNumber, refuse, sessionIdOf } from './args.mjs'
 import { head } from './db.mjs'
 import { readCatalog, remotionDirOf, validateDraft } from './katalogus.mjs'
 import { karakterPerMp } from './sablon.mjs'
 
 /**
- * A video's life before narration (spec 2.3, 4, 4.3, 6.2), as seven tools:
+ * A video's life before narration (spec 2.3, 4, 4.3, 6.2), as eight tools:
  * `videoOpen` gets the module its raw material, `videoDraft` and
  * `videoVerdict` are the two arrows between `nyitott` and `lektoralt`,
  * `videoLessons` is the prompt material a role reads first, `videoQueue`
  * is the read that tells each agent what is waiting for it, `videoPlan`
  * is the read that shows one plan's contents to the agent that has to judge
- * or correct it, and `videoFixes` is the read that shows one video's open
- * operator fix-requests to the agent that has to act on them (the write
- * that closes those requests, `videoRevise`, is a later task's).
+ * or correct it, `videoFixes` is the read that shows one video's open
+ * operator fix-requests to the agent that has to act on them, and
+ * `videoRevise` is the write that acts on them -- the only write that fills
+ * `javitas_idk`, and so the only one whose render closes those requests.
  *
  * Two facts every tool here is written around.
  *
@@ -608,6 +609,148 @@ export function createTervTools(state) {
             // mond ki, más tény, mint két üres lista, amit a hívó értelmez.
             nyitottDb: sorok.length,
             globalis, jelenetenkent,
+          }
+        })
+      },
+    },
+    /**
+     * A célzott javítás beadása: a `videoFixes` olvasó felének a párja, és az
+     * egyetlen írás, ami az operátor kéréseit le tudja zárni.
+     *
+     * A PANASZ, AMIÉRT EZ A TOOL VAN. Az első éles futás után a tulajdonos
+     * pontosan fogalmazott: egy javításnál "ne legyen új terv verzió meg
+     * minden, ne kezdődjön előről, csak a kért dolgok legyenek javítva". Verzió
+     * sor azért íródik -- ez az, amiből egy render reprodukálható és
+     * auditálható --, de a munkafolyamatból semmi nem kezdődik előről: a
+     * jelenetlista a szülő verzióból másolódik, a videó nem megy vissza
+     * lektorálásra, és minden mondat, amihez nem nyúlt senki, a tts
+     * gyorsítótárából jön.
+     *
+     * A KAPU KÉT FELE, KÉT KÜLÖNBÖZŐ MECHANIZMUSSAL. A jelenetlistánál a
+     * megnevezetlen jelenet nem azért marad változatlan, mert a modul
+     * összehasonlítja a régit az újjal, hanem mert a hívó nem is küld
+     * jelenetlistát: indexenként küld átírást egy listára, amit a modul a
+     * szülőből másol. Ami nincs megnevezve, ahhoz nincs is nyúlás. A
+     * narrációnál ez nem működik -- ott a hívó egy sorokból álló listát küld,
+     * és bármelyik indexre írhatna --, úgyhogy ott egy nevesített
+     * visszautasítás (`erintetlen_jelenet_valtozott`) a kapu.
+     *
+     * MIÉRT UGYANAZ A `validateDraft`. Egy második, lazább út a
+     * katalógus-ellenőrzés mellett pontosan az a hely lenne, ahol egy javítás
+     * olyat ad be, amit a `videoDraft` visszautasítana -- és a render ugyanaz a
+     * render. Egy ellenőrzés, egy helyen; a hívó a `videoDraft` kódjait kapja
+     * vissza, ugyanazon a néven.
+     *
+     * MIÉRT NEM EGY ÚJ SORT ÍR A `videoDraft` HELYETT. A `videoDraft` is tudna
+     * javított tervet beadni -- de az a videót `terv` státuszba viszi (új
+     * lektori kört rendel), és nem tölti ki a `javitas_idk`-t, amiből a
+     * `finishRender` megtudja, mely kéréseket zárhat le. Vagyis egy
+     * `videoDraft`-tal beadott javítás után az operátor kérése örökre nyitva
+     * marad, és a videó előlről kezdi a kört. A gyártó skillje ezért mondja ki,
+     * hogy javításkor NEM `videoDraft`.
+     */
+    {
+      name: 'videoRevise',
+      description: 'Célzott javítás egy kész render után: megnevezed, mely jeleneteket írod át és mely operátori kéréseket dolgozod be, és a modul MINDEN MÁS jelenetet változatlanul vesz át a szülő verzióból. Ha olyanhoz nyúlsz, amiről nem esett szó, a beadás elutasul. A narrációt is csak a megnevezett jeleneteken írhatod át -- így a többi mondat a tts gyorsítótárából jön, és nem kerül újra pénzbe. Erre a verzióra nem kell új lektori ítélet: a szülő verzió átment, és a különbséget az operátor kérte.',
+      parameters: {
+        type: 'object',
+        required: ['videoId', 'jelenetek', 'javitasIdk'],
+        properties: {
+          videoId: { type: 'string' },
+          jelenetek: { type: 'array', items: { type: 'object', properties: { index: { type: 'integer' }, jelenet: { type: 'object' } } } },
+          narracio: { type: 'array', items: { type: 'object', properties: { jelenet: { type: 'integer' }, szoveg: { type: 'string' } } } },
+          javitasIdk: { type: 'array', items: { type: 'string' } },
+        },
+      },
+      execute(args, ctx) {
+        return guard(() => {
+          const agentId = agentIdOf(ctx)
+          if (agentId === '') refuse('agent_hianyzik', 'a session ügynök nélkül fut; a terv szerzőjére kapu épül, ezért ügynök kell')
+          const videoId = readString('videoId', args.videoId, { required: true, max: 64 })
+          const video = repo().video(videoId)
+          if (!video) refuse('video_ismeretlen', 'nincs videó a megadott videoId-vel')
+          if (video.status === 'lezart') refuse('video_lezart', 'a videó le van zárva')
+          refuseIfRendering(videoId)
+          const szulo = repo().latestTerv(videoId)
+          if (!szulo) refuse('terv_hianyzik', 'ennek a videónak még nincs terve; javítani csak meglévő tervet lehet')
+
+          // A kérések a mi soraink, nem a hívó szava: a megnevezett id-knek
+          // NYITOTT, ehhez a videóhoz tartozó operátori kérésnek kell lenniük.
+          // Egy lezárt kérés újra-bedolgozása azt jelentené, hogy egy render már
+          // megszületett rá; egy másik videóé pedig hazugság lenne mindkettőről.
+          const javitasIdk = readArray('javitasIdk', args.javitasIdk, { required: true, max: 50 })
+          if (javitasIdk.length === 0) refuse('javitas_hianyzik', 'nevezd meg, mely kéréseket dolgozod be; javítás kérés nélkül nem célzott javítás, hanem új terv')
+          const nyitottak = new Set(repo().openFeedback(videoId).map((f) => f.id))
+          for (const id of javitasIdk) {
+            if (typeof id !== 'string' || !nyitottak.has(id)) refuse('javitas_ismeretlen', 'a megnevezett kérések egyike nem ennek a videónak a nyitott kérése')
+          }
+
+          const eredetiJelenetek = JSON.parse(szulo.jelenetek)
+          const eredetiNarracio = JSON.parse(szulo.narracio)
+          const valtoztatasok = readArray('jelenetek', args.jelenetek, { required: true, max: 60 })
+          if (valtoztatasok.length === 0) refuse('argumentum_hibas', 'jelenetek: legalább egy átírt jelenet kell')
+
+          const valtozott = new Set()
+          const jelenetek = eredetiJelenetek.slice()
+          for (const v of valtoztatasok) {
+            const index = readWholeNumber('jelenetek[].index', v && v.index, { min: 0, max: eredetiJelenetek.length - 1 })
+            // A hiányzó index nem nulla és nem "az összes": `readWholeNumber` a
+            // hiányzóra a `fallback`-et adja, ami itt nincs, tehát `undefined`,
+            // és egy `jelenetek[undefined] = ...` olyan tulajdonságot írna a
+            // tömbre, amit a `JSON.stringify` eldob. A modul azt jelentené, hogy
+            // javított, a terv bájtra a szülő maradna, és a következő render
+            // lezárná az operátor kéréseit egy javítás nélkül -- ez az a hamis
+            // jelentés, amit ez a modul sehol nem tesz meg.
+            if (index === undefined) refuse('argumentum_hibas', 'jelenetek[].index kötelező: meg kell nevezni, melyik jelenetet írod át')
+            if (!v.jelenet || typeof v.jelenet !== 'object' || Array.isArray(v.jelenet)) refuse('argumentum_hibas', 'jelenetek[].jelenet: a jelenet teljes objektuma kell, nem folt')
+            if (valtozott.has(index)) refuse('argumentum_hibas', 'jelenetek: ugyanazt az indexet kétszer nevezted meg')
+            valtozott.add(index)
+            jelenetek[index] = v.jelenet
+          }
+
+          // A narráció csak a megnevezett jeleneteken mozdulhat. Ez a kapu fele:
+          // a másik fele az, hogy a jelenet-lista a szülőből másolódik, tehát egy
+          // meg nem nevezett jelenet nem is TUD megváltozni. A narrációnál viszont
+          // a hívó egy listát küld, és abban bármelyik indexre írhatna.
+          const narracio = eredetiNarracio.map((n) => ({ ...n }))
+          for (const n of readArray('narracio', args.narracio, { max: 60 }) ?? []) {
+            const jelenet = readWholeNumber('narracio[].jelenet', n && n.jelenet, { min: 0, max: eredetiJelenetek.length - 1 })
+            // Külön néven, nem az `erintetlen_jelenet_valtozott`-on: egy sor, ami
+            // nem mondja meg, melyik jelenetről szól, más tény, mint egy sor, ami
+            // egy meg nem nevezett jelenetről szól. A második a kapu, az első egy
+            // hiányzó argumentum, és a kettőt egy néven kimondani félrevezetné a
+            // hívót arról, mit kell javítania.
+            if (jelenet === undefined) refuse('argumentum_hibas', 'narracio[].jelenet kötelező: meg kell nevezni, melyik jelenet mondatát írod át')
+            if (!valtozott.has(jelenet)) refuse('erintetlen_jelenet_valtozott', 'olyan jelenet narrációját írnád át, amit nem neveztél meg a jelenetek közt', { jelenet })
+            const szoveg = readString('narracio[].szoveg', n.szoveg, { required: true, max: 4000 })
+            const sor = narracio.find((x) => x.jelenet === jelenet)
+            if (!sor) refuse('argumentum_hibas', 'narracio[].jelenet: ehhez a jelenethez nincs mondat a szülő tervben')
+            sor.szoveg = szoveg
+          }
+
+          const remotionDir = remotionDirOf(state)
+          const katalogus = readCatalog(remotionDir)
+          const r = validateDraft({ jelenetek, narracio, katalogus, remotionDir, karakterPerMp: karakterPerMp(repo()) })
+          if (r.refusal) refuse(r.refusal.code, r.refusal.message)
+          const becsultHosszMp = Number(r.becsultHosszMp.toFixed(1))
+          const terv = repo().insertTerv({
+            videoId, jelenetek, narracio, assetUjjlenyomatok: r.assetUjjlenyomatok, katalogusHash: katalogus.katalogusHash,
+            szerzoAgentId: agentId, szerzoSessionId: sessionIdOf(ctx),
+            ellenorzes: { figyelmeztetesek: r.figyelmeztetesek, becsultHosszMp },
+            szarmazas: 'operator_javitas', javitasIdk, szuloTervId: szulo.id,
+          })
+          repo().rememberAgent(agentId, 'gyarto')
+          // NEM `terv` státusz: a videoDraft azért teszi vissza lektorálásra, mert
+          // ott új terv született, amit senki nem látott. Itt a szülő átment, és a
+          // különbséget az operátor kérte -- a következő lépés a render, nem a
+          // lektor. A státusz `narralt`-ra vagy `lektoralt`-ra sem mozdul: azt a
+          // narráció és a render írja, ahogy eddig.
+          repo().setVideoStatus(videoId, 'lektoralt')
+          return {
+            tervId: terv.id, verzio: terv.verzio, tervHash: terv.tervHash, szuloTervId: szulo.id,
+            valtozottJelenetek: [...valtozott].sort((a, b) => a - b),
+            bedolgozott: javitasIdk,
+            figyelmeztetesek: r.figyelmeztetesek, becsultHosszMp,
           }
         })
       },
