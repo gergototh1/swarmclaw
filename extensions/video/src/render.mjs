@@ -11,6 +11,7 @@ import { assetUtvonal, idozitettOf } from './kit-tabla.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
 import { hangEgyezik, narracioSorok, ttsHandle } from './narracio.mjs'
 import { SZABALYKESZLET, fileSha256, runQaGate } from './qa.mjs'
+import { verdiktJog } from './verdikt-kapu.mjs'
 
 const execFileAsync = promisify(execFile)
 
@@ -353,14 +354,20 @@ export function createRenderOps(state) {
     if (video && video.status === 'lezart') refuse('video_lezart', 'a videó le van zárva')
     const latest = repo().latestTerv(terv.video_id)
     if (latest.id !== terv.id) refuse('terv_elavult', `a(z) ${terv.verzio}. verzió nem a legfrissebb`, { legfrissebbTervId: latest.id })
-    // 1. a passing verdict on this id AND this hash -- passingVerdikt itself
-    // answers from the LATEST verdict on the pair, so a pass a reviewer has
-    // since reversed with a later fail is never returned here (db.mjs).
-    const verdikt = repo().passingVerdikt(terv.id, terv.terv_hash)
-    if (!verdikt) {
-      const masHash = repo().verdiktek(terv.id).some((v) => v.verdikt === 'atmegy')
-      refuse(masHash ? 'verdikt_elavult' : 'verdikt_hianyzik', masHash ? 'van atmegy verdikt erre a tervre, de más hash-sel; a lektornak újra kell néznie' : 'erre a tervre nincs atmegy verdikt')
-    }
+    // 1. THE GATE IS NARROWED HERE, NOT DISMANTLED. This check is what keeps a
+    // source-less claim from going out -- it caught two on the first live run
+    // -- and it stands unchanged for anything an agent wrote on its own.
+    //
+    // What it no longer does is decide for itself. `videoNarrate` asks the
+    // same question one step earlier, and two separate answers here would
+    // drift into the one failure that costs money: a fix the narration lets
+    // through and the render does not is a paid-for audio file for a video
+    // that is never made. The rule lives in `verdikt-kapu.mjs`, the code and
+    // the sentence come back from there untouched, and `verdiktId` names the
+    // judgement this run rests on -- an operator fix has none of its own by
+    // design, so it is an ancestor's.
+    const jog = verdiktJog(repo(), terv)
+    if (!jog.ok) refuse(jog.kod, jog.uzenet)
     const remotionDir = remotionDirOf(state)
     // 2. the referenced files are what the reviewer saw
     const valtozott = []
@@ -433,7 +440,7 @@ export function createRenderOps(state) {
     const propsPath = path.join(dir, 'props.json')
     const outPath = path.join(dir, 'video.mp4')
     const logPath = path.join(dir, 'render.log')
-    const claim = repo().claimRender({ id: renderId, videoId: terv.video_id, tervId: terv.id, tervHash: terv.terv_hash, verdiktId: verdikt.id, hostBootAt: bootAt(), jelenetHatarok: iv.elemek, propsPath, outPath, logPath, platform: platform() })
+    const claim = repo().claimRender({ id: renderId, videoId: terv.video_id, tervId: terv.id, tervHash: terv.terv_hash, verdiktId: jog.verdiktId, hostBootAt: bootAt(), jelenetHatarok: iv.elemek, propsPath, outPath, logPath, platform: platform() })
     if (claim.error) refuse('render_folyamatban', `már fut egy render: ${claim.renderId}`, { renderId: claim.renderId })
     let child
     try {

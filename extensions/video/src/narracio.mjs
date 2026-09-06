@@ -7,6 +7,7 @@ import { resolvingExecFile } from './binaries.mjs'
 import { sha256 } from './db.mjs'
 import { fedettseg, idovonal } from './idozites.mjs'
 import { remotionDirOf } from './katalogus.mjs'
+import { verdiktJog } from './verdikt-kapu.mjs'
 
 /**
  * `videoNarrate`: the approved plan's sentences, one mp3 each, through the
@@ -248,7 +249,14 @@ export async function narralTerv(state, tervIdRaw) {
   if (video && video.status === 'lezart') refuse('video_lezart', 'a videó le van zárva')
   const latest = repo.latestTerv(terv.video_id)
   if (latest.id !== terv.id) refuse('terv_elavult', `a(z) ${terv.verzio}. verzió nem a legfrissebb; a legfrissebb a v${latest.verzio}`, { legfrissebbTervId: latest.id })
-  if (!repo.passingVerdikt(terv.id, terv.terv_hash)) refuse('verdikt_hianyzik', 'ehhez a tervhez nincs atmegy verdikt a jelenlegi hash-sel')
+  // A KAPU SZŰKÍTÉSE, NEM A LEBONTÁSA, ÉS ITT ÁLL A FIZETÉS ELŐTT. Ez a sor
+  // dönti el, hogy a tts megszólal-e egyáltalán: egy javítás, amit ez a kapu
+  // beenged és a render nem, egy kifizetett hangfájl egy videóhoz, ami soha
+  // nem készül el -- és a megváltozott mondat épp az, ami nincs a tts
+  // gyorsítótárában. Ezért kérdez mindkét kapu ugyanabból a modulból, és ezért
+  // engedi át a kódot és a mondatot változatlanul: `verdikt-kapu.mjs`.
+  const jog = verdiktJog(repo, terv)
+  if (!jog.ok) refuse(jog.kod, jog.uzenet)
   // A render on this video reads the narration rows at its start and
   // writes the video's status at its end; a set replaced under it and a
   // `narralt` written over `renderel` would both be overwritten by the

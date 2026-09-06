@@ -6,7 +6,7 @@ import path from 'node:path'
 import { test } from 'node:test'
 import { lepesKocka } from '../src/idozites.mjs'
 import { createRenderOps, createRenderTools } from '../src/render.mjs'
-import { PELDA_JELENETEK, fakeProject, freshRepo } from './helpers.mjs'
+import { PELDA_JELENETEK, PELDA_NARRACIO, fakeProject, freshRepo } from './helpers.mjs'
 
 const quiet = { info() {}, warn() {}, error() {} }
 const GOOD_PROBE = { format: { duration: '40.0' }, streams: [{ codec_type: 'video', codec_name: 'h264', width: 1080, height: 1920, avg_frame_rate: '30/1' }, { codec_type: 'audio', codec_name: 'aac', duration: '40.0' }] }
@@ -96,6 +96,95 @@ test('start refuses in the spec order, each with its code', async () => {
   assert.equal((await s6.run('videoRender', { tervId: s6.terv.id })).error.code, 'chrome_hianyzik')
   const s7 = setup(); s7.narrate(); fs.unlinkSync(path.join(s7.dir, 'src', 'FosVideo.tsx'))
   assert.equal((await s7.run('videoRender', { tervId: s7.terv.id })).error.code, 'remotion_dir_hianyzik')
+})
+
+/**
+ * AZ OPERÁTORI JAVÍTÁS RENDERE, ÉS A KAPU, AMI NEM TŰNT EL.
+ *
+ * A render és a `videoNarrate` ugyanazt kérdezi: van-e joga ennek a tervnek
+ * továbbmenni. Egy operátori javításnak SOHA nincs saját verdiktje -- épp ez a
+ * feature --, tehát a kapu a saját `passingVerdikt` olvasásával mindkét helyen
+ * elakasztaná, a narrációnál már azután, hogy a megváltozott mondat tts-számláját
+ * kifizettette. A szabály ezért a `verdikt-kapu.mjs`-ben áll, egy helyen; ezek a
+ * tesztek azt mérik, hogy a render TÉNYLEG onnan kérdez, változatlanul engedi át
+ * a kódot és a mondatot, és a render sorába annak az ítéletnek az id-je kerül,
+ * amire a jog támaszkodik -- javításnál a szülőé.
+ */
+
+/** Az operátor kért javítása a megadott terv fölé: ugyanaz a tartalom egy megváltozott mondattal. */
+function javitasTerv(s, szuloTervId) {
+  const szulo = s.repo.terv(szuloTervId)
+  const narracio = JSON.parse(szulo.narracio).map((n) => (n.jelenet === 1 ? { ...n, szoveg: 'Az operátor által kért mondat.' } : n))
+  const kert = s.repo.insertFeedback({ videoId: szulo.video_id, jelenet: 1, szoveg: 'ez a mondat rossz', forras: 'operator' })
+  const uj = s.repo.insertTerv({
+    videoId: szulo.video_id, jelenetek: JSON.parse(szulo.jelenetek), narracio, assetUjjlenyomatok: [],
+    katalogusHash: szulo.katalogus_hash, szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {},
+    szarmazas: 'operator_javitas', javitasIdk: [kert.id], szuloTervId,
+  })
+  return s.repo.terv(uj.id)
+}
+
+/** Narráció-sorok és fájlok BÁRMELYIK tervhez, ahogy a setup `narrate()`-je a sajátjához. */
+function narraciotIr(s, tervRow) {
+  const rows = JSON.parse(tervRow.narracio).map((n) => {
+    const fajl = `narracio/swarmclaw/${tervRow.video_id}/${tervRow.terv_hash}/${n.jelenet}.mp3`
+    fs.mkdirSync(path.dirname(path.join(s.dir, 'public', fajl)), { recursive: true })
+    fs.writeFileSync(path.join(s.dir, 'public', fajl), 'mp3')
+    return { tervHash: tervRow.terv_hash, jelenet: n.jelenet, szovegHash: createHash('sha256').update(n.szoveg).digest('hex'), hang: 'Kenji', modell: 'tts-rt-v1', nyelv: 'hu', fajl, hosszMs: 4000, ttsKeresId: '' }
+  })
+  s.repo.replaceNarraciok(tervRow.id, rows)
+}
+
+test('operátori javítás rendere elindul saját verdikt nélkül, és a szülő ítéletének id-jét írja a render sorába', async () => {
+  const s = setup()
+  const v2 = javitasTerv(s, s.terv.id)
+  narraciotIr(s, v2)
+  // A javításnak nincs saját verdiktje, és nem is lesz: ez a feature, nem hiány.
+  assert.equal(s.repo.passingVerdikt(v2.id, v2.terv_hash), null)
+  const r = await s.run('videoRender', { tervId: v2.id })
+  assert.equal(r.error, undefined, 'a szülő átengedése elég')
+  assert.equal(r.status, 'fut')
+  // A `verdiktId` nem díszítés: a render sora azt az ítéletet nevezi meg,
+  // amire a futás támaszkodik. Javításnál ez a SZÜLŐ verdiktje, és ha a kapu
+  // csak igent mondana, de az id-t nem vezetné át, a sor egy nem létező
+  // ítéletre (vagy semmire) hivatkozna.
+  assert.equal(s.repo.render(r.renderId).verdikt_id, s.verdikt.id)
+  assert.equal(s.repo.render(r.renderId).terv_id, v2.id)
+})
+
+test('operátori javítás rendere NEM indul, ha a lánc alján nincs átment terv', async () => {
+  const s = setup()
+  // Ugyanaz a videó, de egy olyan tervvel, amit senki nem engedett át: a
+  // származás nem ad jogot, csak örököl egyet.
+  const { id: videoId } = s.repo.openVideo({ cim: 'c', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: 'f', nyitottaAgentId: '' })
+  const alap = s.repo.insertTerv({ videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {} })
+  const v2 = javitasTerv(s, alap.id)
+  narraciotIr(s, v2)
+  const r = await s.run('videoRender', { tervId: v2.id })
+  // A kód a `verdikt-kapu.mjs`-é, változatlanul: egy javításról kimondani,
+  // hogy "erre a tervre nincs atmegy verdikt", a saját beadása lektorálására
+  // küldené az ügynököt, holott a lánc alját kell lektoráltatni.
+  assert.equal(r.error.code, 'szulo_verdikt_hianyzik')
+  assert.equal(r.error.message, 'ez operátori javítás, és a lánc alján álló terv az, amit a lektor nem engedett át; előbb azt kell lektorálni')
+  assert.equal(s.repo.rendersForVideo(videoId).length, 0, 'nem indult render')
+})
+
+test('ügynök által magától írt terv rendere továbbra is verdiktet követel, és a visszavont átengedést külön nevezi meg', async () => {
+  const s = setup()
+  const nincsItelet = s.repo.insertTerv({ videoId: s.videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {} })
+  const a = await s.run('videoRender', { tervId: nincsItelet.id })
+  assert.equal(a.error.code, 'verdikt_hianyzik', 'a kapu nem tűnt el')
+  assert.equal(a.error.message, 'erre a tervre nincs atmegy verdikt')
+
+  // Átengedve, majd egy későbbi ítélettel visszavonva. Ez az EGYETLEN eset,
+  // amiben a `verdikt_elavult` előáll -- a régi mondata ("más hash-sel") olyan
+  // helyzetet írt le, ami nem áll elő: egy tervsor `terv_hash`-e egyszer íródik.
+  const s2 = setup()
+  s2.repo.insertVerdikt({ tervId: s2.terv.id, tervHash: s2.terv.tervHash, lektorAgentId: 'l', lektorSessionId: 's', verdikt: 'elbukik', talalatok: [{ jelenet: 0, kod: 'horog_gyenge', szoveg: 'x' }] })
+  const b = await s2.run('videoRender', { tervId: s2.terv.id })
+  assert.equal(b.error.code, 'verdikt_elavult')
+  assert.equal(b.error.message.includes('hash'), false, 'a mondat nem küldi hash-t keresni az ügynököt')
+  assert.match(b.error.message, /visszavonta/)
 })
 
 /**

@@ -43,8 +43,11 @@
  *      `passingVerdikt` takes the LATEST verdict on (terv_id, terv_hash) --
  *      whatever it says -- and answers only when that row reads `atmegy`. A
  *      reviewer that passed a plan and later failed it has withdrawn the
- *      approval, and the render refuses. A pass on an older hash is
- *      `verdikt_elavult`, not an approval.
+ *      approval, and the render refuses that withdrawn pass by its own name,
+ *      `verdikt_elavult` -- a different fact from a plan nobody ever judged,
+ *      which is `verdikt_hianyzik`. (This line used to say "a pass on an older
+ *      hash"; a plan row's `terv_hash` is written once and never rewritten, so
+ *      that case does not arise -- an older hash is a different plan row.)
  *   4. `videoDraft` REFUSES RATHER THAN CLAMPS. Absent means no opinion;
  *      anything present that cannot be honoured is refused by name and nothing
  *      is stored -- an unknown type, an unknown prop, a prop of the wrong
@@ -242,8 +245,11 @@ Amit visszautasít, azt nem javítja: \`tipus_ismeretlen\`,
 \`narracio_hianyzik\`. Minden új verzió után a videó újra \`terv\`, tehát újra
 lektorra vár.
 
-**\`videoNarrate({ tervId })\`**: csak a legfrissebb, \`atmegy\` verdiktet
-kapott tervre. Jelenetenként egy mp3, és a modul saját mérése dönt: a válasz
+**\`videoNarrate({ tervId })\`**: csak a legfrissebb tervre, aminek joga van
+továbbmenni -- vagy saját \`atmegy\` verdiktje van, vagy operátori javítás, ami
+a láncán feljebb egy átengedett verziótól örökli a jogot; ugyanaz a szabály,
+mint a \`videoRevise\`-nál és a rendernél, ugyanazokkal a kódokkal.
+Jelenetenként egy mp3, és a modul saját mérése dönt: a válasz
 \`jelenetek\` listája \`jelenet\`, \`fajl\`, \`hosszMs\` és \`cache\`, mellette
 \`osszHosszMs\`, \`teljesMs\`, \`fedettseg\` és a \`hang\` hármas (\`hang\`,
 \`modell\`, \`nyelv\`). Ha a tervhez már megvan a teljes, aktuális, a mostani

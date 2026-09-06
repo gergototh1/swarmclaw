@@ -853,7 +853,7 @@ function stubRpc(answers) {
 const betoltesek = (hivasok) => hivasok.filter((h) => h.method === 'video').length
 
 test('the narration lever tells a refusal, an unchanged set and a synthesised one apart', async () => {
-  let narral = () => Promise.resolve({ hiba: 'verdikt_hianyzik', uzenet: 'ehhez a tervhez nincs atmegy verdikt a jelenlegi hash-sel' })
+  let narral = () => Promise.resolve({ hiba: 'verdikt_hianyzik', uzenet: 'erre a tervre nincs atmegy verdikt' })
   const { rpc, hivasok } = stubRpc({
     video: () => Promise.resolve(videoDetail({ tervek: [terv({ verdiktek: [verdikt()] })] })),
     narral: (params) => narral(params),

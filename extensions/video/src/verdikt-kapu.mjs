@@ -88,9 +88,18 @@ export function verdiktJog(repo, terv) {
       // elsőnél a hívó a saját beadását lektoráltatja, a másodiknál a lánc
       // alját. `i === 0` az egyetlen hely, ahol ez eldől.
       if (i > 0) return { ok: false, kod: 'szulo_verdikt_hianyzik', uzenet: 'ez operátori javítás, és a lánc alján álló terv az, amit a lektor nem engedett át; előbb azt kell lektorálni' }
-      const masHash = repo.verdiktek(jelen.id).some((v) => v.verdikt === 'atmegy')
-      return masHash
-        ? { ok: false, kod: 'verdikt_elavult', uzenet: 'van atmegy verdikt erre a tervre, de más hash-sel; a lektornak újra kell néznie' }
+      // A `verdikt_elavult` EGYETLEN valódi esete: a lektor átengedte, majd egy
+      // későbbi ítélettel visszavonta (`passingVerdikt` a LEGFRISSEBB ítéletből
+      // válaszol). A mondat korábban azt írta, hogy "van atmegy verdikt erre a
+      // tervre, de más hash-sel" -- ez a helyzet nem áll elő: egy tervsor
+      // `terv_hash`-e a beszúráskor íródik és nem változik, tehát egy másik
+      // hash egy MÁSIK terv sora, és annak a verdiktjei ide be sem kerülnek. A
+      // szöveg a `render.mjs`-ből öröklődött, és olyan tettre küldte az
+      // ügynököt (keresd meg, melyik hash-hez van meg az ítélet), aminek nincs
+      // tárgya. A név is ezt követi: nem a hash más, hanem volt már átengedés.
+      const voltAtmegy = repo.verdiktek(jelen.id).some((v) => v.verdikt === 'atmegy')
+      return voltAtmegy
+        ? { ok: false, kod: 'verdikt_elavult', uzenet: 'volt atmegy verdikt ezen a terven, de a lektor egy későbbi ítélettel visszavonta; újra kell lektorálnia' }
         : { ok: false, kod: 'verdikt_hianyzik', uzenet: 'erre a tervre nincs atmegy verdikt' }
     }
     // A LEKTOR NEMET MONDHATOTT ERRE A JAVÍTÁSRA IS. `passingVerdikt` a

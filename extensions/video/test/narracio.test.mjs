@@ -275,3 +275,66 @@ test('the unchanged short circuit asks exactly what the render gate asks: a miss
   assert.equal((await s.run({ tervId: s.terv.id })).valtozatlan, false)
   assert.equal(nemaAllapot.calls.length, 8)
 })
+
+/**
+ * A NARRÁCIÓ VERDIKT-KAPUJA UGYANAZT A SZABÁLYT KÉRDEZI, MINT A RENDER.
+ *
+ * Ez a kapu áll elöl: ha itt szűkebb a szabály, mint a rendernél, az operátor
+ * javítása addig jut, hogy a megváltozott mondatot kifizeti a tts-nél, és utána
+ * akad el -- egy kifizetett hangfájl egy videóhoz, ami soha nem készül el. A
+ * `verdikt-kapu.mjs` ezért egy modul két hívóval, és ezek a tesztek azt mérik,
+ * hogy a `videoNarrate` tényleg onnan kérdez.
+ */
+
+/** Az operátor kért javítása a setup terve fölé: ugyanaz a tartalom egy megváltozott mondattal. */
+function javitasTerv(s, szuloTervId) {
+  const szulo = s.repo.terv(szuloTervId)
+  const narracio = JSON.parse(szulo.narracio).map((n) => (n.jelenet === 1 ? { ...n, szoveg: 'Az operátor által kért mondat.' } : n))
+  const kert = s.repo.insertFeedback({ videoId: szulo.video_id, jelenet: 1, szoveg: 'ez a mondat rossz', forras: 'operator' })
+  const uj = s.repo.insertTerv({
+    videoId: szulo.video_id, jelenetek: JSON.parse(szulo.jelenetek), narracio, assetUjjlenyomatok: [],
+    katalogusHash: szulo.katalogus_hash, szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {},
+    szarmazas: 'operator_javitas', javitasIdk: [kert.id], szuloTervId,
+  })
+  return s.repo.terv(uj.id)
+}
+
+test('operátori javítás narrációja elindul saját verdikt nélkül, ha a szülő átment', async () => {
+  const tts = ttsDouble()
+  const s = setup({ tts })
+  s.pass()
+  const v2 = javitasTerv(s, s.terv.id)
+  assert.equal(s.repo.passingVerdikt(v2.id, v2.terv_hash), null, 'a javításnak nincs és nem is lesz saját verdiktje')
+  const r = await s.run({ tervId: v2.id })
+  assert.equal(r.error, undefined, 'a szülő verdiktje elég')
+  assert.equal(s.repo.narraciok(v2.id).length, 8)
+})
+
+test('operátori javítás narrációja NEM indul, ha a lánc alján nincs átment terv, és a tts-t meg sem szólítja', async () => {
+  const tts = ttsDouble()
+  const s = setup({ tts })
+  const v2 = javitasTerv(s, s.terv.id)
+  const r = await s.run({ tervId: v2.id })
+  assert.equal(r.error.code, 'szulo_verdikt_hianyzik')
+  assert.equal(r.error.message, 'ez operátori javítás, és a lánc alján álló terv az, amit a lektor nem engedett át; előbb azt kell lektorálni')
+  // A kapu a fizetés ELŐTT áll. Ha a narráció beengedne valamit, amit a render
+  // nem, a különbség egy kifizetett hangfájl lenne.
+  assert.equal(tts.calls.length, 0)
+  assert.equal(s.repo.narraciok(v2.id).length, 0)
+})
+
+test('ügynök által magától írt terv narrációja továbbra is verdiktet követel, és a visszavont átengedést külön nevezi meg', async () => {
+  const tts = ttsDouble()
+  const s = setup({ tts })
+  const a = await s.run({ tervId: s.terv.id })
+  assert.equal(a.error.code, 'verdikt_hianyzik', 'a kapu nem tűnt el')
+  assert.equal(tts.calls.length, 0)
+  // Átengedve, majd egy későbbi ítélettel visszavonva: a narráció Task 4 előtt
+  // ezt is `verdikt_hianyzik`-nak mondta, holott a lektor ítélt, csak nemet.
+  s.pass()
+  s.repo.insertVerdikt({ tervId: s.terv.id, tervHash: s.terv.tervHash, lektorAgentId: 'l', lektorSessionId: 's', verdikt: 'elbukik', talalatok: [{ jelenet: 0, kod: 'horog_gyenge', szoveg: 'x' }] })
+  const b = await s.run({ tervId: s.terv.id })
+  assert.equal(b.error.code, 'verdikt_elavult')
+  assert.equal(b.error.message.includes('hash'), false, 'a mondat nem küldi hash-t keresni az ügynököt')
+  assert.equal(tts.calls.length, 0)
+})
