@@ -1,7 +1,8 @@
 import { newId } from './ids.mjs'
 
 /**
- * A séma. Egy verzió, mert az extension még nem járt éles adaton.
+ * A séma. Az 1-es verzió már lefutott éles adaton -- ezért nem írható át,
+ * minden újabb tábla és oszlop új verziószámmal kerül a tömb végére.
  *
  * Két unique index hordozza a rendszer idempotenciáját: az `event` és az
  * `inbox_unmatched` `(source_system, source_id)` párja. A söprés emiatt
@@ -86,6 +87,14 @@ CREATE TABLE IF NOT EXISTS ext_crm_inbox_unmatched (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ext_crm_inbox_unmatched_source
   ON ext_crm_inbox_unmatched (source_system, source_id);
+`,
+}, {
+  version: 2,
+  sql: `
+CREATE TABLE IF NOT EXISTS ext_crm_sweep_state (
+  key TEXT PRIMARY KEY, cursor TEXT NOT NULL DEFAULT '',
+  last_seen_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL
+);
 `,
 }])
 
@@ -487,6 +496,26 @@ export function createRepo(storage) {
     resolveUnmatched(id) {
       S.exec("UPDATE ext_crm_inbox_unmatched SET state = 'assigned' WHERE id = ?", [id])
       return S.get('SELECT * FROM ext_crm_inbox_unmatched WHERE id = ?', [id]) || null
+    },
+
+    // ---- sweep_state ----
+    /**
+     * Hol tart a söprés. Egy sor forrásonként (`key`), mert a CRM-4 leiratai
+     * és a naptár saját kurzort visznek majd.
+     */
+    getSweepState(key) {
+      return S.get('SELECT * FROM ext_crm_sweep_state WHERE key = ?', [key]) || null
+    },
+
+    setSweepState(key, { cursor = '', lastSeenAt = '' } = {}) {
+      S.exec(
+        `INSERT INTO ext_crm_sweep_state (key, cursor, last_seen_at, updated_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET cursor = excluded.cursor,
+           last_seen_at = excluded.last_seen_at, updated_at = excluded.updated_at`,
+        [key, str(cursor), str(lastSeenAt), now()],
+      )
+      return S.get('SELECT * FROM ext_crm_sweep_state WHERE key = ?', [key])
     },
   }
 }

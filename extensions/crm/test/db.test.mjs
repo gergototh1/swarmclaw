@@ -248,3 +248,12 @@ test('az ismeretlen javaslat státusz-állítása pontosan null-t ad', () => {
   const { repo } = repoOf()
   assert.strictEqual(repo.setSuggestionStatus('sug_nincs', 'dismissed'), null)
 })
+
+test('a sopres-allapot irhato es visszaolvashato', () => {
+  const { repo } = repoOf()
+  assert.equal(repo.getSweepState('gmail'), null)
+  repo.setSweepState('gmail', { cursor: 'c1', lastSeenAt: '2026-09-01T10:00:00.000Z' })
+  assert.equal(repo.getSweepState('gmail').cursor, 'c1')
+  repo.setSweepState('gmail', { cursor: 'c2', lastSeenAt: '2026-09-02T10:00:00.000Z' })
+  assert.equal(repo.getSweepState('gmail').cursor, 'c2', 'a masodik iras felulir, nem duplikal')
+})

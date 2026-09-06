@@ -122,5 +122,21 @@ export function createRpc(state) {
       if (status !== 'accepted' && status !== 'dismissed') throw new Error('crm_ismeretlen_javaslat_allapot')
       return repo().setSuggestionStatus(suggestionId, status)
     },
+
+    /**
+     * Feloldódik-e a postafiók-szerződés, és ha nem, miért.
+     *
+     * A lap ezt írja ki, nem hallgat: az operátort jobban szolgálja egy
+     * megnevezett korlát („áll az email-behúzás, mert a Gmail extension ki van
+     * kapcsolva"), mint egy modul, ami csendben nem csinál semmit.
+     */
+    async mailboxHealth() {
+      const handle = state.contracts ? state.contracts.get('gmail', 'mailbox', 1) : null
+      if (!handle) {
+        return { available: false, reason: state.contracts ? 'nem_oldodik_fel' : 'nincs_contracts' }
+      }
+      const box = await handle.mailbox()
+      return { available: true, address: box.address }
+    },
   }
 }

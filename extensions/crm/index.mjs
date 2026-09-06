@@ -23,6 +23,7 @@ export const state = {
   log: console,
   oauth: null,
   repo: null,
+  contracts: null,
 }
 
 const crm = {
@@ -36,9 +37,25 @@ const crm = {
     state.log = ctx.log
     state.oauth = ctx.oauth
     state.repo = createRepo(ctx.storage)
+    state.contracts = ctx.contracts
   },
   tools: createTools(state),
   rpc: { ...createRpc(state), ...createMcpBridge(() => crm.tools) },
+  /**
+   * A `gmail` extension postafiók-szerződése. Ez az EGYETLEN út a levelekhez:
+   * egy nem deklarált hívás `not_declared`-del null-t kap, akkor is, ha a
+   * szolgáltató ott van és fut.
+   *
+   * A verzió pontos egyezést kér. Egy másik verzió alatti olvasás pont az a
+   * csendben rossz válasz, amit az egész elrendezés elkerülni hivatott: a
+   * mezők elmozdulnának, a kód meg futna tovább.
+   */
+  consumes: [{
+    extension: 'gmail',
+    contract: 'mailbox',
+    version: 1,
+    reason: 'Behúzza a leveleket az ügyfelek idővonalára: listáz, egy levelet beolvas, és a szövegét saját eseményként tárolja. Küldeni nem küld.',
+  }],
   managedResources: {
     projects: [{
       projectKey: 'crm',

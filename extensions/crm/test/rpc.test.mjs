@@ -142,3 +142,10 @@ test('az ügy lezárása csak won/lost szakaszt fogad el, mást nevesített hib�
   const closed = await rpc.closeDeal({ dealId: deal.id, stage: 'won', reason: 'aláírva' })
   assert.equal(closed.stage, 'won')
 })
+
+test('a mailboxHealth megmondja, ha a szerzodes nem oldodik fel', async () => {
+  const { rpc } = rpcOf()            // a rpcOf nem ad contracts-ot
+  const h = await rpc.mailboxHealth({})
+  assert.equal(h.available, false)
+  assert.match(h.reason, /not_declared|provider_missing|provider_disabled|version_mismatch|nincs/)
+})
