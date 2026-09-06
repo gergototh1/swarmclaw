@@ -183,6 +183,35 @@
 .vid-ures { margin-top: 12px; }
 .vid-sapkak { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 14px; font-size: 12px; color: var(--color-text-3, #8282a0); }
 
+/*
+  The manual open box, above the columns. Boxed like the feedback form,
+  because it is the same kind of thing: a few fields and one button that
+  writes a row.
+*/
+.vid-uj-video {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  max-width: 620px;
+}
+.vid-uj-video h3 {
+  margin: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-3, #8282a0);
+}
+
+/*
+  A lever and the sentence saying why it is dark, on one line where there is
+  room. The sentence sits BESIDE the button on purpose: a reason under the
+  fold, or in a `title=` nobody hovers, is a reason the operator does not
+  read.
+*/
+.vid-lepes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 0; }
+.vid-lepes-ok { font-size: 12px; line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
+
 /* video view */
 .vid-video-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .vid-video-head h2 { font-size: 20px; margin: 0; overflow-wrap: anywhere; min-width: 0; }

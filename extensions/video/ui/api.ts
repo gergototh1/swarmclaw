@@ -703,6 +703,39 @@ export function errorText(err: unknown): string {
 }
 
 /**
+ * The refusal carried by a lever's answer, named, or null when the answer is
+ * the act having happened.
+ *
+ * `nyit`, `narral` and `renderel` are the three methods in `rpc.mjs` that
+ * RESOLVE with their refusals instead of throwing them (`nemDob` there says
+ * why): each is a button the operator presses in exactly the states the
+ * module refuses -- the day's cap is spent, the plan has no passing verdict,
+ * a render is already running -- and a thrown refusal reaches the page as a
+ * 500 whose sentence is lost. A resolved promise from those three is
+ * therefore not proof that anything happened, and every caller here asks this
+ * before it says one did. A REJECTED promise is still possible and is a
+ * different fact: the request did not reach the module at all, and
+ * `errorText` is what names that one.
+ *
+ * The code comes first and the module's own sentence after it. The code is
+ * what the operator can look up, quote and hand to an agent -- it is the same
+ * code the tool would have given one -- and "sikertelen" is the word this
+ * page must never print in its place.
+ *
+ * An answer that is not an object is refused here too, under a name of its
+ * own. All three levers answer with one, so anything else is a shape this
+ * page cannot read rather than an act it may report, and printing "a render
+ * elindult" over it would be exactly the false statement the readers above
+ * exist to prevent.
+ */
+export function refusalText(raw: unknown): string | null {
+  if (!isRecord(raw)) return 'valasz_ervenytelen: a modul nem objektummal válaszolt erre a hívásra'
+  if (typeof raw.hiba !== 'string' || raw.hiba === '') return null
+  const uzenet = typeof raw.uzenet === 'string' && raw.uzenet !== '' ? raw.uzenet : null
+  return uzenet === null ? `${raw.hiba} (a modul nem küldött hozzá mondatot)` : `${raw.hiba}: ${uzenet}`
+}
+
+/**
  * Whether the host has the agents and schedules this extension declares.
  *
  * Read off the host's own `GET /api/extensions/managed-resources`, which is

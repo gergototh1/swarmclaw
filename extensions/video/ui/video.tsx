@@ -2,14 +2,21 @@ import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import type { RenderRow, Rpc, Terv, VideoDetail } from './api'
-import { errorText, readVideo } from './api'
+import { errorText, readVideo, refusalText } from './api'
 import { forrasUrl, formatDate, formatMs, jelenetTipus, mertSzoveg, propokSzoveg, renderStatusLabel, statusLabel } from './format'
 import { Idovonal, type Pont } from './idovonal'
 import { safeHref } from './safe-href'
 
 /**
- * Everything stored about one video, and the two things the operator can do
- * to it: leave a note, and close it.
+ * Everything stored about one video, and the four things the operator can do
+ * to it: ask for its narration, start its render, leave a note, and close it.
+ *
+ * THE TWO LEVERS ARE HERE BECAUSE NOTHING ABOUT THEM NEEDS AN AGENT. The
+ * sentences were written and passed review before either button appears; from
+ * there the narration is one tts call per scene and the render is a child
+ * process, and both are the same service functions the `videoNarrate` and
+ * `videoRender` tools call. Writing the plan and reviewing it are the two
+ * steps that do need judgement, and neither has a button on this page.
  *
  * WHAT IS ON THIS SCREEN AND WHERE IT CAME FROM. The source box holds a
  * stranger's text verbatim and is labelled as such above the box, in the
@@ -168,6 +175,74 @@ function Szekcio({ cim, jelzo, jelzoRossz, szam, ures, uresSzoveg, children }: {
 }
 
 /**
+ * Why the two mechanical levers are dark, in one sentence each, or null when
+ * they are live.
+ *
+ * A DARK CONTROL ON THIS PAGE EXPLAINS ITSELF. That is the rule the preview
+ * button on the Sablonok view is built on, and these two are disabled exactly
+ * when one of these functions returns a sentence -- never on a condition that
+ * has no sentence, and never with the sentence hidden in a `title=`, which is
+ * a tooltip nobody hovers on a button they cannot press.
+ *
+ * WHAT THE PAGE MAY AND MAY NOT CLAIM. Both levers are re-checked by the
+ * module when they are pressed, on facts this page does not have: the render
+ * side also weighs the asset fingerprints, the tts voice per scene, the
+ * platform, the tools and the browser, and it holds ONE render for the whole
+ * module rather than one per video. So these sentences are not a promise that
+ * a live button will succeed; they are the states the page can see for
+ * itself, said out loud rather than left as a grey rectangle. Every other
+ * refusal arrives from the module named, and the notice line prints it.
+ *
+ * The running render is read off THIS video's rows, which is all the detail
+ * response carries, and the sentences say "ezen a videón" for that reason:
+ * claiming the module-wide lock from a per-video list would be a fact this
+ * page has not measured.
+ */
+function narracioTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null, lezart: boolean, dolgozik: boolean): string | null {
+  if (terv === undefined) return 'Terv nélkül nincs mit narrálni.'
+  // `passingVerdikt` answers from the LATEST verdict on (plan, hash), so a
+  // pass a reviewer has since reversed is not one (db.mjs). The page reads it
+  // the same way, and then tells the three failures apart: never reviewed,
+  // reviewed and failed, and passed on a hash the plan no longer has are
+  // three different things to do next.
+  const ehhezAHashhez = terv.verdiktek.filter((v) => v.tervHash === terv.tervHash)
+  const utolso = ehhezAHashhez.length === 0 ? null : ehhezAHashhez[ehhezAHashhez.length - 1]
+  if (utolso === null || utolso.verdikt !== 'atmegy') {
+    if (utolso !== null) return `A lektor ítélete a jelenlegi terv-hashre: ${utolso.verdikt}; narrálni csak átmegy után lehet.`
+    if (terv.verdiktek.some((v) => v.verdikt === 'atmegy')) return 'Van átmegy ítélet erre a tervre, de nem a jelenlegi terv-hashre; a lektornak újra kell néznie.'
+    return 'Ehhez a tervverzióhoz még nincs lektori ítélet; narrálni csak átmegy után lehet.'
+  }
+  if (futoRender !== null) return `Ezen a videón most fut egy render (${futoRender.renderId}); a narráció megvárja a végét.`
+  if (lezart) return 'A videó le van zárva, a modul nem dolgozik rajta tovább.'
+  if (dolgozik) return 'A narráció kérése elment, a válaszra várok: jelenetenként egy tts-hívás, ez percekig is eltarthat.'
+  return null
+}
+
+function renderTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null, lezart: boolean, dolgozik: boolean): string | null {
+  if (terv === undefined) return 'Terv nélkül nincs mit renderelni.'
+  // The honest signal this page has, and no more. `videoRender` checks a
+  // narration row PER SCENE, against the current sentence hash, the current
+  // tts voice and the file on disk; an empty list is the one half of that the
+  // detail response can answer on its own, and the other half stays where it
+  // is measured rather than being guessed at here.
+  if (terv.narraciok.length === 0) return 'Ehhez a tervhez még nincs narráció-fájl; előbb a Narráció kérése kell.'
+  if (futoRender !== null) return `Ezen a videón már fut egy render (${futoRender.renderId}); a modul egyszerre egyet enged.`
+  if (lezart) return 'A videó le van zárva, a modul nem dolgozik rajta tovább.'
+  if (dolgozik) return 'A render indítása elment, a válaszra várok.'
+  return null
+}
+
+/** A lever and, when it is dark, the sentence saying why. */
+function Lepes({ cimke, ok, onKattint }: { cimke: string; ok: string | null; onKattint: () => void }) {
+  return (
+    <div className="vid-lepes">
+      <button type="button" className="vid-btn" disabled={ok !== null} onClick={onKattint}>{cimke}</button>
+      {ok !== null && <span className="vid-muted vid-lepes-ok">{ok}</span>}
+    </div>
+  )
+}
+
+/**
  * The header's second line, with the empty parts left out.
  *
  * Built from a list rather than concatenated, because a video opened by nobody
@@ -187,7 +262,7 @@ export function metaSor(video: VideoDetail): string {
 }
 
 /** The panels for a loaded video. Split out so the test can render one without an effect. */
-export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtMs, onJelenet, onKuld, onLezar, onBack, uzenet }: {
+export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtMs, onJelenet, onKuld, onLezar, onBack, uzenet, narralas, renderInditas, onNarral, onRenderel }: {
   video: VideoDetail
   pont: { atMs: string; jelenet: string }
   szoveg: string
@@ -200,6 +275,12 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
   onLezar: () => void
   onBack: () => void
   uzenet: string | null
+  /** A `narral` call is out. It runs one tts call per scene, so this state can last minutes and the button says so while it does. */
+  narralas: boolean
+  renderInditas: boolean
+  /** Both take the plan id rather than reading it back out of the video: which plan is the latest is decided here, once, where the panel is drawn. */
+  onNarral: (tervId: string) => void
+  onRenderel: (tervId: string) => void
 }) {
   const status = statusLabel(video.status)
   const terv = video.tervek[video.tervek.length - 1]
@@ -207,6 +288,10 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
   // drawn from the newest FINISHED render and never from a running one whose
   // scene lengths are not written yet.
   const keszRender = video.renderek.find((r) => r.status === 'kesz') ?? null
+  const futoRender = video.renderek.find((r) => r.status === 'fut') ?? null
+  const lezart = video.status === 'lezart'
+  const narracioOk = narracioTiltasOka(terv, futoRender, lezart, narralas)
+  const renderOk = renderTiltasOka(terv, futoRender, lezart, renderInditas)
   const url = forrasUrl(video.forrasSzoveg, safeHref)
 
   return (
@@ -236,17 +321,25 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
               : <p className="vid-sec-lab">A forrás utolsó bekezdése nem http(s) url, ezért nincs megnyitható link.</p>}
           </Szekcio>
 
-          <Szekcio cim="Terv" ures={terv === undefined} uresSzoveg="Ehhez a videóhoz még nincs terv.">
-            {terv !== undefined && <TervPanel terv={terv} cim="Legfrissebb terv" />}
+          {/*
+            THE EMPTY SENTENCE IS A CHILD HERE RATHER THAN `uresSzoveg`,
+            because these two sections now carry a control as well, and
+            `Szekcio` draws `uresSzoveg` INSTEAD of its children. An empty
+            plan section with no button would be the one state in which the
+            operator cannot see what the next step is called.
+          */}
+          <Szekcio cim="Terv" ures={terv === undefined}>
+            {terv === undefined
+              ? <p className="vid-sec-ures">Ehhez a videóhoz még nincs terv.</p>
+              : <TervPanel terv={terv} cim="Legfrissebb terv" />}
+            <Lepes cimke="Narráció kérése" ok={narracioOk} onKattint={() => { if (terv !== undefined) onNarral(terv.id) }} />
           </Szekcio>
 
-          <Szekcio
-            cim="Renderek"
-            szam={video.renderek.length}
-            ures={video.renderek.length === 0}
-            uresSzoveg="Ehhez a videóhoz még nem indult render."
-          >
-            {video.renderek.map((r) => <RenderPanel key={r.renderId} render={r} />)}
+          <Szekcio cim="Renderek" szam={video.renderek.length} ures={video.renderek.length === 0}>
+            {video.renderek.length === 0
+              ? <p className="vid-sec-ures">Ehhez a videóhoz még nem indult render.</p>
+              : video.renderek.map((r) => <RenderPanel key={r.renderId} render={r} />)}
+            <Lepes cimke="Render indítása" ok={renderOk} onKattint={() => { if (terv !== undefined) onRenderel(terv.id) }} />
           </Szekcio>
         </div>
 
@@ -328,6 +421,8 @@ export function VideoView({ rpc, id, onBack }: { rpc: Rpc; id: string; onBack: (
   const [jelenet, setJelenet] = useState('')
   const [szoveg, setSzoveg] = useState('')
   const [kuldes, setKuldes] = useState(false)
+  const [narralas, setNarralas] = useState(false)
+  const [renderInditas, setRenderInditas] = useState(false)
   const [reload, setReload] = useState(0)
 
   useEffect(() => {
@@ -362,6 +457,56 @@ export function VideoView({ rpc, id, onBack }: { rpc: Rpc; id: string; onBack: (
       .catch((err: unknown) => setUzenet(`A lezárás nem sikerült: ${errorText(err)}`))
   }, [rpc, id])
 
+  /**
+   * The two mechanical levers, both read the same way.
+   *
+   * THREE OUTCOMES, THREE SENTENCES. A resolved answer carrying `hiba` is the
+   * module refusing by name and is printed as that name; a resolved answer
+   * without one is the act having happened; a rejected promise is the request
+   * never having reached the module, which is neither of the other two. The
+   * word "sikertelen" appears in none of them, because it would fold the
+   * three into one.
+   *
+   * On anything that happened the detail is reloaded rather than patched from
+   * the answer: what the operator then reads -- the measured scene lengths,
+   * the new render row and its status -- comes from the module's own rows,
+   * and this page never draws a state it inferred from a response.
+   */
+  const onNarral = useCallback((tervId: string) => {
+    setNarralas(true)
+    rpc('narral', { tervId })
+      .then((raw) => {
+        const hiba = refusalText(raw)
+        if (hiba !== null) { setUzenet(`A narráció nem készült el — ${hiba}`); return }
+        // `valtozatlan` is the module's own word for "every sentence already
+        // had its file", and it is not the same event as a set that was just
+        // synthesized. Reporting both as "kész" would hide a tts call that
+        // never had to happen -- and, on the other side, one that did.
+        const r = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+        setUzenet(r.valtozatlan === true
+          ? 'A narráció változatlan: minden mondathoz megvolt már a hangfájl.'
+          : 'A narráció elkészült; a mért hosszak a jelenetek alatt frissültek.')
+        setReload((n) => n + 1)
+      })
+      .catch((err: unknown) => setUzenet(`A narráció kérése el sem jutott a modulhoz: ${errorText(err)}`))
+      .finally(() => setNarralas(false))
+  }, [rpc])
+
+  const onRenderel = useCallback((tervId: string) => {
+    setRenderInditas(true)
+    rpc('renderel', { tervId })
+      .then((raw) => {
+        const hiba = refusalText(raw)
+        if (hiba !== null) { setUzenet(`A render nem indult el — ${hiba}`); return }
+        // Started, not finished: the row below says which, and keeps saying
+        // it as the render runs.
+        setUzenet('A render elindult; az állapotát a Renderek szekció mutatja.')
+        setReload((n) => n + 1)
+      })
+      .catch((err: unknown) => setUzenet(`A render indítása el sem jutott a modulhoz: ${errorText(err)}`))
+      .finally(() => setRenderInditas(false))
+  }, [rpc])
+
   const onPick = useCallback((pont: Pont) => {
     setAtMs(String(pont.atMs))
     setJelenet(pont.jelenet === null ? '' : String(pont.jelenet))
@@ -393,6 +538,10 @@ export function VideoView({ rpc, id, onBack }: { rpc: Rpc; id: string; onBack: (
         onKuld={onKuld}
         onLezar={onLezar}
         onBack={onBack}
+        narralas={narralas}
+        renderInditas={renderInditas}
+        onNarral={onNarral}
+        onRenderel={onRenderel}
       />
     </>
   )
