@@ -1084,6 +1084,32 @@ MSG
 
 **Ez zárja be a kört**, amiért a `managedResources.projects` host-kiegészítés a CRM-1-ben megszületett: a CRM projekt eddig üres volt.
 
+### Előfeltétel: a javaslat tudja meg, melyik ígéretből született
+
+**Ez a feladat egy rést zár be, amit a 6. feladat végrehajtója talált meg.**
+
+A `crm_suggestion_write` ma `trigger_kind`-ot és `trigger_event_id`-t rögzít, de
+**nem azt, hogy melyik ígéretből jött a javaslat.** Így amikor az operátor
+elfogad egy „ígéret feladat nélkül" javaslatot, a feladat létrejön, de az ígéret
+`task_id`-je üresen marad — és a figyelem-lista **örökre újra felhozza ugyanazt
+az ígéretet**, akkor is, ha az operátor már intézkedett.
+
+Ez pontosan az a jelenség, ami ellen az egész fázis szól: figyelmeztetés, amit a
+használó megtanul átlapozni. Ezért zárjuk itt, nem később.
+
+Négy apró lépés, mielőtt az elfogadás megíródik:
+
+1. **Új v6 migráció** (a v1–v5 bájtra érintetlen):
+   ```sql
+   ALTER TABLE ext_crm_suggestion ADD COLUMN commitment_id TEXT;
+   ```
+2. `writeSuggestion` fogadjon `commitmentId`-t (alap `null`) és írja be.
+3. `crm_suggestion_write` tegye közzé `commitmentId` néven, a leírásában azzal,
+   hogy **kötelező megadni, ha a javaslat a figyelem-lista `sajat_igeret` vagy
+   `idegen_igeret` sorából jött** — különben az ígéret nem tud lezárulni.
+4. Teszt: `writeSuggestion` `commitmentId`-vel visszaolvasható, és a mező
+   `null` marad, ha nem adták meg.
+
 - [ ] **Step 1: Bukó teszt**
 
 ```js
@@ -1111,6 +1137,27 @@ test('a javaslat elfogadasa feladatot ker a hosttol, es rogziti az azonositot', 
   assert.equal(b.customFields.crm_account, acc.id)
   assert.deepEqual(b.tags, ['crm'])
   assert.ok(b.fingerprint.includes(sug.id), 'a fingerprint a javaslatra mutat, hogy ne szulessen ketszer')
+})
+
+test('az igeretbol szuletett javaslat elfogadasa LEZARJA az igeretet is', async () => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const state = {
+    storage: S, repo, log: console, settings: () => ({}), portFile: '/tmp/nincs',
+    fetchImpl: async () => ({ ok: true, json: async () => ({ id: 'task_uj' }) }),
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({ name: 'X' })
+  const { event } = repo.recordEvent({ accountId: acc.id, kind: 'meeting',
+    occurredAt: '2026-09-01T10:00:00.000Z', excerpt: 'x', sourceSystem: 'manual', sourceId: 'm1' })
+  const igeret = repo.writeCommitment({ accountId: acc.id, eventId: event.id, text: 'Kuldom', direction: 'ours' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'Kuldd el', commitmentId: igeret.id })
+
+  assert.equal(repo.listCommitments({ openOnly: true }).length, 1, 'elotte meg nyitott')
+  await rpc.acceptSuggestion({ suggestionId: sug.id })
+  assert.equal(repo.listCommitments({ openOnly: true }).length, 0,
+    'az igeret lezarult, tehat nem jon vissza a figyelem-listara')
 })
 
 test('ismeretlen javaslatra nevesitett hiba', async () => {
@@ -1161,6 +1208,11 @@ Expected: FAIL — `rpc.acceptSuggestion is not a function`
       const taskId = res && res.id ? String(res.id) : ''
       if (!taskId) throw new Error('crm_feladat_nem_jott_letre')
       r.setSuggestionStatus(suggestionId, 'accepted')
+      // Ha a javaslat egy igeretbol jott, a feladat lezarja azt is. Enelkul a
+      // figyelem-lista orokre ujra felhozna ugyanazt az igeretet, mikozben az
+      // operator mar intezkedett -- es egy figyelmeztetes, ami nem mulik el,
+      // az, amit a hasznalo megtanul atlapozni.
+      if (sug.commitment_id) r.linkCommitmentTask(sug.commitment_id, taskId)
       return { suggestion: r.listSuggestions({}).find((s) => s.id === suggestionId), taskId }
     },
 ```
