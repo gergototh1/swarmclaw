@@ -1,3 +1,4 @@
+import { createAttention } from './attention-service.mjs'
 import { newId } from './ids.mjs'
 import { createSweep } from './sweep.mjs'
 
@@ -182,6 +183,11 @@ export function createRpc(state) {
     /** A söprés az operátor gombjáról. Ugyanaz a törzs, mint az eszközé. */
     async sweepNow({ max } = {}) {
       return createSweep(state).runSweep({ max: Number(max) || 50 })
+    },
+
+    /** A figyelem-lista a lapnak. Ugyanaz a törzs, mint a crm_attention eszközé. */
+    async attention({ limit } = {}) {
+      return createAttention(state).list({ limit: Number(limit) || 50 })
     },
 
     async setSuggestionStatus({ suggestionId, status }) {

@@ -1,3 +1,4 @@
+import { createAttention } from './attention-service.mjs'
 import { createSweep } from './sweep.mjs'
 
 /**
@@ -117,6 +118,17 @@ export function createTools(state) {
         const r = repo()
         if (!r.getEvent(eventId)) throw new Error('crm_ismeretlen_esemeny')
         return { content: r.getEventBody(eventId) }
+      },
+    },
+    {
+      name: 'crm_attention',
+      description: 'Mi igényel figyelmet, rangsorolva: néma nyitott ügyek, válasz nélküli levelek, és feladat nélküli ígéretek mindkét irányba. A sorrend és az ok determinisztikus -- ne számold újra, és ne találj ki mást; ebből ÍRJ, ne ebből következtess.',
+      parameters: {
+        type: 'object',
+        properties: { limit: { type: 'number', description: 'Legfeljebb ennyi sort adj vissza.' } },
+      },
+      async execute({ limit }) {
+        return createAttention(state).list({ limit: Number(limit) || 50 })
       },
     },
   ]

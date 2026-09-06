@@ -13,10 +13,15 @@ function toolsOf(contracts) {
   return { byName: Object.fromEntries(list.map((t) => [t.name, t])), repo: state.repo, list }
 }
 
-test('a CRM-2 ot eszkozt ad: negy olvasot es a sopres inditasat', () => {
+test('a CRM-3 hat eszkozt ad: negy olvasot, a sopres inditasat, es a figyelem-listat', () => {
   const { list } = toolsOf()
   assert.deepEqual(list.map((t) => t.name).sort(),
-    ['crm_account', 'crm_event_body', 'crm_search', 'crm_sweep', 'crm_timeline'])
+    ['crm_account', 'crm_attention', 'crm_event_body', 'crm_search', 'crm_sweep', 'crm_timeline'])
+})
+
+test('a CRM-3 utan hat eszkoz van, es a crm_attention koztuk', () => {
+  const { list } = toolsOf()
+  assert.ok(list.map((t) => t.name).includes('crm_attention'))
 })
 
 test('az ugynok tovabbra sem tud ugyfelet letrehozni vagy besorolatlant hozzarendelni', () => {

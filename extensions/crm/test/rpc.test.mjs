@@ -294,3 +294,48 @@ test('a sweepNow szerzodes hianyaban nevesitett hibat ad', async () => {
   const { rpc } = rpcOf()
   await assert.rejects(() => rpc.sweepNow({}), /crm_nincs_postafiok/)
 })
+
+test('az attention a beallitott kuszoboket hasznalja, nem beegetett szamokat', async () => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const state = { storage: S, repo, log: console, settings: () => ({ nemaNapok: 1 }) }
+  const rpc = createRpc(state)
+
+  const acc = repo.createAccount({ name: 'X' })
+  const deal = repo.createDeal({ accountId: acc.id, title: 'Nema ugy' })
+  repo.recordEvent({ accountId: acc.id, dealId: deal.id, kind: 'note',
+    occurredAt: new Date(Date.now() - 3 * 86400000).toISOString(),
+    excerpt: 'e', sourceSystem: 'manual', sourceId: 'n1' })
+
+  const r = await rpc.attention({})
+  assert.equal(r.kuszobok.nemaNapok, 1)
+  assert.ok(r.sorok.some((s) => s.kind === 'nema_ugy' && s.dealId === deal.id))
+})
+
+test('az attention az alapertekekre esik vissza, ha a beallitas ures', async () => {
+  const { rpc } = rpcOf()          // rpcOf settings-e ures objektumot ad
+  const r = await rpc.attention({})
+  assert.deepEqual(r.kuszobok, { nemaNapok: 9, valaszNapok: 3, igeretNapok: 2, idegenIgeretNapok: 7 })
+})
+
+/**
+ * Nem ugyanaz, mint a fenti teszt: ott a mező HIÁNYZIK a settings
+ * objektumból, itt az operátor kiürítette a mezőt, tehát üres string
+ * érkezik. A `Number('')` 0, és egy naiv `Number(x) ?? alapertek` a 0-t
+ * érvényes küszöbnek nézné -- ami azt jelentené, hogy minden nyitott ügyre
+ * azonnal jelezne. A kiürítés nem ezt kéri, hanem az alapértéket.
+ */
+test('az attention a kiuritett (ures string) kuszobmezot is alapertekre valtja, nem nullara', async () => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const state = { storage: S, repo, log: console, settings: () => ({ nemaNapok: '' }) }
+  const rpc = createRpc(state)
+
+  const acc = repo.createAccount({ name: 'X' })
+  repo.createDeal({ accountId: acc.id, title: 'Ugy' })
+
+  const r = await rpc.attention({})
+  assert.equal(r.kuszobok.nemaNapok, 9)
+})
