@@ -16,6 +16,26 @@ type Lap = {
   commitments: Commitment[]
 }
 
+/**
+ * A lapozott idővonal következő állapota: a már látott események, kiegészítve
+ * egy újonnan behúzott lappal.
+ *
+ * A repo (`src/db.mjs` `listEvents`) `beforeId`-vel hívva a `(occurred_at, id)`
+ * összetett kulcson lapoz, ugyanazon a rendezésen, mint amivel a lap maga
+ * érkezik -- ezért sem duplikálás, sem elhagyás nem fordulhat elő, még akkor
+ * sem, ha egy esemény `occurred_at`-ja pontosan egybeesik a határoló
+ * (legrégebbi látott) eseményével: a `beforeId` ezt az egyezést dönti el
+ * helyesen, ahelyett hogy a szigorú `occurred_at < before` egy ilyen egyező
+ * eseményt véglegesen kihagyna. Az itteni id szerinti szűrés emiatt ma is
+ * csak védekező jellegű, nem egy ismert hiba ellen szól -- de ártalmatlan,
+ * ezért marad.
+ */
+export function lapozottIdovonal(meglevo: Event[], ujOldal: Event[]): Event[] {
+  if (ujOldal.length === 0) return meglevo
+  const ismertIdk = new Set(meglevo.map((e) => e.id))
+  return [...meglevo, ...ujOldal.filter((e) => !ismertIdk.has(e.id))]
+}
+
 export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: string; onBack: () => void }) {
   const [lap, setLap] = useState<Lap | null>(null)
   const [hiba, setHiba] = useState('')
@@ -26,13 +46,50 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
   const [ujUgy, setUjUgy] = useState('')
   const [ujErtek, setUjErtek] = useState('')
   const [ujFajta, setUjFajta] = useState('lead')
+  const [nincsTobbEsemeny, setNincsTobbEsemeny] = useState(false)
+  const [teljesSzovegek, setTeljesSzovegek] = useState<Record<string, string>>({})
 
   const tolt = () => {
     rpc('account', { accountId })
-      .then((x) => { setLap(x as Lap); setHiba('') })
+      .then((x) => {
+        setLap(x as Lap)
+        setHiba('')
+        // Egy teljes lapújratöltés friss (legfeljebb 50, legújabb) eseményt
+        // hoz -- a korábbi lapozás állapota és a megnyitott teljes szövegek
+        // ehhez képest elavultak, különben egy régi esemény azonosítója alatt
+        // egy másik esemény törzse jelenhetne meg.
+        setNincsTobbEsemeny(false)
+        setTeljesSzovegek({})
+      })
       .catch((e: Error) => setHiba(e.message))
   }
   useEffect(tolt, [accountId, rpc])
+
+  const korabbiak = () => {
+    if (!lap || lap.events.length === 0) return
+    const legregebbi = lap.events[lap.events.length - 1]
+    rpc('timeline', { accountId, before: legregebbi.occurred_at, beforeId: legregebbi.id })
+      .then((x) => {
+        const uj = (x as { events: Event[] }).events
+        if (uj.length === 0) { setNincsTobbEsemeny(true); return }
+        // Funkcionális frissítő: a válasz akkor is a beérkezéskori (nem a
+        // kattintáskori) lapra épül, ha közben pl. egy jegyzetelés újratöltötte
+        // a lapot. Ha a lap időközben null lett, nincs mire visszaírni.
+        setLap((elozo) => (elozo ? { ...elozo, events: lapozottIdovonal(elozo.events, uj) } : elozo))
+        setHiba('')
+      })
+      .catch((e: Error) => setHiba(e.message))
+  }
+
+  const teljesSzoveget = (eventId: string) => {
+    rpc('eventBody', { eventId })
+      .then((x) => {
+        const tartalom = (x as { content: string }).content
+        setTeljesSzovegek((elozo) => ({ ...elozo, [eventId]: tartalom }))
+        setHiba('')
+      })
+      .catch((e: Error) => setHiba(e.message))
+  }
 
   const jegyzetel = () => {
     if (!jegyzet.trim()) return
@@ -164,14 +221,32 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
         <button onClick={jegyzetel}>Rögzít</button>
       </div>
       <ul className="crm-idovonal">
-        {lap.events.map((e) => (
-          <li key={e.id}>
-            <time dateTime={e.occurred_at}>{e.occurred_at.slice(0, 16).replace('T', ' ')}</time>
-            <span className="crm-cimke">{e.kind}</span>
-            {e.title && <strong>{e.title}</strong>} {e.excerpt}
-          </li>
-        ))}
+        {lap.events.map((e) => {
+          const teljes = teljesSzovegek[e.id]
+          return (
+            <li key={e.id}>
+              <time dateTime={e.occurred_at}>{e.occurred_at.slice(0, 16).replace('T', ' ')}</time>
+              <span className="crm-cimke">{e.kind}</span>
+              {e.title && <strong>{e.title}</strong>}
+              {teljes === undefined
+                ? (
+                  <>
+                    {' '}{e.excerpt}
+                    <button onClick={() => teljesSzoveget(e.id)}
+                            aria-label={`${e.title || e.kind} teljes szövege`}>Teljes szöveg</button>
+                  </>
+                )
+                /* Az idegen szöveg (a levél törzse) sima szövegcsomópontként kerül
+                   a JSX-be -- soha nem dangerouslySetInnerHTML-lel --, hogy egy
+                   levélbe rejtett jelölés ne válhasson a felület részévé. */
+                : <p className="crm-torzs">{teljes}</p>}
+            </li>
+          )
+        })}
       </ul>
+      {!nincsTobbEsemeny && lap.events.length > 0 && (
+        <button onClick={korabbiak} aria-label="Korábbi események betöltése">Korábbiak</button>
+      )}
     </section>
   )
 }

@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url'
  */
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
-const EXTENSIONS = ['aisignal', 'docs', 'video']
+const EXTENSIONS = ['aisignal', 'docs', 'video', 'crm']
 
 /** The two lines that are allowed to differ, and what each must say. */
 const PER_EXTENSION = [

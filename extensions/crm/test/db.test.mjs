@@ -141,6 +141,56 @@ test('az idővonal a legfrissebbel kezd és lapozható', () => {
   assert.equal(repo.lastEventAt(acc.id), '2026-09-03T10:00:00.000Z')
 })
 
+test('a lapozás egy occurred_at-on osztozó csoportot sem nem ismétel, sem el nem hagy', () => {
+  // A Gmail internalDate másodperc-pontos, tehát az egyezés rutin, nem
+  // kivétel -- egy söprés akár 50 levelet is felvehet egy futásban. A
+  // reprodukció: HÁROM esemény pontosan ugyanazon az occurred_at-on, limit 2
+  // mellett -- ez a lapméretnél nagyobb egyezés-csoport. Tiebreak nélkül az
+  // első lap tetszőleges kettőt ad vissza a háromból (SQLite nem ígér
+  // sorrendet az egyenlő kulcsok között), a `before` erre az egyező
+  // occurred_at-ra áll, és a második lap egy szigorú `occurred_at < before`
+  // határral a maradék harmadikat *soha* nem adja vissza -- az véglegesen
+  // kimarad, függetlenül attól, hogy az első lap melyik kettőt választotta.
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const t = '2026-09-01T10:00:00.000Z'
+  const { event: a } = repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: t,
+    excerpt: 'a', sourceSystem: 'manual', sourceId: 'tie_a' })
+  const { event: b } = repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: t,
+    excerpt: 'b', sourceSystem: 'manual', sourceId: 'tie_b' })
+  const { event: c } = repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: t,
+    excerpt: 'c', sourceSystem: 'manual', sourceId: 'tie_c' })
+
+  const osszes = []
+  let before
+  let beforeId
+  for (let i = 0; i < 10; i += 1) {
+    const page = repo.listEvents({ accountId: acc.id, before, beforeId, limit: 2 })
+    if (page.length === 0) break
+    osszes.push(...page)
+    const utolso = page[page.length - 1]
+    before = utolso.occurred_at
+    beforeId = utolso.id
+  }
+  assert.deepEqual(osszes.map((e) => e.id).sort(), [a.id, b.id, c.id].sort())
+  assert.equal(new Set(osszes.map((e) => e.id)).size, 3, 'egy esemény sem ismétlődhet a lapok között')
+})
+
+test('a listEvents beforeId nélkül a régi, szigorú occurred_at < ? határt tartja (visszafele kompatibilis)', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const t = '2026-09-01T10:00:00.000Z'
+  repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: t, excerpt: 'a',
+    sourceSystem: 'manual', sourceId: 'tie_a' })
+  repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: t, excerpt: 'b',
+    sourceSystem: 'manual', sourceId: 'tie_b' })
+  // beforeId nélkül, ugyanarra az occurred_at-ra a régi hívó a régi
+  // (hiányos) viselkedést kapja: a `before`-ral egyező occurred_at-ú sorok
+  // kimaradnak, mert a határ szigorúan `<`.
+  const next = repo.listEvents({ accountId: acc.id, before: t, limit: 10 })
+  assert.equal(next.length, 0)
+})
+
 test('esemény nélküli ügyfélnél a lastEventAt pontosan null', () => {
   const { repo } = repoOf()
   const acc = repo.createAccount({ name: 'X' })
@@ -183,6 +233,33 @@ test('az összefoglaló elavul, amint újabb esemény jön', () => {
   repo.writeSummary({ accountId: acc.id, text: 'régi', agentId: 'ag1' })
   repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: '2026-09-05T10:00:00.000Z',
                      excerpt: 'e2', sourceSystem: 'manual', sourceId: 'n2' })
+
+  const s = repo.latestSummary(acc.id)
+  assert.equal(s.stale, true)
+  assert.equal(s.newerEvents, 1)
+})
+
+test('az összefoglaló elavul, ha egy új esemény a fedezett eseménnyel egy másodpercre esik', () => {
+  // A Gmail internalDate másodperc-pontos: két esemény megoszthat egy
+  // occurred_at-ot. A `covers_event_at`-ra való egyszerű `>` összehasonlítás
+  // ekkor nem számolja el a másodikat -- a `covers_event_id`-t (és az azzal
+  // vett összetett rendezést) kell nézni, nem csak az időbélyeget.
+  const { repo, S } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const t = '2026-09-01T10:00:00.000Z'
+  repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: t, excerpt: 'e1',
+    sourceSystem: 'manual', sourceId: 'n1' })
+  const sum = repo.writeSummary({ accountId: acc.id, text: 'x', agentId: 'ag1' })
+  assert.notEqual(sum.covers_event_id, '')
+
+  // Egy második esemény, szándékosan ugyanazon a másodpercen, és
+  // szándékosan olyan id-vel, ami a fedezett esemény id-je UTÁN rendeződik
+  // -- közvetlen SQL-beszúrással, hogy az id ne a véletlenre legyen bízva.
+  S.exec(
+    `INSERT INTO ext_crm_event (id, account_id, kind, occurred_at, excerpt, source_system, source_id, thread_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, '', ?)`,
+    ['evt_ffffffffffffffff', acc.id, 'note', t, 'e2', 'manual', 'n2', new Date().toISOString()],
+  )
 
   const s = repo.latestSummary(acc.id)
   assert.equal(s.stale, true)
@@ -247,4 +324,41 @@ test('a javaslat státusza módosítható, és utána kikerül az "new" listáb�
 test('az ismeretlen javaslat státusz-állítása pontosan null-t ad', () => {
   const { repo } = repoOf()
   assert.strictEqual(repo.setSuggestionStatus('sug_nincs', 'dismissed'), null)
+})
+
+test('a sopres-allapot irhato es visszaolvashato', () => {
+  const { repo } = repoOf()
+  assert.equal(repo.getSweepState('gmail'), null)
+  repo.setSweepState('gmail', { cursor: 'c1', lastSeenAt: '2026-09-01T10:00:00.000Z' })
+  assert.equal(repo.getSweepState('gmail').cursor, 'c1')
+  repo.setSweepState('gmail', { cursor: 'c2', lastSeenAt: '2026-09-02T10:00:00.000Z' })
+  assert.equal(repo.getSweepState('gmail').cursor, 'c2', 'a masodik iras felulir, nem duplikal')
+})
+
+test('accountIdByThread a szal mar besorolt uzenetebol dolgozik', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-09-01T10:00:00.000Z',
+                     excerpt: 'e', sourceSystem: 'gmail', sourceId: 'msg_1', threadId: 'thr_1' })
+  assert.equal(repo.accountIdByThread('thr_1'), acc.id)
+  assert.equal(repo.accountIdByThread('thr_nincs'), null)
+})
+
+test('accountIdByThread ures szal-azonositora null, akkor is ha van kezi esemeny ures thread_id-vel', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  // A kezi esemeny thread_id-je az oszlop alapertekebol '' -- ez nem tartozhat
+  // egyetlen szalhoz sem, tehat egy ures kereses nem adhatja vissza ennek az
+  // ugyfelnek az id-jet.
+  repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: '2026-09-01T10:00:00.000Z',
+                     excerpt: 'e', sourceSystem: 'manual', sourceId: 'note:1' })
+  assert.equal(repo.accountIdByThread(''), null)
+})
+
+test('accountsByDomain csak a pontos domain-egyezest adja', () => {
+  const { repo } = repoOf()
+  const a = repo.createAccount({ name: 'A', domains: ['morvai.hu'] })
+  repo.createAccount({ name: 'B', domains: ['mas.hu'] })
+  assert.deepEqual(repo.accountsByDomain('morvai.hu'), [a.id])
+  assert.deepEqual(repo.accountsByDomain('nincs.hu'), [])
 })

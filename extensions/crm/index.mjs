@@ -1,4 +1,5 @@
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { createMcpBridge } from './src/mcp-bridge.mjs'
 import { createRpc } from './src/rpc.mjs'
 import { createTools } from './src/tools.mjs'
 
@@ -22,6 +23,7 @@ export const state = {
   log: console,
   oauth: null,
   repo: null,
+  contracts: null,
 }
 
 const crm = {
@@ -35,9 +37,25 @@ const crm = {
     state.log = ctx.log
     state.oauth = ctx.oauth
     state.repo = createRepo(ctx.storage)
+    state.contracts = ctx.contracts
   },
   tools: createTools(state),
-  rpc: createRpc(state),
+  rpc: { ...createRpc(state), ...createMcpBridge(() => crm.tools) },
+  /**
+   * A `gmail` extension postafiók-szerződése. Ez az EGYETLEN út a levelekhez:
+   * egy nem deklarált hívás `not_declared`-del null-t kap, akkor is, ha a
+   * szolgáltató ott van és fut.
+   *
+   * A verzió pontos egyezést kér. Egy másik verzió alatti olvasás pont az a
+   * csendben rossz válasz, amit az egész elrendezés elkerülni hivatott: a
+   * mezők elmozdulnának, a kód meg futna tovább.
+   */
+  consumes: [{
+    extension: 'gmail',
+    contract: 'mailbox',
+    version: 1,
+    reason: 'Behúzza a leveleket az ügyfelek idővonalára: listáz, egy levelet beolvas, és a szövegét saját eseményként tárolja. Küldeni nem küld.',
+  }],
   managedResources: {
     projects: [{
       projectKey: 'crm',
@@ -51,8 +69,15 @@ const crm = {
       ],
     }],
     setupChecks: [
+      // A CRM-2 ide is megérkezett: a "Levelek behúzása" gomb és a
+      // `crm_sweep` eszköz enélkül a szerződés nélkül nevesített hibával áll
+      // (`mailboxHealth`, `sweep.mjs`). `required` marad `false`: az
+      // ügyfél/ügy/jegyzet kézi kezelés Gmail nélkül is teljes értékű, tehát
+      // egy hiányzó gmail extension nem teszi az egész CRM-et
+      // használhatatlanná, csak a levél-behúzást állítja le -- nem minden
+      // telepítésnek kell emiatt megállnia.
       { checkKey: 'gmail_extension', displayName: 'Gmail extension telepítve',
-        description: 'Enélkül az email-behúzás áll. A CRM-1 nem használja; a CRM-2-től kell.',
+        description: 'Enélkül a "Levelek behúzása" (söprés) áll -- az ügyfél- és ügykezelés Gmail nélkül is működik.',
         kind: 'manual', required: false },
     ],
   },
@@ -80,6 +105,14 @@ const crm = {
         help: 'Ennyi nap után jelez egy elhangzott ígéretre, amiből nem lett feladat.' },
       { key: 'idegenIgeretNapok', label: 'Nekem ígért dolog küszöbe (nap)', type: 'number', defaultValue: 7,
         help: 'Lazább, mint a sajátod: egy tőled elvárt és egy neked ígért dolog nem egyforma sürgős.' },
+      // A söprés listázását határoló két mező (lásd src/sweep.mjs). Enélkül
+      // a Gmail-lista a SPAM és a TRASH kivételével MINDENT visszaad --
+      // a SENT és a DRAFT mappát is --, és egy első söprés a postafiók teljes
+      // előzményét végigjárná.
+      { key: 'sopresCimke', label: 'Söprés Gmail-címkéje', type: 'text', defaultValue: 'INBOX',
+        help: 'A söprés csak ebből a Gmail-címkéből húz be leveleket. Tágítva (pl. üresre hagyva) a teljes postafiókot nézi, a saját küldött leveleidet is beleértve -- azok ekkor tévesen bejövő levélként kerülhetnek az idővonalra.' },
+      { key: 'sopresLekerdezes', label: 'Söprés Gmail-keresési szűrője', type: 'text', defaultValue: 'newer_than:90d',
+        help: 'Ez korlátozza, meddig megy vissza egy söprés. Kiürítve a postafiók teljes előzményét végigsöpri, ami egy régi postafióknál sokáig tarthat, és a besorolatlan sort régi levelekkel töltheti meg.' },
     ],
   },
 }

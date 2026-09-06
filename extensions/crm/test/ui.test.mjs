@@ -25,3 +25,50 @@ test('a bundle tartalmazza a kézi bevitel űrlapjait', async () => {
     assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
   }
 })
+
+test('a bundle tartalmazza a besorolatlan hozzárendelő sorát', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  for (const jel of ['Hozzárendel', 'Válassz kapcsolatot']) {
+    assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
+  }
+})
+
+test('a bundle tartalmazza a találgatást feloldó "összes kapcsolat" jelölőnégyzetet', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.ok(js.includes('Összes kapcsolat'), 'hiányzik a bundle-ből: Összes kapcsolat')
+})
+
+test('a bundle tartalmazza a lapozast es a szoveg-megnyitast', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  for (const jel of ['Korábbiak', 'Teljes szöveg']) {
+    assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
+  }
+})
+
+test('a bundle tartalmazza a sopres gombjat', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.ok(js.includes('Levelek behúzása'), 'hiányzik a bundle-ből: Levelek behúzása')
+})
+
+test('a bundle tartalmazza a nem iktatott hozzarendeles jelzeset', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.ok(js.includes('még nincs ügyfele'), 'hiányzik a bundle-ből: a nem iktatott hozzárendelés üzenete')
+})
+
+test('a bundle megkulonbozteti a postafiok-hivas elhasalasanak ket okat', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  for (const jel of [
+    'nincs beállítva Google OAuth kliens',
+    'GOOGLE_OAUTH_CLIENT_DESKTOP_ID',
+    'Hiányzik vagy lejárt a Gmail-hitelesítő',
+    'A hívás üzenete',
+  ]) {
+    assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
+  }
+})

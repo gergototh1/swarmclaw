@@ -1,7 +1,8 @@
 import { newId } from './ids.mjs'
 
 /**
- * A séma. Egy verzió, mert az extension még nem járt éles adaton.
+ * A séma. Az 1-es verzió már lefutott éles adaton -- ezért nem írható át,
+ * minden újabb tábla és oszlop új verziószámmal kerül a tömb végére.
  *
  * Két unique index hordozza a rendszer idempotenciáját: az `event` és az
  * `inbox_unmatched` `(source_system, source_id)` párja. A söprés emiatt
@@ -87,6 +88,48 @@ CREATE TABLE IF NOT EXISTS ext_crm_inbox_unmatched (
 CREATE UNIQUE INDEX IF NOT EXISTS ext_crm_inbox_unmatched_source
   ON ext_crm_inbox_unmatched (source_system, source_id);
 `,
+}, {
+  version: 2,
+  sql: `
+CREATE TABLE IF NOT EXISTS ext_crm_sweep_state (
+  key TEXT PRIMARY KEY, cursor TEXT NOT NULL DEFAULT '',
+  last_seen_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL
+);
+`,
+}, {
+  // A 2-es verzió is ugyanúgy nem írható át, mint az 1-es, akkor sem, ha ez az
+  // ág még nincs merge-elve: egy dev gépen, ahol a 2-es verzió már lefutott,
+  // az SQL utólagos szerkesztése azon a telepítésen nem csinál semmit (lásd
+  // `runExtensionMigrations` a hoszt `extension-storage.ts`-ében: egy verzió
+  // legfeljebb egyszer fut le, és soha nem fut újra). A `thread_id` ezért új,
+  // 3-as verzióban érkezik.
+  version: 3,
+  sql: `
+ALTER TABLE ext_crm_event ADD COLUMN thread_id TEXT NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS ext_crm_event_thread ON ext_crm_event (thread_id);
+`,
+}, {
+  // A besorolatlan sor mostantól a szál azonosítóját is viszi, hogy az rpc
+  // `assignUnmatched` a hozzárendeléskor a besorolt eseményre is rá tudja
+  // írni -- enélkül a hozzárendelés a címet tanítja meg, de a szálat nem.
+  // Additív, mint a 3-as: a v1, v2 és v3 SQL-je byte-identikus marad, ez csak
+  // egy oszlopot told hozzá egy már létező táblához.
+  version: 4,
+  sql: `
+ALTER TABLE ext_crm_inbox_unmatched ADD COLUMN thread_id TEXT NOT NULL DEFAULT '';
+`,
+}, {
+  // A `listEvents` mostantól `(occurred_at, id)` összetett kulcson rendez és
+  // lapoz (lásd a `listEvents` doc-ját) -- az `ext_crm_event_account`
+  // (account_id, occurred_at) indexe emiatt már nem fedi le teljesen a
+  // lekérdezést, minden lapnál egy külön rendezési lépést hagyva az
+  // occurred_at-on egyező sorokra. Additív, mint a 3-as és a 4-es: csak egy
+  // új indexet ad, a v1-v4 SQL-je byte-identikus marad.
+  version: 5,
+  sql: `
+CREATE INDEX IF NOT EXISTS ext_crm_event_account_occurred_id
+  ON ext_crm_event (account_id, occurred_at, id);
+`,
 }])
 
 const now = () => new Date().toISOString()
@@ -167,6 +210,24 @@ export function createRepo(storage) {
         ? S.all('SELECT * FROM ext_crm_account WHERE status = ? ORDER BY name', [status])
         : S.all('SELECT * FROM ext_crm_account ORDER BY name')
       return rows.map(accountOut)
+    },
+
+    /**
+     * Az ügyfelek id-i, akiknek `domains`-je pontosan tartalmazza ezt a
+     * domaint -- a `matching.mjs` 3. (tipp) ágának keresője.
+     *
+     * A `domains` JSON-tömbként van tárolva, tehát a szűrés memóriában
+     * történik (`listAccounts({})` + `domains.includes(d)`), nem SQL
+     * `LIKE`-kal. Egy szóló CRM ügyfélszámánál ez helyes döntés -- a
+     * CRM-1 `mustDeal`-jénél ugyanez a mérlegelés már megtörtént.
+     */
+    accountsByDomain(domain) {
+      const d = str(domain).toLowerCase()
+      if (!d) return []
+      return S.all('SELECT * FROM ext_crm_account ORDER BY name')
+        .map(accountOut)
+        .filter((acc) => acc.domains.includes(d))
+        .map((acc) => acc.id)
     },
 
     // ---- contact -------------------------------------------------------
@@ -300,17 +361,18 @@ export function createRepo(storage) {
      * viseli-e.
      */
     recordEvent({ accountId, dealId = null, contactId = null, kind, occurredAt,
-                  title = '', excerpt = '', sourceSystem = 'manual', sourceId, body = '' }) {
+                  title = '', excerpt = '', sourceSystem = 'manual', sourceId, body = '',
+                  threadId = '' }) {
       const id = newId('evt')
       return S.transaction(() => {
         S.exec(
           `INSERT INTO ext_crm_event
              (id, account_id, deal_id, contact_id, kind, occurred_at, title, excerpt,
-              source_system, source_id, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              source_system, source_id, thread_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(source_system, source_id) DO NOTHING`,
           [id, accountId, dealId, contactId, kind, occurredAt, str(title), str(excerpt),
-           sourceSystem, sourceId, now()],
+           sourceSystem, sourceId, str(threadId), now()],
         )
         const event = S.get(
           'SELECT * FROM ext_crm_event WHERE source_system = ? AND source_id = ?',
@@ -337,12 +399,37 @@ export function createRepo(storage) {
      * A `content` szándékosan nincs a SELECT-ben. Ha itt lenne, egy húsz
      * levelet és három leiratot tartó ügyfél minden lekérdezésnél
      * kontextus-ablakot töltene (spec 5.2).
+     *
+     * A rendezés `(occurred_at, id)` -- nem csak `occurred_at`. A Gmail
+     * `internalDate`-je másodperc-pontos, tehát két esemény egybeeshet; egy
+     * söprés akár 50 levelet is felvehet egy futásban, az egyezés rutin, nem
+     * kivétel. `id` tiebreak nélkül a SQLite nem ígér sorrendet az egyenlő
+     * `occurred_at`-ú sorok között, és egy szigorú `occurred_at < before`
+     * határ egy ilyen csoportot szétvágva véglegesen elveszíti a felét: az
+     * első lapra nem fért rá tag se a `< before`, se a `= before` mellett
+     * nem kerül elő többé.
+     *
+     * A `beforeId` ezért a `before` PÁRJA, nem helyettesítője. Ha a hívó
+     * nem adja meg (a régi hívók nem adják), a határ a régi, szigorú
+     * `occurred_at < ?` marad -- visszafele kompatibilis, mert egyetlen
+     * meglévő hívó viselkedése sem változik. Ha a hívó megadja (az rpc
+     * `timeline` és a `crm_timeline` eszköz az UI/ügynök felől kapott
+     * legrégebbi látott esemény id-jét küldi), a határ összetett: egy
+     * esemény korábbi, ha az occurred_at-ja kisebb, VAGY egyenlő és az id-je
+     * kisebb -- ugyanaz a rendezés, mint az ORDER BY-é, tehát a lapozás sem
+     * nem ismétel, sem el nem hagy semmit.
      */
-    listEvents({ accountId, before, limit = 50 }) {
+    listEvents({ accountId, before, beforeId, limit = 50 }) {
       const params = [accountId]
       let sql = 'SELECT * FROM ext_crm_event WHERE account_id = ?'
-      if (before) { sql += ' AND occurred_at < ?'; params.push(before) }
-      sql += ' ORDER BY occurred_at DESC LIMIT ?'
+      if (before && beforeId) {
+        sql += ' AND (occurred_at < ? OR (occurred_at = ? AND id < ?))'
+        params.push(before, before, beforeId)
+      } else if (before) {
+        sql += ' AND occurred_at < ?'
+        params.push(before)
+      }
+      sql += ' ORDER BY occurred_at DESC, id DESC LIMIT ?'
       params.push(limit)
       return S.all(sql, params)
     },
@@ -353,6 +440,28 @@ export function createRepo(storage) {
         [accountId],
       )
       return row && row.at ? row.at : null
+    },
+
+    /**
+     * Melyik ügyfélhez tartozik ez a levélszál, a szál már besorolt
+     * üzeneteiből -- a `matching.mjs` 2. ága ezt hívja.
+     *
+     * Üres szál-azonosítóra MINDIG null. A kézzel felvett esemény
+     * `thread_id`-je az oszlop alapértéke miatt `''`, tehát egy üres string
+     * `WHERE thread_id = ?` mellett bármelyik kézi eseményre illeszkedne, és
+     * egy tetszőleges (a hívó szempontjából véletlenszerű) ügyfelet adna
+     * vissza. A hívó (`matching.mjs`) ma truthiness-csekkel már kiszűri az
+     * üres szálat, de ez a védelem ide tartozik, nem a hívóhoz: egy jövőbeli
+     * hívó, ami ezt elfelejti, ne kapjon csendben rossz választ.
+     */
+    accountIdByThread(threadId) {
+      const id = str(threadId)
+      if (!id) return null
+      const row = S.get(
+        'SELECT account_id FROM ext_crm_event WHERE thread_id = ? LIMIT 1',
+        [id],
+      )
+      return row ? row.account_id : null
     },
 
     // ---- commitment ----------------------------------------------------
@@ -396,8 +505,14 @@ export function createRepo(storage) {
      * elavultság-jelzés udvariassági kérdéssé válna a tény helyett.
      */
     writeSummary({ accountId, dealId = null, text, agentId = '' }) {
+      // A `, id DESC` tiebreak ugyanaz a rendezés, mint a `listEvents`-é:
+      // ha két esemény egy másodpercre esik, a "legfrissebb" választása
+      // enélkül nem determinisztikus, és a `latestSummary` összetett
+      // összehasonlítása pontosan ehhez a sorhoz méri a "van-e újabb"
+      // kérdést -- a kettőnek ugyanazt a rendezést kell néznie.
       const newest = S.get(
-        'SELECT id, occurred_at FROM ext_crm_event WHERE account_id = ? ORDER BY occurred_at DESC LIMIT 1',
+        `SELECT id, occurred_at FROM ext_crm_event WHERE account_id = ?
+         ORDER BY occurred_at DESC, id DESC LIMIT 1`,
         [accountId],
       )
       const id = newId('sum')
@@ -416,6 +531,17 @@ export function createRepo(storage) {
      *
      * A `newerEvents` egy COUNT, nem modellhívás: az oldal és az ügynök is
      * ebből tudja, érdemes-e újat írni.
+     *
+     * Az összehasonlítás összetett: `(covers_event_at, covers_event_id)`,
+     * nem csak az időbélyeg. A Gmail `internalDate`-je másodperc-pontos, és
+     * egy söprés akár 50 levelet is felvehet egy futásban -- ha egy új
+     * esemény pontosan arra a másodpercre esik, mint a fedezett esemény, a
+     * puszta `occurred_at > covers_event_at` sosem igaz rá, és az elavultság
+     * -- amit a rendszer tényként hirdet, nem modell-becslésként -- némán
+     * hamis maradna. A `covers_event_id` pontosan ehhez van eltárolva: a
+     * `writeSummary` ugyanazzal a rendezéssel (`occurred_at DESC, id DESC`)
+     * választja a "legfrissebb" eseményt, amivel itt összevetünk, tehát a
+     * két hely nem térhet el egymástól.
      */
     latestSummary(accountId) {
       const summary = S.get(
@@ -423,9 +549,12 @@ export function createRepo(storage) {
         [accountId],
       )
       if (!summary) return null
+      const coversAt = summary.covers_event_at || ''
+      const coversId = summary.covers_event_id || ''
       const row = S.get(
-        'SELECT COUNT(*) AS n FROM ext_crm_event WHERE account_id = ? AND occurred_at > ?',
-        [accountId, summary.covers_event_at || ''],
+        `SELECT COUNT(*) AS n FROM ext_crm_event
+         WHERE account_id = ? AND (occurred_at > ? OR (occurred_at = ? AND id > ?))`,
+        [accountId, coversAt, coversAt, coversId],
       )
       const newerEvents = row ? row.n : 0
       return { summary, stale: newerEvents > 0, newerEvents }
@@ -459,18 +588,24 @@ export function createRepo(storage) {
     },
 
     // ---- inbox_unmatched ------------------------------------------------
+    /**
+     * `threadId` (v4) utazik a sorral, hogy az rpc `assignUnmatched` a
+     * hozzárendeléskor a besorolt eseményre is rá tudja írni a szálat -- a
+     * levél maga nem kerül a `matching.mjs` 2. ágába, amíg besorolatlan, de a
+     * szála attól még ismert, és a hozzárendelés pillanatában érdemes.
+     */
     recordUnmatched({ sourceSystem, sourceId, senderAddress = '', senderName = '', subject = '',
-                      excerpt = '', receivedAt, guessAccountId = null }) {
+                      excerpt = '', receivedAt, guessAccountId = null, threadId = '' }) {
       const id = newId('unm')
       return S.transaction(() => {
         S.exec(
           `INSERT INTO ext_crm_inbox_unmatched
              (id, source_system, source_id, sender_address, sender_name, subject, excerpt,
-              received_at, guess_account_id, state, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)
+              received_at, guess_account_id, thread_id, state, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)
            ON CONFLICT(source_system, source_id) DO NOTHING`,
           [id, sourceSystem, sourceId, normalizeAddress(senderAddress), str(senderName),
-           str(subject), str(excerpt), receivedAt, guessAccountId, now()],
+           str(subject), str(excerpt), receivedAt, guessAccountId, str(threadId), now()],
         )
         const row = S.get(
           'SELECT * FROM ext_crm_inbox_unmatched WHERE source_system = ? AND source_id = ?',
@@ -487,6 +622,26 @@ export function createRepo(storage) {
     resolveUnmatched(id) {
       S.exec("UPDATE ext_crm_inbox_unmatched SET state = 'assigned' WHERE id = ?", [id])
       return S.get('SELECT * FROM ext_crm_inbox_unmatched WHERE id = ?', [id]) || null
+    },
+
+    // ---- sweep_state ----
+    /**
+     * Hol tart a söprés. Egy sor forrásonként (`key`), mert a CRM-4 leiratai
+     * és a naptár saját kurzort visznek majd.
+     */
+    getSweepState(key) {
+      return S.get('SELECT * FROM ext_crm_sweep_state WHERE key = ?', [key]) || null
+    },
+
+    setSweepState(key, { cursor = '', lastSeenAt = '' } = {}) {
+      S.exec(
+        `INSERT INTO ext_crm_sweep_state (key, cursor, last_seen_at, updated_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET cursor = excluded.cursor,
+           last_seen_at = excluded.last_seen_at, updated_at = excluded.updated_at`,
+        [key, str(cursor), str(lastSeenAt), now()],
+      )
+      return S.get('SELECT * FROM ext_crm_sweep_state WHERE key = ?', [key])
     },
   }
 }
