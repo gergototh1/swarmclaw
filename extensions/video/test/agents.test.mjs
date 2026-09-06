@@ -261,6 +261,8 @@ async function collectAnswers() {
   keep('videoLessons', await run('videoLessons', { szerep: 'lektor' }, 'video-lektor', 's-lektor'))
   keep('videoCatalog', await run('videoCatalog', {}, 'video-gyarto'))
   keep('videoQueue', await run('videoQueue', {}, 'video-lektor', 's-lektor'))
+  // `note` above is the only open request, so this is `missed`'s own fix list -- the producer's read of it.
+  keep('videoFixes', await run('videoFixes', { videoId: missed.videoId }, 'video-gyarto'))
   keep('videoPlan', await run('videoPlan', { tervId: missed.terv.id }, 'video-lektor', 's-lektor'))
   const material = keep('videoReviewMaterial', await run('videoReviewMaterial', {}, 'video-lektor', 's-review'))
   assert.ok(material.fordulok.length > 0 && material.verdiktekVsQa.length > 0 && material.visszajelzesek.length > 0, JSON.stringify(material))
@@ -278,13 +280,16 @@ async function collectAnswers() {
  *
  * `propok`, `leirasok` and `sablonStat` are keyed by scene type;
  * `lektoriTalalat` by reviewer finding code; `meresek` by the fact names
- * `qa_gate.py` uses. Each of those key sets is checked somewhere else --
- * type names against the kit table, finding codes against LEKTOR_KODOK -- and
- * a prompt that listed the ten measurement names would be listing the port,
- * not telling the agent anything it acts on. What it acts on is `bukasok`,
- * whose entries the walk does collect.
+ * `qa_gate.py` uses; `jelenetenkent` (`videoFixes`) by the scene index a
+ * fix-request names, a string `optionalWhole` bounded 0..200 in `src/rpc.mjs`
+ * before it ever reaches a row. Each of those key sets is checked somewhere
+ * else -- type names against the kit table, finding codes against
+ * LEKTOR_KODOK, a scene index against the plan's own scene count -- and a
+ * prompt that listed two hundred possible scene indices would be listing the
+ * port, not telling the agent anything it acts on. What it acts on is each
+ * request's own fields, which the walk does collect.
  */
-const DYNAMIC_KEY_MAPS = new Set(['propok', 'leirasok', 'sablonStat', 'lektoriTalalat', 'meresek'])
+const DYNAMIC_KEY_MAPS = new Set(['propok', 'leirasok', 'sablonStat', 'lektoriTalalat', 'meresek', 'jelenetenkent'])
 /**
  * A scene object, recognised by the one key every scene carries. Its other
  * keys are catalogue prop names chosen by whoever wrote the plan, so they are
@@ -315,7 +320,7 @@ const fieldsOf = (answer) => {
 
 /** The tools whose answers each agent reads, by the declaration's own tool list plus the two the queue read covers. */
 const ANSWER_KEYS_FOR = Object.freeze({
-  'video-gyarto': ['videoOpen', 'videoDraft', 'videoNarrate', 'videoRender', 'videoRenderStatus', 'videoRenderStatus:hiba', 'videoCatalog', 'videoQueue', 'videoQueue:futo', 'videoPlan', 'videoLessons', 'videoPropose'],
+  'video-gyarto': ['videoOpen', 'videoDraft', 'videoNarrate', 'videoRender', 'videoRenderStatus', 'videoRenderStatus:hiba', 'videoCatalog', 'videoQueue', 'videoQueue:futo', 'videoPlan', 'videoLessons', 'videoPropose', 'videoFixes'],
   'video-lektor': ['videoVerdict', 'videoReviewMaterial', 'videoReviewClose', 'videoCatalog', 'videoQueue', 'videoQueue:futo', 'videoPlan', 'videoLessons', 'videoPropose'],
 })
 
@@ -632,6 +637,8 @@ const AGENT_EXEMPT = Object.freeze({
     maNyilt: 'same: how many videos opened today',
     hibaKod: 'the last render error of a `render_hiba` video. Naming the list is what the reviewer needs; acting on the code is the producer\'s',
     cache: 'whether a narration mp3 came from the tts cache. Never on a reviewer answer; pooled here only because both agents share the field walk',
+    javitasVar: 'videos an operator asked to fix. The reviewer has no `videoFixes` or revise tool and does not judge a delivered video a second time',
+    kerdesek: 'how many open requests one `javitasVar` entry has; same reasoning as `javitasVar` itself',
   },
 })
 

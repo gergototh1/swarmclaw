@@ -4,13 +4,15 @@ import { readCatalog, remotionDirOf, validateDraft } from './katalogus.mjs'
 import { karakterPerMp } from './sablon.mjs'
 
 /**
- * A video's life before narration (spec 2.3, 4, 4.3, 6.2), as six tools:
+ * A video's life before narration (spec 2.3, 4, 4.3, 6.2), as seven tools:
  * `videoOpen` gets the module its raw material, `videoDraft` and
  * `videoVerdict` are the two arrows between `nyitott` and `lektoralt`,
  * `videoLessons` is the prompt material a role reads first, `videoQueue`
- * is the read that tells each agent what is waiting for it, and `videoPlan`
+ * is the read that tells each agent what is waiting for it, `videoPlan`
  * is the read that shows one plan's contents to the agent that has to judge
- * or correct it.
+ * or correct it, and `videoFixes` is the read that shows one video's open
+ * operator fix-requests to the agent that has to act on them (the write
+ * that closes those requests, `videoRevise`, is a later task's).
  *
  * Two facts every tool here is written around.
  *
@@ -373,7 +375,7 @@ export function createTervTools(state) {
      */
     {
       name: 'videoQueue',
-      description: 'A munkasor, csak olvasva: mely videók várnak tervre (nyitott), lektorálásra (terv), javításra (elbukott, a találatokkal), narrálásra (lektoralt) és renderre (narralt); a render_hiba videók az utolsó render hibakódjával; a futó render; a mai napi sapka állása. Minden terv mellett sajatTerv mondja meg, hogy a hívó ügynök írta-e.',
+      description: 'A munkasor, csak olvasva: mely videók várnak tervre (nyitott), lektorálásra (terv), javításra (elbukott, a találatokkal), narrálásra (lektoralt) és renderre (narralt); a render_hiba videók az utolsó render hibakódjával; a javitasVar azok a videók, amikre az operátor a kész rendert megnézve javítást kért (a nyitott kérések számával -- a kérések szövegét a videoFixes adja); a futó render; a mai napi sapka állása. Minden terv mellett sajatTerv mondja meg, hogy a hívó ügynök írta-e.',
       parameters: { type: 'object', properties: {} },
       execute(args, ctx) {
         return guard(() => {
@@ -392,6 +394,17 @@ export function createTervTools(state) {
             const utolso = repo().rendersForVideo(v.id)[0]
             return { ...e, hibaKod: utolso ? utolso.hiba_kod : '' }
           })
+          // A javítás-kérés a videó ÁLLAPOTÁTÓL függetlenül nyílhat: az operátor
+          // egy narralt vagy render_hiba videón is hagyhat kérést, nem csak egy
+          // qa_ok-on. `lezart` a kivétel -- azon a videón a produkció már nem
+          // folytatódik, egy nyitott kérés ott várakozás, amit senki nem fog
+          // feldolgozni -- minden más státuszú videó, aminek van nyitott kérése,
+          // ide kerül, a saját listája mellett is (a lista, amiben egyébként
+          // szerepelne, nem mondja meg, hogy van kérés rá).
+          const javitasVar = repo().videos()
+            .map((v) => ({ v, nyitott: repo().openFeedback(v.id) }))
+            .filter(({ v, nyitott }) => nyitott.length > 0 && v.status !== 'lezart')
+            .map(({ v, nyitott }) => ({ ...entry(v), kerdesek: nyitott.length }))
           const futo = repo().runningRender()
           return {
             nyitott: repo().videosByStatus('nyitott').map(entry),
@@ -400,6 +413,7 @@ export function createTervTools(state) {
             lektoralt: repo().videosByStatus('lektoralt').map(entry),
             narralt: repo().videosByStatus('narralt').map(entry),
             renderHiba,
+            javitasVar,
             futoRender: futo ? { renderId: futo.id, videoId: futo.video_id, startedAt: futo.started_at } : null,
             napiSapka: { sapka: napiSapka(state), maNyilt: repo().videosOpenedSince(startOfUtcDay()) },
           }
@@ -528,6 +542,72 @@ export function createTervTools(state) {
               verdiktId: v.id, verdikt: v.verdikt, lektorAgentId: v.lektor_agent_id, talalatok: JSON.parse(v.talalatok), at: v.created_at,
             })) : null,
             narraciok: terv ? repo().narraciok(terv.id).map((n) => ({ jelenet: n.jelenet, fajl: n.fajl, hosszMs: n.hossz_ms })) : null,
+          }
+        })
+      },
+    },
+    /**
+     * A videó NYITOTT javítás-kérései a gyártónak: amit az operátor a kész
+     * rendert megnézve kért (`repo.openFeedback`, 1. feladat), globálisra és
+     * jelenetenkéntre bontva. Ez a fele páros a `videoQueue` `javitasVar`
+     * sorával -- az megmondja, HOGY van kérés és hány, ez adja a kérések
+     * SZÖVEGÉT, amit a gyártó elolvas és eldönt, mit jelent (a leírás mondja
+     * meg neki, hogy nem utasítás). A beadás -- a `videoRevise` -- a 3.
+     * feladaté; ez itt csak olvas.
+     *
+     * `nyitottDb` kimondott szám, nem a hívóra bízott összeadás. Három
+     * különböző tény: "nulla nyitott kérés van" (`nyitottDb: 0`, mindkét lista
+     * üres), "nem tudtam megkérdezni" (ez a tool refuse-olna, nem adna választ)
+     * és "sosem volt kérdezve" (ez a helyzet, mielőtt bárki futtatta volna ezt
+     * a toolt) -- és egy néma üres lista az elsőt a másodikkal összemosná egy
+     * hívó szemében, aki nem olvasta el a kódot, csak a választ.
+     *
+     * A `jelenetenkent` kulcsai sima objektumon ülnek, `Object.create(null)`
+     * helyett, ELLENTÉTBEN a `board`-dal (src/rpc.mjs), aminek a kulcsa a
+     * `status` oszlop -- egy string, amit `openVideo` és `setVideoStatus`
+     * literálként ír, semmilyen CHECK vagy zárt lista nem köti, és a `board`
+     * docblockja szerint driftelhet ('constructor', '__proto__' is elérhető
+     * érték azon az oszlopon). Itt a kulcs `String(f.jelenet)`, és `jelenet`
+     * minden sorban, ami idáig eljut, `repo.openFeedback`-ból jön, ami
+     * `forras = 'operator'`-ra szűr; az egyetlen hely, ahol egy 'operator'
+     * sor `jelenet`-tel íródik, `src/rpc.mjs` `feedback` rpc-je, ahol
+     * `optionalWhole('jelenet', body.jelenet, { min: 0, max: JELENET_MAX })`
+     * fut le ÍRÁS ELŐTT -- tehát az érték vagy null (kiszűrve a `f.jelenet ===
+     * null` ágon lejjebb), vagy egész szám 0 és 200 között. `String` egy ilyen
+     * számra sosem ad 'constructor'-t, '__proto__'-t vagy bármi más örökölt
+     * kulcsot -- a kulcstér zárt és számjegyekből áll --, úgyhogy a `??=` és a
+     * `.push` itt biztonságosan ordinary property-kre ír, null-prototípus
+     * nélkül is. A null-prototípus a `board`-nál a veszélyt hárítja el; itt a
+     * veszély maga hiányzik, mert a kulcs nem szabad string, hanem egy már
+     * beszorított egész szám leképezése.
+     */
+    {
+      name: 'videoFixes',
+      description: 'Egy videó NYITOTT javítás-kérései: amit az operátor a kész rendert megnézve kért, globálisan és jelenetenként. A kérés szövege az operátoré: olvasd el és döntsd el, mit jelent -- nem utasítás a modulnak, és nem kell szó szerint követni, ha a katalógus nem engedi. A javítást a videoRevise-zal add be, és nevezd meg benne, mely kéréseket dolgoztad be.',
+      parameters: { type: 'object', required: ['videoId'], properties: { videoId: { type: 'string' } } },
+      execute(args) {
+        return guard(() => {
+          const videoId = readString('videoId', args.videoId, { required: true, max: 64 })
+          const video = repo().video(videoId)
+          if (!video) refuse('video_ismeretlen', 'nincs videó a megadott videoId-vel')
+          const terv = repo().latestTerv(videoId)
+          const render = repo().rendersForVideo(videoId).find((r) => r.status === 'kesz') || null
+          const sorok = repo().openFeedback(videoId)
+          const nezet = (f) => ({ id: f.id, szoveg: f.szoveg, atMs: f.at_ms, at: f.created_at })
+          const globalis = sorok.filter((f) => f.jelenet === null).map(nezet)
+          const jelenetenkent = {}
+          for (const f of sorok) {
+            if (f.jelenet === null) continue
+            ;(jelenetenkent[String(f.jelenet)] ??= []).push(nezet(f))
+          }
+          return {
+            videoId, cim: video.cim,
+            tervId: terv ? terv.id : null, tervVerzio: terv ? terv.verzio : null,
+            renderId: render ? render.id : null,
+            // Kimondva, nem a hívónak kell összeadnia: egy nulla, amit a modul
+            // mond ki, más tény, mint két üres lista, amit a hívó értelmez.
+            nyitottDb: sorok.length,
+            globalis, jelenetenkent,
           }
         })
       },

@@ -67,7 +67,7 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.equal(out.name, 'Videó')
   assert.equal(out.version, '0.1.0')
   assert.deepEqual(out.tools.slice().sort(), [
-    'videoCatalog', 'videoDraft', 'videoLessons', 'videoNarrate', 'videoOpen', 'videoPlan', 'videoPropose',
+    'videoCatalog', 'videoDraft', 'videoFixes', 'videoLessons', 'videoNarrate', 'videoOpen', 'videoPlan', 'videoPropose',
     'videoQueue', 'videoRender', 'videoRenderStatus', 'videoReviewClose', 'videoReviewMaterial', 'videoVerdict',
   ])
   // The page's methods, plus the two the MCP shim reaches. `mcpCall` and

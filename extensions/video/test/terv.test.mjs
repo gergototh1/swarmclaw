@@ -42,6 +42,21 @@ function signalsOver(cards, { onList } = {}) {
   }
 }
 
+/**
+ * A video with a plan and a passing verdict -- the minimum `videoFixes` and
+ * `videoQueue` need to find one an operator could have left a fix-request
+ * on. Follows `keszVideo` (`test/rpc.test.mjs`): open through `repo`
+ * directly, not through the tools, because the fixture is the state after
+ * the plan/verdict cycle, not a test of that cycle.
+ */
+function keszTerv(repo) {
+  const { id: videoId } = repo.openVideo({ cim: 'Egy cím', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: 'forrás', nyitottaAgentId: 'gyarto-1' })
+  const terv = repo.insertTerv({ videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'kh', szerzoAgentId: 'gyarto-1', szerzoSessionId: 's1', ellenorzes: { figyelmeztetesek: [] } })
+  const verdikt = repo.insertVerdikt({ tervId: terv.id, tervHash: terv.tervHash, lektorAgentId: 'lektor-1', lektorSessionId: 's2', verdikt: 'atmegy', talalatok: [] })
+  repo.setVideoStatus(videoId, 'lektoralt')
+  return { videoId, tervId: terv.id, tervHash: terv.tervHash, verdiktId: verdikt.id }
+}
+
 test('the extension declares the catalogue tool and the five plan tools, in that order, each name once', () => {
   const mine = ['videoCatalog', 'videoOpen', 'videoDraft', 'videoVerdict', 'videoLessons', 'videoQueue']
   const names = video.tools.map((t) => t.name)
@@ -274,7 +289,7 @@ test('videoLessons returns the active lessons of the role, newest first, capped 
 test('videoQueue lists every waiting video by status with its latest plan, flags the caller as author, and reports the cap and the running render', async () => {
   const { repo, run } = setup({ settings: { napiSapka: 9 } })
   const empty = await run('videoQueue', {})
-  assert.deepEqual(empty, { nyitott: [], terv: [], elbukott: [], lektoralt: [], narralt: [], renderHiba: [], futoRender: null, napiSapka: { sapka: 9, maNyilt: 0 } })
+  assert.deepEqual(empty, { nyitott: [], terv: [], elbukott: [], lektoralt: [], narralt: [], renderHiba: [], javitasVar: [], futoRender: null, napiSapka: { sapka: 9, maNyilt: 0 } })
   const nyitott = await run('videoOpen', { forras: 'kezi', szoveg: 'egy', cim: 'Egy' })
   const terv = await run('videoOpen', { forras: 'kezi', szoveg: 'kettő', cim: 'Kettő' })
   const t2 = await run('videoDraft', { videoId: terv.videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO })
@@ -411,4 +426,45 @@ test('videoPlan hands back one plan version whole, with the source text, the ear
   // The narration rows the reviewer measures a sentence against.
   repo.replaceNarraciok(v2.tervId, [{ tervHash: v2.tervHash, jelenet: 0, szovegHash: 'h', hang: 'Kenji', modell: 'm', nyelv: 'hu', fajl: 'narracio/swarmclaw/a/b/0.mp3', hosszMs: 4000, ttsKeresId: '' }])
   assert.deepEqual((await run('videoPlan', { tervId: v2.tervId })).narraciok, [{ jelenet: 0, fajl: 'narracio/swarmclaw/a/b/0.mp3', hosszMs: 4000 }])
+})
+
+test('videoFixes a nyitott kéréseket adja, globálisra és jelenetre bontva', async () => {
+  const { repo, run } = setup()
+  const { videoId, tervId } = keszTerv(repo)
+  const g = repo.insertFeedback({ videoId, szoveg: 'a vége túl hosszú', forras: 'operator' })
+  const j = repo.insertFeedback({ videoId, jelenet: 2, atMs: 4200, szoveg: 'rossz a címke', forras: 'operator' })
+  repo.insertFeedback({ videoId, szoveg: 'analitikából', forras: 'import' })
+
+  const r = await run('videoFixes', { videoId })
+  assert.equal(r.error, undefined)
+  assert.deepEqual(r.globalis.map((x) => x.id), [g.id])
+  assert.deepEqual(r.jelenetenkent['2'].map((x) => x.id), [j.id])
+  assert.equal(r.jelenetenkent['2'][0].atMs, 4200)
+  assert.equal(r.tervId, tervId, 'a szülő terv, amiről a kérés szól')
+  assert.equal(JSON.stringify(r).includes('analitikából'), false, 'az importált sor nem kérés')
+})
+
+test('videoFixes megnevezi, ha nincs nyitott kérés — nem üres listát ad némán', async () => {
+  const { repo, run } = setup()
+  const { videoId } = keszTerv(repo)
+  const r = await run('videoFixes', { videoId })
+  assert.deepEqual(r.globalis, [])
+  assert.deepEqual(r.jelenetenkent, {})
+  assert.equal(r.nyitottDb, 0, 'a szám kimondja, hogy nulla — nem a hívónak kell összeadnia')
+})
+
+test('videoFixes ismeretlen videóra megnevezett hibát ad', async () => {
+  const { run } = setup()
+  const r = await run('videoFixes', { videoId: 'nincs-ilyen' })
+  assert.equal(r.error.code, 'video_ismeretlen')
+  assert.equal(r.error.message.includes('nincs-ilyen'), false, 'a hívó értéke nem kerül az üzenetbe')
+})
+
+test('videoQueue külön sorban hozza azokat a videókat, amikre javítást kértek', async () => {
+  const { repo, run } = setup()
+  const { videoId } = keszTerv(repo)
+  repo.insertFeedback({ videoId, szoveg: 'javítsd', forras: 'operator' })
+  const r = await run('videoQueue', {})
+  assert.deepEqual(r.javitasVar.map((x) => x.videoId), [videoId])
+  assert.equal(r.javitasVar[0].kerdesek, 1)
 })
