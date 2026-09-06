@@ -319,5 +319,139 @@ export function createRepo(storage) {
       )
       return row && row.at ? row.at : null
     },
+
+    // ---- commitment ----------------------------------------------------
+    writeCommitment({ accountId, dealId = null, eventId, text, direction = 'ours', dueHint = '' }) {
+      const id = newId('cmt')
+      const at = now()
+      S.exec(
+        `INSERT INTO ext_crm_commitment
+           (id, account_id, deal_id, event_id, text, direction, due_hint, task_id, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'open', ?, ?)`,
+        [id, accountId, dealId, eventId, str(text), direction, str(dueHint), at, at],
+      )
+      return S.get('SELECT * FROM ext_crm_commitment WHERE id = ?', [id])
+    },
+
+    linkCommitmentTask(id, taskId) {
+      S.exec('UPDATE ext_crm_commitment SET task_id = ?, updated_at = ? WHERE id = ?', [taskId, now(), id])
+      return S.get('SELECT * FROM ext_crm_commitment WHERE id = ?', [id]) || null
+    },
+
+    /** `openOnly` itt azt jelenti: nyitott ÉS még nincs feladata. Ez a spec 6. trigger-3-a. */
+    listCommitments({ accountId, direction, openOnly } = {}) {
+      const where = []
+      const params = []
+      if (accountId) { where.push('account_id = ?'); params.push(accountId) }
+      if (direction) { where.push('direction = ?'); params.push(direction) }
+      if (openOnly) where.push("status = 'open' AND task_id IS NULL")
+      return S.all(
+        `SELECT * FROM ext_crm_commitment${where.length ? ` WHERE ${where.join(' AND ')}` : ''}
+         ORDER BY created_at DESC`,
+        params,
+      )
+    },
+
+    // ---- summary -------------------------------------------------------
+    /**
+     * Összefoglaló. A `covers_event_id`-t EZ állítja be, nem a hívó.
+     *
+     * Ez a fejezet egyetlen fontos sora. Ha az ügynök adhatná meg, akkor
+     * állíthatná, hogy többet fedett le, mint amennyit elolvasott, és az
+     * elavultság-jelzés udvariassági kérdéssé válna a tény helyett.
+     */
+    writeSummary({ accountId, dealId = null, text, agentId = '' }) {
+      const newest = S.get(
+        'SELECT id, occurred_at FROM ext_crm_event WHERE account_id = ? ORDER BY occurred_at DESC LIMIT 1',
+        [accountId],
+      )
+      const id = newId('sum')
+      S.exec(
+        `INSERT INTO ext_crm_summary
+           (id, account_id, deal_id, text, covers_event_id, covers_event_at, generated_by_agent_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, accountId, dealId, str(text), newest ? newest.id : '', newest ? newest.occurred_at : '',
+         str(agentId), now()],
+      )
+      return S.get('SELECT * FROM ext_crm_summary WHERE id = ?', [id])
+    },
+
+    /**
+     * A legfrissebb összefoglaló, és hogy elavult-e.
+     *
+     * A `newerEvents` egy COUNT, nem modellhívás: az oldal és az ügynök is
+     * ebből tudja, érdemes-e újat írni.
+     */
+    latestSummary(accountId) {
+      const summary = S.get(
+        'SELECT * FROM ext_crm_summary WHERE account_id = ? ORDER BY created_at DESC LIMIT 1',
+        [accountId],
+      )
+      if (!summary) return null
+      const row = S.get(
+        'SELECT COUNT(*) AS n FROM ext_crm_event WHERE account_id = ? AND occurred_at > ?',
+        [accountId, summary.covers_event_at || ''],
+      )
+      const newerEvents = row ? row.n : 0
+      return { summary, stale: newerEvents > 0, newerEvents }
+    },
+
+    // ---- suggestion ----------------------------------------------------
+    writeSuggestion({ accountId, dealId = null, text, reason = '', triggerKind = '',
+                      triggerEventId = null, agentId = '' }) {
+      const id = newId('sug')
+      const at = now()
+      S.exec(
+        `INSERT INTO ext_crm_suggestion
+           (id, account_id, deal_id, text, reason, trigger_kind, trigger_event_id,
+            status, agent_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)`,
+        [id, accountId, dealId, str(text), str(reason), str(triggerKind), triggerEventId,
+         str(agentId), at, at],
+      )
+      return S.get('SELECT * FROM ext_crm_suggestion WHERE id = ?', [id])
+    },
+
+    setSuggestionStatus(id, status) {
+      S.exec('UPDATE ext_crm_suggestion SET status = ?, updated_at = ? WHERE id = ?', [status, now(), id])
+      return S.get('SELECT * FROM ext_crm_suggestion WHERE id = ?', [id]) || null
+    },
+
+    listSuggestions({ status } = {}) {
+      return status
+        ? S.all('SELECT * FROM ext_crm_suggestion WHERE status = ? ORDER BY created_at DESC', [status])
+        : S.all('SELECT * FROM ext_crm_suggestion ORDER BY created_at DESC')
+    },
+
+    // ---- inbox_unmatched ------------------------------------------------
+    recordUnmatched({ sourceSystem, sourceId, senderAddress = '', senderName = '', subject = '',
+                      excerpt = '', receivedAt, guessAccountId = null }) {
+      const id = newId('unm')
+      return S.transaction(() => {
+        S.exec(
+          `INSERT INTO ext_crm_inbox_unmatched
+             (id, source_system, source_id, sender_address, sender_name, subject, excerpt,
+              received_at, guess_account_id, state, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)
+           ON CONFLICT(source_system, source_id) DO NOTHING`,
+          [id, sourceSystem, sourceId, normalizeAddress(senderAddress), str(senderName),
+           str(subject), str(excerpt), receivedAt, guessAccountId, now()],
+        )
+        const row = S.get(
+          'SELECT * FROM ext_crm_inbox_unmatched WHERE source_system = ? AND source_id = ?',
+          [sourceSystem, sourceId],
+        )
+        return { row, created: row.id === id }
+      })
+    },
+
+    listUnmatched() {
+      return S.all("SELECT * FROM ext_crm_inbox_unmatched WHERE state = 'open' ORDER BY received_at DESC")
+    },
+
+    resolveUnmatched(id) {
+      S.exec("UPDATE ext_crm_inbox_unmatched SET state = 'assigned' WHERE id = ?", [id])
+      return S.get('SELECT * FROM ext_crm_inbox_unmatched WHERE id = ?', [id]) || null
+    },
   }
 }

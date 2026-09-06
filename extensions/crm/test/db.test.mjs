@@ -108,3 +108,84 @@ test('az idővonal a legfrissebbel kezd és lapozható', () => {
   assert.deepEqual(next.map((e) => e.excerpt), ['e1'])
   assert.equal(repo.lastEventAt(acc.id), '2026-09-03T10:00:00.000Z')
 })
+
+test('esemény nélküli ügyfélnél a lastEventAt pontosan null', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  assert.strictEqual(repo.lastEventAt(acc.id), null)
+})
+
+test('az updateDeal részleges patch-je nem nullázza a meg nem adott mezőket', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const d = repo.createDeal({ accountId: acc.id, title: 'Kickoff', stage: 'new',
+    valueHuf: 500000, kind: 'lead', expectedClose: '2026-10-01' })
+
+  const updated = repo.updateDeal(d.id, { title: 'Uj cim' })
+  assert.equal(updated.title, 'Uj cim')
+  assert.equal(updated.stage, 'new')
+  assert.equal(updated.value_huf, 500000)
+  assert.equal(updated.kind, 'lead')
+  assert.equal(updated.expected_close, '2026-10-01')
+})
+
+test('az összefoglaló a szerver által bélyegzett eseményig fedez', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: '2026-09-01T10:00:00.000Z',
+                     excerpt: 'e1', sourceSystem: 'manual', sourceId: 'n1' })
+  // Az ügynök NEM ad covers_event_id-t; a repo veszi a legfrissebbet.
+  repo.writeSummary({ accountId: acc.id, text: 'Az ügyfél vár egy ajánlatot.', agentId: 'ag1' })
+
+  const s = repo.latestSummary(acc.id)
+  assert.equal(s.stale, false)
+  assert.equal(s.newerEvents, 0)
+  assert.equal(s.summary.covers_event_at, '2026-09-01T10:00:00.000Z')
+})
+
+test('az összefoglaló elavul, amint újabb esemény jön', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: '2026-09-01T10:00:00.000Z',
+                     excerpt: 'e1', sourceSystem: 'manual', sourceId: 'n1' })
+  repo.writeSummary({ accountId: acc.id, text: 'régi', agentId: 'ag1' })
+  repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: '2026-09-05T10:00:00.000Z',
+                     excerpt: 'e2', sourceSystem: 'manual', sourceId: 'n2' })
+
+  const s = repo.latestSummary(acc.id)
+  assert.equal(s.stale, true)
+  assert.equal(s.newerEvents, 1)
+})
+
+test('az esemény nélküli ügyfélnek nincs összefoglalója', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  assert.equal(repo.latestSummary(acc.id), null)
+})
+
+test('a feladat nélküli saját ígéret külön kérdezhető', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const { event } = repo.recordEvent({ accountId: acc.id, kind: 'meeting',
+    occurredAt: '2026-09-01T10:00:00.000Z', excerpt: 'x', sourceSystem: 'manual', sourceId: 'm1' })
+  const mine = repo.writeCommitment({ accountId: acc.id, eventId: event.id,
+    text: 'Küldöm az ajánlatot', direction: 'ours' })
+  repo.writeCommitment({ accountId: acc.id, eventId: event.id,
+    text: 'Küldi a cégadatokat', direction: 'theirs' })
+
+  assert.equal(repo.listCommitments({ direction: 'ours', openOnly: true }).length, 1)
+  repo.linkCommitmentTask(mine.id, 'task_42')
+  assert.equal(repo.listCommitments({ direction: 'ours', openOnly: true }).length, 0)
+})
+
+test('a besorolatlan sor forrásra idempotens és lezárható', () => {
+  const { repo } = repoOf()
+  const args = { sourceSystem: 'gmail', sourceId: 'thr_9', senderAddress: 'a@b.hu',
+                 subject: 'Szia', receivedAt: '2026-09-01T10:00:00.000Z' }
+  assert.equal(repo.recordUnmatched(args).created, true)
+  assert.equal(repo.recordUnmatched(args).created, false)
+  assert.equal(repo.listUnmatched().length, 1)
+
+  repo.resolveUnmatched(repo.listUnmatched()[0].id)
+  assert.equal(repo.listUnmatched().length, 0)
+})
