@@ -42,6 +42,14 @@ A kérés a meglévő `ext_video_visszajelzesek` sor. Két új oszlop adja neki 
     kezelte_render_id TEXT    -- melyik render zárta le; NULL amíg nyitott
     kezelt_at         TEXT    -- mikor
 
+És a tervverzió megkapja, honnan jött:
+
+    ext_video_tervek.szarmazas    -- 'terv' | 'operator_javitas'
+    ext_video_tervek.javitas_idk  -- JSON: mely kéréseket dolgozta be
+
+A `javitas_idk` azért a verzión ül és nem a renderen, mert a bedolgozás a
+tervírás ténye; a render csak lezárja őket, amikor elkészült.
+
 **Nyitott** az a sor, amelyre `kezelte_render_id IS NULL` és `forras = 'operator'`.
 Az importált sorok (`forras = 'import'`, az analitikából) nem kérések: azok
 megfigyelések, és nem zárulnak.
@@ -53,6 +61,11 @@ pontosítás, nem külön tény.
 
 **Melyik renderről szól** — a meglévő `render_id`. Egy kérés arról a renderről
 szól, amit az operátor épp nézett; lezárni egy nála **későbbi** render tudja.
+
+**A szülő verzió** ebben a specben végig ugyanaz: az a tervverzió, amiből a
+kérés tárgyát képező render készült (`ext_video_renderek.terv_id`). Nem "a
+legfrissebb terv" — ha időközben született újabb, a javítás akkor is arról a
+tervről szól, amit az operátor látott.
 
 ---
 
@@ -82,7 +95,14 @@ közvetlenül futnak; ez nem az.
 
 A gyártó megnevezi, mely jeleneteket írja át, és mely kéréseket dolgozza be:
 
-    videoRevise({ videoId, jelenetek: [{ index, ...propok }], javitasIdk: [...] })
+    videoRevise({ videoId, jelenetek: [{ index, jelenet: { tipus, ...propok } }],
+                  narracio: [{ jelenet: index, szoveg }],
+                  javitasIdk: [...] })
+
+A `jelenetek` minden eleme a jelenet **teljes** objektuma, nem folt: a modul a
+szülő verzió listáját másolja, és a megnevezett indexeken cseréli. Így a
+beadás ugyanazon a `validateDraft`-on megy át, mint egy rendes terv, és nem
+keletkezik második, lazább út a katalógus-ellenőrzés mellett.
 
 A modul a szülő verzióból indul ki, és **ellenőrzi, hogy minden más jelenet
 bájtra azonos maradt**. Ha a gyártó hozzányúlt olyanhoz, amiről nem esett szó,
@@ -136,8 +156,10 @@ futás is rájuk találjon.
 
 ## 7. A lezárás
 
-Amikor a `videoRevise`-ból induló render `kesz` állapotba ér, a `javitasIdk`-ban
-megnevezett sorok megkapják a `kezelte_render_id`-t. A lapon a kérés mellett
+Amikor a render `kesz` állapotba ér, a modul kiolvassa a rendert szülő
+tervverzió `javitas_idk` mezőjét, és az ott megnevezett sorok megkapják a
+`kezelte_render_id`-t — egy tranzakcióban a render lezárásával, hogy ne
+létezhessen kész render lezáratlan kéréssel. A lapon a kérés mellett
 látszik, melyik render zárta.
 
 Ha a javítás nem sikerült, az operátor **új** kérést ír. A régi nem nyílik újra:
@@ -160,7 +182,8 @@ történt, nem arról, mi a jelenlegi vélemény.
 
 ## 9. Fájlok
 
-- Módosít: `extensions/video/src/db.mjs` (két oszlop + migráció, olvasások)
+- Módosít: `extensions/video/src/db.mjs` (négy oszlop két táblán + migráció,
+  olvasások: nyitott kérések videónként, lezárás renderre)
 - Módosít: `extensions/video/src/terv.mjs` (`videoFixes`, `videoRevise`, `videoQueue`)
 - Módosít: `extensions/video/src/render.mjs` (a kapu szűkítése, a lezárás)
 - Módosít: `extensions/video/src/rpc.mjs` (a lap javítás-kérése)
