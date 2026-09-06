@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import type { RenderRow, Rpc, Terv, VideoDetail, Visszajelzes } from './api'
 import { errorText, readVideo, refusalText } from './api'
 import { forrasUrl, formatDate, formatMs, jelenetTipus, mertSzoveg, propokSzoveg, renderStatusLabel, statusLabel } from './format'
 import { Idovonal, type Pont } from './idovonal'
+import { pontbolJelenet } from './idovonal-state'
 import { Lepes } from './lepes'
 import type { HostFetch, Megrendeles } from './megrendeles'
 import { HOST_FETCH, rendelj } from './megrendeles'
@@ -672,6 +673,56 @@ export function metaSor(video: VideoDetail): string {
   return reszek.filter((r) => r !== '').join(' · ')
 }
 
+/**
+ * A kész render fájljának url-je a host saját kiszolgáló útvonalán.
+ *
+ * MIÉRT MEHET EZ EGY `src`-BE, AMIKOR A LAP MINDEN MÁS ÚTVONALAT SZÖVEGKÉNT
+ * MUTAT. A `vid-path` mezők azért szövegek, mert egy `file:` url-t a `safeHref`
+ * visszautasít, és joggal: az a böngészőt küldené a lemezre. Ez nem az: ez a
+ * host saját, azonos eredetű api-ja, ugyanaz, amit a lap minden más hívása
+ * használ. És pont ezért működik egyáltalán: azonos eredetű kérés viszi a lap
+ * sütijét, egy `<video>` pedig mást nem tud küldeni -- `x-access-key` fejlécet
+ * egy elem nem ad hozzá a saját kéréséhez.
+ *
+ * AZ `outPath` NEM IDEGEN SZÖVEG. A modul maga rakja össze, amikor a rendert
+ * elindítja (src/render.mjs): a remotion-könyvtár, egy névtér, a videó és a
+ * render saját azonosítója, és `video.mp4`. Idegen szöveg ezen a lapon a
+ * forrás és a visszajelzés, és azok továbbra is React szöveg-gyerekként
+ * állnak. Az `encodeURIComponent` mégis kell, és nem a bizalom miatt: egy
+ * útban lehet `?`, `&` és `#`, és kódolatlanul a query itt érne véget.
+ */
+function renderUrl(outPath: string): string {
+  return `/api/files/serve?path=${encodeURIComponent(outPath)}`
+}
+
+/**
+ * Mit játsszon le a lap -- vagy ha semmit, akkor pontosan miért nem.
+ *
+ * A KETTŐ EGY VÁLASZ, mert nem tudnak külön igazat mondani. Ha az url és az ok
+ * két külön függvényből jönne, két helyen kellene ugyanannak a három
+ * feltételnek állnia, és az első eltérés napján a lap egy url-t rajzolna ki egy
+ * "nincs mit lejátszani" mondat mellé.
+ *
+ * HÁROM KÜLÖN TÉNY, HÁROM KÜLÖN MONDAT, és egyik sem a másik helyett. Nincs
+ * kész render: a modul még nem gyártott fájlt. A Tisztítás törölte: volt fájl,
+ * és a modul TUDJA, hogy elvitte -- ezt a sorban tartja számon, dátummal
+ * együtt, tehát a mondat meg is tudja mondani, mikor. Nincs kimeneti út a
+ * soron: a sor kész, de nem nevez fájlt; a lap ezt kimondja ahelyett, hogy
+ * kitalálná, hol lenne.
+ *
+ * A NEGYEDIK TÉNY NEM ITT VAN, mert nem a sorból jön: azt, hogy a sor szerinti
+ * fájlt a host mégsem adja ki, csak a `<video>` `error` eseménye mondja meg.
+ */
+function lejatszandoFajl(keszRender: RenderRow | null): { src: string | null; ok: string | null } {
+  if (keszRender === null) return { src: null, ok: 'Nincs kész render, így nincs mit lejátszani.' }
+  if (keszRender.torolveAt !== null) return { src: null, ok: `A render fájljait a Tisztítás törölte (${formatDate(keszRender.torolveAt)}); a megnézéséhez újra kell renderelni.` }
+  if (keszRender.outPath === null) return { src: null, ok: 'Ezen a render-soron nincs kimeneti út, így nincs mit lejátszani.' }
+  return { src: renderUrl(keszRender.outPath), ok: null }
+}
+
+/** A host kiadta a sor szerinti fájlt vagy sem: ez az egy mondat a nem-re, és a törléstől külön. */
+const LEJATSZO_HIBA = 'A sor szerint ott a fájl, de a host nem adta ki. Ezt a modul nem tudja a sorból: a lemezen kell utánanézni.'
+
 /** Frissítés's own transition: a queued turn ends when the operator looks, a host call that is still out does not. */
 const vissza = (allapot: RendelesAllapot): RendelesAllapot => (allapot === 'fut' ? null : allapot)
 
@@ -725,6 +776,48 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
   const lezarOk = lezarTiltasOka(video, futoRender)
   const kuldOk = kuldTiltasOka(kuldes, szoveg)
   const url = forrasUrl(video.forrasSzoveg, safeHref)
+  const { src: videoSrc, ok: lejatszasOk } = lejatszandoFajl(keszRender)
+
+  // A lejátszót és a pillanat-gombot ugyanaz az elem köti össze, ezért a ref
+  // itt áll, nem abban a szekcióban, ami kirajzolja.
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  /*
+    MELYIK FÁJL BUKOTT EL, nem pusztán az, hogy egy elbukott. A Frissítés hozhat
+    egy újabb kész rendert, és az előző fájlra kapott hiba nem tény az újról --
+    a modul azt meg sem próbálta. Az url-t tartjuk el, nem egy logikai jelzőt,
+    így a mondat magától eltűnik, amint a lap más fájlra néz.
+  */
+  const [hibasSrc, setHibasSrc] = useState<string | null>(null)
+  const lejatszoHiba = videoSrc !== null && hibasSrc === videoSrc ? LEJATSZO_HIBA : null
+
+  /*
+    A PILLANAT UGYANAZON AZ ÚTON MEGY BE, AMIN AZ IDŐVONAL KATTINTÁSA: ez az
+    `onPick`, és a jelenetet ugyanaz a `pontbolJelenet` mondja meg. Két külön
+    számolás azt jelentené, hogy a lap két különböző jelenetet tud ugyanarról a
+    milliszekundumról, és a sablon-tábla a harmadikat.
+
+    A JELENET LEHET `null`, ÉS EZ NEM HIÁNY. A határok félig nyitottak, tehát az
+    utolsó jelenet `vegMs`-e már kívül van: egy végén megállított lejátszó
+    pontosan oda mutat. Egy kész render sora hordozhat üres `jelenetHatarok`-at
+    is. Mindkettő ugyanaz a válasz: időpont van, jelenet nincs -- vagyis globális
+    a megjegyzés, ahogy az űrlap üresen hagyott Jelenet mezője is.
+  */
+  const onPillanat = () => {
+    const el = videoRef.current
+    if (el === null) return
+    const atMs = Math.round(el.currentTime * 1000)
+    onPick({ atMs, jelenet: pontbolJelenet(keszRender === null ? [] : keszRender.jelenetHatarok, atMs) })
+  }
+
+  /*
+    EGY MONDAT A NÉGY ÁLLAPOTRA, mert mind a négyet a fölötte álló sor mondja ki
+    a maga szavaival -- a törlést a dátumával együtt. Négy majdnem egyforma
+    változat itt pont az a két sor szürke próza egymás alatt, amitől a `Lepes`
+    saját docblockja szerint a szem egyiket sem olvassa el.
+  */
+  const pillanatOk = videoSrc === null || lejatszoHiba !== null
+    ? 'Nincs lejátszó, amiből a pillanatot át lehetne venni; a fölötte álló mondat mondja meg, miért nincs.'
+    : null
 
   return (
     <div className="vid-video" data-video-id={video.id}>
@@ -792,6 +885,39 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
         </div>
 
         <div className="vid-video-col">
+          {/*
+            A LEJÁTSZÓ A JOBB OSZLOP TETEJÉN ÁLL, AZ IDŐVONAL ELŐTT, mert ez a
+            munka sorrendje: az operátor megnézi a filmet, megjelöli a
+            pillanatot, aztán megírja, mi a baj vele. A jobb oszlop az, amin
+            dolgozik -- a bal a forrás, a terv és a renderek, vagyis amit olvas
+            --, és eddig a sor legelső eleme az idővonal volt: a megjelölés a
+            megnézés előtt. Épp ezért a fájl útját eddig ki kellett másolni és
+            Finderben megnyitni, majd emlékezetből visszajönni ide.
+          */}
+          <Szekcio cim="Videó" ures={videoSrc === null}>
+            {/*
+              A MONDATOK GYEREKEK ÉS NEM `uresSzoveg`, mert `Szekcio` az
+              `uresSzoveg`-et a gyerekek HELYETT rajzolja ki -- a gomb pont
+              abból a három állapotból tűnne el, amelyikben meg kell mondani,
+              miért nem lehet megnyomni.
+            */}
+            {videoSrc === null
+              ? <p className="vid-sec-ures">{lejatszasOk}</p>
+              : (
+                <>
+                  {/*
+                    `preload="metadata"`: a lap megnyitása még nem azt jelenti,
+                    hogy az operátor meg is akarja nézni, egy render viszont
+                    több tíz megabájt. Ennyi ahhoz kell, hogy a vezérlő tudja a
+                    hosszt, és hogy az `error` esemény meg tudjon szólalni.
+                  */}
+                  <video className="vid-lejatszo" controls preload="metadata" src={videoSrc} ref={videoRef} onError={() => setHibasSrc(videoSrc)} />
+                  <p className="vid-sec-lab">{lejatszoHiba ?? 'A sor szerinti fájl, a host kiszolgálóján át.'}</p>
+                </>
+              )}
+            <Lepes cimke="Pillanat átvétele" ok={pillanatOk} onKattint={onPillanat} />
+          </Szekcio>
+
           <Szekcio
             cim="Idővonal"
             ures={keszRender === null}

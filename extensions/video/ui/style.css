@@ -286,6 +286,26 @@
 .vid-feedback-list { padding-left: 18px; }
 .vid-feedback-list li { margin: 4px 0; overflow-wrap: anywhere; }
 
+/* player */
+/*
+ * A SZÉLESSÉG KORLÁTOZÁSA A LÉNYEG, nem a magasságé. Ezek 9:16-os filmek, tehát
+ * egy 100%-os lejátszó a saját magasságával tolná szét a jobb oszlopot, és az
+ * idővonal meg a visszajelzés-űrlap egy görgetéssel lejjebb kerülne -- pont a
+ * két dolog, amiért az operátor megnézte a filmet. A 300px a `vid-sablon-keret`
+ * sablon-előnézeteivel egy nagyságrend, és ugyanaz a 8px-es lekerekítés.
+ *
+ * A fekete háttér a betöltés előtti és a hang-only pillanatokra van: enélkül a
+ * lejátszó helye a lap háttere, és egy üres sáv nem látszik lejátszónak.
+ */
+.vid-lejatszo {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  border-radius: 8px;
+  background: #000;
+}
+
 /* timeline */
 .vid-timeline {
   position: relative;

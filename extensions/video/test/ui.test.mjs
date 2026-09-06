@@ -18,6 +18,7 @@ import { pixelbolMs, pontbolJelenet, szazalek, teljesHossz } from '../ui/idovona
 import { JavaslatokBody } from '../ui/javaslatok.tsx'
 import { VideoPage } from '../ui/main.tsx'
 import { MANAGED_RESOURCES_URL, loadManagedStatus } from '../ui/managed-state.ts'
+import { Lepes } from '../ui/lepes.tsx'
 import { URES_SZURO, normal, szurtTipusok } from '../ui/sablon-szuro.ts'
 import { SablonokBody, csakKepek, katalogusElavult } from '../ui/sablonok.tsx'
 import { Sor, UjVideoBody, YoutubeOtletekBody, otletMondatok } from '../ui/sor.tsx'
@@ -275,9 +276,17 @@ function narracioSor(overrides = {}) {
   return { jelenet: 0, fajl: 'narracio/v1/h1/0.mp3', hosszMs: 1200, hang: 'anna', modell: 'm', nyelv: 'hu', tervHash: 'h1', szovegHash: 'sz1', ...overrides }
 }
 
-/** A render row as the `video` response carries it, which is the summary plus the four detail fields. */
+/**
+ * A render row as the `video` response carries it, which is the summary plus the four detail fields.
+ *
+ * The overrides are spread TWICE on purpose. `summary` only knows the summary
+ * fields, so an override naming one of the four detail fields -- `torolveAt`
+ * and `jelenetHatarok` are both moved by the player's tests -- used to be
+ * silently dropped by the defaults written after it, and the test asking for a
+ * deleted render got an undeleted one and still passed.
+ */
 function renderSor(overrides = {}) {
-  return { ...summary(overrides), tervId: 't1', jelenetHatarok: [], propsPath: null, torolveAt: null }
+  return { ...summary(overrides), tervId: 't1', jelenetHatarok: [], propsPath: null, torolveAt: null, ...overrides }
 }
 
 /**
@@ -737,6 +746,169 @@ test('propokSzoveg prints every prop but the type, as JSON text', () => {
   assert.equal(propokSzoveg({ tipus: 'szam', szam: 40 }), '{\n  "szam": 40\n}')
   assert.equal(propokSzoveg(null), 'null')
   assert.equal(propokSzoveg(['a']), '[\n  "a"\n]')
+})
+
+// --- the player: the file the operator is writing about ---
+
+const pillanatSotet = /<button[^>]*disabled[^>]*>Pillanat átvétele/
+
+/** The player's own lever, picked out by its label: five others answer `n.type === Lepes` first. */
+const pillanatGomb = (view) => {
+  const el = findElement(view.tree(), (n) => n.type === Lepes && n.props.cimke === 'Pillanat átvétele')
+  assert.ok(el !== null, 'a lejátszó szekció nem rajzolta ki a pillanat-gombot')
+  return el.props
+}
+
+const markup = (view) => renderToStaticMarkup(view.tree())
+
+test('a kész render lejátszója a sor kimeneti útjából épül, a host saját kiszolgáló útvonalán', () => {
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ outPath: '/out/sw/v1/r1.mp4' })],
+  })))
+  // Same origin, so the cookie the page was loaded with travels with the
+  // request -- which is the whole reason a `<video src>` can reach this route
+  // at all: an element cannot send an `x-access-key` header.
+  assert.ok(html.includes('src="/api/files/serve?path=%2Fout%2Fsw%2Fv1%2Fr1.mp4"'))
+  assert.ok(/<video[^>]*controls/.test(html))
+  assert.ok(html.includes('class="vid-lejatszo"'), 'a 9:16-os film szélességét a saját osztálya fogja meg')
+  // Opening the page is not the same as wanting to watch: a render is tens of
+  // megabytes, and metadata is all the controls (and the `error` event) need.
+  assert.ok(/<video[^>]*preload="metadata"/.test(html))
+  assert.ok(html.includes('A sor szerinti fájl, a host kiszolgálóján át.'))
+})
+
+test('a kimeneti út kódolva megy a query-be, mert egy útban lehet ?, & és #', () => {
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ outPath: '/out/a?b&c#d.mp4' })],
+  })))
+  assert.ok(html.includes('src="/api/files/serve?path=%2Fout%2Fa%3Fb%26c%23d.mp4"'))
+  // Unencoded, the `?` would end the query parameter and `#d.mp4` would never
+  // leave the browser at all.
+  assert.equal(html.includes('path=/out/a?b'), false)
+})
+
+test('nincs kész render: a lejátszó helyén az az egy mondat áll, és a pillanat-gomb sötét', () => {
+  const html = render(VideoBody, videoProps(videoDetail({ renderek: [] })))
+  assert.ok(html.includes('Nincs kész render, így nincs mit lejátszani.'))
+  assert.equal(/<video/.test(html), false)
+  // `Szekcio` draws `uresSzoveg` INSTEAD of its children, so this section's
+  // sentences are children: with `uresSzoveg` the lever would be missing from
+  // exactly the states that have to explain themselves.
+  assert.ok(pillanatSotet.test(html))
+  assert.ok(html.includes('Nincs lejátszó, amiből a pillanatot át lehetne venni'))
+})
+
+test('a Tisztítás által törölt fájl más tény, mint a hiányzó render', () => {
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ torolveAt: '2026-09-07T10:00:00.000Z' })],
+  })))
+  assert.ok(html.includes(`A render fájljait a Tisztítás törölte (${formatDate('2026-09-07T10:00:00.000Z')}); a megnézéséhez újra kell renderelni.`), 'a dátum EBBEN a mondatban áll: a render-lista amúgy is kiírja a magáét')
+  assert.equal(/<video/.test(html), false)
+  assert.equal(html.includes('Nincs kész render, így nincs mit lejátszani.'), false, 'a két mondat nem cserélhető fel')
+  assert.equal(html.includes('Ezen a render-soron nincs kimeneti út'), false)
+})
+
+test('egy kimeneti út nélküli kész sor a harmadik tény, és a saját mondatát kapja', () => {
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ outPath: null })],
+  })))
+  assert.ok(html.includes('Ezen a render-soron nincs kimeneti út, így nincs mit lejátszani.'))
+  assert.equal(/<video/.test(html), false)
+  assert.equal(html.includes('A render fájljait a Tisztítás törölte'), false)
+  assert.equal(html.includes('Nincs kész render, így nincs mit lejátszani.'), false)
+})
+
+test('a futó render fájlja nem játszható le: a lejátszó a legfrissebb KÉSZ renderre néz', () => {
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [
+      renderSor({ renderId: 'r-fut', status: 'fut', finishedAt: null, outPath: '/out/fut.mp4' }),
+      renderSor({ renderId: 'r-kesz', outPath: '/out/kesz.mp4' }),
+    ],
+  })))
+  // Both paths stand in the Renderek list as text, so the assertion is on the
+  // player's own `src` and not on a file name appearing anywhere in the page.
+  assert.ok(html.includes('src="/api/files/serve?path=%2Fout%2Fkesz.mp4"'))
+  assert.equal(html.includes('%2Fout%2Ffut.mp4'), false)
+  assert.equal(html.split('<video').length - 1, 1, 'egy lejátszó, nem renderenként egy')
+})
+
+test('a pillanat-gomb a lejátszó currentTime-jából tölti a visszajelzés pontját', () => {
+  const felvett = []
+  const view = mount(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({
+      outPath: '/out/kesz.mp4',
+      jelenetHatarok: [{ jelenet: 0, kezdetMs: 0, vegMs: 4000 }, { jelenet: 1, kezdetMs: 4000, vegMs: 9000 }],
+    })],
+  }), { onPick: (p) => felvett.push(p) }))
+  const el = findElement(view.tree(), (n) => n.type === 'video')
+  assert.ok(el !== null, 'a lejátszó nem került ki a fára')
+  // The element the browser would hand the ref, stood in for: the button reads
+  // `currentTime` off it and nothing else.
+  el.props.ref.current = { currentTime: 5.6789 }
+  pillanatGomb(view).onKattint()
+  // Seconds to whole milliseconds, and the scene that CONTAINS that moment --
+  // the same half-open arithmetic a click on the timeline goes through, so the
+  // two ways of naming a moment cannot disagree.
+  assert.deepEqual(felvett, [{ atMs: 5679, jelenet: 1 }])
+})
+
+test('a videó végén megállított lejátszó globális pontot ad, nem az utolsó jelenetet', () => {
+  const felvett = []
+  const view = mount(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({
+      outPath: '/out/kesz.mp4',
+      jelenetHatarok: [{ jelenet: 0, kezdetMs: 0, vegMs: 4000 }, { jelenet: 1, kezdetMs: 4000, vegMs: 9000 }],
+    })],
+  }), { onPick: (p) => felvett.push(p) }))
+  // A paused-at-the-end player reports the duration itself, and the last
+  // scene's `vegMs` is OUTSIDE it: bounds are half-open. A note taken there is
+  // a global note, which is what `null` means on this form.
+  findElement(view.tree(), (n) => n.type === 'video').props.ref.current = { currentTime: 9 }
+  pillanatGomb(view).onKattint()
+  assert.deepEqual(felvett, [{ atMs: 9000, jelenet: null }])
+})
+
+test('határok nélküli kész render: a pillanat időpontot ad, jelenetet nem talál ki hozzá', () => {
+  const felvett = []
+  const view = mount(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ outPath: '/out/kesz.mp4' })],
+  }), { onPick: (p) => felvett.push(p) }))
+  findElement(view.tree(), (n) => n.type === 'video').props.ref.current = { currentTime: 2.5 }
+  pillanatGomb(view).onKattint()
+  assert.deepEqual(felvett, [{ atMs: 2500, jelenet: null }])
+})
+
+test('a host által ki nem adott fájl a negyedik tény, és nem a törlés', () => {
+  const view = mount(VideoBody, videoProps(videoDetail({ renderek: [renderSor({ outPath: '/out/kesz.mp4' })] })))
+  assert.equal(markup(view).includes('nem adta ki'), false, 'egy be nem töltött lejátszó még nem hibás')
+  assert.ok(pillanatSotet.test(markup(view)) === false, 'amíg nincs hiba, a gomb él')
+
+  findElement(view.tree(), (n) => n.type === 'video').props.onError()
+  const html = markup(view)
+  assert.ok(html.includes('A sor szerint ott a fájl, de a host nem adta ki'))
+  // A deletion the module RECORDED and a file the host would not serve are two
+  // different facts, and only the first one is something the module knows.
+  assert.equal(html.includes('A render fájljait a Tisztítás törölte'), false)
+  assert.ok(pillanatSotet.test(html), 'egy be nem töltött lejátszóból nincs pillanat')
+  assert.ok(html.includes('A sor szerinti fájl, a host kiszolgálóján át.') === false, 'a hiba a helyére kerül, nem mellé')
+})
+
+test('egy előző fájlra kapott hiba nem mondható rá a következő render fájljára', () => {
+  const props = videoProps(videoDetail({ renderek: [renderSor({ outPath: '/out/egy.mp4' })] }))
+  const view = mount(VideoBody, props)
+  const regi = findElement(view.tree(), (n) => n.type === 'video')
+  regi.props.onError()
+  assert.ok(markup(view).includes('nem adta ki'))
+
+  // Frissítés brings a NEWER finished render, and this harness has no
+  // reconciler: the props object is mutated in place, and the old element's
+  // handler is what redraws with it. The failure was about egy.mp4 and the
+  // module never tried ketto.mp4.
+  props.video = videoDetail({ renderek: [renderSor({ renderId: 'r-2', outPath: '/out/ketto.mp4' })] })
+  regi.props.onError()
+  const html = markup(view)
+  assert.ok(html.includes('src="/api/files/serve?path=%2Fout%2Fketto.mp4"'))
+  assert.equal(html.includes('nem adta ki'), false, 'a hiba az egy.mp4-ről szólt')
 })
 
 // --- the two mechanical levers on the video view ---
