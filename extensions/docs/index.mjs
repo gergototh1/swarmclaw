@@ -164,7 +164,7 @@ const docs = {
    * (`szerzodes_hianyzik`) rather than skipping quietly.
    */
   consumes: [
-    { extension: 'video', contract: 'videos', version: VIDEOS_CONTRACT_VERSION, reason: 'Egy kész videó forgatókönyvét (cím, narráció, fájladatok) doksiként teszi le a kérő ügynök mappájába.' },
+    { extension: 'video', contract: 'videos', version: VIDEOS_CONTRACT_VERSION, reason: 'A doksi_video_forgatokonyv tool ebből kéri le egy kész videó adatait (cím, narráció, fájladatok), és doksiként teszi le a kérő ügynök saját mappájába. Ez a modul egyetlen kifelé nyúlása.' },
   ],
   provides: {
     [DOCS_CONTRACT]: createDocsContract({

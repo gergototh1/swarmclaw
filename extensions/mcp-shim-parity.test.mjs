@@ -121,7 +121,13 @@ test('every column the videos contract carries reaches the document the docs mod
     : { ertek: `NYOM_${col}`, latszik: `NYOM_${col}` })
 
   const row = Object.fromEntries(VIDEO_CONTRACT_COLUMNS.map((col) => [col, nyom(col).ertek]))
-  const { cim, tartalom } = forgatokonyv(row, row.id)
+  // A második argumentum SZÁNDÉKOSAN nem `row.id`. A fogyasztó a `video.id ??
+  // videoId` alakot írja ki, tehát a kettőt azonosnak átadva az `id` oszlopra
+  // vonatkozó állítás önmagát bizonyította: egy olyan implementáció is átment
+  // volna, ami az oszlopot meg se nézi. Ez az id csak akkor jelenhet meg, ha a
+  // sorét valaki eldobja.
+  const { cim, tartalom } = forgatokonyv(row, 'NEM_A_SOR_ID_JE')
+  assert.equal(tartalom.includes('NEM_A_SOR_ID_JE'), false, 'a doksi a szerződés `id` oszlopát írja ki, nem a hívó által beírt id-t')
   const doksi = `${cim}\n${tartalom}`
   for (const col of VIDEO_CONTRACT_COLUMNS) {
     assert.ok(

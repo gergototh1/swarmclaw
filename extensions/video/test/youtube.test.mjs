@@ -28,7 +28,19 @@ const megszakadt = () => Object.assign(new Error('This operation was aborted'), 
 
 const napokkalEzelott = (n) => new Date(Date.now() - n * 86_400_000).toISOString()
 
-/** One Atom entry as YouTube writes it, with the fields this module reads and the noise it must step over. */
+/**
+ * One Atom entry as YouTube writes it, with the fields this module reads and
+ * the noise it must step over.
+ *
+ * THE `<link href>` IS DELIBERATELY NOT THE URL THE MODULE BUILDS. It used to
+ * be byte-identical to it, and that made every test in this file pass for an
+ * implementation that TRUSTED the feed's own href -- the one field
+ * src/youtube.mjs:68-72 calls out as the easiest to get wrong, because a url
+ * assembled out of text that arrived over the network is a url this module did
+ * not choose. A different host and two extra parameters keep the shape a feed
+ * really has while making the two strings distinguishable, so the assertion on
+ * `url` now measures something.
+ */
 function entry({ id = 'NYFGCESmikA', cim = 'Egy cím', kiadva = napokkalEzelott(1), views = '1359950' } = {}) {
   return `
  <entry>
@@ -36,7 +48,7 @@ function entry({ id = 'NYFGCESmikA', cim = 'Egy cím', kiadva = napokkalEzelott(
   ${id === null ? '' : `<yt:videoId>${id}</yt:videoId>`}
   <yt:channelId>UCSHZKyawb77ixDdsGog4iWA</yt:channelId>
   ${cim === null ? '' : `<title>${cim}</title>`}
-  <link rel="alternate" href="https://www.youtube.com/watch?v=${id}"/>
+  <link rel="alternate" href="https://m.youtube.com/watch?v=${id}&amp;feature=share&amp;pp=FEED"/>
   <author><name>Lex Fridman</name><uri>https://www.youtube.com/channel/UCSHZKyawb77ixDdsGog4iWA</uri></author>
   ${kiadva === null ? '' : `<published>${kiadva}</published>`}
   <updated>2026-08-29T15:34:37+00:00</updated>
@@ -233,10 +245,29 @@ test('a title longer than the module stores is cut where it is read', () => {
   // rather than at the rpc so that no oversized title exists in the module at
   // all: `feedJeloltek` is what the rpc, these tests and anything later built
   // on this file read.
-  const { jeloltek } = feedJeloltek(feed([entry({ cim: 'á'.repeat(50_000) })]))
+  //
+  // THE CHARACTER IS ASTRAL, AND THAT IS THE POINT. This used to cut
+  // `'á'.repeat(50_000)`, every character of which is one UTF-16 unit, so
+  // `head` and a bare `slice` produced exactly the same string and the reason
+  // `head` exists -- not splitting a surrogate pair in half -- was pinned by
+  // nothing. An emoji is two units, so the two implementations now differ.
+  const { jeloltek } = feedJeloltek(feed([entry({ cim: 'a'.repeat(199) + '😀'.repeat(50) })]))
   assert.equal(jeloltek.length, 1, 'an oversized title is cut, never a reason to drop the entry')
+  // MAX_CIM - 1, not MAX_CIM: the 200th unit would be the FIRST half of an
+  // emoji, and a lone high surrogate is not a character. `slice(0, MAX_CIM)`
+  // returns 200 units ending in one, and fails here.
+  assert.equal(jeloltek[0].cim.length, MAX_CIM - 1)
+  assert.equal(jeloltek[0].cim, 'a'.repeat(199))
+  assert.equal(/[\uD800-\uDBFF]$/.test(jeloltek[0].cim), false, 'no half a character is ever stored')
+})
+
+test('a title cut on a whole surrogate pair keeps the pair, and the full length', () => {
+  // The other alignment: the pair starts one unit earlier, so both its halves
+  // fit inside the cap and nothing is given up. A cut that always stepped back
+  // one unit would lose a character it did not have to.
+  const { jeloltek } = feedJeloltek(feed([entry({ cim: 'a'.repeat(198) + '😀'.repeat(50) })]))
   assert.equal(jeloltek[0].cim.length, MAX_CIM)
-  assert.equal(jeloltek[0].cim, 'á'.repeat(MAX_CIM))
+  assert.equal(jeloltek[0].cim, 'a'.repeat(198) + '😀')
 })
 
 test('a title that is only whitespace is still dropped after the cut', () => {
@@ -310,19 +341,54 @@ test('a channel is resolved with yt-dlp once, then read from its feed once', asy
   assert.equal(yt.hivasok.length, 1)
   const [hivas] = yt.hivasok
   assert.equal(hivas.command, '/bin/yt-dlp')
+  // `--no-update` is in this list because without it the binary prints three
+  // lines of version banner on every run; the deepEqual is what pins it, and a
+  // second `includes` assertion for the same flag measured nothing.
   assert.deepEqual(hivas.args, [
     'https://www.youtube.com/@a/videos', '--flat-playlist', '--skip-download',
     '--playlist-end', '1', '--no-update', '--print', '%(playlist_channel_id)s',
   ])
-  assert.ok(hivas.args.includes('--no-update'), 'without it the binary prints three lines of version warning on every run')
-  assert.ok(hivas.options.timeout > 0, 'a resolve that never returns must not hold the button forever')
-  assert.ok(hivas.options.maxBuffer > 0)
+  // A BAND, NOT `> 0`. The invariant is that a resolve which never returns
+  // cannot hold the button forever AND that the deadline is long enough to be
+  // a deadline: `timeout > 0` is true of a removed option's neighbour and of
+  // `timeout: 1`, which would fail every channel on a slow machine.
+  assert.ok(Number.isFinite(hivas.options.timeout) && hivas.options.timeout >= 1_000 && hivas.options.timeout <= 120_000, `a process start plus one page fetch, bounded: ${hivas.options.timeout}`)
+  // Room for a one-line answer plus a version banner. Below that the child is
+  // killed for writing normally, which is a per-channel failure the operator
+  // cannot do anything about.
+  assert.ok(Number.isFinite(hivas.options.maxBuffer) && hivas.options.maxBuffer >= 64 * 1024, `${hivas.options.maxBuffer}`)
   assert.equal(hivas.options.windowsHide, true)
   assert.equal(hivas.options.shell, undefined, 'no shell: the channel url is an argument, not a command')
 
   assert.equal(net.hivasok.length, 1)
-  assert.ok(net.hivasok[0].init.signal, 'the request carries a deadline of its own')
+  const jel = net.hivasok[0].init.signal
+  assert.ok(typeof jel === 'object' && jel !== null && typeof jel.aborted === 'boolean', 'the request carries a deadline of its own')
+  // Not aborted on the path that READ the body: the deadline fired on nothing,
+  // and a signal this test only checked for truthiness would say the same
+  // about a controller nothing is ever wired to.
+  assert.equal(jel.aborted, false)
   assert.equal(r.jeloltek.length, 1)
+})
+
+test('a body the module will not read has its connection let go, not left open', async () => {
+  // The `signal` on the request is the only thing that ends a reply this call
+  // will never consume, and on a real fetch an uncollected body holds its
+  // connection. Both refusing branches call `abort()` for that, and this is
+  // where that call is observable: the test double keeps the init it was
+  // handed, so the controller's own state is readable after the call returns.
+  const yt = ytdlp(Object.fromEntries(['a', 'b'].map((h) => [`https://www.youtube.com/@${h}/videos`, `UC${h.repeat(21)}`])))
+  const net = halo({
+    // Refused on the status.
+    [FEED_URL('UC' + 'a'.repeat(21))]: 404,
+    // Refused on the announced length, before a byte is read.
+    [FEED_URL('UC' + 'b'.repeat(21))]: { status: 200, ok: true, headers: fejlecek({ 'content-length': String(9 * 1024 * 1024) }), text: async () => 'x' },
+  })
+  await fetchYoutube({
+    csatornak: ['https://www.youtube.com/@a', 'https://www.youtube.com/@b'],
+    napok: 30, ytDlp: '/y', execFileImpl: yt.impl, fetchImpl: net.impl,
+  })
+  assert.equal(net.hivasok.length, 2)
+  for (const h of net.hivasok) assert.equal(h.init.signal.aborted, true, h.url)
 })
 
 test('a channel the operator gave by id starts no process at all', async () => {

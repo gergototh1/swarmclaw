@@ -44,15 +44,19 @@ test('the module declares the one contract it reaches for, with a reason the ope
   // A deklaráció maga a hozzáférés: nincs jóváhagyás, nincs visszavonás. Ha
   // ez a bejegyzés elveszik, a doksi_video_forgatokonyv not_declared-ot kap,
   // és a hetedik tool minden hívónál elutasít.
-  assert.deepEqual(docs.consumes, [
-    {
-      extension: 'video',
-      contract: 'videos',
-      version: 1,
-      reason: docs.consumes[0].reason,
-    },
-  ])
-  assert.ok(docs.consumes[0].reason.length > 30, 'az indoklás túl rövid ahhoz, hogy az operátornak mondjon valamit')
+  // A `reason` mezőt korábban önmagával hasonlítottuk össze: az a sor minden
+  // szövegre igaz volt, az üresre is. Itt a MARADÉK egyezik pontosan, az
+  // indoklást pedig külön mérjük, mert az operátor azt olvassa a Bővítmények
+  // lapon, amikor eldönti, helyénvaló-e ez a hozzáférés.
+  assert.equal(docs.consumes.length, 1, 'ez a modul pontosan egy szerződésért nyúl ki')
+  const [{ reason, ...deklaracio }] = docs.consumes
+  assert.deepEqual(deklaracio, { extension: 'video', contract: 'videos', version: 1 })
+  assert.equal(typeof reason, 'string')
+  assert.ok(reason.length > 30, 'az indoklás túl rövid ahhoz, hogy az operátornak mondjon valamit')
+  // Megnevezi a toolt, ami miatt a hozzáférés kell, és azt, hogy mit hoz be:
+  // egy „a Videó modulhoz kell” mondat ugyanolyan hosszú, és semmit nem mond.
+  assert.match(reason, /doksi_video_forgatokonyv/)
+  assert.match(reason, /videó/i)
 })
 
 test('the page declaration satisfies the host validator rules', () => {
