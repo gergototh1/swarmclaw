@@ -143,3 +143,40 @@ test('az Elfogad gomb TENYLEGESEN le van tiltva, amig a sajat elfogadasa fut', a
     'hiányzik a bundle-ből az Elfogad gomb `disabled={!!elfogadFut[s.id]}` prop-ja',
   )
 })
+
+/**
+ * 8. feladat: a pipeline szakaszléptetése. A `bundle`-alapú tesztek itt (a
+ * fenti I5 mintát követve) nem a felirat jelenlétét, hanem a tényleges
+ * bekötést ellenőrzik -- a `kovetkezoSzakasz` pure függvény helyességét a
+ * `test/ugyek.test.mjs` teszteli közvetlenül, importtal.
+ */
+test('a bundle tartalmazza a szakaszleptetest', async () => {
+  const out = await bundle({ write: false })
+  assert.ok(out.outputFiles[0].text.includes('Tovább'), 'hiányzik a léptető')
+})
+
+test('a "Tovabb" gomb TENYLEGESEN a kovetkezo szakaszt kuldi az updateDeal-nek, es csak ha van kovetkezo', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  // A gomb csak a `kovetkezo &&` gate mögött jelenik meg -- ez az, ami az
+  // utolsó szakaszon (negotiation, ahol `kovetkezoSzakasz` null-t ad, lásd
+  // ugyek.test.mjs) eltünteti. Az onClick pontosan a `kovetkezo` (a
+  // következő szakasz) értékkel hívja a `lept`-et, nem egy rögzített
+  // stringgel -- ha valaki egy konkrét szakaszra (pl. mindig 'won'-ra)
+  // cserélné, ez a minta nem illeszkedne.
+  assert.match(
+    js,
+    /kovetkezo\s*&&[\s\S]{0,80}?"button",\s*\{\s*onClick:\s*\(\)\s*=>\s*lept\(d\.id,\s*kovetkezo\),\s*children:\s*"Tovább"/,
+    'hiányzik a bundle-ből a "Tovább" gomb gate-elt, `lept(d.id, kovetkezo)`-t hívó bekötése',
+  )
+})
+
+test('a lept TENYLEGESEN az updateDeal rpc-t hivja, hiba eseten setHiba-t allit, siker eseten toltot', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(
+    js,
+    /const lept = \(dealId, kovetkezo\) => \{\s*rpc\("updateDeal", \{ dealId, stage: kovetkezo \}\)\.then\(tolt\)\.catch\(\(e\) => setHiba\(e\.message\)\)/,
+    'hiányzik a bundle-ből a `lept` helyes bekötése: `updateDeal` hívás, siker esetén `tolt`, hiba esetén `setHiba`',
+  )
+})
