@@ -114,6 +114,9 @@ export function createRepo(storage) {
   const getAccount = (id) =>
     accountOut(S.get('SELECT * FROM ext_crm_account WHERE id = ?', [id]))
 
+  const getContact = (id) =>
+    contactOut(S.get('SELECT * FROM ext_crm_contact WHERE id = ?', [id]))
+
   return {
     // ---- account -------------------------------------------------------
     createAccount({ type = 'company', status = 'lead', name, domains = [], notes = '' }) {
@@ -195,6 +198,8 @@ export function createRepo(storage) {
       )
       return contactOut(row)
     },
+
+    getContact,
 
     listContacts(accountId) {
       return S.all(

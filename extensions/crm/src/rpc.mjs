@@ -1,3 +1,5 @@
+import { newId } from './ids.mjs'
+
 /**
  * Amit a lap hívhat, `POST /api/extensions/crm.mjs/call/<method>` alatt.
  *
@@ -17,6 +19,18 @@ export function createRpc(state) {
     const acc = repo().getAccount(accountId)
     if (!acc) throw new Error('crm_ismeretlen_ugyfel')
     return acc
+  }
+
+  const mustDeal = (dealId) => {
+    const deal = repo().listDeals({}).find((d) => d.id === dealId)
+    if (!deal) throw new Error('crm_ismeretlen_ugy')
+    return deal
+  }
+
+  const mustContact = (contactId) => {
+    const con = repo().getContact(contactId)
+    if (!con) throw new Error('crm_ismeretlen_kapcsolat')
+    return con
   }
 
   return {
@@ -60,11 +74,17 @@ export function createRpc(state) {
       return repo().updateAccount(accountId, patch)
     },
     async createContact(args) { return repo().createContact(args) },
-    async attachEmail({ contactId, address }) { return repo().attachEmail(contactId, address, 'manual') },
+    async attachEmail({ contactId, address }) {
+      mustContact(contactId)
+      return repo().attachEmail(contactId, address, 'manual')
+    },
 
     async createDeal(args) { mustAccount(args.accountId); return repo().createDeal(args) },
-    async updateDeal({ dealId, ...patch }) { return repo().updateDeal(dealId, patch) },
-    async closeDeal({ dealId, stage, reason }) { return repo().closeDeal(dealId, { stage, reason }) },
+    async updateDeal({ dealId, ...patch }) { mustDeal(dealId); return repo().updateDeal(dealId, patch) },
+    async closeDeal({ dealId, stage, reason }) {
+      mustDeal(dealId)
+      return repo().closeDeal(dealId, { stage, reason })
+    },
 
     /** Kézi jegyzet. A forrás `manual`, az azonosító az eseményé, tehát mindig új sor. */
     async addNote({ accountId, dealId = null, text, occurredAt }) {
@@ -73,7 +93,7 @@ export function createRpc(state) {
       return repo().recordEvent({
         accountId, dealId, kind: 'note', occurredAt: at,
         excerpt: String(text || '').slice(0, 200),
-        sourceSystem: 'manual', sourceId: `note:${at}:${Math.random().toString(16).slice(2, 10)}`,
+        sourceSystem: 'manual', sourceId: `note:${at}:${newId('n')}`,
         body: text,
       })
     },
@@ -90,6 +110,7 @@ export function createRpc(state) {
       const r = repo()
       const rows = r.listUnmatched().filter((x) => x.id === unmatchedId)
       if (rows.length === 0) throw new Error('crm_ismeretlen_besorolatlan')
+      mustContact(contactId)
       if (rows[0].sender_address) r.attachEmail(contactId, rows[0].sender_address, 'learned')
       return r.resolveUnmatched(unmatchedId)
     },

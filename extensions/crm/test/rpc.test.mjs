@@ -62,3 +62,53 @@ test('az ismeretlen ügyfél nevesített hibát ad, nem üres választ', async (
   const { rpc } = rpcOf()
   await assert.rejects(() => rpc.account({ accountId: 'acc_nincs' }), /crm_ismeretlen_ugyfel/)
 })
+
+test('az ismeretlen ügy frissítése nevesített hibát ad, nem néma null-t', async () => {
+  const { rpc } = rpcOf()
+  await assert.rejects(
+    () => rpc.updateDeal({ dealId: 'deal_nincs', title: 'Új cím' }),
+    /crm_ismeretlen_ugy/,
+  )
+})
+
+test('az ismeretlen ügy lezárása nevesített hibát ad, nem néma null-t', async () => {
+  const { rpc } = rpcOf()
+  await assert.rejects(
+    () => rpc.closeDeal({ dealId: 'deal_nincs', stage: 'won', reason: 'x' }),
+    /crm_ismeretlen_ugy/,
+  )
+})
+
+test('az ismeretlen kapcsolathoz rendelés nevesített hibát ad, és a sor nyitva marad', async () => {
+  const { rpc, repo } = rpcOf()
+  repo.createAccount({ name: 'Morvai Kft.' })
+  const { row } = repo.recordUnmatched({ sourceSystem: 'gmail', sourceId: 't2',
+    senderAddress: 'ismeretlen@morvai.hu', receivedAt: '2026-09-01T10:00:00.000Z' })
+
+  await assert.rejects(
+    () => rpc.assignUnmatched({ unmatchedId: row.id, contactId: 'con_nincs' }),
+    /crm_ismeretlen_kapcsolat/,
+  )
+  assert.ok(repo.listUnmatched().some((u) => u.id === row.id))
+})
+
+test('az ismeretlen kapcsolathoz email csatolása nevesített hibát ad', async () => {
+  const { rpc } = rpcOf()
+  await assert.rejects(
+    () => rpc.attachEmail({ contactId: 'con_nincs', address: 'x@y.hu' }),
+    /crm_ismeretlen_kapcsolat/,
+  )
+})
+
+test('az üres feladó-cím nélküli besorolatlan sor is feloldható, kivétel nélkül', async () => {
+  const { rpc, repo } = rpcOf()
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const con = repo.createContact({ accountId: acc.id, name: 'Dorina' })
+  const { row } = repo.recordUnmatched({ sourceSystem: 'gmail', sourceId: 't3',
+    receivedAt: '2026-09-01T10:00:00.000Z' })
+  assert.equal(row.sender_address, '')
+
+  await rpc.assignUnmatched({ unmatchedId: row.id, contactId: con.id })
+
+  assert.ok(!repo.listUnmatched().some((u) => u.id === row.id))
+})
