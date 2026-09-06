@@ -495,13 +495,45 @@ export function createRpc(state) {
       return createSweep(state).runSweep({ max: Number(max) || 50 })
     },
 
-    /** A figyelem-lista a lapnak. Ugyanaz a törzs, mint a crm_attention eszközé. */
+    /**
+     * A figyelem-lista a lapnak. Ugyanaz a törzs, mint a `crm_attention`
+     * eszközé (`src/tools.mjs`) -- mindkettő a `createAttention(state).list`-et
+     * hívja, ugyanazokkal a küszöbökkel és ugyanazzal a rangsorral.
+     *
+     * KÉT AJTÓ, EGY TÖRZS, ÉS EZ SZÁNDÉKOS. A napi kör üzenete arról szól,
+     * amit ez a lista mond; ha az operátor a lapon egy MÁSIK sorrendet vagy
+     * egy másik halmazt látna, a 08:10-es üzenet nem lenne ellenőrizhető,
+     * és néhány hét alatt elveszítené a hitelét. A lap (`ui/ma.tsx` „Figyelmet
+     * igényel" szakasza) ezért nem szűr és nem rangsorol újra: azt jeleníti
+     * meg, amit itt kap, `osszes`-sel együtt, hogy a limit ne látszódjon a
+     * teljes listának.
+     */
     async attention({ limit } = {}) {
       return createAttention(state).list({ limit: Number(limit) || 50 })
     },
 
+    /**
+     * A javaslat elvetese -- es CSAK az elvetes.
+     *
+     * `'accepted'`-et ez a metodus NEM vesz fel, pedig a tarolt allapot
+     * ismeri. Az `acceptSuggestion` kimondott invariansa (lasd ott), hogy
+     * elfogadott javaslat MOGOTT ALL EGY FELADAT: a cim, a projekt, a
+     * `crm_account` custom field es -- ha igeretbol szuletett -- az igeret
+     * lezarasa mind ott keletkezik. Ez a metodus egyiket sem csinalja, csak
+     * egy oszlopot ir at. Ha atengedne az `'accepted'`-et, egy hivas
+     * "elfogadott" javaslatot hagyna feladat nelkul: eltunne a lap
+     * javaslat-listajarol (az csak a `status = 'new'` sorokat mutatja), az
+     * igeret nyitva maradna, es semmi nem mondana meg, hogy a munka
+     * elveszett. Az elfogadasnak EGY ajtaja van, es az az `acceptSuggestion`.
+     *
+     * Ma a felulet ezt a metodust csak `'dismissed'`-del hivja (`ui/ma.tsx`
+     * `elvet`), tehat a tiltas ma nem er el senkit -- de az rpc a hoszt HTTP
+     * felulete, nem a lap privat fuggvenye, es egy nevesitett elutasitas
+     * olcsobb, mint egy nema, feladat nelkuli "elfogadott" sor.
+     */
     async setSuggestionStatus({ suggestionId, status }) {
-      if (status !== 'accepted' && status !== 'dismissed') throw new Error('crm_ismeretlen_javaslat_allapot')
+      if (status === 'accepted') throw new Error('crm_elfogadas_csak_acceptSuggestion')
+      if (status !== 'dismissed') throw new Error('crm_ismeretlen_javaslat_allapot')
       return repo().setSuggestionStatus(suggestionId, status)
     },
 
@@ -535,17 +567,26 @@ export function createRpc(state) {
      * javaslat szövege miatt.
      *
      * A TELJES cím van 120 karakterre vágva (nem csak a javaslat szövege
-     * előtte), hogy a host oldali cím-mező korlátja alatt maradjunk azzal a
-     * névvel együtt is, amit elé fűzünk.
+     * előtte), és NEM egy host-korlát miatt: a hoszton nincs ilyen korlát.
+     * `TaskCreateSchema.title` (`src/lib/validation/schemas.ts`)
+     * `z.string().min(1)`, felső határ nélkül, és `buildBoardTask`
+     * (`src/lib/server/tasks/task-lifecycle.ts`) a kapott címet érintetlenül
+     * teszi a `task.title`-be. A 120 a MI döntésünk, és egyetlen indoka van:
+     * a feladat egy kanban-kártyán jelenik meg, és egy bekezdésnyi cím ott
+     * olvashatatlan -- a javaslat szövege amúgy is egy mondat, a leírás
+     * (`description`) pedig a teljes szöveget viszi, tehát a vágás nem
+     * veszít adatot, csak a kártyát tartja olvashatóan. Azért a TELJES cím
+     * van vágva és nem csak a javaslat szövege, mert az ügyfél neve is a
+     * kártyán van, és az is tetszőlegesen hosszú lehet.
      *
      * A VÁGÁS UTÁN EGY RÖGZÍTETT HOSSZÚ JAVASLAT-ID-SZUFFIX ZÁRJA A CÍMET
      * (` #<sug.id utolsó 8 karaktere>`), NEM a puszta 120-ra vágott
      * `${acc.name} — ${sug.text}`. Enélkül két KÜLÖNBÖZŐ javaslat UGYANAHHOZ
      * az ügyfélhez -- vagy egy elég hosszú ügyfélnév, ami a javaslat szövegét
      * teljesen kiszorítja a 120 karakterből -- azonos címre vágódna, és a
-     * hoszt cím+agentId fingerprintje (`agentId` itt mindig `''`, lásd fent)
-     * a MÁSODIK javaslat elfogadását a hoszt szemében az ELSŐ elfogadás
-     * ismétlésének látná: `deduplicated: true` jönne vissza, a második
+     * hoszt cím+agentId fingerprintje (az `agentId`-ról lásd az alábbi
+     * bekezdést) a MÁSODIK javaslat elfogadását a hoszt szemében az ELSŐ
+     * elfogadás ismétlésének látná: `deduplicated: true` jönne vissza, a második
      * javaslat mögötti munkának soha nem lenne saját feladata, az ígérete
      * (ha volt) mégis lezárva jelenne meg egy IDEGEN feladathoz kötve. A
      * szuffix helyét ELŐSZÖR foglaljuk le (`120 - szuffix.length`), a
@@ -553,6 +594,33 @@ export function createRpc(state) {
      * hosszra -- fordítva (előbb 120-ra vágni, aztán a szuffixot hozzáfűzni)
      * a cím megint 120 fölé nőne, vagy a szuffix vágódna le, ami épp azt a
      * garanciát venné el, amiért itt van.
+     *
+     * AZ `agentId` ITT NEM GARANTÁLTAN `''`, ÉS EZ A DEDUP-ÉRVELÉST SZŰKÍTI.
+     * A törzs nem küld `agentId`-t, de a hoszt nem a küldött értéket veszi:
+     * `createTaskFromRoute` (`src/lib/server/tasks/task-route-service.ts`)
+     * minden nem üres `description`-re lefuttatja a
+     * `resolveTaskAgentFromDescription`-t
+     * (`src/lib/server/tasks/task-mention.ts`), ami a leírásban `@név`
+     * említést, majd angol hozzárendelő fordulatokat (`assign … to X`,
+     * `assignee: X`, `for agent X`) keres, és találat esetén EGY LÉTEZŐ
+     * ügynök azonosítóját adja vissza. A leírás nálunk az ügynök által írt
+     * javaslat-szöveg és indoklás, tehát ez a bemenet nem a mi kezünkben van.
+     * Magyar prózában és a telepítés ügynök-nevei mellett ez nagyon
+     * valószínűtlen, de nem lehetetlen -- és ha megtörténik, KÉT dolog
+     * változik: a feladat egy ügynökhöz kerül hozzárendelve (nem az operátor
+     * teendői közé), és a fingerprint már nem a puszta címen áll.
+     *
+     * Amit ez a dedup-érveléssel tesz: a fenti bekezdések „a fingerprint
+     * csak a címen áll" állítása a TIPIKUS eset, nem tétel. Az érvelés iránya
+     * viszont áll: az ügyfélnév és a javaslat-id-szuffix a címet teszi
+     * egyedivé, és egy nem üres `agentId` a fingerprintet CSAK TOVÁBB
+     * osztja -- két különböző javaslat így sem eshet egybe. A ténylegesen
+     * gyengülő garancia a másik irány: ugyanannak a javaslatnak a kétszeri
+     * elfogadása (dupla kattintás) csak akkor ütközik, ha mindkét hívás
+     * ugyanazt az `agentId`-t oldja fel -- és mivel a leírás mindkétszer
+     * bájtra azonos, és a feloldás determinisztikus, ez a gyakorlatban
+     * teljesül; csak akkor nem, ha a két kattintás KÖZÖTT nevezik át vagy
+     * törlik a leírásban említett ügynököt.
      *
      * A szuffix `sug.id`-ból jön, NEM valamiféle véletlenből: `acceptSuggestion`
      * ugyanazt a javaslatot kétszer elfogadva (dupla kattintás, két nyitott

@@ -109,6 +109,26 @@ export function createSweep(state) {
         ? q
         : String(settings.sopresLekerdezes || DEFAULT_QUERY)
 
+      // A SENT hianya NEM egy szuk, kihagyhato eset: a CRM-2 alapertelmezett
+      // `sopresCimke`-je pontosan `'INBOX'` volt, tehat barmelyik telepitesen,
+      // ahol az operator azt a mezot valaha elmentette, a tartalek-ag egy
+      // SENT nelkuli listat ad. Ekkor egyetlen `email_out` esemeny sem kerul
+      // az idovonalra, es az `unansweredThreads` -- ami pontosan a kimeno
+      // esemeny hianyat keresi -- MINDEN bejovo levelet valasz nelkulinek
+      // mond. A CRM-3 zaszloshajo jelzese igy nem elhallgat, hanem
+      // forditva: teljes zajja valik, es semmi nem mondja meg, miert. A
+      // sopres emiatt fut tovabb (az operator beallitasat nem irjuk felul),
+      // de nevesitve naplozzuk, hogy a diagnozis ne az esemenytabla
+      // visszafejtesevel kezdodjon.
+      if (!effectiveLabelIds.some((l) => String(l).toUpperCase() === 'SENT')) {
+        state.log?.warn?.(
+          'crm sweep: a felbontott cimkelistaban nincs SENT -- kimeno level nem kerul az idovonalra, '
+          + 'es a "valasz nelkuli level" jelzes emiatt minden bejovo levelet valasz nelkulinek fog mondani. '
+          + 'Vedd fel a SENT-et a sopresCimkek beallitasba.',
+          { labelIds: effectiveLabelIds },
+        )
+      }
+
       const lap = await box.list({
         labelIds: effectiveLabelIds,
         q: effectiveQ,

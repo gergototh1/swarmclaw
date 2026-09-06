@@ -55,11 +55,27 @@ const dataDir = process.env.DATA_DIR
   || (explicitHome ? path.join(explicitHome, 'data') : null)
   || (desktop ? path.join(desktop, 'data') : null)
   || path.join(process.cwd(), 'data')
-// Where the host writes run/port.json (src/lib/server/runtime/port-file.ts),
-// and so where the MCP entry printed below points SWARMCLAW_PORT_FILE:
-// SWARMCLAW_HOME, else the desktop app's home when this machine has one, else
-// ~/.swarmclaw.
-const home = explicitHome || desktop || path.join(process.env.HOME || '', '.swarmclaw')
+// Where the host writes run/port.json, and so where the MCP entry printed below
+// points SWARMCLAW_PORT_FILE. This mirrors the host's own `resolveRunDir()`
+// (src/lib/server/data-dir.ts), which has exactly two branches:
+// `SWARMCLAW_HOME/run` when a home is set, otherwise `DATA_DIR/run`. There is
+// no `~/.swarmclaw` branch -- that path exists in `resolveBrowserProfilesDir`,
+// not here -- and an earlier version of this script pointed at one, which meant
+// that on every install that is neither the desktop app nor a SWARMCLAW_HOME
+// install (a checkout, the container) the printed SWARMCLAW_PORT_FILE named a
+// file the host never writes. `mcp/server.mjs` has no fallback for a missing
+// file, so the shim would refuse every call with `port_fajl_beallitatlan` /
+// `port_fajl_hianyzik`, and the Ügyfélkezelő would run its 08:10 routine
+// seeing nothing and writing nothing -- silently.
+//
+// The desktop branch stands in for the host's `SWARMCLAW_HOME`: the desktop app
+// sets that variable itself before spawning the server (electron/main.ts), so a
+// host started that way resolves its run dir under the desktop home even though
+// this script sees no SWARMCLAW_HOME in its own env. `dataDir` above already
+// resolves the same three ways, so the third branch just reuses it.
+const runDir = explicitHome
+  ? path.join(explicitHome, 'run')
+  : (desktop ? path.join(desktop, 'run') : path.join(dataDir, 'run'))
 const extDir = path.join(dataDir, 'extensions')
 const wsDir = path.join(extDir, '.workspaces', 'crm_mjs')
 
@@ -136,7 +152,7 @@ if (copied.includes('mcp')) {
     transport: 'stdio',
     command: process.execPath,
     args: [path.join(wsDir, 'mcp', 'server.mjs')],
-    env: { SWARMCLAW_PORT_FILE: path.join(home, 'run', 'port.json'), SWARMCLAW_ACCESS_KEY: '<a host .env.local ACCESS_KEY értéke>' },
+    env: { SWARMCLAW_PORT_FILE: path.join(runDir, 'port.json'), SWARMCLAW_ACCESS_KEY: '<a host .env.local ACCESS_KEY értéke>' },
   }
   console.log('\nMCP-bejegyzés (Settings → MCP Servers), majd rendeld hozzá az ügynökökhöz:')
   console.log(JSON.stringify(entry, null, 2))

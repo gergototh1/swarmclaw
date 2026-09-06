@@ -268,3 +268,55 @@ test('a kimeno level akkor is a szalhoz kerul, ha a felado ismeretlen', async ()
   assert.equal(r.recordedOut, 1)
   assert.equal(repo.listEvents({ accountId: acc.id })[0].kind, 'email_out')
 })
+
+/**
+ * A TAROLT, ORDOGOLT `sopresCimke` NEMAN KIKAPCSOLJA A ZASZLOSHAJO-JELZEST.
+ *
+ * A CRM-2 alapertelmezese pontosan `'INBOX'` volt, tehat barmelyik telepitesen,
+ * ahol az operator ezt a mezot valaha elmentette, a tartalek-ag egy SENT nelkuli
+ * cimkelistat ad. Ekkor egyetlen `email_out` esemeny sem keletkezik, es az
+ * `unansweredThreads` -- ami PONTOSAN a kimeno esemeny hianyat keresi -- minden
+ * bejovo levelet valasz nelkulinek mond. A sopres nem hasal el, a szamlalok
+ * rendben nezenek ki, es semmi nem koti ossze a ket dolgot: ezert kell a
+ * nevesitett naplobejegyzes.
+ */
+function naplozoSweep(uzenetek, settings) {
+  const naplo = []
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const state = {
+    repo: createRepo(S),
+    log: { warn: (msg, meta) => naplo.push({ msg, meta }), info: () => {}, error: () => {} },
+    settings,
+    contracts: { get: () => fakeMailbox(uzenetek) },
+  }
+  return { sweep: createSweep(state), naplo }
+}
+
+test('a tarolt, SENT nelkuli sopresCimke nevesitett figyelmeztetest ir a logba', async () => {
+  const { sweep, naplo } = naplozoSweep([], () => ({ sopresCimke: 'INBOX' }))
+  await sweep.runSweep({})
+  const figyelmeztetes = naplo.find((n) => n.msg.includes('nincs SENT'))
+  assert.ok(figyelmeztetes, 'a SENT hianya nem jelent meg a logban')
+  assert.deepEqual(figyelmeztetes.meta.labelIds, ['INBOX'], 'a figyelmeztetes megnevezi a felbontott listat')
+  assert.match(figyelmeztetes.msg, /valasz nelkuli/i,
+    'a figyelmeztetesnek meg kell mondania, MI romlik el tole -- nem csak azt, hogy hianyzik egy cimke')
+})
+
+test('a SENT-et is tartalmazo beallitas NEM ir figyelmeztetest', async () => {
+  const { sweep, naplo } = naplozoSweep([], () => ({ sopresCimkek: 'INBOX, SENT' }))
+  await sweep.runSweep({})
+  assert.equal(naplo.some((n) => n.msg.includes('nincs SENT')), false)
+})
+
+test('beallitas nelkul (alapertelmezett cimkek) sincs figyelmeztetes -- a DEFAULT_LABELS viszi a SENT-et', async () => {
+  const { sweep, naplo } = naplozoSweep([], () => ({}))
+  await sweep.runSweep({})
+  assert.equal(naplo.some((n) => n.msg.includes('nincs SENT')), false)
+})
+
+test('a hivo altal atadott, SENT nelkuli labelIds is figyelmeztetest kap', async () => {
+  const { sweep, naplo } = naplozoSweep([], () => ({}))
+  await sweep.runSweep({ labelIds: ['INBOX'] })
+  assert.ok(naplo.some((n) => n.msg.includes('nincs SENT')))
+})

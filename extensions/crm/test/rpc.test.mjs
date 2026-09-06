@@ -561,17 +561,36 @@ test('a javaslat elfogadasa a CRM projektbe filezi a feladatot, akkor is, ha a b
   // nem a `state.crmProjectId || null` kiertekelesenek egy sosem toltott
   // mezon.
   //
-  // I2: a `proj_dontő` sor ugyanazt a `resourceKey`-t ('crm') viszi, mint a
-  // valodi CRM projekt, de MASIK extensiontol -- pontosan az az eset, amikor
-  // egy masik extension is `projectKey: 'crm'`-et deklaral. Szandekosan az
-  // elso helyen all: ha az illesztes csak a `resourceKey`-re nezne, ez nyerne
-  // a `.find`-ban, es a feladat egy IDEGEN extension projektjebe kerulne.
+  // A HAROM DECOY SOR A HAROM MEZOT KULON-KULON PINELI. A `crmProjektId`
+  // illesztese harom feltetel EGYUTTALLASA (`extensionId`, `resourceKind`,
+  // `resourceKey`), ahogy a host `findManagedProject`-je is; egy olyan
+  // teszt, ami csak egy decoy-t visz, a masik ket feltetel torleset zoldon
+  // engedne at. Mindharom decoy a valodi sor ELOTT all, tehat ha a hozza
+  // tartozo feltetel kiesne az illesztesbol, a `.find` OT valasztana:
+  //
+  //   proj_dontő      -- ugyanaz a resourceKey ('crm'), MASIK extension.
+  //                      Ez az az eset, amikor egy masik extension is
+  //                      `projectKey: 'crm'`-et deklaral (I2).
+  //   proj_rossz_kind -- a MI extensionunk, ugyanaz a resourceKey, de
+  //                      `resourceKind: 'agent'`. A host ugyanezen a nevteren
+  //                      tartja a managed agenteket es utemezeseket is, es a
+  //                      CRM-3 ota tenylegesen deklaralunk `crm-ugyfelkezelo`
+  //                      agentet -- egy `/api/projects` valasz, ami barmilyen
+  //                      okbol nem-projekt sort is visszaad, e nelkul a
+  //                      feltetel nelkul egy AGENT azonositojat adna
+  //                      projectId-nek a feladat-POST-ba.
+  //   proj_mas_kulcs  -- a MI extensionunk, `resourceKind: 'project'`, de
+  //                      masik `resourceKey`. Ha a CRM valaha egy masodik
+  //                      projektet is deklaral, e nelkul a feltetel nelkul a
+  //                      feladat abba kerulne.
   const S = memStorage()
   for (const m of MIGRATIONS) S.raw.exec(m.sql)
   const repo = createRepo(S)
   const hivasok = []
   const projektSorok = [
     projektSor('proj_dontő', 'mas-extension', 'crm'),
+    projektSor('proj_rossz_kind', 'crm.mjs', 'crm', 'agent'),
+    projektSor('proj_mas_kulcs', 'crm.mjs', 'crm-archivum'),
     projektSor('proj_egyeb', 'mas', 'mas'),
     projektSor('proj_crm', 'crm.mjs', 'crm'),
   ]
@@ -591,7 +610,8 @@ test('a javaslat elfogadasa a CRM projektbe filezi a feladatot, akkor is, ha a b
 
   const taskHivas = hivasok.find((h) => h.url.endsWith('/api/tasks'))
   assert.ok(taskHivas, 'a feladat-POST megtortent')
-  assert.equal(taskHivas.body.projectId, 'proj_crm', 'a feladat a valodi CRM projektbe kerult, nem a dontő extensionebe')
+  assert.equal(taskHivas.body.projectId, 'proj_crm',
+    'a feladat a valodi CRM projektbe kerult, nem egy decoy sorba (idegen extension, nem-projekt resourceKind, masik resourceKey)')
 })
 
 /**
@@ -610,6 +630,8 @@ test('a javaslat elfogadasa a CRM projektbe filezi a feladatot, ha a hoszt a pus
   const hivasok = []
   const projektSorok = [
     projektSor('proj_dontő', 'mas-extension', 'crm'),
+    projektSor('proj_rossz_kind', 'crm', 'crm', 'agent'),
+    projektSor('proj_mas_kulcs', 'crm', 'crm-archivum'),
     projektSor('proj_crm', 'crm', 'crm'),
   ]
   const state = {
@@ -1122,4 +1144,48 @@ test('PORT env nelkul a port-fajl marad a fallback', async (t) => {
   const sug = repo.writeSuggestion({ accountId: acc.id, text: 'x' })
 
   await assert.rejects(() => rpc.acceptSuggestion({ suggestionId: sug.id }), /crm_projekt_nem_talalhato/)
+})
+
+/**
+ * AZ ELFOGADASNAK EGY AJTAJA VAN.
+ *
+ * A `setSuggestionStatus` egy oszlopot ir at, semmi mast. Az `acceptSuggestion`
+ * kimondott invarianca, hogy elfogadott javaslat MOGOTT ALL EGY FELADAT: a cim,
+ * a projekt, a `crm_account` custom field es -- igeretbol szuletett javaslatnal
+ * -- az igeret lezarasa mind ott keletkezik. Ha a status-ajto atengedne az
+ * `'accepted'`-et, egy hivas "elfogadott" javaslatot hagyna feladat nelkul: a
+ * sor eltunne a lap javaslat-listajarol (az csak a `status = 'new'` sorokat
+ * mutatja), az igeret nyitva maradna, es semmi nem mondana meg, hogy a munka
+ * elveszett.
+ */
+test('a setSuggestionStatus NEM fogad el "accepted"-et -- az elfogadas az acceptSuggestion dolga', async () => {
+  const { rpc, repo } = rpcOf()
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'Kuldj ajanlatot' })
+
+  await assert.rejects(
+    () => rpc.setSuggestionStatus({ suggestionId: sug.id, status: 'accepted' }),
+    /crm_elfogadas_csak_acceptSuggestion/,
+  )
+  assert.equal(repo.listSuggestions({}).find((s) => s.id === sug.id).status, 'new',
+    'az elutasitott hivas nem valtoztathatja meg a tarolt allapotot')
+})
+
+test('a setSuggestionStatus tovabbra is elveszi a "dismissed"-et', async () => {
+  const { rpc, repo } = rpcOf()
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'Kuldj ajanlatot' })
+
+  await rpc.setSuggestionStatus({ suggestionId: sug.id, status: 'dismissed' })
+  assert.equal(repo.listSuggestions({ status: 'dismissed' }).some((s) => s.id === sug.id), true)
+})
+
+test('a setSuggestionStatus ismeretlen allapotra a sajat, kulon nevesitett hibajat adja', async () => {
+  const { rpc, repo } = rpcOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'Valami' })
+  await assert.rejects(
+    () => rpc.setSuggestionStatus({ suggestionId: sug.id, status: 'valami_mas' }),
+    /crm_ismeretlen_javaslat_allapot/,
+  )
 })

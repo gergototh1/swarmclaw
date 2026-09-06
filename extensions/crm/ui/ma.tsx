@@ -5,8 +5,51 @@ import type { Rpc } from './api'
 type Unmatched = { id: string; sender_address: string; subject: string; guess_account_id: string | null }
 type Suggestion = { id: string; text: string; reason: string }
 type Account = { id: string; name: string }
+/**
+ * Egy sor a figyelem-listáról (`rpc.mjs` `attention` -> `src/attention.mjs`
+ * `rangsor`). A négy azonosító-mező közül soronként más van kitöltve --
+ * `accountId` az egyetlen, ami MINDIG megvan, és ezért az egyetlen, amin a
+ * lap a továbblépést kínálja.
+ */
+type FigyelemSor = {
+  kind: string
+  accountId: string
+  dealId?: string | null
+  eventId?: string | null
+  commitmentId?: string | null
+  kor: number
+  cim: string
+  indok: string
+}
+type FigyelemValasz = { sorok: FigyelemSor[]; osszes: number }
 type Kapcsolat = { id: string; name: string; accountId: string | null; accountName: string }
 type PostafiokAllapot = { available: boolean; reason?: string; address?: string; message?: string }
+
+/**
+ * A figyelem-lista négy trigger-típusa magyarul. A kulcsok a
+ * `src/attention.mjs` `SULY` táblájának kulcsai -- ha ott új típus születik,
+ * ez a tábla hiányos lesz, és `figyelemKindNev` a nyers kulcsot adja vissza
+ * ahelyett, hogy a sort elrejtené vagy egy hamis címkét ragasztana rá.
+ */
+export const FIGYELEM_KIND_HU: Readonly<Record<string, string>> = Object.freeze({
+  sajat_igeret: 'Saját ígéret',
+  valasz_nelkul: 'Válasz nélkül',
+  nema_ugy: 'Néma ügy',
+  idegen_igeret: 'Nekem ígérték',
+})
+
+/**
+ * A típus magyar neve, vagy -- ismeretlen típusra -- maga a kulcs.
+ *
+ * Az ismeretlen kulcs NEM esik ki és nem kap általános címkét ("Egyéb"): a
+ * figyelem-lista determinisztikus, és ha a rangsor egy olyan típust ad, amit
+ * ez a lap nem ismer, az egy telepítés-eltérés, amit látni kell, nem
+ * elsimítani. A nyers kulcs megnevezi magát, és a sor a helyén marad a
+ * rangsorban.
+ */
+export function figyelemKindNev(kind: string): string {
+  return FIGYELEM_KIND_HU[kind] ?? kind
+}
 
 /**
  * A besorolatlan sor kapcsolat-választójának listája.
@@ -173,6 +216,8 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
   const [csakTanult, setCsakTanult] = useState('')
   const [elfogadFut, setElfogadFut] = useState<Record<string, boolean>>({})
   const [elfogadEredmeny, setElfogadEredmeny] = useState('')
+  const [figyelem, setFigyelem] = useState<FigyelemSor[]>([])
+  const [figyelemOsszes, setFigyelemOsszes] = useState(0)
 
   const tolt = () => {
     rpc('board')
@@ -194,6 +239,19 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
     rpc('mailboxHealth')
       .then((h) => setPostafiok(h as PostafiokAllapot))
       .catch(() => setPostafiok(null))
+    // A figyelem-lista ugyanabból a törzsből jön, mint amit az Ügyfélkezelő
+    // a 08:10-es körében lát (`rpc.mjs` `attention`) -- ez az egyetlen módja
+    // annak, hogy az operátor a napi üzenetet ellenőrizni tudja, ne csak
+    // elhinni. A hibája a közös `hiba` sávba megy, mint a `board`-é: enélkül
+    // egy néma üres lista megkülönböztethetetlen lenne attól, hogy tényleg
+    // nincs teendő, és pont a proaktivitás hallgatna el csendben.
+    rpc('attention', { limit: 20 })
+      .then((f) => {
+        const valasz = f as FigyelemValasz
+        setFigyelem(valasz.sorok)
+        setFigyelemOsszes(valasz.osszes)
+      })
+      .catch((e: Error) => setHiba(e.message))
   }
   useEffect(tolt, [rpc])
 
@@ -215,7 +273,24 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
       .catch((e: Error) => setHiba(e.message))
   }
 
+  /**
+   * Az ügyfél lapjára lépés, a lap minden sorából ugyanezen az egy úton.
+   *
+   * Azért nem a nyers `onOpen`-t adjuk a gomboknak, mert az `elfogadEredmeny`
+   * ("Feladat létrehozva: …") egy EGYSZERI művelet visszajelzése, nem a lap
+   * állapota: ha a navigáció nem törölné, az operátor egy másik ügyfél lapjáról
+   * visszatérve továbbra is egy régi, már nem ide tartozó feladat-azonosítót
+   * olvasna a Figyelmet igényel szakasz tetején. Ugyanezért törli `elvet` és
+   * `soper` is -- mindhárom olyan művelet, ami után a mondat már mást állítana,
+   * mint ami épp történt.
+   */
+  const megnyit = (accountId: string) => {
+    setElfogadEredmeny('')
+    onOpen(accountId)
+  }
+
   const elvet = (suggestionId: string) => {
+    setElfogadEredmeny('')
     rpc('setSuggestionStatus', { suggestionId, status: 'dismissed' })
       .then(tolt).catch((e: Error) => setHiba(e.message))
   }
@@ -271,6 +346,7 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
 
   const soper = () => {
     setFut(true)
+    setElfogadEredmeny('')
     rpc('sweepNow', { max: 50 })
       .then((r) => {
         const x = r as {
@@ -306,9 +382,34 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
       {csakTanult && <p className="crm-halvany" role="status">{csakTanult}</p>}
 
       <h3>Figyelmet igényel</h3>
-      {/* A figyelem-lista a CRM-3-ban érkezik. Addig a javaslat-sor áll itt,
-          hogy a felület alakja már most a helyén legyen. */}
       {elfogadEredmeny && <p className="crm-halvany" role="status">{elfogadEredmeny}</p>}
+      {/* Ugyanaz a lista, amiből az Ügyfélkezelő a 08:10-es körében dolgozik.
+          A sorrend és az indok a `rangsor`-é (`src/attention.mjs`), a lap nem
+          rangsorol újra -- ha itt más sorrend látszana, mint amiről az ügynök
+          ír, a napi üzenet ellenőrizhetetlen lenne. */}
+      {figyelem.length === 0
+        ? <p className="crm-halvany">Most nincs, ami figyelmet igényelne.</p>
+        : (
+          <ul className="crm-lista">
+            {figyelem.map((f) => (
+              <li key={`${f.kind}:${f.commitmentId || f.dealId || f.eventId || f.accountId}`}>
+                <strong>{figyelemKindNev(f.kind)}</strong> {f.cim}
+                <span className="crm-halvany"> — {f.indok}</span>
+                <button onClick={() => megnyit(f.accountId)}>Megnyit</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      {/* A `osszes` a limitálás ELŐTTI szám (`src/attention-service.mjs`):
+          enélkül húsz sor és a teljes lista megkülönböztethetetlen volna, és
+          az operátor azt hinné, mindent lát. */}
+      {figyelemOsszes > figyelem.length && (
+        <p className="crm-halvany">
+          A lista teteje látszik: {figyelem.length} a(z) {figyelemOsszes} sorból.
+        </p>
+      )}
+
+      <h3>Javaslatok</h3>
       {suggestions.length === 0
         ? <p className="crm-halvany">Most nincs javaslat.</p>
         : (
@@ -342,7 +443,7 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
                       valószínűleg {accounts.find((a) => a.id === u.guess_account_id)?.name}
                     </span>
                   )}
-                  <button disabled={!u.guess_account_id} onClick={() => u.guess_account_id && onOpen(u.guess_account_id)}>Megnyit</button>
+                  <button disabled={!u.guess_account_id} onClick={() => u.guess_account_id && megnyit(u.guess_account_id)}>Megnyit</button>
                   <label>
                     <input
                       type="checkbox"

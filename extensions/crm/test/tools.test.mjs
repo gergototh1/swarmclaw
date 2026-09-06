@@ -21,6 +21,61 @@ test('a CRM-3 tiz eszkozt ad: negy olvasot, a sopres inditasat, a figyelem-lista
      'crm_sweep', 'crm_timeline'])
 })
 
+/**
+ * A CRM-3 IRO ESZKOZEINEK SEMAJA -- NEVESITVE, MEZORE.
+ *
+ * A `parameters` nem dekoracio: a host `jsonSchemaToZod`-dal forditja
+ * LangChain-argumentumva, az MCP-hid (`src/mcp-bridge.mjs`) pedig valtozatlanul
+ * adja tovabb az `inputSchema`-ban -- ez a sema AZ, amit az ugynok lat, es
+ * amibol eldonti, mit kell megadnia. Ha egy `required` kulcs kiesik, a hivas
+ * nem hasal el a sema szintjen: az `execute` fut le hianyzo mezovel, es ott
+ * vagy egy nevesitett hiba lesz belole (jo esetben), vagy egy ures stringgel
+ * elmentett sor (rossz esetben).
+ *
+ * A tesztek ezert a KONKRET listakat allitjak (`deepEqual`), nem azt, hogy
+ * "van required": egy `required: ['accountId']`-re szukitett
+ * `crm_commitment_write` es egy `required` nelkuli `crm_suggestion_write`
+ * korabban zolden atment az egesz teszthalmazon.
+ */
+test('a crm_commitment_write semaja: a direction ket megnevezett erteket vesz fel, es mind a negy mezo kotelezo', () => {
+  const { byName } = toolsOf()
+  const p = byName.crm_commitment_write.parameters
+  assert.deepEqual(p.properties.direction.enum, ['ours', 'theirs'],
+    'a direction enumja az igero oldalat kodolja -- barmi mas ertek egy fel idovonalat forditana meg')
+  assert.deepEqual(p.required.slice().sort(), ['accountId', 'direction', 'eventId', 'text'],
+    'mind a negy mezo kotelezo: eventId nelkul az igeret nem kotheto esemenyhez, '
+    + 'direction nelkul nem tudni, ki igerte')
+  assert.equal(p.type, 'object')
+})
+
+test('a crm_suggestion_write semaja: az accountId es a text kotelezo, a tobbi nem', () => {
+  const { byName } = toolsOf()
+  const p = byName.crm_suggestion_write.parameters
+  assert.deepEqual(p.required.slice().sort(), ['accountId', 'text'],
+    'ugyfel es szoveg nelkul a javaslat nem filezheto es nem olvashato')
+  for (const opcionalis of ['reason', 'triggerKind', 'triggerEventId', 'commitmentId']) {
+    assert.ok(opcionalis in p.properties, `${opcionalis} hianyzik a semabol`)
+    assert.equal(p.required.includes(opcionalis), false,
+      `${opcionalis} nem lehet kotelezo -- nem minden javaslat szuletik figyelem-listas sorbol`)
+  }
+})
+
+test('a crm_summary_write semaja: az accountId es a text kotelezo, a lefedettseget NEM a hivo adja', () => {
+  const { byName } = toolsOf()
+  const p = byName.crm_summary_write.parameters
+  assert.deepEqual(p.required.slice().sort(), ['accountId', 'text'])
+  assert.deepEqual(Object.keys(p.properties).sort(), ['accountId', 'text'],
+    'a `covers_event_id`-t a writeSummary belyegzi ra, nem a hivo -- ha a semaba kerulne, az ugynok hazudhatna rola')
+})
+
+test('a crm_attention semaja: a limit szam, es NEM kotelezo', () => {
+  const { byName } = toolsOf()
+  const p = byName.crm_attention.parameters
+  assert.equal(p.properties.limit.type, 'number')
+  assert.ok(!p.required || p.required.length === 0,
+    'a limit nelkuli hivas az alapertelmezett listat kell hogy adja, nem sema-hibat')
+})
+
 test('a CRM-3 utan a crm_attention es az iro eszkozok is a listaban vannak', () => {
   const { list } = toolsOf()
   const names = list.map((t) => t.name)

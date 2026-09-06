@@ -180,3 +180,93 @@ test('a lept TENYLEGESEN az updateDeal rpc-t hivja, hiba eseten setHiba-t allit,
     'hiányzik a bundle-ből a `lept` helyes bekötése: `updateDeal` hívás, siker esetén `tolt`, hiba esetén `setHiba`',
   )
 })
+
+/**
+ * A figyelem-lista a lapon. A CRM-3 terv 4. feladata "a lista az ugynoknek ES
+ * a lapnak" cimet viselte, de a lap sosem hivta meg az `attention` rpc-t: a
+ * rangsorolt lista kizarolag a 08:10-es chat-uzenetben letezett, es az operator
+ * semmilyen uton nem tudta megnezni, MIROL ir az ugynok. Ezek a tesztek nem a
+ * feliratot nezik, hanem a bekotest -- ugyanabbol az okbol, amiert az Elfogad
+ * gomb es a szakaszleptetes tesztjei sem elegednek meg egy `includes`-szal.
+ */
+test('a lap TENYLEGESEN meghivja az attention rpc-t, es a valasz mindket mezojet felhasznalja', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(
+    js,
+    /rpc\("attention",\s*\{\s*limit:\s*\d+\s*\}\)\.then\(\(f\) => \{[\s\S]{0,200}?setFigyelem\(valasz\.sorok\);[\s\S]{0,80}?setFigyelemOsszes\(valasz\.osszes\);/,
+    'hianyzik a bundle-bol az `attention` rpc hivasa a `sorok` ES az `osszes` mezo felhasznalasaval',
+  )
+  assert.match(
+    js,
+    /rpc\("attention"[\s\S]{0,300}?\}\)\.catch\(\(e\) => setHiba\(e\.message\)\)/,
+    'az attention hivas hibaja nem a kozos `hiba` savba megy -- egy nema ures lista '
+    + 'megkulonboztethetetlen attol, hogy tenyleg nincs teendo',
+  )
+})
+
+test('a figyelem-sor a tipusat, a cimet ES az indokat is mutatja, nem csak az egyiket', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(
+    js,
+    /figyelem\.map\(\(f\) =>[\s\S]{0,400}?figyelemKindNev\(f\.kind\)[\s\S]{0,300}?f\.cim[\s\S]{0,300}?f\.indok/,
+    'a figyelem-sorbol hianyzik a tipus, a cim vagy az indok -- a sor onmagaban kell hogy megmondja, MIERT van rajta',
+  )
+})
+
+test('a figyelem-sor Megnyit gombja az ugyfel lapjara visz, a sor accountId-javal', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(
+    js,
+    /"button",\s*\{\s*onClick:\s*\(\)\s*=>\s*megnyit\(f\.accountId\),\s*children:\s*"Megnyit"/,
+    'hianyzik a figyelem-sor `megnyit(f.accountId)`-t hivo Megnyit gombja',
+  )
+})
+
+test('a lap megmondja, ha csak a lista teteje latszik -- az `osszes`-t a limitalt hosszhoz merve', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(
+    js,
+    /figyelemOsszes\s*>\s*figyelem\.length\s*&&/,
+    'hianyzik a limit-jelzes: husz sor es a teljes lista igy megkulonboztethetetlen',
+  )
+})
+
+/**
+ * Az `elfogadEredmeny` ("Feladat letrehozva: ...") egy EGYSZERI muvelet
+ * visszajelzese, nem a lap allapota. Ha az elvetes, a sopres vagy egy
+ * navigacio nem torolne, az operator egy mar nem ide tartozo feladat-
+ * azonositot olvasna a Figyelmet igenyel szakasz tetejen.
+ */
+test('az elfogadas visszajelzeset az elvet, a soper ES a navigacio is torli', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(
+    js,
+    /const megnyit = \(accountId\) => \{\s*setElfogadEredmeny\(""\);\s*onOpen\(accountId\);/,
+    'a navigacio nem torli az elfogadas visszajelzeset',
+  )
+  assert.match(
+    js,
+    /const elvet = \(suggestionId\) => \{\s*setElfogadEredmeny\(""\);/,
+    'az elvetes nem torli az elfogadas visszajelzeset',
+  )
+  assert.match(
+    js,
+    /const soper = \(\) => \{\s*setFut\(true\);\s*setElfogadEredmeny\(""\);/,
+    'a sopres nem torli az elfogadas visszajelzeset',
+  )
+})
+
+test('a besorolatlan sor Megnyit gombja is a torlo `megnyit`-en megy at, nem a nyers onOpen-en', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(
+    js,
+    /disabled:\s*!u\.guess_account_id,\s*onClick:\s*\(\)\s*=>\s*u\.guess_account_id\s*&&\s*megnyit\(u\.guess_account_id\)/,
+    'a besorolatlan sor navigacioja megkeruli az `elfogadEredmeny` torleset',
+  )
+})

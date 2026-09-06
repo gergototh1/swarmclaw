@@ -281,18 +281,41 @@ alapján dönti el, mit akar tényleg elolvasni.
 
 ### 5.5 A javasol/cselekszik határ, és mit tart fenn valójában
 
-A heartbeat-ből futó ügynök **javasol**: `suggestion` sorokat ír. Amikor az
-operátor **chatben szól**, hogy „csináld meg", akkor megcsinálja — valódi
-`BoardTask`-ot hoz létre a CRM projektben, megírja a levéltervezetet, kutat.
+*(A CRM-3 után átírva. A korábbi szöveg azt állította biztonsági
+tulajdonságként, hogy „a CRM maga ne tudjon feladatot gyártani — és nem is tud,
+mert az `ExtensionContext`-ben nincs task-API". Ez már nem igaz, és a helyére
+egy szűkebb, de valódi állítás lép.)*
 
-**Ezt a különbséget nem az eszközhatár tartja fenn, hanem a rendszerprompt.**
-Ugyanaz a helyzet, amit a gmail `contract.mjs`-e a bearer-handle-nél leír: a
-CRM `suggestion_write`-ja csak egy sort ír, feladatot pedig a host saját
-task-eszköze hoz létre, ami az ügynöknek amúgy is a kezében van.
+Az ütemezett körében futó ügynök **javasol**: `suggestion` sorokat ír. Feladat
+abból akkor lesz, amikor **az operátor a lapon rákattint az Elfogad gombra** —
+ez hívja a `rpc.mjs` `acceptSuggestion`-jét, ami valódi `BoardTask`-ot hoz létre
+a CRM projektben.
 
-Amit tényleg ki lehet kényszeríteni, az az, hogy **a CRM maga ne tudjon
-feladatot gyártani** — és nem is tud, mert az `ExtensionContext`-ben nincs
-task-API. Ez a spec ezt kimondja, nem takarja el.
+**A CRM tehát TUD feladatot gyártani, és a hoszt HTTP route-ján teszi.**
+`acceptSuggestion` a hoszt `POST /api/tasks` végpontjára küld, a portot a
+`run/port.json`-ból olvasva; ez nem az `ExtensionContext`-en át megy, mert ott
+tényleg nincs task-API — de a hiánya nem korlát, csak egy be nem járt út. Aki
+ezt a bekezdést olvassa, ne tervezzen olyan korlátra, ami nem létezik: ha egy
+jövőbeli lépésnek feladatot kell írnia, az ugyanezen az úton fog.
+
+**Amit valóban ki lehet kényszeríteni, az kettő, és mindkettő ki is van
+kényszerítve:**
+
+1. **Az ügynök nem fogadhatja el a saját javaslatát.** Nincs
+   `crm_accept_suggestion` eszköz, és az `acceptSuggestion` nem eszköz, hanem
+   rpc-metódus — az rpc a lap ajtaja, az eszköztábla az ügynöké, és a kettő két
+   külön fájl (`src/rpc.mjs`, `src/tools.mjs`), hogy egy átvitel a diffből
+   látsszon, ne egy megosztott listából.
+2. **„Elfogadott" javaslat nem létezhet feladat nélkül.** Ez az invariáns az
+   `acceptSuggestion`-ben áll, ezért az operátor-ajtó `setSuggestionStatus`-a is
+   elutasítja az `'accepted'` állapotot (`crm_elfogadas_csak_acceptSuggestion`):
+   egy státusz-átírás eltüntetné a javaslatot a listáról (az csak a
+   `status = 'new'` sorokat mutatja), az ígéretet nyitva hagyná, és semmi nem
+   mondaná meg, hogy a munka elveszett.
+
+Ez a határ **nem az eszközhatáron és nem is csak a rendszerprompton áll**: az
+ajtó tényleg nincs meg az ügynök felé. A rendszerprompt ezt kimondja, de nem ő
+tartja.
 
 ---
 
@@ -310,12 +333,40 @@ Mindhárom küszöb `settingsFields`-ből jön; a zárójeles értékek a
 (alapérték: 7 nap), mert egy tőlünk elvárt dolog és egy nekünk ígért dolog nem
 egyforma sürgős.
 
-### 6.1 Eseményvezérelt, nem napi adagolású
+### 6.1 A napi kör, és miért nem digest
 
-Nincs „reggeli kör". Az ügynök akkor szól, amikor valami átlép egy küszöböt, nem
-reggel nyolckor mindenről. Egy napi digest, amiben többnyire nincs teendő,
-néhány hét alatt olvasatlanná válik; egy üzenet, ami akkor jön, amikor tényleg
-történt valami, nem.
+*(A CRM-3 után átírva. A korábbi szöveg azt mondta, hogy „nincs reggeli kör" —
+a 6. feladat pontosan egyet szállított, `CRM: napi kör (08:10)` néven.)*
+
+**Van reggeli kör: egy deklarált cron-ütemezés, `10 8 * * *`,
+`Europe/Budapest`** (`src/agents.mjs` `SCHEDULES`). Nem tervmódosítás, hanem
+kényszer: a mechanizmus, amit az eredeti szöveg feltételezett — az ügynök
+magától ébred, amikor valami átlép egy küszöböt — CLI-provideres ügynökön nem
+létezik. A `heartbeatEnabled` minden betöltéskor `false`-ra áll (lásd 15.
+fejezet), tehát az ébresztés vagy ütemezésből jön, vagy sehonnan. A választás
+nem „esemény vs. napi adag" volt, hanem „napi kör vs. semmi".
+
+**A kifogás a digest ellen viszont áll, és ezért a kör nem digest.** Egy napi
+összefoglaló, amiben többnyire nincs teendő, néhány hét alatt olvasatlanná
+válik. Három dolog tartja ettől távol:
+
+- **A lista rangsorolt és determinisztikus**, nem az ügynök válogatása
+  (`src/attention.mjs`): a típus adja a súlyt, a kor a finomhangolást. Az
+  ügynök ebből **ír**, nem ebből **következtet**.
+- **A lista fogy.** Minden sora egy átlépett küszöb — nem „minden ügyfél
+  állapota", hanem az, ami elmaradt. Ha nincs elmaradás, a lista üres, és a
+  prompt ilyenkor egy mondatot kér, nem jelentést.
+- **A kör felül van korlátozva.** A napi prompt legfeljebb öt sort dolgoztat
+  fel, és a záró üzenet legfeljebb három dolgot nevez meg. Ami ma kimaradt,
+  holnap még mindig a lista tetején lesz — a rangsor a kor szerint egyre előrébb
+  hozza. Egy hosszú futás, ami nem ér a végére, rosszabb, mint egy rövid, ami
+  igen.
+
+Ugyanez a lista az operátor lapján is ott van („Figyelmet igényel", `ui/ma.tsx`),
+ugyanabból az rpc-ből (`attention`), ugyanabban a sorrendben. Ez nem
+kényelmi duplikáció: e nélkül a 08:10-es üzenet **ellenőrizhetetlen** lenne, és
+egy ellenőrizhetetlen napi üzenet pontosan az, ami néhány hét alatt elveszíti a
+hitelét.
 
 ### 6.2 Ígéret-radar mindkét irányba
 
@@ -479,15 +530,50 @@ el.
   rpc:      createRpc(state),  // az oldalé + a webhook-bevitel
   consumes: [{ contract: MAILBOX_CONTRACT, version: '…', reason: '…' }],
   managedResources: {
-    projects:    [{ projectKey: 'crm', displayName: 'CRM', objective: …, priorities: … }],
-    agents:      [{ agentKey: 'crm-manager', displayName: 'Ügyfélkezelő',
-                    systemPrompt: …, heartbeatEnabled: true, dailyBudget: … }],
+    projects:  [{ projectKey: 'crm', displayName: 'CRM', objective: …, priorities: … }],
+    agents:    AGENTS,      // src/agents.mjs
+    schedules: SCHEDULES,   // src/agents.mjs
     setupChecks: [ … ],
   },
   ui: { pages: [{ id: 'crm', path: '/x/crm', icon: …, entry: 'dist/index.js' }],
         settingsFields: [ … ] },
 }
 ```
+
+Az ügynök- és ütemezés-deklaráció a `src/agents.mjs`-ben áll, nem itt beágyazva
+— egy rendszerprompt hosszú, és a manifestben olvashatatlanná tenné azt a
+néhány mezőt, ami a hosztnak tényleg szól. Amit ez a két konstans visz:
+
+```js
+AGENTS    = [{ agentKey: 'crm-ugyfelkezelo', displayName: 'Ügyfélkezelő',
+               systemPrompt: …, tools: ['crm.mjs', 'memory'],
+               heartbeatEnabled: false }]
+SCHEDULES = [{ scheduleKey: 'crm-napi-kor', displayName: 'CRM: napi kör (08:10)',
+               agentRef: { resourceKind: 'agent', resourceKey: 'crm-ugyfelkezelo' },
+               scheduleType: 'cron', cron: '10 8 * * *',
+               timezone: 'Europe/Budapest', status: 'active', taskPrompt: … }]
+```
+
+Három eltérés a fenti eredeti vázlathoz képest, mindhárom a kód szerint:
+
+**`crm-ugyfelkezelo`, nem `crm-manager`.** Az `agentKey` a managed-resource
+azonosítója, amin a reconcile az ügynököt megtalálja és frissíti; egy átnevezés
+nem átnevez, hanem egy második ügynököt hoz létre az első mellé. A magyar
+kulcsot a `test/agents.test.mjs` pineli.
+
+**`heartbeatEnabled: false`, és ez marad.** A `true` némán felülíródna:
+`storage-normalization.ts` minden betöltéskor `false`-ra állítja CLI-provideres
+ügynöknél. Az ok viszont nem csak mechanikus, és ezért nem is „kerülendő
+korlát": **egy CLI-provider előfizetést éget, nem API-kulcsot**, tehát egy
+flottányi autonóm ébredés nem kapcsolódhat be mellékhatásként — sem egy
+extension telepítéséből, sem a delegálás engedélyezéséből. Az ébresztés a
+`SCHEDULES` cronjából jön, ami egy megnevezett, naponta egyszeri, az operátor
+által a felületen látható és kikapcsolható esemény. (Részletesen: 15. fejezet.)
+
+**`dailyBudget` nincs.** A vázlat felsorolta, a szállított deklaráció nem viszi:
+a napi költséget az egyetlen ütemezett futás korlátozza, és a napi prompt maga
+is legfeljebb öt sort dolgoztat fel. Egy második, számokban kifejezett korlát
+egy naponta egyszer futó ügynöknél olyan mező, amit senki nem hangol.
 
 A `provides` szerződés az első négy fázisban nem szerepel: ma nincs fogyasztója,
 és egy szerződés-metódus, amit senki nem hív, olyan felület, amit senki nem

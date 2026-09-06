@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { kivalasztasLathato, valaszthatoKapcsolatok } from '../ui/ma.tsx'
+import { FIGYELEM_KIND_HU, figyelemKindNev, kivalasztasLathato, valaszthatoKapcsolatok } from '../ui/ma.tsx'
 
 /**
  * A besorolatlan-sor kapcsolat-választója a sweep találgatását (`guess_account_id`)
@@ -73,4 +73,26 @@ test('kivalasztasLathato hamis ures id-re, akkor is ha a lista nem ures', () => 
 test('mindet bekapcsolasa utan a korabban lathatatlan kivalasztas ismet lathatova valik', () => {
   const mindettel = valaszthatoKapcsolatok(KAPCSOLATOK, 'acc_talalt', true)
   assert.equal(kivalasztasLathato('c_mas', mindettel), true)
+})
+
+/**
+ * A figyelem-lista tipuscimkei. A lap ugyanazokat a sorokat mutatja, amikbol
+ * az Ugyfelkezelo a 08:10-es koreben dolgozik (`rpc.mjs` `attention`), tehat a
+ * negy trigger-tipusnak nevet kell kapnia -- de egy ISMERETLEN tipus nem
+ * kaphat altalanos cimket ("Egyeb") es nem eshet ki: a rangsor
+ * determinisztikus, es egy nem ismert kulcs telepites-elteres, amit latni kell.
+ */
+test('mind a negy trigger-tipusnak van magyar neve', () => {
+  assert.deepEqual(
+    Object.keys(FIGYELEM_KIND_HU).sort(),
+    ['idegen_igeret', 'nema_ugy', 'sajat_igeret', 'valasz_nelkul'],
+    'a kulcsoknak a src/attention.mjs SULY tablajanak kulcsaival kell egyeznie',
+  )
+  for (const kulcs of Object.keys(FIGYELEM_KIND_HU)) {
+    assert.notEqual(figyelemKindNev(kulcs), kulcs, `${kulcs} a nyers kulcsot adja vissza`)
+  }
+})
+
+test('ismeretlen tipus a nyers kulcsot kapja vissza, nem egy altalanos cimket', () => {
+  assert.equal(figyelemKindNev('valami_uj_trigger'), 'valami_uj_trigger')
 })
