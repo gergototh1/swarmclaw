@@ -1,0 +1,4 @@
+.crm { display: flex; flex-direction: column; gap: 1rem; padding: 1rem; }
+.crm-nav { display: flex; gap: .5rem; }
+.crm-nav button[aria-pressed="true"] { font-weight: 600; text-decoration: underline; }
+.crm-fo { min-height: 12rem; }
