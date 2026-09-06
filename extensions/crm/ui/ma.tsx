@@ -6,7 +6,7 @@ type Unmatched = { id: string; sender_address: string; subject: string; guess_ac
 type Suggestion = { id: string; text: string; reason: string }
 type Account = { id: string; name: string }
 type Kapcsolat = { id: string; name: string; accountId: string | null; accountName: string }
-type PostafiokAllapot = { available: boolean; reason?: string; address?: string }
+type PostafiokAllapot = { available: boolean; reason?: string; address?: string; message?: string }
 
 /**
  * A besorolatlan sor kapcsolat-választójának listája.
@@ -51,8 +51,10 @@ export function kivalasztasLathato(kivalasztottId: string, lathatoLista: Kapcsol
 
 /**
  * A négy szerződés-szintű ok (`src/rpc.mjs` `mailboxHealth`), plusz a CRM
- * saját két oka (`crm_nincs_contracts`, `crm_postafiok_hiba`) -- mindegyikhez
- * más teendő tartozik, ezért egyik sem olvad össze eggyel sem itt.
+ * saját `crm_nincs_contracts` oka -- mindegyikhez más teendő tartozik, ezért
+ * egyik sem olvad össze eggyel sem itt. `crm_postafiok_hiba` NINCS ebben a
+ * táblában: annak a szövegét `postafiokHibaTeendo` állítja össze a hívás
+ * `message` mezőjéből, mert az az egy ok maga nem mond semmit -- lásd ott.
  */
 const POSTAFIOK_OK_HU: Readonly<Record<string, string>> = Object.freeze({
   not_declared: 'A telepített CRM nem kéri a postafiók szerződést -- telepítsd újra a CRM extensiont.',
@@ -60,18 +62,76 @@ const POSTAFIOK_OK_HU: Readonly<Record<string, string>> = Object.freeze({
   provider_disabled: 'A Gmail extension telepítve van, de ki van kapcsolva -- kapcsold be az Extensions lapon.',
   version_mismatch: 'A Gmail extension másik szerződés-verziót ad, mint amire a CRM épült -- az egyiket frissíteni kell.',
   crm_nincs_contracts: 'A hoszt ennek a telepítésnek nem ad szerződés-hozzáférést -- ez rendszerhiba, forduljon az üzemeltetőhöz.',
-  crm_postafiok_hiba: 'A postafiók-szerződés elérhető, de a lekérdezés elhasalt -- valószínűleg hiányzik vagy lejárt a Gmail-hitelesítő; kösd össze újra a Gmail extensionön.',
 })
+
+/**
+ * A `gmail` extension saját, hitelesítő hiányára/lejártára utaló kódjai --
+ * ezek a `mailbox()` hívás dobott hibájának ÜZENETÉBEN a puszta kód szövege
+ * (nem mondat), mert `extensions/gmail/src/client.mjs` a `TOKEN_CODES`
+ * halmazba eső üzenetet változatlanul továbbadja: `gmail_token_missing`
+ * (nincs csatlakoztatva fiók), `gmail_token_unreadable` (a tárolt hitelesítő
+ * nem olvasható), `gmail_token_revoked` (a jogosultság visszavonva vagy
+ * lejárt), `gmail_refresh_failed` (a frissítés meg nem nevezett okból
+ * hiúsult meg -- a gmail modul erre is az újracsatlakozást ajánlja, lásd
+ * `client.mjs` idézett megjegyzése). Mind a négyhez ugyanaz a teendő tartozik:
+ * a fiókot a Gmail extension saját lapján kell újra összekötni.
+ */
+const GMAIL_HITELESITO_UZENETEK: ReadonlySet<string> = new Set([
+  'gmail_token_missing', 'gmail_token_unreadable', 'gmail_token_revoked', 'gmail_refresh_failed',
+])
+
+/**
+ * A `crm_postafiok_hiba` teendője a hívás `message` mezőjéből.
+ *
+ * A `message` IDEGEN SZÖVEG -- a `gmail` extension dobja, a CRM nem
+ * ellenőrzi a tartalmát --, ezért ez a függvény kizárólag ADATKÉNT olvassa
+ * (mintaillesztés stringen), sosem jelenít meg markupként vagy épít belőle
+ * más kódba interpolált szöveget.
+ *
+ * Két esetet tudunk biztosan megkülönböztetni:
+ *
+ * 1. A hoszton nincs Google OAuth kliens beállítva. Ekkor `client.mjs` a
+ *    host saját `GoogleOAuthNotConfiguredError`-jának mondatát adja tovább
+ *    (`"Google OAuth is not configured, ..."`, lásd
+ *    `src/lib/server/oauth/google.ts`) a `google_oauth_client_missing` kód
+ *    mögött -- ezt a mondatot a hoszt saját tesztje is `/not configured/i`
+ *    mintával azonosítja, ezért ez itt is stabil jel. A teendő ilyenkor NEM
+ *    kattintható: két környezeti változó és egy újraindítás.
+ * 2. Hiányzó vagy lejárt Gmail-hitelesítő (`GMAIL_HITELESITO_UZENETEK`) --
+ *    ilyenkor a teendő a fiók újra-összekötése a Gmail extension saját
+ *    lapján.
+ *
+ * Minden más esetben -- ismeretlen `message`, vagy egyáltalán nincs -- a
+ * függvény ezt őszintén bevallja, és a nyers üzenetet mutatja a kitalált
+ * diagnózis helyett.
+ */
+function postafiokHibaTeendo(message: string): string {
+  if (/google_oauth_client_missing/.test(message) || /not configured/i.test(message)) {
+    return (
+      'A hoszton nincs beállítva Google OAuth kliens -- ezt az operátor a felületen nem tudja megoldani. ' +
+      'Üzemeltetői teendő: állítsd be a módhoz tartozó két környezeti változót (asztali app esetén ' +
+      'GOOGLE_OAUTH_CLIENT_DESKTOP_ID és GOOGLE_OAUTH_CLIENT_DESKTOP_SECRET; szerveren ' +
+      'GOOGLE_OAUTH_CLIENT_WEB_ID és GOOGLE_OAUTH_CLIENT_WEB_SECRET), majd indítsd újra a hosztot.'
+    )
+  }
+  if (GMAIL_HITELESITO_UZENETEK.has(message)) {
+    return 'Hiányzik vagy lejárt a Gmail-hitelesítő -- kösd össze újra a fiókot a Gmail extension saját lapján.'
+  }
+  return message
+    ? `A postafiók-lekérdezés elhasalt, az ok innen nem állapítható meg biztosan. A hívás üzenete: „${message}".`
+    : 'A postafiók-lekérdezés elhasalt, de a hívás nem adott üzenetet -- az ok innen nem állapítható meg.'
+}
 
 /**
  * A postafiók-állapot egyetlen sora. Elérhető szerződés esetén halk (a cím,
  * ha van), egyébként a névre szóló ok és a hozzá tartozó teendő -- soha nem
- * egy összemosott "nem működik" mondat, mert a négy+kettő ok mindegyikéhez
- * más lépés tartozik az operátornak.
+ * egy összemosott "nem működik" mondat, mert az öt ok mindegyikéhez más
+ * lépés tartozik az operátornak.
  */
 function postafiokUzenet(p: PostafiokAllapot): string {
   if (p.available) return p.address ? `Postafiók elérhető: ${p.address}` : 'Postafiók elérhető.'
   const reason = p.reason ?? ''
+  if (reason === 'crm_postafiok_hiba') return postafiokHibaTeendo(p.message ?? '')
   return POSTAFIOK_OK_HU[reason] ?? `A levelek behúzása áll: ismeretlen ok (${reason || 'nincs megadva'}).`
 }
 

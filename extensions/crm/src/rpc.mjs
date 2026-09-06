@@ -223,6 +223,20 @@ export function createRpc(state) {
      * szerint el akar kerülni. A hiba ekkor is nevesített marad, csak nem a
      * hoszt szerződés-szintű okai közül, mert nem is az a hiba: a szerződés
      * feloldódott, a hívás maga hasalt el.
+     *
+     * A `reason: 'crm_postafiok_hiba'` ekkor is stabil marad -- a hívó erre
+     * ágazhat --, de a `message` mezőben mellette megy a `gmail` extension
+     * saját dobott hibájának üzenete is (pl. `google_oauth_client_missing`).
+     * Enélkül az operátor csak annyit tudna, hogy "valami baj van a
+     * postafiókkal", és nem tudná megkülönböztetni a hiányzó Google OAuth
+     * klienst a lejárt hitelesítőtől -- két teljesen más teendő. A `message`
+     * ugyanaz a kulcs, amit ez a metódus a `state.log?.warn?.` hívásban is
+     * használ ugyanerre az értékre, tehát a hívó és a szerver-log ugyanazt a
+     * nevet látja ugyanarra a dologra.
+     *
+     * A `message` IDEGEN SZÖVEG: a `gmail` extension dobja, nem a CRM
+     * ellenőrzi a tartalmát. A lap ezt adatként jeleníti meg, sosem
+     * markupként (lásd `ui/ma.tsx`).
      */
     async mailboxHealth() {
       if (!state.contracts) return { available: false, reason: 'crm_nincs_contracts' }
@@ -234,11 +248,12 @@ export function createRpc(state) {
         const box = await handle.mailbox()
         return { available: true, address: box.address }
       } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
         state.log?.warn?.(
           'crm mailboxHealth: a postafiók-szerződés feloldódott, de a hívás elhasalt',
-          { message: err instanceof Error ? err.message : String(err) },
+          { message },
         )
-        return { available: false, reason: 'crm_postafiok_hiba' }
+        return { available: false, reason: 'crm_postafiok_hiba', message }
       }
     },
   }

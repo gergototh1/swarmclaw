@@ -236,6 +236,21 @@ test('a mailboxHealth nevesitett okot ad -- nem 500-at --, ha a szerzodes felold
   const h = await rpc.mailboxHealth({})
   assert.equal(h.available, false)
   assert.equal(h.reason, 'crm_postafiok_hiba')
+  assert.equal(h.message, 'lejart hitelesito')
+})
+
+test('a mailboxHealth a gmail extension nevesitett hibajanak uzenetet is viszi, a stabil kod mellett', async () => {
+  // Élő eset: a hoszton nincs Google OAuth kliens konfigurálva -- a `gmail`
+  // extension saját `health` rpc-je ezt `google_oauth_client_missing`
+  // kóddal jelzi, a `mailbox()` hívás pedig ugyanezzel a szöveggel utasít el.
+  const { rpc } = rpcWithContracts({
+    get: () => ({ mailbox: async () => { throw new Error('google_oauth_client_missing') } }),
+    why: () => null,
+  })
+  const h = await rpc.mailboxHealth({})
+  assert.equal(h.available, false)
+  assert.equal(h.reason, 'crm_postafiok_hiba')
+  assert.equal(h.message, 'google_oauth_client_missing')
 })
 
 /** A `mailbox` szerződés dublőre, ugyanaz az alak, mint a sweep sajét tesztjeiben. */

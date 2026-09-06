@@ -59,3 +59,16 @@ test('a bundle tartalmazza a nem iktatott hozzarendeles jelzeset', async () => {
   const js = out.outputFiles[0].text
   assert.ok(js.includes('még nincs ügyfele'), 'hiányzik a bundle-ből: a nem iktatott hozzárendelés üzenete')
 })
+
+test('a bundle megkulonbozteti a postafiok-hivas elhasalasanak ket okat', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  for (const jel of [
+    'nincs beállítva Google OAuth kliens',
+    'GOOGLE_OAUTH_CLIENT_DESKTOP_ID',
+    'Hiányzik vagy lejárt a Gmail-hitelesítő',
+    'A hívás üzenete',
+  ]) {
+    assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
+  }
+})
