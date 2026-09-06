@@ -230,15 +230,21 @@ export function createTools(state) {
           reason: { type: 'string', description: 'Egy mondat arról, mire alapozod.' },
           triggerKind: { type: 'string', description: 'A crm_attention sorának kind mezője, ha abból jött.' },
           triggerEventId: { type: 'string' },
+          commitmentId: {
+            type: 'string',
+            description: 'Az ígéret azonosítója -- KÖTELEZŐ megadni, ha a javaslat a figyelem-lista ' +
+              'sajat_igeret vagy idegen_igeret sorából jött, különben az ígéret az elfogadás után sem zárul le.',
+          },
         },
         required: ['accountId', 'text'],
       },
-      async execute({ accountId, text, reason, triggerKind, triggerEventId }, ctx) {
+      async execute({ accountId, text, reason, triggerKind, triggerEventId, commitmentId }, ctx) {
         const r = repo()
         if (!r.getAccount(accountId)) throw new Error('crm_ismeretlen_ugyfel')
         return r.writeSuggestion({
           accountId, text: String(text || ''), reason: String(reason || ''),
           triggerKind: String(triggerKind || ''), triggerEventId: triggerEventId || null,
+          commitmentId: commitmentId || null,
           agentId: ctx?.session?.agentId || '',
         })
       },

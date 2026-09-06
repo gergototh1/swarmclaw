@@ -130,6 +130,18 @@ ALTER TABLE ext_crm_inbox_unmatched ADD COLUMN thread_id TEXT NOT NULL DEFAULT '
 CREATE INDEX IF NOT EXISTS ext_crm_event_account_occurred_id
   ON ext_crm_event (account_id, occurred_at, id);
 `,
+}, {
+  // A javaslat mostantól tudja, melyik ígéretből született -- enélkül az
+  // operátor elfogadása feladatot csinál a javaslatból, de az ígéret
+  // `task_id`-je üresen marad, és a figyelem-lista örökre újra felhozza
+  // ugyanazt az ígéretet, akkor is, ha az operátor már intézkedett. Lásd
+  // `rpc.mjs` `acceptSuggestion`. Additív, mint a 3-5: a v1-v5 SQL-je
+  // byte-identikus marad, ez csak egy oszlopot told hozzá egy már létező
+  // táblához.
+  version: 6,
+  sql: `
+ALTER TABLE ext_crm_suggestion ADD COLUMN commitment_id TEXT;
+`,
 }])
 
 const now = () => new Date().toISOString()
@@ -562,15 +574,15 @@ export function createRepo(storage) {
 
     // ---- suggestion ----------------------------------------------------
     writeSuggestion({ accountId, dealId = null, text, reason = '', triggerKind = '',
-                      triggerEventId = null, agentId = '' }) {
+                      triggerEventId = null, commitmentId = null, agentId = '' }) {
       const id = newId('sug')
       const at = now()
       S.exec(
         `INSERT INTO ext_crm_suggestion
-           (id, account_id, deal_id, text, reason, trigger_kind, trigger_event_id,
+           (id, account_id, deal_id, text, reason, trigger_kind, trigger_event_id, commitment_id,
             status, agent_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)`,
-        [id, accountId, dealId, str(text), str(reason), str(triggerKind), triggerEventId,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)`,
+        [id, accountId, dealId, str(text), str(reason), str(triggerKind), triggerEventId, commitmentId,
          str(agentId), at, at],
       )
       return S.get('SELECT * FROM ext_crm_suggestion WHERE id = ?', [id])

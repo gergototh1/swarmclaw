@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import { AGENTS, SCHEDULES } from './src/agents.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
@@ -13,10 +15,11 @@ import { createTools } from './src/tools.mjs'
  * szivárogtatna belőlük. A sima értékadás idempotens, tehát a setup()
  * újrafuttatása ingyen van.
  *
- * Nincs itt fetch-varrat, mert a CRM-1 nem megy ki a hálózatra. A CRM-4
- * webhook-oldala és a naptár-olvasás majd felvesz egyet -- akkor, amikor lesz
- * mibe injektálni. Egy most felvett mező olyasmit írna le, amit semmi nem
- * használ, és a rá írt teszt semmit nem állítana a viselkedésről.
+ * A `portFile` a 7. feladattal érkezik: az `acceptSuggestion` (`src/rpc.mjs`)
+ * ezen keresztül hívja a host saját `/api/tasks` és `/api/projects`
+ * végpontját, mert az `ExtensionContext` nem ad task-API-t, és egy extension
+ * nem importálhat a host `src/`-jéből. A `fetchImpl` a teszt varrata --
+ * élesben mindig `null`, és a hívó a `globalThis.fetch`-re esik vissza.
  */
 export const state = {
   storage: null,
@@ -25,6 +28,28 @@ export const state = {
   oauth: null,
   repo: null,
   contracts: null,
+  portFile: null,
+  fetchImpl: null,
+}
+
+/**
+ * Hol írja a host a `run/port.json`-t, a host saját szabálya szerint
+ * (`src/lib/server/data-dir.ts`, `resolveRunDir`), itt megismételve, mert egy
+ * extension nem importálhatja azt a fájlt: ha a SWARMCLAW_HOME be van
+ * állítva, a `run/` a `data/` MELLETT van e home alatt, nem alatta;
+ * egyébként a `run/` a DATA_DIR alatt van, ami a DATA_DIR környezeti
+ * változó, ha be van állítva, egyébként `<cwd>/data`.
+ *
+ * Egy MÁSODIK MÁSOLATA egy szabálynak, ugyanabból a környezetből olvasva --
+ * és ezen az oldalon semmi nem ellenőrizheti, hogy a host tényleg oda írt-e.
+ * Ezért dobja a `hostFetch` (`src/rpc.mjs`) nevesített hibaként a hiányzó
+ * fájlt, ahelyett hogy egy portot kitalálna.
+ */
+function resolvePortFile() {
+  const home = process.env.SWARMCLAW_HOME?.trim()
+  if (home) return path.join(path.resolve(home), 'run', 'port.json')
+  const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
+  return path.join(dataDir, 'run', 'port.json')
 }
 
 const crm = {
@@ -39,6 +64,7 @@ const crm = {
     state.oauth = ctx.oauth
     state.repo = createRepo(ctx.storage)
     state.contracts = ctx.contracts
+    state.portFile = resolvePortFile()
   },
   tools: createTools(state),
   rpc: { ...createRpc(state), ...createMcpBridge(() => crm.tools) },

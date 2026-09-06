@@ -311,6 +311,25 @@ test('a javaslat megíródik és az "new" státuszú listában visszajön', () =
   assert.equal(rows[0].reason, 'két hete nincs válasz')
 })
 
+/**
+ * A 6. feladat előfeltétele: a javaslat tudja meg, melyik ígéretből született.
+ * Enélkül az elfogadás feladatot csinál az ígéretből, de az ígéret task_id-je
+ * üresen marad, és a figyelem-lista örökre újra felhozza ugyanazt az ígéretet.
+ */
+test('a javaslat commitmentId-vel visszaolvasható, és null marad, ha nem adták meg', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const { event } = repo.recordEvent({ accountId: acc.id, kind: 'meeting',
+    occurredAt: '2026-09-01T10:00:00.000Z', excerpt: 'x', sourceSystem: 'manual', sourceId: 'm1' })
+  const igeret = repo.writeCommitment({ accountId: acc.id, eventId: event.id, text: 'Küldöm', direction: 'ours' })
+
+  const sugIgeretbol = repo.writeSuggestion({ accountId: acc.id, text: 'Küldd el', commitmentId: igeret.id })
+  assert.equal(sugIgeretbol.commitment_id, igeret.id)
+
+  const sugMasik = repo.writeSuggestion({ accountId: acc.id, text: 'Másik javaslat' })
+  assert.equal(sugMasik.commitment_id, null)
+})
+
 test('a javaslat státusza módosítható, és utána kikerül az "new" listából', () => {
   const { repo } = repoOf()
   const acc = repo.createAccount({ name: 'X' })

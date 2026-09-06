@@ -72,3 +72,31 @@ test('a bundle megkulonbozteti a postafiok-hivas elhasalasanak ket okat', async 
     assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
   }
 })
+
+/**
+ * A 7. feladat: az ügyfél lapon a host `/api/tasks`-ából jövő feladatlista,
+ * és a Ma nézeten a javaslat elfogadásának gombja.
+ */
+test('a bundle tartalmazza az ugyfelhez tartozo feladatlistat', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  for (const jel of ['Feladatok', 'Ehhez az ügyfélhez még nincs feladat']) {
+    assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
+  }
+})
+
+test('a bundle tartalmazza a javaslat elfogadasanak gombjat', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  for (const jel of ['Elfogad', 'acceptSuggestion', 'Feladat létrehozva']) {
+    assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
+  }
+})
+
+test('a bundle a sopres-osszegzesben a kimeno levelet es a kihagyast is mutatja', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  for (const jel of ['recordedOut', 'skippedOut', 'kimenő idővonalra']) {
+    assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
+  }
+})

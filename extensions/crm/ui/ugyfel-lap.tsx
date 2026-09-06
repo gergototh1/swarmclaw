@@ -16,6 +16,30 @@ type Lap = {
   commitments: Commitment[]
 }
 
+/** A host `/api/tasks` válaszának egy sora -- csak azok a mezők, amiket ez a lap megjelenít. */
+type Feladat = {
+  id: string
+  title: string
+  status: string
+  dueAt: number | null
+  createdAt: number
+  customFields?: Record<string, unknown>
+}
+
+/**
+ * Az ügyfélhez tartozó feladatok, a legfrissebbel elöl.
+ *
+ * A kapcsolat a `customFields.crm_account` mezőn áll -- ezt az
+ * `acceptSuggestion` (`src/rpc.mjs`) írja a feladatra elfogadáskor, lásd ott.
+ * A host `/api/tasks` GET-je objektumot ad (id -> feladat), nem tömböt, ezért
+ * a szűrés előtt `Object.values`-szel kell listává alakítani.
+ */
+export function ugyfelFeladatai(feladatok: Record<string, Feladat>, accountId: string): Feladat[] {
+  return Object.values(feladatok)
+    .filter((f) => f.customFields && f.customFields.crm_account === accountId)
+    .sort((a, b) => b.createdAt - a.createdAt)
+}
+
 /**
  * A lapozott idővonal következő állapota: a már látott események, kiegészítve
  * egy újonnan behúzott lappal.
@@ -48,6 +72,8 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
   const [ujFajta, setUjFajta] = useState('lead')
   const [nincsTobbEsemeny, setNincsTobbEsemeny] = useState(false)
   const [teljesSzovegek, setTeljesSzovegek] = useState<Record<string, string>>({})
+  const [feladatok, setFeladatok] = useState<Feladat[] | null>(null)
+  const [feladatHiba, setFeladatHiba] = useState('')
 
   const tolt = () => {
     rpc('account', { accountId })
@@ -63,6 +89,24 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
       })
       .catch((e: Error) => setHiba(e.message))
   }
+
+  /**
+   * A feladatlista NEM az extension saját rpc-jén megy: a lap a
+   * bejelentkezett origin-en fut, tehát a host `/api/tasks` GET-je
+   * közvetlenül hívható, ugyanazzal a munkamenettel, amivel a felület maga
+   * be van jelentkezve. Külön hiba-state, saját okkal: egy elhasalt
+   * feladat-lekérdezés a lap TÖBBI részét ne vigye magával némán üresbe.
+   */
+  const feladatokatTolt = () => {
+    fetch('/api/tasks')
+      .then((res) => {
+        if (!res.ok) throw new Error(`feladatlista: HTTP ${res.status}`)
+        return res.json() as Promise<Record<string, Feladat>>
+      })
+      .then((x) => { setFeladatok(ugyfelFeladatai(x, accountId)); setFeladatHiba('') })
+      .catch((e: Error) => setFeladatHiba(e.message))
+  }
+  useEffect(feladatokatTolt, [accountId])
   useEffect(tolt, [accountId, rpc])
 
   const korabbiak = () => {
@@ -194,6 +238,30 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
             ))}
           </ul>
         )}
+
+      <h3>Feladatok</h3>
+      {/* A CRM-3 (7. feladat) elfogadott javaslataiból és lezárt ígéreteiből
+          született feladatok -- a host `/api/tasks`-ából, `customFields.crm_account`-ra
+          szűrve. Üres lista soha nem marad néma dobozként: vagy mutatja, hogy
+          még nincs feladat, vagy a lekérdezés hibáját. */}
+      {feladatHiba && <p className="crm-hiba" role="alert">{feladatHiba}</p>}
+      {feladatok === null
+        ? <p className="crm-halvany">Feladatok betöltése…</p>
+        : feladatok.length === 0
+          ? <p className="crm-halvany">Ehhez az ügyfélhez még nincs feladat.</p>
+          : (
+            <ul className="crm-lista">
+              {feladatok.map((f) => (
+                <li key={f.id}>
+                  {f.title}
+                  <span className="crm-cimke">{f.status}</span>
+                  {f.dueAt
+                    ? <time dateTime={new Date(f.dueAt).toISOString()}>{new Date(f.dueAt).toLocaleDateString('hu-HU')}</time>
+                    : <span className="crm-halvany">nincs határidő</span>}
+                </li>
+              ))}
+            </ul>
+          )}
 
       <h3>Kapcsolatok</h3>
       <div className="crm-sor">

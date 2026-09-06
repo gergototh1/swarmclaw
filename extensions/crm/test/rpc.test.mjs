@@ -339,3 +339,55 @@ test('az attention a kiuritett (ures string) kuszobmezot is alapertekre valtja, 
   const r = await rpc.attention({})
   assert.equal(r.kuszobok.nemaNapok, 9)
 })
+
+test('a javaslat elfogadasa feladatot ker a hosttol, es rogziti az azonositot', async () => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const hivalok = []
+  const state = {
+    storage: S, repo, log: console, settings: () => ({}),
+    fetchImpl: async (url, init) => {
+      hivalok.push({ url, body: JSON.parse(init.body) })
+      return { ok: true, json: async () => ({ id: 'task_uj' }) }
+    },
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'Kuldj ajanlatot', reason: '9 napja nema' })
+
+  const out = await rpc.acceptSuggestion({ suggestionId: sug.id })
+
+  assert.equal(out.taskId, 'task_uj')
+  assert.equal(repo.listSuggestions({ status: 'new' }).length, 0, 'a javaslat mar nem uj')
+  const b = hivalok[0].body
+  assert.equal(b.customFields.crm_account, acc.id)
+  assert.deepEqual(b.tags, ['crm'])
+  assert.ok(b.fingerprint.includes(sug.id), 'a fingerprint a javaslatra mutat, hogy ne szulessen ketszer')
+})
+
+test('az igeretbol szuletett javaslat elfogadasa LEZARJA az igeretet is', async () => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const state = {
+    storage: S, repo, log: console, settings: () => ({}), portFile: '/tmp/nincs',
+    fetchImpl: async () => ({ ok: true, json: async () => ({ id: 'task_uj' }) }),
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({ name: 'X' })
+  const { event } = repo.recordEvent({ accountId: acc.id, kind: 'meeting',
+    occurredAt: '2026-09-01T10:00:00.000Z', excerpt: 'x', sourceSystem: 'manual', sourceId: 'm1' })
+  const igeret = repo.writeCommitment({ accountId: acc.id, eventId: event.id, text: 'Kuldom', direction: 'ours' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'Kuldd el', commitmentId: igeret.id })
+
+  assert.equal(repo.listCommitments({ openOnly: true }).length, 1, 'elotte meg nyitott')
+  await rpc.acceptSuggestion({ suggestionId: sug.id })
+  assert.equal(repo.listCommitments({ openOnly: true }).length, 0,
+    'az igeret lezarult, tehat nem jon vissza a figyelem-listara')
+})
+
+test('ismeretlen javaslatra nevesitett hiba', async () => {
+  const { rpc } = rpcOf()
+  await assert.rejects(() => rpc.acceptSuggestion({ suggestionId: 'sug_nincs' }), /crm_ismeretlen_javaslat/)
+})

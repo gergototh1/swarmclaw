@@ -147,6 +147,8 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
   const [fut, setFut] = useState(false)
   const [postafiok, setPostafiok] = useState<PostafiokAllapot | null>(null)
   const [csakTanult, setCsakTanult] = useState('')
+  const [elfogadFut, setElfogadFut] = useState<Record<string, boolean>>({})
+  const [elfogadEredmeny, setElfogadEredmeny] = useState('')
 
   const tolt = () => {
     rpc('board')
@@ -194,13 +196,39 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
       .then(tolt).catch((e: Error) => setHiba(e.message))
   }
 
+  /**
+   * A javaslat elfogadása -- ez csinál belőle feladatot (`rpc.mjs`
+   * `acceptSuggestion`). A válasz feladat-azonosítóját kiírjuk, hogy az
+   * operátor lássa, tényleg született valami, ne csak azt, hogy a javaslat
+   * eltűnt a listáról.
+   */
+  const elfogad = (suggestionId: string) => {
+    setElfogadFut({ ...elfogadFut, [suggestionId]: true })
+    setElfogadEredmeny('')
+    rpc('acceptSuggestion', { suggestionId })
+      .then((r) => {
+        const eredmeny = r as { taskId: string }
+        setElfogadEredmeny(`Feladat létrehozva: ${eredmeny.taskId}`)
+        tolt()
+      })
+      .catch((e: Error) => setHiba(e.message))
+      .finally(() => setElfogadFut((elozo) => ({ ...elozo, [suggestionId]: false })))
+  }
+
   const soper = () => {
     setFut(true)
     rpc('sweepNow', { max: 50 })
       .then((r) => {
-        const x = r as { scanned: number; recorded: number; unmatched: number; failed: number }
+        const x = r as {
+          scanned: number; recorded: number; recordedOut: number
+          unmatched: number; failed: number; skippedOut: number
+        }
         const hibaResz = x.failed > 0 ? ` · ${x.failed} hibás (kihagyva)` : ''
-        setSopres(`${x.scanned} levél átnézve · ${x.recorded} idővonalra · ${x.unmatched} besorolatlan${hibaResz}`)
+        const kimenoKihagyasResz = x.skippedOut > 0 ? ` · ${x.skippedOut} kimenő kihagyva (ismeretlen szál)` : ''
+        setSopres(
+          `${x.scanned} levél átnézve · ${x.recorded} bejövő idővonalra · ${x.recordedOut} kimenő idővonalra · ` +
+          `${x.unmatched} besorolatlan${hibaResz}${kimenoKihagyasResz}`,
+        )
         tolt()
       })
       .catch((e: Error) => setHiba(e.message))
@@ -226,6 +254,7 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
       <h3>Figyelmet igényel</h3>
       {/* A figyelem-lista a CRM-3-ban érkezik. Addig a javaslat-sor áll itt,
           hogy a felület alakja már most a helyén legyen. */}
+      {elfogadEredmeny && <p className="crm-halvany" role="status">{elfogadEredmeny}</p>}
       {suggestions.length === 0
         ? <p className="crm-halvany">Most nincs javaslat.</p>
         : (
@@ -234,7 +263,10 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
               <li key={s.id}>
                 {s.text}
                 {s.reason && <span className="crm-halvany"> — {s.reason}</span>}
-                <button onClick={() => elvet(s.id)}>Elvet</button>
+                <button onClick={() => elfogad(s.id)} disabled={!!elfogadFut[s.id]}>
+                  {elfogadFut[s.id] ? 'Elfogadás…' : 'Elfogad'}
+                </button>
+                <button onClick={() => elvet(s.id)} disabled={!!elfogadFut[s.id]}>Elvet</button>
               </li>
             ))}
           </ul>

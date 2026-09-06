@@ -210,6 +210,31 @@ test('a crm_suggestion_write ismeretlen ugyfelre elutasit', async () => {
   )
 })
 
+/**
+ * A 7. feladat előfeltétele: a javaslat rögzíti, melyik ígéretből született,
+ * hogy az elfogadás (rpc.mjs acceptSuggestion) le tudja zárni az ígéretet is.
+ */
+test('a crm_suggestion_write rogziti a commitmentId-t, ha az igeretbol szuletett', async () => {
+  const { byName, repo } = toolsOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const { event } = repo.recordEvent({ accountId: acc.id, kind: 'meeting',
+    occurredAt: '2026-09-01T10:00:00.000Z', excerpt: 'x', sourceSystem: 'manual', sourceId: 'm1' })
+  const igeret = repo.writeCommitment({ accountId: acc.id, eventId: event.id, text: 'Kuldom', direction: 'ours' })
+
+  const sug = await byName.crm_suggestion_write.execute(
+    { accountId: acc.id, text: 'Kuldd el', commitmentId: igeret.id },
+    { session: { agentId: 'ugyfelkezelo' } })
+  assert.equal(sug.commitment_id, igeret.id)
+})
+
+test('a crm_suggestion_write commitmentId nelkul null-t rogzit', async () => {
+  const { byName, repo } = toolsOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const sug = await byName.crm_suggestion_write.execute(
+    { accountId: acc.id, text: 'Hivd fel' }, { session: { agentId: 'ag1' } })
+  assert.equal(sug.commitment_id, null)
+})
+
 test('a keresés névre és címre is talál', async () => {
   const { byName, repo } = toolsOf()
   const acc = repo.createAccount({ name: 'Morvai Kft.' })

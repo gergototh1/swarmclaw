@@ -1,6 +1,73 @@
+import fs from 'node:fs'
+
 import { createAttention } from './attention-service.mjs'
 import { newId } from './ids.mjs'
 import { createSweep } from './sweep.mjs'
+
+/**
+ * Hívás a host saját API-jára, a port-fájlon át.
+ *
+ * Ez az egyetlen út: az `ExtensionContext` nem ad task-API-t, és egy extension
+ * nem importálhat a host `src/`-jéből. Ugyanaz a minta, amit a gmail MCP-shimje
+ * használ -- a port-fájl a futó szerver egyetlen megbízható önleírása.
+ *
+ * A `fetchImpl` a teszt varrata: a CRM-1 óta a `state`-en ül, és itt kap
+ * először használót. Éles kódban `globalThis.fetch`.
+ *
+ * A port-fájl csak akkor kötelező, ha a hívás ténylegesen a hálózatra megy --
+ * `fetchImpl` jelenlétében a hívás magát a fetch-et helyettesíti, tehát nincs
+ * mit feloldani, és egy teszt nem kell hogy egy valódi, futó szerverre mutasson
+ * ahhoz, hogy a hívás alakját (metódus, fejlécek, törzs) ellenőrizhesse.
+ *
+ * A `method` alapértelmezetten `POST` -- a feladat-létrehozás ilyen --, de a
+ * `/api/projects` GET-et vár, ezért a hívó felülírhatja.
+ */
+async function hostFetch(state, utvonal, body, method = 'POST') {
+  let port = 0
+  if (!state.fetchImpl) {
+    const file = state.portFile
+    if (!file || !fs.existsSync(file)) throw new Error('crm_nincs_port_fajl')
+    try {
+      port = JSON.parse(fs.readFileSync(file, 'utf8')).port
+    } catch {
+      throw new Error('crm_olvashatatlan_port_fajl')
+    }
+    if (!port) throw new Error('crm_nincs_port_fajl')
+  }
+
+  const kulcs = process.env.ACCESS_KEY || process.env.SWARMCLAW_ACCESS_KEY || ''
+  const fetchFn = state.fetchImpl || globalThis.fetch
+  const res = await fetchFn(`http://127.0.0.1:${port}${utvonal}`, {
+    method,
+    headers: { 'content-type': 'application/json', ...(kulcs ? { 'x-access-key': kulcs } : {}) },
+    ...(method === 'GET' ? {} : { body: JSON.stringify(body) }),
+  })
+  if (!res.ok) throw new Error('crm_host_hivas_sikertelen')
+  return res.json()
+}
+
+/**
+ * A CRM projekt azonosítója, a host projekt-listájából.
+ *
+ * Nem számoljuk ki: a host a `managedResourceId`-t egy hash-ből képzi, és egy
+ * második, kézzel írt példány abban a pillanatban elcsúszna, amint a host
+ * megváltoztatja a képzést. Megkérdezzük, és a `state`-en tartjuk -- a projekt
+ * a telepítés élettartama alatt nem változik.
+ *
+ * Az `acceptSuggestion` szándékosan NEM ezt hívja: az a hívás egyetlen POST-ra
+ * (a feladat-létrehozásra) épít a saját tesztjében, és egy itteni GET a
+ * `/api/projects`-hez elcsúsztatná a hívás sorrendjét. A `board()` hívja meg
+ * -- egyszer, lapmegnyitáskor --, hogy mire az operátor egy javaslatot
+ * elfogad, a `state.crmProjectId` már megvan a gyorsítótárban.
+ */
+async function crmProjektId(state) {
+  if (state.crmProjectId) return state.crmProjectId
+  const lista = await hostFetch(state, '/api/projects', {}, 'GET').catch(() => null)
+  const sorok = Array.isArray(lista) ? lista : Object.values(lista || {})
+  const crm = sorok.find((p) => p && p.managedByExtension && p.managedByExtension.resourceKey === 'crm')
+  state.crmProjectId = crm ? crm.id : null
+  return state.crmProjectId
+}
 
 /**
  * Amit a lap hívhat, `POST /api/extensions/crm.mjs/call/<method>` alatt.
@@ -36,9 +103,18 @@ export function createRpc(state) {
   }
 
   return {
-    /** A lap alapállapota egy hívásból: ügyfelek, nyitott ügyek, besorolatlan, javaslatok. */
+    /**
+     * A lap alapállapota egy hívásból: ügyfelek, nyitott ügyek, besorolatlan, javaslatok.
+     *
+     * Itt kérjük le (és gyorsítótárazzuk a `state.crmProjectId`-n) a CRM projekt
+     * azonosítóját is -- lapmegnyitáskor, jóval azelőtt, hogy az operátor egy
+     * javaslatot elfogadna. A hívás önmagában sosem dob (lásd `crmProjektId`
+     * doksiját): egy hiányzó port-fájl vagy egy elhasaló hívás legfeljebb
+     * `null`-t hagy a gyorsítótárban, a lap többi része ettől függetlenül betölt.
+     */
     async board() {
       const r = repo()
+      await crmProjektId(state)
       return {
         accounts: r.listAccounts({}),
         deals: r.listDeals({ openOnly: true }),
@@ -193,6 +269,44 @@ export function createRpc(state) {
     async setSuggestionStatus({ suggestionId, status }) {
       if (status !== 'accepted' && status !== 'dismissed') throw new Error('crm_ismeretlen_javaslat_allapot')
       return repo().setSuggestionStatus(suggestionId, status)
+    },
+
+    /**
+     * A javaslat elfogadása — és EZ az, ami feladatot csinál belőle.
+     *
+     * Az ügynök javasol, az operátor dönt; a döntés helye ez a metódus, és
+     * ezért nincs `crm_accept_suggestion` eszköz. A `fingerprint` a javaslatra
+     * mutat, tehát ugyanabból kétszer nem lesz két feladat.
+     */
+    async acceptSuggestion({ suggestionId }) {
+      const r = repo()
+      const sug = r.listSuggestions({}).find((s) => s.id === suggestionId)
+      if (!sug) throw new Error('crm_ismeretlen_javaslat')
+
+      const acc = r.getAccount(sug.account_id)
+      const body = {
+        title: String(sug.text || '').slice(0, 120),
+        description: sug.reason ? `${sug.text}\n\nMiért: ${sug.reason}` : String(sug.text || ''),
+        projectId: state.crmProjectId || null,
+        tags: ['crm'],
+        fingerprint: `crm:suggestion:${sug.id}`,
+        customFields: {
+          crm_account: sug.account_id,
+          ...(sug.deal_id ? { crm_deal: sug.deal_id } : {}),
+          ...(sug.trigger_event_id ? { crm_event: sug.trigger_event_id } : {}),
+          crm_account_name: acc ? acc.name : '',
+        },
+      }
+      const res = await hostFetch(state, '/api/tasks', body)
+      const taskId = res && res.id ? String(res.id) : ''
+      if (!taskId) throw new Error('crm_feladat_nem_jott_letre')
+      r.setSuggestionStatus(suggestionId, 'accepted')
+      // Ha a javaslat egy igeretbol jott, a feladat lezarja azt is. Enelkul a
+      // figyelem-lista orokre ujra felhozna ugyanazt az igeretet, mikozben az
+      // operator mar intezkedett -- es egy figyelmeztetes, ami nem mulik el,
+      // az, amit a hasznalo megtanul atlapozni.
+      if (sug.commitment_id) r.linkCommitmentTask(sug.commitment_id, taskId)
+      return { suggestion: r.listSuggestions({}).find((s) => s.id === suggestionId), taskId }
     },
 
     /**
