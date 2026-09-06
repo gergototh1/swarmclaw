@@ -1,0 +1,130 @@
+import assert from 'node:assert/strict'
+import { describe, it } from 'node:test'
+
+import { addAssignedMcpServers } from './claude-cli'
+
+/**
+ * The Claude CLI runs its own tool loop and never sees the LangChain array
+ * buildSessionTools() assembles, so the servers an operator assigns to an agent
+ * are the only SwarmClaw-side capability that reaches it. Every case below is
+ * one way that delivery used to fail silently: before this, claude-cli.ts wrote
+ * a --mcp-config for the browser proxy and nothing else, so an agent showed its
+ * assigned servers in the UI and received none of them.
+ */
+describe('addAssignedMcpServers', () => {
+  it('translates a stdio server into a command entry', () => {
+    const out = addAssignedMcpServers({}, ['s1'], {
+      s1: { name: 'Soniox MCP', transport: 'stdio', command: '/opt/homebrew/bin/node', args: ['/data/shim.mjs'] },
+    })
+    assert.deepEqual(out, {
+      'Soniox-MCP': { command: '/opt/homebrew/bin/node', args: ['/data/shim.mjs'] },
+    })
+  })
+
+  it('carries env and cwd only when they hold something', () => {
+    const out = addAssignedMcpServers({}, ['a', 'b'], {
+      a: { name: 'withEnv', transport: 'stdio', command: 'node', env: { KEY: 'v' }, cwd: '/tmp' },
+      b: { name: 'bare', transport: 'stdio', command: 'node', env: {} },
+    })
+    assert.deepEqual(out.withEnv, { command: 'node', args: [], env: { KEY: 'v' }, cwd: '/tmp' })
+    assert.deepEqual(out.bare, { command: 'node', args: [] })
+  })
+
+  it('translates url transports and keeps their headers', () => {
+    const out = addAssignedMcpServers({}, ['h'], {
+      h: { name: 'remote', transport: 'streamable-http', url: 'https://example.test/mcp', headers: { Authorization: 'Bearer x' } },
+    })
+    assert.deepEqual(out.remote, {
+      type: 'streamable-http',
+      url: 'https://example.test/mcp',
+      headers: { Authorization: 'Bearer x' },
+    })
+  })
+
+  it('does not overwrite a name already in the map', () => {
+    // The browser tool puts `playwright` in first. An assigned server that
+    // happens to carry the same name must not replace it — that would take the
+    // agent's browser away as a side effect of assigning an MCP server.
+    const existing = { playwright: { command: 'node', args: ['proxy.mjs'] } }
+    const out = addAssignedMcpServers(existing, ['p2'], {
+      p2: { name: 'playwright', transport: 'stdio', command: 'other' },
+    })
+    assert.deepEqual(out.playwright, { command: 'node', args: ['proxy.mjs'] })
+    assert.deepEqual(out['playwright-p2'], { command: 'other', args: [] })
+  })
+
+  it('keeps two assigned servers that share a name', () => {
+    const out = addAssignedMcpServers({}, ['first', 'second'], {
+      first: { name: 'Gmail MCP', transport: 'stdio', command: 'node', args: ['one.mjs'] },
+      second: { name: 'Gmail MCP', transport: 'stdio', command: 'node', args: ['two.mjs'] },
+    })
+    assert.equal(Object.keys(out).length, 2, 'a duplicate name must not collapse two servers into one')
+  })
+
+  it('skips unknown ids and entries with no usable transport', () => {
+    const out = addAssignedMcpServers({}, ['missing', 'noCommand', 'noUrl'], {
+      noCommand: { name: 'noCommand', transport: 'stdio' },
+      noUrl: { name: 'noUrl', transport: 'sse' },
+    })
+    assert.deepEqual(out, {}, 'a half-written entry would make the CLI fail to start')
+  })
+
+  it('leaves the map untouched when the agent has no assignments', () => {
+    const existing = { playwright: { command: 'node', args: [] } }
+    assert.deepEqual(addAssignedMcpServers(existing, [], {}), existing)
+  })
+})
+
+/**
+ * MCP carries no caller identity, so a shim that fronts an extension can only
+ * learn who is asking from the env the host spawns it with. These cases are the
+ * ones that would silently pass a self-review in the video extension or write
+ * to the wrong agent folder in the docs extension.
+ */
+describe('addAssignedMcpServers — caller stamp', () => {
+  const servers = {
+    s: { name: 'video', transport: 'stdio', command: 'node', args: ['shim.mjs'], env: { EXISTING: 'kept' } },
+  }
+
+  it('stamps the agent and session onto a stdio server, keeping its own env', () => {
+    const out = addAssignedMcpServers({}, ['s'], servers, { agentId: 'agent-7', sessionId: 'sess-9' })
+    assert.deepEqual(out.video.env, {
+      EXISTING: 'kept',
+      SWARMCLAW_AGENT_ID: 'agent-7',
+      SWARMCLAW_SESSION_ID: 'sess-9',
+    })
+  })
+
+  it('lets the stamp win over a value pinned in the server config', () => {
+    // An operator pinning another agent's id into the server env would be
+    // exactly the self-named caller the stamp exists to rule out.
+    const out = addAssignedMcpServers({}, ['s'], {
+      s: { name: 'video', transport: 'stdio', command: 'node', env: { SWARMCLAW_AGENT_ID: 'someone-else' } },
+    }, { agentId: 'real-caller' })
+    assert.equal((out.video.env as Record<string, string>).SWARMCLAW_AGENT_ID, 'real-caller')
+  })
+
+  it('omits a blank id rather than writing an empty string', () => {
+    // The extensions resolve the actor with `??`, so a present-but-empty value
+    // defeats their own fallback instead of triggering it.
+    const out = addAssignedMcpServers({}, ['s'], servers, { agentId: '', sessionId: null })
+    assert.deepEqual(out.video.env, { EXISTING: 'kept' })
+  })
+
+  it('does not stamp a url transport', () => {
+    // A remote server is someone else's process on a shared connection; an
+    // identity claim in a header would leave this machine and would not be
+    // this turn's by the time it arrived.
+    const out = addAssignedMcpServers({}, ['r'], {
+      r: { name: 'remote', transport: 'streamable-http', url: 'https://example.test/mcp' },
+    }, { agentId: 'agent-7' })
+    assert.deepEqual(out.remote, { type: 'streamable-http', url: 'https://example.test/mcp' })
+  })
+
+  it('is absent entirely when the host has no session identity to give', () => {
+    const out = addAssignedMcpServers({}, ['s'], {
+      s: { name: 'video', transport: 'stdio', command: 'node' },
+    })
+    assert.deepEqual(out.video, { command: 'node', args: [] })
+  })
+})

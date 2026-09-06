@@ -5,6 +5,7 @@ import { setupChecks } from './src/health.mjs'
 import { createCatalogTool } from './src/katalogus.mjs'
 import { createNarrateTool } from './src/narracio.mjs'
 import { createRenderOps, createRenderTools } from './src/render.mjs'
+import { createMcpBridge } from './src/mcp-bridge.mjs'
 import { createRpc } from './src/rpc.mjs'
 import { createAfterChatTurn, createTanulsagTools } from './src/tanulsag.mjs'
 import { createTervTools } from './src/terv.mjs'
@@ -113,7 +114,7 @@ const video = {
    * are separate files with separate projections and neither imports the
    * other (src/contract.mjs says why at length).
    */
-  rpc: createRpc(state, renderOps),
+  rpc: { ...createRpc(state, renderOps), ...createMcpBridge(() => video.tools) },
   // The turn recorder for the daily review (spec 6.5). The host spreads this
   // object into the extension's hook set, so the key is the host's hook name.
   hooks: { afterChatTurn: createAfterChatTurn(state) },

@@ -181,6 +181,150 @@ When preparing a new version release, follow this checklist in order:
    - `npm run test:openclaw` — OpenClaw tests
 9. **Commit**: stage all changes and commit with a release message (e.g., `Release v1.1.6`). Do not push until the user confirms.
 
+### The Three Capability Layers
+
+Read `doc/swarmclaw-ai-docs/README.md` before changing how an agent gets its
+tools. It records what `https://www.swarmclaw.ai/docs` actually says, and the
+rules below are transcribed from it rather than inferred from this codebase.
+
+The platform gives an agent capabilities from **three separate layers**, and the
+docs (`/docs/agents`) keep them separate on purpose:
+
+1. **Built-in tools** — execute, files, web, browser, memory. Picked per agent
+   or per chat.
+2. **MCP servers** — external Model Context Protocol servers, *assigned to an
+   agent*. `/docs/mcp-servers`: assign servers to agents, and "MCP tools appear
+   alongside built-in tools during execution."
+3. **Extensions** — external `.js`/`.mjs` add-ons under `data/extensions/`.
+
+**A CLI provider only ever receives layer 2.** `/docs/providers` states that CLI
+providers, OpenClaw, Goose and Hermes Agent "manage their own runtime/tool
+loop," which is why SwarmClaw "doesn't expose identical tool toggles for these
+agents." Layers 1 and 3 are assembled by `buildSessionTools()` into a LangChain
+array that only the API providers consume — a CLI provider never sees it, and
+that is the documented design, not a gap to patch by widening
+`buildSessionTools`.
+
+So: **every CLI provider must honour `agent.mcpServerIds`.** That is the one
+promise the docs make about capabilities crossing into a CLI's own tool loop,
+and a provider that ignores the field silently breaks it — the operator assigns
+a server in the UI, the UI confirms it, and nothing arrives. `codex-cli.ts`
+(config.toml) and `copilot-cli.ts` (`--additional-mcp-config`) are the reference
+implementations: read `getAgent(session.agentId)?.mcpServerIds`, resolve each
+through `loadMcpServers()`, translate `stdio` / `sse` / `streamable-http` into
+whatever config shape that CLI takes, and log the count you injected. When you
+add a CLI provider, do this in the first version; it is not a follow-up.
+
+**Extension tools reaching a CLI-provider agent is not something the docs
+promise at all.** `/docs/extensions` and `/docs/extension-tutorial` never
+mention MCP, never mention `mcp/server.mjs`, and never mention CLI providers.
+The `extensions/tts/mcp/server.mjs` and `extensions/gmail/mcp/server.mjs` shims
+are **our own local pattern**, not a platform convention: an extension that also
+wants to serve CLI-provider agents ships a stdio MCP server that forwards to its
+own rpc on the host, and the operator registers it under `/api/mcp-servers` and
+assigns it. Nothing in the host discovers an `mcp/` directory. Do not describe
+that layout as required, and do not add a host-side auto-discovery for it
+without deciding first whether upstream wants the convention at all.
+
+### Reaching a CLI-Provider Agent: the MCP Bridge
+
+Every agent in this install runs on `claude-cli`, so by the layering above none
+of them receive the extension tool layer. `aisignal`, `docs` and `video` each
+front their tools as an MCP server to cross that line. The arrangement is three
+pieces per extension, and all three are needed — a missing one fails silently:
+
+1. **`src/mcp-bridge.mjs`** — byte-identical in all three. Adds exactly two rpc
+   methods, `mcpTools` and `mcpCall`, which reflect over the extension's own
+   `tools` array. Not one rpc method per tool: that would copy every name,
+   description and schema into a second place that then drifts. A tool added to
+   `tools` is reachable over MCP with no further work.
+2. **`mcp/server.mjs`** — the stdio shim. Generic: it names no tool and asks the
+   host for the table, so the only extension-specific things in it are
+   `EXTENSION_ID` and `SERVER_INFO`. `extensions/mcp-shim-parity.test.mjs`
+   asserts the copies differ in nothing else; fix one copy and you must fix all.
+   It is duplicated because it cannot be shared — each runs from its own
+   installed workspace with no `node_modules` in reach.
+3. **`scripts/install.mjs`** must copy `mcp/` into the workspace and print the
+   MCP entry JSON. A shim left in the repo checkout stops working the moment
+   the tree is rebuilt.
+
+**The caller is stamped by the host, never supplied by the agent.** MCP carries
+no caller identity, so a tool that gates on "which agent is asking" would lose
+that gate behind a shim. `addAssignedMcpServers` (src/lib/providers/claude-cli.ts)
+writes `SWARMCLAW_AGENT_ID`, `SWARMCLAW_AGENT_NAME` and `SWARMCLAW_SESSION_ID`
+into the shim's env when it builds the per-turn config; the shim forwards them
+and `mcpCall` builds `ctx.session` from them. This is what keeps
+`videoVerdict`'s reviewer gate real (`extensions/video/test/mcp-gate.test.mjs`)
+and what names the docs extension's per-agent folder. Consequences for new code:
+
+- **Register ONE MCP entry per extension and assign it to every agent that needs
+  it.** Do not create one entry per agent with an id pinned in its env — that is
+  an agent naming itself, and it turns a runtime gate into a configuration
+  convention nothing enforces.
+- **Never accept the caller as a tool argument.** An `agentId` in `args` stays
+  in `args`, where the tool sees it as data.
+- `tts` and `gmail` predate this and declare `tools: []` with hand-written rpc
+  methods instead. They work; they are not the pattern to copy.
+
+### Writing an Extension
+
+`/docs/extension-tutorial` gives exactly one worked example, and it is the whole
+documented surface of an extension's shape:
+
+```js
+// data/extensions/release-guard.js
+module.exports = {
+  name: "release-guard",
+  version: "1.0.0",
+  description: "Adds a guarded release checklist tool.",
+  tools: [
+    {
+      name: "release_guard",
+      description: "Return a compact release checklist.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] },
+      async execute(args) { return { ok: true, target: args.target } }
+    }
+  ],
+  ui: { settingsFields: [{ key: "defaultEnvironment", label: "Default Environment", type: "text" }] }
+}
+```
+
+`/docs/extensions`: extensions are "external `.js` or `.mjs` add-ons that extend
+SwarmClaw with additional tools, hooks, UI modules, providers, or connectors,"
+and "Built-in platform capabilities are **not** extensions."
+
+- Tool `parameters` is a **JSON Schema object**, not a zod schema — the host
+  converts it with `jsonSchemaToZod` when it builds the LangChain array.
+- An extension's rpc is reached at `POST /api/extensions/:id/call/:method`, and
+  that route resolves handlers from the extension's **`ui.rpc` map only**. It
+  cannot invoke a `tools[]` entry, and no other route can either — there is no
+  HTTP surface anywhere that executes an extension tool. An extension whose
+  capability must also be reachable over HTTP has to expose it as an rpc method
+  as well.
+- The settings routes still take a legacy query parameter:
+  `GET`/`PUT /api/extensions/settings?pluginId=<id>`. The name is `pluginId`
+  even though everything else has moved to "extension".
+- Repeated failures auto-disable an extension and record metadata in
+  `data/extension-failures.json`; the threshold is
+  `SWARMCLAW_EXTENSION_FAILURE_THRESHOLD` (default 3). An extension that throws
+  on a common path will disappear from agents on its own, so treat a
+  "the tool vanished" report as a possible auto-disable before anything else.
+
+### Proving a Capability Reaches an Agent
+
+A capability change is not finished when it compiles. The tool has to show up in
+a real agent's tool list and then actually run:
+
+1. The CLI logs its tool list on every launch, so grep `data/app.log` for the
+   tool name in the process's init event. No entry means the agent never saw it,
+   whatever the types say.
+2. Then hold a live chat in which the agent calls the tool and returns a real
+   result.
+
+Compilation, unit tests and a green type-check all pass for a tool that no agent
+can reach. This is the same rule as "Always test with live agents" above,
+stated for the one case where the failure is invisible from inside the process.
+
 ### Extensions, Not Plugins
 
 **The codebase has fully migrated from "plugins" to "extensions."** Use `extensions` in all new code — variable names, function signatures, interfaces, UI copy.

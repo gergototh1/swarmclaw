@@ -70,10 +70,15 @@ test('index.mjs imports under plain node well inside the host deadline and decla
     'videoCatalog', 'videoDraft', 'videoLessons', 'videoNarrate', 'videoOpen', 'videoPlan', 'videoPropose',
     'videoQueue', 'videoRender', 'videoRenderStatus', 'videoReviewClose', 'videoReviewMaterial', 'videoVerdict',
   ])
+  // The page's methods, plus the two the MCP shim reaches. `mcpCall` and
+  // `mcpTools` are not page methods: an agent on a CLI provider never receives
+  // the extension tool layer, and MCP is the only layer that crosses into a
+  // CLI's own tool loop, so these are how the thirteen tools above reach the
+  // producer and the reviewer at all. Listed here so a third one is a decision.
   assert.deepEqual(out.rpc.slice().sort(), [
     'board', 'cancelRender', 'cleanup', 'decideProposal', 'feedback', 'health', 'importFeedback',
-    'importRetention', 'lezar', 'proposals', 'retireLesson', 'templatePreview', 'templatePreviewCancel',
-    'templatePreviewStart', 'templatePreviewStatus', 'templates', 'video',
+    'importRetention', 'lezar', 'mcpCall', 'mcpTools', 'proposals', 'retireLesson', 'templatePreview',
+    'templatePreviewCancel', 'templatePreviewStart', 'templatePreviewStatus', 'templates', 'video',
   ])
   assert.deepEqual(out.provides, ['videos'])
   assert.deepEqual(out.consumes, ['aisignal.signals', 'tts.narration'])
