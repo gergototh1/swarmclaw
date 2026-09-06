@@ -69,8 +69,15 @@ const crm = {
       ],
     }],
     setupChecks: [
+      // A CRM-2 ide is megérkezett: a "Levelek behúzása" gomb és a
+      // `crm_sweep` eszköz enélkül a szerződés nélkül nevesített hibával áll
+      // (`mailboxHealth`, `sweep.mjs`). `required` marad `false`: az
+      // ügyfél/ügy/jegyzet kézi kezelés Gmail nélkül is teljes értékű, tehát
+      // egy hiányzó gmail extension nem teszi az egész CRM-et
+      // használhatatlanná, csak a levél-behúzást állítja le -- nem minden
+      // telepítésnek kell emiatt megállnia.
       { checkKey: 'gmail_extension', displayName: 'Gmail extension telepítve',
-        description: 'Enélkül az email-behúzás áll. A CRM-1 nem használja; a CRM-2-től kell.',
+        description: 'Enélkül a "Levelek behúzása" (söprés) áll -- az ügyfél- és ügykezelés Gmail nélkül is működik.',
         kind: 'manual', required: false },
     ],
   },

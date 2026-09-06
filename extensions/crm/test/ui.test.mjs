@@ -47,3 +47,9 @@ test('a bundle tartalmazza a lapozast es a szoveg-megnyitast', async () => {
     assert.ok(js.includes(jel), `hiányzik a bundle-ből: ${jel}`)
   }
 })
+
+test('a bundle tartalmazza a sopres gombjat', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.ok(js.includes('Levelek behúzása'), 'hiányzik a bundle-ből: Levelek behúzása')
+})

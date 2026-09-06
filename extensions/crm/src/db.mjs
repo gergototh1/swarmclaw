@@ -97,10 +97,10 @@ CREATE TABLE IF NOT EXISTS ext_crm_sweep_state (
 );
 `,
 }, {
-  // A 2-es verzió a CRM-3-mal együtt már kiment -- lásd a 0407fa1 commitot --,
-  // tehát ugyanúgy nem írható át, mint az 1-es: egy már lefutott migráció SQL-jét
-  // szerkeszteni azon a telepítésen nem csinál semmit (lásd
-  // `applyExtensionMigrations` a hoszt `extension-storage.ts`-ében: egy verzió
+  // A 2-es verzió is ugyanúgy nem írható át, mint az 1-es, akkor sem, ha ez az
+  // ág még nincs merge-elve: egy dev gépen, ahol a 2-es verzió már lefutott,
+  // az SQL utólagos szerkesztése azon a telepítésen nem csinál semmit (lásd
+  // `runExtensionMigrations` a hoszt `extension-storage.ts`-ében: egy verzió
   // legfeljebb egyszer fut le, és soha nem fut újra). A `thread_id` ezért új,
   // 3-as verzióban érkezik.
   version: 3,
@@ -445,11 +445,21 @@ export function createRepo(storage) {
     /**
      * Melyik ügyfélhez tartozik ez a levélszál, a szál már besorolt
      * üzeneteiből -- a `matching.mjs` 2. ága ezt hívja.
+     *
+     * Üres szál-azonosítóra MINDIG null. A kézzel felvett esemény
+     * `thread_id`-je az oszlop alapértéke miatt `''`, tehát egy üres string
+     * `WHERE thread_id = ?` mellett bármelyik kézi eseményre illeszkedne, és
+     * egy tetszőleges (a hívó szempontjából véletlenszerű) ügyfelet adna
+     * vissza. A hívó (`matching.mjs`) ma truthiness-csekkel már kiszűri az
+     * üres szálat, de ez a védelem ide tartozik, nem a hívóhoz: egy jövőbeli
+     * hívó, ami ezt elfelejti, ne kapjon csendben rossz választ.
      */
     accountIdByThread(threadId) {
+      const id = str(threadId)
+      if (!id) return null
       const row = S.get(
         'SELECT account_id FROM ext_crm_event WHERE thread_id = ? LIMIT 1',
-        [str(threadId)],
+        [id],
       )
       return row ? row.account_id : null
     },

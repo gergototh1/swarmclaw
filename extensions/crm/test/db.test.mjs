@@ -344,6 +344,17 @@ test('accountIdByThread a szal mar besorolt uzenetebol dolgozik', () => {
   assert.equal(repo.accountIdByThread('thr_nincs'), null)
 })
 
+test('accountIdByThread ures szal-azonositora null, akkor is ha van kezi esemeny ures thread_id-vel', () => {
+  const { repo } = repoOf()
+  const acc = repo.createAccount({ name: 'X' })
+  // A kezi esemeny thread_id-je az oszlop alapertekebol '' -- ez nem tartozhat
+  // egyetlen szalhoz sem, tehat egy ures kereses nem adhatja vissza ennek az
+  // ugyfelnek az id-jet.
+  repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: '2026-09-01T10:00:00.000Z',
+                     excerpt: 'e', sourceSystem: 'manual', sourceId: 'note:1' })
+  assert.equal(repo.accountIdByThread(''), null)
+})
+
 test('accountsByDomain csak a pontos domain-egyezest adja', () => {
   const { repo } = repoOf()
   const a = repo.createAccount({ name: 'A', domains: ['morvai.hu'] })

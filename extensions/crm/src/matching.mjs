@@ -21,6 +21,12 @@
  * Egy közösségi domain nem azonosít céget: a `gmail.com` mögött mindenki ott
  * van. Ha ezekre tippelnénk, az első ilyen ügyfél magához szippantaná az
  * összes többi magánemailt.
+ *
+ * NEM FAGYASZTOTT HALMAZ, ÉS EZ SZÁNDÉKOS. Egy `Set` referenciája konstans, de
+ * a tartalma nem az -- az `Object.freeze(new Set(...))` a `.add()`/`.delete()`
+ * hívást sem dobná el, csak a mezőket zárná le, amik itt nincsenek is. Ami
+ * ténylegesen védi a tartalmat, az egyetlen dolog: ez a modul soha nem hívja
+ * a `.add()`-ot vagy a `.delete()`-et rajta.
  */
 export const SOCIAL_DOMAINS = new Set([
   'gmail.com', 'googlemail.com', 'freemail.hu', 'citromail.hu', 'indamail.hu',
