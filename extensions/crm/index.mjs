@@ -1,3 +1,4 @@
+import { AGENTS, SCHEDULES } from './src/agents.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
 import { createRpc } from './src/rpc.mjs'
@@ -57,6 +58,11 @@ const crm = {
     reason: 'Behúzza a leveleket az ügyfelek idővonalára: listáz, egy levelet beolvas, és a szövegét saját eseményként tárolja. Küldeni nem küld.',
   }],
   managedResources: {
+    // Az Ügyfélkezelő ügynök és a napi rutinja -- ld. src/agents.mjs a
+    // promptokért és azért, mit tesz a host egy futással, ami elhasal vagy a
+    // slotjába belelóg.
+    agents: AGENTS,
+    schedules: SCHEDULES,
     projects: [{
       projectKey: 'crm',
       displayName: 'CRM',
@@ -94,9 +100,10 @@ const crm = {
       position: 'end',
     }],
     settingsFields: [
-      // A három proaktív trigger küszöbe (spec 6.). A CRM-1 még nem olvassa
-      // őket -- a figyelem-motor a CRM-3-ban jön --, de itt születnek, hogy az
-      // operátor a beállítást ne egy későbbi frissítés után találja meg először.
+      // A négy proaktív trigger küszöbe (spec 6.). A figyelem-motor
+      // (src/attention.mjs, a `crm_attention` eszköz) azóta olvassa őket,
+      // hogy megszületett -- itt születnek, mert az operátor a beállítást a
+      // CRM oldalán találja, nem egy későbbi frissítés changelogjában.
       { key: 'nemaNapok', label: 'Néma ügy küszöbe (nap)', type: 'number', defaultValue: 9,
         help: 'Ennyi esemény nélküli nap után jelez egy nyitott ügyre.' },
       { key: 'valaszNapok', label: 'Válasz nélküli levél küszöbe (nap)', type: 'number', defaultValue: 3,

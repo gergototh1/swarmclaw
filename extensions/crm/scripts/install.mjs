@@ -109,13 +109,15 @@ Ennek a modulnak nincs setup-lépése ezen a telepítőn túl: nincs hitelesít�
 nincs beállítandó mező.
 
 FONTOS: ez a szkript csak fájlokat másol a data-könyvtárba, semmi mást. A
-managedResources.projects alatt deklarált CRM projektet a host reconcile-ja
-hozza létre -- de azt csak a host saját install/enable/upgrade API route-jai
-indítják el (reconcileManagedResourcesForLifecycleChange), amiken ez a szkript
-nem megy keresztül. Amíg nem történik ilyen átmenet, a CRM projekt NEM létezik.
-Kapcsold ki-be az extension-t az Extensions lapon (vagy nyomd meg a kártyáján
-a Reconcile gombot, esetleg: swarmclaw extensions reconcile --extension-id
-crm.mjs), és csak utána van CRM projekt.
+managedResources alatt deklarált CRM projektet, az Ügyfélkezelő ügynököt és a
+napi rutinját a host reconcile-ja hozza létre -- de azt csak a host saját
+install/enable/upgrade API route-jai indítják el
+(reconcileManagedResourcesForLifecycleChange), amiken ez a szkript nem megy
+keresztül. Amíg nem történik ilyen átmenet, se a CRM projekt, se az
+Ügyfélkezelő ügynök, se a napi rutinja NEM létezik. Kapcsold ki-be az
+extension-t az Extensions lapon (vagy nyomd meg a kártyáján a Reconcile
+gombot, esetleg: swarmclaw extensions reconcile --extension-id crm.mjs), és
+csak utána jönnek létre.
 `)
 
 // The host does not register MCP servers on an extension's behalf, so the
@@ -138,6 +140,14 @@ if (copied.includes('mcp')) {
   }
   console.log('\nMCP-bejegyzés (Settings → MCP Servers), majd rendeld hozzá az ügynökökhöz:')
   console.log(JSON.stringify(entry, null, 2))
+  console.log(`
+KÖTELEZŐ LÉPÉS, NEM RÁÉRŐS: az Ügyfélkezelő ügynök (crm-ugyfelkezelo)
+claude-cli-n fut, tehát az extension "tools" rétegét meg sem kapja -- a CRM
+eszközeit KIZÁRÓLAG ezen az MCP-bejegyzésen keresztül éri el. Amíg ezt a
+bejegyzést fel nem veszed és hozzá nem rendeled az ügynökhöz, az ügynök a napi
+rutinja idején lefut, de semmit nem lát és semmit nem ír -- némán, hibaüzenet
+nélkül. Ez nem egy elhagyható finomhangolás, hanem a teljes CRM-3 funkció
+előfeltétele.`)
 } else {
   console.log('Ez a kiadás nem szállít MCP-szervert (nincs mcp/ könyvtár); MCP-bejegyzést nem kell felvenni.')
 }
