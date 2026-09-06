@@ -468,3 +468,27 @@ test('videoQueue külön sorban hozza azokat a videókat, amikre javítást kér
   assert.deepEqual(r.javitasVar.map((x) => x.videoId), [videoId])
   assert.equal(r.javitasVar[0].kerdesek, 1)
 })
+
+/**
+ * The render-row shape follows `keszVideo` (`test/rpc.test.mjs`), as the
+ * brief told us to for `keszTerv`: `claimRender` then `finishRender({
+ * status: 'kesz' })`. Two finished renders on the same video, so the test
+ * pins the ORDER `rendersForVideo` promises (`started_at DESC, rowid DESC`,
+ * `src/db.mjs`) against `videoFixes`'s `.find((r) => r.status === 'kesz')` --
+ * without that order (or with `.find` reading the list front-to-back
+ * reversed), the OLDER finished render would win instead, and this test
+ * would not tell the two apart on `started_at` alone, since both renders
+ * claim in the same test tick and can share a millisecond timestamp;
+ * `rowid DESC` is the tiebreaker that still orders them correctly, and is
+ * what this test actually exercises.
+ */
+test('videoFixes renderId is the newest finished render on the video, not the first', async () => {
+  const { repo, run } = setup()
+  const { videoId, tervId, tervHash, verdiktId } = keszTerv(repo)
+  repo.claimRender({ id: 'r1', videoId, tervId, tervHash, verdiktId, hostBootAt: 1, jelenetHatarok: [], propsPath: '/p1.json', outPath: '/out/v1.mp4', logPath: '/l1.log', platform: 'darwin' })
+  repo.finishRender('r1', { status: 'kesz', fileSha256: 'a'.repeat(64) })
+  repo.claimRender({ id: 'r2', videoId, tervId, tervHash, verdiktId, hostBootAt: 1, jelenetHatarok: [], propsPath: '/p2.json', outPath: '/out/v2.mp4', logPath: '/l2.log', platform: 'darwin' })
+  repo.finishRender('r2', { status: 'kesz', fileSha256: 'b'.repeat(64) })
+  const r = await run('videoFixes', { videoId })
+  assert.equal(r.renderId, 'r2')
+})

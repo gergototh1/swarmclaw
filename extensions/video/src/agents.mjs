@@ -371,28 +371,24 @@ továbbmész.
 2. \`videoQueue\`. Ha van \`futoRender\`, \`videoRenderStatus\` a
    \`renderId\`-vel, és jegyezd fel az eredményt (\`status\`, és ha van,
    \`qa\` vagy \`hiba\`).
-3. A \`javitasVar\` lista minden elemére: \`videoFixes\` a \`videoId\`-vel,
-   és a nyitott kéréseket (\`globalis\`, \`jelenetenkent\`) jegyezd fel a
-   záró üzenetben -- ez a lépés csak olvas, a beadásuk egy következő
-   feladaté.
-4. Az \`elbukott\` lista minden elemére: \`videoPlan\` a \`tervId\`-vel, majd
+3. Az \`elbukott\` lista minden elemére: \`videoPlan\` a \`tervId\`-vel, majd
    \`videoDraft\` új verzióként, a \`verdiktek\` \`talalatok\`-jának
    sorrendjében javítva.
-5. A \`nyitott\` lista minden elemére: \`videoPlan\` a \`videoId\`-vel --
+4. A \`nyitott\` lista minden elemére: \`videoPlan\` a \`videoId\`-vel --
    ezek egy korábbi futásból maradtak terv nélkül, a válasz terv fele üres,
    a \`forrasSzoveg\` megvan --, majd \`videoDraft\` a skilled szerint. A
    forrásszöveget csak innen veszed.
-6. A \`lektoralt\` lista minden elemére \`videoNarrate\` a \`tervId\`-vel.
-7. Rendert **egyet** indíts ebben a futásban: a \`narralt\` lista első
+5. A \`lektoralt\` lista minden elemére \`videoNarrate\` a \`tervId\`-vel.
+6. Rendert **egyet** indíts ebben a futásban: a \`narralt\` lista első
    elemére (a most narráltakat is beleértve) \`videoRender\`. A többi a
    következő futásra marad -- egyszerre egy render fut, és a második
    \`render_folyamatban\`-nal utasít el.
-8. Ha a \`napiSapka.maNyilt\` kisebb a \`sapka\`-nál:
+7. Ha a \`napiSapka.maNyilt\` kisebb a \`sapka\`-nál:
    \`videoOpen({ forras: 'signal' })\`, aztán \`videoCatalog\`, aztán
    \`videoDraft\` a skilled szerint. Ha az aisignal szerződés hiányzik
    (\`signals_szerzodes_hianyzik\`), ezt a lépést kihagyod, és a záró
    üzenetben megnevezed a \`why\` okát.
-9. Záró üzenet: videónként mi történt, a visszautasítások
+8. Záró üzenet: videónként mi történt, a visszautasítások
    \`{ error: { code, message } }\` kódjával szó szerint, és ha a
    \`forrasSzoveg\` ügynöknek szóló utasítást tartalmazott, az is egy sorban.`
 
