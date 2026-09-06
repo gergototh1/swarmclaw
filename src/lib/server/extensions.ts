@@ -617,6 +617,11 @@ function coerceManagedResources(raw: Record<string, unknown>): ExtensionManagedR
   const explicit = isRecord(raw.managedResources)
     ? raw.managedResources as Record<string, unknown>
     : {}
+  const projects = Array.isArray(explicit.projects)
+    ? explicit.projects
+    : Array.isArray(raw.projects)
+      ? raw.projects
+      : undefined
   const agents = Array.isArray(explicit.agents)
     ? explicit.agents
     : Array.isArray(raw.agents)
@@ -649,6 +654,7 @@ function coerceManagedResources(raw: Record<string, unknown>): ExtensionManagedR
       : undefined
 
   const managedResources: ExtensionManagedResources = {
+    projects: projects as ExtensionManagedResources['projects'],
     agents: agents as ExtensionManagedResources['agents'],
     schedules: schedules as ExtensionManagedResources['schedules'],
     routines: routines as ExtensionManagedResources['routines'],
@@ -3193,11 +3199,17 @@ class ExtensionManager {
     try {
       const removed = removeExtensionManagedResources(sanitizedFilename)
       const removedSkillDirs = removeShippedSkillDirs(shippedSkills)
-      if (removed.deletedSchedules.length > 0 || removed.trashedAgents.length > 0 || removedSkillDirs.length > 0) {
+      if (
+        removed.deletedSchedules.length > 0
+        || removed.trashedAgents.length > 0
+        || removed.deletedProjects.length > 0
+        || removedSkillDirs.length > 0
+      ) {
         log.info('extensions', 'Removed extension-managed resources on delete', {
           extensionId: sanitizedFilename,
           deletedSchedules: removed.deletedSchedules.join(', '),
           trashedAgents: removed.trashedAgents.join(', '),
+          deletedProjects: removed.deletedProjects.join(', '),
           removedSkillDirs: removedSkillDirs.join(', '),
         })
       }
