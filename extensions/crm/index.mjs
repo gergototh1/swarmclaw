@@ -1,4 +1,5 @@
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { createMcpBridge } from './src/mcp-bridge.mjs'
 import { createRpc } from './src/rpc.mjs'
 import { createTools } from './src/tools.mjs'
 
@@ -37,7 +38,7 @@ const crm = {
     state.repo = createRepo(ctx.storage)
   },
   tools: createTools(state),
-  rpc: createRpc(state),
+  rpc: { ...createRpc(state), ...createMcpBridge(() => crm.tools) },
   managedResources: {
     projects: [{
       projectKey: 'crm',

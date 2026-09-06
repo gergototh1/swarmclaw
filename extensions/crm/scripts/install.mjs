@@ -23,12 +23,12 @@ import { fileURLToPath } from 'node:url'
  * "type": "module", and its relative './src/...' imports resolve inside the
  * workspace.
  *
- * THIS EXTENSION SHIPS NO SKILLS AND NO MCP SERVER, so there is no skills/
- * directory, no shipped-skills.json manifest beside the workspace, no mcp/
- * tree to copy, and no removal pass over <home>/skills. It DOES declare a
- * managed project (managedResources.projects in index.mjs) -- the host's own
- * reconcile creates and removes that project on install/uninstall (Task 1-2),
- * so there is nothing for this script to do about it either.
+ * THIS EXTENSION SHIPS NO SKILLS, so there is no skills/ directory, no
+ * shipped-skills.json manifest beside the workspace, and no removal pass over
+ * <home>/skills. It DOES declare a managed project (managedResources.projects
+ * in index.mjs) -- the host's own reconcile creates and removes that project
+ * on install/uninstall (Task 1-2), so there is nothing for this script to do
+ * about it either.
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -55,12 +55,22 @@ const dataDir = process.env.DATA_DIR
   || (explicitHome ? path.join(explicitHome, 'data') : null)
   || (desktop ? path.join(desktop, 'data') : null)
   || path.join(process.cwd(), 'data')
+// Where the host writes run/port.json (src/lib/server/runtime/port-file.ts),
+// and so where the MCP entry printed below points SWARMCLAW_PORT_FILE:
+// SWARMCLAW_HOME, else the desktop app's home when this machine has one, else
+// ~/.swarmclaw.
+const home = explicitHome || desktop || path.join(process.env.HOME || '', '.swarmclaw')
 const extDir = path.join(dataDir, 'extensions')
 const wsDir = path.join(extDir, '.workspaces', 'crm_mjs')
 
 fs.mkdirSync(wsDir, { recursive: true })
+// `mcp/` is the MCP server's own tree, which the host does not load: the
+// operator points an MCP Servers entry at the copy in the workspace, and the
+// shim there runs from it. It is copied like source because it is source, and
+// it has to be here rather than in the repo checkout so that it survives a
+// rebuild of the tree the operator installed from.
 const copied = []
-for (const d of ['src', 'dist']) {
+for (const d of ['src', 'dist', 'mcp']) {
   const src = path.join(root, d)
   if (!fs.existsSync(src)) continue
   // Replace rather than merge: cpSync leaves a file that was renamed or deleted
@@ -96,7 +106,7 @@ töltsd újra a böngészőlapot -- a szerver oldalon már minden kész, de a m�
 megnyitott kliens a lapok listáját a betöltéskor kapta meg.
 
 Ennek a modulnak nincs setup-lépése ezen a telepítőn túl: nincs hitelesítés,
-nincs MCP-bejegyzés, nincs beállítandó mező.
+nincs beállítandó mező.
 
 FONTOS: ez a szkript csak fájlokat másol a data-könyvtárba, semmi mást. A
 managedResources.projects alatt deklarált CRM projektet a host reconcile-ja
@@ -107,3 +117,27 @@ Kapcsold ki-be az extension-t az Extensions lapon (vagy nyomd meg a kártyáján
 a Reconcile gombot, esetleg: swarmclaw extensions reconcile --extension-id
 crm.mjs), és csak utána van CRM projekt.
 `)
+
+// The host does not register MCP servers on an extension's behalf, so the
+// entry is the operator's to add. The JSON is printed here rather than left to
+// be worked out, because two of its four fields are machine-specific and a
+// wrong one fails silently: the shim must run from the WORKSPACE copy (a path
+// under the repo checkout stops working the moment the tree is rebuilt), and
+// SWARMCLAW_PORT_FILE is how it finds a host whose port changes every launch.
+//
+// SWARMCLAW_AGENT_ID and friends are deliberately absent: the host stamps those
+// into the env per turn, and a value pinned here would be an agent naming
+// itself. See addAssignedMcpServers in src/lib/providers/claude-cli.ts.
+if (copied.includes('mcp')) {
+  const entry = {
+    name: 'CRM MCP',
+    transport: 'stdio',
+    command: process.execPath,
+    args: [path.join(wsDir, 'mcp', 'server.mjs')],
+    env: { SWARMCLAW_PORT_FILE: path.join(home, 'run', 'port.json'), SWARMCLAW_ACCESS_KEY: '<a host .env.local ACCESS_KEY értéke>' },
+  }
+  console.log('\nMCP-bejegyzés (Settings → MCP Servers), majd rendeld hozzá az ügynökökhöz:')
+  console.log(JSON.stringify(entry, null, 2))
+} else {
+  console.log('Ez a kiadás nem szállít MCP-szervert (nincs mcp/ könyvtár); MCP-bejegyzést nem kell felvenni.')
+}
