@@ -530,8 +530,8 @@ kivitelezési terv** készül (`doc/plans/`), nem újabb spec.
 | # | Fázis | Tartalma |
 |---|---|---|
 | **CRM-1** | **Mag** | Táblák, migrációk, oldal, **teljes kézi bevitel** (ügyfél, kapcsolat, email-cím, ügy, jegyzet), olvasó tools, a CRM projekt + a `managedResources.projects` host-kiegészítés. Önmagában használható CRM. |
-| **CRM-2** | **Email** | `consumes` a gmail szerződést, hozzárendelési lánc, besorolatlan sor és a tanulás. |
-| **CRM-3** | **Proaktív** | `crm_attention`, az „Ügyfélkezelő" ügynök deklarációja, összefoglaló és javaslat, ígéret-radar, az MCP-szerver a házon kívüli ügynöknek, **a feladatlista az ügyfél lapon** (host `/api/tasks`, `customFields.crm_account`) és **a javaslat elfogadása → `BoardTask`**. |
+| **CRM-2** | **Email** | `consumes` a gmail szerződést, hozzárendelési lánc, besorolatlan sor és a tanulás, **plusz az MCP-híd** (lásd lent). |
+| **CRM-3** | **Proaktív** | `crm_attention`, az „Ügyfélkezelő" ügynök deklarációja, összefoglaló és javaslat, ígéret-radar, **a feladatlista az ügyfél lapon** (host `/api/tasks`, `customFields.crm_account`) és **a javaslat elfogadása → `BoardTask`**. |
 | **CRM-4** | **Leiratok** | Webhook-bevitel és token, naptár-olvasás, meeting-eligazítás, elmaradt leirat. |
 
 A CRM-1..3 semmit nem tud a leiratokról; a CRM-4 külön elvihető vagy elhagyható.
@@ -552,3 +552,28 @@ Ezek nem nyitott tervezési kérdések, hanem tények, amiket méréssel kell z�
    `extension-managed-resources.ts`-ben, mielőtt a `'project'` ág megíródik.
 4. **A gmail `MAILBOX_CONTRACT` aktuális verziója és metódus-listája**, hogy a
    `consumes` deklaráció a valóságra hivatkozzon.
+
+
+---
+
+## 14. Kiegészítés: az MCP-híd a CRM-2-be került
+
+A 12. fejezet eredetileg a CRM-3-hoz sorolta az MCP-szervert. Két tény miatt
+került előre, és mindkettő a CRM-1 befejezése után derült ki:
+
+**Az eszközök e nélkül senkihez nem jutnak el.** A `CLAUDE.md` „A három
+képességi réteg" szakasza szerint egy CLI-provider csak az MCP-réteget kapja
+meg, az extension-tools réteget nem — és ebben a telepítésben minden ügynök
+`claude-cli`-n fut. A CRM-1 négy olvasó eszköze tehát ma egyetlen ügynökhöz
+sem jut el. Egy fázison át halasztani annyi lenne, mint a CRM-3-ig üresen
+tartani a felületet, amit a CRM-1 megépített.
+
+**A híd időközben szabványosítottá vált.** A CRM-1 tervezésekor ez a gmail
+mintegy hatszáz soros egyedi shimjének átvételét jelentette volna, és ez volt
+a halasztás indoka. Azóta a minta három extensionben (`aisignal`, `docs`,
+`video`) azonos: `src/mcp-bridge.mjs` bájtra egyezik mindenhol, az
+`mcp/server.mjs` generikus és egyetlen eszközt sem nevez meg, és
+`extensions/mcp-shim-parity.test.mjs` őrzi, hogy a másolatok ne csússzanak
+szét. A munka két fájl másolása két konstans cseréjével.
+
+Vagyis a halasztás indoka megszűnt, a halasztás ára viszont megmaradt volna.
