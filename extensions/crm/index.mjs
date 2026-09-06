@@ -109,8 +109,9 @@ const crm = {
       // a Gmail-lista a SPAM és a TRASH kivételével MINDENT visszaad --
       // a SENT és a DRAFT mappát is --, és egy első söprés a postafiók teljes
       // előzményét végigjárná.
-      { key: 'sopresCimke', label: 'Söprés Gmail-címkéje', type: 'text', defaultValue: 'INBOX',
-        help: 'A söprés csak ebből a Gmail-címkéből húz be leveleket. Tágítva (pl. üresre hagyva) a teljes postafiókot nézi, a saját küldött leveleidet is beleértve -- azok ekkor tévesen bejövő levélként kerülhetnek az idővonalra.' },
+      { key: 'sopresCimkek', label: 'Söprés Gmail-címkéi', type: 'text', defaultValue: 'INBOX,SENT',
+        placeholder: 'INBOX,SENT',
+        help: 'Vesszővel elválasztva. A SENT nélkül nem látszik, hogy válaszoltál-e -- a „válasz nélküli levél” jelzés ettől működik. Tágítani lehet, de minden címke annyi levelet jelent, amennyit tényleg be is húzunk.' },
       { key: 'sopresLekerdezes', label: 'Söprés Gmail-keresési szűrője', type: 'text', defaultValue: 'newer_than:90d',
         help: 'Ez korlátozza, meddig megy vissza egy söprés. Kiürítve a postafiók teljes előzményét végigsöpri, ami egy régi postafióknál sokáig tarthat, és a besorolatlan sort régi levelekkel töltheti meg.' },
     ],

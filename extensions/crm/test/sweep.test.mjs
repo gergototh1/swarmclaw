@@ -139,20 +139,37 @@ test('egy hibazo uzenet nem allitja meg a lap tobbi levelenek behuzasat, es a ku
 
 // ---- C2: a listazas hatarolt, es a sajat kimeno level nem kerul be email_in-kent ----
 
-test('a SENT cimkeju level nem kerul be email_in-kent, es a besorolatlanba sem', async () => {
+test('a SENT cimkeju level email_out-kent kerul be, nem email_in-kent es nem a besorolatlanba', async () => {
   const { sweep, repo } = sweepOf([LEVEL({ id: 'msg_sent', labelIds: ['SENT'] })])
   const acc = repo.createAccount({ name: 'Morvai Kft.' })
   const con = repo.createContact({ accountId: acc.id, name: 'Dorina' })
   repo.attachEmail(con.id, 'dorina@morvai.hu')
 
   const r = await sweep.runSweep({})
-  assert.equal(r.recorded, 0, 'a sajat kimeno level nem kerul az idovonalra')
+  assert.equal(r.recorded, 0, 'a sajat kimeno level nem email_in-kent kerul az idovonalra')
+  assert.equal(r.recordedOut, 1, 'a sajat kimeno level email_out-kent szamolodik')
   assert.equal(r.unmatched, 0, 'a sajat kimeno level a besorolatlanba sem kerul')
-  assert.equal(repo.listEvents({ accountId: acc.id }).length, 0)
+  const events = repo.listEvents({ accountId: acc.id })
+  assert.equal(events.length, 1)
+  assert.equal(events[0].kind, 'email_out')
   assert.equal(repo.listUnmatched().length, 0)
 })
 
-test('a listazas alapbol az INBOX cimkere es 90 napra hatarolt', async () => {
+test('a kimeno level, aminek se pontos cime, se szala, a besorolatlanba sem kerul', async () => {
+  // Ha bekerulne, a `sender_address` a MI cimunk volna, es az rpc
+  // `assignUnmatched` ezt tanulna meg egy ugyfel cimekent -- csendben
+  // elrontva a jovobeli cimillesztest. Lasd src/sweep.mjs.
+  const { sweep, repo } = sweepOf([
+    LEVEL({ id: 'm_out_arva', labelIds: ['SENT'], threadId: 'thr_arva', fromEmail: 'en@sajat.hu' }),
+  ])
+  const r = await sweep.runSweep({})
+  assert.equal(r.recorded, 0)
+  assert.equal(r.recordedOut, 0)
+  assert.equal(r.unmatched, 0)
+  assert.equal(repo.listUnmatched().length, 0)
+})
+
+test('a listazas alapbol az INBOX es SENT cimkere es 90 napra hatarolt', async () => {
   const kapott = []
   const uzenetek = [LEVEL()]
   const mailbox = {
@@ -164,8 +181,44 @@ test('a listazas alapbol az INBOX cimkere es 90 napra hatarolt', async () => {
   }
   const { sweep } = sweepOf(uzenetek, { mailbox })
   await sweep.runSweep({})
-  assert.deepEqual(kapott[0].labelIds, ['INBOX'])
+  assert.deepEqual(kapott[0].labelIds, ['INBOX', 'SENT'])
   assert.equal(kapott[0].q, 'newer_than:90d')
+})
+
+test('a sopresCimkek vesszos listaja szetbontva megy a listazasba', async () => {
+  const kapott = []
+  const uzenetek = [LEVEL()]
+  const mailbox = {
+    list: async (args) => {
+      kapott.push(args)
+      return { ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }
+    },
+    get: async ({ id }) => uzenetek.find((u) => u.id === id),
+  }
+  const { sweep } = sweepOf(uzenetek, {
+    mailbox,
+    settings: () => ({ sopresCimkek: ' Ugyfelek , SENT ,, ' }),
+  })
+  await sweep.runSweep({})
+  assert.deepEqual(kapott[0].labelIds, ['Ugyfelek', 'SENT'])
+})
+
+test('a sopresCimkek elsobbseget elvez a regi sopresCimke felett, ha mindketto be van allitva', async () => {
+  const kapott = []
+  const uzenetek = [LEVEL()]
+  const mailbox = {
+    list: async (args) => {
+      kapott.push(args)
+      return { ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }
+    },
+    get: async ({ id }) => uzenetek.find((u) => u.id === id),
+  }
+  const { sweep } = sweepOf(uzenetek, {
+    mailbox,
+    settings: () => ({ sopresCimkek: 'Uj', sopresCimke: 'Regi' }),
+  })
+  await sweep.runSweep({})
+  assert.deepEqual(kapott[0].labelIds, ['Uj'])
 })
 
 test('a beallitott cimke es lekerdezes felulirja az alapertelmezettet', async () => {
@@ -185,4 +238,32 @@ test('a beallitott cimke es lekerdezes felulirja az alapertelmezettet', async ()
   await sweep.runSweep({})
   assert.deepEqual(kapott[0].labelIds, ['Ugyfelek'])
   assert.equal(kapott[0].q, 'newer_than:30d')
+})
+
+// ---- Task 1: kimeno levelek behuzasa ----
+
+test('a sajat elkuldott level email_out-kent kerul be, nem email_in-kent', async () => {
+  const { sweep, repo } = sweepOf([
+    LEVEL({ id: 'm_in', labelIds: ['INBOX'], fromEmail: 'dorina@morvai.hu' }),
+    LEVEL({ id: 'm_out', labelIds: ['SENT'], threadId: 'thr_1', fromEmail: 'en@sajat.hu' }),
+  ])
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const con = repo.createContact({ accountId: acc.id, name: 'Dorina' })
+  repo.attachEmail(con.id, 'dorina@morvai.hu')
+
+  await sweep.runSweep({})
+  const kinds = repo.listEvents({ accountId: acc.id }).map((e) => e.kind).sort()
+  assert.deepEqual(kinds, ['email_in', 'email_out'])
+})
+
+test('a kimeno level akkor is a szalhoz kerul, ha a felado ismeretlen', async () => {
+  const { sweep, repo } = sweepOf([
+    LEVEL({ id: 'm_out', labelIds: ['SENT'], threadId: 'thr_x', fromEmail: 'en@sajat.hu' }),
+  ])
+  const acc = repo.createAccount({ name: 'X' })
+  repo.recordEvent({ accountId: acc.id, kind: 'email_in', occurredAt: '2026-09-01T09:00:00.000Z',
+                     excerpt: 'e', sourceSystem: 'gmail', sourceId: 'korabbi', threadId: 'thr_x' })
+  const r = await sweep.runSweep({})
+  assert.equal(r.recordedOut, 1)
+  assert.equal(repo.listEvents({ accountId: acc.id })[0].kind, 'email_out')
 })

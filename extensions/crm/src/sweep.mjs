@@ -22,22 +22,36 @@ import { matchMessage } from './matching.mjs'
  * hiba. Egy üzenet önmagában soha nem teheti behúzhatatlanná az összeset.
  */
 
-/** A söprés alapértelmezett Gmail-címkéje és keresési szűrője, ha az operátor nem állított be sajátot. */
-const DEFAULT_LABEL = 'INBOX'
+/**
+ * A söprés alapértelmezett Gmail-címkéi és keresési szűrője, ha az operátor
+ * nem állított be sajátot. A SENT itt is benne van: e nélkül egy friss
+ * telepítés (beállítás mentése előtt) nem látná a kimenő leveleket, és a
+ * „válasz nélküli levél" jelzés (CRM-3) hallgatna.
+ */
+const DEFAULT_LABELS = ['INBOX', 'SENT']
 const DEFAULT_QUERY = 'newer_than:90d'
 
 /**
- * Ezekkel a címkékkel jelölt levél a saját kimenő postánk, nem bejövő -- a
- * söprés soha nem sorolja be `email_in`-ként, és a besorolatlanba sem teszi.
- *
- * A CRM ma nem támogat `email_out` eseményt (ez a 3. fázis kizárási listáján
- * van), tehát a kimenő levél helye SEHOL nincs -- ez szándékos, nem hiányzó
- * ág. Az alapértelmezett `labelIds` (INBOX) már önmagában kizárja a SENT és a
- * DRAFT mappát, de ez a szűrő azt a helyzetet is fedezi, amikor az operátor a
- * beállított címkét tágítja, vagy egy szál mindkét irányú levelet hoz vissza
- * ugyanazon a listázáson.
+ * A DRAFT-tal jelölt levél se nem bejövő, se nem elküldött -- a `sentAt` rá
+ * nem is megbízható --, ezért a söprés ezt a matchMessage-hívás előtt kizárja.
+ * A SENT NINCS itt: azt a kimenő ág (lásd lejjebb) külön kezeli, `email_out`
+ * eseményként rögzíti, nem hagyja ki.
  */
-const EXCLUDED_LABELS = new Set(['SENT', 'DRAFT'])
+const EXCLUDED_LABELS = new Set(['DRAFT'])
+
+/**
+ * Vesszős címke-lista szöveggé alakítása tömbbé: vág, üreset dob. Üres
+ * bemenetre (nincs beállítás egyik kulcson sem) az alapértelmezett címkéket
+ * adja -- SOHA nem üres tömböt, mert a `mailbox.list({ labelIds: [] })`
+ * a teljes postafiókot söpörné (lásd a fájl tetején lévő figyelmeztetést).
+ */
+function parseLabelList(raw) {
+  const parsed = String(raw || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  return parsed.length ? parsed : DEFAULT_LABELS
+}
 
 export function createSweep(state) {
   const repo = () => {
@@ -84,9 +98,13 @@ export function createSweep(state) {
         accountsByDomain: (d) => r.accountsByDomain(d),
       }
 
+      // A `sopresCimkek` (többes szám, vesszős lista) az uralkodó kulcs.
+      // A régi, egyes számú `sopresCimke` tartalék: az operátor telepítésén
+      // ez már be lehet állítva, és e nélkül a tartalék nélkül egy frissítés
+      // némán visszaállítaná az alapértékre az ő beállítását.
       const effectiveLabelIds = Array.isArray(labelIds) && labelIds.length
         ? labelIds
-        : [String(settings.sopresCimke || DEFAULT_LABEL)]
+        : parseLabelList(settings.sopresCimkek || settings.sopresCimke)
       const effectiveQ = typeof q === 'string' && q
         ? q
         : String(settings.sopresLekerdezes || DEFAULT_QUERY)
@@ -98,6 +116,7 @@ export function createSweep(state) {
         cursor: r.getSweepState('gmail')?.cursor || undefined,
       })
       let recorded = 0
+      let recordedOut = 0
       let unmatched = 0
       let failed = 0
 
@@ -105,8 +124,8 @@ export function createSweep(state) {
         try {
           const msg = await box.get({ id })
 
-          // A saját kimenő levelünk soha nem bejövő esemény -- se az
-          // idővonalra, se a besorolatlanba.
+          // A DRAFT-ot a `sentAt` sem tenné megbízhatóvá -- se az
+          // idővonalra, se a besorolatlanba nem kerül.
           if ((msg.labelIds || []).some((l) => EXCLUDED_LABELS.has(l))) continue
 
           // A szolgáltató a `sentAt`-ot deliberáltan `null`-ra hagyja, ha a
@@ -120,13 +139,22 @@ export function createSweep(state) {
             continue
           }
 
+          // A SENT címke az egyetlen megbízható jel arra, hogy ez a levél tőlünk
+          // ment. A feladó címére nem építünk: az operátornak több címe lehet, és
+          // egy alias vagy egy megosztott postafiók ugyanúgy tőle jön.
+          const kimeno = Array.isArray(msg.labelIds) && msg.labelIds.includes('SENT')
+          const kind = kimeno ? 'email_out' : 'email_in'
+
           const talalat = matchMessage({ fromEmail: msg.fromEmail, threadId: msg.threadId }, lookups)
 
+          // A kimenő levélnél az 1. lépés (pontos cím) szándékosan nem talál
+          // -- a feladó te vagy --, tehát a 2. lépés, a szál viszi. Ez helyes:
+          // egy kimenő levél oda tartozik, ahova a beszélgetés.
           if (talalat.kind === 'exact' || talalat.kind === 'thread') {
             const { created } = r.recordEvent({
               accountId: talalat.accountId,
               contactId: talalat.contactId || null,
-              kind: 'email_in',
+              kind,
               occurredAt: msg.sentAt,
               title: msg.subject || '',
               excerpt: String(msg.text || '').slice(0, 200),
@@ -135,9 +163,19 @@ export function createSweep(state) {
               threadId: msg.threadId || '',
               body: msg.text || '',
             })
-            if (created) recorded += 1
+            if (created) {
+              if (kimeno) recordedOut += 1
+              else recorded += 1
+            }
             continue
           }
+
+          // Egy kimenő levél, aminek se pontos címe, se szála nincs, a
+          // besorolatlanba SEM kerül: a `sender_address` ott a mi saját
+          // címünk volna, és az rpc `assignUnmatched` ezt tanulná meg egy
+          // ügyfél címeként (`attachEmail`) -- csendben elrontva a jövőbeli
+          // címillesztést. Inkább kimarad, mint egy rossz tanulás.
+          if (kimeno) continue
 
           const { created } = r.recordUnmatched({
             sourceSystem: 'gmail',
@@ -163,7 +201,7 @@ export function createSweep(state) {
       // levelek elszámoltak a `failed`-ben, de nem tarthatják a kurzort
       // örökre a lap elején.
       r.setSweepState('gmail', { cursor: lap.complete ? '' : (lap.nextCursor || ''), lastSeenAt: new Date().toISOString() })
-      return { scanned: lap.ids.length, recorded, unmatched, failed, complete: lap.complete, cursor: lap.nextCursor || '' }
+      return { scanned: lap.ids.length, recorded, recordedOut, unmatched, failed, complete: lap.complete, cursor: lap.nextCursor || '' }
     },
   }
 }
