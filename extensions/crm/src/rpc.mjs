@@ -127,13 +127,23 @@ export function createRpc(state) {
      * Feloldódik-e a postafiók-szerződés, és ha nem, miért.
      *
      * A lap ezt írja ki, nem hallgat: az operátort jobban szolgálja egy
-     * megnevezett korlát („áll az email-behúzás, mert a Gmail extension ki van
-     * kapcsolva"), mint egy modul, ami csendben nem csinál semmit.
+     * megnevezett korlát, mint egy modul, ami csendben nem csinál semmit --
+     * és a négy ok, amit a hoszt megkülönböztet (`not_declared`,
+     * `provider_missing`, `provider_disabled`, `version_mismatch`), négy
+     * különböző teendőt jelent. „A Gmail extension ki van kapcsolva" és „a CRM
+     * soha nem is kérte ezt a szerződést" nem ugyanaz a hiba, ezért a hoszt
+     * saját okkódját adjuk tovább, nem egy összemosott általános szöveget.
+     * `state.contracts.get` két argumentumot vár (extensionId, contract) --
+     * a verziót a `consumes` deklaráció köti, `get`-nek nincs harmadik
+     * paramétere. Amikor `get` null-t ad, `why` mondja meg, melyik a négy ok
+     * közül; ha `state.contracts` maga sincs (a hoszt nem is ad contracts-ot),
+     * az egy ötödik, ettől független állapot, saját névvel.
      */
     async mailboxHealth() {
-      const handle = state.contracts ? state.contracts.get('gmail', 'mailbox', 1) : null
+      if (!state.contracts) return { available: false, reason: 'crm_nincs_contracts' }
+      const handle = state.contracts.get('gmail', 'mailbox')
       if (!handle) {
-        return { available: false, reason: state.contracts ? 'nem_oldodik_fel' : 'nincs_contracts' }
+        return { available: false, reason: state.contracts.why('gmail', 'mailbox') }
       }
       const box = await handle.mailbox()
       return { available: true, address: box.address }

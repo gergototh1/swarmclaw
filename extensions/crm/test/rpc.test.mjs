@@ -12,6 +12,14 @@ function rpcOf() {
   return { rpc: createRpc(state), repo: state.repo }
 }
 
+/** Ugyanaz, mint `rpcOf`, de a state-en van egy `contracts` dublőr, amit a hívó ad meg. */
+function rpcWithContracts(contracts) {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const state = { storage: S, repo: createRepo(S), settings: () => ({}), log: console, contracts }
+  return { rpc: createRpc(state), repo: state.repo }
+}
+
 test('a board egy hívásból adja a lap alapállapotát', async () => {
   const { rpc, repo } = rpcOf()
   repo.createAccount({ name: 'Morvai Kft.', status: 'client' })
@@ -143,9 +151,33 @@ test('az ügy lezárása csak won/lost szakaszt fogad el, mást nevesített hib�
   assert.equal(closed.stage, 'won')
 })
 
-test('a mailboxHealth megmondja, ha a szerzodes nem oldodik fel', async () => {
+test('a mailboxHealth nevesített okot ad, ha a state-en egyáltalán nincs contracts', async () => {
   const { rpc } = rpcOf()            // a rpcOf nem ad contracts-ot
   const h = await rpc.mailboxHealth({})
   assert.equal(h.available, false)
-  assert.match(h.reason, /not_declared|provider_missing|provider_disabled|version_mismatch|nincs/)
+  assert.equal(h.reason, 'crm_nincs_contracts')
+})
+
+test('a mailboxHealth a hoszt saját okkódját adja tovább, ha a get() null-t ad', async () => {
+  const { rpc } = rpcWithContracts({
+    get: () => null,
+    why: () => 'provider_disabled',
+  })
+  const h = await rpc.mailboxHealth({})
+  assert.equal(h.available, false)
+  assert.equal(h.reason, 'provider_disabled')
+})
+
+test('a mailboxHealth a postafiók címét adja vissza, ha a szerződés feloldódik', async () => {
+  const { rpc } = rpcWithContracts({
+    get: (extensionId, contract) => {
+      assert.equal(extensionId, 'gmail')
+      assert.equal(contract, 'mailbox')
+      return { mailbox: async () => ({ address: 'dorina@morvai.hu' }) }
+    },
+    why: () => null,
+  })
+  const h = await rpc.mailboxHealth({})
+  assert.equal(h.available, true)
+  assert.equal(h.address, 'dorina@morvai.hu')
 })
