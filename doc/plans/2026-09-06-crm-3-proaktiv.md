@@ -1222,11 +1222,23 @@ A `state.portFile` az `index.mjs`-ből jön: a CRM-2-ben már feloldott útvonal
 
 `ui/ugyfel-lap.tsx`: a lap a bejelentkezett origin-en fut, tehát `fetch('/api/tasks')` közvetlenül megy. Szűrj `customFields.crm_account === accountId`-ra, és mutasd a címet, státuszt és a határidőt. Ha üres, mondd meg, hogy még nincs feladat — ne hagyj néma üres dobozt.
 
-- [ ] **Step 5: Az elfogadás gombja a Ma nézeten**
+- [ ] **Step 5: A söprés-összegzés mutassa a kimenőt is**
+
+`ui/ma.tsx` söprés-toastja ma négy számot ír ki (`scanned`, `recorded`,
+`unmatched`, `failed`), a `recordedOut`-ot és a kimenő-kihagyást viszont
+eldobja. A CRM-3 „válasz nélküli levél" jelzésének a helyessége azon áll, hogy
+a kimenő levelek tényleg bejönnek — ha ez a szám nem látszik, az operátor egy
+néma, nullát hozó söprést nem tud megkülönböztetni egy működőtől.
+
+Vedd fel a hiányzó mezőket a toast típusába és a szövegbe. A típus `as`
+kasztolással készül, tehát a TypeScript nem szól a hiányzó mezőért — ezért kell
+kézzel átnézni, mit ad vissza a `sweepNow`.
+
+- [ ] **Step 6: Az elfogadás gombja a Ma nézeten**
 
 `ui/ma.tsx`: a javaslat mellé „Elfogad" gomb az „Elvet" mellé. Futás közben tiltva, és a válasz feladat-azonosítóját írja ki, hogy az operátor lássa, tényleg született valami.
 
-- [ ] **Step 6: Futtasd és commitolj**
+- [ ] **Step 7: Futtasd és commitolj**
 
 Run: `cd extensions/crm && npm run build && node --import tsx --test test/*.test.mjs`
 Run: `npx tsc --noEmit && npx eslint extensions/crm/ && npm run lint:baseline`
