@@ -13,10 +13,12 @@ import { lapozottIdovonal } from '../ui/ugyfel-lap.tsx'
  *    kell fűzni, a sorrend megtartásával.
  * 2. A visszakapott lap üres -- nincs több korábbi esemény, a hívónak ezt
  *    kell jeleznie, hogy a gomb eltűnhessen.
- * 3. Az id szerinti szűrés véd, ha egy id mindkét lapon szerepelne -- ez a
- *    repo szigorú `occurred_at < ?` határa mellett nem fordulhat elő, a teszt
- *    csak azt pinneli le, hogy a védekező szűrés önmagában ártalmatlan és
- *    nem dob el semmit feleslegesen.
+ * 3. Az id szerinti szűrés véd, ha egy id mindkét lapon szerepelne -- a repo
+ *    (`src/db.mjs` `listEvents`) mostantól a `beforeId`-vel az összetett
+ *    `(occurred_at, id)` határon lapoz, ezért ez sem duplikálás, sem
+ *    elhagyás formájában nem fordulhat elő; a teszt csak azt pinneli le,
+ *    hogy a védekező szűrés önmagában ártalmatlan és nem dob el semmit
+ *    feleslegesen.
  */
 
 const eseny = (id, occurredAt) => ({ id, kind: 'note', occurred_at: occurredAt, title: '', excerpt: id })

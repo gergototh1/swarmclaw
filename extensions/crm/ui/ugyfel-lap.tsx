@@ -20,16 +20,15 @@ type Lap = {
  * A lapozott idővonal következő állapota: a már látott események, kiegészítve
  * egy újonnan behúzott lappal.
  *
- * A repo (`src/db.mjs` `listEvents`) szigorú `occurred_at < ?` határral lapoz,
- * ezért egy már látott esemény nem térhet vissza egy későbbi lapon -- az itteni
- * id szerinti szűrés csak védekező jellegű, nem egy ismert hiba ellen szól.
- * A határ valódi kockázata a fordítottja: ha egy esemény `occurred_at`-ja
- * pontosan egybeesik a határoló (legrégebbi látott) eseményével, de az nem
- * fért rá az előző lapra, akkor egyetlen későbbi lekérés sem kéri le --
- * `< before` nem engedi át --, így az az esemény véglegesen kimarad a
- * nézetből. Ennek orvoslásához a lapozásnak a `occurred_at`-nál finomabb
- * (pl. id szerinti másodlagos) rendezésre és határra lenne szüksége, ami
- * `src/db.mjs`-t érintené -- ezen a fájlon kívül esik.
+ * A repo (`src/db.mjs` `listEvents`) `beforeId`-vel hívva a `(occurred_at, id)`
+ * összetett kulcson lapoz, ugyanazon a rendezésen, mint amivel a lap maga
+ * érkezik -- ezért sem duplikálás, sem elhagyás nem fordulhat elő, még akkor
+ * sem, ha egy esemény `occurred_at`-ja pontosan egybeesik a határoló
+ * (legrégebbi látott) eseményével: a `beforeId` ezt az egyezést dönti el
+ * helyesen, ahelyett hogy a szigorú `occurred_at < before` egy ilyen egyező
+ * eseményt véglegesen kihagyna. Az itteni id szerinti szűrés emiatt ma is
+ * csak védekező jellegű, nem egy ismert hiba ellen szól -- de ártalmatlan,
+ * ezért marad.
  */
 export function lapozottIdovonal(meglevo: Event[], ujOldal: Event[]): Event[] {
   if (ujOldal.length === 0) return meglevo
@@ -69,7 +68,7 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
   const korabbiak = () => {
     if (!lap || lap.events.length === 0) return
     const legregebbi = lap.events[lap.events.length - 1]
-    rpc('timeline', { accountId, before: legregebbi.occurred_at })
+    rpc('timeline', { accountId, before: legregebbi.occurred_at, beforeId: legregebbi.id })
       .then((x) => {
         const uj = (x as { events: Event[] }).events
         if (uj.length === 0) { setNincsTobbEsemeny(true); return }

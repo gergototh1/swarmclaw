@@ -60,9 +60,9 @@ export function createRpc(state) {
       }
     },
 
-    async timeline({ accountId, before, limit }) {
+    async timeline({ accountId, before, beforeId, limit }) {
       mustAccount(accountId)
-      return { events: repo().listEvents({ accountId, before, limit: limit || 50 }) }
+      return { events: repo().listEvents({ accountId, before, beforeId, limit: limit || 50 }) }
     },
 
     async eventBody({ eventId }) {

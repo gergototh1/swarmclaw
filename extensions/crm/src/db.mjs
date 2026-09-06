@@ -118,6 +118,18 @@ CREATE INDEX IF NOT EXISTS ext_crm_event_thread ON ext_crm_event (thread_id);
   sql: `
 ALTER TABLE ext_crm_inbox_unmatched ADD COLUMN thread_id TEXT NOT NULL DEFAULT '';
 `,
+}, {
+  // A `listEvents` mostantól `(occurred_at, id)` összetett kulcson rendez és
+  // lapoz (lásd a `listEvents` doc-ját) -- az `ext_crm_event_account`
+  // (account_id, occurred_at) indexe emiatt már nem fedi le teljesen a
+  // lekérdezést, minden lapnál egy külön rendezési lépést hagyva az
+  // occurred_at-on egyező sorokra. Additív, mint a 3-as és a 4-es: csak egy
+  // új indexet ad, a v1-v4 SQL-je byte-identikus marad.
+  version: 5,
+  sql: `
+CREATE INDEX IF NOT EXISTS ext_crm_event_account_occurred_id
+  ON ext_crm_event (account_id, occurred_at, id);
+`,
 }])
 
 const now = () => new Date().toISOString()
@@ -387,12 +399,37 @@ export function createRepo(storage) {
      * A `content` szándékosan nincs a SELECT-ben. Ha itt lenne, egy húsz
      * levelet és három leiratot tartó ügyfél minden lekérdezésnél
      * kontextus-ablakot töltene (spec 5.2).
+     *
+     * A rendezés `(occurred_at, id)` -- nem csak `occurred_at`. A Gmail
+     * `internalDate`-je másodperc-pontos, tehát két esemény egybeeshet; egy
+     * söprés akár 50 levelet is felvehet egy futásban, az egyezés rutin, nem
+     * kivétel. `id` tiebreak nélkül a SQLite nem ígér sorrendet az egyenlő
+     * `occurred_at`-ú sorok között, és egy szigorú `occurred_at < before`
+     * határ egy ilyen csoportot szétvágva véglegesen elveszíti a felét: az
+     * első lapra nem fért rá tag se a `< before`, se a `= before` mellett
+     * nem kerül elő többé.
+     *
+     * A `beforeId` ezért a `before` PÁRJA, nem helyettesítője. Ha a hívó
+     * nem adja meg (a régi hívók nem adják), a határ a régi, szigorú
+     * `occurred_at < ?` marad -- visszafele kompatibilis, mert egyetlen
+     * meglévő hívó viselkedése sem változik. Ha a hívó megadja (az rpc
+     * `timeline` és a `crm_timeline` eszköz az UI/ügynök felől kapott
+     * legrégebbi látott esemény id-jét küldi), a határ összetett: egy
+     * esemény korábbi, ha az occurred_at-ja kisebb, VAGY egyenlő és az id-je
+     * kisebb -- ugyanaz a rendezés, mint az ORDER BY-é, tehát a lapozás sem
+     * nem ismétel, sem el nem hagy semmit.
      */
-    listEvents({ accountId, before, limit = 50 }) {
+    listEvents({ accountId, before, beforeId, limit = 50 }) {
       const params = [accountId]
       let sql = 'SELECT * FROM ext_crm_event WHERE account_id = ?'
-      if (before) { sql += ' AND occurred_at < ?'; params.push(before) }
-      sql += ' ORDER BY occurred_at DESC LIMIT ?'
+      if (before && beforeId) {
+        sql += ' AND (occurred_at < ? OR (occurred_at = ? AND id < ?))'
+        params.push(before, before, beforeId)
+      } else if (before) {
+        sql += ' AND occurred_at < ?'
+        params.push(before)
+      }
+      sql += ' ORDER BY occurred_at DESC, id DESC LIMIT ?'
       params.push(limit)
       return S.all(sql, params)
     },
@@ -458,8 +495,14 @@ export function createRepo(storage) {
      * elavultság-jelzés udvariassági kérdéssé válna a tény helyett.
      */
     writeSummary({ accountId, dealId = null, text, agentId = '' }) {
+      // A `, id DESC` tiebreak ugyanaz a rendezés, mint a `listEvents`-é:
+      // ha két esemény egy másodpercre esik, a "legfrissebb" választása
+      // enélkül nem determinisztikus, és a `latestSummary` összetett
+      // összehasonlítása pontosan ehhez a sorhoz méri a "van-e újabb"
+      // kérdést -- a kettőnek ugyanazt a rendezést kell néznie.
       const newest = S.get(
-        'SELECT id, occurred_at FROM ext_crm_event WHERE account_id = ? ORDER BY occurred_at DESC LIMIT 1',
+        `SELECT id, occurred_at FROM ext_crm_event WHERE account_id = ?
+         ORDER BY occurred_at DESC, id DESC LIMIT 1`,
         [accountId],
       )
       const id = newId('sum')
@@ -478,6 +521,17 @@ export function createRepo(storage) {
      *
      * A `newerEvents` egy COUNT, nem modellhívás: az oldal és az ügynök is
      * ebből tudja, érdemes-e újat írni.
+     *
+     * Az összehasonlítás összetett: `(covers_event_at, covers_event_id)`,
+     * nem csak az időbélyeg. A Gmail `internalDate`-je másodperc-pontos, és
+     * egy söprés akár 50 levelet is felvehet egy futásban -- ha egy új
+     * esemény pontosan arra a másodpercre esik, mint a fedezett esemény, a
+     * puszta `occurred_at > covers_event_at` sosem igaz rá, és az elavultság
+     * -- amit a rendszer tényként hirdet, nem modell-becslésként -- némán
+     * hamis maradna. A `covers_event_id` pontosan ehhez van eltárolva: a
+     * `writeSummary` ugyanazzal a rendezéssel (`occurred_at DESC, id DESC`)
+     * választja a "legfrissebb" eseményt, amivel itt összevetünk, tehát a
+     * két hely nem térhet el egymástól.
      */
     latestSummary(accountId) {
       const summary = S.get(
@@ -485,9 +539,12 @@ export function createRepo(storage) {
         [accountId],
       )
       if (!summary) return null
+      const coversAt = summary.covers_event_at || ''
+      const coversId = summary.covers_event_id || ''
       const row = S.get(
-        'SELECT COUNT(*) AS n FROM ext_crm_event WHERE account_id = ? AND occurred_at > ?',
-        [accountId, summary.covers_event_at || ''],
+        `SELECT COUNT(*) AS n FROM ext_crm_event
+         WHERE account_id = ? AND (occurred_at > ? OR (occurred_at = ? AND id > ?))`,
+        [accountId, coversAt, coversAt, coversId],
       )
       const newerEvents = row ? row.n : 0
       return { summary, stale: newerEvents > 0, newerEvents }

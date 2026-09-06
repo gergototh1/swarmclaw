@@ -88,20 +88,21 @@ export function createTools(state) {
     },
     {
       name: 'crm_timeline',
-      description: 'Egy ügyfél eseményei kivonattal, a legfrissebbel kezdve. A teljes szöveget nem hozza; ahhoz a crm_event_body kell.',
+      description: 'Egy ügyfél eseményei kivonattal, a legfrissebbel kezdve. A teljes szöveget nem hozza; ahhoz a crm_event_body kell. Lapozáshoz a `before` mellé küldd vissza a legutóbb kapott lap LEGRÉGEBBI eseményének id-jét is `beforeId`-ként -- a Gmail időbélyege másodperc-pontos, tehát egybeeshet két esemény, és `beforeId` nélkül egy ilyen egyezés-csoport tagja némán kimaradhat a lapozásból.',
       parameters: {
         type: 'object',
         properties: {
           accountId: { type: 'string' },
           before: { type: 'string', description: 'ISO időpont: ennél korábbiakat adj.' },
+          beforeId: { type: 'string', description: 'A `before` időponthoz tartozó, legutóbb kapott legrégebbi esemény id-je -- a `before`-ral azonos időpontú egyezéseket ez dönti el helyesen.' },
           limit: { type: 'number' },
         },
         required: ['accountId'],
       },
-      async execute({ accountId, before, limit }) {
+      async execute({ accountId, before, beforeId, limit }) {
         const r = repo()
         if (!r.getAccount(accountId)) throw new Error('crm_ismeretlen_ugyfel')
-        return { events: r.listEvents({ accountId, before, limit: limit || 50 }) }
+        return { events: r.listEvents({ accountId, before, beforeId, limit: limit || 50 }) }
       },
     },
     {

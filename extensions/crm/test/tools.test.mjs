@@ -111,6 +111,28 @@ test('az idővonal nem hozza a teljes szöveget; azt külön kell kérni', async
   assert.equal(body.content, 'a teljes szöveg')
 })
 
+test('a crm_timeline elfogadja és érvényesíti a beforeId-t egy egy másodpercen osztozó csoportnál', async () => {
+  const { byName, repo } = toolsOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const t = '2026-09-01T10:00:00.000Z'
+  const { event: a } = await repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: t,
+    excerpt: 'a', sourceSystem: 'manual', sourceId: 'tie_a' })
+  const { event: b } = await repo.recordEvent({ accountId: acc.id, kind: 'note', occurredAt: t,
+    excerpt: 'b', sourceSystem: 'manual', sourceId: 'tie_b' })
+
+  const page1 = await byName.crm_timeline.execute({ accountId: acc.id, limit: 1 }, { session: {} })
+  assert.equal(page1.events.length, 1)
+  const legregebbi = page1.events[0]
+
+  const page2 = await byName.crm_timeline.execute(
+    { accountId: acc.id, before: legregebbi.occurred_at, beforeId: legregebbi.id, limit: 1 },
+    { session: {} },
+  )
+  assert.equal(page2.events.length, 1)
+  assert.notEqual(page2.events[0].id, legregebbi.id)
+  assert.deepEqual([page1.events[0].id, page2.events[0].id].sort(), [a.id, b.id].sort())
+})
+
 /** A `mailbox` szerződés dublőre, ugyanaz az alak, mint a sweep sajét tesztjeiben. */
 function fakeMailbox(uzenetek) {
   return {
