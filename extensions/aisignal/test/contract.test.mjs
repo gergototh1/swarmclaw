@@ -257,7 +257,12 @@ test('index.mjs declares the signals contract and consumes the gmail mailbox', (
   assert.deepEqual(Object.keys(aisignal.provides[SIGNALS_CONTRACT].methods), ['list', 'get'])
   assert.equal(aisignal.provides[SIGNALS_CONTRACT].version, SIGNALS_CONTRACT_VERSION)
   assert.equal(aisignal.provides[SIGNALS_CONTRACT].summary.length <= MAX_DECLARATION_TEXT, true)
-  assert.deepEqual(Object.keys(aisignal.rpc), ['board', 'items', 'decide', 'sweeps', 'health'])
+  // The page rpc, then the two the MCP shim reaches. `mcpTools` and `mcpCall`
+  // are not page methods: they exist because an agent on a CLI provider never
+  // receives the extension tool layer, and MCP is the only layer that crosses
+  // into a CLI's own tool loop. They are listed here so that adding a third
+  // one is a decision rather than an accident.
+  assert.deepEqual(Object.keys(aisignal.rpc), ['board', 'items', 'decide', 'sweeps', 'health', 'mcpTools', 'mcpCall'])
 
   // The one grant this extension asks for, and the only one: the mailbox behind
   // the newsletter label. Without the declaration the host answers every call

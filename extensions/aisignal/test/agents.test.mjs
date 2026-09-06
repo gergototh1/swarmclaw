@@ -414,10 +414,11 @@ test('every backticked name in every prompt resolves to something that exists', 
   for (const source of RESEARCH_SOURCES) vocabulary.add(source)
   vocabulary.add(RESEARCH_ID_SPACE)
   for (const agent of AGENTS) for (const skill of agent.skills) vocabulary.add(skill)
-  // The one host tool both prompts name. It is not an extension tool, so it
-  // cannot be read off the tool list; it is checked against the host's own
-  // definition in the next test.
+  // The host tools the prompts name. They are not extension tools, so they
+  // cannot be read off the tool list; each is checked against the host's own
+  // definition in its own test below.
   vocabulary.add('web_fetch')
+  for (const name of HOST_MEMORY_TOOLS) vocabulary.add(name)
   for (const term of Object.keys(PINNED_PROSE)) vocabulary.add(term)
   for (const term of PLAIN_PROSE) vocabulary.add(term)
 
@@ -447,6 +448,7 @@ test('every backticked name in every managed skill resolves to something that ex
     for (const skill of agent.skills) vocabulary.add(skill)
   }
   vocabulary.add('web_fetch')
+  for (const name of HOST_MEMORY_TOOLS) vocabulary.add(name)
   for (const term of Object.keys(PINNED_PROSE)) vocabulary.add(term)
   for (const term of PLAIN_PROSE) vocabulary.add(term)
   // Prose that only the skills use.
@@ -627,6 +629,30 @@ test('the tools each agent is declared with, and the tools its prompt names, are
       }
     }
   }
+})
+
+/**
+ * The host memory tools both prompts name. Like `web_fetch` these live in the
+ * host, not in this extension, so the vocabulary tests cannot read them off the
+ * tool list and the test below is what keeps them honest.
+ */
+const HOST_MEMORY_TOOLS = ['memory_store', 'memory_search', 'memory_update']
+
+test('the memory tools the prompts name are the host\'s, and the agents carry the tool id that gates them', () => {
+  // `memory` is the built-in tool id; the three names above are tool names
+  // inside it. An agent whose declaration lost `memory` would be told in its
+  // own prompt to use tools it does not have — and on a CLI provider they
+  // arrive over the platform MCP bridge, which filters by exactly this id.
+  for (const agent of AGENTS) assert.ok(agent.tools.includes('memory'), `${agent.agentKey} lost the memory tool id`)
+  for (const name of HOST_MEMORY_TOOLS) {
+    assert.ok(SCOUT_SOUL.includes(`\`${name}\``) || KUTATO_SOUL.includes(`\`${name}\``), `${name} is named by neither prompt`)
+  }
+  const hostMemoryTool = fs.readFileSync(path.resolve(extensionRoot, '../../src/lib/server/session-tools/memory.ts'), 'utf8')
+  for (const name of HOST_MEMORY_TOOLS) {
+    assert.ok(hostMemoryTool.includes(name), `the host no longer defines ${name}`)
+  }
+  const hostToolIds = fs.readFileSync(path.resolve(extensionRoot, '../../src/lib/tool-definitions.ts'), 'utf8')
+  assert.ok(hostToolIds.includes("id: 'memory'"), 'the host no longer defines the memory tool id')
 })
 
 test('web_fetch is the host tool both prompts name, and the agents carry the tool id that gates it', () => {

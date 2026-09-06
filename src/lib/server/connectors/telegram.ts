@@ -8,8 +8,40 @@ import { deliverChunkedConnectorText } from './delivery'
 import { downloadInboundMediaToUpload, inferInboundMediaType, mimeFromPath, isImageMime, isAudioMime } from './media'
 import { errorMessage } from '@/lib/shared-utils'
 import { log } from '@/lib/server/logger'
+import { markdownToTelegramHtml, hasTelegramMarkup } from './telegram-markdown'
 
 const TAG = 'telegram'
+
+type TelegramApi = Bot['api']
+
+/**
+ * Sends a message with Markdown rendered as Telegram HTML.
+ *
+ * Agent replies are Markdown. Without `parse_mode` Telegram prints the syntax
+ * characters verbatim, so every outbound text goes through the converter first.
+ *
+ * Two guards keep this from costing us messages. Text with no markup is sent
+ * untouched, so plain prose never gains a way to fail; and if Telegram rejects
+ * the markup anyway — a chunk boundary can split an emphasis span — the raw
+ * text is sent instead.
+ */
+async function sendRenderedMessage(
+  api: TelegramApi,
+  chatId: string | number,
+  text: string,
+  extra: Record<string, unknown>,
+): Promise<{ message_id: number }> {
+  const html = markdownToTelegramHtml(text)
+  if (!hasTelegramMarkup(text, html)) {
+    return await api.sendMessage(chatId, text, extra)
+  }
+  try {
+    return await api.sendMessage(chatId, html, { ...extra, parse_mode: 'HTML' })
+  } catch (err: unknown) {
+    log.warn(TAG, 'HTML rejected by Telegram, resending as plain text:', errorMessage(err))
+    return await api.sendMessage(chatId, text, extra)
+  }
+}
 
 const telegram: PlatformConnector = {
   async start(connector, botToken, onMessage): Promise<ConnectorInstance> {
@@ -173,7 +205,7 @@ const telegram: PlatformConnector = {
             if (meta.threadId) {
               options.message_thread_id = Number(meta.threadId)
             }
-            const sent = await ctx.api.sendMessage(ctx.chat.id, chunk, options as any)
+            const sent = await sendRenderedMessage(ctx.api, ctx.chat.id, chunk, options)
             return String(sent.message_id)
           },
         })
@@ -240,13 +272,13 @@ const telegram: PlatformConnector = {
         // Text only
         const payload = text || caption || ''
         if (payload.length <= 4096) {
-          const msg = await bot.api.sendMessage(chatId, payload, extra as any)
+          const msg = await sendRenderedMessage(bot.api, chatId, payload, extra)
           return { messageId: String(msg.message_id) }
         }
         const chunks = payload.match(/[\s\S]{1,4090}/g) || [payload]
         let lastId: string | undefined
         for (let i = 0; i < chunks.length; i += 1) {
-          const msg = await bot.api.sendMessage(chatId, chunks[i], (i === 0 ? extra : {}) as any)
+          const msg = await sendRenderedMessage(bot.api, chatId, chunks[i], i === 0 ? extra : {})
           lastId = String(msg.message_id)
         }
         return { messageId: lastId }

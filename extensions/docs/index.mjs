@@ -2,6 +2,7 @@ import { createAgentContext } from './src/agent-context.mjs'
 import { DOCS_CONTRACT, createDocsContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { createIndexWriter } from './src/index-writer.mjs'
+import { createMcpBridge } from './src/mcp-bridge.mjs'
 import { createRpc } from './src/rpc.mjs'
 import { createService } from './src/service.mjs'
 import { createTools } from './src/tools.mjs'
@@ -134,7 +135,7 @@ const docs = {
   description: 'Markdown-doksik egy mappában: grafikus szerkesztő az operátornak, hat tool az ügynököknek, ügynökönként saját mappa.',
   migrations: MIGRATIONS,
   tools: createTools(state, { serviceOf, logOf }),
-  rpc: createRpc({
+  rpc: { ...createRpc({
     serviceOf,
     vaultOf,
     writerOf,
@@ -144,7 +145,7 @@ const docs = {
     sharedFolder,
     rootSetting,
     logOf,
-  }),
+  }), ...createMcpBridge(() => docs.tools) },
   provides: {
     [DOCS_CONTRACT]: createDocsContract({
       serviceOf,

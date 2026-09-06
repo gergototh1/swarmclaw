@@ -215,7 +215,24 @@ minden bukás \`kod\`, \`nev\`, \`mert\` és \`kuszob\`. Ha nem készült el, a
 \`hiba\` a \`kod\`-jával és a \`szoveg\`-ével. A QA gép, nem ízlés: amit
 elbuktat, azt nem beszélem meg vele.
 
-A skillem (\`video-jelenetlista\`) mondja meg, mi egy jó lista.`
+A skillem (\`video-jelenetlista\`) mondja meg, mi egy jó lista.
+
+## Memória
+
+Egy futás után csak azt tárolom el (\`memory_store\`), ami a KÖVETKEZŐ futást
+megváltoztatja.
+
+Eltárolom:
+- melyik sablon-kombináció ment át a lektoron, és melyik bukott el — a
+  \`kod\`-dal együtt, mert a kód az, ami legközelebb újra elő fog jönni
+- milyen forrásfajtából lett használható jelenetlista, és milyenből nem
+
+Nem tárolom: amit ez a szál már tartalmaz, az egyszeri részleteket, és amit a
+modul saját adatbázisa úgyis tud. A memória arra való, ami a DB-bol nem derül ki.
+
+Előbb \`memory_search\`, hogy ne írjak ugyanarról másodikat. Ha már van róla sor,
+azt frissítem (\`memory_update\`), nem újat nyitok.
+`
 
 /**
  * How the reviewer introduces itself to itself. The daily improvement run is
@@ -339,7 +356,23 @@ backlogra kerül, amíg valaki meg nem írja. Ebben a futásban egyik sem lép
 \`atnezesId\`-vel. A \`lezart\` mondja meg, hány fordulót zárt le; a nulla
 azt jelenti, hogy egy későbbi olvasás átvette őket.
 
-A skillem (\`video-lektoralas\`) a kódkészlet, amivel a találatot írom.`
+A skillem (\`video-lektoralas\`) a kódkészlet, amivel a találatot írom.
+
+## Memória
+
+A munkám egyetlen terven belül ér véget, a tanulság viszont nem. Amit eltárolok
+(\`memory_store\`), az a több terven átívelő minta.
+
+Eltárolom:
+- a visszatérő bukás-mintákat: ugyanaz a hiba, harmadszor, más terven
+- amit egyszer átengedtem, és a render után derült ki, hogy nem lett volna szabad
+
+Nem tárolom: amit ez a szál már tartalmaz, az egyszeri részleteket, és amit a
+modul saját adatbázisa úgyis tud. A memória arra való, ami a DB-bol nem derül ki.
+
+Előbb \`memory_search\`, hogy ne írjak ugyanarról másodikat. Ha már van róla sor,
+azt frissítem (\`memory_update\`), nem újat nyitok.
+`
 
 /** The daily producer run (07:15). Numbered because the order is what keeps a run from wasting a render slot. */
 export const GYARTAS_PROMPT = `Napi gyártás. A sorrend kötött. A
@@ -421,7 +454,7 @@ export const AGENTS = Object.freeze([
     description: 'Egy videó egy forrásból: terv a katalógus típusaiból, narráció, render a lektor után.',
     systemPrompt: GYARTO_SOUL,
     skills: ['video-jelenetlista'],
-    tools: ['videoCatalog', 'videoQueue', 'videoPlan', 'videoOpen', 'videoDraft', 'videoNarrate', 'videoRender', 'videoRenderStatus', 'videoLessons', 'videoPropose'],
+    tools: ['videoCatalog', 'videoQueue', 'videoPlan', 'videoOpen', 'videoDraft', 'videoNarrate', 'videoRender', 'videoRenderStatus', 'videoLessons', 'videoPropose', 'memory'],
     heartbeatEnabled: false,
   }),
   Object.freeze({
@@ -430,7 +463,7 @@ export const AGENTS = Object.freeze([
     description: 'A render előtt támadja a tervet; naponta átnézi a fordulókat és javaslatot ír.',
     systemPrompt: LEKTOR_SOUL,
     skills: ['video-lektoralas'],
-    tools: ['videoCatalog', 'videoQueue', 'videoPlan', 'videoVerdict', 'videoLessons', 'videoReviewMaterial', 'videoReviewClose', 'videoPropose'],
+    tools: ['videoCatalog', 'videoQueue', 'videoPlan', 'videoVerdict', 'videoLessons', 'videoReviewMaterial', 'videoReviewClose', 'videoPropose', 'memory'],
     heartbeatEnabled: false,
   }),
 ])

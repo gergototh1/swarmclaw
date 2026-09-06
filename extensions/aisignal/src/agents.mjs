@@ -390,6 +390,22 @@ jutottam". Ha bizonytalan vagyok, \`ok: false\` megy: abból egy fölösleges
 újraolvasás lesz, a másik irányból pedig egy örökre elveszett levél. És ha
 kifogyok az időből egy csonka lezárásra: **a kihagyott \`ok\` is
 \`false\`-nak számít**, tehát a hallgatás sem visz el levelet.
+
+
+## Memória
+
+A söprés eredménye a DB-be megy. A memóriába az megy, ami magát a söprést teszi
+jobbá (\`memory_store\`).
+
+Eltárolom:
+- mely hírlevelek adnak rendszeresen használható signalt, és melyek soha
+- amit az operátor kidobott vagy amire rákérdezett — ez mondja meg, mi számít
+
+Nem tárolom: amit ez a szál már tartalmaz, az egyszeri részleteket, és amit a
+modul saját adatbázisa úgyis tud. A memória arra való, ami a DB-bol nem derül ki.
+
+Előbb \`memory_search\`, hogy ne írjak ugyanarról másodikat. Ha már van róla sor,
+azt frissítem (\`memory_update\`), nem újat nyitok.
 `
 
 /**
@@ -672,6 +688,22 @@ látottnak jelöli, a gyengéket is, ami így helyes: azokról már van sorom. H
 bizonytalan vagyok, \`ok: false\` megy: abból egy fölösleges újranézés lesz, a
 másik irányból egy örökre elveszett megfigyelés. És ha a lezárásom csonka
 marad: **a kihagyott \`ok\` is \`false\`-nak számít**.
+
+
+## Memória
+
+A jelöltek a DB-be mennek. A memóriába az, amitől a következő kutatás rövidebb
+lesz (\`memory_store\`).
+
+Eltárolom:
+- mely keresési szögek hoztak találatot, és melyek futottak zsákutcába
+- források, amik ismételten használhatatlannak bizonyultak
+
+Nem tárolom: amit ez a szál már tartalmaz, az egyszeri részleteket, és amit a
+modul saját adatbázisa úgyis tud. A memória arra való, ami a DB-bol nem derül ki.
+
+Előbb \`memory_search\`, hogy ne írjak ugyanarról másodikat. Ha már van róla sor,
+azt frissítem (\`memory_update\`), nem újat nyitok.
 `
 
 /**
@@ -980,7 +1012,7 @@ export const AGENTS = Object.freeze([
     description: 'AI-hírlevelekből soronkénti signalok, két pontszámmal.',
     systemPrompt: SCOUT_SOUL,
     skills: ['ai-hirlevel-kinyeres'],
-    tools: ['signalSweep', 'recordSignal', 'finishSweep', 'web'],
+    tools: ['signalSweep', 'recordSignal', 'finishSweep', 'web', 'memory'],
     heartbeatEnabled: false,
   }),
   Object.freeze({
@@ -989,7 +1021,7 @@ export const AGENTS = Object.freeze([
     description: 'Nyílt webes kutatás a KKV-témákra, minden jelöltről sor.',
     systemPrompt: KUTATO_SOUL,
     skills: ['kkv-kutatas'],
-    tools: ['researchSweep', 'recordSignal', 'finishSweep', 'web'],
+    tools: ['researchSweep', 'recordSignal', 'finishSweep', 'web', 'memory'],
     heartbeatEnabled: false,
   }),
 ])

@@ -669,10 +669,35 @@ function normalizeStoredRecordInner(
         agent.delegationTargetMode = 'all'
       }
     }
-    // Worker-only providers cannot be coordinators, delegate, or have heartbeats
+    // Worker-only providers cannot be coordinators or have heartbeats.
+    //
+    // FORK DIVERGENCE — do not "fix" this back. Upstream also forces
+    // `delegationEnabled = false` here. That rule's premise is that an agent on
+    // a CLI provider has no host tool loop and so has nothing to delegate WITH:
+    // the CLI runs its own loop and never receives the array
+    // `buildSessionTools()` assembles. On this fork that premise no longer
+    // holds. `src/lib/server/platform-mcp.ts` fronts the platform's own tools
+    // as an MCP server, which is the one layer a CLI speaks, so a CLI-provider
+    // agent can now reach `manage_tasks`, `manage_schedules` and
+    // `spawn_subagent` for real -- verified against a running host.
+    //
+    // The other two lines stay, and the reasons differ:
+    //   `role = 'worker'`      -- orchestrator mode is gated separately on the
+    //                             provider (NON_ORCHESTRATOR_PROVIDERS) and is
+    //                             not what the delegation fix is for.
+    //   `heartbeatEnabled`     -- this is the expensive one. A CLI provider
+    //                             spends a subscription rather than an API key,
+    //                             and autonomous wakes across a fleet of them
+    //                             is not something to switch on as a side
+    //                             effect of allowing delegation. Schedules
+    //                             already drive this install.
+    //
+    // Re-apply this after any upstream merge that touches the block; a merge
+    // that silently restores the line takes agent-to-agent delegation away
+    // again, and nothing fails loudly when it does. See the test beside this
+    // file, and "The Three Capability Layers" in CLAUDE.md.
     if (WORKER_ONLY_PROVIDER_IDS.has(agent.provider as string)) {
       agent.role = 'worker'
-      agent.delegationEnabled = false
       agent.heartbeatEnabled = false
     }
     // Dreaming defaults

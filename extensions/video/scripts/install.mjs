@@ -61,13 +61,19 @@ const extDir = path.join(dataDir, 'extensions')
 const wsDir = path.join(extDir, '.workspaces', 'video_mjs')
 
 fs.mkdirSync(wsDir, { recursive: true })
-for (const d of ['src', 'dist']) {
+// `mcp/` is the MCP server's own tree, which the host does not load: the
+// operator points an MCP Servers entry at the copy in the workspace, and the
+// shim there runs from it. It has to live here rather than in the repo
+// checkout so that it survives a rebuild of the tree it was installed from.
+const copied = []
+for (const d of ['src', 'dist', 'mcp']) {
   const src = path.join(root, d)
   if (!fs.existsSync(src)) continue
   // Replace rather than merge: cpSync leaves a file that was renamed or deleted
   // in the repo sitting in the workspace, where it keeps being imported.
   fs.rmSync(path.join(wsDir, d), { recursive: true, force: true })
   fs.cpSync(src, path.join(wsDir, d), { recursive: true })
+  copied.push(d)
 }
 fs.copyFileSync(path.join(root, 'index.mjs'), path.join(wsDir, 'index.js'))
 fs.copyFileSync(path.join(root, 'package.json'), path.join(wsDir, 'package.json'))
@@ -277,4 +283,29 @@ Eltávolítás (Extensions → törlés). Előtte, a lap „Uninstall előtt” 
   ütemezést tényleg törli. A letiltás nem törli őket, ott a scheduler kihagyása a
   védelem.
 `)
+}
+
+// The host does not register MCP servers on an extension's behalf. Two of the
+// fields below are machine-specific and a wrong one fails silently, so they are
+// printed rather than left to be worked out: the shim must run from the
+// WORKSPACE copy, and SWARMCLAW_PORT_FILE is how it finds a host whose port
+// changes every launch.
+//
+// ONE ENTRY, NOT ONE PER AGENT, and no agent id pinned in the env. The host
+// stamps the caller into the shim's env on every turn
+// (addAssignedMcpServers, src/lib/providers/claude-cli.ts), which is what keeps
+// `videoVerdict`'s reviewer gate meaningful through MCP: the protocol carries
+// no caller identity, and an id written here would be an agent naming itself --
+// exactly what spec 3.3 refuses. Assign this one entry to BOTH the producer and
+// the reviewer; they stay distinguishable because the host says who they are.
+if (copied.includes('mcp')) {
+  const entry = {
+    name: 'Videó MCP',
+    transport: 'stdio',
+    command: process.execPath,
+    args: [path.join(wsDir, 'mcp', 'server.mjs')],
+    env: { SWARMCLAW_PORT_FILE: path.join(home, 'run', 'port.json'), SWARMCLAW_ACCESS_KEY: '<a host .env.local ACCESS_KEY értéke>' },
+  }
+  console.log('\nMCP-bejegyzés (Settings → MCP Servers), majd rendeld hozzá a Gyártóhoz ÉS a Lektorhoz:')
+  console.log(JSON.stringify(entry, null, 2))
 }

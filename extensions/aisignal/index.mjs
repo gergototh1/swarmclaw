@@ -3,6 +3,7 @@ import { SIGNALS_CONTRACT, createSignalsContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { MAILBOX_CONTRACT, MAILBOX_PROVIDER, MAILBOX_VERSION } from './src/mailbox.mjs'
 import { createResearchTool } from './src/research.mjs'
+import { createMcpBridge } from './src/mcp-bridge.mjs'
 import { createRpc } from './src/rpc.mjs'
 import { createSweepTools } from './src/sweep.mjs'
 
@@ -100,7 +101,7 @@ const aisignal = {
    * resolves, which is a question about this install's wiring and one this
    * extension really can answer -- see `mailboxHealth` there.
    */
-  rpc: createRpc(state),
+  rpc: { ...createRpc(state), ...createMcpBridge(() => aisignal.tools) },
   /**
    * What *another* extension may call, once it has named this contract in its
    * own `consumes` and an operator has left it installed.
