@@ -194,7 +194,13 @@ const video = {
       // to make videos from, and an empty list is a NAMED refusal from the
       // button (`youtube_nincs_csatorna`) rather than a silent zero.
       { key: 'youtubeCsatornak', label: 'YouTube-csatornák', type: 'text', placeholder: '@lexfridman, https://www.youtube.com/@masik', help: 'Vesszővel elválasztva: csatorna-URL-ek vagy @handle-ök. Ezekből listáz ötleteket a Sor nézet gombja. Egy @handle-t a modul minden gombnyomáskor yt-dlp-vel old fel csatorna-azonosítóvá — ha a csatorna https://www.youtube.com/channel/UC… alakját írod be (vagy csak a UC…-azonosítót), ez a lépés elmarad, és a gomb feleannyi ideig tart.' },
-      { key: 'ytDlpUtvonal', label: 'yt-dlp útvonala', type: 'text', defaultValue: '/Users/tothgergo/DEV/gergototh.co/apps/yt-dlp/bin/yt-dlp', help: 'A bináris teljes útvonala. Nem a hoston feloldott eszközök egyike, ezért teljes út és nem puszta név.' },
+      // NO `defaultValue` HERE EITHER, and for a sharper reason than the
+      // channel list's. This carried one maintainer's home directory, so every
+      // other install -- the Electron desktop app included -- shipped with a
+      // path that names nothing, looked filled in, and failed on the first
+      // press. The module's own fallback is the bare name (`YT_DLP_ALAP`), and
+      // a miss is a named refusal that says which field to fill in.
+      { key: 'ytDlpUtvonal', label: 'yt-dlp útvonala', type: 'text', placeholder: '/opt/homebrew/bin/yt-dlp', help: 'A bináris teljes útvonala. Nem a hoston feloldott eszközök egyike: üresen hagyva a modul a puszta `yt-dlp` névvel indítja, ami csak akkor működik, ha a host PATH-ján rajta van. A `which yt-dlp` megmondja a teljes utat.' },
     ],
   },
   /**

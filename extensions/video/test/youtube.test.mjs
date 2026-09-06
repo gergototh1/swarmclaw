@@ -127,6 +127,13 @@ test('an empty channel list is a named refusal, never an empty result', () => {
 })
 
 test('the yt-dlp path falls back to the module own default when the operator cleared the field', () => {
+  // THE DEFAULT IS A BARE NAME, NOT SOMEBODY'S HOME DIRECTORY. It used to be an
+  // absolute path under one maintainer's `~`, so on every other machine -- and
+  // this repo ships inside the desktop app -- the button failed on the first
+  // press over a setting that looked filled in. A miss is already a named
+  // refusal naming the setting, so guessing wrong costs one sentence.
+  assert.equal(YT_DLP_ALAP, 'yt-dlp')
+  assert.equal(YT_DLP_ALAP.includes('/'), false, 'a shipped default may not name a path that exists on one machine')
   assert.equal(ytDlpUtvonalOf(settings('@a')), YT_DLP_ALAP)
   assert.equal(ytDlpUtvonalOf(settings('@a', { ytDlpUtvonal: '' })), YT_DLP_ALAP)
   assert.equal(ytDlpUtvonalOf(settings('@a', { ytDlpUtvonal: '  ' })), YT_DLP_ALAP)
@@ -155,6 +162,30 @@ test('feedJeloltek reads one entry and builds the watch url from a checked id', 
     feltoltve: '2026-08-26T21:44:41.000Z',
     nezettseg: 1359950,
   }])
+})
+
+test('an entry tag with a namespace prefix or an attribute is still an entry', () => {
+  // THE WORST DIRECTION THERE IS. A literal '<entry>' split misses
+  // `<atom:entry>` and `<entry xml:lang="hu">` while the namespace uri keeps
+  // `atom` true, so `blokkok` came back 0 and `fetchYoutube` filed the channel
+  // as csatorna_nincs_feltoltes: a drifted feed shown to the operator as a
+  // channel that is fine and has simply published nothing. Narrowing the
+  // pattern back to seven bytes fails here.
+  for (const nyit of ['<atom:entry>', '<entry xml:lang="hu">', '<atom:entry xml:lang="hu">']) {
+    const zar = nyit.startsWith('<atom:') ? '</atom:entry>' : '</entry>'
+    const xml = feed([entry({ kiadva: '2026-08-26T21:44:41+00:00' })]).replace('<entry>', nyit).replace('</entry>', zar)
+    const { jeloltek, blokkok, atom } = feedJeloltek(xml)
+    assert.equal(atom, true, nyit)
+    assert.equal(blokkok, 1, nyit)
+    assert.deepEqual(jeloltek.map((j) => j.id), ['NYFGCESmikA'], nyit)
+  }
+})
+
+test('a tag that merely starts with the word entry is not an entry', () => {
+  // The pattern requires a delimiter after the name, so a document carrying
+  // <entryPoint> does not turn into a feed with one unreadable entry.
+  const { blokkok } = feedJeloltek('<feed xmlns="http://www.w3.org/2005/Atom"><entryPoint>x</entryPoint></feed>')
+  assert.equal(blokkok, 0)
 })
 
 test('feedJeloltek reads the entry own title and date, never the channel own', () => {
@@ -390,9 +421,76 @@ test('the per-channel facts stay apart, and one bad channel does not take the ot
     // yt-dlp answered, just not with a channel id: a renamed handle or a url
     // that is not a channel. The feed url is never built out of `NA`.
     { csatorna: 'https://www.youtube.com/@c', ok: 'csatorna_azonosito_ismeretlen' },
-    { csatorna: 'https://www.youtube.com/@d', ok: 'csatorna_feed_nem_valaszolt' },
+    // 404: there is nothing at that feed url, and "próbáld meg újra" would be
+    // the one piece of advice that cannot help.
+    { csatorna: 'https://www.youtube.com/@d', ok: 'csatorna_feed_nincs_meg' },
     { csatorna: 'https://www.youtube.com/@e', ok: 'csatorna_feed_idotullepes' },
   ])
+})
+
+test('a refused feed says WHICH refusal, because the operator does three different things', async () => {
+  // `res.status` used to be read only as a shape guard, so every non-2xx came
+  // back as "the feed did not answer; próbáld meg újra". A 404 says the feed is
+  // gone and retrying is exactly what will not help; a 429 says come back
+  // later and retrying is the whole fix; a 403 is neither, and the operator
+  // has to go and look. Folding `feedStatuszKod` back to one code fails here.
+  const yt = ytdlp(Object.fromEntries(['a', 'b', 'c', 'd', 'e'].map((h) => [`https://www.youtube.com/@${h}/videos`, `UC${h.repeat(21)}`])))
+  const net = halo({
+    [FEED_URL('UC' + 'a'.repeat(21))]: 404,
+    [FEED_URL('UC' + 'b'.repeat(21))]: 410,
+    [FEED_URL('UC' + 'c'.repeat(21))]: 429,
+    [FEED_URL('UC' + 'd'.repeat(21))]: 503,
+    [FEED_URL('UC' + 'e'.repeat(21))]: 403,
+  })
+  const r = await fetchYoutube({
+    csatornak: ['a', 'b', 'c', 'd', 'e'].map((h) => `https://www.youtube.com/@${h}`),
+    napok: 30, ytDlp: '/y', execFileImpl: yt.impl, fetchImpl: net.impl,
+  })
+  assert.deepEqual(r.csatornaHibak.map((h) => h.ok), [
+    'csatorna_feed_nincs_meg', 'csatorna_feed_nincs_meg',
+    'csatorna_feed_kesobb', 'csatorna_feed_kesobb',
+    'csatorna_feed_elutasitva',
+  ])
+})
+
+test('a binary that cannot be started is a fact about the machine, not about N channels', async () => {
+  // EACCES (there, not executable) and EISDIR (the setting points at a folder)
+  // fail identically for every channel in the list. Filed per-channel they sent
+  // the operator to fix channel urls that are all fine; the reasoning is
+  // ENOENT's, verbatim. The code differs from ENOENT's because the move does:
+  // chmod, or point the setting at the binary rather than its folder.
+  for (const [code, syscall] of [['EACCES', 'spawn'], ['EISDIR', 'spawn']]) {
+    const yt = ytdlp({
+      'https://www.youtube.com/@a/videos': () => Object.assign(new Error('spawn failed'), { code, syscall }),
+      'https://www.youtube.com/@b/videos': 'UCSHZKyawb77ixDdsGog4iWA',
+    })
+    const net = halo({})
+    await assert.rejects(
+      fetchYoutube({ csatornak: ['https://www.youtube.com/@a', 'https://www.youtube.com/@b'], napok: 30, ytDlp: '/nem/futtathato', execFileImpl: yt.impl, fetchImpl: net.impl }),
+      (err) => {
+        assert.ok(err instanceof VideoError)
+        assert.equal(err.code, 'ytdlp_nem_futtathato', code)
+        assert.ok(err.message.includes('ytDlpUtvonal'), 'the refusal names the setting the operator has to fix')
+        assert.equal(err.message.includes('/nem/futtathato'), false, 'a refusal never repeats a value the operator stored')
+        return true
+      },
+    )
+    assert.equal(yt.hivasok.length, 1, 'an unusable binary will be just as unusable for the second channel')
+  }
+})
+
+test('a child cut off for writing too much is not reported as a timeout', async () => {
+  // Node sets `killed: true` on a maxBuffer overflow exactly as it does on the
+  // timeout, so the timeout test claimed it and the channel came back as
+  // csatorna_idotullepes -- "try again" over a fact that repeats every press.
+  // Node's own code is the discriminator, and it is read first.
+  const tulHosszu = () => Object.assign(new Error('stdout maxBuffer length exceeded'), {
+    code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER', killed: true, signal: 'SIGTERM',
+  })
+  const yt = ytdlp({ 'https://www.youtube.com/@a/videos': tulHosszu })
+  const net = halo({})
+  const r = await fetchYoutube({ csatornak: ['https://www.youtube.com/@a'], napok: 30, ytDlp: '/y', execFileImpl: yt.impl, fetchImpl: net.impl })
+  assert.deepEqual(r.csatornaHibak, [{ csatorna: 'https://www.youtube.com/@a', ok: 'csatorna_valasz_tul_hosszu' }])
 })
 
 test('a feed answering with something that is not a response is not read as an empty channel', async () => {

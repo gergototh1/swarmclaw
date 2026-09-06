@@ -80,12 +80,23 @@ import { MAX_CIM } from './terv.mjs'
  */
 
 /**
- * The binary the operator's machine has. It is a full path rather than a bare
- * name because yt-dlp is not one of the tools the host resolves for this
- * module (src/binaries.mjs is for ffmpeg, ffprobe, node and npx), and a bare
- * `yt-dlp` would depend on whatever PATH the host process happened to inherit.
+ * What the module runs when the operator has not named a path.
+ *
+ * THE BARE NAME, AND A MAINTAINER'S HOME DIRECTORY IS NOT A DEFAULT. This was
+ * an absolute path under one developer's `~`, duplicated as the manifest's
+ * `defaultValue`, so on every other machine -- and this repo ships inside the
+ * Electron desktop app -- the button failed `ytdlp_hianyzik` on the first
+ * press, over a setting that looked filled in.
+ *
+ * A bare name does depend on the PATH the host process inherited, which is the
+ * reason the full path was written in the first place, and that reason is
+ * weaker than it looks: a miss is already a NAMED refusal that says which
+ * setting to fill in, so the cost of guessing wrong is one sentence, while the
+ * cost of guessing another machine's filesystem is a button that cannot work
+ * anywhere. `ytDlpUtvonal` stays the answer for a host with a narrow PATH, and
+ * its help text says so.
  */
-export const YT_DLP_ALAP = '/Users/tothgergo/DEV/gergototh.co/apps/yt-dlp/bin/yt-dlp'
+export const YT_DLP_ALAP = 'yt-dlp'
 
 /**
  * Candidates one channel may contribute. The feed carries about fifteen
@@ -236,6 +247,10 @@ function nezettsegOf(entry) {
   return m === null ? null : Number(m[1])
 }
 
+/** One entry's opening and closing tag, with an optional namespace prefix. See `feedJeloltek` below for why this is a pattern and not seven bytes. */
+const ENTRY_NYIT = /<(?:[A-Za-z_][\w.-]*:)?entry[\s>]/
+const ENTRY_ZAR = /<\/(?:[A-Za-z_][\w.-]*:)?entry\s*>/
+
 /**
  * The feed's entries as candidates, plus how many it would not take.
  *
@@ -256,9 +271,8 @@ function nezettsegOf(entry) {
  * they let the caller tell four states apart that all yield no candidate:
  *
  *   atom false                 the body was never an Atom document -- a
- *                              consent interstitial, a rate-limit page, an
- *                              error page served with HTTP 200, or a drift in
- *                              the tag this reader splits on
+ *                              consent interstitial, a rate-limit page, or an
+ *                              error page served with HTTP 200
  *   atom, blokkok 0            a REAL feed carrying no entry: a channel with
  *                              no public uploads at all
  *   atom, blokkok > 0, none
@@ -275,15 +289,30 @@ function nezettsegOf(entry) {
  * an opening `<feed` tag, or the Atom namespace uri. Either alone is enough:
  * requiring both would fail a feed whose namespaces are arranged differently,
  * and neither appears in the error pages this is meant to catch.
+ *
+ * THE ENTRY TAG IS MATCHED AS A TAG, NOT AS SEVEN BYTES, and this is the one
+ * place the two observations could contradict each other. A literal
+ * `'<entry>'` split misses `<atom:entry>` and `<entry xml:lang="hu">` -- both
+ * of which still carry the namespace uri, so `atom` stays true, `blokkok`
+ * comes back 0, and the caller files the channel as
+ * `csatorna_nincs_feltoltes`: a drifted feed reported to the operator as a
+ * channel that is perfectly fine and has simply published nothing. That is the
+ * "two facts, one code, and the sentence is false about one" defect this file
+ * spends sixty lines policing, failing in the worst direction there is. The
+ * pattern therefore allows an optional namespace prefix and requires a
+ * delimiter after the name, so `<entryPoint>` is not an entry. A prefixed
+ * OPENING tag implies a prefixed closing one, so the split below matches the
+ * same way. An entry whose FIELDS then drift out of shape is a different fact
+ * and lands where it belongs: state 3, `csatorna_feed_ertelmezhetetlen`.
  */
 export function feedJeloltek(xml) {
   const jeloltek = []
   let eldobott = 0
   const szoveg = typeof xml === 'string' ? xml : ''
   const atom = /<feed[\s>]/.test(szoveg) || szoveg.includes('http://www.w3.org/2005/Atom')
-  const blokkok = szoveg.split('<entry>').slice(1)
+  const blokkok = szoveg.split(ENTRY_NYIT).slice(1)
   for (const darab of blokkok) {
-    const entry = darab.split('</entry>')[0]
+    const entry = darab.split(ENTRY_ZAR)[0]
     const id = mezo(entry, 'yt:videoId')
     // THE TITLE IS BOUNDED HERE, WHERE IT IS READ, AND NOT AT THE CALLER.
     // `mezo` matches `[^<]*`, so the only thing standing between a channel's
@@ -337,6 +366,22 @@ function hataridoVolt(e) {
  * can contain a response body on some transports, and "this channel's feed
  * did not answer" is the whole of what the operator can act on.
  *
+ * A NON-2xx IS NOT ONE FACT, AND `res.status` USED TO BE READ ONLY AS A SHAPE
+ * GUARD. Every status that was not ok came back as `csatorna_feed_nem_valaszolt`
+ * -- "próbáld meg újra" -- which is false advice for half of them. A 404 or a
+ * 410 says the feed is not there: retrying is exactly what will not help, and
+ * the channel id in the setting is what wants looking at. A 429 or a 5xx says
+ * YouTube declined for now, and retrying is the whole of the fix. Anything else
+ * refused (a 403, say) is neither: nothing here can tell the operator what it
+ * is, so the sentence sends them to look. Three moves, three codes.
+ *
+ * WHAT STAYS FOLDED, AND IT IS A DECISION. A transport rejection and a
+ * response object this module cannot read (no numeric `status`, no `text`)
+ * share `csatorna_feed_nem_valaszolt`, because in both cases no answer this
+ * module could read arrived and the move is the same: press again, and report
+ * it if it repeats. Splitting them would name a difference the operator cannot
+ * act on.
+ *
  * A reply this call will not read is aborted rather than left open: on a real
  * fetch an uncollected body holds its connection.
  *
@@ -350,6 +395,13 @@ function hataridoVolt(e) {
  * real fetch takes -- the test doubles here answer with `text()` -- would be
  * a branch no test covers guarding the case that matters most.
  */
+/** Which of the three refusals a refused status is. See `feedSzoveg` for why it is three. */
+function feedStatuszKod(status) {
+  if (status === 404 || status === 410) return 'csatorna_feed_nincs_meg'
+  if (status === 429 || status >= 500) return 'csatorna_feed_kesobb'
+  return 'csatorna_feed_elutasitva'
+}
+
 async function feedSzoveg({ url, fetchImpl }) {
   const hatarido = new AbortController()
   const timer = setTimeout(() => hatarido.abort(), FEED_TIMEOUT_MS)
@@ -363,7 +415,7 @@ async function feedSzoveg({ url, fetchImpl }) {
     if (!res || typeof res.status !== 'number' || typeof res.text !== 'function') return { ok: false, kod: 'csatorna_feed_nem_valaszolt' }
     if (!res.ok) {
       hatarido.abort()
-      return { ok: false, kod: 'csatorna_feed_nem_valaszolt' }
+      return { ok: false, kod: feedStatuszKod(res.status) }
     }
     const jelzettHossz = Number(typeof res.headers?.get === 'function' ? res.headers.get('content-length') : null)
     if (Number.isFinite(jelzettHossz) && jelzettHossz > MAX_FEED_BYTE) {
@@ -395,9 +447,15 @@ async function feedSzoveg({ url, fetchImpl }) {
  * and `--no-update` because without it the binary prints a three-line version
  * warning on every run.
  *
- * ENOENT IS NOT ONE OF THE ANSWERS HERE. A binary that is not on the given
- * path is a fact about the machine rather than about this channel, and it
- * propagates as the refusal of the whole source that it is.
+ * THREE ERRNOS ARE NOT ONE OF THE ANSWERS HERE. A binary that is not on the
+ * given path (`ENOENT`), one that is there and not executable (`EACCES`), and
+ * a path that names a directory (`EISDIR`) are all facts about the MACHINE
+ * rather than about this channel: the same file is equally unusable for every
+ * channel in the list, so filing them per-channel would send the operator to
+ * fix N channel urls that are all fine. They propagate as the refusal of the
+ * whole source that they are. `ENOENT` and the other two get different codes,
+ * because the move differs -- fill the path in, versus `chmod +x` or point the
+ * setting at the binary instead of its folder.
  */
 async function csatornaId({ csatorna, ytDlp, execFileImpl }) {
   // The operator wrote the id, so there is nothing to resolve and no process
@@ -412,11 +470,18 @@ async function csatornaId({ csatorna, ytDlp, execFileImpl }) {
       { timeout: RESOLVE_TIMEOUT_MS, maxBuffer: MAX_BUFFER, windowsHide: true },
     ))
   } catch (err) {
-    // The message names the setting, never the path it was given: the rpc
+    // The messages name the setting, never the path they were given: the rpc
     // route logs a refusal's message, and the path is a value the operator
     // stored (the rule src/args.mjs states).
-    if (err && typeof err === 'object' && err.code === 'ENOENT') refuse('ytdlp_hianyzik', 'a beállított útvonalon nincs futtatható yt-dlp: a modul beállításai közt az ytDlpUtvonal mezőt állítsd a bináris teljes útvonalára')
     const e = err && typeof err === 'object' ? err : {}
+    if (e.code === 'ENOENT') refuse('ytdlp_hianyzik', 'a beállított útvonalon nincs futtatható yt-dlp: a modul beállításai közt az ytDlpUtvonal mezőt állítsd a bináris teljes útvonalára')
+    if (e.code === 'EACCES' || e.code === 'EISDIR') refuse('ytdlp_nem_futtathato', 'a beállított útvonalon van valami, de a modul nem tudja elindítani: vagy nincs rajta futtatási jog (chmod +x), vagy az ytDlpUtvonal egy mappára mutat a bináris helyett')
+    // MAXBUFFER FIRST, BECAUSE NODE SETS `killed: true` ON IT TOO. A child cut
+    // off for writing more than `maxBuffer` is killed exactly the way a child
+    // cut off by the timeout is, so the timeout test below claims it, and the
+    // operator is told to try again over a fact that will repeat every time.
+    // Node's own name for it is the discriminator.
+    if (e.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') return { ok: false, kod: 'csatorna_valasz_tul_hosszu' }
     return { ok: false, kod: e.killed === true || e.signal === 'SIGTERM' ? 'csatorna_idotullepes' : 'csatorna_nem_valaszolt' }
   }
   const id = String(stdout).split('\n').map((s) => s.trim()).find((s) => s !== '') || ''
@@ -431,24 +496,39 @@ async function csatornaId({ csatorna, ytDlp, execFileImpl }) {
  * The channels' recent uploads as candidates, plus what was dropped and what
  * each channel had to say for itself.
  *
- * ONE FAILURE IS ABOUT THE MACHINE AND ENDS THE PRESS: the binary is not on
- * the configured path (`ENOENT`). Nothing about the remaining channels can be
- * learnt, because the same missing file would be missing for each of them, so
- * the whole source is refused BY NAME (`ytdlp_hianyzik`) on the first channel
- * that needs it. The operator's fix is a setting.
+ * TWO FAILURES ARE ABOUT THE MACHINE AND END THE PRESS: there is no binary at
+ * the configured path (`ENOENT` -> `ytdlp_hianyzik`), or there is one and it
+ * cannot be started (`EACCES`, `EISDIR` -> `ytdlp_nem_futtathato`). Nothing
+ * about the remaining channels can be learnt, because the same file would be
+ * equally unusable for each of them, so the whole source is refused BY NAME on
+ * the first channel that needs it. The operator's fix is a setting or a
+ * permission bit, never a channel url.
  *
  * EVERY OTHER FACT IS ABOUT ONE CHANNEL and lands in `csatornaHibak`, which
- * is a per-channel report and not only a failure list. Eight codes, because
- * eight different things happen and the operator does something different
- * about each:
+ * is a per-channel report and not only a failure list. One code per thing that
+ * happens, because the operator does something different about each:
  *
  *   csatorna_nem_valaszolt          yt-dlp could not read the channel page
  *   csatorna_idotullepes            ...and did not finish in time
+ *   csatorna_valasz_tul_hosszu      ...and was cut off for writing more than
+ *                                   `maxBuffer`. Node kills that child exactly
+ *                                   as it kills a timed-out one, so without
+ *                                   its own code it read as a timeout and the
+ *                                   operator was told to retry a fact that
+ *                                   repeats every press
  *   csatorna_azonosito_ismeretlen   it answered, but not with a channel id --
  *                                   a renamed handle, a deleted channel, a
  *                                   url that is not a channel at all
- *   csatorna_feed_nem_valaszolt     the id resolved; the feed did not answer
+ *   csatorna_feed_nem_valaszolt     the id resolved; no answer this module
+ *                                   could read came back at all
  *   csatorna_feed_idotullepes       ...within the deadline
+ *   csatorna_feed_nincs_meg         the feed url answered 404 or 410: there is
+ *                                   nothing at it, and retrying will not
+ *                                   change that
+ *   csatorna_feed_kesobb            it answered 429 or 5xx: declined for now,
+ *                                   and the whole fix is to press again later
+ *   csatorna_feed_elutasitva        it refused with some other status, which
+ *                                   this module cannot interpret for anybody
  *   csatorna_feed_tul_nagy          it answered with more than this module
  *                                   will read, and a cut feed is a different
  *                                   feed

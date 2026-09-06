@@ -236,7 +236,7 @@ const RENDBEN_VAN = [NINCS_FRISS, NINCS_FELTOLTES]
  * The code alone satisfies "say which channel and why" and stops one step
  * short of useful: `csatorna_azonosito_ismeretlen` is precise, quotable, and
  * tells somebody who has not read src/youtube.mjs nothing about whether to
- * fix a url, wait, or go and look at the channel. The two whole-source
+ * fix a url, wait, or go and look at the channel. The three whole-source
  * refusals each carry a sentence saying where to go, and these are the same
  * kind of thing at a smaller scale.
  *
@@ -251,8 +251,12 @@ const RENDBEN_VAN = [NINCS_FRISS, NINCS_FELTOLTES]
 const CSATORNA_TEENDO: Record<string, string> = {
   csatorna_nem_valaszolt: 'a csatorna oldalát nem sikerült beolvasni; ellenőrizd az URL-t a beállításokban',
   csatorna_idotullepes: 'a csatorna oldala nem válaszolt időben; próbáld meg újra',
+  csatorna_valasz_tul_hosszu: 'a yt-dlp többet írt ki, mint amennyit a modul beolvas; ez minden gombnyomáskor megismétlődik, szólj az operátornak',
   csatorna_azonosito_ismeretlen: 'a válaszban nem volt csatorna-azonosító: átnevezhették a handle-t, vagy megszűnt a csatorna',
-  csatorna_feed_nem_valaszolt: 'a csatornát megtaláltuk, de a feedje nem válaszolt; próbáld meg újra',
+  csatorna_feed_nem_valaszolt: 'a csatornát megtaláltuk, de a feedjéből nem jött olvasható válasz; próbáld meg újra',
+  csatorna_feed_nincs_meg: 'a csatorna feedje nincs meg (404/410): az újrapróbálkozás nem segít, ellenőrizd a csatorna URL-jét a beállításokban',
+  csatorna_feed_kesobb: 'a YouTube most nem adta ki a feedet (429 vagy szerverhiba); várj egy kicsit, és nyomd meg újra',
+  csatorna_feed_elutasitva: 'a feed más okból utasította el a kérést; nyisd meg a csatorna feedjét böngészőben, és nézd meg, mit ad',
   csatorna_feed_idotullepes: 'a csatorna feedje nem válaszolt időben; próbáld meg újra',
   csatorna_feed_tul_nagy: 'a csatorna feedje nagyobb, mint amit a modul beolvas; a modul inkább nem vett át belőle semmit, mint hogy csonkán olvassa',
   csatorna_feed_ertelmezhetetlen: 'a csatorna válaszolt, de a modul egyetlen bejegyzést sem tudott kiolvasni belőle — vagy nem feed jött (beleegyezés-kérő vagy hibaoldal), vagy megváltozott a feed alakja; nyisd meg a csatornát böngészőben',
@@ -357,7 +361,9 @@ function YoutubeOtletek({ rpc, onNyitva }: { rpc: Rpc; onNyitva: () => void }) {
             ? 'Előbb írj csatornákat a modul beállításai közé, a YouTube-csatornák mezőbe.'
             : kod === 'ytdlp_hianyzik'
               ? 'A beállított útvonalon nincs futtatható bináris; a modul beállításai közt az yt-dlp útvonala mezőt javítsd.'
-              : null
+              : kod === 'ytdlp_nem_futtathato'
+                ? 'A megadott helyen van valami, de nem indítható: adj rá futtatási jogot (chmod +x), vagy az yt-dlp útvonala mezőt állítsd magára a binárisra, ne a mappájára.'
+                : null
           setMondatok(hol === null ? [hiba] : [hiba, hol])
           return
         }
