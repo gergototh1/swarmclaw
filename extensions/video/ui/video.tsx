@@ -5,8 +5,9 @@ import type { RenderRow, Rpc, Terv, VideoDetail } from './api'
 import { errorText, readVideo, refusalText } from './api'
 import { forrasUrl, formatDate, formatMs, jelenetTipus, mertSzoveg, propokSzoveg, renderStatusLabel, statusLabel } from './format'
 import { Idovonal, type Pont } from './idovonal'
+import { Lepes } from './lepes'
 import type { HostFetch, Megrendeles } from './megrendeles'
-import { rendelj } from './megrendeles'
+import { HOST_FETCH, rendelj } from './megrendeles'
 import { safeHref } from './safe-href'
 
 /**
@@ -26,8 +27,26 @@ import { safeHref } from './safe-href'
  * those two do not DO anything -- they ORDER, through `megrendeles.ts`, and
  * what comes back is that an agent turn is on the queue. That turn costs money
  * and runs for minutes, which is why both say so beside the button while it
- * can still be pressed, and why neither is one click away from being fired
- * twice: an ordered turn darkens its own lever until the operator looks again.
+ * can still be pressed.
+ *
+ * WHAT THE DOUBLE-ORDER GUARD ACTUALLY COVERS, SAID EXACTLY. An ordered turn
+ * darkens its own lever, and only Frissítés takes it back: WITHIN ONE MOUNT of
+ * this view, the operator cannot buy the same turn twice by clicking twice.
+ * That is the whole of it. `RendelesAllapot` is component state and nothing
+ * else -- no row records that a turn was ordered, and nothing on the page
+ * asks -- so leaving the video and opening it again mounts a view whose two
+ * levers are live, while the turn ordered from the previous mount may still be
+ * running. The operator can buy a second one that way, and there is nothing on
+ * this screen that would tell them they had.
+ *
+ * IT IS ACCEPTED, NOT OVERLOOKED. Closing the hole means the page learning
+ * that a turn is out, which means the page watching the turn -- a poller, a
+ * stream reader, or a stored order row and a round trip to read it -- and the
+ * paragraph below is the reason this view has none of those. What used to
+ * stand here was one clause claiming neither lever is one click away from
+ * being fired twice, full stop; it was true of the mount and read as a promise
+ * about the video, and a reader trusting it would go looking for the state
+ * that keeps it.
  *
  * THE PAGE DOES NOT WATCH THE TURN. It does not read the answer stream, does
  * not poll and does not abort -- an abort would cut the turn it just paid for.
@@ -294,14 +313,33 @@ function lektorKeresTiltasOka(terv: Terv | undefined, lezart: boolean, allapot: 
 /**
  * The Terv section's header line while an ordered turn is out, or undefined.
  *
- * Built from a list and filtered, the way `metaSor` is, because the header has
- * to name WHICH turn is running: both levers live in this one section, and a
- * bare "a turn is running" over two buttons is a sentence the operator cannot
- * act on.
+ * Built from lists and filtered, the way `metaSor` is, because the header has
+ * to name WHICH lever it is talking about: both live in this one section, and
+ * a bare "a turn is running" over two buttons is a sentence the operator
+ * cannot act on.
+ *
+ * `kuldes` AND `fut` ARE TWO FACTS AND GET TWO CLAUSES. This line used to say
+ * "ügynök-forduló megrendelve" for both, which was false of exactly one of
+ * them and false at the worst moment: in `kuldes` the three host calls are
+ * still out, nothing has been ordered yet, and the lever standing beside this
+ * header says so in its own words ("A megrendelés elment a hosthoz, a válaszra
+ * várok."). A header claiming a turn was ordered while the button under it
+ * says the host has not answered is the one place on this page where the two
+ * states the whole ordering flow is built on were drawn as one.
+ *
+ * So: not-yet-answered orders in one clause, running turns in another, and
+ * both when both are true -- the plan can be out at the host while the review
+ * is already running.
  */
 function forduloJelzo(tervRendeles: RendelesAllapot, lektorRendeles: RendelesAllapot): string | undefined {
-  const futok = [tervRendeles !== null ? 'terv' : '', lektorRendeles !== null ? 'lektorálás' : ''].filter((r) => r !== '')
-  return futok.length === 0 ? undefined : `ügynök-forduló megrendelve: ${futok.join(', ')}`
+  const nevek = (allapot: RendelesAllapot) => [tervRendeles === allapot ? 'terv' : '', lektorRendeles === allapot ? 'lektorálás' : ''].filter((r) => r !== '')
+  const kuldes = nevek('kuldes')
+  const fut = nevek('fut')
+  const reszek = [
+    kuldes.length === 0 ? '' : `megrendelés kiküldve, a host válaszára várok: ${kuldes.join(', ')}`,
+    fut.length === 0 ? '' : `ügynök-forduló fut: ${fut.join(', ')}`,
+  ].filter((r) => r !== '')
+  return reszek.length === 0 ? undefined : reszek.join(' · ')
 }
 
 /**
@@ -395,26 +433,6 @@ function renderTiltasOka(terv: Terv | undefined, futoRender: RenderRow | null, l
   if (futoRender !== null) return `Ezen a videón már fut egy render (${futoRender.renderId}); a modul egyszerre egyet enged.`
   if (dolgozik) return 'A render indítása elment, a válaszra várok.'
   return null
-}
-
-/**
- * A lever and the one line beside it: when it is dark, why; when it is live
- * and it costs something, what.
- *
- * THE TWO ARE EXCLUSIVE ON PURPOSE. The price warns about a click, so it is
- * only worth printing while a click is possible; a dark button's own sentence
- * already says the turn is running and what it will take. Showing both would
- * put two lines of grey prose under every ordering lever, and the eye would
- * stop reading either.
- */
-function Lepes({ cimke, ok, figyelmeztetes, onKattint }: { cimke: string; ok: string | null; figyelmeztetes?: string; onKattint: () => void }) {
-  return (
-    <div className="vid-lepes">
-      <button type="button" className="vid-btn" disabled={ok !== null} onClick={onKattint}>{cimke}</button>
-      {ok !== null && <span className="vid-muted vid-lepes-ok">{ok}</span>}
-      {ok === null && figyelmeztetes !== undefined && <span className="vid-lepes-ar">{figyelmeztetes}</span>}
-    </div>
-  )
 }
 
 /**
@@ -613,14 +631,17 @@ export function VideoBody({ video, onPick, pont, szoveg, kuldes, onSzoveg, onAtM
 }
 
 /**
- * The host's own fetch, at module scope so its identity is stable across
- * renders: it is a `useCallback` dependency below, and a new function every
- * render would rebuild the two ordering handlers every render. Wrapped rather
- * than passed bare because an unbound `fetch` is an illegal invocation in a
- * browser -- the same wrapping `main.tsx` does for `loadManagedStatus`.
+ * `hostFetch` defaults to `HOST_FETCH`, which is `megrendeles.ts`'s own
+ * module-scope wrapper around the global -- imported rather than written
+ * again here, and it is now the module's ONE default. It has to be at module
+ * scope somewhere because it is a `useCallback` dependency below and a new
+ * function every render would rebuild both ordering handlers every render;
+ * and it has to be wrapped rather than passed bare because an unbound `fetch`
+ * is an illegal invocation in a browser -- the same wrapping `main.tsx` does
+ * for `loadManagedStatus`. This prop is where the default is APPLIED: nothing
+ * calls `rendelj` without a fetch any more, which is why `rendelj` no longer
+ * carries a defaulted parameter of its own for a caller that never omits it.
  */
-const HOST_FETCH: HostFetch = (input, init) => fetch(input, init)
-
 export function VideoView({ rpc, id, onBack, hostFetch = HOST_FETCH }: { rpc: Rpc; id: string; onBack: () => void; hostFetch?: HostFetch }) {
   const [video, setVideo] = useState<VideoDetail | null>(null)
   const [error, setError] = useState<string | null>(null)

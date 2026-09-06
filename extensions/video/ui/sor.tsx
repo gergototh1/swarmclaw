@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import type { Board, BoardCard, Rpc, YoutubeOtletek as YoutubeOtletekValasz } from './api'
 import { errorText, isRecord, readYoutubeOtletek, refusalText } from './api'
 import { formatDate, renderStatusLabel, sapkaSzoveg, statusLabel } from './format'
+import { Lepes } from './lepes'
 
 /**
  * The queue: one column per status in the module's own vocabulary, in the
@@ -116,10 +117,14 @@ export function UjVideoBody({ forrasSzoveg, cim, kuldes, uzenet, onForras, onCim
           Cím
           <input className="vid-input" type="text" value={cim} onChange={(e) => onCim(e.target.value)} placeholder="üresen hagyva a modul a forrás szövegéből ad címet" />
         </label>
-        <div className="vid-lepes">
-          <button type="submit" className="vid-btn" disabled={ok !== null}>Új videó</button>
-          {ok !== null && <span className="vid-muted vid-lepes-ok">{ok}</span>}
-        </div>
+        {/*
+          `type="submit"` because this lever is inside the form: the click has
+          to submit it, and the form's own `onSubmit` is what calls `onKuld`.
+          That is the only thing this copy of the lever ever needed that the
+          other two did not, which is why `Lepes` takes it as a prop rather
+          than being written out again here.
+        */}
+        <Lepes cimke="Új videó" ok={ok} type="submit" />
       </form>
       {uzenet !== null && <p className="vid-notice" role="status">{uzenet}</p>}
     </section>
@@ -310,10 +315,7 @@ export function YoutubeOtletekBody({ dolgozik, mondatok, onKattint }: {
       <p className="vid-muted vid-youtube-mit">
         A beállított csatornák friss feltöltéseiből nyit kártyát a táblára. Amiből már van videó, azt kihagyja.
       </p>
-      <div className="vid-lepes">
-        <button type="button" className="vid-btn" disabled={dolgozik} onClick={onKattint}>Ötletek a YouTube-ról</button>
-        {ok !== null && <span className="vid-muted vid-lepes-ok">{ok}</span>}
-      </div>
+      <Lepes cimke="Ötletek a YouTube-ról" ok={ok} onKattint={onKattint} />
       {mondatok.length > 0 && (
         <ul className="vid-youtube-valasz" role="status">
           {mondatok.map((m) => <li key={m}>{m}</li>)}

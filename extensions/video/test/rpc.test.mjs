@@ -12,6 +12,8 @@ import { _resetFutas } from '../src/elonezet.mjs'
 import { createRpc } from '../src/rpc.mjs'
 import { BACKLOG_SAPKA, JAVASLAT_NYITOTT_SAPKA, TANULSAG_SAPKA } from '../src/tanulsag.mjs'
 import { YOUTUBE_OTLET_MAX } from '../src/youtube.mjs'
+import { forrasUrl } from '../ui/format.ts'
+import { safeHref } from '../ui/safe-href.ts'
 import { PELDA_JELENETEK, PELDA_NARRACIO, fakeProject, freshRepo } from './helpers.mjs'
 
 const quiet = { info() {}, warn() {}, error() {} }
@@ -854,6 +856,10 @@ const YT_FEED = (id) => `https://www.youtube.com/feeds/videos.xml?channel_id=${i
 const ytEntry = (id, cim, kiadva = new Date(Date.now() - 86_400_000).toISOString()) =>
   `<entry><yt:videoId>${id}</yt:videoId><title>${cim}</title><published>${kiadva}</published><media:group><media:community><media:statistics views="12"/></media:community></media:group></entry>`
 
+/** The same entry without `<media:statistics>`: a feed that did not say how many watched it. */
+const ytEntryNezettsegNelkul = (id, cim, kiadva = new Date(Date.now() - 86_400_000).toISOString()) =>
+  `<entry><yt:videoId>${id}</yt:videoId><title>${cim}</title><published>${kiadva}</published></entry>`
+
 const ytFeed = (entries) => `<?xml version="1.0"?><feed><title>A csatorna</title><published>2006-09-20T05:17:16+00:00</published>${entries.join('')}</feed>`
 
 /** A module whose channels all resolve and whose feeds all answer, keyed by the handle letter. */
@@ -889,17 +895,59 @@ test('youtubeOtletek opens a card per fresh upload and puts it in the nyitott co
   const b = await rpc.board()
   assert.deepEqual(b.oszlopok.nyitott.map((k) => k.cim).sort(), ['Egy cím', 'Harmadik', 'Másik & cím'])
   for (const k of b.oszlopok.nyitott) assert.equal(k.forrasTipus, 'youtube')
-  // The stored source is the module's own three lines: the title as the feed
-  // wrote it, a url this module built from an id it checked, and the upload
-  // date so the operator can see how fresh the idea is.
+  // The stored source is the module's own three paragraphs: the title as the
+  // feed wrote it, then the upload day and the view count so the operator can
+  // see how fresh and how watched the idea is, and LAST the url this module
+  // built from an id it checked.
   const reszlet = await rpc.video({ id: r.nyitott[0].videoId })
   const sorok = reszlet.forrasSzoveg.split('\n\n')
   assert.equal(sorok[0], 'Egy cím')
-  assert.equal(sorok[1], 'https://www.youtube.com/watch?v=NYFGCESmikA')
-  assert.match(sorok[2], /^Feltöltve: \d{4}-\d{2}-\d{2}$/, 'the card can say how old the idea is')
+  assert.match(sorok[1], /^Feltöltve: \d{4}-\d{2}-\d{2} · 12 megtekintés$/, 'the card can say how old the idea is and how watched')
+  assert.equal(sorok[2], 'https://www.youtube.com/watch?v=NYFGCESmikA')
   assert.equal(reszlet.forrasId, 'NYFGCESmikA')
   assert.equal(reszlet.nyitottaAgentId, '', 'an operator is not an agent')
   assert.equal(repo.videoForYoutube('NYFGCESmikA').id, r.nyitott[0].videoId)
+})
+
+test('the stored YouTube source yields a clickable link through the page own reader', async () => {
+  // THE ASSERTION WHOSE ABSENCE LET THE BUG SHIP. The paragraph order was
+  // pinned above, and separately `forrasUrl` was pinned in the ui suite, and
+  // nothing ever put one through the other -- so the door composed title, url,
+  // date while the reader took the LAST paragraph, and every YouTube card drew
+  // "a forrás utolsó bekezdése nem http(s) url" over a video whose whole point
+  // is to be watched. This runs the real reader, with the real `safeHref`, over
+  // the text the real door stored.
+  const { rpc } = ytSetup({ a: [ytEntry('NYFGCESmikA', 'Egy cím')] })
+  const r = await rpc.youtubeOtletek({})
+  const reszlet = await rpc.video({ id: r.nyitott[0].videoId })
+  assert.equal(forrasUrl(reszlet.forrasSzoveg, safeHref), 'https://www.youtube.com/watch?v=NYFGCESmikA')
+})
+
+test('a feed that did not say how many watched it says so, rather than printing nothing or zero', async () => {
+  // `nezettsegOf` answers null rather than 0 for exactly this entry, and the
+  // card has to carry that distinction rather than quietly dropping the line:
+  // an absent view count and zero views are two facts, and a missing line is a
+  // third.
+  const { rpc } = ytSetup({ a: [ytEntryNezettsegNelkul('NYFGCESmikA', 'Egy cím')] })
+  const r = await rpc.youtubeOtletek({})
+  const reszlet = await rpc.video({ id: r.nyitott[0].videoId })
+  const sorok = reszlet.forrasSzoveg.split('\n\n')
+  assert.match(sorok[1], /^Feltöltve: \d{4}-\d{2}-\d{2} · a csatorna feedje nem közölt nézettséget$/)
+  assert.equal(sorok[1].includes('0 megtekintés'), false, 'a feed that did not say must never read as zero views')
+  assert.equal(forrasUrl(reszlet.forrasSzoveg, safeHref), 'https://www.youtube.com/watch?v=NYFGCESmikA', 'and the link survives the other branch')
+})
+
+test('a title longer than the module stores is cut before it is written, not after', async () => {
+  // The door bounds what it stores because a feed's <title> is bounded by
+  // nothing but the 4 MB body cap: an uncut one would sit in
+  // `ext_video_videos`, on every board response, and -- through the `videos`
+  // contract -- in the title of the document the docs extension writes.
+  const { repo, rpc } = ytSetup({ a: [ytEntry('NYFGCESmikA', 'á'.repeat(5000))] })
+  const r = await rpc.youtubeOtletek({})
+  assert.equal(r.nyitott.length, 1, 'an oversized title is cut, never a reason to drop the idea')
+  const sor = repo.videos()[0]
+  assert.equal(sor.cim.length, 200)
+  assert.equal(sor.forras_szoveg.split('\n\n')[0].length, 200, 'and the source text carries the cut title, not the raw one')
 })
 
 test('a video already opened from a YouTube id does not open a second time', async () => {

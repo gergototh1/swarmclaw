@@ -3,6 +3,8 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
 import { refuse } from './args.mjs'
+import { head } from './db.mjs'
+import { MAX_CIM } from './terv.mjs'
 
 /**
  * The one source this module can reach on its own: the recent uploads of the
@@ -283,7 +285,27 @@ export function feedJeloltek(xml) {
   for (const darab of blokkok) {
     const entry = darab.split('</entry>')[0]
     const id = mezo(entry, 'yt:videoId')
-    const cim = mezo(entry, 'title')
+    // THE TITLE IS BOUNDED HERE, WHERE IT IS READ, AND NOT AT THE CALLER.
+    // `mezo` matches `[^<]*`, so the only thing standing between a channel's
+    // `<title>` and this module's storage is `MAX_FEED_BYTE`, four megabytes.
+    // The other two doors that store a stranger's text bound it at the door
+    // (`nyissVideot`, src/terv.mjs), and this one could have been bounded at
+    // `youtubeOtletek` the same way. It is bounded here instead because that
+    // is the only place that makes the bound TRUE OF THE MODULE rather than
+    // of one caller: `feedJeloltek` is an exported reader, `jeloltek` is what
+    // the rpc, the tests and anything later built on this file all read, and
+    // a cap one call applies is a cap the next call forgets. After this line
+    // no oversized `cim` exists anywhere in the module.
+    //
+    // The cut is `head`, not `slice`, because `slice` counts UTF-16 units and
+    // a title cut between the halves of an emoji would store a lone surrogate
+    // (src/db.mjs). `MAX_CIM` comes from terv.mjs so the two doors cannot
+    // drift apart on the number.
+    //
+    // It happens BEFORE the blank test, not after: a title of two hundred
+    // spaces followed by text is still a blank title, and cutting first is
+    // what keeps the drop test reading the same string that will be stored.
+    const cim = head(mezo(entry, 'title'), MAX_CIM)
     const kiadva = mezo(entry, 'published')
     const ms = Date.parse(kiadva)
     if (!ID_ALAK.test(id) || cim.trim() === '' || !Number.isFinite(ms)) { eldobott += 1; continue }

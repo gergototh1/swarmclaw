@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import { VideoError } from '../src/args.mjs'
+import { MAX_CIM } from '../src/terv.mjs'
 import { PER_CSATORNA_LIMIT, YT_DLP_ALAP, csatornaIdBol, csatornakOf, feedJeloltek, fetchYoutube, ytDlpUtvonalOf } from '../src/youtube.mjs'
 
 /**
@@ -193,6 +194,27 @@ test('an entry missing an id, a title or a readable date is dropped whole and co
   assert.deepEqual(jeloltek.map((j) => j.id), ['joVideoId12'], 'nothing half-built ever reaches a card')
   assert.equal(eldobott, 7, 'a feed the module took almost nothing from must not read as a quiet channel')
   assert.equal(blokkok, 8, 'the body WAS read; it is the entries that were refused')
+})
+
+test('a title longer than the module stores is cut where it is read', () => {
+  // `mezo` matches `[^<]*`, so nothing between a channel's <title> and this
+  // module's storage bounds it except the 4 MB body cap. The cut is here
+  // rather than at the rpc so that no oversized title exists in the module at
+  // all: `feedJeloltek` is what the rpc, these tests and anything later built
+  // on this file read.
+  const { jeloltek } = feedJeloltek(feed([entry({ cim: 'á'.repeat(50_000) })]))
+  assert.equal(jeloltek.length, 1, 'an oversized title is cut, never a reason to drop the entry')
+  assert.equal(jeloltek[0].cim.length, MAX_CIM)
+  assert.equal(jeloltek[0].cim, 'á'.repeat(MAX_CIM))
+})
+
+test('a title that is only whitespace is still dropped after the cut', () => {
+  // The cut runs BEFORE the blank test, so the drop test judges the string
+  // that would actually be stored: two hundred spaces followed by text is a
+  // blank title, and a cut applied afterwards would have let it through.
+  const { jeloltek, eldobott } = feedJeloltek(feed([entry({ cim: ' '.repeat(MAX_CIM + 50) + 'valami' })]))
+  assert.deepEqual(jeloltek, [])
+  assert.equal(eldobott, 1)
 })
 
 test('a missing view count is null rather than zero', () => {

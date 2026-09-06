@@ -2065,17 +2065,31 @@ test('an ordered turn darkens its button and says so in the section header', () 
   const kuldes = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'kuldes' }))
   assert.ok(tervKeresSotet.test(kuldes))
   assert.ok(kuldes.includes('a válaszra várok'), 'the three host calls are out and nothing has been ordered yet')
+  // AND THE HEADER SAYS THE SAME FACT AS THE BUTTON. It used to say
+  // "ügynök-forduló megrendelve" here -- a turn ordered -- directly above a
+  // lever saying the host had not answered yet, which is the one line on this
+  // page that folded `kuldes` and `fut` into one state.
+  assert.ok(kuldes.includes('megrendelés kiküldve, a host válaszára várok: terv'))
+  assert.equal(kuldes.includes('ügynök-forduló fut'), false, 'nothing is running until the host has answered')
 
   const fut = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'fut' }))
   assert.ok(tervKeresSotet.test(fut))
   assert.ok(fut.includes('Frissítés'))
   // 2.3: the section header carries it too, so the state is visible without
   // reading down to the button.
-  assert.ok(fut.includes('ügynök-forduló megrendelve: terv'))
+  assert.ok(fut.includes('ügynök-forduló fut: terv'))
+  assert.equal(fut.includes('a host válaszára várok'), false)
   assert.equal(lektorKeresSotet.test(fut), false, 'the two orders are separate: one running does not darken the other')
 
   const mindketto = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'fut', lektorRendeles: 'fut' }))
-  assert.ok(mindketto.includes('ügynök-forduló megrendelve: terv, lektorálás'))
+  assert.ok(mindketto.includes('ügynök-forduló fut: terv, lektorálás'))
+
+  // The two levers are independent, so the two clauses have to be able to
+  // stand at once: the plan can still be out at the host while the review is
+  // already running.
+  const vegyes = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'kuldes', lektorRendeles: 'fut' }))
+  assert.ok(vegyes.includes('megrendelés kiküldve, a host válaszára várok: terv'))
+  assert.ok(vegyes.includes('ügynök-forduló fut: lektorálás'))
 })
 
 // --- the one button that reaches outside the module ---

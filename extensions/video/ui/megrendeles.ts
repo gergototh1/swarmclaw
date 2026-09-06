@@ -80,8 +80,20 @@ export type Megrendeles =
   | { kind: 'session_nem_nyilt'; reason: string }
   | { kind: 'uzenet_elutasitva'; reason: string }
 
-/** The host's own default fetch, wrapped rather than passed bare: an unbound `fetch` is an illegal invocation in a browser. */
-const HOST_FETCH: HostFetch = (input, init) => fetch(input, init)
+/**
+ * The host's own fetch, wrapped rather than passed bare: an unbound `fetch` is
+ * an illegal invocation in a browser.
+ *
+ * EXPORTED, AND THE ONLY ONE. `ui/video.tsx` had an identical one-line copy at
+ * its own module scope, written for the same reason and used as `VideoView`'s
+ * `hostFetch` default; two wrappers around one global is one of them going
+ * stale unnoticed. It lives here because this is the file that talks to the
+ * host, and it is at module scope rather than inside a component because
+ * `VideoView` names it in a `useCallback` dependency list, where a fresh
+ * function on every render would rebuild both ordering handlers on every
+ * render.
+ */
+export const HOST_FETCH: HostFetch = (input, init) => fetch(input, init)
 
 const JSON_FEJLEC = { 'content-type': 'application/json' }
 
@@ -201,10 +213,21 @@ async function kuldjUzenetet(fetchImpl: HostFetch, agentId: string, sessionId: s
   }
 }
 
-/** Find the agent by name, open a conversation with it, hand it one instruction. Never throws; the caller switches on `kind`. */
+/**
+ * Find the agent by name, open a conversation with it, hand it one
+ * instruction. Never throws; the caller switches on `kind`.
+ *
+ * `fetchImpl` IS REQUIRED, and used to carry `HOST_FETCH` as a default. The
+ * default was dead: the one caller is `VideoView`, which applies the same
+ * default at its own `hostFetch` prop -- that is what makes the ordering
+ * handlers testable without a DOM -- so it always passes one, and every test
+ * passes a double. A second default here would be a second place for the two
+ * to drift apart, on the one parameter whose whole point is that a test can
+ * replace it.
+ */
 export async function rendelj(
   { agentNev, sessionNev, uzenet }: { agentNev: string; sessionNev: string; uzenet: string },
-  fetchImpl: HostFetch = HOST_FETCH,
+  fetchImpl: HostFetch,
 ): Promise<Megrendeles> {
   const ugynok = await keressUgynokot(fetchImpl, agentNev)
   if (ugynok.kind !== 'megvan') return ugynok

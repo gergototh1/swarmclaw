@@ -1,14 +1,14 @@
 import { VideoError, guard, readString, readWholeNumber } from './args.mjs'
-import { VIDEO_STATUSOK } from './db.mjs'
+import { VIDEO_STATUSOK, head } from './db.mjs'
 import { allapot, futasNezet, indit, kep, megszakit, torolElonezetCache } from './elonezet.mjs'
 import { runHealth } from './health.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
 import { KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, tablaHianyai } from './kit-tabla.mjs'
-import { KODOLT_JAVASLAT_IDK, SZABALYKESZLET } from './qa.mjs'
 import { narralTerv } from './narracio.mjs'
+import { KODOLT_JAVASLAT_IDK, SZABALYKESZLET } from './qa.mjs'
 import { hetiSor, sablonStat } from './sablon.mjs'
 import { BACKLOG_SAPKA, DUPLIKAT_NAP, JAVASLAT_NYITOTT_SAPKA, TANULSAG_SAPKA } from './tanulsag.mjs'
-import { nyissVideot } from './terv.mjs'
+import { MAX_CIM, MAX_FORRAS_SZOVEG, nyissVideot } from './terv.mjs'
 import { YOUTUBE_OTLET_MAX, csatornakOf, fetchYoutube, ytDlpUtvonalOf } from './youtube.mjs'
 
 /**
@@ -202,6 +202,42 @@ async function nemDob(state, fn) {
   }
 }
 
+/**
+ * A YouTube idea's stored source text: three paragraphs, and the url is the
+ * last one.
+ *
+ * THE ORDER IS NOT COSMETIC. `forrasUrl` (ui/format.ts) is the one thing on
+ * the page that may turn part of a stranger's text into a link target, and it
+ * reads THE LAST PARAGRAPH and nothing else -- deliberately, because offering
+ * a link out of the middle of prose would mean the page deciding where inside
+ * a stranger's text a url starts. `videoOpen` has always put the card's url
+ * last (`forrasSzovegOf`, src/terv.mjs, joins headline, summary, url), and
+ * this door first did not: it wrote title, url, date, so `forrasUrl` read the
+ * date paragraph, refused it, and the Video view printed "a forrás utolsó
+ * bekezdése nem http(s) url" on a video whose entire point is "go and watch
+ * this one". The url is last here for that reason and must stay last.
+ *
+ * THE MIDDLE PARAGRAPH IS DISPLAY MATERIAL and nothing else: no column, key
+ * or gate reads it. The upload day rather than the instant, because "how old
+ * is this" is the question the card answers and a timestamp to the second is
+ * noise in a box the Video view labels as a stranger's text. The view count
+ * stands beside it because it is the other half of the same question -- how
+ * old, and how watched -- and it is what tells the operator whether an idea is
+ * worth taking before they open anything.
+ *
+ * AN ABSENT VIEW COUNT SAYS SO IN WORDS. `nezettsegOf` answers null rather
+ * than 0 for an entry that does not carry `<media:statistics>`
+ * (src/youtube.mjs), because a video nobody has watched and a feed that did
+ * not say are two different facts. Printing nothing would fold them into a
+ * third -- "there is no such thing as a view count here" -- and printing `0`
+ * would state the false one out loud, on a card the operator is deciding
+ * against.
+ */
+function youtubeForrasSzoveg(j) {
+  const nezettseg = typeof j.nezettseg === 'number' ? `${j.nezettseg} megtekintés` : 'a csatorna feedje nem közölt nézettséget'
+  return `${j.cim}\n\nFeltöltve: ${j.feltoltve.slice(0, 10)} · ${nezettseg}\n\n${j.url}`
+}
+
 export function createRpc(state, ops) {
   const repo = () => state.repo
   const requireVideo = (id) => {
@@ -354,15 +390,26 @@ export function createRpc(state, ops) {
      * reach.
      *
      * WHAT IT WRITES. `openVideo` directly, with `forrasTipus: 'youtube'`,
-     * `forrasId` the checked video id, and a source text of the title, the
-     * url this module built from that id -- never a url that came back over
-     * the network -- and the upload date, so the card says how fresh the idea
-     * is. The opener is '' rather than an agent id, for the same
-     * reason `nyit`'s is: an operator is not an agent, and nothing gates on
-     * the opener. `forras_tipus` has no CHECK constraint (db.mjs), so the
-     * third value needed no migration; the tool's own source list
-     * (`FORRASOK` in src/terv.mjs) is deliberately NOT widened, because no
-     * agent may start this.
+     * `forrasId` the checked video id, and the three-paragraph source text
+     * `youtubeForrasSzoveg` builds: the title, the upload day and the view
+     * count, and last the url this module built from that id -- never a url
+     * that came back over the network. The opener is '' rather than an agent
+     * id, for the same reason `nyit`'s is: an operator is not an agent, and
+     * nothing gates on the opener. `forras_tipus` has no CHECK constraint
+     * (db.mjs), so the third value needed no migration; the tool's own source
+     * list (`FORRASOK` in src/terv.mjs) is deliberately NOT widened, because
+     * no agent may start this.
+     *
+     * BOTH STORED FIELDS ARE BOUNDED, because both are a stranger's text and
+     * this is a door. The title arrives already cut to `MAX_CIM` -- the feed
+     * reader cuts it where it reads it (src/youtube.mjs) -- and `head` here is
+     * the door saying so rather than assuming it: the two other doors bound
+     * what they store at the door (`nyissVideot`, src/terv.mjs), and a door
+     * that trusted its supplier would be the one place the rule is a
+     * convention instead of code. `MAX_FORRAS_SZOVEG` over the composed text
+     * cannot fire while the title is capped -- a title, a date, a number and a
+     * watch url are a few hundred characters -- and it is written because the
+     * paragraphs are, and the invariant that keeps it inert belongs beside it.
      */
     async youtubeOtletek(body = {}) {
       return nemDob(state, async () => {
@@ -387,13 +434,7 @@ export function createRpc(state, ops) {
         }
         const nyitando = ujak.slice(0, YOUTUBE_OTLET_MAX)
         const nyitott = nyitando.map((j) => {
-          // The date is DISPLAY MATERIAL and nothing else: it goes into the
-          // source text so the operator can see how fresh an idea is without
-          // opening the video, and no column, key or gate reads it. The day
-          // rather than the instant, because "how old is this" is the question
-          // the card answers and a timestamp to the second is noise in a box
-          // the Video view labels as a stranger's text.
-          const { id } = repo().openVideo({ cim: j.cim, forrasTipus: 'youtube', forrasId: j.id, forrasSzoveg: `${j.cim}\n\n${j.url}\n\nFeltöltve: ${j.feltoltve.slice(0, 10)}`, nyitottaAgentId: '' })
+          const { id } = repo().openVideo({ cim: head(j.cim, MAX_CIM), forrasTipus: 'youtube', forrasId: j.id, forrasSzoveg: head(youtubeForrasSzoveg(j), MAX_FORRAS_SZOVEG), nyitottaAgentId: '' })
           return { videoId: id, cim: j.cim }
         })
         return { nyitott, marVolt: latott.size - ujak.length, jelolt: latott.size, maradek: ujak.length - nyitott.length, csatornaHibak, eldobott }

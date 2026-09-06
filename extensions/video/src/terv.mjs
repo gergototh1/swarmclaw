@@ -55,8 +55,23 @@ export const LESSONS_MAX = 12
 const MAX_TALALAT_SZOVEG = 2000
 /** A finding code's shape: lower snake case, so it can be named in a warning without carrying anything else. */
 const KOD_ALAK = /^[a-z][a-z0-9_]{0,63}$/
-const MAX_FORRAS_SZOVEG = 20000
-const MAX_CIM = 200
+/**
+ * The two bounds every door that stores a stranger's text applies, and the
+ * reason they are exported rather than kept private here.
+ *
+ * `nyissVideot` is not the only door any more. The board's YouTube button
+ * opens rows through `repo.openVideo` directly (src/rpc.mjs,
+ * `youtubeOtletek`), from a title this module read out of a channel's Atom
+ * feed, and a feed's `<title>` is bounded by nothing but the 4 MB body cap:
+ * one hostile or malformed feed would otherwise put a multi-megabyte `cim`
+ * into `ext_video_videos`, onto every board response, and -- through the
+ * `videos` contract -- into the title of the document the docs extension
+ * writes. So the same two numbers apply there, imported from here rather
+ * than written down a second time: two doors bounding a stored text by two
+ * different numbers is the drift these exports exist to prevent.
+ */
+export const MAX_FORRAS_SZOVEG = 20000
+export const MAX_CIM = 200
 /** Characters of a source text that become the title when the caller gave none and the card has no headline. */
 const CIM_A_SZOVEGBOL = 80
 /** One page of the provider's `list` while picking a card, and how many cards a pick will read before it stops. */
