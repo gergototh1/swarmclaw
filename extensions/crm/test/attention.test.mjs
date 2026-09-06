@@ -9,7 +9,7 @@ test('ures bemenetre ures lista', () => {
   assert.deepEqual(rangsor({ silent: [], unanswered: [], oursOverdue: [], theirsOverdue: [] }, MOST), [])
 })
 
-test('a sajat igeret elozi a tobbit azonos kornal', () => {
+test('azonos kornal a teljes tipussorrend: sajat igeret, valasz nelkul, nema ugy, idegen igeret', () => {
   const nap = (n) => new Date(Date.parse(MOST) - n * 86400000).toISOString()
   const lista = rangsor({
     silent: [{ deal_id: 'd1', account_id: 'a1', title: 'Ugy', last_event_at: nap(10) }],
@@ -17,7 +17,11 @@ test('a sajat igeret elozi a tobbit azonos kornal', () => {
     oursOverdue: [{ id: 'c1', account_id: 'a1', event_id: 'e2', text: 'Kuldom', direction: 'ours', created_at: nap(10) }],
     theirsOverdue: [{ id: 'c2', account_id: 'a1', event_id: 'e3', text: 'Kuldi', direction: 'theirs', created_at: nap(10) }],
   }, MOST)
-  assert.equal(lista[0].kind, 'sajat_igeret', 'amit EN igertem, az az en tartozasom')
+  assert.deepEqual(
+    lista.map((x) => x.kind),
+    ['sajat_igeret', 'valasz_nelkul', 'nema_ugy', 'idegen_igeret'],
+    'a teljes tipussorrendnek kell allnia, nem csak az elso elemnek',
+  )
 })
 
 test('azonos tipuson belul a regebbi elorebb', () => {
