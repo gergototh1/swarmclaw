@@ -477,8 +477,17 @@ function refusalCodes() {
     // it has three callers whose refusal shapes differ, so it names the code
     // and lets each caller raise it (`refuse(jog.kod, jog.uzenet)`). Those
     // call sites pass a variable, so without this pattern the codes that gate
-    // narration, render and revision would be the only ones no prompt could
-    // name and no vocabulary check could see.
+    // narration, render and revision would be the only ones no prompt is
+    // allowed to name.
+    //
+    // IT MATCHES BY SHAPE, and this set is an ALLOWLIST for prompt prose
+    // (`vocabulary()`), not a requirement -- so an over-capture is not a
+    // failing test, it is a word that silently becomes legal in a prompt.
+    // Today `kod:` appears in these files only as a refusal code returned by
+    // `verdikt-kapu.mjs`; a reviewer meeting a new `kod: '…'` literal in
+    // CODE_FILES has to check it is one too. The reviewer finding codes
+    // (LEKTOR_KODOK) are written as `kod: t.kod` and as list members, not as
+    // literals here, which is why they do not leak in through this.
     for (const m of text.matchAll(/\bkod:\s*'([a-z][a-z0-9_]*)'/g)) out.add(m[1])
   }
   assert.ok(out.size > 30, 'the refusal codes are no longer written as literals; find what replaced them before trusting this test')

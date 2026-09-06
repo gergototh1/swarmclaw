@@ -87,11 +87,52 @@ test('a séta megáll a korlátnál, akkor is, ha a lánc egyébként ép', () =
   // A korláton belül a gyökér még elérhető...
   const meg = repo.terv(jelen.szulo_terv_id)
   assert.equal(verdiktJog(repo, meg).ok, true)
-  // ...egy generációval feljebb már nem, és a modul ezt mondja ki, nem azt,
-  // hogy nincs átengedett terv: itt nem a lektoron múlik semmi.
+  // ...egy generációval feljebb már nem. A lánc ÉP, csak hosszabb, mint
+  // amennyit a séta visszakövet -- ezért nem `javitas_lanc_hibas`: ott a sor
+  // romlott el és nincs teendő, itt egy videoDraft és egy lektori forduló új
+  // alapot ad, és a mondat ezt kell mondja.
   const r = verdiktJog(repo, jelen)
   assert.equal(r.ok, false)
-  assert.equal(r.kod, 'javitas_lanc_hibas')
+  assert.equal(r.kod, 'javitas_lanc_tul_hosszu')
+})
+
+/**
+ * Egy ELBUKTATOTT javítás nem örökli a szülője átengedését.
+ *
+ * `passingVerdikt` két különböző okból ad üreset egy javításra: soha nem
+ * ítélték meg (erre épül az egész öröklés), vagy megítélték és nemet mondtak.
+ * Csak a `szarmazas`-t nézve a séta a kettőn azonosan menne át. A
+ * `videoVerdict`-nek nincs `szarmazas` kapuja, és egy javítás a beadása után a
+ * legfrissebb terv, tehát ez ma is megítélhető sor -- a 4. feladat után pedig
+ * egy elbuktatott javítás narrálható ÉS renderelhető lenne, mindhárom kapun
+ * figyelmen kívül hagyott elbukással.
+ */
+test('elbuktatott javítás nem viszi tovább a szülője átengedését', () => {
+  const { repo, terv, atenged, elbuktat, javitas } = fixture()
+  const v1 = terv()
+  atenged(v1)
+  const v2 = javitas(v1)
+  // Ítélet nélkül még öröklődik a jog -- ez a feature.
+  assert.equal(verdiktJog(repo, v2).ok, true)
+  elbuktat(v2)
+  const r = verdiktJog(repo, v2)
+  assert.equal(r.ok, false)
+  assert.equal(r.kod, 'javitas_elbukott')
+  // És a rá épülő javítás sem örökölhet rajta keresztül.
+  assert.equal(verdiktJog(repo, javitas(v2)).kod, 'javitas_elbukott')
+  // Egy KÉSŐBBI atmegy viszont feloldja: a verdiktek append-only sorok, és a
+  // `passingVerdikt` a legfrissebbet nézi.
+  atenged(v2)
+  assert.equal(verdiktJog(repo, v2).ok, true)
+
+  // ÉS FORDÍTVA IS, ez a fontosabb irány: átengedve, majd visszavonva. Csak
+  // ebben a sorrendben látszik, hogy a LEGFRISSEBB ítéletet nézzük -- egy
+  // átengedés, amit egy későbbi elbukik visszavont, a lista ELEJÉN áll, tehát
+  // egy `.at(0)` olvasás itt (és csak itt) beengedné az elbuktatott javítást.
+  const v4 = javitas(v1)
+  atenged(v4)
+  elbuktat(v4)
+  assert.equal(verdiktJog(repo, v4).kod, 'javitas_elbukott', 'a visszavont átengedés nem engedi tovább a javítást')
 })
 
 test('egy körré csavart lánc nem viszi el a hostot, és megnevezett hibát ad', () => {
@@ -122,7 +163,11 @@ test('egy javítás, aminek a szülője nincs meg, ugyanaz a romlott lánc, nem 
   const { storage, repo, terv, javitas } = fixture()
   const v1 = terv()
   const v2 = javitas(v1)
+  // Két írásmódja van ugyanannak a romlott sornak, és a `repo.terv` mindkettőre
+  // null-t ad (`src/db.mjs`): nincs megnevezett szülő, és egy megnevezett
+  // szülő, ami nincs meg. A docblock a másodikat írja le, ezért az is itt van.
+  storage.exec("UPDATE ext_video_tervek SET szulo_terv_id = 'nincs-ilyen-terv' WHERE id = ?", [v2.id])
+  assert.equal(verdiktJog(repo, repo.terv(v2.id)).kod, 'javitas_lanc_hibas', 'egy sehová sem mutató szülő nem lektorálási kérdés')
   storage.exec('UPDATE ext_video_tervek SET szulo_terv_id = NULL WHERE id = ?', [v2.id])
-  const r = verdiktJog(repo, repo.terv(v2.id))
-  assert.equal(r.kod, 'javitas_lanc_hibas', 'egy sehová sem mutató szülő nem lektorálási kérdés')
+  assert.equal(verdiktJog(repo, repo.terv(v2.id)).kod, 'javitas_lanc_hibas', 'a meg nem nevezett szülő ugyanaz a romlott sor')
 })

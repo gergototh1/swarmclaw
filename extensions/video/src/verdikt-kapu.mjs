@@ -39,13 +39,28 @@
  *    tervre nincs atmegy verdikt", igaz mondat ugyan, de félrevezető: egy
  *    javításnak sosem lesz saját verdiktje, tehát a hívó azt olvasná ki, hogy
  *    a saját beadását kell lektoráltatnia, holott a lánc alját kell.
- *  - `javitas_lanc_hibas` -- a modul nem tudta bejárni a láncot: kör, a
- *    korlátnál hosszabb lánc, vagy egy `szulo_terv_id`, ami sehová nem mutat.
- *    Ez NEM ugyanaz, mint "a lánc végén nincs átment terv": ott egy lektori
- *    forduló megoldja a helyzetet, itt nem oldja meg semmi, amit egy ügynök
- *    tehet -- a sor maga romlott el. A kapott vázlatban ez a három eset a
- *    `szulo_verdikt_hianyzik` "előbb azt kell lektorálni" mondatára futott
- *    volna ki, ami olyan tettre küldi a hívót, ami nem segít.
+ *  - `javitas_elbukott` -- a lánc egy olyan javításon áll, amit a lektor
+ *    MEGNÉZETT és elbuktatott. `passingVerdikt` erre is üreset ad, ahogy egy
+ *    meg nem ítélt javításra, de a két üres válasz két különböző tény: az
+ *    egyik az, hogy javítást senki nem szokott ítélni (erre épül ez az egész
+ *    öröklés), a másik az, hogy valaki ítélt, és nemet mondott. Csak a
+ *    `szarmazas`-t nézve a séta a kettőn azonosan menne át, és egy elbuktatott
+ *    javítás úgy örökölné a szülője átengedését, mintha meg sem ítélték volna
+ *    -- ugyanaz a hiba-osztály, mint egy meg nem ítélt terv javítása, csak
+ *    javítás-szülőn keresztül. A `videoVerdict`-nek nincs `szarmazas` kapuja,
+ *    és egy javítás a beadása után a legfrissebb terv, tehát ez ma is
+ *    megítélhető sor.
+ *  - `javitas_lanc_hibas` -- a modul nem tudta bejárni a láncot: kör, vagy egy
+ *    `szulo_terv_id`, ami sehová nem mutat. Ez NEM ugyanaz, mint "a lánc végén
+ *    nincs átment terv": ott egy lektori forduló megoldja a helyzetet, itt nem
+ *    oldja meg semmi, amit egy ügynök tehet -- a sor maga romlott el. A kapott
+ *    vázlatban ez a `szulo_verdikt_hianyzik` "előbb azt kell lektorálni"
+ *    mondatára futott volna ki, ami olyan tettre küldi a hívót, ami nem segít.
+ *  - `javitas_lanc_tul_hosszu` -- a lánc ÉP, csak hosszabb, mint amennyit ez a
+ *    séta visszakövet. Külön kód, és nem a `javitas_lanc_hibas`, mert itt nincs
+ *    semmi elromolva és VAN teendő: egy `videoDraft` és egy lektori forduló új
+ *    alapot ad. A két esetet egy néven kimondani azt üzenné az ügynöknek, hogy
+ *    a helyzet reménytelen, amikor nem az.
  */
 
 /** Ahány javítás-generációt visszasétálunk, mielőtt a láncot romlottnak mondjuk. */
@@ -60,9 +75,10 @@ export const JAVITAS_LANC_MAX = 50
  */
 export function verdiktJog(repo, terv) {
   const latott = new Set()
+  let kor = false
   let jelen = terv
   for (let i = 0; i < JAVITAS_LANC_MAX && jelen; i += 1) {
-    if (latott.has(jelen.id)) break
+    if (latott.has(jelen.id)) { kor = true; break }
     latott.add(jelen.id)
     const verdikt = repo.passingVerdikt(jelen.id, jelen.terv_hash)
     if (verdikt) return { ok: true, verdiktId: verdikt.id, atmentTervId: jelen.id }
@@ -77,7 +93,21 @@ export function verdiktJog(repo, terv) {
         ? { ok: false, kod: 'verdikt_elavult', uzenet: 'van atmegy verdikt erre a tervre, de más hash-sel; a lektornak újra kell néznie' }
         : { ok: false, kod: 'verdikt_hianyzik', uzenet: 'erre a tervre nincs atmegy verdikt' }
     }
+    // A LEKTOR NEMET MONDHATOTT ERRE A JAVÍTÁSRA IS. `passingVerdikt` a
+    // legfrissebb ítéletet nézi, és üreset ad a soha meg nem ítélt javításra
+    // és az elbuktatottra egyaránt -- csak a `szarmazas`-t nézve a séta a
+    // kettőn azonosan menne tovább a szülőhöz, és az elbukott javítás úgy
+    // örökölné a szülője átengedését, mintha meg sem ítélték volna. A
+    // `verdiktek` növekvő sorrendben ad (`src/db.mjs`), tehát az utolsó elem a
+    // legfrissebb ítélet; nincs szükség új repository-olvasóra.
+    const utolsoItelet = repo.verdiktek(jelen.id).at(-1)
+    if (utolsoItelet && utolsoItelet.verdikt === 'elbukik') {
+      return { ok: false, kod: 'javitas_elbukott', uzenet: 'ezt a javítást a lektor elbuktatta, tehát nem viheti tovább a szülője átengedését; új ítélet kell rá, vagy a videoDraft-tal beadott új verzió' }
+    }
     jelen = jelen.szulo_terv_id ? repo.terv(jelen.szulo_terv_id) : null
   }
-  return { ok: false, kod: 'javitas_lanc_hibas', uzenet: 'a javítás-lánc nem járható be: kör van benne, hosszabb a megengedettnél, vagy egy szülő sor hiányzik; ezt nem lektorálás oldja meg' }
+  // Két kimenet, mert két teendő. A kör és a sehová sem mutató szülő romlott
+  // sor; a korlátnál hosszabb, egyébként ép lánc nem az.
+  if (kor || !jelen) return { ok: false, kod: 'javitas_lanc_hibas', uzenet: 'a javítás-lánc nem járható be: kör van benne, vagy egy szülő sor hiányzik; ezt nem lektorálás oldja meg' }
+  return { ok: false, kod: 'javitas_lanc_tul_hosszu', uzenet: 'a javítás-lánc hosszabb, mint amennyit a modul visszakövet; a videoDraft-tal beadott új verzió és egy lektori forduló ad új alapot' }
 }

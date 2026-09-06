@@ -202,8 +202,11 @@ verziónak joga kell legyen továbbmenni: ha az egy meg nem ítélt terv,
 második és a harmadik kört is beengedi, mert a jog a láncon öröklődik attól
 a verziótól, amit a lektor átengedett. Ha annak a láncnak az alján nincs
 ilyen, \`szulo_verdikt_hianyzik\` -- azt kell lektoráltatni, nem a saját
-beadásomat --, és ha a lánc maga romlott el, \`javitas_lanc_hibas\`, amin
-lektorálás nem segít. A válasz
+beadásomat. Ha a lektor magát a javítást buktatta el, \`javitas_elbukott\`:
+arra új ítélet kell, vagy \`videoDraft\`-tal új verzió. Ha a lánc romlott el
+(kör vagy hiányzó szülő), \`javitas_lanc_hibas\`, amin lektorálás nem segít
+-- ha csak hosszabb a visszakövethetőnél, \`javitas_lanc_tul_hosszu\`, és ott
+a \`videoDraft\` ad új alapot. A válasz
 \`tervId\`, \`verzio\`, \`tervHash\`, \`szuloTervId\`,
 \`valtozottJelenetek\`, \`bedolgozott\` (a bedolgozott kérések azonosítói),
 \`figyelmeztetesek\` és \`becsultHosszMp\`. Új lektori kör nem indul: a

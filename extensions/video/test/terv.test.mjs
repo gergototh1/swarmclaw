@@ -674,6 +674,41 @@ test('videoRevise a második és a harmadik javítási kört is beengedi: a jog 
   assert.equal(repo.video(videoId).status, 'lektoralt')
 })
 
+/**
+ * Egy elbuktatott javításra nem lehet tovább javítani.
+ *
+ * A `videoVerdict`-nek nincs `szarmazas` kapuja, és a beadott javítás a
+ * legfrissebb terv, tehát a lektor meg TUDJA ítélni. Ha nemet mondott, a
+ * javítás nem viheti tovább a szülője átengedését -- különben egy elbukott
+ * ítélet fölött folytatódna a lánc, és a 4. feladat után az elbukott javítás
+ * narrálható és renderelhető lenne.
+ */
+test('videoRevise nem épít elbuktatott javításra, és közben semmit nem mozdít', async () => {
+  const { repo, run } = setup()
+  const { videoId, tervId } = keszTerv(repo)
+  const elso = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'első kérés', forras: 'operator' })
+  const v2 = await run('videoRevise', {
+    videoId,
+    jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam: 41, felvezeto: 'Ennyi.' } }],
+    javitasIdk: [elso.id],
+  })
+  assert.equal(v2.error, undefined)
+  assert.equal(v2.szuloTervId, tervId)
+  // A lektor megnézi a javítást és nemet mond -- ahogy a videoVerdict engedi.
+  repo.insertVerdikt({ tervId: v2.tervId, tervHash: v2.tervHash, lektorAgentId: 'lektor-1', lektorSessionId: 's2', verdikt: 'elbukik', talalatok: [{ jelenet: 1, kod: 'horog_gyenge', szoveg: 'x' }] })
+  repo.setVideoStatus(videoId, 'elbukott')
+
+  const masodik = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'második kérés', forras: 'operator' })
+  const r = await run('videoRevise', {
+    videoId,
+    jelenetek: [{ index: 1, jelenet: { tipus: 'szam', szam: 42, felvezeto: 'Ennyi.' } }],
+    javitasIdk: [masodik.id],
+  })
+  assert.equal(r.error.code, 'javitas_elbukott')
+  assert.equal(repo.tervekForVideo(videoId).length, 2, 'nem íródott új verzió')
+  assert.equal(repo.video(videoId).status, 'elbukott', 'a videó ott marad, ahol a lektor keresi')
+})
+
 test('videoRevise elutasítja azt a javítás-láncot, aminek a gyökerét soha nem engedték át', async () => {
   const { repo, run } = setup()
   const { id: videoId } = repo.openVideo({ cim: 'c', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: 'f', nyitottaAgentId: '' })
