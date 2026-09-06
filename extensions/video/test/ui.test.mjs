@@ -11,7 +11,7 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { jsx } from 'react/jsx-runtime'
 
-import { readBoard, readHealth, readManagedStatus, readPreviewCancel, readPreviewStart, readPreviewStatus, readProposals, readTemplatePreview, readTemplates, readVideo, refusalText } from '../ui/api.ts'
+import { readBoard, readHealth, readManagedStatus, readPreviewCancel, readPreviewStart, readPreviewStatus, readProposals, readTemplatePreview, readTemplates, readVideo, readYoutubeOtletek, refusalText } from '../ui/api.ts'
 import { bundle } from '../scripts/build.mjs'
 import { describeManaged, formatMs, megtartasSzoveg, propokSzoveg, sapkaBetelt, statusLabel } from '../ui/format.ts'
 import { pixelbolMs, pontbolJelenet, szazalek, teljesHossz } from '../ui/idovonal-state.ts'
@@ -20,7 +20,7 @@ import { VideoPage } from '../ui/main.tsx'
 import { MANAGED_RESOURCES_URL, loadManagedStatus } from '../ui/managed-state.ts'
 import { URES_SZURO, normal, szurtTipusok } from '../ui/sablon-szuro.ts'
 import { SablonokBody, csakKepek, katalogusElavult } from '../ui/sablonok.tsx'
-import { Sor, UjVideoBody } from '../ui/sor.tsx'
+import { Sor, UjVideoBody, YoutubeOtletekBody, otletMondatok } from '../ui/sor.tsx'
 import { StatusBar, StatusBarBody } from '../ui/status-bar.tsx'
 import { GYARTO_NEV, LEKTOR_NEV, VideoBody, VideoView, megrendelesHiba } from '../ui/video.tsx'
 import { AGENTS } from '../src/agents.mjs'
@@ -2076,4 +2076,125 @@ test('an ordered turn darkens its button and says so in the section header', () 
 
   const mindketto = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'fut', lektorRendeles: 'fut' }))
   assert.ok(mindketto.includes('ügynök-forduló megrendelve: terv, lektorálás'))
+})
+
+// --- the one button that reaches outside the module ---
+
+const ytProps = (overrides = {}) => ({ dolgozik: false, mondatok: [], onKattint: noop, ...overrides })
+
+const ytOtletek = (overrides = {}) => ({
+  nyitott: [], marVolt: 0, jelolt: 0, maradek: 0, csatornaHibak: [], eldobott: 0, ...overrides,
+})
+
+test('readYoutubeOtletek refuses a response missing a list rather than drawing it as zero ideas', () => {
+  assert.deepEqual(readYoutubeOtletek(ytOtletek({ jelolt: 3, marVolt: 1 })), ytOtletek({ jelolt: 3, marVolt: 1 }))
+  for (const hianyos of [
+    { ...ytOtletek(), nyitott: undefined },
+    { ...ytOtletek(), csatornaHibak: undefined },
+    { ...ytOtletek(), jelolt: undefined },
+    { ...ytOtletek(), marVolt: 'sok' },
+    'kesz',
+  ]) assert.throws(() => readYoutubeOtletek(hianyos), /youtubeOtletek/)
+})
+
+test('the YouTube button is dark while it works, and says why beside itself', () => {
+  const nyugalom = render(YoutubeOtletekBody, ytProps())
+  assert.equal(/<button[^>]*disabled[^>]*>Ötletek a YouTube-ról/.test(nyugalom), false)
+  assert.ok(nyugalom.includes('Ötletek a YouTube-ról'))
+  // The line beside the button says what a press does, so the operator is not
+  // guessing what the module is about to go and do.
+  assert.ok(nyugalom.includes('beállított csatornák'))
+
+  const kozben = render(YoutubeOtletekBody, ytProps({ dolgozik: true }))
+  assert.ok(/<button[^>]*disabled[^>]*>Ötletek a YouTube-ról/.test(kozben))
+  assert.ok(kozben.includes('csatornánként másodpercekig'), 'a press that takes seconds must say so, or it reads as a dead button')
+})
+
+test('the YouTube button prints a channel name as text, markup and all', () => {
+  const html = render(YoutubeOtletekBody, ytProps({ mondatok: ['Nem válaszolt: <b>@a</b> (csatorna_idotullepes).'] }))
+  assert.equal(html.includes('<b>@a</b>'), false)
+  assert.ok(html.includes('&lt;b&gt;@a&lt;/b&gt;'))
+})
+
+test('every branch of the YouTube answer gets its own sentence, and none reads as another', () => {
+  // Ideas opened, some already known, some left over.
+  const teli = otletMondatok(ytOtletek({
+    nyitott: [{ videoId: 'v1', cim: 'Egy' }, { videoId: 'v2', cim: 'Kettő' }],
+    jelolt: 15, marVolt: 3, maradek: 10, eldobott: 4,
+  })).join(' | ')
+  assert.ok(teli.includes('2 új ötlet'))
+  assert.ok(teli.includes('3'), 'the ones already on the board are counted separately')
+  assert.ok(teli.includes('10'), 'and so is what a second press would still find')
+  assert.ok(teli.includes('4'), 'the rows the module dropped are named, so a drifted listing is not an empty one')
+
+  // Zero because every candidate is already a video on this board.
+  const marMind = otletMondatok(ytOtletek({ jelolt: 6, marVolt: 6 })).join(' | ')
+  assert.ok(marMind.includes('mindegyikből'))
+  assert.equal(marMind.includes('egy csatorna sem válaszolt'), false)
+
+  // Zero because nothing answered. NOT the same sentence as the one above.
+  const nemaCsatornak = otletMondatok(ytOtletek({
+    csatornaHibak: [{ csatorna: '@a', ok: 'csatorna_idotullepes' }, { csatorna: '@b', ok: 'csatorna_nem_valaszolt' }],
+  })).join(' | ')
+  assert.ok(nemaCsatornak.includes('volt csatorna, ami nem válaszolt'))
+  assert.equal(nemaCsatornak.includes('mindegyikből'), false)
+  // The page knows WHICH channels failed, so "1 of 3 did not answer" is not enough.
+  assert.ok(nemaCsatornak.includes('@a'))
+  assert.ok(nemaCsatornak.includes('@b'))
+  assert.ok(nemaCsatornak.includes('csatorna_idotullepes'))
+
+  // Zero because the channels answered and had nothing inside the window.
+  const uresHet = otletMondatok(ytOtletek({ jelolt: 0 })).join(' | ')
+  assert.ok(uresHet.includes('nem talált'))
+  assert.equal(uresHet.includes('mindegyikből'), false)
+  assert.equal(uresHet.includes('volt csatorna, ami nem válaszolt'), false)
+
+  for (const mondatok of [teli, marMind, nemaCsatornak, uresHet]) assert.equal(mondatok.includes('sikertelen'), false)
+})
+
+test('the YouTube button tells a refusal, a rejected request and a real press apart, and reloads the board only on the last', async () => {
+  let otletek = () => Promise.resolve({ hiba: 'youtube_nincs_csatorna', uzenet: 'nincs beállítva YouTube-csatorna: ... a youtubeCsatornak mezőbe ...' })
+  let ujratoltesek = 0
+  const { rpc, hivasok } = stubRpc({ youtubeOtletek: (params) => otletek(params) })
+  const sor = mount(Sor, sorProps({ rpc, onNyitva: () => { ujratoltesek += 1 } }))
+  const doboz = findElement(sor.tree(), (n) => typeof n.type === 'function' && n.type.name === 'YoutubeOtletek')
+  assert.ok(doboz !== null, 'the queue offers the button at all')
+  const box = mount(doboz.type, doboz.props)
+  const body = () => childProps(box, YoutubeOtletekBody)
+
+  // 1. RESOLVED WITH `hiba`: the module refused, and the sentence tells the
+  //    operator where to go.
+  body().onKattint()
+  await settle()
+  assert.deepEqual(hivasok.at(-1), { method: 'youtubeOtletek', params: {} })
+  const nincs = body().mondatok.join(' | ')
+  assert.ok(nincs.includes('youtube_nincs_csatorna'), 'the code the operator can look up comes first')
+  assert.ok(nincs.includes('beállítás'), 'and the sentence says the fix is in the settings')
+  assert.equal(nincs.includes('sikertelen'), false)
+  assert.equal(ujratoltesek, 0, 'nothing opened, so the board has nothing new to show')
+
+  // A missing binary is a different fact and gets a different sentence.
+  otletek = () => Promise.resolve({ hiba: 'ytdlp_hianyzik', uzenet: 'a beállított útvonalon nincs futtatható yt-dlp: ...' })
+  body().onKattint()
+  await settle()
+  const nincsBinaris = body().mondatok.join(' | ')
+  assert.ok(nincsBinaris.includes('ytdlp_hianyzik'))
+  assert.ok(nincsBinaris.includes('útvonalon'))
+  assert.equal(ujratoltesek, 0)
+
+  // 2. REJECTED: no answer to read for a refusal and no act to report.
+  otletek = () => Promise.reject(new Error('Failed to fetch'))
+  body().onKattint()
+  await settle()
+  assert.equal(body().mondatok.join(' | '), 'Az ötletek kérése el sem jutott a modulhoz: Failed to fetch')
+  assert.equal(ujratoltesek, 0)
+
+  // 3. RESOLVED WITHOUT `hiba`: cards opened, and the board behind the button
+  //    is reloaded or the new videos are nowhere to be seen.
+  otletek = () => Promise.resolve(ytOtletek({ nyitott: [{ videoId: 'v1', cim: 'Egy' }], jelolt: 1 }))
+  body().onKattint()
+  await settle()
+  assert.ok(body().mondatok.join(' | ').includes('1 új ötlet'))
+  assert.equal(ujratoltesek, 1)
+  assert.equal(body().dolgozik, false, 'the button comes back to life whichever way the press ended')
 })

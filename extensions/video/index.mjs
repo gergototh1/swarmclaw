@@ -182,6 +182,13 @@ const video = {
       { key: 'megtartottRenderek', label: 'Megtartott renderek / videó', type: 'number', placeholder: '3', defaultValue: 3 },
       { key: 'linuxRenderEngedely', label: 'Render nem-Mac hoston is', type: 'boolean', defaultValue: false, help: 'A tipográfia macOS rendszerbetű; Linuxon minden videó másképp néz ki, és a QA ezt nem méri.' },
       { key: 'forduloRogzites', label: 'Fordulók rögzítése', type: 'select', defaultValue: 'sajat', options: [{ value: 'sajat', label: 'csak a modul két ügynöke' }, { value: 'mind', label: 'minden csatolt ügynök (60 napig)' }] },
+      // The Sor view's "Ötletek a YouTube-ról" button, and nothing else,
+      // reads these two. No `defaultValue` on the channel list on purpose:
+      // an install has no business guessing whose uploads the operator wants
+      // to make videos from, and an empty list is a NAMED refusal from the
+      // button (`youtube_nincs_csatorna`) rather than a silent zero.
+      { key: 'youtubeCsatornak', label: 'YouTube-csatornák', type: 'text', placeholder: '@lexfridman, https://www.youtube.com/@masik', help: 'Vesszővel elválasztva: csatorna-URL-ek vagy @handle-ök. Ezekből listáz ötleteket a Sor nézet gombja.' },
+      { key: 'ytDlpUtvonal', label: 'yt-dlp útvonala', type: 'text', defaultValue: '/Users/tothgergo/DEV/gergototh.co/apps/yt-dlp/bin/yt-dlp', help: 'A bináris teljes útvonala. Nem a hoston feloldott eszközök egyike, ezért teljes út és nem puszta név.' },
     ],
   },
   /**

@@ -472,6 +472,30 @@ export interface Health {
   sapkak: { nyitottJavaslat: number; tanulsagCelonkent: number; backlog: number }
 }
 
+/**
+ * What the Sor view's YouTube-ideas button gets back from one press.
+ *
+ * SIX NUMBERS AND TWO LISTS, AND NOT ONE OF THEM IS DERIVABLE FROM ANOTHER.
+ * "Nothing new opened because every upload is already a video on this board"
+ * and "nothing new opened because no channel answered" are two different
+ * facts, and the page has to say which happened; `marVolt`, `csatornaHibak`
+ * and `jelolt` are what separate them.
+ */
+export interface YoutubeOtletek {
+  /** The rows this press opened, in the order it opened them. */
+  nyitott: Array<{ videoId: string; cim: string }>
+  /** Candidates this module already had a video for. */
+  marVolt: number
+  /** Candidates the listing produced at all, after the window filter. */
+  jelolt: number
+  /** New candidates the press's own bound left unopened; a second press would find them. */
+  maradek: number
+  /** The channels that did not answer, each with the module's own code for why. Named, never counted. */
+  csatornaHibak: Array<{ csatorna: string; ok: string }>
+  /** Printed lines the module did not take: a stale date, an id it would not build a url from, a drifted format. */
+  eldobott: number
+}
+
 export interface CleanupResult {
   torolt: number
   meghagyott: number
@@ -531,6 +555,40 @@ export function readBoard(raw: unknown): Board {
     counts,
     utolsoFordulok: readArray<Fordulo>('board', root, 'utolsoFordulok'),
     utolsoFordulokLimit: typeof root.utolsoFordulokLimit === 'number' ? root.utolsoFordulokLimit : refuse('board', 'utolsoFordulokLimit'),
+  }
+}
+
+function readNumberField(method: string, record: Record<string, unknown>, field: string): number {
+  const value = record[field]
+  if (typeof value !== 'number' || !Number.isFinite(value)) refuse(method, field)
+  return value
+}
+
+/**
+ * The `youtubeOtletek` answer, or a thrown error naming the first field it
+ * lacks.
+ *
+ * CALLED ONLY AFTER `refusalText` HAS SAID THERE IS NO REFUSAL. The method is
+ * a lever and resolves with `{ hiba, uzenet }` when it refused, which carries
+ * none of these fields; reading that shape here would refuse a refusal for
+ * missing a list, and the operator would get "a youtubeOtletek válaszából
+ * hiányzik a nyitott mező" in place of the sentence telling them to fill in
+ * the settings.
+ *
+ * Every count is required rather than defaulted to 0, for the reason every
+ * other reader in this file gives: a response that did not carry `marVolt` is
+ * a shape this page cannot read, and drawing it as "0 were already known"
+ * would be a false statement about the board.
+ */
+export function readYoutubeOtletek(raw: unknown): YoutubeOtletek {
+  const root = readRoot('youtubeOtletek', raw)
+  return {
+    nyitott: readArray<{ videoId: string; cim: string }>('youtubeOtletek', root, 'nyitott'),
+    marVolt: readNumberField('youtubeOtletek', root, 'marVolt'),
+    jelolt: readNumberField('youtubeOtletek', root, 'jelolt'),
+    maradek: readNumberField('youtubeOtletek', root, 'maradek'),
+    csatornaHibak: readArray<{ csatorna: string; ok: string }>('youtubeOtletek', root, 'csatornaHibak'),
+    eldobott: readNumberField('youtubeOtletek', root, 'eldobott'),
   }
 }
 

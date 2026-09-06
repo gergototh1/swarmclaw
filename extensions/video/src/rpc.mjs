@@ -1,4 +1,4 @@
-import { VideoError, guard, readString } from './args.mjs'
+import { VideoError, guard, readString, readWholeNumber } from './args.mjs'
 import { VIDEO_STATUSOK } from './db.mjs'
 import { allapot, futasNezet, indit, kep, megszakit, torolElonezetCache } from './elonezet.mjs'
 import { runHealth } from './health.mjs'
@@ -9,6 +9,7 @@ import { narralTerv } from './narracio.mjs'
 import { hetiSor, sablonStat } from './sablon.mjs'
 import { BACKLOG_SAPKA, DUPLIKAT_NAP, JAVASLAT_NYITOTT_SAPKA, TANULSAG_SAPKA } from './tanulsag.mjs'
 import { nyissVideot } from './terv.mjs'
+import { YOUTUBE_OTLET_MAX, csatornakOf, fetchYoutube, ytDlpUtvonalOf } from './youtube.mjs'
 
 /**
  * The methods this module's own page calls, over
@@ -55,6 +56,14 @@ const IMPORT_FEEDBACK_MAX = 5000
 const IMPORT_RETENTION_MAX = 50_000
 const SZOVEG_MAX = 4000
 const MEGJEGYZES_MAX = 2000
+/**
+ * The window one press of the YouTube button looks back over when the page
+ * names none. Measured against `upload_date`, which the listing does not in
+ * practice carry (src/youtube.mjs says what was measured); it is the bound
+ * that would apply the day it does.
+ */
+const YOUTUBE_NAPOK_ALAP = 14
+const YOUTUBE_NAPOK_MAX = 365
 const AT_MS_MAX = 24 * 3_600_000
 const JELENET_MAX = 200
 
@@ -301,6 +310,73 @@ export function createRpc(state, ops) {
      */
     async nyit(body = {}) {
       return nemDob(state, () => nyissVideot(state, { forras: body.forras, szoveg: body.forrasSzoveg, cim: body.cim, signalId: body.signalId }, ''))
+    },
+    /**
+     * The Sor view's "Ötletek a YouTube-ról": one row per fresh upload of the
+     * channels the operator configured, minus the ones this module already
+     * has a video for.
+     *
+     * A LEVER, so it goes through `nemDob` like the other three: every state
+     * it refuses -- no channel configured, no binary at the configured path,
+     * a channel that did not answer -- is a sentence the operator has to read
+     * to know what to do next, and a thrown one reaches the browser as a 500
+     * whose body the page shows as "500".
+     *
+     * IT DOES NOT GO THROUGH `nyissVideot` AND DOES NOT APPLY THE DAILY CAP,
+     * and that is a decision rather than an oversight. `napiSapka` bounds what
+     * the SCHEDULED producing agent opens BY ITSELF -- it is the answer to
+     * "how much may this module do while nobody is watching" -- and its
+     * default is 1. A press of this button is the operator deciding, in front
+     * of the board, that they want today's ideas; a cap that stopped at the
+     * second one would make the button useless for the thing it exists for.
+     * So the bound here is the method's own (`YOUTUBE_OTLET_MAX`), it is per
+     * press rather than per day, and the answer says how many candidates were
+     * left over so a second press is an informed one.
+     *
+     * THE CONSEQUENCE, STATED. The rows this opens are ordinary videos and
+     * `videosOpenedSince` counts them, so after a press the scheduled producer
+     * will hit its own cap for the rest of the UTC day and open nothing. That
+     * is the right outcome and not a bug to work around: the day's ideas have
+     * already been delivered, by the operator, from a source the agent cannot
+     * reach.
+     *
+     * WHAT IT WRITES. `openVideo` directly, with `forrasTipus: 'youtube'`,
+     * `forrasId` the checked video id, and a source text of the title and the
+     * url this module built from that id -- never a url that came back in the
+     * listing text. The opener is '' rather than an agent id, for the same
+     * reason `nyit`'s is: an operator is not an agent, and nothing gates on
+     * the opener. `forras_tipus` has no CHECK constraint (db.mjs), so the
+     * third value needed no migration; the tool's own source list
+     * (`FORRASOK` in src/terv.mjs) is deliberately NOT widened, because no
+     * agent may start this.
+     */
+    async youtubeOtletek(body = {}) {
+      return nemDob(state, async () => {
+        const napok = readWholeNumber('napok', body.napok, { min: 1, max: YOUTUBE_NAPOK_MAX, fallback: YOUTUBE_NAPOK_ALAP })
+        const csatornak = csatornakOf(state)
+        const { jeloltek, csatornaHibak, eldobott } = await fetchYoutube({
+          csatornak,
+          napok,
+          ytDlp: ytDlpUtvonalOf(state),
+          execFileImpl: state.execFileImpl || undefined,
+        })
+        // One card per video id, whatever brought it: the same channel listed
+        // twice in the setting is a typo, not two ideas.
+        const latott = new Set()
+        const ujak = []
+        for (const j of jeloltek) {
+          if (latott.has(j.id)) continue
+          latott.add(j.id)
+          if (repo().videoForYoutube(j.id) !== null) continue
+          ujak.push(j)
+        }
+        const nyitando = ujak.slice(0, YOUTUBE_OTLET_MAX)
+        const nyitott = nyitando.map((j) => {
+          const { id } = repo().openVideo({ cim: j.cim, forrasTipus: 'youtube', forrasId: j.id, forrasSzoveg: `${j.cim}\n\n${j.url}`, nyitottaAgentId: '' })
+          return { videoId: id, cim: j.cim }
+        })
+        return { nyitott, marVolt: latott.size - ujak.length, jelolt: latott.size, maradek: ujak.length - nyitott.length, csatornaHibak, eldobott }
+      })
     },
     /**
      * The Terv section's Narracio kerese. `videoNarrate` by another door

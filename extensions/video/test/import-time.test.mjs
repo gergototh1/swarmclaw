@@ -79,7 +79,7 @@ test('index.mjs imports under plain node well inside the host deadline and decla
     'board', 'cancelRender', 'cleanup', 'decideProposal', 'feedback', 'health', 'importFeedback',
     'importRetention', 'lezar', 'mcpCall', 'mcpTools', 'narral', 'nyit', 'proposals', 'renderel',
     'retireLesson', 'templatePreview', 'templatePreviewCancel', 'templatePreviewStart',
-    'templatePreviewStatus', 'templates', 'video',
+    'templatePreviewStatus', 'templates', 'video', 'youtubeOtletek',
   ])
   assert.deepEqual(out.provides, ['videos'])
   assert.deepEqual(out.consumes, ['aisignal.signals', 'tts.narration'])

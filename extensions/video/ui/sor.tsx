@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 
-import type { Board, BoardCard, Rpc } from './api'
-import { errorText, refusalText } from './api'
+import type { Board, BoardCard, Rpc, YoutubeOtletek as YoutubeOtletekValasz } from './api'
+import { errorText, isRecord, readYoutubeOtletek, refusalText } from './api'
 import { formatDate, renderStatusLabel, sapkaSzoveg, statusLabel } from './format'
 
 /**
@@ -20,10 +20,14 @@ import { formatDate, renderStatusLabel, sapkaSzoveg, statusLabel } from './forma
  * link: the source url lives in the source text, and the Video view is where
  * it is shown, behind `safeHref`.
  *
- * Above the columns is the one thing this view can DO rather than show:
- * opening a video from text the operator pastes. It is the first link of the
- * chain and the only one no agent can start on the operator's behalf, which
- * is why the queue -- and not some settings screen -- is where it stands.
+ * Above the columns are the two things this view can DO rather than show,
+ * and they are the two the chain cannot start without: opening a video from
+ * text the operator pastes, and asking the configured YouTube channels for
+ * their recent uploads. Both are the first link of the chain and neither is
+ * one an agent may start on the operator's behalf -- the first because
+ * nobody else has the text, the second because it spawns a process that
+ * talks to a third party -- which is why the queue, and not some settings
+ * screen, is where they stand.
  */
 
 function Kartya({ card, onOpen }: { card: BoardCard; onOpen: (id: string) => void }) {
@@ -173,6 +177,144 @@ function UjVideo({ rpc, onNyitva }: { rpc: Rpc; onNyitva: () => void }) {
   )
 }
 
+/**
+ * The sentences one press of the YouTube button produced, in the order the
+ * operator should read them.
+ *
+ * A LIST RATHER THAN A STRING, and every branch its own sentence: this is the
+ * one control on the page whose answer has five independent parts -- what
+ * opened, what was already here, what was left over, which channels went
+ * quiet, and what the module refused to take off the listing -- and folding
+ * them into one line would make the interesting one the hardest to find.
+ *
+ * THE THREE ZEROS ARE THREE SENTENCES. "Nothing opened because every upload
+ * is already a video on this board", "nothing came back at all and a channel
+ * went quiet while it did not" and "the channels answered and had nothing
+ * new" are different facts with different fixes -- wait for the next upload,
+ * fix a channel url, widen the window -- and a single "0 új ötlet" would send
+ * the operator looking in the wrong place for all three.
+ *
+ * THE CHANNELS ARE NAMED. "3 csatornából 1 nem válaszolt" is a count of a
+ * fact the page already has in full; the operator cannot act on it without
+ * going to look up which one, and the answer carries the name.
+ */
+export function otletMondatok(eredmeny: YoutubeOtletekValasz): string[] {
+  const { nyitott, marVolt, jelolt, maradek, csatornaHibak, eldobott } = eredmeny
+  const mondatok: string[] = []
+  if (nyitott.length > 0) mondatok.push(`${nyitott.length} új ötlet nyílt kártyaként a táblára.`)
+  // Not "no channel answered": the answer carries the failures but not how
+  // many channels were asked, so one quiet channel beside two that answered
+  // with nothing would make that sentence false. What is true, and is the
+  // fact the operator needs, is that the empty result is not necessarily the
+  // channels' own answer.
+  else if (csatornaHibak.length > 0 && jelolt === 0) mondatok.push('Nem jött egyetlen jelölt sem, és közben volt csatorna, ami nem válaszolt.')
+  else if (marVolt > 0 && jelolt === marVolt) mondatok.push('Nem nyílt új kártya: mindegyikből van már videó a táblán.')
+  else mondatok.push('A modul nem talált új feltöltést a csatornákon ebben az ablakban.')
+  if (marVolt > 0 && nyitott.length > 0) mondatok.push(`${marVolt} feltöltésből már volt videó, azokat a modul kihagyta.`)
+  if (maradek > 0) mondatok.push(`${maradek} ötlet maradt a gomb egy-nyomásos korlátján kívül; nyomd meg még egyszer, ha kell.`)
+  if (csatornaHibak.length > 0) {
+    mondatok.push(`Nem válaszolt: ${csatornaHibak.map((h) => `${h.csatorna} (${h.ok})`).join(', ')}.`)
+  }
+  if (eldobott > 0) mondatok.push(`${eldobott} listasort a modul nem vett át: az ablakon kívüli dátum, vagy olyan sor, amiből nem épít videó-hivatkozást.`)
+  return mondatok
+}
+
+/**
+ * The button and the lines under it.
+ *
+ * Split out for the reason `UjVideoBody` is: what a state LOOKS like is
+ * pinned by rendering this with that state in the props, and a server render
+ * runs no effect and no click. The reason a dark button is dark stands BESIDE
+ * it, never in a `title=` nobody hovers -- the rule the ordering levers on the
+ * Video view are built on.
+ *
+ * Every sentence is a React text child. One of them names channels the
+ * operator typed into a settings field, and another carries the module's own
+ * refusal message; neither is markup here.
+ */
+export function YoutubeOtletekBody({ dolgozik, mondatok, onKattint }: {
+  dolgozik: boolean
+  mondatok: string[]
+  onKattint: () => void
+}) {
+  const ok = dolgozik ? 'A lekérés fut; a yt-dlp csatornánként másodpercekig tart.' : null
+  return (
+    <section className="vid-youtube">
+      <h3>Ötletek a YouTube-ról</h3>
+      <p className="vid-muted vid-youtube-mit">
+        A beállított csatornák friss feltöltéseiből nyit kártyát a táblára. Amiből már van videó, azt kihagyja.
+      </p>
+      <div className="vid-lepes">
+        <button type="button" className="vid-btn" disabled={dolgozik} onClick={onKattint}>Ötletek a YouTube-ról</button>
+        {ok !== null && <span className="vid-muted vid-lepes-ok">{ok}</span>}
+      </div>
+      {mondatok.length > 0 && (
+        <ul className="vid-youtube-valasz" role="status">
+          {mondatok.map((m) => <li key={m}>{m}</li>)}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+/**
+ * The button's state and its one request.
+ *
+ * THREE OUTCOMES, NEVER FOLDED, the same three `UjVideo` above keeps apart.
+ * `youtubeOtletek` RESOLVES with its refusals (no channel configured, no
+ * binary at the configured path), so a resolved promise is not proof that
+ * anything happened and `refusalText` is asked first. A REJECTED promise is
+ * the third fact -- the request never reached the module -- and gets its own
+ * sentence. None of them is "sikertelen".
+ *
+ * The two refusals the operator can actually fix get a second sentence saying
+ * WHERE, because the module's own message names a settings field and the
+ * operator should not have to work out that a settings field is a place.
+ *
+ * On a real press the board is reloaded through `onNyitva`: the new cards
+ * belong in the queue below this box and nothing else would put them there.
+ */
+function YoutubeOtletek({ rpc, onNyitva }: { rpc: Rpc; onNyitva: () => void }) {
+  const [dolgozik, setDolgozik] = useState(false)
+  const [mondatok, setMondatok] = useState<string[]>([])
+
+  const onKattint = useCallback(() => {
+    setDolgozik(true)
+    rpc('youtubeOtletek', {})
+      .then((raw) => {
+        const hiba = refusalText(raw)
+        if (hiba !== null) {
+          const kod = isRecord(raw) && typeof raw.hiba === 'string' ? raw.hiba : ''
+          const hol = kod === 'youtube_nincs_csatorna'
+            ? 'Előbb írj csatornákat a modul beállításai közé, a YouTube-csatornák mezőbe.'
+            : kod === 'ytdlp_hianyzik'
+              ? 'A beállított útvonalon nincs futtatható bináris; a modul beállításai közt az yt-dlp útvonala mezőt javítsd.'
+              : null
+          setMondatok(hol === null ? [hiba] : [hiba, hol])
+          return
+        }
+        // The reader's own refusal is a FOURTH fact and may not fall into
+        // the catch below: "el sem jutott a modulhoz" would be a false
+        // statement about a request that arrived and was answered, just in a
+        // shape this page cannot read. And nothing is reloaded over it,
+        // because nobody here knows whether anything opened.
+        let eredmeny: YoutubeOtletekValasz
+        try {
+          eredmeny = readYoutubeOtletek(raw)
+        } catch (err: unknown) {
+          setMondatok([`A modul válaszát ez a lap nem tudta elolvasni: ${errorText(err)}`])
+          return
+        }
+        setMondatok(otletMondatok(eredmeny))
+        onNyitva()
+      })
+      .catch((err: unknown) => setMondatok([`Az ötletek kérése el sem jutott a modulhoz: ${errorText(err)}`]))
+      .finally(() => setDolgozik(false))
+  }, [rpc, onNyitva])
+
+  return <YoutubeOtletekBody dolgozik={dolgozik} mondatok={mondatok} onKattint={onKattint} />
+}
+
 export function Sor({ board, onOpen, rpc, onNyitva }: { board: Board; onOpen: (id: string) => void; rpc: Rpc; onNyitva: () => void }) {
   const teli = board.statusok.filter((s) => (board.oszlopok[s] ?? []).length > 0)
   const ures = board.statusok.filter((s) => (board.oszlopok[s] ?? []).length === 0)
@@ -180,6 +322,7 @@ export function Sor({ board, onOpen, rpc, onNyitva }: { board: Board; onOpen: (i
   return (
     <div className="vid-sor">
       <UjVideo rpc={rpc} onNyitva={onNyitva} />
+      <YoutubeOtletek rpc={rpc} onNyitva={onNyitva} />
       {teli.length === 0 && (
         <p className="vid-muted">
           {/*
@@ -188,7 +331,7 @@ export function Sor({ board, onOpen, rpc, onNyitva }: { board: Board; onOpen: (i
             appeared. An empty queue with a live control on the same screen
             has to say that the control is the other way.
           */}
-          Egyetlen videó sincs a sorban. A modul akkor nyit videót, amikor a gyártó ügynök lefut — vagy amikor te nyitsz egyet a fenti dobozban.
+          Egyetlen videó sincs a sorban. A modul akkor nyit videót, amikor a gyártó ügynök lefut — vagy amikor te nyitsz egyet a fenti dobozban, illetve ötleteket kérsz a YouTube-ról.
         </p>
       )}
       <div className="vid-columns">

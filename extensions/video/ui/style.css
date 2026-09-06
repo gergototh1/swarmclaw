@@ -518,3 +518,37 @@
 .vid-sec > .vid-render { border: none; padding: 0; margin: 0 0 14px; }
 .vid-sec > .vid-render + .vid-render { padding-top: 14px; border-top: 1px solid var(--border, rgba(127, 127, 127, 0.16)); }
 .vid-sec > .vid-terv > h3 { font-size: 13px; margin-top: 0; }
+
+/*
+  The YouTube-ideas box, beside the manual open above the columns. Boxed the
+  same way, because it is the same kind of thing: one control that writes rows
+  onto the board below it.
+*/
+.vid-youtube {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  max-width: 620px;
+}
+.vid-youtube h3 {
+  margin: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-3, #8282a0);
+}
+.vid-youtube-mit { margin: 6px 0 0; font-size: 12px; line-height: 1.45; }
+
+/*
+  One press answers with up to five independent facts, so they are a list and
+  not a paragraph: an operator scanning for "which channel went quiet" should
+  not have to read the other four to find it.
+*/
+.vid-youtube-valasz {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.vid-youtube-valasz li { overflow-wrap: anywhere; }

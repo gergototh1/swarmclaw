@@ -55,6 +55,17 @@ import crypto from 'node:crypto'
  *             Keyed on the card id the `signals` contract handed over, which
  *             is the provider's own surrogate; the card's text is not in it.
  *
+ *   videoForYoutube -- WHERE forras_tipus = 'youtube' AND forras_id = ?
+ *     gates   whether the Sor view's YouTube-ideas button opens a SECOND
+ *             video from an upload it already made one from. Not unique in the
+ *             schema, for the same reason `videoForSignal` is not: the caller's
+ *             filter is the barrier and this read is what it asks. Keyed on
+ *             YouTube's own video id, checked against a shape before it is
+ *             stored (src/youtube.mjs, ID_ALAK); the video's title, which is a
+ *             stranger's text, is not in it.
+ *             `forras_tipus` has no CHECK constraint on this table, so storing
+ *             a third value in it is not a migration and none was written.
+ *
  *   ext_video_tervek -- PRIMARY KEY (id)
  *     gates   THE RENDER, as one half of its approval key. `passingVerdikt`
  *             is asked for (terv.id, terv.terv_hash), and the id half is what
@@ -455,6 +466,15 @@ export function createRepo(storage) {
      */
     videoForSignal(signalId) {
       return S.get("SELECT * FROM ext_video_videos WHERE forras_tipus = 'signal' AND forras_id = ? ORDER BY created_at ASC, rowid ASC LIMIT 1", [signalId]) || null
+    },
+    /**
+     * The video opened from one YouTube upload, or null. `videoForSignal` by
+     * the same shape: the button filters its candidates on this, so at most
+     * one exists in practice, and if two ever did, the earliest is the one
+     * whose existence made the others a skip.
+     */
+    videoForYoutube(youtubeId) {
+      return S.get("SELECT * FROM ext_video_videos WHERE forras_tipus = 'youtube' AND forras_id = ? ORDER BY created_at ASC, rowid ASC LIMIT 1", [youtubeId]) || null
     },
     videosOpenedSince(iso) { return count('SELECT COUNT(*) AS c FROM ext_video_videos WHERE created_at >= ?', [iso]) },
     /**
