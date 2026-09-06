@@ -152,6 +152,7 @@ const ELFOGADAS_HIBA_HU: Readonly<Record<string, string>> = Object.freeze({
   crm_host_hivas_sikertelen: 'A hoszt nem válaszolt a feladat létrehozására -- próbáld újra.',
   crm_projekt_nem_talalhato: 'A CRM projekt nem található a hoszton, a feladat emiatt nem jött létre -- ellenőrizd, hogy a CRM extension telepítése rendben van-e, vagy forduljon az üzemeltetőhöz.',
   crm_feladat_nem_jott_letre: 'A hoszt nem adott vissza feladat-azonosítót -- a feladat lehet, hogy mégsem jött létre. Ellenőrizd a feladatlistán.',
+  crm_ervenytelen_host_valasz: 'A hoszt válasza nem értelmezhető -- a feladat lehet, hogy mégsem jött létre. Ellenőrizd a feladatlistán, vagy forduljon az üzemeltetőhöz.',
 })
 
 function elfogadasHibaUzenete(message: string): string {
@@ -232,6 +233,19 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
    * hinné, most született valami, miközben csak egy korábbi feladatra
    * kaptunk vissza mutatót.
    *
+   * A MONDAT NEM ÁLLÍTJA, HOGY EZ A JAVASLAT HOZTA LÉTRE A FELADATOT --
+   * I-NEW-2: a dedup a hoszt cím+agentId fingerprintjén dől el
+   * (`acceptSuggestion` doksija), tehát az ütköző, már létező feladatot akár
+   * egy MÁSIK javaslat is létrehozhatta (két javaslat, azonos cím-fingerprint
+   * -- lásd a javaslat-id-szuffixot a `rpc.mjs`-ben, ami ezt a legvalószínűbb
+   * esetet kizárja, de a szuffix nélküli, régebbi feladatokkal vagy egy
+   * kézzel felvitt, azonos című feladattal szemben nem tud garantálni
+   * semmit). Az "Ez a javaslat már korábban létrehozott egy feladatot" mondat
+   * ezt a hamis okozati állítást tette -- a mondat most azt írja le, amit a
+   * hoszt ténylegesen jelentett: hogy egy nyitott, azonos című feladat már
+   * létezik, ezért új nem jött létre, és megnevezi az azonosítóját, hogy az
+   * operátor meg tudja nézni, tényleg erről a javaslatról van-e szó.
+   *
    * MINDKÉT `setElfogadFut` hívás funkcionális formában frissít
    * (`(elozo) => ...`), nem a render-closure `elfogadFut`-ját olvassa: két
    * javaslat gyors egymás utáni elfogadása esetén a második hívás
@@ -246,7 +260,7 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
         const eredmeny = r as { taskId: string; deduplicated?: boolean }
         setElfogadEredmeny(
           eredmeny.deduplicated
-            ? `Ez a javaslat már korábban létrehozott egy feladatot -- nem jött létre új: ${eredmeny.taskId}`
+            ? `Már létezik egy nyitott, azonos című feladat -- új nem jött létre, a meglévő azonosítója: ${eredmeny.taskId}`
             : `Feladat létrehozva: ${eredmeny.taskId}`,
         )
         tolt()

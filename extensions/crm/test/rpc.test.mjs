@@ -383,7 +383,7 @@ test('az attention a kiuritett (ures string) kuszobmezot is alapertekre valtja, 
  * hívó teszt, aminek a projekt-illesztés nem a tárgya, ne akadjon el az új
  * `crm_projekt_nem_talalhato` hibán.
  */
-function fetchImplNyomkovetve(hivasok, projektSorok = [projektSor('proj_crm', 'crm', 'crm')]) {
+function fetchImplNyomkovetve(hivasok, projektSorok = [projektSor('proj_crm', 'crm.mjs', 'crm')]) {
   return async (url, init) => {
     const rec = { url, method: init.method }
     if (init.body) rec.body = JSON.parse(init.body)
@@ -421,8 +421,9 @@ test('a javaslat elfogadasa feladatot ker a hosttol, es rogziti az azonositot', 
   const b = taskHivas.body
   // A cím az ügyfél nevével kezdődik -- lásd C1 a code review-ban: enélkül
   // két különböző ügyfél azonos szövegű javaslata (pl. "Kuldj ajanlatot")
-  // egyetlen feladatba ütközne a hoszt saját, cím+agentId fingerprintjén.
-  assert.equal(b.title, 'Morvai Kft. — Kuldj ajanlatot')
+  // egyetlen feladatba ütközne a hoszt saját, cím+agentId fingerprintjén. A cím
+  // egy ` #<sug.id utolsó 8 karaktere>` szuffixszal zárul -- lásd I-NEW-1.
+  assert.equal(b.title, `Morvai Kft. — Kuldj ajanlatot #${sug.id.slice(-8)}`)
   assert.equal(b.customFields.crm_account, acc.id)
   assert.deepEqual(b.tags, ['crm'])
   // Nincs `fingerprint` mező a törzsben -- a host úgyis felülírja a sajátjával
@@ -431,7 +432,7 @@ test('a javaslat elfogadasa feladatot ker a hosttol, es rogziti az azonositot', 
   assert.ok(!('fingerprint' in b), 'nem küldünk fingerprint mezőt, amit a host úgyis felülír')
 })
 
-test('a javaslat cime 120 karakterre vagva, az ugyfel nevevel egyutt', async () => {
+test('a javaslat cime 120 karakterre vagva, az ugyfel nevevel egyutt, es a megkulonbozteto id-szuffix tulel', async () => {
   const S = memStorage()
   for (const m of MIGRATIONS) S.raw.exec(m.sql)
   const repo = createRepo(S)
@@ -449,6 +450,45 @@ test('a javaslat cime 120 karakterre vagva, az ugyfel nevevel egyutt', async () 
 
   const taskHivas = hivasok.find((h) => h.url.endsWith('/api/tasks'))
   assert.equal(taskHivas.body.title.length, 120)
+  // I-NEW-1: nem eleg, hogy a cim pontosan 120 karakter -- annak is teljesulnie
+  // kell, hogy a megkulonbozteto resz (a javaslat id-jenek utolso 8 karaktere)
+  // tenyleg BENNE marad a vagott cimben, nem esik ki a vagas soran.
+  assert.ok(taskHivas.body.title.endsWith(` #${sug.id.slice(-8)}`),
+    'a javaslat-id-szuffix a vagott cim vegen tulel')
+})
+
+/**
+ * I-NEW-1: egy elég hosszú ügyfélnév a régi kódban (`${acc.name} — ${sug.text}`.slice(0,120))
+ * a javaslat szövegét TELJESEN kiszorítja a 120 karakterből -- ekkor minden,
+ * ugyanahhoz az ügyfélhez tartozó javaslat cime egybeesett volna, es a hoszt
+ * cim+agentId fingerprintje a masodik elfogadast az elso megismetlesenek
+ * latta volna (deduplicated: true), holott ket KULONBOZO javaslatrol van szo.
+ * A 86 karakteres nev es a ket idezett javaslat-szoveg valodi, C-NEW-1
+ * jelentéséből szó szerint átvett reprodukció.
+ */
+test('hosszu ugyfelnev mellett ket kulonbozo javaslat cime SEM eshet egybe', async () => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const hivasok = []
+  const state = {
+    storage: S, repo, log: console, settings: () => ({}),
+    portFile: irPortFajlt(tempDir()),
+    fetchImpl: fetchImplNyomkovetve(hivasok),
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({
+    name: 'Első Magyar Kereskedelmi és Szolgáltató Korlátolt Felelősségű Társaság Ipari Zrt.',
+  })
+  const sug1 = repo.writeSuggestion({ accountId: acc.id, text: 'Hívd fel a szerződés lejáratáról' })
+  const sug2 = repo.writeSuggestion({ accountId: acc.id, text: 'Írj neki a szervizigényről' })
+
+  await rpc.acceptSuggestion({ suggestionId: sug1.id })
+  await rpc.acceptSuggestion({ suggestionId: sug2.id })
+
+  const cimek = hivasok.filter((h) => h.url.endsWith('/api/tasks')).map((h) => h.body.title)
+  assert.equal(cimek.length, 2)
+  assert.notEqual(cimek[0], cimek[1], 'a ket cim egy hosszu ugyfelnev mellett sem eshet egybe')
 })
 
 test('ket kulonbozo ugyfel egyforma szovegu javaslata NEM utkozik a cimben', async () => {
@@ -497,7 +537,7 @@ test('az acceptSuggestion tovabbadja a hoszt deduplicated jelzeset', async () =>
       const rec = { url, method: init.method }
       if (init.body) rec.body = JSON.parse(init.body)
       hivasok.push(rec)
-      if (url.endsWith('/api/projects')) return { ok: true, json: async () => [projektSor('proj_crm', 'crm', 'crm')] }
+      if (url.endsWith('/api/projects')) return { ok: true, json: async () => [projektSor('proj_crm', 'crm.mjs', 'crm')] }
       if (url.endsWith('/api/tasks')) return { ok: true, json: async () => ({ id: 'task_regi', deduplicated: true }) }
       throw new Error(`varatlan ut -- ${url}`)
     },
@@ -533,7 +573,7 @@ test('a javaslat elfogadasa a CRM projektbe filezi a feladatot, akkor is, ha a b
   const projektSorok = [
     projektSor('proj_dontő', 'mas-extension', 'crm'),
     projektSor('proj_egyeb', 'mas', 'mas'),
-    projektSor('proj_crm', 'crm', 'crm'),
+    projektSor('proj_crm', 'crm.mjs', 'crm'),
   ]
   const state = {
     storage: S, repo, log: console, settings: () => ({}),
@@ -552,6 +592,39 @@ test('a javaslat elfogadasa a CRM projektbe filezi a feladatot, akkor is, ha a b
   const taskHivas = hivasok.find((h) => h.url.endsWith('/api/tasks'))
   assert.ok(taskHivas, 'a feladat-POST megtortent')
   assert.equal(taskHivas.body.projectId, 'proj_crm', 'a feladat a valodi CRM projektbe kerult, nem a dontő extensionebe')
+})
+
+/**
+ * C-NEW-1: a host az extensiont a FÁJLNEVÉVEL azonosítja
+ * (`src/lib/server/extensions.ts`), tehát a valódi `managedByExtension.extensionId`
+ * ennek a telepítésnek `'crm.mjs'` -- ezt méri a fenti teszt. Ez a teszt a
+ * másik, tolerált spellinget nézi (a puszta `'crm'`-et, ha valaha egy host-
+ * verzió vagy egy másik telepítési út ezt írná), és hogy a döntő
+ * `mas-extension` sor emellett is decoy marad -- a normalizálás a `crm`
+ * résszel egyezik, nem a mezővel egyáltalán.
+ */
+test('a javaslat elfogadasa a CRM projektbe filezi a feladatot, ha a hoszt a puszta "crm" alakot irja extensionId-kent', async () => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const hivasok = []
+  const projektSorok = [
+    projektSor('proj_dontő', 'mas-extension', 'crm'),
+    projektSor('proj_crm', 'crm', 'crm'),
+  ]
+  const state = {
+    storage: S, repo, log: console, settings: () => ({}),
+    portFile: irPortFajlt(tempDir()),
+    fetchImpl: fetchImplNyomkovetve(hivasok, projektSorok),
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'Kuldj ajanlatot' })
+
+  await rpc.acceptSuggestion({ suggestionId: sug.id })
+
+  const taskHivas = hivasok.find((h) => h.url.endsWith('/api/tasks'))
+  assert.equal(taskHivas.body.projectId, 'proj_crm')
 })
 
 test('az igeretbol szuletett javaslat elfogadasa LEZARJA az igeretet is', async () => {
@@ -575,6 +648,44 @@ test('az igeretbol szuletett javaslat elfogadasa LEZARJA az igeretet is', async 
   await rpc.acceptSuggestion({ suggestionId: sug.id })
   assert.equal(repo.listCommitments({ openOnly: true }).length, 0,
     'az igeret lezarult, tehat nem jon vissza a figyelem-listara')
+})
+
+/**
+ * M5: a `commitmentId`-t az ügynök a JAVASLAT ÍRÁSAKOR adta meg, és a
+ * `crm_suggestion_write` akkor ellenőrizte, hogy az ígéret a javaslat
+ * ügyfeléhez tartozik (I4). Az ELFOGADÁS egy KÉSŐBBI pillanatban történik --
+ * ez a teszt azt az esetet fogja meg, amikor időközben (kézi javítással) az
+ * ígéret már egy MÁSIK ügyfélhez tartozik: az elfogadásnak ekkor NEM szabad
+ * lezárnia az idegen ügyfél ígéretét, csak névvel naplóznia, hogy miért nem.
+ */
+test('ha a javaslathoz tartozo igeret idokozben mas ugyfelhez kerult, az elfogadas NEM zarja le', async () => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const naplo = []
+  const state = {
+    storage: S, repo, settings: () => ({}),
+    log: { warn: (msg, meta) => naplo.push({ msg, meta }), info() {}, error() {} },
+    portFile: irPortFajlt(tempDir()),
+    fetchImpl: fetchImplNyomkovetve([]),
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({ name: 'X' })
+  const masikAcc = repo.createAccount({ name: 'Masik' })
+  const { event } = repo.recordEvent({ accountId: acc.id, kind: 'meeting',
+    occurredAt: '2026-09-01T10:00:00.000Z', excerpt: 'x', sourceSystem: 'manual', sourceId: 'm1' })
+  const igeret = repo.writeCommitment({ accountId: acc.id, eventId: event.id, text: 'Kuldom', direction: 'ours' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'Kuldd el', commitmentId: igeret.id })
+
+  // Kezi "adatjavitas": az igeret idokozben a masik ugyfelhez kerul.
+  S.raw.exec(`UPDATE ext_crm_commitment SET account_id = '${masikAcc.id}' WHERE id = '${igeret.id}'`)
+
+  await rpc.acceptSuggestion({ suggestionId: sug.id })
+
+  const friss = repo.getCommitment(igeret.id)
+  assert.equal(friss.task_id, null, 'az idegen ugyfelhez kerult igeret nem zarult le')
+  assert.ok(naplo.some((n) => n.msg.includes('acceptSuggestion') && n.meta?.commitmentId === igeret.id),
+    'a kihagyas nevesitve a logba kerult')
 })
 
 /**
@@ -745,7 +856,7 @@ test('crm_host_hivas_sikertelen, ha a feladat-POST elhasal', async () => {
     storage: S, repo, log: console, settings: () => ({}),
     portFile: irPortFajlt(tempDir()),
     fetchImpl: async (url) => {
-      if (url.endsWith('/api/projects')) return { ok: true, json: async () => [projektSor('proj_crm', 'crm', 'crm')] }
+      if (url.endsWith('/api/projects')) return { ok: true, json: async () => [projektSor('proj_crm', 'crm.mjs', 'crm')] }
       if (url.endsWith('/api/tasks')) return { ok: false, json: async () => ({}) }
       throw new Error(`varatlan ut -- ${url}`)
     },
@@ -757,6 +868,60 @@ test('crm_host_hivas_sikertelen, ha a feladat-POST elhasal', async () => {
   await assert.rejects(() => rpc.acceptSuggestion({ suggestionId: sug.id }), /crm_host_hivas_sikertelen/)
 })
 
+/**
+ * M4: a `crmProjektId` sikeres találata a `state.crmProjectId`-n marad
+ * gyorsítótárazva a folyamat élettartamára. Ha a mögötte álló projektet
+ * időközben törölték és egy MÁSIK id-vel rekonciliálták újra, a
+ * gyorsítótárazott id halott -- a `/api/tasks` POST erre elhasal. Enélkül a
+ * javítás nélkül MINDEN további elfogadás ugyanezzel a halott id-vel
+ * próbálkozna újra, örökre. A teszt ezt úgy szimulálja, hogy az ELSŐ
+ * `/api/tasks` hívás elhasal (halott id), a MÁSODIK viszont sikeres --
+ * de csak akkor, ha a `/api/projects` GET időközben újra lefut, és egy ÚJ
+ * projekt-id-t ad vissza.
+ */
+test('egy sikertelen feladat-POST utan a crmProjectId gyorsitotar torlodik, a kovetkezo elfogadas ujra lekerdez', async () => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const hivasok = []
+  let projektLekerdezesSzam = 0
+  const state = {
+    storage: S, repo, log: console, settings: () => ({}),
+    portFile: irPortFajlt(tempDir()),
+    fetchImpl: async (url, init) => {
+      const rec = { url, method: init.method }
+      if (init.body) rec.body = JSON.parse(init.body)
+      hivasok.push(rec)
+      if (url.endsWith('/api/projects')) {
+        projektLekerdezesSzam += 1
+        // Az elso lekerdezes egy azota torolt projektet ad, a masodik mar
+        // az ujonnan rekoncilialtat.
+        const id = projektLekerdezesSzam === 1 ? 'proj_halott' : 'proj_uj'
+        return { ok: true, json: async () => [projektSor(id, 'crm.mjs', 'crm')] }
+      }
+      if (url.endsWith('/api/tasks')) {
+        const body = JSON.parse(init.body)
+        // A "halott" projektbe iranyulo POST elhasal -- ez szimulalja, hogy
+        // a gyorsitotarazott projectId mar nem letezik a hoszton.
+        if (body.projectId === 'proj_halott') return { ok: false, json: async () => ({}) }
+        return { ok: true, json: async () => ({ id: 'task_uj' }) }
+      }
+      throw new Error(`varatlan ut -- ${url}`)
+    },
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({ name: 'X' })
+  const sug1 = repo.writeSuggestion({ accountId: acc.id, text: 'elso' })
+  const sug2 = repo.writeSuggestion({ accountId: acc.id, text: 'masodik' })
+
+  await assert.rejects(() => rpc.acceptSuggestion({ suggestionId: sug1.id }), /crm_host_hivas_sikertelen/)
+  assert.equal(state.crmProjectId, null, 'a sikertelen POST utan a gyorsitotar torlodott')
+
+  const out = await rpc.acceptSuggestion({ suggestionId: sug2.id })
+  assert.equal(out.taskId, 'task_uj', 'a masodik elfogadas mar az uj projekt-id-vel sikerult')
+  assert.equal(projektLekerdezesSzam, 2, 'a masodik elfogadas ujra lekerdezte a projekt-listat')
+})
+
 test('crm_feladat_nem_jott_letre, ha a hoszt valasza nem tartalmaz id-t', async () => {
   const S = memStorage()
   for (const m of MIGRATIONS) S.raw.exec(m.sql)
@@ -765,7 +930,7 @@ test('crm_feladat_nem_jott_letre, ha a hoszt valasza nem tartalmaz id-t', async 
     storage: S, repo, log: console, settings: () => ({}),
     portFile: irPortFajlt(tempDir()),
     fetchImpl: async (url) => {
-      if (url.endsWith('/api/projects')) return { ok: true, json: async () => [projektSor('proj_crm', 'crm', 'crm')] }
+      if (url.endsWith('/api/projects')) return { ok: true, json: async () => [projektSor('proj_crm', 'crm.mjs', 'crm')] }
       if (url.endsWith('/api/tasks')) return { ok: true, json: async () => ({}) }
       throw new Error(`varatlan ut -- ${url}`)
     },
@@ -817,5 +982,144 @@ test('crm_host_hivas_sikertelen, ha a feladat-POST idotullepi a hatarido', async
   const acc = repo.createAccount({ name: 'X' })
   const sug = repo.writeSuggestion({ accountId: acc.id, text: 'x' })
 
-  await assert.rejects(() => rpc.acceptSuggestion({ suggestionId: sug.id }), /crm_host_hivas_sikertelen/)
+  // Finding 9: a `fetchImpl` fent SOSEM oldódik fel magától -- kizárólag az
+  // `AbortSignal` `abort` eseménye szabadítja fel. Ha egy jövőbeli módosítás
+  // kivenné a `signal`-t a `hostFetch` fetch-hívásából, ez a promise örökre
+  // függve maradna, és a node:test futtató ezt NEM egy nevesített hibaként
+  // ("# fail"), hanem "# cancelled"-ként jelentené -- egy "# fail" mintára
+  // grep-elő CI-kapu ezt észrevétlenül átengedné (kipróbálva: egy örökre
+  // pending promise `test()`-je `# cancelled 1`-et ad, `# fail 0` mellett,
+  // MÉG egy explicit `{ timeout }` teszt-opcióval is). A `Promise.race` egy
+  // saját, rövid, NEVESÍTETT hibával utasítja el a tesztet, mielőtt ez a
+  // félreértés bekövetkezhetne.
+  await Promise.race([
+    assert.rejects(() => rpc.acceptSuggestion({ suggestionId: sug.id }), /crm_host_hivas_sikertelen/),
+    new Promise((_resolve, reject) => setTimeout(
+      () => reject(new Error('hostFetch nem reagalt az AbortSignal-ra idoben -- a timeout-vezetek eltunhetett')),
+      2000,
+    )),
+  ])
+})
+
+/**
+ * M2: a `hostFetch` fetch-hívása körüli catch korábban MINDEN dobott hibát
+ * `crm_host_hivas_sikertelen`-né alakított -- egy programozási hiba (itt egy
+ * `TypeError`, ami NEM a jellemző `fetch failed` üzenetet viseli) ugyanazt a
+ * hálózat-alakú kódot kapta volna, mint egy valódi elutasított kapcsolat.
+ */
+test('egy nem halozati alaku hiba a sajat nevén surran at, nem crm_host_hivas_sikertelen-kent', async () => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const state = {
+    storage: S, repo, log: console, settings: () => ({}),
+    portFile: irPortFajlt(tempDir()),
+    fetchImpl: async (url) => {
+      if (url.endsWith('/api/projects')) return { ok: true, json: async () => [projektSor('proj_crm', 'crm.mjs', 'crm')] }
+      if (url.endsWith('/api/tasks')) throw new TypeError('Cannot read properties of undefined (reading \'x\')')
+      throw new Error(`varatlan ut -- ${url}`)
+    },
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({ name: 'X' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'x' })
+
+  await assert.rejects(
+    () => rpc.acceptSuggestion({ suggestionId: sug.id }),
+    /Cannot read properties of undefined/,
+  )
+})
+
+/**
+ * M1: egy 200-as válasz, aminek a törzse mégsem érvényes JSON (pl. egy proxy
+ * vagy middleware hibaoldala), korábban egy nyers `SyntaxError`-t dobott
+ * volna a `res.json()`-ból -- ezt a magyar hibatábla (`ui/ma.tsx`) nem tudta
+ * lefordítani.
+ */
+test('crm_ervenytelen_host_valasz, ha a feladat-POST 200-at ad, de a torzse nem ervenyes JSON', async () => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const state = {
+    storage: S, repo, log: console, settings: () => ({}),
+    portFile: irPortFajlt(tempDir()),
+    fetchImpl: async (url) => {
+      if (url.endsWith('/api/projects')) return { ok: true, json: async () => [projektSor('proj_crm', 'crm.mjs', 'crm')] }
+      if (url.endsWith('/api/tasks')) return { ok: true, json: async () => { throw new SyntaxError('Unexpected token') } }
+      throw new Error(`varatlan ut -- ${url}`)
+    },
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({ name: 'X' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'x' })
+
+  await assert.rejects(() => rpc.acceptSuggestion({ suggestionId: sug.id }), /crm_ervenytelen_host_valasz/)
+})
+
+/**
+ * I-NEW-3: ha a `process.env.PORT` érvényes portra mutat, a hívásnak EZT kell
+ * használnia, még akkor is, ha `state.portFile` hiányzik vagy egy elavult
+ * (más pid-ről szóló) fájlra mutat -- a `PORT` env a SAJÁT folyamatunké,
+ * definíció szerint nem lehet elavult, tehát elsőbbséget élvez a port-fájl
+ * bármelyik hibaágával szemben.
+ */
+test('a PORT kornyezeti valtozo elsobbseget elvez a port-fajllal szemben', async (t) => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const hivasok = []
+  const eredetiPort = process.env.PORT
+  process.env.PORT = '4321'
+  t.after(() => {
+    if (eredetiPort === undefined) delete process.env.PORT
+    else process.env.PORT = eredetiPort
+  })
+  const state = {
+    storage: S, repo, log: console, settings: () => ({}),
+    // Szandekosan NINCS portFile beallitva -- a fajl-alapu agnak itt
+    // `crm_nincs_port_fajl`-lal kellene elhasalnia, ha a PORT env nem
+    // elozne meg.
+    fetchImpl: async (url, init) => {
+      hivasok.push({ url, init })
+      if (url.endsWith('/api/projects')) return { ok: true, json: async () => [projektSor('proj_crm', 'crm.mjs', 'crm')] }
+      if (url.endsWith('/api/tasks')) return { ok: true, json: async () => ({ id: 'task_uj' }) }
+      throw new Error(`varatlan ut -- ${url}`)
+    },
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({ name: 'X' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'x' })
+
+  await rpc.acceptSuggestion({ suggestionId: sug.id })
+
+  assert.ok(hivasok.every((h) => h.url.startsWith('http://127.0.0.1:4321/')),
+    'minden hivas a PORT env altal megadott portra ment')
+})
+
+/**
+ * I-NEW-3: ha a `process.env.PORT` nincs beállítva (vagy érvénytelen), a
+ * régi, port-fájl-alapú út marad a fallback -- ez a teszt bizonyítja, hogy a
+ * változtatás nem távolította el a fájl-alapú ágat, csak másodikra tette.
+ */
+test('PORT env nelkul a port-fajl marad a fallback', async (t) => {
+  const S = memStorage()
+  for (const m of MIGRATIONS) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  const eredetiPort = process.env.PORT
+  delete process.env.PORT
+  t.after(() => {
+    if (eredetiPort !== undefined) process.env.PORT = eredetiPort
+  })
+  const state = {
+    storage: S, repo, settings: () => ({}),
+    log: { warn: () => {}, info() {}, error() {} },
+    // Szandekosan nincs portFile: a `/api/projects` GET emiatt elhasal, es
+    // ennek a PORT env hianyaban a regi, nevesitett hibat kell adnia.
+    fetchImpl: async () => { throw new Error('nem kellene hivni') },
+  }
+  const rpc = createRpc(state)
+  const acc = repo.createAccount({ name: 'X' })
+  const sug = repo.writeSuggestion({ accountId: acc.id, text: 'x' })
+
+  await assert.rejects(() => rpc.acceptSuggestion({ suggestionId: sug.id }), /crm_projekt_nem_talalhato/)
 })

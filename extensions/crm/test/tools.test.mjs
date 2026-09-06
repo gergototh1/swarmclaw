@@ -272,6 +272,30 @@ test('a crm_suggestion_write elutasitja a mas ugyfelhez tartozo commitmentId-t',
   assert.equal(repo.listCommitments({ accountId: masik.id, openOnly: true }).length, 1)
 })
 
+/**
+ * M6: egy már lezárt (task_id-vel rendelkező) ígéretet is elutasítunk --
+ * enélkül egy második, elavult vagy tévesen újra beírt javaslat elfogadása
+ * (`rpc.mjs` `acceptSuggestion`) csendben felülírná a `task_id`-t egy másik
+ * feladatéra, mintha az eredeti feladat sosem zárta volna le az ígéretet.
+ */
+test('a crm_suggestion_write elutasitja a mar lezart (task_id-vel rendelkezo) commitmentId-t', async () => {
+  const { byName, repo } = toolsOf()
+  const acc = repo.createAccount({ name: 'X' })
+  const { event } = repo.recordEvent({ accountId: acc.id, kind: 'meeting',
+    occurredAt: '2026-09-01T10:00:00.000Z', excerpt: 'x', sourceSystem: 'manual', sourceId: 'm1' })
+  const igeret = repo.writeCommitment({ accountId: acc.id, eventId: event.id, text: 'Kuldom', direction: 'ours' })
+  repo.linkCommitmentTask(igeret.id, 'task_regi')
+
+  await assert.rejects(
+    byName.crm_suggestion_write.execute(
+      { accountId: acc.id, text: 'Kuldd el megint', commitmentId: igeret.id },
+      { session: { agentId: 'ugyfelkezelo' } }),
+    /crm_igeret_mar_lezart/,
+  )
+  // A mar lezart igeret task_id-je erintetlen marad.
+  assert.equal(repo.getCommitment(igeret.id).task_id, 'task_regi')
+})
+
 test('a keresés névre és címre is talál', async () => {
   const { byName, repo } = toolsOf()
   const acc = repo.createAccount({ name: 'Morvai Kft.' })

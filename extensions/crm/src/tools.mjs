@@ -248,10 +248,21 @@ export function createTools(state) {
         // MÁSIK ügyfélhez tartozó azonosító az operátor elfogadásakor annak
         // az ügyfélnek zárná le csendben egy nyitott ígéretét, akinek
         // semmi köze ehhez a javaslathoz.
+        //
+        // M6: EGY MÁR LEZÁRT (task_id-vel rendelkező) ígéretet is elutasítunk,
+        // nem csak egy idegen ügyfélét. `acceptSuggestion` (`rpc.mjs`)
+        // feltétel nélkül hívja `linkCommitmentTask`-ot minden olyan
+        // javaslatra, aminek van `commitment_id`-je -- egy már lezárt
+        // ígéretre mutató, második (elavult vagy tévesen újra beírt) javaslat
+        // elfogadása ezért CSENDBEN FELÜLÍRNÁ a `task_id`-t egy másik
+        // feladatéra, mintha az eredeti feladat sosem zárta volna le. Az
+        // ígéret ekkor addig ismeretlen okból egy VELE összefüggésbe nem
+        // hozható feladatra mutatna.
         if (commitmentId) {
           const igeret = r.getCommitment(commitmentId)
           if (!igeret) throw new Error('crm_ismeretlen_igeret')
           if (igeret.account_id !== accountId) throw new Error('crm_igeret_mas_ugyfele')
+          if (igeret.task_id) throw new Error('crm_igeret_mar_lezart')
         }
         return r.writeSuggestion({
           accountId, text: String(text || ''), reason: String(reason || ''),
