@@ -191,11 +191,21 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^3.7.2",
+    "@tiptap/core": "^2.27.3",
+    "@tiptap/extension-link": "^2.27.3",
+    "@tiptap/extension-table": "^2.27.3",
+    "@tiptap/extension-table-cell": "^2.27.3",
+    "@tiptap/extension-table-header": "^2.27.3",
+    "@tiptap/extension-table-row": "^2.27.3",
+    "@tiptap/react": "^2.27.3",
+    "@tiptap/starter-kit": "^2.27.3",
     "electron": "^33.3.0",
     "electron-builder": "^25.1.8",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
-    "png-to-ico": "^3.0.1"
+    "marked": "^15.0.12",
+    "png-to-ico": "^3.0.1",
+    "turndown": "^7.2.4"
   },
   "optionalDependencies": {
     "botbuilder": "^4.23.3",

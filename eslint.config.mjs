@@ -16,8 +16,13 @@ const eslintConfig = defineConfig([
     "data/**",
     "artifacts/**",
     ".workbench/**",
-    // Git worktrees (created by parallel agent workflows)
+    // Git worktrees (created by parallel agent workflows). Two locations,
+    // because the harness puts them under .claude/worktrees/ while the
+    // documented convention is .worktrees/ — a checkout of another branch is
+    // not this checkout's source either way, and linting one reports every
+    // finding twice.
     ".worktrees/**",
+    ".claude/**",
     // Electron build output (compiled from electron/*.ts)
     "electron-dist/**",
     "release/**",
