@@ -362,6 +362,50 @@ CREATE TABLE IF NOT EXISTS ext_video_ugynokok (
   sql: `
 ALTER TABLE ext_video_narraciok ADD COLUMN nyelv TEXT NOT NULL DEFAULT '';
 `,
+}, {
+  /*
+   * The request lifecycle and a plan's provenance, on two tables, because they
+   * are two different facts about two different rows.
+   *
+   * `ext_video_visszajelzesek` gets `kezelte_render_id` and `kezelt_at`: which
+   * render closed a request, and when. Both are nullable and both are set
+   * together or not at all -- a request that is still open has neither, one a
+   * render has addressed has both, and there is no state where a render id
+   * exists without the moment it was written, or the reverse. A boolean
+   * `kezelve` column was the alternative and was rejected: it would answer
+   * "was this closed" but not "by which render" or "when", and a later reader
+   * asking either of those would have had to add the column anyway.
+   *
+   * `ext_video_tervek` gets three columns for one fact, a plan's origin: did
+   * an agent write it on its own (`szarmazas = 'terv'`, the default, so the
+   * seven existing call sites need no change), or was it written to address
+   * named operator requests (`szarmazas = 'operator_javitas'`, `javitas_idk`
+   * the JSON array of the `ext_video_visszajelzesek` ids it targets, `szulo_terv_id`
+   * the plan it revises)? Three columns and not one, because "this plan is a
+   * fix" and "here is what it fixes" and "here is what it revises" are three
+   * different facts: a plan can be a fix for requests on a video with only one
+   * plan in its history (no meaningful parent), and `szulo_terv_id` on its own
+   * would not say which open requests a render may now close. `javitas_idk` is
+   * what `finishRender` reads to know which rows to close, so it has to be on
+   * the plan a render is claimed against, not on the plan being revised.
+   *
+   * No FOREIGN KEY on `szulo_terv_id`: this schema has none anywhere (ids are
+   * bound as parameters and checked by the tools, per the module docblock),
+   * and adding the first one here for a column three later tasks only ever
+   * read would be a second convention for the one thing this file already
+   * does one way.
+   *
+   * ALTER TABLE ADD COLUMN, no IF NOT EXISTS, for the same reason as v2: the
+   * host applies a version once per extension id and never re-runs it.
+   */
+  version: 3,
+  sql: `
+ALTER TABLE ext_video_visszajelzesek ADD COLUMN kezelte_render_id TEXT;
+ALTER TABLE ext_video_visszajelzesek ADD COLUMN kezelt_at TEXT;
+ALTER TABLE ext_video_tervek ADD COLUMN szarmazas TEXT NOT NULL DEFAULT 'terv';
+ALTER TABLE ext_video_tervek ADD COLUMN javitas_idk TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE ext_video_tervek ADD COLUMN szulo_terv_id TEXT;
+`,
 }])
 
 export const VIDEO_STATUSOK = Object.freeze(['nyitott', 'terv', 'lektoralt', 'elbukott', 'narralt', 'renderel', 'render_hiba', 'qa_ok', 'qa_hiba', 'qa_meretlen', 'lezart'])
@@ -496,15 +540,23 @@ export function createRepo(storage) {
      * The hash is computed here from what is stored, never taken from the
      * caller; the version is assigned inside the transaction and the UNIQUE
      * index is what makes two concurrent submissions two versions.
+     *
+     * `szarmazas`, `javitasIdk` and `szuloTervId` default to a plan an agent
+     * wrote on its own, so the seven call sites that predate them are
+     * unchanged. `tervHashOf` does NOT take them: the hash is the plan's
+     * content (scenes, narration, asset fingerprints), never who asked for it
+     * or why, and putting provenance in the hash would make every existing
+     * verdict's hash stale the day this shipped -- a reviewer's judgement of
+     * a scene list would suddenly read as a judgement of a different thing.
      */
-    insertTerv({ videoId, jelenetek, narracio, assetUjjlenyomatok, katalogusHash, szerzoAgentId, szerzoSessionId, ellenorzes }) {
+    insertTerv({ videoId, jelenetek, narracio, assetUjjlenyomatok, katalogusHash, szerzoAgentId, szerzoSessionId, ellenorzes, szarmazas = 'terv', javitasIdk = [], szuloTervId = null }) {
       return S.transaction(() => {
         const prev = S.get('SELECT MAX(verzio) AS v FROM ext_video_tervek WHERE video_id = ?', [videoId]).v
         const verzio = (prev || 0) + 1
         const id = uid()
         const tervHash = tervHashOf({ jelenetek, narracio, assetUjjlenyomatok })
-        S.exec('INSERT INTO ext_video_tervek (id, video_id, verzio, jelenetek, narracio, asset_ujjlenyomatok, terv_hash, katalogus_hash, szerzo_agent_id, szerzo_session_id, ellenorzes, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-          [id, videoId, verzio, JSON.stringify(jelenetek), JSON.stringify(narracio), JSON.stringify(assetUjjlenyomatok), tervHash, katalogusHash, szerzoAgentId, szerzoSessionId, JSON.stringify(ellenorzes), now()])
+        S.exec('INSERT INTO ext_video_tervek (id, video_id, verzio, jelenetek, narracio, asset_ujjlenyomatok, terv_hash, katalogus_hash, szerzo_agent_id, szerzo_session_id, ellenorzes, szarmazas, javitas_idk, szulo_terv_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [id, videoId, verzio, JSON.stringify(jelenetek), JSON.stringify(narracio), JSON.stringify(assetUjjlenyomatok), tervHash, katalogusHash, szerzoAgentId, szerzoSessionId, JSON.stringify(ellenorzes), szarmazas, JSON.stringify(javitasIdk), szuloTervId, now()])
         return { id, verzio, tervHash }
       })
     },
@@ -606,10 +658,21 @@ export function createRepo(storage) {
       if (status === 'kesz' && (typeof fileSha256 !== 'string' || fileSha256 === '')) throw new Error('finishRender: kesz needs the file sha256')
       if (status === 'hiba' && (typeof hibaKod !== 'string' || hibaKod === '')) throw new Error('finishRender: hiba needs a code')
       return S.transaction(() => {
-        const running = S.get("SELECT id FROM ext_video_renderek WHERE id = ? AND status = 'fut'", [id])
+        const running = S.get("SELECT id, terv_id FROM ext_video_renderek WHERE id = ? AND status = 'fut'", [id])
         if (!running) return false
         S.exec("UPDATE ext_video_renderek SET status = ?, file_sha256 = ?, hiba_kod = ?, hiba_szoveg = ?, finished_at = ? WHERE id = ? AND status = 'fut'",
           [status, fileSha256, hibaKod, hibaSzoveg, now(), id])
+        // A KÉSZ render zárja a kéréseket, a hibára futó nem. Egy render, ami
+        // elhasalt, semmit nem javított meg; egy lezárt kérés mögött viszont ott
+        // kell álljon egy fájl, amit az operátor meg tud nézni. Ugyanabban a
+        // tranzakcióban, hogy ne létezhessen kész render lezáratlan kéréssel --
+        // két hívásban a második elmaradhat egy összeomlásnál.
+        if (status === 'kesz') {
+          const terv = S.get('SELECT javitas_idk FROM ext_video_tervek WHERE id = ?', [running.terv_id])
+          for (const fid of JSON.parse(terv ? terv.javitas_idk : '[]')) {
+            S.exec('UPDATE ext_video_visszajelzesek SET kezelte_render_id = ?, kezelt_at = ? WHERE id = ? AND kezelte_render_id IS NULL', [id, now(), fid])
+          }
+        }
         return true
       })
     },
@@ -649,6 +712,19 @@ export function createRepo(storage) {
       return { id: row.id, uj: row.id === id }
     },
     feedbackFor(videoId) { return S.all('SELECT * FROM ext_video_visszajelzesek WHERE video_id = ? ORDER BY created_at ASC, rowid ASC', [videoId]) },
+    /**
+     * A videó NYITOTT javítás-kérései: amit az operátor írt, és amit még nem
+     * zárt le render.
+     *
+     * `forras = 'operator'` a szűrő fele, és ez a fontosabbik. Az importált sorok
+     * az operátor analitikájából jönnek (`importFeedback`), és megfigyelések, nem
+     * kérések: senki nem kérte, hogy javítsuk őket, és egy render lezárása
+     * hazugság lenne róluk. A `feedbackFor` továbbra is mindkettőt adja, mert a
+     * lap mindkettőt kirajzolja.
+     */
+    openFeedback(videoId) {
+      return S.all("SELECT * FROM ext_video_visszajelzesek WHERE video_id = ? AND forras = 'operator' AND kezelte_render_id IS NULL ORDER BY created_at ASC, rowid ASC", [videoId])
+    },
     feedbackSince(iso) { return S.all('SELECT * FROM ext_video_visszajelzesek WHERE created_at >= ? ORDER BY created_at ASC, rowid ASC', [iso]) },
     feedbackAll() { return S.all('SELECT * FROM ext_video_visszajelzesek') },
     // --- megtartas ---

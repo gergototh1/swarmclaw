@@ -88,7 +88,7 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.equal(out.agents, 2)
   assert.equal(out.schedules, 3)
   assert.equal(out.checks, 9)
-  assert.equal(out.migrations, 2)
+  assert.equal(out.migrations, 3)
   assert.equal(out.setup, 'function')
 })
 

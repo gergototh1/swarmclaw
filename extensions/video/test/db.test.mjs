@@ -36,7 +36,7 @@ test('v1 is idempotent (a leftover table survives a re-run) and v2 adds the nyel
   const { storage } = freshRepo()
   storage.raw.exec(MIGRATIONS[0].sql)
   assert.equal(storage.get("SELECT COUNT(*) AS c FROM sqlite_master WHERE name = 'ext_video_renderek_fut'").c, 1)
-  assert.deepEqual(MIGRATIONS.map((m) => m.version), [1, 2])
+  assert.deepEqual(MIGRATIONS.map((m) => m.version), [1, 2, 3])
   const cols = storage.all('PRAGMA table_info(ext_video_narraciok)').map((c) => c.name)
   assert.ok(cols.includes('nyelv')); assert.equal(cols.filter((c) => c === 'nyelv').length, 1)
 })
@@ -70,6 +70,21 @@ test('terv versions count per video and latestTerv is the highest', () => {
   const w = openVideo(repo)
   assert.equal(terv(repo, w).verzio, 1, 'versions are per video')
   assert.equal(repo.latestTervek().length, 2)
+})
+
+test('insertTerv alapból sima terv, és megjegyzi, ha operátori javítás', () => {
+  const { repo } = freshRepo()
+  const { id: videoId } = repo.openVideo({ cim: 'c', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: 'f', nyitottaAgentId: '' })
+  const alap = { videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {} }
+  const v1 = repo.insertTerv(alap)
+  assert.equal(repo.terv(v1.id).szarmazas, 'terv')
+  assert.equal(repo.terv(v1.id).javitas_idk, '[]')
+  assert.equal(repo.terv(v1.id).szulo_terv_id, null)
+
+  const v2 = repo.insertTerv({ ...alap, szarmazas: 'operator_javitas', javitasIdk: ['f1', 'f2'], szuloTervId: v1.id })
+  assert.equal(repo.terv(v2.id).szarmazas, 'operator_javitas')
+  assert.deepEqual(JSON.parse(repo.terv(v2.id).javitas_idk), ['f1', 'f2'])
+  assert.equal(repo.terv(v2.id).szulo_terv_id, v1.id)
 })
 
 test('a passing verdict is found only for the exact terv id and hash pair', () => {
@@ -152,6 +167,40 @@ test('finishRender writes only the two closing statuses, each with what it needs
   assert.equal(repo.rendersForVideo(v).length, 1); assert.equal(repo.rendersAll().length, 1)
 })
 
+test('a kész render lezárja a szülő terve által megnevezett kéréseket, egy tranzakcióban', () => {
+  const { repo } = freshRepo()
+  const { id: videoId } = repo.openVideo({ cim: 'c', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: 'f', nyitottaAgentId: '' })
+  const alap = { videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {} }
+  const v1 = repo.insertTerv(alap)
+  const kert = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'ezt javítsd', forras: 'operator' })
+  const marad = repo.insertFeedback({ videoId, jelenet: 2, szoveg: 'ezt nem kértem', forras: 'operator' })
+  const v2 = repo.insertTerv({ ...alap, szarmazas: 'operator_javitas', javitasIdk: [kert.id], szuloTervId: v1.id })
+  const verdikt = repo.insertVerdikt({ tervId: v1.id, tervHash: v1.tervHash, lektorAgentId: 'l', lektorSessionId: 's', verdikt: 'atmegy', talalatok: [] })
+  repo.claimRender({ id: 'r-1', videoId, tervId: v2.id, tervHash: v2.tervHash, verdiktId: verdikt.id, hostBootAt: 1, jelenetHatarok: [], propsPath: '/p', outPath: '/o.mp4', logPath: '/l', platform: 'darwin' })
+
+  assert.equal(repo.openFeedback(videoId).length, 2, 'amíg fut a render, mindkettő nyitott')
+  assert.equal(repo.finishRender('r-1', { status: 'kesz', fileSha256: 'sha' }), true)
+
+  const nyitott = repo.openFeedback(videoId)
+  assert.deepEqual(nyitott.map((r) => r.id), [marad.id], 'csak a megnevezett zárult')
+  const zart = repo.feedbackFor(videoId).find((r) => r.id === kert.id)
+  assert.equal(zart.kezelte_render_id, 'r-1')
+  assert.equal(typeof zart.kezelt_at, 'string')
+})
+
+test('egy hibára futott render nem zár le kérést', () => {
+  const { repo } = freshRepo()
+  const { id: videoId } = repo.openVideo({ cim: 'c', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: 'f', nyitottaAgentId: '' })
+  const alap = { videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {} }
+  const v1 = repo.insertTerv(alap)
+  const kert = repo.insertFeedback({ videoId, szoveg: 'ezt javítsd', forras: 'operator' })
+  const v2 = repo.insertTerv({ ...alap, szarmazas: 'operator_javitas', javitasIdk: [kert.id], szuloTervId: v1.id })
+  const verdikt = repo.insertVerdikt({ tervId: v1.id, tervHash: v1.tervHash, lektorAgentId: 'l', lektorSessionId: 's', verdikt: 'atmegy', talalatok: [] })
+  repo.claimRender({ id: 'r-2', videoId, tervId: v2.id, tervHash: v2.tervHash, verdiktId: verdikt.id, hostBootAt: 1, jelenetHatarok: [], propsPath: '/p', outPath: '/o.mp4', logPath: '/l', platform: 'darwin' })
+  repo.finishRender('r-2', { status: 'hiba', hibaKod: 'render_kilepett' })
+  assert.equal(repo.openFeedback(videoId).length, 1, 'a kérés nyitva marad')
+})
+
 test('a QA pass is bound to the file fingerprint and the rule set', () => {
   const { repo } = freshRepo()
   const row = repo.insertQa({ renderId: 'r1', fileSha256: 'sha-a', szabalykeszlet: 1, ok: true, meresek: { duration_s: 30 }, bukasok: [] })
@@ -178,6 +227,19 @@ test('feedback is deduplicated on (video, at_ms, jelenet, szoveg) and retention 
   repo.upsertRetention([{ videoId: v, platform: 'yt', tS: 5, arany: 0.6 }])
   assert.deepEqual(repo.retentionFor(v).map((p) => p.arany), [1, 0.6])
   assert.deepEqual(repo.retentionVideoIds(), [v])
+})
+
+test('a v3 migráció után a visszajelzés-sor nyitott, és egy render lezárja', () => {
+  const { repo } = freshRepo()
+  const { id: videoId } = repo.openVideo({ cim: 'c', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: 'f', nyitottaAgentId: '' })
+  const a = repo.insertFeedback({ videoId, szoveg: 'globális kérés', forras: 'operator' })
+  const b = repo.insertFeedback({ videoId, jelenet: 3, szoveg: 'a 3. jelenetre', forras: 'operator' })
+  const importalt = repo.insertFeedback({ videoId, szoveg: 'analitikából', forras: 'import' })
+
+  const nyitott = repo.openFeedback(videoId)
+  assert.deepEqual(nyitott.map((r) => r.id), [a.id, b.id], 'csak az operátoré kérés; az importált megfigyelés')
+  assert.equal(nyitott[1].jelenet, 3)
+  assert.ok(!nyitott.some((r) => r.id === importalt.id), 'az importált sor sosem nyitott kérés')
 })
 
 test('turns are stamped on read and closed on close, so an interrupted review returns them', () => {
