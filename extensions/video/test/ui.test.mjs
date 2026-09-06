@@ -22,7 +22,9 @@ import { URES_SZURO, normal, szurtTipusok } from '../ui/sablon-szuro.ts'
 import { SablonokBody, csakKepek, katalogusElavult } from '../ui/sablonok.tsx'
 import { Sor, UjVideoBody } from '../ui/sor.tsx'
 import { StatusBar, StatusBarBody } from '../ui/status-bar.tsx'
-import { VideoBody, VideoView } from '../ui/video.tsx'
+import { GYARTO_NEV, LEKTOR_NEV, VideoBody, VideoView, megrendelesHiba } from '../ui/video.tsx'
+import { AGENTS } from '../src/agents.mjs'
+import { AGENTS_URL, CHATS_URL, rendelj } from '../ui/megrendeles.ts'
 
 /**
  * The page, driven without a browser.
@@ -624,9 +626,9 @@ test('the Sor offers the manual open, and the empty-queue sentence names it', ()
 
 const videoProps = (video, overrides = {}) => ({
   video, pont: { atMs: '', jelenet: '' }, szoveg: '', kuldes: false, uzenet: null,
-  narralas: false, renderInditas: false,
+  narralas: false, renderInditas: false, tervRendeles: null, lektorRendeles: null,
   onPick: noop, onSzoveg: noop, onAtMs: noop, onJelenet: noop, onKuld: noop, onLezar: noop, onBack: noop,
-  onNarral: noop, onRenderel: noop, ...overrides,
+  onNarral: noop, onRenderel: noop, onTervKeres: noop, onLektorKeres: noop, onFrissit: noop, ...overrides,
 })
 
 const narracioSotet = /<button[^>]*disabled[^>]*>Narráció kérése/
@@ -779,12 +781,18 @@ test('a closed video names its closure, and never a lesser reason the operator c
   // was never reviewed the page then said "nincs lektori ítélet" -- sending
   // the operator to fetch a review that would have changed nothing. The Lezár
   // button is live in every status, so that video is reachable in one click.
+  //
+  // FOUR, not two: the two ordering levers follow the same rule and for the
+  // same reason -- `videoDraft` and `videoVerdict` both refuse `video_lezart`
+  // before they weigh anything else -- so a closed video may not be answered
+  // with "Terv nélkül nincs mit lektorálni" either.
   const zarva = 'A videó le van zárva, a modul nem dolgozik rajta tovább.'
+  const LEVEREK = 4
 
   const nincsItelet = render(VideoBody, videoProps(videoDetail({ status: 'lezart', tervek: [terv()] })))
   assert.ok(narracioSotet.test(nincsItelet))
   assert.ok(renderSotet.test(nincsItelet))
-  assert.equal(elofordulas(nincsItelet, zarva), 2, 'both levers name the closure, not one of them')
+  assert.equal(elofordulas(nincsItelet, zarva), LEVEREK, 'every lever names the closure, not some of them')
   // The tail, not the whole sentence: the plan panel says "Ehhez a
   // tervverzióhoz még nincs lektori ítélet." on its own, as a fact about the
   // plan, and that one stays. What must be gone is the LEVER saying it as the
@@ -795,9 +803,10 @@ test('a closed video names its closure, and never a lesser reason the operator c
   // No plan either. A plan is not something the operator can usefully be sent
   // to have written on a video the module has stopped working on.
   const tervNelkul = render(VideoBody, videoProps(videoDetail({ status: 'lezart' })))
-  assert.equal(elofordulas(tervNelkul, zarva), 2)
+  assert.equal(elofordulas(tervNelkul, zarva), LEVEREK)
   assert.equal(tervNelkul.includes('Terv nélkül nincs mit narrálni.'), false)
   assert.equal(tervNelkul.includes('Terv nélkül nincs mit renderelni.'), false)
+  assert.equal(tervNelkul.includes('Terv nélkül nincs mit lektorálni.'), false)
 
   // And a running render on a closed video: `video_lezart` comes before
   // `render_folyamatban` there too, so waiting for the render is not the
@@ -807,7 +816,7 @@ test('a closed video names its closure, and never a lesser reason the operator c
     tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })],
     renderek: [renderSor({ status: 'fut', finishedAt: null })],
   })))
-  assert.equal(elofordulas(futoRenderrel, zarva), 2)
+  assert.equal(elofordulas(futoRenderrel, zarva), LEVEREK)
   assert.equal(futoRenderrel.includes('most fut egy render'), false)
   assert.equal(futoRenderrel.includes('már fut egy render'), false)
 })
@@ -1760,4 +1769,311 @@ test('loadManagedStatus reports a refusal as unknown rather than as unscheduled'
 test('readManagedStatus refuses a summary that does not name this extension', () => {
   assert.throws(() => readManagedStatus({ extensions: [] }, 'video.mjs'), /nem tartalmazza ezt az extensiont/)
   assert.throws(() => readManagedStatus({ extensions: [{ extensionId: 'video.mjs', schedules: [] }] }, 'video.mjs'), /egyetlen ütemezést sem deklarál/)
+})
+
+// --- ordering a turn: the three host calls, and the five ways they fail ---
+
+/**
+ * The host, as `rendelj` sees it: one queued answer per route, and the log of
+ * what the page actually sent.
+ *
+ * A route the function calls unstubbed fails the test rather than resolving to
+ * undefined, the way `stubRpc` above does -- these three calls spend money on
+ * the other side, and a test that let a fourth one through silently would be
+ * pinning nothing.
+ */
+function stubHost(valaszok) {
+  const hivasok = []
+  const fetchImpl = (input, init) => {
+    const method = (init && init.method) || 'GET'
+    hivasok.push({ url: input, method, init: init ?? {} })
+    const kulcs = `${method} ${input.startsWith(`${CHATS_URL}/`) ? `${CHATS_URL}/:id/chat` : input}`
+    assert.ok(valaszok[kulcs] !== undefined, `rendelj called a host route this test did not stub: ${kulcs}`)
+    return valaszok[kulcs]()
+  }
+  return { fetchImpl, hivasok }
+}
+
+const hostOk = (torzs) => () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(torzs) })
+const hostRossz = (status, torzs) => () => Promise.resolve({ ok: false, status, json: () => Promise.resolve(torzs) })
+const hostDobas = (uzenet) => () => Promise.reject(new Error(uzenet))
+
+/**
+ * The turn's own answer: `text/event-stream`, whose body this page may not
+ * read. `json` throws so that a page which read it fails here rather than in
+ * production, where reading -- or worse, aborting -- would cut the turn.
+ */
+const hostStream = () => () => Promise.resolve({
+  ok: true, status: 200,
+  json: () => { throw new Error('the page read the event stream body of the chat turn') },
+})
+
+const ugynokok = (overrides = {}) => ({
+  'a-1': { id: 'a-1', name: GYARTO_NEV, disabled: false },
+  'a-2': { id: 'a-2', name: LEKTOR_NEV, disabled: false },
+  ...overrides,
+})
+
+const TERV_UZENET = 'Írj tervet a v1 videóhoz a videoDraft toollal. Ne csinálj mást.'
+
+test('the UI carries the agent names this extension actually declares', () => {
+  // The bundle cannot import src/agents.mjs -- that file reaches node:fs
+  // through kit-tabla.mjs -- so the two names are written out again in the UI.
+  // This is the guard that makes the duplicate safe: rename a displayName over
+  // there and the suite fails here rather than the page silently ordering a
+  // turn from an agent the host does not have.
+  const nevek = AGENTS.map((a) => a.displayName)
+  assert.ok(nevek.includes(GYARTO_NEV), `AGENTS no longer declares ${GYARTO_NEV}`)
+  assert.ok(nevek.includes(LEKTOR_NEV), `AGENTS no longer declares ${LEKTOR_NEV}`)
+})
+
+test('rendelj finds the agent by name, opens a session, sends one instruction, and never reads the stream', async () => {
+  const { fetchImpl, hivasok } = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-9', name: 'Videó terv: v1' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostStream(),
+  })
+  const valasz = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'Videó terv: v1', uzenet: TERV_UZENET }, fetchImpl)
+
+  // The id is the host's, minted on reconcile and different per install, which
+  // is why the name is what the page looks up.
+  assert.deepEqual(valasz, { kind: 'elment', agentId: 'a-1', sessionId: 's-9' })
+  assert.equal(hivasok.length, 3, 'three calls, no polling loop behind them')
+
+  assert.equal(hivasok[0].url, AGENTS_URL)
+  assert.equal(hivasok[0].init.credentials, 'same-origin', 'the auth cookie travels on a same-origin fetch; this bundle holds no key')
+
+  assert.equal(hivasok[1].url, CHATS_URL)
+  assert.equal(hivasok[1].method, 'POST')
+  assert.deepEqual(JSON.parse(hivasok[1].init.body), { agentId: 'a-1', name: 'Videó terv: v1' })
+
+  assert.equal(hivasok[2].url, `${CHATS_URL}/s-9/chat`)
+  assert.equal(hivasok[2].method, 'POST')
+  assert.deepEqual(JSON.parse(hivasok[2].init.body), { message: TERV_UZENET })
+  // Not reading the stream is half the rule; not cutting it is the other half.
+  // An abort here would end the turn the operator has just paid for.
+  assert.equal(hivasok[2].init.signal, undefined, 'the request carries no abort signal')
+})
+
+test('rendelj tells a missing agent, a disabled one and a list it could not read apart', async () => {
+  // Three different facts, and the operator does something different about
+  // each: press Reconcile, re-enable the agent, or look at why the host would
+  // not answer. One shared sentence would send them to the wrong one.
+  const nincs = stubHost({ [`GET ${AGENTS_URL}`]: hostOk({ 'a-3': { id: 'a-3', name: 'Valaki más' } }) })
+  assert.deepEqual(await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, nincs.fetchImpl), { kind: 'nincs_ilyen_ugynok', agentNev: GYARTO_NEV })
+  assert.equal(nincs.hivasok.length, 1, 'no session is opened for an agent that is not there')
+
+  const letiltva = stubHost({ [`GET ${AGENTS_URL}`]: hostOk(ugynokok({ 'a-1': { id: 'a-1', name: GYARTO_NEV, disabled: true } })) })
+  assert.deepEqual(await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, letiltva.fetchImpl), { kind: 'ugynok_letiltva', agentNev: GYARTO_NEV })
+  assert.equal(letiltva.hivasok.length, 1, 'the host would answer 409 anyway; the page does not spend the call to find out')
+
+  const rossz = stubHost({ [`GET ${AGENTS_URL}`]: hostRossz(403, { error: 'Forbidden' }) })
+  const olvashatatlan = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, rossz.fetchImpl)
+  assert.equal(olvashatatlan.kind, 'ugynokok_olvashatatlanok')
+  assert.ok(olvashatatlan.reason.includes('403'))
+  assert.ok(olvashatatlan.reason.includes('Forbidden'), 'the host\'s own sentence is carried, not swallowed')
+
+  const nemObjektum = stubHost({ [`GET ${AGENTS_URL}`]: hostOk([{ id: 'a-1', name: GYARTO_NEV }]) })
+  const alak = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, nemObjektum.fetchImpl)
+  assert.equal(alak.kind, 'ugynokok_olvashatatlanok', 'a list where a map was promised is a shape this page cannot read, not an absent agent')
+})
+
+test('rendelj keeps a session that did not open apart from an instruction the host refused', async () => {
+  const nyitas = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostRossz(409, { error: 'Agent "Videó Gyártó" is disabled' }),
+  })
+  const nemNyilt = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, nyitas.fetchImpl)
+  assert.equal(nemNyilt.kind, 'session_nem_nyilt')
+  assert.ok(nemNyilt.reason.includes('409'))
+  assert.ok(nemNyilt.reason.includes('is disabled'))
+  assert.equal(nyitas.hivasok.length, 2, 'there is no session to send an instruction to')
+
+  const idNelkul = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ name: 'Videó terv: v1' }),
+  })
+  const nincsId = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, idNelkul.fetchImpl)
+  assert.equal(nincsId.kind, 'session_nem_nyilt', 'an answer with no session id is not an opened session')
+
+  const uzenet = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-9' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostRossz(400, { error: 'message or file is required' }),
+  })
+  const elutasitva = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: '' }, uzenet.fetchImpl)
+  assert.equal(elutasitva.kind, 'uzenet_elutasitva')
+  assert.ok(elutasitva.reason.includes('message or file is required'))
+})
+
+test('rendelj never throws: each of the three calls failing has its own named answer', async () => {
+  // The caller switches on `kind` and has no catch, deliberately. If any of the
+  // three steps could reject, the button would stay dark for ever on a state
+  // nothing named.
+  const elso = stubHost({ [`GET ${AGENTS_URL}`]: hostDobas('Failed to fetch') })
+  assert.deepEqual(await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, elso.fetchImpl), { kind: 'ugynokok_olvashatatlanok', reason: 'Failed to fetch' })
+
+  const masodik = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostDobas('a host 502-tal válaszolt'),
+  })
+  assert.deepEqual(await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, masodik.fetchImpl), { kind: 'session_nem_nyilt', reason: 'a host 502-tal válaszolt' })
+
+  const harmadik = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-9' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostDobas('offline'),
+  })
+  assert.deepEqual(await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, harmadik.fetchImpl), { kind: 'uzenet_elutasitva', reason: 'offline' })
+})
+
+test('every ordering failure gets its own sentence, and the missing agent names both the name and Reconcile', () => {
+  assert.equal(megrendelesHiba({ kind: 'elment', agentId: 'a-1', sessionId: 's-9' }), null, 'an ordered turn is not a failure')
+
+  const nincs = megrendelesHiba({ kind: 'nincs_ilyen_ugynok', agentNev: GYARTO_NEV })
+  assert.ok(nincs.includes(GYARTO_NEV), 'the name it looked for')
+  assert.ok(nincs.includes('Reconcile'), 'and what creates it')
+
+  const letiltva = megrendelesHiba({ kind: 'ugynok_letiltva', agentNev: GYARTO_NEV })
+  assert.ok(letiltva.includes(GYARTO_NEV))
+  assert.ok(letiltva.includes('letilt'), 'a disabled agent is a different fact from an absent one')
+  assert.notEqual(letiltva, nincs)
+
+  const mondatok = [
+    nincs,
+    letiltva,
+    megrendelesHiba({ kind: 'ugynokok_olvashatatlanok', reason: 'offline' }),
+    megrendelesHiba({ kind: 'session_nem_nyilt', reason: 'a host 409-tal válaszolt' }),
+    megrendelesHiba({ kind: 'uzenet_elutasitva', reason: 'a host 400-tal válaszolt' }),
+  ]
+  assert.equal(new Set(mondatok).size, 5, 'five facts, five sentences: none of them collapses into another')
+  for (const mondat of mondatok) assert.equal(mondat.includes('sikertelen'), false)
+})
+
+test('the Terv keres button orders the producer, names the tool and the video id, and says the turn is running', async () => {
+  const { fetchImpl, hivasok } = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-9' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostStream(),
+  })
+  const { rpc } = stubRpc({ video: () => Promise.resolve(videoDetail()) })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop, hostFetch: fetchImpl })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+  assert.equal(body().tervRendeles, null)
+
+  body().onTervKeres()
+  await settle()
+  assert.deepEqual(JSON.parse(hivasok[1].init.body).agentId, 'a-1')
+  // The instruction names the tool and the id and forbids everything else: a
+  // turn the operator paid for must not wander off into the rest of the queue.
+  assert.deepEqual(JSON.parse(hivasok[2].init.body), { message: TERV_UZENET })
+  assert.equal(body().tervRendeles, 'fut', 'the button stays dark: the turn is out and the page is not waiting on it')
+  assert.ok(body().uzenet.includes(GYARTO_NEV))
+  assert.ok(body().uzenet.includes('Frissítés'), 'the evidence is the plan appearing, so the operator is told where to look')
+  assert.equal(body().uzenet.includes('sikertelen'), false)
+})
+
+test('the Lektoralas keres button orders the reviewer on the latest plan', async () => {
+  const { fetchImpl, hivasok } = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-4' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostStream(),
+  })
+  const { rpc } = stubRpc({ video: () => Promise.resolve(videoDetail({ tervek: [terv({ id: 't7' })] })) })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop, hostFetch: fetchImpl })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+
+  body().onLektorKeres('t7')
+  await settle()
+  // The reviewer, not the producer: `videoVerdict` refuses `onlektoralas`, so
+  // ordering this from the plan's own author would be a turn spent on a refusal.
+  assert.equal(JSON.parse(hivasok[1].init.body).agentId, 'a-2')
+  assert.deepEqual(JSON.parse(hivasok[2].init.body), { message: 'Lektoráld a t7 tervet a videoVerdict toollal. Ne csinálj mást.' })
+  assert.equal(body().lektorRendeles, 'fut')
+  assert.ok(body().uzenet.includes(LEKTOR_NEV))
+})
+
+test('an ordering that did not go through says which fact stopped it, and lets the operator press again', async () => {
+  const { fetchImpl } = stubHost({ [`GET ${AGENTS_URL}`]: hostOk({}) })
+  const { rpc } = stubRpc({ video: () => Promise.resolve(videoDetail()) })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop, hostFetch: fetchImpl })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+
+  body().onTervKeres()
+  await settle()
+  assert.ok(body().uzenet.includes(GYARTO_NEV))
+  assert.ok(body().uzenet.includes('Reconcile'))
+  assert.equal(body().tervRendeles, null, 'nothing is running, so the button goes live again')
+})
+
+test('Frissites re-reads the detail and takes back the running-turn state', async () => {
+  const { fetchImpl } = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-9' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostStream(),
+  })
+  const { rpc, hivasok } = stubRpc({ video: () => Promise.resolve(videoDetail()) })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop, hostFetch: fetchImpl })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+
+  body().onTervKeres()
+  await settle()
+  assert.equal(body().tervRendeles, 'fut')
+
+  // There is no poller: the page cannot see the turn end, so the operator
+  // looking again is what turns the order back into a fact.
+  const eddig = betoltesek(hivasok)
+  body().onFrissit()
+  await settle()
+  assert.ok(betoltesek(hivasok) > eddig, 'the detail is re-read from the module\'s own rows')
+  assert.equal(body().tervRendeles, null)
+})
+
+const tervKeresSotet = /<button[^>]*disabled[^>]*>Terv kérése/
+const lektorKeresSotet = /<button[^>]*disabled[^>]*>Lektorálás kérése/
+
+test('a live ordering button still says what a press costs, and a dark one says why it is dark', () => {
+  const el = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] })))
+  assert.equal(tervKeresSotet.test(el), false)
+  assert.equal(lektorKeresSotet.test(el), false)
+  // 2.2: the price is on screen while the button can still be pressed. A
+  // warning that only appears once the control is dark warns nobody.
+  assert.ok(el.includes('pénzbe kerül'))
+  assert.ok(el.includes('percekig'))
+  assert.equal((el.match(/vid-lepes-ar/g) ?? []).length, 2, 'both ordering levers carry it; the mechanical ones do not')
+
+  const tervNelkul = render(VideoBody, videoProps(videoDetail()))
+  assert.equal(tervKeresSotet.test(tervNelkul), false, 'a video with no plan is exactly when a plan is ordered')
+  assert.ok(lektorKeresSotet.test(tervNelkul))
+  assert.ok(tervNelkul.includes('Terv nélkül nincs mit lektorálni'))
+
+  // Closure first, for the reason the two mechanical levers already test it
+  // first: `videoDraft` and `videoVerdict` both refuse `video_lezart` before
+  // they weigh anything else, so naming any other reason would send the
+  // operator to do work that changes nothing.
+  const lezart = render(VideoBody, videoProps(videoDetail({ status: 'lezart', tervek: [terv()] })))
+  assert.ok(tervKeresSotet.test(lezart))
+  assert.ok(lektorKeresSotet.test(lezart))
+  assert.equal(lezart.includes('Terv nélkül nincs mit lektorálni'), false)
+})
+
+test('an ordered turn darkens its button and says so in the section header', () => {
+  const kuldes = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'kuldes' }))
+  assert.ok(tervKeresSotet.test(kuldes))
+  assert.ok(kuldes.includes('a válaszra várok'), 'the three host calls are out and nothing has been ordered yet')
+
+  const fut = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'fut' }))
+  assert.ok(tervKeresSotet.test(fut))
+  assert.ok(fut.includes('Frissítés'))
+  // 2.3: the section header carries it too, so the state is visible without
+  // reading down to the button.
+  assert.ok(fut.includes('ügynök-forduló megrendelve: terv'))
+  assert.equal(lektorKeresSotet.test(fut), false, 'the two orders are separate: one running does not darken the other')
+
+  const mindketto = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'fut', lektorRendeles: 'fut' }))
+  assert.ok(mindketto.includes('ügynök-forduló megrendelve: terv, lektorálás'))
 })

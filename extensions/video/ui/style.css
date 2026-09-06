@@ -211,6 +211,20 @@
 */
 .vid-lepes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 0; }
 .vid-lepes-ok { font-size: 12px; line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
+/*
+  What a LIVE lever costs, in the warning colour rather than the muted one.
+  The two ordering levers spend money and minutes on an agent turn, and a
+  price in the same grey as every other piece of small print is a price the
+  operator reads after they have clicked. Same line as the reason it replaces,
+  so a section never grows or shrinks as a lever changes state.
+*/
+.vid-lepes-ar {
+  font-size: 12px;
+  line-height: 1.35;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-warning, #d97706);
+}
 
 /* video view */
 .vid-video-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }

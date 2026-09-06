@@ -478,7 +478,13 @@ export interface CleanupResult {
   hibak: unknown[]
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+/**
+ * Exported because `megrendeles.ts` reads the host's own answers -- an agent
+ * map, a session, a refusal -- and needs the same check on them that this file
+ * makes on the module's. One definition, so the two cannot drift into
+ * disagreeing about whether an array is a record.
+ */
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
