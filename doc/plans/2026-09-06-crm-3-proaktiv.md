@@ -1032,6 +1032,12 @@ export const SCHEDULES = Object.freeze([
 import { AGENTS, SCHEDULES } from './src/agents.mjs'
 ```
 
+**Egy elavult kommentet is javíts ki itt**, amíg a fájlban vagy: a
+`settingsFields` fölötti megjegyzés azt írja, hogy a négy küszöböt még semmi
+nem olvassa és a figyelem-motor a CRM-3-ban jön. A CRM-3 ez — a 4. feladat
+óta olvassa őket. Egy komment, ami a jövőre mutat, miközben a jövő megjött,
+a következő olvasót téveszti meg.
+
 és a `managedResources`-ba `agents: AGENTS, schedules: SCHEDULES` (a `projects` és `setupChecks` mellé).
 
 - [ ] **Step 4: A telepítő mondja meg a hátralévő lépést**
