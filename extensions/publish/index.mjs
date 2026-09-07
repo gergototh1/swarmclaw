@@ -2,6 +2,7 @@ import { AGENTS } from './src/agents.mjs'
 import { ALAP_IDOZONA, MIGRATIONS, createRepo } from './src/db.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
 import { ALAP_LATHATOSAG, createYoutubeAdapter } from './src/platform/youtube.mjs'
+import { createRpc } from './src/rpc.mjs'
 import { createSzovegTools } from './src/szoveg.mjs'
 
 /**
@@ -148,18 +149,21 @@ const publish = {
    */
   tools: createSzovegTools(state),
   /**
-   * The MCP shim's two methods (`src/mcp-bridge.mjs`, byte-identical to
-   * every sibling module that fronts its tools over MCP --
-   * `extensions/mcp-shim-parity.test.mjs` holds it that way), reflecting
-   * over `publish.tools` above -- so the five tools Task 4 added are reachable
-   * over MCP with no further work here (see `src/mcp-bridge.mjs`'s own
-   * docblock for why it is built this way rather than one rpc method per
-   * tool). There is still no `src/rpc.mjs`: this task adds no page, so
-   * there is nothing a page would call over
-   * `POST /api/extensions/publish.mjs/call/<method>` beyond what the bridge
-   * already answers.
+   * `src/rpc.mjs`'s own methods (Task 6: `naptar`, `kiadas`, `fiokok`,
+   * `jovahagy`, `atutemez`, `fiokotOsszekot` -- the calendar page's own
+   * reads and levers, see that file's docblock), spread first, and the MCP
+   * shim's two methods (`src/mcp-bridge.mjs`, byte-identical to every
+   * sibling module that fronts its tools over MCP --
+   * `extensions/mcp-shim-parity.test.mjs` holds it that way), reflecting over
+   * `publish.tools` above -- so the five agent tools Task 4 added stay
+   * reachable over MCP with no further work here (see `src/mcp-bridge.mjs`'s
+   * own docblock for why it is built this way rather than one rpc method per
+   * tool). The two maps share no key -- `mcpTools`/`mcpCall` name nothing an
+   * agent tool is called -- so the spread order does not decide a collision;
+   * it is written bridge-last only to match every sibling module's own
+   * `{ ...createRpc(state), ...createMcpBridge(...) }` line.
    */
-  rpc: { ...createMcpBridge(() => publish.tools) },
+  rpc: { ...createRpc(state), ...createMcpBridge(() => publish.tools) },
   /**
    * The one contract this module reads through `ctx.contracts` in Task 1.
    *
@@ -179,10 +183,19 @@ const publish = {
     { extension: 'video', contract: 'videos', version: 1, reason: 'A kész, QA-átment videókból csinál kiadást: a fájl útját, az ujjlenyomatát, a hosszát és a narráció szövegét olvassa.' },
   ],
   /**
-   * No `pages` yet (design spec 10 lists `ui/` as a later task's file) --
-   * three settings fields: the module's publishing zone, and the two
-   * decisions about a YouTube upload that this module refuses to make on the
-   * operator's behalf.
+   * Task 6's page (design spec 10, design spec 8's calendar): one entry,
+   * `dist/index.js` and `dist/style.css` under this module's own workspace,
+   * built by `scripts/build.mjs` from `ui/main.tsx`. `icon` is one of
+   * `EXTENSION_PAGE_ICON_NAMES` (src/lib/extension-page-nav.ts) -- 'Calendar'
+   * is the nearest to what the page actually is, a weekly schedule.
+   * `position: 'end'` puts it in the trailing "Extension Pages" group, the
+   * same choice `extensions/crm/index.mjs` makes for its own page: `'tasks'`
+   * is the only built-in anchor the rail mounts a slot for today, and this
+   * page has no reason to sit beside it.
+   *
+   * Below the page: three settings fields, unchanged since Task 5: the
+   * module's publishing zone, and the two decisions about a YouTube upload
+   * that this module refuses to make on the operator's behalf.
    *
    * `idozona` is a FIELD and not a buried constant because a slot means a WALL CLOCK
    * (src/utemezes.mjs's file docblock): `{ nap: 1, ora: 9, perc: 0 }` is
@@ -193,6 +206,15 @@ const publish = {
    * cleared to `''`, where the host's default never fires again.
    */
   ui: {
+    pages: [{
+      id: 'publish',
+      label: 'Publikálás',
+      icon: 'Calendar',
+      path: '/x/publish',
+      entry: 'dist/index.js',
+      css: 'dist/style.css',
+      position: 'end',
+    }],
     settingsFields: [
       { key: 'idozona', label: 'Publikálási időzóna', type: 'text', defaultValue: ALAP_IDOZONA, placeholder: ALAP_IDOZONA,
         help: 'IANA-zónanév. A publikálási sávok "hétfő 9:00"-ja ennek a zónának a fali óráján értendő, nyári időszámítással együtt -- nem UTC-ben.' },

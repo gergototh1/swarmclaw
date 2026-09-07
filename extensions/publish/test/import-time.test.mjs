@@ -29,6 +29,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
  * default) are the two statements about a video this module refuses to make
  * on the operator's behalf, and the `ui` pin below is where a later task
  * quietly restoring a default shows up as a diff.
+ *
+ * Task 6 widens both halves of `out.rpc` and `out.ui` at once: six new page
+ * methods (`src/rpc.mjs`: `naptar`, `kiadas`, `fiokok`, `jovahagy`,
+ * `atutemez`, `fiokotOsszekot`) alongside the MCP bridge's two, and the
+ * calendar's `ui.pages` entry -- the first this module has ever declared.
+ * `pages` is pinned WHOLE, the same discipline `settingsFields` already had:
+ * a wrong `entry`/`css` path here is a page that 404s on both assets in a
+ * way this test is the only thing that would ever notice.
  */
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -78,10 +86,11 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   // Task 4's five tools (src/szoveg.mjs), in the order `createSzovegTools`
   // declares them.
   assert.deepEqual(out.tools, ['publishOpen', 'publishQueue', 'publishDraft', 'publishVerdict', 'publishDue'])
-  // The MCP shim's two methods, and nothing else: this task adds no rpc.mjs,
-  // so the whole page/rpc surface is the bridge extensions/*/src/mcp-bridge.mjs
-  // gives every extension that fronts its tools over MCP.
-  assert.deepEqual(out.rpc.slice().sort(), ['mcpCall', 'mcpTools'])
+  // Task 6: `src/rpc.mjs`'s six page methods (`naptar`, `kiadas`, `fiokok`,
+  // `jovahagy`, `atutemez`, `fiokotOsszekot`), plus the MCP shim's two
+  // methods that every extension fronting its tools over MCP carries
+  // (extensions/*/src/mcp-bridge.mjs).
+  assert.deepEqual(out.rpc.slice().sort(), ['atutemez', 'fiokok', 'fiokotOsszekot', 'jovahagy', 'kiadas', 'mcpCall', 'mcpTools', 'naptar'])
   // Nothing provided yet: this task is a consumer of `video.videos`, not yet
   // a provider of anything to a third module.
   assert.equal(out.provides, null)
@@ -110,6 +119,15 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   //     first option -- would have this module state something nobody
   //     observed. Until it is set, `feltolt` refuses by name.
   assert.deepEqual(out.ui, {
+    pages: [{
+      id: 'publish',
+      label: 'Publikálás',
+      icon: 'Calendar',
+      path: '/x/publish',
+      entry: 'dist/index.js',
+      css: 'dist/style.css',
+      position: 'end',
+    }],
     settingsFields: [
       {
         key: 'idozona',

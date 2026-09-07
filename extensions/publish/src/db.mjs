@@ -1,5 +1,3 @@
-import crypto from 'node:crypto'
-
 /**
  * Schema and repository for the publish module.
  *
@@ -106,7 +104,58 @@ import crypto from 'node:crypto'
  */
 
 export const now = () => new Date().toISOString()
-export const uid = () => crypto.randomBytes(8).toString('hex')
+
+/**
+ * A random 16-hex-character surrogate id, from `globalThis.crypto` rather
+ * than `node:crypto`.
+ *
+ * TASK 6'S OWN DECISION, LEFT OPEN ON PURPOSE BY TASK 2'S REVIEWER. The
+ * calendar page needs both `AG_ALLAPOTOK` and `KIADAS_ALLAPOTOK` from this
+ * file, so an esbuild browser bundle now walks into this module -- and a
+ * `node:crypto` import is unresolvable there (`ui/scripts/build.mjs`'s
+ * `hostModules` plugin only resolves `react`/`react-dom`/`react/jsx-runtime`;
+ * everything else esbuild tries to resolve against the filesystem, and a bare
+ * `node:` specifier has none in a browser build). Task 2's own report named
+ * three cheap fixes and picked none of them, because the Minor 6 finding it
+ * was closing that same round asked for exactly the opposite: that
+ * `AG_ALLAPOTOK`/`KIADAS_ALLAPOTOK` stay beside the column they describe, not
+ * be guessed into a third file before anything actually needed them apart.
+ *
+ * This task is the first thing that needs them apart, so this is where the
+ * choice gets made. Of the three:
+ *
+ *   - marking `node:crypto` external would build, but a browser has no such
+ *     module to satisfy the external reference at run time -- the bundle
+ *     would throw the moment this file's top-level `import` line executed,
+ *     which is before the page renders anything at all;
+ *   - splitting the two vocabularies into their own module would undo the
+ *     Minor 6 finding this exact file's key register above still argues for
+ *     ("beside the column it describes... three readers... must not each
+ *     carry their own copy"), and would touch every file that imports either
+ *     constant today (`src/allapot.mjs`, `src/szoveg.mjs`, `src/utemezes.mjs`,
+ *     `src/agents.mjs`, `index.mjs`) for a problem that is really about one
+ *     unrelated function two lines below the constants, not about the
+ *     constants themselves;
+ *   - swapping `crypto.randomBytes` for `globalThis.crypto.getRandomValues`
+ *     removes the only reason this file needs a Node built-in at all, with a
+ *     one-line change nothing else in the file has to know about.
+ *
+ * The third is what is here. `globalThis.crypto` is the WebCrypto object:
+ * Node has exposed it as a global since 19 (this repo's own `engines.node` in
+ * the root `package.json` requires >=22.6.0, well past that), and every
+ * browser has carried it for years, so `db.mjs` now resolves cleanly into
+ * both runtimes without a plugin, an external, or a second file to keep in
+ * sync with this one's key register. Nothing here calls `uid()` from the
+ * browser bundle -- the page only reads `AG_ALLAPOTOK`/`KIADAS_ALLAPOTOK` off
+ * this module, never mints a row -- but the import graph does not know that
+ * in advance, so the whole file has to resolve regardless of which exports a
+ * given bundle actually reaches.
+ */
+export const uid = () => {
+  const bytes = new Uint8Array(8)
+  globalThis.crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
 
 /** The four platforms this spec ships (design spec 1, 6). A closed list: nothing here guesses a fifth. */
 export const PLATFORMOK = Object.freeze(['youtube', 'facebook', 'instagram', 'tiktok'])

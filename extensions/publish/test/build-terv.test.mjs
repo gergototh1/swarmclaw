@@ -61,8 +61,10 @@ test('van ui/ és benne a belépő: buildel', () => {
   assert.equal(terv.uzenet, null)
 })
 
-test('a modul mai állapota a kihagyó ág: nincs még ui/ könyvtár', () => {
-  // Ha ez megbukik, a lap-feladat elindult -- és akkor ez a teszt a
-  // `buildel` ágra íródik át, nem törlődik.
-  assert.equal(buildTerv().teendo, 'kihagy')
+test('a modul mai állapota a buildelő ág: Task 6 óta van ui/ könyvtár és belépő', () => {
+  // A korábbi pin ("nincs még ui/ könyvtár, kihagy") saját docblockja szerint
+  // erre az ágra íródott át, amint a lap-feladat elindul -- ez Task 6, és ez
+  // az a diff.
+  assert.equal(buildTerv().teendo, 'buildel')
+  assert.equal(buildTerv().uzenet, null)
 })

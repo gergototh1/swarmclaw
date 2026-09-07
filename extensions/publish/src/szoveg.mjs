@@ -178,8 +178,12 @@ function agentIdOf(ctx) {
  * escaping `guard` -- see `guard`'s own docblock for what an escaping throw
  * costs. The refusal names the platform and the field, never the stored
  * text: this module's constants and the argument's NAME only.
+ *
+ * Exported (Task 6) so `src/rpc.mjs`'s own read of a release's branches uses
+ * this SAME parse, rather than a second copy that could silently drift from
+ * the one `publishOpen` uses for the identical column.
  */
-function olvasSzoveg(platform, raw) {
+export function olvasSzoveg(platform, raw) {
   if (raw === null || raw === undefined) return null
   let parsed = null
   try {
@@ -196,8 +200,8 @@ function olvasSzoveg(platform, raw) {
   }
 }
 
-/** The findings of a release's most recent verdict, back as the list `publishVerdict` stored -- `[]` when the last verdict was `atmegy` or there has been none. Same boundary and same named refusal as `olvasSzoveg` above. */
-function olvasTalalatok(raw) {
+/** The findings of a release's most recent verdict, back as the list `publishVerdict` stored -- `[]` when the last verdict was `atmegy` or there has been none. Same boundary and same named refusal as `olvasSzoveg` above. Exported (Task 6) for the same reuse reason. */
+export function olvasTalalatok(raw) {
   if (raw === null || raw === undefined || raw === '') return []
   let parsed = null
   try {
