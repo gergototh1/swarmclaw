@@ -114,3 +114,54 @@ test('varHivasokNelkul egy beagyazott var() fallbacket egyben nyel le', () => {
   assert.equal(/#[0-9a-fA-F]{3,8}/.test(maradek), false, 'a beagyazott fallback belseje sem maradhat nyersen lathato')
   assert.equal(maradek.includes('VAR'), true, 'a teljes beagyazott var() hivast egy helyorzore kellett cserelni')
 })
+
+/**
+ * `{ szelektorok, torzs }` blokkok listaja -- egymasba agyazott
+ * at-szabalyok (pl. `@media`) eseten is a legbelso, tenyleges deklaracios
+ * blokkot adja vissza, mert egy `[^{}]*` sosem nyelhet el egy beagyazott
+ * `{`-t: a regex ott elakad, es a kovetkezo probalkozas mar a belso
+ * szabalynal talal parost. Ezert a `@media (...) { .crm-btn { ... } }`
+ * alakbol pontosan a `.crm-btn { ... }` blokk jon ki, az `@media` maga
+ * nem -- nincs is ra szukseg, mert csak konkret szelektorokra keresunk.
+ */
+function szabalyBlokkok(szoveg) {
+  return [...szoveg.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map((m) => ({ szelektorok: m[1].trim().split(',').map((s) => s.trim()), torzs: m[2] }))
+    .filter((b) => !b.szelektorok.some((s) => s.startsWith('@')))
+}
+
+test('a .crm-acct kattinthato biztonsagi tulajdonsagai (font/cursor/transition) kozos szabalyban elnek a .crm-btn-vel, nem lemasolva', () => {
+  // Regresszios teszt az F1 review-talalatra: a `ui/ugyfelek.tsx` sor-gombja
+  // (`.crm-acct`) valodi <button>, ezert a `font: inherit`/`cursor: pointer`
+  // biztonsagi parost es az atmenet-viselkedest (transition +
+  // prefers-reduced-motion) meg kell osztania a `.crm-btn`-nel (es a
+  // transition eseteben a `.crm-tab`-bal is) -- nem sajat, kezzel masolt
+  // peldanyban kell elniuk. Ha a `.crm-acct` valaha kikerul ebbol a kozos
+  // szabalybol es visszakapja a sajat masolatat, ez a teszt elbukik, meg
+  // akkor is, ha a szamitott ertek veletlenul egyezik a `.crm-btn`-evel.
+  const blokkok = szabalyBlokkok(kommentNelkul)
+
+  const cursorSzabaly = blokkok.find((b) => b.szelektorok.includes('.crm-acct') && /cursor:\s*pointer/.test(b.torzs))
+  assert.ok(cursorSzabaly, 'a .crm-acct-nak rendelkeznie kell cursor: pointer-rel')
+  assert.ok(cursorSzabaly.szelektorok.includes('.crm-btn'),
+    'a .crm-acct cursor: pointer szabalyat meg kell osztania a .crm-btn-vel, nem sajat masolatban kell elnie')
+
+  const fontSzabaly = blokkok.find((b) => b.szelektorok.includes('.crm-acct') && /font:\s*inherit/.test(b.torzs))
+  assert.ok(fontSzabaly, 'a .crm-acct-nak rendelkeznie kell font: inherit-tel')
+  assert.ok(fontSzabaly.szelektorok.includes('.crm-btn'),
+    'a .crm-acct font: inherit szabalyat meg kell osztania a .crm-btn-vel, nem sajat masolatban kell elnie')
+
+  const transzicioSzabaly = blokkok.find((b) => b.szelektorok.includes('.crm-acct') && /^transition:\s*background/.test(b.torzs.trim()))
+  assert.ok(transzicioSzabaly, 'a .crm-acct-nak resze kell legyen a transition szabalynak')
+  assert.ok(
+    transzicioSzabaly.szelektorok.includes('.crm-btn') && transzicioSzabaly.szelektorok.includes('.crm-tab'),
+    'a .crm-acct transition szabalyat meg kell osztania a .crm-btn es a .crm-tab elemekkel',
+  )
+
+  const reducedSzabaly = blokkok.find((b) => b.szelektorok.includes('.crm-acct') && /transition:\s*none/.test(b.torzs))
+  assert.ok(reducedSzabaly, 'a .crm-acct-nak resze kell legyen a prefers-reduced-motion override-nak')
+  assert.ok(
+    reducedSzabaly.szelektorok.includes('.crm-btn') && reducedSzabaly.szelektorok.includes('.crm-tab'),
+    'a .crm-acct reduced-motion szabalyat meg kell osztania a .crm-btn es a .crm-tab elemekkel',
+  )
+})

@@ -80,8 +80,18 @@
 .crm-spacer { margin-left: auto; }
 
 /* ---------- gombok ---------- */
+/*
+ * `font: inherit` es `cursor: pointer` minden kattinthato elem kozos
+ * biztonsagi tulajdonsaga -- ide tartozik a lentebbi `.crm-acct`
+ * sor-gomb is (lasd "Ügyfelek"), ami valodi <button>, csak kartya-nezetu.
+ * A `.crm-acct` nem oszthatja a `.crm-btn` tobbi tulajdonsagat (hatter,
+ * border, padding, `white-space: nowrap`): a `nowrap` peldaul megallitana
+ * a domain-lista tordeleset. Ezert csak ez a ket biztonsagi tulajdonsag
+ * kozos szabaly -- igy egyetlen hely definialja oket mindket helyre.
+ */
+.crm-btn, .crm-acct { font: inherit; cursor: pointer; }
 .crm-btn {
-  font: inherit; font-weight: 500; white-space: nowrap; cursor: pointer;
+  font-weight: 500; white-space: nowrap;
   background: var(--color-surface-2, #1e1e30);
   color: var(--color-text, #e2e2ec);
   border: 1px solid var(--color-border-hi, rgba(255,255,255,.13));
@@ -208,9 +218,9 @@
 .crm-app input::placeholder { color: var(--color-text-3, #8282a0); }
 
 @media (prefers-reduced-motion: reduce) {
-  .crm-btn, .crm-tab { transition: none; }
+  .crm-btn, .crm-tab, .crm-acct { transition: none; }
 }
-.crm-btn, .crm-tab { transition: background .12s ease, border-color .12s ease, color .12s ease; }
+.crm-btn, .crm-tab, .crm-acct { transition: background .12s ease, border-color .12s ease, color .12s ease; }
 
 /* ---------- Ma: figyelem-lista ---------- */
 .crm-sec-wrap { display: flex; flex-direction: column; gap: 22px; }
@@ -268,7 +278,7 @@
 /* ---------- Ügyfelek ---------- */
 .crm-accts { display: flex; flex-direction: column; gap: 6px; list-style: none; margin: 0; padding: 0; }
 .crm-acct {
-  font: inherit; text-align: left; cursor: pointer; width: 100%;
+  text-align: left; width: 100%;
   display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center;
   background: var(--color-surface, #14141f);
   color: var(--color-text, #e2e2ec);

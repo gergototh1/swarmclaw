@@ -60,7 +60,9 @@ export function UgyfelekNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) 
       </div>
 
       <div className="crm-sec">
-        <div className="crm-sechead"><h3>Ügyfelek</h3><span className="crm-count">{lathato.length}</span></div>
+        {/* Nincs kulon h3: az egyetlen szakasz cime mar a fenti h2, egy
+            azonos szovegu h3 csak megismetelne a kepernyoolvaso cim-fajanak. */}
+        <div className="crm-sechead"><span className="crm-count">{lathato.length}</span></div>
         {lathato.length === 0
           ? <p className="crm-empty">Még nincs ügyfél. Vegyél fel egyet a fenti mezővel.</p>
           : (
