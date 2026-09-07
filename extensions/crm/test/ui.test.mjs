@@ -270,3 +270,17 @@ test('a besorolatlan sor Megnyit gombja is a torlo `megnyit`-en megy at, nem a n
     'a besorolatlan sor navigacioja megkeruli az `elfogadEredmeny` torleset',
   )
 })
+
+test('a fulsav tablist, es a fulek aria-selected-et viselnek', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(js, /role:\s*"tablist"/, 'a fulsav role="tablist"')
+  assert.equal(js.includes('aria-pressed'), false, 'a fulek nem gomb-, hanem ful-szemantikat visznek')
+  for (const nezet of ['ma', 'ugyfelek', 'ugyek']) {
+    assert.match(
+      js,
+      new RegExp(`"aria-selected":\\s*nezet\\s*===\\s*"${nezet}"`),
+      `hianyzik az aria-selected a(z) ${nezet} fulon`,
+    )
+  }
+})

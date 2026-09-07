@@ -13,13 +13,18 @@ export function CrmPage({ rpc }: { extensionId: string; rpc: Rpc }) {
   const [nezet, setNezet] = useState<Nezet>('ma')
   const [nyitottAccount, setNyitottAccount] = useState<string | null>(null)
   return (
-    <div className="crm">
-      <nav className="crm-nav">
-        <button onClick={() => setNezet('ma')} aria-pressed={nezet === 'ma'}>Ma</button>
-        <button onClick={() => setNezet('ugyfelek')} aria-pressed={nezet === 'ugyfelek'}>Ügyfelek</button>
-        <button onClick={() => setNezet('ugyek')} aria-pressed={nezet === 'ugyek'}>Ügyek</button>
-      </nav>
-      <main className="crm-fo">
+    <div className="crm-app">
+      <div className="crm-appbar">
+        <div className="crm-tabs" role="tablist" aria-label="CRM nézetek">
+          <button type="button" className="crm-tab" role="tab"
+                  aria-selected={nezet === 'ma'} onClick={() => setNezet('ma')}>Ma</button>
+          <button type="button" className="crm-tab" role="tab"
+                  aria-selected={nezet === 'ugyfelek'} onClick={() => setNezet('ugyfelek')}>Ügyfelek</button>
+          <button type="button" className="crm-tab" role="tab"
+                  aria-selected={nezet === 'ugyek'} onClick={() => setNezet('ugyek')}>Ügyek</button>
+        </div>
+      </div>
+      <main className="crm-screen">
         {nezet === 'ma' && <MaNezet rpc={rpc} onOpen={(id) => { setNyitottAccount(id); setNezet('ugyfelek') }} />}
         {nezet === 'ugyfelek' && (nyitottAccount
           ? <UgyfelLap rpc={rpc} accountId={nyitottAccount} onBack={() => setNyitottAccount(null)} />
