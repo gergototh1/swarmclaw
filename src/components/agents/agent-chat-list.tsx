@@ -332,7 +332,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                 <div className="flex items-center gap-3">
                   {bulkMode && (
                     <div className={`w-5 h-5 rounded-xs border-2 flex items-center justify-center shrink-0 transition-colors
-                      ${selectedIds.has(defaultAgent.id) ? 'bg-accent-bright border-accent-bright' : 'border-white/20 bg-transparent'}`}>
+                      ${selectedIds.has(defaultAgent.id) ? 'bg-accent-bright border-accent-bright' : 'border-line-strong bg-transparent'}`}>
                       {selectedIds.has(defaultAgent.id) && (
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
@@ -437,7 +437,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
               <div className="flex items-center gap-2.5">
                 {bulkMode && (
                   <div className={`w-5 h-5 rounded-xs border-2 flex items-center justify-center shrink-0 transition-colors
-                    ${selectedIds.has(agent.id) ? 'bg-accent-bright border-accent-bright' : 'border-white/20 bg-transparent'}`}>
+                    ${selectedIds.has(agent.id) ? 'bg-accent-bright border-accent-bright' : 'border-line-strong bg-transparent'}`}>
                     {selectedIds.has(agent.id) && (
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />

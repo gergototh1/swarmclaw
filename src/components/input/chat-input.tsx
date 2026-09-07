@@ -234,6 +234,10 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="relative flex h-2.5 w-2.5 shrink-0">
                     {busy && <span className="absolute inline-flex h-2.5 w-2.5 rounded-full bg-amber-400/30 animate-ping" />}
+                    {/* 0.45 sits above the surface ladder's top step (layer-4 is
+                        0.16); scripts/codemod-surfaces.mjs refuses anything past
+                        0.25 as a scrim rather than a surface, and this idle dot
+                        is one. */}
                     <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${busy ? 'bg-amber-300' : 'bg-white/[0.45]'}`} />
                   </span>
                   <span className="label-mono text-amber-300/80">Message queue</span>

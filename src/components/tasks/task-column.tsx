@@ -6,13 +6,13 @@ import { useCreateTaskMutation } from '@/features/tasks/queries'
 import type { Agent, BoardTask, BoardTaskStatus, Project } from '@/types'
 
 const COLUMN_CONFIG: Record<BoardTaskStatus, { label: string; color: string; dot: string }> = {
-  backlog: { label: 'Backlog', color: 'text-text-3', dot: 'bg-white/20' },
+  backlog: { label: 'Backlog', color: 'text-text-3', dot: 'bg-layer-4' },
   queued: { label: 'Queued', color: 'text-amber-400', dot: 'bg-amber-400' },
   running: { label: 'Running', color: 'text-blue-400', dot: 'bg-blue-400' },
   completed: { label: 'Completed', color: 'text-emerald-400', dot: 'bg-emerald-400' },
   failed: { label: 'Failed', color: 'text-red-400', dot: 'bg-red-400' },
-  cancelled: { label: 'Cancelled', color: 'text-text-3', dot: 'bg-white/20' },
-  archived: { label: 'Archived', color: 'text-text-3/50', dot: 'bg-white/10' },
+  cancelled: { label: 'Cancelled', color: 'text-text-3', dot: 'bg-layer-4' },
+  archived: { label: 'Archived', color: 'text-text-3/50', dot: 'bg-layer-3' },
   deferred: { label: 'Deferred', color: 'text-orange-400', dot: 'bg-orange-400' },
 }
 

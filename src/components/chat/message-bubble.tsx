@@ -222,7 +222,7 @@ function renderToolMediaEntry(
           src={media.url}
           alt={media.name}
           loading="lazy"
-          className="max-w-[400px] rounded-sm border border-white/10 cursor-pointer hover:border-white/25 transition-all"
+          className="max-w-[400px] rounded-sm border border-line-default cursor-pointer hover:border-line-strong transition-all"
           onClick={() => onOpenImage?.({ url: media.url, name: media.name })}
           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
         />
@@ -251,20 +251,20 @@ function renderToolMediaEntry(
         controls
         playsInline
         preload="none"
-        className="max-w-full rounded-sm border border-white/10"
+        className="max-w-full rounded-sm border border-line-default"
       />
     )
   }
 
   if (media.kind === 'pdf') {
     return (
-      <div key={key} className="rounded-sm border border-white/10 overflow-hidden">
+      <div key={key} className="rounded-sm border border-line-default overflow-hidden">
         <iframe src={media.url} loading="lazy" className="w-full h-[400px] bg-white" title={media.name} />
         <a
           href={media.url}
           download
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-2 px-3 py-2 bg-surface/80 border-t border-white/10 text-[12px] text-text-2 hover:text-text no-underline transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-surface/80 border-t border-line-default text-[12px] text-text-2 hover:text-text no-underline transition-colors"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -283,7 +283,7 @@ function renderToolMediaEntry(
       href={media.url}
       download
       onClick={(e) => e.stopPropagation()}
-      className="flex items-center gap-2 px-3 py-2 rounded-sm border border-white/10 bg-surface/60 hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
+      className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-default bg-surface/60 hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -698,6 +698,9 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               <span className="text-[11px] font-700 uppercase tracking-wider text-emerald-400/80">Extension Installed</span>
             </div>
             <p className="text-[13px] text-text-2/90 leading-relaxed">{installRequest.message}</p>
+            {/* bg-black/40 is a fixed dark inset, not a ladder surface, so its
+                hairline stays white-alpha: border-line-subtle would turn dark
+                against a dark inset under .light. */}
             <div className="p-3 rounded-md bg-black/40 border border-white/5 flex flex-col gap-1">
               <div className="text-[11px] text-text-3/60 font-600 uppercase tracking-tight">Extension</div>
               <div className="text-[12px] font-mono text-emerald-200/70">{installRequest.filename || installRequest.extensionId || 'extension'}</div>
@@ -853,16 +856,16 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                                     src={preview.href}
                                     alt={preview.label}
                                     loading="lazy"
-                                    className="max-w-[400px] rounded-sm border border-white/10 hover:border-white/25 transition-colors"
+                                    className="max-w-[400px] rounded-sm border border-line-default hover:border-line-strong transition-colors"
                                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                                   />
                                 </a>
                               )}
                               {preview.type === 'video' && (
-                                <video src={preview.href} controls playsInline preload="none" className="max-w-full rounded-sm border border-white/10" />
+                                <video src={preview.href} controls playsInline preload="none" className="max-w-full rounded-sm border border-line-default" />
                               )}
                               {preview.type === 'pdf' && (
-                                <span className="block w-full max-w-[520px] overflow-hidden rounded-sm border border-white/10">
+                                <span className="block w-full max-w-[520px] overflow-hidden rounded-sm border border-line-default">
                                   <iframe src={preview.href} loading="lazy" className="h-[360px] w-full bg-white" title={preview.label} />
                                 </span>
                               )}

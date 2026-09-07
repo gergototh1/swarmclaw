@@ -99,7 +99,7 @@ export function TaskCard({
   const borderColor = isBlocked ? 'border-l-rose-500'
     : task.status === 'running' ? 'border-l-emerald-500'
     : task.status === 'failed' ? 'border-l-red-500'
-    : task.status === 'cancelled' ? 'border-l-white/15'
+    : task.status === 'cancelled' ? 'border-l-line-strong'
     : 'border-l-transparent'
 
   const handleQueue = async (e: React.MouseEvent) => {
@@ -154,7 +154,10 @@ export function TaskCard({
       }}
     >
       <div className="flex items-start gap-3 mb-3">
-        {/* Selection checkbox */}
+        {/* Selection checkbox. The hover border stays at white/[0.4]: the line
+            ladder tops out at line-strong (0.16) and scripts/codemod-surfaces.mjs
+            refuses line values past 0.3, so there is no token that keeps this
+            hover legible. */}
         {(selectionMode || selected) && (
           <button
             onClick={(e) => { e.stopPropagation(); onToggleSelect?.(task.id) }}

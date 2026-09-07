@@ -55,7 +55,7 @@ export function MarkdownBody({
           if (skipMediaUrls?.has(src)) return null
           const isVideo = /\.(mp4|webm|mov|avi)$/i.test(src)
           if (isVideo) {
-            return <video src={src} controls preload="none" className="max-w-full rounded-sm border border-white/10 my-2" />
+            return <video src={src} controls preload="none" className="max-w-full rounded-sm border border-line-default my-2" />
           }
           return (
             <a href={src} download target="_blank" rel="noopener noreferrer" className="block my-2">
@@ -64,7 +64,7 @@ export function MarkdownBody({
                 src={src}
                 alt={alt || 'Image'}
                 loading="lazy"
-                className="max-w-full max-h-[400px] rounded-sm border border-line-subtle hover:border-white/25 transition-colors"
+                className="max-w-full max-h-[400px] rounded-sm border border-line-subtle hover:border-line-strong transition-colors"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
               />
             </a>

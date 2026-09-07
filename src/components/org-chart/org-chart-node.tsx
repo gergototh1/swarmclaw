@@ -268,7 +268,7 @@ export function OrgChartNode({
             className={`absolute left-1/2 -translate-x-1/2 w-[10px] h-[10px] rounded-full border
               transition-opacity cursor-pointer
               ${isLinkTarget ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
-              bg-white/10 border-white/20 hover:bg-accent-bright/60`}
+              bg-layer-3 border-line-strong hover:bg-accent-bright/60`}
             style={{ top: -5 }}
             onPointerDown={(e) => { e.stopPropagation(); onPortDragStart?.('top') }}
           />
@@ -276,7 +276,7 @@ export function OrgChartNode({
             className={`absolute left-1/2 -translate-x-1/2 w-[10px] h-[10px] rounded-full border
               transition-opacity cursor-pointer
               ${isLinkTarget ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
-              bg-white/10 border-white/20 hover:bg-accent-bright/60`}
+              bg-layer-3 border-line-strong hover:bg-accent-bright/60`}
             style={{ bottom: -5 }}
             onPointerDown={(e) => { e.stopPropagation(); onPortDragStart?.('bottom') }}
           />
@@ -284,7 +284,7 @@ export function OrgChartNode({
             className={`absolute top-1/2 -translate-y-1/2 w-[10px] h-[10px] rounded-full border
               transition-opacity cursor-pointer
               ${isLinkTarget ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
-              bg-white/10 border-white/20 hover:bg-accent-bright/60`}
+              bg-layer-3 border-line-strong hover:bg-accent-bright/60`}
             style={{ left: -5 }}
             onPointerDown={(e) => { e.stopPropagation(); onPortDragStart?.('left') }}
           />
@@ -292,7 +292,7 @@ export function OrgChartNode({
             className={`absolute top-1/2 -translate-y-1/2 w-[10px] h-[10px] rounded-full border
               transition-opacity cursor-pointer
               ${isLinkTarget ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
-              bg-white/10 border-white/20 hover:bg-accent-bright/60`}
+              bg-layer-3 border-line-strong hover:bg-accent-bright/60`}
             style={{ right: -5 }}
             onPointerDown={(e) => { e.stopPropagation(); onPortDragStart?.('right') }}
           />

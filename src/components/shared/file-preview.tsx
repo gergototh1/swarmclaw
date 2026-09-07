@@ -23,7 +23,7 @@ export function FilePreview({ file, onRemove }: { file: PendingFile; onRemove: (
       )}
       <button
         onClick={onRemove}
-        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full border border-white/10 bg-raised
+        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full border border-line-default bg-raised
           text-text-2 text-[10px] cursor-pointer flex items-center justify-center
           hover:bg-danger-soft hover:text-danger hover:border-danger/20 transition-colors"
       >

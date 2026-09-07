@@ -102,7 +102,7 @@ export function AttachmentChip({
         <img
           src={url} alt="Attached"
           loading="lazy"
-          className="max-w-[240px] rounded-md mb-2 border border-white/10 cursor-pointer hover:border-white/25 transition-colors"
+          className="max-w-[240px] rounded-md mb-2 border border-line-default cursor-pointer hover:border-line-strong transition-colors"
           onClick={() => {
             if (onOpenImage) {
               onOpenImage({ url, filename })

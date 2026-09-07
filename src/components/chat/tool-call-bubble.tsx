@@ -586,7 +586,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
                 src={src}
                 alt={`Screenshot ${i + 1}`}
                 loading="lazy"
-                className={`rounded-sm border border-white/10 cursor-pointer transition-all duration-200 hover:border-white/25 ${imgExpanded ? 'max-w-full' : 'max-w-[400px]'}`}
+                className={`rounded-sm border border-line-default cursor-pointer transition-all duration-200 hover:border-line-strong ${imgExpanded ? 'max-w-full' : 'max-w-[400px]'}`}
                 onClick={(e) => { e.stopPropagation(); setImgExpanded(!imgExpanded) }}
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
               />
@@ -627,7 +627,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
       {media.videos.length > 0 && (
         <div className="mt-2 flex flex-col gap-2">
           {media.videos.map((src, i) => (
-            <video key={i} src={src} controls playsInline preload="none" className="max-w-full rounded-sm border border-white/10" />
+            <video key={i} src={src} controls playsInline preload="none" className="max-w-full rounded-sm border border-line-default" />
           ))}
         </div>
       )}
@@ -636,13 +636,13 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
       {media.pdfs.length > 0 && (
         <div className="mt-2 flex flex-col gap-2">
           {media.pdfs.map((file, i) => (
-            <div key={i} className="rounded-sm border border-white/10 overflow-hidden">
+            <div key={i} className="rounded-sm border border-line-default overflow-hidden">
               <iframe src={file.url} loading="lazy" className="w-full h-[400px] bg-white" title={file.name} />
               <a
                 href={file.url}
                 download
                 onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-2 px-3 py-2 bg-surface/80 border-t border-white/10 text-[12px] text-text-2 hover:text-text no-underline transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-surface/80 border-t border-line-default text-[12px] text-text-2 hover:text-text no-underline transition-colors"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -665,7 +665,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
               href={file.url}
               download
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-2 px-3 py-2 rounded-sm border border-white/10 bg-surface/60 hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
+              className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-default bg-surface/60 hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />

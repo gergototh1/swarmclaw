@@ -13,7 +13,7 @@ interface HealthResponse {
 const EVENT_CONFIG: Record<ConnectorHealthEventType, { color: string; label: string }> = {
   started: { color: 'bg-green-400', label: 'Started' },
   reconnected: { color: 'bg-green-400', label: 'Reconnected' },
-  stopped: { color: 'bg-white/30', label: 'Stopped' },
+  stopped: { color: 'bg-layer-4', label: 'Stopped' },
   error: { color: 'bg-red-400', label: 'Error' },
   disconnected: { color: 'bg-amber-400', label: 'Disconnected' },
 }
@@ -97,7 +97,7 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
 
         <div className="max-h-[320px] overflow-y-auto pr-2 space-y-3 sm:max-h-[38vh]">
           {recentEvents.map((ev) => {
-            const cfg = EVENT_CONFIG[ev.event] ?? { color: 'bg-white/30', label: ev.event }
+            const cfg = EVENT_CONFIG[ev.event] ?? { color: 'bg-layer-4', label: ev.event }
             return (
               <div key={ev.id} className="relative flex items-start gap-3">
                 {/* Dot */}

@@ -38,6 +38,8 @@ export function DelegationBubble({ data, isHoverOnly }: Props) {
       }}
       onWheel={isHoverOnly ? (e) => e.stopPropagation() : undefined}
     >
+      {/* Fixed dark bubble, painted over the org-chart canvas rather than over
+          a ladder surface, so the text below stays white-alpha in both themes. */}
       <div
         className="rounded-sm px-3 py-2 shadow-lg"
         style={{

@@ -9,13 +9,13 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { SearchInput } from '@/components/ui/search-input'
 
 const STATUS_DOT: Record<BoardTaskStatus, string> = {
-  backlog: 'bg-white/20',
+  backlog: 'bg-layer-4',
   queued: 'bg-amber-400',
   running: 'bg-blue-400 animate-pulse',
   completed: 'bg-emerald-400',
   failed: 'bg-red-400',
-  cancelled: 'bg-white/20',
-  archived: 'bg-white/10',
+  cancelled: 'bg-layer-4',
+  archived: 'bg-layer-3',
   deferred: 'bg-orange-400',
 }
 

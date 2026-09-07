@@ -492,7 +492,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                         </button>
                       </>
                     )}
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${transportColors[server.transport] || 'bg-white/10 text-text-3'}`}>
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${transportColors[server.transport] || 'bg-layer-3 text-text-3'}`}>
                       {server.transport}
                     </span>
                     <button

@@ -108,7 +108,7 @@ export function WebhookList({ inSidebar }: { inSidebar?: boolean }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-600 text-text truncate">{hook.name || 'Unnamed Webhook'}</span>
-                  <span className={`shrink-0 w-2 h-2 rounded-full ${hook.isEnabled ? 'bg-emerald-400' : 'bg-white/20'}`}
+                  <span className={`shrink-0 w-2 h-2 rounded-full ${hook.isEnabled ? 'bg-emerald-400' : 'bg-layer-4'}`}
                     style={hook.isEnabled ? { animation: 'pulse-subtle 2s infinite' } : undefined} />
                 </div>
                 <div className="text-[11px] text-text-3 truncate">

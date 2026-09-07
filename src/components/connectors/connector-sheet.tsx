@@ -930,7 +930,7 @@ export function ConnectorSheet() {
                 <button
                   aria-label={`Remove ${tag}`}
                   onClick={() => updateConfigValue(field.key, tags.filter((_, j) => j !== i).join(','))}
-                  className="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors cursor-pointer text-accent-bright/50 hover:text-accent-bright"
+                  className="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-layer-3 transition-colors cursor-pointer text-accent-bright/50 hover:text-accent-bright"
                 >
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -1063,7 +1063,7 @@ export function ConnectorSheet() {
             <div className="flex items-center gap-2 mt-0.5">
               <span className={`w-2 h-2 rounded-full ${
                 runtimeConnector?.status === 'running' ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]' :
-                runtimeConnector?.status === 'error' ? 'bg-red-400' : 'bg-white/20'
+                runtimeConnector?.status === 'error' ? 'bg-red-400' : 'bg-layer-4'
               }`} />
               <span className="text-[12px] text-text-3 capitalize">{runtimeConnector?.status || editing.status}</span>
             </div>
@@ -1298,7 +1298,7 @@ export function ConnectorSheet() {
               <div className="text-[12px] text-text-3 mt-0.5 flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full inline-block ${
                   effectiveRunning ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]' :
-                  runtimeConnector?.status === 'error' ? 'bg-red-400' : 'bg-white/20'
+                  runtimeConnector?.status === 'error' ? 'bg-red-400' : 'bg-layer-4'
                 }`} />
                 {effectiveRunning ? (waAuthenticated ? 'Connected and listening' : 'Connecting...') :
                  runtimeConnector?.status === 'error' ? 'Error — see below' : runtimeConnector?.status === 'starting' ? 'Starting...' : 'Not connected'}

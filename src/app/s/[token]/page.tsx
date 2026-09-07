@@ -18,6 +18,16 @@ export default async function SharedEntityPage({
   const payload = resolveSharedEntity(link)
   if (!payload) notFound()
 
+  // Deliberately off the surface ladder. This page is served to anyone
+  // holding the link, outside the app shell and outside the theme switch, so
+  // it paints its own fixed dark ground and every white-alpha class below is
+  // measured against that ground rather than against --sf-*/--ln-*. Swapping
+  // them for ladder tokens would make the lines invert under .light while the
+  // background stayed #080a0f. eslint.config.mjs still reports them; they are
+  // carried in .eslint-baseline.json, which counts reports per file, so a new
+  // className carrying a white alpha still fails the gate here. (One report is
+  // one string literal, so a class added to a className that already reports is
+  // the one thing the count cannot see.)
   return (
     <main className="min-h-screen bg-[#080a0f] text-white">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10">
