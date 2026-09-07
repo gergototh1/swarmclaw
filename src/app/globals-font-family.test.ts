@@ -2,7 +2,7 @@
  * Compiles the real stylesheet and asserts what the `@theme inline` block
  * actually emits for the three font-family variables.
  *
- * Why this exists: `next/font` (src/app/layout.tsx) writes the real font
+ * Why this exists: `next/font` (src/app/fonts.ts) writes the real font
  * faces onto <html> as `--font-sans-face` / `--font-display-face` /
  * `--font-mono-face`, and the theme keys in globals.css --
  * `--font-sans` / `--font-display` / `--font-mono` -- reference those
@@ -22,45 +22,12 @@
  */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import fs from 'node:fs'
 import { readFile, writeFile, unlink } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import EnhancedResolve from 'enhanced-resolve'
-import { compile } from 'tailwindcss'
+import { compileCandidates, GLOBALS_CSS } from './globals-css-harness'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-const GLOBALS_CSS = resolve(HERE, 'globals.css')
-
-/**
- * Resolves the stylesheet's `@import`s the way a bundler does: `style` main
- * field and condition, `.css` extension. Without it compile() cannot follow
- * `@import "tailwindcss"` and there is no theme to test.
- */
-const cssResolver = EnhancedResolve.ResolverFactory.createResolver({
-  fileSystem: new EnhancedResolve.CachedInputFileSystem(fs, 4000),
-  useSyncFileSystemCalls: true,
-  extensions: ['.css'],
-  mainFields: ['style'],
-  conditionNames: ['style'],
-})
-
-async function loadStylesheet(id: string, base: string) {
-  const path = cssResolver.resolveSync({}, base, id)
-  if (!path) throw new Error(`could not resolve stylesheet ${id} from ${base}`)
-  return { path, base: dirname(path), content: await readFile(path, 'utf8') }
-}
-
-/** Compile a stylesheet (by path) against a candidate list. */
-async function compileCandidates(candidates: string[], cssPath = GLOBALS_CSS): Promise<string> {
-  const source = await readFile(cssPath, 'utf8')
-  const { build } = await compile(source, {
-    base: dirname(cssPath),
-    from: cssPath,
-    loadStylesheet,
-  })
-  return build(candidates)
-}
 
 /**
  * The value Tailwind emitted for a `--name: value;` custom property
@@ -100,8 +67,9 @@ test('none of the three font theme keys reference themselves', async () => {
       new RegExp(`var\\(--${themeKey}\\)`),
       `--${themeKey} must not reference itself -- a self-referencing custom property is ` +
         'invalid at computed-value time and the whole declaration (fallback tail included) ' +
-        'is silently discarded wherever next/font\'s unlayered <html> class is absent, e.g. ' +
-        'src/app/global-error.tsx',
+        'is silently discarded. An undefined -face variable does the same thing, which is ' +
+        'why every root that renders its own <html> takes its classes from fontVariables ' +
+        'in src/app/fonts.ts',
     )
   }
 })
