@@ -213,18 +213,15 @@ function hivasMondat(err) {
  * host's is rethrown untouched: this module does not own it and must not
  * guess a sentence for it.
  *
- * The same `typeof videos.get !== 'function'` guard as `videosHandle` above
- * applies here too, for the same reason: the host matches the contract's
- * name and version, never its method list.
+ * NO SECOND `typeof videos.get !== 'function'` GUARD HERE. There was one, a
+ * verbatim copy of `videosHandle`'s own -- and `videosHandle` is the line
+ * directly above, which already threw on exactly that condition, so the copy
+ * could never run. A dead guard is worse than no guard: it reads as the place
+ * the check happens, so the real one above it looks removable, and the two
+ * identical sentences drift the moment one of them is edited.
  */
 export async function videoLekerdez(state, videoId) {
   const videos = videosHandle(state)
-  if (typeof videos.get !== 'function') {
-    throw new PublishError(
-      HIBA.szerzodes_hianyzik,
-      `${NEM_ERHETO_EL}a Videó bővítmény ${VIDEOS_CONTRACT} szerződése nem kínálja a "get" metódust, amire ennek a modulnak szüksége van. Frissítsd a két bővítmény közül a régebbit a Bővítmények lapon, aztán próbáld újra.`,
-    )
-  }
   try {
     return await videos.get({ id: videoId })
   } catch (err) {

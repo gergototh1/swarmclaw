@@ -4,6 +4,8 @@ import test from 'node:test'
 import { kiadasAllapot } from '../src/allapot.mjs'
 import { AG_ALLAPOTOK, KIADAS_ALLAPOTOK, PLATFORMOK } from '../src/db.mjs'
 import { ALAP_SAVOK, createRpc } from '../src/rpc.mjs'
+import { ALAP_IDOZONA } from '../src/db.mjs'
+import { hetKezdete } from '../src/utemezes.mjs'
 import { freshRepo } from './helpers.mjs'
 
 /**
@@ -40,6 +42,19 @@ function setup({ video = null, videos = null, why = 'provider_missing', settings
     adapterek: {},
   }
   return { state, repo, rpc: createRpc(state), beallitasokatIr: (ujak) => { beallitasok = ujak } }
+}
+
+/**
+ * A `naptar` argumentuma ahhoz a HÉTHEZ, amiben egy adott pillanat van.
+ *
+ * A naptár egy hetet rajzol, nem az összes valaha volt kiadást, tehát egy
+ * teszt, ami egy fix időpontra ütemezett kiadást vár vissza, meg kell mondja,
+ * MELYIK hetet kéri -- különben a teszt attól függene, mikor futtatják, és
+ * jövő héten magától elromlana. Ugyanaz a számítás, amit a modul is végez
+ * (`hetKezdete`, src/utemezes.mjs), a modul saját zónájában.
+ */
+function hetAmiben(iso, zona = ALAP_IDOZONA) {
+  return { hetKezdet: hetKezdete(new Date(iso), zona, 0) }
 }
 
 function qaOkVideo(id, extra = {}) {
@@ -97,7 +112,7 @@ test('naptar: az idopont és a felulirt_idopont a saját mezőjükön külön é
   const utemezett = repo.kiadastJovahagy(jovahagyva.id)
   repo.kiadastUtemez({ kiadasId: utemezett.id, savId: sav.id, idopont: '2026-09-07T09:00:00.000Z' })
   repo.idopontFeluliras({ kiadasId: utemezett.id, felulirtIdopont: '2026-09-08T10:00:00.000Z' })
-  const r = await rpc.naptar()
+  const r = await rpc.naptar(hetAmiben('2026-09-08T10:00:00.000Z'))
   const sor = r.kiadasok[0]
   assert.equal(sor.idopont, '2026-09-08T10:00:00.000Z')
   assert.equal(sor.felulirtIdopont, '2026-09-08T10:00:00.000Z')
@@ -118,7 +133,7 @@ test('naptar: egy sávra tett, de NEM felülírt kiadáson a felulirtIdopont nul
   const k = lektoraltKiadas(repo)
   repo.kiadastJovahagy(k.id)
   repo.kiadastUtemez({ kiadasId: k.id, savId: sav.id, idopont: '2026-09-07T09:00:00.000Z' })
-  const sor = (await rpc.naptar()).kiadasok[0]
+  const sor = (await rpc.naptar(hetAmiben('2026-09-07T09:00:00.000Z'))).kiadasok[0]
   assert.equal(sor.idopont, '2026-09-07T09:00:00.000Z')
   assert.equal(sor.felulirtIdopont, null, 'ezt a kiadást senki nem írta felül')
   assert.equal(sor.savId, sav.id)
@@ -515,9 +530,12 @@ test('a lap felületein egy friss telepítés eljut a jóváhagyástól az ütem
   assert.equal((await rpc.alapSavokatFelvesz()).savok.length, 3)
 
   // 3. A modul saját következő lépése: a jóváhagyott kiadást a következő
-  //    szabad sávba teszi. (A `jovahagy` másodszori hívása a már jóváhagyott
-  //    kiadásra nevesítve utasít el, ezért itt egy MÁSIK, most lektorált
-  //    kiadás megy végig -- a jóváhagyás egy kiadáson egyszer történik.)
+  //    szabad sávba teszi. (A `jovahagy` másodszori hívása a MÁR JÓVÁHAGYOTT
+  //    kiadásra azóta megengedett -- pont ez menti meg a friss telepítés első
+  //    kiadását, lásd a lentebbi "NEM ragad be" tesztet --, itt viszont
+  //    szándékosan egy MÁSIK, most lektorált kiadás megy végig, hogy a
+  //    lépés a `lektoralt -> jovahagyva -> utemezve` teljes utat járja be,
+  //    ne csak a második felét.)
   const masik = lektoraltKiadas(repo, 'v2')
   const savval = await rpc.jovahagy({ kiadasId: masik.id })
   assert.equal(savval.utemezve, true)
@@ -526,8 +544,10 @@ test('a lap felületein egy friss telepítés eljut a jóváhagyástól az ütem
   assert.ok(typeof tarolt.idopont === 'string' && tarolt.idopont !== '')
   assert.equal(tarolt.felulirt_idopont, null)
 
-  // 4. És a naptár már ki tudja rajzolni: sávok is, időpont is.
-  const naptar = await rpc.naptar()
+  // 4. És a naptár már ki tudja rajzolni: sávok is, időpont is. A naptár EGY
+  //    hetet rajzol, ezért azt a hetet kérjük, amelyikbe a modul a kiadást
+  //    tette -- a következő szabad sáv a jövő héten is lehet.
+  const naptar = await rpc.naptar(hetAmiben(tarolt.idopont))
   assert.equal(naptar.savok.length, 3)
   assert.equal(naptar.kiadasok.find((x) => x.kiadasId === masik.id).idopont, tarolt.idopont)
 })
@@ -573,4 +593,140 @@ test('jovahagy: se vázlatot, se már ütemezettet nem enged -- a nyitás csak a
   const r2 = await rpc.jovahagy({ kiadasId: k.id })
   assert.equal(r2.hiba, 'kiadas_nincs_lektoralva', 'egy ütemezett kiadást ez a gomb nem tesz át máshova; arra az atutemez van')
   assert.equal(r2.allapot, KIADAS_ALLAPOTOK.UTEMEZVE)
+})
+
+// --- a heti ablak: EGY hét, nem az összes valaha volt kiadás --------------
+
+test('naptar: csak a kért hét kiadásait szállítja, és az időpont nélkülieket MINDEN héten', async () => {
+  // A HÉTFŐ OSZLOP ÖRÖKRE GYŰJTÖTT. A lap hét oszlopba vödrözte az ÖSSZES
+  // kiadást, ablak nélkül, az rpc pedig mindet szállította (plusz áganként
+  // egy lekérdezést) -- egy "heti naptár", ami valójában élettartam-naptár
+  // volt, korlát nélkül növekvő listával.
+  //
+  // Az időpont nélküliek a kivétel, és nem szivárgás: azok a vázlatok, a
+  // lektoráltak és a sávra még nem tett jóváhagyottak. Egyik héthez sem
+  // tartoznak (a lap saját "Időpont nélkül" oszlopában rajzolja őket), és egy
+  // héthatár mögé rejtve pont az a kiadás tűnne el, amivel az operátornak
+  // dolga van -- friss telepítésen mindig ott ül az első.
+  const { repo, rpc } = setup()
+  const sav = repo.ujSav({ nap: 1, ora: 9, perc: 0 })
+  const ezenAHeten = lektoraltKiadas(repo, 'v-ez')
+  repo.kiadastJovahagy(ezenAHeten.id)
+  repo.kiadastUtemez({ kiadasId: ezenAHeten.id, savId: sav.id, idopont: '2026-09-07T09:00:00.000Z' })
+  const masHeten = lektoraltKiadas(repo, 'v-mas')
+  repo.kiadastJovahagy(masHeten.id)
+  repo.kiadastUtemez({ kiadasId: masHeten.id, savId: sav.id, idopont: '2026-11-02T09:00:00.000Z' })
+  const idopontNelkul = repo.ujKiadas({ videoId: 'v-vazlat' })
+
+  const r = await rpc.naptar(hetAmiben('2026-09-07T09:00:00.000Z'))
+  const idk = r.kiadasok.map((k) => k.kiadasId).sort()
+  assert.deepEqual(idk, [ezenAHeten.id, idopontNelkul.id].sort(), 'a másik hét kiadása nincs benne')
+
+  const masik = await rpc.naptar(hetAmiben('2026-11-02T09:00:00.000Z'))
+  assert.deepEqual(masik.kiadasok.map((k) => k.kiadasId).sort(), [masHeten.id, idopontNelkul.id].sort())
+})
+
+test('naptar: a hét négy határpillanata a válasszal utazik, és a lapozás pont ezekkel lép -- a lap nem számol zónát', async () => {
+  const { rpc } = setup()
+  const r = await rpc.naptar(hetAmiben('2026-09-07T09:00:00.000Z'))
+  assert.equal(r.hetVege, r.kovetkezoHetKezdet, 'a hét vége ÉS a következő hét kezdete ugyanaz a pillanat, nem két számítás')
+  assert.equal(Date.parse(r.hetVege) - Date.parse(r.hetKezdet), 7 * 24 * 60 * 60 * 1000, 'ez a hét nem esik óraátállításra, tehát pont hét nap')
+  // ...és a lapozás visszaadott pillanata tényleg az előző, illetve a
+  // következő hetet nyitja: a lap semmit nem számol, csak visszaadja.
+  const elozo = await rpc.naptar({ hetKezdet: r.elozoHetKezdet })
+  assert.equal(elozo.kovetkezoHetKezdet, r.hetKezdet)
+  const kovetkezo = await rpc.naptar({ hetKezdet: r.kovetkezoHetKezdet })
+  assert.equal(kovetkezo.elozoHetKezdet, r.hetKezdet)
+})
+
+test('naptar: a hét a modul zónájának FALI ÓRÁJÁN kezdődik, nem UTC-ben', async () => {
+  const { rpc } = setup({ settings: { idozona: 'Pacific/Kiritimati' } })
+  const r = await rpc.naptar(hetAmiben('2026-09-07T09:00:00.000Z', 'Pacific/Kiritimati'))
+  // Kiritimati UTC+14: a helyi vasárnap 00:00 az előző szombat 10:00 UTC-kor van.
+  assert.equal(r.hetKezdet.endsWith('T10:00:00.000Z'), true, `a hét kezdete a zóna éjfele, nem UTC éjfél: ${r.hetKezdet}`)
+})
+
+// --- BLOKKOLÓ 2: a lap felületein a halott kiadás feltámad -----------------
+
+test('BLOKKOLÓ 2: a friss telepítés első kiadása elbukik a gyerekeknek-mezőn, és az ujraprobal a lap EGYETLEN kijárata belőle', async () => {
+  // A ZÁRÓ ÁTNÉZÉS REPRODUKCIÓJA. A `gyerekeknek` az a beállítás, aminek
+  // SZÁNDÉKOSAN nincs alapértéke (COPPA-nyilatkozat), tehát a friss
+  // telepítés első kiküldése ezen bukik el -- és utána MINDEN kijárat zárva
+  // volt: `jovahagy` -> kiadas_nincs_lektoralva, `atutemez` ->
+  // kiadas_nincs_utemezve, `publishDraft` -> kiadas_lezart_szovegre,
+  // `publishVerdict` -> kiadas_nincs_vazlatban, `publishOpen` -> a HALOTT
+  // kiadást adja vissza (idempotens a videoId-ra, tehát második kiadás sem
+  // nyitható), `publishDue` -> üres. Az a videó soha többé nem volt
+  // publikálható ezzel a modullal.
+  const { repo, rpc } = setup()
+  repo.ujSav({ nap: 1, ora: 18, perc: 0 })
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  const ag = repo.ujAg({ kiadasId: k.id, platform: 'youtube' })
+  repo.agEredmenyetIr({ agId: ag.id, allapot: AG_ALLAPOTOK.HIBA, hibaKod: 'gyerekeknek_nincs_beallitva' })
+  repo.kiadasAllapototIr(k.id, kiadasAllapot(repo.agak(k.id)))
+  assert.equal(repo.kiadas(k.id).allapot, KIADAS_ALLAPOTOK.HIBA)
+
+  // A régi zsákutca, ugyanazon a felületen, ahol az operátor áll:
+  assert.equal((await rpc.jovahagy({ kiadasId: k.id })).hiba, 'kiadas_nincs_lektoralva')
+  assert.equal((await rpc.atutemez({ kiadasId: k.id, felulirtIdopont: '2026-09-09T10:00:00.000Z' })).hiba, 'kiadas_nincs_utemezve')
+
+  // ...és a kar, ami kinyitja.
+  const r = await rpc.ujraprobal({ kiadasId: k.id })
+  assert.equal(r.hiba, undefined, 'az operátor beállította a mezőt, és a kiadás visszamehet a sorba')
+  assert.deepEqual(r.platformok, ['youtube'])
+  assert.equal(r.allapot, KIADAS_ALLAPOTOK.UTEMEZVE)
+  const utana = repo.kiadas(k.id)
+  assert.equal(utana.allapot, KIADAS_ALLAPOTOK.UTEMEZVE)
+  assert.ok(typeof utana.idopont === 'string' && utana.idopont !== '')
+  assert.equal(repo.agak(k.id)[0].allapot, AG_ALLAPOTOK.VAR)
+  assert.equal(repo.agak(k.id)[0].hiba_kod, null)
+
+  // ...és a részletlap már az új tényeket mutatja.
+  const reszlet = await rpc.kiadas({ kiadasId: k.id })
+  assert.equal(reszlet.allapot, KIADAS_ALLAPOTOK.UTEMEZVE)
+  assert.equal(reszlet.agak[0].hibaKod, null)
+})
+
+test('BLOKKOLÓ 2: az ujraprobal egy ágra szól, ha megnevezik -- és egy már kesz ágra MEGNEVEZVE utasít el', async () => {
+  const { repo, rpc } = setup()
+  repo.ujSav({ nap: 1, ora: 18, perc: 0 })
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  const yt = repo.ujAg({ kiadasId: k.id, platform: 'youtube' })
+  const fb = repo.ujAg({ kiadasId: k.id, platform: 'facebook' })
+  repo.agEredmenyetIr({ agId: yt.id, allapot: AG_ALLAPOTOK.KESZ, url: 'https://youtu.be/abc' })
+  repo.agEredmenyetIr({ agId: fb.id, allapot: AG_ALLAPOTOK.HIBA, hibaKod: 'adapter_nincs' })
+  repo.kiadasAllapototIr(k.id, kiadasAllapot(repo.agak(k.id)))
+  assert.equal(repo.kiadas(k.id).allapot, KIADAS_ALLAPOTOK.RESZBEN)
+
+  const elutasitva = await rpc.ujraprobal({ kiadasId: k.id, platform: 'youtube' })
+  assert.equal(elutasitva.hiba, 'ag_mar_kesz')
+  assert.notEqual(elutasitva.uzenet, elutasitva.hiba, 'kód ÉS mondat')
+  assert.equal(repo.agak(k.id).find((a) => a.platform === 'youtube').url, 'https://youtu.be/abc')
+  assert.equal(repo.kiadas(k.id).allapot, KIADAS_ALLAPOTOK.RESZBEN, 'egy elutasított kar nem ütemezett újra semmit')
+
+  const r = await rpc.ujraprobal({ kiadasId: k.id, platform: 'facebook' })
+  assert.equal(r.hiba, undefined)
+  assert.deepEqual(r.platformok, ['facebook'], 'önmagában, a többihez nyúlás nélkül')
+  const byPlatform = Object.fromEntries(repo.agak(k.id).map((a) => [a.platform, a]))
+  assert.equal(byPlatform.youtube.allapot, AG_ALLAPOTOK.KESZ)
+  assert.equal(byPlatform.facebook.allapot, AG_ALLAPOTOK.VAR)
+})
+
+test('ujraprobal: minden elutasítása MONDATTAL érkezik, nem dobással -- ez egy gomb, nem egy olvasás', async () => {
+  const { repo, rpc } = setup()
+  const nevezett = (r, kod) => {
+    assert.equal(r.hiba, kod)
+    assert.notEqual(r.uzenet, kod, 'a kód nem mondat')
+    assert.equal(/sikertelen/i.test(r.uzenet), false)
+  }
+  nevezett(await rpc.ujraprobal({}), 'argumentum_hibas')
+  nevezett(await rpc.ujraprobal({ kiadasId: 'nincs-ilyen' }), 'kiadas_ismeretlen')
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  nevezett(await rpc.ujraprobal({ kiadasId: k.id }), 'kiadas_nem_ujraprobalhato')
+  nevezett(await rpc.ujraprobal({ kiadasId: k.id, platform: 'mastodon' }), 'argumentum_hibas')
+  const hibas = repo.ujKiadas({ videoId: 'v2' })
+  const ag = repo.ujAg({ kiadasId: hibas.id, platform: 'youtube' })
+  repo.agEredmenyetIr({ agId: ag.id, allapot: AG_ALLAPOTOK.HIBA, hibaKod: 'kvota_elfogyott' })
+  repo.kiadasAllapototIr(hibas.id, KIADAS_ALLAPOTOK.HIBA)
+  nevezett(await rpc.ujraprobal({ kiadasId: hibas.id }), 'nincs_szabad_sav')
 })

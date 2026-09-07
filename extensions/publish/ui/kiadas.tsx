@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import type { AgReszlet, KiadasReszlet, Rpc, Talalat } from './api'
 import { errText, readKiadas, refusalText } from './api'
-import { AG_CIMKE, KIADAS_CIMKE, PLATFORM_CIMKE, idopontSzoveg } from './naptar'
+import { AG_CIMKE, HIBA_CIMKE, KIADAS_CIMKE, PLATFORM_CIMKE, idopontSzoveg } from './naptar'
 import { safeHref } from './safe-href'
 
 /**
@@ -33,7 +33,12 @@ import { safeHref } from './safe-href'
  * never infers one from the other.
  */
 
-function AgSor({ ag }: { ag: AgReszlet }) {
+function AgSor({ ag, ujraprobalhato, kuldes, onUjraprobal }: {
+  ag: AgReszlet
+  ujraprobalhato: boolean
+  kuldes: boolean
+  onUjraprobal: (platform: string) => void
+}) {
   const href = ag.url !== null ? safeHref(ag.url) : null
   return (
     <li className={`pub-ag-sor pub-ag-${ag.allapot}`} data-platform={ag.platform}>
@@ -41,7 +46,31 @@ function AgSor({ ag }: { ag: AgReszlet }) {
         <strong>{PLATFORM_CIMKE[ag.platform] ?? ag.platform}</strong>
         <span className="pub-ag-allapot">{AG_CIMKE[ag.allapot] ?? ag.allapot}</span>
       </div>
-      {ag.hibaKod !== null && <p className="pub-ag-hiba">{ag.hibaKod}</p>}
+      {/*
+        THE CODE AND THE SENTENCE, NEVER THE CODE ALONE. This line printed the
+        bare `hibaKod` for six tasks -- on the single screen in the whole
+        module where a refusal reaches a person, which is the one place
+        constraints.md's "kód ÉS mondat" rule actually pays out. `HIBA_CIMKE`
+        (ui/naptar.tsx) is the sibling table `AG_CIMKE` above was always
+        missing; a code with no entry falls through to itself rather than to a
+        guess.
+      */}
+      {ag.hibaKod !== null && (
+        <p className="pub-ag-hiba">
+          <span className="pub-ag-hibakod">{ag.hibaKod}</span>
+          {HIBA_CIMKE[ag.hibaKod] !== undefined && <span className="pub-ag-hibamondat"> — {HIBA_CIMKE[ag.hibaKod]}</span>}
+        </p>
+      )}
+      {ujraprobalhato && ag.allapot === 'hiba' && (
+        <button
+          type="button"
+          className="pub-btn pub-btn-small pub-ag-ujra"
+          disabled={kuldes}
+          onClick={() => onUjraprobal(ag.platform)}
+        >
+          Ez az ág menjen újra
+        </button>
+      )}
       {ag.szoveg !== null
         ? (
           <div className="pub-ag-szoveg">
@@ -156,7 +185,40 @@ function Atutemezes({ ujIdopont, kuldes, onUjIdopont, onAtutemez }: {
   )
 }
 
-export function KiadasBody({ reszlet, hiba, uzenet, kuldes, ujIdopont, onJovahagy, onUjIdopont, onAtutemez, onBack, onFrissit }: {
+/**
+ * THE WAY OUT OF A FAILED DISPATCH, on the one screen an operator opens after
+ * one. `src/rpc.mjs`'s `ujraprobal` with no `platform` reopens every failed
+ * branch at once; each failed branch above also carries its own button for
+ * the "önmagában, a többihez nyúlás nélkül" half of design spec 5. Offered
+ * ONLY on `hiba`/`reszben`, which are exactly the two states the module
+ * accepts -- the same rule as the jóváhagyás button above, for the same
+ * reason: a control must not be offered where the module would refuse it.
+ *
+ * The sentence says what the retry costs and what it does not touch, because
+ * "menjen újra" over a `reszben` release is the case where an operator could
+ * reasonably fear a double post.
+ */
+function Ujraprobalas({ reszlet, kuldes, onUjraprobal }: {
+  reszlet: KiadasReszlet
+  kuldes: boolean
+  onUjraprobal: (platform: string | null) => void
+}) {
+  const hibasak = reszlet.agak.filter((a) => a.allapot === 'hiba')
+  return (
+    <section className="pub-ujraprobalas">
+      <h3>Újraküldés</h3>
+      <button type="button" disabled={kuldes || hibasak.length === 0} onClick={() => onUjraprobal(null)}>
+        Az összes elbukott ág menjen újra ({hibasak.length})
+      </button>
+      <p className="pub-halvany">
+        A kiadás visszakerül a következő szabad sávba, és a 15 perces futás újra megpróbálja az elbukott ágakat.
+        Ami már kiment, azt nem küldi ki újra: a kész ágak érintetlenek maradnak.
+      </p>
+    </section>
+  )
+}
+
+export function KiadasBody({ reszlet, hiba, uzenet, kuldes, ujIdopont, onJovahagy, onUjIdopont, onAtutemez, onUjraprobal, onBack, onFrissit }: {
   reszlet: KiadasReszlet | null
   hiba: string | null
   uzenet: string | null
@@ -165,6 +227,7 @@ export function KiadasBody({ reszlet, hiba, uzenet, kuldes, ujIdopont, onJovahag
   onJovahagy: () => void
   onUjIdopont: (ertek: string) => void
   onAtutemez: () => void
+  onUjraprobal: (platform: string | null) => void
   onBack: () => void
   onFrissit: () => void
 }) {
@@ -199,6 +262,8 @@ export function KiadasBody({ reszlet, hiba, uzenet, kuldes, ujIdopont, onJovahag
    */
   const utemezesreVar = reszlet.allapot === 'jovahagyva'
   const jovahagyhato = reszlet.allapot === 'lektoralt' || utemezesreVar
+  /** The two states `kiadastUjraprobal` (src/szoveg.mjs) accepts, and nothing else -- a release that never went out has nothing to retry, and one that fully went out must not be sent twice. */
+  const ujraprobalhato = reszlet.allapot === 'hiba' || reszlet.allapot === 'reszben'
 
   return (
     <section className="pub-kiadas" data-kiadas-id={reszlet.kiadasId} data-allapot={reszlet.allapot}>
@@ -222,9 +287,13 @@ export function KiadasBody({ reszlet, hiba, uzenet, kuldes, ujIdopont, onJovahag
       <section className="pub-agak">
         <h3>Platformok</h3>
         <ul className="pub-ag-lista">
-          {reszlet.agak.map((ag) => <AgSor key={ag.platform} ag={ag} />)}
+          {reszlet.agak.map((ag) => (
+            <AgSor key={ag.platform} ag={ag} ujraprobalhato={ujraprobalhato} kuldes={kuldes} onUjraprobal={onUjraprobal} />
+          ))}
         </ul>
       </section>
+
+      {ujraprobalhato && <Ujraprobalas reszlet={reszlet} kuldes={kuldes} onUjraprobal={onUjraprobal} />}
 
       {reszlet.talalatok.length > 0 && (
         <section className="pub-talalatok">
@@ -322,6 +391,26 @@ export function KiadasNezet({ rpc, kiadasId, onBack }: { rpc: Rpc; kiadasId: str
       .catch((err: unknown) => { setKuldes(false); setUzenet(`Az áthelyezés kérése el sem jutott a modulhoz: ${errText(err)}`) })
   }, [rpc, kiadasId, ujIdopont, tolt])
 
+  /**
+   * `platform === null` is "every failed branch", a named platform is that
+   * one branch alone -- the module reads the absent key exactly that way
+   * (`src/rpc.mjs`'s `ujraprobal`), so the key is OMITTED rather than sent as
+   * null: `requireEnum` would refuse an explicit null by name, and the page
+   * would be asking for something it did not mean.
+   */
+  const onUjraprobal = useCallback((platform: string | null) => {
+    setKuldes(true)
+    rpc('ujraprobal', platform === null ? { kiadasId } : { kiadasId, platform })
+      .then((raw) => {
+        setKuldes(false)
+        const refusal = refusalText(raw)
+        if (refusal !== null) { setUzenet(refusal); return }
+        setUzenet('A kiadás visszakerült a sorba: a következő futás újra megpróbálja az elbukott ágakat.')
+        tolt()
+      })
+      .catch((err: unknown) => { setKuldes(false); setUzenet(`Az újraküldés kérése el sem jutott a modulhoz: ${errText(err)}`) })
+  }, [rpc, kiadasId, tolt])
+
   return (
     <KiadasBody
       reszlet={reszlet}
@@ -332,6 +421,7 @@ export function KiadasNezet({ rpc, kiadasId, onBack }: { rpc: Rpc; kiadasId: str
       onJovahagy={onJovahagy}
       onUjIdopont={setUjIdopont}
       onAtutemez={onAtutemez}
+      onUjraprobal={onUjraprobal}
       onBack={onBack}
       onFrissit={tolt}
     />

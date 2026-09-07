@@ -619,29 +619,42 @@ test('createYoutubeAdapter refuses fiok_nincs_osszekotve when no account is conn
   assert.equal(refreshCalled, false, 'a fiók hiánya olcsón dől el -- nincs felesleges token-frissítés')
 })
 
-test('createYoutubeAdapter refuses ag_szoveg_olvashatatlan on a stored value that will not parse', async () => {
+test('createYoutubeAdapter refuses tarolt_ertek_olvashatatlan -- the module\'s OWN word -- on a stored value that will not parse', async () => {
+  // AHOL A JELENTÉS UGYANAZ, OTT UGYANAZ A SZÓ ÁLL (constraints.md). Ez a
+  // hely `ag_szoveg_olvashatatlan`-t mondott pontosan arra, amit a
+  // `src/szoveg.mjs` `olvasSzoveg`-je `tarolt_ertek_olvashatatlan`-nak hív --
+  // egy tény, két név, és az operátor mind a kettőt megtanulhatta volna.
   const adapter = createYoutubeAdapter(fakeState(), { fetchImpl: sohaNeHivd })
   await assert.rejects(
-    () => adapter({ ag: { szoveg: 'nem json' }, video: { out_path: FAJL } }),
-    (err) => { assert.equal(err.code, 'ag_szoveg_olvashatatlan'); return true },
+    () => adapter({ ag: { platform: 'youtube', szoveg: 'nem json' }, video: { out_path: FAJL } }),
+    (err) => { assert.equal(err.code, 'tarolt_ertek_olvashatatlan'); return true },
   )
 })
 
-test('createYoutubeAdapter refuses ag_szoveg_olvashatatlan on a value that PARSES but is not the stored object', async () => {
+test('createYoutubeAdapter refuses tarolt_ertek_olvashatatlan on a value that PARSES but is not the stored object', async () => {
   // JSON.parse only throws on syntactic rubbish. The szoveg column is
   // nullable and publishOpen already models a branch with no text
   // (`vanSzoveg: false`), so `null` -- the JSON null, and the SQL one -- and
   // every other non-object parse straight through and then throw a bare
   // TypeError on `.cim`: no `.code`, which publishDue reports as the unnamed
   // `kikuldes_hiba` fallback this guard exists to prevent.
+  //
+  // AZ SQL NULL A MÁSIK TÉNY, ÉS MÁS A NEVE. Egy ág, amihez EGYÁLTALÁN nincs
+  // megírt szöveg, nem olvashatatlan: nincs mit olvasni rajta. Ez
+  // `szoveg_hianyzik` -- ugyanaz a szó, amit a `publishVerdict` használ
+  // pontosan erre a tényre.
   const adapter = createYoutubeAdapter(fakeState(), { fetchImpl: sohaNeHivd })
-  for (const szoveg of ['null', null, '123', '"x"', '[]', '[{"cim":"c"}]', 'true']) {
+  for (const szoveg of ['null', '123', '"x"', '[]', '[{"cim":"c"}]', 'true']) {
     await assert.rejects(
-      () => adapter({ ag: { szoveg }, video: { out_path: FAJL } }),
-      (err) => { assert.equal(err.code, 'ag_szoveg_olvashatatlan', `szoveg=${String(szoveg)}`); return true },
+      () => adapter({ ag: { platform: 'youtube', szoveg }, video: { out_path: FAJL } }),
+      (err) => { assert.equal(err.code, 'tarolt_ertek_olvashatatlan', `szoveg=${String(szoveg)}`); return true },
       `szoveg=${String(szoveg)}`,
     )
   }
+  await assert.rejects(
+    () => adapter({ ag: { platform: 'youtube', szoveg: null }, video: { out_path: FAJL } }),
+    (err) => { assert.equal(err.code, 'szoveg_hianyzik'); return true },
+  )
 })
 
 test('createYoutubeAdapter refuses video_fajl_hianyzik when the video row has no out_path', async () => {

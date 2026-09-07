@@ -257,6 +257,55 @@ function elsoSzabadElofordulas(fmt, sav, most, foglaltPillanatok) {
   throw new TypeError(`kovetkezoSzabadSav: a beállított időzónában ennek a sávnak nincs kiszámolható kiküldési pillanata (a modul alapértéke: ${ALAP_IDOZONA})`)
 }
 
+/**
+ * The instant one week of the calendar starts at: the SUNDAY 00:00 on the
+ * zone's wall clock at or before `pillanat`, shifted by `hetEltolas` whole
+ * weeks -- and, like every other conversion in this file, seven WALL-CLOCK
+ * days rather than 168 hours, so a week containing a DST change is still a
+ * week.
+ *
+ * WHY THE CALENDAR NEEDS THIS AT ALL. `src/rpc.mjs`'s `naptar` used to send
+ * EVERY release that had ever existed and `ui/naptar.tsx` bucketed them into
+ * seven weekday columns with no window, so the Monday column accumulated
+ * every Monday release forever: a "weekly calendar" that was in fact a
+ * lifetime one, growing without bound, with one branch query per release on
+ * every page load. The window is decided HERE, on the server, in the module's
+ * own zone, because that is where the zone is known -- a page doing this
+ * arithmetic would need the zone rules `zonaFormatter` wraps, and the day
+ * columns would drift from the slots by an hour twice a year.
+ *
+ * Sunday-first, because `ext_publish_savok.nap` is (`repo.ujSav`: "0 =
+ * vasárnap") and `ui/naptar.tsx`'s seven columns are. One reading of "which
+ * day is column 0" in the whole module.
+ *
+ * A ZONE WHOSE MIDNIGHT DOES NOT EXIST is the one case that needs a rule
+ * rather than a formula -- a handful of real zones move their clocks at
+ * 00:00, so that Sunday has no 00:00 at all. The window then opens at the
+ * first hour of that day that DOES exist, which is the same choice
+ * `elsoSzabadElofordulas` makes for a slot in the gap (never invent a wall
+ * clock the zone does not render), and is bounded so an unrenderable zone
+ * refuses loudly instead of looping.
+ *
+ * @param {Date} pillanat
+ * @param {string} zona
+ * @param {number} hetEltolas whole weeks, negative for earlier
+ * @returns {string} ISO instant
+ */
+export function hetKezdete(pillanat, zona, hetEltolas = 0) {
+  if (!(pillanat instanceof Date) || Number.isNaN(pillanat.getTime())) throw new TypeError('hetKezdete: a pillanat csak érvényes Date lehet')
+  if (!Number.isInteger(hetEltolas)) throw new TypeError('hetKezdete: a hetEltolas csak egész szám lehet')
+  const fmt = zonaFormatter(zona)
+  const fali = zonaiFaliora(fmt, pillanat)
+  const ev = fali.getUTCFullYear()
+  const hoIndex = fali.getUTCMonth()
+  const honapNap = fali.getUTCDate() - fali.getUTCDay() + hetEltolas * 7
+  for (let ora = 0; ora <= MAX_HIANYZO_ELOFORDULAS; ora += 1) {
+    const jelolt = falioraPillanat(fmt, ev, hoIndex, honapNap, ora, 0)
+    if (jelolt !== null) return jelolt.toISOString()
+  }
+  throw new TypeError(`hetKezdete: a beállított időzónában ennek a hétnek nincs kiszámolható kezdete (a modul alapértéke: ${ALAP_IDOZONA})`)
+}
+
 function ervenytelenSav(sav) {
   return typeof sav !== 'object' || sav === null || typeof sav.id !== 'string'
     || !Number.isInteger(sav.nap) || sav.nap < 0 || sav.nap > 6

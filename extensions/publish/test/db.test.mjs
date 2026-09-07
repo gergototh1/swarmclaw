@@ -518,3 +518,59 @@ test('uid() böngészőben is megáll a lábán: a db.mjs node-beépített nélk
   vm.runInNewContext(code, sandbox)
   assert.match(sandbox.publishDb.uid(), /^[0-9a-f]{16}$/)
 })
+
+// --- a visszaút: agotUjraprobal és kiadastUjraUtemez ----------------------
+
+test('agotUjraprobal: egy hiba ágat var-ba visz, a hibakódot törli, és egy KESZ ágra megnevezve utasít el', () => {
+  // A REPOZITÓRIUM AZ UTOLSÓ ŐR, NEM AZ ELSŐ. A tool-szintű elutasítás
+  // (`kiadastUjraprobal`, src/szoveg.mjs) mondja a mondatot az operátornak;
+  // ha ez a réteg csendben újranyitna egy kiment ágat, az a fenti elutasítás
+  // dekorációvá válna, és egy másik hívó (egy jövőbeli tool, egy migráció)
+  // ugyanazt a videót másodszor is kitehetné.
+  const { repo } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  const hibas = repo.ujAg({ kiadasId: k.id, platform: 'youtube' })
+  repo.agEredmenyetIr({ agId: hibas.id, allapot: AG_ALLAPOTOK.HIBA, hibaKod: 'kvota_elfogyott' })
+  const vissza = repo.agotUjraprobal(hibas.id)
+  assert.equal(vissza.allapot, AG_ALLAPOTOK.VAR)
+  assert.equal(vissza.hiba_kod, null, 'egy meg nem történt kiküldés mellett nem áll ott egy régi hibakód')
+
+  const kesz = repo.ujAg({ kiadasId: k.id, platform: 'facebook' })
+  repo.agEredmenyetIr({ agId: kesz.id, allapot: AG_ALLAPOTOK.KESZ, url: 'https://fb.com/1' })
+  assert.throws(() => repo.agotUjraprobal(kesz.id), /csak hiba állapotú ág/)
+  assert.equal(repo.ag(kesz.id).url, 'https://fb.com/1', 'az ág őrzi az url-jét (spec 5)')
+  assert.throws(() => repo.agotUjraprobal('nincs-ilyen'), /nincs ág/)
+})
+
+test('agotUjraprobal: egy nincs_fiok ág sem nyílik újra -- az nem bukott el, csak sosem került sorra', () => {
+  const { repo } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  const ag = repo.ujAg({ kiadasId: k.id, platform: 'tiktok' })
+  repo.agEredmenyetIr({ agId: ag.id, allapot: AG_ALLAPOTOK.NINCS_FIOK })
+  assert.throws(() => repo.agotUjraprobal(ag.id), /csak hiba állapotú ág/)
+})
+
+test('kiadastUjraUtemez: csak hiba vagy reszben állapotból, egy UPDATE-ben, a felülírt időponttal együtt', () => {
+  const { repo } = freshRepo()
+  const sav = repo.ujSav({ nap: 1, ora: 18, perc: 0 })
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  repo.kiadasAllapototIr(k.id, KIADAS_ALLAPOTOK.LEKTORALT)
+  repo.kiadastJovahagy(k.id)
+  repo.kiadastUtemez({ kiadasId: k.id, savId: sav.id, idopont: '2026-09-07T16:00:00.000Z' })
+  repo.idopontFeluliras({ kiadasId: k.id, felulirtIdopont: '2026-09-07T17:00:00.000Z' })
+  repo.kiadasAllapototIr(k.id, KIADAS_ALLAPOTOK.HIBA)
+
+  const uj = repo.kiadastUjraUtemez({ kiadasId: k.id, savId: sav.id, idopont: '2026-09-14T16:00:00.000Z' })
+  assert.equal(uj.allapot, KIADAS_ALLAPOTOK.UTEMEZVE)
+  assert.equal(uj.idopont, '2026-09-14T16:00:00.000Z')
+  assert.equal(uj.felulirt_idopont, null, 'a régi kézi felülírás nem marad ott egy friss sáv-időpont mellett')
+
+  // ...és ami már kiment vagy még el sem indult, azt nem viszi vissza sorba.
+  for (const allapot of [KIADAS_ALLAPOTOK.KESZ, KIADAS_ALLAPOTOK.NINCS_HOVA, KIADAS_ALLAPOTOK.VAZLAT, KIADAS_ALLAPOTOK.UTEMEZVE]) {
+    repo.kiadasAllapototIr(k.id, allapot)
+    assert.throws(() => repo.kiadastUjraUtemez({ kiadasId: k.id, savId: sav.id, idopont: '2026-09-21T16:00:00.000Z' }), /csak hiba vagy reszben/)
+  }
+  repo.kiadasAllapototIr(k.id, KIADAS_ALLAPOTOK.RESZBEN)
+  assert.equal(repo.kiadastUjraUtemez({ kiadasId: k.id, savId: sav.id, idopont: '2026-09-21T16:00:00.000Z' }).allapot, KIADAS_ALLAPOTOK.UTEMEZVE)
+  assert.throws(() => repo.kiadastUjraUtemez({ kiadasId: 'nincs-ilyen', savId: sav.id, idopont: '2026-09-21T16:00:00.000Z' }), /nincs kiadás/)
+})

@@ -99,6 +99,53 @@ export const PLATFORM_CIMKE: Record<string, string> = {
   tiktok: 'TikTok',
 }
 
+/**
+ * Every code that can land in `ext_publish_agak.hiba_kod`, and the sentence
+ * that says what to DO about it.
+ *
+ * THE MODULE SPENT SIX TASKS MAKING EVERY REFUSAL A CODE AND A SENTENCE
+ * (constraints.md: "az elutasítás MEGNEVEZETT: kód és mondat, ami megmondja,
+ * mi a teendő") -- and then dropped the sentence on the last metre, on the
+ * ONE screen where any of it reaches a human: `ui/kiadas.tsx` printed the
+ * bare `hibaKod`. `gyerekeknek_nincs_beallitva` is a settings field the
+ * operator has to go and set; as a bare word on a page it is a puzzle. This
+ * table is the sibling `AG_CIMKE`/`KIADAS_CIMKE`/`PLATFORM_CIMKE` were always
+ * next to.
+ *
+ * THE CODE STILL SHOWS, BESIDE THE SENTENCE, NEVER INSTEAD OF IT. The code is
+ * what the operator can quote, search the logs for and hand to someone else;
+ * the sentence is what tells them where to click. Both, or the half that is
+ * missing is the half they needed. A code with no entry here falls through to
+ * itself alone rather than to a guess -- the same fallback every other table
+ * on this page uses.
+ *
+ * The codes come from two places and the test holds this table against both:
+ * `publishDue`'s own four (src/szoveg.mjs) and everything
+ * `src/platform/youtube.mjs` raises.
+ */
+export const HIBA_CIMKE: Record<string, string> = {
+  adapter_nincs: 'Ehhez a platformhoz nincs bekötött küldő ebben a modulban. Ma csak a YouTube megy ki; a másik három a platform saját engedélyére vár.',
+  video_nem_qa_ok: 'A videó a jóváhagyás óta kikerült a kész (qa_ok) állapotból, ezért nem ment ki. Nézd meg a videót a Videó lapon, és ha újra kész, tedd vissza sorba ezt az ágat.',
+  szerzodes_hianyzik: 'A Videó bővítmény nem volt elérhető a kiküldés pillanatában, így a modul nem tudta ellenőrizni a videót. Nézd meg a Bővítmények lapon, hogy fut-e.',
+  kikuldes_hiba: 'A küldő olyan hibára futott, amire nincs saját neve. A modul naplója mondja meg, mi történt.',
+  kiadas_allapot_ismeretlen: 'A kiadás ágai olyan állapotba kerültek, amit ez a verzió nem tud összegezni. Ez a modul hibája; a napló mondja meg, melyik ág az.',
+  fiok_nincs_osszekotve: 'Nincs bekötve Google-fiók a publikáláshoz. A Fiókok lapon kösd be, aztán tedd vissza sorba ezt az ágat.',
+  no_credential: 'Nincs bekötve Google-fiók a publikáláshoz. A Fiókok lapon kösd be, aztán tedd vissza sorba ezt az ágat.',
+  fiok_hitelesites_hiba: 'A YouTube visszautasította a hozzáférést. Kösd be újra a Google-fiókot a Fiókok lapon.',
+  gyerekeknek_nincs_beallitva: 'A YouTube minden feltöltésnél megköveteli a COPPA-nyilatkozatot, és ezt a modul nem dönti el helyetted: állítsd be a bővítmény beállításai közt a "Gyerekeknek készült tartalom" mezőt, aztán tedd vissza sorba ezt az ágat.',
+  lathatosag_ervenytelen: 'A "YouTube láthatóság" beállítás nem az engedett három érték egyike. Állítsd át a bővítmény beállításai közt.',
+  kvota_elfogyott: 'A mai YouTube-kvóta elfogyott. Holnap tedd vissza sorba ezt az ágat; addig nem megy ki.',
+  video_fajl_hianyzik: 'A videóhoz nem tartozik feltölthető fájl. Nézd meg a Videó lapon, hogy elkészült-e a render.',
+  video_fajl_olvashatatlan: 'A videó fájlja nem olvasható a lemezről. Nézd meg, megvan-e még, aztán tedd vissza sorba ezt az ágat.',
+  tarolt_ertek_olvashatatlan: 'Az ághoz mentett szöveg nem olvasható vissza. Írasd meg újra a Publikálás Író ügynökkel.',
+  szoveg_hianyzik: 'Ehhez az ághoz nincs megírt szöveg. Írasd meg a Publikálás Író ügynökkel.',
+  feltoltes_elutasitva: 'A YouTube visszautasította a feltöltést. A modul naplója hordozza a választ; javítsd, amit megnevez, aztán tedd vissza sorba ezt az ágat.',
+  feltoltes_atviteli_hiba: 'A feltöltés a hálózaton szakadt meg. Tedd vissza sorba ezt az ágat, és a következő futás újra próbálja.',
+  feltoltes_idotullepes: 'A feltöltés túllépte az időkeretet. Tedd vissza sorba ezt az ágat, és a következő futás újra próbálja.',
+  feltoltes_valasz_ertelmezhetetlen: 'A YouTube olyan választ adott, amit a modul nem tud értelmezni. A napló hordozza; szólj az operátornak.',
+  argumentum_hibas: 'A küldő hiányos adatot kapott a kiadástól. Nézd meg a platform szövegét, és írasd meg újra, ami hiányzik.',
+}
+
 const NAP_NEV = ['Vasárnap', 'Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat']
 
 /**
@@ -342,7 +389,53 @@ function UresNaptar({ kuldes, onAlapSavok }: { kuldes: boolean; onAlapSavok: () 
   )
 }
 
-export function NaptarBody({ adat, hiba, uzenet, kuldes, savUrlap, onOpen, onFrissit, onSavUrlapNyit, onSavOra, onSavPerc, onSavFelvesz, onSavTorol, onAlapSavok }: {
+/**
+ * A release only ever reaches this calendar because an AGENT opened it, and
+ * an empty page never said so.
+ *
+ * `publishOpen` (src/szoveg.mjs) is a tool on the Publikálás Író agent's list
+ * and on nothing else: there is no rpc, no button and no form anywhere in
+ * this module that opens a release from a finished video. That is a
+ * deliberate division (the writer needs the video's narration in the same
+ * call it opens with, which is an agent's read, not a form's), but it left a
+ * page that showed seven empty columns and no clue at all about where a
+ * release comes from -- the operator's next move was unguessable. This
+ * sentence is that move, written down.
+ */
+function NincsKiadas() {
+  return (
+    <p className="pub-nincs-kiadas">
+      Egyetlen kiadás sincs ezen a héten. Kiadás nem ezen a lapon születik: egy kész (qa_ok) videóból a
+      <strong> Publikálás Író</strong> ügynök nyitja meg, ha beszélsz vele — utána a Publikálás Lektor nézi át,
+      és a kiadás itt jelenik meg jóváhagyásra.
+    </p>
+  )
+}
+
+/**
+ * Which week is on screen, and the two buttons that step off it.
+ *
+ * The instants come from the module (`src/rpc.mjs`'s `naptar`) and are handed
+ * straight back: a week is seven WALL-CLOCK days in the module's configured
+ * zone, and a page doing that arithmetic itself would drift by an hour across
+ * every DST change. `ui/api.ts`'s `NaptarAdat` docblock says the same thing
+ * from the reading side.
+ */
+function HetValaszto({ adat, kuldes, onHet }: { adat: NaptarAdat; kuldes: boolean; onHet: (hetKezdet: string) => void }) {
+  return (
+    <div className="pub-het-valaszto">
+      <button type="button" className="pub-btn pub-btn-small" disabled={kuldes} onClick={() => onHet(adat.elozoHetKezdet)}>
+        Előző hét
+      </button>
+      <span className="pub-het-cimke">{formatIdopont(adat.hetKezdet)} — {formatIdopont(adat.hetVege)}</span>
+      <button type="button" className="pub-btn pub-btn-small" disabled={kuldes} onClick={() => onHet(adat.kovetkezoHetKezdet)}>
+        Következő hét
+      </button>
+    </div>
+  )
+}
+
+export function NaptarBody({ adat, hiba, uzenet, kuldes, savUrlap, onOpen, onFrissit, onHet, onSavUrlapNyit, onSavOra, onSavPerc, onSavFelvesz, onSavTorol, onAlapSavok }: {
   adat: NaptarAdat | null
   hiba: string | null
   uzenet: string | null
@@ -350,6 +443,7 @@ export function NaptarBody({ adat, hiba, uzenet, kuldes, savUrlap, onOpen, onFri
   savUrlap: SavUrlap
   onOpen: (kiadasId: string) => void
   onFrissit: () => void
+  onHet: (hetKezdet: string) => void
   onSavUrlapNyit: (nap: number | null) => void
   onSavOra: (ora: string) => void
   onSavPerc: (perc: string) => void
@@ -382,7 +476,9 @@ export function NaptarBody({ adat, hiba, uzenet, kuldes, savUrlap, onOpen, onFri
             Egy sáv törlése csak az ezután következő ütemezéseket érinti; a már időpontot kapott kiadások a saját
             időpontjukban mennek ki.
           </p>
+          <HetValaszto adat={adat} kuldes={kuldes} onHet={onHet} />
           {adat.savok.length === 0 && <UresNaptar kuldes={kuldes} onAlapSavok={onAlapSavok} />}
+          {adat.kiadasok.length === 0 && <NincsKiadas />}
           <div className="pub-hetirend">
             {NAP_NEV.map((_, index) => (
               <Nap
@@ -421,12 +517,20 @@ export function NaptarNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (kiadasId: stri
   const [uzenet, setUzenet] = useState<string | null>(null)
   const [kuldes, setKuldes] = useState(false)
   const [savUrlap, setSavUrlap] = useState<SavUrlap>(URLAP_KEZDO)
+  /**
+   * Which week is being shown, as the instant the module itself produced.
+   * `null` is "whichever week now falls in" -- the module decides that, so a
+   * page loaded at 23:59 on a Saturday and one loaded a minute later do not
+   * disagree about it, and the browser's own clock never enters into which
+   * week the module's zone says it is.
+   */
+  const [hetKezdet, setHetKezdet] = useState<string | null>(null)
 
   const tolt = useCallback(() => {
-    rpc('naptar')
+    rpc('naptar', hetKezdet === null ? {} : { hetKezdet })
       .then((raw) => { setAdat(readNaptar(raw)); setHiba(null) })
       .catch((err: unknown) => setHiba(errText(err)))
-  }, [rpc])
+  }, [rpc, hetKezdet])
 
   useEffect(() => { tolt() }, [tolt])
 
@@ -479,6 +583,7 @@ export function NaptarNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (kiadasId: stri
       savUrlap={savUrlap}
       onOpen={onOpen}
       onFrissit={tolt}
+      onHet={setHetKezdet}
       onSavUrlapNyit={onSavUrlapNyit}
       onSavOra={onSavOra}
       onSavPerc={onSavPerc}

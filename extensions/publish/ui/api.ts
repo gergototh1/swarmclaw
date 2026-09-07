@@ -139,8 +139,25 @@ function readSav(raw: unknown): Sav {
   }
 }
 
+/**
+ * One week of the calendar, and the two instants that step off it.
+ *
+ * `hetKezdet`/`hetVege` are the window `src/rpc.mjs`'s `naptar` actually
+ * filtered on, and `elozoHetKezdet`/`kovetkezoHetKezdet` are what the page
+ * hands straight back to move a week. The page does NOT compute them: a week
+ * is seven wall-clock days in the module's configured zone, and a browser
+ * adding `7 * 24 * 60 * 60 * 1000` would land an hour off across every DST
+ * change and eventually a whole day off. All four are read as required
+ * strings for the same reason every other field here is -- a response missing
+ * one is a shape this page cannot page through, not a week starting at the
+ * epoch.
+ */
 export interface NaptarAdat {
   idozona: string
+  hetKezdet: string
+  hetVege: string
+  elozoHetKezdet: string
+  kovetkezoHetKezdet: string
   savok: Sav[]
   kiadasok: NaptarKiadas[]
 }
@@ -150,7 +167,15 @@ export function readNaptar(raw: unknown): NaptarAdat {
   const savok = readArray<unknown>('naptar', root, 'savok').map(readSav)
   const kiadasok = readArray<unknown>('naptar', root, 'kiadasok').map(readNaptarKiadas)
   const idozona = readString('naptar', root, 'idozona')
-  return { idozona, savok, kiadasok }
+  return {
+    idozona,
+    hetKezdet: readString('naptar', root, 'hetKezdet'),
+    hetVege: readString('naptar', root, 'hetVege'),
+    elozoHetKezdet: readString('naptar', root, 'elozoHetKezdet'),
+    kovetkezoHetKezdet: readString('naptar', root, 'kovetkezoHetKezdet'),
+    savok,
+    kiadasok,
+  }
 }
 
 // --- kiadas (detail) -------------------------------------------------------
@@ -305,14 +330,14 @@ export function readFiokok(raw: unknown): FiokokAdat {
   }
 }
 
-// --- levers: jovahagy, atutemez, fiokotOsszekot --------------------------
+// --- levers: jovahagy, atutemez, ujraprobal, fiokotOsszekot --------------
 
 /**
  * The refusal carried by a lever's answer, named, or null when the answer is
  * the act having happened.
  *
- * `jovahagy`, `atutemez` and `fiokotOsszekot` (`src/rpc.mjs`) RESOLVE with
- * their refusals instead of throwing them -- modelled on
+ * `jovahagy`, `atutemez`, `ujraprobal` and `fiokotOsszekot` (`src/rpc.mjs`)
+ * RESOLVE with their refusals instead of throwing them -- modelled on
  * `extensions/video/ui/api.ts`'s `refusalText`, for the identical reason: a
  * thrown refusal reaches the browser as a 500 whose sentence the page never
  * gets to read, and each of these three is a button the operator presses in

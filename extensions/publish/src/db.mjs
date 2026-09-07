@@ -668,6 +668,73 @@ ON CONFLICT(kiadas_id, platform) DO UPDATE SET szoveg = excluded.szoveg, updated
         [allapot, hibaKod, url, kikuldveAt, now(), agId])
       return S.get('SELECT * FROM ext_publish_agak WHERE id = ?', [agId]) || null
     },
+
+    /**
+     * Puts ONE failed branch back to `var`, so the next dispatch tick picks
+     * it up again -- design spec 5's "egy elbukott ág újrapróbálható
+     * önmagában, a többihez nyúlás nélkül".
+     *
+     * `agEredmenyetIr` above deliberately cannot write `var` (it is the
+     * branch's STARTING state, not a dispatch RESULT), which is why this is a
+     * separate method rather than a fifth word on that one's allow-list. It
+     * is also why the module had no way back at all: every writer of
+     * `ext_publish_agak.allapot` after `ujAg` was a one-way door, so a branch
+     * that failed stayed failed and its release stayed dead.
+     *
+     * `hiba_kod` IS CLEARED, `url` AND `kikuldve_at` ARE NOT. The failure code
+     * describes the attempt that is about to be made again, so keeping it
+     * would have the page print a reason for a dispatch that has not happened
+     * yet. The url is the other half of the same rule read the other way --
+     * design spec 5's "az ág az url-jét őrzi" -- and a `hiba` branch carries
+     * none anyway; this method never reaches a `kesz` branch, because its one
+     * caller (`kiadastUjraprobal`, src/szoveg.mjs) refuses that BY NAME
+     * before it gets here.
+     *
+     * Refused by name when the branch is not currently `hiba`: the same
+     * discipline as `kiadastJovahagy`/`kiadastUtemez` above, and the same
+     * reason -- a repository that quietly reopened a `kesz` branch would make
+     * the tool-level refusal above it decorative.
+     */
+    agotUjraprobal(agId) {
+      const a = repo.ag(agId)
+      if (!a) throw new Error('agotUjraprobal: nincs ág a megadott agId-vel')
+      if (a.allapot !== AG_ALLAPOTOK.HIBA) throw new Error(`agotUjraprobal: csak ${AG_ALLAPOTOK.HIBA} állapotú ág próbálható újra (jelenlegi: ${a.allapot})`)
+      S.exec('UPDATE ext_publish_agak SET allapot = ?, hiba_kod = NULL, updated_at = ? WHERE id = ?', [AG_ALLAPOTOK.VAR, now(), agId])
+      return repo.ag(agId)
+    },
+
+    /**
+     * Sends a release that has already been dispatched and did not fully
+     * succeed back into the queue: `hiba` or `reszben` -> `utemezve`, with a
+     * fresh slot occurrence, in ONE UPDATE -- the same atomicity
+     * `kiadastUtemez` above has, and for the same reason (`esedekes` must
+     * never see `utemezve` without an `idopont`).
+     *
+     * A SEPARATE METHOD FROM `kiadastUtemez`, on purpose. That one only ever
+     * opens the `jovahagyva -> utemezve` arrow, and widening it to take an
+     * outcome word would mean any caller holding a `kiadasId` could push a
+     * FINISHED release (`kesz`, `nincs_hova`) back into the dispatch set. The
+     * two allowed sources are named here instead: `kesz` is refused because
+     * everything already went out, and `nincs_hova` because there is nothing
+     * connected to retry against -- neither has a failed branch to reopen.
+     *
+     * `felulirt_idopont` is cleared for the identical reason `kiadastUtemez`
+     * clears it: the release is getting a fresh slot instant, and a stale
+     * operator override left beside it would have the calendar print a time
+     * at which nothing will go out.
+     */
+    kiadastUjraUtemez({ kiadasId, savId, idopont }) {
+      const k = repo.kiadas(kiadasId)
+      if (!k) throw new Error('kiadastUjraUtemez: nincs kiadás a megadott kiadasId-vel')
+      if (k.allapot !== KIADAS_ALLAPOTOK.HIBA && k.allapot !== KIADAS_ALLAPOTOK.RESZBEN) {
+        throw new Error(`kiadastUjraUtemez: csak ${KIADAS_ALLAPOTOK.HIBA} vagy ${KIADAS_ALLAPOTOK.RESZBEN} állapotú kiadás küldhető újra (jelenlegi: ${k.allapot})`)
+      }
+      if (typeof savId !== 'string' || savId === '') throw new Error('kiadastUjraUtemez: savId nem lehet üres')
+      if (typeof idopont !== 'string' || Number.isNaN(Date.parse(idopont))) throw new Error('kiadastUjraUtemez: idopont csak érvényes ISO időpont lehet')
+      S.exec('UPDATE ext_publish_kiadasok SET sav_id = ?, idopont = ?, felulirt_idopont = NULL, allapot = ?, updated_at = ? WHERE id = ?',
+        [savId, idopont, KIADAS_ALLAPOTOK.UTEMEZVE, now(), kiadasId])
+      return repo.kiadas(kiadasId)
+    },
   }
   return repo
 }

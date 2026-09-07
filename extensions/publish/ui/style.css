@@ -61,3 +61,12 @@
 .pub-fiok-hianyzik { opacity: .65; font-style: italic; }
 .pub-google-connect { display: flex; flex-direction: column; gap: .35rem; align-items: flex-start; border-top: 1px dashed currentColor; padding-top: .5rem; }
 .pub-fiok-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; border-top: 1px dashed currentColor; padding-top: .5rem; }
+
+.pub-het-valaszto { display: flex; gap: .5rem; align-items: center; }
+.pub-het-cimke { font-size: .85rem; opacity: .8; }
+.pub-nincs-kiadas { border: 1px dashed currentColor; border-radius: .3rem; padding: .5rem; margin: 0; }
+.pub-ag-hibakod { font-family: ui-monospace, monospace; }
+.pub-ag-hibamondat { font-family: inherit; }
+.pub-ag-ujra { margin-top: .3rem; }
+.pub-ujraprobalas { display: flex; flex-direction: column; gap: .35rem; align-items: flex-start; border-top: 1px dashed currentColor; padding-top: .5rem; }
+.pub-azonosito-sugo { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .2rem; font-size: .85rem; flex-basis: 100%; }

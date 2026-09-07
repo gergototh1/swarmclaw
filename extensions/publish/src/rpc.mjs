@@ -1,7 +1,7 @@
 import { KIADAS_ALLAPOTOK, PLATFORMOK } from './db.mjs'
 import { PublishError, videoLekerdez } from './video-szerzodes.mjs'
-import { SzovegError, kiadastUtemezSavba, olvasSzoveg, olvasTalalatok } from './szoveg.mjs'
-import { idozonaOf } from './utemezes.mjs'
+import { SzovegError, kiadastUjraprobal, kiadastUtemezSavba, olvasSzoveg, olvasTalalatok } from './szoveg.mjs'
+import { hetKezdete, idozonaOf } from './utemezes.mjs'
 
 /**
  * The calendar page's own rpc surface -- everything `ui/naptar.tsx`,
@@ -52,6 +52,7 @@ import { idozonaOf } from './utemezes.mjs'
  * genuine failure the host's own `rpcFailure` (500, the thrown message as
  * text) is the right shape for -- same discipline `extensions/crm/src/rpc.mjs`
  * and `extensions/video/src/rpc.mjs`'s reads use. `jovahagy`, `atutemez`,
+ * `ujraprobal`,
  * `fiokotOsszekot`, `savotFelvesz`, `savotTorol` and `alapSavokatFelvesz` are
  * buttons the operator presses in states this module deliberately refuses (a
  * release not yet lektorált, no configured slot, a malformed platform id, an
@@ -189,12 +190,56 @@ export function createRpc(state) {
      * compiled-in default stop being the same string the moment an operator
      * edits the field, and a page that assumed Budapest while the setting
      * said something else would draw every slot on the wrong day.
+     *
+     * ONE WEEK, NOT EVERY WEEK THAT HAS EVER HAPPENED. This method used to
+     * send every release in the table and `ui/naptar.tsx` bucketed them into
+     * seven weekday columns with no window at all, so the Monday column
+     * collected every Monday release the install had ever had -- an unbounded
+     * list on a screen called "Naptár", with one `repo.agak` query per row on
+     * every load. The window is `[hetKezdet, hetVege)`, computed by
+     * `hetKezdete` (src/utemezes.mjs) on the module's own zone, and the four
+     * boundary instants ride back with the answer so the page can step a week
+     * in either direction WITHOUT doing zone arithmetic of its own: it hands
+     * `elozoHetKezdet` or `kovetkezoHetKezdet` straight back as `hetKezdet`.
+     *
+     * A RELEASE WITH NO `idopont` IS IN EVERY WEEK, and that is not a leak in
+     * the window. Those are the drafts, the reviewed and the approved-but-
+     * unslotted -- the page draws them in their own "Időpont nélkül" column
+     * precisely because no week owns them, and hiding them behind a week
+     * boundary would hide the release the operator most needs to act on (the
+     * first one on a fresh install always sits there).
      */
-    async naptar() {
+    async naptar(body = {}) {
+      const zona = idozonaOf(state.settings())
+      // The page sends back an instant this method itself produced; anything
+      // else is refused by the same `requireString`/`Date.parse` pair
+      // `atutemez` uses, rather than silently falling back to "this week" and
+      // drawing a different week from the one the operator asked for.
+      const horgony = body.hetKezdet === undefined || body.hetKezdet === null
+        ? new Date()
+        : new Date(requireString('hetKezdet', body.hetKezdet, { max: 64 }))
+      if (Number.isNaN(horgony.getTime())) throw new Error('publish: a hetKezdet csak érvényes ISO időpont lehet')
+      const hetKezdet = hetKezdete(horgony, zona, 0)
+      const hetVege = hetKezdete(new Date(hetKezdet), zona, 1)
+      const kezdetMs = Date.parse(hetKezdet)
+      const vegeMs = Date.parse(hetVege)
+      const ebbenAHetben = (k) => {
+        if (k.idopont === null || k.idopont === undefined) return true
+        const ms = Date.parse(k.idopont)
+        // A stored instant this module cannot read is a broken row, and a
+        // broken row is drawn rather than filtered away: it belongs to no
+        // week, so hiding it behind a window would make it invisible on every
+        // screen the module has.
+        return Number.isNaN(ms) ? true : ms >= kezdetMs && ms < vegeMs
+      }
       return {
-        idozona: idozonaOf(state.settings()),
+        idozona: zona,
+        hetKezdet,
+        hetVege,
+        elozoHetKezdet: hetKezdete(new Date(hetKezdet), zona, -1),
+        kovetkezoHetKezdet: hetVege,
         savok: repo().savok().map((s) => ({ id: s.id, nap: s.nap, ora: s.ora, perc: s.perc })),
-        kiadasok: repo().kiadasok().map((k) => ({
+        kiadasok: repo().kiadasok().filter(ebbenAHetben).map((k) => ({
           kiadasId: k.id,
           videoId: k.video_id,
           allapot: k.allapot,
@@ -350,6 +395,37 @@ export function createRpc(state) {
         }
         const uj = repo().idopontFeluliras({ kiadasId, felulirtIdopont })
         return { kiadasId, idopont: uj.idopont, felulirtIdopont: uj.felulirt_idopont }
+      })
+    },
+
+    /**
+     * THE OPERATOR'S WAY BACK OUT OF A FAILED DISPATCH -- design spec 5's
+     * "egy elbukott ág újrapróbálható önmagában", and its other half, "egy
+     * már `kesz` ág újrapróbálása megnevezve elutasul". The whole rule and
+     * the whole argument live in `kiadastUjraprobal` (src/szoveg.mjs); this
+     * method is the doorway, and without it that function has no caller in
+     * production code at all -- the same shape `savotFelvesz` was in before
+     * the last fix round.
+     *
+     * `platform` IS OPTIONAL, AND ITS ABSENCE MEANS SOMETHING. Given, exactly
+     * that one branch is reopened, which is what "önmagában, a többihez
+     * nyúlás nélkül" asks for and what `ui/kiadas.tsx` puts a button on
+     * beside each failed branch. Omitted, every failed branch of the release
+     * is -- the same act repeated, never a wider one, since a `kesz` branch
+     * is refused by name on the first path and untouched on the second.
+     *
+     * A LEVER, NOT A READ: every one of its refusals is a state an operator
+     * can genuinely press this button in (a release that never went out, a
+     * branch that already did, no slot configured at all), so they resolve as
+     * `{ hiba, uzenet }` sentences the page can print rather than as a 500.
+     */
+    async ujraprobal(body = {}) {
+      return lever(state, () => {
+        const kiadasId = requireString('kiadasId', body.kiadasId, { max: 64 })
+        const platform = body.platform === undefined || body.platform === null
+          ? null
+          : requireEnum('platform', body.platform, PLATFORMOK)
+        return kiadastUjraprobal(state, { kiadasId, platform, most: new Date() })
       })
     },
 

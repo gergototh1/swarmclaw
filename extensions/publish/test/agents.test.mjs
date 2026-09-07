@@ -131,6 +131,18 @@ test('every tool a declaration names is a tool the extension declares (or a host
   assert.equal(iro.has('publishDue'), false)
   assert.equal(lektor.has('publishDue'), false)
   assert.ok(iro.has('publishQueue') && lektor.has('publishQueue'), 'both roles read the same work queue')
+  // ...AND THAT ONE READ IS THE REVIEWER'S ONLY WAY TO SEE WHAT IT JUDGES.
+  // The two assertions above (no `publishOpen`, no `publishDraft`) are the
+  // right half of the rule and were, on their own, the whole of it: they
+  // pinned that a judging agent carries no writer, and pinned NOTHING about
+  // whether it can read. It could not -- `publishQueue` projected
+  // `{ platform, vanSzoveg }` and no text at all, so `publishVerdict` passed
+  // drafts nobody had read. The fix was to widen the READ, never to hand over
+  // `publishOpen`, so the exclusions stay and the read is pinned beside them.
+  // The behavioural half (what the tool actually returns, driven through the
+  // reviewer's own declared tools) is `test/szoveg.test.mjs`'s "BLOKKOLÓ 1"
+  // pair; this is the declaration half.
+  assert.ok(lektor.has('publishQueue'), 'the reviewer must keep the one tool that lets it read the text it rules on')
   // Every tool the extension declares is reachable by at least one managed agent.
   for (const name of declared) assert.ok(iro.has(name) || lektor.has(name) || kuldo.has(name), `${name} is declared but no managed agent can call it`)
 })
@@ -225,4 +237,46 @@ test('the reviewer skill names every review code, and never contradicts its own 
   assert.ok(body.includes('A négy kód'), 'the skill states the code count in its heading')
   assert.equal(/fenti\s+(?:kettőbe|háromba|ötbe)/.test(body), false, 'the skill contradicts its own heading about how many codes there are')
   assert.ok(body.includes('fenti négybe'), 'the closing paragraph must name the same count as the heading')
+})
+
+// --- the prose that closes the review loop, pinned as prose ---------------
+
+test('T4/R2: az IRO_SOUL kimondja, hogy a talalatok honnan jön és mit kezd vele -- enélkül a hurok nem konvergál', () => {
+  // A 4. FELADAT KRITIKUS JAVÍTÁSÁNAK A MÁSIK FELE. A `publishOpen`
+  // `talalatok` mezője attól ér valamit, hogy az író TUDJA, hogy létezik, mit
+  // jelent és mit kezdjen vele: az `elbukik` verdikt egy MÁSIK ügynök egy
+  // MÁSIK beszélgetésében született, tehát az író számára a `talalatok` az
+  // egyetlen csatorna, amin a kifogás megérkezik. E bekezdés nélkül a modell
+  // egyetlen elérhető lépése a vak újraírás -- felülír egy jobb vázlatot,
+  // `vazlat`-ba dobja vissza a kiadást, és a hurok romlik ahelyett, hogy
+  // konvergálna. A záró átnézés bizonyítéka: e bekezdést törölve minden
+  // teszt zöld maradt.
+  assert.ok(IRO_SOUL.includes('`talalatok`'), 'a soul megnevezi a mezőt, amit a publishOpen visszaad')
+  assert.match(IRO_SOUL, /talalatok[\s\S]{0,200}lektori ítélet/, 'kimondja, HONNAN jön: a lektor ítéletéből')
+  assert.ok(IRO_SOUL.includes('mondja meg, melyik platform melyik'), 'kimondja, MIRE használja: melyik platform melyik része volt kifogásolható')
+  assert.ok(IRO_SOUL.includes('a megkifogásolt részt javítom'), 'kimondja, hogy javít, nem újraír')
+  assert.ok(IRO_SOUL.includes('üres, pedig a kiadás'), 'kimondja az üres eset teendőjét is, hogy ne tippeljen újraírással')
+})
+
+test('a LEKTOR_SOUL megnevezi azt a három mezőt, amiből a megítélendő szöveget és a forrását olvassa', () => {
+  // BLOKKOLÓ 1 PRÓZA-FELE. A `publishQueue` vetítése hordozza a megírt
+  // `cim`/`leiras`-t és a videó `narracioSzoveg`-ét (src/szoveg.mjs), de egy
+  // soul, ami ezeket nem nevezi meg, olyan lektort ír le, ami tud olvasni,
+  // csak nem tudja, hogy tud: az eszköz és a próza ugyanazt kell mondja.
+  for (const mezo of ['`agak[].cim`', '`agak[].leiras`', '`narracioSzoveg`', '`videoHiba`']) {
+    assert.ok(LEKTOR_SOUL.includes(mezo), `a LEKTOR_SOUL nem nevezi meg: ${mezo}`)
+  }
+  assert.match(LEKTOR_SOUL, /allitas_forras_nelkul[\s\S]{0,80}eldönthető/, 'kimondja, miért kell a narráció: enélkül ez a kód eldönthetetlen')
+})
+
+test('a KULDO_SOUL mind a NÉGY tényt megnevezi, amit a publishDue visszaad -- egyik sem marad ki a jelentésből', () => {
+  // A `folyamatban` lista a záró kör hozzáadása: egy ág, amit EGY MÁSIK futás
+  // tart kézben, se nem ment ki, se nem hibázott el -- harmadik tény, saját
+  // helyen. Egy soul, ami továbbra is "három tényt" mond, egy ügynököt ír le,
+  // ami az egyiket elhallgatja.
+  for (const mezo of ['`kikuldve`', '`hibak`', '`folyamatban`', '`idopontNelkuliUtemezettek`']) {
+    assert.ok(KULDO_SOUL.includes(mezo), `a KULDO_SOUL nem nevezi meg: ${mezo}`)
+  }
+  assert.ok(KULDO_SOUL.includes('Mind a négy tényt jelentem'), 'a soul saját számolása kövesse a mezők számát')
+  assert.equal(/Mind a három tényt/.test(KULDO_SOUL), false, 'a régi szám nem maradhat ott a négy mező mellett')
 })

@@ -1,6 +1,8 @@
 import fs from 'node:fs'
 import { Readable } from 'node:stream'
 
+import { olvasSzoveg } from '../szoveg.mjs'
+
 /**
  * The YouTube sender: the one platform this project has real OAuth for
  * (design spec 6). `feltolt` is the whole public surface -- one function,
@@ -572,18 +574,28 @@ export function createYoutubeAdapter(state, { fetchImpl, szarazFutas = false } =
   }
 
   return async function youtubeAdapter({ ag, video }) {
-    const olvashatatlan = () => {
-      const err = new Error('a mentett YouTube szöveg nem olvasható vissza')
-      err.code = 'ag_szoveg_olvashatatlan'
-      return err
+    // THE MODULE'S OWN PARSE, NOT A THIRD COPY OF IT. `olvasSzoveg`
+    // (src/szoveg.mjs) is the one reader of this column -- `publishOpen`,
+    // `publishQueue` and `src/rpc.mjs`'s detail view all go through it -- and
+    // an adapter with its own copy was a fourth reading of the same bytes,
+    // free to drift from the three that agree.
+    //
+    // IT ALSO CARRIES THE RIGHT WORD. This function used to raise
+    // `ag_szoveg_olvashatatlan` for precisely what the rest of the module
+    // calls `tarolt_ertek_olvashatatlan`; constraints.md's rule is that where
+    // the meaning is the same, the same word stands, so the operator does not
+    // learn two names for one fact. `SzovegError` carries `.code`, which is
+    // what `publishDue`'s catch reads, so the refusal stays named all the way
+    // to the branch's `hiba_kod`.
+    //
+    // A branch with NO text at all is a different fact from an unreadable
+    // one, and gets the word `publishVerdict` already uses for it.
+    const szoveg = olvasSzoveg(ag.platform, ag.szoveg)
+    if (szoveg === null) {
+      const err = new Error('ehhez az ághoz nincs megírt szöveg; írasd meg a publishDraft-tal, mielőtt kimegy')
+      err.code = 'szoveg_hianyzik'
+      throw err
     }
-    let szoveg
-    try {
-      szoveg = JSON.parse(ag.szoveg)
-    } catch {
-      throw olvashatatlan()
-    }
-    if (szoveg === null || typeof szoveg !== 'object' || Array.isArray(szoveg)) throw olvashatatlan()
     if (!video || typeof video.out_path !== 'string' || video.out_path === '') {
       const err = new Error('a videónak nincs feltölthető fájlja')
       err.code = 'video_fajl_hianyzik'

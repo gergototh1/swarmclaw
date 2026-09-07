@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { AG_ALLAPOTOK, KIADAS_ALLAPOTOK } from '../src/db.mjs'
-import { LEKTOR_KODOK, PLATFORM_KORLATOK, SzovegError, VERDIKTEK, createSzovegTools, kiadastUtemezSavba } from '../src/szoveg.mjs'
+import { AGENTS } from '../src/agents.mjs'
+import { AG_ALLAPOTOK, KIADAS_ALLAPOTOK, PLATFORMOK } from '../src/db.mjs'
+import { LEKTOR_KODOK, PLATFORM_KORLATOK, SzovegError, VERDIKTEK, createSzovegTools, kiadastUjraprobal, kiadastUtemezSavba } from '../src/szoveg.mjs'
 import { freshRepo } from './helpers.mjs'
 
 /**
@@ -23,9 +24,19 @@ function setup({ video = null, videos = null, why = 'provider_missing', adaptere
   // more than one (publishDue now reads the video row of EVERY due release,
   // not only the one `publishOpen` opened).
   const videoById = new Map((videos ?? (video ? [video] : [])).map((v) => [v.id, v]))
+  let beallitasok = settings
   const state = {
     repo,
-    settings: () => settings,
+    // MUTABLE, ÉS MINDEN HÍVÁSRA FRISS OBJEKTUM -- a host `ctx.settings`-e is
+    // minden kérdésre újraolvassa a tárolt beállításokat és új objektumot ad.
+    // Egy duplum, ami ugyanazt a befagyasztott objektumot adja vissza,
+    // szigorúan könnyebb világ a valóságosnál, és el is takar egy egész
+    // bughibaosztályt: egy hívó, ami EGYSZER olvasná ki a beállítást (a
+    // konstrukciókor, ami az `index.mjs`-ben modulbetöltés), örökre a
+    // folyamat indulásakori zónával válaszolna, és ezt egy örökké ugyanazt
+    // adó duplum nem tudja megkülönböztetni a helyes olvasástól.
+    // `test/rpc.test.mjs` setup()-ja ugyanezt mondja a maga oldaláról.
+    settings: () => ({ ...beallitasok }),
     log: log ?? { info() {}, warn() {}, error() {} },
     contracts: contracts === undefined
       ? { get: (e, c) => (e === 'video' && c === 'videos' ? { get: async ({ id }) => videoById.get(id) ?? null } : null), why: () => why }
@@ -34,7 +45,7 @@ function setup({ video = null, videos = null, why = 'provider_missing', adaptere
   }
   const tools = Object.fromEntries(createSzovegTools(state).map((t) => [t.name, t]))
   const run = (name, args, agentId = 'ag-1', sessionId = 's1') => tools[name].execute(args, { session: { id: sessionId, agentId }, message: '' })
-  return { state, repo, run }
+  return { state, repo, run, tools, beallitasokatIr: (ujak) => { beallitasok = ujak } }
 }
 
 /** A qa_ok video the way `video.videos@1` projects one -- only the fields this module reads. */
@@ -180,14 +191,81 @@ test('publishOpen refuses a video that has not passed QA, by name, and an unknow
 // --- publishQueue --------------------------------------------------------
 
 test('publishQueue lists only vazlat and lektoralt releases, with which platforms already have text', async () => {
-  const { repo, run } = setup()
+  const { repo, run } = setup({ video: qaOkVideo('v1') })
   const k1 = repo.ujKiadas({ videoId: 'v1' })
   repo.szovegetIr({ kiadasId: k1.id, platform: 'youtube', szoveg: '{"cim":"x"}' })
   const k2 = repo.ujKiadas({ videoId: 'v2' })
   repo.kiadasAllapototIr(k2.id, KIADAS_ALLAPOTOK.JOVAHAGYVA)
   const r = await run('publishQueue', {})
   assert.deepEqual(r.kiadasok.map((k) => k.kiadasId), [k1.id], 'a jovahagyva kiadás nem a munkasor tagja')
-  assert.deepEqual(r.kiadasok[0].agak, [{ platform: 'youtube', vanSzoveg: true }])
+  assert.deepEqual(r.kiadasok[0].agak, [{ platform: 'youtube', vanSzoveg: true, cim: 'x', leiras: null }])
+})
+
+// --- BLOKKOLÓ 1: a lektor LÁTJA azt, amit megítél -------------------------
+
+/**
+ * A lektor ügynök SAJÁT deklarált eszközeivel, semmi mással.
+ *
+ * `src/agents.mjs` a `publish-lektor`-nak pontosan két modul-eszközt ad
+ * (`publishQueue`, `publishVerdict`) -- a `memory` a hosté. Ez a helper
+ * ebből a deklarációból építi a felületet, nem egy kézzel írt listából: ha
+ * valaki elveszi a `publishQueue`-t a lektortól, ezek a tesztek nem
+ * "átmennek másképp", hanem elhasalnak azon, hogy nincs mivel olvasni.
+ */
+function lektorEszkozei(run) {
+  const lektor = AGENTS.find((a) => a.agentKey === 'publish-lektor')
+  const sajat = lektor.tools.filter((t) => t !== 'memory')
+  return { sajat, hiv: (nev, args) => {
+    assert.ok(sajat.includes(nev), `a lektor nem hordozza ezt az eszközt: ${nev}`)
+    return run(nev, args, 'lektor-1', 's-lektor')
+  } }
+}
+
+test('BLOKKOLÓ 1: a lektor a saját eszközeivel ELOLVASSA a megírt szöveget, mielőtt ítél', async () => {
+  // A ZÁRÓ ÁTNÉZÉS BIZONYÍTÉKA VOLT, HOGY NEM TUDTA. A `publishQueue`
+  // vetítése `{ platform, vanSzoveg }` volt, a `publishVerdict` válasza az
+  // állapot -- se a cím, se a leírás, se a narráció nem érkezett meg sehol,
+  // tehát az `atmegy` verdikt olyan szövegen ment át, amit senki nem olvasott,
+  // egy operátori kattintásra négy platformtól. Ez a teszt azt köti le, hogy
+  // a lektor MINDHÁROM tényt megkapja a saját, ÍRÁSRA KÉPTELEN olvasásából.
+  const { repo, run } = setup({ video: qaOkVideo('v1', { cim: 'A videó címe', narracio_szoveg: 'Ez hangzik el a videóban.' }) })
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  repo.szovegetIr({ kiadasId: k.id, platform: 'youtube', szoveg: JSON.stringify({ cim: 'A megírt cím', leiras: 'A megírt leírás.' }) })
+
+  const { sajat, hiv } = lektorEszkozei(run)
+  assert.equal(sajat.includes('publishOpen'), false, 'a lektor nem kap írót: a publishOpen nyit, tehát ír')
+  assert.equal(sajat.includes('publishDraft'), false, 'a lektor nem kap írót: a publishDraft felülír')
+
+  const sor = (await hiv('publishQueue', {})).kiadasok.find((x) => x.kiadasId === k.id)
+  assert.ok(sor, 'a megírt szövegű vazlat a lektor sorában van')
+  const ag = sor.agak.find((a) => a.platform === 'youtube')
+  assert.equal(ag.cim, 'A megírt cím', 'a lektor látja a megítélendő címet')
+  assert.equal(ag.leiras, 'A megírt leírás.', 'a lektor látja a megítélendő leírást')
+  assert.equal(sor.narracioSzoveg, 'Ez hangzik el a videóban.', 'az allitas_forras_nelkul enélkül eldönthetetlen')
+  assert.equal(sor.cim, 'A videó címe')
+  assert.equal(sor.videoHiba, null)
+
+  // ...és csak ezután ítél.
+  const verdikt = await hiv('publishVerdict', { kiadasId: k.id, verdikt: 'atmegy' })
+  assert.equal(verdikt.error, undefined)
+  assert.equal(verdikt.allapot, KIADAS_ALLAPOTOK.LEKTORALT)
+})
+
+test('BLOKKOLÓ 1: egy elérhetetlen videó nem üríti ki a lektor sorát -- megnevezi, miért nem ítélhet', async () => {
+  // A narráció olvasása LEGJOBB IGYEKEZET: egy elérhetetlen videó a saját
+  // kiadásán jelenik meg mondatként, nem az egész sor helyén hibaként. Egy
+  // dobás itt a többi kiadást is elvinné, és a lektor napokig nem látná,
+  // hogy egyáltalán van munkája.
+  const { repo, run } = setup({ contracts: { get: () => null, why: () => 'not_installed' } })
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  repo.szovegetIr({ kiadasId: k.id, platform: 'youtube', szoveg: JSON.stringify({ cim: 'C', leiras: 'L' }) })
+  const { hiv } = lektorEszkozei(run)
+  const r = await hiv('publishQueue', {})
+  assert.equal(r.error, undefined, 'a sor megjön, nem hibázik el')
+  const sor = r.kiadasok[0]
+  assert.equal(sor.agak[0].cim, 'C', 'az író szövege ettől még olvasható')
+  assert.equal(sor.narracioSzoveg, null)
+  assert.ok(typeof sor.videoHiba === 'string' && sor.videoHiba !== '', 'a mondat megmondja, miért nincs forrás')
 })
 
 // --- publishDue ------------------------------------------------------------
@@ -567,6 +645,23 @@ test('every publishVerdict, publishOpen and kiadastUtemezSavba refusal carries i
   nevezett(await run('publishOpen', { videoId: 'nincs-ilyen' }), 'video_ismeretlen', /nincs videó a megadott videoId-vel/)
   nevezett(await run('publishOpen', {}), 'argumentum_hibas', /videoId kötelező/)
 
+  // T4/R3: A KÉT KIMARADT MONDAT. Az `olvasSzoveg` és az `olvasTalalatok`
+  // ugyanazt a kódot adja (`tarolt_ertek_olvashatatlan`) két KÜLÖNBÖZŐ
+  // oszlopra, két külön mondattal arról, mi a teendő -- írasd újra a
+  // szöveget, illetve kérj új lektori ítéletet. Egyik sem járta be ezt a
+  // söprést, pedig pont ezek azok az elutasítások, amiket egy ügynök a saját
+  // adatbázisunk sérült sorára kap, és a kód önmagában egyikre sem mondja
+  // meg, mit csináljon.
+  const { repo: repo2, run: run2 } = setup({ video: qaOkVideo('vid-jo') })
+  const k2 = repo2.ujKiadas({ videoId: 'vid-jo' })
+  repo2.szovegetIr({ kiadasId: k2.id, platform: 'youtube', szoveg: 'nem json' })
+  nevezett(await run2('publishOpen', { videoId: 'vid-jo' }), 'tarolt_ertek_olvashatatlan', /írasd újra a szöveget a publishDraft-tal/)
+
+  const { repo: repo3, run: run3 } = setup({ video: qaOkVideo('vid-jo2') })
+  const k3 = repo3.ujKiadas({ videoId: 'vid-jo2' })
+  repo3.talalatokatIr({ kiadasId: k3.id, talalatok: 'nem json' })
+  nevezett(await run3('publishOpen', { videoId: 'vid-jo2' }), 'tarolt_ertek_olvashatatlan', /kérj új lektori ítéletet/)
+
   const j = repo.ujKiadas({ videoId: 'v2' })
   repo.kiadasAllapototIr(j.id, KIADAS_ALLAPOTOK.LEKTORALT)
   repo.kiadastJovahagy(j.id)
@@ -635,4 +730,208 @@ test('publishDue skips a release it cannot read the state of, reports it, and st
   assert.deepEqual(r.hibak, [{ kiadasId: torott.id, platform: null, hibaKod: 'kiadas_allapot_ismeretlen' }], 'a kimaradt kiadás jelentve van, platform nélkül: az EGÉSZ kiadás maradt ki')
   assert.equal(repo.kiadas(torott.id).allapot, KIADAS_ALLAPOTOK.UTEMEZVE, 'és nem írunk rá olyan szót, amit nem tudunk elolvasni')
   assert.equal(figyelmeztetesek.length, 1, 'és egy naplósor is marad utána')
+})
+
+// --- a két zárt lista egyezése -------------------------------------------
+
+test('PLATFORM_KORLATOK kulcsai PONTOSAN a PLATFORMOK -- egy kimaradt platform nyers TypeError volt a guard mellett', () => {
+  // BIZONYÍTOTT: a `publishDraft` `korlat === null` őre `undefined`-ra nem
+  // fogott, a következő sor pedig `korlat.cim`-et olvasott -- "THREW past
+  // guard -> TypeError: Cannot read properties of undefined (reading 'cim')".
+  // Az ilyen dobás nem megnevezett elutasítás, tehát kijut a `guard`-ból, a
+  // host pedig a harmadik ilyen ügynök-fordulónál AUTO-LETILTJA a
+  // bővítményt -- az operátornak "eltűntek a publikálás toolok"-nak látszik.
+  // A PUB-2 egyenesen ebbe sétálna bele: egy ötödik platform a zárt listán,
+  // korlát nélkül. A `PLATFORM_KORLATOK` volt az egyetlen, ami kimaradt a
+  // zárt-lista pinekből.
+  assert.deepEqual(Object.keys(PLATFORM_KORLATOK).sort(), [...PLATFORMOK].sort())
+})
+
+test('a hiányzó korlát és a null korlát UGYANAZ a megnevezett elutasítás -- a guard undefined-ra is fog', async () => {
+  // A fenti pin megakadályozza, hogy a hiányzó kulcs becsússzon; ez a teszt
+  // az őrt magát méri. Egy `undefined` (hiányzó kulcs) és egy `null`
+  // (szándékosan fel nem mért) korlát a HÍVÓ számára ugyanaz a tény: nincs
+  // szám, amihez mérni lehetne. A régi `korlat === null` őr csak a
+  // másodikat fogta, az elsőt átengedte a `korlat.cim` olvasásába.
+  assert.equal(PLATFORM_KORLATOK.facebook, null, 'a null ág: szándékosan fel nem mért')
+  assert.equal(PLATFORM_KORLATOK.mastodon, undefined, 'az undefined ág: nincs is ilyen kulcs')
+  const { repo, run } = setup()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  const r = await run('publishDraft', { kiadasId: k.id, szovegek: [{ platform: 'facebook', cim: 'c', leiras: 'l' }] })
+  assert.equal(r.error.code, 'platform_felmeretlen')
+  assert.equal(r.error.platform, 'facebook')
+})
+
+// --- BLOKKOLÓ 2: a kar, ami visszahozza az elbukott kiadást ----------------
+
+/** Egy kiadás, aminek minden ága a megadott állapotba került, és a kiadás maga a megadott végállapotba -- a `publishDue` utáni világ, fixtúrából. */
+function kikuldottKiadas(repo, { videoId = 'v1', agak, kiadasAllapot }) {
+  const k = repo.ujKiadas({ videoId })
+  for (const [platform, allapot, extra] of agak) {
+    const ag = repo.ujAg({ kiadasId: k.id, platform })
+    repo.agEredmenyetIr({ agId: ag.id, allapot, ...(extra ?? {}) })
+  }
+  repo.kiadasAllapototIr(k.id, kiadasAllapot)
+  return repo.kiadas(k.id)
+}
+
+test('BLOKKOLÓ 2: egy hiba állapotú kiadás elbukott ága visszakerül var-ba, a kiadás pedig utemezve-be friss időponttal', async () => {
+  const { repo, state } = setup()
+  repo.ujSav({ nap: 1, ora: 18, perc: 0 })
+  const k = kikuldottKiadas(repo, {
+    agak: [['youtube', AG_ALLAPOTOK.HIBA, { hibaKod: 'gyerekeknek_nincs_beallitva' }]],
+    kiadasAllapot: KIADAS_ALLAPOTOK.HIBA,
+  })
+  const r = kiadastUjraprobal(state, { kiadasId: k.id, most: new Date('2026-09-07T07:00:00.000Z') })
+  assert.deepEqual(r.platformok, ['youtube'])
+  assert.equal(repo.kiadas(k.id).allapot, KIADAS_ALLAPOTOK.UTEMEZVE)
+  assert.ok(typeof repo.kiadas(k.id).idopont === 'string' && repo.kiadas(k.id).idopont !== '')
+  const ag = repo.agak(k.id)[0]
+  assert.equal(ag.allapot, AG_ALLAPOTOK.VAR, 'az ág újra vár, tehát a következő futás megpróbálja')
+  assert.equal(ag.hiba_kod, null, 'a régi hibakód nem marad ott egy meg nem történt kiküldés mellé')
+})
+
+test('BLOKKOLÓ 2 / a spec másik fele: egy MÁR KESZ ág újrapróbálása MEGNEVEZVE utasul el', () => {
+  // „Amit egyszer kitettünk, azt nem tesszük ki újra: az ág az url-jét őrzi,
+  // és egy már kesz ág újrapróbálása megnevezve elutasul." (spec 5.)
+  // Egy kar, ami csendben újraposztolna egy már kiment ágat, ROSSZABB volna
+  // annál a zsákutcánál, amit lecserél: a hiba egy második nyilvános poszt
+  // lenne, amit a modul nem tud visszavenni.
+  const { repo, state } = setup()
+  repo.ujSav({ nap: 1, ora: 18, perc: 0 })
+  const k = kikuldottKiadas(repo, {
+    agak: [['youtube', AG_ALLAPOTOK.KESZ, { url: 'https://youtu.be/abc' }], ['facebook', AG_ALLAPOTOK.HIBA, { hibaKod: 'adapter_nincs' }]],
+    kiadasAllapot: KIADAS_ALLAPOTOK.RESZBEN,
+  })
+  assert.throws(
+    () => kiadastUjraprobal(state, { kiadasId: k.id, platform: 'youtube', most: new Date('2026-09-07T07:00:00.000Z') }),
+    (err) => {
+      assert.ok(err instanceof SzovegError)
+      assert.equal(err.code, 'ag_mar_kesz')
+      assert.notEqual(err.message, err.code, 'kód ÉS mondat')
+      assert.equal(/sikertelen/i.test(err.message), false)
+      return true
+    },
+  )
+  const youtube = repo.agak(k.id).find((a) => a.platform === 'youtube')
+  assert.equal(youtube.allapot, AG_ALLAPOTOK.KESZ, 'az elutasított hívás nem nyúlt hozzá')
+  assert.equal(youtube.url, 'https://youtu.be/abc', 'az ág őrzi az url-jét')
+  assert.equal(repo.kiadas(k.id).allapot, KIADAS_ALLAPOTOK.RESZBEN, 'és a kiadás sem került vissza sorba')
+})
+
+test('BLOKKOLÓ 2: a tömeges újraküldés a KESZ ágat nem viszi vissza, csak az elbukottakat', () => {
+  const { repo, state } = setup()
+  repo.ujSav({ nap: 1, ora: 18, perc: 0 })
+  const k = kikuldottKiadas(repo, {
+    agak: [['youtube', AG_ALLAPOTOK.KESZ, { url: 'https://youtu.be/abc' }], ['facebook', AG_ALLAPOTOK.HIBA, { hibaKod: 'adapter_nincs' }], ['tiktok', AG_ALLAPOTOK.NINCS_FIOK]],
+    kiadasAllapot: KIADAS_ALLAPOTOK.RESZBEN,
+  })
+  const r = kiadastUjraprobal(state, { kiadasId: k.id, most: new Date('2026-09-07T07:00:00.000Z') })
+  assert.deepEqual(r.platformok, ['facebook'], 'csak az elbukott ág megy vissza sorba')
+  const byPlatform = Object.fromEntries(repo.agak(k.id).map((a) => [a.platform, a]))
+  assert.equal(byPlatform.youtube.allapot, AG_ALLAPOTOK.KESZ, 'ami kiment, az kiment marad')
+  assert.equal(byPlatform.youtube.url, 'https://youtu.be/abc')
+  assert.equal(byPlatform.facebook.allapot, AG_ALLAPOTOK.VAR)
+  // HÁROM TÉNY, HÁROM ÁLLAPOT: egy fiók nélküli platform nem bukott el, csak
+  // sosem került sorra -- az újraküldés nem tesz úgy, mintha elbukott volna,
+  // és a kiadás nem is vár rá (spec 5).
+  assert.equal(byPlatform.tiktok.allapot, AG_ALLAPOTOK.NINCS_FIOK, 'a nincs_fiok ág nem lesz hibából újraindítva')
+})
+
+test('BLOKKOLÓ 2: se vázlatot, se ütemezettet, se készet nem enged vissza a sorba -- mind megnevezve', () => {
+  const { repo, state } = setup()
+  repo.ujSav({ nap: 1, ora: 18, perc: 0 })
+  const most = new Date('2026-09-07T07:00:00.000Z')
+
+  const vazlat = repo.ujKiadas({ videoId: 'v-vazlat' })
+  repo.ujAg({ kiadasId: vazlat.id, platform: 'youtube' })
+  assert.throws(() => kiadastUjraprobal(state, { kiadasId: vazlat.id, most }), (err) => {
+    assert.equal(err.code, 'kiadas_nem_ujraprobalhato')
+    assert.ok(err.message.includes(KIADAS_ALLAPOTOK.VAZLAT), 'a mondat megnevezi a jelenlegi állapotot')
+    return true
+  })
+
+  const utemezett = kikuldottKiadas(repo, { videoId: 'v-ut', agak: [['youtube', AG_ALLAPOTOK.HIBA]], kiadasAllapot: KIADAS_ALLAPOTOK.UTEMEZVE })
+  assert.throws(() => kiadastUjraprobal(state, { kiadasId: utemezett.id, most }), (err) => {
+    assert.equal(err.code, 'kiadas_nem_ujraprobalhato')
+    return true
+  })
+  assert.equal(repo.agak(utemezett.id)[0].allapot, AG_ALLAPOTOK.HIBA, 'egy elutasított hívás egyetlen ágat sem írt át')
+
+  const kesz = kikuldottKiadas(repo, { videoId: 'v-kesz', agak: [['youtube', AG_ALLAPOTOK.KESZ, { url: 'https://youtu.be/x' }]], kiadasAllapot: KIADAS_ALLAPOTOK.KESZ })
+  assert.throws(() => kiadastUjraprobal(state, { kiadasId: kesz.id, most }), (err) => {
+    assert.equal(err.code, 'kiadas_nem_ujraprobalhato')
+    return true
+  })
+
+  assert.throws(() => kiadastUjraprobal(state, { kiadasId: 'nincs-ilyen', most }), (err) => {
+    assert.equal(err.code, 'kiadas_ismeretlen')
+    return true
+  })
+})
+
+test('BLOKKOLÓ 2: sáv nélkül az újraküldés megnevezve marad el, és a kiadás nem kerül félig visszaírt állapotba', () => {
+  const { repo, state } = setup()
+  const k = kikuldottKiadas(repo, { agak: [['youtube', AG_ALLAPOTOK.HIBA, { hibaKod: 'kvota_elfogyott' }]], kiadasAllapot: KIADAS_ALLAPOTOK.HIBA })
+  assert.throws(() => kiadastUjraprobal(state, { kiadasId: k.id, most: new Date('2026-09-07T07:00:00.000Z') }), (err) => {
+    assert.equal(err.code, 'nincs_szabad_sav')
+    return true
+  })
+  assert.equal(repo.agak(k.id)[0].allapot, AG_ALLAPOTOK.HIBA, 'az ág nem került var-ba egy kiadás alá, ami hiba maradt')
+  assert.equal(repo.kiadas(k.id).allapot, KIADAS_ALLAPOTOK.HIBA)
+})
+
+test('BLOKKOLÓ 2: egy nem hibás, megnevezett ág elutasul, és a kiadáson nincs elbukott ág üzenete is megnevezett', () => {
+  const { repo, state } = setup()
+  repo.ujSav({ nap: 1, ora: 18, perc: 0 })
+  const most = new Date('2026-09-07T07:00:00.000Z')
+  const k = kikuldottKiadas(repo, {
+    agak: [['youtube', AG_ALLAPOTOK.HIBA], ['facebook', AG_ALLAPOTOK.NINCS_FIOK]],
+    kiadasAllapot: KIADAS_ALLAPOTOK.HIBA,
+  })
+  assert.throws(() => kiadastUjraprobal(state, { kiadasId: k.id, platform: 'facebook', most }), (err) => {
+    assert.equal(err.code, 'ag_nem_hibas')
+    return true
+  })
+  assert.throws(() => kiadastUjraprobal(state, { kiadasId: k.id, platform: 'instagram', most }), (err) => {
+    assert.equal(err.code, 'ag_ismeretlen')
+    return true
+  })
+  const ures = kikuldottKiadas(repo, { videoId: 'v-ures', agak: [['youtube', AG_ALLAPOTOK.NINCS_FIOK]], kiadasAllapot: KIADAS_ALLAPOTOK.HIBA })
+  assert.throws(() => kiadastUjraprobal(state, { kiadasId: ures.id, most }), (err) => {
+    assert.equal(err.code, 'nincs_ujraprobalhato_ag')
+    return true
+  })
+})
+
+// --- item 7: „épp kiküldés alatt" harmadik tény ---------------------------
+
+test('publishDue: egy másik futás által épp kiküldött ágat nem küld ki másodszor, és nem is hallgatja el', async () => {
+  // EGY TÉNY EGY ÁLLAPOTBAN. A „most épp kiküldés alatt" tényt az ág `var`
+  // állapota mondta ki -- ugyanaz a szó, mint a „még nem került sorra"-ra --,
+  // tehát egy kézi `publishDue` hívás egy ütemezett futással egyidejűleg
+  // ugyanazt a videót MÁSODSZOR is feltöltötte. A host `inFlightScheduleKeys`-e
+  // csak ütemezés-vs-ütemezés ellen véd, és a kettő közül az egyik itt nem
+  // ütemezett.
+  let feloldas
+  let hivasok = 0
+  const lassuAdapter = () => { hivasok += 1; return new Promise((resolve) => { feloldas = () => resolve({ url: 'https://youtu.be/abc' }) }) }
+  const { repo, run } = setup({ adapterek: { youtube: lassuAdapter }, video: qaOkVideo('v1') })
+  repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Csatorna' })
+  const k = esedekesKiadas(repo, 'v1', ['youtube'])
+
+  // Az első futás beleragad az adapterbe; a második ugyanarra az ágra érkezik.
+  const elso = run('publishDue', {})
+  await new Promise((resolve) => { setImmediate(resolve) })
+  const masodik = await run('publishDue', {})
+  assert.equal(hivasok, 1, 'a második futás NEM hívta meg újra az adaptert ugyanarra az ágra')
+  assert.deepEqual(masodik.folyamatban, [{ kiadasId: k.id, platform: 'youtube' }], 'a kihagyás megnevezve jelenik meg, nem csendben')
+  assert.equal(masodik.kikuldve, 0)
+  assert.deepEqual(masodik.hibak, [], 'egy másik futás munkája nem hiba')
+
+  feloldas()
+  const elsoEredmeny = await elso
+  assert.equal(elsoEredmeny.kikuldve, 1)
+  assert.deepEqual(elsoEredmeny.folyamatban, [])
+  assert.equal(repo.agak(k.id)[0].allapot, AG_ALLAPOTOK.KESZ)
 })

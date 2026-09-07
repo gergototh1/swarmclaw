@@ -101,9 +101,19 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   // with nothing due. Losing one of these three again is a module that
   // compiles, tests green, and does nothing -- which is precisely the shape
   // this file exists to surface as a diff.
+  //
+  // The final review round adds a TENTH: `ujraprobal`. It is pinned for the
+  // strongest reason on this list -- it is the module's ONLY way back out of
+  // a failed dispatch. Without it a release that failed stays failed forever
+  // (nothing else writes a branch back to `var`, and `publishOpen` is
+  // idempotent on `videoId`, so a second release cannot be opened on that
+  // video either), and the video behind it can never be published by this
+  // module again. Losing this method is a silent, irreversible loss of
+  // exactly the kind this file exists to surface as a diff.
   assert.deepEqual(out.rpc.slice().sort(), [
     'alapSavokatFelvesz', 'atutemez', 'fiokok', 'fiokotOsszekot', 'jovahagy',
     'kiadas', 'mcpCall', 'mcpTools', 'naptar', 'savotFelvesz', 'savotTorol',
+    'ujraprobal',
   ])
   // Nothing provided yet: this task is a consumer of `video.videos`, not yet
   // a provider of anything to a third module.

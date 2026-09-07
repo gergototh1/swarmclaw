@@ -49,6 +49,28 @@ export const PLATFORMOK_SORREND = ['youtube', 'facebook', 'instagram', 'tiktok']
 /** `/api/oauth/google/start` is the host's consent route (design spec 6); `purpose=publish` is the scope Task 5's YouTube adapter reads (`state.oauth.getGoogleAccessToken('publish')`, `src/platform/youtube.mjs`) -- root-relative, so this bundle never has to know its own origin. */
 const CONNECT_URL = '/api/oauth/google/start?purpose=publish'
 
+/**
+ * Where each platform's external id is actually READ OFF, one link per
+ * platform.
+ *
+ * The project's own rule (CLAUDE.md's `keyUrl`/"sose hagyd a felhasználót
+ * elakadva"): a form that demands an identifier says where to get it. This
+ * one asked for a "csatorna/oldal id" with nothing beside it, which is the
+ * exact failure that rule exists to prevent -- four platforms, four different
+ * places, none of them obvious, and the operator cannot proceed without the
+ * value.
+ *
+ * `test/ui.test.mjs` holds the keys against `PLATFORMOK` (src/db.mjs) so a
+ * fifth platform on the module's closed list cannot arrive with no hint,
+ * silently, the way a missing `PLATFORM_KORLATOK` entry once did.
+ */
+export const AZONOSITO_SUGO: Record<string, { mit: string; url: string }> = {
+  youtube: { mit: 'a csatorna azonosítója (UC…), a YouTube Studio speciális beállításai közt', url: 'https://studio.youtube.com/' },
+  facebook: { mit: 'az oldal azonosítója, az oldal Névjegy / Adatok lapján', url: 'https://www.facebook.com/pages/?category=your_pages' },
+  instagram: { mit: 'a professzionális fiók azonosítója, a Meta Business Suite fiókbeállításai közt', url: 'https://business.facebook.com/settings/instagram-account-v2' },
+  tiktok: { mit: 'a fiók felhasználóneve (@…), a TikTok profilodon', url: 'https://www.tiktok.com/setting' },
+}
+
 function FiokSor({ platform, fiok }: { platform: string; fiok: FiokokAdat['fiokok'][number] | null }) {
   return (
     <li className="pub-fiok-sor" data-platform={platform}>
@@ -118,6 +140,27 @@ export function FiokokBody({ adat, hiba, uzenet, kuldes, platform, kulsoId, nev,
         onSubmit={(e) => { e.preventDefault(); onOsszekot() }}
       >
         <h3>Fiók összekötése (csatorna/oldal azonosító)</h3>
+        {/*
+          WHERE THE VALUE COMES FROM, NOT JUST WHAT IT IS CALLED. CLAUDE.md's
+          `keyUrl` rule ("ha egy űrlaphoz azonosító kell, mutasd meg, hol
+          találja") against a form that asked for a "csatorna/oldal id" and
+          left the operator to search for it. The four links are each
+          platform's own settings page, in the order the select above lists
+          them; `AZONOSITO_SUGO` holds them so the copy and the list cannot
+          drift apart.
+        */}
+        <ul className="pub-azonosito-sugo">
+          {platformok.map((p) => (
+            AZONOSITO_SUGO[p] === undefined ? null : (
+              <li key={p} data-platform={p}>
+                <strong>{PLATFORM_CIMKE[p] ?? p}</strong>: {AZONOSITO_SUGO[p].mit}{' '}
+                <a className="pub-link" href={AZONOSITO_SUGO[p].url} target="_blank" rel="noopener noreferrer">
+                  {AZONOSITO_SUGO[p].url}
+                </a>
+              </li>
+            )
+          ))}
+        </ul>
         <select value={platform} onChange={(e) => onPlatform(e.target.value)} aria-label="Platform">
           {platformok.map((p) => <option key={p} value={p}>{PLATFORM_CIMKE[p] ?? p}</option>)}
         </select>

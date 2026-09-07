@@ -24,6 +24,7 @@ export const dynamic = 'force-dynamic'
 const RETURN_PATH: Record<string, string> = {
   aisignal: '/x/aisignal',
   gmail: '/x/gmail',
+  publish: '/x/publish',
 }
 
 /** Google's own error codes are a fixed vocabulary; anything else is not echoed back. */

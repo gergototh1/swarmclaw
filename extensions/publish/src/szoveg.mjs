@@ -309,10 +309,126 @@ export function kiadastUtemezSavba(state, { kiadasId, most }) {
   return repo.kiadastUtemez({ kiadasId, savId: jelolt.savId, idopont: jelolt.idopont })
 }
 
+/**
+ * THE WAY BACK OUT OF A FAILED DISPATCH -- design spec 5's "egy elbukott ág
+ * újrapróbálható önmagában, a többihez nyúlás nélkül", and the other half of
+ * the same sentence, "egy már `kesz` ág újrapróbálása megnevezve elutasul".
+ *
+ * WHAT THIS FIXES, STATED PLAINLY, BECAUSE IT WAS A SILENT IRREVERSIBLE LOSS.
+ * Nothing in this module ever wrote a branch back to `var`. `publishDue`
+ * writes `kesz`/`hiba`/`nincs_fiok`, computes the release's aggregate and
+ * writes THAT, and stops; `publishOpen` is idempotent on `videoId`, so it
+ * hands back the dead release rather than opening a second one; `jovahagy`
+ * refuses anything that is not `lektoralt`/`jovahagyva` and `atutemez`
+ * anything that is not `utemezve`. So a release that failed had no exit at
+ * all, and neither did the video behind it -- and the FIRST release on every
+ * fresh install walks into exactly that, because `gyerekeknek` is the one
+ * setting with no default by deliberate design (index.mjs) and the first
+ * dispatch refuses on it (`gyerekeknek_nincs_beallitva`). The operator sets
+ * the field, and there is nowhere to go. `kvota_elfogyott`'s own sentence
+ * ("próbáld holnap újra") promised a remedy this module could not give.
+ *
+ * ONE BRANCH OR ALL THE FAILED ONES, never anything else. With `platform`
+ * given, exactly that branch is reopened -- the "önmagában" half. Without it,
+ * every `hiba` branch of the release is, which is the same act repeated and
+ * not a wider one: a `kesz` branch is refused BY NAME on the named path and
+ * simply not touched on the bulk path, so "what already went out is not sent
+ * again" holds either way.
+ *
+ * A `nincs_fiok` BRANCH IS NOT REOPENED, and that is the constraint's first
+ * rule, not an omission: a platform with no connected account did not fail,
+ * it never had a turn. Reopening it here would make the release wait on it,
+ * which design spec 5 says it must not do. Connecting an account is its own
+ * act on its own page; the next dispatch of a release that is due again sees
+ * the branch as `var` only if something genuinely reopened it.
+ *
+ * The release itself goes back to `utemezve` with a FRESH slot occurrence
+ * rather than its old instant: the old one is in the past, so a release
+ * rescheduled onto it would be due immediately and would re-enter the
+ * dispatch loop inside the same tick. `kovetkezoSzabadSav` is asked the same
+ * question `kiadastUtemezSavba` above asks, against the same `foglaltak`, so
+ * a retried release cannot land on a minute another release already holds.
+ */
+export function kiadastUjraprobal(state, { kiadasId, platform = null, most }) {
+  const repo = state.repo
+  const kiadas = repo.kiadas(kiadasId)
+  if (!kiadas) refuse('kiadas_ismeretlen', 'nincs kiadás a megadott kiadasId-vel')
+  if (kiadas.allapot !== KIADAS_ALLAPOTOK.HIBA && kiadas.allapot !== KIADAS_ALLAPOTOK.RESZBEN) {
+    refuse(
+      'kiadas_nem_ujraprobalhato',
+      `csak olyan kiadás küldhető újra, ami már kiment és elbukott (${KIADAS_ALLAPOTOK.HIBA}) vagy csak részben ment ki (${KIADAS_ALLAPOTOK.RESZBEN}); jelenlegi állapot: ${kiadas.allapot}`,
+      { allapot: kiadas.allapot },
+    )
+  }
+  const agak = repo.agak(kiadasId)
+  let ujrainditando
+  if (platform === null) {
+    ujrainditando = agak.filter((a) => a.allapot === AG_ALLAPOTOK.HIBA)
+    if (ujrainditando.length === 0) {
+      refuse('nincs_ujraprobalhato_ag', 'ezen a kiadáson egyetlen elbukott ág sincs, amit újra lehetne próbálni')
+    }
+  } else {
+    const ag = agak.find((a) => a.platform === platform)
+    if (!ag) refuse('ag_ismeretlen', 'ezen a kiadáson nincs ág a megadott platformhoz', { platform })
+    if (ag.allapot === AG_ALLAPOTOK.KESZ) {
+      // DESIGN SPEC 5'S OTHER HALF, AND THE REASON THIS REFUSAL IS AS
+      // IMPORTANT AS THE RETRY ITSELF. A lever that quietly re-posted a
+      // branch that already went out would be worse than the dead end it
+      // replaces: the failure would be a second public post nobody asked
+      // for, on a platform where the module cannot take it back.
+      refuse('ag_mar_kesz', 'ez az ág már kiment; amit egyszer kitettünk, azt nem tesszük ki újra', { platform })
+    }
+    if (ag.allapot !== AG_ALLAPOTOK.HIBA) {
+      refuse('ag_nem_hibas', 'ez az ág nem bukott el, ezért nincs mit újrapróbálni rajta', { platform, allapot: ag.allapot })
+    }
+    ujrainditando = [ag]
+  }
+  const zona = idozonaOf(state.settings())
+  const jelolt = kovetkezoSzabadSav(repo.savok(), repo.foglaltSavIdopontok(), most, zona)
+  if (jelolt === null) {
+    refuse('nincs_szabad_sav', 'nincs egyetlen publikálási sáv sem beállítva; vegyél fel sávot a naptáron, aztán próbáld újra')
+  }
+  // ONE WRITE. A crash between reopening the branches and rescheduling the
+  // release would leave `var` branches under a release that is still `hiba` --
+  // invisible to `esedekes`, and indistinguishable from the dead end this
+  // whole function exists to remove.
+  return repo.storage.transaction(() => {
+    for (const ag of ujrainditando) repo.agotUjraprobal(ag.id)
+    const uj = repo.kiadastUjraUtemez({ kiadasId, savId: jelolt.savId, idopont: jelolt.idopont })
+    return { kiadasId, allapot: uj.allapot, idopont: uj.idopont, platformok: ujrainditando.map((a) => a.platform) }
+  })
+}
+
 // --- the tools -----------------------------------------------------------
 
 export function createSzovegTools(state) {
   const repo = () => state.repo
+
+  /**
+   * The branch ids a `publishDue` run is CURRENTLY awaiting an adapter for.
+   *
+   * "Being dispatched right now" is a third fact, and before this it was
+   * spoken with `var`'s state: the row still said "waiting" for the whole
+   * time the upload was in flight, so a second concurrent `publishDue` --
+   * an operator asking the sender agent by hand while the 15-minute schedule
+   * happens to be mid-run, which is the ordinary way two runs overlap --
+   * read the same branch as waiting and uploaded the same video a second
+   * time. The host's own `inFlightScheduleKeys` does not reach this: it
+   * keeps two SCHEDULED runs apart, and one of these two is not scheduled.
+   *
+   * IN MEMORY, NOT IN THE COLUMN, and deliberately. A stored fifth branch
+   * word would survive a crash mid-upload and strand the branch in it
+   * forever -- a new dead end of exactly the shape `kiadastUjraprobal` above
+   * exists to remove, since that lever only reopens `hiba`. This set dies
+   * with the process, which is the correct lifetime for a claim about what
+   * is happening inside it: after a restart nothing is in flight, and the
+   * branch is still `var` and still due.
+   *
+   * A skipped branch is REPORTED, never silently passed over -- `publishDue`
+   * answers it as its own list, the same discipline the three facts it
+   * already reports follow.
+   */
+  const futoAgak = new Set()
 
   return [
     /**
@@ -369,22 +485,77 @@ export function createSzovegTools(state) {
         })
       },
     },
-    /** The work queue both agents read: which releases still need text (`vazlat`) or await approval (`lektoralt`), and which platforms already have a draft. Modelled on `videoQueue` (extensions/video/src/terv.mjs). */
+    /**
+     * The work queue both agents read: which releases still need text
+     * (`vazlat`) or await approval (`lektoralt`), which platforms already
+     * have a draft, AND WHAT THAT DRAFT ACTUALLY SAYS. Modelled on
+     * `videoQueue` (extensions/video/src/terv.mjs).
+     *
+     * THE REVIEWER CANNOT SEE WHAT IT JUDGES THROUGH ANY OTHER TOOL, WHICH IS
+     * WHY THE TEXT IS HERE. `src/agents.mjs` gives `publish-lektor` exactly
+     * `publishQueue` and `publishVerdict` -- the role separation is the tool
+     * list, and it is right that a judging agent carries no writer
+     * (`publishOpen` opens a release, `publishDraft` overwrites one). But an
+     * earlier version of this projection answered only `platform` and
+     * `vanSzoveg`, so `publishVerdict({ verdikt: 'atmegy' })` was reachable
+     * over text NOBODY HAD READ -- a passed review of a draft the reviewer
+     * was structurally blind to, one operator click away from four
+     * platforms. This is the exact mirror of the hole `publishOpen`'s
+     * `talalatok` closed on the writer's side (see the file docblock), and it
+     * is closed the same way: by WIDENING A READ, never by handing a reviewer
+     * a write.
+     *
+     * `narracioSzoveg` travels with it because two of the four review codes
+     * cannot be decided without it: `allitas_forras_nelkul` is by definition
+     * a comparison against what the video says, and a reviewer with no
+     * narration could only guess at it. The video read is BEST EFFORT, the
+     * same shape `src/rpc.mjs`'s `kiadas` uses and for the same reason -- one
+     * unreachable video (the video extension reloading, a release whose row
+     * is gone) must not empty the whole queue for every other release. The
+     * refusal's own sentence rides along as `videoHiba` so the reviewer can
+     * say why it is not ruling, rather than ruling without the source.
+     */
     {
       name: 'publishQueue',
-      description: 'A publikálási munkasor, csak olvasva: mely kiadások vazlat (szövegírásra/lektorálásra vár) vagy lektoralt (jóváhagyásra vár) állapotban, ágankénti platformmal és azzal, hogy van-e már megírt szöveg.',
+      description: 'A publikálási munkasor, csak olvasva: mely kiadások vazlat (szövegírásra/lektorálásra vár) vagy lektoralt (jóváhagyásra vár) állapotban, ágankénti platformmal, a már megírt cím/leírás szövegével, és a videó narrációjával, ami ellen a lektor ellenőrizhet.',
       parameters: { type: 'object', properties: {} },
       execute() {
-        return guard(() => ({
-          kiadasok: repo().kiadasok()
+        return guard(async () => {
+          const varok = repo().kiadasok()
             .filter((k) => k.allapot === KIADAS_ALLAPOTOK.VAZLAT || k.allapot === KIADAS_ALLAPOTOK.LEKTORALT)
-            .map((k) => ({
+          const kiadasok = []
+          for (const k of varok) {
+            let cim = null
+            let narracioSzoveg = null
+            let videoHiba = null
+            try {
+              const video = await videoLekerdez(state, k.video_id)
+              cim = video ? video.cim : null
+              narracioSzoveg = video ? video.narracio_szoveg : null
+            } catch (err) {
+              if (!(err instanceof PublishError)) throw err
+              videoHiba = err.message
+            }
+            kiadasok.push({
               kiadasId: k.id,
               videoId: k.video_id,
               allapot: k.allapot,
-              agak: repo().agak(k.id).map((a) => ({ platform: a.platform, vanSzoveg: a.szoveg !== null })),
-            })),
-        }))
+              cim,
+              narracioSzoveg,
+              videoHiba,
+              agak: repo().agak(k.id).map((a) => {
+                const szoveg = olvasSzoveg(a.platform, a.szoveg)
+                return {
+                  platform: a.platform,
+                  vanSzoveg: szoveg !== null,
+                  cim: szoveg === null ? null : szoveg.cim,
+                  leiras: szoveg === null ? null : szoveg.leiras,
+                }
+              }),
+            })
+          }
+          return { kiadasok }
+        })
       },
     },
     /**
@@ -433,7 +604,23 @@ export function createSzovegTools(state) {
             const platform = readEnum(`szovegek[${i}].platform`, item.platform, PLATFORMOK, { required: true, code: 'platform_ismeretlen' })
             const cim = readString(`szovegek[${i}].cim`, item.cim, { required: true, max: MAX_SZOVEG_MEZO })
             const leiras = readString(`szovegek[${i}].leiras`, item.leiras, { required: true, max: MAX_SZOVEG_MEZO })
-            const korlat = PLATFORM_KORLATOK[platform]
+            // `?? null`, NOT `=== null` ALONE. `platform` has already passed
+            // `readEnum` against `PLATFORMOK`, so it is one of the module's
+            // own four words -- and a word on that list with NO KEY in
+            // `PLATFORM_KORLATOK` read back as `undefined`, walked straight
+            // past this guard, and threw a bare `TypeError: Cannot read
+            // properties of undefined (reading 'cim')` two lines down. That
+            // throw escapes `guard` (it is neither refusal class), so the
+            // host counts it toward `MAX_CONSECUTIVE_EXTENSION_FAILURES` and
+            // auto-disables the extension on the third writer turn -- the
+            // "the publish tools vanished" failure `guard`'s own docblock
+            // describes. A platform whose limit nobody has written down and
+            // one whose limit is deliberately `null` are the SAME fact to a
+            // caller (there is no number to check against), so they get the
+            // same named refusal; `test/szoveg.test.mjs` pins the two lists
+            // against each other so the gap is a failing test rather than a
+            // silently unmeasured platform.
+            const korlat = PLATFORM_KORLATOK[platform] ?? null
             if (korlat === null) {
               refuse('platform_felmeretlen', `a(z) ${platform} platform hosszkorlátja még nincs felmérve -- ezen a platformon egyelőre nem publikálható szöveg`, { platform })
             }
@@ -576,7 +763,7 @@ export function createSzovegTools(state) {
      */
     {
       name: 'publishDue',
-      description: 'Kiteszi mindazt, aminek eljött az ideje: minden utemezve állapotú, esedékes kiadás minden var ágát megpróbálja kiküldeni a kapcsolt fiókok szerint, írja az ág és a kiadás végeredményét, és jelenti az időpont nélküli ütemezett kiadásokat is. Argumentum nélkül hívható.',
+      description: 'Kiteszi mindazt, aminek eljött az ideje: minden utemezve állapotú, esedékes kiadás minden var ágát megpróbálja kiküldeni a kapcsolt fiókok szerint, írja az ág és a kiadás végeredményét, jelenti a másik futás által épp kiküldés alatt tartott ágakat, és jelenti az időpont nélküli ütemezett kiadásokat is. Argumentum nélkül hívható.',
       parameters: { type: 'object', properties: {} },
       execute() {
         return guard(async () => {
@@ -587,6 +774,7 @@ export function createSzovegTools(state) {
           const adapterek = state.adapterek && typeof state.adapterek === 'object' ? state.adapterek : {}
           const fiokByPlatform = new Map(repo().fiokok().map((f) => [f.platform, f]))
           const hibak = []
+          const folyamatban = []
           let kikuldve = 0
 
           for (const kiadas of esedekesek) {
@@ -610,8 +798,17 @@ export function createSzovegTools(state) {
               return videoFrissesseg
             }
 
+            let barmiFutottMasik = false
             for (const ag of repo().agak(kiadas.id)) {
               if (ag.allapot !== AG_ALLAPOTOK.VAR) continue
+              // See `futoAgak`'s own docblock: a branch another run is
+              // already awaiting an adapter for is neither dispatched again
+              // nor written over -- and it is not silently dropped either.
+              if (futoAgak.has(ag.id)) {
+                barmiFutottMasik = true
+                folyamatban.push({ kiadasId: kiadas.id, platform: ag.platform })
+                continue
+              }
               const fiok = fiokByPlatform.get(ag.platform)
               if (!fiok) {
                 repo().agEredmenyetIr({ agId: ag.id, allapot: AG_ALLAPOTOK.NINCS_FIOK })
@@ -629,6 +826,7 @@ export function createSzovegTools(state) {
                 hibak.push({ kiadasId: kiadas.id, platform: ag.platform, hibaKod: friss.hibaKod })
                 continue
               }
+              futoAgak.add(ag.id)
               try {
                 const eredmeny = await adapter({ ag, kiadas, fiok, video: friss.video })
                 const url = eredmeny && typeof eredmeny.url === 'string' ? eredmeny.url : null
@@ -637,8 +835,18 @@ export function createSzovegTools(state) {
                 const hibaKod = err && typeof err.code === 'string' && err.code !== '' ? err.code : 'kikuldes_hiba'
                 repo().agEredmenyetIr({ agId: ag.id, allapot: AG_ALLAPOTOK.HIBA, hibaKod })
                 hibak.push({ kiadasId: kiadas.id, platform: ag.platform, hibaKod })
+              } finally {
+                futoAgak.delete(ag.id)
               }
             }
+            // A RELEASE WHOSE OTHER RUN IS STILL MID-UPLOAD IS NOT AGGREGATED
+            // HERE. Its branches do not all have an answer yet, so computing
+            // the release's outcome now would read the in-flight branch's
+            // `var` as "still waiting" and write `utemezve` -- which
+            // `VEGSO_ALLAPOTOK` refuses, reporting a module bug for what is
+            // in fact a perfectly ordinary overlap. The run that owns that
+            // branch writes the aggregate when it finishes.
+            if (barmiFutottMasik) continue
             const vegso = kiadasAllapot(repo().agak(kiadas.id))
             if (!VEGSO_ALLAPOTOK.includes(vegso)) {
               // A bug, not a caller mistake: every VAR branch of this release
@@ -667,6 +875,7 @@ export function createSzovegTools(state) {
           return {
             kikuldve,
             hibak,
+            folyamatban,
             idopontNelkuliUtemezettek: idopontNelkul.map((k) => ({ kiadasId: k.id })),
           }
         })

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { ALAP_IDOZONA, KIADAS_ALLAPOTOK } from '../src/db.mjs'
-import { esedekes, idopontNelkuliUtemezettek, idozonaOf, kovetkezoSzabadSav } from '../src/utemezes.mjs'
+import { esedekes, hetKezdete, idopontNelkuliUtemezettek, idozonaOf, kovetkezoSzabadSav } from '../src/utemezes.mjs'
 import { freshRepo } from './helpers.mjs'
 
 /**
@@ -371,4 +371,48 @@ test('idopontNelkuliUtemezettek: elutasítja az érvénytelen bemenetet', () => 
 test('esedekes: elutasítja az érvénytelen bemenetet', () => {
   assert.throws(() => esedekes([{ id: 'k1' }], new Date()), TypeError)
   assert.throws(() => esedekes([], 'nem Date'), TypeError)
+})
+
+// --- hetKezdete: a naptár heti ablaka -------------------------------------
+
+test('hetKezdete: a hét a zóna FALI ÓRÁJÁN kezdődő vasárnap éjfél, nem UTC éjfél és nem a gép TZ-je', () => {
+  // Ugyanaz a követelmény, mint a fenti sávszámításokon: a modul zónája a
+  // modul ADATA, a host `TZ`-je sosem kerül szóba. Ez a fájl `TZ=UTC`,
+  // `TZ=Europe/Budapest` és `TZ=Pacific/Kiritimati` alatt is fut.
+  // 2026-09-09 szerda; a hét vasárnap 2026-09-06 00:00-kor kezdődik.
+  assert.equal(hetKezdete(new Date('2026-09-09T12:00:00.000Z'), 'UTC'), '2026-09-06T00:00:00.000Z')
+  // Budapest nyáron UTC+2: a helyi vasárnap éjfél a szombat 22:00 UTC.
+  assert.equal(hetKezdete(new Date('2026-09-09T12:00:00.000Z'), 'Europe/Budapest'), '2026-09-05T22:00:00.000Z')
+  // Kiritimati UTC+14: a helyi vasárnap éjfél a szombat 10:00 UTC.
+  assert.equal(hetKezdete(new Date('2026-09-09T12:00:00.000Z'), 'Pacific/Kiritimati'), '2026-09-05T10:00:00.000Z')
+})
+
+test('hetKezdete: egy pillanat, ami MÁR vasárnap éjfél, önmagát adja -- a lapozás így nem csúszik el', () => {
+  // A lap az `elozoHetKezdet`/`kovetkezoHetKezdet` pillanatot adja vissza
+  // argumentumként, tehát a függvényt a saját eredményén hívjuk meg újra.
+  // Ha ez nem volna idempotens a hét kezdetére, minden lapozás egy héttel
+  // többet vagy kevesebbet lépne, mint amennyit a gomb ígér.
+  const kezdet = hetKezdete(new Date('2026-09-09T12:00:00.000Z'), 'Europe/Budapest')
+  assert.equal(hetKezdete(new Date(kezdet), 'Europe/Budapest', 0), kezdet)
+  assert.equal(hetKezdete(new Date(kezdet), 'Europe/Budapest', 1), '2026-09-12T22:00:00.000Z')
+  assert.equal(hetKezdete(new Date(kezdet), 'Europe/Budapest', -1), '2026-08-29T22:00:00.000Z')
+})
+
+test('hetKezdete: egy hét HÉT FALI NAP, nem 168 óra -- az óraátállítás hetén is', () => {
+  // Budapest 2026-10-25-én vált vissza téli időszámításra (UTC+2 -> UTC+1).
+  // Az azt tartalmazó hét 168 óránál HOSSZABB valós időben, a fali órán
+  // viszont pontosan hét nap -- pont az a különbség, amit a sávok
+  // roll-forwardja is így kezel.
+  const kezdet = hetKezdete(new Date('2026-10-28T12:00:00.000Z'), 'Europe/Budapest')
+  assert.equal(kezdet, '2026-10-24T22:00:00.000Z', 'a vasárnap éjfél még nyári időszámítás szerint')
+  const kovetkezo = hetKezdete(new Date(kezdet), 'Europe/Budapest', 1)
+  assert.equal(kovetkezo, '2026-10-31T23:00:00.000Z', 'a rákövetkező vasárnap éjfél már télen')
+  assert.equal(Date.parse(kovetkezo) - Date.parse(kezdet), (7 * 24 + 1) * 60 * 60 * 1000, 'valós időben 169 óra, fali órán hét nap')
+})
+
+test('hetKezdete: a zóna és a pillanat is megnevezve utasul el, nem csendben budapesti hétre esik vissza', () => {
+  assert.throws(() => hetKezdete(new Date('2026-09-09T12:00:00.000Z'), ''), /idozona/)
+  assert.throws(() => hetKezdete(new Date('2026-09-09T12:00:00.000Z'), 'nem/zona'), /IANA/)
+  assert.throws(() => hetKezdete(new Date('nem-datum'), 'UTC'), /pillanat/)
+  assert.throws(() => hetKezdete(new Date('2026-09-09T12:00:00.000Z'), 'UTC', 1.5), /hetEltolas/)
 })
