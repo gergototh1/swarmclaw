@@ -16,7 +16,7 @@ import { useWs } from '@/hooks/use-ws'
 import { NAV_SECTIONS, type NavSection, type NavSectionId, type NavSectionIconName } from '@/lib/app/nav-sections'
 import { FULL_WIDTH_VIEWS, isPanelSidebarView, VIEW_DESCRIPTIONS, VIEW_LABELS } from '@/lib/app/view-constants'
 import { getViewPath, resolveSidebarActiveView, useNavigate } from '@/lib/app/navigation'
-import { RAIL_EXPANDED_KEY, railExpandedFromStorage, railSectionForPath } from '@/lib/app/rail-state'
+import { RAIL_EXPANDED_KEY, railExpandedFromStorage, railSectionForPath, resolveOpenSection, type RailSectionPick } from '@/lib/app/rail-state'
 import { safeStorageGet, safeStorageSet } from '@/lib/app/safe-storage'
 import type { AppView } from '@/types'
 
@@ -135,11 +135,25 @@ export function SidebarRail({
   // lands in a different section that section wins. A route that belongs to no
   // section at all — /swarmfeed, which is Home's second tab, or a share link —
   // resolves to null and closes the panel, which is what those pages want.
+  //
+  // `resolveOpenSection` (src/lib/app/rail-state.ts) does the combining, and
+  // that is also where the close-vs-route tension is written up and tested —
+  // an explicit close (`picked.section === null`) must survive its own
+  // render without the route-derived section snapping the panel back open,
+  // but must not outlive a route change that moves the reader into a
+  // different section.
   const extensionPages = useExtensionPages()
   const routeSection = railSectionForPath(pathname, activeView, extensionPages)
-  const [picked, setPicked] = useState<{ section: NavSectionId; route: NavSectionId | null } | null>(null)
-  const openSection = picked && picked.route === routeSection ? picked.section : routeSection
+  const [picked, setPicked] = useState<RailSectionPick | null>(null)
+  const openSection = resolveOpenSection(routeSection, picked)
+  // Always opens (or switches to) a section — used by the "direct" rows
+  // (Home, and any section that navigates straight to a view) whose icon
+  // highlight should track the active view, not a togglable panel.
   const selectSection = (id: NavSectionId) => setPicked({ section: id, route: routeSection })
+  // Used by the panel-opening rows: clicking the section that is already open
+  // closes its panel, clicking any other section switches to it.
+  const toggleSection = (id: NavSectionId) =>
+    setPicked({ section: openSection === id ? null : id, route: routeSection })
 
   const panelSection = NAV_SECTIONS.find((s) => s.id === openSection && !s.direct) ?? null
 
@@ -227,7 +241,7 @@ export function SidebarRail({
     ) : (
       <button
         key={section.id}
-        onClick={() => selectSection(section.id)}
+        onClick={() => toggleSection(section.id)}
         aria-expanded={on}
         className={className}
         style={{ fontFamily: 'inherit' }}

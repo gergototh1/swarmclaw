@@ -49,3 +49,50 @@ export function railSectionForPath(
   const page = pages.find((p) => pathname === p.path || pathname.startsWith(`${p.path}/`))
   return resolvePageSection(page ?? {})
 }
+
+/**
+ * The reader's last explicit click on the rail, closed over the route section
+ * it was made against.
+ *
+ * `section: null` records a close rather than the absence of a pick — clicking
+ * the section that is already open closes its panel, and that closed state has
+ * to be distinguishable from "no one has clicked anything yet" so it can win
+ * over `routeSection` on the very next render (see `resolveOpenSection`).
+ */
+export interface RailSectionPick {
+  section: NavSectionId | null
+  route: NavSectionId | null
+}
+
+/**
+ * Which section's panel is open, combining the route-derived section with the
+ * reader's last explicit pick (open, switch, or close).
+ *
+ * The pick only overrides the route while the route hasn't moved since the
+ * pick was made — `pick.route === routeSection`. That single comparison
+ * settles both halves of the close-vs-route tension:
+ *
+ * - An explicit close must survive its own render. Closing Work leaves
+ *   `pick = { section: null, route: 'work' }`; the route stays 'work' as long
+ *   as the reader hasn't navigated, so this keeps returning null instead of
+ *   `routeSection` snapping the panel back open the instant it re-renders.
+ *   Without the pick carrying `route`, there would be no way to tell "closed
+ *   while on this route" apart from "never opened," and the toggle would look
+ *   broken.
+ * - The close does not outlive the route it was made on. The moment the route
+ *   changes — clicking a link inside a different section, or a bookmark
+ *   landing on /missions right after Work was closed — `pick.route` no longer
+ *   matches `routeSection`, so this falls through to `routeSection` and
+ *   surfaces whichever section the new route belongs to. A close is a
+ *   statement about the section you were just looking at ("stop showing me
+ *   this"), not a standing "never show me a panel" preference; treating it as
+ *   the latter would strand a reader who navigates into Missions with no
+ *   panel and no visible cue for where they landed.
+ */
+export function resolveOpenSection(
+  routeSection: NavSectionId | null,
+  pick: RailSectionPick | null,
+): NavSectionId | null {
+  if (pick && pick.route === routeSection) return pick.section
+  return routeSection
+}
