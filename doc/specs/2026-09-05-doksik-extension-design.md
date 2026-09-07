@@ -136,9 +136,10 @@ egyirányú: `vault` és `db` nem tud a fölöttük lévőkről.
 | `src/watcher.mjs` | A gyökér figyelése, debounce, saját írás kiszűrése, `index-writer` hívása. | Nem ír fájlt. |
 | `src/permissions.mjs` | Egyetlen függvény: `canWrite(actor, path)`. | Nincs mellékhatása. |
 | `src/links.mjs` | `[[...]]` kinyerése, feloldása, visszahivatkozás-lekérdezés, átnevezéskori linkfrissítés. | — |
-| `src/tools.mjs` | A hat ügynök-tool. | — |
+| `src/tools.mjs` | A hét ügynök-tool. | — |
 | `src/rpc.mjs` | A lap metódusai. | — |
 | `src/contract.mjs` | A `docs` szerződés más extensionöknek. | — |
+| `src/video-forgatokonyv.mjs` | A modul egyetlen kifelé nyúlása: a `video.videos` szerződés feloldása megnevezett elutasítással, és a tizenegy oszlopból markdown. | Nem ír fájlt, nem dönt jogosultságról. |
 | `ui/` → `dist/` | A lap (React + TipTap, esbuilddel bundle-özve). | — |
 
 ### 4.1 A figyelő és a `setup()` újrafutása
@@ -230,8 +231,33 @@ Obsidianban átírt doksi ugyanúgy ütközést okoz egy régi `baseVersion`-nel
 
 ## 7. Ügynök-toolok
 
-Hat tool. Mind ugyanazt a hibaformát adja: `{ hiba: "<kód>", uzenet: "<mit
+Hét tool. Mind ugyanazt a hibaformát adja: `{ hiba: "<kód>", uzenet: "<mit
 tegyél>" }`, hogy az ügynök a szövegből tudjon cselekedni.
+
+### `doksi_video_forgatokonyv`
+`{ videoId }`. Elkéri a `video.videos` szerződés `get`-jével a videót, és a
+tizenegy oszlopából doksit ír a hívó saját mappájába (l. 8. pont: **nem** egy
+fix `agents/video/` mappába, mert a `canWrite` szerint azt csak egy `video`
+slugú ügynök írhatná). A doksi első sora kimondja, hogy a cím és a narráció
+ügynök- és idegen szöveg. Minden hívás új doksit ír; a régit nem frissíti.
+
+Négy külön visszautasítás, mert négy külön teendő, és egyik sem néma
+kihagyás — egy üres válasz azt hazudná az ügynöknek, hogy nincs mit letenni:
+
+- `rossz_parameter` — nincs `videoId` a hívásban. A hívás alakja a hibás, és
+  a szerződéshez hozzá se nyúlunk.
+- `nincs_ilyen_video` — a `get` `null`-t adott: a mező ki van töltve, és a
+  sor nincs meg (elírás, vagy azóta eltűnt sor). Ez **külön kód** a fentitől,
+  mert a teendő más: nem az argumentumot kell javítani, hanem az id-t
+  megkeresni. Az üzenet a mező NEVÉT mondja ki, és **soha nem ismétli meg a
+  kapott értéket**: a tool-határ naplózza a visszautasítás szövegét, a
+  `videoId` sémája pedig hossz nélküli string.
+- `szerzodes_hianyzik` — a `video.videos` szerződés nem oldható fel, vagy a
+  handle nem hordoz `get`-et, vagy a hívás közben szűnt meg a szolgáltató. Az
+  üzenet a host saját okszavát viszi tovább (`provider_missing`,
+  `provider_disabled`, `version_mismatch`, `not_declared`, `unavailable`,
+  `provider_threw`), mert azok más-más operátori mozdulatok.
+- minden más a tool generikus ága, változatlanul.
 
 ### `doksi_lista`
 Mappafa vagy lapos lista. Szűrhető mappára, ügynökre, tagre. Alapból a hívó
@@ -404,9 +430,19 @@ Nincs benne módosítás, törlés és listázás. Egy hívó extension leteheti
 termelt, és visszaolvashatja, amit letett — ennél többet egyik jelenlegi
 jelölt sem kér.
 
-**Amit ez lehetővé tesz, de nem valósít meg:** a videó modul ide teheti a
-forgatókönyvet, az aisignal a kutatási jegyzetet. A másik oldal hozzáírása
-külön, későbbi munka; ez a specifikáció csak a fogadó felet építi meg.
+**Amit ez lehetővé tesz, de nem valósít meg:** az aisignal ide teheti a
+kutatási jegyzetet. A másik oldal hozzáírása külön, későbbi munka; ez a
+specifikáció csak a fogadó felet építi meg.
+
+**A videó-forgatókönyv a másik irányban valósult meg, szándékosan.** Nem a videó
+modul tolja ide a forgatókönyvet ezen a szerződésen át, hanem a Doksik modul
+kéri el a `video.videos` szerződéssel (`doksi_video_forgatokonyv`, 7. pont). A
+push a termelő ütemezésén történne, és egy `ext:` actor mappájába érkezne — egy
+negyedik író a széfben, amit senki nem kért. Húzva a doksi annak az ügynöknek a
+nevében jön létre, aki kérte, a saját mappájába, akkor amikor kérte, és a
+`service.create` szokásos jogosultság-ellenőrzésén át. Következmény: a `docs`
+szerződésnek **továbbra sincs fogyasztója** — a host tiltja, hogy egy extension
+saját magát fogyassza, tehát a Doksik saját tooljából nem is lehetne az.
 
 A host `consumes`-modellje szerint a **deklaráció maga a hozzáférés** (a videó
 modul `index.js`-e ezt részletesen leírja): nincs jóváhagyás, nincs visszavonás,

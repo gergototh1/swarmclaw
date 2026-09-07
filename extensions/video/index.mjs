@@ -23,14 +23,19 @@ import { createTervTools } from './src/terv.mjs'
  *
  * `resolveBinary` is the host's own, filled by setup() below.
  *
- * The seven seams after it are the keys the host never fills, listed here
+ * The eight seams after it are the keys the host never fills, listed here
  * so a reader of this file sees every key the shared state can carry:
  *
  *   spawnImpl, execFileImpl, killImpl  -- render.mjs's child process, ffprobe
- *                                         and signal calls, and health.mjs's
+ *                                         and signal calls, health.mjs's
  *                                         version probe of ffmpeg, ffprobe and
- *                                         npx; default to node:child_process
- *                                         and process.kill
+ *                                         npx, and youtube.mjs's resolve of a
+ *                                         channel handle; default to
+ *                                         node:child_process and process.kill
+ *   fetchImpl                          -- youtube.mjs's read of a channel's
+ *                                         Atom feed, the only request this
+ *                                         module makes on its own; defaults
+ *                                         to the global fetch
  *   probeImpl                          -- narracio.mjs's ffprobe of an mp3
  *   platform                           -- process.platform
  *   bootAt                             -- the host machine's boot time, by the
@@ -53,6 +58,7 @@ export const state = {
   resolveBinary: null,
   spawnImpl: null,
   execFileImpl: null,
+  fetchImpl: null,
   killImpl: null,
   probeImpl: null,
   platform: null,
@@ -182,6 +188,19 @@ const video = {
       { key: 'megtartottRenderek', label: 'Megtartott renderek / videó', type: 'number', placeholder: '3', defaultValue: 3 },
       { key: 'linuxRenderEngedely', label: 'Render nem-Mac hoston is', type: 'boolean', defaultValue: false, help: 'A tipográfia macOS rendszerbetű; Linuxon minden videó másképp néz ki, és a QA ezt nem méri.' },
       { key: 'forduloRogzites', label: 'Fordulók rögzítése', type: 'select', defaultValue: 'sajat', options: [{ value: 'sajat', label: 'csak a modul két ügynöke' }, { value: 'mind', label: 'minden csatolt ügynök (60 napig)' }] },
+      // The Sor view's "Ötletek a YouTube-ról" button, and nothing else,
+      // reads these two. No `defaultValue` on the channel list on purpose:
+      // an install has no business guessing whose uploads the operator wants
+      // to make videos from, and an empty list is a NAMED refusal from the
+      // button (`youtube_nincs_csatorna`) rather than a silent zero.
+      { key: 'youtubeCsatornak', label: 'YouTube-csatornák', type: 'text', placeholder: '@lexfridman, https://www.youtube.com/@masik', help: 'Vesszővel elválasztva: csatorna-URL-ek vagy @handle-ök. Ezekből listáz ötleteket a Sor nézet gombja. Egy @handle-t a modul minden gombnyomáskor yt-dlp-vel old fel csatorna-azonosítóvá — ha a csatorna https://www.youtube.com/channel/UC… alakját írod be (vagy csak a UC…-azonosítót), ez a lépés elmarad, és a gomb feleannyi ideig tart.' },
+      // NO `defaultValue` HERE EITHER, and for a sharper reason than the
+      // channel list's. This carried one maintainer's home directory, so every
+      // other install -- the Electron desktop app included -- shipped with a
+      // path that names nothing, looked filled in, and failed on the first
+      // press. The module's own fallback is the bare name (`YT_DLP_ALAP`), and
+      // a miss is a named refusal that says which field to fill in.
+      { key: 'ytDlpUtvonal', label: 'yt-dlp útvonala', type: 'text', placeholder: '/opt/homebrew/bin/yt-dlp', help: 'A bináris teljes útvonala. Nem a hoston feloldott eszközök egyike: üresen hagyva a modul a puszta `yt-dlp` névvel indítja, ami csak akkor működik, ha a host PATH-ján rajta van. A `which yt-dlp` megmondja a teljes utat.' },
     ],
   },
   /**

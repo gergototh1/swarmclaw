@@ -502,6 +502,8 @@ Operational docs: https://swarmclaw.ai/docs/observability
 
 ### Unreleased
 
+- **Doksik gets a seventh tool: `doksi_video_forgatokonyv`.** An agent can ask for a finished video's script and get it laid down as a document in its own folder — title, status, source, file path, sha256, length, and the narration — with the first line saying that the title and the narration are agent and stranger text. It reads the Video module through the host-mediated `video.videos` contract, which is declared in the Doksik manifest and is this module's only reach outside itself; a provider that is missing, switched off, on another contract version, or that dies mid-call is refused by name with the operator's next step, never skipped silently.
+
 ### v1.10.0 Highlights
 
 A document manager for operators and agents, a picture of every scene type in the video kit, and one change to how skills are loaded that takes effect on upgrade.

@@ -6,11 +6,12 @@ import { promisify } from 'node:util'
 import { guard, readString, refuse } from './args.mjs'
 import { resolvingExecFile, resolvingSpawn } from './binaries.mjs'
 import { uid } from './db.mjs'
-import { idovonal } from './idozites.mjs'
-import { assetUtvonal } from './kit-tabla.mjs'
+import { idovonal, lepesKocka } from './idozites.mjs'
+import { assetUtvonal, idozitettOf } from './kit-tabla.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
 import { hangEgyezik, narracioSorok, ttsHandle } from './narracio.mjs'
 import { SZABALYKESZLET, fileSha256, runQaGate } from './qa.mjs'
+import { verdiktJog } from './verdikt-kapu.mjs'
 
 const execFileAsync = promisify(execFile)
 
@@ -284,9 +285,24 @@ export function createRenderOps(state) {
     }
   }
 
+  /**
+   * The three "nincs ilyen id" refusals in this file -- twice for a
+   * `renderId`, once for a `tervId` -- name the ARGUMENT and never the value
+   * it carried. Each of them used to read `nincs render ezzel az id-vel:
+   * ${renderId}`, which is the one thing `args.mjs` says a refusal must not
+   * do: the id is a tool argument an agent assembled from text strangers
+   * wrote, the page's `renderel` and `cancelRender` levers hand the same
+   * message to the host log with `log.warn`, and a message that quoted the
+   * value would carry that text into the log line and into the agent's next
+   * prompt as this module's own words. The caller already knows what it
+   * passed; what it does not know is which argument was wrong, and that is
+   * what the sentence says. `videoPlan` and `videoNarrate` have worded the
+   * same refusal this way all along -- these three were the odd ones out, and
+   * the live run found the plan one the moment the page grew a Render button.
+   */
   async function status(renderId) {
     const render = repo().render(renderId)
-    if (!render) refuse('render_ismeretlen', `nincs render ezzel az id-vel: ${renderId}`)
+    if (!render) refuse('render_ismeretlen', 'nincs render a megadott renderId-vel')
     if (render.status === 'fut') {
       if (Math.abs(render.host_boot_at - bootAt()) > BOOT_TURES_S) {
         await closeDead(render, 'a gép a render indítása óta újraindult; a pid egy másik folyamaté lehet, jel nem ment ki')
@@ -305,7 +321,7 @@ export function createRenderOps(state) {
 
   function cancel(renderId) {
     const render = repo().render(renderId)
-    if (!render) refuse('render_ismeretlen', `nincs render ezzel az id-vel: ${renderId}`)
+    if (!render) refuse('render_ismeretlen', 'nincs render a megadott renderId-vel')
     if (render.status !== 'fut') refuse('render_nem_fut', `a render státusza ${render.status}`)
     // The row closes first so the exit event that follows the kill finds
     // nothing to do; what the signals returned is written onto it afterwards,
@@ -327,7 +343,7 @@ export function createRenderOps(state) {
 
   async function start(tervId) {
     const terv = repo().terv(tervId)
-    if (!terv) refuse('terv_ismeretlen', `nincs terv ezzel az id-vel: ${tervId}`)
+    if (!terv) refuse('terv_ismeretlen', 'nincs terv a megadott tervId-vel')
     // A closed video is closed for the render too, and the refusal is the one
     // videoNarrate, videoDraft and videoVerdict already make. Without it this
     // render's close would call `videoStatusAfterRender`, and `setVideoStatus`
@@ -338,14 +354,20 @@ export function createRenderOps(state) {
     if (video && video.status === 'lezart') refuse('video_lezart', 'a videó le van zárva')
     const latest = repo().latestTerv(terv.video_id)
     if (latest.id !== terv.id) refuse('terv_elavult', `a(z) ${terv.verzio}. verzió nem a legfrissebb`, { legfrissebbTervId: latest.id })
-    // 1. a passing verdict on this id AND this hash -- passingVerdikt itself
-    // answers from the LATEST verdict on the pair, so a pass a reviewer has
-    // since reversed with a later fail is never returned here (db.mjs).
-    const verdikt = repo().passingVerdikt(terv.id, terv.terv_hash)
-    if (!verdikt) {
-      const masHash = repo().verdiktek(terv.id).some((v) => v.verdikt === 'atmegy')
-      refuse(masHash ? 'verdikt_elavult' : 'verdikt_hianyzik', masHash ? 'van atmegy verdikt erre a tervre, de más hash-sel; a lektornak újra kell néznie' : 'erre a tervre nincs atmegy verdikt')
-    }
+    // 1. THE GATE IS NARROWED HERE, NOT DISMANTLED. This check is what keeps a
+    // source-less claim from going out -- it caught two on the first live run
+    // -- and it stands unchanged for anything an agent wrote on its own.
+    //
+    // What it no longer does is decide for itself. `videoNarrate` asks the
+    // same question one step earlier, and two separate answers here would
+    // drift into the one failure that costs money: a fix the narration lets
+    // through and the render does not is a paid-for audio file for a video
+    // that is never made. The rule lives in `verdikt-kapu.mjs`, the code and
+    // the sentence come back from there untouched, and `verdiktId` names the
+    // judgement this run rests on -- an operator fix has none of its own by
+    // design, so it is an ancestor's.
+    const jog = verdiktJog(repo(), terv)
+    if (!jog.ok) refuse(jog.kod, jog.uzenet)
     const remotionDir = remotionDirOf(state)
     // 2. the referenced files are what the reviewer saw
     const valtozott = []
@@ -396,13 +418,29 @@ export function createRenderOps(state) {
     const figyelmeztetesek = katalogus.katalogusHash === terv.katalogus_hash ? [] : ['katalogus_valtozott']
     const hosszak = sorok.map((sor) => narraciok.get(sor.jelenet).hossz_ms)
     const iv = idovonal(hosszak)
-    const lista = JSON.parse(terv.jelenetek).map((j, i) => ({ ...j, hang: narraciok.get(i).fajl, lathatoHossz: iv.elemek[i].lathato }))
+    // The three props the plan may not carry and this line writes, all three
+    // from the same measurement: the narration file, the scene's visible
+    // length, and -- since the owner watched the first render and found the
+    // beats running ahead of the voice -- the beat between a scene's revealed
+    // elements. `lepes` is spread LAST for the same reason `lathatoHossz` is:
+    // the stored scene cannot overrule what the measurement says, and
+    // `validateDraft` refuses a plan that tried. A type with no beat prop, or
+    // one with fewer than two elements to reveal, gets nothing and keeps the
+    // kit's own default -- absent is no opinion, not a zero.
+    const lista = JSON.parse(terv.jelenetek).map((j, i) => {
+      const idozitett = idozitettOf(j.tipus)
+      const lepes = idozitett === null ? null : lepesKocka({
+        elemSzam: idozitett.elemSzam(j), hosszMs: narraciok.get(i).hossz_ms, elsoKocka: idozitett.elsoKocka, erkezes: idozitett.erkezes,
+      })
+      const idozites = lepes === null ? {} : { [idozitett.prop]: lepes }
+      return { ...j, hang: narraciok.get(i).fajl, lathatoHossz: iv.elemek[i].lathato, ...idozites }
+    })
     const renderId = uid()
     const dir = path.join(remotionDir, OUT_NEVTER, terv.video_id, renderId)
     const propsPath = path.join(dir, 'props.json')
     const outPath = path.join(dir, 'video.mp4')
     const logPath = path.join(dir, 'render.log')
-    const claim = repo().claimRender({ id: renderId, videoId: terv.video_id, tervId: terv.id, tervHash: terv.terv_hash, verdiktId: verdikt.id, hostBootAt: bootAt(), jelenetHatarok: iv.elemek, propsPath, outPath, logPath, platform: platform() })
+    const claim = repo().claimRender({ id: renderId, videoId: terv.video_id, tervId: terv.id, tervHash: terv.terv_hash, verdiktId: jog.verdiktId, hostBootAt: bootAt(), jelenetHatarok: iv.elemek, propsPath, outPath, logPath, platform: platform() })
     if (claim.error) refuse('render_folyamatban', `már fut egy render: ${claim.renderId}`, { renderId: claim.renderId })
     let child
     try {

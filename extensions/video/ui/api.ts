@@ -101,18 +101,45 @@ export interface Terv {
   szerzoAgentId: string
   ellenorzes: unknown
   createdAt: string
+  /**
+   * How this version came about: `'terv'` for a plan an agent wrote on its
+   * own, `'operator_javitas'` for one `videoRevise` submitted against the
+   * operator's fix requests.
+   *
+   * Typed as a plain `string` and tested for equality with the one value that
+   * matters, never for inequality. `readVideo` casts the plan list rather than
+   * checking each field, so a host that does not carry this key at all leaves
+   * it `undefined` at runtime; equality then answers "not a revision", which
+   * is the state the page drew before the field existed.
+   */
+  szarmazas: string
+  /** The version this one revises, or null for a plan that revises nothing. */
+  szuloTervId: string | null
   verdiktek: Verdikt[]
   narraciok: Narracio[]
 }
 
 export interface Visszajelzes {
   id: string
+  /** The render the operator was WATCHING when they wrote this, or null if they wrote it without one. */
   renderId: string | null
   atMs: number | null
   jelenet: number | null
   szoveg: string
   forras: string
   at: string
+  /**
+   * The render that ANSWERED this request, and when -- null while it is still
+   * open. NOT the same field as `renderId` above, and the difference is the
+   * whole of the fix lifecycle: one says what the operator was looking at, the
+   * other says whether anything has been made about it since.
+   *
+   * They are two fields rather than one boolean because the id is the
+   * evidence: "this was dealt with" is a claim, and `r-2` is the file the
+   * operator can go and watch.
+   */
+  kezelteRenderId: string | null
+  kezeltAt: string | null
 }
 
 export interface MegtartasPont {
@@ -472,13 +499,48 @@ export interface Health {
   sapkak: { nyitottJavaslat: number; tanulsagCelonkent: number; backlog: number }
 }
 
+/**
+ * What the Sor view's YouTube-ideas button gets back from one press.
+ *
+ * SIX NUMBERS AND TWO LISTS, AND NOT ONE OF THEM IS DERIVABLE FROM ANOTHER.
+ * "Nothing new opened because every upload is already a video on this board"
+ * and "nothing new opened because no channel answered" are two different
+ * facts, and the page has to say which happened; `marVolt`, `csatornaHibak`
+ * and `jelolt` are what separate them.
+ */
+export interface YoutubeOtletek {
+  /** The rows this press opened, in the order it opened them. */
+  nyitott: Array<{ videoId: string; cim: string }>
+  /** Candidates this module already had a video for. */
+  marVolt: number
+  /** Distinct candidates that survived the window filter, counted after the module deduplicated them by video id -- a channel listed twice in the settings contributes each of its uploads once. */
+  jelolt: number
+  /** New candidates the press's own bound left unopened; a second press would find them. */
+  maradek: number
+  /**
+   * The per-channel report: one entry per channel that has something to say for
+   * itself, named and never counted. Mostly failures, plus the one code that is
+   * not one (`csatorna_nincs_friss`, the channel was read fine and has nothing
+   * new), which is why the page sorts them into two sentences rather than one.
+   */
+  csatornaHibak: Array<{ csatorna: string; ok: string }>
+  /** Feed entries the module did not take: an upload outside the window, an entry missing an id, a title or a readable date, and anything past the per-channel cap. */
+  eldobott: number
+}
+
 export interface CleanupResult {
   torolt: number
   meghagyott: number
   hibak: unknown[]
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+/**
+ * Exported because `megrendeles.ts` reads the host's own answers -- an agent
+ * map, a session, a refusal -- and needs the same check on them that this file
+ * makes on the module's. One definition, so the two cannot drift into
+ * disagreeing about whether an array is a record.
+ */
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
@@ -525,6 +587,40 @@ export function readBoard(raw: unknown): Board {
     counts,
     utolsoFordulok: readArray<Fordulo>('board', root, 'utolsoFordulok'),
     utolsoFordulokLimit: typeof root.utolsoFordulokLimit === 'number' ? root.utolsoFordulokLimit : refuse('board', 'utolsoFordulokLimit'),
+  }
+}
+
+function readNumberField(method: string, record: Record<string, unknown>, field: string): number {
+  const value = record[field]
+  if (typeof value !== 'number' || !Number.isFinite(value)) refuse(method, field)
+  return value
+}
+
+/**
+ * The `youtubeOtletek` answer, or a thrown error naming the first field it
+ * lacks.
+ *
+ * CALLED ONLY AFTER `refusalText` HAS SAID THERE IS NO REFUSAL. The method is
+ * a lever and resolves with `{ hiba, uzenet }` when it refused, which carries
+ * none of these fields; reading that shape here would refuse a refusal for
+ * missing a list, and the operator would get "a youtubeOtletek válaszából
+ * hiányzik a nyitott mező" in place of the sentence telling them to fill in
+ * the settings.
+ *
+ * Every count is required rather than defaulted to 0, for the reason every
+ * other reader in this file gives: a response that did not carry `marVolt` is
+ * a shape this page cannot read, and drawing it as "0 were already known"
+ * would be a false statement about the board.
+ */
+export function readYoutubeOtletek(raw: unknown): YoutubeOtletek {
+  const root = readRoot('youtubeOtletek', raw)
+  return {
+    nyitott: readArray<{ videoId: string; cim: string }>('youtubeOtletek', root, 'nyitott'),
+    marVolt: readNumberField('youtubeOtletek', root, 'marVolt'),
+    jelolt: readNumberField('youtubeOtletek', root, 'jelolt'),
+    maradek: readNumberField('youtubeOtletek', root, 'maradek'),
+    csatornaHibak: readArray<{ csatorna: string; ok: string }>('youtubeOtletek', root, 'csatornaHibak'),
+    eldobott: readNumberField('youtubeOtletek', root, 'eldobott'),
   }
 }
 
@@ -700,6 +796,39 @@ export function readHealth(raw: unknown): Health {
 export function errorText(err: unknown): string {
   if (err instanceof Error) return err.message
   return String(err)
+}
+
+/**
+ * The refusal carried by a lever's answer, named, or null when the answer is
+ * the act having happened.
+ *
+ * `nyit`, `narral`, `renderel` and `youtubeOtletek` are the four methods in
+ * `rpc.mjs` that RESOLVE with their refusals instead of throwing them
+ * (`nemDob` there says why): each is a button the operator presses in exactly
+ * the states the module refuses -- the day's cap is spent, the plan has no
+ * passing verdict, a render is already running, no YouTube channel is
+ * configured -- and a thrown refusal reaches the page as a 500 whose sentence
+ * is lost. A resolved promise from those four is therefore not proof that
+ * anything happened, and every caller here asks this before it says one did. A REJECTED promise is still possible and is a
+ * different fact: the request did not reach the module at all, and
+ * `errorText` is what names that one.
+ *
+ * The code comes first and the module's own sentence after it. The code is
+ * what the operator can look up, quote and hand to an agent -- it is the same
+ * code the tool would have given one -- and "sikertelen" is the word this
+ * page must never print in its place.
+ *
+ * An answer that is not an object is refused here too, under a name of its
+ * own. All four levers answer with one, so anything else is a shape this
+ * page cannot read rather than an act it may report, and printing "a render
+ * elindult" over it would be exactly the false statement the readers above
+ * exist to prevent.
+ */
+export function refusalText(raw: unknown): string | null {
+  if (!isRecord(raw)) return 'valasz_ervenytelen: a modul nem objektummal válaszolt erre a hívásra'
+  if (typeof raw.hiba !== 'string' || raw.hiba === '') return null
+  const uzenet = typeof raw.uzenet === 'string' && raw.uzenet !== '' ? raw.uzenet : null
+  return uzenet === null ? `${raw.hiba} (a modul nem küldött hozzá mondatot)` : `${raw.hiba}: ${uzenet}`
 }
 
 /**

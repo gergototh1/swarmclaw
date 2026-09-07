@@ -1,12 +1,15 @@
-import { VideoError } from './args.mjs'
-import { VIDEO_STATUSOK } from './db.mjs'
+import { VideoError, guard, readString, readWholeNumber } from './args.mjs'
+import { VIDEO_STATUSOK, head } from './db.mjs'
 import { allapot, futasNezet, indit, kep, megszakit, torolElonezetCache } from './elonezet.mjs'
 import { runHealth } from './health.mjs'
 import { readCatalog, remotionDirOf } from './katalogus.mjs'
 import { KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, tablaHianyai } from './kit-tabla.mjs'
+import { narralTerv } from './narracio.mjs'
 import { KODOLT_JAVASLAT_IDK, SZABALYKESZLET } from './qa.mjs'
 import { hetiSor, sablonStat } from './sablon.mjs'
 import { BACKLOG_SAPKA, DUPLIKAT_NAP, JAVASLAT_NYITOTT_SAPKA, TANULSAG_SAPKA } from './tanulsag.mjs'
+import { MAX_CIM, MAX_FORRAS_SZOVEG, nyissVideot } from './terv.mjs'
+import { YOUTUBE_OTLET_MAX, csatornakOf, fetchYoutube, ytDlpUtvonalOf } from './youtube.mjs'
 
 /**
  * The methods this module's own page calls, over
@@ -53,6 +56,27 @@ const IMPORT_FEEDBACK_MAX = 5000
 const IMPORT_RETENTION_MAX = 50_000
 const SZOVEG_MAX = 4000
 const MEGJEGYZES_MAX = 2000
+/**
+ * The window one press of the YouTube button looks back over when the page
+ * names none.
+ *
+ * IT IS A REAL BOUND. Each channel's Atom feed dates every entry it carries,
+ * and `fetchYoutube` filters on that date (src/youtube.mjs), so this number
+ * decides what comes back. Two weeks because the feed only holds about
+ * fifteen entries anyway: a wider window mostly reaches past the end of what
+ * YouTube will hand over, and a narrower one would hide a channel that
+ * publishes fortnightly.
+ *
+ * WHAT USED TO BE HERE AND WHY IT IS NOT. This said the window was measured
+ * against yt-dlp's `upload_date`, "which the listing does not in practice
+ * carry", and called itself the bound that would apply the day it did. That
+ * was true of the first version, which listed with `--flat-playlist` and got
+ * `NA` for every date; it stopped being true when the source moved to the
+ * feed, and a comment asserting that this default is inert would send its
+ * next reader looking for a filter that has been working all along.
+ */
+const YOUTUBE_NAPOK_ALAP = 14
+const YOUTUBE_NAPOK_MAX = 365
 const AT_MS_MAX = 24 * 3_600_000
 const JELENET_MAX = 200
 
@@ -132,6 +156,91 @@ function sapkak(repo) {
       sablon: { db: repo.countByStatusFajta('elfogadva', 'sablon'), sapka: BACKLOG_SAPKA },
     },
   }
+}
+
+/**
+ * The answer shape of the four levers the page presses, and the one place in
+ * this file that does not refuse by throwing.
+ *
+ * EVERY OTHER METHOD HERE THROWS ITS REFUSALS and that is right for them:
+ * they are reads and small writes the page only offers next to a row it has
+ * already loaded, so a refusal there means the page asked for something that
+ * is not on screen. `nyit`, `narral`, `renderel` and `youtubeOtletek` are the
+ * opposite. They are buttons an operator presses in exactly the states this
+ * module refuses -- the day's cap is spent, the plan has no passing verdict,
+ * the tts has no balance left, a render is already running, no channel is
+ * configured, the yt-dlp path names nothing -- and each of those refusals is
+ * a sentence the operator has to read to know what to do next. A thrown one
+ * reaches the browser as a 500 whose body the page shows as "500", and the
+ * sentence is lost.
+ *
+ * `youtubeOtletek` is the fourth and was added after this paragraph was
+ * written; it is named here because a list of three beside four call sites
+ * sends its next reader looking for the difference.
+ *
+ * So the refusal comes back as data: `{ hiba, uzenet }` plus whatever fields
+ * the refusal itself carried (`sapka`, `maNyilt`, `ttsKod`, `renderId`), the
+ * same fields the agent gets from the tool. `guard` decides what counts as a
+ * refusal, so the tool and the page agree on that too -- a VideoError, and a
+ * contract failure named after the extension that failed.
+ *
+ * WHAT IS LEFT IS A BUG IN THIS MODULE, and it is answered rather than
+ * thrown, under a code of its own. `ismeretlen_hiba` is not one of this
+ * module's refusals and must not be read as one; it means the lever broke.
+ * The message is the throw's own -- the operator needs something to report,
+ * and a bug's message carries this module's own text and paths, never a
+ * stored source text -- and the host log still gets it, so the failure is not
+ * quieter than it was.
+ */
+async function nemDob(state, fn) {
+  try {
+    const r = await guard(fn)
+    if (r !== null && typeof r === 'object' && r.error) {
+      const { code, message, ...extra } = r.error
+      return { hiba: code, uzenet: message, ...extra }
+    }
+    return r
+  } catch (err) {
+    const uzenet = err instanceof Error ? err.message : String(err)
+    state.log.error('video rpc lever threw', { error: uzenet })
+    return { hiba: 'ismeretlen_hiba', uzenet }
+  }
+}
+
+/**
+ * A YouTube idea's stored source text: three paragraphs, and the url is the
+ * last one.
+ *
+ * THE ORDER IS NOT COSMETIC. `forrasUrl` (ui/format.ts) is the one thing on
+ * the page that may turn part of a stranger's text into a link target, and it
+ * reads THE LAST PARAGRAPH and nothing else -- deliberately, because offering
+ * a link out of the middle of prose would mean the page deciding where inside
+ * a stranger's text a url starts. `videoOpen` has always put the card's url
+ * last (`forrasSzovegOf`, src/terv.mjs, joins headline, summary, url), and
+ * this door first did not: it wrote title, url, date, so `forrasUrl` read the
+ * date paragraph, refused it, and the Video view printed "a forrás utolsó
+ * bekezdése nem http(s) url" on a video whose entire point is "go and watch
+ * this one". The url is last here for that reason and must stay last.
+ *
+ * THE MIDDLE PARAGRAPH IS DISPLAY MATERIAL and nothing else: no column, key
+ * or gate reads it. The upload day rather than the instant, because "how old
+ * is this" is the question the card answers and a timestamp to the second is
+ * noise in a box the Video view labels as a stranger's text. The view count
+ * stands beside it because it is the other half of the same question -- how
+ * old, and how watched -- and it is what tells the operator whether an idea is
+ * worth taking before they open anything.
+ *
+ * AN ABSENT VIEW COUNT SAYS SO IN WORDS. `nezettsegOf` answers null rather
+ * than 0 for an entry that does not carry `<media:statistics>`
+ * (src/youtube.mjs), because a video nobody has watched and a feed that did
+ * not say are two different facts. Printing nothing would fold them into a
+ * third -- "there is no such thing as a view count here" -- and printing `0`
+ * would state the false one out loud, on a card the operator is deciding
+ * against.
+ */
+function youtubeForrasSzoveg(j) {
+  const nezettseg = typeof j.nezettseg === 'number' ? `${j.nezettseg} megtekintés` : 'a csatorna feedje nem közölt nézettséget'
+  return `${j.cim}\n\nFeltöltve: ${j.feltoltve.slice(0, 10)} · ${nezettseg}\n\n${j.url}`
 }
 
 export function createRpc(state, ops) {
@@ -228,6 +337,16 @@ export function createRpc(state, ops) {
         id: t.id, verzio: t.verzio, jelenetek: JSON.parse(t.jelenetek), narracio: JSON.parse(t.narracio),
         assetUjjlenyomatok: JSON.parse(t.asset_ujjlenyomatok), tervHash: t.terv_hash, katalogusHash: t.katalogus_hash,
         szerzoAgentId: t.szerzo_agent_id, ellenorzes: JSON.parse(t.ellenorzes), createdAt: t.created_at,
+        // A SOR SZÁRMAZÁSA NÉLKÜL A LAP HAZUDIK. Egy `videoRevise` beadta
+        // javításnak tervezetten SOHA nincs saját verdiktje (src/verdikt-kapu.mjs),
+        // tehát a `verdiktek` üressége önmagában két különböző tényt takar: egy
+        // rendes tervet, amit senki nem lektorált, és egy javítást, amire nem is
+        // szokás ítéletet mondani. E két oszlop nélkül a lap a másodikra az
+        // elsőnek járó mondatot írta ki, és a narrációs kart elsötétítette
+        // pontosan az operátori javítás után -- épp a lépésnél, amiért a
+        // javítást kérte. A `szuloTervId` a verzió szülőjét nevezi meg, hogy a
+        // terv-panel ki tudja írni, melyik verzióból lett.
+        szarmazas: t.szarmazas, szuloTervId: t.szulo_terv_id,
         verdiktek: repo().verdiktek(t.id).map((vd) => ({ id: vd.id, verdikt: vd.verdikt, tervHash: vd.terv_hash, lektorAgentId: vd.lektor_agent_id, talalatok: JSON.parse(vd.talalatok), at: vd.created_at })),
         narraciok: repo().narraciok(t.id).map((n) => ({ jelenet: n.jelenet, fajl: n.fajl, hosszMs: n.hossz_ms, hang: n.hang, modell: n.modell, nyelv: n.nyelv, tervHash: n.terv_hash, szovegHash: n.szoveg_hash })),
       }))
@@ -236,9 +355,135 @@ export function createRpc(state, ops) {
         id: v.id, cim: v.cim, status: v.status, forrasTipus: v.forras_tipus, forrasId: v.forras_id, forrasSzoveg: v.forras_szoveg,
         nyitottaAgentId: v.nyitotta_agent_id, createdAt: v.created_at, lezarvaAt: v.lezarva_at,
         tervek, renderek,
-        visszajelzesek: repo().feedbackFor(v.id).map((f) => ({ id: f.id, renderId: f.render_id, atMs: f.at_ms, jelenet: f.jelenet, szoveg: f.szoveg, forras: f.forras, at: f.created_at })),
+        // `kezelteRenderId` és `kezeltAt` NEM ugyanaz, mint a `renderId`: az
+        // utóbbi az a render, amit az operátor NÉZETT, amikor a kérést írta,
+        // az előbbi kettő pedig az a render, ami a kérést LEZÁRTA, és mikor.
+        // A lap ezen a különbségen áll: a nyitott kérés az, amire még nem
+        // született fájl, és a lezárt mellett a lezáró render a bizonyíték.
+        visszajelzesek: repo().feedbackFor(v.id).map((f) => ({ id: f.id, renderId: f.render_id, atMs: f.at_ms, jelenet: f.jelenet, szoveg: f.szoveg, forras: f.forras, at: f.created_at, kezelteRenderId: f.kezelte_render_id, kezeltAt: f.kezelt_at })),
         megtartas: repo().retentionFor(v.id).map((p) => ({ platform: p.platform, tS: p.t_s, arany: p.arany })),
       }
+    },
+    /**
+     * The Sor view's Uj video: one row from text the operator pasted.
+     *
+     * `videoOpen` by another door -- the same service function, the same
+     * daily cap, the same refusals (src/terv.mjs, `nyissVideot`) -- and the
+     * opener is '' rather than an agent id, because an operator is not an
+     * agent and nothing gates on the opener (spec 3.3).
+     *
+     * The page's field is `forrasSzoveg`, which is what the `video` response
+     * calls the same text; the service's argument is `szoveg`, which is what
+     * the tool's schema calls it. One rename here rather than two vocabularies
+     * on the page.
+     */
+    async nyit(body = {}) {
+      return nemDob(state, () => nyissVideot(state, { forras: body.forras, szoveg: body.forrasSzoveg, cim: body.cim, signalId: body.signalId }, ''))
+    },
+    /**
+     * The Sor view's "Ötletek a YouTube-ról": one row per fresh upload of the
+     * channels the operator configured, minus the ones this module already
+     * has a video for.
+     *
+     * A LEVER, so it goes through `nemDob` like the other three: every state
+     * it refuses -- no channel configured, no binary at the configured path,
+     * a channel that did not answer -- is a sentence the operator has to read
+     * to know what to do next, and a thrown one reaches the browser as a 500
+     * whose body the page shows as "500".
+     *
+     * IT DOES NOT GO THROUGH `nyissVideot` AND DOES NOT APPLY THE DAILY CAP,
+     * and that is a decision rather than an oversight. `napiSapka` bounds what
+     * the SCHEDULED producing agent opens BY ITSELF -- it is the answer to
+     * "how much may this module do while nobody is watching" -- and its
+     * default is 1. A press of this button is the operator deciding, in front
+     * of the board, that they want today's ideas; a cap that stopped at the
+     * second one would make the button useless for the thing it exists for.
+     * So the bound here is the method's own (`YOUTUBE_OTLET_MAX`), it is per
+     * press rather than per day, and the answer says how many candidates were
+     * left over so a second press is an informed one.
+     *
+     * THE CONSEQUENCE, STATED. The rows this opens are ordinary videos and
+     * `videosOpenedSince` counts them, so after a press the scheduled producer
+     * will hit its own cap for the rest of the UTC day and open nothing. That
+     * is the right outcome and not a bug to work around: the day's ideas have
+     * already been delivered, by the operator, from a source the agent cannot
+     * reach.
+     *
+     * WHAT IT WRITES. `openVideo` directly, with `forrasTipus: 'youtube'`,
+     * `forrasId` the checked video id, and the three-paragraph source text
+     * `youtubeForrasSzoveg` builds: the title, the upload day and the view
+     * count, and last the url this module built from that id -- never a url
+     * that came back over the network. The opener is '' rather than an agent
+     * id, for the same reason `nyit`'s is: an operator is not an agent, and
+     * nothing gates on the opener. `forras_tipus` has no CHECK constraint
+     * (db.mjs), so the third value needed no migration; the tool's own source
+     * list (`FORRASOK` in src/terv.mjs) is deliberately NOT widened, because
+     * no agent may start this.
+     *
+     * BOTH STORED FIELDS ARE BOUNDED, because both are a stranger's text and
+     * this is a door. The title arrives already cut to `MAX_CIM` -- the feed
+     * reader cuts it where it reads it (src/youtube.mjs) -- and `head` here is
+     * the door saying so rather than assuming it: the two other doors bound
+     * what they store at the door (`nyissVideot`, src/terv.mjs), and a door
+     * that trusted its supplier would be the one place the rule is a
+     * convention instead of code. `MAX_FORRAS_SZOVEG` over the composed text
+     * cannot fire while the title is capped -- a title, a date, a number and a
+     * watch url are a few hundred characters -- and it is written because the
+     * paragraphs are, and the invariant that keeps it inert belongs beside it.
+     */
+    async youtubeOtletek(body = {}) {
+      return nemDob(state, async () => {
+        const napok = readWholeNumber('napok', body.napok, { min: 1, max: YOUTUBE_NAPOK_MAX, fallback: YOUTUBE_NAPOK_ALAP })
+        const csatornak = csatornakOf(state)
+        const { jeloltek, csatornaHibak, eldobott } = await fetchYoutube({
+          csatornak,
+          napok,
+          ytDlp: ytDlpUtvonalOf(state),
+          execFileImpl: state.execFileImpl || undefined,
+          fetchImpl: state.fetchImpl || undefined,
+        })
+        // One card per video id, whatever brought it: the same channel listed
+        // twice in the setting is a typo, not two ideas.
+        const latott = new Set()
+        const ujak = []
+        for (const j of jeloltek) {
+          if (latott.has(j.id)) continue
+          latott.add(j.id)
+          if (repo().videoForYoutube(j.id) !== null) continue
+          ujak.push(j)
+        }
+        const nyitando = ujak.slice(0, YOUTUBE_OTLET_MAX)
+        const nyitott = nyitando.map((j) => {
+          const { id } = repo().openVideo({ cim: head(j.cim, MAX_CIM), forrasTipus: 'youtube', forrasId: j.id, forrasSzoveg: head(youtubeForrasSzoveg(j), MAX_FORRAS_SZOVEG), nyitottaAgentId: '' })
+          return { videoId: id, cim: j.cim }
+        })
+        return { nyitott, marVolt: latott.size - ujak.length, jelolt: latott.size, maradek: ujak.length - nyitott.length, csatornaHibak, eldobott }
+      })
+    },
+    /**
+     * The Terv section's Narracio kerese. `videoNarrate` by another door
+     * (src/narracio.mjs, `narralTerv`): the tts contract per scene, ffprobe on
+     * every file that comes back, the N-rules, and the set written whole or
+     * not at all.
+     *
+     * Nothing about it needs an agent -- the sentences were written and passed
+     * review before this button appeared -- so the page runs it directly
+     * rather than paying for a chat turn to press it.
+     */
+    async narral(body = {}) {
+      return nemDob(state, () => narralTerv(state, body.tervId))
+    },
+    /**
+     * The Renderek section's Render inditasa. `videoRender` by another door:
+     * the same `renderOps` instance the two render tools use (index.mjs), so
+     * a start means one thing in this module.
+     *
+     * `tervId` is read here rather than inside `ops.start`, because the render
+     * side takes an id it can look up and an empty string is not one; the tool
+     * reads it the same way before calling the same method.
+     */
+    async renderel(body = {}) {
+      return nemDob(state, () => ops.start(readString('tervId', body.tervId, { required: true, max: 64 })))
     },
     /**
      * One note from the operator. `atMs` and `jelenet` are optional and

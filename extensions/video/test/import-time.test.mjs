@@ -67,18 +67,19 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.equal(out.name, 'Videó')
   assert.equal(out.version, '0.1.0')
   assert.deepEqual(out.tools.slice().sort(), [
-    'videoCatalog', 'videoDraft', 'videoLessons', 'videoNarrate', 'videoOpen', 'videoPlan', 'videoPropose',
-    'videoQueue', 'videoRender', 'videoRenderStatus', 'videoReviewClose', 'videoReviewMaterial', 'videoVerdict',
+    'videoCatalog', 'videoDraft', 'videoFixes', 'videoLessons', 'videoNarrate', 'videoOpen', 'videoPlan', 'videoPropose',
+    'videoQueue', 'videoRender', 'videoRenderStatus', 'videoReviewClose', 'videoReviewMaterial', 'videoRevise', 'videoVerdict',
   ])
   // The page's methods, plus the two the MCP shim reaches. `mcpCall` and
   // `mcpTools` are not page methods: an agent on a CLI provider never receives
   // the extension tool layer, and MCP is the only layer that crosses into a
-  // CLI's own tool loop, so these are how the thirteen tools above reach the
+  // CLI's own tool loop, so these are how the fifteen tools above reach the
   // producer and the reviewer at all. Listed here so a third one is a decision.
   assert.deepEqual(out.rpc.slice().sort(), [
     'board', 'cancelRender', 'cleanup', 'decideProposal', 'feedback', 'health', 'importFeedback',
-    'importRetention', 'lezar', 'mcpCall', 'mcpTools', 'proposals', 'retireLesson', 'templatePreview',
-    'templatePreviewCancel', 'templatePreviewStart', 'templatePreviewStatus', 'templates', 'video',
+    'importRetention', 'lezar', 'mcpCall', 'mcpTools', 'narral', 'nyit', 'proposals', 'renderel',
+    'retireLesson', 'templatePreview', 'templatePreviewCancel', 'templatePreviewStart',
+    'templatePreviewStatus', 'templates', 'video', 'youtubeOtletek',
   ])
   assert.deepEqual(out.provides, ['videos'])
   assert.deepEqual(out.consumes, ['aisignal.signals', 'tts.narration'])
@@ -87,7 +88,7 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.equal(out.agents, 2)
   assert.equal(out.schedules, 3)
   assert.equal(out.checks, 9)
-  assert.equal(out.migrations, 2)
+  assert.equal(out.migrations, 3)
   assert.equal(out.setup, 'function')
 })
 

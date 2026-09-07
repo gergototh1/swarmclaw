@@ -261,11 +261,22 @@ async function collectAnswers() {
   keep('videoLessons', await run('videoLessons', { szerep: 'lektor' }, 'video-lektor', 's-lektor'))
   keep('videoCatalog', await run('videoCatalog', {}, 'video-gyarto'))
   keep('videoQueue', await run('videoQueue', {}, 'video-lektor', 's-lektor'))
+  // `note` above is the only open request, so this is `missed`'s own fix list -- the producer's read of it.
+  keep('videoFixes', await run('videoFixes', { videoId: missed.videoId }, 'video-gyarto'))
   keep('videoPlan', await run('videoPlan', { tervId: missed.terv.id }, 'video-lektor', 's-lektor'))
   const material = keep('videoReviewMaterial', await run('videoReviewMaterial', {}, 'video-lektor', 's-review'))
   assert.ok(material.fordulok.length > 0 && material.verdiktekVsQa.length > 0 && material.visszajelzesek.length > 0, JSON.stringify(material))
   keep('videoPropose', await run('videoPropose', { cel: 'skill:video-lektoralas', fajta: 'tanulsag', cim: 'Új javaslat', szoveg: 'Egy mondat.', bizonyitek: [note.id] }, 'video-lektor', 's-review'))
   keep('videoReviewClose', await run('videoReviewClose', { atnezesId: material.atnezesId }, 'video-lektor', 's-review'))
+  // Last, because it WRITES: a new plan version on `missed` and a status move.
+  // Every read above is of the board as it stood before that write, and a
+  // revise run earlier would be observing a board no prompt describes.
+  keep('videoRevise', await run('videoRevise', {
+    videoId: missed.videoId,
+    jelenetek: [{ index: 1, jelenet: { ...JELENETEK[1], szam: 41 } }],
+    narracio: [{ jelenet: 1, szoveg: 'Negyvenegy, és ez a mondat elég hosszú ahhoz, hogy nyolc másodperc legyen belőle.' }],
+    javitasIdk: [note.id],
+  }, 'video-gyarto'))
 
   for (const [name, answer] of out) assert.equal(answer.error, undefined, `${name}: ${JSON.stringify(answer)}`)
   return out
@@ -278,13 +289,16 @@ async function collectAnswers() {
  *
  * `propok`, `leirasok` and `sablonStat` are keyed by scene type;
  * `lektoriTalalat` by reviewer finding code; `meresek` by the fact names
- * `qa_gate.py` uses. Each of those key sets is checked somewhere else --
- * type names against the kit table, finding codes against LEKTOR_KODOK -- and
- * a prompt that listed the ten measurement names would be listing the port,
- * not telling the agent anything it acts on. What it acts on is `bukasok`,
- * whose entries the walk does collect.
+ * `qa_gate.py` uses; `jelenetenkent` (`videoFixes`) by the scene index a
+ * fix-request names, a string `optionalWhole` bounded 0..200 in `src/rpc.mjs`
+ * before it ever reaches a row. Each of those key sets is checked somewhere
+ * else -- type names against the kit table, finding codes against
+ * LEKTOR_KODOK, a scene index against the plan's own scene count -- and a
+ * prompt that listed two hundred possible scene indices would be listing the
+ * port, not telling the agent anything it acts on. What it acts on is each
+ * request's own fields, which the walk does collect.
  */
-const DYNAMIC_KEY_MAPS = new Set(['propok', 'leirasok', 'sablonStat', 'lektoriTalalat', 'meresek'])
+const DYNAMIC_KEY_MAPS = new Set(['propok', 'leirasok', 'sablonStat', 'lektoriTalalat', 'meresek', 'jelenetenkent'])
 /**
  * A scene object, recognised by the one key every scene carries. Its other
  * keys are catalogue prop names chosen by whoever wrote the plan, so they are
@@ -315,7 +329,7 @@ const fieldsOf = (answer) => {
 
 /** The tools whose answers each agent reads, by the declaration's own tool list plus the two the queue read covers. */
 const ANSWER_KEYS_FOR = Object.freeze({
-  'video-gyarto': ['videoOpen', 'videoDraft', 'videoNarrate', 'videoRender', 'videoRenderStatus', 'videoRenderStatus:hiba', 'videoCatalog', 'videoQueue', 'videoQueue:futo', 'videoPlan', 'videoLessons', 'videoPropose'],
+  'video-gyarto': ['videoOpen', 'videoDraft', 'videoNarrate', 'videoRender', 'videoRenderStatus', 'videoRenderStatus:hiba', 'videoCatalog', 'videoQueue', 'videoQueue:futo', 'videoPlan', 'videoLessons', 'videoPropose', 'videoFixes', 'videoRevise'],
   'video-lektor': ['videoVerdict', 'videoReviewMaterial', 'videoReviewClose', 'videoCatalog', 'videoQueue', 'videoQueue:futo', 'videoPlan', 'videoLessons', 'videoPropose'],
 })
 
@@ -450,7 +464,7 @@ test('the extension declares both agents and all three schedules', () => {
 // The vocabulary, read off the source rather than typed out here
 // ---------------------------------------------------------------------------
 
-const CODE_FILES = Object.freeze(['src/args.mjs', 'src/terv.mjs', 'src/katalogus.mjs', 'src/kit-tabla.mjs', 'src/narracio.mjs', 'src/render.mjs', 'src/qa.mjs', 'src/sablon.mjs', 'src/tanulsag.mjs'])
+const CODE_FILES = Object.freeze(['src/args.mjs', 'src/terv.mjs', 'src/katalogus.mjs', 'src/kit-tabla.mjs', 'src/narracio.mjs', 'src/render.mjs', 'src/qa.mjs', 'src/sablon.mjs', 'src/tanulsag.mjs', 'src/verdikt-kapu.mjs'])
 
 /** Every refusal code the module can answer with, read off the calls that raise them. */
 function refusalCodes() {
@@ -459,6 +473,22 @@ function refusalCodes() {
     const text = readSource(file)
     for (const m of text.matchAll(/(?:refuse|bad)\(\s*'([a-z][a-z0-9_]*)'/g)) out.add(m[1])
     for (const m of text.matchAll(/\bcode:\s*'([a-z][a-z0-9_]*)'/g)) out.add(m[1])
+    // `src/verdikt-kapu.mjs` does not raise its refusals, it RETURNS them --
+    // it has three callers whose refusal shapes differ, so it names the code
+    // and lets each caller raise it (`refuse(jog.kod, jog.uzenet)`). Those
+    // call sites pass a variable, so without this pattern the codes that gate
+    // narration, render and revision would be the only ones no prompt is
+    // allowed to name.
+    //
+    // IT MATCHES BY SHAPE, and this set is an ALLOWLIST for prompt prose
+    // (`vocabulary()`), not a requirement -- so an over-capture is not a
+    // failing test, it is a word that silently becomes legal in a prompt.
+    // Today `kod:` appears in these files only as a refusal code returned by
+    // `verdikt-kapu.mjs`; a reviewer meeting a new `kod: '…'` literal in
+    // CODE_FILES has to check it is one too. The reviewer finding codes
+    // (LEKTOR_KODOK) are written as `kod: t.kod` and as list members, not as
+    // literals here, which is why they do not leak in through this.
+    for (const m of text.matchAll(/\bkod:\s*'([a-z][a-z0-9_]*)'/g)) out.add(m[1])
   }
   assert.ok(out.size > 30, 'the refusal codes are no longer written as literals; find what replaced them before trusting this test')
   return out
@@ -474,8 +504,13 @@ const PINNED_PROSE = Object.freeze({
   'L7:hossz_tartomanyon_kivul': 'src/katalogus.mjs',
   'L8:tul_keves_tartalom': 'src/katalogus.mjs',
   'L9:zarlat_nem_allitas': 'src/katalogus.mjs',
+  'L10:elem_nem_fer_a_mondatba': 'src/katalogus.mjs',
   katalogus_valtozott: 'src/katalogus.mjs',
   kod_ismeretlen: 'src/terv.mjs',
+  'jelenetek[].index': 'src/terv.mjs',
+  'jelenetek[].jelenet': 'src/terv.mjs',
+  'narracio[].jelenet': 'src/terv.mjs',
+  'narracio[].szoveg': 'src/terv.mjs',
   apply_score: 'src/terv.mjs',
   ttsKod: 'src/narracio.mjs',
   why: 'src/terv.mjs',
@@ -635,6 +670,8 @@ const AGENT_EXEMPT = Object.freeze({
     maNyilt: 'same: how many videos opened today',
     hibaKod: 'the last render error of a `render_hiba` video. Naming the list is what the reviewer needs; acting on the code is the producer\'s',
     cache: 'whether a narration mp3 came from the tts cache. Never on a reviewer answer; pooled here only because both agents share the field walk',
+    javitasVar: 'videos an operator asked to fix. The reviewer has no `videoFixes` and no `videoRevise`, and does not judge a delivered video a second time',
+    kerdesek: 'how many open requests one `javitasVar` entry has; same reasoning as `javitasVar` itself',
   },
 })
 
@@ -828,6 +865,21 @@ test('both skills are under the per-skill cap the turn actually inlines them at'
   assert.ok(cap, 'the host no longer caps inlined skill content under that name; find what replaced it before trusting this test')
   const inlineCap = Number(cap[1])
   assert.ok(resolver.includes('truncateInlinedSkillContent(skill.content, skill.name)'), 'the cap is no longer applied where the pinned block is built')
+  /*
+   * HOW LITTLE ROOM IS LEFT, written here rather than in the skill.
+   *
+   * `video-jelenetlista` runs within ~20 characters of the cap: adding the
+   * fix-request section in the revise task needed three sentences trimmed out
+   * of it first. The note belongs here and not in the file itself because
+   * `skillBody` counts EVERY character of the body -- an HTML comment saying
+   * "there is no room" would itself consume the room it warns about -- and
+   * this is the assertion whose failure the next author will read.
+   *
+   * What to do when it fails: trim, do not raise. The first candidates are
+   * sentences the agent already has in front of it on the same turn -- its
+   * soul and its schedule prompt (`textsFor`) carry the run order and the
+   * refusal handling, and the skill's own opening line says so.
+   */
   const sizes = AGENTS.flatMap((a) => a.skills).map((skill) => ({ skill, body: skillBody(skill).length }))
   for (const { skill, body } of sizes) {
     assert.ok(body <= inlineCap, `${skill} is ${body} characters; past ${inlineCap} the host cuts it and the agent only gets the rest by calling use_skill`)

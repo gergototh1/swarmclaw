@@ -4,12 +4,17 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { test } from 'node:test'
 
+import { VideoError } from '../src/args.mjs'
 import { VIDEO_STATUSOK } from '../src/db.mjs'
 import { HEALTH_CODES, HEALTH_NEM_VALASZOLT, setupChecks } from '../src/health.mjs'
 import { SZABALYKESZLET } from '../src/qa.mjs'
 import { _resetFutas } from '../src/elonezet.mjs'
+import { createRenderOps } from '../src/render.mjs'
 import { createRpc } from '../src/rpc.mjs'
 import { BACKLOG_SAPKA, JAVASLAT_NYITOTT_SAPKA, TANULSAG_SAPKA } from '../src/tanulsag.mjs'
+import { YOUTUBE_OTLET_MAX } from '../src/youtube.mjs'
+import { forrasUrl } from '../ui/format.ts'
+import { safeHref } from '../ui/safe-href.ts'
 import { PELDA_JELENETEK, PELDA_NARRACIO, fakeProject, freshRepo } from './helpers.mjs'
 
 const quiet = { info() {}, warn() {}, error() {} }
@@ -20,25 +25,37 @@ const IDEGEN = 'Idegen szöveg a hírlevélből.'
  * is here and nothing else, so a call that grew a new dependency fails loudly
  * instead of spawning a process on the machine running the suite.
  */
-const opsDouble = () => ({
-  summary: (r) => ({ renderId: r.id, status: r.status }),
-  cancel: (id) => ({ renderId: id, status: 'hiba', hiba: { kod: 'render_megszakitva' } }),
-  cleanupAll: () => ({ renderek: 0, narraciok: 0, sorNelkul: 0 }),
-  orphanCount: () => 0,
-})
+const opsDouble = () => {
+  const indult = []
+  return {
+    indult,
+    summary: (r) => ({ renderId: r.id, status: r.status }),
+    cancel: (id) => ({ renderId: id, status: 'hiba', hiba: { kod: 'render_megszakitva' } }),
+    cleanupAll: () => ({ renderek: 0, narraciok: 0, sorNelkul: 0 }),
+    orphanCount: () => 0,
+    // `renderel` is `videoRender` by another door: both call this, so a cancel
+    // and a start mean one thing in the module (index.mjs).
+    start: (tervId) => { indult.push(tervId); return { renderId: 'r-uj', videoId: 'v', tervId, status: 'fut' } },
+  }
+}
 
 /** Every version probe answers "present" unless a test says otherwise; no binary is ever run. */
 const eszkozOk = async () => ({ stdout: '', stderr: '' })
 
-function setup({ remotionDir = fakeProject(), settings = {}, ttsWhy = null, signalsWhy = null, execFileImpl = eszkozOk, platform = 'darwin', ops = opsDouble() } = {}) {
+/** No test may reach the network. A suite that grew a request fails here rather than making one. */
+const nincsHalo = async (url) => { throw new Error(`a test reached the network: ${url}`) }
+
+function setup({ remotionDir = fakeProject(), settings = {}, ttsWhy = null, signalsWhy = null, execFileImpl = eszkozOk, fetchImpl = nincsHalo, platform = 'darwin', ops = opsDouble(), handles = {}, probeImpl = async () => 4000, log = quiet } = {}) {
   const { storage, repo } = freshRepo()
   const state = {
     storage,
     repo,
-    log: quiet,
+    log,
     settings: () => ({ remotionDir, ...settings }),
-    contracts: { get: () => null, why: (ext) => (ext === 'tts' ? ttsWhy : signalsWhy) },
+    contracts: { get: (e, c) => handles[`${e}.${c}`] ?? null, why: (ext) => (ext === 'tts' ? ttsWhy : signalsWhy) },
     execFileImpl,
+    fetchImpl,
+    probeImpl,
     platform,
   }
   return { repo, state, ops, rpc: createRpc(state, ops), remotionDir }
@@ -149,6 +166,48 @@ test('video returns the source text raw, every plan version, the renders and the
   assert.deepEqual(v.megtartas, [{ platform: 'tiktok', tS: 3, arany: 0.8 }])
   await assert.rejects(rpc.video({ id: 'nincs-ilyen' }), /videó/)
   await assert.rejects(rpc.video({}), /videoId/)
+})
+
+test('a video válasza megmondja, melyik tervverzió operátori javítás, és melyikből lett', async () => {
+  // A LAP EBBŐL TUDJA, HOGY AZ ÜRES VERDIKT-LISTA NEM HIÁNY. Egy javításnak
+  // tervezetten nincs saját ítélete (src/verdikt-kapu.mjs), tehát e két mező
+  // nélkül a Videó lap ugyanazt mondja rá, mint egy le nem lektorált tervre --
+  // és elsötétíti a narrációs kart pontosan a javítás után.
+  const { repo, rpc } = setup()
+  const { videoId, tervId } = keszVideo(repo)
+  const javitas = repo.insertTerv({
+    videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'kh',
+    szerzoAgentId: 'gyarto-1', szerzoSessionId: 's3', ellenorzes: { figyelmeztetesek: [] },
+    szarmazas: 'operator_javitas', javitasIdk: [], szuloTervId: tervId,
+  })
+
+  const v = await rpc.video({ id: videoId })
+  const byId = new Map(v.tervek.map((t) => [t.id, t]))
+  assert.equal(byId.get(tervId).szarmazas, 'terv')
+  assert.equal(byId.get(tervId).szuloTervId, null)
+  assert.equal(byId.get(javitas.id).szarmazas, 'operator_javitas')
+  assert.equal(byId.get(javitas.id).szuloTervId, tervId)
+})
+
+test('a video válasza megmondja, melyik kérést zárta le melyik render', async () => {
+  const { repo, rpc } = setup()
+  const { videoId, renderId } = keszVideo(repo)
+  const nyitott = repo.insertFeedback({ videoId, szoveg: 'nyitott kérés', forras: 'operator' })
+  const zart = repo.insertFeedback({ videoId, jelenet: 1, szoveg: 'lezárt kérés', forras: 'operator' })
+  const kezeltAt = '2026-09-06T11:00:00.000Z'
+  repo.storage.exec('UPDATE ext_video_visszajelzesek SET kezelte_render_id = ?, kezelt_at = ? WHERE id = ?', [renderId, kezeltAt, zart.id])
+
+  const v = await rpc.video({ id: videoId })
+  const byId = new Map(v.visszajelzesek.map((f) => [f.id, f]))
+  assert.equal(byId.get(nyitott.id).kezelteRenderId, null)
+  assert.equal(byId.get(zart.id).kezelteRenderId, renderId)
+  // A lezárás IDEJE külön tény a lezáró rendertől: a lap a kettőt egymás
+  // mellett rajzolja ki, mert egy három napja és egy egy perce lezárt kérés
+  // más tény. A leírt időbélyeghez hasonlítva, nem `typeof`-fal: `typeof ===
+  // 'string'` bármelyik másik szöveges oszlopra is igaz lenne, tehát egy
+  // elgépelt leképezés (`kezeltAt: f.kezelte_render_id`) átcsúszna rajta.
+  assert.equal(byId.get(nyitott.id).kezeltAt, null)
+  assert.equal(byId.get(zart.id).kezeltAt, kezeltAt)
 })
 
 test('feedback files a note, deduplicates it, and refuses an argument it cannot honour', async () => {
@@ -625,6 +684,21 @@ test('an rpc refusal never repeats the value it refused', async () => {
     assert.ok(err instanceof Error)
     assert.equal(err.message.includes('script'), false, 'the refused value stays out of the message the route logs')
   }
+  // The same discipline on the lever that ANSWERS its refusal instead of
+  // throwing it, against the REAL render ops rather than the double: the
+  // first live run pressed Render with a made-up id and the page showed
+  // `nincs terv ezzel az id-vel: nincs-ilyen`, which the route also wrote to
+  // the host log. `renderel` is a new door onto `renderOps.start`, so start's
+  // wording is what the operator reads.
+  const { state } = setup()
+  const igazi = createRpc(state, createRenderOps(state))
+  const valasz = await igazi.renderel({ tervId: gonosz })
+  assert.equal(valasz.hiba, 'terv_ismeretlen')
+  assert.equal(valasz.uzenet, 'nincs terv a megadott tervId-vel')
+  assert.equal(valasz.uzenet.includes('script'), false, 'the refused value stays out of the sentence the page shows and the route logs')
+  const megszakit = await igazi.cancelRender({ renderId: gonosz }).then(() => null, (e) => e)
+  assert.equal(megszakit.code, 'render_ismeretlen')
+  assert.equal(megszakit.message.includes('script'), false)
 })
 
 test('Tisztítás takes the preview cache too: it is the module\'s own and no row can bind its deletion', async () => {
@@ -646,4 +720,399 @@ test('Tisztítás takes the preview cache too: it is the module\'s own and no ro
   assert.equal(r.elonezetek, 2, 'both hash directories go, and the answer says how many')
   for (const h of hashek) assert.equal(fs.existsSync(path.join(root, h)), false)
   assert.equal(fs.existsSync(path.join(root, 'operatore', 'sajat.png')), true)
+})
+
+/**
+ * The three mechanical levers the page pulls without ordering a chat turn:
+ * `nyit`, `narral` and `renderel`. Each is the tool's own service function by
+ * another door, and NONE OF THE THREE THROWS -- a thrown rpc handler reaches
+ * the browser as a bare 500 whose message the operator never sees, and these
+ * three are the ones an operator presses in a state the module refuses.
+ */
+
+/** A tts double over the `narration` contract's shape; writes the mp3 the module then probes. */
+function ttsDouble({ fail = null } = {}) {
+  const calls = []
+  return {
+    calls,
+    handle: {
+      synthesize: async ({ szoveg, celFajl }) => {
+        calls.push({ szoveg, celFajl })
+        if (fail) {
+          const cause = Object.assign(new Error('a szolgáltató egyenlege kimerült'), { code: fail })
+          throw Object.assign(new Error(`contract tts.mjs.narration.synthesize threw: ${cause.message}`), { code: 'provider_threw', extensionId: 'tts.mjs', consumerId: 'video.mjs', cause })
+        }
+        fs.mkdirSync(path.dirname(celFajl), { recursive: true })
+        fs.writeFileSync(celFajl, 'mp3')
+        return { kerelemId: 'k', fajl: celFajl, hosszMs: 1, cache: false, hang: 'Kenji', modell: 'tts-rt-v1', nyelv: 'hu' }
+      },
+      status: async () => ({ hang: 'Kenji', modell: 'tts-rt-v1', nyelv: 'hu' }),
+    },
+  }
+}
+
+/** A video with a plan and a passing verdict, and nothing after it: what `narral` is pressed on. */
+function lektoraltVideo(repo, { scenes = 8 } = {}) {
+  const jelenetek = Array.from({ length: scenes }, (_, i) => (i === 0 ? PELDA_JELENETEK[0] : i === scenes - 1 ? PELDA_JELENETEK[2] : PELDA_JELENETEK[1]))
+  const narracio = jelenetek.map((_, i) => ({ jelenet: i, szoveg: `Mondat ${i}.` }))
+  const { id: videoId } = repo.openVideo({ cim: 'c', forrasTipus: 'kezi', forrasId: '', forrasSzoveg: IDEGEN, nyitottaAgentId: '' })
+  const terv = repo.insertTerv({ videoId, jelenetek, narracio, assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {} })
+  repo.insertVerdikt({ tervId: terv.id, tervHash: terv.tervHash, lektorAgentId: 'l', lektorSessionId: 's', verdikt: 'atmegy', talalatok: [] })
+  return { videoId, tervId: terv.id }
+}
+
+test('nyit opens a manual video through the same service videoOpen calls, and the row says the operator opened it', async () => {
+  const { repo, rpc } = setup()
+  const r = await rpc.nyit({ forras: 'kezi', forrasSzoveg: IDEGEN, cim: 'Kézi cím' })
+  assert.equal(r.hiba, undefined, 'a successful open carries no refusal')
+  assert.equal(r.cim, 'Kézi cím')
+  assert.equal(r.forrasFigyelmeztetes.length > 0, true, 'the page gets the same stranger-text warning the agent gets')
+  const v = repo.video(r.videoId)
+  assert.equal(v.forras_tipus, 'kezi')
+  assert.equal(v.forras_szoveg, IDEGEN, 'the source text is stored byte for byte')
+  assert.equal(v.nyitotta_agent_id, '', 'the page is not an agent and does not name one')
+  assert.equal(v.status, 'nyitott')
+})
+
+test('nyit takes the title from the source text when the operator gave none', async () => {
+  const { rpc } = setup()
+  const r = await rpc.nyit({ forras: 'kezi', forrasSzoveg: 'Első sor.\n\nMásodik.' })
+  assert.equal(r.cim, 'Első sor.')
+})
+
+test('nyit refuses by name instead of throwing: a missing text, an unknown source, and the daily cap', async () => {
+  const { repo, rpc } = setup()
+  const ures = await rpc.nyit({ forras: 'kezi' })
+  assert.equal(ures.hiba, 'argumentum_hibas')
+  assert.equal(typeof ures.uzenet, 'string')
+  assert.ok(ures.uzenet.includes('szoveg'), 'the message names the argument')
+
+  const ismeretlen = await rpc.nyit({ forras: 'nincsilyen', forrasSzoveg: 'x' })
+  assert.equal(ismeretlen.hiba, 'argumentum_hibas')
+
+  assert.equal((await rpc.nyit({ forras: 'kezi', forrasSzoveg: 'Egy.' })).hiba, undefined)
+  const sapka = await rpc.nyit({ forras: 'kezi', forrasSzoveg: 'Kettő.' })
+  assert.equal(sapka.hiba, 'napi_sapka', 'the default cap is one a day and the page is told which cap it hit')
+  assert.equal(sapka.sapka, 1, 'the refusal carries its numbers, so the page can say 1/1')
+  assert.equal(sapka.maNyilt, 1)
+  assert.equal(repo.videos().length, 1)
+})
+
+test('nyit passes the source through to the signals branch, and its refusal arrives named', async () => {
+  const { rpc } = setup({ signalsWhy: 'provider_missing' })
+  const r = await rpc.nyit({ forras: 'signal' })
+  assert.equal(r.hiba, 'signals_szerzodes_hianyzik')
+  assert.equal(r.why, 'provider_missing', 'the host\'s own reason travels, so the operator knows which fix')
+})
+
+test('narral runs the tts contract for every scene and writes the set the render gate reads', async () => {
+  const tts = ttsDouble()
+  const { repo, rpc } = setup({ handles: { 'tts.narration': tts.handle } })
+  const { videoId, tervId } = lektoraltVideo(repo)
+  const r = await rpc.narral({ tervId })
+  assert.equal(r.hiba, undefined)
+  assert.equal(r.valtozatlan, false)
+  assert.equal(tts.calls.length, 8, 'one synthesize per scene, through the contract')
+  assert.equal(repo.narraciok(tervId).length, 8)
+  assert.equal(repo.video(videoId).status, 'narralt')
+})
+
+test('narral refuses by name instead of throwing: an unknown plan, a plan with no passing verdict, and a tts that is not there', async () => {
+  const tts = ttsDouble()
+  const { repo, rpc } = setup({ handles: { 'tts.narration': tts.handle } })
+  const ismeretlen = await rpc.narral({ tervId: 'nincs-ilyen' })
+  assert.equal(ismeretlen.hiba, 'terv_ismeretlen')
+  assert.equal(typeof ismeretlen.uzenet, 'string')
+
+  const { videoId } = keszVideo(repo, { cim: 'másik', sha: 'sha-2' })
+  const uj = repo.insertTerv({ videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {} })
+  const nincsVerdikt = await rpc.narral({ tervId: uj.id })
+  assert.equal(nincsVerdikt.hiba, 'verdikt_hianyzik')
+
+  const nincsTts = setup({ ttsWhy: 'provider_disabled' })
+  const { tervId } = lektoraltVideo(nincsTts.repo)
+  const r = await nincsTts.rpc.narral({ tervId })
+  assert.equal(r.hiba, 'tts_szerzodes_hianyzik')
+  assert.equal(r.why, 'provider_disabled')
+})
+
+test('narral reports the tts own code word for word, so a spent balance does not read as "the tts failed"', async () => {
+  const tts = ttsDouble({ fail: 'tts_egyenleg_kimerult' })
+  const { repo, rpc } = setup({ handles: { 'tts.narration': tts.handle } })
+  const { tervId } = lektoraltVideo(repo)
+  const r = await rpc.narral({ tervId })
+  assert.equal(r.hiba, 'tts_visszautasitva')
+  assert.equal(r.ttsKod, 'tts_egyenleg_kimerult')
+  assert.equal(r.jelenet, 0)
+  assert.equal(repo.narraciok(tervId).length, 0, 'a refused set writes no row')
+})
+
+test('renderel starts the render through the same renderOps videoRender uses', async () => {
+  const { repo, rpc, ops } = setup()
+  const { tervId } = lektoraltVideo(repo)
+  const r = await rpc.renderel({ tervId })
+  assert.deepEqual(ops.indult, [tervId], 'the page and the tool share one start')
+  assert.equal(r.renderId, 'r-uj')
+  assert.equal(r.hiba, undefined)
+})
+
+test('renderel refuses by name instead of throwing when the render side refuses', async () => {
+  const ops = opsDouble()
+  ops.start = () => { throw new VideoError('narracio_hianyos', 'ehhez a tervhez nincs teljes narráció', { hianyzo: [3] }) }
+  const { repo, rpc } = setup({ ops })
+  const { tervId } = lektoraltVideo(repo)
+  const r = await rpc.renderel({ tervId })
+  assert.equal(r.hiba, 'narracio_hianyos')
+  assert.deepEqual(r.hianyzo, [3], 'the refusal\'s own fields travel, so the page can say which scene')
+})
+
+test('renderel refuses a missing tervId by name rather than handing the render side an empty string', async () => {
+  const { rpc, ops } = setup()
+  const r = await rpc.renderel({})
+  assert.equal(r.hiba, 'argumentum_hibas')
+  assert.deepEqual(ops.indult, [], 'nothing was started')
+})
+
+test('a bug in one of the three levers arrives as ismeretlen_hiba and is logged, never as a silent 500', async () => {
+  const ops = opsDouble()
+  ops.start = () => { throw new TypeError('cannot read properties of undefined') }
+  const hibak = []
+  const { repo, rpc } = setup({ ops, log: { info() {}, warn() {}, error: (...a) => hibak.push(a) } })
+  const { tervId } = lektoraltVideo(repo)
+  const r = await rpc.renderel({ tervId })
+  assert.equal(r.hiba, 'ismeretlen_hiba')
+  assert.ok(r.uzenet.includes('cannot read properties'), 'the operator gets something to report')
+  assert.equal(hibak.length, 1, 'and the host log still sees the bug')
+})
+
+// --- the YouTube ideas button, end to end through the rpc ---
+
+/**
+ * The two seams `youtubeOtletek` reaches, as doubles: yt-dlp resolving a
+ * channel handle to a channel id, and the GET of that channel's Atom feed.
+ * No test below starts a process or makes a request.
+ */
+function ytSeamek(csatornaIdk, feedek) {
+  const execFileImpl = async (command, args) => {
+    const cel = args[0]
+    const valasz = csatornaIdk[cel]
+    assert.ok(valasz !== undefined, `the module resolved a channel this test did not stub: ${cel}`)
+    if (typeof valasz === 'function') throw valasz()
+    return { stdout: valasz, stderr: '' }
+  }
+  const fetchImpl = async (url) => {
+    const valasz = feedek[url]
+    assert.ok(valasz !== undefined, `the module fetched a feed this test did not stub: ${url}`)
+    return { status: 200, ok: true, text: async () => valasz }
+  }
+  return { execFileImpl, fetchImpl }
+}
+
+const YT_FEED = (id) => `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`
+
+/** One Atom entry, dated inside the default window unless a test moves it. */
+const ytEntry = (id, cim, kiadva = new Date(Date.now() - 86_400_000).toISOString()) =>
+  `<entry><yt:videoId>${id}</yt:videoId><title>${cim}</title><published>${kiadva}</published><media:group><media:community><media:statistics views="12"/></media:community></media:group></entry>`
+
+/** The same entry without `<media:statistics>`: a feed that did not say how many watched it. */
+const ytEntryNezettsegNelkul = (id, cim, kiadva = new Date(Date.now() - 86_400_000).toISOString()) =>
+  `<entry><yt:videoId>${id}</yt:videoId><title>${cim}</title><published>${kiadva}</published></entry>`
+
+const ytFeed = (entries) => `<?xml version="1.0"?><feed><title>A csatorna</title><published>2006-09-20T05:17:16+00:00</published>${entries.join('')}</feed>`
+
+/** A module whose channels all resolve and whose feeds all answer, keyed by the handle letter. */
+function ytSetup(handles) {
+  const csatornaIdk = {}
+  const feedek = {}
+  for (const [betu, entries] of Object.entries(handles)) {
+    const id = `UC${betu.repeat(22)}`
+    csatornaIdk[`https://www.youtube.com/@${betu}/videos`] = id
+    feedek[YT_FEED(id)] = ytFeed(entries)
+  }
+  const { execFileImpl, fetchImpl } = ytSeamek(csatornaIdk, feedek)
+  return setup({
+    settings: { youtubeCsatornak: Object.keys(handles).map((b) => `@${b}`).join(', '), ytDlpUtvonal: '/nem/futtatjuk/yt-dlp' },
+    execFileImpl,
+    fetchImpl,
+  })
+}
+
+test('youtubeOtletek opens a card per fresh upload and puts it in the nyitott column', async () => {
+  const { repo, rpc } = ytSetup({
+    a: [ytEntry('NYFGCESmikA', 'Egy cím'), ytEntry('l6USUAIKJls', 'Másik &amp; cím')],
+    b: [ytEntry('XyXBwO5jYpw', 'Harmadik')],
+  })
+  const r = await rpc.youtubeOtletek({})
+  assert.equal(r.hiba, undefined)
+  assert.equal(r.jelolt, 3)
+  assert.equal(r.marVolt, 0)
+  assert.equal(r.maradek, 0)
+  assert.deepEqual(r.csatornaHibak, [])
+  assert.deepEqual(r.nyitott.map((n) => n.cim), ['Egy cím', 'Másik & cím', 'Harmadik'])
+
+  const b = await rpc.board()
+  assert.deepEqual(b.oszlopok.nyitott.map((k) => k.cim).sort(), ['Egy cím', 'Harmadik', 'Másik & cím'])
+  for (const k of b.oszlopok.nyitott) assert.equal(k.forrasTipus, 'youtube')
+  // The stored source is the module's own three paragraphs: the title as the
+  // feed wrote it, then the upload day and the view count so the operator can
+  // see how fresh and how watched the idea is, and LAST the url this module
+  // built from an id it checked.
+  const reszlet = await rpc.video({ id: r.nyitott[0].videoId })
+  const sorok = reszlet.forrasSzoveg.split('\n\n')
+  assert.equal(sorok[0], 'Egy cím')
+  assert.match(sorok[1], /^Feltöltve: \d{4}-\d{2}-\d{2} · 12 megtekintés$/, 'the card can say how old the idea is and how watched')
+  assert.equal(sorok[2], 'https://www.youtube.com/watch?v=NYFGCESmikA')
+  assert.equal(reszlet.forrasId, 'NYFGCESmikA')
+  assert.equal(reszlet.nyitottaAgentId, '', 'an operator is not an agent')
+  assert.equal(repo.videoForYoutube('NYFGCESmikA').id, r.nyitott[0].videoId)
+})
+
+test('the stored YouTube source yields a clickable link through the page own reader', async () => {
+  // THE ASSERTION WHOSE ABSENCE LET THE BUG SHIP. The paragraph order was
+  // pinned above, and separately `forrasUrl` was pinned in the ui suite, and
+  // nothing ever put one through the other -- so the door composed title, url,
+  // date while the reader took the LAST paragraph, and every YouTube card drew
+  // "a forrás utolsó bekezdése nem http(s) url" over a video whose whole point
+  // is to be watched. This runs the real reader, with the real `safeHref`, over
+  // the text the real door stored.
+  const { rpc } = ytSetup({ a: [ytEntry('NYFGCESmikA', 'Egy cím')] })
+  const r = await rpc.youtubeOtletek({})
+  const reszlet = await rpc.video({ id: r.nyitott[0].videoId })
+  assert.equal(forrasUrl(reszlet.forrasSzoveg, safeHref), 'https://www.youtube.com/watch?v=NYFGCESmikA')
+})
+
+test('a feed that did not say how many watched it says so, rather than printing nothing or zero', async () => {
+  // `nezettsegOf` answers null rather than 0 for exactly this entry, and the
+  // card has to carry that distinction rather than quietly dropping the line:
+  // an absent view count and zero views are two facts, and a missing line is a
+  // third.
+  const { rpc } = ytSetup({ a: [ytEntryNezettsegNelkul('NYFGCESmikA', 'Egy cím')] })
+  const r = await rpc.youtubeOtletek({})
+  const reszlet = await rpc.video({ id: r.nyitott[0].videoId })
+  const sorok = reszlet.forrasSzoveg.split('\n\n')
+  assert.match(sorok[1], /^Feltöltve: \d{4}-\d{2}-\d{2} · a csatorna feedje nem közölt nézettséget$/)
+  assert.equal(sorok[1].includes('0 megtekintés'), false, 'a feed that did not say must never read as zero views')
+  assert.equal(forrasUrl(reszlet.forrasSzoveg, safeHref), 'https://www.youtube.com/watch?v=NYFGCESmikA', 'and the link survives the other branch')
+})
+
+test('a title longer than the module stores is cut before it is written, not after', async () => {
+  // The door bounds what it stores because a feed's <title> is bounded by
+  // nothing but the 4 MB body cap: an uncut one would sit in
+  // `ext_video_videos`, on every board response, and -- through the `videos`
+  // contract -- in the title of the document the docs extension writes.
+  const { repo, rpc } = ytSetup({ a: [ytEntry('NYFGCESmikA', 'á'.repeat(5000))] })
+  const r = await rpc.youtubeOtletek({})
+  assert.equal(r.nyitott.length, 1, 'an oversized title is cut, never a reason to drop the idea')
+  const sor = repo.videos()[0]
+  assert.equal(sor.cim.length, 200)
+  assert.equal(sor.forras_szoveg.split('\n\n')[0].length, 200, 'and the source text carries the cut title, not the raw one')
+})
+
+test('a video already opened from a YouTube id does not open a second time', async () => {
+  const { repo, rpc } = ytSetup({ a: [ytEntry('NYFGCESmikA', 'Egy cím'), ytEntry('l6USUAIKJls', 'Másik')] })
+  await rpc.youtubeOtletek({})
+  const ujra = await rpc.youtubeOtletek({})
+  assert.equal(ujra.jelolt, 2)
+  assert.equal(ujra.marVolt, 2, 'both are known, so nothing new opened')
+  assert.deepEqual(ujra.nyitott, [])
+  assert.equal(repo.videos().length, 2, 'and no second row for either id')
+})
+
+test('the same channel listed twice in the setting is one card, not two', async () => {
+  const id = 'UCaaaaaaaaaaaaaaaaaaaaa'
+  const { execFileImpl, fetchImpl } = ytSeamek(
+    { 'https://www.youtube.com/@a/videos': id },
+    { [YT_FEED(id)]: ytFeed([ytEntry('pv1TUJSEM2k', 'Egy')]) },
+  )
+  const { rpc } = setup({ settings: { youtubeCsatornak: '@a, @a' }, execFileImpl, fetchImpl })
+  const r = await rpc.youtubeOtletek({})
+  assert.equal(r.jelolt, 1)
+  assert.equal(r.nyitott.length, 1)
+})
+
+test('one press opens at most YOUTUBE_OTLET_MAX, and says how many are left over', async () => {
+  const entries = []
+  for (let n = 0; n < YOUTUBE_OTLET_MAX + 4; n += 1) entries.push(ytEntry(`videoid${String(n).padStart(3, '0')}`, `Cím ${n}`))
+  const { repo, rpc } = ytSetup({ a: entries })
+  const r = await rpc.youtubeOtletek({})
+  assert.equal(r.nyitott.length, YOUTUBE_OTLET_MAX)
+  assert.equal(r.maradek, 4, 'the answer says what a second press would still find')
+  assert.equal(repo.videos().length, YOUTUBE_OTLET_MAX)
+  // The daily cap is deliberately not in this path: `napiSapka` is 1 by
+  // default and would have stopped this press at the second idea.
+  const masodik = await rpc.youtubeOtletek({})
+  assert.equal(masodik.nyitott.length, 4)
+  assert.equal(masodik.marVolt, YOUTUBE_OTLET_MAX)
+  assert.equal(masodik.maradek, 0)
+})
+
+test('napok filters on the feed own published date, and the window is the caller opinion', async () => {
+  const regen = (n) => new Date(Date.now() - n * 86_400_000).toISOString()
+  const { rpc } = ytSetup({ a: [ytEntry('friss000001', 'Friss', regen(2)), ytEntry('regi0000001', 'Régi', regen(20))] })
+  const szuk = await rpc.youtubeOtletek({ napok: 7 })
+  assert.deepEqual(szuk.nyitott.map((n) => n.cim), ['Friss'])
+  assert.equal(szuk.eldobott, 1, 'the one outside the window is dropped and counted, not silently absent')
+
+  const tag = await ytSetup({ a: [ytEntry('friss000001', 'Friss', regen(2)), ytEntry('regi0000001', 'Régi', regen(20))] }).rpc.youtubeOtletek({ napok: 30 })
+  assert.deepEqual(tag.nyitott.map((n) => n.cim), ['Friss', 'Régi'], 'a wider window really does reach further back')
+  assert.equal(tag.eldobott, 0)
+})
+
+test('youtubeOtletek answers its refusals as data, so the button can print the sentence', async () => {
+  const nincsCsatorna = await setup().rpc.youtubeOtletek({})
+  assert.equal(nincsCsatorna.hiba, 'youtube_nincs_csatorna')
+  assert.ok(nincsCsatorna.uzenet.includes('youtubeCsatornak'))
+
+  const { execFileImpl, fetchImpl } = ytSeamek(
+    { 'https://www.youtube.com/@a/videos': () => Object.assign(new Error('spawn ENOENT'), { code: 'ENOENT' }) },
+    {},
+  )
+  const nincsBinaris = await setup({
+    settings: { youtubeCsatornak: '@a', ytDlpUtvonal: '/nem/futtatjuk/yt-dlp' }, execFileImpl, fetchImpl,
+  }).rpc.youtubeOtletek({})
+  assert.equal(nincsBinaris.hiba, 'ytdlp_hianyzik')
+  assert.equal(nincsBinaris.uzenet.includes('/nem/futtatjuk/yt-dlp'), false, 'a refusal never repeats a stored setting')
+
+  // Read before anything is resolved or fetched, so a bad window is a named
+  // refusal rather than a run that half happened.
+  const rosszNapok = await setup({ settings: { youtubeCsatornak: '@a' } }).rpc.youtubeOtletek({ napok: 0 })
+  assert.equal(rosszNapok.hiba, 'argumentum_hibas')
+})
+
+test('a channel that did not answer is named beside the ideas the others gave', async () => {
+  const idB = 'UCbbbbbbbbbbbbbbbbbbbbb'
+  const { execFileImpl, fetchImpl } = ytSeamek(
+    {
+      'https://www.youtube.com/@a/videos': () => Object.assign(new Error('Command failed'), { code: 1 }),
+      'https://www.youtube.com/@b/videos': idB,
+    },
+    { [YT_FEED(idB)]: ytFeed([ytEntry('NYFGCESmikA', 'Egy cím')]) },
+  )
+  const { rpc } = setup({ settings: { youtubeCsatornak: '@a, @b' }, execFileImpl, fetchImpl })
+  const r = await rpc.youtubeOtletek({})
+  assert.deepEqual(r.csatornaHibak, [{ csatorna: 'https://www.youtube.com/@a', ok: 'csatorna_nem_valaszolt' }])
+  assert.equal(r.nyitott.length, 1, 'the channel that answered still produced a card')
+})
+
+test('youtubeOtletek never throws: a bug in it arrives as ismeretlen_hiba and is logged', async () => {
+  // The button is pressed in exactly the states this module refuses, so it
+  // goes through `nemDob` like the other three levers: a thrown bug would
+  // reach the browser as a 500 whose body the page prints as "500".
+  const hibak = []
+  const id = 'UCaaaaaaaaaaaaaaaaaaaaa'
+  const { execFileImpl, fetchImpl } = ytSeamek(
+    { 'https://www.youtube.com/@a/videos': id },
+    { [YT_FEED(id)]: ytFeed([ytEntry('NYFGCESmikA', 'Egy cím')]) },
+  )
+  const { repo, rpc } = setup({
+    settings: { youtubeCsatornak: '@a' },
+    execFileImpl,
+    fetchImpl,
+    log: { info() {}, warn() {}, error: (...a) => hibak.push(a) },
+  })
+  repo.openVideo = () => { throw new TypeError('cannot read properties of undefined') }
+  const r = await rpc.youtubeOtletek({})
+  assert.equal(r.hiba, 'ismeretlen_hiba')
+  assert.ok(r.uzenet.includes('cannot read properties'), 'the operator gets something to report')
+  assert.equal(hibak.length, 1, 'and the host log still sees the bug')
 })

@@ -33,8 +33,15 @@ import { VideoView } from './video'
  * draws in its own three states, and a section that failed sits under its
  * message beside the sections that did not.
  *
- * `version` counts successful board loads and keys the queue, so a reload
- * gives it a fresh subtree instead of new rows under old state.
+ * THE QUEUE IS NO LONGER KEYED ON THE LOAD COUNT. It used to be: a counter
+ * went up on every successful `board` load and keyed `<Sor>` with it, so a
+ * reload gave the queue a fresh subtree rather than new rows under old state.
+ * There was no old state to guard against -- a card is a stateless button and
+ * every list under `Sor` is keyed on a stored id -- and there is now state
+ * that must SURVIVE a reload: the Uj video box lives in that subtree, and a
+ * key change throws away whatever the operator has typed into it, along with
+ * the sentence saying what the last open did. A reload the operator asks for
+ * from the status bar would have eaten a pasted source text.
  *
  * The evidence links on the Javaslatok view need to know which stored ids are
  * videos, and only the board can say: ids in this module are opaque hex with
@@ -53,7 +60,7 @@ import { VideoView } from './video'
 type Nezet = { kind: 'sor' } | { kind: 'video'; id: string } | { kind: 'javaslatok' } | { kind: 'sablonok' }
 
 export function VideoPage({ extensionId, rpc }: { extensionId: string; rpc: Rpc }) {
-  const [board, setBoard] = useState<{ value: Board; version: number } | null>(null)
+  const [board, setBoard] = useState<Board | null>(null)
   const [health, setHealth] = useState<Health | null>(null)
   const [healthError, setHealthError] = useState<string | null>(null)
   const [managed, setManaged] = useState<ManagedStatus | null>(null)
@@ -63,8 +70,7 @@ export function VideoPage({ extensionId, rpc }: { extensionId: string; rpc: Rpc 
   const refresh = useCallback(() => {
     rpc('board')
       .then((raw) => {
-        const value = readBoard(raw)
-        setBoard((prev) => ({ value, version: (prev?.version ?? 0) + 1 }))
+        setBoard(readBoard(raw))
         setError(null)
       })
       .catch((err: unknown) => setError(errorText(err)))
@@ -78,7 +84,7 @@ export function VideoPage({ extensionId, rpc }: { extensionId: string; rpc: Rpc 
 
   const videoIdk = useMemo(() => {
     const ids = new Set<string>()
-    if (board) for (const cards of Object.values(board.value.oszlopok)) for (const card of cards) ids.add(card.id)
+    if (board) for (const cards of Object.values(board.oszlopok)) for (const card of cards) ids.add(card.id)
     return ids
   }, [board])
 
@@ -111,14 +117,14 @@ export function VideoPage({ extensionId, rpc }: { extensionId: string; rpc: Rpc 
         bar renders what it has, the queue says it could not be read, and the
         other views make their own requests and answer for themselves.
       */}
-      <StatusBar board={board ? board.value : null} health={health} healthError={healthError} managed={managed} onRefresh={refresh} rpc={rpc} />
+      <StatusBar board={board} health={health} healthError={healthError} managed={managed} onRefresh={refresh} rpc={rpc} />
       <div className="vid-tabs" role="tablist">
         {tab('sor', 'Sor')}
         {tab('javaslatok', 'Javaslatok')}
         {tab('sablonok', 'Sablonok')}
       </div>
       {nezet.kind === 'sor' && (board
-        ? <Sor key={board.version} board={board.value} onOpen={(id) => setNezet({ kind: 'video', id })} />
+        ? <Sor board={board} onOpen={(id) => setNezet({ kind: 'video', id })} rpc={rpc} onNyitva={refresh} />
         : <p className="vid-muted">A sor nem érhető el.</p>)}
       {nezet.kind === 'video' && <VideoView rpc={rpc} id={nezet.id} onBack={() => { setNezet({ kind: 'sor' }); refresh() }} />}
       {nezet.kind === 'javaslatok' && <Javaslatok rpc={rpc} videoIdk={videoIdk} onOpenVideo={(id) => setNezet({ kind: 'video', id })} />}

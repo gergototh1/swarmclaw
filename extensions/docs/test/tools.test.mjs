@@ -11,7 +11,7 @@ import { createIndexWriter } from '../src/index-writer.mjs'
 import { createService } from '../src/service.mjs'
 import { actorOf, createTools } from '../src/tools.mjs'
 import { createVault } from '../src/vault.mjs'
-import { memStorage } from './helpers.mjs'
+import { contractError, memStorage, videoRow } from './helpers.mjs'
 
 /** A session as the host attaches it to a tool call. */
 function agentCtx(agentId, agentName) {
@@ -19,7 +19,18 @@ function agentCtx(agentId, agentName) {
 }
 const operatorCtx = { session: {}, message: '' }
 
-function harness({ root: rootOverride } = {}) {
+/**
+ * A `ctx.contracts` double. `videos` is the handle `get` answers for the
+ * video.videos pair (null when absent), `why` the host's reason for the null.
+ */
+function contractsDouble({ videos = null, why = null } = {}) {
+  return {
+    get: (ext, contract) => (ext === 'video' && contract === 'videos' ? videos : null),
+    why: () => why,
+  }
+}
+
+function harness({ root: rootOverride, contracts = null } = {}) {
   const root = rootOverride ?? fs.mkdtempSync(path.join(os.tmpdir(), 'docs-tools-'))
   const s = memStorage()
   for (const m of MIGRATIONS) s.raw.exec(m.sql)
@@ -38,7 +49,7 @@ function harness({ root: rootOverride } = {}) {
     }
     return service
   }
-  const tools = createTools({}, { serviceOf, logOf: () => log })
+  const tools = createTools({ contracts }, { serviceOf, logOf: () => log })
   const byName = Object.fromEntries(tools.map((t) => [t.name, t]))
   const ctxHooks = createAgentContext({}, { serviceOf, sharedFolder: () => 'kozos', logOf: () => log })
 
@@ -53,11 +64,12 @@ function harness({ root: rootOverride } = {}) {
   }
 }
 
-test('the module exposes exactly the six declared tools', () => {
+test('the module exposes exactly the seven declared tools', () => {
   const h = harness()
   try {
     assert.deepEqual(h.tools.map((t) => t.name), [
       'doksi_lista', 'doksi_olvas', 'doksi_keres', 'doksi_ir', 'doksi_mozgat', 'doksi_torol',
+      'doksi_video_forgatokonyv',
     ])
     for (const t of h.tools) {
       assert.ok(t.description.length > 20, `túl rövid leírás: ${t.name}`)
@@ -184,7 +196,12 @@ test('doksi_mozgat and doksi_torol answer through the same shape', async () => {
 test('every tool answers an unwritable root with a message rather than throwing', async () => {
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-locked-'))
   fs.chmodSync(parent, 0o500)
-  const h = harness({ root: path.join(parent, 'alatta') })
+  const h = harness({
+    root: path.join(parent, 'alatta'),
+    // A hetedik tool a szerződésen át jut el a gyökérig; szolgáltató nélkül
+    // előbb utasítana el, és ez a teszt nem a gyökeret mérné rajta.
+    contracts: contractsDouble({ videos: { get: async () => videoRow() } }),
+  })
   try {
     const ctx = agentCtx('abc123', 'Marketing')
     const calls = [
@@ -194,6 +211,7 @@ test('every tool answers an unwritable root with a message rather than throwing'
       [h.byName.doksi_ir, { cim: 'X' }],
       [h.byName.doksi_mozgat, { id: 'doc_x', ujMappa: 'kozos' }],
       [h.byName.doksi_torol, { id: 'doc_x' }],
+      [h.byName.doksi_video_forgatokonyv, { videoId: 'vid_1' }],
     ]
     for (const [tool, args] of calls) {
       const res = await tool.execute(args, ctx)
@@ -274,4 +292,125 @@ test('the guidance tells the agent about baseVersion and about conflicts', () =>
     assert.match(guidance, /ütközés/i)
     assert.ok(h.ctxHooks.getCapabilityDescription().length > 20)
   } finally { h.cleanup() }
+})
+
+test('doksi_video_forgatokonyv lays the script down in the calling agent own folder', async () => {
+  const h = harness({ contracts: contractsDouble({ videos: { get: async () => videoRow() } }) })
+  try {
+    const ctx = agentCtx('abc123', 'Videó Gyártó')
+    const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_1' }, ctx)
+    // Nem `agents/video/`: a canWrite szerint egy ügynök a SAJÁT mappájába ír,
+    // és a hívó slugja a neve, nem a szolgáltató bővítmény neve.
+    assert.equal(res.utvonal, 'agents/video-gyarto/miert-dragul-a-kave.md')
+    assert.equal(res.verzio, 1)
+
+    const doc = await h.byName.doksi_olvas.execute({ id: res.id }, ctx)
+    assert.equal(doc.cim, 'Miért drágul a kávé')
+    assert.ok(doc.tartalom.includes('Első mondat. Második mondat.'))
+    assert.ok(doc.tartalom.startsWith('>'), 'nincs a tetején a forrás-figyelmeztetés')
+  } finally { h.cleanup() }
+})
+
+test('doksi_video_forgatokonyv passes the video id the caller asked for', async () => {
+  const asked = []
+  const h = harness({ contracts: contractsDouble({ videos: { get: async (args) => { asked.push(args); return videoRow() } } }) })
+  try {
+    await h.byName.doksi_video_forgatokonyv.execute({ videoId: '  vid_1  ' }, agentCtx('abc123', 'Videó'))
+    assert.deepEqual(asked, [{ id: 'vid_1' }])
+  } finally { h.cleanup() }
+})
+
+test('a missing provider is a named refusal and writes nothing', async () => {
+  // 5.2: a néma kihagyás azt hazudná az ügynöknek, hogy nincs mit letenni.
+  const h = harness({ contracts: contractsDouble({ videos: null, why: 'provider_missing' }) })
+  try {
+    const ctx = agentCtx('abc123', 'Videó Gyártó')
+    const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_1' }, ctx)
+    assert.equal(res.hiba, HIBA.szerzodes_hianyzik)
+    assert.match(res.uzenet, /provider_missing/)
+    assert.equal((await h.byName.doksi_lista.execute({}, ctx)).doksik.length, 0, 'félkész doksit hagyott maga után')
+  } finally { h.cleanup() }
+})
+
+test('a video id that names nothing is refused by name, and no empty doc is left behind', async () => {
+  // KÉT KÜLÖNBÖZŐ TÉNY, KÉT KÓD. A hiányzó `videoId` a hívás alakjáról szól,
+  // ez pedig a világról: a mező ki van töltve, a sor nincs meg. Egy kódon
+  // osztozva az ügynök a saját argumentumait javítgatná egy sor fölött, ami
+  // nem létezik.
+  //
+  // ÉS AZ ÜZENET NEM ISMÉTLI MEG AZ ID-T. A tool-határ naplózza a
+  // visszautasítás szövegét, a `videoId` sémája pedig puszta string hossz
+  // nélkül: egy ügynök által összerakott, tetszőleges méretű id szó szerint a
+  // hostnaplóba kerülne, és onnan az ügynök következő promptjába.
+  const h = harness({ contracts: contractsDouble({ videos: { get: async () => null } }) })
+  try {
+    const ctx = agentCtx('abc123', 'Videó Gyártó')
+    const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_nincs' }, ctx)
+    assert.equal(res.hiba, HIBA.nincs_ilyen_video)
+    assert.notEqual(res.hiba, HIBA.rossz_parameter, 'a hiányzó mező és az eltűnt sor nem ugyanaz a teendő')
+    assert.match(res.uzenet, /videoId/, 'a mező NEVE elmondja, mit kell javítani')
+    assert.equal(res.uzenet.includes('vid_nincs'), false, 'a visszautasítás soha nem ismétli meg a hívó által küldött értéket')
+    assert.equal((await h.byName.doksi_lista.execute({}, ctx)).doksik.length, 0)
+  } finally { h.cleanup() }
+})
+
+test('a missing videoId is refused before the contract is touched', async () => {
+  let hivas = 0
+  const h = harness({ contracts: contractsDouble({ videos: { get: async () => { hivas += 1; return videoRow() } } }) })
+  try {
+    const res = await h.byName.doksi_video_forgatokonyv.execute({}, agentCtx('abc123', 'Videó'))
+    assert.equal(res.hiba, HIBA.rossz_parameter)
+    assert.match(res.uzenet, /videoId/)
+    assert.equal(hivas, 0)
+  } finally { h.cleanup() }
+})
+
+test('a stranger title with a newline in it survives the front matter round trip', async () => {
+  // A cím idegen szövegből származik; a vault fejléce soralapú, tehát egy
+  // beágyazott újsor a fejlécet vágná ketté, és a doksi címtelenül jönne vissza.
+  const h = harness({ contracts: contractsDouble({ videos: { get: async () => videoRow({ cim: 'Kávé\nár: fel' }) } }) })
+  try {
+    const ctx = agentCtx('abc123', 'Videó')
+    const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_1' }, ctx)
+    assert.equal((await h.byName.doksi_olvas.execute({ id: res.id }, ctx)).cim, 'Kávé ár: fel')
+  } finally { h.cleanup() }
+})
+
+test('doksi_video_forgatokonyv takes no folder and no identity from its arguments', async () => {
+  const h = harness({ contracts: contractsDouble({ videos: { get: async () => videoRow() } }) })
+  try {
+    const res = await h.byName.doksi_video_forgatokonyv.execute(
+      { videoId: 'vid_1', mappa: 'agents/kutato', actor: { kind: 'agent', slug: 'kutato' } },
+      agentCtx('abc123', 'Videó Gyártó'),
+    )
+    assert.equal(res.utvonal, 'agents/video-gyarto/miert-dragul-a-kave.md')
+  } finally { h.cleanup() }
+})
+
+test('the operator calling the tool lands in the shared folder, not in an agent one', async () => {
+  // A `create` az operátornak nem ad home mappát, hanem a közöset adja.
+  const h = harness({ contracts: contractsDouble({ videos: { get: async () => videoRow() } }) })
+  try {
+    const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_1' }, operatorCtx)
+    assert.equal(res.utvonal, 'kozos/miert-dragul-a-kave.md')
+  } finally { h.cleanup() }
+})
+
+test('a provider that dies at call time reaches the agent as a contract failure, not a bad argument', async () => {
+  // A hetedik tool az első, amelynek a bukásai nem ebben a modulban
+  // keletkeznek. A generikus ág `rossz_parameter`-t adna egy stack-szövegre:
+  // az ügynök a hibátlan argumentumait javítgatná a végtelenségig.
+  for (const code of ['unavailable', 'provider_threw']) {
+    const h = harness({
+      contracts: contractsDouble({ videos: { get: async () => { throw contractError(code) } } }),
+    })
+    try {
+      const ctx = agentCtx('abc123', 'Videó Gyártó')
+      const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_1' }, ctx)
+      assert.equal(res.hiba, HIBA.szerzodes_hianyzik, code)
+      assert.match(res.uzenet, new RegExp(code), code)
+      assert.doesNotMatch(res.uzenet, /A művelet nem sikerült/, `${code}: a generikus ágra esett`)
+      assert.equal((await h.byName.doksi_lista.execute({}, ctx)).doksik.length, 0, code)
+    } finally { h.cleanup() }
+  }
 })

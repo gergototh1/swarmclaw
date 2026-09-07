@@ -1,5 +1,9 @@
-import type { Board, BoardCard } from './api'
+import { useCallback, useState } from 'react'
+
+import type { Board, BoardCard, Rpc, YoutubeOtletek as YoutubeOtletekValasz } from './api'
+import { errorText, isRecord, readYoutubeOtletek, refusalText } from './api'
 import { formatDate, renderStatusLabel, sapkaSzoveg, statusLabel } from './format'
+import { Lepes } from './lepes'
 
 /**
  * The queue: one column per status in the module's own vocabulary, in the
@@ -16,6 +20,15 @@ import { formatDate, renderStatusLabel, sapkaSzoveg, statusLabel } from './forma
  * and every one of them is a React text child. A card carries no url and no
  * link: the source url lives in the source text, and the Video view is where
  * it is shown, behind `safeHref`.
+ *
+ * Above the columns are the two things this view can DO rather than show,
+ * and they are the two the chain cannot start without: opening a video from
+ * text the operator pastes, and asking the configured YouTube channels for
+ * their recent uploads. Both are the first link of the chain and neither is
+ * one an agent may start on the operator's behalf -- the first because
+ * nobody else has the text, the second because it spawns a process that
+ * talks to a third party -- which is why the queue, and not some settings
+ * screen, is where they stand.
  */
 
 function Kartya({ card, onOpen }: { card: BoardCard; onOpen: (id: string) => void }) {
@@ -59,14 +72,350 @@ function Kartya({ card, onOpen }: { card: BoardCard; onOpen: (id: string) => voi
   )
 }
 
-export function Sor({ board, onOpen }: { board: Board; onOpen: (id: string) => void }) {
+/**
+ * The manual-source open box, drawn from what the shell holds.
+ *
+ * Split out for the reason `VideoBody` and `SablonokBody` are: what a state
+ * LOOKS like is pinned by rendering this with that state in the props, and a
+ * server render runs no effect and no click.
+ *
+ * ONE SOURCE KIND ON PURPOSE. `nyit` also opens a video from a saved signal
+ * card, and this box does not offer that: picking a card is a choice the
+ * module already makes on its own (`pickSignal`), and a second, hand-driven
+ * way to make it would be a second answer to the same question. What was
+ * missing was the source the module cannot reach by itself -- text the
+ * operator has in front of them -- so that is what the box takes.
+ *
+ * The title is optional because the service already has a rule for an absent
+ * one: `cimOf` falls back to a title derived from the source text. A blank
+ * field here is that fallback being chosen, not a field left unfilled, and
+ * the placeholder says so.
+ */
+export function UjVideoBody({ forrasSzoveg, cim, kuldes, uzenet, onForras, onCim, onKuld }: {
+  forrasSzoveg: string
+  cim: string
+  kuldes: boolean
+  uzenet: string | null
+  onForras: (value: string) => void
+  onCim: (value: string) => void
+  onKuld: () => void
+}) {
+  // Disabled exactly when there is a sentence saying why, and never
+  // otherwise: the rule the preview button on the Sablonok view is built on.
+  const ok = forrasSzoveg.trim() === ''
+    ? 'Forrás szöveg nélkül nem nyílik videó.'
+    : kuldes ? 'A nyitás elment, a válaszra várok.' : null
+  return (
+    <section className="vid-uj-video">
+      <h3>Új videó kézi forrásból</h3>
+      <form onSubmit={(e) => { e.preventDefault(); onKuld() }}>
+        <label>
+          Forrás szövege
+          <textarea className="vid-input" rows={4} value={forrasSzoveg} onChange={(e) => onForras(e.target.value)} />
+        </label>
+        <label>
+          Cím
+          <input className="vid-input" type="text" value={cim} onChange={(e) => onCim(e.target.value)} placeholder="üresen hagyva a modul a forrás szövegéből ad címet" />
+        </label>
+        {/*
+          `type="submit"` because this lever is inside the form: the click has
+          to submit it, and the form's own `onSubmit` is what calls `onKuld`.
+          That is the only thing this copy of the lever ever needed that the
+          other two did not, which is why `Lepes` takes it as a prop rather
+          than being written out again here.
+        */}
+        <Lepes cimke="Új videó" ok={ok} type="submit" />
+      </form>
+      {uzenet !== null && <p className="vid-notice" role="status">{uzenet}</p>}
+    </section>
+  )
+}
+
+/**
+ * The box's state and its one request.
+ *
+ * `nyit` RESOLVES with its refusals (the daily cap, a source text longer than
+ * the column takes), so the answer is read with `refusalText` before anything
+ * says a video opened; a rejected promise is the other fact -- the request
+ * never reached the module -- and gets its own sentence. Neither is folded
+ * into "sikertelen".
+ *
+ * On a real open the board is reloaded through `onNyitva`, because the new
+ * video belongs in the queue behind this box and nothing else would put it
+ * there.
+ */
+function UjVideo({ rpc, onNyitva }: { rpc: Rpc; onNyitva: () => void }) {
+  const [forrasSzoveg, setForrasSzoveg] = useState('')
+  const [cim, setCim] = useState('')
+  const [kuldes, setKuldes] = useState(false)
+  const [uzenet, setUzenet] = useState<string | null>(null)
+
+  const onKuld = useCallback(() => {
+    setKuldes(true)
+    // The text goes as it was pasted. `nyissVideot` stores a source byte for
+    // byte and the Video view is where it is labelled as a stranger's text;
+    // trimming it here would be this page editing a source nobody asked it to
+    // edit.
+    rpc('nyit', { forras: 'kezi', forrasSzoveg, cim })
+      .then((raw) => {
+        const hiba = refusalText(raw)
+        if (hiba !== null) { setUzenet(`A videó nem nyílt meg — ${hiba}`); return }
+        setUzenet('A videó megnyílt, és a sor frissült.')
+        setForrasSzoveg('')
+        setCim('')
+        onNyitva()
+      })
+      .catch((err: unknown) => setUzenet(`A nyitás kérése el sem jutott a modulhoz: ${errorText(err)}`))
+      .finally(() => setKuldes(false))
+  }, [rpc, forrasSzoveg, cim, onNyitva])
+
+  return (
+    <UjVideoBody
+      forrasSzoveg={forrasSzoveg}
+      cim={cim}
+      kuldes={kuldes}
+      uzenet={uzenet}
+      onForras={setForrasSzoveg}
+      onCim={setCim}
+      onKuld={onKuld}
+    />
+  )
+}
+
+/**
+ * The sentences one press of the YouTube button produced, in the order the
+ * operator should read them.
+ *
+ * A LIST RATHER THAN A STRING, and every branch its own sentence: this is the
+ * one control on the page whose answer has five independent parts -- what
+ * opened, what was already here, what was left over, which channels went
+ * quiet, and what the module refused to take off the listing -- and folding
+ * them into one line would make the interesting one the hardest to find.
+ *
+ * THE THREE ZEROS ARE THREE SENTENCES. "Nothing opened because every upload
+ * is already a video on this board", "nothing came back at all and a channel
+ * went quiet while it did not" and "the channels answered and had nothing
+ * new" are different facts with different fixes -- wait for the next upload,
+ * fix a channel url, widen the window -- and a single "0 új ötlet" would send
+ * the operator looking in the wrong place for all three.
+ *
+ * AND THE PER-CHANNEL REPORT IS THREE LISTS. `csatornaHibak` carries the
+ * channels that could not be read, the ones that were read and have nothing
+ * fresh (`csatorna_nincs_friss`), and the ones that have published nothing at
+ * all (`csatorna_nincs_feltoltes`). Only the first kind is something to fix,
+ * so only the first kind is printed as a failure -- and the headline above it
+ * says "nem sikerült beolvasni" rather than "nem válaszolt", because a 200
+ * carrying an interstitial IS an answer and the per-channel line two
+ * sentences below would contradict the headline.
+ *
+ * THE CHANNELS ARE NAMED. "3 csatornából 1 nem válaszolt" is a count of a
+ * fact the page already has in full; the operator cannot act on it without
+ * going to look up which one, and the answer carries the name.
+ */
+/**
+ * The two per-channel codes that are not failures: the channel was read
+ * perfectly well and has nothing to offer -- because none of its uploads is
+ * inside the window, or because it has no public uploads at all. They travel
+ * in `csatornaHibak` because that is the module's per-channel report, and
+ * they are pulled out here because printing either under "Nem sikerült
+ * beolvasni" would be a false statement about a channel that answered fine.
+ *
+ * They stay two rather than one for the reason src/youtube.mjs gives at
+ * length: a sentence about FRESHNESS is misleading to a channel that has
+ * never published, in the direction that costs the operator time -- it
+ * implies there are older uploads and that widening the window is worth
+ * trying.
+ */
+const NINCS_FRISS = 'csatorna_nincs_friss'
+const NINCS_FELTOLTES = 'csatorna_nincs_feltoltes'
+const RENDBEN_VAN = [NINCS_FRISS, NINCS_FELTOLTES]
+
+/**
+ * What the operator DOES about each per-channel code.
+ *
+ * The code alone satisfies "say which channel and why" and stops one step
+ * short of useful: `csatorna_azonosito_ismeretlen` is precise, quotable, and
+ * tells somebody who has not read src/youtube.mjs nothing about whether to
+ * fix a url, wait, or go and look at the channel. The three whole-source
+ * refusals each carry a sentence saying where to go, and these are the same
+ * kind of thing at a smaller scale.
+ *
+ * The code is still printed beside the sentence, because it is what the
+ * operator can search for and hand to an agent -- the sentence is the
+ * addition, not the replacement.
+ *
+ * A code this map does not know still prints, with its own line saying so:
+ * the module's vocabulary may grow ahead of this page, and a channel silently
+ * missing from the report would be worse than one named without advice.
+ */
+const CSATORNA_TEENDO: Record<string, string> = {
+  csatorna_nem_valaszolt: 'a csatorna oldalát nem sikerült beolvasni; ellenőrizd az URL-t a beállításokban',
+  csatorna_idotullepes: 'a csatorna oldala nem válaszolt időben; próbáld meg újra',
+  csatorna_valasz_tul_hosszu: 'a yt-dlp többet írt ki, mint amennyit a modul beolvas; ez minden gombnyomáskor megismétlődik, szólj az operátornak',
+  csatorna_azonosito_ismeretlen: 'a válaszban nem volt csatorna-azonosító: átnevezhették a handle-t, vagy megszűnt a csatorna',
+  csatorna_feed_nem_valaszolt: 'a csatornát megtaláltuk, de a feedjéből nem jött olvasható válasz; próbáld meg újra',
+  csatorna_feed_nincs_meg: 'a csatorna feedje nincs meg (404/410): az újrapróbálkozás nem segít, ellenőrizd a csatorna URL-jét a beállításokban',
+  csatorna_feed_kesobb: 'a YouTube most nem adta ki a feedet (429 vagy szerverhiba); várj egy kicsit, és nyomd meg újra',
+  csatorna_feed_elutasitva: 'a feed más okból utasította el a kérést; nyisd meg a csatorna feedjét böngészőben, és nézd meg, mit ad',
+  csatorna_feed_idotullepes: 'a csatorna feedje nem válaszolt időben; próbáld meg újra',
+  csatorna_feed_tul_nagy: 'a csatorna feedje nagyobb, mint amit a modul beolvas; a modul inkább nem vett át belőle semmit, mint hogy csonkán olvassa',
+  csatorna_feed_ertelmezhetetlen: 'a csatorna válaszolt, de a modul egyetlen bejegyzést sem tudott kiolvasni belőle — vagy nem feed jött (beleegyezés-kérő vagy hibaoldal), vagy megváltozott a feed alakja; nyisd meg a csatornát böngészőben',
+}
+
+const csatornaMondat = (h: { csatorna: string; ok: string }) => {
+  const teendo = CSATORNA_TEENDO[h.ok] ?? 'a modul ezt a kódot adta rá, de ez a lap még nem tud hozzá mondatot'
+  return `${h.csatorna} — ${teendo} (${h.ok})`
+}
+
+export function otletMondatok(eredmeny: YoutubeOtletekValasz): string[] {
+  const { nyitott, marVolt, jelolt, maradek, csatornaHibak, eldobott } = eredmeny
+  const nema = csatornaHibak.filter((h) => !RENDBEN_VAN.includes(h.ok))
+  const csendes = csatornaHibak.filter((h) => h.ok === NINCS_FRISS)
+  const nemaddigSem = csatornaHibak.filter((h) => h.ok === NINCS_FELTOLTES)
+  const mondatok: string[] = []
+  if (nyitott.length > 0) mondatok.push(`${nyitott.length} új ötlet nyílt kártyaként a táblára.`)
+  // Not "no channel answered": the answer carries the failures but not how
+  // many channels were asked, so one quiet channel beside two that answered
+  // with nothing would make that sentence false. What is true, and is the
+  // fact the operator needs, is that the empty result is not necessarily the
+  // channels' own answer.
+  else if (nema.length > 0 && jelolt === 0) mondatok.push('Nem jött egyetlen jelölt sem, és közben volt csatorna, amit nem sikerült beolvasni.')
+  else if (marVolt > 0 && jelolt === marVolt) mondatok.push('Nem nyílt új kártya: mindegyikből van már videó a táblán.')
+  else mondatok.push('A csatornák válaszoltak, de nem jött belőlük új ötlet.')
+  if (marVolt > 0 && nyitott.length > 0) mondatok.push(`${marVolt} feltöltésből már volt videó, azokat a modul kihagyta.`)
+  if (maradek > 0) mondatok.push(`${maradek} ötlet maradt a gomb egy-nyomásos korlátján kívül; nyomd meg még egyszer, ha kell.`)
+  // Two lists, never one. A channel that could not be read needs fixing; a
+  // channel that has not uploaded lately needs nothing at all, and folding
+  // them together would send the operator checking a url that is fine.
+  for (const h of nema) mondatok.push(`Nem sikerült beolvasni: ${csatornaMondat(h)}.`)
+  if (csendes.length > 0) mondatok.push(`Nem volt friss feltöltése: ${csendes.map((h) => h.csatorna).join(', ')}.`)
+  if (nemaddigSem.length > 0) mondatok.push(`Nincs nyilvános feltöltése: ${nemaddigSem.map((h) => h.csatorna).join(', ')}.`)
+  if (eldobott > 0) mondatok.push(`${eldobott} bejegyzést a modul nem vett át: az ablakon kívülre eső feltöltés, vagy olyan bejegyzés, amiből nem épít videó-hivatkozást.`)
+  return mondatok
+}
+
+/**
+ * The button and the lines under it.
+ *
+ * Split out for the reason `UjVideoBody` is: what a state LOOKS like is
+ * pinned by rendering this with that state in the props, and a server render
+ * runs no effect and no click. The reason a dark button is dark stands BESIDE
+ * it, never in a `title=` nobody hovers -- the rule the ordering levers on the
+ * Video view are built on.
+ *
+ * Every sentence is a React text child. One of them names channels the
+ * operator typed into a settings field, and another carries the module's own
+ * refusal message; neither is markup here.
+ */
+export function YoutubeOtletekBody({ dolgozik, mondatok, onKattint }: {
+  dolgozik: boolean
+  mondatok: string[]
+  onKattint: () => void
+}) {
+  const ok = dolgozik ? 'A lekérés fut; a yt-dlp csatornánként másodpercekig tart.' : null
+  return (
+    <section className="vid-youtube">
+      <h3>Ötletek a YouTube-ról</h3>
+      <p className="vid-muted vid-youtube-mit">
+        A beállított csatornák friss feltöltéseiből nyit kártyát a táblára. Amiből már van videó, azt kihagyja.
+      </p>
+      <Lepes cimke="Ötletek a YouTube-ról" ok={ok} onKattint={onKattint} />
+      {mondatok.length > 0 && (
+        <ul className="vid-youtube-valasz" role="status">
+          {/*
+            THE INDEX IS THE KEY, AND THE SENTENCE IS NOT. `csatornakOf` does
+            not deduplicate, so a settings field reading "@a, @a" with a
+            failing channel produces the same composed sentence twice, and two
+            identical keys is a React warning over a list that is otherwise
+            correct. Nothing here is reordered, inserted into or stateful: the
+            whole array is replaced by the next press, so the position IS the
+            identity.
+          */}
+          {mondatok.map((m, i) => <li key={i}>{m}</li>)}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+/**
+ * The button's state and its one request.
+ *
+ * THREE OUTCOMES, NEVER FOLDED, the same three `UjVideo` above keeps apart.
+ * `youtubeOtletek` RESOLVES with its refusals (no channel configured, no
+ * binary at the configured path), so a resolved promise is not proof that
+ * anything happened and `refusalText` is asked first. A REJECTED promise is
+ * the third fact -- the request never reached the module -- and gets its own
+ * sentence. None of them is "sikertelen".
+ *
+ * The two refusals the operator can actually fix get a second sentence saying
+ * WHERE, because the module's own message names a settings field and the
+ * operator should not have to work out that a settings field is a place.
+ *
+ * On a real press the board is reloaded through `onNyitva`: the new cards
+ * belong in the queue below this box and nothing else would put them there.
+ */
+function YoutubeOtletek({ rpc, onNyitva }: { rpc: Rpc; onNyitva: () => void }) {
+  const [dolgozik, setDolgozik] = useState(false)
+  const [mondatok, setMondatok] = useState<string[]>([])
+
+  const onKattint = useCallback(() => {
+    setDolgozik(true)
+    rpc('youtubeOtletek', {})
+      .then((raw) => {
+        const hiba = refusalText(raw)
+        if (hiba !== null) {
+          const kod = isRecord(raw) && typeof raw.hiba === 'string' ? raw.hiba : ''
+          const hol = kod === 'youtube_nincs_csatorna'
+            ? 'Előbb írj csatornákat a modul beállításai közé, a YouTube-csatornák mezőbe.'
+            : kod === 'ytdlp_hianyzik'
+              ? 'A beállított útvonalon nincs futtatható bináris; a modul beállításai közt az yt-dlp útvonala mezőt javítsd.'
+              : kod === 'ytdlp_nem_futtathato'
+                ? 'A megadott helyen van valami, de nem indítható: adj rá futtatási jogot (chmod +x), vagy az yt-dlp útvonala mezőt állítsd magára a binárisra, ne a mappájára.'
+                : null
+          setMondatok(hol === null ? [hiba] : [hiba, hol])
+          return
+        }
+        // The reader's own refusal is a FOURTH fact and may not fall into
+        // the catch below: "el sem jutott a modulhoz" would be a false
+        // statement about a request that arrived and was answered, just in a
+        // shape this page cannot read. And nothing is reloaded over it,
+        // because nobody here knows whether anything opened.
+        let eredmeny: YoutubeOtletekValasz
+        try {
+          eredmeny = readYoutubeOtletek(raw)
+        } catch (err: unknown) {
+          setMondatok([`A modul válaszát ez a lap nem tudta elolvasni: ${errorText(err)}`])
+          return
+        }
+        setMondatok(otletMondatok(eredmeny))
+        onNyitva()
+      })
+      .catch((err: unknown) => setMondatok([`Az ötletek kérése el sem jutott a modulhoz: ${errorText(err)}`]))
+      .finally(() => setDolgozik(false))
+  }, [rpc, onNyitva])
+
+  return <YoutubeOtletekBody dolgozik={dolgozik} mondatok={mondatok} onKattint={onKattint} />
+}
+
+export function Sor({ board, onOpen, rpc, onNyitva }: { board: Board; onOpen: (id: string) => void; rpc: Rpc; onNyitva: () => void }) {
   const teli = board.statusok.filter((s) => (board.oszlopok[s] ?? []).length > 0)
   const ures = board.statusok.filter((s) => (board.oszlopok[s] ?? []).length === 0)
   const sapkak = board.sapkak
   return (
     <div className="vid-sor">
+      <UjVideo rpc={rpc} onNyitva={onNyitva} />
+      <YoutubeOtletek rpc={rpc} onNyitva={onNyitva} />
       {teli.length === 0 && (
-        <p className="vid-muted">Egyetlen videó sincs a sorban. A modul akkor nyit videót, amikor a gyártó ügynök lefut.</p>
+        <p className="vid-muted">
+          {/*
+            The sentence used to name the producing agent as the only way a
+            video is opened, which stopped being true the moment the box above
+            appeared. An empty queue with a live control on the same screen
+            has to say that the control is the other way.
+          */}
+          Egyetlen videó sincs a sorban. A modul akkor nyit videót, amikor a gyártó ügynök lefut — vagy amikor te nyitsz egyet a fenti dobozban, illetve ötleteket kérsz a YouTube-ról.
+        </p>
       )}
       <div className="vid-columns">
         {teli.map((status) => {

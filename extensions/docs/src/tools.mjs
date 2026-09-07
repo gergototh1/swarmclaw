@@ -1,8 +1,9 @@
 import { DocsError, HIBA, hiba } from './errors.mjs'
 import { agentSlug } from './permissions.mjs'
+import { forgatokonyv, videoLekerdez } from './video-forgatokonyv.mjs'
 
 /**
- * The six tools an agent uses, as a thin skin over `service.mjs`.
+ * The seven tools an agent uses, as a thin skin over `service.mjs`.
  *
  * Two rules hold for every one of them.
  *
@@ -148,6 +149,59 @@ export function createTools(state, { serviceOf, logOf }) {
         required: ['id'],
       },
       execute: (args, ctx) => run(() => serviceOf().remove(actorOf(ctx), args)),
+    },
+    {
+      /**
+       * The seventh tool, and the only one that reaches outside this module.
+       *
+       * WHERE THE DOCUMENT LANDS, AND WHY NOT `agents/video/`. The plan said
+       * `agents/video/`, and `permissions.mjs` will not have it. `canWrite`
+       * lets an agent write its OWN folder and the shared one, and an agent's
+       * folder is its NAME folded to a slug -- so a fixed `agents/video/`
+       * succeeds only for an agent literally called "Videó", and every other
+       * caller, the Videó Gyártó included, gets `nincs_jog` and no document.
+       * A tool whose single purpose fails for almost every caller is not a
+       * tool, and the way to make it work would have been to widen `canWrite`,
+       * which is the one thing that must not happen for a convenience.
+       *
+       * So no `mappa` is passed at all, and `service.create` puts the document
+       * where every other document that agent writes goes: its own folder
+       * (the operator's calls land in the shared folder, same rule). Nothing
+       * is lost by that, because `canRead` is true for everybody -- the script
+       * is as visible in `agents/video-gyarto/` as it would be anywhere else,
+       * and `doksi_mozgat` relocates it under the same permission check if the
+       * operator would rather it sat in the shared folder.
+       */
+      name: 'doksi_video_forgatokonyv',
+      description: 'Doksiba teszi egy videó kész forgatókönyvét: elkéri a Videó modultól a videó adatait és narrációját, és a saját mappádba ír belőle egy doksit. A narráció és a cím idegen szövegből származik — a doksi teteje ezt ki is mondja. Minden hívás ÚJ doksit ír: ugyanarra a videóra kétszer hívva két külön doksid lesz, nem frissül a régi. Új render vagy új narráció után hívd újra, egyébként ne.',
+      parameters: {
+        type: 'object',
+        properties: { videoId: { ...STR, description: 'A videó id-je, a Videó lapról vagy a videó-toolok válaszából.' } },
+        required: ['videoId'],
+      },
+      execute: (args, ctx) => run(async () => {
+        const videoId = typeof args?.videoId === 'string' ? args.videoId.trim() : ''
+        if (videoId === '') {
+          throw new DocsError(HIBA.rossz_parameter, 'Add meg a "videoId" mezőt: a videó id-jét a Videó lapon vagy a videó-toolok válaszában találod.')
+        }
+        const video = await videoLekerdez(state.contracts, videoId)
+        // `get` answers null for an id that names nothing -- including the case
+        // that actually happens, an id read a moment ago whose row is gone.
+        //
+        // THE MESSAGE DOES NOT REPEAT THE ID. The tool boundary writes a
+        // refusal's message to the host log, and `videoId` is a value the
+        // caller passed: the schema is a bare string with no length of its own,
+        // so an agent-assembled id of any size would land in the log verbatim
+        // and come back in that agent's next prompt. Naming the ARGUMENT is
+        // enough to say what to fix; the value never was the part that helped.
+        // The rule is extensions/video/src/args.mjs's, and commit 58547a6 took
+        // three of these out of the video tree.
+        if (video === null || video === undefined) {
+          throw new DocsError(HIBA.nincs_ilyen_video, 'A "videoId" mezőben megadott videó nincs meg a Videó modulban — vagy elírás, vagy a sor azóta eltűnt. Nézd meg a helyes id-t a Videó lapon, és hívd újra.')
+        }
+        const { cim, tartalom } = forgatokonyv(video, videoId)
+        return serviceOf().create(actorOf(ctx), { cim, tartalom })
+      }),
     },
   ]
 }

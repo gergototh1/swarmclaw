@@ -515,11 +515,13 @@ kijavítva.
 | `videoDraft` | `{ videoId, jelenetek[], narracio[] }` | `{ tervId, verzio, tervHash, figyelmeztetesek[] }` | `agent_hianyzik`, `video_lezart`, `tipus_ismeretlen`, `tipus_nem_kuldheto`, `prop_kotelezo_hianyzik`, `prop_ismeretlen`, `prop_nem_kuldheto`, `prop_alak_hibas`, `prop_ertek_ismeretlen`, `asset_utvonal_ervenytelen`, `asset_hianyzik`, `narracio_hianyzik`, `hossz_tartomanyon_kivul` |
 | `videoVerdict` | `{ tervId, verdikt, talalatok[] }` | `{ verdiktId, tervHash }` | `agent_hianyzik`, `terv_elavult`, `onlektoralas`, `talalat_hianyzik` (elbukik üres listával), `verdikt_ismeretlen` |
 | `videoLessons` | `{ szerep: 'gyarto' \| 'lektor' }` | `{ tanulsagok[] }` (≤ 12, mindegyik ≤ 400 karakter) | `szerep_ismeretlen` |
-| `videoNarrate` | `{ tervId }` | `{ jelenetek: [{ jelenet, fajl, hosszMs, cache }], osszHosszMs, fedettseg }` | `terv_elavult`, `verdikt_hianyzik`, `tts_szerzodes_hianyzik` (okkal), `tts_visszautasitva` (a tts kódjával), `fedettseg_alacsony` |
-| `videoRender` | `{ tervId }` | `{ renderId, status: 'fut', outPath }` | `verdikt_hianyzik`, `verdikt_elavult`, `asset_valtozott`, `narracio_hianyos`, `narracio_hang_valtozott`, `render_folyamatban`, `render_host_platform`, `render_eszkoz_hianyzik` |
+| `videoNarrate` | `{ tervId }` | `{ jelenetek: [{ jelenet, fajl, hosszMs, cache }], osszHosszMs, fedettseg }` | `video_lezart`, `terv_elavult`, a `verdikt-kapu.mjs` hat kódja (`verdikt_hianyzik`, `verdikt_elavult`, `szulo_verdikt_hianyzik`, `javitas_elbukott`, `javitas_lanc_hibas`, `javitas_lanc_tul_hosszu`), `render_folyamatban`, `tts_szerzodes_hianyzik` (okkal), `tts_visszautasitva` (a tts kódjával), `fedettseg_alacsony` |
+| `videoRender` | `{ tervId }` | `{ renderId, status: 'fut', outPath }` | `video_lezart`, a `verdikt-kapu.mjs` hat kódja (mint fent), `asset_valtozott`, `narracio_hianyos`, `narracio_hang_valtozott`, `render_folyamatban`, `render_host_platform`, `render_eszkoz_hianyzik` |
 | `videoRenderStatus` | `{ renderId }` | `{ status, outPath?, fileSha256?, qa?: { ok, meresek, bukasok }, hiba?: { kod, szoveg } }` | `render_ismeretlen` |
 | `videoReviewMaterial` | `{ oraVissza? }` (alap 26) | `{ fordulok[], verdiktekVsQa[], visszajelzesek[], nyitottJavaslatok[], elutasitottJavaslatok[], sablonStat[] }` | `ablak_ervenytelen` |
 | `videoPropose` | `{ cel, fajta, cim, szoveg, bizonyitek[] }` | `{ javaslatId }` | `cel_ismeretlen`, `fajta_ismeretlen`, `bizonyitek_hianyzik`, `bizonyitek_ismeretlen` (nem létező id), `szoveg_tul_hosszu`, `javaslat_duplikat`, `javaslat_sapka` (futásonként 5), `javaslat_nyitott_sapka` (20 nyitott összesen) |
+| `videoFixes` | `{ videoId }` | `{ videoId, cim, tervId, tervVerzio, renderId, nyitottDb, globalis[], jelenetenkent }` | `video_ismeretlen` |
+| `videoRevise` | `{ videoId, jelenetek: [{ index, jelenet }], narracio?, javitasIdk[] }` | `{ tervId, verzio, tervHash, szuloTervId, valtozottJelenetek[], bedolgozott[], figyelmeztetesek[], becsultHosszMp }` | `agent_hianyzik`, `video_ismeretlen`, `video_lezart`, `render_folyamatban`, `terv_hianyzik`, a `verdikt-kapu.mjs` hat kódja a SZÜLŐ verzióra, `javitas_hianyzik`, `javitas_ismeretlen`, `erintetlen_jelenet_valtozott`, `argumentum_hibas`, és a `videoDraft` minden jelenet- és prop-kódja |
 
 Amit egyik tool sem csinál: nem publikál, nem ír ügynököt, nem ír skillt,
 nem ír `.tsx`-et, nem futtat `git`-et vagy `npm`-et, nem nyúl a Studio
@@ -721,8 +723,21 @@ teendő.
 
 Az indítás előtt, ebben a sorrendben, és mindegyik a saját kódjával:
 
-1. a terv a legfrissebb, és van rá `atmegy` verdikt a terv id-jével és a
-   jelenlegi hash-sel (3.2);
+1. a tervnek **joga van továbbmenni**, és ezt a kérdést nem ez a tool
+   dönti el: a `verdikt-kapu.mjs` válaszol rá, ugyanaz a fájl, amit a
+   `videoNarrate` és a `videoRevise` is kérdez (a 2026-09-06-i célzott
+   javítás specifikáció 5. pontja). A rendes terv joga a saját `atmegy`
+   verdiktje a terv id-jével és a jelenlegi hash-sel (3.2); egy operátori
+   javításnak **tervezetten nincs saját verdiktje**, és a jogot a
+   javítás-láncán feljebb attól a verziótól örökli, amit a lektor
+   átengedett. A kapu hat kódja hat különböző teendő, és a hívók
+   változatlanul adják tovább mindet.
+
+   Ami itt **régen** állt — „a terv a legfrissebb, és van rá `atmegy`
+   verdikt” —, az a célzott javítás előtti szabály volt, és mára hamis
+   lenne mindkét felében: a legfrissebbség a `videoNarrate` kapuja
+   (`terv_elavult`), a közvetlen verdikt-kérdés pedig épp az, ami a
+   második javítási kört lehetetlenné tenné;
 2. a hivatkozott asset-fájlok sha256-ja ma is az, ami a terv
    `asset_ujjlenyomatok` mezőjében áll (`asset_valtozott`);
 3. minden narrált jelenethez van sor a jelenlegi szöveg-hash-sel, és a
@@ -770,6 +785,31 @@ vélemény, és a vélemény az, ami a felmérésben említett, több száz soro
 visszajelzés-gyűjteményt termelte (az „502 sor” a felmérés száma, nem egy
 fájl az `ai-use-cases` alatt; ott ilyen fájl nincs). Futásonként legfeljebb öt javaslat, mert a lap, ahol az operátor
 dönt, egy ember reggeli öt perce, és ami annál több, azt nem olvassa el.
+
+### 4.7 `videoFixes` és `videoRevise`
+
+A kész render utáni célzott javítás két toolja. A teljes indoklás — miért
+nem `videoDraft`, mi öröklődik a szülő verzióból, és miért nem kell rá új
+lektori ítélet — a **2026-09-06-i célzott javítás specifikációban** áll;
+itt csak annyi, ami ennek a dokumentumnak a képét kiegészíti.
+
+A `videoFixes` **csak olvas**: egy videó NYITOTT operátori kéréseit adja,
+globálisan és jelenetenként. A kérés szövege az operátoré — idegen szöveg,
+nem utasítás a modulnak —, és a tool leírása ezt ki is mondja a hívónak.
+
+A `videoRevise` új tervverziót ír, `szarmazas: 'operator_javitas'` és
+`szulo_terv_id` jelöléssel. Amit megnevezel, azt írja át; **minden más
+jelenetet változatlanul vesz át a szülőből**, és egy meg nem nevezett
+jelenethez írt narráció-mondat névvel elutasul
+(`erintetlen_jelenet_valtozott`). A videó `lektoralt` marad, nem megy
+vissza `terv`-be: a szülő átment, a különbséget az operátor kérte.
+
+Ennek a két toolnak a következménye a 3.1 két új oszlopa és a
+`verdikt-kapu.mjs`: egy javításnak sosem lesz saját verdiktje, tehát a
+továbbmenés jogát a láncán feljebb örökli, és ugyanezt a kérdést teszi fel
+a narráció, a render és a következő javítás is. A Videó lap ugyanezt a két
+oszlopot olvassa, hogy egy javításról ne mondja azt, amit egy le nem
+lektorált tervről mondana.
 
 ## 5. Az ellenőrzés programként
 
@@ -1086,6 +1126,14 @@ aisignal `0`/`30` perceitől, hogy egy scheduler-tick ne indítson kettőt.
 | `video-gyartas-napi` | `15 7 * * *` | gyártó | a `napiSapka` (alapból 1) számú új videó nyitása a legmagasabb `apply_score`-ú mentett AI Signal kártyából, amiből még nincs videó; a `lektoralt` videók narrálása és renderelése; a `fut` renderek státuszának rendezése |
 | `video-lektoralas-orankent` | `45 8-20 * * *` | lektor | minden `terv` státuszú videó legfrissebb tervének lektorálása |
 | `video-tanulsag-napi` | `20 6 * * *` | lektor | a 6.4 menete |
+
+Ezek közt **nincs javítás-ütemezés, és szándékosan nincs**. A kész render
+utáni célzott javítás (`videoFixes` + `videoRevise`, a 2026-09-06-i
+specifikáció) mindig az operátor kérésére indul, a Videó lap „Javítás
+kérése” gombjáról: egy javítás ugyanannyi ügynök-fordulóba kerül, mint egy
+új terv, a napi sapka pedig a videók NYITÁSÁRA vonatkozik, nem a
+javításukra. Ezért a gyártó napi futása kifejezetten nem végzi ezt a munkát,
+és ezért a lap gombja az egyetlen, ami elindítja.
 
 A gyártó és a lektor egy napon belül így többször átadja egymásnak a
 videót: 07:15 terv → 08:45 verdikt → ha elbukott, a gyártó legközelebb

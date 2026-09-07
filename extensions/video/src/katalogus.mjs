@@ -2,8 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { guard, refuse } from './args.mjs'
 import { sha256 } from './db.mjs'
-import { ALAP_KARAKTER_PER_MP } from './idozites.mjs'
-import { KOZOS_TILTOTT, KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, assetProp, assetUtvonal, ellenorizProp, tablaHianyai, tablaOf } from './kit-tabla.mjs'
+import { ALAP_KARAKTER_PER_MP, lepesZsufolt } from './idozites.mjs'
+import { KOZOS_TILTOTT, KULDHETO_TIPUSOK, NEM_KULDHETO_TIPUSOK, assetProp, assetUtvonal, ellenorizProp, idozitettOf, idozitettTiltott, tablaHianyai, tablaOf } from './kit-tabla.mjs'
 import { karakterPerMp, sablonStat } from './sablon.mjs'
 
 /**
@@ -175,6 +175,14 @@ export function validateDraft({ jelenetek, narracio, katalogus, remotionDir, kar
     for (const nev of Object.keys(j)) {
       if (nev === 'tipus') continue
       if (KOZOS_TILTOTT.includes(nev)) return bad('prop_ismeretlen', `jelenet ${i}: a(z) ${nev} propot a modul írja a narráció méréséből a rendernél; a terv nem adhatja meg`)
+      // Same rule as the two common props above, one line later because the
+      // verdict is per type: `lepes` used to be sendable and the kit's own
+      // constant answered for it, which is exactly how the beats drifted off
+      // the narration. The module now computes it from the MEASURED sentence
+      // (src/idozites.mjs, `lepesKocka`), and a value the agent sent would be
+      // overwritten -- so it is refused by name rather than silently dropped,
+      // which is `videoDraft`'s rule for everything it cannot honour.
+      if (idozitettTiltott(tipus, nev)) return bad('prop_ismeretlen', `jelenet ${i} (${tipus}): a(z) ${nev} propot a modul számolja a mért narrációból a rendernél; a terv nem adhatja meg`)
       if (nev === 'racs') {
         if (typeof j.racs !== 'boolean') return bad('prop_alak_hibas', `jelenet ${i}: racs: true vagy false kell`)
         continue
@@ -210,6 +218,27 @@ export function validateDraft({ jelenetek, narracio, katalogus, remotionDir, kar
   if (becsultHosszMp < L7_MIN_MP || becsultHosszMp > L7_MAX_MP) figyelmeztetesek.push('L7:hossz_tartomanyon_kivul')
   if (jelenetek.length < L8_MIN_JELENET) figyelmeztetesek.push('L8:tul_keves_tartalom')
   if (jelenetek[jelenetek.length - 1].tipus !== 'allitas') figyelmeztetesek.push('L9:zarlat_nem_allitas')
+  // L10: the elements a scene reveals do not fit its sentence.
+  //
+  // The module places the beats on the MEASURED narration at render time, so
+  // the arithmetic itself is not the agent's problem. What is the agent's is
+  // the other half: a scene that reveals six things needs a sentence long
+  // enough to name six things, and no placement can rescue one that is not.
+  // That much is knowable here, from the same character-count estimate L7
+  // uses -- so it warns here, at submission, where the fix is cheap, rather
+  // than showing up as a burst of bullets in a finished render.
+  //
+  // A warning and once, not per scene: it is an ESTIMATE (L7's own caveat),
+  // and the other L codes are single strings the reviewer reads as one flag.
+  for (let i = 0; i < jelenetek.length; i += 1) {
+    const idozitett = idozitettOf(jelenetek[i].tipus)
+    if (idozitett === null) continue
+    const hosszMs = (szovegek.get(i).length / kpm) * 1000
+    if (lepesZsufolt({ elemSzam: idozitett.elemSzam(jelenetek[i]), hosszMs, elsoKocka: idozitett.elsoKocka, erkezes: idozitett.erkezes })) {
+      figyelmeztetesek.push('L10:elem_nem_fer_a_mondatba')
+      break
+    }
+  }
   if (tablaHianyai(katalogus).length > 0) figyelmeztetesek.push('katalogus_valtozott')
   return { refusal: null, figyelmeztetesek, assetUjjlenyomatok, becsultHosszMp }
 }

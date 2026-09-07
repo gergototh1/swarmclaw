@@ -99,3 +99,4 @@ IMPROVEMENTS.md
 # extension build output and dependencies (built by the extension's own scripts)
 /extensions/*/dist/
 /extensions/*/node_modules/
+.superpowers/

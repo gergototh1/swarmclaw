@@ -183,6 +183,49 @@
 .vid-ures { margin-top: 12px; }
 .vid-sapkak { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 14px; font-size: 12px; color: var(--color-text-3, #8282a0); }
 
+/*
+  The manual open box, above the columns. Boxed like the feedback form,
+  because it is the same kind of thing: a few fields and one button that
+  writes a row.
+*/
+.vid-uj-video {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  max-width: 620px;
+}
+.vid-uj-video h3 {
+  margin: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-3, #8282a0);
+}
+
+/*
+  A lever and the sentence saying why it is dark, on one line where there is
+  room. The sentence sits BESIDE the button on purpose: a reason under the
+  fold, or in a `title=` nobody hovers, is a reason the operator does not
+  read.
+*/
+.vid-lepes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 0; }
+.vid-lepes-ok { font-size: 12px; line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
+/*
+  What a LIVE lever costs, in the warning colour rather than the muted one.
+  The two ordering levers spend money and minutes on an agent turn, and a
+  price in the same grey as every other piece of small print is a price the
+  operator reads after they have clicked. Same line as the reason it replaces,
+  so a section never grows or shrinks as a lever changes state.
+*/
+.vid-lepes-ar {
+  font-size: 12px;
+  line-height: 1.35;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-warning, #d97706);
+}
+
 /* video view */
 .vid-video-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .vid-video-head h2 { font-size: 20px; margin: 0; overflow-wrap: anywhere; min-width: 0; }
@@ -242,6 +285,28 @@
 .vid-feedback-form { border: 1px solid var(--border, rgba(127, 127, 127, 0.2)); border-radius: 12px; padding: 10px 14px; margin: 16px 0; }
 .vid-feedback-list { padding-left: 18px; }
 .vid-feedback-list li { margin: 4px 0; overflow-wrap: anywhere; }
+
+/* player */
+/*
+ * A SZÉLESSÉG KORLÁTOZÁSA A LÉNYEG, nem a magasságé. Ezek 9:16-os filmek, tehát
+ * egy 100%-os lejátszó a saját magasságával tolná szét a jobb oszlopot, és az
+ * idővonal meg a visszajelzés-űrlap egy görgetéssel lejjebb kerülne -- pont a
+ * két dolog, amiért az operátor megnézte a filmet. A 300px szabad választás:
+ * álló videónál ez nagyjából 533px magasságot jelent, vagyis a szekció még egy
+ * képernyőn belül marad. A 8px-es lekerekítés és a keret viszont NEM szabad
+ * választás: a `.vid-timeline` és a `.vid-sablon-kep` meglévő értékei.
+ *
+ * A fekete háttér a betöltés előtti és a hang-only pillanatokra van: enélkül a
+ * lejátszó helye a lap háttere, és egy üres sáv nem látszik lejátszónak.
+ */
+.vid-lejatszo {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  border-radius: 8px;
+  background: #000;
+}
 
 /* timeline */
 .vid-timeline {
@@ -466,6 +531,11 @@
 @media (max-width: 520px) { .vid-feedback-pont { grid-template-columns: 1fr; } }
 .vid-sec .vid-feedback-list { margin: 10px 0 0; }
 
+/* An answered request is history: it keeps its text and the id of the render
+ * that closed it, so the operator can go and watch the file, but it recedes so
+ * the open list beside it reads as the one that still needs work. */
+.vid-lezart-keresek li { color: var(--color-text-3, #8282a0); }
+
 /* The source box was the tallest thing on the page and pushed the working
  * areas below the fold; it scrolls at eight lines instead. */
 .vid-sec .vid-forras { max-height: 15em; overflow: auto; margin: 0; }
@@ -475,3 +545,37 @@
 .vid-sec > .vid-render { border: none; padding: 0; margin: 0 0 14px; }
 .vid-sec > .vid-render + .vid-render { padding-top: 14px; border-top: 1px solid var(--border, rgba(127, 127, 127, 0.16)); }
 .vid-sec > .vid-terv > h3 { font-size: 13px; margin-top: 0; }
+
+/*
+  The YouTube-ideas box, beside the manual open above the columns. Boxed the
+  same way, because it is the same kind of thing: one control that writes rows
+  onto the board below it.
+*/
+.vid-youtube {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  max-width: 620px;
+}
+.vid-youtube h3 {
+  margin: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-3, #8282a0);
+}
+.vid-youtube-mit { margin: 6px 0 0; font-size: 12px; line-height: 1.45; }
+
+/*
+  One press answers with up to five independent facts, so they are a list and
+  not a paragraph: an operator scanning for "which channel went quiet" should
+  not have to read the other four to find it.
+*/
+.vid-youtube-valasz {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.vid-youtube-valasz li { overflow-wrap: anywhere; }

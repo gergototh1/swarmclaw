@@ -7,6 +7,7 @@ import { createRpc } from './src/rpc.mjs'
 import { createService } from './src/service.mjs'
 import { createTools } from './src/tools.mjs'
 import { createVault } from './src/vault.mjs'
+import { VIDEOS_CONTRACT_VERSION } from './src/video-forgatokonyv.mjs'
 import { createWatcherControl } from './src/watcher.mjs'
 
 /**
@@ -132,7 +133,7 @@ export function syncWatcher() {
 const docs = {
   name: 'Doksik',
   version: '0.1.0',
-  description: 'Markdown-doksik egy mappában: grafikus szerkesztő az operátornak, hat tool az ügynököknek, ügynökönként saját mappa.',
+  description: 'Markdown-doksik egy mappában: grafikus szerkesztő az operátornak, hét tool az ügynököknek, ügynökönként saját mappa.',
   migrations: MIGRATIONS,
   tools: createTools(state, { serviceOf, logOf }),
   rpc: { ...createRpc({
@@ -146,6 +147,25 @@ const docs = {
     rootSetting,
     logOf,
   }), ...createMcpBridge(() => docs.tools) },
+  /**
+   * The one contract this module reaches for, and the sentence the operator
+   * reads beside it on the extension card.
+   *
+   * The declaration IS the access: the host's `resolveExtensionContract`
+   * (src/lib/server/extensions/extension-contracts.ts) looks for an entry here
+   * naming that extension, that contract and that version, and if there is one
+   * the call goes through. Nothing reads `reason`, nothing records a decision
+   * about it, and there is no grant, approve or revoke anywhere. So the only
+   * way to take this module's reach away is to delete this entry or to disable
+   * the Videó bővítmény, which takes it from every consumer at once.
+   *
+   * A provider that is not installed is not a load failure: the host answers a
+   * missing one at call time, and `doksi_video_forgatokonyv` names it
+   * (`szerzodes_hianyzik`) rather than skipping quietly.
+   */
+  consumes: [
+    { extension: 'video', contract: 'videos', version: VIDEOS_CONTRACT_VERSION, reason: 'A doksi_video_forgatokonyv tool ebből kéri le egy kész videó adatait (cím, narráció, fájladatok), és doksiként teszi le a kérő ügynök saját mappájába. Ez a modul egyetlen kifelé nyúlása.' },
+  ],
   provides: {
     [DOCS_CONTRACT]: createDocsContract({
       serviceOf,

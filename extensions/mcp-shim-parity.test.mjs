@@ -79,3 +79,61 @@ test('every shipped shim is installed, or it is not on the machine that runs it'
     assert.match(install, /'mcp'/, `${name}/scripts/install.mjs does not copy mcp/ into the workspace`)
   }
 })
+
+/**
+ * The other thing that is duplicated across extensions on purpose, and the
+ * other place it can drift silently: a contract's shape, held by a provider in
+ * one tree and by a consumer in another.
+ *
+ * These checks live here rather than in `extensions/docs/test/` deliberately.
+ * A docs test that imported the video module would fail on an install that has
+ * no video module -- which is a normal install, not a defect -- and would
+ * couple two suites that must be able to run apart. This file already reads
+ * across the extension trees and runs in the same CI command as every
+ * extension suite, so it is where a cross-tree agreement belongs.
+ *
+ * What it catches: a twelfth column added to the provider's projection that
+ * the consumer's document never mentions, a renamed contract, and a version
+ * bump on one side only.
+ */
+
+const { VIDEOS_CONTRACT: PROVIDER_NAME, VIDEOS_CONTRACT_VERSION: PROVIDER_VERSION, VIDEO_CONTRACT_COLUMNS } = await import('./video/src/contract.mjs')
+const { VIDEOS_CONTRACT: CONSUMER_NAME, VIDEOS_CONTRACT_VERSION: CONSUMER_VERSION, forgatokonyv } = await import('./docs/src/video-forgatokonyv.mjs')
+
+test('the docs module pins the contract the video module actually offers', () => {
+  assert.equal(CONSUMER_NAME, PROVIDER_NAME, 'a fogyasztó más nevű szerződést kér, mint amit a szolgáltató kínál')
+  assert.equal(
+    CONSUMER_VERSION,
+    PROVIDER_VERSION,
+    'a két verzió elvált: így a host version_mismatch-et ad, és a doksi_video_forgatokonyv minden hívónál elutasít. '
+    + 'Ha a videos szerződés szándékosan lépett verziót, a Doksik oldalát is át kell nézni és utána léptetni.',
+  )
+})
+
+test('every column the videos contract carries reaches the document the docs module writes', () => {
+  // Egyetlen renderelés olyan sorból, ahol minden oszlop saját ujjlenyomatot
+  // hord. Egy tizenkettedik oszlop, amit a fogyasztó nem ír le, itt bukik --
+  // nem pedig egy doksiban, amiről senki nem tudja, hogy hiányos.
+  const nyom = (col) => (col === 'hossz_ms'
+    // Az egyetlen nem szöveg oszlop: a fogyasztó másodpercre váltja, tehát a
+    // kiírt alakját kell keresni, nem a nyers számot.
+    ? { ertek: 12345, latszik: '12,3 mp' }
+    : { ertek: `NYOM_${col}`, latszik: `NYOM_${col}` })
+
+  const row = Object.fromEntries(VIDEO_CONTRACT_COLUMNS.map((col) => [col, nyom(col).ertek]))
+  // A második argumentum SZÁNDÉKOSAN nem `row.id`. A fogyasztó a `video.id ??
+  // videoId` alakot írja ki, tehát a kettőt azonosnak átadva az `id` oszlopra
+  // vonatkozó állítás önmagát bizonyította: egy olyan implementáció is átment
+  // volna, ami az oszlopot meg se nézi. Ez az id csak akkor jelenhet meg, ha a
+  // sorét valaki eldobja.
+  const { cim, tartalom } = forgatokonyv(row, 'NEM_A_SOR_ID_JE')
+  assert.equal(tartalom.includes('NEM_A_SOR_ID_JE'), false, 'a doksi a szerződés `id` oszlopát írja ki, nem a hívó által beírt id-t')
+  const doksi = `${cim}\n${tartalom}`
+  for (const col of VIDEO_CONTRACT_COLUMNS) {
+    assert.ok(
+      doksi.includes(nyom(col).latszik),
+      `a videos szerződés "${col}" oszlopa nem jelenik meg a Doksik által írt doksiban. `
+      + 'Ha új oszlop, vedd fel a forgatokonyv() felsorolásába; ha szándékosan marad ki, ez a teszt mondja meg, hogy döntés volt.',
+    )
+  }
+})

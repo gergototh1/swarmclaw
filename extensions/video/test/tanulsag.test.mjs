@@ -74,7 +74,46 @@ test('verdiktekVsQa pairs a passing verdict with a failed QA on its render', asy
   assert.equal(verdiktekVsQa(repo, new Date(0).toISOString()).length, 1, 'a failing verdict is not a miss')
 })
 
-test('videoPropose refuses by name: no evidence, unknown evidence, unknown target or kind, long lesson, duplicates by title and by evidence, the sixth per run, the 21st open', async () => {
+/**
+ * A REVISION'S FAILED RENDER IS NOT THE REVIEWER'S MISS.
+ *
+ * `verdiktekVsQa` joins renders to verdicts on the render row's `verdikt_id`,
+ * and that id stopped meaning "the verdict on this render's plan" the moment
+ * the verdict gate started letting a plan inherit its right from an ancestor
+ * (`src/verdikt-kapu.mjs`): a revision's render row carries the PARENT's
+ * verdict id, because that is the judgement the run rests on. Left alone, the
+ * first QA failure on an operator's fix would be filed as a named reviewer's
+ * miss, against a plan id they did judge, for a sentence they never saw -- a
+ * false report about a person's work, fed into the one mechanism this module
+ * learns from.
+ */
+test('egy javítás elbukott rendere nem a lektor hibája, mert az örökölt verdikt nem erről a tervről szól', async () => {
+  const { repo, videoId } = setup()
+  const szulo = repo.insertTerv({ videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO, assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {} })
+  const v = repo.insertVerdikt({ tervId: szulo.id, tervHash: szulo.tervHash, lektorAgentId: 'l', lektorSessionId: 's', verdikt: 'atmegy', talalatok: [] })
+  // Az operátor egy mondatot kért másképp; a javításnak nincs és nem is lesz
+  // saját verdiktje, tehát a render sorára a szülő ítéletének id-je kerül.
+  const javitas = repo.insertTerv({
+    videoId, jelenetek: PELDA_JELENETEK, narracio: PELDA_NARRACIO.map((n) => (n.jelenet === 1 ? { ...n, szoveg: 'Az operátor által kért mondat.' } : n)),
+    assetUjjlenyomatok: [], katalogusHash: 'k', szerzoAgentId: 'g', szerzoSessionId: 's', ellenorzes: {},
+    szarmazas: 'operator_javitas', javitasIdk: [], szuloTervId: szulo.id,
+  })
+  repo.claimRender({ id: 'r1', videoId, tervId: javitas.id, tervHash: javitas.tervHash, verdiktId: v.id, hostBootAt: 1, jelenetHatarok: [], propsPath: '/p', outPath: '/o', logPath: '/l', platform: 'darwin' })
+  repo.finishRender('r1', { status: 'kesz', fileSha256: 'sha' })
+  repo.insertQa({ renderId: 'r1', fileSha256: 'sha', szabalykeszlet: 1, ok: false, meresek: {}, bukasok: [{ kod: 'Q5', nev: 'audio_stream' }] })
+  assert.deepEqual(verdiktekVsQa(repo, new Date(0).toISOString()), [], 'a lektor nem látta ezt a mondatot')
+
+  // ...és ugyanannak a verdiktnek a SAJÁT terve továbbra is beleszámít: a
+  // szűrés a terv-egyezésről szól, nem arról, hogy a videón volt javítás.
+  repo.claimRender({ id: 'r2', videoId, tervId: szulo.id, tervHash: szulo.tervHash, verdiktId: v.id, hostBootAt: 1, jelenetHatarok: [], propsPath: '/p', outPath: '/o', logPath: '/l', platform: 'darwin' })
+  repo.finishRender('r2', { status: 'kesz', fileSha256: 'sha2' })
+  repo.insertQa({ renderId: 'r2', fileSha256: 'sha2', szabalykeszlet: 1, ok: false, meresek: {}, bukasok: [{ kod: 'Q1', nev: 'x' }] })
+  const out = verdiktekVsQa(repo, new Date(0).toISOString())
+  assert.deepEqual(out.map((x) => x.renderId), ['r2'])
+  assert.equal(out[0].tervId, szulo.id)
+})
+
+test('videoPropose refuses by name: no evidence, unknown evidence, unknown target or kind, long lesson, duplicates by title and by text, the sixth per run, the 21st open', async () => {
   const { repo, run, f1, f2, videoId } = setup()
   assert.equal((await propose(run, { bizonyitek: [] })).error.code, 'bizonyitek_hianyzik')
   assert.equal((await propose(run, {})).error.code, 'argumentum_hibas')
@@ -88,20 +127,62 @@ test('videoPropose refuses by name: no evidence, unknown evidence, unknown targe
   assert.equal(typeof ok.javaslatId, 'string')
   const row = repo.javaslat(ok.javaslatId)
   assert.equal(row.javasolta_agent_id, 'lektor-1'); assert.equal(row.futas_session_id, 'run-1'); assert.deepEqual(JSON.parse(row.bizonyitek), [f1, f2])
-  const dupTitle = await propose(run, { bizonyitek: [videoId] })
+  const dupTitle = await propose(run, { szoveg: 'Teljesen más állítás.', bizonyitek: [videoId] })
   assert.equal(dupTitle.error.code, 'javaslat_duplikat'); assert.equal(dupTitle.error.javaslatId, ok.javaslatId)
-  const dupEvidence = await propose(run, { cim: 'Egészen más cím', bizonyitek: [f1, videoId] })
-  assert.equal(dupEvidence.error.code, 'javaslat_duplikat')
-  assert.equal(typeof (await propose(run, { cel: 'agent:lektor', bizonyitek: [f1, f2] })).javaslatId, 'string', 'the same evidence for another target is a different proposal')
+  assert.match(dupTitle.error.message, /címmel/, 'the refusal says what matched, in the module\'s own words')
+  const dupSzoveg = await propose(run, { cim: 'Egészen más cím', bizonyitek: [f1, videoId] })
+  assert.equal(dupSzoveg.error.code, 'javaslat_duplikat'); assert.match(dupSzoveg.error.message, /szöveggel/)
+  assert.equal(typeof (await propose(run, { cel: 'agent:lektor', bizonyitek: [f1, f2] })).javaslatId, 'string', 'the same claim for another target is a different proposal')
   repo.decideJavaslat(ok.javaslatId, 'elutasitva', 'nem')
   assert.equal((await propose(run, { bizonyitek: [f1, f2] })).error.code, 'javaslat_duplikat', 'a rejection within 30 days still blocks')
   const extra = Array.from({ length: JAVASLAT_FUTAS_SAPKA }, (_, i) => repo.insertFordulo({ sessionId: 's', agentId: 'g', forras: 'chat', uzenet: `e${i}`, valasz: '', toolok: [] }).id)
-  for (let i = 0; i < JAVASLAT_FUTAS_SAPKA - 2; i += 1) assert.equal(typeof (await propose(run, { cim: `Cím ${i}`, bizonyitek: [extra[i]] })).javaslatId, 'string')
+  const kulon = ['A horog rövid.', 'A zárlat állítás.', 'A zene halkabb.']
+  for (let i = 0; i < JAVASLAT_FUTAS_SAPKA - 2; i += 1) assert.equal(typeof (await propose(run, { cim: `Cím ${i}`, szoveg: kulon[i], bizonyitek: [extra[i]] })).javaslatId, 'string')
   assert.equal((await propose(run, { cim: 'Hatodik', bizonyitek: [videoId] })).error.code, 'javaslat_sapka')
   let open = repo.countOpen()
   let n = 0
   while (open < JAVASLAT_NYITOTT_SAPKA) { repo.insertJavaslat({ cel: 'szabaly', fajta: 'szabaly', cim: `Sz ${n}`, szoveg: 'x', bizonyitek: [videoId], javasoltaAgentId: 'l', futasSessionId: `other-${n}` }); n += 1; open += 1 }
   assert.equal((await propose(run, { cim: 'Huszonegyedik', bizonyitek: [videoId] }, 'run-2')).error.code, 'javaslat_nyitott_sapka')
+})
+
+/**
+ * The live run this rule was rewritten for: one plan failed with three
+ * separate findings, each of which honestly rests on the same two rows. The
+ * old evidence-overlap test refused the second and the third, and the
+ * reviewer only got them through by citing an older plan instead -- weaker
+ * evidence for a true claim.
+ */
+test('three different lessons out of one verdict, on the same two evidence rows, all go through', async () => {
+  const { repo, run, f1, f2 } = setup()
+  const talalatok = [
+    { cim: 'Sablon rossz helyen', szoveg: 'A címlap-sablon nem mehet a videó közepére.' },
+    { cim: 'Állítás forrás nélkül', szoveg: 'Számot csak a forrásával együtt mondj ki.' },
+    { cim: 'Zárlat típusa hiányzik', szoveg: 'A lezáró jelenetnek külön neve legyen.' },
+  ]
+  for (const t of talalatok) assert.equal(typeof (await propose(run, { ...t, bizonyitek: [f1, f2] })).javaslatId, 'string', t.cim)
+  assert.equal(repo.countOpen(), 3, 'one verdict grounds several findings; the same citation is not the same claim')
+  // Same target, the same words, another kind: a measurable rule and a
+  // sentence for a prompt are two different asks, so `fajta` guards the text
+  // test and not the title test.
+  assert.equal(typeof (await propose(run, { fajta: 'szabaly', cim: 'Sablonhely, mérhetően', szoveg: talalatok[0].szoveg, bizonyitek: [f1] })).javaslatId, 'string')
+  assert.equal(repo.countOpen(), 4)
+})
+
+test('the same claim again is refused by name, and a rejected one says it was rejected rather than reading as open', async () => {
+  const { repo, run, f1, f2 } = setup()
+  const elso = await propose(run, { bizonyitek: [f1] })
+  const szoSzerint = await propose(run, { bizonyitek: [f1] })
+  assert.equal(szoSzerint.error.code, 'javaslat_duplikat'); assert.equal(szoSzerint.error.javaslatId, elso.javaslatId)
+  assert.match(szoSzerint.error.message, /nyitott/); assert.doesNotMatch(szoSzerint.error.message, /elutasított/)
+  // The words moved around: the same claim, which the old `===` on the title
+  // let through.
+  assert.equal((await propose(run, { cim: 'Horog, rövidebb', szoveg: 'Egy mondat a címlap.', bizonyitek: [f2] })).error.code, 'javaslat_duplikat')
+  repo.decideJavaslat(elso.javaslatId, 'elutasitva', 'nem visszatérő')
+  const ujra = await propose(run, { bizonyitek: [f1] })
+  assert.equal(ujra.error.code, 'javaslat_duplikat'); assert.equal(ujra.error.javaslatId, elso.javaslatId)
+  assert.match(ujra.error.message, /elutasított/); assert.doesNotMatch(ujra.error.message, /nyitott/)
+  assert.doesNotMatch(ujra.error.message, /Rövidebb|horog/, 'the refusal does not quote stored text back')
+  assert.equal(repo.countOpen(), 0, 'a refusal writes nothing')
 })
 
 test('videoPropose accepts a szabaly longer than the tanulsag limit and stores each evidence id once', async () => {

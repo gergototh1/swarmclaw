@@ -11,17 +11,21 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { jsx } from 'react/jsx-runtime'
 
-import { readBoard, readHealth, readManagedStatus, readPreviewCancel, readPreviewStart, readPreviewStatus, readProposals, readTemplatePreview, readTemplates, readVideo } from '../ui/api.ts'
+import { readBoard, readHealth, readManagedStatus, readPreviewCancel, readPreviewStart, readPreviewStatus, readProposals, readTemplatePreview, readTemplates, readVideo, readYoutubeOtletek, refusalText } from '../ui/api.ts'
 import { bundle } from '../scripts/build.mjs'
-import { describeManaged, formatMs, megtartasSzoveg, propokSzoveg, sapkaBetelt, statusLabel } from '../ui/format.ts'
+import { describeManaged, formatDate, formatMs, megtartasSzoveg, propokSzoveg, sapkaBetelt, statusLabel } from '../ui/format.ts'
 import { pixelbolMs, pontbolJelenet, szazalek, teljesHossz } from '../ui/idovonal-state.ts'
 import { JavaslatokBody } from '../ui/javaslatok.tsx'
+import { VideoPage } from '../ui/main.tsx'
 import { MANAGED_RESOURCES_URL, loadManagedStatus } from '../ui/managed-state.ts'
+import { Lepes } from '../ui/lepes.tsx'
 import { URES_SZURO, normal, szurtTipusok } from '../ui/sablon-szuro.ts'
 import { SablonokBody, csakKepek, katalogusElavult } from '../ui/sablonok.tsx'
-import { Sor } from '../ui/sor.tsx'
+import { Sor, UjVideoBody, YoutubeOtletekBody, otletMondatok } from '../ui/sor.tsx'
 import { StatusBar, StatusBarBody } from '../ui/status-bar.tsx'
-import { VideoBody } from '../ui/video.tsx'
+import { GYARTO_NEV, LEKTOR_NEV, VideoBody, VideoView, megrendelesHiba } from '../ui/video.tsx'
+import { AGENTS } from '../src/agents.mjs'
+import { AGENTS_URL, CHATS_URL, rendelj } from '../ui/megrendeles.ts'
 
 /**
  * The page, driven without a browser.
@@ -38,6 +42,118 @@ import { VideoBody } from '../ui/video.tsx'
  */
 
 const render = (type, props) => renderToStaticMarkup(jsx(type, props))
+
+/**
+ * The stateful halves, driven -- because markup alone cannot see a handler.
+ *
+ * WHY THIS EXISTS. `renderToStaticMarkup` pins what a state LOOKS like and
+ * nothing else: it runs no effect and no click, so `VideoView.onNarral`,
+ * `UjVideo.onKuld` and `onRenderel` were code no test had ever executed. What
+ * they decide is the rule this whole view turns on -- a resolved answer
+ * carrying `hiba` is a refusal, a resolved answer without one is the act, and
+ * a REJECTED promise is a third fact -- and reading it wrong prints "elkészült"
+ * over a module that refused. That has to be driven, not inspected.
+ *
+ * WHY NOT A DOM. This module's devDependencies are esbuild, playwright, react,
+ * react-dom and tsx; there is no jsdom, and `react-dom/client` needs a real
+ * one. Adding a DOM to run four handlers would be a heavier dependency than
+ * the thing under test. So the component function is called directly with a
+ * hand-written hook dispatcher: `useState` gets a cell and a setter that
+ * re-renders, `useCallback`/`useMemo` memoise on their deps exactly as React's
+ * do (without that, an effect keyed on a callback would re-fire forever), and
+ * `useEffect` runs after the render with its predecessor's cleanup called
+ * first. React is pinned to one version in this module's devDependencies, and
+ * the dispatcher slot is where that version dispatches every hook.
+ *
+ * WHAT THIS IS NOT. There is no reconciler here: a child element is not
+ * mounted by its parent, so a subtree's state and a `key` change are not
+ * modelled. `mount` returns the ELEMENT TREE the component produced, and the
+ * tests read a child's props out of it -- which is also how they reach a
+ * handler to call. Where a test is about reconciliation, it says so and pins
+ * the element identity React would reconcile on.
+ */
+const REACT_DISPATCHER = React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE
+
+const sameDeps = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, n) => Object.is(x, b[n]))
+
+function mount(Component, props) {
+  const cells = []
+  const pending = []
+  let tree = null
+  let cell = 0
+  let depth = 0
+  const slot = (init) => {
+    const idx = cell++
+    if (!(idx in cells)) cells[idx] = init()
+    return cells[idx]
+  }
+  const dispatcher = {
+    useState(initial) {
+      const c = slot(() => ({ value: typeof initial === 'function' ? initial() : initial }))
+      return [c.value, (next) => { c.value = typeof next === 'function' ? next(c.value) : next; draw() }]
+    },
+    useCallback(fn, deps) {
+      const c = slot(() => ({ fn, deps }))
+      if (!sameDeps(c.deps, deps)) { c.fn = fn; c.deps = deps }
+      return c.fn
+    },
+    useMemo(fn, deps) {
+      const c = slot(() => ({ value: fn(), deps }))
+      if (!sameDeps(c.deps, deps)) { c.value = fn(); c.deps = deps }
+      return c.value
+    },
+    useRef(initial) { return slot(() => ({ current: initial })) },
+    useEffect(fn, deps) {
+      const c = slot(() => ({ deps: null, cleanup: null }))
+      if (!sameDeps(c.deps, deps)) { c.deps = deps; pending.push([c, fn]) }
+    },
+  }
+  function draw() {
+    // A render that sets state that renders again is how these components
+    // work; one that never stops is a bug, and this says so instead of hanging
+    // the test run.
+    depth += 1
+    assert.ok(depth < 50, 'the component re-rendered itself 50 times without settling')
+    try {
+      const before = REACT_DISPATCHER.H
+      REACT_DISPATCHER.H = dispatcher
+      cell = 0
+      try { tree = Component(props) } finally { REACT_DISPATCHER.H = before }
+      while (pending.length > 0) {
+        const [c, fn] = pending.shift()
+        if (typeof c.cleanup === 'function') c.cleanup()
+        const cleanup = fn()
+        c.cleanup = typeof cleanup === 'function' ? cleanup : null
+      }
+    } finally { depth -= 1 }
+  }
+  draw()
+  return { tree: () => tree }
+}
+
+/** The first element in a rendered tree that matches, or null. Children only: props are otherwise opaque. */
+function findElement(node, matches) {
+  if (node === null || node === undefined || typeof node !== 'object') return null
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const hit = findElement(child, matches)
+      if (hit !== null) return hit
+    }
+    return null
+  }
+  if (matches(node)) return node
+  return findElement(node.props === undefined ? null : node.props.children, matches)
+}
+
+/** The props a mounted component handed to one of its children -- read fresh, because every re-render makes new ones. */
+const childProps = (mounted, Child) => {
+  const el = findElement(mounted.tree(), (n) => n.type === Child)
+  assert.ok(el !== null, 'the component did not render the child this test reads')
+  return el.props
+}
+
+/** A `.then(...).finally(...)` chain, and the re-render it triggers, need more than one turn of the loop to settle. */
+const settle = async () => { for (let n = 0; n < 4; n += 1) await new Promise((resolve) => { setImmediate(resolve) }) }
 const noop = () => {}
 
 /**
@@ -119,6 +235,73 @@ function proposals(overrides = {}) {
   return {
     nyitott: [], backlog: [], tanulsagok: { 'agent:gyarto': { db: 9, sapka: 12, tetelek: [] } },
     elutasitott: [], kodolva: [], sapkak: SAPKAK, katalogusHiba: null, ...overrides,
+  }
+}
+
+/** What `Sor` needs now that it also carries the manual open box. `rpc` is never called in a server render: nothing there submits the form. */
+const sorProps = (overrides = {}) => ({ board: board(), onOpen: noop, rpc: noop, onNyitva: noop, ...overrides })
+
+/**
+ * One plan version. `tervHash` is what a verdict and a narration row are both
+ * keyed on, so it is a field these tests move.
+ *
+ * `szarmazas` defaults to a plan an agent wrote on its own, because that is
+ * what the seven-odd tests below are about; `javitas()` is the other one, and
+ * the difference decides whether the page may say anything about verdicts at
+ * all.
+ */
+function terv(overrides = {}) {
+  return {
+    id: 't1', verzio: 1, jelenetek: [{ tipus: 'cimlap', sorok: ['Egy'] }], narracio: [{ jelenet: 0, szoveg: 'Első mondat.' }],
+    assetUjjlenyomatok: {}, tervHash: 'h1', katalogusHash: 'k1', szerzoAgentId: 'agent:gyarto', ellenorzes: {},
+    createdAt: '2026-09-01T10:00:00.000Z', szarmazas: 'terv', szuloTervId: null, verdiktek: [], narraciok: [], ...overrides,
+  }
+}
+
+/**
+ * The version `videoRevise` submits, and the whole of what makes it different:
+ * `szarmazas`, a parent, and NO verdict of its own -- ever. Nobody reviews a
+ * revision; the right to go on is inherited down the fix chain
+ * (extensions/video/src/verdikt-kapu.mjs).
+ */
+function javitas(overrides = {}) {
+  return terv({ id: 't2', verzio: 2, tervHash: 'h2', szarmazas: 'operator_javitas', szuloTervId: 't1', verdiktek: [], ...overrides })
+}
+
+function verdikt(overrides = {}) {
+  return { id: 'vd1', verdikt: 'atmegy', tervHash: 'h1', lektorAgentId: 'agent:lektor', talalatok: [], at: '2026-09-01T11:00:00.000Z', ...overrides }
+}
+
+function narracioSor(overrides = {}) {
+  return { jelenet: 0, fajl: 'narracio/v1/h1/0.mp3', hosszMs: 1200, hang: 'anna', modell: 'm', nyelv: 'hu', tervHash: 'h1', szovegHash: 'sz1', ...overrides }
+}
+
+/**
+ * A render row as the `video` response carries it, which is the summary plus the four detail fields.
+ *
+ * The overrides are spread TWICE on purpose. `summary` only knows the summary
+ * fields, so an override naming one of the four detail fields -- `torolveAt`
+ * and `jelenetHatarok` are both moved by the player's tests -- used to be
+ * silently dropped by the defaults written after it, and the test asking for a
+ * deleted render got an undeleted one and still passed.
+ */
+function renderSor(overrides = {}) {
+  return { ...summary(overrides), tervId: 't1', jelenetHatarok: [], propsPath: null, torolveAt: null, ...overrides }
+}
+
+/**
+ * One feedback row as the `video` response carries it.
+ *
+ * `renderId` is the render the operator was WATCHING when they wrote it;
+ * `kezelteRenderId` is the render that later ANSWERED it, and null while the
+ * request is still open. The two are different facts and the page draws them
+ * in different places, so a fixture that folded them together would pin
+ * nothing.
+ */
+function visszajelzes(overrides = {}) {
+  return {
+    id: 'f1', renderId: 'r1', atMs: null, jelenet: null, szoveg: 'a horog lassú', forras: 'operator',
+    at: '2026-09-06T10:00:00.000Z', kezelteRenderId: null, kezeltAt: null, ...overrides,
   }
 }
 
@@ -394,10 +577,27 @@ test('readProposals, readTemplates and readHealth refuse by name, and a null sab
   assert.equal(readHealth(health({ sorNelkul: null })).sorNelkul, null)
 })
 
+test('refusalText tells a refusal from an answer, and names the one it found', () => {
+  // `nyit`, `narral` and `renderel` resolve with their refusals rather than
+  // throwing them, so a resolved promise is not proof that anything happened.
+  assert.equal(refusalText({ hiba: 'napi_sapka', uzenet: 'ma már 1 videó nyílt; a napi sapka 1' }), 'napi_sapka: ma már 1 videó nyílt; a napi sapka 1')
+  // The code first: it is what the operator can look up and quote.
+  assert.ok(refusalText({ hiba: 'verdikt_hianyzik', uzenet: 'x' }).startsWith('verdikt_hianyzik'))
+  // An answer with no `hiba` is the act having happened, not a refusal.
+  assert.equal(refusalText({ videoId: 'v2', cim: 'Egy cím' }), null)
+  assert.equal(refusalText({ renderId: 'r1', status: 'fut' }), null)
+  // A code with no sentence is still a refusal, and says which code it is.
+  assert.equal(refusalText({ hiba: 'ismeretlen_hiba' }), 'ismeretlen_hiba (a modul nem küldött hozzá mondatot)')
+  // Not an object: a shape this page cannot read is not a success it may
+  // report as one.
+  assert.equal(refusalText('kesz'), 'valasz_ervenytelen: a modul nem objektummal válaszolt erre a hívásra')
+  assert.equal(refusalText(null), 'valasz_ervenytelen: a modul nem objektummal válaszolt erre a hívásra')
+})
+
 // --- the queue draws a stranger's title as text ---
 
 test('the Sor draws a card title as text, script tags and all, and never as markup', () => {
-  const html = render(Sor, { board: board({ oszlopok: { nyitott: [], terv: [card({ cim: '<script>alert(1)</script>' })], lezart: [] } }), onOpen: noop })
+  const html = render(Sor, sorProps({ board: board({ oszlopok: { nyitott: [], terv: [card({ cim: '<script>alert(1)</script>' })], lezart: [] } }) }))
   assert.equal(html.includes('<script>'), false)
   assert.ok(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'))
   assert.ok(html.includes('data-video-id="v1"'))
@@ -407,14 +607,13 @@ test('the Sor draws a card title as text, script tags and all, and never as mark
 })
 
 test('the Sor keeps four card facts apart rather than folding them into one', () => {
-  const html = render(Sor, { board: board(), onOpen: noop })
+  const html = render(Sor, sorProps())
   assert.ok(html.includes('lektorálva: még nem'))
   assert.ok(html.includes('render: még nem indult'))
   assert.ok(html.includes('QA: nincs érvényes sor'))
-  const bukott = render(Sor, {
+  const bukott = render(Sor, sorProps({
     board: board({ oszlopok: { nyitott: [], terv: [card({ qa: { ok: false, bukasok: ['Q4', 'Q6'] }, render: summary({ status: 'hiba', hiba: { kod: 'render_idotullepes', szoveg: null } }) })], lezart: [] } }),
-    onOpen: noop,
-  })
+  }))
   assert.ok(bukott.includes('QA: bukott (Q4, Q6)'))
   assert.ok(bukott.includes('render_idotullepes'))
 })
@@ -426,12 +625,67 @@ test('statusLabel names a status it knows and flags one it does not', () => {
   assert.deepEqual(statusLabel(undefined), { label: '(üres státusz)', known: false })
 })
 
+// --- the queue offers the one manual step: opening a video ---
+
+const ujVideoProps = (overrides = {}) => ({
+  forrasSzoveg: '', cim: '', kuldes: false, uzenet: null, onForras: noop, onCim: noop, onKuld: noop, ...overrides,
+})
+
+test('the Uj video box refuses an empty source and says so beside the button', () => {
+  const ures = render(UjVideoBody, ujVideoProps())
+  assert.ok(/<button[^>]*disabled[^>]*>Új videó/.test(ures))
+  assert.ok(ures.includes('Forrás szöveg nélkül nem nyílik videó.'))
+
+  const van = render(UjVideoBody, ujVideoProps({ forrasSzoveg: 'Egy hír a hétről.' }))
+  assert.equal(/<button[^>]*disabled[^>]*>Új videó/.test(van), false)
+  assert.equal(van.includes('Forrás szöveg nélkül'), false)
+
+  // Whitespace is not a source text either, and the sentence is the same one.
+  const szokoz = render(UjVideoBody, ujVideoProps({ forrasSzoveg: '   \n  ' }))
+  assert.ok(/<button[^>]*disabled[^>]*>Új videó/.test(szokoz))
+
+  const uton = render(UjVideoBody, ujVideoProps({ forrasSzoveg: 'Egy hír.', kuldes: true }))
+  assert.ok(/<button[^>]*disabled[^>]*>Új videó/.test(uton))
+  assert.ok(uton.includes('A nyitás elment, a válaszra várok.'))
+})
+
+test('the Uj video box prints the module own answer as text, markup and all', () => {
+  // The sentence carries a refusal code and the module's own message, and a
+  // message can quote what the operator pasted.
+  const html = render(UjVideoBody, ujVideoProps({ uzenet: 'A videó nem nyílt meg — forras: <b>rossz</b>' }))
+  assert.equal(html.includes('<b>rossz</b>'), false)
+  assert.ok(html.includes('&lt;b&gt;rossz&lt;/b&gt;'))
+  assert.ok(html.includes('forras:'), 'the refusal arrives named, never as "sikertelen"')
+})
+
+test('the Sor offers the manual open, and the empty-queue sentence names it', () => {
+  const html = render(Sor, sorProps({ board: board({ oszlopok: { nyitott: [], terv: [], lezart: [] } }) }))
+  assert.ok(html.includes('Új videó'))
+  assert.ok(html.includes('Egyetlen videó sincs a sorban'))
+  assert.ok(html.includes('vagy amikor te nyitsz egyet'), 'a queue that says only agents open videos is now false')
+})
+
 // --- the video view: a stranger's source, and the one link ---
 
-const videoProps = (video) => ({
+const videoProps = (video, overrides = {}) => ({
   video, pont: { atMs: '', jelenet: '' }, szoveg: '', kuldes: false, uzenet: null,
+  narralas: false, renderInditas: false, tervRendeles: null, lektorRendeles: null, javitasRendeles: null,
   onPick: noop, onSzoveg: noop, onAtMs: noop, onJelenet: noop, onKuld: noop, onLezar: noop, onBack: noop,
+  onNarral: noop, onRenderel: noop, onTervKeres: noop, onLektorKeres: noop, onJavitasKeres: noop, onFrissit: noop, ...overrides,
 })
+
+/**
+ * How many times a sentence stands in the markup.
+ *
+ * Several controls on this page can name the SAME state -- a running render is
+ * a reason for the narration lever, the render lever and Lezár all at once --
+ * and `includes` cannot tell which of them said it. On a sentence two controls
+ * share, an `includes` assertion passes with one of the two branches deleted.
+ */
+const elofordulas = (html, mondat) => html.split(mondat).length - 1
+
+const narracioSotet = /<button[^>]*disabled[^>]*>Narráció kérése/
+const renderSotet = /<button[^>]*disabled[^>]*>Render indítása/
 
 test('the Video view shows the source raw under the idegen szoveg label and links only an http(s) url', () => {
   const html = render(VideoBody, videoProps(videoDetail({ forrasSzoveg: 'Fejléc\n\n<b>félkövér</b> & társai\n\nhttps://example.test/a' })))
@@ -492,6 +746,646 @@ test('propokSzoveg prints every prop but the type, as JSON text', () => {
   assert.equal(propokSzoveg({ tipus: 'szam', szam: 40 }), '{\n  "szam": 40\n}')
   assert.equal(propokSzoveg(null), 'null')
   assert.equal(propokSzoveg(['a']), '[\n  "a"\n]')
+})
+
+// --- the player: the file the operator is writing about ---
+
+const pillanatSotet = /<button[^>]*disabled[^>]*>Pillanat átvétele/
+
+/** The player's own lever, picked out by its label: five others answer `n.type === Lepes` first. */
+const pillanatGomb = (view) => {
+  const el = findElement(view.tree(), (n) => n.type === Lepes && n.props.cimke === 'Pillanat átvétele')
+  assert.ok(el !== null, 'a lejátszó szekció nem rajzolta ki a pillanat-gombot')
+  return el.props
+}
+
+const markup = (view) => renderToStaticMarkup(view.tree())
+
+test('a kész render lejátszója a sor kimeneti útjából épül, a host saját kiszolgáló útvonalán', () => {
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ outPath: '/out/sw/v1/r1.mp4' })],
+  })))
+  // Same origin, so the cookie the page was loaded with travels with the
+  // request -- which is the whole reason a `<video src>` can reach this route
+  // at all: an element cannot send an `x-access-key` header.
+  assert.ok(html.includes('src="/api/files/serve?path=%2Fout%2Fsw%2Fv1%2Fr1.mp4"'))
+  assert.ok(/<video[^>]*controls/.test(html))
+  assert.ok(html.includes('class="vid-lejatszo"'), 'a 9:16-os film szélességét a saját osztálya fogja meg')
+  // Opening the page is not the same as wanting to watch: a render is tens of
+  // megabytes, and metadata is all the controls (and the `error` event) need.
+  assert.ok(/<video[^>]*preload="metadata"/.test(html))
+  assert.ok(html.includes('A sor szerinti fájl, a host kiszolgálóján át.'))
+})
+
+test('a kimeneti út kódolva megy a query-be, mert egy útban lehet ?, & és #', () => {
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ outPath: '/out/a?b&c#d.mp4' })],
+  })))
+  assert.ok(html.includes('src="/api/files/serve?path=%2Fout%2Fa%3Fb%26c%23d.mp4"'))
+  // Unencoded, the `?` would end the query parameter and `#d.mp4` would never
+  // leave the browser at all.
+  assert.equal(html.includes('path=/out/a?b'), false)
+})
+
+test('nincs kész render: a lejátszó helyén az az egy mondat áll, és a pillanat-gomb sötét', () => {
+  const html = render(VideoBody, videoProps(videoDetail({ renderek: [] })))
+  assert.ok(html.includes('Nincs kész render, így nincs mit lejátszani.'))
+  assert.equal(/<video/.test(html), false)
+  // `Szekcio` draws `uresSzoveg` INSTEAD of its children, so this section's
+  // sentences are children: with `uresSzoveg` the lever would be missing from
+  // exactly the states that have to explain themselves.
+  assert.ok(pillanatSotet.test(html))
+  assert.ok(html.includes('Nincs lejátszó, amiből a pillanatot át lehetne venni'))
+})
+
+test('a Tisztítás által törölt fájl más tény, mint a hiányzó render', () => {
+  // A SOR ÚGY, AHOGY A MODUL ÍRJA. `markRenderDeleted` (src/db.mjs) egyszerre
+  // NULL-ozza az `out_path`-t és tölti ki a `torolve_at`-ot, tehát egy valóban
+  // kitakarított renderre a `torolveAt !== null` ÉS az `outPath === null` is
+  // igaz -- és hogy melyik mondatot kapja, azt egyedül a két őr SORRENDJE dönti
+  // el a `lejatszandoFajl`-ban. Megcserélve minden takarított render azt kapná,
+  // hogy "nincs kimeneti út": egy tény a másik helyett kirajzolva, pontosan az,
+  // ami ellen ez a szekció épült.
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ torolveAt: '2026-09-07T10:00:00.000Z', outPath: null })],
+  })))
+  assert.ok(html.includes(`A render fájljait a Tisztítás törölte (${formatDate('2026-09-07T10:00:00.000Z')}); a megnézéséhez újra kell renderelni.`), 'a dátum EBBEN a mondatban áll: a render-lista amúgy is kiírja a magáét')
+  assert.equal(/<video/.test(html), false)
+  assert.equal(html.includes('Nincs kész render, így nincs mit lejátszani.'), false, 'a két mondat nem cserélhető fel')
+  assert.equal(html.includes('Ezen a render-soron nincs kimeneti út'), false, 'a törlés az ERŐSEBB tény: a modul tudja, hova lett a fájl')
+
+  // ÉS AZ ÚT NÉLKÜL IS, ha a sor mégis hordoz utat. A takarítás ma mindkettőt
+  // egyszerre írja, de a `torolve_at` az, ami TUDÁST jelent -- ez a sor pinneli,
+  // hogy a mondatot a törlés ténye adja, nem az út hiánya.
+  const utTal = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ torolveAt: '2026-09-07T10:00:00.000Z' })],
+  })))
+  assert.ok(utTal.includes('A render fájljait a Tisztítás törölte'))
+  assert.equal(/<video/.test(utTal), false, 'egy törölt fájlra nem épül lejátszó akkor sem, ha a sor még mond utat')
+})
+
+test('egy kimeneti út nélküli kész sor a harmadik tény, és a saját mondatát kapja', () => {
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ outPath: null })],
+  })))
+  assert.ok(html.includes('Ezen a render-soron nincs kimeneti út, így nincs mit lejátszani.'))
+  assert.equal(/<video/.test(html), false)
+  assert.equal(html.includes('A render fájljait a Tisztítás törölte'), false)
+  assert.equal(html.includes('Nincs kész render, így nincs mit lejátszani.'), false)
+})
+
+test('a futó render fájlja nem játszható le: a lejátszó átlépi, és a legfrissebb KÉSZ sort veszi', () => {
+  // A lista `started_at DESC`-ben érkezik (`rendersForVideo`, src/db.mjs), tehát
+  // a lista elején álló kész sor a legfrissebb. A harmadik sor azért van itt,
+  // hogy a "legfrissebb" tényleg ki legyen próbálva: egy régebbi kész render
+  // fájlja NEM az, amiről az operátor most ír.
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [
+      renderSor({ renderId: 'r-fut', status: 'fut', finishedAt: null, outPath: '/out/fut.mp4' }),
+      renderSor({ renderId: 'r-kesz', outPath: '/out/kesz.mp4' }),
+      renderSor({ renderId: 'r-regi', outPath: '/out/regi.mp4', startedAt: '2026-08-01T10:00:00.000Z' }),
+    ],
+  })))
+  assert.equal(html.includes('%2Fout%2Fregi.mp4'), false, 'egy régebbi kész render nem az, amit most néz')
+  // Both paths stand in the Renderek list as text, so the assertion is on the
+  // player's own `src` and not on a file name appearing anywhere in the page.
+  assert.ok(html.includes('src="/api/files/serve?path=%2Fout%2Fkesz.mp4"'))
+  assert.equal(html.includes('%2Fout%2Ffut.mp4'), false)
+  assert.equal(html.split('<video').length - 1, 1, 'egy lejátszó, nem renderenként egy')
+})
+
+test('a lejátszó a jobb oszlop tetején áll, az idővonal ELŐTT', () => {
+  // A munka sorrendje: megnézed, megjelölöd a pillanatot, megírod, mi a baj.
+  // Az idővonal alá csúsztatva a lap megint azt kérné, hogy a megjelölés
+  // előzze meg a megnézést -- ez pinneli, hogy melyik szekció áll elöl.
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ outPath: '/out/kesz.mp4' })],
+  })))
+  const lejatszo = html.indexOf('<h3>Videó</h3>')
+  const idovonal = html.indexOf('<h3>Idővonal</h3>')
+  assert.ok(lejatszo > -1 && idovonal > -1, 'mindkét szekció fejléce a lapon van')
+  assert.ok(lejatszo < idovonal, 'a lejátszó az idővonal előtt áll')
+})
+
+test('a pillanat-gomb a lejátszó currentTime-jából tölti a visszajelzés pontját', () => {
+  const felvett = []
+  const view = mount(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({
+      outPath: '/out/kesz.mp4',
+      jelenetHatarok: [{ jelenet: 0, kezdetMs: 0, vegMs: 4000 }, { jelenet: 1, kezdetMs: 4000, vegMs: 9000 }],
+    })],
+  }), { onPick: (p) => felvett.push(p) }))
+  const el = findElement(view.tree(), (n) => n.type === 'video')
+  assert.ok(el !== null, 'a lejátszó nem került ki a fára')
+  // The element the browser would hand the ref, stood in for: the button reads
+  // `currentTime` off it and nothing else.
+  el.props.ref.current = { currentTime: 5.6789 }
+  pillanatGomb(view).onKattint()
+  // Seconds to whole milliseconds, and the scene that CONTAINS that moment --
+  // the same half-open arithmetic a click on the timeline goes through, so the
+  // two ways of naming a moment cannot disagree.
+  assert.deepEqual(felvett, [{ atMs: 5679, jelenet: 1 }])
+})
+
+test('a videó végén megállított lejátszó globális pontot ad, nem az utolsó jelenetet', () => {
+  const felvett = []
+  const view = mount(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({
+      outPath: '/out/kesz.mp4',
+      jelenetHatarok: [{ jelenet: 0, kezdetMs: 0, vegMs: 4000 }, { jelenet: 1, kezdetMs: 4000, vegMs: 9000 }],
+    })],
+  }), { onPick: (p) => felvett.push(p) }))
+  // A paused-at-the-end player reports the duration itself, and the last
+  // scene's `vegMs` is OUTSIDE it: bounds are half-open. A note taken there is
+  // a global note, which is what `null` means on this form.
+  findElement(view.tree(), (n) => n.type === 'video').props.ref.current = { currentTime: 9 }
+  pillanatGomb(view).onKattint()
+  assert.deepEqual(felvett, [{ atMs: 9000, jelenet: null }])
+})
+
+test('határok nélküli kész render: a pillanat időpontot ad, jelenetet nem talál ki hozzá', () => {
+  const felvett = []
+  const view = mount(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ outPath: '/out/kesz.mp4' })],
+  }), { onPick: (p) => felvett.push(p) }))
+  findElement(view.tree(), (n) => n.type === 'video').props.ref.current = { currentTime: 2.5 }
+  pillanatGomb(view).onKattint()
+  assert.deepEqual(felvett, [{ atMs: 2500, jelenet: null }])
+})
+
+test('a host által ki nem adott fájl a negyedik tény, és nem a törlés', () => {
+  const view = mount(VideoBody, videoProps(videoDetail({ renderek: [renderSor({ outPath: '/out/kesz.mp4' })] })))
+  assert.equal(markup(view).includes('nem adta ki'), false, 'egy be nem töltött lejátszó még nem hibás')
+  assert.ok(pillanatSotet.test(markup(view)) === false, 'amíg nincs hiba, a gomb él')
+
+  findElement(view.tree(), (n) => n.type === 'video').props.onError()
+  const html = markup(view)
+  assert.ok(html.includes('A sor szerint ott a fájl, de a host nem adta ki'))
+  // A deletion the module RECORDED and a file the host would not serve are two
+  // different facts, and only the first one is something the module knows.
+  assert.equal(html.includes('A render fájljait a Tisztítás törölte'), false)
+  assert.ok(pillanatSotet.test(html), 'egy be nem töltött lejátszóból nincs pillanat')
+  assert.ok(html.includes('A sor szerinti fájl, a host kiszolgálóján át.') === false, 'a hiba a helyére kerül, nem mellé')
+})
+
+test('egy előző fájlra kapott hiba nem mondható rá a következő render fájljára', () => {
+  const props = videoProps(videoDetail({ renderek: [renderSor({ outPath: '/out/egy.mp4' })] }))
+  const view = mount(VideoBody, props)
+  const regi = findElement(view.tree(), (n) => n.type === 'video')
+  regi.props.onError()
+  assert.ok(markup(view).includes('nem adta ki'))
+
+  // Frissítés brings a NEWER finished render, and this harness has no
+  // reconciler: the props object is mutated in place, and the old element's
+  // handler is what redraws with it. The failure was about egy.mp4 and the
+  // module never tried ketto.mp4.
+  props.video = videoDetail({ renderek: [renderSor({ renderId: 'r-2', outPath: '/out/ketto.mp4' })] })
+  regi.props.onError()
+  const html = markup(view)
+  assert.ok(html.includes('src="/api/files/serve?path=%2Fout%2Fketto.mp4"'))
+  assert.equal(html.includes('nem adta ki'), false, 'a hiba az egy.mp4-ről szólt')
+})
+
+// --- the two mechanical levers on the video view ---
+
+test('Narracio kerese is live when a plan an agent wrote has a passing verdict on its current hash', () => {
+  const html = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt()] })] })))
+  assert.ok(html.includes('Narráció kérése'))
+  assert.equal(narracioSotet.test(html), false)
+  assert.equal(html.includes('Terv nélkül nincs mit narrálni.'), false)
+})
+
+test('every dark Narracio kerese says which state it is in', () => {
+  const nincsTerv = render(VideoBody, videoProps(videoDetail()))
+  assert.ok(narracioSotet.test(nincsTerv))
+  assert.ok(nincsTerv.includes('Terv nélkül nincs mit narrálni.'))
+
+  // Not reviewed, reviewed and failed, and passed on an older hash are three
+  // different facts, and the sentence names which one this is.
+  const nincsItelet = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] })))
+  assert.ok(narracioSotet.test(nincsItelet))
+  assert.ok(nincsItelet.includes('Ehhez a tervverzióhoz még nincs lektori ítélet'))
+
+  const elbukott = render(VideoBody, videoProps(videoDetail({
+    tervek: [terv({ verdiktek: [verdikt({ verdikt: 'elbukik', talalatok: [{ jelenet: 0, kod: 'horog_gyenge', szoveg: 'gyenge' }] })] })],
+  })))
+  assert.ok(narracioSotet.test(elbukott))
+  assert.ok(elbukott.includes('A lektor ítélete a jelenlegi terv-hashre: elbukik'))
+
+  const elavult = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt({ tervHash: 'regi' })] })] })))
+  assert.ok(narracioSotet.test(elavult))
+  assert.ok(elavult.includes('Van átmegy ítélet erre a tervre, de nem a jelenlegi terv-hashre'))
+
+  const futoRender = render(VideoBody, videoProps(videoDetail({
+    tervek: [terv({ verdiktek: [verdikt()] })],
+    renderek: [renderSor({ status: 'fut', finishedAt: null })],
+  })))
+  assert.ok(narracioSotet.test(futoRender))
+  // TWO, not "at least one": `lezarTiltasOka` emits a sentence with this exact
+  // prefix on the same render, so `includes` passed with `narracioTiltasOka`'s
+  // render branch deleted.
+  assert.equal(elofordulas(futoRender, 'Ezen a videón most fut egy render (r1)'), 2, 'the narration lever and Lezár each name the running render')
+
+  const lezart = render(VideoBody, videoProps(videoDetail({ status: 'lezart', tervek: [terv({ verdiktek: [verdikt()] })] })))
+  assert.ok(narracioSotet.test(lezart))
+  assert.ok(lezart.includes('A videó le van zárva, a modul nem dolgozik rajta tovább.'))
+
+  const uton = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt()] })] }), { narralas: true }))
+  assert.ok(narracioSotet.test(uton))
+  assert.ok(uton.includes('jelenetenként egy tts-hívás'), 'a lever that takes minutes says so while it runs')
+})
+
+test('an operator fix is never told it is missing a verdict it can never have', () => {
+  // THE HEADLINE FEATURE USED TO DEAD-END HERE. `videoRevise` writes a plan
+  // with `szarmazas: 'operator_javitas'` and, by design, no verdict of its
+  // own: the right to go on is inherited down the fix chain
+  // (src/verdikt-kapu.mjs). Reading `terv.verdiktek` alone, the page called
+  // that "nincs lektori ítélet" and went dark -- the exact sentence that file
+  // exists to stop this module saying about a revision -- so after a
+  // successful Javítás kérése turn the operator pressed Frissítés and found
+  // both mechanical levers dead, with only the scheduled run to carry the work
+  // on. Breaking the `szarmazas` test in `narracioTiltasOka` fails this.
+  const html = render(VideoBody, videoProps(videoDetail({ tervek: [terv(), javitas()] })))
+  assert.equal(narracioSotet.test(html), false, 'a revision may be narrated: the module judges the chain when the lever is pressed')
+  assert.equal(html.includes('Ehhez a tervverzióhoz még nincs lektori ítélet'), false)
+  assert.equal(html.includes('Van átmegy ítélet erre a tervre'), false)
+  assert.equal(html.includes('narrálni csak átmegy után lehet'), false)
+})
+
+test('a revision the reviewer failed keeps the sentence that is true about it', () => {
+  // THE GUARD IS AS NARROW AS THE FACT IT WAS WRITTEN FOR. Only the EMPTY
+  // verdict list is ambiguous on a revision. A revision is a reviewable row --
+  // `videoVerdict` has no `szarmazas` gate, a revision is the latest plan the
+  // moment it is submitted, and `javitas_elbukott` exists for this outcome --
+  // and this page offers the press that creates one: `lektorKeresTiltasOka` has
+  // no `szarmazas` test, so Lektorálás kérése is live on a revision at the
+  // usual price. Widening the guard in `narracioTiltasOka` back to the whole
+  // verdict block suppresses a true, actionable sentence and lights a lever
+  // whose press buys a round trip to `javitas_elbukott`.
+  const html = render(VideoBody, videoProps(videoDetail({
+    tervek: [terv(), javitas({ verdiktek: [verdikt({ id: 'vd9', verdikt: 'elbukik', tervHash: 'h2' })] })],
+  })))
+  assert.ok(narracioSotet.test(html), 'a failed revision may not be narrated')
+  assert.ok(html.includes('A lektor ítélete a jelenlegi terv-hashre: elbukik'))
+  assert.equal(html.includes('Ehhez a tervverzióhoz még nincs lektori ítélet'), false, 'and never the sentence a revision can never act on')
+})
+
+test('a revision the reviewer passed on its own hash is narratable, like any other plan', () => {
+  // `verdiktJog` answers ok on a revision's OWN passing verdict before it walks
+  // anywhere (src/verdikt-kapu.mjs), so the page must not darken this one
+  // either.
+  const html = render(VideoBody, videoProps(videoDetail({
+    tervek: [terv(), javitas({ verdiktek: [verdikt({ id: 'vd9', tervHash: 'h2' })] })],
+  })))
+  assert.equal(narracioSotet.test(html), false)
+})
+
+test('a revision still darkens on the states the page can actually see', () => {
+  // Only the verdict sentences are skipped for a revision. Everything the page
+  // has measured for itself still binds, in the module's own order.
+  const lezart = render(VideoBody, videoProps(videoDetail({ status: 'lezart', tervek: [javitas()] })))
+  assert.ok(narracioSotet.test(lezart))
+  assert.ok(lezart.includes('A videó le van zárva, a modul nem dolgozik rajta tovább.'))
+
+  const futo = render(VideoBody, videoProps(videoDetail({
+    tervek: [javitas()], renderek: [renderSor({ status: 'fut', finishedAt: null })],
+  })))
+  assert.ok(narracioSotet.test(futo))
+  assert.equal(elofordulas(futo, 'Ezen a videón most fut egy render (r1)'), 2, 'the narration lever says it too, not only Lezár')
+})
+
+test('the plan panel says a version is a fix and whose, so an empty verdict list is not read as a gap', () => {
+  const html = render(VideoBody, videoProps(videoDetail({ tervek: [terv(), javitas()] })))
+  assert.ok(html.includes('Operátori javítás, a(z) t1 verzióból'))
+  assert.ok(html.includes('a továbbmenés jogát a lánc alján álló, átengedett tervtől örökli'))
+  assert.equal(html.includes('Ehhez a tervverzióhoz még nincs lektori ítélet'), false)
+})
+
+test('a fix that WAS ruled on does not carry a paragraph denying the ruling exists', () => {
+  // `videoVerdict` has no `szarmazas` gate and a revision is the latest plan
+  // the moment it is submitted, so this row is reachable. The provenance half
+  // is always true and stays; the inheritance clause was absolute, and stood
+  // directly above the verdict block it denied. Widening the clause back to
+  // every revision fails here.
+  const html = render(VideoBody, videoProps(videoDetail({
+    tervek: [terv(), javitas({ verdiktek: [verdikt({ id: 'vd9', verdikt: 'elbukik', tervHash: 'h2', talalatok: [{ jelenet: 0, kod: 'horog_gyenge', szoveg: 'gyenge' }] })] })],
+  })))
+  assert.ok(html.includes('Operátori javítás, a(z) t1 verzióból'))
+  assert.equal(html.includes('nem született lektori ítélet'), false, 'a paragraph may not deny a verdict the block below it draws')
+  assert.ok(html.includes('horog_gyenge'), 'and the ruling itself is still drawn')
+})
+
+test('Render inditasa asks for a narrated plan, and every dark state names itself', () => {
+  const kesz = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] })))
+  assert.ok(kesz.includes('Render indítása'))
+  assert.equal(renderSotet.test(kesz), false)
+
+  const nincsTerv = render(VideoBody, videoProps(videoDetail()))
+  assert.ok(renderSotet.test(nincsTerv))
+  assert.ok(nincsTerv.includes('Terv nélkül nincs mit renderelni.'))
+
+  const nincsNarracio = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt()] })] })))
+  assert.ok(renderSotet.test(nincsNarracio))
+  assert.ok(nincsNarracio.includes('Ehhez a tervhez még nincs narráció-fájl'))
+
+  const futoRender = render(VideoBody, videoProps(videoDetail({
+    tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })],
+    renderek: [renderSor({ status: 'fut', finishedAt: null })],
+  })))
+  assert.ok(renderSotet.test(futoRender))
+  assert.ok(futoRender.includes('Ezen a videón már fut egy render (r1)'))
+
+  const lezart = render(VideoBody, videoProps(videoDetail({ status: 'lezart', tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] })))
+  assert.ok(renderSotet.test(lezart))
+  assert.ok(lezart.includes('A videó le van zárva, a modul nem dolgozik rajta tovább.'))
+
+  const uton = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] }), { renderInditas: true }))
+  assert.ok(renderSotet.test(uton))
+  assert.ok(uton.includes('A render indítása elment, a válaszra várok.'))
+})
+
+test('a revision reaches Render inditasa THROUGH the narration lever, never around it', () => {
+  // The render lever has no verdict test of its own; what it has is the
+  // narration row, and for a revision that sentence is both true and
+  // actionable only because the lever it names is live (the test above). The
+  // two together are the chain: before `szarmazas` reached the page the
+  // sentence sent the operator to a button that was itself dark.
+  const nincsNarracio = render(VideoBody, videoProps(videoDetail({ tervek: [terv(), javitas()] })))
+  assert.ok(renderSotet.test(nincsNarracio))
+  assert.ok(nincsNarracio.includes('Ehhez a tervhez még nincs narráció-fájl'))
+  assert.equal(narracioSotet.test(nincsNarracio), false, 'and the lever that sentence names is the one the operator can press')
+
+  const narralt = render(VideoBody, videoProps(videoDetail({ tervek: [terv(), javitas({ narraciok: [narracioSor({ tervHash: 'h2' })] })] })))
+  assert.equal(renderSotet.test(narralt), false, 'a narrated revision renders: the module weighs the fix chain when the lever is pressed')
+})
+
+test('Lezar and Kuld explain themselves when they are dark, like every other control here', () => {
+  // A DARK CONTROL ON THIS PAGE EXPLAINS ITSELF -- the rule this file declares
+  // for the levers, and the two controls that were exempt from it. Lezár was
+  // disabled on a closed video with nothing said, and never on the state the
+  // module actually refuses (`lezar` will not close a video with a render in
+  // flight, src/rpc.mjs); Küld was dark on an empty form without saying that
+  // the time and the scene are the parts that may stay empty.
+  const lezart = render(VideoBody, videoProps(videoDetail({ status: 'lezart' })))
+  assert.ok(/<button[^>]*disabled[^>]*>Lezár/.test(lezart))
+  assert.ok(lezart.includes('Ez a videó már le van zárva'))
+
+  const futo = render(VideoBody, videoProps(videoDetail({ renderek: [renderSor({ status: 'fut', finishedAt: null })] })))
+  assert.ok(/<button[^>]*disabled[^>]*>Lezár/.test(futo), 'a press the module could only refuse is not offered')
+  assert.ok(futo.includes('a modul lezárni csak render nélkül enged'))
+
+  const eles = render(VideoBody, videoProps(videoDetail()))
+  assert.equal(/<button[^>]*disabled[^>]*>Lezár/.test(eles), false)
+
+  const uresUrlap = render(VideoBody, videoProps(videoDetail()))
+  assert.ok(/<button[^>]*disabled[^>]*>Küld/.test(uresUrlap))
+  assert.ok(uresUrlap.includes('az időpont és a jelenet üresen hagyható, a szöveg nem'))
+
+  const kuldesFut = render(VideoBody, videoProps(videoDetail(), { szoveg: 'valami', kuldes: true }))
+  assert.ok(/<button[^>]*disabled[^>]*>Küld/.test(kuldesFut))
+  assert.ok(kuldesFut.includes('A visszajelzés mentése elment, a válaszra várok.'))
+
+  const kuldheto = render(VideoBody, videoProps(videoDetail(), { szoveg: 'a horog lassú' }))
+  assert.equal(/<button[^>]*disabled[^>]*>Küld/.test(kuldheto), false)
+})
+
+test('a closed video names its closure, and never a lesser reason the operator cannot act on', () => {
+  // THE ORDER IS THE MODULE'S. `narralTerv` refuses `video_lezart` before it
+  // reads the verdict (src/narracio.mjs) and `renderOps.start` before it
+  // weighs anything else about the plan (src/render.mjs). Closure used to be
+  // the LAST test in both sentence functions, and on a closed video whose plan
+  // was never reviewed the page then said "nincs lektori ítélet" -- sending
+  // the operator to fetch a review that would have changed nothing. The Lezár
+  // button is live in every status, so that video is reachable in one click.
+  //
+  // FIVE, not two: the three ordering levers follow the same rule and for the
+  // same reason -- `videoDraft`, `videoVerdict` and `videoRevise` all refuse
+  // `video_lezart` before they weigh anything else -- so a closed video may
+  // not be answered with "Terv nélkül nincs mit lektorálni" either, and the
+  // fix lever may not answer it with "Nincs kész render": every fixture below
+  // is a closed video with no finished render and no open request, which is
+  // exactly the state where a later test would win if the order were wrong.
+  const zarva = 'A videó le van zárva, a modul nem dolgozik rajta tovább.'
+  const LEVEREK = 5
+
+  const nincsItelet = render(VideoBody, videoProps(videoDetail({ status: 'lezart', tervek: [terv()] })))
+  assert.ok(narracioSotet.test(nincsItelet))
+  assert.ok(renderSotet.test(nincsItelet))
+  assert.equal(elofordulas(nincsItelet, zarva), LEVEREK, 'every lever names the closure, not some of them')
+  // The tail, not the whole sentence: the plan panel says "Ehhez a
+  // tervverzióhoz még nincs lektori ítélet." on its own, as a fact about the
+  // plan, and that one stays. What must be gone is the LEVER saying it as the
+  // reason it is dark.
+  assert.equal(nincsItelet.includes('nincs lektori ítélet; narrálni csak átmegy után lehet'), false)
+  assert.equal(nincsItelet.includes('Ehhez a tervhez még nincs narráció-fájl'), false)
+  assert.equal(nincsItelet.includes('Nincs kész render, amire javítást lehetne kérni'), false)
+  assert.equal(nincsItelet.includes('Előbb írj legalább egy kérést'), false)
+
+  // No plan either. A plan is not something the operator can usefully be sent
+  // to have written on a video the module has stopped working on.
+  const tervNelkul = render(VideoBody, videoProps(videoDetail({ status: 'lezart' })))
+  assert.equal(elofordulas(tervNelkul, zarva), LEVEREK)
+  assert.equal(tervNelkul.includes('Terv nélkül nincs mit narrálni.'), false)
+  assert.equal(tervNelkul.includes('Terv nélkül nincs mit renderelni.'), false)
+  assert.equal(tervNelkul.includes('Terv nélkül nincs mit lektorálni.'), false)
+
+  // And a running render on a closed video: `video_lezart` comes before
+  // `render_folyamatban` there too, so waiting for the render is not the
+  // sentence -- the render finishing would not make either lever live.
+  const futoRenderrel = render(VideoBody, videoProps(videoDetail({
+    status: 'lezart',
+    tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })],
+    renderek: [renderSor({ status: 'fut', finishedAt: null })],
+  })))
+  assert.equal(elofordulas(futoRenderrel, zarva), LEVEREK)
+  assert.equal(futoRenderrel.includes('most fut egy render'), false)
+  assert.equal(futoRenderrel.includes('már fut egy render'), false)
+})
+
+test('a plan that already has a narration still offers Narracio kerese', () => {
+  // A DELIBERATE DEVIATION, PINNED HERE SO IT STAYS ONE. The brief scoped this
+  // button to a plan with NO narration yet. The obvious test for that --
+  // `terv.narraciok.length > 0` means dark -- is not in `narracioTiltasOka`,
+  // because `narraciok` is keyed on `tervHash`: the rows belong to the plan as
+  // it stands, so an emptiness test would darken the lever exactly after a
+  // plan revision, which is the moment narration is most needed and the one
+  // the rows say nothing about. And an unnecessary press costs nothing:
+  // `narralTerv` answers `valtozatlan: true` without a single tts call when
+  // every sentence already has its current file.
+  const html = render(VideoBody, videoProps(videoDetail({ tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] })))
+  assert.equal(narracioSotet.test(html), false, 'a narrated plan may be narrated again')
+  assert.equal(html.includes('Ehhez a tervhez még nincs narráció-fájl'), false)
+  assert.equal(renderSotet.test(html), false)
+})
+
+// --- the three levers pressed: what each of the three outcomes says ---
+
+/** One answer per rpc method, and the log of what the page actually asked for. A method the page calls unstubbed fails the test rather than resolving to undefined. */
+function stubRpc(answers) {
+  const hivasok = []
+  const rpc = (method, params) => {
+    hivasok.push({ method, params })
+    assert.ok(answers[method] !== undefined, `the page called an rpc method this test did not stub: ${method}`)
+    return answers[method](params)
+  }
+  return { rpc, hivasok }
+}
+
+const betoltesek = (hivasok) => hivasok.filter((h) => h.method === 'video').length
+
+test('the narration lever tells a refusal, an unchanged set and a synthesised one apart', async () => {
+  let narral = () => Promise.resolve({ hiba: 'verdikt_hianyzik', uzenet: 'erre a tervre nincs atmegy verdikt' })
+  const { rpc, hivasok } = stubRpc({
+    video: () => Promise.resolve(videoDetail({ tervek: [terv({ verdiktek: [verdikt()] })] })),
+    narral: (params) => narral(params),
+  })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+  assert.equal(body().video.id, 'v1', 'the effect ran and the detail loaded')
+
+  // 1. RESOLVED WITH `hiba`: the module refused. `narral` does not throw its
+  //    refusals, so a resolved promise is not proof that anything happened.
+  body().onNarral('t1')
+  await settle()
+  assert.deepEqual(hivasok.at(-1), { method: 'narral', params: { tervId: 't1' } })
+  assert.ok(body().uzenet.includes('verdikt_hianyzik'), 'the code the operator can look up comes first')
+  assert.ok(body().uzenet.includes('nincs atmegy verdikt'))
+  assert.equal(body().uzenet.includes('sikertelen'), false)
+  assert.equal(body().uzenet.includes('elkészült'), false)
+  assert.equal(betoltesek(hivasok), 1, 'a refusal is not an event, so nothing was re-read over it')
+
+  // 2. RESOLVED WITH `valtozatlan`: the set was already current and no tts
+  //    call was made. Printing "elkészült" over this would claim work the
+  //    module explicitly says it did not do.
+  narral = () => Promise.resolve({ valtozatlan: true, jelenetek: [], osszHosszMs: 0, teljesMs: 0, fedettseg: 1, hang: null })
+  body().onNarral('t1')
+  await settle()
+  assert.ok(body().uzenet.includes('változatlan'))
+  assert.equal(body().uzenet.includes('elkészült'), false)
+
+  // 3. RESOLVED WITHOUT `hiba`: it happened, and the detail is re-read from
+  //    the module's own rows rather than patched from the answer.
+  const eddig = betoltesek(hivasok)
+  narral = () => Promise.resolve({ valtozatlan: false, jelenetek: [{ jelenet: 0, fajl: 'a.mp3', hosszMs: 1200 }], osszHosszMs: 1200, teljesMs: 1200, fedettseg: 1, hang: 'anna' })
+  body().onNarral('t1')
+  await settle()
+  assert.ok(body().uzenet.includes('elkészült'))
+  assert.ok(betoltesek(hivasok) > eddig, 'what the operator reads next comes from a fresh detail load')
+})
+
+test('the render lever says started rather than finished, and names a refusal', async () => {
+  let renderel = () => Promise.resolve({ hiba: 'render_folyamatban', uzenet: 'már fut egy render', renderId: 'r0' })
+  const { rpc, hivasok } = stubRpc({
+    video: () => Promise.resolve(videoDetail({ tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] })),
+    renderel: (params) => renderel(params),
+  })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+
+  body().onRenderel('t1')
+  await settle()
+  assert.deepEqual(hivasok.at(-1), { method: 'renderel', params: { tervId: 't1' } })
+  assert.ok(body().uzenet.includes('render_folyamatban'))
+  assert.equal(betoltesek(hivasok), 1)
+
+  renderel = () => Promise.resolve({ renderId: 'r2', videoId: 'v1', tervId: 't1', status: 'fut' })
+  body().onRenderel('t1')
+  await settle()
+  assert.ok(body().uzenet.includes('elindult'))
+  assert.equal(body().uzenet.includes('elkészült'), false, 'a started render is not a finished one')
+  assert.equal(betoltesek(hivasok), 2)
+})
+
+test('a lever whose request never reached the module says exactly that, and nothing else', async () => {
+  // The third outcome, and the one neither of the other two may absorb: the
+  // promise REJECTED, so there is no answer to read for a refusal and no act
+  // to report. `refusalText` never sees this one.
+  const { rpc, hivasok } = stubRpc({
+    video: () => Promise.resolve(videoDetail({ tervek: [terv({ verdiktek: [verdikt()], narraciok: [narracioSor()] })] })),
+    narral: () => Promise.reject(new Error('Failed to fetch')),
+    renderel: () => Promise.reject(new Error('a host 502-tal válaszolt')),
+  })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+
+  body().onNarral('t1')
+  await settle()
+  assert.equal(body().uzenet, 'A narráció kérése el sem jutott a modulhoz: Failed to fetch')
+
+  body().onRenderel('t1')
+  await settle()
+  assert.equal(body().uzenet, 'A render indítása el sem jutott a modulhoz: a host 502-tal válaszolt')
+
+  assert.equal(betoltesek(hivasok), 1, 'nothing happened, so there was nothing to re-read')
+})
+
+test('the Uj video box clears what was typed only when a video really opened, and then reloads the queue', async () => {
+  let nyit = () => Promise.resolve({ hiba: 'napi_sapka', uzenet: 'ma már 1 videó nyílt; a napi sapka 1' })
+  let ujratoltesek = 0
+  const { rpc, hivasok } = stubRpc({ nyit: (params) => nyit(params) })
+  const sor = mount(Sor, sorProps({ rpc, onNyitva: () => { ujratoltesek += 1 } }))
+  // `UjVideo` holds the state and is not exported; it is reached as the
+  // element `Sor` renders for it, which is also what proves the queue offers
+  // it at all.
+  const doboz = findElement(sor.tree(), (n) => typeof n.type === 'function')
+  assert.equal(doboz.type.name, 'UjVideo')
+  const box = mount(doboz.type, doboz.props)
+  const body = () => childProps(box, UjVideoBody)
+
+  body().onForras('Egy hír a hétről.')
+  body().onCim('Egy cím')
+  body().onKuld()
+  await settle()
+  // The text goes as it was pasted, and the blank title with it: `cimOf` has
+  // the rule for an absent one, this box does not.
+  assert.deepEqual(hivasok.at(-1), { method: 'nyit', params: { forras: 'kezi', forrasSzoveg: 'Egy hír a hétről.', cim: 'Egy cím' } })
+  assert.ok(body().uzenet.includes('napi_sapka'))
+  assert.equal(body().forrasSzoveg, 'Egy hír a hétről.', 'a refusal keeps the text: the operator has to be able to press again tomorrow')
+  assert.equal(ujratoltesek, 0, 'nothing opened, so the queue has nothing new to show')
+
+  nyit = () => Promise.reject(new Error('Failed to fetch'))
+  body().onKuld()
+  await settle()
+  assert.equal(body().uzenet, 'A nyitás kérése el sem jutott a modulhoz: Failed to fetch')
+  assert.equal(body().forrasSzoveg, 'Egy hír a hétről.')
+  assert.equal(ujratoltesek, 0)
+
+  nyit = () => Promise.resolve({ videoId: 'v9', cim: 'Egy cím', forrasSzoveg: 'Egy hír a hétről.', forrasFigyelmeztetes: null })
+  body().onKuld()
+  await settle()
+  assert.ok(body().uzenet.includes('megnyílt'))
+  assert.equal(body().forrasSzoveg, '', 'the box empties only on the act itself')
+  assert.equal(body().cim, '')
+  assert.equal(ujratoltesek, 1, 'the queue behind the box is reloaded, or the new video is nowhere to be seen')
+})
+
+test('a board reload does not remount the queue, so a half-typed source text survives it', async () => {
+  // THE DEFECT THIS PINS. `<Sor>` used to be keyed on a counter that went up
+  // on every successful board load, and the Uj video box now lives inside that
+  // subtree: a Frissít pressed while a source text was half typed would have
+  // thrown the text away, along with the sentence saying what the last open
+  // did. This harness has no reconciler, so what is pinned is the element
+  // identity React itself reconciles on -- a key that moves between loads is
+  // exactly what remounts the subtree.
+  const { rpc, hivasok } = stubRpc({
+    board: () => Promise.resolve(board()),
+    health: () => Promise.resolve(health()),
+  })
+  const page = mount(VideoPage, { extensionId: 'video', rpc })
+  await settle()
+  const elso = findElement(page.tree(), (n) => n.type === Sor)
+  assert.ok(elso !== null, 'the queue is drawn')
+  assert.equal(elso.key, null, 'the queue carries no key at all: nothing about a load may remount it')
+
+  const bar = findElement(page.tree(), (n) => n.type === StatusBar)
+  bar.props.onRefresh()
+  await settle()
+  assert.ok(hivasok.filter((h) => h.method === 'board').length >= 2, 'the reload really happened')
+  const masodik = findElement(page.tree(), (n) => n.type === Sor)
+  assert.equal(masodik.key, elso.key)
 })
 
 // --- the bar opens closed, and what the fold may not hide ---
@@ -1256,4 +2150,700 @@ test('loadManagedStatus reports a refusal as unknown rather than as unscheduled'
 test('readManagedStatus refuses a summary that does not name this extension', () => {
   assert.throws(() => readManagedStatus({ extensions: [] }, 'video.mjs'), /nem tartalmazza ezt az extensiont/)
   assert.throws(() => readManagedStatus({ extensions: [{ extensionId: 'video.mjs', schedules: [] }] }, 'video.mjs'), /egyetlen ütemezést sem deklarál/)
+})
+
+// --- ordering a turn: the three host calls, and the five ways they fail ---
+
+/**
+ * The host, as `rendelj` sees it: one queued answer per route, and the log of
+ * what the page actually sent.
+ *
+ * A route the function calls unstubbed fails the test rather than resolving to
+ * undefined, the way `stubRpc` above does -- these three calls spend money on
+ * the other side, and a test that let a fourth one through silently would be
+ * pinning nothing.
+ */
+function stubHost(valaszok) {
+  const hivasok = []
+  const fetchImpl = (input, init) => {
+    const method = (init && init.method) || 'GET'
+    hivasok.push({ url: input, method, init: init ?? {} })
+    const kulcs = `${method} ${input.startsWith(`${CHATS_URL}/`) ? `${CHATS_URL}/:id/chat` : input}`
+    assert.ok(valaszok[kulcs] !== undefined, `rendelj called a host route this test did not stub: ${kulcs}`)
+    return valaszok[kulcs]()
+  }
+  return { fetchImpl, hivasok }
+}
+
+const hostOk = (torzs) => () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(torzs) })
+const hostRossz = (status, torzs) => () => Promise.resolve({ ok: false, status, json: () => Promise.resolve(torzs) })
+const hostDobas = (uzenet) => () => Promise.reject(new Error(uzenet))
+
+/**
+ * The turn's own answer: `text/event-stream`, whose body this page may not
+ * read. `json` throws so that a page which read it fails here rather than in
+ * production, where reading -- or worse, aborting -- would cut the turn.
+ */
+const hostStream = () => () => Promise.resolve({
+  ok: true, status: 200,
+  json: () => { throw new Error('the page read the event stream body of the chat turn') },
+})
+
+const ugynokok = (overrides = {}) => ({
+  'a-1': { id: 'a-1', name: GYARTO_NEV, disabled: false },
+  'a-2': { id: 'a-2', name: LEKTOR_NEV, disabled: false },
+  ...overrides,
+})
+
+const TERV_UZENET = 'Írj tervet a v1 videóhoz a videoDraft toollal. Ne csinálj mást.'
+
+/**
+ * The fix order's instruction, pinned whole.
+ *
+ * IT SAYS WHAT THE TWO TOOL DESCRIPTIONS ALREADY SAY, and no more. `videoRevise`
+ * itself declares the scope rule -- everything not named is taken over from the
+ * parent version unchanged, and touching an untouched scene's narration is
+ * refused -- so the message does not repeat it, and above all does not narrow
+ * it to "only the scenes the requests are about": a global request is about no
+ * scene at all, while `videoRevise` requires at least one rewritten one, so
+ * that sentence would tell the agent to do something the module forbids.
+ */
+const JAVITAS_UZENET = 'Az operátor javítást kért a v1 videóra. Olvasd el a videoFixes-szel a nyitott kéréseket, és add be a javítást a videoRevise-zal: nevezd meg, mely jeleneteket írod át és mely kéréseket dolgozod be. Ne csinálj mást.'
+
+test('the UI carries the agent names this extension actually declares', () => {
+  // The bundle cannot import src/agents.mjs -- that file reaches node:fs
+  // through kit-tabla.mjs -- so the two names are written out again in the UI.
+  // This is the guard that makes the duplicate safe: rename a displayName over
+  // there and the suite fails here rather than the page silently ordering a
+  // turn from an agent the host does not have.
+  const nevek = AGENTS.map((a) => a.displayName)
+  assert.ok(nevek.includes(GYARTO_NEV), `AGENTS no longer declares ${GYARTO_NEV}`)
+  assert.ok(nevek.includes(LEKTOR_NEV), `AGENTS no longer declares ${LEKTOR_NEV}`)
+})
+
+test('rendelj finds the agent by name, opens a session, sends one instruction, and never reads the stream', async () => {
+  const { fetchImpl, hivasok } = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-9', name: 'Videó terv: v1' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostStream(),
+  })
+  const valasz = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'Videó terv: v1', uzenet: TERV_UZENET }, fetchImpl)
+
+  // The id is the host's, minted on reconcile and different per install, which
+  // is why the name is what the page looks up.
+  assert.deepEqual(valasz, { kind: 'elment', agentId: 'a-1', sessionId: 's-9' })
+  assert.equal(hivasok.length, 3, 'three calls, no polling loop behind them')
+
+  assert.equal(hivasok[0].url, AGENTS_URL)
+  assert.equal(hivasok[0].init.credentials, 'same-origin', 'the auth cookie travels on a same-origin fetch; this bundle holds no key')
+
+  assert.equal(hivasok[1].url, CHATS_URL)
+  assert.equal(hivasok[1].method, 'POST')
+  assert.deepEqual(JSON.parse(hivasok[1].init.body), { agentId: 'a-1', name: 'Videó terv: v1' })
+
+  assert.equal(hivasok[2].url, `${CHATS_URL}/s-9/chat`)
+  assert.equal(hivasok[2].method, 'POST')
+  assert.deepEqual(JSON.parse(hivasok[2].init.body), { message: TERV_UZENET })
+  // Not reading the stream is half the rule; not cutting it is the other half.
+  // An abort here would end the turn the operator has just paid for.
+  assert.equal(hivasok[2].init.signal, undefined, 'the request carries no abort signal')
+})
+
+test('rendelj tells a missing agent, a disabled one and a list it could not read apart', async () => {
+  // Three different facts, and the operator does something different about
+  // each: press Reconcile, re-enable the agent, or look at why the host would
+  // not answer. One shared sentence would send them to the wrong one.
+  const nincs = stubHost({ [`GET ${AGENTS_URL}`]: hostOk({ 'a-3': { id: 'a-3', name: 'Valaki más' } }) })
+  assert.deepEqual(await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, nincs.fetchImpl), { kind: 'nincs_ilyen_ugynok', agentNev: GYARTO_NEV })
+  assert.equal(nincs.hivasok.length, 1, 'no session is opened for an agent that is not there')
+
+  const letiltva = stubHost({ [`GET ${AGENTS_URL}`]: hostOk(ugynokok({ 'a-1': { id: 'a-1', name: GYARTO_NEV, disabled: true } })) })
+  assert.deepEqual(await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, letiltva.fetchImpl), { kind: 'ugynok_letiltva', agentNev: GYARTO_NEV })
+  assert.equal(letiltva.hivasok.length, 1, 'the host would answer 409 anyway; the page does not spend the call to find out')
+
+  const rossz = stubHost({ [`GET ${AGENTS_URL}`]: hostRossz(403, { error: 'Forbidden' }) })
+  const olvashatatlan = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, rossz.fetchImpl)
+  assert.equal(olvashatatlan.kind, 'ugynokok_olvashatatlanok')
+  assert.ok(olvashatatlan.reason.includes('403'))
+  assert.ok(olvashatatlan.reason.includes('Forbidden'), 'the host\'s own sentence is carried, not swallowed')
+
+  const nemObjektum = stubHost({ [`GET ${AGENTS_URL}`]: hostOk([{ id: 'a-1', name: GYARTO_NEV }]) })
+  const alak = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, nemObjektum.fetchImpl)
+  assert.equal(alak.kind, 'ugynokok_olvashatatlanok', 'a list where a map was promised is a shape this page cannot read, not an absent agent')
+})
+
+test('rendelj keeps a session that did not open apart from an instruction the host refused', async () => {
+  const nyitas = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostRossz(409, { error: 'Agent "Videó Gyártó" is disabled' }),
+  })
+  const nemNyilt = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, nyitas.fetchImpl)
+  assert.equal(nemNyilt.kind, 'session_nem_nyilt')
+  assert.ok(nemNyilt.reason.includes('409'))
+  assert.ok(nemNyilt.reason.includes('is disabled'))
+  assert.equal(nyitas.hivasok.length, 2, 'there is no session to send an instruction to')
+
+  const idNelkul = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ name: 'Videó terv: v1' }),
+  })
+  const nincsId = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, idNelkul.fetchImpl)
+  assert.equal(nincsId.kind, 'session_nem_nyilt', 'an answer with no session id is not an opened session')
+
+  const uzenet = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-9' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostRossz(400, { error: 'message or file is required' }),
+  })
+  const elutasitva = await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: '' }, uzenet.fetchImpl)
+  assert.equal(elutasitva.kind, 'uzenet_elutasitva')
+  assert.ok(elutasitva.reason.includes('message or file is required'))
+})
+
+test('rendelj never throws: each of the three calls failing has its own named answer', async () => {
+  // The caller switches on `kind` and has no catch, deliberately. If any of the
+  // three steps could reject, the button would stay dark for ever on a state
+  // nothing named.
+  const elso = stubHost({ [`GET ${AGENTS_URL}`]: hostDobas('Failed to fetch') })
+  assert.deepEqual(await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, elso.fetchImpl), { kind: 'ugynokok_olvashatatlanok', reason: 'Failed to fetch' })
+
+  const masodik = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostDobas('a host 502-tal válaszolt'),
+  })
+  assert.deepEqual(await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, masodik.fetchImpl), { kind: 'session_nem_nyilt', reason: 'a host 502-tal válaszolt' })
+
+  const harmadik = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-9' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostDobas('offline'),
+  })
+  assert.deepEqual(await rendelj({ agentNev: GYARTO_NEV, sessionNev: 'x', uzenet: 'y' }, harmadik.fetchImpl), { kind: 'uzenet_elutasitva', reason: 'offline' })
+})
+
+test('every ordering failure gets its own sentence, and the missing agent names both the name and Reconcile', () => {
+  assert.equal(megrendelesHiba({ kind: 'elment', agentId: 'a-1', sessionId: 's-9' }), null, 'an ordered turn is not a failure')
+
+  const nincs = megrendelesHiba({ kind: 'nincs_ilyen_ugynok', agentNev: GYARTO_NEV })
+  assert.ok(nincs.includes(GYARTO_NEV), 'the name it looked for')
+  assert.ok(nincs.includes('Reconcile'), 'and what creates it')
+
+  const letiltva = megrendelesHiba({ kind: 'ugynok_letiltva', agentNev: GYARTO_NEV })
+  assert.ok(letiltva.includes(GYARTO_NEV))
+  assert.ok(letiltva.includes('letilt'), 'a disabled agent is a different fact from an absent one')
+  assert.notEqual(letiltva, nincs)
+
+  const mondatok = [
+    nincs,
+    letiltva,
+    megrendelesHiba({ kind: 'ugynokok_olvashatatlanok', reason: 'offline' }),
+    megrendelesHiba({ kind: 'session_nem_nyilt', reason: 'a host 409-tal válaszolt' }),
+    megrendelesHiba({ kind: 'uzenet_elutasitva', reason: 'a host 400-tal válaszolt' }),
+  ]
+  assert.equal(new Set(mondatok).size, 5, 'five facts, five sentences: none of them collapses into another')
+  for (const mondat of mondatok) assert.equal(mondat.includes('sikertelen'), false)
+})
+
+test('the Terv keres button orders the producer, names the tool and the video id, and says the turn is running', async () => {
+  const { fetchImpl, hivasok } = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-9' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostStream(),
+  })
+  const { rpc } = stubRpc({ video: () => Promise.resolve(videoDetail()) })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop, hostFetch: fetchImpl })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+  assert.equal(body().tervRendeles, null)
+
+  body().onTervKeres()
+  await settle()
+  assert.deepEqual(JSON.parse(hivasok[1].init.body).agentId, 'a-1')
+  // The instruction names the tool and the id and forbids everything else: a
+  // turn the operator paid for must not wander off into the rest of the queue.
+  assert.deepEqual(JSON.parse(hivasok[2].init.body), { message: TERV_UZENET })
+  assert.equal(body().tervRendeles, 'fut', 'the button stays dark: the turn is out and the page is not waiting on it')
+  assert.ok(body().uzenet.includes(GYARTO_NEV))
+  assert.ok(body().uzenet.includes('Frissítés'), 'the evidence is the plan appearing, so the operator is told where to look')
+  assert.equal(body().uzenet.includes('sikertelen'), false)
+})
+
+test('the Lektoralas keres button orders the reviewer on the latest plan', async () => {
+  const { fetchImpl, hivasok } = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-4' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostStream(),
+  })
+  const { rpc } = stubRpc({ video: () => Promise.resolve(videoDetail({ tervek: [terv({ id: 't7' })] })) })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop, hostFetch: fetchImpl })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+
+  body().onLektorKeres('t7')
+  await settle()
+  // The reviewer, not the producer: `videoVerdict` refuses `onlektoralas`, so
+  // ordering this from the plan's own author would be a turn spent on a refusal.
+  assert.equal(JSON.parse(hivasok[1].init.body).agentId, 'a-2')
+  assert.deepEqual(JSON.parse(hivasok[2].init.body), { message: 'Lektoráld a t7 tervet a videoVerdict toollal. Ne csinálj mást.' })
+  assert.equal(body().lektorRendeles, 'fut')
+  assert.ok(body().uzenet.includes(LEKTOR_NEV))
+})
+
+test('an ordering that did not go through says which fact stopped it, and lets the operator press again', async () => {
+  const { fetchImpl } = stubHost({ [`GET ${AGENTS_URL}`]: hostOk({}) })
+  const { rpc } = stubRpc({ video: () => Promise.resolve(videoDetail()) })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop, hostFetch: fetchImpl })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+
+  body().onTervKeres()
+  await settle()
+  assert.ok(body().uzenet.includes(GYARTO_NEV))
+  assert.ok(body().uzenet.includes('Reconcile'))
+  assert.equal(body().tervRendeles, null, 'nothing is running, so the button goes live again')
+})
+
+test('Frissites re-reads the detail and takes back the running-turn state', async () => {
+  const { fetchImpl } = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-9' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostStream(),
+  })
+  const { rpc, hivasok } = stubRpc({ video: () => Promise.resolve(videoDetail()) })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop, hostFetch: fetchImpl })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+
+  body().onTervKeres()
+  await settle()
+  assert.equal(body().tervRendeles, 'fut')
+
+  // There is no poller: the page cannot see the turn end, so the operator
+  // looking again is what turns the order back into a fact.
+  const eddig = betoltesek(hivasok)
+  body().onFrissit()
+  await settle()
+  assert.ok(betoltesek(hivasok) > eddig, 'the detail is re-read from the module\'s own rows')
+  assert.equal(body().tervRendeles, null)
+})
+
+const tervKeresSotet = /<button[^>]*disabled[^>]*>Terv kérése/
+const lektorKeresSotet = /<button[^>]*disabled[^>]*>Lektorálás kérése/
+const javitasSotet = /<button[^>]*disabled[^>]*>Javítás kérése/
+
+test('a live ordering button still says what a press costs, and a dark one says why it is dark', () => {
+  // A finished render and an open request, so the THIRD ordering lever is live
+  // too: a fixture where it happened to be dark would let the price silently
+  // fall off it.
+  const el = render(VideoBody, videoProps(videoDetail({ tervek: [terv()], renderek: [renderSor()], visszajelzesek: [visszajelzes()] })))
+  assert.equal(tervKeresSotet.test(el), false)
+  assert.equal(lektorKeresSotet.test(el), false)
+  assert.equal(javitasSotet.test(el), false)
+  // 2.2: the price is on screen while the button can still be pressed. A
+  // warning that only appears once the control is dark warns nobody.
+  assert.ok(el.includes('pénzbe kerül'))
+  assert.ok(el.includes('percekig'))
+  assert.equal((el.match(/vid-lepes-ar/g) ?? []).length, 3, 'all three ordering levers carry it; the mechanical ones do not')
+
+  const tervNelkul = render(VideoBody, videoProps(videoDetail()))
+  assert.equal(tervKeresSotet.test(tervNelkul), false, 'a video with no plan is exactly when a plan is ordered')
+  assert.ok(lektorKeresSotet.test(tervNelkul))
+  assert.ok(tervNelkul.includes('Terv nélkül nincs mit lektorálni'))
+
+  // Closure first, for the reason the two mechanical levers already test it
+  // first: `videoDraft` and `videoVerdict` both refuse `video_lezart` before
+  // they weigh anything else, so naming any other reason would send the
+  // operator to do work that changes nothing.
+  const lezart = render(VideoBody, videoProps(videoDetail({ status: 'lezart', tervek: [terv()] })))
+  assert.ok(tervKeresSotet.test(lezart))
+  assert.ok(lektorKeresSotet.test(lezart))
+  assert.equal(lezart.includes('Terv nélkül nincs mit lektorálni'), false)
+})
+
+test('an ordered turn darkens its button and says so in the section header', () => {
+  const kuldes = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'kuldes' }))
+  assert.ok(tervKeresSotet.test(kuldes))
+  assert.ok(kuldes.includes('a válaszra várok'), 'the three host calls are out and nothing has been ordered yet')
+  // AND THE HEADER SAYS THE SAME FACT AS THE BUTTON. It used to say
+  // "ügynök-forduló megrendelve" here -- a turn ordered -- directly above a
+  // lever saying the host had not answered yet, which is the one line on this
+  // page that folded `kuldes` and `fut` into one state.
+  assert.ok(kuldes.includes('megrendelés kiküldve, a host válaszára várok: terv'))
+  assert.equal(kuldes.includes('ügynök-forduló fut'), false, 'nothing is running until the host has answered')
+
+  const fut = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'fut' }))
+  assert.ok(tervKeresSotet.test(fut))
+  assert.ok(fut.includes('Frissítés'))
+  // 2.3: the section header carries it too, so the state is visible without
+  // reading down to the button.
+  assert.ok(fut.includes('ügynök-forduló fut: terv'))
+  assert.equal(fut.includes('a host válaszára várok'), false)
+  assert.equal(lektorKeresSotet.test(fut), false, 'the two orders are separate: one running does not darken the other')
+
+  const mindketto = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'fut', lektorRendeles: 'fut' }))
+  assert.ok(mindketto.includes('ügynök-forduló fut: terv, lektorálás'))
+
+  // The two levers are independent, so the two clauses have to be able to
+  // stand at once: the plan can still be out at the host while the review is
+  // already running.
+  const vegyes = render(VideoBody, videoProps(videoDetail({ tervek: [terv()] }), { tervRendeles: 'kuldes', lektorRendeles: 'fut' }))
+  assert.ok(vegyes.includes('megrendelés kiküldve, a host válaszára várok: terv'))
+  assert.ok(vegyes.includes('ügynök-forduló fut: lektorálás'))
+})
+
+// --- the third ordering lever: the operator's fix requests ---
+
+test('a nyitott kérés a lezárttól külön látszik, és megnevezi a rendert, ami lezárta', () => {
+  const video = videoDetail({
+    renderek: [renderSor()],
+    visszajelzesek: [
+      visszajelzes({ id: 'f1', renderId: 'r-1', szoveg: 'nyitott globális' }),
+      visszajelzes({ id: 'f2', renderId: 'r-1', atMs: 4200, jelenet: 2, szoveg: 'lezárt jelenetre', kezelteRenderId: 'r-2', kezeltAt: '2026-09-06T11:00:00.000Z' }),
+    ],
+  })
+  const html = render(VideoBody, videoProps(video))
+  assert.ok(html.includes('Nyitott javítás-kérések'))
+  assert.ok(html.includes('Lezárt javítás-kérések'))
+  // The render that closed it is the whole point of drawing the closed ones at
+  // all: it is the evidence a file was actually made for that request.
+  assert.ok(html.includes('lezárta: r-2'))
+  // WHEN it was answered, not only what answered it: a request closed three
+  // days ago and one closed a minute ago are different facts to an operator
+  // deciding whether to write another. Compared against `formatDate` itself
+  // rather than a hand-typed date, so a locale change is not a false failure.
+  assert.ok(html.includes(formatDate('2026-09-06T11:00:00.000Z')))
+  // EXACTLY TWICE EACH. Once in the Visszajelzés log, which lists everything
+  // anyone ever said about this video, imported observations included, and once
+  // in the ONE lifecycle list it belongs to. A row in both lifecycle lists --
+  // or in neither -- would be the filter drawing an open request and an
+  // answered one as the same thing.
+  assert.equal(elofordulas(html, 'nyitott globális'), 2)
+  assert.equal(elofordulas(html, 'lezárt jelenetre'), 2)
+  assert.equal(html.includes('Nincs nyitott kérés ehhez a videóhoz.'), false)
+  assert.equal(html.includes('Egyetlen kérést sem zárt le még render.'), false)
+})
+
+test('a Javítás kérése gomb sötét, ha nincs nyitott kérés, és megmondja miért', () => {
+  const html = render(VideoBody, videoProps(videoDetail({ renderek: [renderSor()] })))
+  assert.ok(javitasSotet.test(html))
+  assert.ok(html.includes('Előbb írj legalább egy kérést'))
+  // AND THE EMPTY SECTION STILL CARRIES ITS LEVER. `Szekcio` draws `uresSzoveg`
+  // INSTEAD of its children, so this section's empty sentence is a child --
+  // otherwise the one state in which the operator has to be told what the next
+  // step is called is the one state the button is missing from.
+  assert.ok(html.includes('Nincs nyitott kérés ehhez a videóhoz.'))
+})
+
+test('a Javítás kérése gomb sötét, amíg render fut, mert a modul is ott utasítja vissza', () => {
+  // `videoRevise` a `refuseIfRendering`-et RÖGTÖN a `video_lezart` után hívja,
+  // egyetlen kérés-azonosító elolvasása előtt (src/terv.mjs). Egy futó render
+  // alatti kattintás tehát olyan ügynök-fordulót venne meg, amit a modul kapásból
+  // visszautasít -- és a render végét megvárni ELÉLESÍTI a gombot, ami pontosan
+  // az a próba, amitől egy ok kiírásra érdemes.
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor(), renderSor({ renderId: 'r-fut', status: 'fut', finishedAt: null })],
+    visszajelzesek: [visszajelzes()],
+  })))
+  assert.ok(javitasSotet.test(html))
+  assert.ok(html.includes('Ezen a videón már fut egy render (r-fut); a javítás megvárja a végét.'))
+  // A később jövő okok egyike sem: kész render is van, nyitott kérés is van, és
+  // egyikük sem az, amitől most sötét.
+  assert.equal(html.includes('Nincs kész render, amire javítást lehetne kérni'), false)
+  assert.equal(html.includes('Előbb írj legalább egy kérést'), false)
+})
+
+test('a Javítás kérése gomb sötét, ha nincs kész render, és megmondja miért', () => {
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [],
+    visszajelzesek: [visszajelzes({ szoveg: 'x' })],
+  })))
+  assert.ok(javitasSotet.test(html))
+  assert.ok(html.includes('Nincs kész render, amire javítást lehetne kérni.'))
+  // The later reason must not be the one printed: writing another request
+  // would not make this button live.
+  assert.equal(html.includes('Előbb írj legalább egy kérést'), false)
+})
+
+test('egy importált megfigyelés nem nyitott kérés, és nem élesíti a gombot', () => {
+  // `repo.openFeedback` szűrője `forras = 'operator'`, és a lap ugyanezt
+  // mondja el a maga oldalán. Az importált sor az operátor analitikájából jön:
+  // MEGFIGYELÉS, nem kérés -- senki nem kérte, hogy javítsuk, a `videoRevise`
+  // `javitas_ismeretlen`-nel utasítaná vissza az azonosítóját, és egy render
+  // lezárása hazugság lenne róla.
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor()],
+    visszajelzesek: [
+      visszajelzes({ forras: 'importalt', szoveg: 'a nézők a 4. másodpercnél elmennek' }),
+      // ÉS A LEZÁRT OLDALON UGYANÍGY. Egy lezáró azonosítót viselő importált sor
+      // azt állítaná, hogy egy kérést elintéztek, holott kérés sosem volt.
+      visszajelzes({ id: 'f2', forras: 'importalt', szoveg: 'a 9. másodpercnél is', kezelteRenderId: 'r-9', kezeltAt: '2026-09-06T11:00:00.000Z' }),
+    ],
+  })))
+  assert.ok(javitasSotet.test(html), 'egy megfigyelésre nem lehet javítást rendelni')
+  assert.ok(html.includes('Előbb írj legalább egy kérést'))
+  assert.ok(html.includes('Nincs nyitott kérés ehhez a videóhoz.'))
+  assert.ok(html.includes('Egyetlen kérést sem zárt le még render.'))
+  assert.equal(html.includes('lezárta: r-9'), false)
+  // A Visszajelzés napló viszont továbbra is kirajzolja mindkettőt: ez az a
+  // lista, ami mindent mutat, amit valaha bárki mondott erről a videóról.
+  assert.equal(elofordulas(html, 'a nézők a 4. másodpercnél elmennek'), 1)
+  assert.equal(elofordulas(html, 'a 9. másodpercnél is'), 1)
+})
+
+test('egy válasz, amiből hiányzik a kezelteRenderId, egyik listába sem kerül bele', () => {
+  // `undefined !== null` IGAZ, tehát egy `!== null` szűrő a hiányzó mezőt a
+  // LEZÁRT listába tenné, és `lezárta: undefined`-ot írna ki: a lap azt
+  // állítaná egy nyitott kérésről, hogy megválaszolták. A `typeof === 'string'`
+  // ehelyett mindkét listából kiejti, a Visszajelzés napló pedig továbbra is
+  // kirajzolja a sort.
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor()],
+    visszajelzesek: [visszajelzes({ szoveg: 'mező nélküli sor', kezelteRenderId: undefined, kezeltAt: undefined })],
+  })))
+  assert.equal(html.includes('lezárta: undefined'), false)
+  assert.ok(html.includes('Egyetlen kérést sem zárt le még render.'))
+  assert.ok(html.includes('Nincs nyitott kérés ehhez a videóhoz.'))
+  assert.equal(elofordulas(html, 'mező nélküli sor'), 1, 'a napló továbbra is mutatja')
+})
+
+test('a kiküldött és a futó javítás-forduló két külön mondat a gomb mellett', () => {
+  const kesz = videoDetail({ renderek: [renderSor()], visszajelzesek: [visszajelzes()] })
+  assert.equal(javitasSotet.test(render(VideoBody, videoProps(kesz))), false, 'egy kész renderre írt nyitott kérés pont az, amire javítást rendelünk')
+
+  const kuldes = render(VideoBody, videoProps(kesz, { javitasRendeles: 'kuldes' }))
+  assert.ok(javitasSotet.test(kuldes))
+  assert.ok(kuldes.includes('A megrendelés elment a hosthoz, a válaszra várok.'))
+
+  const fut = render(VideoBody, videoProps(kesz, { javitasRendeles: 'fut' }))
+  assert.ok(javitasSotet.test(fut))
+  assert.ok(fut.includes(`A(z) ${GYARTO_NEV} javító fordulója fut`))
+  assert.equal(fut.includes('a válaszra várok'), false, 'a kiküldés és a futó forduló nem ugyanaz a tény')
+})
+
+test('a Javitas kerese gomb a gyartot rendeli meg, es a videoFixes-t meg a videoRevise-t nevezi meg', async () => {
+  const { fetchImpl, hivasok } = stubHost({
+    [`GET ${AGENTS_URL}`]: hostOk(ugynokok()),
+    [`POST ${CHATS_URL}`]: hostOk({ id: 's-11' }),
+    [`POST ${CHATS_URL}/:id/chat`]: hostStream(),
+  })
+  const { rpc } = stubRpc({ video: () => Promise.resolve(videoDetail({ renderek: [renderSor()], visszajelzesek: [visszajelzes()] })) })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop, hostFetch: fetchImpl })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+  assert.equal(body().javitasRendeles, null)
+
+  body().onJavitasKeres()
+  await settle()
+  // The producer, not the reviewer: `videoFixes` and `videoRevise` are on the
+  // producer's tool list only, so ordering this from the reviewer would be a
+  // turn spent on an agent that cannot do it.
+  // The WHOLE body, not just the agent id: `sessionNev` travels as `name` in
+  // this same call, and it is the title the operator looks for in the chat
+  // list, so a silent change to it should fail here.
+  assert.deepEqual(JSON.parse(hivasok[1].init.body), { agentId: 'a-1', name: 'Videó javítás: v1' })
+  assert.deepEqual(JSON.parse(hivasok[2].init.body), { message: JAVITAS_UZENET })
+  assert.equal(body().javitasRendeles, 'fut', 'the button stays dark: the turn is out and the page is not waiting on it')
+  assert.ok(body().uzenet.includes(GYARTO_NEV))
+  assert.ok(body().uzenet.includes('Frissítés'), 'the evidence is the new version appearing, so the operator is told where to look')
+  assert.equal(body().uzenet.includes('sikertelen'), false)
+
+  // There is no poller behind the fix order either: the operator looking again
+  // is the only thing that ends its `fut`.
+  body().onFrissit()
+  await settle()
+  assert.equal(body().javitasRendeles, null)
+})
+
+test('a javitas-megrendeles, ami el sem ment, megnevezi a tenyt es ujra engedi a gombot', async () => {
+  const { fetchImpl } = stubHost({ [`GET ${AGENTS_URL}`]: hostOk({}) })
+  const { rpc } = stubRpc({ video: () => Promise.resolve(videoDetail({ renderek: [renderSor()], visszajelzesek: [visszajelzes()] })) })
+  const view = mount(VideoView, { rpc, id: 'v1', onBack: noop, hostFetch: fetchImpl })
+  await settle()
+  const body = () => childProps(view, VideoBody)
+
+  body().onJavitasKeres()
+  await settle()
+  assert.ok(body().uzenet.includes(GYARTO_NEV))
+  assert.ok(body().uzenet.includes('Reconcile'))
+  assert.equal(body().javitasRendeles, null, 'nothing is running, so the button goes live again')
+})
+
+// --- the one button that reaches outside the module ---
+
+const ytProps = (overrides = {}) => ({ dolgozik: false, mondatok: [], onKattint: noop, ...overrides })
+
+const ytOtletek = (overrides = {}) => ({
+  nyitott: [], marVolt: 0, jelolt: 0, maradek: 0, csatornaHibak: [], eldobott: 0, ...overrides,
+})
+
+test('readYoutubeOtletek refuses a response missing a list rather than drawing it as zero ideas', () => {
+  assert.deepEqual(readYoutubeOtletek(ytOtletek({ jelolt: 3, marVolt: 1 })), ytOtletek({ jelolt: 3, marVolt: 1 }))
+  for (const hianyos of [
+    { ...ytOtletek(), nyitott: undefined },
+    { ...ytOtletek(), csatornaHibak: undefined },
+    { ...ytOtletek(), jelolt: undefined },
+    { ...ytOtletek(), marVolt: 'sok' },
+    'kesz',
+  ]) assert.throws(() => readYoutubeOtletek(hianyos), /youtubeOtletek/)
+})
+
+test('the YouTube button is dark while it works, and says why beside itself', () => {
+  const nyugalom = render(YoutubeOtletekBody, ytProps())
+  assert.equal(/<button[^>]*disabled[^>]*>Ötletek a YouTube-ról/.test(nyugalom), false)
+  assert.ok(nyugalom.includes('Ötletek a YouTube-ról'))
+  // The line beside the button says what a press does, so the operator is not
+  // guessing what the module is about to go and do.
+  assert.ok(nyugalom.includes('beállított csatornák'))
+
+  const kozben = render(YoutubeOtletekBody, ytProps({ dolgozik: true }))
+  assert.ok(/<button[^>]*disabled[^>]*>Ötletek a YouTube-ról/.test(kozben))
+  assert.ok(kozben.includes('csatornánként másodpercekig'), 'a press that takes seconds must say so, or it reads as a dead button')
+})
+
+test('the YouTube button prints a channel name as text, markup and all', () => {
+  const html = render(YoutubeOtletekBody, ytProps({ mondatok: ['Nem válaszolt: <b>@a</b> (csatorna_idotullepes).'] }))
+  assert.equal(html.includes('<b>@a</b>'), false)
+  assert.ok(html.includes('&lt;b&gt;@a&lt;/b&gt;'))
+})
+
+test('every branch of the YouTube answer gets its own sentence, and none reads as another', () => {
+  // Ideas opened, some already known, some left over.
+  const teli = otletMondatok(ytOtletek({
+    nyitott: [{ videoId: 'v1', cim: 'Egy' }, { videoId: 'v2', cim: 'Kettő' }],
+    jelolt: 15, marVolt: 3, maradek: 10, eldobott: 4,
+  })).join(' | ')
+  assert.ok(teli.includes('2 új ötlet'))
+  assert.ok(teli.includes('3'), 'the ones already on the board are counted separately')
+  assert.ok(teli.includes('10'), 'and so is what a second press would still find')
+  assert.ok(teli.includes('4'), 'the entries the module dropped are named, so a drifted feed is not a quiet one')
+
+  // Zero because every candidate is already a video on this board.
+  const marMind = otletMondatok(ytOtletek({ jelolt: 6, marVolt: 6 })).join(' | ')
+  assert.ok(marMind.includes('mindegyikből'))
+  assert.equal(marMind.includes('volt csatorna, ami nem válaszolt'), false)
+
+  // Zero because nothing could be read. NOT the same sentence as the one above.
+  const nemaCsatornak = otletMondatok(ytOtletek({
+    csatornaHibak: [{ csatorna: '@a', ok: 'csatorna_feed_idotullepes' }, { csatorna: '@b', ok: 'csatorna_azonosito_ismeretlen' }],
+  })).join(' | ')
+  assert.ok(nemaCsatornak.includes('volt csatorna, amit nem sikerült beolvasni'))
+  assert.equal(nemaCsatornak.includes('nem válaszolt.'), false, 'a 200 carrying an interstitial IS an answer; the headline may not deny it')
+  assert.equal(nemaCsatornak.includes('mindegyikből'), false)
+  // The page knows WHICH channels failed, so "1 of 3 did not answer" is not enough.
+  assert.ok(nemaCsatornak.includes('@a'))
+  assert.ok(nemaCsatornak.includes('@b'))
+  // The code is still there to look up and quote -- and so is a sentence
+  // saying what to do, because a code is not advice.
+  assert.ok(nemaCsatornak.includes('csatorna_feed_idotullepes'))
+  assert.ok(nemaCsatornak.includes('csatorna_azonosito_ismeretlen'))
+  assert.ok(nemaCsatornak.includes('próbáld meg újra'))
+  assert.ok(nemaCsatornak.includes('átnevezhették'), 'the operator is told what a missing channel id usually means')
+
+  // Zero because the channels answered and had nothing inside the window.
+  const uresHet = otletMondatok(ytOtletek({ jelolt: 0 })).join(' | ')
+  assert.ok(uresHet.includes('válaszoltak, de nem jött belőlük új ötlet'))
+  assert.equal(uresHet.includes('mindegyikből'), false)
+  assert.equal(uresHet.includes('nem sikerült beolvasni'), false)
+
+  // A channel that was read fine and simply has not uploaded lately is NOT a
+  // failure and must not be printed as one: the operator would go and check a
+  // url that is perfectly correct.
+  const csendes = otletMondatok(ytOtletek({
+    nyitott: [{ videoId: 'v1', cim: 'Egy' }], jelolt: 1,
+    csatornaHibak: [{ csatorna: '@lassu', ok: 'csatorna_nincs_friss' }],
+  })).join(' | ')
+  assert.ok(csendes.includes('Nem volt friss feltöltése: @lassu'))
+  assert.equal(csendes.includes('Nem válaszolt'), false)
+
+  // Both kinds at once stay separate, each naming only its own channels.
+  const vegyes = otletMondatok(ytOtletek({
+    csatornaHibak: [{ csatorna: '@lassu', ok: 'csatorna_nincs_friss' }, { csatorna: '@torott', ok: 'csatorna_nem_valaszolt' }],
+  }))
+  const nemOlvashato = vegyes.find((m) => m.startsWith('Nem sikerült beolvasni:'))
+  const nincsFriss = vegyes.find((m) => m.startsWith('Nem volt friss feltöltése:'))
+  assert.ok(nemOlvashato.includes('@torott') && !nemOlvashato.includes('@lassu'))
+  assert.ok(nincsFriss.includes('@lassu') && !nincsFriss.includes('@torott'))
+
+  // A body that was not a feed is its own sentence, and it is NOT the one that
+  // means "do nothing". This is the branch the review caught: an interstitial
+  // or an error page served with HTTP 200 used to arrive as "nothing new".
+  const olvashatatlan = otletMondatok(ytOtletek({
+    csatornaHibak: [{ csatorna: '@a', ok: 'csatorna_feed_ertelmezhetetlen' }],
+  })).join(' | ')
+  assert.ok(olvashatatlan.startsWith('Nem jött egyetlen jelölt sem'))
+  assert.ok(olvashatatlan.includes('amit nem sikerült beolvasni'), 'the headline must not say the channel did not answer: a 200 is an answer')
+  assert.ok(olvashatatlan.includes('Nem sikerült beolvasni: @a'))
+  assert.ok(olvashatatlan.includes('egyetlen bejegyzést sem tudott kiolvasni'), 'the sentence covers both a non-feed body and a feed whose entries drifted')
+  assert.ok(olvashatatlan.includes('böngészőben'), 'and what to do about it')
+  assert.equal(olvashatatlan.includes('Nem volt friss feltöltése'), false, 'the sentence that means "do nothing" must not cover an unreadable body')
+  assert.equal(olvashatatlan.includes('Nincs nyilvános feltöltése'), false)
+
+  // A channel with no public uploads at all is READ FINE and is not a
+  // failure -- and it is not a freshness story either: telling this operator
+  // "nincs friss feltöltése" implies there are older ones and that widening
+  // the window is worth trying, which it never will be.
+  const nincsFeltoltes = otletMondatok(ytOtletek({
+    csatornaHibak: [{ csatorna: '@ures', ok: 'csatorna_nincs_feltoltes' }],
+  })).join(' | ')
+  assert.ok(nincsFeltoltes.includes('Nincs nyilvános feltöltése: @ures'))
+  assert.equal(nincsFeltoltes.includes('Nem sikerült beolvasni'), false, 'the advice for an unreadable feed is false about a channel that is fine')
+  assert.equal(nincsFeltoltes.includes('böngészőben'), false)
+  assert.equal(nincsFeltoltes.includes('Nem volt friss feltöltése'), false, 'a freshness sentence implies older uploads that do not exist')
+  assert.ok(nincsFeltoltes.startsWith('A csatornák válaszoltak'), 'it answered, so the headline says so')
+
+  // A code this page has not learnt yet is still named, with a line saying the
+  // page has no advice for it -- a channel missing from the report entirely
+  // would be worse than one named without advice.
+  const ismeretlen = otletMondatok(ytOtletek({ csatornaHibak: [{ csatorna: '@uj', ok: 'csatorna_valami_uj' }] })).join(' | ')
+  assert.ok(ismeretlen.includes('@uj'))
+  assert.ok(ismeretlen.includes('csatorna_valami_uj'))
+
+  for (const mondatok of [teli, marMind, nemaCsatornak, uresHet, csendes, olvashatatlan, nincsFeltoltes]) assert.equal(mondatok.includes('sikertelen'), false)
+})
+
+test('the YouTube button tells a refusal, a rejected request and a real press apart, and reloads the board only on the last', async () => {
+  let otletek = () => Promise.resolve({ hiba: 'youtube_nincs_csatorna', uzenet: 'nincs beállítva YouTube-csatorna: ... a youtubeCsatornak mezőbe ...' })
+  let ujratoltesek = 0
+  const { rpc, hivasok } = stubRpc({ youtubeOtletek: (params) => otletek(params) })
+  const sor = mount(Sor, sorProps({ rpc, onNyitva: () => { ujratoltesek += 1 } }))
+  const doboz = findElement(sor.tree(), (n) => typeof n.type === 'function' && n.type.name === 'YoutubeOtletek')
+  assert.ok(doboz !== null, 'the queue offers the button at all')
+  const box = mount(doboz.type, doboz.props)
+  const body = () => childProps(box, YoutubeOtletekBody)
+
+  // 1. RESOLVED WITH `hiba`: the module refused, and the sentence tells the
+  //    operator where to go.
+  body().onKattint()
+  await settle()
+  assert.deepEqual(hivasok.at(-1), { method: 'youtubeOtletek', params: {} })
+  const nincs = body().mondatok.join(' | ')
+  assert.ok(nincs.includes('youtube_nincs_csatorna'), 'the code the operator can look up comes first')
+  assert.ok(nincs.includes('beállítás'), 'and the sentence says the fix is in the settings')
+  assert.equal(nincs.includes('sikertelen'), false)
+  assert.equal(ujratoltesek, 0, 'nothing opened, so the board has nothing new to show')
+
+  // A missing binary is a different fact and gets a different sentence.
+  otletek = () => Promise.resolve({ hiba: 'ytdlp_hianyzik', uzenet: 'a beállított útvonalon nincs futtatható yt-dlp: ...' })
+  body().onKattint()
+  await settle()
+  const nincsBinaris = body().mondatok.join(' | ')
+  assert.ok(nincsBinaris.includes('ytdlp_hianyzik'))
+  assert.ok(nincsBinaris.includes('útvonalon'))
+  assert.equal(ujratoltesek, 0)
+
+  // 2. REJECTED: no answer to read for a refusal and no act to report.
+  otletek = () => Promise.reject(new Error('Failed to fetch'))
+  body().onKattint()
+  await settle()
+  assert.equal(body().mondatok.join(' | '), 'Az ötletek kérése el sem jutott a modulhoz: Failed to fetch')
+  assert.equal(ujratoltesek, 0)
+
+  // 3. RESOLVED WITHOUT `hiba`: cards opened, and the board behind the button
+  //    is reloaded or the new videos are nowhere to be seen.
+  otletek = () => Promise.resolve(ytOtletek({ nyitott: [{ videoId: 'v1', cim: 'Egy' }], jelolt: 1 }))
+  body().onKattint()
+  await settle()
+  assert.ok(body().mondatok.join(' | ').includes('1 új ötlet'))
+  assert.equal(ujratoltesek, 1)
+  assert.equal(body().dolgozik, false, 'the button comes back to life whichever way the press ended')
 })
