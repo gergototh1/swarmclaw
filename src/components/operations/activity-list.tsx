@@ -1,0 +1,99 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useAppStore } from '@/stores/use-app-store'
+import { useNow } from '@/hooks/use-now'
+import { useWs } from '@/hooks/use-ws'
+import { PageLoader } from '@/components/ui/page-loader'
+import { timeAgo } from '@/lib/time-format'
+import type { ActivityEntry } from '@/types'
+
+const ENTITY_ICONS: Record<string, string> = {
+  agent: 'A', task: 'T', connector: 'C', session: 'S', webhook: 'W', schedule: 'R',
+}
+
+const ACTION_COLORS: Record<string, string> = {
+  created: 'bg-emerald-500/15 text-emerald-400',
+  updated: 'bg-blue-500/15 text-blue-400',
+  deleted: 'bg-red-500/15 text-red-400',
+  started: 'bg-green-500/15 text-green-400',
+  stopped: 'bg-gray-500/15 text-gray-400',
+  queued: 'bg-amber-500/15 text-amber-400',
+  completed: 'bg-emerald-500/15 text-emerald-400',
+  failed: 'bg-red-500/15 text-red-400',
+  archived: 'bg-layer-2 text-text-3',
+  restored: 'bg-sky-500/15 text-sky-400',
+  approved: 'bg-green-500/15 text-green-400',
+  rejected: 'bg-red-500/15 text-red-400',
+}
+
+const ENTITY_TYPES = ['', 'agent', 'task', 'connector', 'session', 'webhook', 'schedule'] as const
+
+export function ActivityList() {
+  const now = useNow()
+  const entries = useAppStore((s) => s.activityEntries)
+  const loadActivity = useAppStore((s) => s.loadActivity)
+  const [filterType, setFilterType] = useState('')
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    void loadActivity({ entityType: filterType || undefined, limit: 100 }).then(() => setLoaded(true))
+  }, [filterType, loadActivity])
+  useWs('activity', () => loadActivity({ entityType: filterType || undefined, limit: 100 }), 10_000)
+
+  if (!loaded) {
+    return <PageLoader label="Loading activity..." />
+  }
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex items-center justify-end px-8 pt-6 pb-4 shrink-0">
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          className="px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border bg-transparent border-line-subtle text-text-3 hover:bg-layer-1 appearance-none"
+          style={{ fontFamily: 'inherit', minWidth: 130 }}
+        >
+          <option value="">All Types</option>
+          {ENTITY_TYPES.filter(Boolean).map((t) => (
+            <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}s</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-8 pb-6">
+        {entries.length === 0 ? (
+          <div className="text-center text-text-3 text-[14px] mt-16">No activity yet</div>
+        ) : (
+          <div className="space-y-1">
+            {entries.map((entry: ActivityEntry, idx: number) => (
+              <div
+                key={entry.id}
+                className="flex items-start gap-3 py-3 border-b border-line-subtle"
+                style={{
+                  animation: 'fade-up 0.5s var(--ease-spring) both',
+                  animationDelay: `${Math.min(idx * 0.03, 0.5)}s`
+                }}
+              >
+                <div className="w-8 h-8 rounded-sm bg-surface-2 flex items-center justify-center text-[12px] font-700 text-text-3 shrink-0">
+                  {ENTITY_ICONS[entry.entityType] || '?'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-600 ${ACTION_COLORS[entry.action] || 'bg-layer-2 text-text-3'}`}>
+                      {entry.action}
+                    </span>
+                    <span className="text-[10px] text-text-3/50 font-mono">{entry.entityType}</span>
+                    <span className="text-[10px] text-text-3/40">{entry.actor}</span>
+                  </div>
+                  <p className="text-[13px] text-text-2 leading-[1.4] truncate">{entry.summary}</p>
+                </div>
+                <span className="text-[11px] text-text-3/50 shrink-0 pt-1">{timeAgo(entry.timestamp, now)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
