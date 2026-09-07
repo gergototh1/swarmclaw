@@ -31,7 +31,7 @@ export function NavSectionPanel({ section, isViewEnabled, badges, onSelectView, 
   const pathname = usePathname()
   return (
     <div className="w-[186px] min-w-0 bg-raised border-r border-line-subtle flex flex-col h-full min-h-0 overflow-y-auto overscroll-contain py-3 px-2.5">
-      <h2 className="font-display text-[13px] font-600 text-fg-1 tracking-[-0.01em] px-2 pb-2.5">{section.label}</h2>
+      <h2 className="font-display text-[13px] font-600 text-text tracking-[-0.01em] px-2 pb-2.5">{section.label}</h2>
       <ExtensionPagesForSection section={section.id} onNavigate={onExtensionNavigate} />
       {section.views.filter(isViewEnabled).map((view) => {
         const href = getViewPath(view)
@@ -44,7 +44,7 @@ export function NavSectionPanel({ section, isViewEnabled, badges, onSelectView, 
             onClick={() => onSelectView?.(view)}
             aria-current={on ? 'page' : undefined}
             className={`flex items-center gap-2 px-2 py-1.5 rounded-sm text-[11.5px] transition-colors no-underline ${
-              on ? 'bg-accent-soft text-accent-bright font-600' : 'text-fg-2 hover:bg-layer-2 hover:text-fg-1'
+              on ? 'bg-accent-soft text-accent-bright font-600' : 'text-text-2 hover:bg-layer-2 hover:text-text'
             }`}
           >
             <span className="truncate">{VIEW_LABELS[view]}</span>
