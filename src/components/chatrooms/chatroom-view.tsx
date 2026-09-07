@@ -430,7 +430,7 @@ export function ChatroomView() {
                     >
                       <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={22} status={streamingAgents.has(agent.id) ? 'busy' : 'online'} />
                       {badge && (
-                        <span className={`absolute -bottom-1 -right-1 text-[7px] font-700 px-0.5 rounded border ${badge.className}`}>
+                        <span className={`absolute -bottom-1 -right-1 text-[7px] font-700 px-0.5 rounded-xs border ${badge.className}`}>
                           {badge.label[0]}
                         </span>
                       )}
@@ -440,7 +440,7 @@ export function ChatroomView() {
                     <div className="flex items-center gap-1.5">
                       <span>{agent.name}</span>
                       {streamingAgents.has(agent.id) && <span className="text-[9px] text-sky-300">Click to inspect</span>}
-                      {badge && <span className={`text-[9px] font-600 px-1 py-0.5 rounded border ${badge.className}`}>{badge.label}</span>}
+                      {badge && <span className={`text-[9px] font-600 px-1 py-0.5 rounded-xs border ${badge.className}`}>{badge.label}</span>}
                       {muted && <span className="text-[9px] text-red-400">Muted</span>}
                     </div>
                   </TooltipContent>

@@ -1268,7 +1268,7 @@ export function TaskSheet() {
               type="checkbox"
               checked={provisionWorkspace}
               onChange={(e) => setProvisionWorkspace(e.target.checked)}
-              className="h-4 w-4 rounded border-white/20 accent-accent"
+              className="h-4 w-4 rounded-xs border-white/20 accent-accent"
             />
             Prepare a task-scoped workspace when this task is created
           </label>
@@ -1457,7 +1457,7 @@ export function TaskSheet() {
                   type="checkbox"
                   checked={qualityGateRequireVerification}
                   onChange={(e) => setQualityGateRequireVerification(e.target.checked)}
-                  className="h-4 w-4 rounded border-white/20 accent-accent"
+                  className="h-4 w-4 rounded-xs border-white/20 accent-accent"
                 />
                 Require verification evidence (tests/lint/build)
               </label>
@@ -1466,7 +1466,7 @@ export function TaskSheet() {
                   type="checkbox"
                   checked={qualityGateRequireArtifact}
                   onChange={(e) => setQualityGateRequireArtifact(e.target.checked)}
-                  className="h-4 w-4 rounded border-white/20 accent-accent"
+                  className="h-4 w-4 rounded-xs border-white/20 accent-accent"
                 />
                 Require artifact evidence (upload URL or task artifacts)
               </label>
@@ -1475,7 +1475,7 @@ export function TaskSheet() {
                   type="checkbox"
                   checked={qualityGateRequireReport}
                   onChange={(e) => setQualityGateRequireReport(e.target.checked)}
-                  className="h-4 w-4 rounded border-white/20 accent-accent"
+                  className="h-4 w-4 rounded-xs border-white/20 accent-accent"
                 />
                 Require generated task report
               </label>
@@ -1502,7 +1502,7 @@ export function TaskSheet() {
                   type="checkbox"
                   checked={executionPolicyReview}
                   onChange={(e) => setExecutionPolicyReview(e.target.checked)}
-                  className="h-4 w-4 rounded border-white/20 accent-accent"
+                  className="h-4 w-4 rounded-xs border-white/20 accent-accent"
                 />
                 Review
               </label>
@@ -1511,7 +1511,7 @@ export function TaskSheet() {
                   type="checkbox"
                   checked={executionPolicyApproval}
                   onChange={(e) => setExecutionPolicyApproval(e.target.checked)}
-                  className="h-4 w-4 rounded border-white/20 accent-accent"
+                  className="h-4 w-4 rounded-xs border-white/20 accent-accent"
                 />
                 Approval
               </label>
@@ -1520,7 +1520,7 @@ export function TaskSheet() {
                   type="checkbox"
                   checked={executionPolicyVerification}
                   onChange={(e) => setExecutionPolicyVerification(e.target.checked)}
-                  className="h-4 w-4 rounded border-white/20 accent-accent"
+                  className="h-4 w-4 rounded-xs border-white/20 accent-accent"
                 />
                 Verification
               </label>

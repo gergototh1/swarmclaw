@@ -345,10 +345,10 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
         {/* Footer hint */}
         <div className="px-4 py-2 border-t border-line-subtle flex items-center gap-4 text-[11px] text-text-3/40">
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 rounded bg-layer-2 text-[10px]">&uarr;&darr;</kbd> navigate
+            <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px]">&uarr;&darr;</kbd> navigate
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 rounded bg-layer-2 text-[10px]">&crarr;</kbd> select
+            <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px]">&crarr;</kbd> select
           </span>
         </div>
       </div>

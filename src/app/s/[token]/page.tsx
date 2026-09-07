@@ -215,7 +215,7 @@ function renderBody(payload: SharedPayload) {
         {payload.tags.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-2">
             {payload.tags.map((t) => (
-              <span key={t} className="rounded bg-white/10 px-2 py-0.5 text-xs text-white/70">
+              <span key={t} className="rounded-xs bg-white/10 px-2 py-0.5 text-xs text-white/70">
                 {t}
               </span>
             ))}

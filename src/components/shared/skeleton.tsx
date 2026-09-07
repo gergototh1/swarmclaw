@@ -9,7 +9,7 @@ interface Props {
 export function Skeleton({ className = '', width, height }: Props) {
   return (
     <div
-      className={`bg-layer-2 animate-pulse rounded ${className}`}
+      className={`bg-layer-2 animate-pulse rounded-xs ${className}`}
       style={{
         width: typeof width === 'number' ? `${width}px` : width,
         height: typeof height === 'number' ? `${height}px` : height,

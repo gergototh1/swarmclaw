@@ -201,7 +201,7 @@ export function ModelCombobox({
               {isCustom(m) && (
                 <button
                   onClick={(e) => removeModel(m, e)}
-                  className="ml-2 p-0.5 rounded hover:bg-layer-3 text-text-3 hover:text-red-400 transition-colors shrink-0"
+                  className="ml-2 p-0.5 rounded-xs hover:bg-layer-3 text-text-3 hover:text-red-400 transition-colors shrink-0"
                   title="Remove custom model"
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">

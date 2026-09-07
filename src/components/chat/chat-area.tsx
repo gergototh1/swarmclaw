@@ -644,21 +644,21 @@ export function ChatArea() {
           <div className="flex gap-3 max-w-[70%]">
             <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-24 rounded bg-layer-2 animate-pulse" />
+              <div className="h-3 w-24 rounded-xs bg-layer-2 animate-pulse" />
               <div className="h-16 rounded-md bg-layer-2 animate-pulse" />
             </div>
           </div>
           <div className="flex gap-3 max-w-[60%] self-end flex-row-reverse">
             <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-16 rounded bg-layer-2 animate-pulse ml-auto" />
+              <div className="h-3 w-16 rounded-xs bg-layer-2 animate-pulse ml-auto" />
               <div className="h-10 rounded-md bg-layer-2 animate-pulse" />
             </div>
           </div>
           <div className="flex gap-3 max-w-[65%]">
             <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-20 rounded bg-layer-2 animate-pulse" />
+              <div className="h-3 w-20 rounded-xs bg-layer-2 animate-pulse" />
               <div className="h-24 rounded-md bg-layer-2 animate-pulse" />
             </div>
           </div>

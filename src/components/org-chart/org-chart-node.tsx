@@ -117,7 +117,7 @@ export function OrgChartNode({
         <div className="flex items-center gap-2 mb-1.5">
           {!isDragGhost && (
             <div
-              className="cursor-grab active:cursor-grabbing shrink-0 flex flex-col gap-[2px] py-1 px-0.5 rounded hover:bg-layer-2 transition-colors"
+              className="cursor-grab active:cursor-grabbing shrink-0 flex flex-col gap-[2px] py-1 px-0.5 rounded-xs hover:bg-layer-2 transition-colors"
               onPointerDown={(e) => { e.stopPropagation(); onDragHandlePointerDown?.(e) }}
             >
               <svg width="6" height="10" viewBox="0 0 6 10" className="text-text-3/40">

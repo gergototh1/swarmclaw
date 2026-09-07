@@ -77,7 +77,7 @@ export default function ProtocolBuilderPage() {
           </button>
           <span className="text-sm font-semibold">{template.name}</span>
           {template.builtIn && (
-            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <span className="rounded-xs bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               Built-in
             </span>
           )}

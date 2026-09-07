@@ -198,12 +198,12 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
                 </span>
               )}
               {badge && (
-                <span className={`text-[9px] font-600 px-1 py-0.5 rounded border leading-none ${badge.className}`}>
+                <span className={`text-[9px] font-600 px-1 py-0.5 rounded-xs border leading-none ${badge.className}`}>
                   {badge.label}
                 </span>
               )}
               {muted && (
-                <span className="text-[9px] font-600 px-1 py-0.5 rounded border leading-none bg-red-500/20 text-red-400 border-red-500/30">
+                <span className="text-[9px] font-600 px-1 py-0.5 rounded-xs border leading-none bg-red-500/20 text-red-400 border-red-500/30">
                   Muted
                 </span>
               )}
@@ -240,14 +240,14 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
                 if (mentionAgent) {
                   return (
                     <AgentHoverCard agent={mentionAgent}>
-                      <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded hover:underline cursor-pointer">
+                      <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded-xs hover:underline cursor-pointer">
                         {children}
                       </span>
                     </AgentHoverCard>
                   )
                 }
                 return (
-                  <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded">
+                  <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded-xs">
                     {children}
                   </span>
                 )
@@ -255,7 +255,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
               // Unrecognized @mention — styled but not clickable
               if (href.startsWith('#mention:')) {
                 return (
-                  <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded">
+                  <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded-xs">
                     {children}
                   </span>
                 )
@@ -263,7 +263,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
               return null // fall through to default handling
             }}
             renderInlineCode={(_text, children) => (
-              <code className="px-1 py-0.5 rounded bg-layer-3 text-[12px] font-mono text-accent-bright/90">
+              <code className="px-1 py-0.5 rounded-xs bg-layer-3 text-[12px] font-mono text-accent-bright/90">
                 {children}
               </code>
             )}

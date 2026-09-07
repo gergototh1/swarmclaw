@@ -223,7 +223,7 @@ export function ProtocolBuilderCanvas() {
       {readOnly ? <BuiltInTemplatePanel template={currentTemplate} onSelectStep={selectNode} /> : <NodePalette />}
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border">
         {isDirty && (
-          <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded bg-amber-500/10 px-2 py-1 text-xs text-amber-500">
+          <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-xs bg-amber-500/10 px-2 py-1 text-xs text-amber-500">
             Unsaved changes
           </div>
         )}

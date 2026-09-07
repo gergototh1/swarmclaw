@@ -172,7 +172,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
                 {badges.map((badge) => (
                   <span
                     key={badge}
-                    className="text-[10px] font-600 px-1.5 py-0.5 rounded border border-line-default bg-layer-1 text-text-3"
+                    className="text-[10px] font-600 px-1.5 py-0.5 rounded-xs border border-line-default bg-layer-1 text-text-3"
                   >
                     {badge}
                   </span>
@@ -296,7 +296,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="text-[12px] px-3 py-1.5 rounded border border-line-default hover:bg-layer-2"
+            className="text-[12px] px-3 py-1.5 rounded-xs border border-line-default hover:bg-layer-2"
             disabled={busy}
           >
             Cancel
@@ -304,7 +304,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
           <button
             onClick={submit}
             disabled={busy}
-            className="text-[12px] font-600 px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40"
+            className="text-[12px] font-600 px-3 py-1.5 rounded-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40"
           >
             {busy ? 'Installing…' : 'Install mission'}
           </button>

@@ -41,7 +41,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   /* ===== Radius scale =====
-     Five steps, not fifteen. xs: badges and small icon buttons. sm: inputs,
+     Five steps, not nineteen. xs: badges and small icon buttons. sm: inputs,
      buttons, nav rows. md: cards and list rows. lg: sheets and dialogs.
      full: avatars and status pills. Adding a sixth needs a reason in review.
 

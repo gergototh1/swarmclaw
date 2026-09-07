@@ -298,15 +298,15 @@ export function SearchDialog() {
         {results.length > 0 && (
           <div className="flex items-center gap-3 px-4 py-2 border-t border-line-subtle text-[11px] text-text-3/50">
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-layer-2 text-[10px] font-mono">↑↓</kbd>
+              <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px] font-mono">↑↓</kbd>
               navigate
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-layer-2 text-[10px] font-mono">↵</kbd>
+              <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px] font-mono">↵</kbd>
               open
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-layer-2 text-[10px] font-mono">esc</kbd>
+              <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px] font-mono">esc</kbd>
               close
             </span>
           </div>

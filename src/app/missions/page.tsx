@@ -113,7 +113,7 @@ function MissionCard({ mission, isSelected, onSelect }: MissionCardProps) {
           <div className="text-[13px] font-600 text-text truncate">{mission.title}</div>
           <div className="text-[11px] text-text-3 mt-0.5 line-clamp-2">{mission.goal}</div>
         </div>
-        <span className={`text-[10px] font-600 uppercase tracking-wide px-1.5 py-0.5 rounded ${badge.cls} shrink-0`}>
+        <span className={`text-[10px] font-600 uppercase tracking-wide px-1.5 py-0.5 rounded-xs ${badge.cls} shrink-0`}>
           {badge.label}
         </span>
       </div>
@@ -139,7 +139,7 @@ interface ControlsProps {
 }
 
 function MissionControls({ mission, onAction, onForceReport, onEdit, busy }: ControlsProps) {
-  const btn = 'text-[11px] font-600 px-2.5 py-1 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+  const btn = 'text-[11px] font-600 px-2.5 py-1 rounded-xs border transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
   const editable = isMissionEditable(mission.status)
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -382,7 +382,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="text-[12px] px-3 py-1.5 rounded border border-line-default hover:bg-layer-2"
+            className="text-[12px] px-3 py-1.5 rounded-xs border border-line-default hover:bg-layer-2"
             disabled={busy}
           >
             Cancel
@@ -390,7 +390,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
           <button
             onClick={submit}
             disabled={busy}
-            className="text-[12px] font-600 px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40"
+            className="text-[12px] font-600 px-3 py-1.5 rounded-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40"
           >
             {busy ? 'Creating...' : 'Create mission'}
           </button>
@@ -499,7 +499,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
     <div className="flex flex-col gap-4 p-4">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <span className={`text-[10px] font-600 uppercase tracking-wide px-1.5 py-0.5 rounded ${STATUS_BADGE[mission.status].cls}`}>
+          <span className={`text-[10px] font-600 uppercase tracking-wide px-1.5 py-0.5 rounded-xs ${STATUS_BADGE[mission.status].cls}`}>
             {STATUS_BADGE[mission.status].label}
           </span>
           <span className="text-[10px] text-text-3/60">Created {formatTimestamp(mission.createdAt)}</span>
@@ -623,7 +623,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
               <button
                 key={r.id}
                 onClick={() => setSelectedReport(r)}
-                className="text-left text-[11px] text-text-3 px-2 py-1.5 rounded border border-line-subtle hover:border-line-default hover:bg-layer-1"
+                className="text-left text-[11px] text-text-3 px-2 py-1.5 rounded-xs border border-line-subtle hover:border-line-default hover:bg-layer-1"
               >
                 <span className="text-text">{r.title}</span>
                 <span className="text-text-3/60 ml-2">{formatTimestamp(r.generatedAt)}</span>
@@ -810,7 +810,7 @@ export default function MissionsPage() {
                   }
                   setCreateOpen(true)
                 }}
-                className="text-[11px] font-600 px-2.5 py-1 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15"
+                className="text-[11px] font-600 px-2.5 py-1 rounded-xs border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15"
               >
                 + Mission
               </button>
@@ -818,7 +818,7 @@ export default function MissionsPage() {
             {templates.length > 0 && (
               <button
                 onClick={() => setGalleryOpen(true)}
-                className="w-full text-left text-[11px] font-600 px-2.5 py-1.5 rounded border border-line-default bg-layer-1 text-text-3 hover:border-line-strong hover:text-text"
+                className="w-full text-left text-[11px] font-600 px-2.5 py-1.5 rounded-xs border border-line-default bg-layer-1 text-text-3 hover:border-line-strong hover:text-text"
               >
                 Browse {templates.length} starter templates →
               </button>
@@ -835,7 +835,7 @@ export default function MissionsPage() {
                 {templates.length > 0 && (
                   <button
                     onClick={() => setGalleryOpen(true)}
-                    className="text-[11px] font-600 px-2.5 py-1 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15 self-start"
+                    className="text-[11px] font-600 px-2.5 py-1 rounded-xs border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15 self-start"
                   >
                     Open template gallery
                   </button>

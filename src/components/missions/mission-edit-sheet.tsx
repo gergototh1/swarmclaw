@@ -147,7 +147,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
         </div>
 
         {!canEdit && (
-          <div className="mb-3 rounded border border-amber-500/30 bg-amber-500/10 text-amber-200 px-3 py-2 text-[11px]">
+          <div className="mb-3 rounded-xs border border-amber-500/30 bg-amber-500/10 text-amber-200 px-3 py-2 text-[11px]">
             This mission is {mission.status}. Only draft, running, or paused missions can be edited.
           </div>
         )}
@@ -300,7 +300,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="text-[12px] px-3 py-1.5 rounded border border-line-default hover:bg-layer-2"
+            className="text-[12px] px-3 py-1.5 rounded-xs border border-line-default hover:bg-layer-2"
             disabled={busy}
           >
             Cancel
@@ -308,7 +308,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
           <button
             onClick={submit}
             disabled={busy || !canEdit}
-            className="text-[12px] font-600 px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40"
+            className="text-[12px] font-600 px-3 py-1.5 rounded-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40"
           >
             {busy ? 'Saving...' : 'Save changes'}
           </button>

@@ -23,7 +23,7 @@ export function BranchEdge(props: EdgeProps<Edge<BuilderEdgeData>>) {
           height={20}
           className="pointer-events-none"
         >
-          <div className="rounded border border-amber-500/30 bg-background px-1 py-0.5 text-center text-[10px] font-semibold text-amber-600">
+          <div className="rounded-xs border border-amber-500/30 bg-background px-1 py-0.5 text-center text-[10px] font-semibold text-amber-600">
             {data.label}
           </div>
         </foreignObject>

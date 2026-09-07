@@ -98,7 +98,7 @@ function TemplateCard({ template, onInstall }: { template: MissionTemplate; onIn
           {template.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="text-[10px] text-text-3/70 px-1.5 py-0.5 rounded border border-line-subtle bg-layer-1"
+              className="text-[10px] text-text-3/70 px-1.5 py-0.5 rounded-xs border border-line-subtle bg-layer-1"
             >
               {tag}
             </span>
