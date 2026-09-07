@@ -1,16 +1,7 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { STREAM_REDIRECTS } from '@/app/stream/stream-tabs'
 
-import { LogList } from '@/components/logs/log-list'
-
+/** Merged into /stream. Kept so bookmarks and links from older sessions still land. */
 export default function LogsPage() {
-  return (
-    <div className="flex-1 flex flex-col h-full">
-      <div className="flex items-center px-6 pt-5 pb-3 shrink-0">
-        <h2 className="font-display text-[14px] font-600 text-text-2 tracking-[-0.01em] capitalize flex-1">
-          Logs
-        </h2>
-      </div>
-      <LogList />
-    </div>
-  )
+  redirect(STREAM_REDIRECTS.logs)
 }
