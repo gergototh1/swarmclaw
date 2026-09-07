@@ -208,3 +208,54 @@ test('a séma mind a négy táblát létrehozza', () => {
   const names = storage.raw.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'ext_publish_%' ORDER BY name").all().map((r) => r.name)
   assert.deepEqual(names, ['ext_publish_agak', 'ext_publish_fiokok', 'ext_publish_kiadasok', 'ext_publish_savok'])
 })
+
+// --- savok (Task 3) ---
+
+test('ujSav tárolja a nap/ora/perc hármast, és savok() a hét sorrendjében adja vissza', () => {
+  const { repo } = freshRepo()
+  const s1 = repo.ujSav({ nap: 5, ora: 18, perc: 0 })
+  const s2 = repo.ujSav({ nap: 1, ora: 9, perc: 0 })
+  const s3 = repo.ujSav({ nap: 1, ora: 8, perc: 30 })
+  assert.equal(s1.nap, 5)
+  assert.equal(s1.ora, 18)
+  assert.equal(s1.perc, 0)
+  assert.equal(typeof s1.id, 'string')
+  assert.equal(typeof s1.created_at, 'string')
+  // Hét sorrendje, nem a létrehozás sorrendje: s3 (hétfő 08:30) < s2 (hétfő
+  // 09:00) < s1 (péntek 18:00), holott s1 jött létre elsőként.
+  assert.deepEqual(repo.savok().map((s) => s.id), [s3.id, s2.id, s1.id])
+})
+
+test('sav egyetlen sávot ad vissza id szerint, ismeretlen id-re null-t', () => {
+  const { repo } = freshRepo()
+  const s = repo.ujSav({ nap: 3, ora: 12, perc: 15 })
+  assert.deepEqual(repo.sav(s.id), s)
+  assert.equal(repo.sav('nincs-ilyen'), null)
+})
+
+test('ujSav elutasítja az érvénytelen nap/ora/perc értéket, a hívó értékét vissza nem mondva', () => {
+  const { repo } = freshRepo()
+  const napErr = refusal(() => repo.ujSav({ nap: 7, ora: 9, perc: 0 }))
+  assert.ok(napErr, 'nem utasította el a 7-es napot')
+  assert.match(napErr.message, /nap/)
+  assert.equal(napErr.message.includes('7'), false, 'a hívó által küldött érvénytelen érték nem jelenhet meg az elutasításban')
+
+  const oraErr = refusal(() => repo.ujSav({ nap: 1, ora: 24, perc: 0 }))
+  assert.ok(oraErr, 'nem utasította el a 24-es órát')
+  assert.match(oraErr.message, /ora/)
+  assert.equal(oraErr.message.includes('24'), false, 'a hívó által küldött érvénytelen érték nem jelenhet meg az elutasításban')
+
+  const percErr = refusal(() => repo.ujSav({ nap: 1, ora: 9, perc: 60 }))
+  assert.ok(percErr, 'nem utasította el a 60-as percet')
+  assert.match(percErr.message, /perc/)
+  assert.equal(percErr.message.includes('60'), false, 'a hívó által küldött érvénytelen érték nem jelenhet meg az elutasításban')
+
+  assert.deepEqual(repo.savok(), [], 'egyik elutasított hívás sem írt sort')
+})
+
+test('két sáv állhat ugyanabban a heti percben -- nincs egyediségi megszorítás rajtuk', () => {
+  const { repo } = freshRepo()
+  repo.ujSav({ nap: 1, ora: 9, perc: 0 })
+  repo.ujSav({ nap: 1, ora: 9, perc: 0 })
+  assert.equal(repo.savok().length, 2)
+})

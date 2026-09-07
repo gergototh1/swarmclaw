@@ -3,16 +3,18 @@ import crypto from 'node:crypto'
 /**
  * Schema and repository for the publish module.
  *
- * This is Task 1's slice: the module's own storage, and only the account and
- * release primitives the brief's tests exercise (`ujKiadas`, `ujAg`, `agak`,
- * `fiokotIr`, `fiokok`). Nothing here sends anything anywhere -- the four
- * platform adapters, the scheduler that walks `ext_publish_savok`, and the
- * write side of a branch's own lifecycle (`kiment`, a stored `url`, a retry)
- * are later tasks' work (spec 4, 5, 6, 7). What exists already is the shape
- * design spec 3 fixes: an account keyed on the outlet's own id, one row per
- * release, and one row per release-AND-platform -- because that last key is
- * the decision the whole schema is built to make (see the key register
- * below).
+ * This is Task 1 and 3's slice: the module's own storage, the account and
+ * release primitives Task 1's tests exercise (`ujKiadas`, `ujAg`, `agak`,
+ * `fiokotIr`, `fiokok`), and Task 3's slot primitives (`ujSav`, `sav`,
+ * `savok`) -- the operator data `kovetkezoSzabadSav` (src/utemezes.mjs)
+ * reads to place an approved release in its next free slot. Nothing here
+ * sends anything anywhere -- the four platform adapters and the write side
+ * of a branch's own lifecycle (`kiment`, a stored `url`, a retry) are later
+ * tasks' work (spec 4, 6). What exists already is the shape design spec 3
+ * fixes: an account keyed on the outlet's own id, one row per release, one
+ * row per release-AND-platform, and one row per weekly slot -- because the
+ * release-AND-platform key is the decision the whole schema is built to make
+ * (see the key register below).
  *
  * Like the sibling modules, the repository does not interpret the text it
  * stores. `nev` (an account's display name) and `szoveg` (a branch's
@@ -67,9 +69,25 @@ import crypto from 'node:crypto'
  *     call `ujAg` from more than one place.
  *
  *   ext_publish_savok -- PRIMARY KEY (id)
- *     gates nothing yet. The table exists because design spec 3 names it as
- *     one of the four, and later tasks read it to place an approved release
- *     in the next free slot; nothing in this task writes or reads it.
+ *     gates nothing by itself, same as `ext_publish_fiokok`'s primary key.
+ *     Surrogate, minted by uid(); no UNIQUE index sits on (nap, ora, perc)
+ *     because two slots at the same weekly minute is an operator's
+ *     redundant, not invalid, choice -- `kovetkezoSzabadSav` just treats them
+ *     as two independent candidates that happen to compute the same instant,
+ *     and picks whichever it walks first.
+ *
+ *     `nap`/`ora`/`perc` (not the `idopont` this table started with in Task
+ *     1) because a slot is a WEEKLY RECURRENCE, not a point in time: "every
+ *     Monday at 09:00" has no single instant to store. `idopont` never
+ *     shipped a caller -- Task 1's own comment on this table said "nothing
+ *     in this task writes or reads it" -- so Task 3 corrects the column set
+ *     on the same migration version rather than layering an ALTER TABLE on a
+ *     shape nothing ever depended on; design spec 10 lists this as fresh
+ *     work, not archaeology on a released schema (spec doc section on the
+ *     data model). `nap` follows `Date.prototype.getUTCDay()`'s own
+ *     numbering (0 = Sunday ... 6 = Saturday) rather than inventing a
+ *     Monday-first scheme, so `src/utemezes.mjs` never has to translate
+ *     between the two.
  */
 
 export const now = () => new Date().toISOString()
@@ -165,7 +183,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS ext_publish_agak_kiadas_platform ON ext_publis
 CREATE TABLE IF NOT EXISTS ext_publish_savok (
   id TEXT PRIMARY KEY,
   nap INTEGER NOT NULL,
-  idopont TEXT NOT NULL,
+  ora INTEGER NOT NULL,
+  perc INTEGER NOT NULL,
   created_at TEXT NOT NULL
 );
 `,
@@ -271,6 +290,32 @@ ON CONFLICT(platform, kulso_id) DO UPDATE SET nev = excluded.nev, updated_at = e
     ag(id) { return S.get('SELECT * FROM ext_publish_agak WHERE id = ?', [id]) || null },
     /** A release's branches, in the order they were opened -- the order `ujAg` was called, which spec 3's "one row, four flags" reading depends on. */
     agak(kiadasId) { return S.all('SELECT * FROM ext_publish_agak WHERE kiadas_id = ? ORDER BY created_at ASC, rowid ASC', [kiadasId]) },
+
+    // --- savok ---
+
+    /**
+     * Opens one weekly publishing slot: every `nap` (0-6, `getUTCDay()`'s own
+     * numbering) at `ora:perc` UTC. Refused by name, and the caller's value
+     * is never echoed -- same discipline as `ujAg`/`fiokotIr` above -- because
+     * an out-of-range number is exactly the kind of value a refusal must not
+     * hand back verbatim next to the module's own range text.
+     *
+     * No uniqueness check: see the key register at the top of this file for
+     * why two slots at the same weekly minute is a redundant operator choice,
+     * not an invalid one.
+     */
+    ujSav({ nap, ora, perc }) {
+      if (!Number.isInteger(nap) || nap < 0 || nap > 6) throw new Error('ujSav: nap 0 és 6 közötti egész szám lehet (0 = vasárnap, getUTCDay() szerint)')
+      if (!Number.isInteger(ora) || ora < 0 || ora > 23) throw new Error('ujSav: ora 0 és 23 közötti egész szám lehet')
+      if (!Number.isInteger(perc) || perc < 0 || perc > 59) throw new Error('ujSav: perc 0 és 59 közötti egész szám lehet')
+      const id = uid()
+      const t = now()
+      S.exec('INSERT INTO ext_publish_savok (id, nap, ora, perc, created_at) VALUES (?,?,?,?,?)', [id, nap, ora, perc, t])
+      return repo.sav(id)
+    },
+    sav(id) { return S.get('SELECT * FROM ext_publish_savok WHERE id = ?', [id]) || null },
+    /** Every declared slot, ordered by when it falls in the week -- the shape `kovetkezoSzabadSav` (src/utemezes.mjs) takes as its `savok` argument. */
+    savok() { return S.all('SELECT * FROM ext_publish_savok ORDER BY nap ASC, ora ASC, perc ASC') },
   }
   return repo
 }

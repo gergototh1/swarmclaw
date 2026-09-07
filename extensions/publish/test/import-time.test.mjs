@@ -13,9 +13,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
  * instruction (1.4's TDD note and the task's file list both point at it). Read
  * that file for the full "why plain node, why the time matters" reasoning;
  * this copy keeps the same two tests and the same setup() checks, and pins
- * only what Task 1 actually declares -- no tools yet, no `provides`, no
- * `ui.pages`, no `managedResources` -- rather than a shape later tasks have
- * not built.
+ * only what Task 1 and Task 3 actually declare -- no tools yet, no
+ * `provides`, no `ui.pages`, no managed agents, exactly one managed schedule
+ * -- rather than a shape later tasks have not built.
  */
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -40,6 +40,13 @@ test('index.mjs imports under plain node well inside the host deadline and decla
       migrations: ext.migrations.length,
       setup: typeof ext.setup,
       ui: ext.ui ?? null,
+      schedules: (ext.managedResources?.schedules ?? []).map((s) => ({
+        scheduleKey: s.scheduleKey,
+        scheduleType: s.scheduleType,
+        intervalMs: s.intervalMs,
+        agentRefKey: s.agentRef?.resourceKey,
+      })),
+      managedAgents: ext.managedResources?.agents ?? null,
     }))
   `
   const r = spawnSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' })
@@ -63,6 +70,16 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.equal(out.setup, 'function')
   // No page yet (design spec 10 lists ui/ as a later task's file).
   assert.deepEqual(out.ui, null)
+  // Task 3: exactly one fixed-cadence run (design spec 7), pointed at an
+  // agent key Task 4 has not declared yet (see index.mjs's own SCHEDULES
+  // docblock for why that is a graceful host-side skip, not a bug). Adding
+  // or changing a schedule is a real decision -- this pin exists so that
+  // decision shows up as a diff here, not a silent shape change.
+  assert.deepEqual(out.schedules, [
+    { scheduleKey: 'publish-kikuldes', scheduleType: 'interval', intervalMs: 15 * 60 * 1000, agentRefKey: 'publish-kuldo' },
+  ])
+  // No agents declared by this task (Task 4 owns `src/agents.mjs`).
+  assert.equal(out.managedAgents, null)
 })
 
 test('the entry does no work at import: no top-level await, no file read, no timer, no fetch', () => {
