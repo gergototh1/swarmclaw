@@ -12,10 +12,11 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { jsx } from 'react/jsx-runtime'
 
 import { bundle } from '../scripts/build.mjs'
+import { AG_ALLAPOTOK, KIADAS_ALLAPOTOK, PLATFORMOK } from '../src/db.mjs'
 import { errText, isRecord, readFiokok, readKiadas, readNaptar, refusalText } from '../ui/api.ts'
-import { FiokokBody } from '../ui/fiokok.tsx'
+import { FiokokBody, PLATFORMOK_SORREND } from '../ui/fiokok.tsx'
 import { KiadasBody } from '../ui/kiadas.tsx'
-import { Bejegyzes, KIADAS_CIMKE, idopontSzoveg, napIndexZonaban } from '../ui/naptar.tsx'
+import { AG_CIMKE, Bejegyzes, KIADAS_CIMKE, NaptarBody, PLATFORM_CIMKE, idopontSzoveg, napIndexZonaban } from '../ui/naptar.tsx'
 import { safeHref } from '../ui/safe-href.ts'
 
 /**
@@ -284,13 +285,33 @@ function naptarFixture(overrides = {}) {
 
 const renderNaptar = (kiadas) => render(Bejegyzes, { kiadas })
 
+/** One platform flag as it was actually rendered: the state class it carries, and the sentence inside it. */
+function jelzo(html, platform) {
+  const m = new RegExp(`<span class="([^"]*)" data-platform="${platform}">([^<]*)</span>`).exec(html)
+  assert.ok(m !== null, `nincs kirajzolt jelző ehhez a platformhoz: ${platform}`)
+  return { osztaly: m[1], szoveg: m[2] }
+}
+
 test('egy kiadás EGY bejegyzés a naptárban, négy platform-jelzővel', () => {
-  const html = renderNaptar(naptarFixture({ agak: [
-    { platform: 'youtube', allapot: 'kesz' }, { platform: 'facebook', allapot: 'var' },
-    { platform: 'instagram', allapot: 'hiba' }, { platform: 'tiktok', allapot: 'nincs_fiok' },
-  ] }))
+  const varhato = { youtube: 'kesz', facebook: 'var', instagram: 'hiba', tiktok: 'nincs_fiok' }
+  const html = renderNaptar(naptarFixture({
+    agak: Object.entries(varhato).map(([platform, allapot]) => ({ platform, allapot })),
+  }))
   assert.equal(elofordulas(html, 'pub-bejegyzes'), 1, 'egy bejegyzés, nem négy')
-  for (const p of ['youtube', 'facebook', 'instagram', 'tiktok']) assert.ok(html.includes(p))
+  for (const p of Object.keys(varhato)) assert.ok(html.includes(p))
+
+  // A PÁROSÍTÁS AZ ÁLLÍTÁS, nem a négy név puszta előfordulása. A brief saját
+  // tesztje (fent) attól is átmegy, ha mind a négy jelző EGY ág kimenetelét
+  // hordozza -- és akkor "a fiók nélküli, az elbukott és a még el nem jött"
+  // egyetlen mondatba olvad, ami éppen a modul központi vizuális állítása
+  // (constraints.md első szabálya: három tény, három állapot, sosem egymás
+  // helyett).
+  for (const [platform, allapot] of Object.entries(varhato)) {
+    const j = jelzo(html, platform)
+    assert.equal(j.szoveg, `${PLATFORM_CIMKE[platform]}: ${AG_CIMKE[allapot]}`, platform)
+    assert.equal(j.osztaly, `pub-jelzo pub-jelzo-${allapot}`, platform)
+  }
+  assert.equal(new Set(Object.values(varhato).map((a) => AG_CIMKE[a])).size, 4, 'a négy szó tényleg négy különböző mondat')
 })
 
 test('a vázlat láthatóan más, mint a jóváhagyott', () => {
@@ -314,12 +335,39 @@ test('a nincs_hova nem kesz: a lap kimondja, hogy sehol nincs fent', () => {
 
 // --- the calendar entry: a few more shapes the four given tests do not cover ---
 
-test('minden KIADAS_ALLAPOT szó ismert, és mindegyiknek saját mondata van', () => {
-  for (const allapot of ['vazlat', 'lektoralt', 'jovahagyva', 'utemezve', 'kesz', 'reszben', 'hiba', 'nincs_hova']) {
-    assert.ok(typeof KIADAS_CIMKE[allapot] === 'string' && KIADAS_CIMKE[allapot] !== '', allapot)
+test('a lap szókincse a db.mjs saját konstansaihoz van kötve, nem egy kézzel másolt listához', () => {
+  // A `ui/` SEMMIT NEM IMPORTÁL a `src/`-ből: a szavak kézzel át vannak
+  // másolva, mert a lap böngésző-bundle-je nem akarja behúzni a repository
+  // hatszáz sorát nyolc szó kedvéért. A másolat viszont elcsúszik, és az
+  // elcsúszás néma: egy kilencedik szó a `KIADAS_ALLAPOTOK`-ban egy
+  // `db.test.mjs` pint buktatna, a lapot soha -- az a kiadás egyszerűen a
+  // nyers szavát írná ki az operátornak. Ezért a pin ITT van, a TESZTBEN,
+  // ami mindkét oldalt importálja.
+  assert.deepEqual(Object.keys(KIADAS_CIMKE).sort(), Object.values(KIADAS_ALLAPOTOK).slice().sort())
+  assert.deepEqual(Object.keys(AG_CIMKE).sort(), Object.values(AG_ALLAPOTOK).slice().sort())
+  assert.deepEqual(Object.keys(PLATFORM_CIMKE).sort(), PLATFORMOK.slice().sort())
+  assert.deepEqual(PLATFORMOK_SORREND.slice().sort(), PLATFORMOK.slice().sort())
+
+  // És minden szónak SAJÁT mondata: egy közös helytartó, amire kettő
+  // visszaesik, ugyanúgy összeolvasztana két tényt.
+  for (const [tabla, nev] of [[KIADAS_CIMKE, 'KIADAS_CIMKE'], [AG_CIMKE, 'AG_CIMKE'], [PLATFORM_CIMKE, 'PLATFORM_CIMKE']]) {
+    for (const [szo, mondat] of Object.entries(tabla)) {
+      assert.ok(typeof mondat === 'string' && mondat !== '', `${nev}.${szo}`)
+    }
+    assert.equal(new Set(Object.values(tabla)).size, Object.keys(tabla).length, nev)
   }
-  // Every sentence is its own, not a shared placeholder eight words fell back to.
-  assert.equal(new Set(Object.values(KIADAS_CIMKE)).size, 8)
+})
+
+test('a kiadás-lap és a naptár UGYANAZT az ág-szótárat használja, nem két kézzel írt másolatot', () => {
+  // Két különálló AG_CIMKE tábla (ez volt itt) csendben szétcsúszik: a
+  // részletes nézet még "elbukott"-at ír, miközben a naptárat már mást
+  // tanítottak mondani UGYANARRÓL a sorról.
+  const html = render(KiadasBody, kiadasBodyProps({
+    reszlet: kiadasReszlet({ agak: [{ platform: 'youtube', allapot: 'hiba', url: null, hibaKod: 'kvota_elfogyott', kikuldveAt: null, szoveg: null }] }),
+  }))
+  assert.ok(html.includes(AG_CIMKE.hiba))
+  const naptarHtml = renderNaptar(naptarFixture({ agak: [{ platform: 'youtube', allapot: 'hiba' }] }))
+  assert.ok(naptarHtml.includes(AG_CIMKE.hiba))
 })
 
 test('egy felülírt időpontú kiadás megmondja, hogy az operátor nyúlt hozzá', () => {
@@ -367,7 +415,8 @@ function kiadasReszlet(overrides = {}) {
 }
 
 const kiadasBodyProps = (overrides = {}) => ({
-  reszlet: kiadasReszlet(), hiba: null, uzenet: null, kuldes: false, onJovahagy: noop, onBack: noop, onFrissit: noop, ...overrides,
+  reszlet: kiadasReszlet(), hiba: null, uzenet: null, kuldes: false, ujIdopont: '',
+  onJovahagy: noop, onUjIdopont: noop, onAtutemez: noop, onBack: noop, onFrissit: noop, ...overrides,
 })
 
 test('a kiadás-lap a négy platform szövegét React szövegként rajzolja, script-tagekkel együtt, sosem markupként', () => {
@@ -401,6 +450,15 @@ test('egy http(s) url megnyitható linkként jelenik meg, egy nem-http(s) url sz
   }))
   assert.equal(rossz.includes('href="javascript'), false)
   assert.ok(rossz.includes('nem http(s)'))
+  // ÉS NEM MONDJA VISSZA A TÁROLT ÉRTÉKET. Az elutasított url egy `javascript:`
+  // vagy `data:` payload lehet, amit egy platform-adapter vagy egy ügynök írt
+  // oda; React text child, tehát nem hajtódik végre, de a modul kimondott
+  // szabálya (constraints.md) az, hogy egy elutasítás soha nem mondja vissza a
+  // hívó értékét vagy a tárolt szöveget -- és a minta, amire ez a nézet
+  // hivatkozik, `extensions/video/ui/video.tsx`, szintén érték nélkül fejezi be
+  // a mondatot.
+  assert.equal(rossz.includes('javascript:alert(1)'), false, 'az elutasított url nem kerül vissza a lapra')
+  assert.equal(rossz.includes('alert(1)'), false)
 })
 
 test('a hibás ág saját hibaKod-ját mutatja, a másik három ág nem', () => {
@@ -412,6 +470,15 @@ test('a hibás ág saját hibaKod-ját mutatja, a másik három ág nem', () => 
   }))
   assert.ok(html.includes('kvota_elfogyott'))
   assert.equal(elofordulas(html, 'kvota_elfogyott'), 1)
+  // AZ ŐR MAGA IS ÁLLÍTÁS. A `ag.hibaKod !== null &&` nélkül az ép ágak is
+  // kapnának egy ÜRES `.pub-ag-hiba` bekezdést -- egy hibajelző elem egy olyan
+  // ágon, amivel semmi baj nincs, ami pont a modul központi
+  // megkülönböztetését mossa el (az elbukott és a még el nem jött nem ugyanaz).
+  // A kód puszta előfordulása ezt nem fogja meg; az elemek SZÁMA igen.
+  // A teljes `class="..."` az állítás, nem a puszta osztálynév: az `<li>` maga
+  // `pub-ag-sor pub-ag-hiba`-t visel egy elbukott ágon (`pub-ag-${allapot}`),
+  // tehát a részletre való számolás a sort is beleszámolná.
+  assert.equal(elofordulas(html, 'class="pub-ag-hiba"'), 1, 'csak a hibás ág kap hiba-bekezdést, a másik nem')
 })
 
 test('a lektori találatok csak akkor jelennek meg, ha vannak, és platformonként a saját kódjukat mondják', () => {
@@ -487,7 +554,6 @@ test('NaptarNezet betölti a heti listát, és egy rossz válaszra megnevezett h
   const { rpc } = stubRpc({ naptar: () => naptarValasz() })
   const view = mount(NaptarNezet, { rpc, onOpen: noop })
   await settle()
-  const { NaptarBody } = await import('../ui/naptar.tsx')
   const body1 = () => childProps(view, NaptarBody)
   assert.equal(body1().hiba, 'Failed to fetch')
   assert.equal(body1().adat, null)
@@ -563,4 +629,338 @@ test('FiokokNezet: az összekötés sikere kiüríti a mezőket és újratölti,
   assert.equal(body().kulsoId, '', 'a siker kiüríti a mezőket')
   assert.equal(body().nev, '')
   assert.equal(toltesek, 2, 'a siker újratölti a listát')
+})
+
+// --- the release detail: when it goes out, and the operator's own reschedule ---
+//
+// `idopont`, `felulirtIdopont` and `savId` were read and typed by `ui/api.ts`
+// from the page's first version and rendered by NOTHING, so the one screen an
+// operator opens to decide whether to approve never said when the release
+// would actually be published. These tests are that sentence, and the
+// separate one the override gets.
+
+test('a részletes nézet megmondja, mikor megy ki a kiadás, és a sávból kapott időpontot nem nevezi operátori felülírásnak', () => {
+  const nincs = render(KiadasBody, kiadasBodyProps())
+  assert.ok(nincs.includes('Ennek a kiadásnak még nincs időpontja'))
+  assert.equal(nincs.includes('2026-'), false, 'időpont nélkül nincs mit kiírni')
+
+  const utemezve = render(KiadasBody, kiadasBodyProps({
+    reszlet: kiadasReszlet({ allapot: 'utemezve', idopont: '2026-09-07T09:00:00.000Z', savId: 's1' }),
+  }))
+  assert.ok(utemezve.includes('2026-09-07 09:00 UTC'))
+  // A NAPTÁR SAJÁT MONDATA, nem egy második megfogalmazás: a két képernyő
+  // ugyanazt a pillanatot ígéri, tehát ugyanazt a pontosságot is kell
+  // mondaniuk a negyed órás csúszásról (design spec 7).
+  assert.ok(utemezve.includes(idopontSzoveg('2026-09-07T09:00:00.000Z')))
+  assert.equal(utemezve.includes('kézzel állította át'), false, 'a sáv adta időpont nem operátori felülírás')
+
+  const felulirt = render(KiadasBody, kiadasBodyProps({
+    reszlet: kiadasReszlet({ allapot: 'utemezve', idopont: '2026-09-08T10:00:00.000Z', felulirtIdopont: '2026-09-08T10:00:00.000Z', savId: 's1' }),
+  }))
+  assert.ok(felulirt.includes('2026-09-08 10:00 UTC'))
+  assert.ok(felulirt.includes('kézzel állította át'), 'a felülírás külön tény, nem a formázás')
+})
+
+test('az áthelyezés űrlapja csak utemezve állapotban jelenik meg -- ott, ahol a modul nem utasítaná el', () => {
+  // `repo.idopontFeluliras` (src/db.mjs) minden más állapotot nevesítve
+  // elutasít, mert egy sáv nélküli kiadáson nincs mit felülírni. Egy gomb,
+  // amit a modul úgyis elutasít, rosszabb, mint a hiánya.
+  for (const allapot of ['vazlat', 'lektoralt', 'jovahagyva', 'kesz', 'reszben', 'hiba', 'nincs_hova']) {
+    const html = render(KiadasBody, kiadasBodyProps({ reszlet: kiadasReszlet({ allapot }) }))
+    assert.equal(html.includes('Áthelyezés másik időpontra'), false, allapot)
+  }
+  const utemezve = render(KiadasBody, kiadasBodyProps({
+    reszlet: kiadasReszlet({ allapot: 'utemezve', idopont: '2026-09-07T09:00:00.000Z', savId: 's1' }),
+  }))
+  assert.ok(utemezve.includes('Áthelyezés másik időpontra'))
+  assert.ok(utemezve.includes('a saját géped órája szerint'), 'a címke megmondja, melyik órán olvassa a beírt értéket')
+  // Üres mezővel a gomb nem él: egy üres `datetime-local` nem időpont.
+  assert.ok(/<button[^>]*disabled[^>]*>Áthelyezés</.test(utemezve))
+  const beirva = render(KiadasBody, kiadasBodyProps({
+    reszlet: kiadasReszlet({ allapot: 'utemezve', idopont: '2026-09-07T09:00:00.000Z', savId: 's1' }),
+    ujIdopont: '2026-09-08T10:00',
+  }))
+  assert.equal(/<button[^>]*disabled[^>]*>Áthelyezés</.test(beirva), false)
+})
+
+test('egy félig megírt ág-szöveg félignek látszik, nem "még nincs megírt szöveg"-nek', () => {
+  // `olvasSzoveg` (src/szoveg.mjs) a `cim`-et és a `leiras`-t KÜLÖN olvassa,
+  // tehát `{ cim: 'C', leiras: null }` valódi tárolt állapot. A korábbi olvasó
+  // ezt is, meg egy olvashatatlan választ is `null`-lá lapított, és a lap
+  // mindkettőre azt írta, hogy semmi nincs megírva -- elrejtve az operátor
+  // saját, félig kész címét.
+  const felig = render(KiadasBody, kiadasBodyProps({
+    reszlet: kiadasReszlet({ agak: [
+      { platform: 'youtube', allapot: 'var', url: null, hibaKod: null, kikuldveAt: null, szoveg: { cim: 'Egy megírt cím', leiras: null } },
+    ] }),
+  }))
+  assert.ok(felig.includes('Egy megírt cím'))
+  assert.ok(felig.includes('Ehhez a platformhoz nincs megírt leírás.'))
+  assert.equal(felig.includes('Ehhez a platformhoz még nincs megírt szöveg.'), false, 'egy megírt cím nem "semmi sincs megírva"')
+
+  const semmi = render(KiadasBody, kiadasBodyProps({
+    reszlet: kiadasReszlet({ agak: [
+      { platform: 'youtube', allapot: 'var', url: null, hibaKod: null, kikuldveAt: null, szoveg: null },
+    ] }),
+  }))
+  assert.ok(semmi.includes('Ehhez a platformhoz még nincs megírt szöveg.'))
+  assert.equal(semmi.includes('nincs megírt cím'), false, 'a két tény nem egymás fölött jelenik meg')
+})
+
+test('readKiadas: a hiányzó szoveg KULCS alakhiba, egy jelen lévő null pedig "nincs szövege" -- és egy fél szöveg átjön', () => {
+  const alap = {
+    kiadasId: 'k1', videoId: 'v1', allapot: 'vazlat', idopont: null, felulirtIdopont: null, savId: null,
+    cim: 'C', narracioSzoveg: null, videoHiba: null, talalatok: [],
+    agak: [{ platform: 'youtube', allapot: 'var', url: null, hibaKod: null, kikuldveAt: null, szoveg: null }],
+  }
+  assert.equal(readKiadas(alap).agak[0].szoveg, null)
+
+  const felig = JSON.parse(JSON.stringify(alap))
+  felig.agak[0].szoveg = { cim: 'C', leiras: null }
+  assert.deepEqual(readKiadas(felig).agak[0].szoveg, { cim: 'C', leiras: null })
+
+  // Amit a régi olvasó NÉMÁN `null`-ra váltott: hiányzó kulcs, és egy olyan
+  // alak, amit ez a lap nem tud elolvasni. Mindkettő megnevezve utasul el.
+  const hianyzo = JSON.parse(JSON.stringify(alap))
+  delete hianyzo.agak[0].szoveg
+  assert.throws(() => readKiadas(hianyzo), /szoveg/)
+  const rosszAlak = JSON.parse(JSON.stringify(alap))
+  rosszAlak.agak[0].szoveg = 'egy sztring'
+  assert.throws(() => readKiadas(rosszAlak), /szoveg/)
+  const rosszMezo = JSON.parse(JSON.stringify(alap))
+  rosszMezo.agak[0].szoveg = { cim: 42, leiras: 'L' }
+  assert.throws(() => readKiadas(rosszMezo), /cim/)
+})
+
+// --- the calendar's slot controls: the entrance to the slot table ----------
+
+const naptarBodyProps = (overrides = {}) => ({
+  adat: { idozona: 'Europe/Budapest', savok: [], kiadasok: [] },
+  hiba: null, uzenet: null, kuldes: false, savUrlap: { nap: null, ora: '18', perc: '00' },
+  onOpen: noop, onFrissit: noop, onSavUrlapNyit: noop, onSavOra: noop, onSavPerc: noop,
+  onSavFelvesz: noop, onSavTorol: noop, onAlapSavok: noop,
+  ...overrides,
+})
+
+test('nulla sávos naptáron ott az egykattintásos alapkészlet, és minden nap ad gombot a sáv felvételéhez', () => {
+  // EZ VOLT A LYUK, AMIÉRT A MODUL EGÉSZE TÉTLEN MARADT. A hét nap
+  // mindegyike kiírta, hogy "Nincs sáv ezen a napon", gomb nélkül, és éles
+  // kódból SEMMI nem hívta a `repo.ujSav`-ot -- tehát minden jóváhagyás
+  // `nincs_szabad_sav`-val végződött, örökre.
+  const html = render(NaptarBody, naptarBodyProps())
+  assert.equal(elofordulas(html, 'Nincs sáv ezen a napon.'), 7)
+  assert.equal(elofordulas(html, 'Sáv hozzáadása'), 7, 'mind a hét napban van bejárat')
+  assert.ok(html.includes('Alap sávkészlet felvétele (hétfő, szerda, péntek 18:00)'))
+  assert.ok(html.includes('a jóváhagyott kiadások nem kapnak'), 'a lap megmondja, mi az ára annak, hogy nincs sáv')
+  // A zóna a válasszal utazik, és a törlés ára ki van mondva.
+  assert.ok(html.includes('Europe/Budapest'))
+  assert.ok(html.includes('Egy sáv törlése csak az ezután következő ütemezéseket érinti'))
+})
+
+test('egy felvett sáv a saját napjában jelenik meg, saját törlő gombbal, és az alapkészlet ajánlata eltűnik', () => {
+  const html = render(NaptarBody, naptarBodyProps({
+    adat: { idozona: 'Europe/Budapest', savok: [{ id: 's1', nap: 3, ora: 18, perc: 0 }], kiadasok: [] },
+  }))
+  assert.ok(html.includes('data-sav-id="s1"'))
+  assert.ok(html.includes('18:00'), 'a sáv fali órája két jegyre kiírva')
+  assert.equal(elofordulas(html, 'Sáv törlése'), 1, 'sávonként egy törlő gomb, nem naponként')
+  assert.equal(elofordulas(html, 'Nincs sáv ezen a napon.'), 6, 'a szerda már nem üres, a másik hat igen')
+  assert.equal(html.includes('Alap sávkészlet felvétele'), false, 'az alapkészlet üres naptár ajánlata, nem állandó gomb')
+
+  // A sáv a SAJÁT napjában van, nem egy közös listában valahol a hét fölött.
+  const szerda = html.split('data-nap="3"')[1].split('data-nap="4"')[0]
+  assert.ok(szerda.includes('data-sav-id="s1"'))
+})
+
+test('egyszerre EGY nap sáv-űrlapja van nyitva, és az, amelyiket az operátor megnyitotta', () => {
+  const zart = render(NaptarBody, naptarBodyProps())
+  assert.equal(elofordulas(zart, 'Sáv mentése'), 0)
+
+  const nyitva = render(NaptarBody, naptarBodyProps({ savUrlap: { nap: 3, ora: '18', perc: '30' } }))
+  assert.equal(elofordulas(nyitva, 'Sáv mentése'), 1, 'hét nyitott űrlap hét helye lenne egy félig beírt órának')
+  assert.equal(elofordulas(nyitva, 'Sáv hozzáadása'), 6, 'a nyitott nap a gombja helyett az űrlapját mutatja')
+  assert.ok(nyitva.includes('aria-label="Óra — Szerda"'), 'a mező megnevezi, melyik nap órájáról van szó')
+  assert.ok(nyitva.includes('aria-label="Perc — Szerda"'))
+  const szerda = nyitva.split('data-nap="3"')[1].split('data-nap="4"')[0]
+  assert.ok(szerda.includes('Sáv mentése'))
+})
+
+test('NaptarNezet: a sáv-felvétel a megnyitott napot és a beírt fali órát küldi, egy üres óra pedig NEM éjfél', async () => {
+  const { NaptarNezet } = await import('../ui/naptar.tsx')
+  let felveszValasz = () => Promise.resolve({ sav: { id: 's1', nap: 3, ora: 18, perc: 30 } })
+  let toltesek = 0
+  const { rpc, hivasok } = stubRpc({
+    naptar: () => { toltesek += 1; return Promise.resolve({ idozona: 'Europe/Budapest', savok: [], kiadasok: [] }) },
+    savotFelvesz: (params) => felveszValasz(params),
+  })
+  const view = mount(NaptarNezet, { rpc, onOpen: noop })
+  await settle()
+  const body = () => childProps(view, NaptarBody)
+  assert.equal(toltesek, 1)
+  const utolsoFelvesz = () => hivasok.filter((h) => h.method === 'savotFelvesz').at(-1)
+
+  body().onSavUrlapNyit(3)
+  body().onSavPerc('30')
+  body().onSavFelvesz()
+  await settle()
+  assert.deepEqual(utolsoFelvesz().params, { nap: 3, ora: 18, perc: 30 }, 'számok mennek ki, nem az input sztringjei')
+  assert.equal(body().uzenet, 'Sáv felvéve.')
+  assert.equal(body().savUrlap.nap, null, 'a siker becsukja az űrlapot')
+  assert.equal(toltesek, 2, 'a siker újratölti a naptárat')
+
+  // A KIÜRÍTETT ÓRA-MEZŐ. `Number('')` nulla, tehát egy naiv átalakítás
+  // csendben éjféli sávot deklarálna -- egy valódi publikálási időpontot, úgy,
+  // mintha az operátor választotta volna. NaN nem egész, tehát a modul
+  // nevesítve utasítja el.
+  body().onSavUrlapNyit(3)
+  body().onSavOra('')
+  felveszValasz = () => Promise.resolve({ hiba: 'argumentum_hibas', uzenet: 'ora: 0 és 23 közötti egész szám kell' })
+  body().onSavFelvesz()
+  await settle()
+  assert.equal(Number.isNaN(utolsoFelvesz().params.ora), true, 'az üres mező nem lesz 0')
+  assert.ok(body().uzenet.includes('argumentum_hibas'))
+  assert.equal(body().savUrlap.nap, 3, 'egy elutasítás nyitva hagyja az űrlapot, hogy legyen mit javítani')
+  assert.equal(toltesek, 2, 'egy elutasítás nem tölt újra')
+
+  felveszValasz = () => Promise.reject(new Error('a host 502-t adott'))
+  body().onSavFelvesz()
+  await settle()
+  assert.equal(body().uzenet, 'A sáv felvételének kérése el sem jutott a modulhoz: a host 502-t adott')
+})
+
+test('NaptarNezet: a sáv törlése és az alapkészlet ugyanazt a három kimenetet mondja külön', async () => {
+  const { NaptarNezet } = await import('../ui/naptar.tsx')
+  let torolValasz = () => Promise.resolve({ savId: 's1' })
+  let alapValasz = () => Promise.resolve({ savok: [{ id: 'a1', nap: 1, ora: 18, perc: 0 }] })
+  let toltesek = 0
+  const { rpc, hivasok } = stubRpc({
+    naptar: () => { toltesek += 1; return Promise.resolve({ idozona: 'Europe/Budapest', savok: [], kiadasok: [] }) },
+    savotTorol: (params) => torolValasz(params),
+    alapSavokatFelvesz: (params) => alapValasz(params),
+  })
+  const view = mount(NaptarNezet, { rpc, onOpen: noop })
+  await settle()
+  const body = () => childProps(view, NaptarBody)
+
+  body().onSavTorol('s1')
+  await settle()
+  assert.deepEqual(hivasok.filter((h) => h.method === 'savotTorol').at(-1).params, { savId: 's1' })
+  assert.equal(body().uzenet, 'Sáv törölve.')
+  assert.equal(toltesek, 2)
+
+  torolValasz = () => Promise.resolve({ hiba: 'sav_ismeretlen', uzenet: 'nincs sáv a megadott savId-vel' })
+  body().onSavTorol('elavult')
+  await settle()
+  assert.ok(body().uzenet.includes('sav_ismeretlen'), 'egy elavult lapról kattintott sor nem néma')
+  assert.equal(toltesek, 2)
+
+  body().onAlapSavok()
+  await settle()
+  assert.deepEqual(hivasok.filter((h) => h.method === 'alapSavokatFelvesz').at(-1).params, {})
+  assert.ok(body().uzenet.includes('hétfő, szerda és péntek 18:00'), 'a siker kimondja, mit vett fel')
+  assert.equal(toltesek, 3)
+
+  alapValasz = () => Promise.resolve({ hiba: 'van_mar_sav', uzenet: 'ezen a telepítésen már van legalább egy sáv' })
+  body().onAlapSavok()
+  await settle()
+  assert.ok(body().uzenet.includes('van_mar_sav'))
+
+  alapValasz = () => Promise.reject(new Error('a host 502-t adott'))
+  body().onAlapSavok()
+  await settle()
+  assert.equal(body().uzenet, 'Az alap sávkészlet kérése el sem jutott a modulhoz: a host 502-t adott')
+})
+
+test('KiadasNezet: az áthelyezés a beírt helyi időt ISO pillanattá váltja, és egy olvashatatlan értéket el sem küld', async () => {
+  const { KiadasNezet } = await import('../ui/kiadas.tsx')
+  const reszlet = kiadasReszlet({ allapot: 'utemezve', idopont: '2026-09-07T09:00:00.000Z', savId: 's1' })
+  let atutemezValasz = () => Promise.resolve({ felulirtIdopont: '2026-09-08T08:00:00.000Z', allapot: 'utemezve' })
+  let toltesek = 0
+  const { rpc, hivasok } = stubRpc({
+    kiadas: () => { toltesek += 1; return Promise.resolve(reszlet) },
+    atutemez: (params) => atutemezValasz(params),
+  })
+  const view = mount(KiadasNezet, { rpc, kiadasId: 'k1', onBack: noop })
+  await settle()
+  const body = () => childProps(view, KiadasBody)
+  assert.equal(toltesek, 1)
+
+  // Egy olvashatatlan érték ITT dől el, nem egy körút után: a modul úgyis
+  // `idopont_ervenytelen`-nel felelne, csak lassabban.
+  body().onUjIdopont('nem-egy-datum')
+  body().onAtutemez()
+  await settle()
+  assert.equal(hivasok.filter((h) => h.method === 'atutemez').length, 0, 'ezt el sem küldi')
+  assert.ok(body().uzenet.includes('nem olvasható vissza'))
+
+  // A `datetime-local` értékben NINCS zóna: a gép saját óráján olvasódik. A
+  // teszt ezért nem egy fix ISO sztringet vár (az a futtató TZ-jétől függne),
+  // hanem azt, hogy a kiküldött pillanat UGYANAZ a pillanat, amit a beírt
+  // helyi fali óra jelent -- és hogy zónás alakban megy ki.
+  body().onUjIdopont('2026-09-08T10:00')
+  body().onAtutemez()
+  await settle()
+  const kuldott = hivasok.filter((h) => h.method === 'atutemez').at(-1)
+  assert.equal(kuldott.params.kiadasId, 'k1')
+  assert.equal(new Date(kuldott.params.felulirtIdopont).getTime(), new Date('2026-09-08T10:00').getTime())
+  assert.ok(kuldott.params.felulirtIdopont.endsWith('Z'), 'a modul ISO pillanatot kap, nem zóna nélküli szöveget')
+  assert.ok(body().uzenet.includes('áthelyezve'))
+  assert.equal(body().ujIdopont, '', 'a siker kiüríti a mezőt')
+  assert.equal(toltesek, 2, 'a siker újratölti a részletet')
+
+  atutemezValasz = () => Promise.resolve({ hiba: 'kiadas_allapota_nem_engedi', uzenet: 'csak ütemezett kiadás helyezhető át' })
+  body().onUjIdopont('2026-09-08T10:00')
+  body().onAtutemez()
+  await settle()
+  assert.ok(body().uzenet.includes('kiadas_allapota_nem_engedi'))
+  assert.equal(body().ujIdopont, '2026-09-08T10:00', 'egy elutasítás megtartja a beírtakat')
+  assert.equal(toltesek, 2, 'egy elutasítás nem tölt újra')
+
+  atutemezValasz = () => Promise.reject(new Error('a host 502-t adott'))
+  body().onAtutemez()
+  await settle()
+  assert.equal(body().uzenet, 'Az áthelyezés kérése el sem jutott a modulhoz: a host 502-t adott')
+})
+
+// --- the host table, read directly -----------------------------------------
+
+test('hostReact megnevezi a hiányzó host-modult, és a host SAJÁT react-jét adja vissza', async () => {
+  // AZ EDDIGI ŐR NEM EZT A FÜGGVÉNYT HAJTOTTA. A bundle-t egy üres
+  // `modules` táblával futtatva a `scripts/build.mjs` shimje dob előbb,
+  // ugyanazzal a mondattal ("host module missing: react") -- tehát az
+  // állítás anélkül teljesült, hogy a `hostReact()` valaha lefutott volna,
+  // és ennek a fájlnak a sora akár törölhető is lett volna észrevétlenül.
+  // Ez a teszt magát a függvényt hívja.
+  const { hostOf, hostReact } = await import('../ui/host.ts')
+  const eredetiVan = 'window' in globalThis
+  const eredeti = globalThis.window
+  try {
+    globalThis.window = {}
+    assert.throws(() => hostOf(), /window\.swarmclaw is not installed/)
+    globalThis.window = { swarmclaw: { modules: {} } }
+    assert.throws(() => hostOf(), /window\.swarmclaw is not installed/, 'registerPage nélkül a tábla nem a hoszté')
+    globalThis.window = { swarmclaw: { modules: {}, registerPage: () => {} } }
+    assert.throws(() => hostReact(), /publish: host module missing: react/)
+    globalThis.window = { swarmclaw: { modules: { react: React }, registerPage: () => {} } }
+    assert.equal(hostReact(), React, 'a hoszt tábláján lévő objektum, nem másolat')
+  } finally {
+    if (eredetiVan) globalThis.window = eredeti
+    else delete globalThis.window
+  }
+})
+
+test('a jóváhagyva, de sáv nélkül maradt kiadás kap gombot -- különben a friss telepítés első kiadása elveszne', () => {
+  const html = render(KiadasBody, kiadasBodyProps({ reszlet: kiadasReszlet({ allapot: 'jovahagyva' }) }))
+  assert.equal(/<button[^>]*disabled[^>]*>\s*Ütemezés a következő szabad sávba/.test(html), false, 'él a gomb')
+  assert.ok(html.includes('Ütemezés a következő szabad sávba'))
+  assert.ok(html.includes('akkor hagytad jóvá, amikor még nem volt szabad sáv'), 'megmondja, miért nincs időpontja és mi a teendő')
+  assert.equal(html.includes('Csak lektorált kiadás hagyható jóvá'), false, 'ez nem az az eset')
+
+  // És a szó szerinti jóváhagyás továbbra is csak lektoráltra szól.
+  const lektoralt = render(KiadasBody, kiadasBodyProps({ reszlet: kiadasReszlet({ allapot: 'lektoralt' }) }))
+  assert.ok(lektoralt.includes('>Jóváhagyás'))
+  assert.equal(lektoralt.includes('Ütemezés a következő szabad sávba'), false)
+  const vazlat = render(KiadasBody, kiadasBodyProps({ reszlet: kiadasReszlet({ allapot: 'vazlat' }) }))
+  assert.ok(/<button[^>]*disabled[^>]*>\s*Jóváhagyás/.test(vazlat))
+  assert.equal(vazlat.includes('Ütemezés a következő szabad sávba'), false)
 })

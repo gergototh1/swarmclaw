@@ -109,47 +109,46 @@ export const now = () => new Date().toISOString()
  * A random 16-hex-character surrogate id, from `globalThis.crypto` rather
  * than `node:crypto`.
  *
- * TASK 6'S OWN DECISION, LEFT OPEN ON PURPOSE BY TASK 2'S REVIEWER. The
- * calendar page needs both `AG_ALLAPOTOK` and `KIADAS_ALLAPOTOK` from this
- * file, so an esbuild browser bundle now walks into this module -- and a
- * `node:crypto` import is unresolvable there (`ui/scripts/build.mjs`'s
- * `hostModules` plugin only resolves `react`/`react-dom`/`react/jsx-runtime`;
- * everything else esbuild tries to resolve against the filesystem, and a bare
- * `node:` specifier has none in a browser build). Task 2's own report named
- * three cheap fixes and picked none of them, because the Minor 6 finding it
- * was closing that same round asked for exactly the opposite: that
- * `AG_ALLAPOTOK`/`KIADAS_ALLAPOTOK` stay beside the column they describe, not
- * be guessed into a third file before anything actually needed them apart.
+ * TASK 6'S OWN DECISION, LEFT OPEN ON PURPOSE BY TASK 2'S REVIEWER, AND
+ * RE-ARGUED IN ITS FIX ROUND BECAUSE THE FIRST ARGUMENT FOR IT WAS FALSE.
+ * That first version claimed the calendar page imports `AG_ALLAPOTOK` and
+ * `KIADAS_ALLAPOTOK` from this file, so an esbuild browser bundle now walks
+ * into this module and a `node:crypto` import would be unresolvable there.
+ * It does not: `ui/` imports nothing from `src/`, it carries its own copies
+ * of the two vocabularies (`KIADAS_CIMKE`/`AG_CIMKE`, ui/naptar.tsx), and
+ * `test/ui.test.mjs` is where those copies are held against THIS file's
+ * constants -- in the test, which imports both sides, and not in the bundle,
+ * which would then ship six hundred lines of SQL and repository code to the
+ * browser to read eight words off them.
  *
- * This task is the first thing that needs them apart, so this is where the
- * choice gets made. Of the three:
+ * So this file is NOT in the browser bundle today, and the honest reason for
+ * the swap is the narrower one:
  *
- *   - marking `node:crypto` external would build, but a browser has no such
- *     module to satisfy the external reference at run time -- the bundle
- *     would throw the moment this file's top-level `import` line executed,
- *     which is before the page renders anything at all;
- *   - splitting the two vocabularies into their own module would undo the
- *     Minor 6 finding this exact file's key register above still argues for
- *     ("beside the column it describes... three readers... must not each
- *     carry their own copy"), and would touch every file that imports either
- *     constant today (`src/allapot.mjs`, `src/szoveg.mjs`, `src/utemezes.mjs`,
- *     `src/agents.mjs`, `index.mjs`) for a problem that is really about one
- *     unrelated function two lines below the constants, not about the
- *     constants themselves;
- *   - swapping `crypto.randomBytes` for `globalThis.crypto.getRandomValues`
- *     removes the only reason this file needs a Node built-in at all, with a
- *     one-line change nothing else in the file has to know about.
+ *   - `crypto.randomBytes` and `globalThis.crypto.getRandomValues` produce
+ *     the same thing here, and only the second exists in both runtimes.
+ *     Node has exposed `globalThis.crypto` (the WebCrypto object) since 19,
+ *     and the root `package.json`'s `engines.node` requires >=22.6.0, well
+ *     past that;
+ *   - it removes the ONLY Node built-in this file imports, which is what
+ *     keeps the test-side vocabulary pin above one step from being promoted
+ *     to a real import in `ui/` if a future task decides the copy has drifted
+ *     once too often. That step would otherwise fail at build time with
+ *     esbuild's own "could not resolve node:crypto", since
+ *     `scripts/build.mjs`'s `hostModules` plugin resolves only
+ *     `react`/`react-dom`/`react/jsx-runtime` and a bare `node:` specifier
+ *     has no filesystem to fall back to in a browser build.
  *
- * The third is what is here. `globalThis.crypto` is the WebCrypto object:
- * Node has exposed it as a global since 19 (this repo's own `engines.node` in
- * the root `package.json` requires >=22.6.0, well past that), and every
- * browser has carried it for years, so `db.mjs` now resolves cleanly into
- * both runtimes without a plugin, an external, or a second file to keep in
- * sync with this one's key register. Nothing here calls `uid()` from the
- * browser bundle -- the page only reads `AG_ALLAPOTOK`/`KIADAS_ALLAPOTOK` off
- * this module, never mints a row -- but the import graph does not know that
- * in advance, so the whole file has to resolve regardless of which exports a
- * given bundle actually reaches.
+ * `test/db.test.mjs` pins the second point by actually bundling this file for
+ * the browser and running `uid()` in a context whose only crypto is the
+ * WebCrypto global -- a source-text check for the string `node:` would pass
+ * over a `require`, and a Node-side call of `uid()` cannot tell the two
+ * implementations apart at all.
+ *
+ * The two alternatives Task 2's report named stay rejected, for the reasons
+ * it gave: marking `node:crypto` external builds but throws in the browser at
+ * the module's first top-level `import`, and splitting the vocabularies into
+ * a third module undoes the Minor 6 finding this file's own key register
+ * still argues for ("beside the column it describes").
  */
 export const uid = () => {
   const bytes = new Uint8Array(8)
@@ -429,6 +428,31 @@ ON CONFLICT(platform, kulso_id) DO UPDATE SET nev = excluded.nev, updated_at = e
     sav(id) { return S.get('SELECT * FROM ext_publish_savok WHERE id = ?', [id]) || null },
     /** Every declared slot, ordered by when it falls in the week -- the shape `kovetkezoSzabadSav` (src/utemezes.mjs) takes as its `savok` argument. */
     savok() { return S.all('SELECT * FROM ext_publish_savok ORDER BY nap ASC, ora ASC, perc ASC') },
+
+    /**
+     * Removes one weekly slot, returning the row that was there or `null`
+     * when the id names none -- the operator's own "I do not publish on
+     * Wednesdays any more", reached from the calendar page
+     * (`src/rpc.mjs`'s `savotTorol`).
+     *
+     * ALREADY-SCHEDULED RELEASES ARE NOT TOUCHED, and that is the point of
+     * the two columns rather than an oversight. `ext_publish_kiadasok.sav_id`
+     * carries no foreign key and is not read by anything that dispatches: a
+     * scheduled release goes out at its `idopont`, the single column
+     * `esedekes` and `foglaltSavIdopontok` (above) both read, and the slot it
+     * nominally came from is reporting only. Cascading a delete onto those
+     * rows would unschedule releases the operator never mentioned; leaving
+     * them alone means removing a slot stops FUTURE placements into it and
+     * changes nothing that is already placed, which is the sentence the page
+     * can honestly put on the button.
+     */
+    savotTorol(id) {
+      if (typeof id !== 'string' || id === '') throw new Error('savotTorol: id nem lehet üres')
+      const volt = repo.sav(id)
+      if (volt === null) return null
+      S.exec('DELETE FROM ext_publish_savok WHERE id = ?', [id])
+      return volt
+    },
 
     // --- the write path (Task 4): draft text, review, scheduling, dispatch results ---
     //

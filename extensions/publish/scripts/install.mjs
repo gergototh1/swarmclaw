@@ -156,26 +156,35 @@ fs.writeFileSync(shippedManifest, `${JSON.stringify(shipped, null, 2)}\n`)
 console.log(`publish installed: ${extDir}/publish.mjs, workspace ${wsDir}`)
 
 /**
- * The one thing worth checking before calling this done: without a build,
- * the module still loads and its contract still works, but once a later task
- * adds the /x/publish page, its two assets 404 and the page stays empty --
- * which looks exactly like a failed install from the host's side. This task
- * has no `ui/main.tsx` yet (see scripts/build.mjs), so `npm run build` writes
- * nothing and this warning is expected on every install until that page task
- * lands.
+ * The one thing worth checking before calling this done: without a build, the
+ * module still loads and its contract still works, but the /x/publish page it
+ * declares (index.mjs's `ui.pages`) gets a 404 on BOTH of its assets and
+ * stays empty -- which from the host's side is indistinguishable from a
+ * broken install.
+ *
+ * THIS USED TO SAY THE OPPOSITE, AND IT WAS WRONG FROM THE COMMIT THAT
+ * SHIPPED THE PAGE. The earlier text told the operator that a missing `dist/`
+ * was "egyelőre várható" because this release did not carry `ui/main.tsx`
+ * yet. It does carry it, `dist/` is gitignored, and the root build does not
+ * build this module -- so a fresh checkout installed, served a page that
+ * 404'd twice, and was told that was fine. That is exactly the failure
+ * `buildTerv`'s own docblock (scripts/build.mjs) prevents one layer up, and
+ * the sibling module already had the right sentence:
+ * `extensions/crm/scripts/install.mjs`.
  */
 const distIndex = path.join(root, 'dist/index.js')
 const distCss = path.join(root, 'dist/style.css')
 if (!fs.existsSync(distIndex) || !fs.existsSync(distCss)) {
-  console.log('FIGYELEM: nincs dist/ build. Ez a kiadás még nem szállít naptár-lapot (ui/main.tsx), tehát ez itt egyelőre várható.')
+  console.log('FIGYELEM: nincs dist/ build. Futtasd előbb: npm run build')
+  console.log('Build nélkül a naptár-lap sosem regisztrál, és ez a hosztról nézve megkülönböztethetetlen egy törött telepítéstől.')
 } else {
   console.log('A lap két bundle-fájlja (dist/index.js, dist/style.css) a workspace-ben megvan.')
 }
 
 console.log(`
 Ennek a modulnak nincs hitelesítési lépése ezen a telepítőn túl: a YouTube a
-host Google OAuth-ját használja majd (egy későbbi feladat), a másik három
-platform fiókjait a naptár lapja fogja kezelni.
+host Google OAuth-ját használja (a naptár Fiókok lapján van hozzá gomb), a
+másik három platform fiókját ugyanott lehet összekötni.
 
 Ez a kiadás három ügynököt (Publikálás Író, Publikálás Lektor, Publikálás
 Kiküldő) és egy fix ütemű ütemezést (15 percenként) deklarál -- nyisd meg a

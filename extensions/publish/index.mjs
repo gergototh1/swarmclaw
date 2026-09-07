@@ -129,7 +129,7 @@ export const SCHEDULES = Object.freeze([
 const publish = {
   name: 'Publikálás',
   version: '0.1.0',
-  description: 'A kész, QA-átment videókból kiadás YouTube-ra, Facebookra, Instagramra és TikTokra: szöveg, lektorálás, jóváhagyás, ütemezés, naptár. Ez a kiadás megírja és lektorálja a szöveget, és kiküldi, ami esedékes -- a négy platform-adapter és a naptár lapja még nem ebben a kiadásban jön.',
+  description: 'A kész, QA-átment videókból kiadás YouTube-ra, Facebookra, Instagramra és TikTokra: szöveg, lektorálás, jóváhagyás, ütemezés, naptár. Ez a kiadás megírja és lektorálja a szöveget, kiküldi, ami esedékes, és a Publikálás lapon adja a heti naptárat, a jóváhagyást és a fiókok összekötését -- a négyből egyelőre a YouTube-adapter van kész.',
   migrations: MIGRATIONS,
   setup(ctx) {
     state.storage = ctx.storage
@@ -150,8 +150,9 @@ const publish = {
   tools: createSzovegTools(state),
   /**
    * `src/rpc.mjs`'s own methods (Task 6: `naptar`, `kiadas`, `fiokok`,
-   * `jovahagy`, `atutemez`, `fiokotOsszekot` -- the calendar page's own
-   * reads and levers, see that file's docblock), spread first, and the MCP
+   * `jovahagy`, `atutemez`, `fiokotOsszekot`, and the fix round's three slot
+   * levers `savotFelvesz`, `savotTorol`, `alapSavokatFelvesz` -- the calendar
+   * page's own reads and levers, see that file's docblock), spread first, and the MCP
    * shim's two methods (`src/mcp-bridge.mjs`, byte-identical to every
    * sibling module that fronts its tools over MCP --
    * `extensions/mcp-shim-parity.test.mjs` holds it that way), reflecting over

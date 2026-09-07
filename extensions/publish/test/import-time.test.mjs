@@ -30,9 +30,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
  * on the operator's behalf, and the `ui` pin below is where a later task
  * quietly restoring a default shows up as a diff.
  *
- * Task 6 widens both halves of `out.rpc` and `out.ui` at once: six new page
+ * Task 6 widens both halves of `out.rpc` and `out.ui` at once: nine new page
  * methods (`src/rpc.mjs`: `naptar`, `kiadas`, `fiokok`, `jovahagy`,
- * `atutemez`, `fiokotOsszekot`) alongside the MCP bridge's two, and the
+ * `atutemez`, `fiokotOsszekot`, and the fix round's `savotFelvesz`,
+ * `savotTorol`, `alapSavokatFelvesz`) alongside the MCP bridge's two, and the
  * calendar's `ui.pages` entry -- the first this module has ever declared.
  * `pages` is pinned WHOLE, the same discipline `settingsFields` already had:
  * a wrong `entry`/`css` path here is a page that 404s on both assets in a
@@ -86,19 +87,31 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   // Task 4's five tools (src/szoveg.mjs), in the order `createSzovegTools`
   // declares them.
   assert.deepEqual(out.tools, ['publishOpen', 'publishQueue', 'publishDraft', 'publishVerdict', 'publishDue'])
-  // Task 6: `src/rpc.mjs`'s six page methods (`naptar`, `kiadas`, `fiokok`,
-  // `jovahagy`, `atutemez`, `fiokotOsszekot`), plus the MCP shim's two
-  // methods that every extension fronting its tools over MCP carries
+  // Task 6: `src/rpc.mjs`'s NINE page methods, plus the MCP shim's two methods
+  // that every extension fronting its tools over MCP carries
   // (extensions/*/src/mcp-bridge.mjs).
-  assert.deepEqual(out.rpc.slice().sort(), ['atutemez', 'fiokok', 'fiokotOsszekot', 'jovahagy', 'kiadas', 'mcpCall', 'mcpTools', 'naptar'])
+  //
+  // Six of the nine shipped with the page (`naptar`, `kiadas`, `fiokok`,
+  // `jovahagy`, `atutemez`, `fiokotOsszekot`). The other three --
+  // `savotFelvesz`, `savotTorol`, `alapSavokatFelvesz` -- are the fix round's
+  // ENTRANCE TO THE SLOT TABLE, and they are pinned here for the same reason
+  // `ui.pages` is: without a caller for `repo.ujSav` anywhere in production
+  // code, `repo.savok()` is empty on every real install, every approval ends
+  // in `nincs_szabad_sav`, and the 15-minute dispatch schedule wakes forever
+  // with nothing due. Losing one of these three again is a module that
+  // compiles, tests green, and does nothing -- which is precisely the shape
+  // this file exists to surface as a diff.
+  assert.deepEqual(out.rpc.slice().sort(), [
+    'alapSavokatFelvesz', 'atutemez', 'fiokok', 'fiokotOsszekot', 'jovahagy',
+    'kiadas', 'mcpCall', 'mcpTools', 'naptar', 'savotFelvesz', 'savotTorol',
+  ])
   // Nothing provided yet: this task is a consumer of `video.videos`, not yet
   // a provider of anything to a third module.
   assert.equal(out.provides, null)
   assert.deepEqual(out.consumes, ['video.videos'])
   assert.equal(out.migrations, 1)
   assert.equal(out.setup, 'function')
-  // No page yet (design spec 10 lists ui/ as a later task's file) -- three
-  // settings fields. A slot's `nap`/`ora`/`perc` is a WALL CLOCK in the
+  // The calendar page (design spec 10) and three settings fields. A slot's `nap`/`ora`/`perc` is a WALL CLOCK in the
   // `idozona` zone (src/utemezes.mjs), so that field is the one place the
   // operator can say which wall. Pinned WHOLE rather than by key count: a
   // lost `defaultValue` would ship an install whose slots mean nothing in

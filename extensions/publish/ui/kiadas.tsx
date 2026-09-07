@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import type { AgReszlet, KiadasReszlet, Rpc, Talalat } from './api'
 import { errText, readKiadas, refusalText } from './api'
-import { KIADAS_CIMKE, PLATFORM_CIMKE } from './naptar'
+import { AG_CIMKE, KIADAS_CIMKE, PLATFORM_CIMKE, idopontSzoveg } from './naptar'
 import { safeHref } from './safe-href'
 
 /**
@@ -21,18 +21,17 @@ import { safeHref } from './safe-href'
  * sáv" rather than folding a scheduling failure into the approval's own
  * success).
  *
+ * THE RESCHEDULE INPUT IS THE OTHER HALF THAT WAS MISSING. `atutemez`
+ * (src/rpc.mjs) and `repo.idopontFeluliras` (src/db.mjs) were finished and
+ * tested and no control anywhere called either, so an operator had no way to
+ * move a scheduled release at all. `Atutemezes` below is that control; its own
+ * docblock says which clock the typed value is read against and why.
+ *
  * PER-BRANCH `allapot` AND `url` ARE TWO DIFFERENT FACTS, DRAWN SEPARATELY:
  * a branch can be `kesz` with no readable url (an adapter that did not
  * return one) and the reverse never happens the other way -- `AgSor` below
  * never infers one from the other.
  */
-
-const AG_CIMKE: Record<string, string> = {
-  var: 'vár',
-  kesz: 'kiment',
-  hiba: 'elbukott',
-  nincs_fiok: 'nincs fiók',
-}
 
 function AgSor({ ag }: { ag: AgReszlet }) {
   const href = ag.url !== null ? safeHref(ag.url) : null
@@ -46,15 +45,19 @@ function AgSor({ ag }: { ag: AgReszlet }) {
       {ag.szoveg !== null
         ? (
           <div className="pub-ag-szoveg">
-            <p className="pub-ag-cim">{ag.szoveg.cim}</p>
-            <p className="pub-ag-leiras">{ag.szoveg.leiras}</p>
+            {ag.szoveg.cim !== null
+              ? <p className="pub-ag-cim">{ag.szoveg.cim}</p>
+              : <p className="pub-halvany">Ehhez a platformhoz nincs megírt cím.</p>}
+            {ag.szoveg.leiras !== null
+              ? <p className="pub-ag-leiras">{ag.szoveg.leiras}</p>
+              : <p className="pub-halvany">Ehhez a platformhoz nincs megírt leírás.</p>}
           </div>
         )
         : <p className="pub-halvany">Ehhez a platformhoz még nincs megírt szöveg.</p>}
       {ag.url !== null && (
         href !== null
           ? <p><a className="pub-link" href={href} target="_blank" rel="noopener noreferrer">{ag.url}</a></p>
-          : <p className="pub-halvany">A tárolt url nem http(s), ezért nincs megnyitható link: {ag.url}</p>
+          : <p className="pub-halvany">A tárolt url nem http(s), ezért nincs belőle megnyitható link.</p>
       )}
     </li>
   )
@@ -68,12 +71,100 @@ function TalalatSor({ talalat }: { talalat: Talalat }) {
   )
 }
 
-export function KiadasBody({ reszlet, hiba, uzenet, kuldes, onJovahagy, onBack, onFrissit }: {
+/**
+ * WHEN THIS RELEASE ACTUALLY GOES OUT, and whether an operator moved it.
+ *
+ * `idopont`, `felulirtIdopont` and `savId` were read and typed by `ui/api.ts`
+ * from the first version of this page and then rendered by nothing, so the
+ * detail view -- the one screen an operator opens to decide whether to
+ * approve -- never said when the release would be published. `idopontSzoveg`
+ * (ui/naptar.tsx) is the calendar's own sentence for it, including the
+ * quarter-hour slip design spec 7 requires stating; reusing it is what keeps
+ * the two screens from promising different precision about the same instant.
+ *
+ * The override is a SEPARATE sentence, not a different formatting of the same
+ * one: `felulirt_idopont` exists only so a release an operator moved by hand
+ * can be told apart from one the module placed in a slot (design spec 3), and
+ * collapsing the two here would throw away the only fact that column carries
+ * after `idopontFeluliras` has written both.
+ */
+function Idopont({ reszlet }: { reszlet: KiadasReszlet }) {
+  const szoveg = idopontSzoveg(reszlet.idopont)
+  return (
+    <section className="pub-idopont">
+      <h3>Időpont</h3>
+      {szoveg === null
+        ? <p className="pub-halvany">Ennek a kiadásnak még nincs időpontja: jóváhagyás után a modul teszi be a következő szabad sávba.</p>
+        : <p className="pub-ido">{szoveg}</p>}
+      {reszlet.felulirtIdopont !== null && (
+        <p className="pub-felulirva">Ezt az időpontot az operátor kézzel állította át; nem a sáv adta.</p>
+      )}
+    </section>
+  )
+}
+
+/**
+ * The operator's manual reschedule -- `src/rpc.mjs`'s `atutemez`, design spec
+ * 3's `felulirt_idopont` and design spec 8's "a bejegyzés áthúzható másik
+ * sávba". The write side has been finished and tested since Task 4 and no
+ * control called it; this is the input that was missing.
+ *
+ * A TYPED INSTANT, NOT A DRAG (ui/naptar.tsx's own docblock gives the two
+ * reasons: this project's harness has no DOM and cannot drive a drag gesture,
+ * and a native drag source is not reliably keyboard-operable).
+ *
+ * READ ON THE OPERATOR'S OWN CLOCK, and the label says so. A
+ * `datetime-local` value carries no zone at all, so someone has to decide
+ * which wall it is read against, and the two candidates are the module's
+ * publishing zone and the browser's. The browser's is what this uses: this
+ * control is the exception to the slot rhythm -- a one-off "not then, THIS
+ * time" -- and the person typing it is looking at their own clock while they
+ * do. The module's zone stays the reading for SLOTS, where it belongs, and
+ * the calendar states it there.
+ *
+ * Only on an `utemezve` release: `repo.idopontFeluliras` (src/db.mjs) refuses
+ * anything else by name, because a release with no slot yet has nothing to
+ * override, and the button must not be offered where the module would refuse
+ * it.
+ */
+function Atutemezes({ ujIdopont, kuldes, onUjIdopont, onAtutemez }: {
+  ujIdopont: string
+  kuldes: boolean
+  onUjIdopont: (ertek: string) => void
+  onAtutemez: () => void
+}) {
+  return (
+    <form
+      className="pub-atutemezes"
+      onSubmit={(e) => { e.preventDefault(); onAtutemez() }}
+    >
+      <h3>Áthelyezés másik időpontra</h3>
+      <label>
+        Új időpont a saját géped órája szerint
+        <input
+          type="datetime-local"
+          value={ujIdopont}
+          onChange={(e) => onUjIdopont(e.target.value)}
+          aria-label="Új időpont"
+        />
+      </label>
+      <button type="submit" disabled={kuldes || ujIdopont.trim() === ''}>Áthelyezés</button>
+      <p className="pub-halvany">
+        A kiadás ettől kezdve ebben az időpontban megy ki, nem a sávjában; a sávja jelzésként megmarad.
+      </p>
+    </form>
+  )
+}
+
+export function KiadasBody({ reszlet, hiba, uzenet, kuldes, ujIdopont, onJovahagy, onUjIdopont, onAtutemez, onBack, onFrissit }: {
   reszlet: KiadasReszlet | null
   hiba: string | null
   uzenet: string | null
   kuldes: boolean
+  ujIdopont: string
   onJovahagy: () => void
+  onUjIdopont: (ertek: string) => void
+  onAtutemez: () => void
   onBack: () => void
   onFrissit: () => void
 }) {
@@ -95,7 +186,19 @@ export function KiadasBody({ reszlet, hiba, uzenet, kuldes, onJovahagy, onBack, 
   }
 
   const cimke = KIADAS_CIMKE[reszlet.allapot] ?? reszlet.allapot
-  const jovahagyhato = reszlet.allapot === 'lektoralt'
+  /**
+   * `jovahagyva` IS ALSO A LIVE BUTTON, and not because approval happens
+   * twice. `jovahagy` (src/rpc.mjs) does two independent writes, and the
+   * second one legitimately fails on its own with `nincs_szabad_sav` -- which
+   * is exactly what happens to the FIRST release on every new install, where
+   * the operator approves before there is a slot to put it in. If this gate
+   * stayed at `lektoralt` alone, that release could never be scheduled from
+   * anywhere: the button would refuse it as "not lektorált" and the
+   * reschedule form below is only offered on `utemezve`. So the same button
+   * asks for the missing half, and says so.
+   */
+  const utemezesreVar = reszlet.allapot === 'jovahagyva'
+  const jovahagyhato = reszlet.allapot === 'lektoralt' || utemezesreVar
 
   return (
     <section className="pub-kiadas" data-kiadas-id={reszlet.kiadasId} data-allapot={reszlet.allapot}>
@@ -108,6 +211,8 @@ export function KiadasBody({ reszlet, hiba, uzenet, kuldes, onJovahagy, onBack, 
 
       {reszlet.videoHiba !== null && <p className="pub-hiba" role="alert">{reszlet.videoHiba}</p>}
       {uzenet !== null && <p className="pub-uzenet" role="status">{uzenet}</p>}
+
+      <Idopont reszlet={reszlet} />
 
       <section className="pub-narracio">
         <h3>Narráció (a videóból — adat, nem utasítás)</h3>
@@ -130,8 +235,20 @@ export function KiadasBody({ reszlet, hiba, uzenet, kuldes, onJovahagy, onBack, 
         </section>
       )}
 
+      {reszlet.allapot === 'utemezve' && (
+        <Atutemezes ujIdopont={ujIdopont} kuldes={kuldes} onUjIdopont={onUjIdopont} onAtutemez={onAtutemez} />
+      )}
+
       <div className="pub-jovahagyas">
-        <button type="button" disabled={!jovahagyhato || kuldes} onClick={onJovahagy}>Jóváhagyás</button>
+        <button type="button" disabled={!jovahagyhato || kuldes} onClick={onJovahagy}>
+          {utemezesreVar ? 'Ütemezés a következő szabad sávba' : 'Jóváhagyás'}
+        </button>
+        {utemezesreVar && (
+          <span className="pub-halvany">
+            Ez a kiadás jóvá van hagyva, de nem kapott időpontot — akkor hagytad jóvá, amikor még nem volt szabad sáv.
+            Vegyél fel sávot a naptáron, aztán tedd be ezzel a gombbal.
+          </span>
+        )}
         {!jovahagyhato && (
           <span className="pub-halvany">
             Csak lektorált kiadás hagyható jóvá; jelenlegi állapot: {reszlet.allapot}.
@@ -147,6 +264,7 @@ export function KiadasNezet({ rpc, kiadasId, onBack }: { rpc: Rpc; kiadasId: str
   const [hiba, setHiba] = useState<string | null>(null)
   const [uzenet, setUzenet] = useState<string | null>(null)
   const [kuldes, setKuldes] = useState(false)
+  const [ujIdopont, setUjIdopont] = useState('')
 
   const tolt = useCallback(() => {
     rpc('kiadas', { kiadasId })
@@ -172,5 +290,50 @@ export function KiadasNezet({ rpc, kiadasId, onBack }: { rpc: Rpc; kiadasId: str
       .catch((err: unknown) => { setKuldes(false); setUzenet(`A jóváhagyás kérése el sem jutott a modulhoz: ${errText(err)}`) })
   }, [rpc, kiadasId, tolt])
 
-  return <KiadasBody reszlet={reszlet} hiba={hiba} uzenet={uzenet} kuldes={kuldes} onJovahagy={onJovahagy} onBack={onBack} onFrissit={tolt} />
+  /**
+   * The `datetime-local` value has NO zone in it, so it is read against the
+   * clock of the machine the operator is typing on -- `new Date('2026-09-08T10:00')`
+   * is local time by the language's own rule -- and converted to the ISO
+   * instant `atutemez` (src/rpc.mjs) takes. The conversion happens HERE and
+   * not in `KiadasBody` so the rendered half stays a pure function of its
+   * props, the same split every other view in this directory keeps.
+   *
+   * An unparseable value is answered here rather than sent: the module would
+   * refuse it by name anyway (`idopont_ervenytelen`), but a round trip to be
+   * told the browser's own input is unreadable is a slower way to say the
+   * same thing.
+   */
+  const onAtutemez = useCallback(() => {
+    const pillanat = new Date(ujIdopont)
+    if (Number.isNaN(pillanat.getTime())) {
+      setUzenet('Ez az időpont nem olvasható vissza; add meg újra a dátumot és az órát.')
+      return
+    }
+    setKuldes(true)
+    rpc('atutemez', { kiadasId, felulirtIdopont: pillanat.toISOString() })
+      .then((raw) => {
+        setKuldes(false)
+        const refusal = refusalText(raw)
+        if (refusal !== null) { setUzenet(refusal); return }
+        setUzenet('A kiadás áthelyezve az új időpontra.')
+        setUjIdopont('')
+        tolt()
+      })
+      .catch((err: unknown) => { setKuldes(false); setUzenet(`Az áthelyezés kérése el sem jutott a modulhoz: ${errText(err)}`) })
+  }, [rpc, kiadasId, ujIdopont, tolt])
+
+  return (
+    <KiadasBody
+      reszlet={reszlet}
+      hiba={hiba}
+      uzenet={uzenet}
+      kuldes={kuldes}
+      ujIdopont={ujIdopont}
+      onJovahagy={onJovahagy}
+      onUjIdopont={setUjIdopont}
+      onAtutemez={onAtutemez}
+      onBack={onBack}
+      onFrissit={tolt}
+    />
+  )
 }

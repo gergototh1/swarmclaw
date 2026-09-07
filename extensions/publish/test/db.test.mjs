@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict'
+import path from 'node:path'
 import test from 'node:test'
+import { fileURLToPath } from 'node:url'
+import vm from 'node:vm'
+
+import { build } from 'esbuild'
 
 import { AG_ALLAPOTOK, AG_KEZDO_ALLAPOT, KIADAS_ALLAPOTOK, KIADAS_KEZDO_ALLAPOT, isUniqueViolationOn } from '../src/db.mjs'
 import { esedekes } from '../src/utemezes.mjs'
@@ -432,4 +437,84 @@ test('foglaltSavIdopontok reads every release that has both sav_id and idopont, 
     { savId: 's1', idopont: '2026-09-07T09:00:00.000Z' },
     { savId: 's2', idopont: '2026-09-07T18:00:00.000Z' },
   ])
+})
+
+test('savotTorol törli a sort, és ismeretlen id-re null-t ad -- nem dob, nem töröl mást', () => {
+  const { repo } = freshRepo()
+  const s1 = repo.ujSav({ nap: 1, ora: 9, perc: 0 })
+  const s2 = repo.ujSav({ nap: 3, ora: 18, perc: 0 })
+
+  assert.equal(repo.savotTorol('nincs-ilyen'), null)
+  assert.equal(repo.savok().length, 2, 'egy nem létező id-re nem törlődik semmi')
+
+  const torolt = repo.savotTorol(s1.id)
+  assert.equal(torolt.id, s1.id, 'visszaadja a sort, ami ott volt -- a hívónak van mit megneveznie')
+  assert.equal(repo.sav(s1.id), null)
+  assert.deepEqual(repo.savok().map((s) => s.id), [s2.id], 'csak a megnevezett sáv tűnt el')
+
+  assert.equal(repo.savotTorol(s1.id), null, 'a másodszori törlés már null, nem hiba')
+  assert.match(refusal(() => repo.savotTorol('')).message, /savotTorol: id/)
+})
+
+test('savotTorol nem nyúl az ütemezett kiadásokhoz: az idopont és a sav_id a helyén marad', () => {
+  // Az `ext_publish_kiadasok.sav_id` nem idegen kulcs, és nem az dönt a
+  // kiküldésről: az `idopont` dönt (`esedekes`, `foglaltSavIdopontok`). Egy
+  // kaszkádolt törlés olyan kiadásokat ütemezne ki, amiket az operátor nem
+  // említett, amikor a szerdai sávot leszedte.
+  const { repo } = freshRepo()
+  const sav = repo.ujSav({ nap: 1, ora: 9, perc: 0 })
+  const k = jovahagyva(repo, 'v1')
+  repo.kiadastUtemez({ kiadasId: k.id, savId: sav.id, idopont: '2026-09-07T09:00:00.000Z' })
+
+  repo.savotTorol(sav.id)
+  const utana = repo.kiadas(k.id)
+  assert.equal(utana.allapot, KIADAS_ALLAPOTOK.UTEMEZVE)
+  assert.equal(utana.idopont, '2026-09-07T09:00:00.000Z')
+  assert.equal(utana.sav_id, sav.id)
+  assert.equal(esedekes([utana], new Date('2026-09-07T09:01:00.000Z')).length, 1, 'a törölt sávú kiadás továbbra is esedékessé válik')
+})
+
+test('uid() böngészőben is megáll a lábán: a db.mjs node-beépített nélkül bundle-ölődik, és ott is 16 hexet ad', async () => {
+  // EZ AZ, AMI AZ RNG-DÖNTÉST ŐRZI (src/db.mjs `uid` docblockja). A
+  // `crypto.randomBytes` és a `globalThis.crypto.getRandomValues` node alatt
+  // ugyanazt adja, tehát egy node-ban futó hívás a kettőt nem tudja
+  // megkülönböztetni, és egy `includes('node:')` forrás-vizsgálat egy
+  // `require`-t átengedne. Ez a teszt azt csinálja, amitől a különbség
+  // számít: BÖNGÉSZŐRE bundle-öli a fájlt -- ahol egy `node:` specifier
+  // feloldhatatlan és a build maga bukik --, majd lefuttatja az `uid()`-ot egy
+  // kontextusban, aminek az EGYETLEN kriptója a WebCrypto globális.
+  //
+  // Miért kell ez egy olyan fájlnak, ami ma nincs a lap bundle-jében: a lap
+  // szókincse (`KIADAS_CIMKE`/`AG_CIMKE`, ui/naptar.tsx) ennek a fájlnak a
+  // konstansaihoz van pinnelve, teszt-oldalon (test/ui.test.mjs). Az a pin
+  // pontosan egy lépésre van attól, hogy valódi importtá váljon a `ui/`-ban --
+  // és az a lépés e nélkül a tulajdonság nélkül esbuild "could not resolve
+  // node:crypto"-val állna meg.
+  const dbPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src/db.mjs')
+  const result = await build({
+    entryPoints: [dbPath],
+    bundle: true,
+    write: false,
+    format: 'iife',
+    globalName: 'publishDb',
+    platform: 'browser',
+    target: 'es2022',
+    charset: 'utf8',
+    logLevel: 'silent',
+  })
+  const code = result.outputFiles[0].text
+  assert.equal(code.includes('node:'), false, 'a böngésző-bundle nem hordoz node: specifiert')
+
+  // A vm kontextus globálisa csak ezt a WebCrypto felületet ismeri: se
+  // `require`, se `process`, se `node:crypto`.
+  const sandbox = {
+    crypto: {
+      getRandomValues(tomb) {
+        for (let i = 0; i < tomb.length; i += 1) tomb[i] = (i * 37 + 11) % 256
+        return tomb
+      },
+    },
+  }
+  vm.runInNewContext(code, sandbox)
+  assert.match(sandbox.publishDb.uid(), /^[0-9a-f]{16}$/)
 })

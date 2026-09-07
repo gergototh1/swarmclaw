@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import type { NaptarAdat, NaptarKiadas, Rpc } from './api'
-import { errText, readNaptar } from './api'
+import { errText, readNaptar, refusalText } from './api'
 
 /**
  * The weekly calendar: design spec 8's page.
@@ -33,6 +33,18 @@ import { errText, readNaptar } from './api'
  * ki" that could be mistaken for `kesz`'s wording -- the fourth calendar test
  * pins that its sentence appears and `KIADAS_CIMKE.kesz`'s does not.
  *
+ * THE SLOTS ARE OPERATOR DATA, AND THIS IS THE ONLY PLACE THEY CAN BE
+ * CREATED. Design spec 8's "a szabad sávok láthatók" was implemented as seven
+ * columns that each printed "Nincs sáv ezen a napon." -- true on every real
+ * install, because `repo.ujSav` (src/db.mjs) had no caller in production code
+ * anywhere: no rpc, no tool, no settings field. A slot cannot be a settings
+ * field (it is a row, and there are several of them), and it must not be
+ * seeded by the migration (a migration writes schema, not content), so the
+ * page is where it has to come from. `Nap` below therefore carries an add
+ * control and a delete control per slot, and `UresNaptar` offers the starter
+ * set `ALAP_SAVOK` (src/rpc.mjs) in one click so a fresh install is not a
+ * blank the operator has to guess at.
+ *
  * DRAG, NOT BUILT: design spec 8 says a release is "áthúzható másik sávba,
  * amíg nem ment ki". `src/rpc.mjs`'s `atutemez` is the write side of that
  * (the operator's manual `felulirt_idopont` override), and it is reachable
@@ -61,8 +73,19 @@ export const KIADAS_CIMKE: Record<string, string> = {
   nincs_hova: 'Egyetlen platform sincs összekötve',
 }
 
-/** The four branch words `AG_ALLAPOTOK` (src/db.mjs) spells, and design spec 8's own four labels for them ("kiment / vár / elbukott / nincs fiók"). */
-const AG_CIMKE: Record<string, string> = {
+/**
+ * The four branch words `AG_ALLAPOTOK` (src/db.mjs) spells, and design spec
+ * 8's own four labels for them ("kiment / vár / elbukott / nincs fiók").
+ *
+ * Exported, and `ui/kiadas.tsx` imports it from here rather than keeping the
+ * second copy it used to carry: two hand-written tables of the same four
+ * words drift, and the drift is invisible -- the detail view would go on
+ * printing "elbukott" while the calendar had been taught to say something
+ * else about the identical row. `test/ui.test.mjs` holds THIS table against
+ * `AG_ALLAPOTOK` itself, so a fifth branch word added to the database fails
+ * there instead of falling through to its own raw text on the page.
+ */
+export const AG_CIMKE: Record<string, string> = {
   var: 'vár',
   kesz: 'kiment',
   hiba: 'elbukott',
@@ -160,17 +183,127 @@ export function Bejegyzes({ kiadas, onOpen }: { kiadas: NaptarKiadas; onOpen?: (
   )
 }
 
-function Nap({ index, adat, onOpen }: { index: number; adat: NaptarAdat; onOpen: (kiadasId: string) => void }) {
+/**
+ * The form state behind the seven "Sáv hozzáadása" buttons: which day's form
+ * is open, and what is typed in it. ONE form at a time, held by
+ * `NaptarNezet` and rendered inside whichever day column it belongs to --
+ * seven independent form states would be seven ways for a half-typed hour to
+ * survive somewhere the operator cannot see it.
+ *
+ * `ora`/`perc` are STRINGS because that is what an `<input>` holds; the
+ * conversion to numbers (and the refusal for an empty box, which must not
+ * become midnight) happens once, in `szamOrNaN` below, at the moment of the
+ * call.
+ */
+export interface SavUrlap {
+  nap: number | null
+  ora: string
+  perc: string
+}
+
+/**
+ * An input's text as a number, with an EMPTY box deliberately becoming `NaN`
+ * rather than `0`.
+ *
+ * `Number('')` is `0`, so an operator who cleared the hour box and pressed
+ * Mentés would silently declare a midnight slot -- a real publishing time,
+ * written as if they had chosen it. `NaN` is not an integer, so
+ * `savotFelvesz` (src/rpc.mjs) refuses it by name and the page prints the
+ * module's own sentence about the allowed range.
+ */
+function szamOrNaN(raw: string): number {
+  return raw.trim() === '' ? Number.NaN : Number(raw)
+}
+
+const ketJegy = (n: number) => String(n).padStart(2, '0')
+
+/**
+ * One day column: its declared slots (each with its own delete button), the
+ * control that adds another, and the releases that fall on it.
+ *
+ * THE BUTTON IS IN THE DAY, not in a form somewhere above the week. Before
+ * this task's fix round the seven columns each printed "Nincs sáv ezen a
+ * napon." with nothing under it and no control anywhere in the module that
+ * could create one -- which is what made every approval end in
+ * `nincs_szabad_sav` on a real install (`src/rpc.mjs`'s docblock has the
+ * whole chain). The sentence stays; the button is now beside it.
+ */
+function Nap({ index, adat, onOpen, savUrlap, kuldes, onSavUrlapNyit, onSavOra, onSavPerc, onSavFelvesz, onSavTorol }: {
+  index: number
+  adat: NaptarAdat
+  onOpen: (kiadasId: string) => void
+  savUrlap: SavUrlap
+  kuldes: boolean
+  onSavUrlapNyit: (nap: number | null) => void
+  onSavOra: (ora: string) => void
+  onSavPerc: (perc: string) => void
+  onSavFelvesz: () => void
+  onSavTorol: (savId: string) => void
+}) {
   const savok = adat.savok.filter((s) => s.nap === index)
   const kiadasok = adat.kiadasok.filter((k) => k.idopont !== null && napIndexZonaban(k.idopont, adat.idozona) === index)
+  const urlapNyitva = savUrlap.nap === index
   return (
     <div className="pub-nap" data-nap={index}>
       <h3>{NAP_NEV[index]}</h3>
-      <p className="pub-savok">
-        {savok.length === 0
-          ? 'Nincs sáv ezen a napon.'
-          : `Sávok: ${savok.map((s) => `${String(s.ora).padStart(2, '0')}:${String(s.perc).padStart(2, '0')}`).join(', ')}`}
-      </p>
+      {savok.length === 0
+        ? <p className="pub-savok pub-halvany">Nincs sáv ezen a napon.</p>
+        : (
+          <ul className="pub-sav-lista">
+            {savok.map((s) => (
+              <li key={s.id} className="pub-sav" data-sav-id={s.id}>
+                <span className="pub-sav-ido">{ketJegy(s.ora)}:{ketJegy(s.perc)}</span>
+                <button
+                  type="button"
+                  className="pub-btn pub-btn-small"
+                  disabled={kuldes}
+                  onClick={() => onSavTorol(s.id)}
+                >
+                  Sáv törlése
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      {urlapNyitva
+        ? (
+          <form className="pub-sav-urlap" onSubmit={(e) => { e.preventDefault(); onSavFelvesz() }}>
+            <label>
+              Óra
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={savUrlap.ora}
+                onChange={(e) => onSavOra(e.target.value)}
+                aria-label={`Óra — ${NAP_NEV[index]}`}
+              />
+            </label>
+            <label>
+              Perc
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={savUrlap.perc}
+                onChange={(e) => onSavPerc(e.target.value)}
+                aria-label={`Perc — ${NAP_NEV[index]}`}
+              />
+            </label>
+            <button type="submit" disabled={kuldes}>Sáv mentése</button>
+            <button type="button" className="pub-btn pub-btn-small" onClick={() => onSavUrlapNyit(null)}>Mégsem</button>
+          </form>
+        )
+        : (
+          <button
+            type="button"
+            className="pub-btn pub-btn-small pub-sav-hozzaad"
+            disabled={kuldes}
+            onClick={() => onSavUrlapNyit(index)}
+          >
+            Sáv hozzáadása
+          </button>
+        )}
       {kiadasok.length === 0
         ? <p className="pub-ures">Nincs ide sorolt kiadás.</p>
         : kiadasok.map((k) => <Bejegyzes key={k.kiadasId} kiadas={k} onOpen={onOpen} />)}
@@ -178,11 +311,51 @@ function Nap({ index, adat, onOpen }: { index: number; adat: NaptarAdat; onOpen:
   )
 }
 
-export function NaptarBody({ adat, hiba, onOpen, onFrissit }: {
+/**
+ * The zero-slot install's one click, and the sentence that says why it is
+ * offered at all.
+ *
+ * CLAUDE.md's "okos alapértékek -- sose hagyj üresen" against a screen where
+ * the host has no `defaultValue` to give: a slot is a database row, not a
+ * settings field. A fresh install would otherwise open on seven empty days,
+ * with the operator left to work out that a publishing slot is even the thing
+ * standing between an approved release and a scheduled one. `ALAP_SAVOK`
+ * (src/rpc.mjs) is that guess made out loud, as an offer rather than as
+ * seeded data -- its docblock says why the migration is the wrong place for
+ * it -- and every one of the three is editable and deletable the moment it
+ * lands.
+ */
+function UresNaptar({ kuldes, onAlapSavok }: { kuldes: boolean; onAlapSavok: () => void }) {
+  return (
+    <div className="pub-ures-naptar">
+      <p>
+        Egyetlen publikálási sáv sincs beállítva. Amíg nincs, a jóváhagyott kiadások nem kapnak
+        időpontot, és a 15 perces futásnak sosem lesz mit kitennie.
+      </p>
+      <button type="button" disabled={kuldes} onClick={onAlapSavok}>
+        Alap sávkészlet felvétele (hétfő, szerda, péntek 18:00)
+      </button>
+      <p className="pub-halvany">
+        Ezt utána szabadon szerkesztheted: bármelyik sáv törölhető, és bármelyik naphoz vehető fel másik.
+      </p>
+    </div>
+  )
+}
+
+export function NaptarBody({ adat, hiba, uzenet, kuldes, savUrlap, onOpen, onFrissit, onSavUrlapNyit, onSavOra, onSavPerc, onSavFelvesz, onSavTorol, onAlapSavok }: {
   adat: NaptarAdat | null
   hiba: string | null
+  uzenet: string | null
+  kuldes: boolean
+  savUrlap: SavUrlap
   onOpen: (kiadasId: string) => void
   onFrissit: () => void
+  onSavUrlapNyit: (nap: number | null) => void
+  onSavOra: (ora: string) => void
+  onSavPerc: (perc: string) => void
+  onSavFelvesz: () => void
+  onSavTorol: (savId: string) => void
+  onAlapSavok: () => void
 }) {
   const idopontNelkul = adat?.kiadasok.filter((k) => k.idopont === null) ?? []
   return (
@@ -192,25 +365,62 @@ export function NaptarBody({ adat, hiba, onOpen, onFrissit }: {
         <button type="button" className="pub-btn pub-btn-small" onClick={onFrissit}>Frissítés</button>
       </div>
       {hiba !== null && <p className="pub-hiba" role="alert">{hiba}</p>}
+      {uzenet !== null && <p className="pub-uzenet" role="status">{uzenet}</p>}
       {adat === null && hiba === null && <p className="pub-halvany">Betöltés folyamatban.</p>}
       {adat !== null && (
-        <div className="pub-hetirend">
-          {NAP_NEV.map((_, index) => <Nap key={index} index={index} adat={adat} onOpen={onOpen} />)}
-          <div className="pub-nap pub-nap-idopontnelkul">
-            <h3>Időpont nélkül</h3>
-            {idopontNelkul.length === 0
-              ? <p className="pub-ures">Nincs időpont nélküli kiadás.</p>
-              : idopontNelkul.map((k) => <Bejegyzes key={k.kiadasId} kiadas={k} onOpen={onOpen} />)}
+        <>
+          {/*
+            The zone travels with the answer (`src/rpc.mjs`'s `naptar`) and is
+            printed here rather than kept as a page-side constant: a slot's
+            18:00 is a WALL CLOCK reading in the module's configured zone
+            (src/utemezes.mjs), so a calendar that showed the numbers without
+            naming the clock would be stating a time it cannot actually
+            promise.
+          */}
+          <p className="pub-halvany">
+            A sávok a(z) {adat.idozona} zóna fali óráján értendők, nyári időszámítással együtt — nem UTC-ben.
+            Egy sáv törlése csak az ezután következő ütemezéseket érinti; a már időpontot kapott kiadások a saját
+            időpontjukban mennek ki.
+          </p>
+          {adat.savok.length === 0 && <UresNaptar kuldes={kuldes} onAlapSavok={onAlapSavok} />}
+          <div className="pub-hetirend">
+            {NAP_NEV.map((_, index) => (
+              <Nap
+                key={index}
+                index={index}
+                adat={adat}
+                onOpen={onOpen}
+                savUrlap={savUrlap}
+                kuldes={kuldes}
+                onSavUrlapNyit={onSavUrlapNyit}
+                onSavOra={onSavOra}
+                onSavPerc={onSavPerc}
+                onSavFelvesz={onSavFelvesz}
+                onSavTorol={onSavTorol}
+              />
+            ))}
+            <div className="pub-nap pub-nap-idopontnelkul">
+              <h3>Időpont nélkül</h3>
+              {idopontNelkul.length === 0
+                ? <p className="pub-ures">Nincs időpont nélküli kiadás.</p>
+                : idopontNelkul.map((k) => <Bejegyzes key={k.kiadasId} kiadas={k} onOpen={onOpen} />)}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </section>
   )
 }
 
+/** The starter values the slot form opens with -- an evening, because that is what `ALAP_SAVOK` (src/rpc.mjs) offers and a form that opens on `00:00` would invite a midnight slot nobody meant. */
+const URLAP_KEZDO: SavUrlap = { nap: null, ora: '18', perc: '00' }
+
 export function NaptarNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (kiadasId: string) => void }) {
   const [adat, setAdat] = useState<NaptarAdat | null>(null)
   const [hiba, setHiba] = useState<string | null>(null)
+  const [uzenet, setUzenet] = useState<string | null>(null)
+  const [kuldes, setKuldes] = useState(false)
+  const [savUrlap, setSavUrlap] = useState<SavUrlap>(URLAP_KEZDO)
 
   const tolt = useCallback(() => {
     rpc('naptar')
@@ -220,5 +430,61 @@ export function NaptarNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (kiadasId: stri
 
   useEffect(() => { tolt() }, [tolt])
 
-  return <NaptarBody adat={adat} hiba={hiba} onOpen={onOpen} onFrissit={tolt} />
+  /**
+   * The three slot levers, which differ only in what they send and what they
+   * say afterwards. Written once rather than three times: each one resolves
+   * with a NAMED refusal instead of throwing (`src/rpc.mjs`'s `lever`), so
+   * all three have to tell the same three outcomes apart -- the refusal the
+   * module sent, the success, and a request that never reached the module at
+   * all -- and three copies of that would be three places for one of the
+   * three to go missing.
+   */
+  const kuld = useCallback((method: string, args: Record<string, unknown>, mit: string, siker: string) => {
+    setKuldes(true)
+    rpc(method, args)
+      .then((raw) => {
+        setKuldes(false)
+        const refusal = refusalText(raw)
+        if (refusal !== null) { setUzenet(refusal); return }
+        setUzenet(siker)
+        setSavUrlap(URLAP_KEZDO)
+        tolt()
+      })
+      .catch((err: unknown) => { setKuldes(false); setUzenet(`${mit} el sem jutott a modulhoz: ${errText(err)}`) })
+  }, [rpc, tolt])
+
+  const onSavUrlapNyit = useCallback((nap: number | null) => { setSavUrlap((elozo) => ({ ...elozo, nap })) }, [])
+  const onSavOra = useCallback((ora: string) => { setSavUrlap((elozo) => ({ ...elozo, ora })) }, [])
+  const onSavPerc = useCallback((perc: string) => { setSavUrlap((elozo) => ({ ...elozo, perc })) }, [])
+
+  const onSavFelvesz = useCallback(() => {
+    kuld('savotFelvesz', { nap: savUrlap.nap, ora: szamOrNaN(savUrlap.ora), perc: szamOrNaN(savUrlap.perc) },
+      'A sáv felvételének kérése', 'Sáv felvéve.')
+  }, [kuld, savUrlap])
+
+  const onSavTorol = useCallback((savId: string) => {
+    kuld('savotTorol', { savId }, 'A sáv törlésének kérése', 'Sáv törölve.')
+  }, [kuld])
+
+  const onAlapSavok = useCallback(() => {
+    kuld('alapSavokatFelvesz', {}, 'Az alap sávkészlet kérése', 'Alap sávkészlet felvéve: hétfő, szerda és péntek 18:00.')
+  }, [kuld])
+
+  return (
+    <NaptarBody
+      adat={adat}
+      hiba={hiba}
+      uzenet={uzenet}
+      kuldes={kuldes}
+      savUrlap={savUrlap}
+      onOpen={onOpen}
+      onFrissit={tolt}
+      onSavUrlapNyit={onSavUrlapNyit}
+      onSavOra={onSavOra}
+      onSavPerc={onSavPerc}
+      onSavFelvesz={onSavFelvesz}
+      onSavTorol={onSavTorol}
+      onAlapSavok={onAlapSavok}
+    />
+  )
 }

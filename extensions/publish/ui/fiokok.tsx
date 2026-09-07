@@ -43,7 +43,8 @@ import { PLATFORM_CIMKE } from './naptar'
  * beside it instead.
  */
 
-const PLATFORMOK_SORREND = ['youtube', 'facebook', 'instagram', 'tiktok']
+/** The fallback order this page draws platform rows in before `fiokok` has answered. Exported so `test/ui.test.mjs` can hold it against `PLATFORMOK` (src/db.mjs) -- a fifth platform added to the module's closed list must not leave this page silently drawing four. */
+export const PLATFORMOK_SORREND = ['youtube', 'facebook', 'instagram', 'tiktok']
 
 /** `/api/oauth/google/start` is the host's consent route (design spec 6); `purpose=publish` is the scope Task 5's YouTube adapter reads (`state.oauth.getGoogleAccessToken('publish')`, `src/platform/youtube.mjs`) -- root-relative, so this bundle never has to know its own origin. */
 const CONNECT_URL = '/api/oauth/google/start?purpose=publish'

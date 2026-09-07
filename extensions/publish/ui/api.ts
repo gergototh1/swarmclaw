@@ -155,16 +155,44 @@ export function readNaptar(raw: unknown): NaptarAdat {
 
 // --- kiadas (detail) -------------------------------------------------------
 
+/**
+ * One branch's platform text, exactly as `olvasSzoveg` (src/szoveg.mjs)
+ * projects it: `cim` and `leiras` are INDEPENDENTLY nullable, because that
+ * function reads each key off the stored JSON on its own and answers `null`
+ * for whichever one is not a string. A writer that wrote a title and lost its
+ * session before the description is a real state this page has to be able to
+ * draw as itself.
+ */
 export interface AgSzoveg {
-  cim: string
-  leiras: string
+  cim: string | null
+  leiras: string | null
 }
 
-function readAgSzovegOrNull(raw: unknown): AgSzoveg | null {
-  if (!isRecord(raw)) return null
-  const cim = raw.cim
-  const leiras = raw.leiras
-  return typeof cim === 'string' && typeof leiras === 'string' ? { cim, leiras } : null
+/**
+ * "This branch has no text yet" is `null` -- the value `src/rpc.mjs` sends for
+ * a branch whose `szoveg` column is null -- and nothing else is.
+ *
+ * THE EARLIER VERSION OF THIS FUNCTION COLLAPSED THREE FACTS INTO ONE. It
+ * returned `null` for any shape it did not recognise, so `{ cim: 'x' }` (a
+ * half-written draft, which the module stores and `olvasSzoveg` projects as
+ * `{ cim: 'x', leiras: null }`) and a response this page genuinely cannot
+ * read both drew as "Ehhez a platformhoz még nincs megírt szöveg." -- the
+ * exact conflation this file's own docblock forbids one level up ("a load
+ * that failed and a load that genuinely found nothing are two different
+ * facts"), and it hid the operator's half-written title behind a sentence
+ * saying nothing had been written at all.
+ *
+ * So: `null` is read through, a record is read field by field with each half
+ * independently nullable, and ANY other shape is refused BY NAME like every
+ * other reader here.
+ */
+function readAgSzoveg(raw: unknown): AgSzoveg | null {
+  if (raw === null) return null
+  if (!isRecord(raw)) refuse('kiadas', 'szoveg')
+  return {
+    cim: readStringOrNull('kiadas', raw, 'cim'),
+    leiras: readStringOrNull('kiadas', raw, 'leiras'),
+  }
 }
 
 export interface AgReszlet extends AgJelzo {
@@ -175,13 +203,18 @@ export interface AgReszlet extends AgJelzo {
 
 function readAgReszlet(raw: unknown): AgReszlet {
   if (!isRecord(raw)) refuse('kiadas', 'agak')
+  // `in`, not `raw.szoveg === undefined`: an absent key is a response shape
+  // this page cannot read, and an explicit `null` is the module saying "no
+  // text on this branch". The same distinction `readStringOrNull` above draws,
+  // for the same reason.
+  if (!('szoveg' in raw)) refuse('kiadas', 'szoveg')
   return {
     platform: readString('kiadas', raw, 'platform'),
     allapot: readString('kiadas', raw, 'allapot'),
     url: readStringOrNull('kiadas', raw, 'url'),
     hibaKod: readStringOrNull('kiadas', raw, 'hibaKod'),
     kikuldveAt: readStringOrNull('kiadas', raw, 'kikuldveAt'),
-    szoveg: readAgSzovegOrNull(raw.szoveg),
+    szoveg: readAgSzoveg(raw.szoveg),
   }
 }
 

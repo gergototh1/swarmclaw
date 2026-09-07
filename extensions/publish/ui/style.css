@@ -19,6 +19,14 @@
 @media (max-width: 1080px) { .pub-hetirend { grid-template-columns: repeat(2, 1fr); } }
 .pub-nap { border: 1px solid currentColor; border-radius: .3rem; padding: .5rem; opacity: .95; display: flex; flex-direction: column; gap: .35rem; }
 .pub-savok { font-size: .8rem; opacity: .7; margin: 0; }
+.pub-sav-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .2rem; }
+.pub-sav { display: flex; gap: .4rem; align-items: center; justify-content: space-between; font-size: .8rem; }
+.pub-sav-ido { font-variant-numeric: tabular-nums; font-weight: 600; }
+.pub-sav-urlap { display: flex; flex-wrap: wrap; gap: .35rem; align-items: flex-end; font-size: .8rem; }
+.pub-sav-urlap label { display: flex; flex-direction: column; gap: .1rem; }
+.pub-sav-urlap input { width: 4rem; }
+.pub-sav-hozzaad { align-self: flex-start; }
+.pub-ures-naptar { display: flex; flex-direction: column; gap: .35rem; align-items: flex-start; border: 1px dashed currentColor; border-radius: .3rem; padding: .6rem; }
 
 .pub-bejegyzes {
   display: block; width: 100%; text-align: left; cursor: pointer;
@@ -44,6 +52,9 @@
 .pub-ag-hiba { color: #b00020; margin: .2rem 0; }
 .pub-link { word-break: break-all; }
 .pub-jovahagyas { display: flex; align-items: center; gap: .5rem; }
+.pub-idopont { display: flex; flex-direction: column; gap: .2rem; }
+.pub-atutemezes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: flex-end; border-top: 1px dashed currentColor; padding-top: .5rem; }
+.pub-atutemezes label { display: flex; flex-direction: column; gap: .15rem; font-size: .85rem; }
 
 .pub-fiok-lista { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
 .pub-fiok-sor { display: flex; gap: .5rem; align-items: center; }
