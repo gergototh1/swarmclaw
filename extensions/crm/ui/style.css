@@ -1,18 +1,18 @@
 /*
  * CRM lap. Minden osztály `crm-` prefixet visel: a hoszt ezt a lapot a saját
- * dokumentumába injektálja -- egy prefix nélküli szabály a shellt is
+ * dokumentumába injektálja, egy prefix nélküli szabály a shellt is
  * átstílusozná.
  *
- * A színek a hoszt tokenjeiből jönnek -- MINDIG fallbackkel. A fallback nem
- * díszítés: ha a hoszt átnevez egy tokent a lap olvasható marad ahelyett hogy
- * átlátszó szövegre esne. A betűket nem töltjük be -- a hoszt már megtette --
- * és `--font-sans` / `--font-display` / `--font-mono` néven adja.
+ * A színek a hoszt tokenjeiből jönnek, MINDIG fallbackkel. A fallback nem
+ * díszítés: ha a hoszt átnevez egy tokent, a lap olvasható marad ahelyett,
+ * hogy átlátszó szövegre esne. A betűket nem töltjük be -- a hoszt már
+ * megtette, és `--font-sans` / `--font-display` / `--font-mono` néven adja.
  *
  * A `--status-*` család szándékosan hiányzik: jelentései (fut / hiba /
- * tétlen) nem esnek egybe a CRM trigger-típusaival -- egy néma ügy
- * `--status-idle`-ként olyan egyenértékűséget állítana ami nem igaz.
+ * tétlen) nem esnek egybe a CRM trigger-típusaival, és egy néma ügy
+ * `--status-idle`-ként olyan egyenértékűséget állítana, ami nem igaz.
  *
- * `overflow-wrap: anywhere` minden dobozon ami tárolt szöveget tart -- azt
+ * `overflow-wrap: anywhere` minden dobozon, ami tárolt szöveget tart. Azt
  * mind más írta: egy 4000 karakteres szó semmit nem tolhat le a képernyőről.
  */
 
@@ -84,7 +84,7 @@
 .crm-btn-quiet:hover { color: var(--color-text, #e2e2ec); background: transparent; }
 .crm-btn-sm { padding: 4px 9px; font-size: 12.5px; }
 
-/* ---------- pillek: a jelentés soha nem csak szín -- mindig van szöveg is ---------- */
+/* ---------- pillek: a jelentés SOHA nem csak szín, mindig van szöveg is ---------- */
 .crm-pill {
   font-size: 11px; font-weight: 600; letter-spacing: .03em;
   padding: 2px 8px; border-radius: 999px; white-space: nowrap;
@@ -116,7 +116,7 @@
   border-color: color-mix(in srgb, var(--color-success, #34d399) 30%, transparent);
 }
 
-/* ---------- kártya és sorok ---------- */
+/* ---------- kártya, sorok ---------- */
 .crm-card {
   background: var(--color-surface, #14141f);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
@@ -133,7 +133,7 @@
 .crm-row:last-child { border-bottom: 0; }
 .crm-grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 
-/* ---------- sávok és apróságok ---------- */
+/* ---------- sávok, apróságok ---------- */
 .crm-strip {
   display: flex; align-items: center; gap: 11px; flex-wrap: wrap;
   background: var(--color-surface, #14141f);
