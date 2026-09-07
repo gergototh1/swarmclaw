@@ -254,11 +254,11 @@ export const FULL_WIDTH_VIEWS = new Set<AppView>([
   'usage', 'runs', 'quality', 'autonomy', 'logs', 'settings', 'activity', 'projects', 'swarmfeed', 'marketplace', 'missions',
 ])
 
-// `runs` and `logs` are deliberately absent: their route layouts, the ones
-// that rendered a SidebarPanelShell next to the page, were dropped when both
-// routes became plain redirects into /stream. Keeping either here would set
-// `sidebarOpen` true with no panel behind it, and that flag would then leak
-// into the next panel-backed view the user opens.
+// `runs`, `logs` and `secrets` are deliberately absent: their route layouts,
+// the ones that rendered a SidebarPanelShell next to the page, were dropped
+// when the routes became plain redirects into /stream and /vault. Keeping any
+// of them here would set `sidebarOpen` true with no panel behind it, and that
+// flag would then leak into the next panel-backed view the user opens.
 export const PANEL_SIDEBAR_VIEWS = new Set<AppView>([
   'agents',
   'connectors',
@@ -268,7 +268,6 @@ export const PANEL_SIDEBAR_VIEWS = new Set<AppView>([
   'memory',
   'providers',
   'schedules',
-  'secrets',
   'skills',
   'tasks',
   'webhooks',

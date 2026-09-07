@@ -36,4 +36,14 @@ describe('panel sidebar route helpers', () => {
     assert.equal(shouldAutoOpenPanelSidebar('runs', true), false)
     assert.equal(shouldAutoOpenPanelSidebar('logs', true), false)
   })
+
+  it('does not treat secrets as panel-backed now that /vault owns it', () => {
+    // secrets/layout.tsx (the one that rendered a SidebarPanelShell next to
+    // the page) was deleted when /secrets became a plain redirect into
+    // /vault. If 'secrets' came back here, clicking it would set sidebarOpen
+    // with no panel behind it, and that would leak into the next
+    // panel-backed view (Agents, Tasks, ...) the user opens.
+    assert.equal(isPanelSidebarView('secrets'), false)
+    assert.equal(shouldAutoOpenPanelSidebar('secrets', true), false)
+  })
 })
