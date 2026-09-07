@@ -25,7 +25,7 @@ export function NavItem({ view, label, expanded, isActive, onClick, badge, child
         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all border-none no-underline
           ${isActive
             ? 'bg-accent-soft text-accent-bright'
-            : 'bg-transparent text-text-3 hover:text-text hover:bg-white/[0.04]'}`}
+            : 'bg-transparent text-text-3 hover:text-text hover:bg-layer-2'}`}
         style={{ fontFamily: 'inherit' }}
       >
         <span className="shrink-0 relative">
@@ -54,7 +54,7 @@ export function NavItem({ view, label, expanded, isActive, onClick, badge, child
         </Link>
       </TooltipTrigger>
       <TooltipContent side="right" sideOffset={8}
-        className="bg-raised border border-white/[0.08] text-text shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-[10px] px-3.5 py-2.5 max-w-[200px]">
+        className="bg-raised border border-line-default text-text shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-[10px] px-3.5 py-2.5 max-w-[200px]">
         <div className="font-display text-[13px] font-600 mb-0.5">{label}</div>
         <div className="text-[11px] text-text-3 leading-[1.4]">{VIEW_DESCRIPTIONS[view]}</div>
       </TooltipContent>
@@ -67,7 +67,7 @@ export function RailTooltip({ label, description, children }: { label: string; d
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent side="right" sideOffset={8}
-        className="bg-raised border border-white/[0.08] text-text shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-[10px] px-3.5 py-2.5 max-w-[200px]">
+        className="bg-raised border border-line-default text-text shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-[10px] px-3.5 py-2.5 max-w-[200px]">
         <div className="font-display text-[13px] font-600 mb-0.5">{label}</div>
         <div className="text-[11px] text-text-3 leading-[1.4]">{description}</div>
       </TooltipContent>
@@ -97,7 +97,7 @@ export function ExtensionNavItem({ href, label, expanded, isActive, onClick, chi
         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all border-none no-underline
           ${isActive
             ? 'bg-accent-soft text-accent-bright'
-            : 'bg-transparent text-text-3 hover:text-text hover:bg-white/[0.04]'}`}
+            : 'bg-transparent text-text-3 hover:text-text hover:bg-layer-2'}`}
         style={{ fontFamily: 'inherit' }}
       >
         <span className="shrink-0 relative">{children}</span>

@@ -99,7 +99,7 @@ export function TaskColumn({
             className={`text-[10px] font-600 px-1.5 py-0.5 rounded-[5px] cursor-pointer border-none transition-colors
               ${selectedCount === tasks.length && selectedCount > 0
                 ? 'bg-accent-bright/20 text-accent-bright'
-                : 'bg-white/[0.04] text-text-3 hover:bg-white/[0.08]'}`}
+                : 'bg-layer-2 text-text-3 hover:bg-layer-3'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {selectedCount === tasks.length && selectedCount > 0 ? 'All' : 'Select all'}
@@ -116,7 +116,7 @@ export function TaskColumn({
             onChange={(e) => setQuickAddValue(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd() }}
             placeholder={`+ Add to ${config.label.toLowerCase()}...`}
-            className="w-full px-3 py-2 rounded-[10px] bg-white/[0.02] border border-dashed border-white/[0.08] text-[12px] text-text placeholder:text-text-3/30 outline-none focus:border-white/[0.15] focus:bg-white/[0.03] transition-colors"
+            className="w-full px-3 py-2 rounded-[10px] bg-layer-1 border border-dashed border-line-default text-[12px] text-text placeholder:text-text-3/30 outline-none focus:border-line-strong focus:bg-layer-1 transition-colors"
             style={{ fontFamily: 'inherit' }}
             disabled={adding}
           />

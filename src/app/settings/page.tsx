@@ -317,7 +317,7 @@ export default function SettingsRoute() {
   return (
     <MainContent>
       <div className="flex-1 flex h-full min-w-0">
-        <div className="w-[200px] shrink-0 border-r border-white/[0.04] py-6 px-3 flex flex-col gap-1">
+        <div className="w-[200px] shrink-0 border-r border-line-subtle py-6 px-3 flex flex-col gap-1">
           <h2 className="font-display text-[14px] font-700 text-text px-3 mb-3 tracking-[-0.01em]">Settings</h2>
           <div className="px-2 mb-3">
             <div className="relative">
@@ -330,7 +330,7 @@ export default function SettingsRoute() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search settings or jump to a section..."
-                className="w-full pl-8 pr-2 py-1.5 text-[12px] bg-white/[0.04] rounded-[8px] border border-white/[0.06] text-text placeholder:text-text-3/40 outline-none focus:border-white/[0.12] transition-colors"
+                className="w-full pl-8 pr-2 py-1.5 text-[12px] bg-layer-2 rounded-[8px] border border-line-subtle text-text placeholder:text-text-3/40 outline-none focus:border-line-default transition-colors"
                 style={{ fontFamily: 'inherit' }}
               />
             </div>
@@ -345,7 +345,7 @@ export default function SettingsRoute() {
                   ${dimmed ? 'opacity-30' : ''}
                   ${activeTab === tab.id
                     ? 'bg-accent-soft text-accent-bright'
-                    : 'bg-transparent text-text-3 hover:text-text hover:bg-white/[0.04]'}`}
+                    : 'bg-transparent text-text-3 hover:text-text hover:bg-layer-2'}`}
                 style={{ fontFamily: 'inherit' }}
               >
                 <span className="shrink-0">{tab.icon}</span>
@@ -371,7 +371,7 @@ export default function SettingsRoute() {
             </div>
 
             {searchQuery && (
-              <div className="mb-8 rounded-[16px] border border-white/[0.06] bg-white/[0.02] p-4">
+              <div className="mb-8 rounded-[16px] border border-line-subtle bg-layer-1 p-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <p className="text-[12px] font-600 text-text-2">
@@ -384,7 +384,7 @@ export default function SettingsRoute() {
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="px-2.5 py-1.5 rounded-[8px] bg-white/[0.04] text-[11px] text-text-3 hover:text-text hover:bg-white/[0.08] transition-colors border-none cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-[8px] bg-layer-2 text-[11px] text-text-3 hover:text-text hover:bg-layer-3 transition-colors border-none cursor-pointer"
                       style={{ fontFamily: 'inherit' }}
                     >
                       Clear
@@ -397,7 +397,7 @@ export default function SettingsRoute() {
                       <button
                         key={section.id}
                         onClick={() => focusSection(section.id, section.tabId)}
-                        className="px-3 py-2 rounded-[10px] border border-white/[0.06] bg-transparent text-left hover:bg-white/[0.04] transition-colors cursor-pointer"
+                        className="px-3 py-2 rounded-[10px] border border-line-subtle bg-transparent text-left hover:bg-layer-2 transition-colors cursor-pointer"
                         style={{ fontFamily: 'inherit' }}
                       >
                         <div className="text-[12px] font-600 text-text">{section.title}</div>

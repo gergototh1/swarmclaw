@@ -69,10 +69,10 @@ export function SoulLibraryPicker({ open, onClose, onSelect }: SoulLibraryPicker
           <h2 className="font-display text-[24px] font-700 tracking-[-0.03em] mb-1">Soul Library</h2>
           <p className="text-[13px] text-text-3">Browse personality templates for your agent</p>
         </div>
-        <div className="flex bg-white/[0.04] p-1 rounded-[12px] border border-white/[0.04]">
+        <div className="flex bg-layer-2 p-1 rounded-[12px] border border-line-subtle">
            <button 
              onClick={() => setSource('library')}
-             className={`px-3 py-1.5 rounded-[10px] text-[12px] font-600 transition-all ${source === 'library' ? 'bg-white/[0.08] text-text shadow-sm' : 'text-text-3 hover:text-text-2'}`}
+             className={`px-3 py-1.5 rounded-[10px] text-[12px] font-600 transition-all ${source === 'library' ? 'bg-layer-3 text-text shadow-sm' : 'text-text-3 hover:text-text-2'}`}
            >
              Verified
            </button>
@@ -92,7 +92,7 @@ export function SoulLibraryPicker({ open, onClose, onSelect }: SoulLibraryPicker
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={source === 'library' ? "Search verified personalities..." : "Search SwarmForge / Custom..."}
-          className="w-full px-4 py-3 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[14px] outline-none focus-glow"
+          className="w-full px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none focus-glow"
           style={{ fontFamily: 'inherit' }}
         />
       </div>
@@ -106,7 +106,7 @@ export function SoulLibraryPicker({ open, onClose, onSelect }: SoulLibraryPicker
             className={`px-3 py-1.5 rounded-[8px] text-[12px] font-600 cursor-pointer transition-all border
               ${archetype === a
                 ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                : 'bg-surface border-white/[0.06] text-text-3 hover:text-text-2'}`}
+                : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {a}
@@ -125,15 +125,15 @@ export function SoulLibraryPicker({ open, onClose, onSelect }: SoulLibraryPicker
           <button
             key={template.id}
             onClick={() => handleSelect(template)}
-            className={`text-left p-4 rounded-[14px] border border-white/[0.06] bg-surface hover:bg-surface-2 transition-all cursor-pointer group 
-              ${source === 'forge' ? 'hover:border-accent-bright/20' : 'hover:border-white/[0.12]'}`}
+            className={`text-left p-4 rounded-[14px] border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer group 
+              ${source === 'forge' ? 'hover:border-accent-bright/20' : 'hover:border-line-default'}`}
             style={{ fontFamily: 'inherit' }}
           >
             <div className="flex items-start gap-2 mb-2">
               <h4 className={`text-[14px] font-600 text-text transition-colors ${source === 'forge' ? 'group-hover:text-accent-bright' : ''}`}>
                 {template.name}
               </h4>
-              <span className="px-1.5 py-0.5 rounded-[5px] bg-white/[0.06] text-text-3 text-[10px] font-600 shrink-0">
+              <span className="px-1.5 py-0.5 rounded-[5px] bg-layer-2 text-text-3 text-[10px] font-600 shrink-0">
                 {template.archetype}
               </span>
             </div>
@@ -143,7 +143,7 @@ export function SoulLibraryPicker({ open, onClose, onSelect }: SoulLibraryPicker
         ))}
         {!loading && results.length === 0 && (
           <div className="col-span-2 text-center py-12">
-             <div className="w-12 h-12 rounded-full bg-white/[0.03] flex items-center justify-center mx-auto mb-3">
+             <div className="w-12 h-12 rounded-full bg-layer-1 flex items-center justify-center mx-auto mb-3">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/40"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4Z"/><path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4Z"/></svg>
              </div>
              <p className="text-[14px] font-600 text-text-2">No personalities match</p>

@@ -148,14 +148,14 @@ export function NotificationCenter({
   const panelNode = open ? (
     <div
       ref={panelRef}
-      className="fixed w-[340px] max-h-[460px] bg-raised border border-white/[0.06] rounded-[14px] shadow-[0_16px_64px_rgba(0,0,0,0.6)] backdrop-blur-xl z-[1200] flex flex-col overflow-hidden"
+      className="fixed w-[340px] max-h-[460px] bg-raised border border-line-subtle rounded-[14px] shadow-[0_16px_64px_rgba(0,0,0,0.6)] backdrop-blur-xl z-[1200] flex flex-col overflow-hidden"
       style={{
         ...panelStyle,
         animation: 'fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-line-subtle shrink-0">
         <span className="text-[13px] font-600 text-text">Notifications</span>
         <div className="flex items-center gap-2">
           {unreadCount > 0 && (
@@ -191,7 +191,7 @@ export function NotificationCenter({
               key={n.id}
               onClick={() => handleNotificationClick(n)}
               className={`w-full text-left px-4 py-3 border-l-[3px] border-b border-b-white/[0.03] bg-transparent
-                hover:bg-white/[0.03] transition-colors cursor-pointer border-t-0 border-r-0
+                hover:bg-layer-1 transition-colors cursor-pointer border-t-0 border-r-0
                 ${TYPE_COLORS[n.type]}
                 ${n.read ? 'opacity-50' : ''}`}
               style={{ fontFamily: 'inherit' }}
@@ -204,7 +204,7 @@ export function NotificationCenter({
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] font-600 text-text truncate flex-1">{n.title}</span>
                     {getNotificationOccurrenceCount(n) > 1 && (
-                      <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-600 text-text-3/80">
+                      <span className="shrink-0 rounded-full border border-line-default bg-layer-2 px-1.5 py-0.5 text-[9px] font-600 text-text-3/80">
                         x{getNotificationOccurrenceCount(n)}
                       </span>
                     )}
@@ -244,8 +244,8 @@ export function NotificationCenter({
         onClick={() => setOpen((v) => !v)}
         className={
           isRow
-            ? 'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all bg-transparent text-text-3 hover:text-text hover:bg-white/[0.04] border-none'
-            : 'relative flex items-center justify-center w-8 h-8 rounded-[8px] bg-transparent hover:bg-white/[0.05] transition-colors cursor-pointer border-none'
+            ? 'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none'
+            : 'relative flex items-center justify-center w-8 h-8 rounded-[8px] bg-transparent hover:bg-layer-2 transition-colors cursor-pointer border-none'
         }
         aria-label="Notifications"
         title={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}

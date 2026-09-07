@@ -36,20 +36,20 @@ export function AgentPickerList({
 
   return (
     <div
-      className="flex flex-col gap-1 rounded-[14px] border border-white/[0.06] bg-surface p-1.5 overflow-y-auto"
+      className="flex flex-col gap-1 rounded-[14px] border border-line-subtle bg-surface p-1.5 overflow-y-auto"
       style={{ maxHeight }}
     >
       {noneOption && (
         <button
           onClick={noneOption.onSelect}
           className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] cursor-pointer transition-all w-full text-left border-none
-            ${noneSelected ? 'bg-accent-soft' : 'bg-transparent hover:bg-white/[0.03]'}`}
+            ${noneSelected ? 'bg-accent-soft' : 'bg-transparent hover:bg-layer-1'}`}
           style={{ fontFamily: 'inherit' }}
         >
           {noneSelected && (
             <div className="absolute left-0 top-2 bottom-2 w-[2.5px] rounded-full bg-accent-bright" />
           )}
-          <div className="w-[28px] h-[28px] rounded-full bg-white/[0.06] flex items-center justify-center shrink-0">
+          <div className="w-[28px] h-[28px] rounded-full bg-layer-2 flex items-center justify-center shrink-0">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={noneSelected ? 'text-accent-bright' : 'text-text-3'}>
               <circle cx="12" cy="12" r="10" /><line x1="8" y1="12" x2="16" y2="12" />
             </svg>
@@ -66,7 +66,7 @@ export function AgentPickerList({
             key={a.id}
             onClick={() => onSelect(a.id)}
             className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] cursor-pointer transition-all w-full text-left border-none
-              ${active ? 'bg-accent-soft' : 'bg-transparent hover:bg-white/[0.03]'}`}
+              ${active ? 'bg-accent-soft' : 'bg-transparent hover:bg-layer-1'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {active && (

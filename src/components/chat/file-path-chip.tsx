@@ -57,7 +57,7 @@ export function FilePathChip({ filePath, cwd }: { filePath: string; cwd?: string
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-[8px] bg-white/[0.06] border border-white/[0.08] font-mono text-[13px]">
+    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-[8px] bg-layer-2 border border-line-default font-mono text-[13px]">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/50 shrink-0">
         {isDir ? (
           <><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></>
@@ -68,7 +68,7 @@ export function FilePathChip({ filePath, cwd }: { filePath: string; cwd?: string
       <span className="text-sky-400">{filePath}</span>
       <button
         onClick={handleReveal}
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-white/[0.06] hover:bg-white/[0.10] text-[10px] font-600 text-text-3 hover:text-text-2 border-none transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-layer-2 hover:bg-layer-3 text-[10px] font-600 text-text-3 hover:text-text-2 border-none transition-colors cursor-pointer"
         title={isDir ? 'Open folder' : 'Reveal in file manager'}
       >
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -83,7 +83,7 @@ export function FilePathChip({ filePath, cwd }: { filePath: string; cwd?: string
           href={serveUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-white/[0.06] hover:bg-white/[0.10] text-[10px] font-600 text-text-3 hover:text-text-2 no-underline transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-layer-2 hover:bg-layer-3 text-[10px] font-600 text-text-3 hover:text-text-2 no-underline transition-colors cursor-pointer"
           title="Open file"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

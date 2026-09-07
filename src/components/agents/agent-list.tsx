@@ -194,7 +194,7 @@ export function AgentList({ inSidebar }: Props) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search agents..."
-            className="w-full px-4 py-2.5 rounded-[12px] border border-white/[0.04] bg-surface text-text
+            className="w-full px-4 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text
               text-[13px] outline-none transition-all duration-200 placeholder:text-text-3/70 focus-glow"
             style={{ fontFamily: 'inherit' }}
           />
@@ -239,7 +239,7 @@ export function AgentList({ inSidebar }: Props) {
         <button
           onClick={() => setShowTrash(true)}
           aria-label="View trash"
-          className="p-1.5 rounded-[6px] text-text-3/50 hover:text-text-3 bg-transparent border-none cursor-pointer transition-all hover:bg-white/[0.04]"
+          className="p-1.5 rounded-[6px] text-text-3/50 hover:text-text-3 bg-transparent border-none cursor-pointer transition-all hover:bg-layer-2"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="3 6 5 6 21 6" />
@@ -248,7 +248,7 @@ export function AgentList({ inSidebar }: Props) {
         </button>
       </div>
       {!inSidebar && (
-        <div className="mx-4 mb-3 rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+        <div className="mx-4 mb-3 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-3">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Fleet Roles</h3>
@@ -257,13 +257,13 @@ export function AgentList({ inSidebar }: Props) {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="px-2.5 py-1 rounded-[8px] bg-white/[0.04] text-[11px] font-600 text-text-2">
+              <span className="px-2.5 py-1 rounded-[8px] bg-layer-2 text-[11px] font-600 text-text-2">
                 Default: {agents[defaultAgentId]?.name || 'Unset'}
               </span>
               <span className="px-2.5 py-1 rounded-[8px] bg-sky-500/10 text-[11px] font-600 text-sky-400">
                 {delegatingCount} delegating
               </span>
-              <span className="px-2.5 py-1 rounded-[8px] bg-white/[0.04] text-[11px] font-600 text-text-2">
+              <span className="px-2.5 py-1 rounded-[8px] bg-layer-2 text-[11px] font-600 text-text-2">
                 {soloCount} solo
               </span>
             </div>

@@ -24,7 +24,7 @@ export function ProviderDiagnosticsList({
   if (!diagnostics?.length) return null
 
   return (
-    <div className={`mt-3 border-t border-white/[0.06] pt-3 ${className}`}>
+    <div className={`mt-3 border-t border-line-subtle pt-3 ${className}`}>
       <div className="mb-2 text-[11px] font-700 uppercase tracking-[0.1em] text-text-3/70">
         Diagnostics
       </div>

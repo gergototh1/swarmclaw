@@ -198,7 +198,7 @@ export function StructuredSessionLauncher({
       description={launcherDescription}
     >
       <div className="mb-8">
-        <div className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/70">
+        <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/70">
           Structured Sessions
         </div>
         <h2 className="mt-4 font-display text-[28px] font-700 tracking-[-0.03em] text-text">{launcherTitle}</h2>
@@ -208,11 +208,11 @@ export function StructuredSessionLauncher({
       </div>
 
       {linkedContext.length > 0 && (
-        <div className="mb-6 rounded-[16px] border border-white/[0.06] bg-white/[0.03] p-4">
+        <div className="mb-6 rounded-[16px] border border-line-subtle bg-layer-1 p-4">
           <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Starting From</div>
           <div className="mt-3 flex flex-wrap gap-2">
             {linkedContext.map((entry) => (
-              <span key={`${entry.label}-${entry.value}`} className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[12px] text-text-2">
+              <span key={`${entry.label}-${entry.value}`} className="rounded-full border border-line-default bg-layer-1 px-3 py-1.5 text-[12px] text-text-2">
                 <span className="mr-1 text-text-3/60">{entry.label}:</span>
                 {entry.value}
               </span>
@@ -235,7 +235,7 @@ export function StructuredSessionLauncher({
               value={form.title}
               onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
               placeholder="What should this run be called?"
-              className="mt-2 w-full rounded-[12px] border border-white/[0.06] bg-white/[0.04] px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+              className="mt-2 w-full rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
             />
           </div>
 
@@ -246,7 +246,7 @@ export function StructuredSessionLauncher({
                 <select
                   value={form.templateId}
                   onChange={(event) => setForm((current) => ({ ...current, templateId: event.target.value }))}
-                  className="mt-2 w-full rounded-[12px] border border-white/[0.06] bg-white/[0.04] px-3 py-2.5 text-[14px] text-text outline-none"
+                  className="mt-2 w-full rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none"
                 >
                   {templates.map((template) => (
                     <option key={template.id} value={template.id}>{template.name}</option>
@@ -259,7 +259,7 @@ export function StructuredSessionLauncher({
                 <select
                   value={form.facilitatorAgentId}
                   onChange={(event) => setForm((current) => ({ ...current, facilitatorAgentId: event.target.value }))}
-                  className="mt-2 w-full rounded-[12px] border border-white/[0.06] bg-white/[0.04] px-3 py-2.5 text-[14px] text-text outline-none"
+                  className="mt-2 w-full rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none"
                 >
                   <option value="">Use the first participant</option>
                   {agentOptions.map((agent) => (
@@ -276,7 +276,7 @@ export function StructuredSessionLauncher({
               value={form.goal}
               onChange={(event) => setForm((current) => ({ ...current, goal: event.target.value }))}
               placeholder="What should this structured session accomplish?"
-              className="mt-2 w-full rounded-[12px] border border-white/[0.06] bg-white/[0.04] px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+              className="mt-2 w-full rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
             />
           </div>
 
@@ -287,19 +287,19 @@ export function StructuredSessionLauncher({
               onChange={(event) => setForm((current) => ({ ...current, kickoffMessage: event.target.value }))}
               placeholder="Optional background, constraints, or initial framing"
               rows={4}
-              className="mt-2 w-full rounded-[12px] border border-white/[0.06] bg-white/[0.04] px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+              className="mt-2 w-full rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
             />
           </div>
         </div>
 
         {breakoutMode ? (
-          <div className="rounded-[16px] border border-white/[0.06] bg-white/[0.03] p-4">
+          <div className="rounded-[16px] border border-line-subtle bg-layer-1 p-4">
             <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Room Participants</div>
             <div className="mt-3 flex flex-wrap gap-2">
               {loading ? (
                 <div className="text-[13px] text-text-3/60">Loading room members…</div>
               ) : breakoutParticipantNames.length > 0 ? breakoutParticipantNames.map((name) => (
-                <span key={name} className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[12px] text-text-2">
+                <span key={name} className="rounded-full border border-line-default bg-layer-1 px-3 py-1.5 text-[12px] text-text-2">
                   {name}
                 </span>
               )) : (
@@ -313,7 +313,7 @@ export function StructuredSessionLauncher({
         ) : (
           <div>
             <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Participants</div>
-            <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-[14px] border border-white/[0.06] bg-white/[0.03] p-3">
+            <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-[14px] border border-line-subtle bg-layer-1 p-3">
               {loading ? (
                 <div className="text-[13px] text-text-3/60">Loading options…</div>
               ) : agentOptions.map((agent) => {
@@ -331,7 +331,7 @@ export function StructuredSessionLauncher({
                     className={`rounded-full border px-3 py-1.5 text-[12px] font-600 transition-all cursor-pointer ${
                       active
                         ? 'border-accent-bright/30 bg-accent-soft text-accent-bright'
-                        : 'border-white/[0.08] bg-transparent text-text-2 hover:bg-white/[0.04]'
+                        : 'border-line-default bg-transparent text-text-2 hover:bg-layer-2'
                     }`}
                   >
                     {agent.name}
@@ -343,12 +343,12 @@ export function StructuredSessionLauncher({
         )}
 
         {!breakoutMode && selectedTemplate && (
-          <div className="rounded-[16px] border border-white/[0.06] bg-white/[0.03] p-4">
+          <div className="rounded-[16px] border border-line-subtle bg-layer-1 p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="text-[14px] font-700 text-text">{selectedTemplate.name}</div>
               <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] ${
                 selectedTemplate.builtIn
-                  ? 'border-white/[0.08] bg-white/[0.04] text-text-3/75'
+                  ? 'border-line-default bg-layer-2 text-text-3/75'
                   : 'border-sky-500/20 bg-sky-500/10 text-sky-200'
               }`}>
                 {selectedTemplate.builtIn ? 'built in' : 'custom'}
@@ -358,7 +358,7 @@ export function StructuredSessionLauncher({
             {!!selectedTemplate.steps?.length && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {selectedTemplate.steps.map((step) => (
-                  <span key={step.id} className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-text-3">
+                  <span key={step.id} className="rounded-full border border-line-default bg-layer-1 px-2.5 py-1 text-[11px] text-text-3">
                     {step.label}
                   </span>
                 ))}
@@ -371,7 +371,7 @@ export function StructuredSessionLauncher({
           <details
             open={advancedOpen}
             onToggle={(event) => setAdvancedOpen((event.currentTarget as HTMLDetailsElement).open)}
-            className="rounded-[16px] border border-white/[0.06] bg-white/[0.03] p-4"
+            className="rounded-[16px] border border-line-subtle bg-layer-1 p-4"
           >
             <summary className="cursor-pointer list-none text-[12px] font-700 uppercase tracking-[0.12em] text-text-2">
               Advanced
@@ -381,13 +381,13 @@ export function StructuredSessionLauncher({
                 value={form.roundLimit}
                 onChange={(event) => setForm((current) => ({ ...current, roundLimit: event.target.value }))}
                 placeholder="Round limit"
-                className="rounded-[12px] border border-white/[0.06] bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                className="rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
               />
               <input
                 value={form.decisionMode}
                 onChange={(event) => setForm((current) => ({ ...current, decisionMode: event.target.value }))}
                 placeholder="Decision mode"
-                className="rounded-[12px] border border-white/[0.06] bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                className="rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
               />
 
               {allowContextSelection && (
@@ -395,7 +395,7 @@ export function StructuredSessionLauncher({
                   <select
                     value={form.parentChatroomId}
                     onChange={(event) => setForm((current) => ({ ...current, parentChatroomId: event.target.value }))}
-                    className="rounded-[12px] border border-white/[0.06] bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none"
+                    className="rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none"
                   >
                     <option value="">No parent chatroom</option>
                     {Object.values(chatrooms).map((chatroom) => (
@@ -405,7 +405,7 @@ export function StructuredSessionLauncher({
                   <select
                     value={form.taskId}
                     onChange={(event) => setForm((current) => ({ ...current, taskId: event.target.value }))}
-                    className="rounded-[12px] border border-white/[0.06] bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none"
+                    className="rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none"
                   >
                     <option value="">No linked task</option>
                     {Object.values(tasks).map((task) => (
@@ -415,7 +415,7 @@ export function StructuredSessionLauncher({
                 </>
               )}
 
-              <label className="flex items-center gap-2 rounded-[12px] border border-white/[0.06] bg-black/20 px-3 py-2.5 text-[13px] text-text-2">
+              <label className="flex items-center gap-2 rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[13px] text-text-2">
                 <input
                   type="checkbox"
                   checked={form.autoStart}
@@ -423,7 +423,7 @@ export function StructuredSessionLauncher({
                 />
                 Start immediately
               </label>
-              <label className="flex items-center gap-2 rounded-[12px] border border-white/[0.06] bg-black/20 px-3 py-2.5 text-[13px] text-text-2">
+              <label className="flex items-center gap-2 rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[13px] text-text-2">
                 <input
                   type="checkbox"
                   checked={form.createTranscript}

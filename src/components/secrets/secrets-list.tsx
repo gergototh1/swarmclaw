@@ -31,7 +31,7 @@ export function SecretsList({ inSidebar }: Props) {
   if (!secretList.length) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
-        <div className="w-12 h-12 rounded-[14px] bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
+        <div className="w-12 h-12 rounded-[14px] bg-layer-1 border border-line-subtle flex items-center justify-center mb-4">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -76,8 +76,8 @@ export function SecretsList({ inSidebar }: Props) {
                   setSecretSheetOpen(true)
                 }
               }}
-              className="w-full text-left p-4 rounded-[14px] bg-surface border border-white/[0.06]
-                hover:border-white/[0.12] hover:bg-white/[0.02] hover:scale-[1.01] cursor-pointer transition-all group"
+              className="w-full text-left p-4 rounded-[14px] bg-surface border border-line-subtle
+                hover:border-line-default hover:bg-layer-1 hover:scale-[1.01] cursor-pointer transition-all group"
               style={{
                 fontFamily: 'inherit',
                 animation: 'spring-in 0.5s var(--ease-spring) both',

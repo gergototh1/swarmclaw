@@ -10,8 +10,8 @@ const chipVariants = cva(
         md: 'px-2 py-1 rounded-[7px] text-[10px]',
       },
       tone: {
-        neutral: 'bg-white/[0.05] text-text-2',
-        muted: 'bg-white/[0.04] text-text-3',
+        neutral: 'bg-layer-2 text-text-2',
+        muted: 'bg-layer-2 text-text-3',
         warning: 'bg-amber-500/10 text-amber-300',
         danger: 'bg-red-500/15 text-red-400',
         success: 'bg-emerald-500/15 text-emerald-400',

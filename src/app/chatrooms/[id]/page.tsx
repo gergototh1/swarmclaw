@@ -22,7 +22,7 @@ export default function ChatroomByIdPage() {
   return (
     <MainContent>
       <div className="flex-1 flex h-full min-w-0">
-        <div className="w-[280px] shrink-0 border-r border-white/[0.06] flex flex-col">
+        <div className="w-[280px] shrink-0 border-r border-line-subtle flex flex-col">
           <div className="flex items-center px-4 pt-4 pb-2 shrink-0">
             <h2 className="font-display text-[14px] font-600 text-text-2 tracking-[-0.01em] flex-1">Chatrooms</h2>
             <button

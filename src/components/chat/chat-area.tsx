@@ -642,24 +642,24 @@ export function ChatArea() {
         <div className="flex-1 flex flex-col gap-5 px-4 md:px-12 lg:px-16 py-8" style={{ animation: 'fade-in 0.2s ease' }}>
           {/* Skeleton message bubbles */}
           <div className="flex gap-3 max-w-[70%]">
-            <div className="w-8 h-8 rounded-full bg-white/[0.06] animate-pulse shrink-0" />
+            <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-24 rounded bg-white/[0.06] animate-pulse" />
-              <div className="h-16 rounded-[12px] bg-white/[0.04] animate-pulse" />
+              <div className="h-3 w-24 rounded bg-layer-2 animate-pulse" />
+              <div className="h-16 rounded-[12px] bg-layer-2 animate-pulse" />
             </div>
           </div>
           <div className="flex gap-3 max-w-[60%] self-end flex-row-reverse">
-            <div className="w-8 h-8 rounded-full bg-white/[0.06] animate-pulse shrink-0" />
+            <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-16 rounded bg-white/[0.06] animate-pulse ml-auto" />
-              <div className="h-10 rounded-[12px] bg-white/[0.04] animate-pulse" />
+              <div className="h-3 w-16 rounded bg-layer-2 animate-pulse ml-auto" />
+              <div className="h-10 rounded-[12px] bg-layer-2 animate-pulse" />
             </div>
           </div>
           <div className="flex gap-3 max-w-[65%]">
-            <div className="w-8 h-8 rounded-full bg-white/[0.06] animate-pulse shrink-0" />
+            <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-20 rounded bg-white/[0.06] animate-pulse" />
-              <div className="h-24 rounded-[12px] bg-white/[0.04] animate-pulse" />
+              <div className="h-3 w-20 rounded bg-layer-2 animate-pulse" />
+              <div className="h-24 rounded-[12px] bg-layer-2 animate-pulse" />
             </div>
           </div>
         </div>
@@ -707,7 +707,7 @@ export function ChatArea() {
               <button
                 key={prompt.text}
                 onClick={() => handlePrompt(prompt.text)}
-                className={`suggestion-card p-4 rounded-[14px] border border-white/[0.04] bg-gradient-to-br ${prompt.gradient}
+                className={`suggestion-card p-4 rounded-[14px] border border-line-subtle bg-gradient-to-br ${prompt.gradient}
                   text-left cursor-pointer flex flex-col gap-3 min-h-[110px] active:scale-[0.97]`}
                 style={{ fontFamily: 'inherit', animation: `fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.07 + 0.15}s both` }}
               >

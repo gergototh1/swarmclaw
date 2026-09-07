@@ -43,7 +43,7 @@ export function WalletList() {
   if (!walletList.length) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
-        <div className="w-12 h-12 rounded-[14px] bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
+        <div className="w-12 h-12 rounded-[14px] bg-layer-1 border border-line-subtle flex items-center justify-center mb-4">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
             <rect x="2" y="6" width="20" height="14" rx="2" /><path d="M22 10H18a2 2 0 0 0 0 4h4" /><path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" />
           </svg>
@@ -62,8 +62,8 @@ export function WalletList() {
           return (
             <div
               key={wallet.id}
-              className="w-full text-left p-4 rounded-[14px] bg-surface border border-white/[0.06]
-                hover:border-white/[0.12] hover:bg-white/[0.02] transition-all group"
+              className="w-full text-left p-4 rounded-[14px] bg-surface border border-line-subtle
+                hover:border-line-default hover:bg-layer-1 transition-all group"
               style={{
                 fontFamily: 'inherit',
                 animation: 'spring-in 0.5s var(--ease-spring) both',
@@ -75,7 +75,7 @@ export function WalletList() {
                 {agent ? (
                   <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={20} />
                 ) : (
-                  <div className="w-5 h-5 rounded-full bg-white/[0.06]" />
+                  <div className="w-5 h-5 rounded-full bg-layer-2" />
                 )}
                 <span className="text-[13px] font-600 text-text truncate flex-1">
                   {agent?.name || 'Unknown Agent'}

@@ -356,16 +356,16 @@ export default function AutonomyPage() {
     return (
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto max-w-6xl space-y-5 animate-pulse">
-          <div className="h-56 rounded-[24px] border border-white/[0.05] bg-white/[0.03]" />
+          <div className="h-56 rounded-[24px] border border-line-subtle bg-layer-1" />
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="h-24 rounded-[16px] border border-white/[0.05] bg-white/[0.03]" />
-            <div className="h-24 rounded-[16px] border border-white/[0.05] bg-white/[0.03]" />
-            <div className="h-24 rounded-[16px] border border-white/[0.05] bg-white/[0.03]" />
-            <div className="h-24 rounded-[16px] border border-white/[0.05] bg-white/[0.03]" />
+            <div className="h-24 rounded-[16px] border border-line-subtle bg-layer-1" />
+            <div className="h-24 rounded-[16px] border border-line-subtle bg-layer-1" />
+            <div className="h-24 rounded-[16px] border border-line-subtle bg-layer-1" />
+            <div className="h-24 rounded-[16px] border border-line-subtle bg-layer-1" />
           </div>
           <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-            <div className="h-[420px] rounded-[20px] border border-white/[0.05] bg-white/[0.03]" />
-            <div className="h-[420px] rounded-[20px] border border-white/[0.05] bg-white/[0.03]" />
+            <div className="h-[420px] rounded-[20px] border border-line-subtle bg-layer-1" />
+            <div className="h-[420px] rounded-[20px] border border-line-subtle bg-layer-1" />
           </div>
         </div>
       </div>
@@ -375,12 +375,12 @@ export default function AutonomyPage() {
   return (
     <div className="flex-1 overflow-y-auto px-6 py-6">
       <div className="mx-auto max-w-6xl space-y-5">
-        <section className="relative overflow-hidden rounded-[24px] border border-white/[0.06] bg-surface">
+        <section className="relative overflow-hidden rounded-[24px] border border-line-subtle bg-surface">
           <div className={`absolute inset-0 bg-gradient-to-br ${tone.glow}`} />
-          <div className="absolute right-[-60px] top-[-80px] h-48 w-48 rounded-full bg-white/[0.04] blur-3xl" />
+          <div className="absolute right-[-60px] top-[-80px] h-48 w-48 rounded-full bg-layer-2 blur-3xl" />
           <div className="relative grid gap-6 p-6 md:p-7 xl:grid-cols-[minmax(0,1.4fr)_320px]">
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[10px] font-700 uppercase tracking-[0.14em] text-text-3/70">
+              <div className="inline-flex items-center gap-2 rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[10px] font-700 uppercase tracking-[0.14em] text-text-3/70">
                 Runtime Safety Desk
                 {refreshing && <span className="text-[9px] text-text-3/50">Refreshing</span>}
               </div>
@@ -394,11 +394,11 @@ export default function AutonomyPage() {
                 <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-700 uppercase tracking-[0.08em] ${tone.badge}`}>
                   {modeLabel}
                 </span>
-                <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[11px] text-text-3/72">
+                <span className="inline-flex items-center rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] text-text-3/72">
                   Refreshed {refreshedAt ? timeAgo(refreshedAt, now) : 'recently'}
                 </span>
                 {latestIncident && (
-                  <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[11px] text-text-3/72">
+                  <span className="inline-flex items-center rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] text-text-3/72">
                     Latest incident {timeAgo(latestIncident.createdAt, now)}
                   </span>
                 )}
@@ -480,7 +480,7 @@ export default function AutonomyPage() {
           </div>
         )}
 
-        <section className="rounded-[20px] border border-white/[0.06] bg-surface p-5">
+        <section className="rounded-[20px] border border-line-subtle bg-surface p-5">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Orchestrators</h2>
@@ -488,13 +488,13 @@ export default function AutonomyPage() {
                 Agents running in orchestrator mode with autonomous wake cycles. Toggle individual orchestrators on or off without leaving the safety desk.
               </p>
             </div>
-            <div className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[11px] text-text-3/72">
+            <div className="rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] text-text-3/72">
               {orchestrators.length} active
             </div>
           </div>
 
           {orchestrators.length === 0 ? (
-            <div className="flex min-h-[120px] items-center justify-center rounded-[16px] border border-dashed border-white/[0.08] bg-white/[0.02] p-6 text-center">
+            <div className="flex min-h-[120px] items-center justify-center rounded-[16px] border border-dashed border-line-default bg-layer-1 p-6 text-center">
               <div className="max-w-[320px]">
                 <h3 className="font-display text-[14px] font-700 tracking-[-0.02em] text-text">No orchestrators configured</h3>
                 <p className="mt-2 text-[12px] leading-[1.7] text-text-3/70">
@@ -519,7 +519,7 @@ export default function AutonomyPage() {
                 return (
                   <div
                     key={agent.id}
-                    className={`rounded-[16px] border p-4 ${isDisabled ? 'border-white/[0.04] bg-white/[0.01] opacity-60' : 'border-white/[0.06] bg-white/[0.02]'}`}
+                    className={`rounded-[16px] border p-4 ${isDisabled ? 'border-line-subtle bg-layer-1 opacity-60' : 'border-line-subtle bg-layer-1'}`}
                   >
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
@@ -528,7 +528,7 @@ export default function AutonomyPage() {
                         </span>
                         <span className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] ${
                           isDisabled
-                            ? 'bg-white/[0.06] text-text-3/55'
+                            ? 'bg-layer-2 text-text-3/55'
                             : 'bg-emerald-500/12 text-emerald-300'
                         }`}>
                           {isDisabled ? 'Disabled' : 'Enabled'}
@@ -543,7 +543,7 @@ export default function AutonomyPage() {
                         className={`flex h-6 w-11 shrink-0 items-center rounded-full border px-[3px] transition-all duration-200 cursor-pointer ${
                           agent.orchestratorEnabled
                             ? 'border-accent-bright/35 bg-accent shadow-[0_0_0_1px_rgba(89,153,255,0.12)]'
-                            : 'border-white/[0.10] bg-white/[0.08]'
+                            : 'border-line-default bg-layer-3'
                         } disabled:cursor-default disabled:opacity-45`}
                       >
                         <span className={`h-4 w-4 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.35)] transition-transform duration-200 ${
@@ -581,7 +581,7 @@ export default function AutonomyPage() {
         </section>
 
         <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <section className="rounded-[20px] border border-white/[0.06] bg-surface p-5">
+          <section className="rounded-[20px] border border-line-subtle bg-surface p-5">
             <div className="mb-4 flex items-start gap-3">
               <div className="flex-1">
                 <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Operator Actions</h2>
@@ -593,7 +593,7 @@ export default function AutonomyPage() {
                 type="button"
                 onClick={() => void refresh()}
                 disabled={pendingAction === 'refresh'}
-                className="rounded-[10px] border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[11px] font-700 uppercase tracking-[0.08em] text-text-2 transition-all hover:bg-white/[0.06] cursor-pointer disabled:cursor-default disabled:opacity-45"
+                className="rounded-[10px] border border-line-default bg-layer-1 px-3 py-2 text-[11px] font-700 uppercase tracking-[0.08em] text-text-2 transition-all hover:bg-layer-2 cursor-pointer disabled:cursor-default disabled:opacity-45"
               >
                 {pendingAction === 'refresh' ? 'Refreshing' : 'Refresh'}
               </button>
@@ -662,7 +662,7 @@ export default function AutonomyPage() {
                     className={`ml-3 flex h-6 w-11 shrink-0 items-center rounded-full border px-[3px] transition-all duration-200 cursor-pointer ${
                       resumeRequiresApproval
                         ? 'border-accent-bright/35 bg-accent shadow-[0_0_0_1px_rgba(89,153,255,0.12)]'
-                        : 'border-white/[0.10] bg-white/[0.08]'
+                        : 'border-line-default bg-layer-3'
                     } disabled:cursor-default disabled:opacity-45`}
                   >
                     <span className={`h-4 w-4 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.35)] transition-transform duration-200 ${
@@ -679,9 +679,9 @@ export default function AutonomyPage() {
                 </div>
               </div>
 
-              <div className="rounded-[16px] border border-white/[0.08] bg-white/[0.02] p-4">
+              <div className="rounded-[16px] border border-line-default bg-layer-1 p-4">
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+                  <span className="rounded-full bg-layer-2 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
                     Recovery
                   </span>
                 </div>
@@ -690,7 +690,7 @@ export default function AutonomyPage() {
                   {recoveryDescription}
                 </p>
                 {approval && (
-                  <div className="mt-3 rounded-[12px] border border-white/[0.08] bg-black/10 px-3 py-2.5 text-[11px] text-text-3/70">
+                  <div className="mt-3 rounded-[12px] border border-line-default bg-black/10 px-3 py-2.5 text-[11px] text-text-3/70">
                     <div className="flex items-center justify-between gap-3">
                       <span>Approval id</span>
                       <span className="font-mono text-text-2">{approval.id}</span>
@@ -724,7 +724,7 @@ export default function AutonomyPage() {
                       type="button"
                       onClick={() => void rejectResume()}
                       disabled={pendingAction !== null}
-                      className="rounded-[12px] border border-white/[0.08] bg-white/[0.05] px-3 py-2.5 text-[12px] font-700 text-text-2 transition-all hover:bg-white/[0.08] active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
+                      className="rounded-[12px] border border-line-default bg-layer-2 px-3 py-2.5 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
                     >
                       {pendingAction === 'reject' ? 'Rejecting...' : 'Reject'}
                     </button>
@@ -743,7 +743,7 @@ export default function AutonomyPage() {
                     type="button"
                     onClick={() => void resumeNow()}
                     disabled={pendingAction !== null || estop?.level === 'none'}
-                    className="mt-4 w-full rounded-[12px] border border-white/[0.08] bg-white/[0.05] px-3 py-2.5 text-[12px] font-700 text-text-2 transition-all hover:bg-white/[0.08] active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
+                    className="mt-4 w-full rounded-[12px] border border-line-default bg-layer-2 px-3 py-2.5 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
                   >
                     {pendingAction === 'resume'
                       ? 'Requesting resume approval...'
@@ -758,7 +758,7 @@ export default function AutonomyPage() {
             </div>
           </section>
 
-          <section className="rounded-[20px] border border-white/[0.06] bg-surface p-5">
+          <section className="rounded-[20px] border border-line-subtle bg-surface p-5">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
               <div className="flex-1">
                 <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Recent Incidents</h2>
@@ -786,9 +786,9 @@ export default function AutonomyPage() {
             </div>
 
             {filteredIncidents.length === 0 ? (
-              <div className="flex min-h-[280px] items-center justify-center rounded-[18px] border border-dashed border-white/[0.08] bg-white/[0.02] p-8 text-center">
+              <div className="flex min-h-[280px] items-center justify-center rounded-[18px] border border-dashed border-line-default bg-layer-1 p-8 text-center">
                 <div className="max-w-[320px]">
-                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] border border-white/[0.08] bg-white/[0.03] text-text-3/55">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] border border-line-default bg-layer-1 text-text-3/55">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 3l7 3v6c0 4.4-2.92 8.46-7 9-4.08-.54-7-4.6-7-9V6l7-3z" />
                       <path d="M9.5 12.5l1.7 1.7 3.3-4.2" />
@@ -809,7 +809,7 @@ export default function AutonomyPage() {
                   return (
                     <article
                       key={incident.id}
-                      className="relative overflow-hidden rounded-[16px] border border-white/[0.06] bg-white/[0.02] p-4 transition-all hover:bg-white/[0.03]"
+                      className="relative overflow-hidden rounded-[16px] border border-line-subtle bg-layer-1 p-4 transition-all hover:bg-layer-1"
                     >
                       <div className={`absolute inset-y-0 left-0 w-1 ${severity.rail}`} />
                       <div className="pl-2">
@@ -817,11 +817,11 @@ export default function AutonomyPage() {
                           <span className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] ${severity.badge}`}>
                             {incident.severity}
                           </span>
-                          <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+                          <span className="rounded-full border border-line-default bg-layer-1 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
                             {incident.kind.replace(/_/g, ' ')}
                           </span>
                           {incident.failureFamily && (
-                            <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[10px] text-text-3/65">
+                            <span className="rounded-full border border-line-default bg-layer-1 px-2.5 py-1 text-[10px] text-text-3/65">
                               {incident.failureFamily}
                             </span>
                           )}
@@ -862,16 +862,16 @@ export default function AutonomyPage() {
                               <div className={`mt-3 rounded-[12px] border px-3 py-2.5 ${
                                 isHtmlPayload
                                   ? 'border-red-500/16 bg-red-500/[0.05]'
-                                  : 'border-white/[0.08] bg-white/[0.02]'
+                                  : 'border-line-default bg-layer-1'
                               }`}>
                                 <div className="text-[12px] leading-[1.7] text-text-2/82 whitespace-pre-wrap break-words">
                                   {detailsPreview}
                                 </div>
-                                <details className="mt-2 rounded-[10px] border border-white/[0.06] bg-black/10">
+                                <details className="mt-2 rounded-[10px] border border-line-subtle bg-black/10">
                                   <summary className="cursor-pointer list-none px-3 py-2 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/62 [&::-webkit-details-marker]:hidden">
                                     {isHtmlPayload ? 'Show raw payload' : 'Show full details'}
                                   </summary>
-                                  <div className="max-h-64 overflow-auto border-t border-white/[0.06] px-3 py-3 text-[12px] leading-[1.7] text-text-3/72 whitespace-pre-wrap break-all">
+                                  <div className="max-h-64 overflow-auto border-t border-line-subtle px-3 py-3 text-[12px] leading-[1.7] text-text-3/72 whitespace-pre-wrap break-all">
                                     {incident.details}
                                   </div>
                                 </details>
@@ -881,7 +881,7 @@ export default function AutonomyPage() {
                         )}
 
                         {incident.repairPrompt && (
-                          <div className="mt-3 rounded-[12px] border border-white/[0.08] bg-black/10 px-3 py-2.5">
+                          <div className="mt-3 rounded-[12px] border border-line-default bg-black/10 px-3 py-2.5">
                             <div className="mb-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/60">Repair Prompt</div>
                             <div className="text-[12px] leading-[1.7] text-text-2/88 whitespace-pre-wrap">{incident.repairPrompt}</div>
                           </div>

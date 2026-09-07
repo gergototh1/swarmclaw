@@ -58,7 +58,7 @@ export function ThemeSection({ appSettings, patchSettings, inputClass }: Setting
         Choose a color scheme and shift the UI palette with a preset or custom hex color.
       </p>
 
-      <div className="inline-grid grid-cols-3 rounded-[8px] border border-white/[0.08] bg-white/[0.03] p-1 mb-5">
+      <div className="inline-grid grid-cols-3 rounded-[8px] border border-line-default bg-layer-1 p-1 mb-5">
         {THEME_MODES.map(({ id, label, Icon }) => {
           const isActive = currentMode === id
           return (
@@ -70,7 +70,7 @@ export function ThemeSection({ appSettings, patchSettings, inputClass }: Setting
               className={`h-9 px-3 rounded-[6px] flex items-center justify-center gap-2 text-[12px] font-600 transition-colors ${
                 isActive
                   ? 'bg-accent text-white'
-                  : 'text-text-3 hover:text-text hover:bg-white/[0.05]'
+                  : 'text-text-3 hover:text-text hover:bg-layer-2'
               }`}
               title={label}
             >
@@ -116,7 +116,7 @@ export function ThemeSection({ appSettings, patchSettings, inputClass }: Setting
             type="color"
             value={customHex || currentHue}
             onChange={(e) => handleCustomChange(e.target.value)}
-            className="w-9 h-9 rounded-full cursor-pointer border-2 border-white/[0.1] bg-transparent appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-none"
+            className="w-9 h-9 rounded-full cursor-pointer border-2 border-line-default bg-transparent appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-none"
             title="Pick a custom color"
           />
         </div>

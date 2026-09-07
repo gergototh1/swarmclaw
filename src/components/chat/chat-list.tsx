@@ -192,7 +192,7 @@ export function ChatList({ inSidebar, onSelect }: Props) {
           <div className="ml-auto relative">
             <button
               onClick={() => setBulkMenuOpen((open) => !open)}
-              className="p-1.5 rounded-[8px] text-text-3/70 hover:text-text-2 hover:bg-white/[0.04]
+              className="p-1.5 rounded-[8px] text-text-3/70 hover:text-text-2 hover:bg-layer-2
                 cursor-pointer transition-all bg-transparent border-none"
               title="More actions"
             >
@@ -231,7 +231,7 @@ export function ChatList({ inSidebar, onSelect }: Props) {
           value={sortMode}
           onChange={(e) => setSortMode(e.target.value as SortMode)}
           aria-label="Sort chats"
-          className="px-2 py-2 rounded-[12px] border border-white/[0.04] bg-surface text-text
+          className="px-2 py-2 rounded-[12px] border border-line-subtle bg-surface text-text
             text-[11px] outline-none cursor-pointer"
           style={{ fontFamily: 'inherit' }}
         >
@@ -256,7 +256,7 @@ export function ChatList({ inSidebar, onSelect }: Props) {
                 className={`absolute top-2 right-2 p-1 rounded-[6px] border-none cursor-pointer transition-all
                   ${s.pinned
                     ? 'text-amber-400 bg-amber-400/10 opacity-100'
-                    : 'text-text-3/50 bg-transparent opacity-0 group-hover/pin:opacity-100 hover:text-text-2 hover:bg-white/[0.04]'}`}
+                    : 'text-text-3/50 bg-transparent opacity-0 group-hover/pin:opacity-100 hover:text-text-2 hover:bg-layer-2'}`}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill={s.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M12 17v5" />

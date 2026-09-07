@@ -26,7 +26,7 @@ function Tip({ label, children, side = 'bottom' }: { label: string; children: Re
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent side={side} sideOffset={6}
-        className="bg-raised border border-white/[0.08] text-text shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-[8px] px-2.5 py-1.5 text-[11px] z-[100]">
+        className="bg-raised border border-line-default text-text shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-[8px] px-2.5 py-1.5 text-[11px] z-[100]">
         {label}
       </TooltipContent>
     </Tooltip>
@@ -49,8 +49,8 @@ function HeaderChip({
   const baseClass = `inline-flex max-w-full items-center gap-1.5 rounded-[9px] border px-2.5 py-1 text-[10px] font-600 backdrop-blur-sm transition-colors ${
     active
       ? 'border-accent-bright/20 bg-accent-soft/50 text-accent-bright'
-      : 'border-white/[0.06] bg-white/[0.03] text-text-3/68'
-  } ${onClick ? 'cursor-pointer hover:border-white/[0.1] hover:bg-white/[0.06] hover:text-text-2' : ''} ${className}`
+      : 'border-line-subtle bg-layer-1 text-text-3/68'
+  } ${onClick ? 'cursor-pointer hover:border-line-default hover:bg-layer-2 hover:text-text-2' : ''} ${className}`
 
   if (onClick) {
     return (
@@ -329,7 +329,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
   return (
     <>
     <header
-      className="relative z-20 border-b border-white/[0.06] shrink-0"
+      className="relative z-20 border-b border-line-subtle shrink-0"
       style={{
         background: 'radial-gradient(circle at top left, rgba(66, 211, 255, 0.08), transparent 32%), radial-gradient(circle at top right, rgba(255, 190, 92, 0.05), transparent 28%), linear-gradient(180deg, rgba(var(--rgb-bg, 15,15,26), 0.96) 0%, rgba(var(--rgb-bg, 15,15,26), 0.9) 100%)',
         backdropFilter: 'blur(20px) saturate(1.4)',
@@ -403,7 +403,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                 type="button"
                 onClick={startRename}
                 title="Rename agent"
-                className="group/title inline-flex min-w-0 items-center gap-1.5 rounded-[9px] px-1 py-0.5 text-left transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-bright/40"
+                className="group/title inline-flex min-w-0 items-center gap-1.5 rounded-[9px] px-1 py-0.5 text-left transition-colors hover:bg-layer-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-bright/40"
               >
                 <span className="font-display text-[16px] font-700 truncate tracking-[-0.02em] text-text transition-colors group-hover/title:text-accent-bright">
                   {(session.shortcutForAgentId && agent.id === session.shortcutForAgentId) || agent.threadSessionId === session.id
@@ -460,7 +460,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                 <button
                   type="button"
                   onClick={onStartNewSession}
-                  className="inline-flex items-center gap-1.5 rounded-[9px] border border-white/[0.06] bg-white/[0.03] px-2.5 py-1 text-[10px] font-600 text-text-3/70 transition-colors shrink-0 cursor-pointer hover:border-white/[0.15] hover:bg-white/[0.05] hover:text-text-2"
+                  className="inline-flex items-center gap-1.5 rounded-[9px] border border-line-subtle bg-layer-1 px-2.5 py-1 text-[10px] font-600 text-text-3/70 transition-colors shrink-0 cursor-pointer hover:border-line-strong hover:bg-layer-2 hover:text-text-2"
                   aria-label="Start a new chat session"
                   title={newSessionTitle}
                 >
@@ -500,7 +500,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
 
         <div className={`flex items-center gap-2 shrink-0 ${mobile ? 'w-full justify-between pt-1' : 'ml-auto'}`}>
           {/* Action buttons */}
-          <div className="flex items-center shrink-0 rounded-[12px] border border-white/[0.06] bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] p-1">
+          <div className="flex items-center shrink-0 rounded-[12px] border border-line-subtle bg-layer-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] p-1">
           {streaming && (
             <>
               <IconButton onClick={onStop} variant="danger" tooltip="Stop" aria-label="Stop generation" size="sm">
@@ -508,7 +508,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                   <rect x="6" y="6" width="12" height="12" rx="2" />
                 </svg>
               </IconButton>
-              <div className="w-px h-3.5 bg-white/[0.06] mx-0.5" />
+              <div className="w-px h-3.5 bg-layer-2 mx-0.5" />
             </>
           )}
           {voiceSupported && onVoiceToggle && (
@@ -520,7 +520,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
               </svg>
             </IconButton>
           )}
-          <div className="w-px h-3.5 bg-white/[0.06] mx-0.5" />
+          <div className="w-px h-3.5 bg-layer-2 mx-0.5" />
           <IconButton onClick={(e) => { e.stopPropagation(); onMenuToggle() }} tooltip="More" aria-label="Chat menu" size="sm">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <circle cx="12" cy="6" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="18" r="1" />
@@ -540,7 +540,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
 
       {/* Context bar: tools and links */}
       {hasContextBar && (
-        <div className="border-t border-white/[0.05] bg-black/[0.08] px-4 py-2">
+        <div className="border-t border-line-subtle bg-black/[0.08] px-4 py-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           {hasContextPack && (
             <Tip label="Copy session context pack">
@@ -549,7 +549,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
               onClick={handleCopyContextPack}
               disabled={contextPackLoading}
               aria-label="Copy session context pack"
-              className="flex min-w-[122px] items-center justify-center gap-1 px-2.5 py-1 rounded-[8px] bg-white/[0.03] hover:bg-white/[0.06] disabled:opacity-70 disabled:cursor-wait transition-colors cursor-pointer text-[10px] font-600 text-text-3/60 hover:text-text-2 shrink-0"
+              className="flex min-w-[122px] items-center justify-center gap-1 px-2.5 py-1 rounded-[8px] bg-layer-1 hover:bg-layer-2 disabled:opacity-70 disabled:cursor-wait transition-colors cursor-pointer text-[10px] font-600 text-text-3/60 hover:text-text-2 shrink-0"
             >
               <ClipboardList className="h-3 w-3 shrink-0" aria-hidden="true" strokeWidth={2.2} />
               <span>{contextPackLoading ? 'Packing' : contextPackCopied ? 'Copied' : 'Context pack'}</span>
@@ -577,7 +577,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                 className={`flex items-center gap-1 px-2 py-1 rounded-[7px] transition-colors cursor-pointer border-none text-[10px] font-600 shrink-0 ${
                   connectorFilter
                     ? 'bg-accent-soft/60 text-accent-bright/80 hover:bg-accent-soft'
-                    : 'bg-white/[0.03] text-text-3/50 hover:bg-white/[0.06] hover:text-text-3/70'
+                    : 'bg-layer-1 text-text-3/50 hover:bg-layer-2 hover:text-text-3/70'
                 }`}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -592,11 +592,11 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
               </button>
               </Tip>
               {sourceDropdownOpen && (
-                <div className="absolute top-full right-0 sm:left-0 sm:right-auto mt-1 py-1 rounded-[10px] border border-white/[0.06] bg-bg/95 backdrop-blur-md shadow-lg z-50 min-w-[160px] max-w-[calc(100vw-2rem)]">
+                <div className="absolute top-full right-0 sm:left-0 sm:right-auto mt-1 py-1 rounded-[10px] border border-line-subtle bg-bg/95 backdrop-blur-md shadow-lg z-50 min-w-[160px] max-w-[calc(100vw-2rem)]">
                   <button
                     onClick={() => { onConnectorFilterChange(null); setSourceDropdownOpen(false) }}
                     className={`w-full text-left px-3 py-1.5 text-[11px] font-600 transition-colors cursor-pointer border-none flex items-center gap-2 ${
-                      !connectorFilter ? 'bg-accent-soft text-accent-bright' : 'text-text-3 hover:bg-white/[0.06]'
+                      !connectorFilter ? 'bg-accent-soft text-accent-bright' : 'text-text-3 hover:bg-layer-2'
                     }`}
                   >
                     All Sources
@@ -609,7 +609,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                         key={cid}
                         onClick={() => { onConnectorFilterChange(active ? null : cid); setSourceDropdownOpen(false) }}
                         className={`w-full text-left px-3 py-1.5 text-[11px] font-600 transition-colors cursor-pointer border-none flex items-center gap-2 ${
-                          active ? 'bg-accent-soft text-accent-bright' : 'text-text-3 hover:bg-white/[0.06]'
+                          active ? 'bg-accent-soft text-accent-bright' : 'text-text-3 hover:bg-layer-2'
                         }`}
                       >
                         <ConnectorPlatformIcon platform={info.platform} size={12} />
@@ -635,11 +635,11 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
             </Tip>
           )}
           {resumeHandle && (
-            <div className="flex items-center rounded-[7px] bg-white/[0.03] group/resume shrink-0">
+            <div className="flex items-center rounded-[7px] bg-layer-1 group/resume shrink-0">
               <Tip label="Copy CLI resume command">
               <button
                 onClick={handleCopySessionId}
-                className="flex min-w-0 items-center gap-1 px-2 py-1 rounded-l-[7px] hover:bg-white/[0.06] transition-colors cursor-pointer"
+                className="flex min-w-0 items-center gap-1 px-2 py-1 rounded-l-[7px] hover:bg-layer-2 transition-colors cursor-pointer"
               >
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/40 shrink-0">
                   <path d="M4 17l6 0l0 -6" /><path d="M20 7l-6 0l0 6" /><path d="M4 17l10 -10" />
@@ -652,7 +652,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
               <Tip label="Dismiss resume handle">
               <button
                 onClick={handleDismissResumeHandle}
-                className="px-1 py-1 rounded-r-[7px] hover:bg-white/[0.06] transition-colors cursor-pointer opacity-60 md:opacity-0 md:group-hover/resume:opacity-100 group-focus-within/resume:opacity-100"
+                className="px-1 py-1 rounded-r-[7px] hover:bg-layer-2 transition-colors cursor-pointer opacity-60 md:opacity-0 md:group-hover/resume:opacity-100 group-focus-within/resume:opacity-100"
               >
                 <svg width="8" height="8" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/40 hover:text-text-3">
                   <path d="M4 4l8 8M12 4l-8 8" />

@@ -46,13 +46,13 @@ export function MemoryAgentList() {
           className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] cursor-pointer transition-all w-full text-left border-none
             ${!memoryAgentFilter
               ? 'bg-accent-soft'
-              : 'bg-transparent hover:bg-white/[0.02]'}`}
+              : 'bg-transparent hover:bg-layer-1'}`}
           style={{ fontFamily: 'inherit' }}
         >
           {!memoryAgentFilter && (
             <div className="absolute left-0 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-accent-bright" />
           )}
-          <div className="w-[28px] h-[28px] rounded-full bg-white/[0.06] flex items-center justify-center shrink-0">
+          <div className="w-[28px] h-[28px] rounded-full bg-layer-2 flex items-center justify-center shrink-0">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={!memoryAgentFilter ? 'text-accent-bright' : 'text-text-3'}>
               <ellipse cx="12" cy="5" rx="9" ry="3" />
               <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
@@ -63,7 +63,7 @@ export function MemoryAgentList() {
             All Memories
           </span>
           {totalCount > 0 && (
-            <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-white/[0.04] px-1.5 py-0.5 rounded-[5px]">
+            <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-[5px]">
               {totalCount}
             </span>
           )}
@@ -75,13 +75,13 @@ export function MemoryAgentList() {
           className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] cursor-pointer transition-all w-full text-left border-none
             ${memoryAgentFilter === '_global'
               ? 'bg-accent-soft'
-              : 'bg-transparent hover:bg-white/[0.02]'}`}
+              : 'bg-transparent hover:bg-layer-1'}`}
           style={{ fontFamily: 'inherit' }}
         >
           {memoryAgentFilter === '_global' && (
             <div className="absolute left-0 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-accent-bright" />
           )}
-          <div className="w-[28px] h-[28px] rounded-full bg-white/[0.06] flex items-center justify-center shrink-0">
+          <div className="w-[28px] h-[28px] rounded-full bg-layer-2 flex items-center justify-center shrink-0">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={memoryAgentFilter === '_global' ? 'text-accent-bright' : 'text-text-3'}>
               <circle cx="12" cy="12" r="10" />
               <line x1="2" y1="12" x2="22" y2="12" />
@@ -92,7 +92,7 @@ export function MemoryAgentList() {
             Global
           </span>
           {globalCount > 0 && (
-            <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-white/[0.04] px-1.5 py-0.5 rounded-[5px]">
+            <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-[5px]">
               {globalCount}
             </span>
           )}
@@ -100,7 +100,7 @@ export function MemoryAgentList() {
       </div>
 
       {/* Divider */}
-      <div className="mx-4 my-2 border-t border-white/[0.04]" />
+      <div className="mx-4 my-2 border-t border-line-subtle" />
 
       {/* Agent list */}
       <div className="px-2 flex flex-col gap-0.5 pb-4">
@@ -114,7 +114,7 @@ export function MemoryAgentList() {
               className={`relative flex items-center gap-3 px-3 py-2 rounded-[10px] cursor-pointer transition-all w-full text-left border-none
                 ${isActive
                   ? 'bg-accent-soft'
-                  : 'bg-transparent hover:bg-white/[0.02]'}`}
+                  : 'bg-transparent hover:bg-layer-1'}`}
               style={{ fontFamily: 'inherit' }}
             >
               {isActive && (
@@ -125,7 +125,7 @@ export function MemoryAgentList() {
                 {agent.name}
               </span>
               {count > 0 && (
-                <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-white/[0.04] px-1.5 py-0.5 rounded-[5px]">
+                <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-[5px]">
                   {count}
                 </span>
               )}

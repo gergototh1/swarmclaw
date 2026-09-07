@@ -175,7 +175,7 @@ function accessToneClasses(tone: ConversationAccessTone): { badge: string; accen
       }
     default:
       return {
-        badge: 'border-white/[0.08] bg-white/[0.05] text-text-3',
+        badge: 'border-line-default bg-layer-2 text-text-3',
         accent: '',
       }
   }
@@ -188,7 +188,7 @@ function SenderAvatar(props: {
 }) {
   const meta = resolveConnectorPlatformMeta(props.platform)
   return (
-    <Avatar size="lg" className="h-11 w-11 rounded-full border border-white/[0.08] bg-white/[0.04]">
+    <Avatar size="lg" className="h-11 w-11 rounded-full border border-line-default bg-layer-2">
       {props.avatarUrl ? <AvatarImage src={props.avatarUrl} alt={props.name} className="h-full w-full object-cover" /> : null}
       <AvatarFallback className="rounded-full bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.26),rgba(8,15,32,0.92)_72%)] text-[12px] font-700 text-text">
         {senderInitials(props.name)}
@@ -475,7 +475,7 @@ export function ConnectorInbox() {
 
   return (
     <div className="flex-1 flex flex-col h-full min-h-0 px-5 md:px-6 py-5 gap-4">
-      <div className="rounded-[22px] border border-white/[0.08] bg-[linear-gradient(135deg,rgba(37,99,235,0.12),rgba(8,15,32,0.84)_48%,rgba(16,185,129,0.08))] overflow-hidden">
+      <div className="rounded-[22px] border border-line-default bg-[linear-gradient(135deg,rgba(37,99,235,0.12),rgba(8,15,32,0.84)_48%,rgba(16,185,129,0.08))] overflow-hidden">
         <div className="px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-[720px]">
             <div className="text-[11px] uppercase tracking-[0.14em] text-accent-bright/80 font-700">Connector Inbox</div>
@@ -487,12 +487,12 @@ export function ConnectorInbox() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 md:min-w-[300px]">
-            <div className="rounded-[16px] border border-white/[0.08] bg-black/20 px-4 py-3">
+            <div className="rounded-[16px] border border-line-default bg-black/20 px-4 py-3">
               <div className="text-[10px] uppercase tracking-[0.12em] text-text-3/70">Connectors</div>
               <div className="mt-2 text-[26px] font-display font-700 tracking-[-0.04em] text-text">{connectorItems.length}</div>
               <div className="text-[11px] text-text-3">Bridges with active external conversations</div>
             </div>
-            <div className="rounded-[16px] border border-white/[0.08] bg-black/20 px-4 py-3">
+            <div className="rounded-[16px] border border-line-default bg-black/20 px-4 py-3">
               <div className="text-[10px] uppercase tracking-[0.12em] text-text-3/70">Conversations</div>
               <div className="mt-2 text-[26px] font-display font-700 tracking-[-0.04em] text-text">{inboxSessions.length}</div>
               <div className="text-[11px] text-text-3">Strictly isolated external sender sessions</div>
@@ -502,8 +502,8 @@ export function ConnectorInbox() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[300px_360px_minmax(0,1fr)] gap-4 flex-1 min-h-0">
-        <section className="rounded-[20px] border border-white/[0.08] bg-white/[0.02] overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
-          <div className="px-4 py-4 border-b border-white/[0.06] space-y-3 shrink-0">
+        <section className="rounded-[20px] border border-line-default bg-layer-1 overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
+          <div className="px-4 py-4 border-b border-line-subtle space-y-3 shrink-0">
             <SearchInput
               size="sm"
               value={search}
@@ -521,7 +521,7 @@ export function ConnectorInbox() {
                   setSelectedConnectorId(null)
                   setSelectedSessionId(null)
                 }}
-                className="w-full rounded-[12px] border border-white/[0.08] bg-black/20 px-3 py-2.5 text-[13px] text-text outline-none focus:border-accent-bright/35"
+                className="w-full rounded-[12px] border border-line-default bg-black/20 px-3 py-2.5 text-[13px] text-text outline-none focus:border-accent-bright/35"
               >
                 <option value="all">All connector types</option>
                 {platformOptions.map((platform) => (
@@ -533,7 +533,7 @@ export function ConnectorInbox() {
             </div>
           </div>
 
-          <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between gap-3 shrink-0">
+          <div className="px-4 py-3 border-b border-line-subtle flex items-center justify-between gap-3 shrink-0">
             <div>
               <div className="text-[12px] font-700 text-text">Bridges</div>
               <div className="text-[11px] text-text-3">Switch between connector instances</div>
@@ -559,8 +559,8 @@ export function ConnectorInbox() {
                       setSelectedConnectorId(item.id)
                       setSelectedSessionId(item.sessions[0]?.id || null)
                     }}
-                    className={`w-full text-left px-4 py-3 border-b border-white/[0.05] transition-colors cursor-pointer ${
-                      active ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
+                    className={`w-full text-left px-4 py-3 border-b border-line-subtle transition-colors cursor-pointer ${
+                      active ? 'bg-layer-2' : 'hover:bg-layer-1'
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -575,7 +575,7 @@ export function ConnectorInbox() {
                           {item.connector?.agentId && agents[item.connector.agentId]?.name ? ` · ${agents[item.connector.agentId]?.name}` : ''}
                         </div>
                         <div className="mt-2 flex items-center justify-between gap-3">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-text-3">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-layer-2 px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-text-3">
                             <ConnectorPlatformIcon platform={item.platform} size={11} />
                             {meta.label}
                           </span>
@@ -592,8 +592,8 @@ export function ConnectorInbox() {
           )}
         </section>
 
-        <section className="rounded-[20px] border border-white/[0.08] bg-white/[0.02] overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
-          <div className="px-4 py-4 border-b border-white/[0.06] shrink-0">
+        <section className="rounded-[20px] border border-line-default bg-layer-1 overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
+          <div className="px-4 py-4 border-b border-line-subtle shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0" style={{ backgroundColor: activePlatformMeta.color }}>
                 <ConnectorPlatformIcon platform={selectedConnectorItem?.platform || selectedSession?.connectorContext?.platform || 'connector'} size={18} className="text-white" />
@@ -646,8 +646,8 @@ export function ConnectorInbox() {
                   <button
                     key={session.id}
                     onClick={() => setSelectedSessionId(session.id)}
-                    className={`w-full text-left px-4 py-3 border-b border-white/[0.05] transition-colors cursor-pointer ${
-                      active ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
+                    className={`w-full text-left px-4 py-3 border-b border-line-subtle transition-colors cursor-pointer ${
+                      active ? 'bg-layer-2' : 'hover:bg-layer-1'
                     }`}
                   >
                     <div className={`rounded-[16px] px-3 py-3 ${accessClasses?.accent || ''}`}>
@@ -678,7 +678,7 @@ export function ConnectorInbox() {
                               </span>
                             )}
                             {agent ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-text-2">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-line-default bg-layer-1 px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-text-2">
                                 <AgentAvatar
                                   seed={agent.avatarSeed || null}
                                   avatarUrl={agent.avatarUrl}
@@ -688,7 +688,7 @@ export function ConnectorInbox() {
                                 <span className="truncate">{agent.name}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center rounded-full border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-text-3">
+                              <span className="inline-flex items-center rounded-full border border-line-subtle bg-layer-1 px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-text-3">
                                 Unassigned
                               </span>
                             )}
@@ -711,16 +711,16 @@ export function ConnectorInbox() {
           )}
         </section>
 
-        <section className="rounded-[20px] border border-white/[0.08] bg-white/[0.02] overflow-hidden min-h-[380px] xl:min-h-0 flex flex-col">
+        <section className="rounded-[20px] border border-line-default bg-layer-1 overflow-hidden min-h-[380px] xl:min-h-0 flex flex-col">
           {selectedSession ? (
             <>
-              <div className="px-5 py-4 border-b border-white/[0.06]">
+              <div className="px-5 py-4 border-b border-line-subtle">
                 <div className="flex flex-wrap items-center gap-2 justify-between">
                   <div className="flex flex-wrap items-center gap-2">
                   <h2 className="font-display text-[22px] tracking-[-0.03em] text-text">
                     {selectedSession.connectorContext?.senderName || selectedSession.name}
                   </h2>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] text-text-3">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-layer-2 px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] text-text-3">
                     <ConnectorPlatformIcon platform={selectedConnector?.platform || selectedSession.connectorContext?.platform || 'connector'} size={11} />
                     {selectedConnector?.name || selectedSession.connectorContext?.platform || 'Connector'}
                   </span>
@@ -731,11 +731,11 @@ export function ConnectorInbox() {
                   <button
                     type="button"
                     onClick={() => setAccessSheetOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-[12px] border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[12px] font-600 text-text-2 transition-colors hover:bg-white/[0.07] cursor-pointer"
+                    className="inline-flex items-center gap-2 rounded-[12px] border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 transition-colors hover:bg-layer-3 cursor-pointer"
                   >
                     <span>Access &amp; ownership</span>
                     {accessSnapshot && (
-                      <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3">
+                      <span className="rounded-full bg-layer-2 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3">
                         {accessSnapshot.pendingPairingRequests.length} pending · {accessSnapshot.denyFrom.length} blocked{accessSnapshot.dmAddressingMode === 'addressed' ? ' · name required' : ''}
                       </span>
                     )}
@@ -749,14 +749,14 @@ export function ConnectorInbox() {
               </div>
 
               <div className="flex-1 overflow-y-auto px-5 py-4">
-                <div className="rounded-[18px] border border-white/[0.08] bg-white/[0.03] overflow-hidden">
-                  <div className="border-b border-white/[0.06] px-4 py-3">
+                <div className="rounded-[18px] border border-line-default bg-layer-1 overflow-hidden">
+                  <div className="border-b border-line-subtle px-4 py-3">
                     <div className="text-[13px] font-700 text-text">Transcript</div>
                     <div className="mt-1 text-[12px] text-text-3">
                       Full isolated conversation history for this external sender session.
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-line-default bg-layer-1 px-2.5 py-1.5">
                         <SenderAvatar
                           name={selectedSession.connectorContext?.senderName || selectedSession.name}
                           avatarUrl={selectedSession.connectorContext?.senderAvatarUrl}
@@ -769,13 +769,13 @@ export function ConnectorInbox() {
                           <div className="text-[10px] text-text-3">External sender</div>
                         </div>
                       </div>
-                      <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-line-default bg-layer-1 px-2.5 py-1.5">
                         <AgentAvatar
                           seed={selectedAgent?.avatarSeed || null}
                           avatarUrl={selectedAgent?.avatarUrl}
                           name={selectedAgent?.name || 'Agent'}
                           size={28}
-                          className="ring-1 ring-white/[0.08]"
+                          className="ring-1 ring-line-default"
                         />
                         <div className="min-w-0">
                           <div className="text-[11px] font-600 text-text truncate">
@@ -815,7 +815,7 @@ export function ConnectorInbox() {
                               className={`max-w-[88%] rounded-[18px] border px-4 py-3 ${
                                 outbound
                                   ? 'bg-accent-soft/90 border-accent-bright/15 text-text'
-                                  : 'bg-white/[0.04] border-white/[0.06] text-text'
+                                  : 'bg-layer-2 border-line-subtle text-text'
                               }`}
                             >
                               <div className="flex items-center justify-between gap-3 mb-2">
@@ -832,7 +832,7 @@ export function ConnectorInbox() {
                                 avatarUrl={selectedAgent?.avatarUrl}
                                 name={speakerName}
                                 size={32}
-                                className="ring-1 ring-white/[0.08]"
+                                className="ring-1 ring-line-default"
                               />
                             )}
                           </div>

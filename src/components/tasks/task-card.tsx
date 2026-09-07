@@ -147,7 +147,7 @@ export function TaskCard({
       className={`py-3 px-4 rounded-[14px] border border-l-[3px] ${borderColor} bg-surface hover:bg-surface-2 transition-all group
         ${selectionMode || !allowDrag ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'} touch-pan-y
         ${dragging ? 'opacity-40 scale-[0.97]' : ''}
-        ${selected ? 'border-accent-bright/40 bg-accent-bright/[0.04] ring-1 ring-accent-bright/20 shadow-lg' : 'border-white/[0.06] hover:border-white/[0.12] hover:scale-[1.01] hover:shadow-md'}`}
+        ${selected ? 'border-accent-bright/40 bg-accent-bright/[0.04] ring-1 ring-accent-bright/20 shadow-lg' : 'border-line-subtle hover:border-line-default hover:scale-[1.01] hover:shadow-md'}`}
       style={{
         animation: 'spring-in 0.5s var(--ease-spring) both',
         animationDelay: `${Math.min(index * 0.05, 0.4)}s`
@@ -161,7 +161,7 @@ export function TaskCard({
             className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center shrink-0 mt-0.5 cursor-pointer transition-all
               ${selected
                 ? 'bg-accent-bright border-accent-bright'
-                : 'bg-transparent border-white/[0.2] hover:border-white/[0.4]'}`}
+                : 'bg-transparent border-line-strong hover:border-white/[0.4]'}`}
             style={{ padding: 0, fontFamily: 'inherit' }}
           >
             {selected && (
@@ -193,7 +193,7 @@ export function TaskCard({
       )}
 
       {task.objective && (
-        <div className="mb-3 rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+        <div className="mb-3 rounded-[12px] border border-line-subtle bg-layer-1 px-3 py-2">
           <span className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/68">Objective</span>
           <div className="text-[12px] font-600 text-text line-clamp-2 mt-1">{task.objective}</div>
         </div>
@@ -221,10 +221,10 @@ export function TaskCard({
       {task.images && task.images.length > 0 && (
         <div className="flex gap-1.5 mb-3 overflow-x-auto">
           {task.images.slice(0, 3).map((url, i) => (
-            <img key={i} src={url} alt="" className="w-12 h-12 rounded-[8px] object-cover border border-white/[0.06] shrink-0" />
+            <img key={i} src={url} alt="" className="w-12 h-12 rounded-[8px] object-cover border border-line-subtle shrink-0" />
           ))}
           {task.images.length > 3 && (
-            <span className="w-12 h-12 rounded-[8px] bg-surface-2 border border-white/[0.06] flex items-center justify-center text-[11px] text-text-3 font-600 shrink-0">
+            <span className="w-12 h-12 rounded-[8px] bg-surface-2 border border-line-subtle flex items-center justify-center text-[11px] text-text-3 font-600 shrink-0">
               +{task.images.length - 3}
             </span>
           )}
@@ -333,7 +333,7 @@ export function TaskCard({
           </span>
         )}
         {project && (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-[6px] bg-white/[0.04] text-text-2 text-[11px] font-600">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-[6px] bg-layer-2 text-text-2 text-[11px] font-600">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.color || '#6366F1' }} />
             {project.name}
           </span>
@@ -370,8 +370,8 @@ export function TaskCard({
         {task.sessionId && (task.status === 'running' || task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled') && (
           <button
             onClick={handleViewSession}
-            className="ml-auto px-2.5 py-1 rounded-[8px] text-[11px] font-600 bg-white/[0.06] text-text-2 border-none cursor-pointer
-              opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/[0.1]"
+            className="ml-auto px-2.5 py-1 rounded-[8px] text-[11px] font-600 bg-layer-2 text-text-2 border-none cursor-pointer
+              opacity-0 group-hover:opacity-100 transition-opacity hover:bg-layer-3"
             style={{ fontFamily: 'inherit' }}
           >
             View
@@ -382,8 +382,8 @@ export function TaskCard({
           <button
             onClick={(e) => { e.stopPropagation(); setConfirmArchive(true) }}
             aria-label="Archive task"
-            className="ml-auto px-2.5 py-1 rounded-[8px] text-[11px] font-600 bg-white/[0.04] text-text-3 border-none cursor-pointer
-              opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/[0.08]"
+            className="ml-auto px-2.5 py-1 rounded-[8px] text-[11px] font-600 bg-layer-2 text-text-3 border-none cursor-pointer
+              opacity-0 group-hover:opacity-100 transition-opacity hover:bg-layer-3"
             style={{ fontFamily: 'inherit' }}
           >
             Archive
@@ -405,7 +405,7 @@ export function TaskCard({
 
       {/* Inline comments — show latest 2 */}
       {task.comments && task.comments.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-white/[0.04] space-y-2">
+        <div className="mt-3 pt-3 border-t border-line-subtle space-y-2">
           {task.comments.slice(-2).map((c) => (
             <div key={c.id} className="flex gap-2">
               <span className={`text-[11px] font-600 shrink-0 ${c.agentId ? 'text-accent-bright' : 'text-text-2'}`}>

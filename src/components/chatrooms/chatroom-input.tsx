@@ -295,9 +295,9 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
   }
 
   return (
-    <div className="relative px-4 py-3 border-t border-white/[0.06]">
+    <div className="relative px-4 py-3 border-t border-line-subtle">
       {slashDropdownVisible && (
-        <div className="absolute bottom-full left-4 right-4 mb-1 bg-raised border border-white/[0.1] rounded-[8px] shadow-xl max-h-[200px] overflow-y-auto z-50">
+        <div className="absolute bottom-full left-4 right-4 mb-1 bg-raised border border-line-default rounded-[8px] shadow-xl max-h-[200px] overflow-y-auto z-50">
           {slashItems.map((item, index) => (
             <button
               key={item.id}
@@ -310,7 +310,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                 handleCompleteBreakoutCommand()
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all cursor-pointer ${
-                selectedSlashIndex === index ? 'bg-white/[0.08]' : 'hover:bg-white/[0.06]'
+                selectedSlashIndex === index ? 'bg-layer-3' : 'hover:bg-layer-2'
               }`}
             >
               <div className="flex h-6 min-w-6 items-center justify-center rounded-[8px] bg-sky-500/12 text-[10px] font-700 text-sky-200">
@@ -327,11 +327,11 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
 
       {/* Mention dropdown */}
       {mentionDropdownVisible && (
-        <div className="absolute bottom-full left-4 right-4 mb-1 bg-raised border border-white/[0.1] rounded-[8px] shadow-xl max-h-[200px] overflow-y-auto z-50">
+        <div className="absolute bottom-full left-4 right-4 mb-1 bg-raised border border-line-default rounded-[8px] shadow-xl max-h-[200px] overflow-y-auto z-50">
           <button
             onClick={() => insertMention('all')}
             className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-all cursor-pointer ${
-              selectedMentionIndex === 0 ? 'bg-white/[0.08]' : 'hover:bg-white/[0.06]'
+              selectedMentionIndex === 0 ? 'bg-layer-3' : 'hover:bg-layer-2'
             }`}
           >
             <div className="w-5 h-5 rounded-full bg-accent-soft flex items-center justify-center text-[9px] font-700 text-accent-bright">@</div>
@@ -344,7 +344,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                 key={agent.id}
                 onClick={() => insertMention(agent.name)}
                 className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-all cursor-pointer ${
-                  selectedMentionIndex === i + 1 ? 'bg-white/[0.08]' : 'hover:bg-white/[0.06]'
+                  selectedMentionIndex === i + 1 ? 'bg-layer-3' : 'hover:bg-layer-2'
                 }`}
               >
                 <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={20} />
@@ -375,7 +375,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                 <span className={`rounded-pill border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] ${
                   streaming
                     ? 'border-amber-300/20 bg-amber-300/10 text-amber-100'
-                    : 'border-white/[0.08] bg-white/[0.05] text-text-3'
+                    : 'border-line-default bg-layer-2 text-text-3'
                 }`}>
                   {streaming ? 'Round running' : 'Queue ready'}
                 </span>
@@ -403,13 +403,13 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                 className={`flex items-start gap-3 rounded-[12px] border px-3 py-2.5 ${
                   index === 0
                     ? 'border-amber-300/20 bg-amber-300/[0.07]'
-                    : 'border-white/[0.05] bg-white/[0.02]'
+                    : 'border-line-subtle bg-layer-1'
                 }`}
               >
                 <div className={`mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-[8px] px-2 text-[10px] font-700 ${
                   index === 0
                     ? 'bg-amber-300/15 text-amber-100'
-                    : 'bg-white/[0.06] text-text-3'
+                    : 'bg-layer-2 text-text-3'
                 }`}>
                   {index + 1}
                 </div>
@@ -426,7 +426,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                       </span>
                     )}
                     {item.replyingTo && (
-                      <span className="rounded-pill border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-text-3">
+                      <span className="rounded-pill border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
                         Reply queued
                       </span>
                     )}
@@ -454,7 +454,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
       )}
 
       {visibleQueuedMessages.length === 0 && !disabled && (
-        <div className="mb-2 flex items-center justify-between gap-2 rounded-[10px] border border-white/[0.06] bg-white/[0.03] px-3 py-2">
+        <div className="mb-2 flex items-center justify-between gap-2 rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
           <span className="text-[11px] text-text-3">
             {streaming
               ? 'Current round is still running. Press send to queue the next message.'
@@ -468,7 +468,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
 
       {/* Reply preview banner */}
       {replyingTo && (
-        <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-[8px] bg-white/[0.04] border border-white/[0.06]">
+        <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-[8px] bg-layer-2 border border-line-subtle">
           <div className="w-0.5 self-stretch rounded-full bg-accent-bright/50 shrink-0" />
           <div className="flex-1 min-w-0">
             <span className="text-[11px] font-600 text-accent-bright">{replyingTo.senderName}</span>
@@ -478,7 +478,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
           </div>
           <button
             onClick={() => setReplyingTo(null)}
-            className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center hover:bg-white/[0.08] cursor-pointer text-text-3 hover:text-text transition-colors"
+            className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center hover:bg-layer-3 cursor-pointer text-text-3 hover:text-text transition-colors"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -502,7 +502,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] border-none bg-transparent text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-white/[0.05] transition-all duration-200 disabled:opacity-30"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] border-none bg-transparent text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all duration-200 disabled:opacity-30"
               title="Attach file"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -514,7 +514,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
               type="button"
               onClick={() => imageInputRef.current?.click()}
               disabled={disabled}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] border-none bg-transparent text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-white/[0.05] transition-all duration-200 disabled:opacity-30"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] border-none bg-transparent text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all duration-200 disabled:opacity-30"
               title="Attach image"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -537,7 +537,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
               aria-label={streaming ? 'Queue message' : 'Send message'}
               className={`w-9 h-9 rounded-[11px] border-none flex items-center justify-center shrink-0 cursor-pointer transition-all duration-250 ${
                 (!text.trim() && !pendingFiles.length) || disabled
-                  ? 'bg-white/[0.04] text-text-3 pointer-events-none'
+                  ? 'bg-layer-2 text-text-3 pointer-events-none'
                   : streaming
                     ? 'bg-amber-500/20 text-amber-400 active:scale-90 border border-amber-500/30'
                     : 'bg-accent-bright text-white active:scale-90 shadow-[0_4px_16px_rgba(99,102,241,0.3)]'

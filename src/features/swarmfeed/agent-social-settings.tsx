@@ -73,7 +73,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
   return (
     <div className="space-y-5">
       {/* Enable/Disable toggle */}
-      <div className="flex items-center justify-between gap-4 rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-4">
+      <div className="flex items-center justify-between gap-4 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-[14px] font-600 text-text">SwarmFeed</p>
@@ -86,7 +86,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
         <button
           type="button"
           onClick={() => setEnabled((c) => !c)}
-          className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${enabled ? 'bg-accent-bright' : 'bg-white/[0.12]'}`}
+          className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${enabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
           aria-pressed={enabled}
         >
           <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${enabled ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -104,14 +104,14 @@ export function AgentSocialSettings({ agent, onUpdate }: {
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="A brief description of this agent for social..."
-              className="w-full min-h-[80px] px-4 py-3 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow resize-y"
+              className="w-full min-h-[80px] px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow resize-y"
               style={{ fontFamily: 'inherit' }}
               maxLength={500}
             />
           </div>
 
           {/* Auto-post toggle */}
-          <div className="flex items-center justify-between gap-4 rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-[13px] font-600 text-text">Auto-post</p>
@@ -121,7 +121,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
             <button
               type="button"
               onClick={() => setAutoPost((c) => !c)}
-              className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${autoPost ? 'bg-accent-bright' : 'bg-white/[0.12]'}`}
+              className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${autoPost ? 'bg-accent-bright' : 'bg-layer-3'}`}
               aria-pressed={autoPost}
             >
               <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${autoPost ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -142,7 +142,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                     className={`px-3 py-1.5 rounded-[10px] border text-[12px] font-500 transition-all cursor-pointer bg-transparent
                       ${autoPostChannels.includes(ch.id)
                         ? 'border-accent-bright/40 bg-accent-bright/10 text-accent-bright'
-                        : 'border-white/[0.08] text-text-3 hover:text-text hover:bg-white/[0.04]'
+                        : 'border-line-default text-text-3 hover:text-text hover:bg-layer-2'
                       }`}
                   >
                     #{ch.handle}
@@ -170,7 +170,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                 <button
                   type="button"
                   onClick={() => setHeartbeat((h) => ({ ...h, enabled: !h.enabled }))}
-                  className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${heartbeat.enabled ? 'bg-accent-bright' : 'bg-white/[0.12]'}`}
+                  className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${heartbeat.enabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
                   aria-pressed={heartbeat.enabled}
                 >
                   <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${heartbeat.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -188,7 +188,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                   <label className="flex items-center gap-3 cursor-pointer">
                     <div
                       onClick={() => setHeartbeat((h) => ({ ...h, browseFeed: !h.browseFeed }))}
-                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${heartbeat.browseFeed ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${heartbeat.browseFeed ? 'bg-accent-bright' : 'bg-layer-3'}`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${heartbeat.browseFeed ? 'left-[22px]' : 'left-0.5'}`} />
                     </div>
@@ -200,7 +200,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                   <label className="flex items-center gap-3 cursor-pointer">
                     <div
                       onClick={() => setHeartbeat((h) => ({ ...h, autoReply: !h.autoReply }))}
-                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${heartbeat.autoReply ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${heartbeat.autoReply ? 'bg-accent-bright' : 'bg-layer-3'}`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${heartbeat.autoReply ? 'left-[22px]' : 'left-0.5'}`} />
                     </div>
@@ -212,7 +212,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                   <label className="flex items-center gap-3 cursor-pointer">
                     <div
                       onClick={() => setHeartbeat((h) => ({ ...h, autoFollow: !h.autoFollow }))}
-                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${heartbeat.autoFollow ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${heartbeat.autoFollow ? 'bg-accent-bright' : 'bg-layer-3'}`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${heartbeat.autoFollow ? 'left-[22px]' : 'left-0.5'}`} />
                     </div>
@@ -228,7 +228,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                     <select
                       value={heartbeat.postFrequency}
                       onChange={(e) => setHeartbeat((h) => ({ ...h, postFrequency: e.target.value as SwarmFeedHeartbeatConfig['postFrequency'] }))}
-                      className="w-full px-4 py-3 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[14px] outline-none cursor-pointer"
+                      className="w-full px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none cursor-pointer"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <option value="manual_only">Manual only</option>
@@ -251,7 +251,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                             className={`px-3 py-1.5 rounded-[10px] border text-[12px] font-500 transition-all cursor-pointer bg-transparent
                               ${heartbeat.channelsToMonitor.includes(ch.id)
                                 ? 'border-accent-bright/40 bg-accent-bright/10 text-accent-bright'
-                                : 'border-white/[0.08] text-text-3 hover:text-text hover:bg-white/[0.04]'
+                                : 'border-line-default text-text-3 hover:text-text hover:bg-layer-2'
                               }`}
                           >
                             #{ch.handle}

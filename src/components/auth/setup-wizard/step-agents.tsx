@@ -126,7 +126,7 @@ function ModelCombobox({
           if (!open) setOpen(true)
         }}
         placeholder={loading ? 'Loading models...' : 'Type or select a model'}
-        className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-bg
+        className="w-full px-4 py-3 rounded-[12px] border border-line-default bg-bg
           text-text text-[14px] font-mono outline-none transition-all duration-200
           focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
       />
@@ -183,7 +183,7 @@ function ModelCombobox({
         <div className="mt-1 text-[11px] text-amber-300/80">{fetchError}</div>
       )}
       {open && filtered.length > 0 && (
-        <div className="absolute z-20 top-full mt-1 left-0 right-0 max-h-[200px] overflow-y-auto rounded-[12px] border border-white/[0.08] bg-surface shadow-lg">
+        <div className="absolute z-20 top-full mt-1 left-0 right-0 max-h-[200px] overflow-y-auto rounded-[12px] border border-line-default bg-surface shadow-lg">
           {filtered.map((m) => (
             <button
               key={m}
@@ -192,7 +192,7 @@ function ModelCombobox({
               className={`w-full px-4 py-2.5 text-left text-[13px] font-mono transition-colors cursor-pointer border-none ${
                 m === value
                   ? 'bg-accent-bright/10 text-accent-bright'
-                  : 'bg-transparent text-text hover:bg-white/[0.04]'
+                  : 'bg-transparent text-text hover:bg-layer-2'
               }`}
             >
               {m}
@@ -275,18 +275,18 @@ function SoulPicker({
         onChange={(e) => onChange(e.target.value)}
         rows={2}
         placeholder="e.g. You speak concisely and directly. You have a dry sense of humor."
-        className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-bg
+        className="w-full px-4 py-3 rounded-[12px] border border-line-default bg-bg
           text-text text-[14px] outline-none transition-all duration-200 resize-none
           focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
       />
       {showLibrary && (
-        <div className="mt-2 max-h-[180px] overflow-y-auto rounded-[12px] border border-white/[0.08] bg-surface">
+        <div className="mt-2 max-h-[180px] overflow-y-auto rounded-[12px] border border-line-default bg-surface">
           {SOUL_LIBRARY.map((tpl) => (
             <button
               key={tpl.id}
               type="button"
               onClick={() => { onChange(tpl.soul); setShowLibrary(false) }}
-              className="w-full px-4 py-2.5 text-left border-none bg-transparent cursor-pointer hover:bg-white/[0.04] transition-colors"
+              className="w-full px-4 py-2.5 text-left border-none bg-transparent cursor-pointer hover:bg-layer-2 transition-colors"
             >
               <div className="text-[13px] text-text font-500">{tpl.name}</div>
               <div className="text-[11px] text-text-3">{tpl.description}</div>
@@ -325,7 +325,7 @@ export function StepAgents({
       </p>
 
       {draftAgents.length === 0 ? (
-        <div className="mb-6 p-6 rounded-[16px] border border-white/[0.08] bg-surface text-left">
+        <div className="mb-6 p-6 rounded-[16px] border border-line-default bg-surface text-left">
           <div className="text-[16px] font-display font-700 text-text mb-2">No agents yet</div>
           <p className="text-[13px] text-text-3 leading-relaxed">
             Add an agent below to get started, or finish setup and create agents later from inside the app.
@@ -336,7 +336,7 @@ export function StepAgents({
           {draftAgents.map((draft) => {
             const matchedProvider = configuredProviders.find((cp) => cp.id === draft.providerConfigId) || null
             return (
-              <div key={draft.id} className="rounded-[16px] border border-white/[0.08] bg-surface p-4">
+              <div key={draft.id} className="rounded-[16px] border border-line-default bg-surface p-4">
                 <div className="flex items-center justify-between gap-4 mb-4">
                   <div>
                     <div className="text-[15px] font-display font-700 text-text">{draft.name}</div>
@@ -374,14 +374,14 @@ export function StepAgents({
                       value={draft.avatarSeed}
                       onChange={(e) => onUpdateDraft(draft.id, { avatarSeed: e.target.value, avatarUrl: null })}
                       placeholder="Avatar seed"
-                      className="w-32 px-3 py-2 rounded-[10px] border border-white/[0.08] bg-bg
+                      className="w-32 px-3 py-2 rounded-[10px] border border-line-default bg-bg
                         text-text text-[13px] outline-none transition-all duration-200
                         focus:border-accent-bright/30"
                     />
                     <button
                       type="button"
                       onClick={() => onUpdateDraft(draft.id, { avatarSeed: Math.random().toString(36).slice(2, 10), avatarUrl: null })}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] border border-white/[0.08] bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-white/[0.04] hover:text-text-2 active:scale-95 shrink-0"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2 hover:text-text-2 active:scale-95 shrink-0"
                       title="Shuffle avatar"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -401,7 +401,7 @@ export function StepAgents({
                       type="text"
                       value={draft.name}
                       onChange={(e) => onUpdateDraft(draft.id, { name: e.target.value })}
-                      className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-bg
+                      className="w-full px-4 py-3 rounded-[12px] border border-line-default bg-bg
                         text-text text-[14px] outline-none transition-all duration-200
                         focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
                     />
@@ -412,7 +412,7 @@ export function StepAgents({
                       <select
                         value={draft.providerConfigId || ''}
                         onChange={(e) => onUpdateDraftProvider(draft.id, e.target.value)}
-                        className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-bg
+                        className="w-full px-4 py-3 rounded-[12px] border border-line-default bg-bg
                           text-text text-[14px] outline-none transition-all duration-200
                           focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
                       >
@@ -438,7 +438,7 @@ export function StepAgents({
                       type="text"
                       value={draft.description}
                       onChange={(e) => onUpdateDraft(draft.id, { description: e.target.value })}
-                      className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-bg
+                      className="w-full px-4 py-3 rounded-[12px] border border-line-default bg-bg
                         text-text text-[14px] outline-none transition-all duration-200
                         focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
                     />
@@ -450,7 +450,7 @@ export function StepAgents({
                       value={draft.apiEndpoint || ''}
                       onChange={(e) => onUpdateDraft(draft.id, { apiEndpoint: e.target.value || null })}
                       placeholder={matchedProvider?.endpoint || 'Inherited from provider'}
-                      className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-bg
+                      className="w-full px-4 py-3 rounded-[12px] border border-line-default bg-bg
                         text-text text-[14px] font-mono outline-none transition-all duration-200
                         focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
                     />
@@ -458,7 +458,7 @@ export function StepAgents({
                   {matchedProvider?.setupProvider === 'openclaw' ? (
                     <div className="md:col-span-2">
                       <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">Model</label>
-                      <div className="flex items-center gap-3 px-4 py-3 rounded-[12px] border border-white/[0.08] bg-bg">
+                      <div className="flex items-center gap-3 px-4 py-3 rounded-[12px] border border-line-default bg-bg">
                         <span className="text-[13px] text-text-3">Configured on the OpenClaw gateway.</span>
                         {matchedProvider.dashboardUrl && (
                           <a
@@ -496,7 +496,7 @@ export function StepAgents({
                     )}
                   </div>
                   <div className="md:col-span-2">
-                    <div className="flex items-center justify-between rounded-[12px] border border-white/[0.08] bg-bg px-4 py-3">
+                    <div className="flex items-center justify-between rounded-[12px] border border-line-default bg-bg px-4 py-3">
                       <div>
                         <div className="text-[12px] font-600 text-text">Conversation Skill Drafting</div>
                         <div className="mt-1 text-[11px] text-text-3">
@@ -505,7 +505,7 @@ export function StepAgents({
                       </div>
                       <div
                         onClick={() => onUpdateDraft(draft.id, { autoDraftSkillSuggestions: !draft.autoDraftSkillSuggestions })}
-                        className={`w-9 h-5 rounded-full transition-all relative cursor-pointer shrink-0 ${draft.autoDraftSkillSuggestions ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                        className={`w-9 h-5 rounded-full transition-all relative cursor-pointer shrink-0 ${draft.autoDraftSkillSuggestions ? 'bg-accent-bright' : 'bg-layer-3'}`}
                       >
                         <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${draft.autoDraftSkillSuggestions ? 'left-[18px]' : 'left-0.5'}`} />
                       </div>
@@ -513,7 +513,7 @@ export function StepAgents({
                   </div>
                   {matchedProvider && isOrchestratorProviderEligible(matchedProvider.provider) && (
                     <div className="md:col-span-2">
-                      <div className="flex items-center justify-between rounded-[12px] border border-white/[0.08] bg-bg px-4 py-3">
+                      <div className="flex items-center justify-between rounded-[12px] border border-line-default bg-bg px-4 py-3">
                         <div>
                           <div className="text-[12px] font-600 text-text">Enable Orchestrator</div>
                           <div className="mt-1 text-[11px] text-text-3">
@@ -523,7 +523,7 @@ export function StepAgents({
                         <button
                           type="button"
                           onClick={() => onUpdateDraft(draft.id, { orchestratorEnabled: !draft.orchestratorEnabled })}
-                          className={`w-9 h-5 rounded-full transition-all relative cursor-pointer shrink-0 ${draft.orchestratorEnabled ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                          className={`w-9 h-5 rounded-full transition-all relative cursor-pointer shrink-0 ${draft.orchestratorEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
                           aria-pressed={draft.orchestratorEnabled}
                         >
                           <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${draft.orchestratorEnabled ? 'left-[18px]' : 'left-0.5'}`} />
@@ -537,7 +537,7 @@ export function StepAgents({
                             onChange={(e) => onUpdateDraft(draft.id, { orchestratorMission: e.target.value })}
                             rows={2}
                             placeholder="e.g. Monitor system health and restart failing services"
-                            className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-bg
+                            className="w-full px-4 py-3 rounded-[12px] border border-line-default bg-bg
                               text-text text-[14px] outline-none transition-all duration-200 resize-none
                               focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
                           />
@@ -547,7 +547,7 @@ export function StepAgents({
                   )}
                 </div>
 
-                <details className="mt-4 rounded-[12px] border border-white/[0.08] bg-bg px-4 py-3">
+                <details className="mt-4 rounded-[12px] border border-line-default bg-bg px-4 py-3">
                   <summary className="cursor-pointer text-[13px] text-text-2 font-600">
                     Prompt and tools
                   </summary>
@@ -558,7 +558,7 @@ export function StepAgents({
                         value={draft.systemPrompt}
                         onChange={(e) => onUpdateDraft(draft.id, { systemPrompt: e.target.value })}
                         rows={5}
-                        className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-surface
+                        className="w-full px-4 py-3 rounded-[12px] border border-line-default bg-surface
                           text-text text-[14px] outline-none transition-all duration-200 resize-none
                           focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
                       />
@@ -571,7 +571,7 @@ export function StepAgents({
                             <div
                               onClick={() => onUpdateDraft(draft.id, { tools: draft.tools.includes(t.id) ? draft.tools.filter((x) => x !== t.id) : [...draft.tools, t.id] })}
                               className={`w-9 h-5 rounded-full transition-all duration-200 relative cursor-pointer shrink-0
-                                ${draft.tools.includes(t.id) ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                                ${draft.tools.includes(t.id) ? 'bg-accent-bright' : 'bg-layer-3'}`}
                             >
                               <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200
                                 ${draft.tools.includes(t.id) ? 'left-[18px]' : 'left-0.5'}`} />
@@ -590,7 +590,7 @@ export function StepAgents({
                             <div
                               onClick={() => onUpdateDraft(draft.id, { tools: draft.tools.includes(t.id) ? draft.tools.filter((x) => x !== t.id) : [...draft.tools, t.id] })}
                               className={`w-9 h-5 rounded-full transition-all duration-200 relative cursor-pointer shrink-0
-                                ${draft.tools.includes(t.id) ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                                ${draft.tools.includes(t.id) ? 'bg-accent-bright' : 'bg-layer-3'}`}
                             >
                               <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200
                                 ${draft.tools.includes(t.id) ? 'left-[18px]' : 'left-0.5'}`} />
@@ -614,8 +614,8 @@ export function StepAgents({
       <div className="flex items-center justify-center gap-3">
         <button
           onClick={onBack}
-          className="px-6 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[14px]
-            font-display font-500 cursor-pointer hover:bg-white/[0.03] transition-all duration-200"
+          className="px-6 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[14px]
+            font-display font-500 cursor-pointer hover:bg-layer-1 transition-all duration-200"
         >
           Back
         </button>

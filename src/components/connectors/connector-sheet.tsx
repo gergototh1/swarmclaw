@@ -901,7 +901,7 @@ export function ConnectorSheet() {
   }, [advancedAccessFields, advancedPlatformFields, config, doctorWarnings.length])
   const advancedSummary = configuredAdvancedCount > 0 ? `${configuredAdvancedCount} configured` : 'Defaults only'
 
-  const inputClass = "w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus:border-white/[0.15]"
+  const inputClass = "w-full px-4 py-3 rounded-[12px] border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus:border-line-strong"
 
   const updateConfigValue = useCallback((key: string, value: string) => {
     setConfig((prev) => {
@@ -1037,8 +1037,8 @@ export function ConnectorSheet() {
                 onClick={() => { setPlatform(p.id as ConnectorPlatform); setShowSetup(false) }}
                 className={`flex items-center gap-3 p-4 rounded-[14px] cursor-pointer transition-all duration-200 border text-left
                   ${platform === p.id
-                    ? 'bg-white/[0.04] border-white/[0.15] shadow-[0_0_20px_rgba(255,255,255,0.02)]'
-                    : 'bg-transparent border-white/[0.04] hover:border-white/[0.08] hover:bg-white/[0.01]'}`}
+                    ? 'bg-layer-2 border-line-strong shadow-[0_0_20px_rgba(255,255,255,0.02)]'
+                    : 'bg-transparent border-line-subtle hover:border-line-default hover:bg-layer-1'}`}
                 style={{ fontFamily: 'inherit' }}
               >
                 <ConnectorPlatformBadge platform={p.id as ConnectorPlatform} size={40} iconSize={18} />
@@ -1085,11 +1085,11 @@ export function ConnectorSheet() {
           {platformConfig.label} Setup Guide
         </button>
         {showSetup && (
-          <div className="mt-3 p-4 rounded-[12px] border border-white/[0.06] bg-white/[0.01] space-y-2.5"
+          <div className="mt-3 p-4 rounded-[12px] border border-line-subtle bg-layer-1 space-y-2.5"
             style={{ animation: 'fade-in 0.2s ease-out' }}>
             {platformConfig.setupSteps.map((step, i) => (
               <div key={i} className="flex items-start gap-3">
-                <span className="w-5 h-5 rounded-full bg-white/[0.06] flex items-center justify-center text-[10px] font-700 text-text-3 shrink-0 mt-0.5">
+                <span className="w-5 h-5 rounded-full bg-layer-2 flex items-center justify-center text-[10px] font-700 text-text-3 shrink-0 mt-0.5">
                   {i + 1}
                 </span>
                 <span className="text-[13px] text-text-2/80 leading-[1.5]">{linkify(step)}</span>
@@ -1114,7 +1114,7 @@ export function ConnectorSheet() {
       {/* Route mode toggle + target selector */}
       <div className="mb-6">
         <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Route Messages To</label>
-        <div className="flex gap-1 mb-3 p-1 rounded-[10px] bg-white/[0.04] border border-white/[0.06]">
+        <div className="flex gap-1 mb-3 p-1 rounded-[10px] bg-layer-2 border border-line-subtle">
           <button
             type="button"
             onClick={() => setRouteMode('agent')}
@@ -1280,7 +1280,7 @@ export function ConnectorSheet() {
           </p>
           {basicAccessFields.map((field) => renderConfigField(field))}
           {platform === 'whatsapp' && (
-            <div className="mb-6 rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-[12px] text-text-3">
+            <div className="mb-6 rounded-[12px] border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
               Global WhatsApp approved contacts still live in Settings. Use advanced settings for per-connector allow and block lists.
             </div>
           )}
@@ -1291,7 +1291,7 @@ export function ConnectorSheet() {
       {editing && (() => {
         const effectiveRunning = runtimeConnector?.status === 'running' || waConnecting
         return (
-        <div className="mb-6 p-4 rounded-[14px] border border-white/[0.06] bg-white/[0.01]">
+        <div className="mb-6 p-4 rounded-[14px] border border-line-subtle bg-layer-1">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[13px] font-600 text-text-2">Connection</div>
@@ -1330,7 +1330,7 @@ export function ConnectorSheet() {
 
       {/* WhatsApp QR code */}
       {editing && platform === 'whatsapp' && (runtimeConnector?.status === 'running' || waConnecting) && qrDataUrl && (
-        <div className="mb-6 p-5 rounded-[14px] border border-white/[0.06] bg-white/[0.01] text-center"
+        <div className="mb-6 p-5 rounded-[14px] border border-line-subtle bg-layer-1 text-center"
           style={{ animation: 'fade-in 0.3s ease-out' }}>
           <div className="text-[13px] font-600 text-text-2 mb-1">Scan with WhatsApp</div>
           <p className="text-[11px] text-text-3 mb-4">
@@ -1346,7 +1346,7 @@ export function ConnectorSheet() {
 
       {/* WhatsApp connected (authenticated, no QR) */}
       {editing && platform === 'whatsapp' && (runtimeConnector?.status === 'running' || waConnecting) && !qrDataUrl && waAuthenticated && (
-        <div className="mb-6 p-5 rounded-[14px] border border-white/[0.06] bg-white/[0.01] text-center">
+        <div className="mb-6 p-5 rounded-[14px] border border-line-subtle bg-layer-1 text-center">
           <div className="text-[13px] font-600 text-green-400 mb-1">Connected</div>
           <p className="text-[11px] text-text-3 mb-3">WhatsApp is paired and listening for messages</p>
           <button
@@ -1362,7 +1362,7 @@ export function ConnectorSheet() {
 
       {/* WhatsApp waiting for QR / reconnecting (not yet authenticated, no QR yet) */}
       {editing && platform === 'whatsapp' && (runtimeConnector?.status === 'running' || waConnecting) && !qrDataUrl && !waAuthenticated && (
-        <div className="mb-6 p-5 rounded-[14px] border border-white/[0.06] bg-white/[0.01] text-center">
+        <div className="mb-6 p-5 rounded-[14px] border border-line-subtle bg-layer-1 text-center">
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="w-3 h-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
             <span className="text-[13px] font-600 text-blue-500">
@@ -1419,7 +1419,7 @@ export function ConnectorSheet() {
             </p>
             {advancedAccessFields.map((field) => renderConfigField(field))}
             {platform === 'whatsapp' && (
-              <div className="mb-6 rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-[12px] text-text-3">
+              <div className="mb-6 rounded-[12px] border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
                 Global WhatsApp approved contacts: {globalWhatsAppAllowlistCount}. They remain managed in Settings.
               </div>
             )}
@@ -1447,7 +1447,7 @@ export function ConnectorSheet() {
           {COMMON_CONFIG_FIELDS.map((field) => renderConfigField(field))}
         </div>
 
-        <div className="mb-8 p-4 rounded-[14px] border border-white/[0.06] bg-white/[0.01]">
+        <div className="mb-8 p-4 rounded-[14px] border border-line-subtle bg-layer-1">
           <div className="flex items-center justify-between gap-3 mb-2">
             <div>
               <div className="text-[13px] font-600 text-text-2">Connector Doctor</div>
@@ -1459,7 +1459,7 @@ export function ConnectorSheet() {
               type="button"
               onClick={() => void loadDoctorPreview()}
               disabled={doctorLoading}
-              className="px-3 py-1.5 rounded-[9px] border border-white/[0.08] bg-transparent text-[12px] font-600 text-text-3 hover:text-text-2 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-50"
+              className="px-3 py-1.5 rounded-[9px] border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:text-text-2 hover:bg-layer-2 transition-all cursor-pointer disabled:opacity-50"
               style={{ fontFamily: 'inherit' }}
             >
               {doctorLoading ? 'Checking...' : 'Refresh'}
@@ -1467,29 +1467,29 @@ export function ConnectorSheet() {
           </div>
           {doctorPolicy && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
-              <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[12px] text-text-3/80">
+              <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3/80">
                 Scope: <span className="text-text-2">{doctorPolicy.scope || 'channel-peer'}</span>{' '}
                 · Reply: <span className="text-text-2">{doctorPolicy.replyMode || 'first'}</span>{' '}
                 · Thread: <span className="text-text-2">{doctorPolicy.threadBinding || 'prefer'}</span>
               </div>
-              <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[12px] text-text-3/80">
+              <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3/80">
                 DMs: <span className="text-text-2">{config.dmPolicy || 'open'}</span>{' '}
                 · Group: <span className="text-text-2">{doctorPolicy.groupPolicy || 'reply-or-mention'}</span>{' '}
                 · Debounce: <span className="text-text-2">{doctorPolicy.inboundDebounceMs ?? 700}ms</span>
               </div>
-              <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[12px] text-text-3/80">
+              <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3/80">
                 Allowlist: <span className="text-text-2">{localAllowlistCount + globalWhatsAppAllowlistCount}</span>{' '}
                 · Blocked: <span className="text-text-2">{localBlocklistCount}</span>{' '}
                 · Reactions: <span className="text-text-2">{doctorPolicy.statusReactions === false ? 'off' : 'on'}</span>{' '}
                 · Typing: <span className="text-text-2">{doctorPolicy.typingIndicators === false ? 'off' : 'on'}</span>
               </div>
-              <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[12px] text-text-3/80">
+              <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3/80">
                 Reset: <span className="text-text-2">{doctorPolicy.resetMode || 'idle'}</span>{' '}
                 {doctorPolicy.resetMode === 'daily'
                   ? `at ${doctorPolicy.dailyResetAt || 'unset'} (${doctorPolicy.resetTimezone || 'server timezone'})`
                   : `idle ${doctorPolicy.idleTimeoutSec ?? 0}s / max ${doctorPolicy.maxAgeSec ?? 0}s`}
               </div>
-              <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[12px] text-text-3/80">
+              <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3/80">
                 Runtime: <span className="text-text-2">{doctorPolicy.thinkingLevel || 'inherit'}</span>{' '}
                 · Provider: <span className="text-text-2">{doctorPolicy.providerOverride || 'agent default'}</span>{' '}
                 · Model: <span className="text-text-2">{doctorPolicy.modelOverride || 'agent default'}</span>

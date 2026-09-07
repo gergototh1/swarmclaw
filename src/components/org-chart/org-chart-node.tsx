@@ -30,7 +30,7 @@ interface Props {
 
 const ROLE_BADGE: Record<string, { label: string; cls: string }> = {
   coordinator: { label: 'Coordinator', cls: 'text-accent-bright bg-accent-bright/15' },
-  worker: { label: 'Worker', cls: 'text-text-3 bg-white/[0.06]' },
+  worker: { label: 'Worker', cls: 'text-text-3 bg-layer-2' },
 }
 
 function truncateModel(model: string | undefined | null): string | null {
@@ -101,7 +101,7 @@ export function OrgChartNode({
           ${isLinkTarget ? 'ring-2 ring-emerald-400/50 border-emerald-400/30 cursor-pointer' : ''}
           ${isSelected ? 'ring-2 ring-accent-bright/40 border-accent-bright/25' : ''}
           ${isTeamHighlighted && teamColor ? 'ring-1 ring-opacity-40' : ''}
-          ${role === 'coordinator' ? 'border-accent-bright/20 bg-raised' : 'border-white/[0.06] bg-raised'}
+          ${role === 'coordinator' ? 'border-accent-bright/20 bg-raised' : 'border-line-subtle bg-raised'}
         `}
         style={{
           width: 200,
@@ -117,7 +117,7 @@ export function OrgChartNode({
         <div className="flex items-center gap-2 mb-1.5">
           {!isDragGhost && (
             <div
-              className="cursor-grab active:cursor-grabbing shrink-0 flex flex-col gap-[2px] py-1 px-0.5 rounded hover:bg-white/[0.06] transition-colors"
+              className="cursor-grab active:cursor-grabbing shrink-0 flex flex-col gap-[2px] py-1 px-0.5 rounded hover:bg-layer-2 transition-colors"
               onPointerDown={(e) => { e.stopPropagation(); onDragHandlePointerDown?.(e) }}
             >
               <svg width="6" height="10" viewBox="0 0 6 10" className="text-text-3/40">
@@ -150,7 +150,7 @@ export function OrgChartNode({
                   ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]'
                   : disabled
                     ? 'bg-red-400/60'
-                    : 'bg-white/[0.12]'
+                    : 'bg-layer-3'
             }`}
             style={isRunning ? { animation: 'pulse-subtle 2s ease-in-out infinite' } : undefined}
           />
@@ -187,7 +187,7 @@ export function OrgChartNode({
             </span>
           )}
           {childCount != null && childCount > 0 && (
-            <span className="text-[9px] font-500 text-text-3/60 px-1 py-0.5 rounded-[4px] bg-white/[0.04] leading-none">+{childCount}</span>
+            <span className="text-[9px] font-500 text-text-3/60 px-1 py-0.5 rounded-[4px] bg-layer-2 leading-none">+{childCount}</span>
           )}
           {providerLabel && (
             <span className="text-[9px] text-text-3/40 px-1 py-0.5 leading-none">{providerLabel}</span>
@@ -200,7 +200,7 @@ export function OrgChartNode({
             {tools.map((p) => (
               <span
                 key={p}
-                className="text-[8px] text-text-3/50 bg-white/[0.03] border border-white/[0.05] rounded-[3px] px-1 py-[1px] leading-none"
+                className="text-[8px] text-text-3/50 bg-layer-1 border border-line-subtle rounded-[3px] px-1 py-[1px] leading-none"
               >
                 {p}
               </span>
@@ -237,7 +237,7 @@ export function OrgChartNode({
         <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center
-              bg-white/[0.04] hover:bg-accent-bright/20 cursor-pointer border-none text-text-3 hover:text-accent-bright transition-colors"
+              bg-layer-2 hover:bg-accent-bright/20 cursor-pointer border-none text-text-3 hover:text-accent-bright transition-colors"
             onClick={(e) => { e.stopPropagation(); onChatClick?.(e) }}
             onPointerDown={(e) => e.stopPropagation()}
             title="Chat with agent"
@@ -248,7 +248,7 @@ export function OrgChartNode({
           </button>
           <button
             className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center
-              bg-white/[0.04] hover:bg-white/[0.1] cursor-pointer border-none text-text-3 hover:text-text transition-colors"
+              bg-layer-2 hover:bg-layer-3 cursor-pointer border-none text-text-3 hover:text-text transition-colors"
             onClick={(e) => { e.stopPropagation(); onMenuClick?.(e) }}
             onPointerDown={(e) => e.stopPropagation()}
           >

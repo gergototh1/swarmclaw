@@ -47,10 +47,10 @@ const STATUS_STYLES: Record<string, string> = {
   paused: 'bg-amber-500/12 text-amber-400 border-amber-500/20',
   completed: 'bg-sky-500/12 text-sky-400 border-sky-500/20',
   failed: 'bg-red-500/12 text-red-400 border-red-500/20',
-  archived: 'bg-white/[0.05] text-text-3 border-white/[0.08]',
+  archived: 'bg-layer-2 text-text-3 border-line-default',
   queued: 'bg-amber-500/12 text-amber-400 border-amber-500/20',
   running: 'bg-accent-soft text-accent-bright border-accent-bright/20',
-  cancelled: 'bg-white/[0.05] text-text-3 border-white/[0.08]',
+  cancelled: 'bg-layer-2 text-text-3 border-line-default',
 }
 
 function badgeClass(status: string): string {
@@ -192,7 +192,7 @@ function ActionButton(
         'px-2.5 py-1.5 rounded-[10px] text-[12px] font-600 cursor-pointer transition-all border',
         tone === 'danger'
           ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
-          : 'border-white/[0.08] text-text-2 hover:bg-white/[0.04]',
+          : 'border-line-default text-text-2 hover:bg-layer-2',
         className,
       ].join(' ')}
       style={{ fontFamily: 'inherit' }}
@@ -530,15 +530,15 @@ export function ScheduleConsole() {
             { label: 'Due Soon', value: summary.dueSoon, tone: 'text-accent-bright' },
             { label: 'Archived', value: summary.archived, tone: 'text-text-2' },
           ].map((card) => (
-            <div key={card.label} className="rounded-[18px] border border-white/[0.06] bg-surface px-4 py-4">
+            <div key={card.label} className="rounded-[18px] border border-line-subtle bg-surface px-4 py-4">
               <div className="text-[11px] uppercase tracking-[0.08em] text-text-3/60 font-700">{card.label}</div>
               <div className={`mt-2 text-[26px] font-display font-700 ${card.tone}`}>{card.value}</div>
             </div>
           ))}
         </div>
 
-        <div className="rounded-[22px] border border-white/[0.06] bg-raised/70 overflow-hidden">
-          <div className="px-5 pt-5 pb-4 border-b border-white/[0.05]">
+        <div className="rounded-[22px] border border-line-subtle bg-raised/70 overflow-hidden">
+          <div className="px-5 pt-5 pb-4 border-b border-line-subtle">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <SectionHeader label="Schedule Console" count={scopeCount} className="mb-2" />
@@ -571,7 +571,7 @@ export function ScheduleConsole() {
                   <select
                     value={runStatusFilter}
                     onChange={(e) => setRunStatusFilter(e.target.value as ScheduleRunStatusFilter)}
-                    className="w-full px-3 py-2.5 rounded-[12px] border border-white/[0.06] bg-surface text-text-2"
+                    className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
                   >
                     <option value="all">All runs</option>
                     <option value="queued">Queued</option>
@@ -584,7 +584,7 @@ export function ScheduleConsole() {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as ScheduleFilterStatus)}
-                    className="w-full px-3 py-2.5 rounded-[12px] border border-white/[0.06] bg-surface text-text-2"
+                    className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
                   >
                     <option value="all">All statuses</option>
                     {scope === 'archived'
@@ -606,7 +606,7 @@ export function ScheduleConsole() {
                 <select
                   value={cadenceFilter}
                   onChange={(e) => setCadenceFilter(e.target.value as ScheduleCadenceFilter)}
-                  className="w-full px-3 py-2.5 rounded-[12px] border border-white/[0.06] bg-surface text-text-2"
+                  className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
                 >
                   <option value="all">All cadence</option>
                   <option value="cron">Cron</option>
@@ -620,7 +620,7 @@ export function ScheduleConsole() {
                 <select
                   value={agentFilter}
                   onChange={(e) => setAgentFilter(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-[12px] border border-white/[0.06] bg-surface text-text-2"
+                  className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
                 >
                   <option value="all">All agents</option>
                   {Object.values(agents)
@@ -637,7 +637,7 @@ export function ScheduleConsole() {
                   <select
                     value={deliveryFilter}
                     onChange={(e) => setDeliveryFilter(e.target.value as ScheduleDeliveryFilter)}
-                    className="w-full px-3 py-2.5 rounded-[12px] border border-white/[0.06] bg-surface text-text-2"
+                    className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
                   >
                     <option value="all">Any delivery</option>
                     <option value="ok">Healthy</option>
@@ -653,7 +653,7 @@ export function ScheduleConsole() {
                   <select
                     value="history"
                     disabled
-                    className="w-full px-3 py-2.5 rounded-[12px] border border-white/[0.06] bg-surface text-text-3"
+                    className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-3"
                   >
                     <option value="history">Newest changes</option>
                   </select>
@@ -661,7 +661,7 @@ export function ScheduleConsole() {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as ScheduleSortBy)}
-                    className="w-full px-3 py-2.5 rounded-[12px] border border-white/[0.06] bg-surface text-text-2"
+                    className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
                   >
                     <option value="nextRunAt">Next run</option>
                     <option value="lastRunAt">Last run</option>
@@ -678,14 +678,14 @@ export function ScheduleConsole() {
           </div>
 
           {scope === 'runs' ? (
-            <div className="divide-y divide-white/[0.05]">
+            <div className="divide-y divide-line-subtle">
               {filteredRuns.length === 0 ? (
                 <div className="px-5 py-10 text-center text-text-3/60">No schedule runs match the current filters.</div>
               ) : filteredRuns.map((run) => {
                 const agent = run.agentId ? agents[run.agentId] : null
                 const sourceSchedule = run.scheduleId ? schedules[run.scheduleId] : null
                 return (
-                  <div key={`${run.kind}:${run.id}`} className="px-5 py-4 hover:bg-white/[0.02] transition-colors">
+                  <div key={`${run.kind}:${run.id}`} className="px-5 py-4 hover:bg-layer-1 transition-colors">
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
@@ -699,7 +699,7 @@ export function ScheduleConsole() {
                         <div className="text-[13px] text-text-3 mt-1 line-clamp-2">{run.preview}</div>
                         <div className="flex flex-wrap items-center gap-2 mt-3">
                           {agent && (
-                            <div className="inline-flex items-center gap-2 rounded-[10px] bg-white/[0.03] px-2.5 py-1.5 text-[12px] text-text-2">
+                            <div className="inline-flex items-center gap-2 rounded-[10px] bg-layer-1 px-2.5 py-1.5 text-[12px] text-text-2">
                               <AgentAvatar
                                 seed={agent.avatarSeed}
                                 avatarUrl={agent.avatarUrl}
@@ -726,7 +726,7 @@ export function ScheduleConsole() {
               })}
             </div>
           ) : scope === 'history' ? (
-            <div className="divide-y divide-white/[0.05]">
+            <div className="divide-y divide-line-subtle">
               {filteredHistory.length === 0 ? (
                 <div className="px-5 py-10 text-center text-text-3/60">No schedule history matches the current filters.</div>
               ) : filteredHistory.map((row) => {
@@ -735,7 +735,7 @@ export function ScheduleConsole() {
                 const changes = Array.isArray(entry.changes) ? entry.changes.slice(0, 4) : []
                 const remainingChanges = Math.max(0, (entry.changes?.length || 0) - changes.length)
                 return (
-                  <div key={row.id} className="px-5 py-4 hover:bg-white/[0.02] transition-colors">
+                  <div key={row.id} className="px-5 py-4 hover:bg-layer-1 transition-colors">
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
@@ -750,7 +750,7 @@ export function ScheduleConsole() {
                         {changes.length > 0 && (
                           <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
                             {changes.map((change) => (
-                              <div key={`${entry.id}:${change.field}`} className="rounded-[10px] border border-white/[0.06] bg-white/[0.025] px-3 py-2">
+                              <div key={`${entry.id}:${change.field}`} className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
                                 <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/50 font-700">{change.label}</div>
                                 <div className="mt-1 text-[12px] text-text-2 break-words">
                                   <span className="text-text-3">{formatHistoryValue(change.before)}</span>
@@ -760,7 +760,7 @@ export function ScheduleConsole() {
                               </div>
                             ))}
                             {remainingChanges > 0 && (
-                              <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-[12px] text-text-3">
+                              <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                                 {remainingChanges} more change{remainingChanges === 1 ? '' : 's'}
                               </div>
                             )}
@@ -768,7 +768,7 @@ export function ScheduleConsole() {
                         )}
                         <div className="flex flex-wrap items-center gap-2 mt-3">
                           {agent && (
-                            <div className="inline-flex items-center gap-2 rounded-[10px] bg-white/[0.03] px-2.5 py-1.5 text-[12px] text-text-2">
+                            <div className="inline-flex items-center gap-2 rounded-[10px] bg-layer-1 px-2.5 py-1.5 text-[12px] text-text-2">
                               <AgentAvatar
                                 seed={agent.avatarSeed}
                                 avatarUrl={agent.avatarUrl}
@@ -791,7 +791,7 @@ export function ScheduleConsole() {
               })}
             </div>
           ) : (
-            <div className="divide-y divide-white/[0.05]">
+            <div className="divide-y divide-line-subtle">
               {filteredSchedules.length === 0 ? (
                 <div className="px-5 py-10 text-center text-text-3/60">
                   {scope === 'archived' ? 'No archived schedules yet.' : 'No schedules match the current filters.'}
@@ -804,7 +804,7 @@ export function ScheduleConsole() {
                   <div
                     key={schedule.id}
                     onClick={() => { if (scope === 'live') openSchedule(schedule.id) }}
-                    className={`w-full text-left px-5 py-4 hover:bg-white/[0.02] transition-colors ${scope === 'live' ? 'cursor-pointer' : 'cursor-default'}`}
+                    className={`w-full text-left px-5 py-4 hover:bg-layer-1 transition-colors ${scope === 'live' ? 'cursor-pointer' : 'cursor-default'}`}
                     style={{ fontFamily: 'inherit' }}
                   >
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
@@ -823,7 +823,7 @@ export function ScheduleConsole() {
                         <div className="text-[13px] text-text-3/80 mt-1 line-clamp-2">{schedule.taskPrompt}</div>
                         <div className="flex flex-wrap items-center gap-2 mt-3">
                           {agent && (
-                            <div className="inline-flex items-center gap-2 rounded-[10px] bg-white/[0.03] px-2.5 py-1.5 text-[12px] text-text-2">
+                            <div className="inline-flex items-center gap-2 rounded-[10px] bg-layer-1 px-2.5 py-1.5 text-[12px] text-text-2">
                               <AgentAvatar
                                 seed={agent.avatarSeed}
                                 avatarUrl={agent.avatarUrl}

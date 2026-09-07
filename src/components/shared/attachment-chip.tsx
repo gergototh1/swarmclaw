@@ -126,7 +126,7 @@ export function AttachmentChip({
 
   if (isPdf) {
     return (
-      <div className="mb-2 rounded-[12px] border border-white/[0.08] bg-[rgba(255,255,255,0.02)] overflow-hidden" style={{ maxWidth: 480 }}>
+      <div className="mb-2 rounded-[12px] border border-line-default bg-[rgba(255,255,255,0.02)] overflow-hidden" style={{ maxWidth: 480 }}>
         <div className="flex items-center gap-3 px-4 py-2.5">
           <div className="flex items-center justify-center w-8 h-8 rounded-[8px] shrink-0 bg-red-500/10 text-red-400">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -137,7 +137,7 @@ export function AttachmentChip({
           <span className="text-[13px] font-500 truncate flex-1">{filename}</span>
           <a href={url} download={filename} className="text-[11px] font-600 text-text-3 hover:text-text-2 no-underline">Download</a>
         </div>
-        <iframe src={url} loading="lazy" className="w-full h-[300px] border-t border-white/[0.06]" title={filename} />
+        <iframe src={url} loading="lazy" className="w-full h-[300px] border-t border-line-subtle" title={filename} />
       </div>
     )
   }
@@ -147,12 +147,12 @@ export function AttachmentChip({
   const isPreviewable = PREVIEWABLE_ATTACH_RE.test(filename)
 
   const chipBg = isUserMsg
-    ? 'bg-[rgba(0,0,0,0.25)] border-white/[0.12]'
-    : 'bg-[rgba(255,255,255,0.04)] border-white/[0.08]'
-  const iconBg = isUserMsg ? 'bg-white/[0.12]' : 'bg-white/[0.05]'
+    ? 'bg-[rgba(0,0,0,0.25)] border-line-default'
+    : 'bg-[rgba(255,255,255,0.04)] border-line-default'
+  const iconBg = isUserMsg ? 'bg-layer-3' : 'bg-layer-2'
   const btnBg = isUserMsg
-    ? 'bg-white/[0.12] hover:bg-white/[0.18] text-white/80'
-    : 'bg-white/[0.06] hover:bg-white/[0.10] text-text-3'
+    ? 'bg-layer-3 hover:bg-layer-4 text-white/80'
+    : 'bg-layer-2 hover:bg-layer-3 text-text-3'
 
   const handleCodePreview = async () => {
     if (codePreview !== null) { setCodeExpanded(!codeExpanded); return }
@@ -185,7 +185,7 @@ export function AttachmentChip({
           <button
             onClick={handleCodePreview}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-[11px] font-600 no-underline transition-colors shrink-0 border-none cursor-pointer ${
-              isUserMsg ? 'bg-white/[0.15] hover:bg-white/[0.22] text-white' : 'bg-accent-soft hover:bg-accent-soft/80 text-accent-bright'
+              isUserMsg ? 'bg-layer-4 hover:bg-layer-4 text-white' : 'bg-accent-soft hover:bg-accent-soft/80 text-accent-bright'
             }`}
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -198,7 +198,7 @@ export function AttachmentChip({
         {isPreviewable && (
           <a href={url} target="_blank" rel="noopener noreferrer"
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-[11px] font-600 no-underline transition-colors shrink-0 ${
-              isUserMsg ? 'bg-white/[0.15] hover:bg-white/[0.22] text-white' : 'bg-accent-soft hover:bg-accent-soft/80 text-accent-bright'
+              isUserMsg ? 'bg-layer-4 hover:bg-layer-4 text-white' : 'bg-accent-soft hover:bg-accent-soft/80 text-accent-bright'
             }`}
             title="Preview in new tab">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -219,14 +219,14 @@ export function AttachmentChip({
         </a>
       </div>
       {isCode && codeExpanded && codePreview !== null && (
-        <div className="mt-1 rounded-[10px] border border-white/[0.06] overflow-hidden" style={{ animation: 'fade-in 0.2s ease' }}>
+        <div className="mt-1 rounded-[10px] border border-line-subtle overflow-hidden" style={{ animation: 'fade-in 0.2s ease' }}>
           <CodeBlock className={`language-${ext}`}>
             {codePreview.split('\n').slice(0, codeExpanded ? undefined : 10).join('\n')}
           </CodeBlock>
           {codePreview.split('\n').length > 10 && (
             <button
               onClick={() => setCodeExpanded((v) => !v)}
-              className="w-full px-3 py-1.5 text-[10px] text-text-3 hover:text-text-2 bg-white/[0.02] hover:bg-white/[0.04] border-none border-t border-white/[0.06] cursor-pointer transition-colors"
+              className="w-full px-3 py-1.5 text-[10px] text-text-3 hover:text-text-2 bg-layer-1 hover:bg-layer-2 border-none border-t border-line-subtle cursor-pointer transition-colors"
             >
               {codePreview.split('\n').length > 10 ? `Show all ${codePreview.split('\n').length} lines` : 'Show less'}
             </button>

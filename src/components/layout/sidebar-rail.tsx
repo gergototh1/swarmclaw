@@ -102,7 +102,7 @@ export function SidebarRail({
 
   return (
     <div
-      className={`shrink-0 bg-raised border-r border-white/[0.04] flex flex-col py-4 min-h-0 transition-all duration-300 overflow-visible ${mobile ? 'w-full' : ''}`}
+      className={`shrink-0 bg-raised border-r border-line-subtle flex flex-col py-4 min-h-0 transition-all duration-300 overflow-visible ${mobile ? 'w-full' : ''}`}
       style={mobile ? undefined : { width: railExpanded ? 180 : 60, transitionTimingFunction: 'var(--ease-spring)' }}
     >
       {/* Logo + collapse toggle */}
@@ -116,7 +116,7 @@ export function SidebarRail({
         {railExpanded && !mobile && (
           <button
             onClick={toggleRail}
-            className="ml-auto w-7 h-7 rounded-[8px] flex items-center justify-center text-text-3 hover:text-text hover:bg-white/[0.04] transition-all cursor-pointer bg-transparent border-none"
+            className="ml-auto w-7 h-7 rounded-[8px] flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-all cursor-pointer bg-transparent border-none"
             title="Collapse sidebar"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -190,14 +190,14 @@ export function SidebarRail({
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all
-              bg-transparent text-text-3 hover:text-text hover:bg-white/[0.04] border-none"
+              bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             Search
-            <kbd className="ml-auto px-1.5 py-0.5 rounded-[5px] bg-white/[0.06] border border-white/[0.08] text-[10px] font-mono text-text-3">
+            <kbd className="ml-auto px-1.5 py-0.5 rounded-[5px] bg-layer-2 border border-line-default text-[10px] font-mono text-text-3">
               ⌘K
             </kbd>
           </button>
@@ -222,7 +222,7 @@ export function SidebarRail({
             {railExpanded ? (
               <div className="px-3 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">Workspace</div>
             ) : (
-              <div className="my-1 h-px w-6 bg-white/[0.06]" />
+              <div className="my-1 h-px w-6 bg-layer-2" />
             )}
             <NavItem view="home" label="Home" expanded={railExpanded} isActive={isNavActive('home')} onClick={() => handleNavClick('home')}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -283,7 +283,7 @@ export function SidebarRail({
             {railExpanded ? (
               <div className="px-3 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">Execution</div>
             ) : (
-              <div className="my-1 h-px w-6 bg-white/[0.06]" />
+              <div className="my-1 h-px w-6 bg-layer-2" />
             )}
             <NavItem view="tasks" label="Tasks" expanded={railExpanded} isActive={isNavActive('tasks')} onClick={() => handleNavClick('tasks')}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -327,7 +327,7 @@ export function SidebarRail({
             {railExpanded ? (
               <div className="px-3 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">Knowledge</div>
             ) : (
-              <div className="my-1 h-px w-6 bg-white/[0.06]" />
+              <div className="my-1 h-px w-6 bg-layer-2" />
             )}
             <NavItem view="knowledge" label="Knowledge" expanded={railExpanded} isActive={isNavActive('knowledge')} onClick={() => handleNavClick('knowledge')}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -367,7 +367,7 @@ export function SidebarRail({
             {railExpanded ? (
               <div className="px-3 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">System</div>
             ) : (
-              <div className="my-1 h-px w-6 bg-white/[0.06]" />
+              <div className="my-1 h-px w-6 bg-layer-2" />
             )}
             <NavItem view="secrets" label="Secrets" expanded={railExpanded} isActive={isNavActive('secrets')} onClick={() => handleNavClick('secrets')}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -421,7 +421,7 @@ export function SidebarRail({
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all
-                bg-transparent text-text-3 hover:text-text hover:bg-white/[0.04] no-underline"
+                bg-transparent text-text-3 hover:text-text hover:bg-layer-2 no-underline"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
@@ -447,7 +447,7 @@ export function SidebarRail({
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all
-                bg-transparent text-text-3 hover:text-text hover:bg-white/[0.04] no-underline"
+                bg-transparent text-text-3 hover:text-text hover:bg-layer-2 no-underline"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
@@ -473,7 +473,7 @@ export function SidebarRail({
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all
-                bg-transparent text-text-3 hover:text-text hover:bg-white/[0.04] no-underline"
+                bg-transparent text-text-3 hover:text-text hover:bg-layer-2 no-underline"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
@@ -516,7 +516,7 @@ export function SidebarRail({
             <button
               onClick={onSwitchUser}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] cursor-pointer transition-all
-                bg-transparent hover:bg-white/[0.04] border-none"
+                bg-transparent hover:bg-layer-2 border-none"
               style={{ fontFamily: 'inherit' }}
             >
               <Avatar user={currentUser!} size="sm" avatarSeed={appSettings.userAvatarSeed} />

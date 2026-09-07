@@ -26,7 +26,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
       <p className="text-[12px] text-text-3 mb-5">
         Enable semantic search for agent memory. Requires an embedding model provider.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
+      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
         <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Provider</label>
         <div className="grid grid-cols-4 gap-2 mb-5">
           {[
@@ -41,7 +41,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
               className={`py-3 px-3 rounded-[12px] text-center cursor-pointer transition-all text-[13px] font-600 border
                 ${(appSettings.embeddingProvider || null) === p.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                  : 'bg-bg border-white/[0.06] text-text-2 hover:bg-surface-2'}`}
+                  : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
               {p.name}

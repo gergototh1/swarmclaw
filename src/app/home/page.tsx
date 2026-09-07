@@ -323,7 +323,7 @@ export default function HomePage() {
               label="Needs Attention"
               action={activeTaskCount > 0 ? { label: 'Open Tasks', onClick: () => navigateTo('tasks') } : undefined}
             />
-            <div className="rounded-[18px] border border-white/[0.06] bg-white/[0.025] p-4">
+            <div className="rounded-[18px] border border-line-subtle bg-layer-1 p-4">
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <StatusPill label={`${allTasks.filter((task) => task.status === 'failed').length} failed task${allTasks.filter((task) => task.status === 'failed').length === 1 ? '' : 's'}`} tone={allTasks.some((task) => task.status === 'failed') ? 'danger' : 'neutral'} />
                 <StatusPill label={`${allTasks.filter((task) => (task.blockedBy?.length || 0) > 0).length} blocked task${allTasks.filter((task) => (task.blockedBy?.length || 0) > 0).length === 1 ? '' : 's'}`} tone={allTasks.some((task) => (task.blockedBy?.length || 0) > 0) ? 'warning' : 'neutral'} />
@@ -387,7 +387,7 @@ export default function HomePage() {
 
                 if (items.length === 0) {
                   return (
-                    <div className="rounded-[14px] border border-dashed border-white/[0.06] bg-white/[0.02] px-4 py-5">
+                    <div className="rounded-[14px] border border-dashed border-line-subtle bg-layer-1 px-4 py-5">
                       <p className="text-[13px] font-600 text-text">Everything looks stable.</p>
                       <p className="text-[12px] text-text-3/60 mt-1">
                         No failed tasks, no blocked tasks, and no connector issues right now.
@@ -402,7 +402,7 @@ export default function HomePage() {
                       <button
                         key={item.id}
                         onClick={item.onClick}
-                        className="flex items-start gap-3 rounded-[14px] border border-white/[0.06] bg-transparent px-4 py-3 text-left hover:bg-white/[0.04] transition-colors cursor-pointer"
+                        className="flex items-start gap-3 rounded-[14px] border border-line-subtle bg-transparent px-4 py-3 text-left hover:bg-layer-2 transition-colors cursor-pointer"
                         style={{ fontFamily: 'inherit' }}
                       >
                         <div className={`mt-0.5 h-2.5 w-2.5 rounded-full shrink-0 ${
@@ -454,7 +454,7 @@ export default function HomePage() {
                         ? new Date(d.bucket + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
                         : ''
                       return (
-                        <div className="rounded-[8px] bg-surface border border-white/[0.1] px-3 py-2 shadow-lg">
+                        <div className="rounded-[8px] bg-surface border border-line-default px-3 py-2 shadow-lg">
                           <p className="text-[11px] text-text-3/70 m-0">{label}</p>
                           <p className="text-[14px] font-600 text-text m-0 mt-0.5">${d.cost.toFixed(4)}</p>
                         </div>
@@ -487,7 +487,7 @@ export default function HomePage() {
                       key={n.id}
                       onClick={() => handleNotificationClick(n)}
                       className="flex items-start gap-3 px-4 py-2.5 text-left bg-transparent border-none cursor-pointer
-                        hover:bg-white/[0.03] transition-colors w-full"
+                        hover:bg-layer-1 transition-colors w-full"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
@@ -499,7 +499,7 @@ export default function HomePage() {
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                         {getNotificationOccurrenceCount(n) > 1 && (
-                          <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-600 text-text-3/80">
+                          <span className="rounded-full border border-line-default bg-layer-2 px-1.5 py-0.5 text-[9px] font-600 text-text-3/80">
                             x{getNotificationOccurrenceCount(n)}
                           </span>
                         )}
@@ -520,7 +520,7 @@ export default function HomePage() {
                 {allConnectors.map((c) => (
                   <div
                     key={c.id}
-                    className="flex items-center gap-2 px-3 py-2 rounded-[10px] bg-white/[0.03] border border-white/[0.06]"
+                    className="flex items-center gap-2 px-3 py-2 rounded-[10px] bg-layer-1 border border-line-subtle"
                   >
                     <div className={`w-2 h-2 rounded-full ${
                       c.status === 'running' ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]'
@@ -550,7 +550,7 @@ export default function HomePage() {
                         key={task.id}
                         onClick={() => handleTaskClick(task)}
                         className="flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] bg-transparent border-none
-                          hover:bg-white/[0.04] transition-colors cursor-pointer w-full text-left"
+                          hover:bg-layer-2 transition-colors cursor-pointer w-full text-left"
                         style={{ fontFamily: 'inherit' }}
                       >
                         <div className={`w-2 h-2 rounded-full shrink-0 ${
@@ -620,8 +620,8 @@ export default function HomePage() {
                     <button
                       key={agent.id}
                       onClick={() => handleAgentClick(agent)}
-                      className="flex flex-col items-center gap-1.5 px-4 py-3.5 rounded-[14px] bg-white/[0.03] border border-white/[0.06]
-                        hover:bg-white/[0.06] hover:border-white/[0.1] transition-all cursor-pointer min-w-[130px] shrink-0"
+                      className="flex flex-col items-center gap-1.5 px-4 py-3.5 rounded-[14px] bg-layer-1 border border-line-subtle
+                        hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer min-w-[130px] shrink-0"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <div className="relative">
@@ -659,7 +659,7 @@ export default function HomePage() {
                 })}
               </div>
             ) : (
-              <div className="py-6 px-4 rounded-[14px] bg-white/[0.02] border border-dashed border-white/[0.06] text-center">
+              <div className="py-6 px-4 rounded-[14px] bg-layer-1 border border-dashed border-line-subtle text-center">
                 <p className="text-[13px] text-text-3/60">
                   Star agents from the chat list for quick access
                 </p>
@@ -681,7 +681,7 @@ export default function HomePage() {
                       key={session.id}
                       onClick={() => handleChatClick(session)}
                       className="flex items-center gap-3 px-4 py-3 rounded-[12px] bg-transparent border-none
-                        hover:bg-white/[0.04] transition-all cursor-pointer w-full text-left"
+                        hover:bg-layer-2 transition-all cursor-pointer w-full text-left"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <AgentAvatar
@@ -746,7 +746,7 @@ function StatusPill({ label, tone }: { label: string; tone: 'neutral' | 'warning
       ? 'border-amber-400/20 bg-amber-400/[0.05] text-amber-300/85'
       : tone === 'success'
         ? 'border-emerald-400/20 bg-emerald-400/[0.05] text-emerald-300/85'
-        : 'border-white/[0.06] bg-white/[0.03] text-text-3/75'
+        : 'border-line-subtle bg-layer-1 text-text-3/75'
 
   return (
     <div className={`rounded-[999px] border px-3 py-1.5 text-[11px] font-600 ${toneClasses}`}>
@@ -758,7 +758,7 @@ function StatusPill({ label, tone }: { label: string; tone: 'neutral' | 'warning
 
 function EmptySection({ text }: { text: string }) {
   return (
-    <div className="py-6 px-4 rounded-[14px] bg-white/[0.02] border border-dashed border-white/[0.06] text-center">
+    <div className="py-6 px-4 rounded-[14px] bg-layer-1 border border-dashed border-line-subtle text-center">
       <p className="text-[13px] text-text-3/60">{text}</p>
     </div>
   )

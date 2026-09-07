@@ -31,12 +31,12 @@ interface ShareLink {
 }
 
 const STATUS_BADGE: Record<Mission['status'], { label: string; cls: string }> = {
-  draft: { label: 'Draft', cls: 'bg-white/[0.05] text-text-3' },
+  draft: { label: 'Draft', cls: 'bg-layer-2 text-text-3' },
   running: { label: 'Running', cls: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' },
   paused: { label: 'Paused', cls: 'bg-amber-500/15 text-amber-300 border border-amber-500/30' },
   completed: { label: 'Completed', cls: 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30' },
   failed: { label: 'Failed', cls: 'bg-rose-500/15 text-rose-300 border border-rose-500/30' },
-  cancelled: { label: 'Cancelled', cls: 'bg-white/[0.06] text-text-3' },
+  cancelled: { label: 'Cancelled', cls: 'bg-layer-2 text-text-3' },
   budget_exhausted: { label: 'Budget exhausted', cls: 'bg-orange-500/15 text-orange-300 border border-orange-500/30' },
 }
 
@@ -86,7 +86,7 @@ function BudgetBar({ label, used, cap, format, hint }: BudgetBarProps) {
           {cap != null ? ` / ${format(cap)}` : ' (no cap)'}
         </span>
       </div>
-      <div className="relative h-1.5 w-full rounded-full bg-white/[0.04] overflow-hidden">
+      <div className="relative h-1.5 w-full rounded-full bg-layer-2 overflow-hidden">
         <div className={`absolute inset-y-0 left-0 ${barCls} transition-all`} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -106,7 +106,7 @@ function MissionCard({ mission, isSelected, onSelect }: MissionCardProps) {
     <button
       onClick={onSelect}
       className={`text-left w-full rounded-[10px] border transition-all px-4 py-3
-        ${isSelected ? 'border-white/[0.16] bg-raised' : 'border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.02]'}`}
+        ${isSelected ? 'border-line-strong bg-raised' : 'border-line-subtle hover:border-line-default hover:bg-layer-1'}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -174,7 +174,7 @@ function MissionControls({ mission, onAction, onForceReport, onEdit, busy }: Con
         <button
           disabled={busy}
           onClick={onEdit}
-          className={`${btn} border-white/[0.12] bg-white/[0.04] text-text hover:bg-white/[0.08]`}
+          className={`${btn} border-line-default bg-layer-2 text-text hover:bg-layer-3`}
         >
           Edit
         </button>
@@ -194,7 +194,7 @@ function MissionControls({ mission, onAction, onForceReport, onEdit, busy }: Con
       <button
         disabled={busy}
         onClick={onForceReport}
-        className={`${btn} border-white/[0.08] bg-white/[0.03] text-text-3 hover:bg-white/[0.06]`}
+        className={`${btn} border-line-default bg-layer-1 text-text-3 hover:bg-layer-2`}
       >
         Generate report now
       </button>
@@ -291,7 +291,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-[12px] border border-white/[0.08] bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-[12px] border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-[14px] font-600 text-text mb-1">New autonomous mission</div>
@@ -362,7 +362,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
             </label>
           </div>
 
-          <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+          <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2.5">
             <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-1.5">Periodic reports</div>
             <label className="flex items-center gap-2 flex-wrap">
               <input type="checkbox" checked={reportsEnabled} onChange={(e) => setReportsEnabled(e.target.checked)} />
@@ -382,7 +382,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="text-[12px] px-3 py-1.5 rounded border border-white/[0.08] hover:bg-white/[0.04]"
+            className="text-[12px] px-3 py-1.5 rounded border border-line-default hover:bg-layer-2"
             disabled={busy}
           >
             Cancel
@@ -510,7 +510,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
         {mission.endReason && <p className="text-[11px] text-rose-300/80 mt-2">End reason: {mission.endReason}</p>}
       </div>
 
-      <div className="rounded-[10px] border border-white/[0.06] p-4 flex flex-col gap-3">
+      <div className="rounded-[10px] border border-line-subtle p-4 flex flex-col gap-3">
         <div className="text-[11px] font-600 uppercase tracking-wide text-text-3">Budget</div>
         <BudgetBar label="USD" used={mission.usage.usdSpent} cap={mission.budget.maxUsd} format={formatUsd} />
         <BudgetBar label="Tokens" used={mission.usage.tokensUsed} cap={mission.budget.maxTokens} format={(n) => `${Math.round(n).toLocaleString()}`} />
@@ -523,7 +523,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
         <MissionControls mission={mission} onAction={onAction} onForceReport={onForceReport} onEdit={onEdit} busy={busy} />
       </div>
 
-      <div className="rounded-[12px] border border-white/[0.06] bg-white/[0.025] p-4">
+      <div className="rounded-[12px] border border-line-subtle bg-layer-1 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="text-[11px] font-600 uppercase tracking-wide text-text-3">Public share</div>
@@ -563,7 +563,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
           </div>
         </div>
         {activeShare && (
-          <div className="mt-3 rounded-[10px] border border-white/[0.06] bg-black/20 px-3 py-2 text-[11px] text-text-3">
+          <div className="mt-3 rounded-[10px] border border-line-subtle bg-black/20 px-3 py-2 text-[11px] text-text-3">
             <span className="font-mono text-text">{shareUrl}</span>
             <span className="ml-2 text-text-3/55">Created {formatTimestamp(activeShare.createdAt)}</span>
           </div>
@@ -623,7 +623,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
               <button
                 key={r.id}
                 onClick={() => setSelectedReport(r)}
-                className="text-left text-[11px] text-text-3 px-2 py-1.5 rounded border border-white/[0.04] hover:border-white/[0.12] hover:bg-white/[0.02]"
+                className="text-left text-[11px] text-text-3 px-2 py-1.5 rounded border border-line-subtle hover:border-line-default hover:bg-layer-1"
               >
                 <span className="text-text">{r.title}</span>
                 <span className="text-text-3/60 ml-2">{formatTimestamp(r.generatedAt)}</span>
@@ -636,7 +636,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
       {selectedReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedReport(null)}>
           <div
-            className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-[12px] border border-white/[0.08] bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5"
+            className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-[12px] border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
@@ -794,8 +794,8 @@ export default function MissionsPage() {
   return (
     <MainContent>
       <div className="flex-1 flex min-h-0">
-        <div className="w-[340px] shrink-0 border-r border-white/[0.06] flex flex-col min-h-0">
-          <div className="p-3 border-b border-white/[0.06]">
+        <div className="w-[340px] shrink-0 border-r border-line-subtle flex flex-col min-h-0">
+          <div className="p-3 border-b border-line-subtle">
             <div className="flex items-center justify-between mb-2">
               <div>
                 <div className="text-[13px] font-600">Missions</div>
@@ -818,7 +818,7 @@ export default function MissionsPage() {
             {templates.length > 0 && (
               <button
                 onClick={() => setGalleryOpen(true)}
-                className="w-full text-left text-[11px] font-600 px-2.5 py-1.5 rounded border border-white/[0.08] bg-white/[0.02] text-text-3 hover:border-white/[0.16] hover:text-text"
+                className="w-full text-left text-[11px] font-600 px-2.5 py-1.5 rounded border border-line-default bg-layer-1 text-text-3 hover:border-line-strong hover:text-text"
               >
                 Browse {templates.length} starter templates →
               </button>
@@ -892,7 +892,7 @@ export default function MissionsPage() {
           onClick={() => setGalleryOpen(false)}
         >
           <div
-            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[14px] border border-white/[0.08] bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-6"
+            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[14px] border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">

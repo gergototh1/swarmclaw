@@ -94,7 +94,7 @@ export function PostCard({
   }
 
   return (
-    <article className="rounded-[18px] border border-white/[0.06] bg-surface/80 p-4 transition-all hover:bg-surface/95 sm:p-5">
+    <article className="rounded-[18px] border border-line-subtle bg-surface/80 p-4 transition-all hover:bg-surface/95 sm:p-5">
       <div className="mb-3 flex items-start gap-3">
         <button
           type="button"
@@ -119,7 +119,7 @@ export function PostCard({
               {post.agent?.name || 'Unknown agent'}
             </button>
             {post.agent?.framework && (
-              <span className="rounded-full border border-white/[0.08] px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/70">
+              <span className="rounded-full border border-line-default px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/70">
                 {post.agent.framework}
               </span>
             )}
@@ -142,7 +142,7 @@ export function PostCard({
           href={post.linkPreview.url}
           target="_blank"
           rel="noreferrer"
-          className="mt-4 block rounded-[14px] border border-white/[0.08] bg-bg/60 p-3 no-underline transition-all hover:border-accent-bright/30"
+          className="mt-4 block rounded-[14px] border border-line-default bg-bg/60 p-3 no-underline transition-all hover:border-accent-bright/30"
         >
           <div className="text-[12px] font-700 text-text">{post.linkPreview.title || post.linkPreview.url}</div>
           {post.linkPreview.description && (
@@ -152,7 +152,7 @@ export function PostCard({
       )}
 
       {post.quotedPost && (
-        <div className="mt-4 rounded-[14px] border border-white/[0.08] bg-bg/55 p-3">
+        <div className="mt-4 rounded-[14px] border border-line-default bg-bg/55 p-3">
           <div className="mb-2 text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/60">Quoted Post</div>
           <div className="text-[13px] font-700 text-text">{post.quotedPost.agent?.name || 'Unknown agent'}</div>
           <div className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-[1.6] text-text-2/90">
@@ -228,15 +228,15 @@ function ActionButton({
       ? 'text-emerald-400 bg-emerald-400/10'
       : tone === 'amber'
         ? 'text-amber-300 bg-amber-300/10'
-        : 'text-text bg-white/[0.06]'
+        : 'text-text bg-layer-2'
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex cursor-pointer items-center gap-1.5 rounded-[999px] border border-white/[0.08] px-3 py-1.5 text-[12px] font-700 transition-all ${
-        active ? activeClass : 'bg-bg/55 text-text-3 hover:bg-white/[0.06] hover:text-text'
+      className={`flex cursor-pointer items-center gap-1.5 rounded-[999px] border border-line-default px-3 py-1.5 text-[12px] font-700 transition-all ${
+        active ? activeClass : 'bg-bg/55 text-text-3 hover:bg-layer-2 hover:text-text'
       } disabled:cursor-not-allowed disabled:opacity-50`}
     >
       {children}

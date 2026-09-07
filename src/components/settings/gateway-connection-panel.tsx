@@ -160,7 +160,7 @@ export function GatewayConnectionPanel() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="ws://127.0.0.1:18789"
-          className="w-full px-3 py-2 rounded-[10px] border border-white/[0.06] bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-white/[0.12] transition-colors"
+          className="w-full px-3 py-2 rounded-[10px] border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-line-default transition-colors"
         />
       </div>
 
@@ -171,7 +171,7 @@ export function GatewayConnectionPanel() {
           value={token}
           onChange={(e) => setToken(e.target.value)}
           placeholder="Access token"
-          className="w-full px-3 py-2 rounded-[10px] border border-white/[0.06] bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-white/[0.12] transition-colors"
+          className="w-full px-3 py-2 rounded-[10px] border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-line-default transition-colors"
         />
       </div>
 
@@ -188,7 +188,7 @@ export function GatewayConnectionPanel() {
         ) : (
           <button
             onClick={handleDisconnect}
-            className="px-4 py-2 rounded-[10px] border border-white/[0.08] bg-transparent text-red-400 text-[12px] font-600 cursor-pointer transition-all hover:bg-red-400/10"
+            className="px-4 py-2 rounded-[10px] border border-line-default bg-transparent text-red-400 text-[12px] font-600 cursor-pointer transition-all hover:bg-red-400/10"
             style={{ fontFamily: 'inherit' }}
           >
             Disconnect
@@ -196,7 +196,7 @@ export function GatewayConnectionPanel() {
         )}
         <button
           onClick={checkStatus}
-          className="px-4 py-2 rounded-[10px] border border-white/[0.08] bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-white/[0.04]"
+          className="px-4 py-2 rounded-[10px] border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2"
           style={{ fontFamily: 'inherit' }}
         >
           Refresh
@@ -209,7 +209,7 @@ export function GatewayConnectionPanel() {
 
       {/* Reload Mode Toggle (F21) */}
       {status === 'connected' && (
-        <div className="flex flex-col gap-2 pt-2 border-t border-white/[0.04]" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.2s both' }}>
+        <div className="flex flex-col gap-2 pt-2 border-t border-line-subtle" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.2s both' }}>
           <label className="text-[11px] font-600 uppercase tracking-wider text-text-3/50">Reload Mode</label>
           <div className="flex gap-1">
             {reloadModes.map((rm) => (
@@ -220,7 +220,7 @@ export function GatewayConnectionPanel() {
                 className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border
                   ${reloadMode === rm.value
                     ? 'bg-accent-soft text-accent-bright border-accent-bright/30'
-                    : 'bg-transparent text-text-3 border-white/[0.06] hover:border-white/[0.12]'
+                    : 'bg-transparent text-text-3 border-line-subtle hover:border-line-default'
                   }`}
                 style={{ fontFamily: 'inherit' }}
                 title={rm.desc}
@@ -237,7 +237,7 @@ export function GatewayConnectionPanel() {
 
       {/* Config Issues (F19) */}
       {actionableIssues.length > 0 && (
-        <div className="flex flex-col gap-2 pt-2 border-t border-white/[0.04]" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.25s both' }}>
+        <div className="flex flex-col gap-2 pt-2 border-t border-line-subtle" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.25s both' }}>
           <label className="text-[11px] font-600 uppercase tracking-wider text-text-3/50">Config Issues</label>
           {actionableIssues.map((issue, idx) => (
             <div

@@ -141,7 +141,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
   return (
     <div
       id={`chatroom-msg-${message.id}`}
-      className={`group flex gap-2.5 px-4 hover:bg-white/[0.02] ${isGrouped ? 'py-0.5' : 'py-1.5'}`}
+      className={`group flex gap-2.5 px-4 hover:bg-layer-1 ${isGrouped ? 'py-0.5' : 'py-1.5'}`}
       style={{ animation: 'msg-in 0.25s ease-out both' }}
     >
       {/* Avatar or spacer */}
@@ -153,7 +153,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
                 <AgentAvatar seed={userAvatarSeed} name={message.senderName} size={28} />
               </div>
             ) : (
-              <div className="w-7 h-7 rounded-full bg-white/[0.08] flex items-center justify-center text-[11px] font-600 text-text-2">
+              <div className="w-7 h-7 rounded-full bg-layer-3 flex items-center justify-center text-[11px] font-600 text-text-2">
                 You
               </div>
             )
@@ -263,7 +263,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
               return null // fall through to default handling
             }}
             renderInlineCode={(_text, children) => (
-              <code className="px-1 py-0.5 rounded bg-white/[0.08] text-[12px] font-mono text-accent-bright/90">
+              <code className="px-1 py-0.5 rounded bg-layer-3 text-[12px] font-mono text-accent-bright/90">
                 {children}
               </code>
             )}
@@ -296,7 +296,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
                 className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] transition-all cursor-pointer ${
                   hasUser
                     ? 'bg-[#1a1a3a] border border-accent-bright/30'
-                    : 'bg-[#16162a] border border-white/[0.1] hover:bg-[#1e1e38]'
+                    : 'bg-[#16162a] border border-line-default hover:bg-[#1e1e38]'
                 }`}
               >
                 <span>{emoji}</span>
@@ -356,14 +356,14 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
           />
         )}
         {showModMenu && !isUser && (
-          <div className="absolute right-0 top-7 z-50 bg-[#1a1a2e] border border-white/[0.1] rounded-[8px] shadow-lg py-1 min-w-[160px]">
+          <div className="absolute right-0 top-7 z-50 bg-[#1a1a2e] border border-line-default rounded-[8px] shadow-lg py-1 min-w-[160px]">
             {onDeleteMessage && (
               <button
                 onClick={() => {
                   onDeleteMessage(message.id, message.senderId)
                   setShowModMenu(false)
                 }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-red-400 hover:bg-white/[0.06] transition-colors cursor-pointer bg-transparent border-none text-left"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-red-400 hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none text-left"
                 style={{ fontFamily: 'inherit' }}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -381,7 +381,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
                     onUnmuteAgent(message.senderId)
                     setShowModMenu(false)
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-green-400 hover:bg-white/[0.06] transition-colors cursor-pointer bg-transparent border-none text-left"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-green-400 hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none text-left"
                   style={{ fontFamily: 'inherit' }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -396,7 +396,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
                     onMuteAgent(message.senderId)
                     setShowModMenu(false)
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-amber-400 hover:bg-white/[0.06] transition-colors cursor-pointer bg-transparent border-none text-left"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-amber-400 hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none text-left"
                   style={{ fontFamily: 'inherit' }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -424,7 +424,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
                       onSetRole(message.senderId, opt.value)
                       setShowModMenu(false)
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-2 hover:bg-white/[0.06] transition-colors cursor-pointer bg-transparent border-none text-left"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-text-2 hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none text-left"
                     style={{ fontFamily: 'inherit' }}
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -438,7 +438,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
             })()}
             <button
               onClick={() => setShowModMenu(false)}
-              className="w-full px-3 py-1.5 text-[11px] text-text-3 hover:bg-white/[0.06] transition-colors cursor-pointer bg-transparent border-none text-left border-t border-white/[0.06] mt-1"
+              className="w-full px-3 py-1.5 text-[11px] text-text-3 hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none text-left border-t border-line-subtle mt-1"
               style={{ fontFamily: 'inherit' }}
             >
               Cancel

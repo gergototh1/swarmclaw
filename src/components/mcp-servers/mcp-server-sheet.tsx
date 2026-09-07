@@ -264,7 +264,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
     toast.success(`Prefilled from SwarmDock MCP Registry: ${prefill.sourceSlug}`)
   }
 
-  const inputClass = "w-full px-4 py-3.5 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
+  const inputClass = "w-full px-4 py-3.5 rounded-[14px] border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
   const labelClass = "block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3"
 
   return (
@@ -290,7 +290,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
                   className={`py-2 px-4 rounded-[12px] border text-[13px] font-600 cursor-pointer transition-all ${
                     isActive
                       ? 'border-accent-bright bg-accent-bright/10 text-accent-bright'
-                      : 'border-white/[0.08] bg-transparent text-text-2 hover:bg-surface-2'
+                      : 'border-line-default bg-transparent text-text-2 hover:bg-surface-2'
                   }`}
                   style={{ fontFamily: 'inherit' }}
                   title={preset.description}
@@ -428,7 +428,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
                 ['lazy', 'Lazy — expose none', 'No tools bound until the agent calls mcp_tool_search to discover them. Biggest token savings.'],
                 ['selected', 'Allow-list', 'Only pre-bind the tools you list below. Agent can still discover others via mcp_tool_search.'],
               ] as const).map(([value, label, hint]) => (
-                <label key={value} className={`flex items-start gap-3 p-3 rounded-[12px] border cursor-pointer transition-all ${exposureMode === value ? 'border-accent-bright bg-accent-bright/5' : 'border-white/[0.08] hover:bg-surface-2'}`}>
+                <label key={value} className={`flex items-start gap-3 p-3 rounded-[12px] border cursor-pointer transition-all ${exposureMode === value ? 'border-accent-bright bg-accent-bright/5' : 'border-line-default hover:bg-surface-2'}`}>
                   <input
                     type="radio"
                     name="exposureMode"
@@ -469,7 +469,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
                     .filter((t) => selected.has(t.name))
                     .reduce((n, t) => n + t.tokens, 0)
                   return (
-                    <div className="space-y-1 rounded-[12px] border border-white/[0.08] bg-surface/50 p-2 max-h-[320px] overflow-auto">
+                    <div className="space-y-1 rounded-[12px] border border-line-default bg-surface/50 p-2 max-h-[320px] overflow-auto">
                       <div className="px-2 py-1 text-[11px] font-mono text-text-3">
                         {selectedTokens.toLocaleString()} / {totalTokens.toLocaleString()} tokens selected
                       </div>
@@ -478,7 +478,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
                         return (
                           <label
                             key={t.name}
-                            className={`flex items-start gap-3 p-2 rounded-[10px] cursor-pointer transition-colors ${checked ? 'bg-accent-bright/5' : 'hover:bg-white/[0.03]'}`}
+                            className={`flex items-start gap-3 p-2 rounded-[10px] cursor-pointer transition-colors ${checked ? 'bg-accent-bright/5' : 'hover:bg-layer-1'}`}
                           >
                             <input
                               type="checkbox"
@@ -522,7 +522,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
           <button
             onClick={handleTest}
             disabled={testing}
-            className="py-3 px-6 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-all disabled:opacity-30"
+            className="py-3 px-6 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-all disabled:opacity-30"
             style={{ fontFamily: 'inherit' }}
           >
             {testing ? 'Testing...' : 'Test Connection'}
@@ -544,13 +544,13 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
         </div>
       )}
 
-      <div className="flex gap-3 pt-2 border-t border-white/[0.04]">
+      <div className="flex gap-3 pt-2 border-t border-line-subtle">
         {editing && (
           <button onClick={() => setConfirmDelete(true)} className="py-3.5 px-6 rounded-[14px] border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Delete
           </button>
         )}
-        <button onClick={onClose} className="flex-1 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
+        <button onClick={onClose} className="flex-1 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
           Cancel
         </button>
         <button onClick={handleSave} disabled={!canSave} className="flex-1 py-3.5 rounded-[14px] border-none bg-accent-bright text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110" style={{ fontFamily: 'inherit' }}>

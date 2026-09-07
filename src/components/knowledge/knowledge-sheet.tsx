@@ -230,7 +230,7 @@ export function KnowledgeSheet() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  const inputClass = 'w-full px-4 py-3.5 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow'
+  const inputClass = 'w-full px-4 py-3.5 rounded-[14px] border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow'
   const scopeHelperText = scope === 'global'
     ? 'This source will be searchable across the whole fleet'
     : agentIds.length === 0
@@ -264,7 +264,7 @@ export function KnowledgeSheet() {
               className={`py-3 rounded-[14px] text-[13px] font-600 border transition-all cursor-pointer ${
                 kind === sourceKind
                   ? 'border-accent-bright/25 bg-accent-soft text-accent-bright'
-                  : 'border-white/[0.08] bg-white/[0.02] text-text-3 hover:text-text-2'
+                  : 'border-line-default bg-layer-1 text-text-3 hover:text-text-2'
               }`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -318,7 +318,7 @@ export function KnowledgeSheet() {
               className={`flex flex-col items-center gap-3 px-6 py-8 rounded-[14px] border-2 border-dashed cursor-pointer transition-all duration-200 ${
                 isDragging
                   ? 'border-accent-bright/50 bg-accent-soft/20'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.03]'
+                  : 'border-line-default bg-layer-1 hover:border-line-strong hover:bg-layer-1'
               } ${uploading ? 'opacity-60 pointer-events-none' : ''}`}
             >
               {uploading ? (
@@ -418,7 +418,7 @@ export function KnowledgeSheet() {
 
       <div className="mb-8">
         <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Scope</label>
-        <div className="flex p-1 rounded-[12px] bg-bg border border-white/[0.06]">
+        <div className="flex p-1 rounded-[12px] bg-bg border border-line-subtle">
           {(['global', 'agent'] as const).map((nextScope) => (
             <button
               key={nextScope}
@@ -438,7 +438,7 @@ export function KnowledgeSheet() {
       {scope === 'agent' && (
         <div className="mb-8">
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Agents</label>
-          <div className="max-h-[240px] overflow-y-auto rounded-[12px] border border-white/[0.06] bg-white/[0.03]">
+          <div className="max-h-[240px] overflow-y-auto rounded-[12px] border border-line-subtle bg-layer-1">
             {agentList.length === 0 ? (
               <p className="p-3 text-[12px] text-text-3">No agents available</p>
             ) : (
@@ -449,7 +449,7 @@ export function KnowledgeSheet() {
                     key={agent.id}
                     onClick={() => toggleAgent(agent.id)}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-all cursor-pointer ${
-                      selected ? 'bg-accent-soft/40' : 'hover:bg-white/[0.04]'
+                      selected ? 'bg-accent-soft/40' : 'hover:bg-layer-2'
                     }`}
                     style={{ fontFamily: 'inherit' }}
                   >
@@ -468,10 +468,10 @@ export function KnowledgeSheet() {
         </div>
       )}
 
-      <div className="flex gap-3 pt-2 border-t border-white/[0.04]">
+      <div className="flex gap-3 pt-2 border-t border-line-subtle">
         <button
           onClick={onClose}
-          className="flex-1 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+          className="flex-1 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
           style={{ fontFamily: 'inherit' }}
         >
           Cancel

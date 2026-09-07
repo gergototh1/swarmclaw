@@ -77,8 +77,8 @@ export default function WalletsPage() {
           {showPicker && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} />
-              <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-[12px] bg-surface border border-white/[0.08] shadow-xl overflow-hidden">
-                <div className="px-3 py-2 border-b border-white/[0.06]">
+              <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-[12px] bg-surface border border-line-default shadow-xl overflow-hidden">
+                <div className="px-3 py-2 border-b border-line-subtle">
                   <span className="text-[11px] font-600 text-text-3">Select Agent</span>
                 </div>
                 <div className="max-h-48 overflow-y-auto py-1">
@@ -86,7 +86,7 @@ export default function WalletsPage() {
                     <button
                       key={agent.id}
                       onClick={() => handleGenerate(agent.id)}
-                      className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-white/[0.04] transition-colors cursor-pointer"
+                      className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-layer-2 transition-colors cursor-pointer"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <span className="text-[14px]">{agent.emoji || '🤖'}</span>

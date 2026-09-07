@@ -15,7 +15,7 @@ export function StatCard({ label, value, accent, hint, trend, index = 0, classNa
   return (
     <div
       className={cn(
-        'px-4 py-3 rounded-[12px] bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all hover:scale-[1.02] active:scale-[0.98] cursor-default',
+        'px-4 py-3 rounded-[12px] bg-layer-1 border border-line-subtle hover:bg-layer-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-default',
         className,
       )}
       style={{

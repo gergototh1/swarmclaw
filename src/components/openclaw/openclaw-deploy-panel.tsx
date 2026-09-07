@@ -267,7 +267,7 @@ function inferRemoteHost(value: string | null | undefined): string {
 function badgeTone(active: boolean): string {
   return active
     ? 'border-accent-bright/30 bg-accent-bright/10 text-accent-bright'
-    : 'border-white/[0.08] bg-white/[0.02] text-text-2 hover:bg-white/[0.05]'
+    : 'border-line-default bg-layer-1 text-text-2 hover:bg-layer-2'
 }
 
 export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
@@ -820,7 +820,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
   }
 
   return (
-    <div className={`rounded-[16px] border border-white/[0.08] bg-surface ${compact ? 'p-4' : 'p-5'} text-left`}>
+    <div className={`rounded-[16px] border border-line-default bg-surface ${compact ? 'p-4' : 'p-5'} text-left`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="font-display text-[16px] font-700 text-text">{title}</div>
@@ -855,7 +855,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 max={65535}
                 value={localPort}
                 onChange={(e) => setLocalPort(Number.parseInt(e.target.value, 10) || 18789)}
-                className="w-full rounded-[12px] border border-white/[0.08] bg-bg px-3 py-3 text-[13px] text-text outline-none focus:border-accent-bright/30"
+                className="w-full rounded-[12px] border border-line-default bg-bg px-3 py-3 text-[13px] text-text outline-none focus:border-accent-bright/30"
               />
             </div>
             <div>
@@ -865,12 +865,12 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 value={deployToken}
                 onChange={(e) => setDeployToken(e.target.value)}
                 placeholder="Leave blank to generate a secure token"
-                className="w-full rounded-[12px] border border-white/[0.08] bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                className="w-full rounded-[12px] border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
               />
             </div>
           </div>
 
-          <div className="rounded-[12px] border border-white/[0.06] bg-bg px-4 py-3">
+          <div className="rounded-[12px] border border-line-subtle bg-bg px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[13px] font-600 text-text">Managed local runtime</div>
@@ -881,7 +881,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               <div className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] ${
                 localStatus?.running
                   ? 'bg-emerald-500/10 text-emerald-300'
-                  : 'bg-white/[0.05] text-text-3'
+                  : 'bg-layer-2 text-text-3'
               }`}>
                 {localStatus?.running ? 'running' : 'idle'}
               </div>
@@ -901,7 +901,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   type="button"
                   onClick={handleRestartLocal}
                   disabled={loading !== 'idle'}
-                  className="rounded-[10px] border border-white/[0.08] bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                  className="rounded-[10px] border border-line-default bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                 >
                   {loading === 'restarting-local' ? 'Restarting…' : 'Restart'}
                 </button>
@@ -911,7 +911,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   type="button"
                   onClick={() => void handleVerify(localStatus.endpoint, deployToken || localStatus.token)}
                   disabled={loading !== 'idle'}
-                  className="rounded-[10px] border border-white/[0.08] bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                  className="rounded-[10px] border border-line-default bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                 >
                   {loading === 'verifying' ? 'Verifying…' : 'Verify'}
                 </button>
@@ -921,7 +921,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   type="button"
                   onClick={handleStopLocal}
                   disabled={loading !== 'idle'}
-                  className="rounded-[10px] border border-white/[0.08] bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                  className="rounded-[10px] border border-line-default bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                 >
                   {loading === 'stopping-local' ? 'Stopping…' : 'Stop'}
                 </button>
@@ -930,7 +930,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 type="button"
                 onClick={() => onCopied('local-launch', localLaunchCommand)}
                 disabled={!localLaunchCommand}
-                className="rounded-[10px] border border-white/[0.08] bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                className="rounded-[10px] border border-line-default bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
               >
                 {copiedKey === 'local-launch' ? 'Copied launch' : 'Copy launch cmd'}
               </button>
@@ -938,7 +938,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 type="button"
                 onClick={() => onCopied('local-install', localInstallCommand)}
                 disabled={!localInstallCommand}
-                className="rounded-[10px] border border-white/[0.08] bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                className="rounded-[10px] border border-line-default bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
               >
                 {copiedKey === 'local-install' ? 'Copied install' : 'Copy service cmd'}
               </button>
@@ -946,7 +946,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 type="button"
                 onClick={() => onCopied('local-token', deployToken.trim() || localStatus?.token || '')}
                 disabled={!deployToken.trim() && !localStatus?.token}
-                className="rounded-[10px] border border-white/[0.08] bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                className="rounded-[10px] border border-line-default bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
               >
                 {copiedKey === 'local-token' ? 'Copied token' : 'Copy token'}
               </button>
@@ -954,18 +954,18 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
 
             {localStatus && (
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
+                <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60">Endpoint</div>
                   <div className="mt-1 text-[12px] text-text-2 font-mono break-all">{localStatus.endpoint}</div>
                 </div>
-                <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
+                <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60">Persistent install</div>
                   <div className="mt-1 text-[12px] text-text-3 leading-relaxed">
                     For a durable OS service, use the generated install command after the quick deploy works.
                   </div>
                 </div>
                 {verifySummary && (
-                  <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2 md:col-span-2">
+                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2 md:col-span-2">
                     <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60">Verification</div>
                     <div className="mt-1 text-[12px] text-text-2 leading-relaxed">{verifySummary}</div>
                   </div>
@@ -974,7 +974,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
             )}
 
             {!!localStatus?.tail && (
-              <pre className="mt-3 overflow-x-auto rounded-[10px] border border-white/[0.05] bg-black/20 px-3 py-2 text-[11px] text-text-2/80 whitespace-pre-wrap">
+              <pre className="mt-3 overflow-x-auto rounded-[10px] border border-line-subtle bg-black/20 px-3 py-2 text-[11px] text-text-2/80 whitespace-pre-wrap">
                 {localStatus.tail}
               </pre>
             )}
@@ -983,7 +983,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               <div className="mt-3 space-y-2">
                 <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60">Managed instances</div>
                 {visibleLocalStatuses.map((status) => (
-                  <div key={status.id} className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-3">
+                  <div key={status.id} className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <div className="text-[13px] font-600 text-text">
@@ -997,7 +997,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                       <div className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] ${
                         status.running
                           ? 'bg-emerald-500/10 text-emerald-300'
-                          : 'bg-white/[0.05] text-text-3'
+                          : 'bg-layer-2 text-text-3'
                       }`}>
                         {status.running ? 'running' : 'idle'}
                       </div>
@@ -1007,7 +1007,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                         type="button"
                         onClick={() => void handleRestartSpecificLocal(status)}
                         disabled={loading !== 'idle'}
-                        className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                        className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                       >
                         Restart
                       </button>
@@ -1015,7 +1015,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                         type="button"
                         onClick={() => void handleVerify(status.endpoint, status.token || deployToken || undefined)}
                         disabled={loading !== 'idle'}
-                        className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                        className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                       >
                         Verify
                       </button>
@@ -1023,14 +1023,14 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                         type="button"
                         onClick={() => void handleStopSpecificLocal(status)}
                         disabled={loading !== 'idle' || !status.running}
-                        className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                        className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                       >
                         Stop
                       </button>
                       <button
                         type="button"
                         onClick={() => onCopied(`local-endpoint-${status.id}`, status.endpoint)}
-                        className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all"
+                        className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all"
                       >
                         {copiedKey === `local-endpoint-${status.id}` ? 'Copied endpoint' : 'Copy endpoint'}
                       </button>
@@ -1038,7 +1038,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                         type="button"
                         onClick={() => onCopied(`local-token-${status.id}`, status.token || '')}
                         disabled={!status.token}
-                        className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                        className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                       >
                         {copiedKey === `local-token-${status.id}` ? 'Copied token' : 'Copy token'}
                       </button>
@@ -1061,7 +1061,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 value={remoteTarget}
                 onChange={(e) => setRemoteTarget(e.target.value)}
                 placeholder="openclaw.example.com or https://openclaw.example.com"
-                className="w-full rounded-[12px] border border-white/[0.08] bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                className="w-full rounded-[12px] border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
               />
             </div>
             <div>
@@ -1069,7 +1069,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               <select
                 value={remoteScheme}
                 onChange={(e) => setRemoteScheme(e.target.value === 'http' ? 'http' : 'https')}
-                className="w-full rounded-[12px] border border-white/[0.08] bg-bg px-3 py-3 text-[13px] text-text outline-none focus:border-accent-bright/30"
+                className="w-full rounded-[12px] border border-line-default bg-bg px-3 py-3 text-[13px] text-text outline-none focus:border-accent-bright/30"
               >
                 <option value="https">https</option>
                 <option value="http">http</option>
@@ -1151,7 +1151,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 </p>
               </div>
 
-              <div className="rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-4">
+              <div className="rounded-[12px] border border-line-subtle bg-layer-1 p-4">
                 <div className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3/70 mb-3">In-House SSH Deploy</div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <input
@@ -1159,14 +1159,14 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                     value={sshHost}
                     onChange={(e) => setSshHost(e.target.value)}
                     placeholder="gateway.your-vps.com"
-                    className="w-full rounded-[12px] border border-white/[0.08] bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                    className="w-full rounded-[12px] border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                   />
                   <input
                     type="text"
                     value={sshUser}
                     onChange={(e) => setSshUser(e.target.value)}
                     placeholder="root"
-                    className="w-full rounded-[12px] border border-white/[0.08] bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                    className="w-full rounded-[12px] border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                   />
                   <input
                     type="number"
@@ -1175,14 +1175,14 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                     value={sshPort}
                     onChange={(e) => setSshPort(Number.parseInt(e.target.value, 10) || 22)}
                     placeholder="22"
-                    className="w-full rounded-[12px] border border-white/[0.08] bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                    className="w-full rounded-[12px] border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                   />
                   <input
                     type="text"
                     value={sshKeyPath}
                     onChange={(e) => setSshKeyPath(e.target.value)}
                     placeholder="~/.ssh/id_ed25519"
-                    className="w-full rounded-[12px] border border-white/[0.08] bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                    className="w-full rounded-[12px] border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                   />
                 </div>
                 <input
@@ -1190,7 +1190,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   value={sshTargetDir}
                   onChange={(e) => setSshTargetDir(e.target.value)}
                   placeholder="/opt/openclaw"
-                  className="mt-3 w-full rounded-[12px] border border-white/[0.08] bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                  className="mt-3 w-full rounded-[12px] border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                 />
                 <p className="mt-2 text-[12px] text-text-3 leading-relaxed">
                   SwarmClaw will push the generated official-image bundle to this host over SSH and run the bootstrap there. This stays inside your own infra and does not rely on outside OpenClaw deployers.
@@ -1213,7 +1213,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 type="button"
                 onClick={handleSshDeploy}
                 disabled={loading !== 'idle' || !sshHost.trim()}
-                className="rounded-[10px] border border-white/[0.08] bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                className="rounded-[10px] border border-line-default bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
               >
                 {loading === 'ssh-deploy' ? 'Deploying…' : 'Deploy Over SSH'}
               </button>
@@ -1222,7 +1222,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               type="button"
               onClick={() => void handleVerify(bundle?.endpoint || endpoint || remoteTarget, deployToken)}
               disabled={loading !== 'idle' || (!bundle?.endpoint && !endpoint && !remoteTarget.trim())}
-              className="rounded-[10px] border border-white/[0.08] bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+              className="rounded-[10px] border border-line-default bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
             >
               {loading === 'verifying' ? 'Verifying…' : 'Verify Endpoint'}
             </button>
@@ -1230,7 +1230,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               <button
                 type="button"
                 onClick={() => onCopied('remote-token', bundle.token)}
-                className="rounded-[10px] border border-white/[0.08] bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all"
+                className="rounded-[10px] border border-line-default bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all"
               >
                 {copiedKey === 'remote-token' ? 'Copied token' : 'Copy token'}
               </button>
@@ -1244,7 +1244,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   type="button"
                   onClick={() => void handleRemoteLifecycle('remote-start')}
                   disabled={loading !== 'idle'}
-                  className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                  className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                 >
                   Start
                 </button>
@@ -1252,7 +1252,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   type="button"
                   onClick={() => void handleRemoteLifecycle('remote-restart')}
                   disabled={loading !== 'idle'}
-                  className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                  className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                 >
                   Restart
                 </button>
@@ -1260,7 +1260,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   type="button"
                   onClick={() => void handleRemoteLifecycle('remote-upgrade')}
                   disabled={loading !== 'idle'}
-                  className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                  className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                 >
                   Upgrade
                 </button>
@@ -1268,7 +1268,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   type="button"
                   onClick={() => void handleRemoteLifecycle('remote-backup')}
                   disabled={loading !== 'idle'}
-                  className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                  className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                 >
                   Backup
                 </button>
@@ -1276,7 +1276,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   type="button"
                   onClick={() => void handleRemoteLifecycle('remote-rotate-token')}
                   disabled={loading !== 'idle'}
-                  className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                  className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                 >
                   Rotate token
                 </button>
@@ -1295,13 +1295,13 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   value={restoreBackupPath}
                   onChange={(e) => setRestoreBackupPath(e.target.value)}
                   placeholder="/opt/openclaw/backups/openclaw-backup-123456789.tgz"
-                  className="w-full rounded-[12px] border border-white/[0.08] bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                  className="w-full rounded-[12px] border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                 />
                 <button
                   type="button"
                   onClick={() => void handleRemoteLifecycle('remote-restore')}
                   disabled={loading !== 'idle' || !restoreBackupPath.trim()}
-                  className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                  className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40"
                 >
                   Restore backup
                 </button>
@@ -1310,7 +1310,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
           )}
 
           {(verifySummary || commandPreview || remoteStatus || visibleRemoteStatuses.length > 0) && (
-            <div className="rounded-[12px] border border-white/[0.06] bg-bg px-4 py-4">
+            <div className="rounded-[12px] border border-line-subtle bg-bg px-4 py-4">
               {verifySummary && (
                 <div className="text-[12px] text-text-2 leading-relaxed">{verifySummary}</div>
               )}
@@ -1318,7 +1318,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 <div className="mt-3 space-y-2">
                   <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60">Managed remote deployments</div>
                   {visibleRemoteStatuses.map((status) => (
-                    <div key={status.id} className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-3">
+                    <div key={status.id} className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <div className="text-[13px] font-600 text-text">
@@ -1333,14 +1333,14 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                           <div className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] ${
                             status.active
                               ? 'bg-emerald-500/10 text-emerald-300'
-                              : 'bg-white/[0.05] text-text-3'
+                              : 'bg-layer-2 text-text-3'
                           }`}>
                             {status.status}
                           </div>
                           <button
                             type="button"
                             onClick={() => handleSelectRemote(status)}
-                            className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all"
+                            className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all"
                           >
                             {remoteStatus?.id === status.id ? 'Selected' : 'Select'}
                           </button>
@@ -1352,27 +1352,27 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               )}
               {remoteStatus && (
                 <div className="mt-3 grid gap-3 md:grid-cols-3">
-                  <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60">Remote action</div>
                     <div className="mt-1 text-[12px] text-text-2">{remoteStatus.action || remoteStatus.lastSummary || 'Idle'}</div>
                   </div>
-                  <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60">Target</div>
                     <div className="mt-1 text-[12px] text-text-2 font-mono break-all">{remoteStatus.target || sshHost || 'n/a'}</div>
                   </div>
-                  <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60">Status</div>
                     <div className="mt-1 text-[12px] text-text-2">{remoteStatus.status}</div>
                   </div>
                 </div>
               )}
               {(commandPreview || remoteStatus?.lastCommandPreview) && (
-                <pre className="mt-3 overflow-x-auto rounded-[10px] border border-white/[0.05] bg-black/20 px-3 py-3 text-[11px] text-text-2/80 whitespace-pre-wrap">
+                <pre className="mt-3 overflow-x-auto rounded-[10px] border border-line-subtle bg-black/20 px-3 py-3 text-[11px] text-text-2/80 whitespace-pre-wrap">
                   {commandPreview || remoteStatus?.lastCommandPreview}
                 </pre>
               )}
               {!!remoteStatus?.tail && (
-                <pre className="mt-3 overflow-x-auto rounded-[10px] border border-white/[0.05] bg-black/20 px-3 py-3 text-[11px] text-text-2/80 whitespace-pre-wrap">
+                <pre className="mt-3 overflow-x-auto rounded-[10px] border border-line-subtle bg-black/20 px-3 py-3 text-[11px] text-text-2/80 whitespace-pre-wrap">
                   {remoteStatus.tail}
                 </pre>
               )}
@@ -1385,18 +1385,18 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
           )}
 
           {bundle && (
-            <div className="rounded-[12px] border border-white/[0.06] bg-bg px-4 py-4">
+            <div className="rounded-[12px] border border-line-subtle bg-bg px-4 py-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="text-[14px] font-700 text-text">{bundle.title}</div>
                   <p className="mt-1 text-[12px] text-text-3 leading-relaxed">{bundle.summary}</p>
                 </div>
                 <div className="grid gap-2 md:grid-cols-2">
-                  <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60">Endpoint</div>
                     <div className="mt-1 text-[11px] font-mono text-text-2 break-all">{bundle.endpoint}</div>
                   </div>
-                  <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60">Host path</div>
                     <div className="mt-1 text-[11px] text-text-2">{bundle.providerLabel}</div>
                   </div>
@@ -1431,12 +1431,12 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                     <button
                       type="button"
                       onClick={() => onCopied(`file:${selectedFile.name}`, selectedFile.content)}
-                      className="rounded-[10px] border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-white/[0.04] transition-all"
+                      className="rounded-[10px] border border-line-default bg-transparent px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer hover:bg-layer-2 transition-all"
                     >
                       {copiedKey === `file:${selectedFile.name}` ? 'Copied' : 'Copy file'}
                     </button>
                   </div>
-                  <pre className="overflow-x-auto rounded-[10px] border border-white/[0.05] bg-black/20 px-3 py-3 text-[11px] text-text-2/80 whitespace-pre-wrap">
+                  <pre className="overflow-x-auto rounded-[10px] border border-line-subtle bg-black/20 px-3 py-3 text-[11px] text-text-2/80 whitespace-pre-wrap">
                     {selectedFile.content}
                   </pre>
                 </div>

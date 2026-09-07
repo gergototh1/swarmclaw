@@ -11,11 +11,11 @@ interface Props {
 
 export function SheetFooter({ onCancel, onSave, saveLabel = 'Save', saveDisabled, left }: Props) {
   return (
-    <div className="flex gap-3 pt-2 border-t border-white/[0.04]">
+    <div className="flex gap-3 pt-2 border-t border-line-subtle">
       {left}
       <button
         onClick={onCancel}
-        className="flex-1 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+        className="flex-1 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
         style={{ fontFamily: 'inherit' }}
       >
         Cancel

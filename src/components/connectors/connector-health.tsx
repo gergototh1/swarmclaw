@@ -63,7 +63,7 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
 
   if (loading) {
     return (
-      <div className="p-4 rounded-[14px] border border-white/[0.06] bg-white/[0.01]">
+      <div className="p-4 rounded-[14px] border border-line-subtle bg-layer-1">
         <div className="text-[13px] text-text-3 animate-pulse">Loading health data...</div>
       </div>
     )
@@ -71,7 +71,7 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
 
   if (!data || data.events.length === 0) {
     return (
-      <div className="p-4 rounded-[14px] border border-white/[0.06] bg-white/[0.01]">
+      <div className="p-4 rounded-[14px] border border-line-subtle bg-layer-1">
         <div className="text-[13px] text-text-3">No health events recorded yet.</div>
       </div>
     )
@@ -81,7 +81,7 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
   const recentEvents = [...data.events].reverse().slice(0, 50)
 
   return (
-    <div className="p-4 rounded-[14px] border border-white/[0.06] bg-white/[0.01] space-y-4">
+    <div className="p-4 rounded-[14px] border border-line-subtle bg-layer-1 space-y-4">
       {/* Uptime badge */}
       <div className="flex items-center justify-between">
         <div className="text-[13px] font-600 text-text-2">Health Timeline</div>
@@ -93,7 +93,7 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
       {/* Timeline */}
       <div className="relative pl-5">
         {/* Vertical line */}
-        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-white/[0.08]" />
+        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-layer-3" />
 
         <div className="max-h-[320px] overflow-y-auto pr-2 space-y-3 sm:max-h-[38vh]">
           {recentEvents.map((ev) => {

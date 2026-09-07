@@ -138,7 +138,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-[12px] border border-white/[0.08] bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-[12px] border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-[14px] font-600 text-text mb-1">Edit mission</div>
@@ -182,7 +182,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
             />
           </label>
 
-          <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+          <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2.5">
             <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-2">
               Budget <HintTip text="Leave any field blank to remove that cap." />
             </div>
@@ -240,7 +240,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
             </div>
           </div>
 
-          <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+          <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2.5">
             <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-2">Periodic reports</div>
             <label className="flex items-center gap-2 flex-wrap mb-2">
               <input
@@ -300,7 +300,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="text-[12px] px-3 py-1.5 rounded border border-white/[0.08] hover:bg-white/[0.04]"
+            className="text-[12px] px-3 py-1.5 rounded border border-line-default hover:bg-layer-2"
             disabled={busy}
           >
             Cancel

@@ -79,7 +79,7 @@ function SectionCard({
   className?: string
 }) {
   return (
-    <section className={`mb-8 rounded-[20px] border border-white/[0.06] bg-surface/70 p-5 sm:p-6 ${className}`}>
+    <section className={`mb-8 rounded-[20px] border border-line-subtle bg-surface/70 p-5 sm:p-6 ${className}`}>
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <h3 className="font-display text-[17px] font-700 tracking-[-0.02em] text-text">{title}</h3>
@@ -1199,7 +1199,7 @@ export function AgentSheet() {
     })
   }
 
-  const inputClass = "w-full px-4 py-3.5 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
+  const inputClass = "w-full px-4 py-3.5 rounded-[14px] border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
   const configVersionSummaries = configVersions.map((version) => buildAgentConfigVersionSummary(version))
 
   return (
@@ -1301,7 +1301,7 @@ export function AgentSheet() {
             <button
               type="button"
               onClick={() => { setAvatarSeed(Math.random().toString(36).slice(2, 10)); setAvatarUrl(null) }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] border border-white/[0.08] bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-white/[0.04] hover:text-text-2 active:scale-95 shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2 hover:text-text-2 active:scale-95 shrink-0"
               style={{ fontFamily: 'inherit' }}
               title="Shuffle avatar"
             >
@@ -1327,7 +1327,7 @@ export function AgentSheet() {
         description="Choose how this agent connects to a model, then verify the setup before saving."
       >
       <div className="mb-8">
-        <div className="flex items-center justify-between gap-3 rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+        <div className="flex items-center justify-between gap-3 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-3">
           <div>
             <p className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Runtime</p>
             <p className="mt-1 text-[14px] font-600 text-text">{openclawEnabled ? 'OpenClaw gateway' : 'Direct provider connection'}</p>
@@ -1356,7 +1356,7 @@ export function AgentSheet() {
                   setGatewayProfileId(null)
                 }
               }}
-              className={`relative h-6 w-11 rounded-full border-none transition-colors duration-200 ${openclawEnabled ? 'bg-accent-bright' : 'bg-white/[0.12]'}`}
+              className={`relative h-6 w-11 rounded-full border-none transition-colors duration-200 ${openclawEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
             >
               <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${openclawEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
@@ -1516,7 +1516,7 @@ export function AgentSheet() {
                   href={(() => { const ep = (apiEndpoint || 'http://localhost:18789').replace(/\/+$/, ''); return /^https?:\/\//i.test(ep) ? ep : `http://${ep}` })()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-[10px] bg-white/[0.06] border border-white/[0.1] text-[13px] text-text-2 font-500 hover:bg-white/[0.1] transition-colors"
+                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-[10px] bg-layer-2 border border-line-default text-[13px] text-text-2 font-500 hover:bg-layer-3 transition-colors"
                 >
                   Approve in Dashboard →
                 </a>
@@ -1529,7 +1529,7 @@ export function AgentSheet() {
                   href={(() => { const ep = (apiEndpoint || 'http://localhost:18789').replace(/\/+$/, ''); return /^https?:\/\//i.test(ep) ? ep : `http://${ep}` })()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-[10px] bg-white/[0.06] border border-white/[0.1] text-[13px] text-text-2 font-500 hover:bg-white/[0.1] transition-colors"
+                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-[10px] bg-layer-2 border border-line-default text-[13px] text-text-2 font-500 hover:bg-layer-3 transition-colors"
                 >
                   Approve in Dashboard →
                 </a>
@@ -1551,7 +1551,7 @@ export function AgentSheet() {
               </>)}
               {/* Device ID footer — always shown on failure for debugging */}
               {(testDeviceId || openclawDeviceId) && testErrorCode !== 'AUTH_TOKEN_MISSING' && testErrorCode !== 'AUTH_TOKEN_INVALID' && (
-                <div className="pt-2 border-t border-white/[0.04]">
+                <div className="pt-2 border-t border-line-subtle">
                   <p className="text-[12px] text-text-3/70 flex items-center gap-1.5">
                     Device <code className="font-mono text-text-2/70 select-all">{(testDeviceId || openclawDeviceId)}</code>
                     <button
@@ -1590,7 +1590,7 @@ export function AgentSheet() {
                   active:scale-[0.97] text-[14px] font-600 border
                   ${provider === p.id
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                    : 'bg-surface border-white/[0.06] text-text-2 hover:bg-surface-2'}`}
+                    : 'bg-surface border-line-subtle text-text-2 hover:bg-surface-2'}`}
                 style={{ fontFamily: 'inherit' }}
               >
                 {isConnected && (
@@ -1627,7 +1627,7 @@ export function AgentSheet() {
       {!openclawEnabled && provider === 'ollama' && (
         <div className="mb-8">
           <SectionLabel>Mode</SectionLabel>
-          <div className="flex p-1 rounded-[14px] bg-surface border border-white/[0.06]">
+          <div className="flex p-1 rounded-[14px] bg-surface border border-line-subtle">
             {(['local', 'cloud'] as const).map((mode) => (
               <button
                 key={mode}
@@ -1754,7 +1754,7 @@ export function AgentSheet() {
                   className={`px-3 py-2 rounded-[10px] text-[12px] font-600 cursor-pointer transition-all border
                     ${active
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                      : 'bg-surface border-white/[0.06] text-text-3 hover:text-text-2'}`}
+                      : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
                   style={{ fontFamily: 'inherit' }}
                 >
                   {c.name}
@@ -1809,7 +1809,7 @@ export function AgentSheet() {
             <button
               type="button"
               onClick={() => setSoul(randomSoul())}
-              className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-[8px] border border-line-default bg-transparent text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors"
               style={{ fontFamily: 'inherit' }}
               title="Randomize personality"
             >
@@ -1828,7 +1828,7 @@ export function AgentSheet() {
             >
               Browse Library
             </button>
-            <button onClick={() => soulFileRef.current?.click()} className="shrink-0 px-2 py-1 rounded-[8px] border border-white/[0.08] bg-surface text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors" style={{ fontFamily: 'inherit' }}>Upload .md</button>
+            <button onClick={() => soulFileRef.current?.click()} className="shrink-0 px-2 py-1 rounded-[8px] border border-line-default bg-surface text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors" style={{ fontFamily: 'inherit' }}>Upload .md</button>
             <input ref={soulFileRef} type="file" accept=".md,.txt,.markdown" onChange={handleFileUpload(setSoul)} className="hidden" />
           </div>
           <textarea
@@ -1845,7 +1845,7 @@ export function AgentSheet() {
           <div className="mb-1">
             <div className="mb-3 flex items-center gap-2">
               <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em]">System Prompt <HintTip text="Instructions that tell the agent what it can do, what tools to use, and how to behave" /></label>
-              <button onClick={() => promptFileRef.current?.click()} className="shrink-0 px-2 py-1 rounded-[8px] border border-white/[0.08] bg-surface text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors" style={{ fontFamily: 'inherit' }}>Upload .md</button>
+              <button onClick={() => promptFileRef.current?.click()} className="shrink-0 px-2 py-1 rounded-[8px] border border-line-default bg-surface text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors" style={{ fontFamily: 'inherit' }}>Upload .md</button>
               <input ref={promptFileRef} type="file" accept=".md,.txt,.markdown" onChange={handleFileUpload(setSystemPrompt)} className="hidden" />
             </div>
             <textarea
@@ -1858,7 +1858,7 @@ export function AgentSheet() {
             />
           </div>
         ) : (
-          <div className="rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-4 text-[13px] leading-[1.6] text-text-3">
+          <div className="rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4 text-[13px] leading-[1.6] text-text-3">
             OpenClaw agents rely on the gateway runtime for tool execution and node routing. Expand advanced settings if you need continuity, voice, or heartbeat overrides.
           </div>
         )}
@@ -1871,7 +1871,7 @@ export function AgentSheet() {
       >
         {/* --- Role subsection --- */}
         {!WORKER_ONLY_PROVIDER_IDS.has(provider) && (
-          <div className="rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-4 mb-4">
+          <div className="rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4 mb-4">
             <div className="flex items-center gap-2 mb-3">
               <SectionLabel>Role</SectionLabel>
               <HintTip text="Coordinators automatically receive a list of available agents and can decompose complex goals, delegate to specialists, and synthesize results." />
@@ -1888,7 +1888,7 @@ export function AgentSheet() {
                   className={`px-4 py-1.5 rounded-[8px] text-[13px] font-display font-500 transition-all duration-200
                     ${role === r
                       ? 'bg-accent-bright text-white'
-                      : 'bg-white/[0.06] text-text-3 hover:bg-white/[0.10]'}`}
+                      : 'bg-layer-2 text-text-3 hover:bg-layer-3'}`}
                 >
                   {r === 'worker' ? 'Worker' : 'Coordinator'}
                 </button>
@@ -1908,7 +1908,7 @@ export function AgentSheet() {
                     if (role !== 'coordinator') setDelegationEnabled((current) => !current)
                   }}
                   className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0
-                    ${canDelegateToAgents ? 'bg-accent-bright' : 'bg-white/[0.08]'}
+                    ${canDelegateToAgents ? 'bg-accent-bright' : 'bg-layer-3'}
                     ${role === 'coordinator' ? 'opacity-60' : ''}`}
                 >
                   <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
@@ -1944,7 +1944,7 @@ export function AgentSheet() {
 
         {/* --- Orchestrator subsection --- */}
         {isOrchestratorProviderEligible(provider) && (
-          <div className="rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-4">
+          <div className="rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-[14px] font-600 text-text">Orchestrator Mode</p>
@@ -1955,7 +1955,7 @@ export function AgentSheet() {
               <button
                 type="button"
                 onClick={() => setOrchestratorEnabled((current) => !current)}
-                className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${orchestratorEnabled ? 'bg-accent-bright' : 'bg-white/[0.12]'}`}
+                className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${orchestratorEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
                 aria-pressed={orchestratorEnabled}
               >
                 <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${orchestratorEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -2034,7 +2034,7 @@ export function AgentSheet() {
         title="Behavior"
         description="Keep the core autonomy switch visible. Expert heartbeat controls stay in advanced settings."
       >
-        <div className="flex items-center justify-between gap-4 rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-4">
+        <div className="flex items-center justify-between gap-4 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4">
           <div className="min-w-0">
             <p className="text-[14px] font-600 text-text">Heartbeat</p>
             <p className="mt-1 text-[12px] leading-[1.6] text-text-3/75">
@@ -2044,13 +2044,13 @@ export function AgentSheet() {
           <button
             type="button"
             onClick={() => setHeartbeatEnabled((current) => !current)}
-            className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${heartbeatEnabled ? 'bg-accent-bright' : 'bg-white/[0.12]'}`}
+            className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${heartbeatEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
             aria-pressed={heartbeatEnabled}
           >
             <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${heartbeatEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
         </div>
-        <div className="flex items-center justify-between gap-4 rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-4 mt-3">
+        <div className="flex items-center justify-between gap-4 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4 mt-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <p className="text-[14px] font-600 text-text">Dreaming</p>
@@ -2063,14 +2063,14 @@ export function AgentSheet() {
           <button
             type="button"
             onClick={() => setDreamEnabled((current) => !current)}
-            className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${dreamEnabled ? 'bg-accent-bright' : 'bg-white/[0.12]'}`}
+            className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${dreamEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
             aria-pressed={dreamEnabled}
           >
             <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${dreamEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
         </div>
         {dreamEnabled && (
-          <div className="mt-3 rounded-[14px] border border-white/[0.04] bg-white/[0.01] px-4 py-4 space-y-3">
+          <div className="mt-3 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4 space-y-3">
             <div>
               <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 mb-1.5">
                 Cooldown (minutes) <HintTip text="Minimum minutes between dream cycles" />
@@ -2088,7 +2088,7 @@ export function AgentSheet() {
             <label className="flex items-center gap-3 cursor-pointer">
               <div
                 onClick={() => setDreamTier2Enabled((current) => !current)}
-                className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${dreamTier2Enabled ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${dreamTier2Enabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
               >
                 <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${dreamTier2Enabled ? 'left-[22px]' : 'left-0.5'}`} />
               </div>
@@ -2130,13 +2130,13 @@ export function AgentSheet() {
       <SectionCard
         title="Context & Tool Access"
         description="Control how many tools are described in this agent's system prompt. Scoped (default) keeps the agent focused and saves ~3 k input tokens per turn; Universal gives it visibility into every built-in tool."
-        className="mb-6 border-white/[0.05] bg-white/[0.01]"
+        className="mb-6 border-line-subtle bg-layer-1"
       >
       <div className="space-y-3">
         <label className="flex items-center gap-3 cursor-pointer">
           <div
             onClick={() => setToolAccessMode((current) => current === 'universal' ? 'scoped' : 'universal')}
-            className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${toolAccessMode === 'universal' ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+            className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${toolAccessMode === 'universal' ? 'bg-accent-bright' : 'bg-layer-3'}`}
           >
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${toolAccessMode === 'universal' ? 'left-[22px]' : 'left-0.5'}`} />
           </div>
@@ -2154,7 +2154,7 @@ export function AgentSheet() {
       <SectionCard
         title="Voice & Autonomy"
         description="Tune voice and the detailed heartbeat behavior for this agent."
-        className="mb-6 border-white/[0.05] bg-white/[0.01]"
+        className="mb-6 border-line-subtle bg-layer-1"
       >
       <div className="mb-8">
         <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
@@ -2174,7 +2174,7 @@ export function AgentSheet() {
               <button
                 type="button"
                 onClick={() => setVoiceId('')}
-                className="px-3 py-2.5 rounded-[10px] border border-white/[0.08] bg-transparent text-[12px] font-600 text-text-3 hover:bg-white/[0.04] hover:text-text-2 transition-all cursor-pointer"
+                className="px-3 py-2.5 rounded-[10px] border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 Use global default
@@ -2231,7 +2231,7 @@ export function AgentSheet() {
       <SectionCard
         title="Memory & Intelligence"
         description="Reasoning depth, memory defaults, and drafting behavior."
-        className="mb-6 border-white/[0.05] bg-white/[0.01]"
+        className="mb-6 border-line-subtle bg-layer-1"
       >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         <select value={thinkingLevel} onChange={(e) => setThinkingLevel(e.target.value as typeof thinkingLevel)} className={inputClass}>
@@ -2268,7 +2268,7 @@ export function AgentSheet() {
         <label className="flex items-center gap-3 cursor-pointer">
           <div
             onClick={() => setProactiveMemory((current) => !current)}
-            className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${proactiveMemory ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+            className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${proactiveMemory ? 'bg-accent-bright' : 'bg-layer-3'}`}
           >
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${proactiveMemory ? 'left-[22px]' : 'left-0.5'}`} />
           </div>
@@ -2277,7 +2277,7 @@ export function AgentSheet() {
         <label className="flex items-center gap-3 cursor-pointer">
           <div
             onClick={() => setAutoDraftSkillSuggestions((current) => !current)}
-            className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${autoDraftSkillSuggestions ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+            className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${autoDraftSkillSuggestions ? 'bg-accent-bright' : 'bg-layer-3'}`}
           >
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${autoDraftSkillSuggestions ? 'left-[22px]' : 'left-0.5'}`} />
           </div>
@@ -2289,7 +2289,7 @@ export function AgentSheet() {
       <SectionCard
         title="Continuity"
         description="Stable identity, relationship context, and session reset policy."
-        className="mb-6 border-white/[0.05] bg-white/[0.01]"
+        className="mb-6 border-line-subtle bg-layer-1"
       >
       <div className="mb-8">
         <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
@@ -2336,7 +2336,7 @@ export function AgentSheet() {
       <SectionCard
         title="Routing & Infrastructure"
         description="Project binding, filesystem access, and other deeper runtime controls."
-        className="mb-6 border-white/[0.05] bg-white/[0.01]"
+        className="mb-6 border-line-subtle bg-layer-1"
       >
       {Object.keys(projects).length > 0 && (
         <div className="mb-8">
@@ -2400,7 +2400,7 @@ export function AgentSheet() {
           {routingTargets.map((target, index) => {
             const targetCredentials = resolveAgentSelectableProviderCredentials(target.provider, credentials, providerConfigs)
             return (
-              <div key={target.id} className="p-4 rounded-[12px] border border-white/[0.08] bg-white/[0.02] space-y-3">
+              <div key={target.id} className="p-4 rounded-[12px] border border-line-default bg-layer-1 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
                     value={target.label || ''}
@@ -2520,7 +2520,7 @@ export function AgentSheet() {
         <select
           value={filesystemScope}
           onChange={(e) => setFilesystemScope(e.target.value as 'workspace' | 'machine')}
-          className="w-full h-10 px-3 rounded-[10px] bg-white/[0.04] border border-white/[0.06] text-[14px] text-text-2"
+          className="w-full h-10 px-3 rounded-[10px] bg-layer-2 border border-line-subtle text-[14px] text-text-2"
         >
           <option value="workspace">Workspace only</option>
           <option value="machine">Full machine</option>
@@ -2534,17 +2534,17 @@ export function AgentSheet() {
       <SectionCard
         title="Safety & Limits"
         description="Enable safeguards, recovery, and spend limits without crowding the main setup flow."
-        className="mb-6 border-white/[0.05] bg-white/[0.01]"
+        className="mb-6 border-line-subtle bg-layer-1"
       >
       <div className="space-y-3 mb-6">
         <label className="flex items-center gap-3 cursor-pointer">
-          <div onClick={() => setDisabled((current) => !current)} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${disabled ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}>
+          <div onClick={() => setDisabled((current) => !current)} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${disabled ? 'bg-accent-bright' : 'bg-layer-3'}`}>
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${disabled ? 'left-[22px]' : 'left-0.5'}`} />
           </div>
           <span className="text-[13px] text-text-2">Disable this agent</span>
         </label>
         <label className="flex items-center gap-3 cursor-pointer">
-          <div onClick={() => setAutoRecovery((current) => !current)} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${autoRecovery ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}>
+          <div onClick={() => setAutoRecovery((current) => !current)} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${autoRecovery ? 'bg-accent-bright' : 'bg-layer-3'}`}>
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${autoRecovery ? 'left-[22px]' : 'left-0.5'}`} />
           </div>
           <span className="text-[13px] text-text-2">Guardian auto-recovery</span>
@@ -2553,7 +2553,7 @@ export function AgentSheet() {
 
       <div className="mb-4">
         <label className="flex items-center gap-3 cursor-pointer">
-          <div onClick={() => setBudgetEnabled((current) => !current)} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${budgetEnabled ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}>
+          <div onClick={() => setBudgetEnabled((current) => !current)} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${budgetEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}>
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${budgetEnabled ? 'left-[22px]' : 'left-0.5'}`} />
           </div>
           <span className="text-[13px] text-text-2">Spend limits</span>
@@ -2576,7 +2576,7 @@ export function AgentSheet() {
       <SectionCard
         title="Tools & Skills"
         description="Enable tool families, pin preferred skills, and connect MCP tools for this agent."
-        className="mb-6 border-white/[0.05] bg-white/[0.01]"
+        className="mb-6 border-line-subtle bg-layer-1"
       >
       {/* Tools — hidden for providers that manage capabilities outside LangGraph */}
       {!hasNativeCapabilities && (
@@ -2592,7 +2592,7 @@ export function AgentSheet() {
                     <div
                       onClick={() => !extensionDisabled && setTools((prev) => prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id])}
                       className={`w-11 h-6 rounded-full transition-all duration-200 relative shrink-0
-                        ${extensionDisabled ? 'bg-white/[0.04] cursor-not-allowed' : tools.includes(t.id) ? 'bg-accent-bright cursor-pointer' : 'bg-white/[0.08] cursor-pointer'}`}
+                        ${extensionDisabled ? 'bg-layer-2 cursor-not-allowed' : tools.includes(t.id) ? 'bg-accent-bright cursor-pointer' : 'bg-layer-3 cursor-pointer'}`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
                         ${tools.includes(t.id) && !extensionDisabled ? 'left-[22px]' : 'left-0.5'}`} />
@@ -2614,7 +2614,7 @@ export function AgentSheet() {
         <select
           value={filesystemScope}
           onChange={(e) => setFilesystemScope(e.target.value as 'workspace' | 'machine')}
-          className="w-full h-10 px-3 rounded-[10px] bg-white/[0.04] border border-white/[0.06] text-[14px] text-text-2"
+          className="w-full h-10 px-3 rounded-[10px] bg-layer-2 border border-line-subtle text-[14px] text-text-2"
         >
           <option value="workspace">Workspace only</option>
           <option value="machine">Full machine</option>
@@ -2638,7 +2638,7 @@ export function AgentSheet() {
                     <div
                       onClick={() => !extensionDisabled && setTools((prev) => prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id])}
                       className={`w-11 h-6 rounded-full transition-all duration-200 relative shrink-0
-                        ${extensionDisabled ? 'bg-white/[0.04] cursor-not-allowed' : tools.includes(t.id) ? 'bg-accent-bright cursor-pointer' : 'bg-white/[0.08] cursor-pointer'}`}
+                        ${extensionDisabled ? 'bg-layer-2 cursor-not-allowed' : tools.includes(t.id) ? 'bg-accent-bright cursor-pointer' : 'bg-layer-3 cursor-pointer'}`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
                         ${tools.includes(t.id) && !extensionDisabled ? 'left-[22px]' : 'left-0.5'}`} />
@@ -2668,7 +2668,7 @@ export function AgentSheet() {
                 <label key={`${t.extensionId}:${t.toolName}`} className="flex items-center gap-3 cursor-pointer">
                   <div
                     onClick={() => setExtensions((prev) => prev.includes(t.extensionId) ? prev.filter((x) => x !== t.extensionId) : [...prev, t.extensionId])}
-                    className={`w-11 h-6 rounded-full transition-all duration-200 relative shrink-0 ${attached ? 'bg-accent-bright cursor-pointer' : 'bg-white/[0.08] cursor-pointer'}`}
+                    className={`w-11 h-6 rounded-full transition-all duration-200 relative shrink-0 ${attached ? 'bg-accent-bright cursor-pointer' : 'bg-layer-3 cursor-pointer'}`}
                   >
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${attached ? 'left-[22px]' : 'left-0.5'}`} />
                   </div>
@@ -2683,7 +2683,7 @@ export function AgentSheet() {
 
       {/* Native capability provider note — not shown for OpenClaw (covered in connection status) */}
       {hasNativeCapabilities && !openclawEnabled && (
-        <div className="mb-8 p-4 rounded-[14px] bg-white/[0.02] border border-white/[0.06]">
+        <div className="mb-8 p-4 rounded-[14px] bg-layer-1 border border-line-subtle">
           <p className="text-[13px] text-text-3">
             {provider === 'claude-cli'
               ? 'Claude CLI uses its own built-in capabilities — no additional local tool/platform configuration is needed.'
@@ -2743,7 +2743,7 @@ export function AgentSheet() {
                     className={`px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
                       ${active
                         ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                        : 'bg-surface border-white/[0.06] text-text-3 hover:text-text-2'}`}
+                        : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
                     style={{ fontFamily: 'inherit' }}
                     title={s.description}
                   >
@@ -2775,7 +2775,7 @@ export function AgentSheet() {
                   className={`px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
                     ${active
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                      : 'bg-surface border-white/[0.06] text-text-3 hover:text-text-2'}`}
+                      : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
                   style={{ fontFamily: 'inherit' }}
                   title={s.description || s.filename}
                 >
@@ -2804,7 +2804,7 @@ export function AgentSheet() {
                   className={`px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
                     ${active
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                      : 'bg-surface border-white/[0.06] text-text-3 hover:text-text-2'}`}
+                      : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
                   style={{ fontFamily: 'inherit' }}
                   title={`${s.transport} — ${s.command || s.url || ''}`}
                 >
@@ -2845,7 +2845,7 @@ export function AgentSheet() {
                               enabled ? [...prev, fullName] : prev.filter((x) => x !== fullName)
                             )}
                             className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0
-                              ${enabled ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                              ${enabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
                           >
                             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
                               ${enabled ? 'left-[22px]' : 'left-0.5'}`} />
@@ -2919,13 +2919,13 @@ export function AgentSheet() {
         <SectionCard
           title="Configuration History"
           description="Recent saved versions for this agent."
-          className="mb-6 border-white/[0.05] bg-white/[0.01]"
+          className="mb-6 border-line-subtle bg-layer-1"
           action={(
             <button
               type="button"
               onClick={() => void loadAgentConfigVersions(editing.id)}
               disabled={configVersionsLoading}
-              className="px-3 py-2 rounded-[10px] border border-white/[0.08] bg-transparent text-[12px] font-600 text-text-3 hover:bg-white/[0.04] hover:text-text-2 transition-all disabled:opacity-50"
+              className="px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all disabled:opacity-50"
               style={{ fontFamily: 'inherit' }}
             >
               {configVersionsLoading ? 'Refreshing' : 'Refresh'}
@@ -2937,11 +2937,11 @@ export function AgentSheet() {
               {configVersionsError}
             </div>
           ) : configVersionsLoading && configVersionSummaries.length === 0 ? (
-            <div className="rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-3 text-[13px] text-text-3">
+            <div className="rounded-[12px] border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
               Loading saved versions...
             </div>
           ) : configVersionSummaries.length === 0 ? (
-            <div className="rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-3 text-[13px] text-text-3">
+            <div className="rounded-[12px] border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
               No saved versions yet.
             </div>
           ) : (
@@ -2949,7 +2949,7 @@ export function AgentSheet() {
               {configVersionSummaries.slice(0, 8).map((summary) => (
                 <div
                   key={summary.id}
-                  className="flex flex-col gap-3 rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-3 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-[12px] border border-line-subtle bg-layer-1 p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-[14px] font-700 text-text">{summary.title}</div>
@@ -2975,14 +2975,14 @@ export function AgentSheet() {
       <SectionCard
         title="Utilities"
         description="Import and export agents."
-        className="mb-0 border-white/[0.05] bg-white/[0.01]"
+        className="mb-0 border-line-subtle bg-layer-1"
       >
       <div className="flex flex-wrap gap-3">
         {editing ? (
           <button
             type="button"
             onClick={handleExport}
-            className="px-4 py-2.5 rounded-[10px] border border-white/[0.08] bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-white/[0.04] transition-all"
+            className="px-4 py-2.5 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-2 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             Export agent
@@ -2991,7 +2991,7 @@ export function AgentSheet() {
           <button
             type="button"
             onClick={() => importFileRef.current?.click()}
-            className="px-4 py-2.5 rounded-[10px] border border-white/[0.08] bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-white/[0.04] transition-all"
+            className="px-4 py-2.5 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-2 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             Import agent
@@ -3028,13 +3028,13 @@ export function AgentSheet() {
       {/* Import file input (hidden) */}
       <input ref={importFileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
 
-      <div className="flex gap-3 pt-2 border-t border-white/[0.04]">
+      <div className="flex gap-3 pt-2 border-t border-line-subtle">
         {editing && (
           <button onClick={handleDelete} className="py-3.5 px-6 rounded-[14px] border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Delete
           </button>
         )}
-        <button onClick={onClose} className="flex-1 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
+        <button onClick={onClose} className="flex-1 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
           Cancel
         </button>
         <button

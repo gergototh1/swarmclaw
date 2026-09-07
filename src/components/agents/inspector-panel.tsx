@@ -116,10 +116,10 @@ function ModelSwitcherInline({ session, agent }: { session: Session; agent: Agen
         disabled={streaming}
         className="mt-2 flex items-center gap-1.5 w-full text-left bg-transparent border-none cursor-pointer disabled:cursor-default disabled:opacity-50 group"
       >
-        <span className="inline-flex items-center rounded-[8px] border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-[10px] font-600 text-text-3/70 group-hover:border-white/[0.1] group-hover:text-text-2 transition-colors">
+        <span className="inline-flex items-center rounded-[8px] border border-line-subtle bg-layer-1 px-2 py-1 text-[10px] font-600 text-text-3/70 group-hover:border-line-default group-hover:text-text-2 transition-colors">
           {providerLabel}
         </span>
-        <span className="inline-flex max-w-[180px] items-center rounded-[8px] border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-[10px] font-mono text-text-3/70 truncate group-hover:border-white/[0.1] group-hover:text-text-2 transition-colors">
+        <span className="inline-flex max-w-[180px] items-center rounded-[8px] border border-line-subtle bg-layer-1 px-2 py-1 text-[10px] font-mono text-text-3/70 truncate group-hover:border-line-default group-hover:text-text-2 transition-colors">
           {session.model || agent.model || 'Default model'}
         </span>
         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-text-3/30 group-hover:text-text-3/60 transition-colors ml-auto shrink-0">
@@ -130,7 +130,7 @@ function ModelSwitcherInline({ session, agent }: { session: Session; agent: Agen
   }
 
   return (
-    <div className="mt-2 rounded-[10px] border border-white/[0.08] bg-black/[0.12] p-2.5">
+    <div className="mt-2 rounded-[10px] border border-line-default bg-black/[0.12] p-2.5">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">Switch Model</span>
         <button
@@ -150,7 +150,7 @@ function ModelSwitcherInline({ session, agent }: { session: Session; agent: Agen
             className={`px-2 py-0.5 rounded-[6px] text-[10px] font-600 border cursor-pointer transition-colors ${
               p.id === selectedProvider
                 ? 'bg-accent-soft/50 text-accent-bright border-accent-bright/20'
-                : 'bg-white/[0.02] text-text-3/60 border-white/[0.04] hover:bg-white/[0.05]'
+                : 'bg-layer-1 text-text-3/60 border-line-subtle hover:bg-layer-2'
             }`}
           >
             {PROVIDER_LABELS[p.id] || p.name}
@@ -194,7 +194,7 @@ function WorkspacePath({ cwd }: { cwd: string }) {
 }
 
 function panelCardClass(className = '') {
-  return `rounded-[16px] border border-white/[0.06] bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${className}`.trim()
+  return `rounded-[16px] border border-line-subtle bg-layer-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${className}`.trim()
 }
 
 function SectionLabel({ children }: { children: ReactNode }) {
@@ -206,7 +206,7 @@ function ToggleSwitch({ on, onChange, disabled }: { on: boolean; onChange: () =>
     <button
       onClick={onChange}
       disabled={disabled}
-      className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer border-none disabled:opacity-50 ${on ? 'bg-accent-bright/80' : 'bg-white/[0.08]'}`}
+      className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer border-none disabled:opacity-50 ${on ? 'bg-accent-bright/80' : 'bg-layer-3'}`}
     >
       <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${on ? 'translate-x-4' : ''}`} />
     </button>
@@ -240,10 +240,10 @@ export function InspectorPanel({ agent, session, onEditAgent, onDuplicateAgent, 
   }, [setInspectorOpen])
 
   return (
-    <div className="w-[420px] shrink-0 border-l border-white/[0.06] bg-bg flex flex-col h-full overflow-hidden fade-up-delay"
+    <div className="w-[420px] shrink-0 border-l border-line-subtle bg-bg flex flex-col h-full overflow-hidden fade-up-delay"
       style={{ background: 'radial-gradient(circle at top right, rgba(66, 211, 255, 0.06), transparent 30%), linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))' }}>
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-white/[0.06] shrink-0 bg-black/[0.12]">
+      <div className="px-4 pt-4 pb-3 border-b border-line-subtle shrink-0 bg-black/[0.12]">
         <div className="flex items-start gap-3">
           <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={40} />
           <div className="min-w-0 flex-1">
@@ -265,7 +265,7 @@ export function InspectorPanel({ agent, session, onEditAgent, onDuplicateAgent, 
           </div>
         <button
           onClick={() => setInspectorOpen(false)}
-          className="p-1.5 rounded-[8px] text-text-3/50 hover:text-text-3 bg-transparent border-none cursor-pointer transition-all hover:bg-white/[0.04]"
+          className="p-1.5 rounded-[8px] text-text-3/50 hover:text-text-3 bg-transparent border-none cursor-pointer transition-all hover:bg-layer-2"
           aria-label="Close inspector"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -280,7 +280,7 @@ export function InspectorPanel({ agent, session, onEditAgent, onDuplicateAgent, 
 
       {/* Tab bar */}
       <div className="px-4 py-3 shrink-0">
-      <div className="flex gap-1 rounded-[12px] border border-white/[0.06] bg-black/[0.12] p-1 overflow-x-auto" role="tablist">
+      <div className="flex gap-1 rounded-[12px] border border-line-subtle bg-black/[0.12] p-1 overflow-x-auto" role="tablist">
         {visibleTabs.map((tab) => (
           <button
             key={tab.id}
@@ -289,7 +289,7 @@ export function InspectorPanel({ agent, session, onEditAgent, onDuplicateAgent, 
             aria-selected={inspectorTab === tab.id}
             className={`px-3 py-1.5 rounded-[9px] text-[11px] font-700 cursor-pointer transition-all whitespace-nowrap focus-visible:ring-1 focus-visible:ring-accent-bright/50
               ${inspectorTab === tab.id
-                ? 'bg-white/[0.08] text-text'
+                ? 'bg-layer-3 text-text'
                 : 'bg-transparent text-text-3/65 hover:text-text-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
@@ -430,7 +430,7 @@ function IdentityCard({ agent }: { agent: Agent }) {
             System prompt
           </button>
           {promptExpanded && (
-            <p className="mt-2 text-[12px] text-text-3 bg-black/[0.14] rounded-[12px] p-3 border border-white/[0.04] max-h-[220px] overflow-y-auto whitespace-pre-wrap font-mono leading-relaxed">
+            <p className="mt-2 text-[12px] text-text-3 bg-black/[0.14] rounded-[12px] p-3 border border-line-subtle max-h-[220px] overflow-y-auto whitespace-pre-wrap font-mono leading-relaxed">
               {agent.systemPrompt}
             </p>
           )}
@@ -551,7 +551,7 @@ function HeartbeatSection({ agent, session }: { agent: Agent; session: Session }
             <button
               onClick={() => setHbDropdownOpen((o) => !o)}
               disabled={heartbeatSaving}
-              className="px-2 py-0.5 rounded-[6px] bg-white/[0.04] hover:bg-white/[0.08] text-text-2 text-[12px] font-600 cursor-pointer border-none transition-colors"
+              className="px-2 py-0.5 rounded-[6px] bg-layer-2 hover:bg-layer-3 text-text-2 text-[12px] font-600 cursor-pointer border-none transition-colors"
             >
               {formatDurationSec(heartbeatIntervalSec)}
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="inline ml-1 opacity-40">
@@ -559,13 +559,13 @@ function HeartbeatSection({ agent, session }: { agent: Agent; session: Session }
               </svg>
             </button>
             {hbDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 py-1 rounded-[10px] border border-white/[0.06] bg-bg/95 backdrop-blur-md shadow-lg z-50 min-w-[88px]">
+              <div className="absolute top-full left-0 mt-1 py-1 rounded-[10px] border border-line-subtle bg-bg/95 backdrop-blur-md shadow-lg z-50 min-w-[88px]">
                 {intervalOptions.map((sec) => (
                   <button
                     key={sec}
                     onClick={() => void handleSelectInterval(sec)}
                     className={`w-full text-left px-3 py-1.5 text-[11px] font-600 transition-colors cursor-pointer border-none
-                      ${sec === heartbeatIntervalSec ? 'bg-accent-soft text-accent-bright' : 'text-text-3 hover:bg-white/[0.06]'}`}
+                      ${sec === heartbeatIntervalSec ? 'bg-accent-soft text-accent-bright' : 'text-text-3 hover:bg-layer-2'}`}
                   >
                     {formatDurationSec(sec)}
                   </button>
@@ -639,7 +639,7 @@ function ToolsSection({ agent, session }: { agent: Agent; session: Session }) {
               className={`px-2.5 py-1 rounded-[8px] text-[11px] font-700 border cursor-pointer transition-all ${
                 enabled
                   ? 'bg-sky-400/[0.08] text-sky-300 border-sky-400/[0.08] hover:bg-sky-400/[0.15]'
-                  : 'bg-white/[0.02] text-text-3/35 border-white/[0.04] hover:bg-white/[0.05] hover:text-text-3/55'
+                  : 'bg-layer-1 text-text-3/35 border-line-subtle hover:bg-layer-2 hover:text-text-3/55'
               }`}
             >
               {toolId}
@@ -713,7 +713,7 @@ function MemorySection({ agentId }: { agentId: string }) {
     if (category.includes('working') || category === 'working') return 'text-amber-300 bg-amber-400/10 border-amber-400/15'
     if (category.includes('durable') || category === 'durable') return 'text-emerald-300 bg-emerald-400/10 border-emerald-400/15'
     if (category.includes('archive') || category === 'archive') return 'text-blue-300 bg-blue-400/10 border-blue-400/15'
-    return 'text-text-3/60 bg-white/[0.04] border-white/[0.06]'
+    return 'text-text-3/60 bg-layer-2 border-line-subtle'
   }
 
   return (
@@ -732,7 +732,7 @@ function MemorySection({ agentId }: { agentId: string }) {
       </div>
       {loading ? (
         <div className="flex flex-col gap-2">
-          {[0, 1, 2].map((i) => <div key={i} className="h-6 rounded-[8px] bg-white/[0.04] animate-pulse" />)}
+          {[0, 1, 2].map((i) => <div key={i} className="h-6 rounded-[8px] bg-layer-2 animate-pulse" />)}
         </div>
       ) : entries.length === 0 ? (
         <p className="text-[12px] text-text-3/40 italic">No memories yet</p>
@@ -951,7 +951,7 @@ function SessionsSection({ agent }: { agent: Agent }) {
               className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-[8px] border-none cursor-pointer transition-colors text-left
                 ${isSelected
                   ? 'bg-accent-soft/70 ring-1 ring-accent-bright/25'
-                  : 'bg-transparent hover:bg-white/[0.04]'}`}
+                  : 'bg-transparent hover:bg-layer-2'}`}
             >
               {connector ? (
                 <ConnectorPlatformIcon platform={connector.platform} size={14} />
@@ -1020,7 +1020,7 @@ function StickyFooter({ agent, isMainChat, onEditAgent, onDuplicateAgent, onClea
   }
 
   return (
-    <div className="shrink-0 border-t border-white/[0.06] px-4 py-3 bg-black/[0.08]">
+    <div className="shrink-0 border-t border-line-subtle px-4 py-3 bg-black/[0.08]">
       <div className="flex items-center gap-2">
         {onEditAgent && (
           <button
@@ -1043,7 +1043,7 @@ function StickyFooter({ agent, isMainChat, onEditAgent, onDuplicateAgent, onClea
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="p-2 rounded-[10px] border border-white/[0.06] bg-white/[0.03] text-text-3/60 hover:text-text-2 hover:bg-white/[0.06] cursor-pointer transition-all"
+            className="p-2 rounded-[10px] border border-line-subtle bg-layer-1 text-text-3/60 hover:text-text-2 hover:bg-layer-2 cursor-pointer transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -1051,12 +1051,12 @@ function StickyFooter({ agent, isMainChat, onEditAgent, onDuplicateAgent, onClea
             </svg>
           </button>
           {menuOpen && (
-            <div className="absolute bottom-full right-0 mb-1.5 py-1 rounded-[10px] border border-white/[0.08] bg-bg/95 backdrop-blur-md shadow-xl z-50 min-w-[160px]"
+            <div className="absolute bottom-full right-0 mb-1.5 py-1 rounded-[10px] border border-line-default bg-bg/95 backdrop-blur-md shadow-xl z-50 min-w-[160px]"
               style={{ animation: 'fade-in 0.15s ease' }}>
               <button
                 onClick={() => { setMenuOpen(false); void handleToggleAvailability() }}
                 disabled={availabilitySaving}
-                className="w-full text-left px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-white/[0.06] cursor-pointer border-none transition-colors disabled:opacity-50"
+                className="w-full text-left px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer border-none transition-colors disabled:opacity-50"
               >
                 {agent.disabled === true ? 'Enable Agent' : 'Disable Agent'}
               </button>
@@ -1137,10 +1137,10 @@ function ConfigTab({ agent }: { agent: Agent }) {
         <CollapsibleSection title="OpenClaw Settings" open={openclawOpen} onToggle={() => setOpenclawOpen((v) => !v)}>
           <div className="flex flex-col gap-4">
             <PermissionPresetSelector agentId={agent.id} />
-            <div className="border-t border-white/[0.06] pt-4">
+            <div className="border-t border-line-subtle pt-4">
               <ExecConfigPanel agentId={agent.id} />
             </div>
-            <div className="border-t border-white/[0.06] pt-4">
+            <div className="border-t border-line-subtle pt-4">
               <SandboxEnvPanel />
             </div>
           </div>
@@ -1190,7 +1190,7 @@ function CollapsibleSection({ title, open, onToggle, children }: { title: string
         </svg>
       </button>
       {open && (
-        <div className="px-4 pb-4 border-t border-white/[0.04]">
+        <div className="px-4 pb-4 border-t border-line-subtle">
           {children}
         </div>
       )}
@@ -1234,11 +1234,11 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
       <SectionLabel>Automations</SectionLabel>
       <div className="flex flex-col gap-3">
         {schedules.map((s) => (
-          <div key={s.id} className="rounded-[10px] border border-white/[0.04] bg-black/[0.08] py-2 px-3">
+          <div key={s.id} className="rounded-[10px] border border-line-subtle bg-black/[0.08] py-2 px-3">
             <div className="flex items-center gap-2">
               <span className="text-[12px] font-600 text-text truncate flex-1">{s.name}</span>
               <span className={`text-[10px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-[4px]
-                ${s.status === 'active' ? 'text-emerald-400 bg-emerald-400/[0.08]' : 'text-text-3/50 bg-white/[0.02]'}`}>
+                ${s.status === 'active' ? 'text-emerald-400 bg-emerald-400/[0.08]' : 'text-text-3/50 bg-layer-1'}`}>
                 {s.status}
               </span>
             </div>
@@ -1252,11 +1252,11 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
           <>
             {cronLoading && <div className="text-[12px] text-text-3/50">Loading gateway crons...</div>}
             {gatewayCrons.map((c) => (
-              <div key={c.id} className="rounded-[10px] border border-white/[0.04] bg-black/[0.08] py-2 px-3">
+              <div key={c.id} className="rounded-[10px] border border-line-subtle bg-black/[0.08] py-2 px-3">
                 <div className="flex items-center gap-2">
                   <span className="text-[12px] font-600 text-text truncate flex-1">{c.name}</span>
                   <span className={`text-[10px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-[4px]
-                    ${c.enabled ? 'text-emerald-400 bg-emerald-400/[0.08]' : 'text-text-3/50 bg-white/[0.02]'}`}>
+                    ${c.enabled ? 'text-emerald-400 bg-emerald-400/[0.08]' : 'text-text-3/50 bg-layer-1'}`}>
                     {c.enabled ? 'active' : 'disabled'}
                   </span>
                 </div>
@@ -1275,7 +1275,7 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
             ) : (
               <button
                 onClick={() => setShowCronForm(true)}
-                className="self-start px-3 py-1.5 rounded-[8px] border border-dashed border-white/[0.08] bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:border-white/[0.15] hover:text-text-2"
+                className="self-start px-3 py-1.5 rounded-[8px] border border-dashed border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:border-line-strong hover:text-text-2"
                 style={{ fontFamily: 'inherit' }}
               >
                 + Add Cron Job
@@ -1331,7 +1331,7 @@ function ExecuteToolConfigSection({ agent }: { agent: Agent }) {
           value={config.backend || 'sandbox'}
           onChange={(e) => void update({ backend: e.target.value as 'sandbox' | 'host' })}
           disabled={saving}
-          className="w-full rounded-[8px] border border-white/[0.06] bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
+          className="w-full rounded-[8px] border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
         >
           <option value="sandbox">sandbox (just-bash)</option>
           <option value="host">host (real bash)</option>
@@ -1353,7 +1353,7 @@ function ExecuteToolConfigSection({ agent }: { agent: Agent }) {
           min={1}
           max={300}
           onBlur={(e) => void update({ timeout: Math.max(1, Math.min(300, Number(e.target.value) || 30)) })}
-          className="w-full rounded-[8px] border border-white/[0.06] bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text font-mono outline-none focus:border-accent-bright/30"
+          className="w-full rounded-[8px] border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text font-mono outline-none focus:border-accent-bright/30"
         />
       </div>
       <div className="text-[11px] text-text-3/50">
@@ -1434,7 +1434,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             <select
               defaultValue={config.scope || 'session'}
               onChange={(e) => void update({ scope: e.target.value as 'session' | 'agent' })}
-              className="w-full rounded-[8px] border border-white/[0.06] bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
+              className="w-full rounded-[8px] border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
             >
               <option value="session">session</option>
               <option value="agent">agent</option>
@@ -1445,7 +1445,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             <select
               defaultValue={config.mode === 'non-main' ? 'non-main' : 'all'}
               onChange={(e) => void update({ mode: e.target.value as 'all' | 'non-main' })}
-              className="w-full rounded-[8px] border border-white/[0.06] bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
+              className="w-full rounded-[8px] border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
             >
               <option value="all">all sessions</option>
               <option value="non-main">non-main sessions only</option>
@@ -1456,7 +1456,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             <select
               defaultValue={config.workspaceAccess || 'rw'}
               onChange={(e) => void update({ workspaceAccess: e.target.value as 'ro' | 'rw' })}
-              className="w-full rounded-[8px] border border-white/[0.06] bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
+              className="w-full rounded-[8px] border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
             >
               <option value="rw">read/write</option>
               <option value="ro">read-only</option>
@@ -1467,7 +1467,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             <select
               defaultValue={config.browser?.network || 'bridge'}
               onChange={(e) => void update({ browser: { ...(config.browser || {}), network: e.target.value as 'none' | 'bridge' } })}
-              className="w-full rounded-[8px] border border-white/[0.06] bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
+              className="w-full rounded-[8px] border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
             >
               <option value="none">none (isolated)</option>
               <option value="bridge">bridge (internet access)</option>

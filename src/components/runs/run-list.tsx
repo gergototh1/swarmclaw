@@ -18,7 +18,7 @@ const STATUS_COLORS: Record<SessionRunStatus, { bg: string; text: string }> = {
   running: { bg: 'bg-blue-500/10', text: 'text-blue-400' },
   completed: { bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
   failed: { bg: 'bg-red-500/10', text: 'text-red-400' },
-  cancelled: { bg: 'bg-white/[0.06]', text: 'text-text-3' },
+  cancelled: { bg: 'bg-layer-2', text: 'text-text-3' },
 }
 
 const ALL_STATUSES: SessionRunStatus[] = ['queued', 'running', 'completed', 'failed', 'cancelled']
@@ -172,7 +172,7 @@ export function RunList() {
           <button
             onClick={() => setStatusFilter(null)}
             className={`px-2 py-1 rounded-[6px] text-[10px] font-700 uppercase tracking-wider cursor-pointer transition-all border-none ${
-              !statusFilter ? 'bg-accent-soft text-accent-bright' : 'bg-white/[0.02] text-text-3/70'
+              !statusFilter ? 'bg-accent-soft text-accent-bright' : 'bg-layer-1 text-text-3/70'
             }`}
           >
             ALL
@@ -182,7 +182,7 @@ export function RunList() {
               key={s}
               onClick={() => setStatusFilter(statusFilter === s ? null : s)}
               className={`px-2 py-1 rounded-[6px] text-[10px] font-700 uppercase tracking-wider cursor-pointer transition-all border-none ${
-                statusFilter === s ? `${STATUS_COLORS[s].bg} ${STATUS_COLORS[s].text}` : 'bg-white/[0.02] text-text-3/70'
+                statusFilter === s ? `${STATUS_COLORS[s].bg} ${STATUS_COLORS[s].text}` : 'bg-layer-1 text-text-3/70'
               }`}
             >
               {s}
@@ -192,7 +192,7 @@ export function RunList() {
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
             className={`px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none flex items-center gap-1.5 ${
-              autoRefresh ? 'bg-green-500/10 text-green-400' : 'bg-white/[0.04] text-text-3'
+              autoRefresh ? 'bg-green-500/10 text-green-400' : 'bg-layer-2 text-text-3'
             }`}
           >
             {autoRefresh && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
@@ -208,7 +208,7 @@ export function RunList() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search run id, source, error, or result"
-              className="w-full rounded-[8px] border border-white/[0.06] bg-white/[0.03] py-1.5 pl-8 pr-3 text-[12px] text-text outline-none transition-colors placeholder:text-text-3/45 focus:border-accent-bright/35"
+              className="w-full rounded-[8px] border border-line-subtle bg-layer-1 py-1.5 pl-8 pr-3 text-[12px] text-text outline-none transition-colors placeholder:text-text-3/45 focus:border-accent-bright/35"
             />
           </div>
           <label className="flex items-center gap-2 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/60">
@@ -216,7 +216,7 @@ export function RunList() {
             <select
               value={sourceFilter}
               onChange={(event) => setSourceFilter(event.target.value)}
-              className="rounded-[8px] border border-white/[0.06] bg-white/[0.03] px-2 py-1.5 text-[11px] font-600 normal-case tracking-normal text-text outline-none"
+              className="rounded-[8px] border border-line-subtle bg-layer-1 px-2 py-1.5 text-[11px] font-600 normal-case tracking-normal text-text outline-none"
             >
               <option value="all">All sources</option>
               {sources.map((source) => (
@@ -244,7 +244,7 @@ export function RunList() {
               <button
                 key={run.id}
                 onClick={() => openSelected(run)}
-                className="w-full text-left p-3 rounded-[10px] border border-white/[0.06] bg-surface hover:bg-surface-2 transition-all cursor-pointer block hover:scale-[1.01] active:scale-[0.99]"
+                className="w-full text-left p-3 rounded-[10px] border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer block hover:scale-[1.01] active:scale-[0.99]"
                 style={{
                   animation: 'fade-up 0.4s var(--ease-spring) both',
                   animationDelay: `${0.1 + idx * 0.02}s`
@@ -285,7 +285,7 @@ export function RunList() {
                   type="button"
                   onClick={copyRunHandoff}
                   disabled={handoffCopying}
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-[8px] border border-white/[0.07] bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-700 text-text-2 transition-colors hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-[8px] border border-line-default bg-layer-2 px-2.5 py-1.5 text-[11px] font-700 text-text-2 transition-colors hover:bg-layer-3 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <ClipboardList size={13} />
                   {handoffCopied ? 'Copied' : handoffCopying ? 'Copying...' : 'Copy Handoff'}
@@ -302,19 +302,19 @@ export function RunList() {
             <div className="mb-6">
               <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Brief</label>
               {briefLoading ? (
-                <div className="rounded-[12px] border border-white/[0.04] bg-white/[0.02] p-4 text-[11px] text-text-3/60">
+                <div className="rounded-[12px] border border-line-subtle bg-layer-1 p-4 text-[11px] text-text-3/60">
                   Loading brief...
                 </div>
               ) : selectedBrief ? (
-                <div className="rounded-[12px] border border-white/[0.05] bg-white/[0.025] p-4">
+                <div className="rounded-[12px] border border-line-subtle bg-layer-1 p-4">
                   <div className="text-[13px] font-700 text-text">{selectedBrief.title}</div>
                   <p className="mt-1 text-[12px] leading-relaxed text-text-3/70">{selectedBrief.objective}</p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-[10px] border border-white/[0.04] bg-white/[0.02] px-3 py-2">
+                    <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
                       <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/55">Owner</div>
                       <div className="mt-1 text-[11px] text-text-2">{selectedBrief.owner ? `${selectedBrief.owner.type}:${selectedBrief.owner.id}` : selectedBrief.source}</div>
                     </div>
-                    <div className="rounded-[10px] border border-white/[0.04] bg-white/[0.02] px-3 py-2">
+                    <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
                       <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/55">Usage</div>
                       <div className="mt-1 text-[11px] text-text-2">
                         {selectedBrief.usage.inputTokens ?? 0} in / {selectedBrief.usage.outputTokens ?? 0} out
@@ -334,7 +334,7 @@ export function RunList() {
                   {selectedBrief.timeline.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {selectedBrief.timeline.slice(0, 5).map((item, index) => (
-                        <span key={`${item.label}:${item.at}:${index}`} className="rounded-full bg-white/[0.05] px-2 py-1 text-[10px] font-700 text-text-3/80">
+                        <span key={`${item.label}:${item.at}:${index}`} className="rounded-full bg-layer-2 px-2 py-1 text-[10px] font-700 text-text-3/80">
                           {item.label} {new Date(item.at).toLocaleTimeString()}
                         </span>
                       ))}
@@ -347,7 +347,7 @@ export function RunList() {
                   )}
                 </div>
               ) : (
-                <div className="rounded-[12px] border border-white/[0.04] bg-white/[0.02] p-4 text-[11px] text-text-3/60">
+                <div className="rounded-[12px] border border-line-subtle bg-layer-1 p-4 text-[11px] text-text-3/60">
                   No brief available for this run.
                 </div>
               )}
@@ -357,23 +357,23 @@ export function RunList() {
             <div className="mb-6 space-y-2">
               <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em]">Timing</label>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-2.5 rounded-[10px] bg-white/[0.02] border border-white/[0.04]">
+                <div className="p-2.5 rounded-[10px] bg-layer-1 border border-line-subtle">
                   <div className="text-[10px] text-text-3/60 mb-0.5">Queued</div>
                   <div className="text-[12px] text-text font-mono">{new Date(selected.queuedAt).toLocaleString()}</div>
                 </div>
                 {selected.startedAt && (
-                  <div className="p-2.5 rounded-[10px] bg-white/[0.02] border border-white/[0.04]">
+                  <div className="p-2.5 rounded-[10px] bg-layer-1 border border-line-subtle">
                     <div className="text-[10px] text-text-3/60 mb-0.5">Started</div>
                     <div className="text-[12px] text-text font-mono">{new Date(selected.startedAt).toLocaleString()}</div>
                   </div>
                 )}
                 {selected.endedAt && (
-                  <div className="p-2.5 rounded-[10px] bg-white/[0.02] border border-white/[0.04]">
+                  <div className="p-2.5 rounded-[10px] bg-layer-1 border border-line-subtle">
                     <div className="text-[10px] text-text-3/60 mb-0.5">Ended</div>
                     <div className="text-[12px] text-text font-mono">{new Date(selected.endedAt).toLocaleString()}</div>
                   </div>
                 )}
-                <div className="p-2.5 rounded-[10px] bg-white/[0.02] border border-white/[0.04]">
+                <div className="p-2.5 rounded-[10px] bg-layer-1 border border-line-subtle">
                   <div className="text-[10px] text-text-3/60 mb-0.5">Duration</div>
                   <div className="text-[12px] text-text font-mono">{formatElapsed(selected.startedAt, selected.endedAt, now)}</div>
                 </div>
@@ -384,7 +384,7 @@ export function RunList() {
             {selected.messagePreview && (
               <div className="mb-6">
                 <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Message</label>
-                <pre className="text-[11px] text-text-3/80 font-mono whitespace-pre-wrap break-all bg-white/[0.02] rounded-[12px] p-4 max-h-[200px] overflow-auto border border-white/[0.04]">
+                <pre className="text-[11px] text-text-3/80 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-[12px] p-4 max-h-[200px] overflow-auto border border-line-subtle">
                   {selected.messagePreview}
                 </pre>
               </div>
@@ -404,7 +404,7 @@ export function RunList() {
             {selected.resultPreview && (
               <div className="mb-6">
                 <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Result</label>
-                <pre className="text-[11px] text-text-3/80 font-mono whitespace-pre-wrap break-all bg-white/[0.02] rounded-[12px] p-4 max-h-[200px] overflow-auto border border-white/[0.04]">
+                <pre className="text-[11px] text-text-3/80 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-[12px] p-4 max-h-[200px] overflow-auto border border-line-subtle">
                   {selected.resultPreview}
                 </pre>
                 {selectedResultGrounding && (
@@ -430,13 +430,13 @@ export function RunList() {
 
             <div className="mb-2">
               <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Replay</label>
-              <div className="rounded-[12px] border border-white/[0.04] bg-white/[0.02] max-h-[260px] overflow-auto">
+              <div className="rounded-[12px] border border-line-subtle bg-layer-1 max-h-[260px] overflow-auto">
                 {eventsLoading ? (
                   <div className="p-4 text-[11px] text-text-3/60">Loading events...</div>
                 ) : selectedEvents.length === 0 ? (
                   <div className="p-4 text-[11px] text-text-3/60">No persisted replay events for this run.</div>
                 ) : (
-                  <div className="divide-y divide-white/[0.04]">
+                  <div className="divide-y divide-line-subtle">
                     {selectedEvents.map((event) => (
                       <div key={event.id} className="px-4 py-3">
                         <div className="flex items-center gap-2 mb-1">

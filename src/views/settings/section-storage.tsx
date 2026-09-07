@@ -104,7 +104,7 @@ export function StorageSection(
         Uploaded files from agent tools (screenshots, images, documents). Manage disk usage.
       </p>
 
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
+      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
         {/* Summary */}
         {loading ? (
           <div className="text-[13px] text-text-3/60 animate-pulse">Loading storage info...</div>
@@ -145,8 +145,8 @@ export function StorageSection(
               <button
                 onClick={() => setConfirmAction('clearOld')}
                 disabled={!data?.count}
-                className="px-4 py-2.5 rounded-[12px] bg-white/[0.04] text-text-2 text-[12px] font-600 cursor-pointer
-                  hover:bg-white/[0.06] active:scale-[0.97] transition-all border border-white/[0.06]
+                className="px-4 py-2.5 rounded-[12px] bg-layer-2 text-text-2 text-[12px] font-600 cursor-pointer
+                  hover:bg-layer-2 active:scale-[0.97] transition-all border border-line-subtle
                   disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ fontFamily: 'inherit' }}
               >

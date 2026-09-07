@@ -49,6 +49,25 @@
   --radius-4xl: calc(var(--radius) + 16px);
 
   /* ===== Midnight Glass Palette ===== */
+  /* ===== Semantic surface ladder =====
+     Every hardcoded bg-white/[α] in the app maps onto these four steps
+     (scripts/codemod-surfaces.mjs). Redefining them under .light is the whole
+     light theme — there is no !important override layer any more.
+
+     `layer-*` and not `surface-*`: --color-surface, --color-surface-2 and
+     --color-surface-3 already exist above as opaque tinted surfaces, and every
+     `bg-surface-2` in the app today means one of those. Leave them alone. */
+  --color-layer-0: var(--sf-0);
+  --color-layer-1: var(--sf-1);
+  --color-layer-2: var(--sf-2);
+  --color-layer-3: var(--sf-3);
+  --color-layer-4: var(--sf-4);
+  --color-line-subtle: var(--ln-subtle);
+  --color-line-default: var(--ln-default);
+  --color-line-strong: var(--ln-strong);
+  --color-fg-1: var(--tx-1);
+  --color-fg-2: var(--tx-2);
+  --color-fg-3: var(--tx-3);
   /* Surfaces derived from --neutral-tint for single-knob theming */
   --color-bg: color-mix(in srgb, var(--neutral-tint, #1e1e30) 40%, #000);
   --color-raised: color-mix(in srgb, var(--neutral-tint, #1e1e30) 50%, #000);
@@ -88,6 +107,18 @@
   /* ===== Single-Tint Theming ===== */
   /* Change this one value to shift the entire palette hue */
   --neutral-tint: #1e1e30;
+  /* Dark is the base theme; .light redefines exactly these eleven values. */
+  --sf-0: color-mix(in srgb, var(--neutral-tint) 40%, #000);
+  --sf-1: rgba(255,255,255,0.02);
+  --sf-2: rgba(255,255,255,0.05);
+  --sf-3: rgba(255,255,255,0.09);
+  --sf-4: rgba(255,255,255,0.16);
+  --ln-subtle: rgba(255,255,255,0.05);
+  --ln-default: rgba(255,255,255,0.09);
+  --ln-strong: rgba(255,255,255,0.16);
+  --tx-1: #e6e6f0;
+  --tx-2: #a0a0ba;
+  --tx-3: #7a7a95;
   --background: color-mix(in srgb, var(--neutral-tint) 40%, #000);
   --foreground: #e2e2ec;
   --card: color-mix(in srgb, var(--neutral-tint) 50%, #000);

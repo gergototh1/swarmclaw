@@ -50,7 +50,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
       <p className="text-[12px] text-text-3 mb-5">
         Global defaults inherited by agents. Enable heartbeat and set interval/model per-agent in the agent editor.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
+      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
           <div>
             <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Default Prompt</label>
@@ -88,7 +88,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
               className={`px-3 py-2 rounded-[10px] border text-[12px] font-600 transition-colors cursor-pointer ${
                 appSettings.heartbeatShowOk
                   ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300'
-                  : 'border-white/[0.08] bg-white/[0.03] text-text-3'
+                  : 'border-line-default bg-layer-1 text-text-3'
               }`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -102,7 +102,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
               className={`px-3 py-2 rounded-[10px] border text-[12px] font-600 transition-colors cursor-pointer ${
                 (appSettings.heartbeatShowAlerts ?? DEFAULT_HEARTBEAT_SHOW_ALERTS)
                   ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300'
-                  : 'border-white/[0.08] bg-white/[0.03] text-text-3'
+                  : 'border-line-default bg-layer-1 text-text-3'
               }`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -122,7 +122,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
           </div>
         </div>
 
-        <div className="border-t border-white/[0.06] pt-5 mt-5">
+        <div className="border-t border-line-subtle pt-5 mt-5">
           <h4 className="font-display text-[11px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
             Session Reset Defaults
           </h4>

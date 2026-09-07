@@ -56,7 +56,7 @@ export function ActivityTab() {
   return (
     <div className="max-w-3xl mx-auto px-8 py-6">
       <div className="relative pl-5">
-        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-white/[0.06]" />
+        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-layer-2" />
         <div className="flex flex-col gap-3">
           {displayedItems.map((item) => (
             <div key={`${item.type}-${item.id}`} className="relative flex items-start gap-3">
@@ -65,7 +65,7 @@ export function ActivityTab() {
                 : item.type === 'task' && item.status === 'running' ? 'bg-sky-400'
                 : item.type === 'task' && item.status === 'failed' ? 'bg-red-400'
                 : item.type === 'schedule' ? 'bg-amber-400'
-                : 'bg-white/[0.2]'
+                : 'bg-layer-4'
               }`} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -73,7 +73,7 @@ export function ActivityTab() {
                     {item.type}
                   </span>
                   {item.status && (
-                    <span className={`text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] ${STATUS_STYLES[item.status] || 'bg-white/[0.06] text-text-3'}`}>
+                    <span className={`text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] ${STATUS_STYLES[item.status] || 'bg-layer-2 text-text-3'}`}>
                       {item.status}
                     </span>
                   )}

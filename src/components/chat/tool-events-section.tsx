@@ -62,7 +62,7 @@ export const ToolActivityPill = memo(function ToolActivityPill({
     ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
     : mostlyFailed
       ? 'border-rose-500/20 bg-rose-500/10 text-rose-300'
-      : 'border-white/[0.08] bg-white/[0.04] text-text-3/70'
+      : 'border-line-default bg-layer-2 text-text-3/70'
 
   const dotClass = isRunning
     ? 'bg-amber-400'
@@ -117,7 +117,7 @@ function summarizeToolResult(event: ToolEvent): string | null {
 
 const ToolStatusPill = memo(function ToolStatusPill({ status }: { status: ToolEvent['status'] }) {
   const tone = status === 'running'
-    ? 'border-white/[0.08] bg-white/[0.05] text-text-3'
+    ? 'border-line-default bg-layer-2 text-text-3'
     : status === 'error'
       ? 'border-rose-500/25 bg-rose-500/10 text-rose-300'
       : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300'
@@ -146,7 +146,7 @@ const ToolSummaryRow = memo(function ToolSummaryRow({ event, caption }: { event:
         ? 'border-amber-500/20 bg-amber-500/[0.06]'
         : isError
           ? 'border-rose-500/18 bg-rose-500/[0.05]'
-          : 'border-white/[0.06] bg-white/[0.03]'
+          : 'border-line-subtle bg-layer-1'
     }`}
       data-testid="tool-call-row"
       data-tool-name={event.name}
@@ -277,7 +277,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
           type="button"
           onClick={() => setExpanded((value) => !value)}
           data-testid="tool-activity-toggle"
-          className="inline-flex items-center gap-2 rounded-[10px] border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] font-600 text-text-2 hover:bg-white/[0.06] cursor-pointer transition-colors"
+          className="inline-flex items-center gap-2 rounded-[10px] border border-line-default bg-layer-1 px-3 py-1.5 text-[11px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`transition-transform ${expanded ? 'rotate-180' : ''}`}>
             <polyline points="6 9 12 15 18 9" />
@@ -325,7 +325,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
       )}
 
       {expanded && (
-        <div className="mt-3 border-t border-white/[0.06] pt-3 flex flex-col gap-2">
+        <div className="mt-3 border-t border-line-subtle pt-3 flex flex-col gap-2">
           {toolEvents.map((event) => (
             <ToolCallBubble key={event.id} event={event} />
           ))}
@@ -342,12 +342,12 @@ export const ToolEventsSection = memo(function ToolEventsSection({
   /* ── Uncontrolled mode: full standalone card (legacy) ─── */
   return (
     <div className="max-w-[85%] md:max-w-[72%] mb-2" data-testid="tool-activity">
-      <div className="rounded-[16px] border border-white/[0.08] bg-surface/72 backdrop-blur-sm overflow-hidden">
+      <div className="rounded-[16px] border border-line-default bg-surface/72 backdrop-blur-sm overflow-hidden">
         {/* Compact header — always visible */}
         <button
           type="button"
           onClick={handleSectionToggle}
-          className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-white/[0.03] transition-colors cursor-pointer"
+          className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-layer-1 transition-colors cursor-pointer"
           data-testid="tool-activity-section-toggle"
         >
           <svg
@@ -389,7 +389,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
 
         {/* Expanded body */}
         {effectiveSectionOpen && (
-          <div className="border-t border-white/[0.06]">
+          <div className="border-t border-line-subtle">
             {bodyContent}
           </div>
         )}

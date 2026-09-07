@@ -27,7 +27,7 @@ export function EvidenceShelf({
   className?: string
 }) {
   return (
-    <section className={cn('rounded-[12px] border border-white/[0.06] bg-white/[0.025] p-4', className)}>
+    <section className={cn('rounded-[12px] border border-line-subtle bg-layer-1 p-4', className)}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">{title}</div>
@@ -35,11 +35,11 @@ export function EvidenceShelf({
         </div>
       </div>
       {loading ? (
-        <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-3 text-[11px] text-text-3/60">
+        <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-3 text-[11px] text-text-3/60">
           Loading evidence...
         </div>
       ) : artifacts.length === 0 ? (
-        <div className="rounded-[10px] border border-dashed border-white/[0.08] bg-white/[0.02] px-3 py-3 text-[11px] text-text-3/60">
+        <div className="rounded-[10px] border border-dashed border-line-default bg-layer-1 px-3 py-3 text-[11px] text-text-3/60">
           {emptyLabel}
         </div>
       ) : (
@@ -53,7 +53,7 @@ export function EvidenceShelf({
                   <span className="min-w-0">
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="truncate text-[12px] font-700 text-text">{artifact.title}</span>
-                      <span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[9px] font-800 uppercase tracking-[0.08em] text-text-3/70">
+                      <span className="rounded-full bg-layer-2 px-2 py-0.5 text-[9px] font-800 uppercase tracking-[0.08em] text-text-3/70">
                         {formatKind(artifact.kind)}
                       </span>
                     </span>
@@ -77,14 +77,14 @@ export function EvidenceShelf({
                 href={href}
                 target={href.startsWith('/api/') || href.startsWith('http') ? '_blank' : undefined}
                 rel={href.startsWith('http') ? 'noreferrer' : undefined}
-                className="flex items-start gap-2 rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2.5 transition-colors hover:bg-white/[0.05]"
+                className="flex items-start gap-2 rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2.5 transition-colors hover:bg-layer-2"
               >
                 {content}
               </a>
             ) : (
               <div
                 key={`${artifact.kind}:${artifact.id}`}
-                className="flex items-start gap-2 rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2.5"
+                className="flex items-start gap-2 rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2.5"
               >
                 {content}
               </div>

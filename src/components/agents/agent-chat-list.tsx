@@ -250,7 +250,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
               data-active={chatFilter === f || undefined}
               className="label-mono px-2.5 py-1 rounded-[6px] border-none cursor-pointer transition-colors
                 data-[active]:bg-accent-soft data-[active]:text-accent-bright
-                bg-transparent text-text-3 hover:text-text-2 hover:bg-white/[0.04]"
+                bg-transparent text-text-3 hover:text-text-2 hover:bg-layer-2"
             >
               {f}
             </button>
@@ -260,7 +260,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
             onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()) }}
             aria-label={bulkMode ? 'Exit selection mode' : 'Select chats'}
             className={`ml-auto label-mono px-2.5 py-1 rounded-[6px] border-none cursor-pointer transition-colors
-              ${bulkMode ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2 hover:bg-white/[0.04]'}`}
+              ${bulkMode ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
           >
             {bulkMode ? 'Cancel' : 'Select'}
           </button>
@@ -268,7 +268,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
       )}
       {/* Bulk action bar */}
       {bulkMode && selectedIds.size > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-white/[0.02] border-b border-white/[0.04]">
+        <div className="flex items-center gap-2 px-4 py-2 bg-layer-1 border-b border-line-subtle">
           <span className="text-[12px] text-text-2 font-500 flex-1">{selectedIds.size} selected</span>
           <button
             onClick={() => setConfirmBulkDelete(true)}
@@ -387,7 +387,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                     }}
                     aria-label="Remove as default agent"
                     title="Default agent — click to clear"
-                    className="shrink-0 p-1 rounded-[6px] transition-all bg-transparent border-none cursor-pointer hover:bg-white/[0.06] text-accent-bright"
+                    className="shrink-0 p-1 rounded-[6px] transition-all bg-transparent border-none cursor-pointer hover:bg-layer-2 text-accent-bright"
                     style={{ fontFamily: 'inherit' }}
                   >
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -418,7 +418,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
               className={`group/row relative w-full text-left py-3 px-4 rounded-[12px] cursor-pointer transition-all duration-150 border-none
                 ${isActive
                   ? 'bg-accent-soft/80 border border-accent-bright/20'
-                  : 'bg-transparent hover:bg-white/[0.02]'}`}
+                  : 'bg-transparent hover:bg-layer-1'}`}
               role="button"
               tabIndex={0}
               data-testid="agent-row"
@@ -488,7 +488,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                           }}
                           aria-label={isDefault ? 'Remove as default' : 'Set as default agent'}
                           title={isDefault ? 'Default agent — click to clear' : 'Set as default agent'}
-                          className={`shrink-0 p-1 rounded-[6px] transition-all bg-transparent border-none cursor-pointer hover:bg-white/[0.06]
+                          className={`shrink-0 p-1 rounded-[6px] transition-all bg-transparent border-none cursor-pointer hover:bg-layer-2
                             ${isDefault ? 'opacity-100 text-accent-bright' : 'opacity-0 group-hover/row:opacity-60 hover:!opacity-100 text-text-3'}`}
                           style={{ fontFamily: 'inherit' }}
                         >
@@ -507,7 +507,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                         toast.success(agent.pinned ? 'Agent unpinned' : 'Agent pinned')
                       }}
                       aria-label={agent.pinned ? 'Unpin agent' : 'Pin agent'}
-                      className={`shrink-0 p-1 rounded-[6px] transition-all bg-transparent border-none cursor-pointer hover:bg-white/[0.06]
+                      className={`shrink-0 p-1 rounded-[6px] transition-all bg-transparent border-none cursor-pointer hover:bg-layer-2
                         ${agent.pinned ? 'opacity-100 text-amber-400' : 'opacity-0 group-hover/row:opacity-60 hover:!opacity-100 text-text-3'}`}
                       style={{ fontFamily: 'inherit' }}
                     >

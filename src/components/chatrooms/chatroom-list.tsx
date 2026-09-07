@@ -109,7 +109,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search rooms, members, or recent messages..."
-              className="w-full rounded-[12px] border border-white/[0.06] bg-surface px-3 py-2.5 text-[13px] text-text placeholder:text-text-3/70 focus:outline-none focus:border-accent-bright/35"
+              className="w-full rounded-[12px] border border-line-subtle bg-surface px-3 py-2.5 text-[13px] text-text placeholder:text-text-3/70 focus:outline-none focus:border-accent-bright/35"
             />
             <div className="flex flex-wrap items-center gap-1">
               {(['all', 'active', 'recent', 'unread'] as const).map((value) => (
@@ -120,7 +120,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
                   data-active={filter === value || undefined}
                   className="rounded-[8px] border-none px-3 py-1.5 text-[11px] font-600 capitalize cursor-pointer transition-all focus-visible:ring-1 focus-visible:ring-accent-bright/50
                     data-[active]:bg-accent-soft data-[active]:text-accent-bright
-                    bg-transparent text-text-3 hover:text-text-2 hover:bg-white/[0.04]"
+                    bg-transparent text-text-3 hover:text-text-2 hover:bg-layer-2"
                 >
                   {value}
                 </button>
@@ -132,7 +132,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
           </div>
 
           {filtered.length === 0 ? (
-            <div className="rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-8 text-center">
+            <div className="rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-8 text-center">
               <div className="text-[13px] font-600 text-text-2">No {viewMode === 'sessions' ? 'sessions' : 'rooms'} match this view</div>
               <div className="mt-1 text-[12px] text-text-3/65">
                 Clear the search or switch filters to see more {viewMode === 'sessions' ? 'sessions' : 'chatrooms'}.
@@ -149,7 +149,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
                     className={`relative w-full overflow-hidden rounded-[14px] border px-4 py-3.5 text-left transition-all cursor-pointer ${
                       isActive
                         ? 'border-accent-bright/20 bg-accent-soft/55'
-                        : 'border-transparent hover:bg-white/[0.04] hover:border-white/[0.05]'
+                        : 'border-transparent hover:bg-layer-2 hover:border-line-subtle'
                     }`}
                     style={{
                       animation: 'fade-up 0.4s var(--ease-spring) both',

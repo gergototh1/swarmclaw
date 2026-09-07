@@ -11,7 +11,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
       <p className="text-[12px] text-text-3 mb-5">
         Centralized guardrails for agent tool families and platform features. SwarmClaw now relies on direct capability policy and explicit feature gates rather than a workflow approval queue.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
+      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
         <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Policy Mode</label>
         <div className="grid grid-cols-3 gap-2 mb-5">
           {([
@@ -25,7 +25,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
               className={`py-3 px-3 rounded-[12px] text-center cursor-pointer transition-all text-[13px] font-600 border
                 ${(appSettings.capabilityPolicyMode || 'permissive') === mode.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                  : 'bg-bg border-white/[0.06] text-text-2 hover:bg-surface-2'}`}
+                  : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
               {mode.name}
@@ -35,7 +35,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
 
         <div className="grid grid-cols-1 gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-[12px] border border-white/[0.06] bg-bg px-4 py-4">
+            <div className="rounded-[12px] border border-line-subtle bg-bg px-4 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[12px] font-600 text-text-2">Task Management</div>
@@ -45,7 +45,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
                 </div>
                 <button
                   onClick={() => patchSettings({ taskManagementEnabled: !(appSettings.taskManagementEnabled ?? true) })}
-                  className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.taskManagementEnabled ?? true) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+                  className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.taskManagementEnabled ?? true) ? 'bg-accent' : 'bg-layer-3'}`}
                   aria-label="Toggle task management"
                 >
                   <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.taskManagementEnabled ?? true) ? 'translate-x-[18px]' : ''}`} />
@@ -53,7 +53,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
               </div>
             </div>
 
-            <div className="rounded-[12px] border border-white/[0.06] bg-bg px-4 py-4">
+            <div className="rounded-[12px] border border-line-subtle bg-bg px-4 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[12px] font-600 text-text-2">Project Management</div>
@@ -63,7 +63,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
                 </div>
                 <button
                   onClick={() => patchSettings({ projectManagementEnabled: !(appSettings.projectManagementEnabled ?? true) })}
-                  className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.projectManagementEnabled ?? true) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+                  className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.projectManagementEnabled ?? true) ? 'bg-accent' : 'bg-layer-3'}`}
                   aria-label="Toggle project management"
                 >
                   <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.projectManagementEnabled ?? true) ? 'translate-x-[18px]' : ''}`} />
@@ -72,7 +72,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
             </div>
           </div>
 
-          <div className="rounded-[12px] border border-white/[0.06] bg-bg px-4 py-4">
+          <div className="rounded-[12px] border border-line-subtle bg-bg px-4 py-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-[12px] font-600 text-text-2">Outbound Connector Confirmation</div>
@@ -82,8 +82,8 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
               </div>
               <button
                 onClick={() => patchSettings({ safetyRequireApprovalForOutbound: !(appSettings.safetyRequireApprovalForOutbound ?? false) })}
-                className={`inline-flex h-[22px] w-10 shrink-0 items-center rounded-full border border-white/[0.08] p-[3px] transition-colors duration-200 cursor-pointer ${
-                  (appSettings.safetyRequireApprovalForOutbound ?? false) ? 'justify-end bg-accent' : 'justify-start bg-white/[0.16]'
+                className={`inline-flex h-[22px] w-10 shrink-0 items-center rounded-full border border-line-default p-[3px] transition-colors duration-200 cursor-pointer ${
+                  (appSettings.safetyRequireApprovalForOutbound ?? false) ? 'justify-end bg-accent' : 'justify-start bg-layer-4'
                 }`}
                 aria-label="Toggle outbound connector confirmation"
               >

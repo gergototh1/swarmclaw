@@ -16,7 +16,7 @@ export function WebSearchSection({ appSettings, patchSettings, inputClass }: Set
       <p className="text-[12px] text-text-3 mb-5">
         Choose which search engine agents use for the <code className="text-[11px] font-mono text-text-2">web_search</code> tool.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
+      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
         <div className="mb-5">
           <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Search Provider</label>
           <select

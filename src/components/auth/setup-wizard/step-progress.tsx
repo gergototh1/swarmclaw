@@ -19,7 +19,7 @@ export function StepProgress({ current, total }: { current: number; total: numbe
             {i > 0 && (
               <div
                 className={`w-8 h-[2px] transition-all duration-300 ${
-                  completed ? 'bg-accent-bright/60' : 'bg-white/[0.08]'
+                  completed ? 'bg-accent-bright/60' : 'bg-layer-3'
                 }`}
               />
             )}
@@ -30,7 +30,7 @@ export function StepProgress({ current, total }: { current: number; total: numbe
                     ? 'bg-accent-bright/20 text-accent-bright border border-accent-bright/40'
                     : active
                       ? 'bg-accent-bright text-white border border-accent-bright shadow-[0_0_12px_rgba(99,102,241,0.4)]'
-                      : 'bg-white/[0.04] text-text-3 border border-white/[0.08]'
+                      : 'bg-layer-2 text-text-3 border border-line-default'
                 }`}
               >
                 {completed ? (

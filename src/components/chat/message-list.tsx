@@ -474,14 +474,14 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
         >
           {showDateSep && (
             <div className="flex items-center gap-4 py-2 mb-2">
-              <div className="flex-1 h-px bg-white/[0.06]" />
+              <div className="flex-1 h-px bg-layer-2" />
               <span className="text-[10px] font-600 text-text-3/50 uppercase tracking-[0.1em]">
                 {dateSeparator(msg.time)}
               </span>
-              <div className="flex-1 h-px bg-white/[0.06]" />
+              <div className="flex-1 h-px bg-layer-2" />
             </div>
           )}
-          <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-[16px] bg-amber-400/[0.04]' : isSearchMatch ? 'bg-white/[0.02] rounded-[16px]' : ''}>
+          <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-[16px] bg-amber-400/[0.04]' : isSearchMatch ? 'bg-layer-1 rounded-[16px]' : ''}>
             <BubbleComponent
               message={msg}
               assistantName={assistantName}
@@ -673,7 +673,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
   return (
     <div className="relative flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden isolate" data-testid="message-list">
       <div className="shrink-0 px-4 md:px-12 lg:px-16 pt-3">
-        <div className="flex flex-wrap items-center gap-2 rounded-[14px] border border-white/[0.06] bg-surface/55 px-3 py-2 backdrop-blur-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-[14px] border border-line-subtle bg-surface/55 px-3 py-2 backdrop-blur-sm">
           <button
             type="button"
             onClick={() => {
@@ -688,7 +688,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             className={`inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1.5 text-[11px] font-600 transition-colors cursor-pointer ${
               searchOpen
                 ? 'border-accent-bright/25 bg-accent-soft/60 text-accent-bright'
-                : 'border-white/[0.06] bg-white/[0.03] text-text-3 hover:text-text-2 hover:bg-white/[0.06]'
+                : 'border-line-subtle bg-layer-1 text-text-3 hover:text-text-2 hover:bg-layer-2'
             }`}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -704,7 +704,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             className={`inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1.5 text-[11px] font-600 transition-colors cursor-pointer ${
               bookmarkFilter
                 ? 'border-amber-400/25 bg-amber-500/10 text-amber-300'
-                : 'border-white/[0.06] bg-white/[0.03] text-text-3 hover:text-text-2 hover:bg-white/[0.06]'
+                : 'border-line-subtle bg-layer-1 text-text-3 hover:text-text-2 hover:bg-layer-2'
             }`}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill={bookmarkFilter ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -721,7 +721,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                 setSearchIdx(0)
                 setBookmarkFilter(false)
               }}
-              className="inline-flex items-center gap-1.5 rounded-[9px] border border-white/[0.06] bg-transparent px-2.5 py-1.5 text-[11px] font-600 text-text-3 hover:text-text-2 hover:bg-white/[0.04] cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-[9px] border border-line-subtle bg-transparent px-2.5 py-1.5 text-[11px] font-600 text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
             >
               Reset filters
             </button>
@@ -735,7 +735,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <span>{filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'}</span>
             )}
             {loading && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] px-2 py-1 text-text-3/70">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-layer-2 px-2 py-1 text-text-3/70">
                 <span className="w-2 h-2 rounded-full bg-accent-bright animate-pulse" />
                 Loading thread
               </span>
@@ -746,7 +746,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
 
       {/* In-thread search bar */}
       {searchOpen && (
-        <div className="shrink-0 z-20 flex items-center gap-2 px-4 md:px-12 lg:px-16 py-2 bg-surface/95 backdrop-blur-sm border-b border-white/[0.06]">
+        <div className="shrink-0 z-20 flex items-center gap-2 px-4 md:px-12 lg:px-16 py-2 bg-surface/95 backdrop-blur-sm border-b border-line-subtle">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -777,7 +777,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             onClick={() => setSearchIdx((v) => Math.max(0, v - 1))}
             disabled={!searchMatches.length}
             aria-label="Previous match"
-            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-white/[0.04] disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
+            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-layer-2 disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m18 15-6-6-6 6" /></svg>
           </button>
@@ -785,14 +785,14 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             onClick={() => setSearchIdx((v) => Math.min(searchMatches.length - 1, v + 1))}
             disabled={!searchMatches.length}
             aria-label="Next match"
-            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-white/[0.04] disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
+            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-layer-2 disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
           </button>
           <button
             onClick={() => setBookmarkFilter((v) => !v)}
             aria-label={bookmarkFilter ? 'Show all messages' : 'Show bookmarked only'}
-            className={`p-1 rounded-[6px] hover:bg-white/[0.04] cursor-pointer border-none bg-transparent transition-colors ${bookmarkFilter ? 'text-amber-500' : 'text-text-3 hover:text-text-2'}`}
+            className={`p-1 rounded-[6px] hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors ${bookmarkFilter ? 'text-amber-500' : 'text-text-3 hover:text-text-2'}`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarkFilter ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
@@ -801,7 +801,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
           <button
             onClick={() => { setSearchOpen(false); setSearchQuery(''); setSearchIdx(0) }}
             aria-label="Close search"
-            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-white/[0.04] cursor-pointer border-none bg-transparent transition-colors"
+            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
@@ -818,7 +818,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
       >
         <div className="flex flex-col gap-6 relative">
           {/* Chat spine — vertical line for assistant messages */}
-          <div className="absolute left-[15px] top-0 bottom-0 w-px bg-white/[0.06] pointer-events-none" />
+          <div className="absolute left-[15px] top-0 bottom-0 w-px bg-layer-2 pointer-events-none" />
           {hasMoreMessages && (
             <div className="flex justify-center py-3">
               <button
@@ -834,7 +834,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                   }
                 }}
                 disabled={loadingMore}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/[0.08] bg-surface/80 text-text-3 text-[12px] font-600 hover:bg-surface-2 hover:text-text-2 transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-line-default bg-surface/80 text-text-3 text-[12px] font-600 hover:bg-surface-2 hover:text-text-2 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {loadingMore ? (
                   <>
@@ -857,7 +857,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
           {filteredMessages.length === 0 && !streaming && (
             searchQuery.trim() || bookmarkFilter || connectorFilter ? (
               <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-                <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-layer-2 border border-line-subtle flex items-center justify-center">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-text-3/70">
                     <circle cx="11" cy="11" r="8" />
                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -882,7 +882,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                       setSearchIdx(0)
                       setBookmarkFilter(false)
                     }}
-                    className="rounded-[10px] border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-white/[0.06] cursor-pointer transition-colors"
+                    className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
                   >
                     Clear thread filters
                   </button>
@@ -916,7 +916,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
       {showScrollToBottom && (
         <button
           onClick={handleScrollToBottom}
-          className="absolute right-6 md:right-12 lg:right-16 bottom-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.08] bg-[#171a2b]/95 text-text-2 text-[12px] font-600 hover:bg-[#1e2238] transition-colors shadow-lg cursor-pointer"
+          className="absolute right-6 md:right-12 lg:right-16 bottom-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-line-default bg-[#171a2b]/95 text-text-2 text-[12px] font-600 hover:bg-[#1e2238] transition-colors shadow-lg cursor-pointer"
           title="Scroll to latest messages"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">

@@ -168,7 +168,7 @@ export function KnowledgeList() {
 
       {hygiene && (
         <div className="px-5 pb-2 shrink-0">
-          <div className="rounded-[12px] border border-white/[0.06] bg-white/[0.03] p-3">
+          <div className="rounded-[12px] border border-line-subtle bg-layer-1 p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/55">Hygiene</div>
@@ -183,7 +183,7 @@ export function KnowledgeList() {
               <button
                 onClick={() => { void runMaintenance() }}
                 disabled={maintaining}
-                className="rounded-[9px] border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-600 text-text-2 transition-all cursor-pointer disabled:opacity-50"
+                className="rounded-[9px] border border-line-default bg-layer-2 px-2.5 py-1.5 text-[11px] font-600 text-text-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 {maintaining ? 'Running…' : 'Maintain'}
               </button>
@@ -195,7 +195,7 @@ export function KnowledgeList() {
               <button
                 onClick={() => setIncludeArchived((current) => !current)}
                 className={`rounded-[8px] px-2 py-1 text-[10px] font-700 uppercase tracking-[0.08em] cursor-pointer ${
-                  includeArchived ? 'bg-amber-500/12 text-amber-200' : 'bg-white/[0.04] text-text-3/75'
+                  includeArchived ? 'bg-amber-500/12 text-amber-200' : 'bg-layer-2 text-text-3/75'
                 }`}
               >
                 {includeArchived ? 'Showing archived' : 'Hide archived'}
@@ -211,7 +211,7 @@ export function KnowledgeList() {
             <button
               onClick={() => setActiveTag(null)}
               className={`px-2 py-0.5 rounded-[6px] text-[9px] font-600 cursor-pointer transition-all uppercase tracking-wider ${
-                !activeTag ? 'bg-white/[0.06] text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'
+                !activeTag ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'
               }`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -222,7 +222,7 @@ export function KnowledgeList() {
                 key={tag}
                 onClick={() => setActiveTag(activeTag === tag ? null : tag)}
                 className={`px-2 py-0.5 rounded-[6px] text-[9px] font-600 cursor-pointer transition-all uppercase tracking-wider ${
-                  activeTag === tag ? 'bg-white/[0.06] text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'
+                  activeTag === tag ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'
                 }`}
                 style={{ fontFamily: 'inherit' }}
               >
@@ -246,7 +246,7 @@ export function KnowledgeList() {
                     className={`p-3 rounded-[12px] border transition-all relative group cursor-pointer ${
                       active
                         ? 'border-accent-bright/25 bg-accent-soft/10'
-                        : 'border-white/[0.04] bg-transparent hover:bg-surface-2 hover:border-white/[0.1]'
+                        : 'border-line-subtle bg-transparent hover:bg-surface-2 hover:border-line-default'
                     }`}
                     style={{
                       animation: 'spring-in 0.5s var(--ease-spring) both',
@@ -322,7 +322,7 @@ export function KnowledgeList() {
                     className={`p-3 rounded-[12px] border transition-all relative group cursor-pointer ${
                       active
                         ? 'border-accent-bright/25 bg-accent-soft/10'
-                        : 'border-white/[0.04] bg-transparent hover:bg-surface-2 hover:border-white/[0.1]'
+                        : 'border-line-subtle bg-transparent hover:bg-surface-2 hover:border-line-default'
                     }`}
                     style={{
                       animation: 'spring-in 0.5s var(--ease-spring) both',

@@ -27,7 +27,7 @@ const LEVEL_BG: Record<string, string> = {
   ERROR: 'bg-red-500/10',
   WARN: 'bg-amber-500/10',
   INFO: 'bg-blue-500/10',
-  DEBUG: 'bg-white/[0.02]',
+  DEBUG: 'bg-layer-1',
 }
 
 export function LogList() {
@@ -150,7 +150,7 @@ export function LogList() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search logs..."
-          className="w-full px-3 py-2 rounded-[8px] bg-white/[0.04] border border-white/[0.06] text-[12px] text-text placeholder:text-text-3/50 outline-none focus:border-accent/30"
+          className="w-full px-3 py-2 rounded-[8px] bg-layer-2 border border-line-subtle text-[12px] text-text placeholder:text-text-3/50 outline-none focus:border-accent/30"
         />
         {/* Saved filters */}
         {savedFilters.length > 0 && (
@@ -186,7 +186,7 @@ export function LogList() {
               className={`px-2 py-1 rounded-[6px] text-[10px] font-700 uppercase tracking-wider cursor-pointer transition-all border-none ${
                 levelFilter.length === 0 || levelFilter.includes(level)
                   ? `${LEVEL_BG[level]} ${LEVEL_COLORS[level]}`
-                  : 'bg-white/[0.02] text-text-3/70'
+                  : 'bg-layer-1 text-text-3/70'
               }`}
             >
               {level}
@@ -196,7 +196,7 @@ export function LogList() {
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
             className={`px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none ${
-              autoRefresh ? 'bg-green-500/10 text-green-400' : 'bg-white/[0.04] text-text-3'
+              autoRefresh ? 'bg-green-500/10 text-green-400' : 'bg-layer-2 text-text-3'
             }`}
             title={autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
           >
@@ -204,7 +204,7 @@ export function LogList() {
           </button>
           <button
             onClick={clearLogs}
-            className="px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none bg-white/[0.04] text-text-3 hover:text-red-400 hover:bg-red-500/10"
+            className="px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none bg-layer-2 text-text-3 hover:text-red-400 hover:bg-red-500/10"
             title="Clear all logs"
           >
             CLEAR
@@ -219,7 +219,7 @@ export function LogList() {
               a.click()
               URL.revokeObjectURL(url)
             }}
-            className="px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none bg-white/[0.04] text-text-3 hover:text-accent-bright hover:bg-accent-soft"
+            className="px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none bg-layer-2 text-text-3 hover:text-accent-bright hover:bg-accent-soft"
             title="Export logs as JSON"
           >
             EXPORT
@@ -234,7 +234,7 @@ export function LogList() {
               safeStorageSet('sc_log_filters', JSON.stringify(existing))
               setSavedFilters(existing)
             }}
-            className="px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none bg-white/[0.04] text-text-3 hover:text-accent-bright hover:bg-accent-soft"
+            className="px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none bg-layer-2 text-text-3 hover:text-accent-bright hover:bg-accent-soft"
             title="Save current filter"
           >
             SAVE
@@ -258,7 +258,7 @@ export function LogList() {
             <button
               key={i}
               onClick={() => { setSelected(entry); setTaskAgentId('') }}
-              className={`w-full text-left px-2 py-1.5 rounded-[6px] hover:bg-white/[0.03] transition-colors cursor-pointer bg-transparent border-none block
+              className={`w-full text-left px-2 py-1.5 rounded-[6px] hover:bg-layer-1 transition-colors cursor-pointer bg-transparent border-none block
                 ${entry.level === 'ERROR' ? 'hover:bg-red-500/[0.04]' : ''}`}
             >
               <div className="flex items-start gap-2">
@@ -305,14 +305,14 @@ export function LogList() {
             {selected.data && (
               <div className="mb-8">
                 <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Details</label>
-                <pre className="text-[11px] text-text-3/80 font-mono whitespace-pre-wrap break-all bg-white/[0.02] rounded-[12px] p-4 max-h-[300px] overflow-auto border border-white/[0.04]">
+                <pre className="text-[11px] text-text-3/80 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-[12px] p-4 max-h-[300px] overflow-auto border border-line-subtle">
                   {selected.data}
                 </pre>
               </div>
             )}
 
             {/* Create as Task */}
-            <div className="pt-4 border-t border-white/[0.04]">
+            <div className="pt-4 border-t border-line-subtle">
               <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">
                 Create as Task
               </label>
@@ -323,7 +323,7 @@ export function LogList() {
                 <select
                   value={taskAgentId}
                   onChange={(e) => setTaskAgentId(e.target.value)}
-                  className="flex-1 px-4 py-3 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[14px] outline-none appearance-none cursor-pointer"
+                  className="flex-1 px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none appearance-none cursor-pointer"
                   style={{ fontFamily: 'inherit' }}
                 >
                   <option value="">Unassigned</option>

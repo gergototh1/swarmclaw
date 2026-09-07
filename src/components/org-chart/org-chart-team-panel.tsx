@@ -158,15 +158,15 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
   return (
     <div
       ref={ref}
-      className="absolute top-14 right-4 z-40 w-[260px] bg-raised border border-white/[0.08] rounded-[12px] shadow-xl shadow-black/40"
+      className="absolute top-14 right-4 z-40 w-[260px] bg-raised border border-line-default rounded-[12px] shadow-xl shadow-black/40"
       onWheel={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div className="px-3 py-2 border-b border-white/[0.06] flex items-center justify-between">
+      <div className="px-3 py-2 border-b border-line-subtle flex items-center justify-between">
         <span className="text-[11px] font-700 uppercase tracking-wider text-text-3/60">Teams</span>
         <button
           onClick={onClose}
-          className="w-5 h-5 rounded-[4px] flex items-center justify-center text-text-3 hover:text-text hover:bg-white/[0.06] transition-colors cursor-pointer bg-transparent border-none"
+          className="w-5 h-5 rounded-[4px] flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M18 6L6 18" /><path d="M6 6l12 12" />
@@ -181,7 +181,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
         {teams.map((team) => {
           const isExpanded = expandedTeam === team.label
           return (
-            <div key={team.label} className="rounded-[8px] border border-transparent hover:border-white/[0.04]">
+            <div key={team.label} className="rounded-[8px] border border-transparent hover:border-line-subtle">
               {/* Team row */}
               <div className="flex items-center gap-2 px-2 py-1.5 group">
                 {/* Expand chevron */}
@@ -199,7 +199,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                 {/* Color picker */}
                 <div className="relative">
                   <button
-                    className="w-4 h-4 rounded-full border border-white/[0.1] cursor-pointer hover:scale-110 transition-transform shrink-0"
+                    className="w-4 h-4 rounded-full border border-line-default cursor-pointer hover:scale-110 transition-transform shrink-0"
                     style={{ background: team.color || '#6366F1' }}
                     title="Change color"
                     onClick={(e) => {
@@ -207,11 +207,11 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                       if (picker) picker.classList.toggle('hidden')
                     }}
                   />
-                  <div className="hidden absolute top-6 left-0 z-50 bg-raised border border-white/[0.08] rounded-[8px] p-1.5 flex flex-wrap gap-1 shadow-lg w-[76px]">
+                  <div className="hidden absolute top-6 left-0 z-50 bg-raised border border-line-default rounded-[8px] p-1.5 flex flex-wrap gap-1 shadow-lg w-[76px]">
                     {TEAM_COLORS.map((c) => (
                       <button
                         key={c}
-                        className="w-4 h-4 rounded-full border border-white/[0.1] cursor-pointer hover:scale-110 transition-transform"
+                        className="w-4 h-4 rounded-full border border-line-default cursor-pointer hover:scale-110 transition-transform"
                         style={{ background: c }}
                         onClick={() => changeTeamColor(team.label, c)}
                       />
@@ -227,7 +227,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                     onChange={(e) => setEditValue(e.target.value)}
                     onBlur={() => renameTeam(team.label, editValue)}
                     onKeyDown={(e) => { if (e.key === 'Enter') renameTeam(team.label, editValue) }}
-                    className="flex-1 px-1 py-0.5 text-[11px] bg-white/[0.04] border border-white/[0.08] rounded-[4px] text-text outline-none focus:border-accent-bright/30 min-w-0"
+                    className="flex-1 px-1 py-0.5 text-[11px] bg-layer-2 border border-line-default rounded-[4px] text-text outline-none focus:border-accent-bright/30 min-w-0"
                   />
                 ) : (
                   <span
@@ -285,7 +285,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                     const a = agents[aid]
                     if (!a) return null
                     return (
-                      <div key={aid} className="flex items-center gap-2 pl-5 pr-1 py-1 rounded-[6px] hover:bg-white/[0.03] group/member">
+                      <div key={aid} className="flex items-center gap-2 pl-5 pr-1 py-1 rounded-[6px] hover:bg-layer-1 group/member">
                         <AgentAvatar seed={a.avatarSeed || null} avatarUrl={a.avatarUrl} name={a.name} size={18} />
                         <span className="flex-1 text-[10px] text-text-2 truncate">{a.name}</span>
                         <span className="text-[9px] text-text-3/30 capitalize">{a.role || 'worker'}</span>
@@ -304,7 +304,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
 
                   {/* Add agent to team */}
                   {showAddAgent === team.label ? (
-                    <div className="pl-5 mt-1 flex flex-col gap-0.5 max-h-[120px] overflow-y-auto rounded-[6px] border border-white/[0.06] bg-white/[0.02] p-1">
+                    <div className="pl-5 mt-1 flex flex-col gap-0.5 max-h-[120px] overflow-y-auto rounded-[6px] border border-line-subtle bg-layer-1 p-1">
                       {unassignedAgents.length === 0 ? (
                         <div className="text-[10px] text-text-3/40 text-center py-2">All agents assigned</div>
                       ) : (
@@ -312,7 +312,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                           <button
                             key={a.id}
                             onClick={() => addToTeam(a.id, team.label)}
-                            className="flex items-center gap-2 px-1.5 py-1 rounded-[5px] hover:bg-white/[0.04] bg-transparent border-none cursor-pointer text-left w-full transition-colors"
+                            className="flex items-center gap-2 px-1.5 py-1 rounded-[5px] hover:bg-layer-2 bg-transparent border-none cursor-pointer text-left w-full transition-colors"
                           >
                             <AgentAvatar seed={a.avatarSeed || null} avatarUrl={a.avatarUrl} name={a.name} size={16} />
                             <span className="text-[10px] text-text-3 truncate">{a.name}</span>
@@ -339,7 +339,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
 
         {/* Create new team */}
         {showNewTeam ? (
-          <div className="px-2 py-1.5 flex flex-col gap-1.5 rounded-[8px] border border-white/[0.06] bg-white/[0.02]">
+          <div className="px-2 py-1.5 flex flex-col gap-1.5 rounded-[8px] border border-line-subtle bg-layer-1">
             {!newTeamConfirmed ? (
               /* Step 1: Name input */
               <input
@@ -351,7 +351,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                   if (e.key === 'Escape') { setShowNewTeam(false); setNewTeamName(''); setNewTeamConfirmed(false) }
                 }}
                 placeholder="Team name, then press Enter..."
-                className="w-full px-2 py-1.5 text-[11px] bg-white/[0.04] border border-white/[0.08] rounded-[6px] text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40"
+                className="w-full px-2 py-1.5 text-[11px] bg-layer-2 border border-line-default rounded-[6px] text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40"
               />
             ) : (
               /* Step 2: Pick agents */
@@ -380,7 +380,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                           setNewTeamConfirmed(false)
                           setExpandedTeam(name)
                         }}
-                        className="flex items-center gap-2 px-1.5 py-1 rounded-[5px] hover:bg-white/[0.04] bg-transparent border-none cursor-pointer text-left w-full transition-colors"
+                        className="flex items-center gap-2 px-1.5 py-1 rounded-[5px] hover:bg-layer-2 bg-transparent border-none cursor-pointer text-left w-full transition-colors"
                       >
                         <AgentAvatar seed={a.avatarSeed || null} avatarUrl={a.avatarUrl} name={a.name} size={16} />
                         <span className="text-[10px] text-text-3 truncate">{a.name}</span>
@@ -400,7 +400,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
         ) : (
           <button
             onClick={() => setShowNewTeam(true)}
-            className="flex items-center justify-center gap-1.5 w-full py-2 mt-1 rounded-[8px] border border-dashed border-white/[0.08] text-[10px] font-500 text-text-3 hover:text-text-2 hover:bg-white/[0.03] bg-transparent cursor-pointer transition-colors"
+            className="flex items-center justify-center gap-1.5 w-full py-2 mt-1 rounded-[8px] border border-dashed border-line-default text-[10px] font-500 text-text-3 hover:text-text-2 hover:bg-layer-1 bg-transparent cursor-pointer transition-colors"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />

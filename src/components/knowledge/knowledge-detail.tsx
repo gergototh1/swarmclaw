@@ -192,7 +192,7 @@ export function KnowledgeDetail() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-[1040px] mx-auto px-6 py-6 space-y-6">
-        <div className="rounded-[20px] border border-white/[0.06] bg-raised/60 p-6">
+        <div className="rounded-[20px] border border-line-subtle bg-raised/60 p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -261,14 +261,14 @@ export function KnowledgeDetail() {
               <button
                 onClick={() => { void handleSync() }}
                 disabled={syncing}
-                className="px-3 py-2 rounded-[10px] border border-white/[0.08] bg-white/[0.03] text-[12px] font-600 text-text-2 hover:bg-white/[0.05] disabled:opacity-50 transition-all cursor-pointer"
+                className="px-3 py-2 rounded-[10px] border border-line-default bg-layer-1 text-[12px] font-600 text-text-2 hover:bg-layer-2 disabled:opacity-50 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 {syncing ? 'Syncing...' : 'Sync'}
               </button>
               <button
                 onClick={openEdit}
-                className="px-3 py-2 rounded-[10px] border border-white/[0.08] bg-white/[0.03] text-[12px] font-600 text-text-2 hover:bg-white/[0.05] transition-all cursor-pointer"
+                className="px-3 py-2 rounded-[10px] border border-line-default bg-layer-1 text-[12px] font-600 text-text-2 hover:bg-layer-2 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 Edit
@@ -304,7 +304,7 @@ export function KnowledgeDetail() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-            <div className="rounded-[14px] border border-white/[0.05] bg-white/[0.02] p-4">
+            <div className="rounded-[14px] border border-line-subtle bg-layer-1 p-4">
               <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55 mb-1">Source</p>
               <p className="text-[13px] text-text-2">{source.sourceLabel || 'Manual note'}</p>
               {source.sourceUrl && (
@@ -317,7 +317,7 @@ export function KnowledgeDetail() {
               )}
             </div>
 
-            <div className="rounded-[14px] border border-white/[0.05] bg-white/[0.02] p-4">
+            <div className="rounded-[14px] border border-line-subtle bg-layer-1 p-4">
               <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55 mb-1">Indexing</p>
               <p className="text-[12px] text-text-2">Last indexed: {formatDateTime(source.lastIndexedAt)}</p>
               <p className="text-[12px] text-text-3/70 mt-1">Last sync: {formatDateTime(source.lastSyncedAt)}</p>
@@ -336,19 +336,19 @@ export function KnowledgeDetail() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-[14px] border border-white/[0.05] bg-white/[0.02] p-4">
+          <div className="mt-4 rounded-[14px] border border-line-subtle bg-layer-1 p-4">
             <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55 mb-2">Supersede Source</p>
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <input
                 value={supersedeTargetId}
                 onChange={(event) => setSupersedeTargetId(event.target.value)}
                 placeholder="Replacement source id"
-                className="w-full rounded-[10px] border border-white/[0.08] bg-surface px-3 py-2 text-[13px] text-text outline-none"
+                className="w-full rounded-[10px] border border-line-default bg-surface px-3 py-2 text-[13px] text-text outline-none"
               />
               <button
                 onClick={() => { void handleSupersede() }}
                 disabled={!supersedeTargetId.trim()}
-                className="rounded-[10px] border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[12px] font-600 text-text-2 transition-all cursor-pointer disabled:opacity-50"
+                className="rounded-[10px] border border-line-default bg-layer-1 px-3 py-2 text-[12px] font-600 text-text-2 transition-all cursor-pointer disabled:opacity-50"
                 style={{ fontFamily: 'inherit' }}
               >
                 Mark superseded
@@ -377,7 +377,7 @@ export function KnowledgeDetail() {
             const charEnd = typeof metadata.charEnd === 'number' ? metadata.charEnd : chunk.content.length
 
             return (
-              <div key={chunk.id} className="rounded-[16px] border border-white/[0.06] bg-white/[0.02] p-4">
+              <div key={chunk.id} className="rounded-[16px] border border-line-subtle bg-layer-1 p-4">
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div>
                     <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3/55">

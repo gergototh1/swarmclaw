@@ -12,7 +12,7 @@ export default function ChatroomsPage() {
   return (
     <MainContent>
       <div className="flex-1 flex h-full min-w-0">
-        <div className="w-[280px] shrink-0 border-r border-white/[0.06] flex flex-col">
+        <div className="w-[280px] shrink-0 border-r border-line-subtle flex flex-col">
           <div className="flex items-center px-4 pt-4 pb-2 shrink-0">
             <h2 className="font-display text-[14px] font-600 text-text-2 tracking-[-0.01em] flex-1">
               {viewMode === 'sessions' ? 'Sessions' : 'Chatrooms'}
@@ -43,7 +43,7 @@ export default function ChatroomsPage() {
                 data-active={viewMode === mode || undefined}
                 className="rounded-[8px] border-none px-3 py-1.5 text-[11px] font-600 capitalize cursor-pointer transition-all focus-visible:ring-1 focus-visible:ring-accent-bright/50
                   data-[active]:bg-accent-soft data-[active]:text-accent-bright
-                  bg-transparent text-text-3 hover:text-text-2 hover:bg-white/[0.04]"
+                  bg-transparent text-text-3 hover:text-text-2 hover:bg-layer-2"
               >
                 {mode}
               </button>

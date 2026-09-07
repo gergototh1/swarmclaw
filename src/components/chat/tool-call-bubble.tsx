@@ -531,7 +531,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
             <span
               className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.08em] ${
                 isRunning
-                  ? 'border-current/20 bg-white/[0.05] text-text-3'
+                  ? 'border-current/20 bg-layer-2 text-text-3'
                   : isError
                     ? 'border-rose-500/25 bg-rose-500/10 text-rose-300'
                     : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300'
@@ -557,7 +557,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
           </div>
         </summary>
 
-        <div className="px-3.5 pb-3 pt-1 space-y-2 border-t border-white/[0.04] mt-0" onClick={(e) => e.stopPropagation()}>
+        <div className="px-3.5 pb-3 pt-1 space-y-2 border-t border-line-subtle mt-0" onClick={(e) => e.stopPropagation()}>
           <div className="label-mono">Input</div>
           <pre className="text-[12px] text-text-2 font-mono whitespace-pre-wrap break-all bg-bg/50 rounded-[8px] px-3 py-2 max-h-[200px] overflow-y-auto">
             {formattedInput}

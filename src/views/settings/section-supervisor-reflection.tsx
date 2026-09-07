@@ -41,12 +41,12 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
       <p className="text-[12px] text-text-3 mb-5">
         Let SwarmClaw recover from bad loops automatically and write reflection memory after meaningful runs.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
+      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
         <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Automatic Recovery</label>
         <div className="flex items-center gap-3 mb-5">
           <button
             onClick={() => patchSettings({ supervisorEnabled: !supervisorEnabled })}
-            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${supervisorEnabled ? 'bg-accent' : 'bg-white/[0.12]'}`}
+            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${supervisorEnabled ? 'bg-accent' : 'bg-layer-3'}`}
           >
             <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${supervisorEnabled ? 'translate-x-[18px]' : ''}`} />
           </button>
@@ -64,7 +64,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
               className={`rounded-[12px] border px-3 py-3 text-left transition-colors ${
                 runtimeScope === option.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                  : 'bg-bg border-white/[0.06] text-text-2 hover:bg-surface-2'
+                  : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'
               }`}
             >
               <div className="text-[13px] font-600">{option.label}</div>
@@ -120,7 +120,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => patchSettings({ reflectionEnabled: !reflectionEnabled })}
-            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${reflectionEnabled ? 'bg-accent' : 'bg-white/[0.12]'}`}
+            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${reflectionEnabled ? 'bg-accent' : 'bg-layer-3'}`}
           >
             <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${reflectionEnabled ? 'translate-x-[18px]' : ''}`} />
           </button>
@@ -133,7 +133,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
         <div className="flex items-center gap-3">
           <button
             onClick={() => patchSettings({ reflectionAutoWriteMemory: !reflectionAutoWriteMemory })}
-            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${reflectionAutoWriteMemory ? 'bg-accent' : 'bg-white/[0.12]'}`}
+            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${reflectionAutoWriteMemory ? 'bg-accent' : 'bg-layer-3'}`}
           >
             <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${reflectionAutoWriteMemory ? 'translate-x-[18px]' : ''}`} />
           </button>

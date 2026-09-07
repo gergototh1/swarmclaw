@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 type WebhookApiResponse = Webhook | { error: string }
 type DeleteWebhookResponse = { ok: boolean } | { error: string }
 
-const inputClass = 'w-full px-4 py-3 rounded-[14px] bg-bg border border-white/[0.06] text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3/70'
+const inputClass = 'w-full px-4 py-3 rounded-[14px] bg-bg border border-line-subtle text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3/70'
 
 function webhookPath(id: string): string {
   return `/api/webhooks/${id}`
@@ -198,7 +198,7 @@ export function WebhookSheet() {
         </div>
 
         {editing && (
-          <div className="flex gap-1 p-1 rounded-[12px] bg-bg border border-white/[0.06]">
+          <div className="flex gap-1 p-1 rounded-[12px] bg-bg border border-line-subtle">
             {(['config', 'history'] as const).map((t) => (
               <button
                 key={t}
@@ -223,7 +223,7 @@ export function WebhookSheet() {
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {history.map((entry) => (
-                  <div key={entry.id} className="p-3 rounded-[10px] border border-white/[0.06] bg-white/[0.02]">
+                  <div key={entry.id} className="p-3 rounded-[10px] border border-line-subtle bg-layer-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`text-[10px] font-700 uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] ${
                         entry.status === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
@@ -255,7 +255,7 @@ export function WebhookSheet() {
         )}
 
         {tab === 'config' && editing && (
-          <div className="p-4 rounded-[14px] bg-white/[0.02] border border-white/[0.06]">
+          <div className="p-4 rounded-[14px] bg-layer-1 border border-line-subtle">
             <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Endpoint URL</label>
             <div className="flex gap-2">
               <input
@@ -348,7 +348,7 @@ export function WebhookSheet() {
             <button
               onClick={() => copyText('secret', secret)}
               disabled={!secret.trim()}
-              className="px-3.5 py-2 rounded-[10px] border border-white/[0.1] bg-white/[0.04] text-text-2 text-[12px] font-600 cursor-pointer hover:bg-white/[0.08] transition-colors disabled:opacity-40"
+              className="px-3.5 py-2 rounded-[10px] border border-line-default bg-layer-2 text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-3 transition-colors disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}
             >
               {copied === 'secret' ? 'Copied' : 'Copy'}
@@ -365,7 +365,7 @@ export function WebhookSheet() {
 
         <div>
           <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Status</label>
-          <div className="flex p-1 rounded-[12px] bg-bg border border-white/[0.06]">
+          <div className="flex p-1 rounded-[12px] bg-bg border border-line-subtle">
             <button
               onClick={() => setIsEnabled(true)}
               className={`flex-1 py-2.5 rounded-[10px] text-center cursor-pointer transition-all text-[13px] font-600 border-none ${
@@ -378,7 +378,7 @@ export function WebhookSheet() {
             <button
               onClick={() => setIsEnabled(false)}
               className={`flex-1 py-2.5 rounded-[10px] text-center cursor-pointer transition-all text-[13px] font-600 border-none ${
-                !isEnabled ? 'bg-white/[0.08] text-text-2' : 'bg-transparent text-text-3 hover:text-text-2'
+                !isEnabled ? 'bg-layer-3 text-text-2' : 'bg-transparent text-text-3 hover:text-text-2'
               }`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -400,7 +400,7 @@ export function WebhookSheet() {
           <div className="flex-1" />
           <button
             onClick={handleClose}
-            className="px-5 py-3 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-colors"
+            className="px-5 py-3 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-colors"
             style={{ fontFamily: 'inherit' }}
           >
             Cancel

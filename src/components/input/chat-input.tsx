@@ -250,7 +250,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   <span className={`rounded-pill border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] ${
                     busy
                       ? 'border-amber-300/20 bg-amber-300/10 text-amber-100'
-                      : 'border-white/[0.08] bg-white/[0.05] text-text-3'
+                      : 'border-line-default bg-layer-2 text-text-3'
                   }`}>
                     {queueStatusLabel}
                   </span>
@@ -291,7 +291,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                       ? 'border-sky-300/15 bg-sky-300/[0.06]'
                       : item.runId === nextPendingRunId
                         ? 'border-amber-300/20 bg-amber-300/[0.07]'
-                        : 'border-white/[0.05] bg-white/[0.02]'
+                        : 'border-line-subtle bg-layer-1'
                   }`}
                 >
                   <div className={`mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-[8px] px-2 text-[10px] font-700 ${
@@ -299,7 +299,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                       ? 'bg-sky-300/15 text-sky-100'
                       : item.runId === nextPendingRunId
                         ? 'bg-amber-300/15 text-amber-100'
-                      : 'border-white/[0.05] bg-white/[0.02]'
+                      : 'border-line-subtle bg-layer-1'
                   }`}
                 >
                     {item.sending ? '>' : pendingQueuedMessages.findIndex((candidate) => candidate.runId === item.runId) + 1}
@@ -316,16 +316,16 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                         </span>
                       )}
                       {item.replyToId && (
-                        <span className="rounded-pill border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-text-3">
+                        <span className="rounded-pill border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
                           Reply
                         </span>
                       )}
                       {item.attachedFiles?.length ? (
-                        <span className="rounded-pill border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-text-3">
+                        <span className="rounded-pill border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
                           +{item.attachedFiles.length} files
                         </span>
                       ) : item.imagePath || item.imageUrl ? (
-                        <span className="rounded-pill border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-text-3">
+                        <span className="rounded-pill border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
                           1 attachment
                         </span>
                       ) : null}
@@ -370,7 +370,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 aria-label="Add attachment"
                 data-testid="chat-add"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] border-none bg-transparent
-                  text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-white/[0.05] transition-all duration-200"
+                  text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all duration-200"
                 style={{ fontFamily: 'inherit' }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -397,7 +397,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                     ? shouldQueue
                       ? 'bg-amber-500/20 text-amber-400 active:scale-90 border border-amber-500/30'
                       : 'bg-accent-bright text-white active:scale-90 shadow-[0_4px_16px_rgba(99,102,241,0.3)]'
-                    : 'bg-white/[0.04] text-text-3 pointer-events-none'}`}
+                    : 'bg-layer-2 text-text-3 pointer-events-none'}`}
                 title={shouldQueue ? 'Queue message' : 'Send message'}
               >
                 {shouldQueue && hasContent ? (
@@ -433,14 +433,14 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
         </ComposerShell>
 
         {extrasOpen && (
-          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-[16px] border border-white/[0.08] bg-raised/95 p-2 shadow-[0_18px_64px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-[16px] border border-line-default bg-raised/95 p-2 shadow-[0_18px_64px_rgba(0,0,0,0.55)] backdrop-blur-xl">
             <button
               type="button"
               onClick={() => {
                 setExtrasOpen(false)
                 fileInputRef.current?.click()
               }}
-              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-white/[0.05] cursor-pointer transition-colors"
+              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -454,7 +454,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 setExtrasOpen(false)
                 imageInputRef.current?.click()
               }}
-              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-white/[0.05] cursor-pointer transition-colors"
+              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -472,7 +472,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   toggleRecording()
                 }}
                 className={`flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] cursor-pointer transition-colors ${
-                  recording ? 'text-danger bg-danger/[0.06]' : 'text-text-2 hover:bg-white/[0.05]'
+                  recording ? 'text-danger bg-danger/[0.06]' : 'text-text-2 hover:bg-layer-2'
                 }`}
                 style={recording ? { animation: 'mic-pulse 1.5s ease-out infinite', fontFamily: 'inherit' } : { fontFamily: 'inherit' }}
               >
@@ -491,7 +491,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 void useChatStore.getState().clearContext()
               }}
               disabled={streaming}
-              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-white/[0.05] cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -503,7 +503,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
             </button>
             {extensionChatActions.length > 0 && (
               <>
-                <div className="mx-2 my-1 h-px bg-white/[0.06]" />
+                <div className="mx-2 my-1 h-px bg-layer-2" />
                 <div className="px-3 pb-1 pt-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/50">
                   Quick actions
                 </div>

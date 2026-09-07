@@ -143,9 +143,9 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
   }, [onClose])
 
   return (
-    <div className="w-[400px] shrink-0 border-l border-white/[0.06] bg-bg flex flex-col h-full overflow-hidden fade-up-delay">
+    <div className="w-[400px] shrink-0 border-l border-line-subtle bg-bg flex flex-col h-full overflow-hidden fade-up-delay">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-line-subtle shrink-0">
         <div className="flex items-center gap-2">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-rose-400/70 shrink-0">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -155,7 +155,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded-[6px] text-text-3/50 hover:text-text-3 bg-transparent border-none cursor-pointer transition-all hover:bg-white/[0.04]"
+          className="p-1 rounded-[6px] text-text-3/50 hover:text-text-3 bg-transparent border-none cursor-pointer transition-all hover:bg-layer-2"
           aria-label="Close heartbeat history"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -211,7 +211,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
                 <button
                   key={`${entry.msg.time}-${i}`}
                   onClick={() => setExpandedIdx(isExpanded ? null : i)}
-                  className="w-full text-left px-3 py-2.5 rounded-[10px] bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors cursor-pointer group"
+                  className="w-full text-left px-3 py-2.5 rounded-[10px] bg-layer-1 border border-line-subtle hover:bg-layer-2 transition-colors cursor-pointer group"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {/* Top row: status dot + time */}
@@ -256,7 +256,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
 
                   {/* Expanded summary */}
                   {isExpanded && entry.summary && (
-                    <div className="mt-2 pt-2 border-t border-white/[0.06] text-[12px] text-text-3 leading-relaxed whitespace-pre-wrap">
+                    <div className="mt-2 pt-2 border-t border-line-subtle text-[12px] text-text-3 leading-relaxed whitespace-pre-wrap">
                       {entry.summary}
                     </div>
                   )}

@@ -123,7 +123,7 @@ export default function MemoryPage() {
     return (
       <div className="flex-1 flex items-center justify-center px-8">
         <div className="text-center max-w-[380px]">
-          <div className="w-14 h-14 rounded-[16px] bg-white/[0.03] flex items-center justify-center mb-4 mx-auto">
+          <div className="w-14 h-14 rounded-[16px] bg-layer-1 flex items-center justify-center mb-4 mx-auto">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/60">
               <ellipse cx="12" cy="5" rx="9" ry="3" />
               <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
@@ -139,20 +139,20 @@ export default function MemoryPage() {
 
   return (
     <div className="flex-1 flex h-full min-w-0">
-      <div className="w-[360px] shrink-0 border-r border-white/[0.06] flex flex-col overflow-hidden">
+      <div className="w-[360px] shrink-0 border-r border-line-subtle flex flex-col overflow-hidden">
         <div className="px-3 pt-3 pb-1 shrink-0">
           <div className="flex items-center gap-2 mb-2">
             <h3 className="font-display text-[13px] font-600 text-text-2 tracking-[-0.01em] flex-1 truncate">{filterLabel}</h3>
-            <div className="flex bg-white/[0.04] p-0.5 rounded-[8px]">
+            <div className="flex bg-layer-2 p-0.5 rounded-[8px]">
                <button
                  onClick={() => setViewMode('list')}
-                 className={`p-1 rounded-[6px] transition-colors ${viewMode === 'list' ? 'bg-white/[0.08] text-text' : 'text-text-3 hover:text-text-2'}`}
+                 className={`p-1 rounded-[6px] transition-colors ${viewMode === 'list' ? 'bg-layer-3 text-text' : 'text-text-3 hover:text-text-2'}`}
                >
                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                </button>
                <button
                  onClick={() => setViewMode('graph')}
-                 className={`p-1 rounded-[6px] transition-colors ${viewMode === 'graph' ? 'bg-white/[0.08] text-text' : 'text-text-3 hover:text-text-2'}`}
+                 className={`p-1 rounded-[6px] transition-colors ${viewMode === 'graph' ? 'bg-layer-3 text-text' : 'text-text-3 hover:text-text-2'}`}
                >
                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                </button>
@@ -164,7 +164,7 @@ export default function MemoryPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search memories..."
-            className="w-full px-4 py-2.5 rounded-[12px] border border-white/[0.04] bg-surface text-text
+            className="w-full px-4 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text
               text-[13px] outline-none transition-all duration-200 placeholder:text-text-3/70 focus-glow"
             style={{ fontFamily: 'inherit' }}
           />
@@ -186,8 +186,8 @@ export default function MemoryPage() {
                 onClick={() => setMemoryTierFilter(tier)}
                 className={`px-2.5 py-1 rounded-[8px] text-[10px] font-700 uppercase tracking-[0.08em] border transition-all ${
                   memoryTierFilter === tier
-                    ? 'bg-white/[0.08] text-text-2 border-white/[0.10]'
-                    : 'bg-transparent text-text-3/70 border-white/[0.05] hover:text-text-2 hover:bg-white/[0.03]'
+                    ? 'bg-layer-3 text-text-2 border-line-default'
+                    : 'bg-transparent text-text-3/70 border-line-subtle hover:text-text-2 hover:bg-layer-1'
                 }`}
               >
                 {tier}
@@ -199,7 +199,7 @@ export default function MemoryPage() {
               className={`px-2.5 py-1 rounded-[8px] text-[10px] font-700 uppercase tracking-[0.08em] border transition-all ${
                 dueOnly
                   ? 'bg-amber-500/12 text-amber-300 border-amber-500/20'
-                  : 'bg-transparent text-text-3/70 border-white/[0.05] hover:text-text-2 hover:bg-white/[0.03]'
+                  : 'bg-transparent text-text-3/70 border-line-subtle hover:text-text-2 hover:bg-layer-1'
               }`}
             >
               Due follow-ups
@@ -216,7 +216,7 @@ export default function MemoryPage() {
               <button
                 onClick={() => setCategoryFilter('')}
                 className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border-none
-                  ${!categoryFilter ? 'bg-white/[0.06] text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'}`}
+                  ${!categoryFilter ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'}`}
                 style={{ fontFamily: 'inherit' }}
               >
                 all
@@ -226,7 +226,7 @@ export default function MemoryPage() {
                   key={c}
                   onClick={() => setCategoryFilter(categoryFilter === c ? '' : c)}
                   className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border-none
-                    ${categoryFilter === c ? 'bg-white/[0.06] text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'}`}
+                    ${categoryFilter === c ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'}`}
                   style={{ fontFamily: 'inherit' }}
                 >
                   {c}

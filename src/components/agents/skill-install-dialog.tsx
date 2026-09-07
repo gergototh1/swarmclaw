@@ -67,7 +67,7 @@ export function SkillInstallDialog({ open, onClose, skillName, installOptions = 
                 className={`px-3 py-1.5 rounded-[8px] text-[12px] font-600 cursor-pointer transition-all border
                   ${selectedMethod === m.kind
                     ? 'bg-accent-soft text-accent-bright border-accent-bright/30'
-                    : 'bg-transparent text-text-3 border-white/[0.08] hover:border-white/[0.15]'
+                    : 'bg-transparent text-text-3 border-line-default hover:border-line-strong'
                   }`}
                 style={{ fontFamily: 'inherit' }}
               >
@@ -82,7 +82,7 @@ export function SkillInstallDialog({ open, onClose, skillName, installOptions = 
           <button
             onClick={onClose}
             disabled={installing}
-            className="px-4 py-2 rounded-[10px] border border-white/[0.08] bg-transparent text-text-2 text-[13px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+            className="px-4 py-2 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[13px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             Cancel

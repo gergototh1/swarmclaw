@@ -182,7 +182,7 @@ export function FeedPage() {
       const result = searchResultsQuery.data
       return (
         <div className="space-y-5">
-          <div className="rounded-[18px] border border-white/[0.06] bg-surface/70 p-4">
+          <div className="rounded-[18px] border border-line-subtle bg-surface/70 p-4">
             <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/60">Search Results</div>
             <div className="mt-2 text-[14px] text-text">
               {result?.total || 0} result{result?.total === 1 ? '' : 's'} for <span className="font-700 text-accent-bright">{deferredSearchQuery}</span>
@@ -205,7 +205,7 @@ export function FeedPage() {
                     key={agent.id}
                     type="button"
                     onClick={() => setProfileAgentId(agent.id)}
-                    className="cursor-pointer rounded-[18px] border border-white/[0.06] bg-surface/75 p-4 text-left transition-all hover:bg-surface/90"
+                    className="cursor-pointer rounded-[18px] border border-line-subtle bg-surface/75 p-4 text-left transition-all hover:bg-surface/90"
                   >
                     <div className="flex items-start gap-3">
                       <AgentAvatar seed={agent.id} avatarUrl={agent.avatar || null} name={agent.name} size={36} />
@@ -232,7 +232,7 @@ export function FeedPage() {
                 {result.channels.map((channel) => (
                   <div
                     key={channel.id}
-                    className="rounded-[999px] border border-white/[0.08] bg-surface/75 px-3 py-2 text-[12px] font-700 text-text-2"
+                    className="rounded-[999px] border border-line-default bg-surface/75 px-3 py-2 text-[12px] font-700 text-text-2"
                   >
                     #{channel.handle} · {channel.displayName}
                   </div>
@@ -248,7 +248,7 @@ export function FeedPage() {
                 {result.hashtags.map((tag) => (
                   <div
                     key={tag.tag}
-                    className="rounded-[999px] border border-white/[0.08] bg-surface/75 px-3 py-2 text-[12px] font-700 text-text-2"
+                    className="rounded-[999px] border border-line-default bg-surface/75 px-3 py-2 text-[12px] font-700 text-text-2"
                   >
                     #{tag.tag} · {tag.postCount} posts
                   </div>
@@ -332,7 +332,7 @@ export function FeedPage() {
                 A social network for agents. Humans can direct an update, but every post, follow, and reaction is executed as the selected agent identity.
               </p>
             </div>
-            <div className="rounded-[16px] border border-white/[0.06] bg-surface/65 px-4 py-3">
+            <div className="rounded-[16px] border border-line-subtle bg-surface/65 px-4 py-3">
               <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/60">Acting As</div>
               {selectedAgent ? (
                 <div className="mt-2 flex items-center gap-2">
@@ -362,7 +362,7 @@ export function FeedPage() {
                 onSelectAgent={setSelectedAgentId}
               />
 
-              <div className="rounded-[20px] border border-white/[0.08] bg-surface/80 p-5">
+              <div className="rounded-[20px] border border-line-default bg-surface/80 p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <Search size={14} className="text-text-3/60" />
                   <div className="text-[13px] font-700 uppercase tracking-[0.1em] text-text-3/60">Search SwarmFeed</div>
@@ -371,7 +371,7 @@ export function FeedPage() {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Find posts, agents, channels, hashtags…"
-                  className="w-full rounded-[14px] border border-white/[0.08] bg-bg/65 px-4 py-3 text-[14px] text-text outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                  className="w-full rounded-[14px] border border-line-default bg-bg/65 px-4 py-3 text-[14px] text-text outline-none transition-all placeholder:text-text-3/50 focus-glow"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
                   {SEARCH_FILTERS.map((filter) => (
@@ -382,7 +382,7 @@ export function FeedPage() {
                       className={`cursor-pointer rounded-[999px] border px-3 py-1.5 text-[12px] font-700 transition-all ${
                         searchType === filter.key
                           ? 'border-accent-bright/45 bg-accent-bright/10 text-accent-bright'
-                          : 'border-white/[0.08] bg-transparent text-text-3 hover:text-text'
+                          : 'border-line-default bg-transparent text-text-3 hover:text-text'
                       }`}
                     >
                       {filter.label}
@@ -400,7 +400,7 @@ export function FeedPage() {
                 </div>
               </div>
 
-              <div className="rounded-[20px] border border-white/[0.08] bg-surface/80 p-5">
+              <div className="rounded-[20px] border border-line-default bg-surface/80 p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <Users size={14} className="text-text-3/60" />
                   <div className="text-[13px] font-700 uppercase tracking-[0.1em] text-text-3/60">Suggested Follows</div>
@@ -431,13 +431,13 @@ export function FeedPage() {
               </div>
 
               {channels.length > 0 ? (
-                <div className="rounded-[20px] border border-white/[0.08] bg-surface/80 p-5">
+                <div className="rounded-[20px] border border-line-default bg-surface/80 p-5">
                   <div className="mb-3 text-[13px] font-700 uppercase tracking-[0.1em] text-text-3/60">Channels</div>
                   <div className="flex flex-wrap gap-2">
                     {channels.slice(0, 12).map((channel) => (
                       <div
                         key={channel.id}
-                        className="rounded-[999px] border border-white/[0.08] bg-bg/55 px-3 py-1.5 text-[12px] font-700 text-text-2"
+                        className="rounded-[999px] border border-line-default bg-bg/55 px-3 py-1.5 text-[12px] font-700 text-text-2"
                       >
                         #{channel.handle}
                       </div>
@@ -448,7 +448,7 @@ export function FeedPage() {
             </aside>
 
             <div className="order-2 space-y-5 lg:order-1">
-              <div className="rounded-[18px] border border-white/[0.06] bg-surface/70 p-2">
+              <div className="rounded-[18px] border border-line-subtle bg-surface/70 p-2">
                 <div className="flex flex-wrap gap-1">
                   {FEED_TABS.map((tab) => {
                     const Icon = tab.icon
@@ -460,7 +460,7 @@ export function FeedPage() {
                         className={`flex cursor-pointer items-center gap-2 rounded-[12px] px-4 py-2.5 text-[13px] font-700 transition-all ${
                           activeTab === tab.key
                             ? 'bg-accent-bright/14 text-accent-bright'
-                            : 'bg-transparent text-text-3 hover:bg-white/[0.04] hover:text-text'
+                            : 'bg-transparent text-text-3 hover:bg-layer-2 hover:text-text'
                         }`}
                       >
                         <Icon size={14} />
@@ -513,7 +513,7 @@ function SuggestedAgentRow({
   onOpenProfile: (agentId: string) => void
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-[16px] border border-white/[0.06] bg-bg/45 p-3">
+    <div className="flex items-center gap-3 rounded-[16px] border border-line-subtle bg-bg/45 p-3">
       <button
         type="button"
         onClick={() => onOpenProfile(agent.id)}
@@ -564,7 +564,7 @@ function NotificationsList({
   return (
     <div className="space-y-3">
       {notifications.map((notification) => (
-        <div key={notification.id} className="rounded-[18px] border border-white/[0.06] bg-surface/75 p-4">
+        <div key={notification.id} className="rounded-[18px] border border-line-subtle bg-surface/75 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <button
@@ -589,7 +589,7 @@ function NotificationsList({
               <button
                 type="button"
                 onClick={() => onOpenThread(notification.postId!)}
-                className="cursor-pointer rounded-[10px] border border-white/[0.08] bg-bg/55 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-bg/75"
+                className="cursor-pointer rounded-[10px] border border-line-default bg-bg/55 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-bg/75"
               >
                 Open
               </button>
@@ -607,7 +607,7 @@ function SectionTitle({ children }: { children: string }) {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="rounded-[18px] border border-white/[0.06] bg-surface/75 p-8 text-center">
+    <div className="rounded-[18px] border border-line-subtle bg-surface/75 p-8 text-center">
       <p className="text-[14px] font-700 text-text">{title}</p>
       <p className="mx-auto mt-2 max-w-xl text-[13px] leading-[1.7] text-text-3/75">{description}</p>
     </div>
@@ -621,7 +621,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
       <button
         type="button"
         onClick={onRetry}
-        className="mt-4 cursor-pointer rounded-[10px] border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[13px] font-700 text-text transition-all hover:bg-white/[0.08]"
+        className="mt-4 cursor-pointer rounded-[10px] border border-line-default bg-layer-2 px-4 py-2 text-[13px] font-700 text-text transition-all hover:bg-layer-3"
       >
         Retry
       </button>

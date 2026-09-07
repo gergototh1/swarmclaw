@@ -83,7 +83,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
                   <div
                     onClick={(e) => { e.preventDefault(); toggleTool(toolId) }}
                     className={`w-7 h-[16px] rounded-full transition-all duration-200 relative cursor-pointer shrink-0
-                      ${enabled ? 'bg-accent-bright' : 'bg-white/[0.12]'}`}
+                      ${enabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
                   >
                     <div className={`absolute top-[2px] w-[12px] h-[12px] rounded-full bg-white transition-all duration-200
                       ${enabled ? 'left-[13px]' : 'left-[2px]'}`} />
@@ -98,7 +98,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
         </div>
 
         {/* Divider */}
-        <div className="border-t border-white/[0.06] my-2" />
+        <div className="border-t border-line-subtle my-2" />
 
         {/* Actions */}
         <div className="flex gap-2">
@@ -106,7 +106,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
             onClick={() => {
               navigateTo('agents', agent.id)
             }}
-            className="flex-1 text-[12px] font-500 text-text-2 hover:text-text py-1 rounded-[6px] bg-white/[0.04] hover:bg-white/[0.08] transition-colors cursor-pointer"
+            className="flex-1 text-[12px] font-500 text-text-2 hover:text-text py-1 rounded-[6px] bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
           >
             Chat
           </button>
@@ -115,7 +115,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
               useAppStore.getState().setEditingAgentId(agent.id)
               useAppStore.getState().setAgentSheetOpen(true)
             }}
-            className="flex-1 text-[12px] font-500 text-text-2 hover:text-text py-1 rounded-[6px] bg-white/[0.04] hover:bg-white/[0.08] transition-colors cursor-pointer"
+            className="flex-1 text-[12px] font-500 text-text-2 hover:text-text py-1 rounded-[6px] bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
           >
             Edit
           </button>

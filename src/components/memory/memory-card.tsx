@@ -29,7 +29,7 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
         transition-all duration-200 active:scale-[0.98]
         ${active
           ? 'bg-accent-soft border border-accent-bright/10'
-          : 'bg-transparent border border-transparent hover:bg-white/[0.02] hover:border-white/[0.03]'}`}
+          : 'bg-transparent border border-transparent hover:bg-layer-1 hover:border-line-subtle'}`}
     >
       {active && (
         <div className="absolute left-0 top-3 bottom-3 w-[2.5px] rounded-full bg-accent-bright" />
@@ -57,7 +57,7 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
         {entry.content || '(empty)'}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="px-1.5 py-0.5 rounded-[5px] text-[9px] font-700 uppercase tracking-[0.08em] bg-white/[0.04] text-text-3/75">
+        <span className="px-1.5 py-0.5 rounded-[5px] text-[9px] font-700 uppercase tracking-[0.08em] bg-layer-2 text-text-3/75">
           {getMemoryScopeLabel(scope)}
         </span>
         <span className={`px-1.5 py-0.5 rounded-[5px] text-[9px] font-700 uppercase tracking-[0.08em] ${
@@ -71,7 +71,7 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
         </span>
       </div>
       {(entry.image?.path || entry.imagePath) && (
-        <div className="mt-2 w-10 h-10 rounded-[6px] overflow-hidden bg-white/[0.04] shrink-0">
+        <div className="mt-2 w-10 h-10 rounded-[6px] overflow-hidden bg-layer-2 shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={

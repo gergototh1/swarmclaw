@@ -252,13 +252,13 @@ export function ExtensionSheet() {
     `py-2.5 px-4 rounded-[10px] text-center cursor-pointer transition-all text-[12px] font-600 border
     ${tab === t
       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-      : 'bg-bg border-white/[0.06] text-text-3 hover:bg-surface-2'}`
+      : 'bg-bg border-line-subtle text-text-3 hover:bg-surface-2'}`
 
   return (
     <BottomSheet open={open} onClose={handleClose}>
       {editing ? (
         <div className="space-y-5">
-          <div className="py-4 px-4 rounded-[14px] bg-surface border border-white/[0.06]">
+          <div className="py-4 px-4 rounded-[14px] bg-surface border border-line-subtle">
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -269,14 +269,14 @@ export function ExtensionSheet() {
                 <p className="text-[12px] text-text-3/80 leading-relaxed">{extensionDescription(editing)}</p>
               </div>
               <span className={`shrink-0 text-[10px] font-600 px-2 py-1 rounded-full ${
-                editing.enabled ? 'text-emerald-300 bg-emerald-500/10' : 'text-text-3/80 bg-white/[0.05]'
+                editing.enabled ? 'text-emerald-300 bg-emerald-500/10' : 'text-text-3/80 bg-layer-2'
               }`}>
                 {editing.enabled ? 'Enabled' : 'Disabled'}
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
-              <div className="rounded-[10px] bg-bg/50 border border-white/[0.05] px-2.5 py-2">
+              <div className="rounded-[10px] bg-bg/50 border border-line-subtle px-2.5 py-2">
                 <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Type</div>
                 <div className="text-[11px] text-text-2">
                   {editing.isBuiltin
@@ -288,11 +288,11 @@ export function ExtensionSheet() {
                         : 'Local Extension'}
                 </div>
               </div>
-              <div className="rounded-[10px] bg-bg/50 border border-white/[0.05] px-2.5 py-2">
+              <div className="rounded-[10px] bg-bg/50 border border-line-subtle px-2.5 py-2">
                 <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Publisher</div>
                 <div className="text-[11px] text-text-2">{getExtensionSourceLabel(editing.sourceLabel)}</div>
               </div>
-              <div className="rounded-[10px] bg-bg/50 border border-white/[0.05] px-2.5 py-2">
+              <div className="rounded-[10px] bg-bg/50 border border-line-subtle px-2.5 py-2">
                 <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Installed Via</div>
                 <div className="text-[11px] text-text-2">{getExtensionSourceLabel(editing.installSource || editing.sourceLabel)}</div>
               </div>
@@ -304,7 +304,7 @@ export function ExtensionSheet() {
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               {extensionCapabilityBadges(editing).length > 0 ? (
                 extensionCapabilityBadges(editing).map((badge) => (
-                  <span key={badge} className="text-[10px] font-600 px-1.5 py-0.5 rounded-full text-text-3/80 bg-white/[0.05]">
+                  <span key={badge} className="text-[10px] font-600 px-1.5 py-0.5 rounded-full text-text-3/80 bg-layer-2">
                     {badge}
                   </span>
                 ))
@@ -317,7 +317,7 @@ export function ExtensionSheet() {
                 </span>
               )}
               {editing.installSource && editing.installSource !== editing.sourceLabel && (
-                <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-white/[0.05] text-text-3/75">
+                <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-layer-2 text-text-3/75">
                   via {getExtensionSourceLabel(editing.installSource)}
                 </span>
               )}
@@ -333,7 +333,7 @@ export function ExtensionSheet() {
           </div>
 
           {(editing.hasDependencyManifest || !editing.isBuiltin) && (
-            <div className="py-4 px-4 rounded-[14px] bg-surface border border-white/[0.06]">
+            <div className="py-4 px-4 rounded-[14px] bg-surface border border-line-subtle">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[13px] font-600 text-text">Dependencies</div>
@@ -356,11 +356,11 @@ export function ExtensionSheet() {
               </div>
 
               <div className="grid grid-cols-2 gap-2 mt-3">
-                <div className="rounded-[10px] bg-bg/50 border border-white/[0.05] px-2.5 py-2">
+                <div className="rounded-[10px] bg-bg/50 border border-line-subtle px-2.5 py-2">
                   <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Runtime deps</div>
                   <div className="text-[11px] text-text-2">{editing.dependencyCount ?? 0}</div>
                 </div>
-                <div className="rounded-[10px] bg-bg/50 border border-white/[0.05] px-2.5 py-2">
+                <div className="rounded-[10px] bg-bg/50 border border-line-subtle px-2.5 py-2">
                   <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Status</div>
                   <div className="text-[11px] text-text-2">{editing.dependencyInstallStatus || 'none'}</div>
                 </div>
@@ -387,7 +387,7 @@ export function ExtensionSheet() {
             </div>
           )}
 
-          <div className="flex items-center justify-between py-3 px-4 rounded-[14px] bg-surface border border-white/[0.06]">
+          <div className="flex items-center justify-between py-3 px-4 rounded-[14px] bg-surface border border-line-subtle">
             <div>
               <span className="text-[13px] font-600 text-text block">Enabled</span>
               <span className="text-[11px] text-text-3/60">Disable to keep the extension installed but inactive.</span>
@@ -395,7 +395,7 @@ export function ExtensionSheet() {
             <div
               onClick={() => toggleExtension(editing.filename, !editing.enabled)}
               className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0
-                ${editing.enabled ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                ${editing.enabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
             >
               <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
                 ${editing.enabled ? 'left-[22px]' : 'left-0.5'}`} />
@@ -403,7 +403,7 @@ export function ExtensionSheet() {
           </div>
 
           {editing.settingsFields && editing.settingsFields.length > 0 && (
-            <div className="py-4 px-4 rounded-[14px] bg-surface border border-white/[0.06] space-y-3">
+            <div className="py-4 px-4 rounded-[14px] bg-surface border border-line-subtle space-y-3">
               <div className="text-[13px] font-600 text-text">Settings</div>
               {extensionSettingsLoading ? (
                 <p className="text-[11px] text-text-3/60">Loading...</p>
@@ -485,7 +485,7 @@ export function ExtensionSheet() {
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
                           placeholder="Search extensions..."
-                          className="w-full px-3 py-2.5 rounded-[10px] bg-bg border border-white/[0.06] text-[12px] text-text placeholder:text-text-3/50 outline-none focus:border-accent-bright/30"
+                          className="w-full px-3 py-2.5 rounded-[10px] bg-bg border border-line-subtle text-[12px] text-text placeholder:text-text-3/50 outline-none focus:border-accent-bright/30"
                           style={{ fontFamily: 'inherit' }}
                         />
 
@@ -494,7 +494,7 @@ export function ExtensionSheet() {
                           <button
                             onClick={() => setActiveTag(null)}
                             className={`px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none ${
-                              !activeTag ? 'bg-accent-soft text-accent-bright' : 'bg-white/[0.03] text-text-3/60 hover:text-text-3'
+                              !activeTag ? 'bg-accent-soft text-accent-bright' : 'bg-layer-1 text-text-3/60 hover:text-text-3'
                             }`}
                           >
                             All
@@ -504,7 +504,7 @@ export function ExtensionSheet() {
                               key={t}
                               onClick={() => setActiveTag(activeTag === t ? null : t)}
                               className={`px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none ${
-                                activeTag === t ? 'bg-accent-soft text-accent-bright' : 'bg-white/[0.03] text-text-3/60 hover:text-text-3'
+                                activeTag === t ? 'bg-accent-soft text-accent-bright' : 'bg-layer-1 text-text-3/60 hover:text-text-3'
                               }`}
                             >
                               {t}
@@ -514,7 +514,7 @@ export function ExtensionSheet() {
                           <select
                             value={sort}
                             onChange={(e) => setSort(e.target.value as 'name' | 'downloads')}
-                            className="px-2 py-1 rounded-[6px] bg-bg border border-white/[0.06] text-[10px] text-text-3 outline-none cursor-pointer appearance-none"
+                            className="px-2 py-1 rounded-[6px] bg-bg border border-line-subtle text-[10px] text-text-3 outline-none cursor-pointer appearance-none"
                             style={{ fontFamily: 'inherit' }}
                           >
                             <option value="downloads">Popular</option>
@@ -530,7 +530,7 @@ export function ExtensionSheet() {
                             {filtered.map((p) => {
                               const isInstalled = installedFilenames.has(`${p.id}.js`)
                               return (
-                                <div key={p.id} className="py-3.5 px-4 rounded-[14px] bg-surface border border-white/[0.06]">
+                                <div key={p.id} className="py-3.5 px-4 rounded-[14px] bg-surface border border-line-subtle">
                                   <div className="flex items-start gap-3">
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2">
@@ -545,7 +545,7 @@ export function ExtensionSheet() {
                                           </span>
                                         )}
                                         {p.catalogSource && p.catalogSource !== p.source && (
-                                          <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-white/[0.05] text-text-3/75">
+                                          <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-layer-2 text-text-3/75">
                                             via {getExtensionSourceLabel(p.catalogSource)}
                                           </span>
                                         )}
@@ -559,7 +559,7 @@ export function ExtensionSheet() {
                                             key={t}
                                             onClick={() => setActiveTag(activeTag === t ? null : t)}
                                             className={`text-[9px] font-600 px-1.5 py-0.5 rounded-full cursor-pointer transition-all border-none ${
-                                              activeTag === t ? 'text-accent-bright bg-accent-soft' : 'text-text-3/50 bg-white/[0.04] hover:text-text-3'
+                                              activeTag === t ? 'text-accent-bright bg-accent-soft' : 'text-text-3/50 bg-layer-2 hover:text-text-3'
                                             }`}
                                           >
                                             {t}
@@ -572,7 +572,7 @@ export function ExtensionSheet() {
                                       disabled={isInstalled || installing === p.id}
                                       className={`shrink-0 py-2 px-4 rounded-[10px] text-[12px] font-600 transition-all cursor-pointer
                                         ${isInstalled
-                                          ? 'bg-white/[0.04] text-text-3/70 cursor-default'
+                                          ? 'bg-layer-2 text-text-3/70 cursor-default'
                                           : installing === p.id
                                             ? 'bg-accent-soft text-accent-bright animate-pulse'
                                             : 'bg-accent-soft text-accent-bright hover:bg-accent-soft/80 border border-accent-bright/20'}`}
@@ -592,7 +592,7 @@ export function ExtensionSheet() {
           )}
 
           {tab === 'url' && (
-            <div className="p-5 rounded-[14px] bg-surface border border-white/[0.06]">
+            <div className="p-5 rounded-[14px] bg-surface border border-line-subtle">
               <div className="mb-4">
                 <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Extension URL</label>
                 <input
@@ -600,7 +600,7 @@ export function ExtensionSheet() {
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   placeholder="https://example.com/my-extension.js"
-                  className="w-full py-2.5 px-3 rounded-[10px] text-[13px] bg-bg border border-white/[0.06] text-text placeholder:text-text-3/60 outline-none focus:border-accent-bright/30"
+                  className="w-full py-2.5 px-3 rounded-[10px] text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3/60 outline-none focus:border-accent-bright/30"
                   style={{ fontFamily: 'inherit' }}
                 />
               </div>
@@ -611,7 +611,7 @@ export function ExtensionSheet() {
                   value={urlFilename}
                   onChange={(e) => setUrlFilename(e.target.value)}
                   placeholder="my-extension.js"
-                  className="w-full py-2.5 px-3 rounded-[10px] text-[13px] bg-bg border border-white/[0.06] text-text placeholder:text-text-3/60 outline-none focus:border-accent-bright/30"
+                  className="w-full py-2.5 px-3 rounded-[10px] text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3/60 outline-none focus:border-accent-bright/30"
                   style={{ fontFamily: 'inherit' }}
                 />
               </div>
@@ -664,7 +664,7 @@ function ExtensionSettingRow({
   configured: boolean
   onChange: (v: unknown) => void
 }) {
-  const inputCls = 'w-full py-2 px-3 rounded-[8px] text-[12px] bg-bg border border-white/[0.06] text-text placeholder:text-text-3/50 outline-none focus:border-accent-bright/30'
+  const inputCls = 'w-full py-2 px-3 rounded-[8px] text-[12px] bg-bg border border-line-subtle text-text placeholder:text-text-3/50 outline-none focus:border-accent-bright/30'
 
   return (
     <div>
@@ -676,7 +676,7 @@ function ExtensionSettingRow({
         <div
           onClick={() => onChange(!(value ?? field.defaultValue ?? false))}
           className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0
-            ${(value ?? field.defaultValue ?? false) ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+            ${(value ?? field.defaultValue ?? false) ? 'bg-accent-bright' : 'bg-layer-3'}`}
         >
           <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
             ${(value ?? field.defaultValue ?? false) ? 'left-[22px]' : 'left-0.5'}`} />

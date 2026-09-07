@@ -117,7 +117,7 @@ export function ChatToolToggles({ session }: Props) {
       <button
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] transition-colors cursor-pointer border-none
-          ${open ? 'bg-accent-soft text-accent-bright' : 'bg-white/[0.04] text-text-3 hover:bg-white/[0.07]'}`}
+          ${open ? 'bg-accent-soft text-accent-bright' : 'bg-layer-2 text-text-3 hover:bg-layer-3'}`}
       >
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
           <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
@@ -128,13 +128,13 @@ export function ChatToolToggles({ session }: Props) {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1.5 w-[260px] max-h-[420px] overflow-y-auto rounded-[12px] border border-white/[0.08] shadow-xl z-[120] overflow-hidden"
+        <div className="absolute top-full left-0 mt-1.5 w-[260px] max-h-[420px] overflow-y-auto rounded-[12px] border border-line-default shadow-xl z-[120] overflow-hidden"
           style={{ animation: 'fade-in 0.15s ease', backgroundColor: '#171a2b' }}>
          <TooltipProvider delayDuration={300}>
           {groups.map((group, gi) => {
             if (group.tools.length === 0) return null
             return (
-              <div key={group.label} className={`px-3 pb-1 ${gi === 0 ? 'pt-3' : 'pt-1 border-t border-white/[0.04]'}`}>
+              <div key={group.label} className={`px-3 pb-1 ${gi === 0 ? 'pt-3' : 'pt-1 border-t border-line-subtle'}`}>
                 <p className="text-[10px] font-600 text-text-3/60 uppercase tracking-wider mb-2">{group.label}</p>
                 {group.tools.map((tool) => {
                   const extDisabled = !isExtensionEnabled(tool)
@@ -150,7 +150,7 @@ export function ChatToolToggles({ session }: Props) {
                           <div
                             onClick={() => !extDisabled && toggleTool(tool)}
                             className={`w-8 h-[18px] rounded-full transition-all duration-200 relative shrink-0
-                              ${extDisabled ? 'bg-white/[0.04] cursor-not-allowed' : enabled ? 'bg-accent-bright cursor-pointer' : 'bg-white/[0.12] cursor-pointer'}`}
+                              ${extDisabled ? 'bg-layer-2 cursor-not-allowed' : enabled ? 'bg-accent-bright cursor-pointer' : 'bg-layer-3 cursor-pointer'}`}
                           >
                             <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-all duration-200
                               ${enabled ? 'left-[16px]' : 'left-[2px]'}`} />
@@ -160,7 +160,7 @@ export function ChatToolToggles({ session }: Props) {
                           </span>
                         </label>
                       </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={8} className="max-w-[200px] bg-[#1e2140] text-text-2 border border-white/[0.08] text-[11px] leading-snug px-2.5 py-1.5">
+                      <TooltipContent side="right" sideOffset={8} className="max-w-[200px] bg-[#1e2140] text-text-2 border border-line-default text-[11px] leading-snug px-2.5 py-1.5">
                         {extDisabled ? 'Enable in Extensions page' : tool.description}
                       </TooltipContent>
                     </Tooltip>
@@ -171,7 +171,7 @@ export function ChatToolToggles({ session }: Props) {
           })}
 
           {agentSkillIds.length > 0 && (
-            <div className="px-3 pb-2 pt-1 border-t border-white/[0.04]">
+            <div className="px-3 pb-2 pt-1 border-t border-line-subtle">
               <p className="text-[10px] font-600 text-text-3/60 uppercase tracking-wider mb-2">Skills</p>
               {agentSkillIds.map((skillId) => {
                 const skill = skills[skillId]
@@ -187,7 +187,7 @@ export function ChatToolToggles({ session }: Props) {
           )}
 
          </TooltipProvider>
-          <div className="px-3 py-2 border-t border-white/[0.04] bg-white/[0.02]">
+          <div className="px-3 py-2 border-t border-line-subtle bg-layer-1">
             <p className="text-[10px] text-text-3/70">Changes apply to the next message</p>
           </div>
         </div>

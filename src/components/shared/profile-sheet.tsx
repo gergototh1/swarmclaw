@@ -73,12 +73,12 @@ export function ProfileSheet({ open, onClose }: Props) {
               value={avatarSeed}
               onChange={(e) => setAvatarSeed(e.target.value)}
               placeholder="Avatar seed (any text)"
-              className="flex-1 px-3 py-2 rounded-[8px] bg-white/[0.06] border border-white/[0.08] text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
+              className="flex-1 px-3 py-2 rounded-[8px] bg-layer-2 border border-line-default text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
             />
             <button
               type="button"
               onClick={() => setAvatarSeed(Math.random().toString(36).slice(2, 10))}
-              className="px-3 py-2 rounded-[8px] border border-white/[0.08] bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-white/[0.04] shrink-0"
+              className="px-3 py-2 rounded-[8px] border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2 shrink-0"
             >
               Randomize
             </button>
@@ -93,7 +93,7 @@ export function ProfileSheet({ open, onClose }: Props) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Your name"
-            className="w-full px-3 py-2 rounded-[8px] bg-white/[0.06] border border-white/[0.08] text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
+            className="w-full px-3 py-2 rounded-[8px] bg-layer-2 border border-line-default text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
           />
         </div>
 

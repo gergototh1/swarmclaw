@@ -339,7 +339,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
       ) : (
         <>
           {!inSidebar && inspectorServerId && (
-            <div className="mb-4 p-4 rounded-[14px] border border-white/[0.08] bg-surface-2">
+            <div className="mb-4 p-4 rounded-[14px] border border-line-default bg-surface-2">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="min-w-0">
                   <h3 className="font-display text-[14px] font-600 text-text truncate">
@@ -377,7 +377,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                     <select
                       value={selectedTool}
                       onChange={(e) => handleToolChange(e.target.value)}
-                      className="px-3 py-2 rounded-[10px] border border-white/[0.08] bg-bg text-text text-[12px]"
+                      className="px-3 py-2 rounded-[10px] border border-line-default bg-bg text-text text-[12px]"
                       style={{ fontFamily: 'inherit' }}
                     >
                       {activeTools.length === 0 && <option value="">No tools available</option>}
@@ -388,7 +388,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                     <textarea
                       value={argsJson}
                       onChange={(e) => setArgsJson(e.target.value)}
-                      className="min-h-[96px] px-3 py-2 rounded-[10px] border border-white/[0.08] bg-bg text-text text-[12px] font-mono"
+                      className="min-h-[96px] px-3 py-2 rounded-[10px] border border-line-default bg-bg text-text text-[12px] font-mono"
                     />
                   </div>
 
@@ -437,7 +437,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                     handleEdit(server.id)
                   }
                 }}
-                className="w-full text-left p-4 rounded-[14px] border border-white/[0.06] bg-surface hover:bg-surface-2 transition-all cursor-pointer"
+                className="w-full text-left p-4 rounded-[14px] border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2 min-w-0">
@@ -462,7 +462,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                           className={`text-[10px] font-600 px-2 py-0.5 rounded-[7px] transition-colors ${
                             inspectorServerId === server.id
                               ? 'bg-accent-soft text-accent-bright'
-                              : 'bg-white/[0.06] text-text-3 hover:text-text-2'
+                              : 'bg-layer-2 text-text-3 hover:text-text-2'
                           }`}
                           title="Open MCP inspector"
                         >
@@ -475,7 +475,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                               ? 'bg-emerald-500/10 text-emerald-300'
                               : conformanceByServer[server.id]
                                 ? 'bg-amber-500/10 text-amber-300'
-                                : 'bg-white/[0.06] text-text-3 hover:text-text-2'
+                                : 'bg-layer-2 text-text-3 hover:text-text-2'
                           }`}
                           title="Run MCP conformance checks"
                         >

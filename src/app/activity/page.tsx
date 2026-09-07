@@ -22,7 +22,7 @@ const ACTION_COLORS: Record<string, string> = {
   queued: 'bg-amber-500/15 text-amber-400',
   completed: 'bg-emerald-500/15 text-emerald-400',
   failed: 'bg-red-500/15 text-red-400',
-  archived: 'bg-white/[0.06] text-text-3',
+  archived: 'bg-layer-2 text-text-3',
   restored: 'bg-sky-500/15 text-sky-400',
   approved: 'bg-green-500/15 text-green-400',
   rejected: 'bg-red-500/15 text-red-400',
@@ -57,7 +57,7 @@ export default function ActivityPage() {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border bg-transparent border-white/[0.06] text-text-3 hover:bg-white/[0.03] appearance-none"
+            className="px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border bg-transparent border-line-subtle text-text-3 hover:bg-layer-1 appearance-none"
             style={{ fontFamily: 'inherit', minWidth: 130 }}
           >
             <option value="">All Types</option>
@@ -75,7 +75,7 @@ export default function ActivityPage() {
               {entries.map((entry: ActivityEntry, idx: number) => (
                 <div
                   key={entry.id}
-                  className="flex items-start gap-3 py-3 border-b border-white/[0.04]"
+                  className="flex items-start gap-3 py-3 border-b border-line-subtle"
                   style={{
                     animation: 'fade-up 0.5s var(--ease-spring) both',
                     animationDelay: `${Math.min(idx * 0.03, 0.5)}s`
@@ -86,7 +86,7 @@ export default function ActivityPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`px-1.5 py-0.5 rounded-[5px] text-[10px] font-600 ${ACTION_COLORS[entry.action] || 'bg-white/[0.06] text-text-3'}`}>
+                      <span className={`px-1.5 py-0.5 rounded-[5px] text-[10px] font-600 ${ACTION_COLORS[entry.action] || 'bg-layer-2 text-text-3'}`}>
                         {entry.action}
                       </span>
                       <span className="text-[10px] text-text-3/50 font-mono">{entry.entityType}</span>

@@ -25,14 +25,14 @@ export function AssignAgentPicker({ projectId, onClose }: { projectId: string; o
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute left-0 top-full mt-2 z-50 w-[260px] rounded-[12px] bg-surface/95 backdrop-blur-xl border border-white/[0.1] shadow-[0_12px_40px_rgba(0,0,0,0.5)] overflow-hidden">
-        <div className="p-2.5 border-b border-white/[0.06]">
+      <div className="absolute left-0 top-full mt-2 z-50 w-[260px] rounded-[12px] bg-surface/95 backdrop-blur-xl border border-line-default shadow-[0_12px_40px_rgba(0,0,0,0.5)] overflow-hidden">
+        <div className="p-2.5 border-b border-line-subtle">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search agents..."
             autoFocus
-            className="w-full px-2.5 py-1.5 text-[12px] bg-white/[0.06] rounded-[8px] border border-white/[0.08] text-text placeholder:text-text-3/50 outline-none"
+            className="w-full px-2.5 py-1.5 text-[12px] bg-layer-2 rounded-[8px] border border-line-default text-text placeholder:text-text-3/50 outline-none"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
@@ -46,7 +46,7 @@ export function AssignAgentPicker({ projectId, onClose }: { projectId: string; o
             <button
               key={a.id}
               onClick={() => handleAssign(a.id)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[8px] text-left hover:bg-white/[0.06] transition-colors cursor-pointer bg-transparent border-none"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[8px] text-left hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
               style={{ fontFamily: 'inherit' }}
             >
               <AgentAvatar seed={a.avatarSeed} avatarUrl={a.avatarUrl} name={a.name} size={22} />

@@ -286,7 +286,7 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
             onClick={(e) => { void handleReconcile(e, null) }}
             disabled={reconciling !== null}
             title="Create or update the agents and routines every installed extension declares"
-            className="h-8 px-3 rounded-[9px] bg-white/[0.05] hover:bg-white/[0.08] text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-white/[0.06] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-8 px-3 rounded-[9px] bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {reconciling === ALL_EXTENSIONS ? 'Reconciling...' : 'Reconcile all'}
           </button>
@@ -300,14 +300,14 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search extensions..."
-            className="w-full pl-8 pr-3 py-2 rounded-[10px] bg-surface border border-white/[0.06] text-[12px] text-text placeholder:text-text-3/40 outline-none focus:border-accent-bright/30 transition-colors"
+            className="w-full pl-8 pr-3 py-2 rounded-[10px] bg-surface border border-line-subtle text-[12px] text-text placeholder:text-text-3/40 outline-none focus:border-accent-bright/30 transition-colors"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 mb-5 border-b border-white/[0.06] pb-px">
+      <div className="flex items-center gap-1 mb-5 border-b border-line-subtle pb-px">
         <TabButton active={tab === 'extensions'} onClick={() => setTab('extensions')} count={extensionList.length}>
           Extensions
         </TabButton>
@@ -397,7 +397,7 @@ function TabButton({ active, onClick, count, children }: {
         {children}
         {count !== undefined && (
           <span className={`text-[10px] tabular-nums px-1.5 py-px rounded-full ${
-            active ? 'bg-accent-soft text-accent-bright' : 'bg-white/[0.04] text-text-3/50'
+            active ? 'bg-accent-soft text-accent-bright' : 'bg-layer-2 text-text-3/50'
           }`}>
             {count}
           </span>
@@ -445,7 +445,7 @@ function extensionCapabilityBadges(ext: ExtensionMeta): string[] {
  */
 function ContractConsumptions({ consumed }: { consumed: ExtensionContractConsumedMeta[] }) {
   return (
-    <div className="mt-2.5 pt-2.5 border-t border-white/[0.05]">
+    <div className="mt-2.5 pt-2.5 border-t border-line-subtle">
       <p className="text-[10px] font-600 uppercase tracking-wide text-text-3/40 mb-1">Data access</p>
       <ul className="space-y-1">
         {consumed.map((entry) => (
@@ -481,7 +481,7 @@ function InstalledGrid({ extensions, allowDelete, search, agents, reconciling, o
   if (extensions.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/[0.03] mb-3">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-layer-1 mb-3">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-3/30">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -544,8 +544,8 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(ext.filename) } }}
       className={`group relative text-left p-4 rounded-[14px] border transition-all cursor-pointer
         ${ext.enabled
-          ? 'border-white/[0.06] bg-surface hover:bg-surface-2 hover:border-white/[0.1]'
-          : 'border-white/[0.03] bg-surface/50 hover:bg-surface hover:border-white/[0.06] opacity-70 hover:opacity-100'
+          ? 'border-line-subtle bg-surface hover:bg-surface-2 hover:border-line-default'
+          : 'border-line-subtle bg-surface/50 hover:bg-surface hover:border-line-subtle opacity-70 hover:opacity-100'
         }`}
     >
       {/* Top row: name + toggle */}
@@ -577,7 +577,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
           <div
             onClick={(e) => onToggle(e, ext.filename, ext.enabled)}
             className={`w-9 h-5 rounded-full transition-all relative cursor-pointer shrink-0
-              ${ext.enabled ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+              ${ext.enabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
           >
             <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all
               ${ext.enabled ? 'left-[18px]' : 'left-0.5'}`} />
@@ -604,7 +604,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
       {/* Badges */}
       <div className="flex items-center gap-1.5 flex-wrap">
         {badges.map((badge) => (
-          <span key={badge} className="text-[10px] font-600 px-1.5 py-0.5 rounded-full text-text-3/70 bg-white/[0.04]">
+          <span key={badge} className="text-[10px] font-600 px-1.5 py-0.5 rounded-full text-text-3/70 bg-layer-2">
             {badge}
           </span>
         ))}
@@ -665,7 +665,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
         available when it is not.
       */}
       {managedCount > 0 && (
-        <div className="mt-2.5 pt-2.5 border-t border-white/[0.05] flex items-center justify-between gap-2">
+        <div className="mt-2.5 pt-2.5 border-t border-line-subtle flex items-center justify-between gap-2">
           <span className="text-[11px] text-text-3/55">
             Declares {ext.managedAgentCount ?? 0} agent{(ext.managedAgentCount ?? 0) === 1 ? '' : 's'} and {ext.managedScheduleCount ?? 0} routine{(ext.managedScheduleCount ?? 0) === 1 ? '' : 's'}
           </span>
@@ -676,7 +676,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
             title={ext.enabled
               ? 'Create or update the agents and routines this extension declares'
               : 'Switch the extension on first: a disabled extension is not loaded, so the host has no declarations to reconcile'}
-            className="shrink-0 h-6 px-2 rounded-[8px] bg-white/[0.05] hover:bg-white/[0.08] text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-white/[0.06] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 h-6 px-2 rounded-[8px] bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {reconciling ? 'Reconciling...' : 'Reconcile'}
           </button>
@@ -704,12 +704,12 @@ function SidebarExtensionCard({ ext, onEdit }: { ext: ExtensionMeta; onEdit: (fi
       tabIndex={0}
       onClick={() => onEdit(ext.filename)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(ext.filename) } }}
-      className="w-full text-left p-3 rounded-[12px] border border-white/[0.06] bg-surface hover:bg-surface-2 transition-all cursor-pointer"
+      className="w-full text-left p-3 rounded-[12px] border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer"
     >
       <div className="flex items-center justify-between mb-0.5">
         <span className="font-display text-[13px] font-600 text-text truncate">{ext.name}</span>
         <span className={`text-[10px] font-600 px-1.5 py-0.5 rounded-full ${
-          ext.enabled ? 'text-emerald-400 bg-emerald-400/10' : 'text-text-3/50 bg-white/[0.04]'
+          ext.enabled ? 'text-emerald-400 bg-emerald-400/10' : 'text-text-3/50 bg-layer-2'
         }`}>
           {ext.enabled ? 'On' : 'Off'}
         </span>
@@ -753,7 +753,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
   if (marketplace.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/[0.03] mb-3">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-layer-1 mb-3">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-3/30">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" strokeLinecap="round" strokeLinejoin="round" />
             <polyline points="9,22 9,12 15,12 15,22" strokeLinecap="round" strokeLinejoin="round" />
@@ -788,7 +788,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
         <button
           onClick={() => setActiveTag(null)}
           className={`px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none ${
-            !activeTag ? 'bg-accent-soft text-accent-bright' : 'bg-white/[0.03] text-text-3/60 hover:text-text-3'
+            !activeTag ? 'bg-accent-soft text-accent-bright' : 'bg-layer-1 text-text-3/60 hover:text-text-3'
           }`}
         >
           All
@@ -798,7 +798,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
             key={t}
             onClick={() => setActiveTag(activeTag === t ? null : t)}
             className={`px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none ${
-              activeTag === t ? 'bg-accent-soft text-accent-bright' : 'bg-white/[0.03] text-text-3/60 hover:text-text-3'
+              activeTag === t ? 'bg-accent-soft text-accent-bright' : 'bg-layer-1 text-text-3/60 hover:text-text-3'
             }`}
           >
             {t}
@@ -808,7 +808,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as 'name' | 'downloads')}
-          className="px-2 py-1 rounded-[6px] bg-surface border border-white/[0.06] text-[10px] text-text-3 outline-none cursor-pointer appearance-none"
+          className="px-2 py-1 rounded-[6px] bg-surface border border-line-subtle text-[10px] text-text-3 outline-none cursor-pointer appearance-none"
           style={{ fontFamily: 'inherit' }}
         >
           <option value="downloads">Popular</option>
@@ -823,7 +823,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
           {filtered.map((p) => {
             const isInstalled = installedFilenames.has(`${p.id}.js`)
             return (
-              <div key={p.id} className="py-3.5 px-4 rounded-[14px] bg-surface border border-white/[0.06]">
+              <div key={p.id} className="py-3.5 px-4 rounded-[14px] bg-surface border border-line-subtle">
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -846,7 +846,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
                           key={t}
                           onClick={() => setActiveTag(activeTag === t ? null : t)}
                           className={`text-[9px] font-600 px-1.5 py-0.5 rounded-full cursor-pointer transition-all border-none ${
-                            activeTag === t ? 'text-accent-bright bg-accent-soft' : 'text-text-3/50 bg-white/[0.04] hover:text-text-3'
+                            activeTag === t ? 'text-accent-bright bg-accent-soft' : 'text-text-3/50 bg-layer-2 hover:text-text-3'
                           }`}
                         >
                           {t}
@@ -859,7 +859,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
                     disabled={isInstalled || installing === p.id}
                     className={`shrink-0 py-2 px-4 rounded-[10px] text-[12px] font-600 transition-all cursor-pointer
                       ${isInstalled
-                        ? 'bg-white/[0.04] text-text-3/70 cursor-default'
+                        ? 'bg-layer-2 text-text-3/70 cursor-default'
                         : installing === p.id
                           ? 'bg-accent-soft text-accent-bright animate-pulse'
                           : 'bg-accent-soft text-accent-bright hover:bg-accent-soft/80 border border-accent-bright/20'}`}
@@ -881,7 +881,7 @@ function SourceChip({ label, tone }: { label: string; tone: 'publisher' | 'catal
   return (
     <span className={tone === 'publisher'
       ? 'text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-sky-500/10 text-sky-300'
-      : 'text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-white/[0.05] text-text-3/75'}>
+      : 'text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-layer-2 text-text-3/75'}>
       {label}
     </span>
   )

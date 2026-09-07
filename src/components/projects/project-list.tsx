@@ -148,7 +148,7 @@ export function ProjectList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search projects..."
-            className="w-full pl-9 pr-3 py-2.5 rounded-[10px] bg-white/[0.04] border border-white/[0.06] text-[13px] text-text placeholder:text-text-3/40 focus:outline-none focus:border-accent-bright/30 transition-colors"
+            className="w-full pl-9 pr-3 py-2.5 rounded-[10px] bg-layer-2 border border-line-subtle text-[13px] text-text placeholder:text-text-3/40 focus:outline-none focus:border-accent-bright/30 transition-colors"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
@@ -167,8 +167,8 @@ export function ProjectList() {
                 key={project.id}
                 className={`group relative rounded-[14px] border transition-all duration-200 cursor-pointer overflow-hidden
                   ${isActive
-                    ? 'bg-white/[0.06] border-accent-bright/30 shadow-[0_0_20px_rgba(99,102,241,0.08)]'
-                    : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.1] hover:scale-[1.01]'}`}
+                    ? 'bg-layer-2 border-accent-bright/30 shadow-[0_0_20px_rgba(99,102,241,0.08)]'
+                    : 'bg-layer-1 border-line-subtle hover:bg-layer-2 hover:border-line-default hover:scale-[1.01]'}`}
                 onClick={() => setActiveProjectFilter(isActive ? null : project.id)}
                 style={{
                   animation: 'fade-up 0.4s var(--ease-spring) both',
@@ -195,7 +195,7 @@ export function ProjectList() {
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditingProjectId(project.id); setProjectSheetOpen(true) }}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-all text-text-3/50 hover:text-text-2 cursor-pointer bg-transparent border-none shrink-0"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-[8px] hover:bg-layer-3 transition-all text-text-3/50 hover:text-text-2 cursor-pointer bg-transparent border-none shrink-0"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                         <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
@@ -236,7 +236,7 @@ export function ProjectList() {
                   {/* Progress bar */}
                   {stats.tasks > 0 && (
                     <div className="mt-3 flex items-center gap-2.5">
-                      <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden relative">
+                      <div className="flex-1 h-1.5 rounded-full bg-layer-2 overflow-hidden relative">
                         <div
                           className="h-full rounded-full transition-all duration-500 relative"
                           style={{

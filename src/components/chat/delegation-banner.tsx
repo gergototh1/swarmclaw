@@ -319,7 +319,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
                     key={fileRef}
                     type="button"
                     onClick={() => { api('POST', '/files/open', { path: openPath }).catch(() => {}) }}
-                    className="px-2 py-1 rounded-[7px] text-[10px] font-mono bg-white/[0.03] border border-white/[0.08] text-text-3/70 hover:text-text-3 cursor-pointer max-w-full truncate"
+                    className="px-2 py-1 rounded-[7px] text-[10px] font-mono bg-layer-1 border border-line-default text-text-3/70 hover:text-text-3 cursor-pointer max-w-full truncate"
                     title={`Open ${openPath}`}
                   >
                     {fileRef}
@@ -355,7 +355,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
               src={info.imageUrl}
               alt="Task result"
               loading="lazy"
-              className="max-w-full rounded-[10px] border border-white/[0.06]"
+              className="max-w-full rounded-[10px] border border-line-subtle"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           </div>
@@ -364,7 +364,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
         {/* Result body */}
         {info.resultBody && (
           <div className="mt-0.5">
-            <div className="rounded-[10px] bg-white/[0.02] border border-white/[0.04] px-3 py-2.5 max-h-[260px] overflow-y-auto">
+            <div className="rounded-[10px] bg-layer-1 border border-line-subtle px-3 py-2.5 max-h-[260px] overflow-y-auto">
               <div className="text-[12px] leading-[1.6] text-text-3/80 break-words">
                 <ReactMarkdown
                   components={{
@@ -384,7 +384,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
                         src={src || ''}
                         alt={alt || 'Task artifact'}
                         loading="lazy"
-                        className="max-w-full rounded-[8px] border border-white/[0.08] my-2"
+                        className="max-w-full rounded-[8px] border border-line-default my-2"
                       />
                     ),
                     p: ({ children }) => <p className="m-0 mb-2">{children}</p>,

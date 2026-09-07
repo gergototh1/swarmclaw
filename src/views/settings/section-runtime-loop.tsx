@@ -26,12 +26,12 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
       <p className="text-[12px] text-text-3 mb-5">
         Control how far agents can run on their own and set safety guards for delegation and tool execution.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
+      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
         <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Background Daemon</label>
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => patchSettings({ daemonAutostartEnabled: !(appSettings.daemonAutostartEnabled ?? true) })}
-            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.daemonAutostartEnabled ?? true) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.daemonAutostartEnabled ?? true) ? 'bg-accent' : 'bg-layer-3'}`}
           >
             <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.daemonAutostartEnabled ?? true) ? 'translate-x-[18px]' : ''}`} />
           </button>
@@ -45,7 +45,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => patchSettings({ autonomyResumeApprovalsEnabled: !(appSettings.autonomyResumeApprovalsEnabled ?? false) })}
-            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.autonomyResumeApprovalsEnabled ?? false) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.autonomyResumeApprovalsEnabled ?? false) ? 'bg-accent' : 'bg-layer-3'}`}
           >
             <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.autonomyResumeApprovalsEnabled ?? false) ? 'translate-x-[18px]' : ''}`} />
           </button>
@@ -67,7 +67,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
               className={`py-3 px-3 rounded-[12px] text-center cursor-pointer transition-all text-[13px] font-600 border
                 ${loopMode === mode.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                  : 'bg-bg border-white/[0.06] text-text-2 hover:bg-surface-2'}`}
+                  : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
               {mode.name}
@@ -237,7 +237,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           <div className="md:col-span-3 flex items-center gap-3">
             <button
               onClick={() => patchSettings({ responseCacheEnabled: !(appSettings.responseCacheEnabled ?? true) })}
-              className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.responseCacheEnabled ?? true) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+              className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.responseCacheEnabled ?? true) ? 'bg-accent' : 'bg-layer-3'}`}
             >
               <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.responseCacheEnabled ?? true) ? 'translate-x-[18px]' : ''}`} />
             </button>
@@ -280,7 +280,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           <div className="md:col-span-3 flex items-center gap-3">
             <button
               onClick={() => patchSettings({ taskQualityGateEnabled: !(appSettings.taskQualityGateEnabled ?? true) })}
-              className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.taskQualityGateEnabled ?? true) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+              className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.taskQualityGateEnabled ?? true) ? 'bg-accent' : 'bg-layer-3'}`}
             >
               <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.taskQualityGateEnabled ?? true) ? 'translate-x-[18px]' : ''}`} />
             </button>
@@ -351,7 +351,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
         <div className="flex items-center gap-3">
           <button
             onClick={() => patchSettings({ integrityMonitorEnabled: !(appSettings.integrityMonitorEnabled ?? true) })}
-            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.integrityMonitorEnabled ?? true) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.integrityMonitorEnabled ?? true) ? 'bg-accent' : 'bg-layer-3'}`}
           >
             <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.integrityMonitorEnabled ?? true) ? 'translate-x-[18px]' : ''}`} />
           </button>

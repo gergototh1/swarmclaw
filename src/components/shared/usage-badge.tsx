@@ -19,7 +19,7 @@ export function UsageBadge({ totalTokens, estimatedCost }: Props) {
     : String(totalTokens)
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[7px] bg-white/[0.04] text-[10px] font-mono text-text-3/60">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[7px] bg-layer-2 text-[10px] font-mono text-text-3/60">
       <span>{tokenStr} tok</span>
       <span className="text-text-3/60">·</span>
       <span className="text-emerald-400/60">{costStr}</span>

@@ -139,7 +139,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
             {items.map((skill) => (
               <div
                 key={skill.name}
-                className="flex items-center gap-3 py-2 px-3 rounded-[10px] bg-white/[0.02] border border-white/[0.04]"
+                className="flex items-center gap-3 py-2 px-3 rounded-[10px] bg-layer-1 border border-line-subtle"
               >
                 {mode === 'selected' && (
                   <button
@@ -147,7 +147,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
                     className={`w-5 h-5 rounded-[5px] border-2 flex items-center justify-center shrink-0 cursor-pointer transition-all
                       ${allowed.has(skill.name)
                         ? 'bg-accent-bright border-accent-bright'
-                        : 'bg-transparent border-white/[0.15] hover:border-white/[0.25]'}`}
+                        : 'bg-transparent border-line-strong hover:border-line-strong'}`}
                   >
                     {allowed.has(skill.name) && (
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">

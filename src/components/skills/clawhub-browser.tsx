@@ -165,7 +165,7 @@ export function ClawHubBrowser({ open, onOpenChange, onInstalled }: ClawHubBrows
               {skills.map((skill) => (
                 <div
                   key={skill.id}
-                  className="p-4 rounded-[14px] border border-white/[0.06] bg-surface hover:bg-surface-2 transition-all"
+                  className="p-4 rounded-[14px] border border-line-subtle bg-surface hover:bg-surface-2 transition-all"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">

@@ -73,7 +73,7 @@ export function StepProviders({
         value={providerSearch}
         onChange={(e) => setProviderSearch(e.target.value)}
         placeholder="Search providers, CLIs, or runtimes..."
-        className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-surface text-text text-[13px]
+        className="w-full px-4 py-3 rounded-[12px] border border-line-default bg-surface text-text text-[13px]
           outline-none transition-all duration-200 placeholder:text-text-3/50 focus:border-accent-bright/30 mb-4"
       />
 
@@ -93,11 +93,11 @@ export function StepProviders({
                     transition-all duration-200 flex items-start gap-4 cursor-pointer
                     ${isConfigured
                       ? 'border-emerald-500/25 hover:border-emerald-500/40 hover:bg-surface-hover'
-                      : 'border-white/[0.08] hover:border-accent-bright/30 hover:bg-surface-hover'
+                      : 'border-line-default hover:border-accent-bright/30 hover:bg-surface-hover'
                     }`}
                 >
                   <div className={`w-10 h-10 rounded-[10px] border flex items-center justify-center shrink-0 mt-0.5 ${
-                    isConfigured ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white/[0.04] border-white/[0.06]'
+                    isConfigured ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-layer-2 border-line-subtle'
                   }`}>
                     <span className={`text-[16px] font-display font-700 ${isConfigured ? 'text-emerald-400' : 'text-accent-bright'}`}>
                       {candidate.icon}
@@ -130,7 +130,7 @@ export function StepProviders({
           </div>
         ))}
         {providerGroups.length === 0 && (
-          <div className="px-5 py-6 rounded-[14px] border border-white/[0.08] bg-surface text-center text-[13px] text-text-3">
+          <div className="px-5 py-6 rounded-[14px] border border-line-default bg-surface text-center text-[13px] text-text-3">
             No providers match that search.
           </div>
         )}
@@ -140,8 +140,8 @@ export function StepProviders({
         <button
           onClick={runSetupDoctor}
           disabled={doctorState === 'checking'}
-          className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-white/[0.02] text-[13px] text-text-2
-            cursor-pointer hover:bg-white/[0.05] transition-all duration-200 disabled:opacity-40"
+          className="w-full px-4 py-3 rounded-[12px] border border-line-default bg-layer-1 text-[13px] text-text-2
+            cursor-pointer hover:bg-layer-2 transition-all duration-200 disabled:opacity-40"
         >
           {doctorState === 'checking' ? 'Running System Check...' : 'Run System Check'}
         </button>
@@ -151,7 +151,7 @@ export function StepProviders({
         )}
 
         {doctorReport && doctorState === 'done' && (
-          <div className="mt-3 p-3 rounded-[12px] border border-white/[0.08] bg-surface">
+          <div className="mt-3 p-3 rounded-[12px] border border-line-default bg-surface">
             <div className={`text-[12px] font-600 ${doctorReport.ok ? 'text-emerald-300' : 'text-amber-300'}`}>
               {doctorReport.summary}
             </div>
@@ -175,15 +175,15 @@ export function StepProviders({
         <button
           type="button"
           onClick={onBack}
-          className="px-6 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[14px]
-            font-display font-500 cursor-pointer hover:bg-white/[0.03] transition-all duration-200"
+          className="px-6 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[14px]
+            font-display font-500 cursor-pointer hover:bg-layer-1 transition-all duration-200"
         >
           Back
         </button>
         <button
           onClick={onSkip}
-          className="px-6 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[14px]
-            font-display font-500 cursor-pointer hover:bg-white/[0.03] transition-all duration-200"
+          className="px-6 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[14px]
+            font-display font-500 cursor-pointer hover:bg-layer-1 transition-all duration-200"
         >
           Skip for now
         </button>

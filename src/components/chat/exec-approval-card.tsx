@@ -68,7 +68,7 @@ export function ExecApprovalCard({ approval }: Props) {
           <button
             onClick={() => handleResolve('allow-once')}
             disabled={disabled}
-            className="px-3 py-1.5 rounded-[8px] border border-white/[0.08] bg-emerald-500/10 text-[12px] font-600
+            className="px-3 py-1.5 rounded-[8px] border border-line-default bg-emerald-500/10 text-[12px] font-600
               text-emerald-400 cursor-pointer hover:bg-emerald-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ fontFamily: 'inherit' }}
           >
@@ -77,8 +77,8 @@ export function ExecApprovalCard({ approval }: Props) {
           <button
             onClick={() => handleResolve('allow-always')}
             disabled={disabled}
-            className="px-3 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[12px] font-600
-              text-text-3 cursor-pointer hover:bg-white/[0.04] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[12px] font-600
+              text-text-3 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ fontFamily: 'inherit' }}
           >
             Always Allow
@@ -86,7 +86,7 @@ export function ExecApprovalCard({ approval }: Props) {
           <button
             onClick={() => handleResolve('deny')}
             disabled={disabled}
-            className="px-3 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[12px] font-600
+            className="px-3 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[12px] font-600
               text-red-400 cursor-pointer hover:bg-red-400/10 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ fontFamily: 'inherit' }}
           >

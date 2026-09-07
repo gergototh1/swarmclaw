@@ -302,7 +302,7 @@ function SwarmAgentCard({ agent }: { agent: SwarmAgent }) {
         )}
       </button>
       {expanded && hasDetail && (
-        <div className="px-3 pb-2.5 border-t border-white/[0.04]">
+        <div className="px-3 pb-2.5 border-t border-line-subtle">
           {agent.error && (
             <pre className="text-[11px] text-rose-400/80 font-mono whitespace-pre-wrap break-all mt-1.5 max-h-[120px] overflow-y-auto">
               {agent.error}
@@ -394,7 +394,7 @@ export function SwarmPanel({ data }: { data: SwarmPanelData }) {
           <button
             type="button"
             onClick={() => setShowAll(true)}
-            className="self-start px-2.5 py-1 rounded-[7px] bg-white/[0.04] hover:bg-white/[0.07] text-[11px] text-text-3 border border-white/[0.06] cursor-pointer transition-colors"
+            className="self-start px-2.5 py-1 rounded-[7px] bg-layer-2 hover:bg-layer-3 text-[11px] text-text-3 border border-line-subtle cursor-pointer transition-colors"
             style={{ fontFamily: 'inherit' }}
           >
             Show {hiddenCount} more agent{hiddenCount !== 1 ? 's' : ''}

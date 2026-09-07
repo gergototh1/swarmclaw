@@ -80,7 +80,7 @@ export function ActionButton({
     return (
       <button
         onClick={onClick}
-        className={`w-7 h-7 rounded-[8px] border border-white/[0.06] bg-white/[0.02] flex items-center justify-center hover:bg-white/[0.08] transition-all cursor-pointer ${active ? activeClassName || '' : ''} ${className || ''}`.trim()}
+        className={`w-7 h-7 rounded-[8px] border border-line-subtle bg-layer-1 flex items-center justify-center hover:bg-layer-3 transition-all cursor-pointer ${active ? activeClassName || '' : ''} ${className || ''}`.trim()}
         title={title}
       >
         {icon}
@@ -92,7 +92,7 @@ export function ActionButton({
     <button
       onClick={onClick}
       aria-label={title}
-      className={`flex items-center gap-1.5 px-2.5 py-1.5 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-[8px] border-none bg-transparent text-[11px] font-500 text-text-3 cursor-pointer hover:text-text-2 hover:bg-white/[0.04] transition-all justify-center md:justify-start ${active ? activeClassName || '' : ''} ${className || ''}`.trim()}
+      className={`flex items-center gap-1.5 px-2.5 py-1.5 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-[8px] border-none bg-transparent text-[11px] font-500 text-text-3 cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all justify-center md:justify-start ${active ? activeClassName || '' : ''} ${className || ''}`.trim()}
       style={{ fontFamily: 'inherit' }}
     >
       {icon}

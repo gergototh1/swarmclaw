@@ -47,7 +47,7 @@ export function ProjectDetailHeader({ project, failedCount, blockedCount, creden
   const opsBadge = credentialReqCount
 
   return (
-    <div className="shrink-0 border-b border-white/[0.06]">
+    <div className="shrink-0 border-b border-line-subtle">
       {/* Project identity */}
       <div className="px-8 pt-6 pb-4">
         <div className="flex items-center gap-3">
@@ -62,7 +62,7 @@ export function ProjectDetailHeader({ project, failedCount, blockedCount, creden
           </h1>
           <button
             onClick={() => { setEditingProjectId(project.id); setProjectSheetOpen(true) }}
-            className="shrink-0 p-1.5 rounded-[8px] hover:bg-white/[0.06] transition-colors cursor-pointer bg-transparent border-none text-text-3/50 hover:text-text-2"
+            className="shrink-0 p-1.5 rounded-[8px] hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none text-text-3/50 hover:text-text-2"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />

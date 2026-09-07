@@ -8,7 +8,7 @@ import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { api } from '@/lib/app/api-client'
 import { toast } from 'sonner'
 
-const inputClass = 'w-full px-4 py-3 rounded-[14px] bg-bg border border-white/[0.06] text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3/70'
+const inputClass = 'w-full px-4 py-3 rounded-[14px] bg-bg border border-line-subtle text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3/70'
 
 export function SecretSheet() {
   const open = useAppStore((s) => s.secretSheetOpen)
@@ -139,7 +139,7 @@ export function SecretSheet() {
 
         <div>
           <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Scope</label>
-          <div className="flex p-1 rounded-[12px] bg-bg border border-white/[0.06]">
+          <div className="flex p-1 rounded-[12px] bg-bg border border-line-subtle">
             {(['global', 'agent'] as const).map((s) => (
               <button
                 key={s}
@@ -159,7 +159,7 @@ export function SecretSheet() {
         {scope === 'agent' && (
           <div>
             <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Agents</label>
-            <div className="max-h-[240px] overflow-y-auto rounded-[12px] border border-white/[0.06] bg-white/[0.03]">
+            <div className="max-h-[240px] overflow-y-auto rounded-[12px] border border-line-subtle bg-layer-1">
               {agentList.length === 0 ? (
                 <p className="p-3 text-[12px] text-text-3">No agents available</p>
               ) : (
@@ -170,7 +170,7 @@ export function SecretSheet() {
                       key={agent.id}
                       onClick={() => toggleAgent(agent.id)}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-all cursor-pointer ${
-                        selected ? 'bg-accent-soft/40' : 'hover:bg-white/[0.04]'
+                        selected ? 'bg-accent-soft/40' : 'hover:bg-layer-2'
                       }`}
                       style={{ fontFamily: 'inherit' }}
                     >
@@ -200,7 +200,7 @@ export function SecretSheet() {
             </button>
           )}
           <div className="flex-1" />
-          <button onClick={handleClose} className="px-5 py-3 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-colors" style={{ fontFamily: 'inherit' }}>Cancel</button>
+          <button onClick={handleClose} className="px-5 py-3 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-colors" style={{ fontFamily: 'inherit' }}>Cancel</button>
           <button
             onClick={handleSave}
             disabled={saving || !name.trim() || (!editing && !value.trim())}

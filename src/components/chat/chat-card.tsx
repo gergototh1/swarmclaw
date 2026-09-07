@@ -119,7 +119,7 @@ export function ChatCard({ session, active, onClick }: Props) {
           transition-all duration-200 active:scale-[0.98]
           ${active
             ? 'bg-accent-soft border border-accent-bright/10'
-            : 'bg-transparent border border-transparent hover:bg-white/[0.02] hover:border-white/[0.03]'}`}
+            : 'bg-transparent border border-transparent hover:bg-layer-1 hover:border-line-subtle'}`}
       >
       {active && (
         <div className="absolute left-0 top-3.5 bottom-3.5 w-[2.5px] rounded-full bg-accent-bright" />
@@ -149,7 +149,7 @@ export function ChatCard({ session, active, onClick }: Props) {
           </span>
         )}
         {providerLabel && (
-          <span className="shrink-0 text-[10px] font-600 uppercase tracking-wider text-text-3/70 bg-white/[0.03] px-2 py-0.5 rounded-[6px]">
+          <span className="shrink-0 text-[10px] font-600 uppercase tracking-wider text-text-3/70 bg-layer-1 px-2 py-0.5 rounded-[6px]">
             {providerLabel}
           </span>
         )}

@@ -36,7 +36,7 @@ export function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen && !cancelDisabled) onCancel() }}>
       <DialogContent
-        className="sm:max-w-[400px] rounded-[20px] border-white/[0.06] bg-raised p-0 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
+        className="sm:max-w-[400px] rounded-[20px] border-line-subtle bg-raised p-0 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
       >
         <div className="p-6">
           <DialogHeader className="text-left">

@@ -115,7 +115,7 @@ export function StorageBrowser({ files, onDelete }: Props) {
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortField)}
-          className="px-3 py-1.5 rounded-[10px] border border-white/[0.08] bg-bg text-text text-[12px] outline-none cursor-pointer"
+          className="px-3 py-1.5 rounded-[10px] border border-line-default bg-bg text-text text-[12px] outline-none cursor-pointer"
           style={{ fontFamily: 'inherit' }}
         >
           <option value="modified">Newest first</option>
@@ -131,7 +131,7 @@ export function StorageBrowser({ files, onDelete }: Props) {
           className={`px-3 py-1 rounded-full text-[11px] font-600 cursor-pointer transition-all border
             ${!filterCategory
               ? 'bg-accent-soft border-accent-bright/30 text-accent-bright'
-              : 'bg-transparent border-white/[0.06] text-text-3 hover:bg-white/[0.04]'}`}
+              : 'bg-transparent border-line-subtle text-text-3 hover:bg-layer-2'}`}
           style={{ fontFamily: 'inherit' }}
         >
           All
@@ -143,7 +143,7 @@ export function StorageBrowser({ files, onDelete }: Props) {
             className={`px-3 py-1 rounded-full text-[11px] font-600 cursor-pointer transition-all border
               ${filterCategory === cat
                 ? 'bg-accent-soft border-accent-bright/30 text-accent-bright'
-                : 'bg-transparent border-white/[0.06] text-text-3 hover:bg-white/[0.04]'}`}
+                : 'bg-transparent border-line-subtle text-text-3 hover:bg-layer-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {CATEGORY_ICONS[cat] || ''} {CATEGORY_LABELS[cat] || cat}
@@ -183,13 +183,13 @@ export function StorageBrowser({ files, onDelete }: Props) {
               className={`relative p-3 rounded-[14px] border cursor-pointer transition-all
                 ${selected.has(file.name)
                   ? 'border-accent-bright/40 bg-accent-soft/30'
-                  : 'border-white/[0.06] bg-surface hover:border-white/[0.12]'}`}
+                  : 'border-line-subtle bg-surface hover:border-line-default'}`}
             >
               {/* Checkbox */}
               <div className={`absolute top-2 right-2 w-4 h-4 rounded-[5px] border transition-all flex items-center justify-center
                 ${selected.has(file.name)
                   ? 'border-accent-bright bg-accent-bright'
-                  : 'border-white/[0.15] bg-transparent'}`}
+                  : 'border-line-strong bg-transparent'}`}
               >
                 {selected.has(file.name) && (
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -199,7 +199,7 @@ export function StorageBrowser({ files, onDelete }: Props) {
               </div>
 
               {/* Thumbnail / icon */}
-              <div className="w-full aspect-square rounded-[10px] bg-white/[0.03] mb-2 flex items-center justify-center overflow-hidden">
+              <div className="w-full aspect-square rounded-[10px] bg-layer-1 mb-2 flex items-center justify-center overflow-hidden">
                 {file.category === 'image' ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -225,7 +225,7 @@ export function StorageBrowser({ files, onDelete }: Props) {
 
       {/* Bulk delete footer */}
       {selected.size > 0 && (
-        <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between">
+        <div className="mt-4 pt-4 border-t border-line-subtle flex items-center justify-between">
           <span className="text-[12px] text-text-3">
             {selected.size} file{selected.size !== 1 ? 's' : ''} selected
           </span>

@@ -12,7 +12,7 @@ import { isUserCreatedSchedule } from '@/lib/schedules/schedule-origin'
 const STATUS_COLORS: Record<string, string> = {
   active: 'text-emerald-400 bg-emerald-400/[0.08]',
   paused: 'text-amber-400 bg-amber-400/[0.08]',
-  completed: 'text-text-3 bg-white/[0.03]',
+  completed: 'text-text-3 bg-layer-1',
   failed: 'text-red-400 bg-red-400/[0.08]',
 }
 
@@ -69,7 +69,7 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
       onClick={handleClick}
       className="relative py-3.5 px-4 cursor-pointer rounded-[14px]
         transition-all duration-200 active:scale-[0.98]
-        bg-transparent border border-transparent hover:bg-white/[0.02] hover:border-white/[0.03] hover:scale-[1.01]"
+        bg-transparent border border-transparent hover:bg-layer-1 hover:border-line-subtle hover:scale-[1.01]"
       style={{
         animation: 'spring-in 0.5s var(--ease-spring) both',
         animationDelay: `${Math.min(index * 0.05, 0.4)}s`
@@ -82,7 +82,7 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
             <div
               onClick={handleToggle}
               className={`w-9 h-5 rounded-full transition-all relative cursor-pointer shrink-0
-                ${schedule.status === 'active' ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                ${schedule.status === 'active' ? 'bg-accent-bright' : 'bg-layer-3'}`}
             >
               <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all
                 ${schedule.status === 'active' ? 'left-[18px]' : 'left-0.5'}`}

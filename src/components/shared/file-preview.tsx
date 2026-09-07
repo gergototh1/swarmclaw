@@ -10,10 +10,10 @@ export function FilePreview({ file, onRemove }: { file: PendingFile; onRemove: (
         <img
           src={URL.createObjectURL(file.file)}
           alt="Preview"
-          className="h-16 rounded-[10px] object-cover border border-white/[0.06]"
+          className="h-16 rounded-[10px] object-cover border border-line-subtle"
         />
       ) : (
-        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] border border-white/[0.06] bg-white/[0.03]">
+        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] border border-line-subtle bg-layer-1">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3 shrink-0">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />

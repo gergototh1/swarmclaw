@@ -97,7 +97,7 @@ export function ExtensionPagesEndGroup({ expanded, onNavigate }: {
       {expanded ? (
         <div className="px-3 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">Extension Pages</div>
       ) : (
-        <div className="my-1 h-px w-6 bg-white/[0.06]" />
+        <div className="my-1 h-px w-6 bg-layer-2" />
       )}
       <ExtensionPageLinks pages={slice} expanded={expanded} onNavigate={onNavigate} />
     </div>

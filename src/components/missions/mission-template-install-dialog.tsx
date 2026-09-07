@@ -159,7 +159,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-xl rounded-[14px] border border-white/[0.08] bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-xl rounded-[14px] border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3 mb-4">
@@ -172,7 +172,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
                 {badges.map((badge) => (
                   <span
                     key={badge}
-                    className="text-[10px] font-600 px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.02] text-text-3"
+                    className="text-[10px] font-600 px-1.5 py-0.5 rounded border border-line-default bg-layer-1 text-text-3"
                   >
                     {badge}
                   </span>
@@ -274,7 +274,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
                 </label>
               </div>
 
-              <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+              <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2.5">
                 <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-1.5">Periodic reports</div>
                 <label className="flex items-center gap-2 flex-wrap">
                   <input type="checkbox" checked={reportsEnabled} onChange={(e) => setReportsEnabled(e.target.checked)} />
@@ -296,7 +296,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="text-[12px] px-3 py-1.5 rounded border border-white/[0.08] hover:bg-white/[0.04]"
+            className="text-[12px] px-3 py-1.5 rounded border border-line-default hover:bg-layer-2"
             disabled={busy}
           >
             Cancel

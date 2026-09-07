@@ -87,9 +87,9 @@ export function ScheduleList({ inSidebar }: Props) {
                         })
                         setScheduleSheetOpen(true)
                       }}
-                      className="flex flex-col items-center gap-2 p-4 rounded-[14px] border border-white/[0.06]
+                      className="flex flex-col items-center gap-2 p-4 rounded-[14px] border border-line-subtle
                         bg-surface cursor-pointer transition-all duration-200 hover:bg-surface-2
-                        hover:border-white/[0.1] active:scale-[0.97]"
+                        hover:border-line-default active:scale-[0.97]"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <div className="w-8 h-8 rounded-[8px] bg-accent-soft flex items-center justify-center">

@@ -284,7 +284,7 @@ export function ProviderSheet() {
     && (editingBuiltin?.requiresApiKey ? credentialId : (showApiKey || editingBuiltin?.requiresEndpoint || editingBuiltin?.optionalEndpoint)),
   )
 
-  const inputClass = "w-full px-4 py-3.5 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
+  const inputClass = "w-full px-4 py-3.5 rounded-[14px] border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
 
   return (
     <BottomSheet open={open} onClose={onClose} wide>
@@ -358,7 +358,7 @@ export function ProviderSheet() {
                 const isLive = liveModels.includes(model)
                 return (
                   <div key={`${model}-${i}`} className={`group/model flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] border
-                    ${isLive ? 'bg-emerald-500/[0.08] border-emerald-500/20' : 'bg-white/[0.04] border-white/[0.06]'}`}>
+                    ${isLive ? 'bg-emerald-500/[0.08] border-emerald-500/20' : 'bg-layer-2 border-line-subtle'}`}>
                     <span className="text-[12px] text-text-2 font-mono">{model}</span>
                     {isLive && (
                       <span className="text-[9px] font-600 px-1.5 py-0.5 rounded-[4px] bg-emerald-500/15 text-emerald-400 uppercase tracking-wider">live</span>
@@ -419,7 +419,7 @@ export function ProviderSheet() {
             <div
               onClick={() => setRequiresApiKey(!requiresApiKey)}
               className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer
-                ${requiresApiKey ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                ${requiresApiKey ? 'bg-accent-bright' : 'bg-layer-3'}`}
             >
               <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
                 ${requiresApiKey ? 'left-[22px]' : 'left-0.5'}`} />
@@ -516,7 +516,7 @@ export function ProviderSheet() {
             <div
               onClick={() => setIsEnabled(!isEnabled)}
               className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer
-                ${isEnabled ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                ${isEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
             >
               <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
                 ${isEnabled ? 'left-[22px]' : 'left-0.5'}`} />
@@ -564,13 +564,13 @@ export function ProviderSheet() {
         </div>
       )}
 
-      <div className="flex gap-3 pt-2 border-t border-white/[0.04]">
+      <div className="flex gap-3 pt-2 border-t border-line-subtle">
         {editingCustom && (
           <button onClick={() => setConfirmDelete(true)} className="py-3.5 px-6 rounded-[14px] border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Delete
           </button>
         )}
-        <button onClick={onClose} className="flex-1 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
+        <button onClick={onClose} className="flex-1 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
           Cancel
         </button>
         {showTestButton && (

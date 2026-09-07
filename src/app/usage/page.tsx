@@ -287,17 +287,17 @@ export default function UsagePage() {
           <div className="px-8 pb-8 space-y-6">
             {/* Stats cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard label="Total Tokens" value={formatTokens(data?.totalTokens ?? 0)} index={0} className="bg-surface-2 border-white/[0.04]" />
-              <StatCard label="Total Cost" value={formatCost(data?.totalCost ?? 0)} index={1} className="bg-surface-2 border-white/[0.04]" />
-              <StatCard label="Requests" value={String(data?.records.length ?? 0)} index={2} className="bg-surface-2 border-white/[0.04]" />
-              <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="bg-surface-2 border-white/[0.04]" />
+              <StatCard label="Total Tokens" value={formatTokens(data?.totalTokens ?? 0)} index={0} className="bg-surface-2 border-line-subtle" />
+              <StatCard label="Total Cost" value={formatCost(data?.totalCost ?? 0)} index={1} className="bg-surface-2 border-line-subtle" />
+              <StatCard label="Requests" value={String(data?.records.length ?? 0)} index={2} className="bg-surface-2 border-line-subtle" />
+              <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="bg-surface-2 border-line-subtle" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
               {insightCards.map((card, index) => (
                 <div
                   key={card.label}
-                  className="bg-surface-2 rounded-[12px] p-4 border border-white/[0.04] hover:bg-surface transition-all"
+                  className="bg-surface-2 rounded-[12px] p-4 border border-line-subtle hover:bg-surface transition-all"
                   style={{ animation: 'spring-in 0.6s var(--ease-spring) both', animationDelay: `${0.12 + index * 0.04}s` }}
                 >
                   <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3/60 mb-2">{card.label}</p>
@@ -405,7 +405,7 @@ export default function UsagePage() {
                   {extensionData.filter((p) => p.invocations > 0).map((p, idx) => (
                     <div
                       key={p.name}
-                      className="bg-surface-2 rounded-[10px] p-3 border border-white/[0.04] hover:bg-surface transition-all"
+                      className="bg-surface-2 rounded-[10px] p-3 border border-line-subtle hover:bg-surface transition-all"
                       style={{ animation: 'spring-in 0.5s var(--ease-spring) both', animationDelay: `${0.3 + idx * 0.03}s` }}
                     >
                       <p className="text-[12px] font-600 text-text truncate">{p.name}</p>
@@ -427,10 +427,10 @@ export default function UsagePage() {
               <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
                 <h3 className="font-display text-[16px] font-700 text-text mt-2">Task Performance</h3>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                  <StatCard label="Tasks Completed" value={String(taskMetrics.completedCount)} index={0} className="bg-surface-2 border-white/[0.04]" />
-                  <StatCard label="Avg Cycle Time" value={formatDurationMs(taskMetrics.avgCycleMs)} index={1} className="bg-surface-2 border-white/[0.04]" />
-                  <StatCard label="WIP" value={String(taskMetrics.wip)} index={2} className="bg-surface-2 border-white/[0.04]" />
-                  <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="bg-surface-2 border-white/[0.04]" />
+                  <StatCard label="Tasks Completed" value={String(taskMetrics.completedCount)} index={0} className="bg-surface-2 border-line-subtle" />
+                  <StatCard label="Avg Cycle Time" value={formatDurationMs(taskMetrics.avgCycleMs)} index={1} className="bg-surface-2 border-line-subtle" />
+                  <StatCard label="WIP" value={String(taskMetrics.wip)} index={2} className="bg-surface-2 border-line-subtle" />
+                  <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="bg-surface-2 border-line-subtle" />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -512,7 +512,7 @@ export default function UsagePage() {
                     .map(([name, h], idx) => (
                       <div
                         key={name}
-                        className="bg-surface-2 rounded-[12px] p-4 border border-white/[0.04] flex flex-col gap-3 hover:bg-surface transition-all hover:scale-[1.02]"
+                        className="bg-surface-2 rounded-[12px] p-4 border border-line-subtle flex flex-col gap-3 hover:bg-surface transition-all hover:scale-[1.02]"
                         style={{ animation: 'spring-in 0.5s var(--ease-spring) both', animationDelay: `${0.45 + idx * 0.03}s` }}
                       >
                         <div className="flex items-center justify-between">
@@ -538,7 +538,7 @@ export default function UsagePage() {
                             {h.models.map((m) => (
                               <span
                                 key={m}
-                                className="px-2 py-0.5 rounded-[6px] bg-white/[0.06] text-[11px] text-text-3 font-500"
+                                className="px-2 py-0.5 rounded-[6px] bg-layer-2 text-[11px] text-text-3 font-500"
                               >
                                 {m}
                               </span>

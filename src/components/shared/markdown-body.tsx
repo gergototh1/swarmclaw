@@ -64,7 +64,7 @@ export function MarkdownBody({
                 src={src}
                 alt={alt || 'Image'}
                 loading="lazy"
-                className="max-w-full max-h-[400px] rounded-[10px] border border-white/[0.06] hover:border-white/25 transition-colors"
+                className="max-w-full max-h-[400px] rounded-[10px] border border-line-subtle hover:border-white/25 transition-colors"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
               />
             </a>
@@ -83,7 +83,7 @@ export function MarkdownBody({
               <div className="my-2">
                 <iframe
                   src={`https://www.youtube-nocookie.com/embed/${ytMatch[1]}`}
-                  className="w-full max-w-[480px] aspect-video rounded-[10px] border border-white/[0.06]"
+                  className="w-full max-w-[480px] aspect-video rounded-[10px] border border-line-subtle"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   title="YouTube video"

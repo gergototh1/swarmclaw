@@ -57,7 +57,7 @@ export function SandboxEnvPanel() {
       </p>
       <div className="flex flex-col gap-1">
         {available.map((key) => (
-          <label key={key} className="flex items-center gap-2 py-1 px-2 rounded-[8px] hover:bg-white/[0.02] cursor-pointer transition-colors">
+          <label key={key} className="flex items-center gap-2 py-1 px-2 rounded-[8px] hover:bg-layer-1 cursor-pointer transition-colors">
             <input
               type="checkbox"
               checked={allowed.has(key)}

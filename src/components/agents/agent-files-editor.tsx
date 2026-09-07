@@ -142,7 +142,7 @@ export function AgentFilesEditor({ agentId }: Props) {
           <button
             onClick={() => setGuidedMode(!guidedMode)}
             className={`text-[10px] font-600 px-2 py-0.5 rounded-[6px] cursor-pointer transition-all border-none
-              ${guidedMode ? 'bg-accent-soft text-accent-bright' : 'bg-white/[0.04] text-text-3 hover:text-text-2'}`}
+              ${guidedMode ? 'bg-accent-soft text-accent-bright' : 'bg-layer-2 text-text-3 hover:text-text-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {guidedMode ? 'Raw Editor' : 'Guided Editor'}
@@ -169,9 +169,9 @@ export function AgentFilesEditor({ agentId }: Props) {
           <textarea
             value={current?.content ?? ''}
             onChange={(e) => handleContentChange(activeTab, e.target.value)}
-            className="w-full h-full resize-none rounded-[10px] border border-white/[0.06] bg-black/20 px-3 py-2.5
+            className="w-full h-full resize-none rounded-[10px] border border-line-subtle bg-black/20 px-3 py-2.5
               text-[13px] text-text font-mono leading-relaxed outline-none
-              placeholder:text-text-3/40 focus:border-white/[0.12] transition-colors"
+              placeholder:text-text-3/40 focus:border-line-default transition-colors"
             placeholder={`${activeTab} content...`}
             style={{ fontFamily: 'ui-monospace, monospace' }}
           />

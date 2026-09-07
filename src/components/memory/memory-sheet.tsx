@@ -92,7 +92,7 @@ export function MemorySheet() {
             className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
               ${!agentId
                 ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
-                : 'bg-white/[0.02] border-white/[0.06] text-text-3 hover:text-text-2 hover:bg-white/[0.04]'}`}
+                : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={!agentId ? 'text-accent-bright' : 'text-text-3/60'}>
@@ -109,7 +109,7 @@ export function MemorySheet() {
               className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
                 ${agentId === agent.id
                   ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
-                  : 'bg-white/[0.02] border-white/[0.06] text-text-3 hover:text-text-2 hover:bg-white/[0.04]'}`}
+                  : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
               <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={20} />
@@ -145,7 +145,7 @@ export function MemorySheet() {
                     className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
                       ${isShared
                         ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
-                        : 'bg-white/[0.02] border-white/[0.06] text-text-3 hover:text-text-2 hover:bg-white/[0.04]'}`}
+                        : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
                     style={{ fontFamily: 'inherit' }}
                   >
                     <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={20} />
@@ -182,7 +182,7 @@ export function MemorySheet() {
               className={`px-3 py-1.5 rounded-[8px] text-[12px] font-600 capitalize cursor-pointer transition-all border-none
                 ${category === c
                   ? 'bg-accent-soft text-accent-bright'
-                  : 'bg-white/[0.03] text-text-3 hover:text-text-2 hover:bg-white/[0.05]'}`}
+                  : 'bg-layer-1 text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
               {c}

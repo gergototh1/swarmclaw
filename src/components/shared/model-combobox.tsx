@@ -168,9 +168,9 @@ export function ModelCombobox({
       </div>
 
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-[240px] overflow-y-auto rounded-[12px] border border-white/[0.08] bg-surface-2 shadow-xl">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-[240px] overflow-y-auto rounded-[12px] border border-line-default bg-surface-2 shadow-xl">
           {supportsDiscovery && (
-            <div className="sticky top-0 z-[1] flex items-center justify-between gap-3 border-b border-white/[0.06] bg-surface-2/95 px-3 py-2 backdrop-blur">
+            <div className="sticky top-0 z-[1] flex items-center justify-between gap-3 border-b border-line-subtle bg-surface-2/95 px-3 py-2 backdrop-blur">
               <div className={`min-w-0 text-[11px] ${discoveryState === 'notice' ? 'text-text-3/80' : 'text-text-3/60'}`}>
                 {discoveryState === 'loading'
                   ? 'Checking live model catalog...'
@@ -184,7 +184,7 @@ export function ModelCombobox({
                   void loadDiscoveredModels(true)
                 }}
                 disabled={discoveryState === 'loading'}
-                className="shrink-0 rounded-[7px] border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-600 text-text-3/80 transition-colors hover:bg-white/[0.06] hover:text-text disabled:cursor-default disabled:opacity-60"
+                className="shrink-0 rounded-[7px] border border-line-default bg-layer-1 px-2 py-1 text-[10px] font-600 text-text-3/80 transition-colors hover:bg-layer-2 hover:text-text disabled:cursor-default disabled:opacity-60"
               >
                 {discoveryState === 'loading' ? 'Loading...' : discoveredModels.length > 0 ? 'Refresh' : 'Fetch live'}
               </button>
@@ -195,13 +195,13 @@ export function ModelCombobox({
             <div
               key={m}
               onClick={() => selectModel(m)}
-              className={`flex items-center justify-between px-3 py-2 text-[14px] cursor-pointer transition-colors hover:bg-white/[0.04] ${m === value ? 'text-accent-bright' : 'text-text'}`}
+              className={`flex items-center justify-between px-3 py-2 text-[14px] cursor-pointer transition-colors hover:bg-layer-2 ${m === value ? 'text-accent-bright' : 'text-text'}`}
             >
               <span className="truncate">{m}</span>
               {isCustom(m) && (
                 <button
                   onClick={(e) => removeModel(m, e)}
-                  className="ml-2 p-0.5 rounded hover:bg-white/[0.08] text-text-3 hover:text-red-400 transition-colors shrink-0"
+                  className="ml-2 p-0.5 rounded hover:bg-layer-3 text-text-3 hover:text-red-400 transition-colors shrink-0"
                   title="Remove custom model"
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">
@@ -215,7 +215,7 @@ export function ModelCombobox({
           {showAdd && (
             <div
               onClick={() => addModel(trimmedQuery)}
-              className="flex items-center gap-2 px-3 py-2 text-[14px] cursor-pointer transition-colors hover:bg-white/[0.04] text-accent-bright border-t border-white/[0.06]"
+              className="flex items-center gap-2 px-3 py-2 text-[14px] cursor-pointer transition-colors hover:bg-layer-2 text-accent-bright border-t border-line-subtle"
             >
               <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 16 16" fill="none">
                 <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

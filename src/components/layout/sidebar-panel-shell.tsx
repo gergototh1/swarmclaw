@@ -18,7 +18,7 @@ export function SidebarPanelShell({ title, createLabel, onNew, headerContent, ch
 
   return (
     <div
-      className="w-[280px] shrink-0 bg-raised border-r border-white/[0.04] flex flex-col h-full min-h-0 overflow-hidden touch-pan-y"
+      className="w-[280px] shrink-0 bg-raised border-r border-line-subtle flex flex-col h-full min-h-0 overflow-hidden touch-pan-y"
       style={{ animation: 'panel-in 0.3s var(--ease-spring)' }}
     >
       <div className="flex items-center px-5 pt-5 pb-3 shrink-0">

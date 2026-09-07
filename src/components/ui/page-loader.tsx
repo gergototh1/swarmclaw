@@ -25,7 +25,7 @@ export function PageLoader({ label }: { label?: string }) {
 
         {/* Ring */}
         <div
-          className="absolute inset-0 rounded-full border border-white/[0.05]"
+          className="absolute inset-0 rounded-full border border-line-subtle"
           style={{ animation: 'sc-ring 3s linear infinite' }}
         />
 
@@ -53,7 +53,7 @@ export function PageLoader({ label }: { label?: string }) {
       </div>
 
       {/* Shimmer bar */}
-      <div className="w-[60px] h-[2px] rounded-full bg-white/[0.05] overflow-hidden">
+      <div className="w-[60px] h-[2px] rounded-full bg-layer-2 overflow-hidden">
         <div
           className="h-full rounded-full bg-accent-bright/50"
           style={{ animation: 'sc-progress 1.5s ease-in-out infinite' }}

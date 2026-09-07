@@ -164,7 +164,7 @@ export function SkillSheet() {
     }
   }
 
-  const inputClass = "w-full px-4 py-3.5 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
+  const inputClass = "w-full px-4 py-3.5 rounded-[14px] border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
   const previewSecurity = metadataPreview?.security as SkillSecuritySummary | undefined
   const requirementCount = (metadataPreview?.skillRequirements?.env?.length || 0)
     + (metadataPreview?.skillRequirements?.bins?.length || 0)
@@ -184,7 +184,7 @@ export function SkillSheet() {
         <div className="mb-8">
           <label
             onClick={() => fileRef.current?.click()}
-            className="flex items-center justify-center gap-2.5 w-full py-4 rounded-[14px] border border-dashed border-white/[0.1] bg-transparent text-text-3 text-[14px] font-600 cursor-pointer hover:border-accent-bright/30 hover:text-accent-bright hover:bg-accent-soft transition-all duration-200"
+            className="flex items-center justify-center gap-2.5 w-full py-4 rounded-[14px] border border-dashed border-line-default bg-transparent text-text-3 text-[14px] font-600 cursor-pointer hover:border-accent-bright/30 hover:text-accent-bright hover:bg-accent-soft transition-all duration-200"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -198,7 +198,7 @@ export function SkillSheet() {
       )}
 
       {!editing && (
-        <div className="mb-8 p-4 rounded-[14px] border border-white/[0.08] bg-surface">
+        <div className="mb-8 p-4 rounded-[14px] border border-line-default bg-surface">
           <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Import from URL</label>
           <div className="flex gap-2">
             <input
@@ -224,7 +224,7 @@ export function SkillSheet() {
       )}
 
       {metadataPreview && (
-        <div className="mb-8 rounded-[14px] border border-white/[0.08] bg-white/[0.03] p-4">
+        <div className="mb-8 rounded-[14px] border border-line-default bg-layer-1 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3/60">Skill Metadata</div>
@@ -249,9 +249,9 @@ export function SkillSheet() {
 
           {(metadataPreview.primaryEnv || metadataPreview.homepage || metadataPreview.skillKey) && (
             <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-text-3/70">
-              {metadataPreview.primaryEnv && <span className="rounded-full border border-white/[0.08] px-2 py-1">Primary env: {metadataPreview.primaryEnv}</span>}
-              {metadataPreview.skillKey && <span className="rounded-full border border-white/[0.08] px-2 py-1">Skill key: {metadataPreview.skillKey}</span>}
-              {metadataPreview.homepage && <span className="rounded-full border border-white/[0.08] px-2 py-1">Homepage linked</span>}
+              {metadataPreview.primaryEnv && <span className="rounded-full border border-line-default px-2 py-1">Primary env: {metadataPreview.primaryEnv}</span>}
+              {metadataPreview.skillKey && <span className="rounded-full border border-line-default px-2 py-1">Skill key: {metadataPreview.skillKey}</span>}
+              {metadataPreview.homepage && <span className="rounded-full border border-line-default px-2 py-1">Homepage linked</span>}
             </div>
           )}
 
@@ -294,7 +294,7 @@ export function SkillSheet() {
 
       <div className="mb-8">
         <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Scope</label>
-        <div className="flex p-1 rounded-[12px] bg-bg border border-white/[0.06]">
+        <div className="flex p-1 rounded-[12px] bg-bg border border-line-subtle">
           {(['global', 'agent'] as const).map((s) => (
             <button
               key={s}
@@ -314,7 +314,7 @@ export function SkillSheet() {
       {scope === 'agent' && (
         <div className="mb-8">
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Agents</label>
-          <div className="max-h-[240px] overflow-y-auto rounded-[12px] border border-white/[0.06] bg-white/[0.03]">
+          <div className="max-h-[240px] overflow-y-auto rounded-[12px] border border-line-subtle bg-layer-1">
             {agentList.length === 0 ? (
               <p className="p-3 text-[12px] text-text-3">No agents available</p>
             ) : (
@@ -325,7 +325,7 @@ export function SkillSheet() {
                     key={agent.id}
                     onClick={() => toggleAgent(agent.id)}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-all cursor-pointer ${
-                      selected ? 'bg-accent-soft/40' : 'hover:bg-white/[0.04]'
+                      selected ? 'bg-accent-soft/40' : 'hover:bg-layer-2'
                     }`}
                     style={{ fontFamily: 'inherit' }}
                   >
@@ -344,13 +344,13 @@ export function SkillSheet() {
         </div>
       )}
 
-      <div className="flex gap-3 pt-2 border-t border-white/[0.04]">
+      <div className="flex gap-3 pt-2 border-t border-line-subtle">
         {editing && (
           <button onClick={() => setConfirmDelete(true)} className="py-3.5 px-6 rounded-[14px] border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Delete
           </button>
         )}
-        <button onClick={onClose} className="flex-1 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
+        <button onClick={onClose} className="flex-1 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
           Cancel
         </button>
         <button onClick={handleSave} disabled={!name.trim() || !content.trim()} className="flex-1 py-3.5 rounded-[14px] border-none bg-accent-bright text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110" style={{ fontFamily: 'inherit' }}>

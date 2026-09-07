@@ -61,8 +61,8 @@ export function SuggestionsBar({ lastMessage, onSend }: Props) {
           key={text}
           type="button"
           onClick={() => onSend(text)}
-          className="rounded-full px-3.5 py-1.5 text-[12px] font-500 border border-white/[0.06] bg-white/[0.03]
-            text-text-3 hover:text-text-2 hover:bg-white/[0.06] hover:border-white/[0.10]
+          className="rounded-full px-3.5 py-1.5 text-[12px] font-500 border border-line-subtle bg-layer-1
+            text-text-3 hover:text-text-2 hover:bg-layer-2 hover:border-line-default
             cursor-pointer transition-all active:scale-[0.97]"
           style={{ fontFamily: 'inherit' }}
         >

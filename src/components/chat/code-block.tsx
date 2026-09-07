@@ -59,7 +59,7 @@ export function CodeBlock({ children, className }: Props) {
 
   return (
     <div className="relative group/code command-surface">
-      <div className="flex items-center justify-between px-4 py-2 bg-black/30 border-b border-white/[0.03]">
+      <div className="flex items-center justify-between px-4 py-2 bg-black/30 border-b border-line-subtle">
         <span className="text-[10px] font-600 uppercase tracking-[0.08em] text-text-3 font-mono">{language}</span>
         <div className="flex items-center gap-1">
           {canPreview && (
@@ -68,7 +68,7 @@ export function CodeBlock({ children, className }: Props) {
                 onClick={handlePreview}
                 className={`flex items-center gap-1.5 text-[10px] font-600 bg-transparent border-none cursor-pointer
                   transition-all duration-200 px-2 py-0.5 rounded-[6px]
-                  ${previewing ? 'text-accent-bright' : 'text-text-3/50 hover:text-text-2 hover:bg-white/[0.04]'}`}
+                  ${previewing ? 'text-accent-bright' : 'text-text-3/50 hover:text-text-2 hover:bg-layer-2'}`}
                 style={{ fontFamily: 'inherit' }}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -80,7 +80,7 @@ export function CodeBlock({ children, className }: Props) {
               <button
                 onClick={handleOpenTab}
                 className="flex items-center gap-1.5 text-[10px] font-600 bg-transparent border-none cursor-pointer
-                  transition-all duration-200 px-2 py-0.5 rounded-[6px] text-text-3/50 hover:text-text-2 hover:bg-white/[0.04]"
+                  transition-all duration-200 px-2 py-0.5 rounded-[6px] text-text-3/50 hover:text-text-2 hover:bg-layer-2"
                 style={{ fontFamily: 'inherit' }}
                 title="Open in new tab"
               >
@@ -96,7 +96,7 @@ export function CodeBlock({ children, className }: Props) {
           <button
             onClick={handleSave}
             className="flex items-center gap-1.5 text-[10px] font-600 bg-transparent border-none cursor-pointer
-              transition-all duration-200 px-2 py-0.5 rounded-[6px] text-text-3/50 hover:text-text-2 hover:bg-white/[0.04]"
+              transition-all duration-200 px-2 py-0.5 rounded-[6px] text-text-3/50 hover:text-text-2 hover:bg-layer-2"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -112,7 +112,7 @@ export function CodeBlock({ children, className }: Props) {
               transition-all duration-200 px-2 py-0.5 rounded-[6px]
               ${copied
                 ? 'text-success'
-                : 'text-text-3/50 hover:text-text-2 hover:bg-white/[0.04]'}`}
+                : 'text-text-3/50 hover:text-text-2 hover:bg-layer-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {copied ? (

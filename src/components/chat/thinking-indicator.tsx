@@ -71,7 +71,7 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
             agentStatus.status === 'progress' ? 'bg-blue-500/10 text-blue-400' :
             agentStatus.status === 'ok' ? 'bg-emerald-500/10 text-emerald-400' :
             agentStatus.status === 'blocked' ? 'bg-red-500/10 text-red-400' :
-            'bg-white/[0.06] text-text-3'
+            'bg-layer-2 text-text-3'
           }`} style={{ animation: 'spring-in 0.3s var(--ease-spring)' }}>
             {agentStatus.status}
           </span>
@@ -87,7 +87,7 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
           </div>
           <p className="text-[13px] font-500 text-text-2 leading-snug">{agentStatus.goal}</p>
           {agentStatus.nextAction && (
-            <div className="mt-2 pt-2 border-t border-white/[0.04]">
+            <div className="mt-2 pt-2 border-t border-line-subtle">
               <span className="text-[10px] font-600 text-text-3/40 uppercase block mb-0.5">Next Action</span>
               <p className="text-[11px] text-text-3/80 italic">&ldquo;{agentStatus.nextAction}&rdquo;</p>
             </div>
@@ -97,7 +97,7 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
 
       {hasThinkingContent ? (
         <details className="group/think w-full max-w-[85%] md:max-w-[72%]">
-          <summary className="bubble-ai px-5 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden relative overflow-hidden group-open/think:rounded-b-none border border-transparent hover:border-white/[0.04] transition-all">
+          <summary className="bubble-ai px-5 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden relative overflow-hidden group-open/think:rounded-b-none border border-transparent hover:border-line-subtle transition-all">
             {/* Thinking pulse background */}
             <div className="absolute inset-0 bg-accent-bright/5 opacity-0 group-hover/think:opacity-100 transition-opacity" style={{ animation: 'pulse-subtle 2s ease-in-out infinite' }} />
             
@@ -118,7 +118,7 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
               </svg>
             </div>
           </summary>
-          <div className="px-4 py-3 rounded-b-[12px] bg-bg/60 border-x border-b border-white/[0.04] max-h-[300px] overflow-y-auto">
+          <div className="px-4 py-3 rounded-b-[12px] bg-bg/60 border-x border-b border-line-subtle max-h-[300px] overflow-y-auto">
             <div className="msg-content text-[13px] leading-[1.6] text-text-3/80">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {thinkingText}

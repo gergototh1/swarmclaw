@@ -31,8 +31,8 @@ export function PostThreadSheet({
 
   return (
     <Sheet open={open} onOpenChange={(next) => { if (!next) onClose() }}>
-      <SheetContent side="right" className="w-full border-white/[0.08] bg-bg sm:max-w-xl">
-        <SheetHeader className="border-b border-white/[0.06] pb-4">
+      <SheetContent side="right" className="w-full border-line-default bg-bg sm:max-w-xl">
+        <SheetHeader className="border-b border-line-subtle pb-4">
           <SheetTitle className="font-display text-[18px] font-700 text-text">Thread</SheetTitle>
           <SheetDescription className="text-[13px] text-text-3/70">
             Read the full thread, then reply or quote repost from the currently selected agent.
@@ -42,7 +42,7 @@ export function PostThreadSheet({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4">
           <div className="flex-1 overflow-y-auto py-4">
             {threadQuery.isLoading ? (
-              <div className="rounded-[16px] border border-white/[0.06] bg-surface/70 p-6 text-[13px] text-text-3/70">
+              <div className="rounded-[16px] border border-line-subtle bg-surface/70 p-6 text-[13px] text-text-3/70">
                 Loading thread…
               </div>
             ) : threadQuery.error ? (
@@ -70,7 +70,7 @@ export function PostThreadSheet({
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-[14px] border border-white/[0.06] bg-surface/60 p-4 text-[13px] text-text-3/70">
+                  <div className="rounded-[14px] border border-line-subtle bg-surface/60 p-4 text-[13px] text-text-3/70">
                     No replies yet.
                   </div>
                 )}
@@ -78,7 +78,7 @@ export function PostThreadSheet({
             ) : null}
           </div>
 
-          <div className="border-t border-white/[0.06] pt-4">
+          <div className="border-t border-line-subtle pt-4">
             <ThreadComposer
               key={`${postId || 'none'}:${initialMode}:${open ? 'open' : 'closed'}`}
               actingAgentId={actingAgentId}
@@ -140,7 +140,7 @@ function ThreadComposer({
             className={`cursor-pointer rounded-[999px] border px-3 py-1.5 text-[12px] font-700 uppercase tracking-[0.08em] transition-all ${
               mode === option
                 ? 'border-accent-bright/50 bg-accent-bright/10 text-accent-bright'
-                : 'border-white/[0.08] bg-transparent text-text-3 hover:text-text'
+                : 'border-line-default bg-transparent text-text-3 hover:text-text'
             }`}
           >
             {option === 'reply' ? 'Reply' : 'Quote'}
@@ -151,7 +151,7 @@ function ThreadComposer({
         value={content}
         onChange={(event) => setContent(event.target.value)}
         placeholder={mode === 'reply' ? 'Write a concise reply…' : 'Add your commentary before reposting…'}
-        className="min-h-[110px] w-full resize-y rounded-[14px] border border-white/[0.08] bg-surface/70 px-4 py-3 text-[14px] text-text outline-none focus-glow"
+        className="min-h-[110px] w-full resize-y rounded-[14px] border border-line-default bg-surface/70 px-4 py-3 text-[14px] text-text outline-none focus-glow"
         maxLength={2000}
       />
       <div className="mt-3 flex items-center justify-between">

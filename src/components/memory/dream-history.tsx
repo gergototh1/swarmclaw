@@ -90,7 +90,7 @@ export function DreamHistory({ agentId }: Props) {
             type="button"
             onClick={() => { void load() }}
             disabled={loading}
-            className="px-2.5 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] font-600 text-text-3 hover:bg-white/[0.04] hover:text-text-2 transition-all cursor-pointer disabled:opacity-50"
+            className="px-2.5 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[11px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all cursor-pointer disabled:opacity-50"
             style={{ fontFamily: 'inherit' }}
           >
             Refresh
@@ -120,13 +120,13 @@ export function DreamHistory({ agentId }: Props) {
           {cycles.map((cycle) => (
             <div
               key={cycle.id}
-              className="rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-3.5 py-3"
+              className="rounded-[12px] border border-line-subtle bg-layer-1 px-3.5 py-3"
             >
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`px-1.5 py-0.5 rounded-[5px] text-[9px] font-700 uppercase tracking-[0.08em] ${statusColors[cycle.status] || 'bg-white/[0.04] text-text-3/75'}`}>
+                <span className={`px-1.5 py-0.5 rounded-[5px] text-[9px] font-700 uppercase tracking-[0.08em] ${statusColors[cycle.status] || 'bg-layer-2 text-text-3/75'}`}>
                   {cycle.status}
                 </span>
-                <span className="px-1.5 py-0.5 rounded-[5px] text-[9px] font-700 uppercase tracking-[0.08em] bg-white/[0.04] text-text-3/75">
+                <span className="px-1.5 py-0.5 rounded-[5px] text-[9px] font-700 uppercase tracking-[0.08em] bg-layer-2 text-text-3/75">
                   {cycle.trigger}
                 </span>
                 {cycle.status === 'completed' && cycle.startedAt && cycle.completedAt && (

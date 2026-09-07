@@ -73,7 +73,7 @@ export function ExecConfigPanel({ agentId }: Props) {
           value={config.security}
           onChange={(e) => save({ security: e.target.value as ExecApprovalConfig['security'] })}
           disabled={saving}
-          className="w-full px-3 py-2 rounded-[10px] border border-white/[0.06] bg-black/20 text-[13px] text-text outline-none"
+          className="w-full px-3 py-2 rounded-[10px] border border-line-subtle bg-black/20 text-[13px] text-text outline-none"
         >
           <option value="deny">Deny (block all)</option>
           <option value="allowlist">Allowlist (matched patterns only)</option>
@@ -88,7 +88,7 @@ export function ExecConfigPanel({ agentId }: Props) {
           value={config.askMode}
           onChange={(e) => save({ askMode: e.target.value as ExecApprovalConfig['askMode'] })}
           disabled={saving}
-          className="w-full px-3 py-2 rounded-[10px] border border-white/[0.06] bg-black/20 text-[13px] text-text outline-none"
+          className="w-full px-3 py-2 rounded-[10px] border border-line-subtle bg-black/20 text-[13px] text-text outline-none"
         >
           <option value="off">Off</option>
           <option value="on-miss">On miss (ask when no pattern matches)</option>
@@ -104,7 +104,7 @@ export function ExecConfigPanel({ agentId }: Props) {
           </label>
           <div className="flex flex-col gap-1 mb-2">
             {config.patterns.map((p, i) => (
-              <div key={i} className="flex items-center gap-2 py-1 px-2 rounded-[8px] bg-white/[0.02] border border-white/[0.04]">
+              <div key={i} className="flex items-center gap-2 py-1 px-2 rounded-[8px] bg-layer-1 border border-line-subtle">
                 <span className="text-[12px] text-text font-mono truncate flex-1">{p}</span>
                 <button
                   onClick={() => removePattern(i)}
@@ -126,7 +126,7 @@ export function ExecConfigPanel({ agentId }: Props) {
               onChange={(e) => setNewPattern(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addPattern()}
               placeholder="e.g. npm run *"
-              className="flex-1 px-3 py-1.5 rounded-[8px] border border-white/[0.06] bg-black/20 text-[12px] text-text font-mono outline-none placeholder:text-text-3/40"
+              className="flex-1 px-3 py-1.5 rounded-[8px] border border-line-subtle bg-black/20 text-[12px] text-text font-mono outline-none placeholder:text-text-3/40"
             />
             <button
               onClick={addPattern}

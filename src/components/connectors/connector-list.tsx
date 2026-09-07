@@ -172,7 +172,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
             <button
               key={c.id}
               onClick={() => openConnector(c.id)}
-              className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-white/[0.02] transition-colors cursor-pointer bg-transparent border-none text-left"
+              className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-layer-1 transition-colors cursor-pointer bg-transparent border-none text-left"
               style={{
                 animation: 'fade-up 0.4s var(--ease-spring) both',
                 animationDelay: `${idx * 0.03}s`
@@ -211,8 +211,8 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
             onClick={() => setGroupFilter((current) => (current === group ? 'all' : group))}
             className={`rounded-[14px] border px-4 py-3 text-left transition-all cursor-pointer ${
               groupFilter === group
-                ? 'border-white/[0.12] bg-white/[0.05]'
-                : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]'
+                ? 'border-line-default bg-layer-2'
+                : 'border-line-subtle bg-layer-1 hover:bg-layer-2'
             }`}
             style={{ fontFamily: 'inherit' }}
           >
@@ -231,7 +231,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
             className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 transition-all cursor-pointer border-none ${
               groupFilter === group
                 ? 'bg-accent-soft text-accent-bright'
-                : 'bg-white/[0.04] text-text-3 hover:bg-white/[0.08] hover:text-text-2'
+                : 'bg-layer-2 text-text-3 hover:bg-layer-3 hover:text-text-2'
             }`}
             style={{ fontFamily: 'inherit' }}
           >
@@ -286,7 +286,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                             openConnector(c.id)
                           }
                         }}
-                        className={`group relative flex flex-col rounded-[14px] border p-4 cursor-pointer transition-all hover:border-white/[0.12] hover:bg-white/[0.02] hover:scale-[1.01] text-left w-full ${
+                        className={`group relative flex flex-col rounded-[14px] border p-4 cursor-pointer transition-all hover:border-line-default hover:bg-layer-1 hover:scale-[1.01] text-left w-full ${
                           group === 'healthy'
                             ? 'border-emerald-500/15 bg-emerald-500/[0.03]'
                             : group === 'attention'
@@ -311,7 +311,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                               />
                             </div>
                             <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                              <span className={`px-1.5 py-0.5 rounded-[5px] text-[10px] font-700 uppercase tracking-[0.08em] ${meta.tone} bg-white/[0.05]`}>
+                              <span className={`px-1.5 py-0.5 rounded-[5px] text-[10px] font-700 uppercase tracking-[0.08em] ${meta.tone} bg-layer-2`}>
                                 {meta.label}
                               </span>
                               <span className="text-[11px] text-text-3">
@@ -324,7 +324,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                         <div className="flex items-center gap-2.5 mb-3 px-0.5">
                           {chatroom ? (
                             <>
-                              <div className="w-6 h-6 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0">
+                              <div className="w-6 h-6 rounded-full bg-layer-2 flex items-center justify-center shrink-0">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3">
                                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                                 </svg>
@@ -363,7 +363,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                           </div>
                         )}
 
-                        <div className="mb-3 rounded-[10px] border border-white/[0.04] bg-white/[0.02] px-3 py-2">
+                        <div className="mb-3 rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
                           <div className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55">Readiness</div>
                           <div className="mt-1 text-[11px] text-text-2">{readiness.summary}</div>
                           <div className="mt-2 flex flex-col gap-1">
@@ -378,7 +378,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 mt-auto pt-2 border-t border-white/[0.04]">
+                        <div className="flex items-center gap-2 mt-auto pt-2 border-t border-line-subtle">
                           {c.lastError ? (
                             <span className="text-[10px] text-red-400 truncate flex-1">
                               {c.lastError.slice(0, 50)}{c.lastError.length > 50 ? '...' : ''}
@@ -394,7 +394,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                               href={readiness.doctorHref}
                               target="_blank"
                               rel="noreferrer"
-                              className="px-2 py-1 rounded-[6px] text-[10px] font-600 transition-all opacity-0 group-hover:opacity-100 bg-white/[0.05] text-text-3 hover:bg-white/[0.08] hover:text-text-2"
+                              className="px-2 py-1 rounded-[6px] text-[10px] font-600 transition-all opacity-0 group-hover:opacity-100 bg-layer-2 text-text-3 hover:bg-layer-3 hover:text-text-2"
                             >
                               Doctor
                             </a>

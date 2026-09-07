@@ -628,7 +628,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
       {/* Tool events expanded card (controlled by pill toggle) */}
       {hasToolEvents && effectiveToolSectionOpen && (
         <div className="max-w-[85%] md:max-w-[72%] mb-2" data-testid="tool-activity">
-          <div className="rounded-[16px] border border-white/[0.08] bg-surface/72 backdrop-blur-sm overflow-hidden">
+          <div className="rounded-[16px] border border-line-default bg-surface/72 backdrop-blur-sm overflow-hidden">
             <ToolEventsSection toolEvents={displayToolEvents} controlled />
           </div>
         </div>
@@ -755,7 +755,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
             <button
               type="button"
               onClick={() => setHeartbeatExpanded((v) => !v)}
-              className="w-full rounded-[12px] px-3.5 py-3 border border-white/[0.10] bg-white/[0.02] text-left hover:bg-white/[0.04] transition-colors cursor-pointer"
+              className="w-full rounded-[12px] px-3.5 py-3 border border-line-default bg-layer-1 text-left hover:bg-layer-2 transition-colors cursor-pointer"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -798,7 +798,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               })()}
             </button>
             {heartbeatExpanded && (
-              <div className="msg-content text-[14px] leading-[1.7] text-text break-words px-3 py-2 rounded-[10px] border border-white/[0.08] bg-black/20">
+              <div className="msg-content text-[14px] leading-[1.7] text-text break-words px-3 py-2 rounded-[10px] border border-line-default bg-black/20">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}
@@ -1056,13 +1056,13 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
           <textarea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="w-full min-h-[80px] p-3 rounded-[12px] bg-surface border border-white/[0.08] text-text text-[14px] resize-y outline-none focus:border-accent-bright/30"
+            className="w-full min-h-[80px] p-3 rounded-[12px] bg-surface border border-line-default text-text text-[14px] resize-y outline-none focus:border-accent-bright/30"
             style={{ fontFamily: 'inherit' }}
           />
           <div className="flex gap-2 mt-2 justify-end">
             <button
               onClick={() => setEditing(false)}
-              className="px-3 py-1.5 rounded-[8px] text-[11px] font-600 text-text-3 bg-white/[0.04] hover:bg-white/[0.07] border-none cursor-pointer transition-colors"
+              className="px-3 py-1.5 rounded-[8px] text-[11px] font-600 text-text-3 bg-layer-2 hover:bg-layer-3 border-none cursor-pointer transition-colors"
             >
               Cancel
             </button>

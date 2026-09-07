@@ -10,14 +10,14 @@ interface Props {
 
 export function OrgChartToolbar({ onAutoLayout, onZoomIn, onZoomOut, onFitToScreen, scale }: Props) {
   return (
-    <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-raised/90 backdrop-blur-sm border border-white/[0.06] rounded-[10px] px-1.5 py-1 shadow-lg" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-raised/90 backdrop-blur-sm border border-line-subtle rounded-[10px] px-1.5 py-1 shadow-lg" onPointerDown={(e) => e.stopPropagation()}>
       <ToolbarBtn title="Auto-layout" onClick={onAutoLayout}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
           <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
       </ToolbarBtn>
-      <div className="w-px h-5 bg-white/[0.08] mx-0.5" />
+      <div className="w-px h-5 bg-layer-3 mx-0.5" />
       <ToolbarBtn title="Zoom in" onClick={onZoomIn}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" />
@@ -29,7 +29,7 @@ export function OrgChartToolbar({ onAutoLayout, onZoomIn, onZoomOut, onFitToScre
           <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" />
         </svg>
       </ToolbarBtn>
-      <div className="w-px h-5 bg-white/[0.08] mx-0.5" />
+      <div className="w-px h-5 bg-layer-3 mx-0.5" />
       <ToolbarBtn title="Fit to screen" onClick={onFitToScreen}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
@@ -44,7 +44,7 @@ function ToolbarBtn({ children, title, onClick }: { children: React.ReactNode; t
     <button
       onClick={onClick}
       title={title}
-      className="w-7 h-7 rounded-[6px] flex items-center justify-center transition-colors cursor-pointer bg-transparent border-none text-text-3 hover:text-text hover:bg-white/[0.06]"
+      className="w-7 h-7 rounded-[6px] flex items-center justify-center transition-colors cursor-pointer bg-transparent border-none text-text-3 hover:text-text hover:bg-layer-2"
     >
       {children}
     </button>
