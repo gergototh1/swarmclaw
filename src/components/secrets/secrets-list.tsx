@@ -5,11 +5,7 @@ import { useAppStore } from '@/stores/use-app-store'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { api } from '@/lib/app/api-client'
 
-interface Props {
-  inSidebar?: boolean
-}
-
-export function SecretsList({ inSidebar }: Props) {
+export function SecretsList() {
   const secrets = useAppStore((s) => s.secrets)
   const loadSecrets = useAppStore((s) => s.loadSecrets)
   const agents = useAppStore((s) => s.agents)
@@ -51,8 +47,8 @@ export function SecretsList({ inSidebar }: Props) {
   }
 
   return (
-    <div className={`flex-1 overflow-y-auto ${inSidebar ? 'px-3 pb-4' : 'px-5 pb-6'}`}>
-      <div className={inSidebar ? 'space-y-2' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3'}>
+    <div className="flex-1 overflow-y-auto px-5 pb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {secretList.map((secret, idx) => {
           const scopeLabel = secret.scope === 'global'
             ? 'Global'
@@ -90,17 +86,15 @@ export function SecretsList({ inSidebar }: Props) {
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
                 <span className="text-[14px] font-600 text-text truncate flex-1">{secret.name}</span>
-                {!inSidebar && (
-                  <button
-                    onClick={(e) => handleDelete(e, secret.id)}
-                    className="text-text-3/40 hover:text-red-400 transition-colors p-0.5 shrink-0"
-                    title="Delete"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
-                )}
+                <button
+                  onClick={(e) => handleDelete(e, secret.id)}
+                  className="text-text-3/40 hover:text-red-400 transition-colors p-0.5 shrink-0"
+                  title="Delete"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
               </div>
               <div className="flex items-center gap-2 pl-[22px]">
                 <span className="text-[11px] font-mono text-text-3">{secret.service}</span>
