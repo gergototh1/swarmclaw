@@ -12,7 +12,6 @@ import { ExtensionPagesAfter, ExtensionPagesEndGroup } from '@/components/layout
 import { useWs } from '@/hooks/use-ws'
 import { FULL_WIDTH_VIEWS, isPanelSidebarView } from '@/lib/app/view-constants'
 import { pathToView, useNavigate } from '@/lib/app/navigation'
-import { isExtensionPagePath } from '@/lib/extension-page-nav'
 import { safeStorageGet, safeStorageSet } from '@/lib/app/safe-storage'
 import type { AppView } from '@/types'
 
@@ -45,10 +44,11 @@ export function SidebarRail({
   const skillDraftCount = useAppStore((s) => s.skillDraftCount)
   const loadSkillDraftCount = useAppStore((s) => s.loadSkillDraftCount)
 
-  // `null` on an extension page: those routes are not an `AppView`, so no built-in
-  // entry may light up while one is open. Other unrecognised paths keep falling
-  // back to Home.
-  const activeView: AppView | null = pathToView(pathname) ?? (isExtensionPagePath(pathname) ? null : 'home')
+  // `null` for any path that isn't a registered `AppView` — an extension page
+  // under `/x/`, or an in-app route (like the merged `/stream` page) that hasn't
+  // been given a view yet. Nothing highlighted is correct here; falling back to
+  // Home would light up the wrong entry, which is exactly the bug this avoids.
+  const activeView: AppView | null = pathToView(pathname)
 
   const defaultAgentId = defaultAgent?.id || null
   const isDefaultChat = activeView === 'agents' && currentAgentId === defaultAgentId

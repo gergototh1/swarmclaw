@@ -55,6 +55,12 @@ describe('pathToView', () => {
     assert.equal(mod.pathToView('/agent'), null)
   })
 
+  it('returns null for a merged route that has no AppView yet, rather than falling back to home', () => {
+    // /stream absorbed /runs, /activity and /logs but is deliberately not in
+    // VIEW_TO_PATH yet, so the sidebar rail must not light up Home for it.
+    assert.equal(mod.pathToView('/stream'), null)
+  })
+
   it('returns null for empty string', () => {
     assert.equal(mod.pathToView(''), null)
   })
