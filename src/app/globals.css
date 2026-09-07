@@ -176,6 +176,29 @@
 }
 
 .light {
+  /* The eleven values the dark theme sets in :root, and nothing else.
+     There is no !important layer under this any more: if a component looks
+     wrong in light mode, it is reading a raw colour instead of a token, and
+     the ESLint guard is what catches that.
+
+     --neutral-tint stays dark here on purpose. Five hundred-odd `bg-surface`,
+     `bg-bg` and `bg-raised` utilities still derive their light-mode colour
+     from `color-mix(var(--neutral-tint), #fff)`, and a light tint collapses
+     every one of those to within two levels of white — white cards on a white
+     page, which is the failure this layer exists to prevent. It can go light
+     once those utilities are on the ladder too. */
+  --sf-0: #f7f7fa;
+  --sf-1: rgba(31,41,55,0.025);
+  --sf-2: rgba(31,41,55,0.055);
+  --sf-3: rgba(31,41,55,0.10);
+  --sf-4: rgba(31,41,55,0.17);
+  --ln-subtle: rgba(31,41,55,0.08);
+  --ln-default: rgba(31,41,55,0.13);
+  --ln-strong: rgba(31,41,55,0.22);
+  --tx-1: #1a1a24;
+  --tx-2: #4a4a60;
+  --tx-3: #75758c;
+
   --background: color-mix(in srgb, var(--neutral-tint) 10%, #fff);
   --foreground: #1f2937;
   --card: color-mix(in srgb, var(--neutral-tint) 8%, #fff);
@@ -252,47 +275,12 @@
   --command-header: rgba(31,41,55,0.04);
 }
 
-.light .bg-white\/\[0\.01\] { background-color: rgba(31,41,55,0.01) !important; }
-.light .bg-white\/\[0\.02\] { background-color: rgba(31,41,55,0.025) !important; }
-.light .bg-white\/\[0\.025\] { background-color: rgba(31,41,55,0.03) !important; }
-.light .bg-white\/\[0\.03\] { background-color: rgba(31,41,55,0.035) !important; }
-.light .bg-white\/\[0\.035\] { background-color: rgba(31,41,55,0.04) !important; }
-.light .bg-white\/\[0\.04\] { background-color: rgba(31,41,55,0.045) !important; }
-.light .bg-white\/\[0\.05\] { background-color: rgba(31,41,55,0.055) !important; }
-.light .bg-white\/\[0\.06\] { background-color: rgba(31,41,55,0.065) !important; }
-.light .bg-white\/\[0\.07\] { background-color: rgba(31,41,55,0.075) !important; }
-.light .bg-white\/\[0\.08\] { background-color: rgba(31,41,55,0.085) !important; }
-.light .bg-white\/\[0\.10\],
-.light .bg-white\/\[0\.1\] { background-color: rgba(31,41,55,0.10) !important; }
-.light .bg-white\/\[0\.12\] { background-color: rgba(31,41,55,0.12) !important; }
-.light .bg-white\/\[0\.15\] { background-color: rgba(31,41,55,0.15) !important; }
-.light .bg-white\/\[0\.16\] { background-color: rgba(31,41,55,0.16) !important; }
-.light .bg-white\/\[0\.18\] { background-color: rgba(31,41,55,0.18) !important; }
-.light .bg-white\/\[0\.2\],
-.light .bg-white\/\[0\.20\] { background-color: rgba(31,41,55,0.20) !important; }
-.light .bg-white\/\[0\.22\] { background-color: rgba(31,41,55,0.22) !important; }
+/* The last two literal white-alpha utilities in the app: the codemod refuses
+   both as over-ceiling for the ladder (a 0.45 dot, a 0.4 drag-target border),
+   so they still need a light-mode value of their own. Everything else on this
+   layer is gone — the tokens above are the theme now. */
 .light .bg-white\/\[0\.45\] { background-color: rgba(31,41,55,0.45) !important; }
-
-.light .border-white\/\[0\.03\] { border-color: rgba(31,41,55,0.07) !important; }
-.light .border-white\/\[0\.04\] { border-color: rgba(31,41,55,0.08) !important; }
-.light .border-white\/\[0\.05\] { border-color: rgba(31,41,55,0.09) !important; }
-.light .border-white\/\[0\.06\] { border-color: rgba(31,41,55,0.10) !important; }
-.light .border-white\/\[0\.07\] { border-color: rgba(31,41,55,0.11) !important; }
-.light .border-white\/\[0\.08\] { border-color: rgba(31,41,55,0.12) !important; }
-.light .border-white\/\[0\.10\],
-.light .border-white\/\[0\.1\] { border-color: rgba(31,41,55,0.14) !important; }
-.light .border-white\/\[0\.12\] { border-color: rgba(31,41,55,0.16) !important; }
-.light .border-white\/\[0\.14\] { border-color: rgba(31,41,55,0.18) !important; }
-.light .border-white\/\[0\.15\] { border-color: rgba(31,41,55,0.19) !important; }
-.light .border-white\/\[0\.16\] { border-color: rgba(31,41,55,0.20) !important; }
-.light .border-white\/\[0\.2\],
-.light .border-white\/\[0\.20\] { border-color: rgba(31,41,55,0.24) !important; }
-.light .border-white\/\[0\.25\] { border-color: rgba(31,41,55,0.28) !important; }
-.light .border-white\/\[0\.4\],
-.light .border-white\/\[0\.40\] { border-color: rgba(31,41,55,0.42) !important; }
-.light .divide-white\/\[0\.04\] > :not(:last-child) { border-color: rgba(31,41,55,0.08) !important; }
-.light .divide-white\/\[0\.05\] > :not(:last-child) { border-color: rgba(31,41,55,0.09) !important; }
-.light .ring-white\/\[0\.08\] { --tw-ring-color: rgba(31,41,55,0.14) !important; }
+.light .hover\:border-white\/\[0\.4\]:hover { border-color: rgba(31,41,55,0.42) !important; }
 
 html.light,
 html.light body {
