@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { AG_KEZDO_ALLAPOT, KIADAS_KEZDO_ALLAPOT } from '../src/db.mjs'
+import { AG_KEZDO_ALLAPOT, KIADAS_KEZDO_ALLAPOT, isUniqueViolationOn } from '../src/db.mjs'
 import { freshRepo } from './helpers.mjs'
 
 function refusal(fn) {
@@ -130,6 +130,30 @@ test('agak returns only the branches of the release asked for, in creation order
   repo.ujAg({ kiadasId: k1.id, platform: 'instagram' })
   assert.deepEqual(repo.agak(k1.id).map((a) => a.platform), ['youtube', 'instagram'])
   assert.deepEqual(repo.agak(k2.id).map((a) => a.platform), ['facebook'])
+})
+
+test('isUniqueViolationOn narrows to exactly the named columns: an id collision is a different fact than a (kiadas_id, platform) collision', () => {
+  // No stubbed uid(): reuse the id a legitimate ujAg() call already minted,
+  // and insert it again through the same storage.raw bypass the index tests
+  // above use, under a DIFFERENT platform so the (kiadas_id, platform) index
+  // does not fire -- only the primary key on `id` does. That produces the
+  // real driver text `UNIQUE constraint failed: ext_publish_agak.id`, and
+  // isUniqueViolationOn must answer false for it against the (kiadas_id,
+  // platform) column set: an id collision states no fact about that pair.
+  const { storage, repo } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  const yt = repo.ujAg({ kiadasId: k.id, platform: 'youtube' })
+  const t = new Date().toISOString()
+  const err = refusal(() => storage.raw
+    .prepare('INSERT INTO ext_publish_agak (id, kiadas_id, platform, szoveg, allapot, hiba_kod, url, kikuldve_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
+    .run(yt.id, k.id, 'tiktok', null, 'var', null, null, null, t, t))
+  assert.ok(err, 'a megismételt id-t az adatbázisnak vissza kellett volna utasítania')
+  assert.match(err.message, /UNIQUE constraint failed: ext_publish_agak\.id/)
+  assert.equal(
+    isUniqueViolationOn(err, 'ext_publish_agak', ['kiadas_id', 'platform']),
+    false,
+    'egy id-ütközés nem ugyanaz a tény, mint egy (kiadas_id, platform) ütközés',
+  )
 })
 
 test('a séma mind a négy táblát létrehozza', () => {

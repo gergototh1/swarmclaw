@@ -142,8 +142,14 @@ CREATE TABLE IF NOT EXISTS ext_publish_savok (
  * fact nobody observed, and send the operator looking for a branch that is not
  * there. An `id` collision is a different fact with no sentence of its own
  * yet, so it rethrows untouched rather than borrowing this one's.
+ *
+ * Exported for its own direct test (task-2-report.md's residual item): an
+ * `id` collision on `ext_publish_agak` is reachable with no mocking at all
+ * by reusing an id a legitimate `ujAg()` call already minted and inserting
+ * it again through `storage.raw`, the same bypass `test/db.test.mjs`'s index
+ * tests already use -- see `test/db.test.mjs`.
  */
-function isUniqueViolationOn(err, table, columns) {
+export function isUniqueViolationOn(err, table, columns) {
   if (!(err instanceof Error)) return false
   return err.message.includes(`UNIQUE constraint failed: ${columns.map((c) => `${table}.${c}`).join(', ')}`)
 }
