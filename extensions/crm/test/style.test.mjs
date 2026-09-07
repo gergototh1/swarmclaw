@@ -165,3 +165,26 @@ test('a .crm-acct kattinthato biztonsagi tulajdonsagai (font/cursor/transition) 
     'a .crm-acct reduced-motion szabalyat meg kell osztania a .crm-btn es a .crm-tab elemekkel',
   )
 })
+
+test('a .crm-cols szabaly tenylegesen ket hasabos gridet deklaral', () => {
+  // Regresszios teszt az F4 review-talalatra: a `.crm-cols` szelektor
+  // MEGLETE onmagaban semmit nem bizonyit -- a `crm-cols` string a bundle-ben
+  // (lasd `ugyfel-lap.test.mjs`) is akkor is talalna, ha a szabaly torzse ures
+  // lenne, vagy ha csak egyetlen oszlopot adna. Ez a teszt a torzset magat
+  // vizsgalja: `display: grid` es egy PONTOSAN ket ertekbol allo
+  // `grid-template-columns` egyutt kell ahhoz, hogy ez a szabaly tenyleg azt
+  // a ket hasabot valositsa meg, aminek a megorzese ennek a feladatnak a
+  // celja -- e nelkul a `.crm-cols { display: grid; grid-template-columns:
+  // 1.35fr 1fr }` sor torlese (a feladat altal megelozni kivant pontos
+  // regresszio) az osszes tesztet zoldon hagyna.
+  const blokkok = szabalyBlokkok(kommentNelkul)
+  const szabaly = blokkok.find((b) => b.szelektorok.includes('.crm-cols'))
+  assert.ok(szabaly, 'a .crm-cols szabalynak letezni kell')
+
+  assert.match(szabaly.torzs, /display:\s*grid/, 'a .crm-cols-nak grid elrendezesnek kell lennie')
+
+  const gridMatch = szabaly.torzs.match(/grid-template-columns:\s*([^;]+);/)
+  assert.ok(gridMatch, 'a .crm-cols-nak grid-template-columns-t kell deklaralnia')
+  const oszlopok = gridMatch[1].trim().split(/\s+/)
+  assert.equal(oszlopok.length, 2, 'a grid-template-columns pontosan ket oszlopot kell megadjon')
+})

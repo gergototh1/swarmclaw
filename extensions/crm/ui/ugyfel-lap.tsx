@@ -182,8 +182,14 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
   // mögötte. Ha viszont a lap már állt egyszer, egy későbbi hiba (pl. a
   // jegyzetelés hálózati hibája) csak egy sávot kap felül -- az adat, ami már
   // betöltődött, érvényes marad, és nem szabad eldobni.
-  if (hiba && !lap) return <p className="crm-hiba" role="alert">{hiba} <button onClick={onBack}>Vissza</button></p>
-  if (!lap) return <p>Betöltés…</p>
+  if (hiba && !lap) {
+    return (
+      <p className="crm-hiba" role="alert">
+        {hiba} <button className="crm-btn crm-btn-quiet crm-btn-sm" onClick={onBack}>Vissza</button>
+      </p>
+    )
+  }
+  if (!lap) return <p className="crm-empty">Betöltés…</p>
 
   return (
     <section className="crm-sec-wrap">
@@ -193,75 +199,38 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
       </div>
       {hiba && <p className="crm-hiba" role="alert">{hiba}</p>}
 
+      {/*
+        F5: a DOM sorrend -- Összefoglaló, majd a "checks" kártyák
+        (Nyitott ígéretek / Feladatok / Ügyek / Kapcsolatok), majd az
+        Idővonal utoljára -- szándékosan MÁS, mint a széles nézet
+        balra/jobbra vizuális elrendezése; a `.crm-cols`
+        `grid-template-areas`-a nevesített területekkel rakja a helyükre
+        őket (lásd `style.css`). Ez az egyetlen sorrend, ami mindkét
+        töréspontnál (860px alatt és fölött) megegyezik a billentyűzetes
+        fókuszsorrenddel -- a `.crm-col`-onkénti DOM-csoportosítás 860px
+        alatt az idővonalat (akár 50, egyenként teljes email-törzsre
+        bővíthető esemény) az ellenőrizendő kártyák FÖLÉ tolta volna,
+        pontosan azt a hosszú görgetést reprodukálva, amit ez a feladat meg
+        akart szüntetni. */}
       <div className="crm-cols">
-        <div className="crm-col">
 
-          <div className="crm-card crm-summary">
-            <div className="crm-sechead"><h3>Összefoglaló</h3></div>
-            {lap.summary
-              ? (
-                <>
-                  {/* A frissesség tény, nem becslés: a szerver a legfrissebb lefedett
-                      esemény idejét bélyegezte az összefoglalóra, és ez egy COUNT. */}
-                  {lap.summary.stale && (
-                    <p className="crm-elavult">Elavult — {lap.summary.newerEvents} új esemény azóta</p>
-                  )}
-                  <p className="crm-torzs">{lap.summary.summary.text}</p>
-                </>
-              )
-              : <p className="crm-empty">Még nincs összefoglaló.</p>}
-          </div>
-
-          <div className="crm-sec">
-            <div className="crm-sechead"><h3>Idővonal</h3></div>
-            <div className="crm-toolbar">
-              <input value={jegyzet} onChange={(e) => setJegyzet(e.target.value)}
-                     placeholder="Jegyzet…" aria-label="Új jegyzet" />
-              <button className="crm-btn" onClick={jegyzetel}>Rögzít</button>
-            </div>
-            <ul className="crm-tl">
-              {lap.events.map((e) => {
-                const teljes = teljesSzovegek[e.id]
-                return (
-                  <li key={e.id} className={idovonalOsztaly(e.kind)}>
-                    <span className="crm-tlrail" aria-hidden="true">
-                      <span className="crm-tlnode"></span><span className="crm-tlline"></span>
-                    </span>
-                    <div className="crm-tlbody">
-                      <div className="crm-tlmeta">
-                        <time className="crm-tltime" dateTime={e.occurred_at}>
-                          {e.occurred_at.slice(0, 16).replace('T', ' ')}
-                        </time>
-                        <span className="crm-pill crm-pill-plain">{e.kind}</span>
-                      </div>
-                      {e.title && <span className="crm-atttitle">{e.title}</span>}
-                      {teljes === undefined
-                        ? (
-                          <>
-                            <span className="crm-attwhy">{e.excerpt}</span>
-                            <button className="crm-btn crm-btn-quiet crm-btn-sm"
-                                    onClick={() => teljesSzoveget(e.id)}
-                                    aria-label={`${e.title || e.kind} teljes szövege`}>Teljes szöveg</button>
-                          </>
-                        )
-                        /* Az idegen szöveg (a levél törzse) sima szövegcsomópontként kerül
-                           a JSX-be -- soha nem dangerouslySetInnerHTML-lel --, hogy egy
-                           levélbe rejtett jelölés ne válhasson a felület részévé. */
-                        : <p className="crm-torzs">{teljes}</p>}
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-            {!nincsTobbEsemeny && lap.events.length > 0 && (
-              <button className="crm-btn crm-btn-quiet crm-btn-sm"
-                      onClick={korabbiak} aria-label="Korábbi események betöltése">Korábbiak</button>
-            )}
-          </div>
-
+        <div className={`crm-card crm-summary${lap.summary && lap.summary.stale ? ' crm-summary-stale' : ''}`}>
+          <div className="crm-sechead"><h3>Összefoglaló</h3></div>
+          {lap.summary
+            ? (
+              <>
+                {/* A frissesség tény, nem becslés: a szerver a legfrissebb lefedett
+                    esemény idejét bélyegezte az összefoglalóra, és ez egy COUNT. */}
+                {lap.summary.stale && (
+                  <p className="crm-elavult">Elavult — {lap.summary.newerEvents} új esemény azóta</p>
+                )}
+                <p className="crm-torzs">{lap.summary.summary.text}</p>
+              </>
+            )
+            : <p className="crm-empty">Még nincs összefoglaló.</p>}
         </div>
 
-        <div className="crm-col">
+        <div className="crm-checks">
           {/* Nyitott ígéretek, Feladatok, Ügyek, Kapcsolatok -- mind `crm-card`,
               a soraik `crm-rows` / `crm-row`. A szűrések, az űrlapok, a
               feladat-betöltés hibaága és minden szöveg változatlan. */}
@@ -298,7 +267,11 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
           <div className="crm-card">
             <div className="crm-sechead">
               <h3>Feladatok</h3>
-              <span className="crm-count">{feladatok ? feladatok.length : 0}</span>
+              {/* F6: amíg a lista be sem töltött (feladatok === null), a jelvény
+                  0-t mutatna, miközben a kártya törzse "Feladatok betöltése…"-t
+                  ír -- két egymásnak ellentmondó állítás. A jelvény inkább
+                  egyáltalán nem jelenik meg, amíg nincs mit számolnia. */}
+              {feladatok !== null && <span className="crm-count">{feladatok.length}</span>}
             </div>
             {/* A CRM-3 (7. feladat) elfogadott javaslataiból és lezárt ígéreteiből
                 született feladatok -- a host `/api/tasks`-ából, `customFields.crm_account`-ra
@@ -380,6 +353,54 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
           </div>
 
         </div>
+
+        <div className="crm-sec crm-timeline">
+          <div className="crm-sechead"><h3>Idővonal</h3></div>
+          <div className="crm-toolbar">
+            <input value={jegyzet} onChange={(e) => setJegyzet(e.target.value)}
+                   placeholder="Jegyzet…" aria-label="Új jegyzet" />
+            <button className="crm-btn" onClick={jegyzetel}>Rögzít</button>
+          </div>
+          <ul className="crm-tl">
+            {lap.events.map((e) => {
+              const teljes = teljesSzovegek[e.id]
+              return (
+                <li key={e.id} className={idovonalOsztaly(e.kind)}>
+                  <span className="crm-tlrail" aria-hidden="true">
+                    <span className="crm-tlnode"></span><span className="crm-tlline"></span>
+                  </span>
+                  <div className="crm-tlbody">
+                    <div className="crm-tlmeta">
+                      <time className="crm-tltime" dateTime={e.occurred_at}>
+                        {e.occurred_at.slice(0, 16).replace('T', ' ')}
+                      </time>
+                      <span className="crm-pill crm-pill-plain">{e.kind}</span>
+                    </div>
+                    {e.title && <span className="crm-atttitle">{e.title}</span>}
+                    {teljes === undefined
+                      ? (
+                        <>
+                          <span className="crm-attwhy">{e.excerpt}</span>
+                          <button className="crm-btn crm-btn-quiet crm-btn-sm"
+                                  onClick={() => teljesSzoveget(e.id)}
+                                  aria-label={`${e.title || e.kind} teljes szövege`}>Teljes szöveg</button>
+                        </>
+                      )
+                      /* Az idegen szöveg (a levél törzse) sima szövegcsomópontként kerül
+                         a JSX-be -- soha nem dangerouslySetInnerHTML-lel --, hogy egy
+                         levélbe rejtett jelölés ne válhasson a felület részévé. */
+                      : <p className="crm-torzs">{teljes}</p>}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+          {!nincsTobbEsemeny && lap.events.length > 0 && (
+            <button className="crm-btn crm-btn-quiet crm-btn-sm"
+                    onClick={korabbiak} aria-label="Korábbi események betöltése">Korábbiak</button>
+          )}
+        </div>
+
       </div>
     </section>
   )

@@ -295,15 +295,49 @@
 
 /* ---------- Ügyfél lap ---------- */
 .crm-crumb { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.crm-crumb h2 {
-  font-family: var(--font-display, system-ui, sans-serif);
-  font-size: 20px; font-weight: 600; letter-spacing: -.01em; margin: 0;
-  overflow-wrap: anywhere;
+/*
+ * A cím tipográfiáját a `.crm-h2` adja (lásd ott) -- ugyanaz a halk,
+ * 15px-es cím kell ide is, mint a "Ma" és az "Ügyfelek" képernyőn. Itt csak
+ * azt az egy tulajdonságot adjuk hozzá, ami a másik kettőtől eltér: az
+ * ügyfélnév TÁROLT szöveg (nem statikus magyar felirat), ezért -- a többi
+ * tárolt-szöveges dobozzal egyezően -- `overflow-wrap: anywhere` kell rá.
+ */
+.crm-crumb h2 { overflow-wrap: anywhere; }
+
+/*
+ * Három névvel ellátott grid-terület, nem két oszlop-wrapper: az
+ * "Összefoglaló", a "checks" (Nyitott ígéretek / Feladatok / Ügyek /
+ * Kapcsolatok) és az "Idővonal" a DOM-ban is EBBEN a sorrendben követik
+ * egymást -- így a billentyűzetes fókuszsorrend (ami mindig a DOM sorrendjét
+ * követi, a CSS elrendezéstől függetlenül) sosem térhet el attól, amit a
+ * felhasználó lát. Széles nézetben a "checks" terület a jobb oszlopot adja,
+ * két sort átfogva; 860px alatt egyetlen oszlopba omlik, pontosan ebben a
+ * sorrendben: Összefoglaló, majd az ellenőrizendő kártyák, majd az
+ * Idővonal utoljára -- így a (max 50 elemű, egyenként teljes email-törzsre
+ * bővíthető) idővonal nem szorítja a görgetés aljára azt, amit a feladat
+ * ellenőrizhetővé akart tenni.
+ */
+.crm-cols {
+  display: grid; grid-template-columns: 1.35fr 1fr;
+  grid-template-areas: "summary checks" "timeline checks";
+  gap: 20px; align-items: start;
 }
-.crm-cols { display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; align-items: start; }
-.crm-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
-@media (max-width: 860px) { .crm-cols { grid-template-columns: 1fr; } }
-.crm-summary { border-left: 3px solid var(--color-warning, #fbbf24); }
+.crm-checks { grid-area: checks; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.crm-timeline { grid-area: timeline; min-width: 0; }
+@media (max-width: 860px) {
+  .crm-cols { grid-template-columns: 1fr; grid-template-areas: "summary" "checks" "timeline"; }
+}
+.crm-summary {
+  grid-area: summary; min-width: 0;
+  /* F7: a sárga csík csak akkor jelent figyelmeztetést, ha az összefoglaló
+     tényleg elavult -- lásd `.crm-summary-stale` -- friss összefoglalónak
+     semleges kerete van, hogy a szín ne állítson valótlant. A
+     `--color-warning` tokent a hoszt sehol nem definiálja (sem a sötét, sem
+     a világos témában) -- itt, csakúgy mint a `.crm-elavult`/`.crm-strip-warn`
+     esetében, a fallback hexa a ténylegesen megjelenő szín. */
+  border-left: 3px solid var(--color-border-hi, rgba(255,255,255,.13));
+}
+.crm-summary-stale { border-left-color: var(--color-warning, #fbbf24); }
 
 /* ---------- idővonal ---------- */
 .crm-tl { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
@@ -320,4 +354,12 @@
 .crm-tlitem:last-child .crm-tlline { display: none; }
 .crm-tlbody { padding-bottom: 15px; display: flex; flex-direction: column; gap: 3px; min-width: 0; align-items: flex-start; }
 .crm-tlmeta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.crm-tltime { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px; color: var(--color-text-3, #8282a0); }
+/*
+ * F2: `--color-text-3` a világos témában (`--color-text-3: #6b7280`) a
+ * kártya hátterén 3.97:1 kontrasztot ad -- a WCAG AA 4.5:1 kis szöveghez
+ * szükséges küszöbe alatt. Ez az esemény időbélyege, az egyetlen hely, ahol
+ * megjelenik -- ezért `--color-text-2`-re vált (sötétben is már használt
+ * pillekhez, pl. `.crm-pill-plain`), ami világosban 6.18:1-et ad, sötétben
+ * pedig legalább annyira olvasható marad, mint a text-3 volt.
+ */
+.crm-tltime { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px; color: var(--color-text-2, #a0a0ba); }
