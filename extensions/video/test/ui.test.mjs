@@ -799,13 +799,29 @@ test('nincs kész render: a lejátszó helyén az az egy mondat áll, és a pill
 })
 
 test('a Tisztítás által törölt fájl más tény, mint a hiányzó render', () => {
+  // A SOR ÚGY, AHOGY A MODUL ÍRJA. `markRenderDeleted` (src/db.mjs) egyszerre
+  // NULL-ozza az `out_path`-t és tölti ki a `torolve_at`-ot, tehát egy valóban
+  // kitakarított renderre a `torolveAt !== null` ÉS az `outPath === null` is
+  // igaz -- és hogy melyik mondatot kapja, azt egyedül a két őr SORRENDJE dönti
+  // el a `lejatszandoFajl`-ban. Megcserélve minden takarított render azt kapná,
+  // hogy "nincs kimeneti út": egy tény a másik helyett kirajzolva, pontosan az,
+  // ami ellen ez a szekció épült.
   const html = render(VideoBody, videoProps(videoDetail({
-    renderek: [renderSor({ torolveAt: '2026-09-07T10:00:00.000Z' })],
+    renderek: [renderSor({ torolveAt: '2026-09-07T10:00:00.000Z', outPath: null })],
   })))
   assert.ok(html.includes(`A render fájljait a Tisztítás törölte (${formatDate('2026-09-07T10:00:00.000Z')}); a megnézéséhez újra kell renderelni.`), 'a dátum EBBEN a mondatban áll: a render-lista amúgy is kiírja a magáét')
   assert.equal(/<video/.test(html), false)
   assert.equal(html.includes('Nincs kész render, így nincs mit lejátszani.'), false, 'a két mondat nem cserélhető fel')
-  assert.equal(html.includes('Ezen a render-soron nincs kimeneti út'), false)
+  assert.equal(html.includes('Ezen a render-soron nincs kimeneti út'), false, 'a törlés az ERŐSEBB tény: a modul tudja, hova lett a fájl')
+
+  // ÉS AZ ÚT NÉLKÜL IS, ha a sor mégis hordoz utat. A takarítás ma mindkettőt
+  // egyszerre írja, de a `torolve_at` az, ami TUDÁST jelent -- ez a sor pinneli,
+  // hogy a mondatot a törlés ténye adja, nem az út hiánya.
+  const utTal = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ torolveAt: '2026-09-07T10:00:00.000Z' })],
+  })))
+  assert.ok(utTal.includes('A render fájljait a Tisztítás törölte'))
+  assert.equal(/<video/.test(utTal), false, 'egy törölt fájlra nem épül lejátszó akkor sem, ha a sor még mond utat')
 })
 
 test('egy kimeneti út nélküli kész sor a harmadik tény, és a saját mondatát kapja', () => {
@@ -818,18 +834,37 @@ test('egy kimeneti út nélküli kész sor a harmadik tény, és a saját mondat
   assert.equal(html.includes('Nincs kész render, így nincs mit lejátszani.'), false)
 })
 
-test('a futó render fájlja nem játszható le: a lejátszó a legfrissebb KÉSZ renderre néz', () => {
+test('a futó render fájlja nem játszható le: a lejátszó átlépi, és a legfrissebb KÉSZ sort veszi', () => {
+  // A lista `started_at DESC`-ben érkezik (`rendersForVideo`, src/db.mjs), tehát
+  // a lista elején álló kész sor a legfrissebb. A harmadik sor azért van itt,
+  // hogy a "legfrissebb" tényleg ki legyen próbálva: egy régebbi kész render
+  // fájlja NEM az, amiről az operátor most ír.
   const html = render(VideoBody, videoProps(videoDetail({
     renderek: [
       renderSor({ renderId: 'r-fut', status: 'fut', finishedAt: null, outPath: '/out/fut.mp4' }),
       renderSor({ renderId: 'r-kesz', outPath: '/out/kesz.mp4' }),
+      renderSor({ renderId: 'r-regi', outPath: '/out/regi.mp4', startedAt: '2026-08-01T10:00:00.000Z' }),
     ],
   })))
+  assert.equal(html.includes('%2Fout%2Fregi.mp4'), false, 'egy régebbi kész render nem az, amit most néz')
   // Both paths stand in the Renderek list as text, so the assertion is on the
   // player's own `src` and not on a file name appearing anywhere in the page.
   assert.ok(html.includes('src="/api/files/serve?path=%2Fout%2Fkesz.mp4"'))
   assert.equal(html.includes('%2Fout%2Ffut.mp4'), false)
   assert.equal(html.split('<video').length - 1, 1, 'egy lejátszó, nem renderenként egy')
+})
+
+test('a lejátszó a jobb oszlop tetején áll, az idővonal ELŐTT', () => {
+  // A munka sorrendje: megnézed, megjelölöd a pillanatot, megírod, mi a baj.
+  // Az idővonal alá csúsztatva a lap megint azt kérné, hogy a megjelölés
+  // előzze meg a megnézést -- ez pinneli, hogy melyik szekció áll elöl.
+  const html = render(VideoBody, videoProps(videoDetail({
+    renderek: [renderSor({ outPath: '/out/kesz.mp4' })],
+  })))
+  const lejatszo = html.indexOf('<h3>Videó</h3>')
+  const idovonal = html.indexOf('<h3>Idővonal</h3>')
+  assert.ok(lejatszo > -1 && idovonal > -1, 'mindkét szekció fejléce a lapon van')
+  assert.ok(lejatszo < idovonal, 'a lejátszó az idővonal előtt áll')
 })
 
 test('a pillanat-gomb a lejátszó currentTime-jából tölti a visszajelzés pontját', () => {

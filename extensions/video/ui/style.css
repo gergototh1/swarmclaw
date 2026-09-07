@@ -291,8 +291,10 @@
  * A SZÉLESSÉG KORLÁTOZÁSA A LÉNYEG, nem a magasságé. Ezek 9:16-os filmek, tehát
  * egy 100%-os lejátszó a saját magasságával tolná szét a jobb oszlopot, és az
  * idővonal meg a visszajelzés-űrlap egy görgetéssel lejjebb kerülne -- pont a
- * két dolog, amiért az operátor megnézte a filmet. A 300px a `vid-sablon-keret`
- * sablon-előnézeteivel egy nagyságrend, és ugyanaz a 8px-es lekerekítés.
+ * két dolog, amiért az operátor megnézte a filmet. A 300px szabad választás:
+ * álló videónál ez nagyjából 533px magasságot jelent, vagyis a szekció még egy
+ * képernyőn belül marad. A 8px-es lekerekítés és a keret viszont NEM szabad
+ * választás: a `.vid-timeline` és a `.vid-sablon-kep` meglévő értékei.
  *
  * A fekete háttér a betöltés előtti és a hang-only pillanatokra van: enélkül a
  * lejátszó helye a lap háttere, és egy üres sáv nem látszik lejátszónak.
