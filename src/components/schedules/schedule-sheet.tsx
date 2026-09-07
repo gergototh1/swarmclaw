@@ -408,7 +408,7 @@ export function ScheduleSheet() {
           <button
             onClick={() => setStep(whatStep as Step)}
             className="w-full py-3.5 rounded-[14px] border border-dashed border-line-default bg-transparent
-              text-text-3 text-[14px] font-600 cursor-pointer transition-all hover:bg-surface hover:text-text-2 hover:border-line-default"
+              text-text-3 text-[14px] font-600 cursor-pointer transition-all hover:bg-surface hover:text-text-2 hover:border-line-strong"
             style={{ fontFamily: 'inherit' }}
           >
             Start from scratch

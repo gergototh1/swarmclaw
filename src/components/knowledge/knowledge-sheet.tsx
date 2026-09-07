@@ -318,7 +318,7 @@ export function KnowledgeSheet() {
               className={`flex flex-col items-center gap-3 px-6 py-8 rounded-[14px] border-2 border-dashed cursor-pointer transition-all duration-200 ${
                 isDragging
                   ? 'border-accent-bright/50 bg-accent-soft/20'
-                  : 'border-line-default bg-layer-1 hover:border-line-strong hover:bg-layer-1'
+                  : 'border-line-default bg-layer-1 hover:border-line-strong hover:bg-layer-2'
               } ${uploading ? 'opacity-60 pointer-events-none' : ''}`}
             >
               {uploading ? (

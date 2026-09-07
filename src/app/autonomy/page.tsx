@@ -809,7 +809,7 @@ export default function AutonomyPage() {
                   return (
                     <article
                       key={incident.id}
-                      className="relative overflow-hidden rounded-[16px] border border-line-subtle bg-layer-1 p-4 transition-all hover:bg-layer-1"
+                      className="relative overflow-hidden rounded-[16px] border border-line-subtle bg-layer-1 p-4 transition-all hover:bg-layer-2"
                     >
                       <div className={`absolute inset-y-0 left-0 w-1 ${severity.rail}`} />
                       <div className="pl-2">

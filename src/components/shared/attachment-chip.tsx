@@ -185,7 +185,7 @@ export function AttachmentChip({
           <button
             onClick={handleCodePreview}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-[11px] font-600 no-underline transition-colors shrink-0 border-none cursor-pointer ${
-              isUserMsg ? 'bg-layer-4 hover:bg-layer-4 text-white' : 'bg-accent-soft hover:bg-accent-soft/80 text-accent-bright'
+              isUserMsg ? 'bg-layer-3 hover:bg-layer-4 text-white' : 'bg-accent-soft hover:bg-accent-soft/80 text-accent-bright'
             }`}
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -198,7 +198,7 @@ export function AttachmentChip({
         {isPreviewable && (
           <a href={url} target="_blank" rel="noopener noreferrer"
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-[11px] font-600 no-underline transition-colors shrink-0 ${
-              isUserMsg ? 'bg-layer-4 hover:bg-layer-4 text-white' : 'bg-accent-soft hover:bg-accent-soft/80 text-accent-bright'
+              isUserMsg ? 'bg-layer-3 hover:bg-layer-4 text-white' : 'bg-accent-soft hover:bg-accent-soft/80 text-accent-bright'
             }`}
             title="Preview in new tab">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

@@ -116,7 +116,7 @@ export function TaskColumn({
             onChange={(e) => setQuickAddValue(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd() }}
             placeholder={`+ Add to ${config.label.toLowerCase()}...`}
-            className="w-full px-3 py-2 rounded-[10px] bg-layer-1 border border-dashed border-line-default text-[12px] text-text placeholder:text-text-3/30 outline-none focus:border-line-strong focus:bg-layer-1 transition-colors"
+            className="w-full px-3 py-2 rounded-[10px] bg-layer-1 border border-dashed border-line-default text-[12px] text-text placeholder:text-text-3/30 outline-none focus:border-line-strong focus:bg-layer-2 transition-colors"
             style={{ fontFamily: 'inherit' }}
             disabled={adding}
           />

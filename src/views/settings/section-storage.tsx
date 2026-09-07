@@ -146,7 +146,7 @@ export function StorageSection(
                 onClick={() => setConfirmAction('clearOld')}
                 disabled={!data?.count}
                 className="px-4 py-2.5 rounded-[12px] bg-layer-2 text-text-2 text-[12px] font-600 cursor-pointer
-                  hover:bg-layer-2 active:scale-[0.97] transition-all border border-line-subtle
+                  hover:bg-layer-3 active:scale-[0.97] transition-all border border-line-subtle
                   disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ fontFamily: 'inherit' }}
               >

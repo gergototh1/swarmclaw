@@ -172,7 +172,7 @@ export function MemoryDetail() {
       : imagePath
     : null
 
-  const inputClass = "w-full px-4 py-3 rounded-[12px] border border-line-subtle bg-layer-1 text-text outline-none transition-all duration-200 placeholder:text-text-3/70 focus:border-accent-bright/20 focus:bg-layer-1"
+  const inputClass = "w-full px-4 py-3 rounded-[12px] border border-line-subtle bg-layer-1 text-text outline-none transition-all duration-200 placeholder:text-text-3/70 focus:border-accent-bright/20 focus:bg-layer-2"
   const refs = entry.references || []
   const showRefsCollapse = refs.length > 3
   const entryMeta = entry.metadata && typeof entry.metadata === 'object'

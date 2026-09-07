@@ -545,7 +545,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
       className={`group relative text-left p-4 rounded-[14px] border transition-all cursor-pointer
         ${ext.enabled
           ? 'border-line-subtle bg-surface hover:bg-surface-2 hover:border-line-default'
-          : 'border-line-subtle bg-surface/50 hover:bg-surface hover:border-line-subtle opacity-70 hover:opacity-100'
+          : 'border-line-subtle bg-surface/50 hover:bg-surface hover:border-line-default opacity-70 hover:opacity-100'
         }`}
     >
       {/* Top row: name + toggle */}

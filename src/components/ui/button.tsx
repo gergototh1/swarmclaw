@@ -24,7 +24,7 @@ const buttonVariants = cva(
         surface:
           "bg-transparent border border-line-default text-text-2 rounded-[12px] hover:bg-layer-2",
         "surface-icon":
-          "bg-layer-2 rounded-[10px] hover:bg-layer-2 border-none",
+          "bg-layer-2 rounded-[10px] hover:bg-layer-3 border-none",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

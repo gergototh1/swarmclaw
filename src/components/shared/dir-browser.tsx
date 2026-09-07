@@ -143,7 +143,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
             <button
               onClick={() => handlePick('folder')}
               disabled={picking !== null}
-              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-[14px] border border-line-default bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-default transition-all disabled:opacity-40"
+              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-[14px] border border-line-default bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-strong transition-all disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}
             >
               {picking === 'folder' ? (
@@ -160,7 +160,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
             <button
               onClick={() => handlePick('file')}
               disabled={picking !== null}
-              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-[14px] border border-line-default bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-default transition-all disabled:opacity-40"
+              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-[14px] border border-line-default bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-strong transition-all disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}
             >
               {picking === 'file' ? (

@@ -147,7 +147,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
                     className={`w-5 h-5 rounded-[5px] border-2 flex items-center justify-center shrink-0 cursor-pointer transition-all
                       ${allowed.has(skill.name)
                         ? 'bg-accent-bright border-accent-bright'
-                        : 'bg-transparent border-line-strong hover:border-line-strong'}`}
+                        : 'bg-transparent border-line-default hover:border-line-strong'}`}
                   >
                     {allowed.has(skill.name) && (
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
