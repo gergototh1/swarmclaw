@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { bundle } from '../scripts/build.mjs'
+import { STATUSZ_PILL } from '../ui/ugyfelek.tsx'
 
 test('a bundle nem visz saját React-példányt', async () => {
   const out = await bundle({ write: false })
@@ -298,4 +299,27 @@ test('a fulsav tablist, es a fulek aria-selected-et viselnek', async () => {
       `hianyzik az aria-selected a(z) ${nezet} fulon`,
     )
   }
+})
+
+test('az ugyfellista statusz-pillt visel, nem csupasz cimket', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(js, /crm-accts/, 'hianyzik az ugyfellista osztalya')
+  assert.match(js, /crm-pill crm-pill-(ok|nema|plain)/, 'a statusz pillt kap')
+})
+
+/**
+ * A bundle-alapu teszt fentebb csak azt bizonyitja, hogy VALAMELYIK
+ * crm-pill-* osztaly szerepel a kimenetben -- egy felcserelt STATUSZ_PILL
+ * bejegyzes (pl. ha 'client' is 'crm-pill-nema'-t kapna) at is menne rajta,
+ * mert a stringek maguktol meg mind jelen vannak valahol a bundle-ben. Ez a
+ * teszt kozvetlenul a STATUSZ_PILL tablat vizsgalja, statuszonkent, hogy egy
+ * eltevesztett leképezes tenyleg bukjon.
+ */
+test('a STATUSZ_PILL tabla statuszonkent a helyes pill-osztalyt adja, ismeretlenre semlegeset', () => {
+  assert.equal(STATUSZ_PILL.client, 'crm-pill-ok', 'az "Ügyfél" status elo bevetel, nem semleges pillt kell kapnia')
+  assert.equal(STATUSZ_PILL.lead, 'crm-pill-nema', 'a "Lead" status lehetoseg-pillt kell kapnia')
+  assert.equal(STATUSZ_PILL.inactive, 'crm-pill-plain', 'az "Inaktiv" status archivum-pillt kell kapnia')
+  assert.equal(STATUSZ_PILL.lost, 'crm-pill-plain', 'az "Elvesztett" status archivum-pillt kell kapnia')
+  assert.equal(STATUSZ_PILL.valami_ismeretlen, undefined, 'ismeretlen status a tablaban nincs jelen -- a hivo oldal ad neki semleges default-ot')
 })
