@@ -11,7 +11,7 @@ import { NavItem, RailTooltip } from '@/components/layout/nav-item'
 import { ExtensionPagesAfter, ExtensionPagesEndGroup } from '@/components/layout/extension-nav-items'
 import { useWs } from '@/hooks/use-ws'
 import { FULL_WIDTH_VIEWS, isPanelSidebarView } from '@/lib/app/view-constants'
-import { pathToView, useNavigate } from '@/lib/app/navigation'
+import { resolveSidebarActiveView, useNavigate } from '@/lib/app/navigation'
 import { safeStorageGet, safeStorageSet } from '@/lib/app/safe-storage'
 import type { AppView } from '@/types'
 
@@ -44,11 +44,9 @@ export function SidebarRail({
   const skillDraftCount = useAppStore((s) => s.skillDraftCount)
   const loadSkillDraftCount = useAppStore((s) => s.loadSkillDraftCount)
 
-  // `null` for any path that isn't a registered `AppView` — an extension page
-  // under `/x/`, or an in-app route (like the merged `/stream` page) that hasn't
-  // been given a view yet. Nothing highlighted is correct here; falling back to
-  // Home would light up the wrong entry, which is exactly the bug this avoids.
-  const activeView: AppView | null = pathToView(pathname)
+  // See `resolveSidebarActiveView` for why this must not fall back to 'home'
+  // for a path it doesn't recognize.
+  const activeView: AppView | null = resolveSidebarActiveView(pathname)
 
   const defaultAgentId = defaultAgent?.id || null
   const isDefaultChat = activeView === 'agents' && currentAgentId === defaultAgentId

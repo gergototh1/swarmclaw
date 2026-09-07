@@ -56,6 +56,21 @@ export function pathToView(pathname: string): AppView | null {
   return null
 }
 
+/**
+ * Resolve which `AppView`, if any, the sidebar rail should render as active
+ * for a given pathname. Returns `null` for any path that isn't a registered
+ * `AppView` — an extension page under `/x/`, or an in-app route (like the
+ * merged `/stream` page) that hasn't been given a view yet.
+ *
+ * Nothing highlighted is the correct behavior for those paths. Falling back to
+ * `'home'` would light up the wrong rail entry for every unrecognized route,
+ * present or future — that regression is exactly what this function, and its
+ * test, exist to keep from coming back.
+ */
+export function resolveSidebarActiveView(pathname: string): AppView | null {
+  return pathToView(pathname)
+}
+
 /** Hook for navigating between views using Next.js router. */
 export function useNavigate() {
   const router = useRouter()

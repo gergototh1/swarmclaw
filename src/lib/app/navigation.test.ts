@@ -55,13 +55,40 @@ describe('pathToView', () => {
     assert.equal(mod.pathToView('/agent'), null)
   })
 
-  it('returns null for a merged route that has no AppView yet, rather than falling back to home', () => {
+  it('returns null for a merged route that has no AppView yet', () => {
     // /stream absorbed /runs, /activity and /logs but is deliberately not in
-    // VIEW_TO_PATH yet, so the sidebar rail must not light up Home for it.
+    // VIEW_TO_PATH yet. This only pins pathToView's own behavior — it says
+    // nothing about what the sidebar rail renders; see resolveSidebarActiveView
+    // below for the test that actually covers the rail.
     assert.equal(mod.pathToView('/stream'), null)
   })
 
   it('returns null for empty string', () => {
     assert.equal(mod.pathToView(''), null)
+  })
+})
+
+describe('resolveSidebarActiveView', () => {
+  it('resolves known views so the happy path stays pinned', () => {
+    assert.equal(mod.resolveSidebarActiveView('/agents'), 'agents')
+    assert.equal(mod.resolveSidebarActiveView('/agents/abc-123'), 'agents')
+    assert.equal(mod.resolveSidebarActiveView('/settings'), 'settings')
+  })
+
+  it('returns null, not "home", for an in-app path the view table does not know', () => {
+    // /stream absorbed /runs, /activity and /logs but is deliberately not in
+    // VIEW_TO_PATH yet. This is the exact case the sidebar rail regressed on:
+    // a `?? 'home'` fallback here would light up the Home nav entry on every
+    // visit to /stream, and would do the same for any future route that
+    // isn't (yet) an AppView.
+    assert.equal(mod.resolveSidebarActiveView('/stream'), null)
+  })
+
+  it('returns null for an extension page path', () => {
+    assert.equal(mod.resolveSidebarActiveView('/x/some-extension'), null)
+  })
+
+  it('returns null for a genuinely unknown path', () => {
+    assert.equal(mod.resolveSidebarActiveView('/totally-made-up'), null)
   })
 })
