@@ -44,7 +44,20 @@ describe('nav section table', () => {
     assert.equal(sectionForView('stream'), 'operations')
     assert.equal(sectionForView('vault'), 'settings')
     assert.equal(sectionForView('home'), 'home')
-    assert.equal(sectionForView('swarmfeed'), null)
+    // Both halves of the Home surface answer 'home': the launchpad through the
+    // section's `direct`, the feed through its `views`.
+    assert.equal(sectionForView('swarmfeed'), 'home')
+  })
+
+  // Home is the one section that navigates straight to a view, and
+  // `panelSection` in sidebar-rail.tsx renders a panel only for sections
+  // without a `direct`. That is what lets Home claim /swarmfeed for the rail
+  // highlight without growing a panel nobody asked for.
+  it('keeps Home out of the panel-rendering set by giving it a direct view', () => {
+    assert.deepEqual(
+      NAV_SECTIONS.filter((s) => !s.direct).map((s) => s.id),
+      ['chat', 'work', 'knowledge', 'connect', 'operations', 'settings'],
+    )
   })
 
   it('puts Settings in the footer and nothing else', () => {

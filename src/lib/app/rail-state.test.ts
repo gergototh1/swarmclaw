@@ -34,8 +34,14 @@ describe('railSectionForPath', () => {
     assert.equal(railSectionForPath('/settings', 'settings', pages), 'settings')
   })
 
-  it('lights up nothing for a view deliberately exempt from the rail', () => {
-    assert.equal(railSectionForPath('/swarmfeed', 'swarmfeed', pages), null)
+  // /swarmfeed is the Feed half of the Home surface (src/app/home/home-tabs.ts).
+  // It used to be rail-exempt, which left the Home icon dark and no section
+  // open for the whole time a reader stood on that tab; `home` claims the view
+  // now. Home is a `direct` section, so this lights its icon without opening a
+  // panel -- `panelSection` in sidebar-rail.tsx filters `!s.direct`.
+  it('lights up Home on the Feed half of the Home surface', () => {
+    assert.equal(railSectionForPath('/swarmfeed', 'swarmfeed', pages), 'home')
+    assert.equal(railSectionForPath('/home', 'home', pages), 'home')
   })
 
   it('reads an extension page section from the page itself', () => {

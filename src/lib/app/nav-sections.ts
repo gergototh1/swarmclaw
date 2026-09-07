@@ -33,7 +33,7 @@ export interface NavSection {
  * to reach it.
  */
 export const NAV_SECTIONS: readonly NavSection[] = [
-  { id: 'home', label: 'Home', icon: 'Home', views: [], direct: 'home' },
+  { id: 'home', label: 'Home', icon: 'Home', views: ['swarmfeed'], direct: 'home' },
   { id: 'chat', label: 'Chat', icon: 'MessageSquare', views: ['agents', 'org_chart', 'inbox', 'chatrooms', 'protocols'] },
   { id: 'work', label: 'Work', icon: 'Briefcase', views: ['tasks', 'missions', 'schedules', 'projects'] },
   { id: 'knowledge', label: 'Knowledge', icon: 'BookOpen', views: ['memory', 'knowledge', 'skills'] },
@@ -50,10 +50,18 @@ export const NAV_SECTION_IDS: readonly NavSectionId[] = NAV_SECTIONS.map((s) => 
  * The completeness test subtracts these; anything else missing from
  * NAV_SECTIONS fails it, so a view cannot lose its way into the app by
  * accident.
+ *
+ * Empty today, and the emptiness is the point. The one entry this held was
+ * `swarmfeed`, on the grounds that it is reached as the Home page's second
+ * tab rather than as its own rail row. That is true of the row, but the rail
+ * derives its highlight from `sectionForView` too, so an exempt view left the
+ * Home icon dark for the whole time a reader stood on the Feed tab -- half of
+ * a two-tab surface with nothing lit. A view that a section owns belongs in
+ * that section's `views` even when the panel never lists it; Home is `direct`,
+ * so it renders no panel either way (see `panelSection` in sidebar-rail.tsx).
+ * Exempt it only when no section owns it at all.
  */
-export const NAV_EXEMPT_VIEWS: Record<string, string> = {
-  swarmfeed: 'Reached as the Home page’s second tab (src/app/home/home-tabs.ts), not as its own rail entry.',
-}
+export const NAV_EXEMPT_VIEWS: Record<string, string> = {}
 
 /** The section a view belongs to, or null when the view is exempt. */
 export function sectionForView(view: AppView): NavSectionId | null {

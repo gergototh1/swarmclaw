@@ -133,8 +133,8 @@ export function SidebarRail({
   // Storing the click next to the route it was made against settles it in one
   // value: the pick holds while the route stays put, and the moment the route
   // lands in a different section that section wins. A route that belongs to no
-  // section at all — /swarmfeed, which is Home's second tab, or a share link —
-  // resolves to null and closes the panel, which is what those pages want.
+  // section at all — a share link, say — resolves to null and closes the
+  // panel, which is what those pages want.
   //
   // `resolveOpenSection` (src/lib/app/rail-state.ts) does the combining, and
   // that is also where the close-vs-route tension is written up and tested —

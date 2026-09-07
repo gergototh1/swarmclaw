@@ -29,8 +29,8 @@ export interface RailPlaceablePage {
  *
  * Three cases, and the third is the one worth stating. A recognized route
  * answers through its `AppView` — which may still be null, because a view can
- * be deliberately exempt from the rail (`NAV_EXEMPT_VIEWS`), and /swarmfeed is
- * exactly that. An extension page is not an `AppView` at all, so on `/x/...`
+ * be deliberately exempt from the rail (`NAV_EXEMPT_VIEWS`); nothing is exempt
+ * today. An extension page is not an `AppView` at all, so on `/x/...`
  * the section comes from the page's own declaration; a bookmark or a reload
  * lands there with no prior state, and without this it would light up whichever
  * section happened to be open last, or none. Everything else — /s/<token>, and
