@@ -8,20 +8,32 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* next/font (src/app/layout.tsx) writes the actual font-family values onto
+  /* next/font (src/app/fonts.ts) writes the actual font-family values onto
      <html> as --font-sans-face / --font-display-face / --font-mono-face --
      each one the webfont's own name plus its metric-adjusted "* Fallback"
      face, which is what next/font swaps in while the webfont loads (not
      system-ui). The theme keys below just add the generic system stack
      after that.
-     The "-face" suffix is load-bearing, not stylistic: a custom property
+
+     Two separate ways this breaks, both silent and both real. First, the
+     "-face" suffix is load-bearing rather than stylistic: a custom property
      whose value references itself (e.g. --font-sans: var(--font-sans), ...)
-     is invalid at computed-value time, so if these two names are ever made
-     to match again, the whole font-family declaration on any element that
-     doesn't carry next/font's own unlayered <html> class -- src/app/
-     global-error.tsx is exactly this case -- gets dropped, generic tail
-     included, with no build/lint/type error to catch it. Keep the two sides
-     of each pair different. */
+     is invalid at computed-value time, so making the two sides of a pair
+     match again drops the whole font-family declaration, generic tail
+     included. Keep them different.
+
+     Second, `var(--font-sans-face)` here has no fallback, so a root that
+     does not carry next/font's three class names produces the same
+     guaranteed-invalid value and the same whole-declaration drop. That was
+     not hypothetical: src/app/global-error.tsx renders its own <html> --
+     it replaces the document rather than nesting inside RootLayout -- and
+     carried only `dark`, so body had no font-family at all on that route.
+     Both roots now take their classes from the one `fontVariables` export
+     in src/app/fonts.ts. A third root would have to do the same.
+
+     Neither failure produces a build, lint or type error;
+     src/app/globals-font-family.test.ts covers the first by compiling this
+     file. */
   --font-sans: var(--font-sans-face), system-ui, sans-serif;
   --font-display: var(--font-display-face), system-ui, sans-serif;
   --font-mono: var(--font-mono-face), ui-monospace, 'SF Mono', monospace;
@@ -71,7 +83,18 @@
      (node_modules/tailwindcss/theme.css), and a user @theme overrides only
      the keys it redeclares. Without this, rounded-xl/2xl/3xl/4xl keep
      compiling at Tailwind's defaults and the five-step scale is a comment,
-     not a rule. */
+     not a rule.
+
+     What the reset also removes, which is the part that cost an extra fix
+     round: Tailwind's bare `rounded` is not a separate variable but the
+     DEFAULT key of this same --radius-* namespace (theme.css declares it as
+     `--radius: 0.25rem`), so `--radius-*: initial` deletes it too and the
+     step-less class stops emitting any rule. Fifty-seven class lists across
+     twenty-three components were still asking for it and rendered square with
+     nothing reporting it; every one now asks for rounded-xs, which moves them
+     4px -> 6px. Nothing here brings the default back on purpose -- a sixth
+     step would defeat the collapse -- and src/app/globals-radius-scale.test.ts
+     pins both halves: the five steps emit, and the step-less one does not. */
   --radius-*: initial;
   --radius-xs: 6px;
   --radius-sm: 8px;
