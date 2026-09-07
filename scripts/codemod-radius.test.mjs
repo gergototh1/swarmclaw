@@ -58,3 +58,18 @@ test('classes findRadiusClasses catches but CLASS_RE declines map to null, for t
     assert.equal(mapRadiusClass(cls), null, `${cls} should be refused, not silently dropped`)
   }
 })
+
+test('findRadiusClasses keeps a variant prefix attached to the class it finds', () => {
+  // TARGET_RE's `(?:[a-z0-9-]+:)*` group was only ever exercised through
+  // mapRadiusClass. If the scan dropped the prefix, main()'s replace would
+  // rewrite `hover:rounded-[16px]` to a bare `rounded-lg` and silently move
+  // the radius out of its variant.
+  const source = `
+    <div className="hover:rounded-[16px] md:hover:rounded-t-[6px] group-hover:rounded-[50%]" />
+  `
+  assert.deepEqual(findRadiusClasses(source), [
+    'hover:rounded-[16px]',
+    'md:hover:rounded-t-[6px]',
+    'group-hover:rounded-[50%]',
+  ])
+})
