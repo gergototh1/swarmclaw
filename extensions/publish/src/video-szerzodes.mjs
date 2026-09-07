@@ -19,17 +19,18 @@
  * cannot tell "install the video module" from "wait, it is mid-reload" apart,
  * and would keep retrying the one it cannot fix.
  *
- * TODO(pub-2): WRAP THE CALL, NOT ONLY THE RESOLUTION. `videoLekerdez` on the
- * docs side also catches what the host throws DURING the call -- `unavailable`
- * (the provider was switched off between `videosHandle` and the call, because
+ * TASK 4 CLOSES THE pub-2 TODO ABOVE. `videosHandle` alone was fine while
+ * nothing called `.get`/`.list` on the handle it returns; `publishOpen`
+ * (src/szoveg.mjs) is the first caller, and the call itself can fail two
+ * ways the resolution above never sees: `unavailable` (the provider was
+ * switched off between `videosHandle` and the call, because
  * `callContractMethod` re-resolves on every call) and `provider_threw` (the
- * provider's own code raised) -- and turns each into its own sentence. Task 1
- * has no caller for that yet: no tool and no rpc method reads a video through
- * this handle, and the brief's interface list names `videosHandle(state)`
- * alone. The next task that actually reads a video MUST add that try/catch
- * (copy `szerzodesHiba` + `hivasMondat` from `video-forgatokonyv.mjs`), or
- * both host codes fall through to a generic catch and reach the agent as a
- * stack string with no next step in it.
+ * provider's own code raised). `videoLekerdez` below wraps the call the same
+ * way `extensions/docs/src/video-forgatokonyv.mjs`'s function of the same
+ * name does -- `szerzodesHiba` and `hivasMondat` are copied from there,
+ * unchanged in shape, translated into this module's own sentences. Without
+ * this wrapping both host codes would fall through to whichever tool called
+ * `.get` and reach the agent as a stack string with no next step in it.
  *
  * The `typeof handle.get !== 'function'` guard below is NOT part of that
  * follow-up and is here now, because it belongs to resolving the handle
@@ -172,4 +173,62 @@ export function videosHandle(state) {
     )
   }
   throw new PublishError(HIBA.szerzodes_hianyzik, `${NEM_ERHETO_EL}${okMondat(why)}`)
+}
+
+/**
+ * An `ExtensionContractError`, recognised by shape -- copied from
+ * `extensions/docs/src/video-forgatokonyv.mjs`'s function of the same name.
+ * The host's class lives in `src/lib/server/extensions/extension-contracts.ts`
+ * and an extension may not import from the host's `src/`, so `instanceof` is
+ * not available across this boundary; the four string fields are the ones
+ * the host sets on every such error and on nothing else.
+ */
+function szerzodesHiba(err) {
+  return err instanceof Error
+    && typeof err.code === 'string'
+    && typeof err.extensionId === 'string'
+    && typeof err.consumerId === 'string'
+    && typeof err.contract === 'string'
+}
+
+/** What the operator does about a call that did not go through, by host code -- same two codes and same reasoning as `video-forgatokonyv.mjs`'s function of the same name. */
+function hivasMondat(err) {
+  if (err.code === 'unavailable') {
+    const reason = typeof err.reason === 'string' && err.reason !== '' ? err.reason : null
+    return reason === null
+      ? 'a Videó bővítmény elérése a hívás közben szűnt meg (unavailable). Hívd újra ezt a toolt; ha újra ezt kapod, nézd meg a Videó bővítmény állapotát a Bővítmények lapon.'
+      : `a Videó bővítmény elérése a hívás közben szűnt meg (unavailable): ${okMondat(reason)}`
+  }
+  if (err.code === 'provider_threw') {
+    return 'a Videó bővítmény saját kódja hibára futott a hívás közben (provider_threw). A hívásod rendben volt: nézd meg a Videó modul naplóját, és ha ott nincs nyom, szólj az operátornak.'
+  }
+  return `a szerződéshívás nem ment át (${err.code}). Nézd meg a Videó bővítmény állapotát a Bővítmények lapon, és szólj az operátornak.`
+}
+
+/**
+ * One video from the provider, by id, or a named refusal.
+ *
+ * The call is wrapped and not just the resolution -- see the file docblock's
+ * "TASK 4 CLOSES THE pub-2 TODO" note for why. An error that is not the
+ * host's is rethrown untouched: this module does not own it and must not
+ * guess a sentence for it.
+ *
+ * The same `typeof videos.get !== 'function'` guard as `videosHandle` above
+ * applies here too, for the same reason: the host matches the contract's
+ * name and version, never its method list.
+ */
+export async function videoLekerdez(state, videoId) {
+  const videos = videosHandle(state)
+  if (typeof videos.get !== 'function') {
+    throw new PublishError(
+      HIBA.szerzodes_hianyzik,
+      `${NEM_ERHETO_EL}a Videó bővítmény ${VIDEOS_CONTRACT} szerződése nem kínálja a "get" metódust, amire ennek a modulnak szüksége van. Frissítsd a két bővítmény közül a régebbit a Bővítmények lapon, aztán próbáld újra.`,
+    )
+  }
+  try {
+    return await videos.get({ id: videoId })
+  } catch (err) {
+    if (szerzodesHiba(err)) throw new PublishError(HIBA.szerzodes_hianyzik, `${NEM_ERHETO_EL}${hivasMondat(err)}`)
+    throw err
+  }
 }

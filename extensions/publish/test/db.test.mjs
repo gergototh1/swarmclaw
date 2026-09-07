@@ -2,7 +2,15 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { AG_ALLAPOTOK, AG_KEZDO_ALLAPOT, KIADAS_ALLAPOTOK, KIADAS_KEZDO_ALLAPOT, isUniqueViolationOn } from '../src/db.mjs'
+import { esedekes } from '../src/utemezes.mjs'
 import { freshRepo } from './helpers.mjs'
+
+/** A release taken from nothing to `jovahagyva`, ready for `kiadastUtemez`. */
+function jovahagyva(repo, videoId) {
+  const k = repo.ujKiadas({ videoId })
+  repo.kiadasAllapototIr(k.id, KIADAS_ALLAPOTOK.LEKTORALT)
+  return repo.kiadastJovahagy(k.id)
+}
 
 function refusal(fn) {
   try {
@@ -274,4 +282,117 @@ test('két sáv állhat ugyanabban a heti percben -- nincs egyediségi megszorí
   repo.ujSav({ nap: 1, ora: 9, perc: 0 })
   repo.ujSav({ nap: 1, ora: 9, perc: 0 })
   assert.equal(repo.savok().length, 2)
+})
+
+/**
+ * Task 4's write path: draft text, workflow transitions, scheduling and
+ * dispatch results (src/db.mjs's own "the write path" section). The two
+ * tests marked INVARIANT below are the ones task-4-brief.md names by hand:
+ * "write a test that enforces this."
+ */
+
+test('szovegetIr opens a branch on first write and upserts on the second, and always sends the release back to vazlat', () => {
+  const { repo } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  repo.kiadasAllapototIr(k.id, KIADAS_ALLAPOTOK.LEKTORALT)
+  const a = repo.szovegetIr({ kiadasId: k.id, platform: 'youtube', szoveg: '{"cim":"első"}' })
+  assert.equal(a.szoveg, '{"cim":"első"}')
+  assert.equal(a.allapot, AG_KEZDO_ALLAPOT, 'a friss ág vár, még ha a kiadás lektoralt volt is')
+  assert.equal(repo.kiadas(k.id).allapot, KIADAS_ALLAPOTOK.VAZLAT, 'egy új szöveg visszaküldi a kiadást vazlat-ba')
+  assert.equal(repo.agak(k.id).length, 1)
+  const b = repo.szovegetIr({ kiadasId: k.id, platform: 'youtube', szoveg: '{"cim":"második"}' })
+  assert.equal(b.id, a.id, 'ugyanaz az ág frissül, nem duplázódik')
+  assert.equal(b.szoveg, '{"cim":"második"}')
+  assert.equal(repo.agak(k.id).length, 1)
+})
+
+test('kiadasAllapototIr refuses an allapot outside the closed vocabulary, by name, without echoing the value', () => {
+  const { repo } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  assert.throws(() => repo.kiadasAllapototIr(k.id, 'kesz-e'), (err) => {
+    assert.match(err.message, /allapot/)
+    assert.equal(err.message.includes('kesz-e'), false)
+    return true
+  })
+})
+
+test('kiadastJovahagy moves lektoralt to jovahagyva, and refuses by name from any other state', () => {
+  const { repo } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  assert.throws(() => repo.kiadastJovahagy(k.id), /csak lektoralt/)
+  repo.kiadasAllapototIr(k.id, KIADAS_ALLAPOTOK.LEKTORALT)
+  const uj = repo.kiadastJovahagy(k.id)
+  assert.equal(uj.allapot, KIADAS_ALLAPOTOK.JOVAHAGYVA)
+  assert.throws(() => repo.kiadastJovahagy(k.id), /csak lektoralt/, 'egy már jóváhagyott kiadás nem hagyható jóvá újra')
+})
+
+test('kiadastUtemez only accepts a jovahagyva release, and writes sav_id, idopont and allapot together', () => {
+  const { repo } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  assert.throws(() => repo.kiadastUtemez({ kiadasId: k.id, savId: 's1', idopont: '2026-09-07T09:00:00.000Z' }), /csak jovahagyva/)
+  const j = jovahagyva(repo, 'v2')
+  const u = repo.kiadastUtemez({ kiadasId: j.id, savId: 's1', idopont: '2026-09-07T09:00:00.000Z' })
+  assert.equal(u.sav_id, 's1')
+  assert.equal(u.idopont, '2026-09-07T09:00:00.000Z')
+  assert.equal(u.allapot, KIADAS_ALLAPOTOK.UTEMEZVE)
+})
+
+test('agEredmenyetIr stamps kikuldve_at only on kesz, and only accepts the three dispatch outcomes', () => {
+  const { repo } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  const ag = repo.ujAg({ kiadasId: k.id, platform: 'youtube' })
+  assert.throws(() => repo.agEredmenyetIr({ agId: ag.id, allapot: AG_ALLAPOTOK.VAR }), /allapot/, '"var" nem dispatch-eredmény -- azt a branch a nyitáskor kapja')
+  const nincsFiok = repo.agEredmenyetIr({ agId: ag.id, allapot: AG_ALLAPOTOK.NINCS_FIOK })
+  assert.equal(nincsFiok.kikuldve_at, null)
+  const ag2 = repo.ujAg({ kiadasId: k.id, platform: 'tiktok' })
+  const hiba = repo.agEredmenyetIr({ agId: ag2.id, allapot: AG_ALLAPOTOK.HIBA, hibaKod: 'x' })
+  assert.equal(hiba.kikuldve_at, null)
+  assert.equal(hiba.hiba_kod, 'x')
+  const ag3 = repo.ujAg({ kiadasId: k.id, platform: 'facebook' })
+  const kesz = repo.agEredmenyetIr({ agId: ag3.id, allapot: AG_ALLAPOTOK.KESZ, url: 'https://example.test/p' })
+  assert.equal(typeof kesz.kikuldve_at, 'string')
+  assert.equal(kesz.url, 'https://example.test/p')
+})
+
+// --- the two invariants task-4-brief.md names ---------------------------
+
+test('INVARIANT 1: idopontFeluliras collapses the override onto idopont in the same write -- one column decides from then on', () => {
+  const { repo } = freshRepo()
+  const j = jovahagyva(repo, 'v1')
+  repo.kiadastUtemez({ kiadasId: j.id, savId: 's1', idopont: '2026-09-07T09:00:00.000Z' })
+  assert.throws(() => repo.idopontFeluliras({ kiadasId: j.id, felulirtIdopont: 'nem-datum' }), /idopont/)
+  const felulirva = repo.idopontFeluliras({ kiadasId: j.id, felulirtIdopont: '2026-09-08T18:00:00.000Z' })
+  assert.equal(felulirva.felulirt_idopont, '2026-09-08T18:00:00.000Z')
+  assert.equal(felulirva.idopont, '2026-09-08T18:00:00.000Z', 'a felülírás után az idopont oszlop is az ÚJ időt mondja -- esedekes() ezt olvassa, nem a felulirt_idopont-ot')
+  // A rendszer szemszögéből: a régi sáv-pillanatnál a kiadás már NEM esedékes, a felülírtnál IGEN -- ha a bug visszatérne (idopont a régi maradna), ez a két assert fordítva sülne el.
+  assert.deepEqual(esedekes([felulirva], new Date('2026-09-07T09:05:00.000Z')), [], 'a régi (felülírt) sáv-pillanatnál a kiadás már nem esedékes')
+  assert.deepEqual(esedekes([felulirva], new Date('2026-09-08T18:05:00.000Z')).map((k) => k.id), [j.id], 'az új, felülírt pillanatnál esedékes')
+})
+
+test('idopontFeluliras only accepts an already-utemezve release', () => {
+  const { repo } = freshRepo()
+  const j = jovahagyva(repo, 'v1')
+  assert.throws(() => repo.idopontFeluliras({ kiadasId: j.id, felulirtIdopont: '2026-09-08T18:00:00.000Z' }), /csak utemezve/)
+})
+
+test('INVARIANT 2: foglaltSavIdopontok reads only the idopont column -- sav_id alone does not reserve a minute', () => {
+  const { repo, storage } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  // Egy sor sav_id-vel, de idopont NÉLKÜL (törött vagy részleges írás) -- ha
+  // foglaltSavIdopontok a sav_id-t nézné, ez foglalná a sávot; az idopont
+  // oszlop alapján NEM foglal semmit.
+  storage.exec('UPDATE ext_publish_kiadasok SET sav_id = ? WHERE id = ?', ['s1', k.id])
+  assert.deepEqual(repo.foglaltSavIdopontok(), [])
+})
+
+test('foglaltSavIdopontok reads every release that has both sav_id and idopont, in the exact shape kovetkezoSzabadSav takes as foglaltak', () => {
+  const { repo } = freshRepo()
+  const j1 = jovahagyva(repo, 'v1')
+  repo.kiadastUtemez({ kiadasId: j1.id, savId: 's1', idopont: '2026-09-07T09:00:00.000Z' })
+  const j2 = jovahagyva(repo, 'v2')
+  repo.kiadastUtemez({ kiadasId: j2.id, savId: 's2', idopont: '2026-09-07T18:00:00.000Z' })
+  assert.deepEqual(repo.foglaltSavIdopontok(), [
+    { savId: 's1', idopont: '2026-09-07T09:00:00.000Z' },
+    { savId: 's2', idopont: '2026-09-07T18:00:00.000Z' },
+  ])
 })

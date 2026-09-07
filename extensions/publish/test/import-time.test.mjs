@@ -12,10 +12,13 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
  * Modelled on `extensions/video/test/import-time.test.mjs`, on the brief's own
  * instruction (1.4's TDD note and the task's file list both point at it). Read
  * that file for the full "why plain node, why the time matters" reasoning;
- * this copy keeps the same two tests and the same setup() checks, and pins
- * only what Task 1 and Task 3 actually declare -- no tools yet, no
- * `provides`, no `ui.pages`, no managed agents, exactly one managed schedule
- * -- rather than a shape later tasks have not built.
+ * this copy keeps the same two tests and the same setup() checks.
+ *
+ * Task 4 widens the pin: five tools (src/szoveg.mjs) and three managed
+ * agents (src/agents.mjs), on top of what Task 1 and Task 3 already
+ * declared. Adding a tool or an agent is a real decision -- this test exists
+ * so that decision shows up here as a diff, not a silent shape change; the
+ * brief's own words for this ("update the pin, do not weaken it").
  */
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -47,7 +50,13 @@ test('index.mjs imports under plain node well inside the host deadline and decla
         timezone: s.timezone,
         agentRefKey: s.agentRef?.resourceKey,
       })),
-      managedAgents: ext.managedResources?.agents ?? null,
+      managedAgents: (ext.managedResources?.agents ?? null)?.map((a) => ({
+        agentKey: a.agentKey,
+        displayName: a.displayName,
+        skills: a.skills,
+        tools: a.tools,
+        heartbeatEnabled: a.heartbeatEnabled,
+      })) ?? null,
     }))
   `
   const r = spawnSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' })
@@ -56,9 +65,9 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.ok(out.ms < MAX_IMPORT_MS, `import took ${out.ms} ms`)
   assert.equal(out.name, 'Publikálás')
   assert.equal(out.version, '0.1.0')
-  // No tools yet (brief: "Nothing publishes anything yet"). A later task's
-  // list here is a decision, not a drift this test should absorb silently.
-  assert.deepEqual(out.tools, [])
+  // Task 4's five tools (src/szoveg.mjs), in the order `createSzovegTools`
+  // declares them.
+  assert.deepEqual(out.tools, ['publishOpen', 'publishQueue', 'publishDraft', 'publishVerdict', 'publishDue'])
   // The MCP shim's two methods, and nothing else: this task adds no rpc.mjs,
   // so the whole page/rpc surface is the bridge extensions/*/src/mcp-bridge.mjs
   // gives every extension that fronts its tools over MCP.
@@ -86,11 +95,9 @@ test('index.mjs imports under plain node well inside the host deadline and decla
       help: 'IANA-zónanév. A publikálási sávok "hétfő 9:00"-ja ennek a zónának a fali óráján értendő, nyári időszámítással együtt -- nem UTC-ben.',
     }],
   })
-  // Task 3: exactly one fixed-cadence run (design spec 7), pointed at an
-  // agent key Task 4 has not declared yet (see index.mjs's own SCHEDULES
-  // docblock for why that is a graceful host-side skip, not a bug). Adding
-  // or changing a schedule is a real decision -- this pin exists so that
-  // decision shows up as a diff here, not a silent shape change.
+  // Task 3: exactly one fixed-cadence run (design spec 7), pointed at
+  // `publish-kuldo` -- Task 4's own agent key below, the KÖTÖTT NÉV
+  // `test/agents.test.mjs` also pins directly against `src/agents.mjs`.
   // `timezone` is pinned too: it does nothing for an `interval` schedule
   // today, and it is the ONLY place the operator's publishing zone is written
   // where the host can see it (the sibling module states it on all three of
@@ -98,8 +105,16 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.deepEqual(out.schedules, [
     { scheduleKey: 'publish-kikuldes', scheduleType: 'interval', intervalMs: 15 * 60 * 1000, timezone: 'Europe/Budapest', agentRefKey: 'publish-kuldo' },
   ])
-  // No agents declared by this task (Task 4 owns `src/agents.mjs`).
-  assert.equal(out.managedAgents, null)
+  // Task 4's three managed agents (src/agents.mjs): the writer, the
+  // reviewer, and the sender the schedule above now resolves to. `systemPrompt`
+  // is deliberately left out of this projection -- its content is
+  // `test/agents.test.mjs`'s job, not this file's -- but every other field
+  // the host reads to build a real agent is pinned here.
+  assert.deepEqual(out.managedAgents, [
+    { agentKey: 'publish-iro', displayName: 'Publikálás Író', skills: ['publikalas-szoveg'], tools: ['publishQueue', 'publishOpen', 'publishDraft', 'memory'], heartbeatEnabled: false },
+    { agentKey: 'publish-lektor', displayName: 'Publikálás Lektor', skills: ['publikalas-lektoralas'], tools: ['publishQueue', 'publishVerdict', 'memory'], heartbeatEnabled: false },
+    { agentKey: 'publish-kuldo', displayName: 'Publikálás Kiküldő', skills: [], tools: ['publishDue'], heartbeatEnabled: false },
+  ])
 })
 
 test('the entry does no work at import: no top-level await, no file read, no timer, no fetch', () => {

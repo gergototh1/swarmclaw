@@ -349,6 +349,186 @@ ON CONFLICT(platform, kulso_id) DO UPDATE SET nev = excluded.nev, updated_at = e
     sav(id) { return S.get('SELECT * FROM ext_publish_savok WHERE id = ?', [id]) || null },
     /** Every declared slot, ordered by when it falls in the week -- the shape `kovetkezoSzabadSav` (src/utemezes.mjs) takes as its `savok` argument. */
     savok() { return S.all('SELECT * FROM ext_publish_savok ORDER BY nap ASC, ora ASC, perc ASC') },
+
+    // --- the write path (Task 4): draft text, review, scheduling, dispatch results ---
+    //
+    // Task 1's own comment on this file called this "later tasks' work (spec
+    // 4, 6)" -- spec 4 is the workflow this block writes, spec 6 is the four
+    // adapters (a later task's own file). Task 3's report flagged the same
+    // gap twice, from the read side: no repo writer for `idopont`, and no
+    // reader that derives `foglaltak` from stored rows -- "that's the
+    // scheduler tool's job on Task 4's file list". These methods are that
+    // job. None of them import `src/utemezes.mjs` or `src/allapot.mjs`:
+    // `kovetkezoSzabadSav` and `kiadasAllapot` are PURE functions a caller
+    // above this file runs, and this file only ever receives their answer
+    // and writes it -- importing either back in here would make `db.mjs`
+    // depend on the two modules that already depend on it (both import
+    // `ALAP_IDOZONA`/`KIADAS_ALLAPOTOK`/`AG_ALLAPOTOK` from here), a cycle
+    // for no reason: every one of the methods below is a plain read or a
+    // plain write, with the scheduling and outcome ARITHMETIC left to
+    // `src/szoveg.mjs`.
+
+    /** The most recently opened release for one video, or null. A lookup, not a uniqueness rule: design spec 9 does not forbid a second release on the same video, so this is "the one to reuse", not "the only one that may exist". */
+    kiadasVideohoz(videoId) {
+      if (typeof videoId !== 'string' || videoId === '') throw new Error('kiadasVideohoz: videoId nem lehet üres')
+      return S.get('SELECT * FROM ext_publish_kiadasok WHERE video_id = ? ORDER BY letrehozva_at DESC, rowid DESC LIMIT 1', [videoId]) || null
+    },
+
+    /**
+     * Writes (or overwrites) one branch's platform text, opening the branch
+     * first if this release has none yet for that platform -- upserts on
+     * (kiadas_id, platform), same discipline as `fiokotIr` above. Every call
+     * also sends the release back to `vazlat` (design spec 4): a new draft
+     * invalidates whatever a reviewer already judged or an operator already
+     * approved, the same way `videoDraft` (extensions/video/src/terv.mjs)
+     * resets its own video's status on every new plan version. The branch's
+     * own `allapot`, `hiba_kod`, `url` and `kikuldve_at` are left untouched
+     * on an update -- design spec 9 forbids rewriting after a branch has
+     * gone out, and the caller (`publishDraft`, src/szoveg.mjs) is the one
+     * that refuses a re-draft on a release already past `vazlat`/`lektoralt`,
+     * so a branch already `kesz` is never reached by this method in practice.
+     */
+    szovegetIr({ kiadasId, platform, szoveg }) {
+      if (typeof kiadasId !== 'string' || kiadasId === '') throw new Error('szovegetIr: kiadasId nem lehet üres')
+      if (!PLATFORMOK.includes(platform)) throw new Error(`szovegetIr: platform csak ezek egyike lehet: ${PLATFORMOK.join(', ')}`)
+      if (typeof szoveg !== 'string' || szoveg === '') throw new Error('szovegetIr: szoveg nem lehet üres (JSON-ként tárolt szöveg kell)')
+      const t = now()
+      S.transaction(() => {
+        S.exec(`INSERT INTO ext_publish_agak (id, kiadas_id, platform, szoveg, allapot, hiba_kod, url, kikuldve_at, created_at, updated_at)
+VALUES (?,?,?,?,?,?,?,?,?,?)
+ON CONFLICT(kiadas_id, platform) DO UPDATE SET szoveg = excluded.szoveg, updated_at = excluded.updated_at`,
+          [uid(), kiadasId, platform, szoveg, AG_KEZDO_ALLAPOT, null, null, null, t, t])
+        S.exec('UPDATE ext_publish_kiadasok SET allapot = ?, updated_at = ? WHERE id = ?', [KIADAS_ALLAPOTOK.VAZLAT, t, kiadasId])
+      })
+      return S.get('SELECT * FROM ext_publish_agak WHERE kiadas_id = ? AND platform = ?', [kiadasId, platform]) || null
+    },
+
+    /**
+     * Sets a release's stored workflow/outcome column directly. A mechanical
+     * setter -- it does not check the CURRENT value before writing, the same
+     * way `fiokotIr`'s upsert does not read first -- because every state
+     * transition rule (which allapot may follow which) is a business rule a
+     * caller enforces before it gets here (`publishVerdict`/`publishDue`,
+     * src/szoveg.mjs), not a fact this repository layer is in a position to
+     * judge. `allapot` is checked against the closed vocabulary so a typo
+     * cannot wedge an unrecognised word into the column `kiadasAllapot`
+     * (src/allapot.mjs) and the calendar both read.
+     */
+    kiadasAllapototIr(kiadasId, allapot) {
+      if (typeof kiadasId !== 'string' || kiadasId === '') throw new Error('kiadasAllapototIr: kiadasId nem lehet üres')
+      if (!Object.values(KIADAS_ALLAPOTOK).includes(allapot)) throw new Error(`kiadasAllapototIr: allapot csak ezek egyike lehet: ${Object.values(KIADAS_ALLAPOTOK).join(', ')}`)
+      S.exec('UPDATE ext_publish_kiadasok SET allapot = ?, updated_at = ? WHERE id = ?', [allapot, now(), kiadasId])
+      return repo.kiadas(kiadasId)
+    },
+
+    /** Moves a release from `lektoralt` to `jovahagyva` (design spec 4, the operator's own action -- no agent tool calls this in this task; it is here for the approval surface a later task wires up). Refused by name when the release is not currently `lektoralt`, so an approval cannot land on a release nobody has reviewed, or twice on one already approved. */
+    kiadastJovahagy(kiadasId) {
+      const k = repo.kiadas(kiadasId)
+      if (!k) throw new Error('kiadastJovahagy: nincs kiadás a megadott kiadasId-vel')
+      if (k.allapot !== KIADAS_ALLAPOTOK.LEKTORALT) throw new Error(`kiadastJovahagy: csak ${KIADAS_ALLAPOTOK.LEKTORALT} állapotú kiadás hagyható jóvá (jelenlegi: ${k.allapot})`)
+      return repo.kiadasAllapototIr(kiadasId, KIADAS_ALLAPOTOK.JOVAHAGYVA)
+    },
+
+    /**
+     * Every reserved slot-instant, read from the STORED `idopont` column
+     * alone -- never from `sav_id` or `felulirt_idopont`. This is the second
+     * invariant task-4-brief.md names: D6's guarantee (two slots on the same
+     * weekly minute do not double that minute's capacity) holds only when
+     * "already taken" is read from the column `esedekes` (src/utemezes.mjs)
+     * ultimately dispatches on. Deriving `foglaltak` from `sav_id` would
+     * treat "assigned to slot X" as the reservation, when two releases can
+     * share a `sav_id` across different weeks; deriving it from
+     * `felulirt_idopont` would miss every release scheduled straight from a
+     * slot with no override at all. Reading `idopont` is the one derivation
+     * where "reserved" and "occupies a real, singular instant" are the same
+     * fact.
+     *
+     * The shape this returns (`{ savId, idopont }`) is exactly
+     * `kovetkezoSzabadSav`'s (src/utemezes.mjs) own `foglaltak` argument, so
+     * a caller passes this straight through with no reshaping in between.
+     */
+    foglaltSavIdopontok() {
+      return S.all("SELECT sav_id, idopont FROM ext_publish_kiadasok WHERE sav_id IS NOT NULL AND idopont IS NOT NULL")
+        .map((r) => ({ savId: r.sav_id, idopont: r.idopont }))
+    },
+
+    /**
+     * Assigns a release to a slot's occurrence, atomically: `sav_id` and
+     * `idopont` are written together with `allapot -> utemezve`, in one
+     * UPDATE, so no reader can ever observe one written without the other.
+     * Only from `jovahagyva` -- refused by name otherwise, the same
+     * discipline as `kiadastJovahagy` above -- because a release that has
+     * not been approved has no business claiming a slot, and a release that
+     * is already `utemezve` is reassigned through `idopontFeluliras` below,
+     * never through this method a second time (it would silently double-book
+     * whichever slot the caller happened to pass).
+     *
+     * This method does not compute the occurrence itself -- see the
+     * docblock at the top of this block for why `kovetkezoSzabadSav` stays
+     * out of this file. The caller (`src/szoveg.mjs`) is the one that reads
+     * `foglaltSavIdopontok()` above, calls `kovetkezoSzabadSav`, and hands
+     * the ONE resulting `{ savId, idopont }` pair here.
+     */
+    kiadastUtemez({ kiadasId, savId, idopont }) {
+      const k = repo.kiadas(kiadasId)
+      if (!k) throw new Error('kiadastUtemez: nincs kiadás a megadott kiadasId-vel')
+      if (k.allapot !== KIADAS_ALLAPOTOK.JOVAHAGYVA) throw new Error(`kiadastUtemez: csak ${KIADAS_ALLAPOTOK.JOVAHAGYVA} állapotú kiadás ütemezhető (jelenlegi: ${k.allapot})`)
+      if (typeof savId !== 'string' || savId === '') throw new Error('kiadastUtemez: savId nem lehet üres')
+      if (typeof idopont !== 'string' || Number.isNaN(Date.parse(idopont))) throw new Error('kiadastUtemez: idopont csak érvényes ISO időpont lehet')
+      S.exec('UPDATE ext_publish_kiadasok SET sav_id = ?, idopont = ?, allapot = ?, updated_at = ? WHERE id = ?',
+        [savId, idopont, KIADAS_ALLAPOTOK.UTEMEZVE, now(), kiadasId])
+      return repo.kiadas(kiadasId)
+    },
+
+    /**
+     * The operator's manual override, on an already-scheduled release. This
+     * is the first invariant task-4-brief.md names: the write collapses the
+     * override straight onto `idopont` IN THE SAME UPDATE that sets
+     * `felulirt_idopont`, so the two columns can never disagree -- there is
+     * no window where `felulirt_idopont` holds the operator's new time and
+     * `idopont` still holds the stale slot instant `esedekes`
+     * (src/utemezes.mjs) and `foglaltSavIdopontok` above both read. From this
+     * write onward the two columns carry the identical value; the release's
+     * effective dispatch time is `idopont` either way, and `felulirt_idopont`
+     * remains only so the calendar can tell an overridden release apart from
+     * a slotted one (design spec 3).
+     *
+     * Only from `utemezve` -- a release with no slot yet has nothing to
+     * override; `kiadastUtemez` above is where a fresh release gets its
+     * first instant. `sav_id` is left untouched: the override changes WHEN,
+     * not which slot the release nominally belongs to.
+     */
+    idopontFeluliras({ kiadasId, felulirtIdopont }) {
+      const k = repo.kiadas(kiadasId)
+      if (!k) throw new Error('idopontFeluliras: nincs kiadás a megadott kiadasId-vel')
+      if (k.allapot !== KIADAS_ALLAPOTOK.UTEMEZVE) throw new Error(`idopontFeluliras: csak ${KIADAS_ALLAPOTOK.UTEMEZVE} állapotú kiadás időpontja írható felül (jelenlegi: ${k.allapot})`)
+      if (typeof felulirtIdopont !== 'string' || Number.isNaN(Date.parse(felulirtIdopont))) throw new Error('idopontFeluliras: felulirtIdopont csak érvényes ISO időpont lehet')
+      S.exec('UPDATE ext_publish_kiadasok SET felulirt_idopont = ?, idopont = ?, updated_at = ? WHERE id = ?',
+        [felulirtIdopont, felulirtIdopont, now(), kiadasId])
+      return repo.kiadas(kiadasId)
+    },
+
+    /**
+     * Writes one branch's dispatch result: `kesz` with a `url`, `hiba` with
+     * a `hibaKod`, or `nincs_fiok` with neither -- design spec 8's three
+     * branch facts (a fourth, `var`, is the branch's own starting state and
+     * never written back here). `kikuldve_at` is stamped only on `kesz`: a
+     * branch that failed or had no account never went out, and the column
+     * says so by staying null. The release's own aggregate `allapot` is NOT
+     * written here -- that is `kiadasAllapot`'s (src/allapot.mjs) answer,
+     * computed by the caller once every branch of a release has an answer,
+     * and written through `kiadasAllapototIr` above.
+     */
+    agEredmenyetIr({ agId, allapot, hibaKod = null, url = null }) {
+      if (typeof agId !== 'string' || agId === '') throw new Error('agEredmenyetIr: agId nem lehet üres')
+      if (![AG_ALLAPOTOK.KESZ, AG_ALLAPOTOK.HIBA, AG_ALLAPOTOK.NINCS_FIOK].includes(allapot)) {
+        throw new Error(`agEredmenyetIr: allapot csak ezek egyike lehet: ${AG_ALLAPOTOK.KESZ}, ${AG_ALLAPOTOK.HIBA}, ${AG_ALLAPOTOK.NINCS_FIOK}`)
+      }
+      const kikuldveAt = allapot === AG_ALLAPOTOK.KESZ ? now() : null
+      S.exec('UPDATE ext_publish_agak SET allapot = ?, hiba_kod = ?, url = ?, kikuldve_at = ?, updated_at = ? WHERE id = ?',
+        [allapot, hibaKod, url, kikuldveAt, now(), agId])
+      return S.get('SELECT * FROM ext_publish_agak WHERE id = ?', [agId]) || null
+    },
   }
   return repo
 }

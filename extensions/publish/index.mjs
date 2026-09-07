@@ -1,22 +1,26 @@
+import { AGENTS } from './src/agents.mjs'
 import { ALAP_IDOZONA, MIGRATIONS, createRepo } from './src/db.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
+import { createSzovegTools } from './src/szoveg.mjs'
 
 /**
- * Publikálás, ütemezés és naptár -- Task 1 (the module's skeleton) plus
- * Task 3 (the clock).
+ * Publikálás, ütemezés és naptár -- Task 1 (the module's skeleton), Task 3
+ * (the clock) and Task 4 (the writer, the reviewer and the sender).
  *
- * This is the first and third of six tasks
+ * This is the first, third and fourth of six tasks
  * (doc/specs/2026-09-07-publikalas-design.md). Task 1 built the package, the
  * entry, the database schema and the read side of the `video.videos@1`
- * contract. Task 3 adds `SCHEDULES` below -- the one fixed-cadence run
- * design spec 7 asks for -- and nothing else here sends anything to
- * YouTube, Facebook, Instagram or TikTok yet. The four adapters (spec 6),
- * the write/rpc/tool surface an agent would call (spec 10's
- * `src/service.mjs`, `src/rpc.mjs`, `src/agents.mjs` -- including the
- * `publishDue` tool `SCHEDULES` below names), and the calendar page itself
- * are later tasks' work. `tools` is deliberately empty and `rpc` is
- * deliberately only the MCP bridge -- there is nothing yet for either
- * surface to call.
+ * contract. Task 3 added `SCHEDULES` below -- the one fixed-cadence run
+ * design spec 7 asks for. Task 4 adds `AGENTS` (src/agents.mjs) and the five
+ * tools (src/szoveg.mjs: `publishOpen`, `publishQueue`, `publishDraft`,
+ * `publishVerdict`, `publishDue`) -- the whole `vazlat -> lektoralt ->
+ * jovahagyva -> utemezve -> kesz|reszben|hiba|nincs_hova` chain design spec
+ * 4 draws, except the operator's own approval click, which stays a later
+ * task's rpc surface (src/szoveg.mjs's own docblock says why). Nothing here
+ * sends anything to YouTube, Facebook, Instagram or TikTok yet -- the four
+ * adapters (spec 6) and the calendar page (spec 8) are later tasks' work,
+ * and `publishDue` dispatches through `state.adapterek`, a registry those
+ * tasks populate.
  *
  * Everything the host hands over in `setup()`, plus the test's own seam.
  *
@@ -31,6 +35,8 @@ export const state = {
   log: console,
   contracts: null,
   repo: null,
+  /** Platform -> `async ({ ag, kiadas, fiok }) => { url }` sender, populated by a later task (design spec 6's four adapters; Task 5 registers `youtube` here). Empty today: `publishDue` (src/szoveg.mjs) treats a connected account with no registered adapter as a named `hiba`, never a silent no-op. */
+  adapterek: {},
 }
 
 /** 15 minutes, in milliseconds -- design spec 7's default cadence, and the module's own upper bound on how late a due release can go out. */
@@ -42,13 +48,12 @@ const ALAP_UTEMEZES_MS = 15 * 60 * 1000
  * WHICH releases are due is `esedekes()`'s job (src/utemezes.mjs), and
  * DECIDING is not this prompt's to do again in prose.
  *
- * `publishDue` is Task 4's tool (task-4-brief.md's own interface list),
- * named here ahead of its own arrival for the same reason `taskPrompt` names
- * concrete tools everywhere else in this codebase (extensions/video/src/agents.mjs's
- * own docblock: a prompt that describes a tool wrongly produces a run that
- * calls a tool that does not exist). Naming it now, against the shared
- * brief, is the one way to keep the two tasks' independent work pointed at
- * the same word.
+ * `publishDue` is Task 4's tool (src/szoveg.mjs), named here from before its
+ * own arrival for the same reason `taskPrompt` names concrete tools
+ * everywhere else in this codebase (extensions/video/src/agents.mjs's own
+ * docblock: a prompt that describes a tool wrongly produces a run that
+ * calls a tool that does not exist) -- and it landed under the same name,
+ * so this prompt did not need to change once Task 4's tools existed.
  */
 const KIKULDES_PROMPT = 'Hívd meg a publishDue toolt argumentum nélkül. Az kiteszi mindazt, aminek eljött az ideje -- sávra állított és felülírt időpontú kiadást egyaránt -- és visszaadja, hány kiadás ment ki, ha bármelyik hibára futott, melyik és milyen kóddal, és külön azokat az ütemezett kiadásokat, amiknek nincs kiszámolt időpontjuk. Számolj be mindháromból: hány kiadás ment ki rendben; ha volt hiba, melyik kiadás melyik platformján; és ha van időpont nélküli ütemezett kiadás, sorold fel azokat is -- azok soha nem lesznek esedékesek, amíg valaki időpontot nem ad nekik.'
 
@@ -58,19 +63,15 @@ const KIKULDES_PROMPT = 'Hívd meg a publishDue toolt argumentum nélkül. Az ki
  * operator-edited slots) and the slip it buys (up to `ALAP_UTEMEZES_MS` late
  * on every due release, not only the manually overridden ones).
  *
- * `agentRef` NAMES AN AGENT THIS TASK DOES NOT DECLARE. `publish-kuldo` is
- * this schedule's own key for "whichever agent Task 4's `src/agents.mjs`
- * assigns to dispatch" -- Task 4 owns `publishDue` and the agent that calls
- * it (task-4-brief.md: "Create: extensions/publish/src/agents.mjs"), so
- * this task cannot declare that agent without guessing at Task 4's shape.
- * Until that agent exists, the host's own reconcile (`buildManagedSchedule`,
- * src/lib/server/extension-managed-resources.ts) resolves no agent id for
- * this key and skips creating the schedule with `missing_agent_ref` -- a
- * logged skip, not a crash, and not a schedule that runs with nobody to
- * wake. The two tasks stay independently testable because of that skip:
- * this one's tests do not need Task 4's agent to exist, and Task 4 landing
- * `agentKey: 'publish-kuldo'` in its own `AGENTS` is what turns the skip
- * into a live schedule on the next reconcile.
+ * `agentRef` NAMES `publish-kuldo` -- Task 4's `src/agents.mjs` now declares
+ * exactly that `agentKey` (its own docblock calls this the KÖTÖTT NÉV and
+ * `test/agents.test.mjs` pins the two spellings against each other), so this
+ * schedule is live from Task 4 onward. Before Task 4 landed, the host's own
+ * reconcile (`buildManagedSchedule`, src/lib/server/extension-managed-resources.ts)
+ * resolved no agent id for this key and skipped creating the schedule with
+ * `missing_agent_ref` -- a logged skip, not a crash, and not a schedule that
+ * ran with nobody to wake. That graceful-skip behaviour is what let the two
+ * tasks stay independently testable while only one of them existed.
  */
 export const SCHEDULES = Object.freeze([
   Object.freeze({
@@ -100,7 +101,7 @@ export const SCHEDULES = Object.freeze([
 const publish = {
   name: 'Publikálás',
   version: '0.1.0',
-  description: 'A kész, QA-átment videókból kiadás YouTube-ra, Facebookra, Instagramra és TikTokra: szöveg, jóváhagyás, ütemezés, naptár. Ez a kiadás a modul váza -- még semmit nem tesz ki.',
+  description: 'A kész, QA-átment videókból kiadás YouTube-ra, Facebookra, Instagramra és TikTokra: szöveg, lektorálás, jóváhagyás, ütemezés, naptár. Ez a kiadás megírja és lektorálja a szöveget, és kiküldi, ami esedékes -- a négy platform-adapter és a naptár lapja még nem ebben a kiadásban jön.',
   migrations: MIGRATIONS,
   setup(ctx) {
     state.storage = ctx.storage
@@ -109,21 +110,26 @@ const publish = {
     state.contracts = ctx.contracts
     state.repo = createRepo(ctx.storage)
   },
-  // Empty on purpose: no agent-facing capability exists yet. An empty array
-  // is still declared, not omitted, so the import-time test -- and the host,
-  // which reads `.tools.map(...)` unconditionally in several places -- see a
-  // real array rather than `undefined`.
-  tools: [],
   /**
-   * Only the MCP shim's two methods (`src/mcp-bridge.mjs`, byte-identical to
+   * Task 4's five tools (src/szoveg.mjs), in the order that module declares
+   * them: `publishOpen`, `publishQueue`, `publishDraft`, `publishVerdict`,
+   * `publishDue`. Built from `state` directly rather than from `ctx` --
+   * `createSzovegTools` closes over `state`, which `setup()` above keeps
+   * current, the same pattern `extensions/video/index.mjs` uses for its own
+   * tool builders.
+   */
+  tools: createSzovegTools(state),
+  /**
+   * The MCP shim's two methods (`src/mcp-bridge.mjs`, byte-identical to
    * every sibling module that fronts its tools over MCP --
-   * `extensions/mcp-shim-parity.test.mjs` holds it that way). There is no
-   * `src/rpc.mjs` yet: this task adds no page, so there is nothing a page
-   * would call over `POST /api/extensions/publish.mjs/call/<method>` beyond
-   * what the bridge already answers. `mcpTools()` truthfully reports an
-   * empty tool list until a later task's tools land in `tools` above --
-   * reflection, not a second table (see `src/mcp-bridge.mjs`'s own docblock
-   * for why it is built this way rather than one rpc method per tool).
+   * `extensions/mcp-shim-parity.test.mjs` holds it that way), reflecting
+   * over `publish.tools` above -- so the five tools Task 4 added are reachable
+   * over MCP with no further work here (see `src/mcp-bridge.mjs`'s own
+   * docblock for why it is built this way rather than one rpc method per
+   * tool). There is still no `src/rpc.mjs`: this task adds no page, so
+   * there is nothing a page would call over
+   * `POST /api/extensions/publish.mjs/call/<method>` beyond what the bridge
+   * already answers.
    */
   rpc: { ...createMcpBridge(() => publish.tools) },
   /**
@@ -163,11 +169,11 @@ const publish = {
     ],
   },
   /**
-   * Task 3's own slice: the fixed-cadence dispatch run, and nothing else --
-   * no `agents` here (see `SCHEDULES`'s own docblock for why), no
-   * `projects`, no `setupChecks`.
+   * The fixed-cadence dispatch run (Task 3) and the three managed agents
+   * (Task 4, src/agents.mjs) it wakes one of. No `projects`, no
+   * `setupChecks` -- neither task has been asked to add either.
    */
-  managedResources: { schedules: SCHEDULES },
+  managedResources: { schedules: SCHEDULES, agents: AGENTS },
 }
 
 export default publish

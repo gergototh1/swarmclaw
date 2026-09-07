@@ -27,10 +27,11 @@ import { fileURLToPath } from 'node:url'
  * "type": "module", and its relative './src/...' imports resolve inside the
  * workspace.
  *
- * THIS TASK SHIPS NO SKILLS AND NO managedResources, so unlike the CRM
- * install script there is nothing to say here about a project, an agent or a
- * routine: this task's `index.mjs` declares none of the three yet (spec 7's
- * scheduled dispatch agent is a later task's work).
+ * Task 4 adds the two skills the managed agents name (`src/agents.mjs`) and
+ * a schedule (Task 3) that now resolves to a real agent. The skill-copy
+ * block below is ported from `extensions/video/scripts/install.mjs` -- read
+ * that file's own docblock for the full manifest/removal reasoning; it is
+ * repeated here only where this module's copy differs.
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -77,6 +78,11 @@ const dataDir = process.env.DATA_DIR
 const runDir = explicitHome
   ? path.join(explicitHome, 'run')
   : (desktop ? path.join(desktop, 'run') : path.join(dataDir, 'run'))
+// Skills go to the layer discoverSkills() scans (skill-discovery.ts,
+// resolveWorkspaceSkillsDir): SWARMCLAW_HOME/skills, else ~/.swarmclaw/skills.
+// The desktop app sets SWARMCLAW_HOME to its home, so that home's skills
+// directory is the same layer when installing against the desktop app by hand.
+const home = explicitHome || desktop || path.join(process.env.HOME || '', '.swarmclaw')
 const extDir = path.join(dataDir, 'extensions')
 const wsDir = path.join(extDir, '.workspaces', 'publish_mjs')
 
@@ -100,6 +106,53 @@ fs.copyFileSync(path.join(root, 'index.mjs'), path.join(wsDir, 'index.js'))
 fs.copyFileSync(path.join(root, 'package.json'), path.join(wsDir, 'package.json'))
 fs.writeFileSync(path.join(extDir, 'publish.mjs'), "export { default } from './.workspaces/publish_mjs/index.js'\n")
 
+// The skills the managed agents name (`src/agents.mjs`): copied into
+// <home>/skills, the workspace layer discoverSkills() scans -- an
+// extension's own directory is not a layer it looks in, so a skill left in
+// the repo tree is a skill the agent that names it never sees. A pin
+// matches on the SKILL.md's frontmatter `name`, not on the directory, so
+// the two have to agree.
+//
+// A copy alone is not an upgrade -- see
+// `extensions/video/scripts/install.mjs`'s own docblock for the full
+// reasoning -- so the directory names shipped by each install are written
+// to a manifest beside the workspace, and the next install removes from
+// `<home>/skills` every name the previous install shipped that the repo no
+// longer has. Only names from the manifest are touched.
+
+/** A manifest entry this script will put after `<home>/skills/` and delete recursively, or null -- same guard as `extensions/video/scripts/install.mjs`'s function of the same name, for the same reason: a manifest entry of `''` or `'..'` must never become a path this script deletes. */
+function plainDirectoryName(name) {
+  if (typeof name !== 'string') return null
+  if (name === '' || name === '.' || name === '..') return null
+  if (name !== path.basename(name)) return null
+  return name
+}
+
+const skillsRoot = path.join(root, 'skills')
+const shippedManifest = path.join(wsDir, 'shipped-skills.json')
+const shipped = fs.existsSync(skillsRoot) ? fs.readdirSync(skillsRoot) : []
+let previouslyShipped = []
+try {
+  const parsed = JSON.parse(fs.readFileSync(shippedManifest, 'utf8'))
+  for (const entry of Array.isArray(parsed) ? parsed : []) {
+    const name = plainDirectoryName(entry)
+    if (name === null) {
+      console.error(`figyelmen kívül hagyott manifest-bejegyzés (nem egyszerű könyvtárnév): ${JSON.stringify(entry)}`)
+      continue
+    }
+    previouslyShipped.push(name)
+  }
+} catch {
+  // No manifest, or not one this script wrote: nothing was shipped that this run knows about.
+}
+for (const stale of previouslyShipped.filter((name) => !shipped.includes(name))) {
+  fs.rmSync(path.join(home, 'skills', stale), { recursive: true, force: true })
+}
+for (const skill of shipped) {
+  fs.cpSync(path.join(skillsRoot, skill), path.join(home, 'skills', skill), { recursive: true })
+}
+fs.writeFileSync(shippedManifest, `${JSON.stringify(shipped, null, 2)}\n`)
+
 console.log(`publish installed: ${extDir}/publish.mjs, workspace ${wsDir}`)
 
 /**
@@ -120,12 +173,14 @@ if (!fs.existsSync(distIndex) || !fs.existsSync(distCss)) {
 }
 
 console.log(`
-Ennek a modulnak nincs setup-lépése ezen a telepítőn túl: nincs hitelesítés,
-nincs beállítandó mező.
+Ennek a modulnak nincs hitelesítési lépése ezen a telepítőn túl: a YouTube a
+host Google OAuth-ját használja majd (egy későbbi feladat), a másik három
+platform fiókjait a naptár lapja fogja kezelni.
 
-Ez a kiadás nem deklarál managedResources-t (nincs projekt, nincs ügynök,
-nincs ütemezés) -- azok egy későbbi feladattal érkeznek (spec 7. szakasz: a
-fix ütemű kiküldő futás).
+Ez a kiadás három ügynököt (Publikálás Író, Publikálás Lektor, Publikálás
+Kiküldő) és egy fix ütemű ütemezést (15 percenként) deklarál -- nyisd meg a
+Bővítmények lapon a Publikálás kártyát, és nyomd meg a Reconcile-t, különben
+egyik sem jön létre.
 `)
 
 // The host does not register MCP servers on an extension's behalf, so the
@@ -149,10 +204,10 @@ if (copied.includes('mcp')) {
   console.log('\nMCP-bejegyzés (Settings → MCP Servers), majd rendeld hozzá az ügynökökhöz:')
   console.log(JSON.stringify(entry, null, 2))
   console.log(`
-Ebben a kiadásban a modul még nem deklarál toolt (mcpTools üres listát ad
-vissza): a shim onnantól ad vissza valamit, amint egy későbbi feladat a
-tools tömböt feltölti. Az MCP-bejegyzést most is érdemes felvenni, mert
-onnantól kezdve nem kell rá visszatérni.`)
+A modul öt toolt ad vissza az mcpTools-on (publishOpen, publishQueue,
+publishDraft, publishVerdict, publishDue) -- egy CLI-provideres ügynök csak
+ezen az MCP-bejegyzésen át éri el őket, a beépített tool-rétegen nem
+(CLAUDE.md "A három képesség-réteg" szakasza).`)
 } else {
   console.log('Ez a kiadás nem szállít MCP-szervert (nincs mcp/ könyvtár); MCP-bejegyzést nem kell felvenni.')
 }
