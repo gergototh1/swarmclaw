@@ -217,7 +217,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
               onClick={onStop}
               aria-label="Stop response"
               data-testid="chat-stop"
-              className="px-4 py-2 rounded-pill border border-danger/20 bg-danger/[0.06]
+              className="px-4 py-2 rounded-full border border-danger/20 bg-danger/[0.06]
                 text-danger text-[12px] font-600 cursor-pointer transition-all duration-200
                 active:scale-95 hover:bg-danger/[0.1] hover:border-danger/30 shrink-0"
               style={{ fontFamily: 'inherit' }}
@@ -238,16 +238,16 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   </span>
                   <span className="label-mono text-amber-300/80">Message queue</span>
                   {pendingQueuedMessages.length > 0 && (
-                    <span className="rounded-pill border border-amber-400/15 bg-amber-400/10 px-2 py-0.5 text-[10px] font-600 text-amber-200">
+                    <span className="rounded-full border border-amber-400/15 bg-amber-400/10 px-2 py-0.5 text-[10px] font-600 text-amber-200">
                       {pendingQueuedMessages.length}
                     </span>
                   )}
                   {sendingQueuedMessages.length > 0 && (
-                    <span className="rounded-pill border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-600 text-sky-200">
+                    <span className="rounded-full border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-600 text-sky-200">
                       {sendingQueuedMessages.length} sending
                     </span>
                   )}
-                  <span className={`rounded-pill border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] ${
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] ${
                     busy
                       ? 'border-amber-300/20 bg-amber-300/10 text-amber-100'
                       : 'border-line-default bg-layer-2 text-text-3'
@@ -266,7 +266,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                     onClick={onStop}
                     aria-label="Stop response"
                     data-testid="chat-stop"
-                    className="rounded-pill border border-danger/20 bg-danger/[0.06] px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.12em] text-danger transition-all hover:bg-danger/[0.1] hover:border-danger/30 cursor-pointer"
+                    className="rounded-full border border-danger/20 bg-danger/[0.06] px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.12em] text-danger transition-all hover:bg-danger/[0.1] hover:border-danger/30 cursor-pointer"
                   >
                     Stop
                   </button>
@@ -275,7 +275,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   <button
                     type="button"
                     onClick={() => { void clearQueuedMessagesForSession(sessionId) }}
-                    className="rounded-pill border border-amber-400/15 bg-transparent px-3 py-1.5 text-[11px] font-600 text-amber-200/80 transition-all hover:border-amber-300/30 hover:bg-amber-300/[0.08] hover:text-amber-100 cursor-pointer"
+                    className="rounded-full border border-amber-400/15 bg-transparent px-3 py-1.5 text-[11px] font-600 text-amber-200/80 transition-all hover:border-amber-300/30 hover:bg-amber-300/[0.08] hover:text-amber-100 cursor-pointer"
                   >
                     Clear
                   </button>
@@ -307,25 +307,25 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       {item.sending ? (
-                        <span className="rounded-pill border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-sky-200 animate-pulse">
+                        <span className="rounded-full border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-sky-200 animate-pulse">
                           Sending
                         </span>
                       ) : item.runId === nextPendingRunId && (
-                        <span className="rounded-pill border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-amber-100">
+                        <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-amber-100">
                           Next
                         </span>
                       )}
                       {item.replyToId && (
-                        <span className="rounded-pill border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
+                        <span className="rounded-full border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
                           Reply
                         </span>
                       )}
                       {item.attachedFiles?.length ? (
-                        <span className="rounded-pill border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
+                        <span className="rounded-full border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
                           +{item.attachedFiles.length} files
                         </span>
                       ) : item.imagePath || item.imageUrl ? (
-                        <span className="rounded-pill border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
+                        <span className="rounded-full border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
                           1 attachment
                         </span>
                       ) : null}

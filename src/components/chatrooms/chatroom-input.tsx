@@ -369,10 +369,10 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-300" />
                 </span>
                 <span className="label-mono text-amber-300/80">Round queue</span>
-                <span className="rounded-pill border border-amber-400/15 bg-amber-400/10 px-2 py-0.5 text-[10px] font-600 text-amber-200">
+                <span className="rounded-full border border-amber-400/15 bg-amber-400/10 px-2 py-0.5 text-[10px] font-600 text-amber-200">
                   {visibleQueuedMessages.length}
                 </span>
-                <span className={`rounded-pill border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] ${
+                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] ${
                   streaming
                     ? 'border-amber-300/20 bg-amber-300/10 text-amber-100'
                     : 'border-line-default bg-layer-2 text-text-3'
@@ -390,7 +390,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
               <button
                 type="button"
                 onClick={() => clearQueuedMessages(chatroomId)}
-                className="shrink-0 rounded-pill border border-amber-400/15 bg-transparent px-3 py-1.5 text-[11px] font-600 text-amber-200/80 transition-all hover:border-amber-300/30 hover:bg-amber-300/[0.08] hover:text-amber-100 cursor-pointer"
+                className="shrink-0 rounded-full border border-amber-400/15 bg-transparent px-3 py-1.5 text-[11px] font-600 text-amber-200/80 transition-all hover:border-amber-300/30 hover:bg-amber-300/[0.08] hover:text-amber-100 cursor-pointer"
               >
                 Clear
               </button>
@@ -416,17 +416,17 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     {index === 0 && (
-                      <span className="rounded-pill border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-amber-100">
+                      <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-amber-100">
                         Next
                       </span>
                     )}
                     {item.pendingFiles.length > 0 && (
-                      <span className="rounded-pill border border-amber-400/15 bg-amber-400/10 px-2 py-0.5 text-[10px] text-amber-200">
+                      <span className="rounded-full border border-amber-400/15 bg-amber-400/10 px-2 py-0.5 text-[10px] text-amber-200">
                         +{item.pendingFiles.length} file{item.pendingFiles.length === 1 ? '' : 's'}
                       </span>
                     )}
                     {item.replyingTo && (
-                      <span className="rounded-pill border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
+                      <span className="rounded-full border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
                         Reply queued
                       </span>
                     )}
