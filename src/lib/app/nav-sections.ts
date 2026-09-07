@@ -2,11 +2,20 @@ import type { AppView } from '@/types'
 
 export type NavSectionId = 'home' | 'chat' | 'work' | 'knowledge' | 'connect' | 'operations' | 'settings'
 
+/**
+ * The lucide icon names sidebar-rail.tsx's `SECTION_ICONS` maps to a
+ * component. Kept as a plain string union here, not an import from
+ * lucide-react, so this stays a pure data module that server code and tests
+ * can import without pulling a client-only icon library in behind it; the
+ * union is what turns a typo in a section's `icon` into a compile error
+ * instead of a silent fallback to the Home icon.
+ */
+export type NavSectionIconName = 'Home' | 'MessageSquare' | 'Briefcase' | 'BookOpen' | 'Link2' | 'Activity' | 'Settings'
+
 export interface NavSection {
   id: NavSectionId
   label: string
-  /** A lucide icon name; sidebar-rail.tsx maps it to a component. */
-  icon: string
+  icon: NavSectionIconName
   /** Views listed in this section's panel, in panel order. */
   views: readonly AppView[]
   /** A section that navigates straight to one view instead of opening a panel. */
@@ -18,7 +27,7 @@ export interface NavSection {
 /**
  * The rail, in one place.
  *
- * This replaced twenty-eight hardcoded <NavItem> elements in a 32 KB
+ * This replaced twenty-six hardcoded <NavItem> elements in a 32 KB
  * sidebar-rail.tsx. Adding a view is a line here; the completeness test in
  * nav-sections.test.ts is what stops a new view from silently having no way
  * to reach it.

@@ -13,7 +13,7 @@ import { RailTooltip } from '@/components/layout/nav-item'
 import { NavSectionPanel } from '@/components/layout/nav-section-panel'
 import { useExtensionPages } from '@/hooks/use-extension-pages'
 import { useWs } from '@/hooks/use-ws'
-import { NAV_SECTIONS, type NavSection, type NavSectionId } from '@/lib/app/nav-sections'
+import { NAV_SECTIONS, type NavSection, type NavSectionId, type NavSectionIconName } from '@/lib/app/nav-sections'
 import { FULL_WIDTH_VIEWS, isPanelSidebarView, VIEW_DESCRIPTIONS, VIEW_LABELS } from '@/lib/app/view-constants'
 import { getViewPath, resolveSidebarActiveView, useNavigate } from '@/lib/app/navigation'
 import { RAIL_EXPANDED_KEY, railExpandedFromStorage, railSectionForPath } from '@/lib/app/rail-state'
@@ -27,9 +27,13 @@ const DISCORD_URL = 'https://discord.gg/sbEavS8cPV'
  * The components behind the icon names in `NAV_SECTIONS`.
  *
  * Kept here rather than in the table so the table stays importable by server
- * code and tests without pulling a client-only icon module in behind it.
+ * code and tests without pulling a client-only icon module in behind it. Typed
+ * by `NavSectionIconName` rather than `Record<string, ...>` so a section
+ * naming an icon this map does not carry — or this map missing one of the
+ * union's names — is a compile error in both directions, not a section that
+ * silently renders the Home icon.
  */
-const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
+const SECTION_ICONS: Record<NavSectionIconName, React.ComponentType<{ size?: number }>> = {
   Home, MessageSquare, Briefcase, BookOpen, Link2, Activity, Settings: SettingsIcon,
 }
 
@@ -37,8 +41,9 @@ const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
  * One of the rail's off-app links (Docs, GitHub, Discord).
  *
  * The three differ only in href, label and glyph, and each needs a labelled row
- * and a 52px icon-with-tooltip form; writing that twice per link is where a
- * third of this file used to go.
+ * and a 52px icon-with-tooltip form; those three two-form blocks were about
+ * 78 of this file's 519 lines (roughly 2.5 KB of 31.6 KB) before this
+ * component collapsed them into three short calls.
  */
 function RailExternalLink({ href, label, description, expanded, children }: {
   href: string
