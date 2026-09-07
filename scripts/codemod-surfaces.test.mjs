@@ -26,10 +26,10 @@ test('border and divide alphas share the line ladder', () => {
   assert.equal(mapWhiteAlphaClass('ring-white/[0.15]'), 'ring-line-strong')
 })
 
-test('text alphas map onto the three foreground tokens', () => {
-  assert.equal(mapWhiteAlphaClass('text-white/[0.9]'), 'text-fg-1')
-  assert.equal(mapWhiteAlphaClass('text-white/[0.6]'), 'text-fg-2')
-  assert.equal(mapWhiteAlphaClass('text-white/[0.3]'), 'text-fg-3')
+test('text alphas map onto the three established text tokens', () => {
+  assert.equal(mapWhiteAlphaClass('text-white/[0.9]'), 'text-text')
+  assert.equal(mapWhiteAlphaClass('text-white/[0.6]'), 'text-text-2')
+  assert.equal(mapWhiteAlphaClass('text-white/[0.3]'), 'text-text-3')
 })
 
 test('variant prefixes are preserved', () => {

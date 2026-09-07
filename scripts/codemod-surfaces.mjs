@@ -75,9 +75,13 @@ export function mapWhiteAlphaClass(cls) {
     return `${variants}${prefix}${direction ?? ''}-${step(LINE_STEPS, alpha)}`
   }
   if (prefix === 'text') {
-    if (alpha >= 0.8) return `${variants}text-fg-1`
-    if (alpha >= 0.5) return `${variants}text-fg-2`
-    return `${variants}text-fg-3`
+    // Targets the established --color-text/-2/-3 ladder (already used across
+    // ~230 files), not the short-lived text-fg-1..3 vocabulary that this
+    // codemod originally introduced and that has since been retired as
+    // redundant with these same three tokens.
+    if (alpha >= 0.8) return `${variants}text-text`
+    if (alpha >= 0.5) return `${variants}text-text-2`
+    return `${variants}text-text-3`
   }
   return null
 }

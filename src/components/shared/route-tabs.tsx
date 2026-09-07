@@ -25,7 +25,7 @@ export function RouteTabs({ tabs, active }: { tabs: readonly RouteTab[]; active:
             href={tab.href}
             aria-current={on ? 'page' : undefined}
             className={`relative px-3 py-2.5 text-[12px] rounded-t-sm transition-colors ${
-              on ? 'text-accent-bright font-600' : 'text-fg-3 hover:text-fg-2'
+              on ? 'text-accent-bright font-600' : 'text-text-3 hover:text-text-2'
             }`}
           >
             {tab.label}

@@ -119,9 +119,6 @@
   --color-line-subtle: var(--ln-subtle);
   --color-line-default: var(--ln-default);
   --color-line-strong: var(--ln-strong);
-  --color-fg-1: var(--tx-1);
-  --color-fg-2: var(--tx-2);
-  --color-fg-3: var(--tx-3);
   /* Surfaces derived from --neutral-tint for single-knob theming */
   --color-bg: color-mix(in srgb, var(--neutral-tint, #1e1e30) 40%, #000);
   --color-raised: color-mix(in srgb, var(--neutral-tint, #1e1e30) 50%, #000);
@@ -172,9 +169,6 @@
   --ln-subtle: rgba(255,255,255,0.05);
   --ln-default: rgba(255,255,255,0.09);
   --ln-strong: rgba(255,255,255,0.16);
-  --tx-1: #e6e6f0;
-  --tx-2: #a0a0ba;
-  --tx-3: #7a7a95;
   --background: color-mix(in srgb, var(--neutral-tint) 40%, #000);
   --foreground: #e2e2ec;
   --card: color-mix(in srgb, var(--neutral-tint) 50%, #000);
@@ -251,9 +245,6 @@
   --ln-subtle: rgba(31,41,55,0.08);
   --ln-default: rgba(31,41,55,0.13);
   --ln-strong: rgba(31,41,55,0.22);
-  --tx-1: #1a1a24;
-  --tx-2: #4a4a60;
-  --tx-3: #75758c;
 
   --background: color-mix(in srgb, var(--neutral-tint) 10%, #fff);
   --foreground: #1f2937;

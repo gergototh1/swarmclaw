@@ -107,13 +107,13 @@ const eslintConfig = defineConfig([
           selector:
             "Literal[value=/(?:bg|border|divide|ring|outline|text|via|from|shadow)(?:-[xytblrse])?-white\\/(?:\\[|\\d)/]",
           message:
-            "Use the surface ladder (bg-layer-1..4, border-line-*, text-fg-1..3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
+            "Use the surface ladder (bg-layer-1..4, border-line-*, text-text/-2/-3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
         },
         {
           selector:
             "TemplateElement[value.raw=/(?:bg|border|divide|ring|outline|text|via|from|shadow)(?:-[xytblrse])?-white\\/(?:\\[|\\d)/]",
           message:
-            "Use the surface ladder (bg-layer-1..4, border-line-*, text-fg-1..3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
+            "Use the surface ladder (bg-layer-1..4, border-line-*, text-text/-2/-3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
         },
         {
           selector:
