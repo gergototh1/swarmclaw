@@ -19,15 +19,23 @@
  * cannot tell "install the video module" from "wait, it is mid-reload" apart,
  * and would keep retrying the one it cannot fix.
  *
- * WHAT THIS TASK DOES NOT ADD YET. `videoLekerdez` on the docs side wraps the
- * actual `videos.get`/`videos.list` call so a race after the handle resolves
- * -- the provider disabled between `videosHandle` and the call itself -- is
- * caught too. Task 1 has no caller for that yet (no tool, no rpc method reads
- * a video through this handle): the brief's interface list names
- * `videosHandle(state)` alone. The next task that actually reads a video
- * through this handle should wrap its call the same way `videoLekerdez` does,
- * rather than leaving `unavailable` and `provider_threw` to fall through to a
- * generic catch.
+ * TODO(pub-2): WRAP THE CALL, NOT ONLY THE RESOLUTION. `videoLekerdez` on the
+ * docs side also catches what the host throws DURING the call -- `unavailable`
+ * (the provider was switched off between `videosHandle` and the call, because
+ * `callContractMethod` re-resolves on every call) and `provider_threw` (the
+ * provider's own code raised) -- and turns each into its own sentence. Task 1
+ * has no caller for that yet: no tool and no rpc method reads a video through
+ * this handle, and the brief's interface list names `videosHandle(state)`
+ * alone. The next task that actually reads a video MUST add that try/catch
+ * (copy `szerzodesHiba` + `hivasMondat` from `video-forgatokonyv.mjs`), or
+ * both host codes fall through to a generic catch and reach the agent as a
+ * stack string with no next step in it.
+ *
+ * The `typeof handle.get !== 'function'` guard below is NOT part of that
+ * follow-up and is here now, because it belongs to resolving the handle
+ * rather than to calling it: the host matches the contract's name and version
+ * and not its method list, so a provider offering `videos@1` without `get`
+ * hands back a perfectly valid handle.
  */
 
 /** The provider, as `index.mjs`'s `consumes` and `contracts.get` both spell it. */
@@ -82,7 +90,7 @@ export class PublishError extends Error {
  * reaches a maintainer carries the host's own vocabulary rather than a
  * translation of it.
  */
-const SZERZODES_OKOK = Object.freeze(Object.assign(Object.create(null), {
+export const SZERZODES_OKOK = Object.freeze(Object.assign(Object.create(null), {
   not_declared: 'a Publikálás modul nem kéri a video.videos szerződést (not_declared). Ez a Publikálás bővítmény hibája, nem a tiéd: telepítsd újra vagy frissítsd a Bővítmények lapon.',
   provider_missing: 'a Videó bővítmény nincs telepítve (provider_missing). Telepítsd a Bővítmények lapon, aztán próbáld újra.',
   provider_disabled: 'a Videó bővítmény ki van kapcsolva (provider_disabled). Kapcsold be a Bővítmények lapon, aztán próbáld újra.',
@@ -104,7 +112,7 @@ function okMondat(why) {
 }
 
 /** Prefixes every refusal, so the sentence reads whole wherever it is quoted. */
-const NEM_ERHETO_EL = 'A videó szerződés nem érhető el, mert '
+export const NEM_ERHETO_EL = 'A videó szerződés nem érhető el, mert '
 
 /**
  * The handle for `video.videos`, or a named refusal.
@@ -123,7 +131,12 @@ const NEM_ERHETO_EL = 'A videó szerződés nem érhető el, mert '
  * `get` and `why` are two separate calls and the provider can change between
  * them; then `why` answers null for a handle `get` did not give. That is
  * reported as what it is -- ask again -- rather than as any of the four, none
- * of which was actually observed.
+ * of which was actually observed. That refusal deliberately names none of the
+ * four reason words: naming one would state a fact nobody observed.
+ *
+ * A handle that arrives without a `get` method is refused here too -- see the
+ * comment on the guard -- because the host matches the contract's name and
+ * version, never its method list.
  */
 export function videosHandle(state) {
   const contracts = state && state.contracts
@@ -134,7 +147,22 @@ export function videosHandle(state) {
     )
   }
   const handle = contracts.get(VIDEO_EXTENSION, VIDEOS_CONTRACT)
-  if (handle) return handle
+  if (handle) {
+    // A HANDLE MEGVAN, A METÓDUS NEM FELTÉTLENÜL. A host a `videos@1` nevet és
+    // verziót egyezteti, a metódus-listát nem: egy szolgáltató, ami ezt a
+    // szerződést kínálja `get` nélkül, ép handle-t ad -- és a hívó egy sorral
+    // lejjebb egy csupasz `TypeError: videos.get is not a function`-be fut,
+    // amin nincs `code`, tehát semmi nem ismeri fel megnevezett elutasításnak.
+    // A hívó teendője ugyanaz, mint `version_mismatch`-nél (frissítsd a
+    // régebbi bővítményt), tehát ugyanaz a kód, a saját mondatával.
+    if (typeof handle.get !== 'function') {
+      throw new PublishError(
+        HIBA.szerzodes_hianyzik,
+        `${NEM_ERHETO_EL}a Videó bővítmény ${VIDEOS_CONTRACT} szerződése nem kínálja a "get" metódust, amire ennek a modulnak szüksége van. Frissítsd a két bővítmény közül a régebbit a Bővítmények lapon, aztán próbáld újra.`,
+      )
+    }
+    return handle
+  }
 
   const why = typeof contracts.why === 'function' ? contracts.why(VIDEO_EXTENSION, VIDEOS_CONTRACT) : null
   if (why === null || why === undefined || why === '') {

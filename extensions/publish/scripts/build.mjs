@@ -18,12 +18,25 @@ import { build } from 'esbuild'
  *
  * ONE DIFFERENCE FROM THE CRM COPY: this task builds the module's skeleton
  * before its calendar page exists (spec 10 lists `ui/` as a later task's
- * file). `ui/main.tsx` is therefore not there yet, and `bundle()` would throw
+ * file). There is no `ui/` directory yet, and `bundle()` would throw
  * esbuild's own "could not resolve entry point" if it were called against a
- * path that is not on disk. The command-line runner below checks for the
- * entry first and says so rather than failing: a missing page is a fact about
- * how far this module has got, not a broken build. Once the page task adds
- * `ui/main.tsx`, this file needs no change -- the guard just stops firing.
+ * path that is not on disk. `buildTerv()` below decides between three
+ * different facts, because they are three different facts:
+ *
+ *   no `ui/` at all       -- the page task has not run. Skip, exit 0.
+ *   `ui/` but no ENTRY    -- the page task ran and this script cannot see its
+ *                            entry point. HARD FAIL, non-zero exit.
+ *   `ui/` and ENTRY       -- build.
+ *
+ * The middle branch is the whole point. An exit-0 skip keyed on one exact
+ * path is a gate that can only ever pass: name the entry `ui/index.tsx`, or
+ * move it under `ui/src/`, and this script goes on reporting "no page yet",
+ * goes on exiting 0, and goes on writing nothing -- while the page task's own
+ * gate goes green and the served page 404s on both assets, which from the
+ * host's side is indistinguishable from a broken install. A skip must be
+ * keyed on the absence of the whole directory, which is the only shape of
+ * "not built yet" that cannot also mean "built, and I looked in the wrong
+ * place".
  *
  * Exported as `bundle` (and run from the command line at the bottom) so a
  * future `test/ui.test.mjs` can build the same graph in memory and pin that
@@ -35,8 +48,31 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 /** The externals the host publishes, exactly as `window.swarmclaw.modules` keys them. */
 export const HOST_MODULES = Object.freeze(['react', 'react-dom', 'react/jsx-runtime'])
 
-/** Workspace-relative path to the page's entry point, once it exists. */
-export const ENTRY = path.join(root, 'ui/main.tsx')
+/** The page's own directory. Its ABSENCE -- and nothing narrower -- is what "the page task has not run yet" means. */
+export const UI_DIR_NEV = 'ui'
+
+/** Where the page's entry point must be, relative to the module root. A later task that moves it edits this line, and `buildTerv` fails loudly until it does. */
+export const ENTRY_RELATIV = path.join(UI_DIR_NEV, 'main.tsx')
+
+/** Absolute path to the page's entry point, once it exists. */
+export const ENTRY = path.join(root, ENTRY_RELATIV)
+
+/**
+ * What the command line should do about the workspace at `gyoker`.
+ *
+ * Split out of the runner and given a root argument so a test can put each of
+ * the three shapes on disk and pin the answer; the runner below is then a
+ * two-line switch with nothing left in it to get wrong.
+ */
+export function buildTerv(gyoker = root) {
+  if (!fs.existsSync(path.join(gyoker, UI_DIR_NEV))) {
+    return { teendo: 'kihagy', uzenet: `nincs ${UI_DIR_NEV}/ könyvtár: a naptár lap ebben a kiadásban még nem készült el, nincs mit buildelni.` }
+  }
+  if (!fs.existsSync(path.join(gyoker, ENTRY_RELATIV))) {
+    return { teendo: 'megall', uzenet: `van ${UI_DIR_NEV}/ könyvtár, de nincs ${ENTRY_RELATIV}: a lap belépőpontját ezen a néven kell megtalálni, különben a build csendben nem ír semmit, és a kiszolgált lap mindkét assetre 404-et ad. Nevezd át a belépőt ${ENTRY_RELATIV}-re, vagy írd át az ENTRY_RELATIV-ot ebben a fájlban.` }
+  }
+  return { teendo: 'buildel', uzenet: null }
+}
 
 /**
  * The esbuild resolver hook that turns each host module import into a lookup.
@@ -89,12 +125,16 @@ export async function bundle({ write = true } = {}) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (!fs.existsSync(ENTRY)) {
-    console.log('nincs ui/main.tsx: a naptár lap ebben a kiadásban még nem készült el, nincs mit buildelni.')
+  const terv = buildTerv()
+  if (terv.teendo === 'kihagy') {
+    console.log(terv.uzenet)
+  } else if (terv.teendo === 'megall') {
+    console.error(terv.uzenet)
+    process.exitCode = 1
   } else {
     await bundle()
     fs.mkdirSync(path.join(root, 'dist'), { recursive: true })
-    fs.copyFileSync(path.join(root, 'ui/style.css'), path.join(root, 'dist/style.css'))
+    fs.copyFileSync(path.join(root, UI_DIR_NEV, 'style.css'), path.join(root, 'dist/style.css'))
     console.log('built dist/index.js, dist/style.css')
   }
 }

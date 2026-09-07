@@ -37,9 +37,14 @@ import crypto from 'node:crypto'
  *
  *   ext_publish_fiokok -- UNIQUE INDEX (platform, kulso_id)
  *     gates whether connecting an outlet's account a second time creates a
- *     second row or updates the first. `fiokotIr` reads this pair before it
- *     writes: a hit updates the existing row's `nev` and `updated_at` in
- *     place, a miss inserts. Design spec 9 rules out a second account per
+ *     second row or updates the first. `fiokotIr` does not read the pair and
+ *     then decide -- it hands the decision to this index with `INSERT ... ON
+ *     CONFLICT(platform, kulso_id) DO UPDATE`, for the same reason `ujAg`
+ *     leans on its own index below. A SELECT-then-INSERT leaves a race, and
+ *     the caller that loses it gets no named refusal at all: it gets the
+ *     driver's raw `UNIQUE constraint failed: ext_publish_fiokok...` text in
+ *     front of the operator, which is at once an unnamed refusal and stored
+ *     schema text spoken back. Design spec 9 rules out a second account per
  *     platform on purpose ("Nincs több fiók platformonként ebben a
  *     specben"), and this index is what makes that true at the database
  *     rather than only in the one place that calls `fiokotIr` today.
@@ -124,9 +129,23 @@ CREATE TABLE IF NOT EXISTS ext_publish_savok (
 `,
 }])
 
-/** True when a driver's thrown error is the UNIQUE-index violation `ujAg` guards against, on either `node:sqlite` or `better-sqlite3` (both raise the same SQLite message text). */
-function isUniqueViolation(err) {
-  return err instanceof Error && /UNIQUE constraint failed/.test(err.message)
+/**
+ * True when a driver's thrown error is a UNIQUE violation on EXACTLY these
+ * columns, on either `node:sqlite` or `better-sqlite3` (both raise the same
+ * SQLite message text: `UNIQUE constraint failed: <table>.<col>, ...`).
+ *
+ * The columns are named rather than matched loosely, because the sentence a
+ * caller maps this onto names one specific fact. `ujAg` inserts a freshly
+ * minted `id` alongside the (kiadas_id, platform) pair, so a primary-key
+ * collision on that `id` is also a "UNIQUE constraint failed" -- and reporting
+ * it as "this release already has a branch for this platform" would state a
+ * fact nobody observed, and send the operator looking for a branch that is not
+ * there. An `id` collision is a different fact with no sentence of its own
+ * yet, so it rethrows untouched rather than borrowing this one's.
+ */
+function isUniqueViolationOn(err, table, columns) {
+  if (!(err instanceof Error)) return false
+  return err.message.includes(`UNIQUE constraint failed: ${columns.map((c) => `${table}.${c}`).join(', ')}`)
 }
 
 export function createRepo(storage) {
@@ -143,21 +162,21 @@ export function createRepo(storage) {
      * kulso_id) -- see the key register above -- so calling this twice with
      * the same pair never creates a second row; it updates `nev` in place.
      * Returns the stored row either way.
+     *
+     * The upsert is one statement on purpose: the index decides, not a read
+     * this method does first. Two processes connecting the same channel at
+     * the same moment both end on the same row, and neither ever sees the
+     * driver's own constraint text.
      */
     fiokotIr({ platform, kulsoId, nev }) {
       if (!PLATFORMOK.includes(platform)) throw new Error(`fiokotIr: platform csak ezek egyike lehet: ${PLATFORMOK.join(', ')}`)
       if (typeof kulsoId !== 'string' || kulsoId === '') throw new Error('fiokotIr: kulsoId nem lehet üres')
       if (typeof nev !== 'string' || nev === '') throw new Error('fiokotIr: nev nem lehet üres')
       const t = now()
-      const existing = S.get('SELECT id FROM ext_publish_fiokok WHERE platform = ? AND kulso_id = ?', [platform, kulsoId])
-      if (existing) {
-        S.exec('UPDATE ext_publish_fiokok SET nev = ?, updated_at = ? WHERE id = ?', [nev, t, existing.id])
-        return repo.fiok(existing.id)
-      }
-      const id = uid()
-      S.exec('INSERT INTO ext_publish_fiokok (id, platform, kulso_id, nev, csatlakoztatva_at, updated_at) VALUES (?,?,?,?,?,?)',
-        [id, platform, kulsoId, nev, t, t])
-      return repo.fiok(id)
+      S.exec(`INSERT INTO ext_publish_fiokok (id, platform, kulso_id, nev, csatlakoztatva_at, updated_at) VALUES (?,?,?,?,?,?)
+ON CONFLICT(platform, kulso_id) DO UPDATE SET nev = excluded.nev, updated_at = excluded.updated_at`,
+        [uid(), platform, kulsoId, nev, t, t])
+      return S.get('SELECT * FROM ext_publish_fiokok WHERE platform = ? AND kulso_id = ?', [platform, kulsoId]) || null
     },
     fiok(id) { return S.get('SELECT * FROM ext_publish_fiokok WHERE id = ?', [id]) || null },
     fiokok() { return S.all('SELECT * FROM ext_publish_fiokok ORDER BY platform ASC, nev ASC') },
@@ -194,7 +213,7 @@ export function createRepo(storage) {
         S.exec('INSERT INTO ext_publish_agak (id, kiadas_id, platform, szoveg, allapot, hiba_kod, url, kikuldve_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
           [id, kiadasId, platform, null, AG_KEZDO_ALLAPOT, null, null, null, t, t])
       } catch (err) {
-        if (isUniqueViolation(err)) {
+        if (isUniqueViolationOn(err, 'ext_publish_agak', ['kiadas_id', 'platform'])) {
           throw new Error('ujAg: ezen a kiadáson már van ág ehhez a platformhoz -- egy kiadáson egy platform egyszer szerepel')
         }
         throw err

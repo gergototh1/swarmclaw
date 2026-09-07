@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import { AG_KEZDO_ALLAPOT, KIADAS_KEZDO_ALLAPOT } from '../src/db.mjs'
 import { freshRepo } from './helpers.mjs'
 
 function refusal(fn) {
@@ -27,8 +28,18 @@ test('a kiadás ágai platformonként egy sor, és a kiadás nem duplázódik', 
   const { repo } = freshRepo()
   const k = repo.ujKiadas({ videoId: 'v1' })
   assert.equal(k.allapot, 'vazlat')
-  repo.ujAg({ kiadasId: k.id, platform: 'youtube' })
-  repo.ujAg({ kiadasId: k.id, platform: 'tiktok' })
+  const yt = repo.ujAg({ kiadasId: k.id, platform: 'youtube' })
+  const tt = repo.ujAg({ kiadasId: k.id, platform: 'tiktok' })
+  // A frissen nyitott ág VÁR. Ez a modul legélesebb "három tény, három
+  // állapot" pontja: egy ág, ami születésekor `kiment`-et állít, azt a tényt
+  // állítja, amit senki nem figyelt meg -- és a naptár, az újrapróbálás meg a
+  // részleges-kiadás számolás mind erre az egy szóra épül. A konstansra ÉS a
+  // szóra is állítunk: a konstans átírása így nem viszi magával a tesztet.
+  assert.equal(AG_KEZDO_ALLAPOT, 'var')
+  assert.equal(yt.allapot, 'var', 'egy frissen nyitott ág vár, nem ment ki')
+  assert.equal(tt.allapot, 'var', 'egy frissen nyitott ág vár, nem ment ki')
+  assert.deepEqual(repo.agak(k.id).map((a) => a.allapot), ['var', 'var'])
+  assert.equal(KIADAS_KEZDO_ALLAPOT, 'vazlat')
   assert.deepEqual(repo.agak(k.id).map((a) => a.platform), ['youtube', 'tiktok'])
   assert.throws(() => repo.ujAg({ kiadasId: k.id, platform: 'youtube' }), /platform/,
     'egy kiadáson egy platform egyszer szerepel')
@@ -40,6 +51,40 @@ test('a fiók platformonként és külső id szerint egyedi', () => {
   repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Átnevezve' })
   assert.equal(repo.fiokok().length, 1, 'ugyanaz a fiók frissül, nem duplázódik')
   assert.equal(repo.fiokok()[0].nev, 'Átnevezve')
+})
+
+test('a fiók-kulcs az adatbázison áll: a fiokotIr megkerülésével sem lehet duplikálni', () => {
+  // A 37. sori teszt csak azt bizonyítja, hogy a `fiokotIr` nem duplikál --
+  // azt egy tisztán alkalmazás-szintű ellenőrzés is teljesítené, és akkor egy
+  // MÁSODIK írásút (egy migráció, egy import, egy párhuzamos folyamat) semmi
+  // nem tartana vissza. Ez a teszt a `storage.raw`-on át, a repository-t
+  // megkerülve szúr be, tehát csak az INDEX utasíthatja vissza.
+  const { storage, repo } = freshRepo()
+  repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'A csatornám' })
+  const t = new Date().toISOString()
+  assert.throws(
+    () => storage.raw
+      .prepare('INSERT INTO ext_publish_fiokok (id, platform, kulso_id, nev, csatlakoztatva_at, updated_at) VALUES (?,?,?,?,?,?)')
+      .run('masik_iro', 'youtube', 'UC1', 'Egy másik írásút', t, t),
+    /UNIQUE constraint failed: ext_publish_fiokok\.platform, ext_publish_fiokok\.kulso_id/,
+    'az adatbázis engedte a duplikált (platform, kulso_id) párt',
+  )
+  assert.equal(repo.fiokok().length, 1)
+})
+
+test('az ág-kulcs is az adatbázison áll: a ujAg megkerülésével sem lehet duplikálni', () => {
+  const { storage, repo } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  repo.ujAg({ kiadasId: k.id, platform: 'youtube' })
+  const t = new Date().toISOString()
+  assert.throws(
+    () => storage.raw
+      .prepare('INSERT INTO ext_publish_agak (id, kiadas_id, platform, szoveg, allapot, hiba_kod, url, kikuldve_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
+      .run('masik_iro', k.id, 'youtube', null, 'var', null, null, null, t, t),
+    /UNIQUE constraint failed: ext_publish_agak\.kiadas_id, ext_publish_agak\.platform/,
+    'az adatbázis engedte a duplikált (kiadas_id, platform) párt',
+  )
+  assert.equal(repo.agak(k.id).length, 1)
 })
 
 test('két különböző fiók platformonként és külső id szerint két sor', () => {
