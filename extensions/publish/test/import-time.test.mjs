@@ -44,6 +44,7 @@ test('index.mjs imports under plain node well inside the host deadline and decla
         scheduleKey: s.scheduleKey,
         scheduleType: s.scheduleType,
         intervalMs: s.intervalMs,
+        timezone: s.timezone,
         agentRefKey: s.agentRef?.resourceKey,
       })),
       managedAgents: ext.managedResources?.agents ?? null,
@@ -68,15 +69,34 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.deepEqual(out.consumes, ['video.videos'])
   assert.equal(out.migrations, 1)
   assert.equal(out.setup, 'function')
-  // No page yet (design spec 10 lists ui/ as a later task's file).
-  assert.deepEqual(out.ui, null)
+  // No page yet (design spec 10 lists ui/ as a later task's file) -- one
+  // settings field, the publishing timezone. A slot's `nap`/`ora`/`perc` is a
+  // WALL CLOCK in this zone (src/utemezes.mjs), so the field is the one place
+  // the operator can say which wall. Pinned whole rather than by key count:
+  // a lost `defaultValue` would ship an install whose slots mean nothing in
+  // particular, and that is exactly the kind of drift this file exists to
+  // surface as a diff.
+  assert.deepEqual(out.ui, {
+    settingsFields: [{
+      key: 'idozona',
+      label: 'Publikálási időzóna',
+      type: 'text',
+      defaultValue: 'Europe/Budapest',
+      placeholder: 'Europe/Budapest',
+      help: 'IANA-zónanév. A publikálási sávok "hétfő 9:00"-ja ennek a zónának a fali óráján értendő, nyári időszámítással együtt -- nem UTC-ben.',
+    }],
+  })
   // Task 3: exactly one fixed-cadence run (design spec 7), pointed at an
   // agent key Task 4 has not declared yet (see index.mjs's own SCHEDULES
   // docblock for why that is a graceful host-side skip, not a bug). Adding
   // or changing a schedule is a real decision -- this pin exists so that
   // decision shows up as a diff here, not a silent shape change.
+  // `timezone` is pinned too: it does nothing for an `interval` schedule
+  // today, and it is the ONLY place the operator's publishing zone is written
+  // where the host can see it (the sibling module states it on all three of
+  // its own declarations). Dropping it would be silent.
   assert.deepEqual(out.schedules, [
-    { scheduleKey: 'publish-kikuldes', scheduleType: 'interval', intervalMs: 15 * 60 * 1000, agentRefKey: 'publish-kuldo' },
+    { scheduleKey: 'publish-kikuldes', scheduleType: 'interval', intervalMs: 15 * 60 * 1000, timezone: 'Europe/Budapest', agentRefKey: 'publish-kuldo' },
   ])
   // No agents declared by this task (Task 4 owns `src/agents.mjs`).
   assert.equal(out.managedAgents, null)

@@ -1,4 +1,4 @@
-import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { ALAP_IDOZONA, MIGRATIONS, createRepo } from './src/db.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
 
 /**
@@ -50,7 +50,7 @@ const ALAP_UTEMEZES_MS = 15 * 60 * 1000
  * brief, is the one way to keep the two tasks' independent work pointed at
  * the same word.
  */
-const KIKULDES_PROMPT = 'Hívd meg a publishDue toolt argumentum nélkül. Az kiteszi mindazt, aminek eljött az ideje -- sávra állított és felülírt időpontú kiadást egyaránt -- és visszaadja, hány kiadás ment ki, és ha bármelyik hibára futott, melyik és milyen kóddal. Számolj be ebből: hány kiadás ment ki rendben, és ha volt hiba, sorold fel melyik kiadás melyik platformján.'
+const KIKULDES_PROMPT = 'Hívd meg a publishDue toolt argumentum nélkül. Az kiteszi mindazt, aminek eljött az ideje -- sávra állított és felülírt időpontú kiadást egyaránt -- és visszaadja, hány kiadás ment ki, ha bármelyik hibára futott, melyik és milyen kóddal, és külön azokat az ütemezett kiadásokat, amiknek nincs kiszámolt időpontjuk. Számolj be mindháromból: hány kiadás ment ki rendben; ha volt hiba, melyik kiadás melyik platformján; és ha van időpont nélküli ütemezett kiadás, sorold fel azokat is -- azok soha nem lesznek esedékesek, amíg valaki időpontot nem ad nekik.'
 
 /**
  * The one fixed-cadence run design spec 7 asks for -- see `src/utemezes.mjs`'s
@@ -82,6 +82,17 @@ export const SCHEDULES = Object.freeze([
     agentRef: Object.freeze({ resourceKind: 'agent', resourceKey: 'publish-kuldo' }),
     scheduleType: 'interval',
     intervalMs: ALAP_UTEMEZES_MS,
+    // Inert TODAY -- the host's `scheduleTiming` (src/lib/server/extension-managed-resources.ts)
+    // carries `timezone` onto an interval schedule but nothing reads it back
+    // for a fixed cadence, which is a cadence and not a wall-clock time. It is
+    // declared anyway, and it is the same zone as `ALAP_IDOZONA`: this is the
+    // ONE place the operator's publishing zone is written down where the host
+    // can see it, next to the run that does the dispatching. The sibling
+    // module states it on all three of its declarations for the same reason
+    // (extensions/video/src/agents.mjs). The day this schedule becomes a cron
+    // -- "send at 07:00, not every 15 minutes" -- the zone is already right
+    // rather than silently UTC.
+    timezone: ALAP_IDOZONA,
     status: 'active',
   }),
 ])
@@ -133,6 +144,24 @@ const publish = {
   consumes: [
     { extension: 'video', contract: 'videos', version: 1, reason: 'A kész, QA-átment videókból csinál kiadást: a fájl útját, az ujjlenyomatát, a hosszát és a narráció szövegét olvassa.' },
   ],
+  /**
+   * No `pages` yet (design spec 10 lists `ui/` as a later task's file) -- one
+   * settings field, and it is the module's publishing zone.
+   *
+   * It is a FIELD and not a buried constant because a slot means a WALL CLOCK
+   * (src/utemezes.mjs's file docblock): `{ nap: 1, ora: 9, perc: 0 }` is
+   * "Monday 09:00" in the zone named here, all year, DST included. An
+   * operator who never opens this page still gets `Europe/Budapest` --
+   * `defaultValue` here, `ALAP_IDOZONA` in src/db.mjs, and the reader's own
+   * fallback in `idozonaOf` (src/utemezes.mjs) for the case the field is
+   * cleared to `''`, where the host's default never fires again.
+   */
+  ui: {
+    settingsFields: [
+      { key: 'idozona', label: 'Publikálási időzóna', type: 'text', defaultValue: ALAP_IDOZONA, placeholder: ALAP_IDOZONA,
+        help: 'IANA-zónanév. A publikálási sávok "hétfő 9:00"-ja ennek a zónának a fali óráján értendő, nyári időszámítással együtt -- nem UTC-ben.' },
+    ],
+  },
   /**
    * Task 3's own slice: the fixed-cadence dispatch run, and nothing else --
    * no `agents` here (see `SCHEDULES`'s own docblock for why), no

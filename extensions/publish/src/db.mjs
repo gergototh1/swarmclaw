@@ -72,9 +72,21 @@ import crypto from 'node:crypto'
  *     gates nothing by itself, same as `ext_publish_fiokok`'s primary key.
  *     Surrogate, minted by uid(); no UNIQUE index sits on (nap, ora, perc)
  *     because two slots at the same weekly minute is an operator's
- *     redundant, not invalid, choice -- `kovetkezoSzabadSav` just treats them
- *     as two independent candidates that happen to compute the same instant,
- *     and picks whichever it walks first.
+ *     redundant, not invalid, choice. Redundant and INERT, though, not
+ *     redundant and doubling: `kovetkezoSzabadSav` (src/utemezes.mjs) keys a
+ *     reservation on the INSTANT ALONE, so both rows compute the same minute,
+ *     the first release takes it, and the second slot rolls to the following
+ *     week rather than handing that same minute out a second time. One
+ *     release goes out in a given minute however many slot rows name it. The
+ *     tie between them goes to whichever `savok()` returns first, which is
+ *     the `nap, ora, perc` order below -- and since both rows sort to the
+ *     same place, to whichever the driver walks first. That is a reporting
+ *     detail: the two rows are interchangeable by construction.
+ *
+ *     Keying on (sav_id, instant) instead would make the duplicate row
+ *     DOUBLE that minute's capacity, silently: two releases dispatched to
+ *     four platforms at the same second, from an operator having done
+ *     nothing but type the same time twice.
  *
  *     `nap`/`ora`/`perc` (not the `idopont` this table started with in Task
  *     1) because a slot is a WEEKLY RECURRENCE, not a point in time: "every
@@ -84,10 +96,13 @@ import crypto from 'node:crypto'
  *     on the same migration version rather than layering an ALTER TABLE on a
  *     shape nothing ever depended on; design spec 10 lists this as fresh
  *     work, not archaeology on a released schema (spec doc section on the
- *     data model). `nap` follows `Date.prototype.getUTCDay()`'s own
- *     numbering (0 = Sunday ... 6 = Saturday) rather than inventing a
- *     Monday-first scheme, so `src/utemezes.mjs` never has to translate
- *     between the two.
+ *     data model). `nap` numbers the days 0 = Sunday ... 6 = Saturday rather
+ *     than inventing a Monday-first scheme, so `src/utemezes.mjs` -- which
+ *     reaches the same numbering through `getUTCDay()` on the zone's wall
+ *     clock -- never has to translate between the two. The triple is read in
+ *     the module's configured zone (`ALAP_IDOZONA` above), NOT in UTC: see
+ *     `src/utemezes.mjs`'s file docblock for why a weekly slot that means UTC
+ *     is a slot that silently moves an hour twice a year.
  */
 
 export const now = () => new Date().toISOString()
@@ -95,6 +110,20 @@ export const uid = () => crypto.randomBytes(8).toString('hex')
 
 /** The four platforms this spec ships (design spec 1, 6). A closed list: nothing here guesses a fifth. */
 export const PLATFORMOK = Object.freeze(['youtube', 'facebook', 'instagram', 'tiktok'])
+
+/**
+ * The zone `ext_publish_savok`'s `nap`/`ora`/`perc` is read in when the
+ * operator has not configured one.
+ *
+ * It lives here, beside the three columns it gives meaning to, for the same
+ * reason `KIADAS_ALLAPOTOK` and `AG_ALLAPOTOK` do: the column and the words
+ * that make sense of it are one fact, and three readers -- `ujSav`'s own
+ * refusals below, `src/utemezes.mjs`'s conversion, and `index.mjs`'s
+ * `idozona` settings field and `SCHEDULES` declaration -- must not each carry
+ * their own copy of the zone name. A slot is a WALL CLOCK, not a UTC triple;
+ * `src/utemezes.mjs`'s file docblock has the whole argument.
+ */
+export const ALAP_IDOZONA = 'Europe/Budapest'
 
 /**
  * Every word `ext_publish_kiadasok.allapot` may hold -- all EIGHT of them, in
@@ -161,6 +190,7 @@ CREATE TABLE IF NOT EXISTS ext_publish_kiadasok (
   video_id TEXT NOT NULL,
   allapot TEXT NOT NULL,
   sav_id TEXT,
+  idopont TEXT,
   felulirt_idopont TEXT,
   letrehozva_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
@@ -255,8 +285,8 @@ ON CONFLICT(platform, kulso_id) DO UPDATE SET nev = excluded.nev, updated_at = e
       if (typeof videoId !== 'string' || videoId === '') throw new Error('ujKiadas: videoId nem lehet üres')
       const id = uid()
       const t = now()
-      S.exec('INSERT INTO ext_publish_kiadasok (id, video_id, allapot, sav_id, felulirt_idopont, letrehozva_at, updated_at) VALUES (?,?,?,?,?,?,?)',
-        [id, videoId, KIADAS_KEZDO_ALLAPOT, null, null, t, t])
+      S.exec('INSERT INTO ext_publish_kiadasok (id, video_id, allapot, sav_id, idopont, felulirt_idopont, letrehozva_at, updated_at) VALUES (?,?,?,?,?,?,?,?)',
+        [id, videoId, KIADAS_KEZDO_ALLAPOT, null, null, null, t, t])
       return repo.kiadas(id)
     },
     kiadas(id) { return S.get('SELECT * FROM ext_publish_kiadasok WHERE id = ?', [id]) || null },
@@ -294,9 +324,12 @@ ON CONFLICT(platform, kulso_id) DO UPDATE SET nev = excluded.nev, updated_at = e
     // --- savok ---
 
     /**
-     * Opens one weekly publishing slot: every `nap` (0-6, `getUTCDay()`'s own
-     * numbering) at `ora:perc` UTC. Refused by name, and the caller's value
-     * is never echoed -- same discipline as `ujAg`/`fiokotIr` above -- because
+     * Opens one weekly publishing slot: every `nap` (0-6, Sunday-first) at
+     * `ora:perc` ON THE WALL CLOCK OF THE MODULE'S CONFIGURED ZONE
+     * (`ALAP_IDOZONA` above, the `idozona` setting's default) -- not UTC.
+     * The refusals say so, in the operator's own words rather than in the
+     * name of the accessor `src/utemezes.mjs` happens to use. Refused by
+     * name, and the caller's value is never echoed -- same discipline as `ujAg`/`fiokotIr` above -- because
      * an out-of-range number is exactly the kind of value a refusal must not
      * hand back verbatim next to the module's own range text.
      *
@@ -305,8 +338,8 @@ ON CONFLICT(platform, kulso_id) DO UPDATE SET nev = excluded.nev, updated_at = e
      * not an invalid one.
      */
     ujSav({ nap, ora, perc }) {
-      if (!Number.isInteger(nap) || nap < 0 || nap > 6) throw new Error('ujSav: nap 0 és 6 közötti egész szám lehet (0 = vasárnap, getUTCDay() szerint)')
-      if (!Number.isInteger(ora) || ora < 0 || ora > 23) throw new Error('ujSav: ora 0 és 23 közötti egész szám lehet')
+      if (!Number.isInteger(nap) || nap < 0 || nap > 6) throw new Error(`ujSav: nap 0 és 6 közötti egész szám lehet, ahol 0 = vasárnap, a beállított időzóna fali óráján (alapból ${ALAP_IDOZONA})`)
+      if (!Number.isInteger(ora) || ora < 0 || ora > 23) throw new Error(`ujSav: ora 0 és 23 közötti egész szám lehet, a beállított időzóna fali óráján (alapból ${ALAP_IDOZONA})`)
       if (!Number.isInteger(perc) || perc < 0 || perc > 59) throw new Error('ujSav: perc 0 és 59 közötti egész szám lehet')
       const id = uid()
       const t = now()

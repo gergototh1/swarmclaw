@@ -125,8 +125,24 @@ test('ujKiadas stores the videoId and starts with no assigned sáv', () => {
   const k = repo.ujKiadas({ videoId: 'v42' })
   assert.equal(k.video_id, 'v42')
   assert.equal(k.sav_id, null)
+  // Három külön mező, három külön tény: melyik sávba tettük, mikorra
+  // SZÁMOLTUK ki a kiküldést, és mit írt felül kézzel az operátor. Egy
+  // vázlatnak egyik sincs.
+  assert.equal(k.idopont, null)
   assert.equal(k.felulirt_idopont, null)
   assert.equal(typeof k.letrehozva_at, 'string')
+})
+
+test('az ext_publish_kiadasok oszlopai -- az idopont NEM hiányozhat a sémából', () => {
+  // Ez a pin a néma meghibásodás második őre. Az `esedekes` (src/utemezes.mjs)
+  // erre az oszlopra szűr; ha kimarad a migrációból, minden ütemezett sor
+  // `undefined` idopont-tal jön vissza, minden futás üres tömböt ad, és a
+  // 15 perces ütemezés örökké nulla kiadást tesz ki -- hiba, kivétel és
+  // naplósor nélkül. Egy oszlop-lista, amit egy diff megmutat, olcsóbb, mint
+  // az a csend.
+  const { storage } = freshRepo()
+  const oszlopok = storage.raw.prepare('SELECT name FROM pragma_table_info(?) ORDER BY cid').all('ext_publish_kiadasok').map((r) => r.name)
+  assert.deepEqual(oszlopok, ['id', 'video_id', 'allapot', 'sav_id', 'idopont', 'felulirt_idopont', 'letrehozva_at', 'updated_at'])
 })
 
 test('agak returns only the branches of the release asked for, in creation order', () => {
