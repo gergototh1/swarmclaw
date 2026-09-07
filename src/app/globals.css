@@ -8,9 +8,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
-  --font-display: var(--font-sora), system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), 'SF Mono', monospace;
+  /* next/font sets --font-sans / --font-display / --font-mono on <html>
+     (src/app/layout.tsx). The stacks below are the fallback while the webfont
+     is still swapping in, not the primary. */
+  --font-sans: var(--font-sans), system-ui, sans-serif;
+  --font-display: var(--font-display), system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, 'SF Mono', monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -115,9 +118,6 @@
 }
 
 :root {
-  --font-dm-sans: 'Segoe UI';
-  --font-sora: 'Segoe UI';
-  --font-jetbrains-mono: 'SF Mono';
   /* Dead to this app -- no `var(--radius` reference remains in src -- but kept
      on purpose. shadcn/dist/index.js hardcodes `calc(var(--radius) - 4px)`
      style tokens into the primitives it writes and appends any it can't find
@@ -348,7 +348,7 @@ html.light .bg-\[\#1e1e38\] {
 }
 
 body {
-  font-family: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family: var(--font-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
   height: 100vh;
@@ -620,7 +620,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 }
 
 .msg-content code {
-  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', 'SF Mono', monospace;
+  font-family: var(--font-mono), 'JetBrains Mono', 'SF Mono', monospace;
   font-size: 12.5px;
   font-feature-settings: 'liga' on, 'calt' on;
 }
@@ -634,7 +634,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 }
 
 .msg-content h2, .msg-content h3, .msg-content h4 {
-  font-family: var(--font-sora), 'Sora', system-ui, sans-serif;
+  font-family: var(--font-display), 'Sora', system-ui, sans-serif;
   font-size: 14px;
   font-weight: 600;
   margin: 16px 0 6px;
@@ -760,7 +760,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 
 /* Display font utility */
 .font-display {
-  font-family: var(--font-sora), 'Sora', system-ui, sans-serif;
+  font-family: var(--font-display), 'Sora', system-ui, sans-serif;
 }
 
 /* Monospace micro-label utility */
