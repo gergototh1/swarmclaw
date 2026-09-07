@@ -1,5 +1,11 @@
 import type { AppView } from '@/types'
 
+// No live reader today — only its own declaration and the "merged views" test
+// in view-constants.test.ts touch this map. It is kept as the exhaustiveness
+// anchor over `AppView`: `Record<AppView, string>` forces every view (added or
+// retired) to be reflected here, which is exactly the compiler pressure that
+// drove this migration's cascade of fixes. Do not delete it, and do not treat
+// it as live UI copy.
 export const VIEW_LABELS: Record<AppView, string> = {
   home: 'Home',
   agents: 'Agents',
@@ -30,6 +36,12 @@ export const VIEW_LABELS: Record<AppView, string> = {
   marketplace: 'Marketplace',
 }
 
+// No live reader today — referenced only by its own declaration. Kept as an
+// exhaustiveness anchor alongside VIEW_LABELS and VIEW_EMPTY_STATES so the
+// next task can lean on the same type pressure rather than rebuilding it.
+// Note: `vault` = 'Secret' is correct for the Secrets tab only. /vault is a
+// two-tab page (Secrets, Wallets); a future live consumer will need this
+// entry to be tab-aware rather than a single label for the merged view.
 export const CREATE_LABELS: Partial<Record<AppView, string>> = {
   agents: 'Agent',
   schedules: 'Schedule',
@@ -76,6 +88,11 @@ export const VIEW_DESCRIPTIONS: Record<AppView, string> = {
   marketplace: 'AI agent marketplace — browse tasks, agents, and skills on SwarmDock',
 }
 
+// No live reader today — referenced only by its own declaration. Kept as an
+// exhaustiveness anchor: `Record<Exclude<AppView, 'agents' | 'home'>, ...>`
+// forces every non-excluded view to carry an entry here, which is the same
+// compiler pressure VIEW_LABELS and CREATE_LABELS anchor. Do not delete it,
+// and do not treat it as live UI copy.
 export const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { icon: string; title: string; description: string; features: string[] }> = {
   org_chart: {
     icon: 'git-branch',

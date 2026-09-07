@@ -63,8 +63,15 @@ describe('the merged views', () => {
     assert.equal(getViewPath('vault'), '/vault')
   })
 
-  it('maps the merged paths back, tab parameter and all', () => {
+  it('maps the merged paths back; a tab query string falls outside the match', () => {
     assert.equal(pathToView('/stream'), 'stream')
     assert.equal(pathToView('/vault'), 'vault')
+    // pathToView compares the exact string it's given against the registered
+    // path, or a '/'-prefixed suffix of it. It never strips a query string,
+    // so a path with one appended doesn't match. This never bites in the app:
+    // the only caller (dashboard-shell.tsx) feeds it `usePathname()`, which
+    // Next.js already returns without a query string attached.
+    assert.equal(pathToView('/stream?tab=logs'), null)
+    assert.equal(pathToView('/vault?tab=wallets'), null)
   })
 })
