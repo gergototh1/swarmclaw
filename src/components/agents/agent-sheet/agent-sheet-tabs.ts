@@ -1,9 +1,11 @@
 /**
  * The six tabs the old 3065-line single scroll became.
  *
- * `sections` is how many of the original sixteen SectionCards each tab absorbed;
- * it is what the tab strip shows as a count, and what the test adds up to make
- * sure the split lost nothing.
+ * `sections` is how many of the original sixteen SectionCards each tab absorbed.
+ * It is the record of where each card went, and what the test adds up to make
+ * sure the split lost nothing. It is deliberately not shown in the tab strip:
+ * a section can be hidden for a given provider, so the number would overstate
+ * what the reader is actually looking at.
  */
 export const AGENT_SHEET_TABS = [
   { key: 'essentials', label: 'Essentials', sections: 3 }, // Basics, Model & Connection, Instructions
