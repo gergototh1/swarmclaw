@@ -76,7 +76,11 @@ const handleFileUpload = (setter: (v: string) => void) => (e: React.ChangeEvent<
   e.target.value = ''
 }
 
-/** Basics, Model & Connection, Instructions - moved verbatim. */
+/**
+ * Basics, Model & Connection, Instructions - moved verbatim, with one change:
+ * Model & Connection's Ollama Mode, API Key, Fallback Keys and Endpoint fields
+ * are now re-parented into a collapsed AdvancedSettingsSection disclosure.
+ */
 export function TabEssentials({
   draft,
   patch,

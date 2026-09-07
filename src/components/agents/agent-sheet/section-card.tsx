@@ -30,9 +30,12 @@ export function SectionCard({
 }
 
 /**
- * Shown when a tab's every section is hidden for this agent's provider — the
- * old single scroll simply had nothing there, and a tab has to say so rather
- * than open on a blank panel.
+ * Shown when a tab's every section is hidden — usually for this agent's
+ * provider (Behavior, Memory, Tools, Advanced all gate on `workerOnly` and
+ * similar provider checks), but Network also gates its note on `!editing`, an
+ * agent-exists condition, not a provider one. The old single scroll simply
+ * had nothing there, and a tab has to say so rather than open on a blank
+ * panel.
  */
 export function TabEmptyNote({ children }: { children: React.ReactNode }) {
   return (

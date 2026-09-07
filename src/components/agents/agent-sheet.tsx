@@ -1191,7 +1191,7 @@ export function AgentSheet() {
       {providerNeedsKey && (
         <div className="mb-4 p-3 rounded-md bg-amber-500/[0.08] border border-amber-500/20">
           <p className="text-[13px] text-amber-400">
-            Add an API key for {currentProvider?.name || provider} above before creating this agent.
+            Add an API key for {currentProvider?.name || provider} on the Essentials tab before creating this agent.
           </p>
         </div>
       )}

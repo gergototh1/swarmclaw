@@ -11,7 +11,14 @@ export interface ExtensionToolInfo {
   description: string
 }
 
-/** Everything the sheet edits, in one shape, so each tab takes one prop pair. */
+/**
+ * Every field the agent sheet edits, gathered into one shape. This is not a
+ * "one prop pair per tab" contract: TabEssentials destructures this plus 38
+ * more props of its own, and TabAdvanced takes `draft` but never `patch`. What
+ * this buys is a single source of truth for the sheet's field values and
+ * their `createEmptyAgentDraft()` defaults, so a tab reads and writes one
+ * shape instead of the sheet's fields being redeclared per tab.
+ */
 export interface AgentDraft {
   name: string
   description: string
