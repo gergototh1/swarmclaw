@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { FULL_WIDTH_VIEWS, VIEW_DESCRIPTIONS, VIEW_LABELS, isPanelSidebarView, shouldAutoOpenPanelSidebar } from './view-constants'
+import { getViewPath, pathToView } from './navigation'
 
 describe('panel sidebar route helpers', () => {
   it('treats knowledge as a panel-backed view', () => {
@@ -26,24 +27,44 @@ describe('panel sidebar route helpers', () => {
     assert.equal(isPanelSidebarView('quality'), false)
   })
 
-  it('does not treat runs or logs as panel-backed now that /stream owns them', () => {
-    // Their route layouts (the ones that rendered a SidebarPanelShell) were
-    // dropped when /runs and /logs became plain redirects into /stream. If
-    // either came back here, clicking them would set sidebarOpen with no
-    // panel behind it, and that would leak into the next panel-backed view.
-    assert.equal(isPanelSidebarView('runs'), false)
-    assert.equal(isPanelSidebarView('logs'), false)
-    assert.equal(shouldAutoOpenPanelSidebar('runs', true), false)
-    assert.equal(shouldAutoOpenPanelSidebar('logs', true), false)
+  it('does not treat stream as panel-backed', () => {
+    // The route layouts that used to render a SidebarPanelShell next to
+    // /runs, /activity and /logs were dropped when those routes became plain
+    // redirects into /stream. If 'stream' came back here, clicking it would
+    // set sidebarOpen with no panel behind it, and that would leak into the
+    // next panel-backed view.
+    assert.equal(isPanelSidebarView('stream'), false)
+    assert.equal(shouldAutoOpenPanelSidebar('stream', true), false)
   })
 
-  it('does not treat secrets as panel-backed now that /vault owns it', () => {
-    // secrets/layout.tsx (the one that rendered a SidebarPanelShell next to
-    // the page) was deleted when /secrets became a plain redirect into
-    // /vault. If 'secrets' came back here, clicking it would set sidebarOpen
-    // with no panel behind it, and that would leak into the next
-    // panel-backed view (Agents, Tasks, ...) the user opens.
-    assert.equal(isPanelSidebarView('secrets'), false)
-    assert.equal(shouldAutoOpenPanelSidebar('secrets', true), false)
+  it('does not treat vault as panel-backed', () => {
+    // secrets/layout.tsx and wallets/layout.tsx (the ones that rendered a
+    // SidebarPanelShell next to the page) were deleted when /secrets and
+    // /wallets became plain redirects into /vault. If 'vault' came back here,
+    // clicking it would set sidebarOpen with no panel behind it, and that
+    // would leak into the next panel-backed view (Agents, Tasks, ...) the
+    // user opens.
+    assert.equal(isPanelSidebarView('vault'), false)
+    assert.equal(shouldAutoOpenPanelSidebar('vault', true), false)
+  })
+})
+
+describe('the merged views', () => {
+  it('names stream and vault, and no longer their five predecessors', () => {
+    assert.equal(VIEW_LABELS.stream, 'Stream')
+    assert.equal(VIEW_LABELS.vault, 'Vault')
+    for (const gone of ['runs', 'activity', 'logs', 'secrets', 'wallets']) {
+      assert.equal(gone in VIEW_LABELS, false, `${gone} should be gone from VIEW_LABELS`)
+    }
+  })
+
+  it('routes both merged views', () => {
+    assert.equal(getViewPath('stream'), '/stream')
+    assert.equal(getViewPath('vault'), '/vault')
+  })
+
+  it('maps the merged paths back, tab parameter and all', () => {
+    assert.equal(pathToView('/stream'), 'stream')
+    assert.equal(pathToView('/vault'), 'vault')
   })
 })

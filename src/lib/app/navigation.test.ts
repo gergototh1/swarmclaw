@@ -55,12 +55,12 @@ describe('pathToView', () => {
     assert.equal(mod.pathToView('/agent'), null)
   })
 
-  it('returns null for a merged route that has no AppView yet', () => {
-    // /stream absorbed /runs, /activity and /logs but is deliberately not in
-    // VIEW_TO_PATH yet. This only pins pathToView's own behavior — it says
-    // nothing about what the sidebar rail renders; see resolveSidebarActiveView
-    // below for the test that actually covers the rail.
-    assert.equal(mod.pathToView('/stream'), null)
+  it('resolves the merged /stream route to its AppView', () => {
+    // /stream absorbed /runs, /activity and /logs and is now the AppView for
+    // all three. This only pins pathToView's own behavior — it says nothing
+    // about what the sidebar rail renders; see resolveSidebarActiveView below
+    // for the test that actually covers the rail.
+    assert.equal(mod.pathToView('/stream'), 'stream')
   })
 
   it('returns null for empty string', () => {
@@ -75,13 +75,20 @@ describe('resolveSidebarActiveView', () => {
     assert.equal(mod.resolveSidebarActiveView('/settings'), 'settings')
   })
 
+  it('resolves /stream to the stream AppView so it highlights in the rail', () => {
+    // /stream absorbed /runs, /activity and /logs and now names its own
+    // AppView. This is the exact case the sidebar rail regressed on before
+    // 'stream' existed: a `?? 'home'` fallback here would have lit up the
+    // Home nav entry on every visit to /stream.
+    assert.equal(mod.resolveSidebarActiveView('/stream'), 'stream')
+  })
+
   it('returns null, not "home", for an in-app path the view table does not know', () => {
-    // /stream absorbed /runs, /activity and /logs but is deliberately not in
-    // VIEW_TO_PATH yet. This is the exact case the sidebar rail regressed on:
-    // a `?? 'home'` fallback here would light up the Home nav entry on every
-    // visit to /stream, and would do the same for any future route that
-    // isn't (yet) an AppView.
-    assert.equal(mod.resolveSidebarActiveView('/stream'), null)
+    // A route that genuinely has no AppView yet (an extension page, or any
+    // future in-app route not in VIEW_TO_PATH) must resolve to null. A
+    // `?? 'home'` fallback here would light up the Home nav entry on every
+    // visit to such a route.
+    assert.equal(mod.resolveSidebarActiveView('/some-future-route'), null)
   })
 
   it('returns null for an extension page path', () => {
