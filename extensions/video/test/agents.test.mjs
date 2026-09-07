@@ -554,6 +554,10 @@ async function vocabulary() {
   for (const term of Object.keys(PINNED_PROSE)) words.add(term)
   for (const term of PINNED_TTS_CODES) words.add(term)
   for (const term of PLAIN_PROSE) words.add(term)
+  // The host memory tools the souls name. Not extension tools, so they cannot
+  // be read off `video.tools`; the test beside the declaration checks them
+  // against the host's own definition.
+  for (const name of HOST_MEMORY_TOOLS) words.add(name)
   return words
 }
 
@@ -702,11 +706,40 @@ test('the reverse check would catch a hand-over field nobody documented', async 
 // The tools each agent has, against the tools its text names
 // ---------------------------------------------------------------------------
 
+/**
+ * Capability ids the HOST provides, which a declaration may name and this
+ * extension will never declare.
+ *
+ * `memory` is one id covering several host tool names (`memory_store`,
+ * `memory_search`, `memory_update`), which is why the checks below exclude the
+ * id rather than trying to match it against a tool of the same name. On a CLI
+ * provider these arrive over the platform MCP bridge, which filters by exactly
+ * this id — so an agent that lost it would be told in its own prompt to use
+ * tools it cannot reach. The test after the two below is what keeps the names
+ * honest against the host.
+ */
+const HOST_TOOL_IDS = new Set(['memory'])
+const HOST_MEMORY_TOOLS = ['memory_store', 'memory_search', 'memory_update']
+
+test('the memory tools the souls name are the host\'s, and both agents carry the id that gates them', () => {
+  for (const agent of AGENTS) assert.ok(agent.tools.includes('memory'), `${agent.agentKey} lost the memory tool id`)
+  for (const name of HOST_MEMORY_TOOLS) {
+    assert.ok(GYARTO_SOUL.includes(`\`${name}\``) || LEKTOR_SOUL.includes(`\`${name}\``), `${name} is named by neither soul`)
+  }
+  const hostMemoryTool = fs.readFileSync(path.resolve(extensionRoot, '../../src/lib/server/session-tools/memory.ts'), 'utf8')
+  for (const name of HOST_MEMORY_TOOLS) assert.ok(hostMemoryTool.includes(name), `the host no longer defines ${name}`)
+  const hostToolIds = fs.readFileSync(path.resolve(extensionRoot, '../../src/lib/tool-definitions.ts'), 'utf8')
+  assert.ok(hostToolIds.includes("id: 'memory'"), 'the host no longer defines the memory tool id')
+})
+
 test('every tool a declaration names is a tool the extension declares, and the two roles do not overlap', () => {
   const declared = new Set(video.tools.map((t) => t.name))
   assert.equal(declared.size, video.tools.length, 'a tool name is declared twice')
   for (const agent of AGENTS) {
-    for (const tool of agent.tools) assert.ok(declared.has(tool), `${agent.agentKey} is given ${tool}, which this extension does not declare`)
+    for (const tool of agent.tools) {
+      if (HOST_TOOL_IDS.has(tool)) continue
+      assert.ok(declared.has(tool), `${agent.agentKey} is given ${tool}, which this extension does not declare`)
+    }
   }
   const gyarto = new Set(AGENTS.find((a) => a.agentKey === 'video-gyarto').tools)
   const lektor = new Set(AGENTS.find((a) => a.agentKey === 'video-lektor').tools)
@@ -731,6 +764,8 @@ test('the tools each agent is declared with, and the tools its text names, are t
     // `videoLessons({ szerep: 'lektor' })` -- counts as named.
     const named = new Set(textsFor(agent.agentKey).flatMap((text) => backtickedTokens(text).flatMap(partsOf)))
     for (const tool of agent.tools) {
+      // A host id names a family, not a tool; its members are checked above.
+      if (HOST_TOOL_IDS.has(tool)) continue
       assert.ok(named.has(tool), `${agent.agentKey} is given ${tool} but never told about it`)
     }
     for (const name of declared) {
