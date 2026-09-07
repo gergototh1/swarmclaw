@@ -208,9 +208,13 @@ test('a lap TENYLEGESEN meghivja az attention rpc-t, es a valasz mindket mezojet
 test('a figyelem-sor a tipusat, a cimet ES az indokat is mutatja, nem csak az egyiket', async () => {
   const out = await bundle({ write: false })
   const js = out.outputFiles[0].text
+  // A Task 2 vizualis atalakitasa (crm-attrow/crm-attbody/crm-attline
+  // markup) tavolabb tolta a harom mezot egymastol, mint a korabbi lapos
+  // <li> -- az ablakok ezert szelesebbek, de a sorrend (tipus, majd cim,
+  // majd indok) es a tenyleges mezo-hasznalat valtozatlan kovetelmeny.
   assert.match(
     js,
-    /figyelem\.map\(\(f\) =>[\s\S]{0,400}?figyelemKindNev\(f\.kind\)[\s\S]{0,300}?f\.cim[\s\S]{0,300}?f\.indok/,
+    /figyelem\.map\(\(f\) =>[\s\S]{0,800}?figyelemKindNev\(f\.kind\)[\s\S]{0,300}?f\.cim[\s\S]{0,300}?f\.indok/,
     'a figyelem-sorbol hianyzik a tipus, a cim vagy az indok -- a sor onmagaban kell hogy megmondja, MIERT van rajta',
   )
 })
@@ -218,9 +222,12 @@ test('a figyelem-sor a tipusat, a cimet ES az indokat is mutatja, nem csak az eg
 test('a figyelem-sor Megnyit gombja az ugyfel lapjara visz, a sor accountId-javal', async () => {
   const out = await bundle({ write: false })
   const js = out.outputFiles[0].text
+  // A Task 2 jelolese elott a "className" a bekot elso propja; a minta ezert
+  // opcionalis className-mezot enged az onClick elott, maga a bekotes
+  // (megnyit(f.accountId) hivja meg a gomb) valtozatlan.
   assert.match(
     js,
-    /"button",\s*\{\s*onClick:\s*\(\)\s*=>\s*megnyit\(f\.accountId\),\s*children:\s*"Megnyit"/,
+    /"button",\s*\{\s*(?:className:\s*"[^"]*",\s*)?onClick:\s*\(\)\s*=>\s*megnyit\(f\.accountId\),\s*children:\s*"Megnyit"/,
     'hianyzik a figyelem-sor `megnyit(f.accountId)`-t hivo Megnyit gombja',
   )
 })
@@ -261,13 +268,20 @@ test('az elfogadas visszajelzeset az elvet, a soper ES a navigacio is torli', as
   )
 })
 
-test('a besorolatlan sor Megnyit gombja is a torlo `megnyit`-en megy at, nem a nyers onOpen-en', async () => {
+test('a besorolatlan sor talalgatas-pillje is a torlo `megnyit`-en megy at, nem a nyers onOpen-en', async () => {
   const out = await bundle({ write: false })
   const js = out.outputFiles[0].text
+  // A Task 2 vizualis atalakitasa a kulon (korabban `disabled={!u.guess_account_id}`-
+  // lel tiltott) Megnyit gombot es a "valoszinuleg ..." feliratot egyetlen
+  // kattinthato pillebe vonta ossze -- a tiltas szerepet mostantol a
+  // `{u.guess_account_id && (...)}` felteteles renderelese veszi at, a gomb
+  // csak akkor letezik, ha van talalgatas. A lenyeg valtozatlan: a navigacio
+  // itt is a torlo `megnyit`-en megy at, es tovabbra is a `guess_account_id`
+  // fuggveny hivja meg.
   assert.match(
     js,
-    /disabled:\s*!u\.guess_account_id,\s*onClick:\s*\(\)\s*=>\s*u\.guess_account_id\s*&&\s*megnyit\(u\.guess_account_id\)/,
-    'a besorolatlan sor navigacioja megkeruli az `elfogadEredmeny` torleset',
+    /u\.guess_account_id\s*&&[\s\S]{0,200}?"button",[\s\S]{0,200}?onClick:\s*\(\)\s*=>\s*u\.guess_account_id\s*&&\s*megnyit\(u\.guess_account_id\)/,
+    'a besorolatlan sor talalgatas-pillje navigacioja megkeruli az `elfogadEredmeny` torleset, vagy nincs a `guess_account_id`-hoz kotve',
   )
 })
 

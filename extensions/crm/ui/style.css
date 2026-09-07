@@ -189,3 +189,53 @@
   .crm-btn, .crm-tab { transition: none; }
 }
 .crm-btn, .crm-tab { transition: background .12s ease, border-color .12s ease, color .12s ease; }
+
+/* ---------- Ma: figyelem-lista ---------- */
+.crm-sec-wrap { display: flex; flex-direction: column; gap: 22px; }
+.crm-att { display: flex; flex-direction: column; gap: 7px; list-style: none; margin: 0; padding: 0; }
+.crm-attrow {
+  display: grid; grid-template-columns: 3px 1fr auto; gap: 0 14px; align-items: center;
+  background: var(--color-surface, #14141f);
+  border: 1px solid var(--color-border, rgba(255,255,255,.07));
+  border-radius: var(--radius, .625rem);
+  overflow: hidden;
+}
+.crm-attrow:hover { border-color: var(--color-border-hi, rgba(255,255,255,.13)); }
+.crm-stripe { align-self: stretch; background: var(--color-text-3, #8282a0); }
+.crm-k-sajat .crm-stripe { background: var(--color-danger, #f43f5e); }
+.crm-k-valasz .crm-stripe { background: var(--color-warning, #fbbf24); }
+.crm-k-nema .crm-stripe { background: var(--color-accent, #6366f1); }
+.crm-k-idegen .crm-stripe { background: var(--color-text-3, #8282a0); }
+.crm-attbody { padding: 11px 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.crm-attline { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.crm-atttitle { font-weight: 500; overflow-wrap: anywhere; }
+.crm-attwhy { color: var(--color-text-3, #8282a0); font-size: 13px; overflow-wrap: anywhere; margin: 0; }
+.crm-attact { display: flex; gap: 6px; padding-right: 12px; }
+
+/* ---------- Ma: javaslatok ---------- */
+.crm-sugs {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 10px;
+  list-style: none; margin: 0; padding: 0;
+}
+.crm-sug {
+  display: flex; flex-direction: column; gap: 9px;
+  background: var(--color-surface, #14141f);
+  border: 1px solid var(--color-border, rgba(255,255,255,.07));
+  border-left: 3px solid var(--color-accent, #6366f1);
+  border-radius: var(--radius, .625rem);
+  padding: 12px 13px;
+}
+.crm-sug .crm-attact { padding-right: 0; }
+
+/* ---------- Ma: besorolatlan ---------- */
+.crm-triage { display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.crm-tri {
+  display: grid; grid-template-columns: 1fr auto; gap: 10px 14px; align-items: center;
+  background: var(--color-surface, #14141f);
+  border: 1px solid var(--color-border, rgba(255,255,255,.07));
+  border-radius: var(--radius, .625rem);
+  padding: 11px 13px;
+}
+.crm-tri-who { display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
+.crm-tri-pickers { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+@media (max-width: 720px) { .crm-tri { grid-template-columns: 1fr; } }

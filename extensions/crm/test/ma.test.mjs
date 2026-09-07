@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { FIGYELEM_KIND_HU, figyelemKindNev, kivalasztasLathato, valaszthatoKapcsolatok } from '../ui/ma.tsx'
+import { FIGYELEM_KIND_HU, figyelemKindNev, figyelemOsztaly, kivalasztasLathato, valaszthatoKapcsolatok } from '../ui/ma.tsx'
 
 /**
  * A besorolatlan-sor kapcsolat-választója a sweep találgatását (`guess_account_id`)
@@ -95,4 +95,15 @@ test('mind a negy trigger-tipusnak van magyar neve', () => {
 
 test('ismeretlen tipus a nyers kulcsot kapja vissza, nem egy altalanos cimket', () => {
   assert.equal(figyelemKindNev('valami_uj_trigger'), 'valami_uj_trigger')
+})
+
+test('minden figyelem-tipus sajat osztalyt kap, a SULY sorrendjeben', () => {
+  assert.deepEqual(figyelemOsztaly('sajat_igeret'), { sor: 'crm-k-sajat', pill: 'crm-pill-sajat' })
+  assert.deepEqual(figyelemOsztaly('valasz_nelkul'), { sor: 'crm-k-valasz', pill: 'crm-pill-valasz' })
+  assert.deepEqual(figyelemOsztaly('nema_ugy'), { sor: 'crm-k-nema', pill: 'crm-pill-nema' })
+  assert.deepEqual(figyelemOsztaly('idegen_igeret'), { sor: 'crm-k-idegen', pill: 'crm-pill-idegen' })
+})
+
+test('ismeretlen tipus nem tunik el, semleges osztalyt kap', () => {
+  assert.deepEqual(figyelemOsztaly('valami_uj'), { sor: 'crm-k-idegen', pill: 'crm-pill-plain' })
 })

@@ -202,6 +202,28 @@ function elfogadasHibaUzenete(message: string): string {
   return ELFOGADAS_HIBA_HU[message] ?? `A javaslat elfogadása nem sikerült: ${message}`
 }
 
+/**
+ * A figyelem-sor típusához tartozó osztályok.
+ *
+ * Tiszta függvény, mert ez az egyetlen hely, ahol a `rangsor` négy
+ * trigger-típusa vizuális súlyt kap, és külön tesztelhetőnek kell lennie
+ * attól, hogy a lap egyáltalán renderelődik-e. A sorrend szándékosan egyezik
+ * a `src/attention.mjs` `SULY`-áéval: ha a kettő elcsúszik, az azt jelentené,
+ * hogy a lap más súlyt mutat, mint amit a szerver rangsorolt.
+ *
+ * Ismeretlen típus nem tűnik el és nem dob: semleges osztályt kap, mert egy
+ * új trigger bevezetése nem teheti láthatatlanná a saját sorát.
+ */
+export function figyelemOsztaly(kind: string): { sor: string; pill: string } {
+  switch (kind) {
+    case 'sajat_igeret': return { sor: 'crm-k-sajat', pill: 'crm-pill-sajat' }
+    case 'valasz_nelkul': return { sor: 'crm-k-valasz', pill: 'crm-pill-valasz' }
+    case 'nema_ugy': return { sor: 'crm-k-nema', pill: 'crm-pill-nema' }
+    case 'idegen_igeret': return { sor: 'crm-k-idegen', pill: 'crm-pill-idegen' }
+    default: return { sor: 'crm-k-idegen', pill: 'crm-pill-plain' }
+  }
+}
+
 export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => void }) {
   const [unmatched, setUnmatched] = useState<Unmatched[]>([])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
@@ -366,108 +388,135 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
   }
 
   return (
-    <section>
-      <h2>Ma</h2>
+    <section className="crm-sec-wrap">
       {hiba && <p className="crm-hiba" role="alert">{hiba}</p>}
 
-      <div className="crm-sor">
-        <button onClick={soper} disabled={fut}>{fut ? 'Söprés fut…' : 'Levelek behúzása'}</button>
-        {sopres && <span className="crm-halvany">{sopres}</span>}
+      <div className={`crm-strip${postafiok && !postafiok.available ? ' crm-strip-warn' : ''}`}>
+        <button className="crm-btn crm-btn-primary crm-btn-sm" onClick={soper} disabled={fut}>
+          {fut ? 'Söprés fut…' : 'Levelek behúzása'}
+        </button>
+        {sopres && <span className="crm-mono crm-halvany">{sopres}</span>}
+        {postafiok && (
+          <span className={postafiok.available ? 'crm-halvany' : 'crm-hiba'}
+                role={postafiok.available ? undefined : 'status'}>
+            {postafiokUzenet(postafiok)}
+          </span>
+        )}
       </div>
-      {postafiok && (
-        postafiok.available
-          ? <p className="crm-halvany">{postafiokUzenet(postafiok)}</p>
-          : <p className="crm-hiba" role="status">{postafiokUzenet(postafiok)}</p>
-      )}
       {csakTanult && <p className="crm-halvany" role="status">{csakTanult}</p>}
 
-      <h3>Figyelmet igényel</h3>
-      {elfogadEredmeny && <p className="crm-halvany" role="status">{elfogadEredmeny}</p>}
-      {/* Ugyanaz a lista, amiből az Ügyfélkezelő a 08:10-es körében dolgozik.
-          A sorrend és az indok a `rangsor`-é (`src/attention.mjs`), a lap nem
-          rangsorol újra -- ha itt más sorrend látszana, mint amiről az ügynök
-          ír, a napi üzenet ellenőrizhetetlen lenne. */}
-      {figyelem.length === 0
-        ? <p className="crm-halvany">Most nincs, ami figyelmet igényelne.</p>
-        : (
-          <ul className="crm-lista">
-            {figyelem.map((f) => (
-              <li key={`${f.kind}:${f.commitmentId || f.dealId || f.eventId || f.accountId}`}>
-                <strong>{figyelemKindNev(f.kind)}</strong> {f.cim}
-                <span className="crm-halvany"> — {f.indok}</span>
-                <button onClick={() => megnyit(f.accountId)}>Megnyit</button>
-              </li>
-            ))}
-          </ul>
+      <div className="crm-sec">
+        <div className="crm-sechead">
+          <h3>Figyelmet igényel</h3>
+          <span className="crm-count">{figyelem.length} / {figyelemOsszes}</span>
+        </div>
+        {elfogadEredmeny && <p className="crm-halvany" role="status">{elfogadEredmeny}</p>}
+        {/* Ugyanaz a lista, amiből az Ügyfélkezelő a 08:10-es körében dolgozik.
+            A sorrend és az indok a `rangsor`-é (`src/attention.mjs`), a lap nem
+            rangsorol újra -- ha itt más sorrend látszana, mint amiről az ügynök
+            ír, a napi üzenet ellenőrizhetetlen lenne. */}
+        {figyelem.length === 0
+          ? <p className="crm-empty">Most nincs, ami figyelmet igényelne.</p>
+          : (
+            <ul className="crm-att">
+              {figyelem.map((f) => {
+                const o = figyelemOsztaly(f.kind)
+                return (
+                  <li key={`${f.kind}:${f.commitmentId || f.dealId || f.eventId || f.accountId}`}
+                      className={`crm-attrow ${o.sor}`}>
+                    <span className="crm-stripe" aria-hidden="true"></span>
+                    <div className="crm-attbody">
+                      <div className="crm-attline">
+                        <span className={`crm-pill ${o.pill}`}>{figyelemKindNev(f.kind)}</span>
+                        <span className="crm-atttitle">{f.cim}</span>
+                      </div>
+                      <p className="crm-attwhy">{f.indok}</p>
+                    </div>
+                    <div className="crm-attact">
+                      <button className="crm-btn crm-btn-sm" onClick={() => megnyit(f.accountId)}>Megnyit</button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        {/* A `osszes` a limitálás ELŐTTI szám (`src/attention-service.mjs`):
+            enélkül húsz sor és a teljes lista megkülönböztethetetlen volna, és
+            az operátor azt hinné, mindent lát. */}
+        {figyelemOsszes > figyelem.length && (
+          <p className="crm-halvany">A lista teteje látszik: {figyelem.length} a(z) {figyelemOsszes} sorból.</p>
         )}
-      {/* A `osszes` a limitálás ELŐTTI szám (`src/attention-service.mjs`):
-          enélkül húsz sor és a teljes lista megkülönböztethetetlen volna, és
-          az operátor azt hinné, mindent lát. */}
-      {figyelemOsszes > figyelem.length && (
-        <p className="crm-halvany">
-          A lista teteje látszik: {figyelem.length} a(z) {figyelemOsszes} sorból.
-        </p>
-      )}
+      </div>
 
-      <h3>Javaslatok</h3>
-      {suggestions.length === 0
-        ? <p className="crm-halvany">Most nincs javaslat.</p>
-        : (
-          <ul className="crm-lista">
-            {suggestions.map((s) => (
-              <li key={s.id}>
-                {s.text}
-                {s.reason && <span className="crm-halvany"> — {s.reason}</span>}
-                <button onClick={() => elfogad(s.id)} disabled={!!elfogadFut[s.id]}>
-                  {elfogadFut[s.id] ? 'Elfogadás…' : 'Elfogad'}
-                </button>
-                <button onClick={() => elvet(s.id)} disabled={!!elfogadFut[s.id]}>Elvet</button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-      <h3>Besorolatlan ({unmatched.length})</h3>
-      {unmatched.length === 0
-        ? <p className="crm-halvany">Nincs besorolatlan levél.</p>
-        : (
-          <ul className="crm-lista">
-            {unmatched.map((u) => {
-              const lathatoLista = valaszthatoKapcsolatok(kapcsolatok, u.guess_account_id, !!mindet[u.id])
-              const kivalasztott = valasztott[u.id] || ''
-              return (
-                <li key={u.id}>
-                  <strong>{u.sender_address}</strong> {u.subject}
-                  {u.guess_account_id && (
-                    <span className="crm-halvany">
-                      valószínűleg {accounts.find((a) => a.id === u.guess_account_id)?.name}
-                    </span>
-                  )}
-                  <button disabled={!u.guess_account_id} onClick={() => u.guess_account_id && megnyit(u.guess_account_id)}>Megnyit</button>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={!!mindet[u.id]}
-                      aria-label={`${u.sender_address}: összes kapcsolat, találgatás nélkül`}
-                      onChange={(e) => setMindet({ ...mindet, [u.id]: e.target.checked })}
-                    />
-                    Összes kapcsolat
-                  </label>
-                  <select value={kivalasztott} aria-label={`${u.sender_address} hozzárendelése`}
-                          onChange={(e) => setValasztott({ ...valasztott, [u.id]: e.target.value })}>
-                    <option value="">Válassz kapcsolatot…</option>
-                    {lathatoLista.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}{c.accountName && ` — ${c.accountName}`}
-                      </option>
-                    ))}
-                  </select>
-                  <button onClick={() => hozzarendel(u, lathatoLista)} disabled={!kivalasztasLathato(kivalasztott, lathatoLista)}>Hozzárendel</button>
+      <div className="crm-sec">
+        <div className="crm-sechead"><h3>Javaslatok</h3><span className="crm-count">{suggestions.length}</span></div>
+        {suggestions.length === 0
+          ? <p className="crm-empty">Most nincs javaslat.</p>
+          : (
+            <ul className="crm-sugs">
+              {suggestions.map((s) => (
+                <li key={s.id} className="crm-sug">
+                  <span className="crm-atttitle">{s.text}</span>
+                  {s.reason && <span className="crm-attwhy">{s.reason}</span>}
+                  <div className="crm-attact">
+                    <button className="crm-btn crm-btn-primary crm-btn-sm"
+                            onClick={() => elfogad(s.id)} disabled={!!elfogadFut[s.id]}>
+                      {elfogadFut[s.id] ? 'Elfogadás…' : 'Elfogad'}
+                    </button>
+                    <button className="crm-btn crm-btn-quiet crm-btn-sm"
+                            onClick={() => elvet(s.id)} disabled={!!elfogadFut[s.id]}>Elvet</button>
+                  </div>
                 </li>
-              )
-            })}
-          </ul>
-        )}
+              ))}
+            </ul>
+          )}
+      </div>
+
+      <div className="crm-sec">
+        <div className="crm-sechead"><h3>Besorolatlan</h3><span className="crm-count">{unmatched.length}</span></div>
+        {unmatched.length === 0
+          ? <p className="crm-empty">Nincs besorolatlan levél.</p>
+          : (
+            <ul className="crm-triage">
+              {unmatched.map((u) => {
+                const lathatoLista = valaszthatoKapcsolatok(kapcsolatok, u.guess_account_id, !!mindet[u.id])
+                const kivalasztott = valasztott[u.id] || ''
+                return (
+                  <li key={u.id} className="crm-tri">
+                    <div className="crm-tri-who">
+                      <span className="crm-mono">{u.sender_address}</span>
+                      <span className="crm-grow">{u.subject}</span>
+                    </div>
+                    <div className="crm-tri-pickers">
+                      {u.guess_account_id && (
+                        <button className="crm-pill crm-pill-plain crm-btn-quiet"
+                                onClick={() => u.guess_account_id && megnyit(u.guess_account_id)}>
+                          valószínűleg {accounts.find((a) => a.id === u.guess_account_id)?.name}
+                        </button>
+                      )}
+                      <label className="crm-halvany">
+                        <input type="checkbox" checked={!!mindet[u.id]}
+                               aria-label={`${u.sender_address}: összes kapcsolat, találgatás nélkül`}
+                               onChange={(e) => setMindet({ ...mindet, [u.id]: e.target.checked })} />
+                        Összes kapcsolat
+                      </label>
+                      <select value={kivalasztott} aria-label={`${u.sender_address} hozzárendelése`}
+                              onChange={(e) => setValasztott({ ...valasztott, [u.id]: e.target.value })}>
+                        <option value="">Válassz kapcsolatot…</option>
+                        {lathatoLista.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}{c.accountName && ` — ${c.accountName}`}</option>
+                        ))}
+                      </select>
+                      <button className="crm-btn crm-btn-primary crm-btn-sm"
+                              onClick={() => hozzarendel(u, lathatoLista)}
+                              disabled={!kivalasztasLathato(kivalasztott, lathatoLista)}>Hozzárendel</button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+      </div>
     </section>
   )
 }
