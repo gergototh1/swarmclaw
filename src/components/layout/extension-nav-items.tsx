@@ -8,32 +8,9 @@ import {
   Sparkles, Star, Tag, Terminal, TrendingUp, Users, Workflow, Zap,
 } from 'lucide-react'
 import { ExtensionNavItem } from '@/components/layout/nav-item'
-import { useExtensionPages, type ExtensionPage } from '@/hooks/use-extension-pages'
+import { pagesForSection, useExtensionPages, type ExtensionPage } from '@/hooks/use-extension-pages'
+import type { NavSectionId } from '@/lib/app/nav-sections'
 import type { ExtensionPageIconName } from '@/lib/extension-page-nav'
-
-/**
- * The one anchor position the rail has ever mounted a slot for.
- *
- * This is the last place that still reads the legacy `position` field for
- * placement — `resolvePageSection`/`pagesForSection` (`@/lib/extension-page-nav`,
- * `@/hooks/use-extension-pages`) are the section-based replacement and treat
- * every `position` value, including this one, as belonging to the 'work'
- * section. Rewiring this component onto sections is the next task; until then
- * it keeps its own pre-existing anchor/trailing-group split so today's rail
- * layout does not change out from under that task.
- */
-const TASKS_ANCHOR_POSITION = 'after:tasks'
-
-/** A built-in view an extension page may anchor itself after. */
-type ExtensionNavAnchor = 'tasks'
-
-/** Select the extension pages that belong in one nav slot (see `TASKS_ANCHOR_POSITION`). */
-function splitPagesByPosition(pages: ExtensionPage[], view: ExtensionNavAnchor | null): ExtensionPage[] {
-  if (view === null) {
-    return pages.filter((p) => p.position !== TASKS_ANCHOR_POSITION)
-  }
-  return pages.filter((p) => p.position === TASKS_ANCHOR_POSITION)
-}
 
 /**
  * The components behind the icon names an extension may declare.
@@ -83,48 +60,28 @@ function ExtensionPageLinks({ pages, expanded, onNavigate }: {
 }
 
 /**
- * Extension-contributed rail entries anchored directly after a built-in entry.
+ * The extension pages of one rail section, above that section's built-in entries.
  *
- * `view` names that built-in entry, or `null` for the trailing slot. It is limited
- * to `TASKS_ANCHOR_POSITION`'s one view so the rail cannot mount a slot the
- * trailing group does not know to skip, which would render those pages twice.
- * An extension path is still never an `AppView` and must not be widened into
- * one.
+ * Renders nothing when the section has none, hairline included — an empty
+ * section panel must not open with a rule across the top of it.
+ *
+ * Placement comes entirely from `pagesForSection`, which asks
+ * `resolvePageSection` where each page belongs. No anchor list, and no reader
+ * of the legacy `position` field: the rail used to mount exactly one slot
+ * ('after:tasks') and sweep everything else into a trailing group below every
+ * built-in entry, which is how the CRM page ended up at the very bottom of the
+ * rail for no reason its own extension declared.
  */
-export function ExtensionPagesAfter({ view, expanded, onNavigate }: {
-  view: ExtensionNavAnchor | null
-  expanded: boolean
+export function ExtensionPagesForSection({ section, onNavigate }: {
+  section: NavSectionId
   onNavigate?: () => void
 }) {
-  const pages = useExtensionPages()
-  const slice = splitPagesByPosition(pages, view)
-  if (slice.length === 0) return null
-  return <ExtensionPageLinks pages={slice} expanded={expanded} onNavigate={onNavigate} />
-}
-
-/**
- * Trailing rail group for every extension page the rail does not anchor elsewhere.
- *
- * That covers pages with no position, pages that asked for `end`, and pages whose
- * anchor names a view other than `TASKS_ANCHOR_POSITION`'s. Renders the same
- * group chrome as the built-in sections, and nothing at all when no extension
- * contributes a page.
- */
-export function ExtensionPagesEndGroup({ expanded, onNavigate }: {
-  expanded: boolean
-  onNavigate?: () => void
-}) {
-  const pages = useExtensionPages()
-  const slice = splitPagesByPosition(pages, null)
-  if (slice.length === 0) return null
+  const pages = pagesForSection(useExtensionPages(), section)
+  if (pages.length === 0) return null
   return (
-    <div className={`flex flex-col gap-0.5 ${expanded ? '' : 'items-center'}`}>
-      {expanded ? (
-        <div className="px-3 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">Extension Pages</div>
-      ) : (
-        <div className="my-1 h-px w-6 bg-layer-2" />
-      )}
-      <ExtensionPageLinks pages={slice} expanded={expanded} onNavigate={onNavigate} />
-    </div>
+    <>
+      <ExtensionPageLinks pages={pages} expanded onNavigate={onNavigate} />
+      <div className="my-2 mx-2 h-px bg-line-subtle" />
+    </>
   )
 }

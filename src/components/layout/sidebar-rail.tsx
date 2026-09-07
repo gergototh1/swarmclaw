@@ -1,23 +1,76 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Activity, BookOpen, Briefcase, Home, Link2, MessageSquare, Settings as SettingsIcon } from 'lucide-react'
 import { useAppStore } from '@/stores/use-app-store'
 import { Avatar } from '@/components/shared/avatar'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { DaemonIndicator } from '@/components/layout/daemon-indicator'
 import { NotificationCenter } from '@/components/shared/notification-center'
-import { NavItem, RailTooltip } from '@/components/layout/nav-item'
-import { ExtensionPagesAfter, ExtensionPagesEndGroup } from '@/components/layout/extension-nav-items'
+import { RailTooltip } from '@/components/layout/nav-item'
+import { NavSectionPanel } from '@/components/layout/nav-section-panel'
+import { useExtensionPages } from '@/hooks/use-extension-pages'
 import { useWs } from '@/hooks/use-ws'
-import { FULL_WIDTH_VIEWS, isPanelSidebarView } from '@/lib/app/view-constants'
-import { resolveSidebarActiveView, useNavigate } from '@/lib/app/navigation'
+import { NAV_SECTIONS, type NavSection, type NavSectionId } from '@/lib/app/nav-sections'
+import { FULL_WIDTH_VIEWS, isPanelSidebarView, VIEW_DESCRIPTIONS, VIEW_LABELS } from '@/lib/app/view-constants'
+import { getViewPath, resolveSidebarActiveView, useNavigate } from '@/lib/app/navigation'
+import { RAIL_EXPANDED_KEY, railExpandedFromStorage, railSectionForPath } from '@/lib/app/rail-state'
 import { safeStorageGet, safeStorageSet } from '@/lib/app/safe-storage'
 import type { AppView } from '@/types'
 
-const RAIL_EXPANDED_KEY = 'sc_rail_expanded'
 const GITHUB_REPO_URL = 'https://github.com/swarmclawai/swarmclaw'
 const DISCORD_URL = 'https://discord.gg/sbEavS8cPV'
+
+/**
+ * The components behind the icon names in `NAV_SECTIONS`.
+ *
+ * Kept here rather than in the table so the table stays importable by server
+ * code and tests without pulling a client-only icon module in behind it.
+ */
+const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
+  Home, MessageSquare, Briefcase, BookOpen, Link2, Activity, Settings: SettingsIcon,
+}
+
+/**
+ * One of the rail's off-app links (Docs, GitHub, Discord).
+ *
+ * The three differ only in href, label and glyph, and each needs a labelled row
+ * and a 52px icon-with-tooltip form; writing that twice per link is where a
+ * third of this file used to go.
+ */
+function RailExternalLink({ href, label, description, expanded, children }: {
+  href: string
+  label: string
+  description: string
+  expanded: boolean
+  children: React.ReactNode
+}) {
+  if (!expanded) {
+    return (
+      <RailTooltip label={label} description={description}>
+        <a href={href} target="_blank" rel="noopener noreferrer" className="rail-btn">{children}</a>
+      </RailTooltip>
+    )
+  }
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
+        bg-transparent text-text-3 hover:text-text hover:bg-layer-2 no-underline"
+      style={{ fontFamily: 'inherit' }}
+    >
+      <span className="shrink-0 flex items-center">{children}</span>
+      <span className="truncate">{label}</span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="ml-auto opacity-40 shrink-0">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+      </svg>
+    </a>
+  )
+}
 
 export function SidebarRail({
   onSwitchUser,
@@ -51,15 +104,39 @@ export function SidebarRail({
   const defaultAgentId = defaultAgent?.id || null
   const isDefaultChat = activeView === 'agents' && currentAgentId === defaultAgentId
 
-  const [railExpandedStored, setRailExpandedStored] = useState(() => {
-    const stored = safeStorageGet(RAIL_EXPANDED_KEY)
-    return stored === null ? true : stored === 'true'
-  })
+  const [railExpandedStored, setRailExpandedStored] = useState(() => railExpandedFromStorage(safeStorageGet(RAIL_EXPANDED_KEY)))
   // Mobile always forces expanded
   const railExpanded = mobile || railExpandedStored
 
   useEffect(() => { void loadSkillDraftCount() }, [loadSkillDraftCount])
   useWs('skills', loadSkillDraftCount)
+
+  // Counts the rail carries on a section, and the panel repeats on the entry
+  // they belong to. Without the rail half, collapsing the panel would hide the
+  // only signal that skill drafts are waiting.
+  const badges: Partial<Record<AppView, number>> = { skills: skillDraftCount }
+
+  // Which section's panel is open.
+  //
+  // Derived from the route, with the operator's own click layered over it —
+  // deliberately not a useState the route writes into from an effect. The panel
+  // has to follow the route (open /x/crm from a bookmark and Work must be
+  // showing) and it has to obey a click that navigates nowhere (open Knowledge
+  // while standing on /tasks), and an effect that pushed one into the other
+  // would run a render late, after the wrong panel had already painted.
+  //
+  // Storing the click next to the route it was made against settles it in one
+  // value: the pick holds while the route stays put, and the moment the route
+  // lands in a different section that section wins. A route that belongs to no
+  // section at all — /swarmfeed, which is Home's second tab, or a share link —
+  // resolves to null and closes the panel, which is what those pages want.
+  const extensionPages = useExtensionPages()
+  const routeSection = railSectionForPath(pathname, activeView, extensionPages)
+  const [picked, setPicked] = useState<{ section: NavSectionId; route: NavSectionId | null } | null>(null)
+  const openSection = picked && picked.route === routeSection ? picked.section : routeSection
+  const selectSection = (id: NavSectionId) => setPicked({ section: id, route: routeSection })
+
+  const panelSection = NAV_SECTIONS.find((s) => s.id === openSection && !s.direct) ?? null
 
   const toggleRail = () => {
     if (mobile) return
@@ -92,428 +169,259 @@ export function SidebarRail({
     }
   }
 
-  const isNavActive = (view: AppView) => activeView === view && (mobile || sidebarOpen || FULL_WIDTH_VIEWS.has(view))
-
   // Extension pages render full width and have no panel sidebar of their own, so
   // navigating to one collapses the panel (and closes the drawer on mobile).
   const handleExtensionNavClick = () => setSidebarOpen(false)
 
+  // What the 52px rail says about a section it can only draw as an icon. A
+  // section that opens a panel lists what is in it; the one that navigates
+  // straight to a view borrows that view's description.
+  const sectionHint = (section: NavSection) => section.direct
+    ? VIEW_DESCRIPTIONS[section.direct]
+    : section.views.filter(isViewEnabled).map((v) => VIEW_LABELS[v]).join(' · ')
+
+  const renderSection = (section: NavSection) => {
+    const Icon = SECTION_ICONS[section.icon] ?? Home
+    const on = openSection === section.id
+    const count = section.views.reduce((n, v) => n + (badges[v] ?? 0), 0)
+
+    const inner = (
+      <>
+        <span className="shrink-0 relative flex items-center">
+          <Icon size={17} />
+          {!!count && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] rounded-full bg-amber-500 text-black text-[9px] font-700 flex items-center justify-center px-0.5">
+              {count}
+            </span>
+          )}
+        </span>
+        {railExpanded && <span className="truncate">{section.label}</span>}
+      </>
+    )
+
+    const className = railExpanded
+      ? `w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all border-none no-underline text-left
+          ${on ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text hover:bg-layer-2'}`
+      : `rail-btn ${on ? 'active' : ''} relative no-underline`
+
+    // A section that goes straight to a view stays a real link, so it can still
+    // be opened in a new tab; one that opens a panel is a button, because it
+    // navigates nowhere.
+    const direct = section.direct
+    const control = direct ? (
+      <Link
+        key={section.id}
+        href={getViewPath(direct)}
+        onClick={() => { handleNavClick(direct); selectSection(section.id) }}
+        aria-current={activeView === direct ? 'page' : undefined}
+        className={className}
+        style={{ fontFamily: 'inherit' }}
+      >
+        {inner}
+      </Link>
+    ) : (
+      <button
+        key={section.id}
+        onClick={() => selectSection(section.id)}
+        aria-expanded={on}
+        className={className}
+        style={{ fontFamily: 'inherit' }}
+      >
+        {inner}
+      </button>
+    )
+
+    if (railExpanded) return control
+    return <RailTooltip key={section.id} label={section.label} description={sectionHint(section)}>{control}</RailTooltip>
+  }
+
   return (
-    <div
-      className={`shrink-0 bg-raised border-r border-line-subtle flex flex-col py-4 min-h-0 transition-all duration-300 overflow-visible ${mobile ? 'w-full' : ''}`}
-      style={mobile ? undefined : { width: railExpanded ? 180 : 60, transitionTimingFunction: 'var(--ease-spring)' }}
-    >
-      {/* Logo + collapse toggle */}
-      <div className={`flex items-center mb-4 shrink-0 ${railExpanded ? 'px-4 gap-3' : 'justify-center'}`}>
-        <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#4338CA] to-[#6366F1] flex items-center justify-center shrink-0
-          shadow-[0_2px_12px_rgba(99,102,241,0.2)]">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-white">
-            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor" />
-          </svg>
-        </div>
-        {railExpanded && !mobile && (
-          <button
-            onClick={toggleRail}
-            className="ml-auto w-7 h-7 rounded-sm flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-all cursor-pointer bg-transparent border-none"
-            title="Collapse sidebar"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polyline points="11 17 6 12 11 7" />
-              <polyline points="18 17 13 12 18 7" />
+    <div className={`flex h-full min-h-0 ${mobile ? 'max-w-[calc(100vw-40px)]' : 'shrink-0'}`}>
+      <div
+        className={`shrink-0 bg-raised border-r border-line-subtle flex flex-col py-4 min-h-0 overflow-visible
+          transition-[width] duration-200 ${railExpanded ? 'w-[152px]' : 'w-[52px]'}`}
+        style={{ transitionTimingFunction: 'var(--ease-spring)' }}
+      >
+        {/* Logo + collapse toggle */}
+        <div className={`flex items-center mb-4 shrink-0 ${railExpanded ? 'px-3 gap-2' : 'justify-center'}`}>
+          <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#4338CA] to-[#6366F1] flex items-center justify-center shrink-0
+            shadow-[0_2px_12px_rgba(99,102,241,0.2)]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-white">
+              <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor" />
             </svg>
-          </button>
+          </div>
+          {railExpanded && !mobile && (
+            <button
+              onClick={toggleRail}
+              className="ml-auto w-7 h-7 rounded-sm flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-all cursor-pointer bg-transparent border-none"
+              title="Collapse sidebar"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polyline points="11 17 6 12 11 7" />
+                <polyline points="18 17 13 12 18 7" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Expand button when collapsed */}
+        {!railExpanded && !mobile && (
+          <div className="flex justify-center mb-2">
+            <button onClick={toggleRail} className="rail-btn" title="Expand sidebar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polyline points="13 17 18 12 13 7" />
+                <polyline points="6 17 11 12 6 7" />
+              </svg>
+            </button>
+          </div>
         )}
-      </div>
 
-      {/* Expand button when collapsed */}
-      {!railExpanded && !mobile && (
-        <div className="flex justify-center mb-2">
-          <button onClick={toggleRail} className="rail-btn" title="Expand sidebar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polyline points="13 17 18 12 13 7" />
-              <polyline points="6 17 11 12 6 7" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {/* Default agent shortcut */}
-      {railExpanded ? (
-        <div className="px-3 mb-2.5">
-          <button
-            onClick={goToDefaultChat}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-[13px] font-600 cursor-pointer transition-all text-left
-              ${isDefaultChat
-                ? 'bg-accent-bright/15 border border-[#6366F1]/25 text-accent-bright'
-                : 'bg-accent-bright/10 border border-[#6366F1]/20 text-accent-bright hover:bg-accent-bright/15'}`}
-            style={{ fontFamily: 'inherit' }}
+        {/* Default agent shortcut */}
+        {railExpanded ? (
+          <div className="px-3 mb-2.5">
+            <button
+              onClick={goToDefaultChat}
+              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-[12px] font-600 cursor-pointer transition-all text-left
+                ${isDefaultChat
+                  ? 'bg-accent-bright/15 border border-[#6366F1]/25 text-accent-bright'
+                  : 'bg-accent-bright/10 border border-[#6366F1]/20 text-accent-bright hover:bg-accent-bright/15'}`}
+              style={{ fontFamily: 'inherit' }}
+            >
+              {defaultAgent ? (
+                <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={24} />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-accent-bright/15 flex items-center justify-center shrink-0">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="truncate">{defaultAgent?.name || 'Choose Agent'}</div>
+                <div className="text-[10px] font-500 text-accent-bright/75 mt-0.5 truncate">
+                  {defaultAgent ? 'Default shortcut' : 'Pick an agent'}
+                </div>
+              </div>
+            </button>
+          </div>
+        ) : (
+          <RailTooltip
+            label={defaultAgent?.name || 'Choose Agent'}
+            description={defaultAgent ? 'Open your default agent shortcut chat' : 'Choose an agent thread'}
           >
-            {defaultAgent ? (
-              <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={28} />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-accent-bright/15 flex items-center justify-center shrink-0">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <button onClick={goToDefaultChat} className={`rail-btn self-center mb-2 ${isDefaultChat ? 'active' : ''}`}>
+              {defaultAgent ? (
+                <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={20} />
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
-              </div>
-            )}
-            <div className="min-w-0">
-              <div className="truncate">{defaultAgent?.name || 'Choose Agent'}</div>
-              <div className="text-[10px] font-500 text-accent-bright/75 mt-0.5">
-                {defaultAgent ? 'Default shortcut' : 'Pick an agent to open its thread'}
-              </div>
-            </div>
-          </button>
-        </div>
-      ) : (
-        <RailTooltip
-          label={defaultAgent?.name || 'Choose Agent'}
-          description={defaultAgent ? 'Open your default agent shortcut chat' : 'Choose an agent thread'}
-        >
-          <button onClick={goToDefaultChat} className={`rail-btn self-center mb-2 ${isDefaultChat ? 'active' : ''}`}>
-            {defaultAgent ? (
-              <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={20} />
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            )}
-          </button>
-        </RailTooltip>
-      )}
+              )}
+            </button>
+          </RailTooltip>
+        )}
 
-      {/* Search */}
-      {railExpanded ? (
-        <div className="px-3 mb-2">
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
-              bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none"
-            style={{ fontFamily: 'inherit' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            Search
-            <kbd className="ml-auto px-1.5 py-0.5 rounded-xs bg-layer-2 border border-line-default text-[10px] font-mono text-text-3">
-              ⌘K
-            </kbd>
-          </button>
-        </div>
-      ) : (
-        <RailTooltip label="Search" description="Search across all entities (⌘K)">
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
-            className="rail-btn self-center mb-2"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </button>
-        </RailTooltip>
-      )}
-
-      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-contain touch-pan-y">
-        {/* Nav items */}
-        <div className={`flex flex-col gap-3 ${railExpanded ? 'px-3' : 'items-center'}`}>
-          <div className={`flex flex-col gap-0.5 ${railExpanded ? '' : 'items-center'}`}>
-            {railExpanded ? (
-              <div className="px-3 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">Workspace</div>
-            ) : (
-              <div className="my-1 h-px w-6 bg-layer-2" />
-            )}
-            <NavItem view="home" label="Home" expanded={railExpanded} isActive={isNavActive('home')} onClick={() => handleNavClick('home')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-            </NavItem>
-            <NavItem view="agents" label="Agents" expanded={railExpanded} isActive={isNavActive('agents')} onClick={() => handleNavClick('agents')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-              </svg>
-            </NavItem>
-            <NavItem view="org_chart" label="Org Chart" expanded={railExpanded} isActive={isNavActive('org_chart')} onClick={() => handleNavClick('org_chart')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="9" y="2" width="6" height="4" rx="1" />
-                <rect x="2" y="18" width="6" height="4" rx="1" />
-                <rect x="9" y="18" width="6" height="4" rx="1" />
-                <rect x="16" y="18" width="6" height="4" rx="1" />
-                <path d="M12 6v4" /><path d="M5 14v4" /><path d="M12 14v4" /><path d="M19 14v4" />
-                <path d="M5 14h14" />
-              </svg>
-            </NavItem>
-            <NavItem view="inbox" label="Inbox" expanded={railExpanded} isActive={isNavActive('inbox')} onClick={() => handleNavClick('inbox')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 12h-5l-2 3H9l-2-3H2" />
-                <path d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
-              </svg>
-            </NavItem>
-            <NavItem view="chatrooms" label="Chatrooms" expanded={railExpanded} isActive={isNavActive('chatrooms')} onClick={() => handleNavClick('chatrooms')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                <path d="M8 10h8" /><path d="M8 14h4" />
-              </svg>
-            </NavItem>
-            <NavItem view="protocols" label="Sessions" expanded={railExpanded} isActive={isNavActive('protocols')} onClick={() => handleNavClick('protocols')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 6h13" /><path d="M8 12h13" /><path d="M8 18h13" />
-                <path d="M3 6h.01" /><path d="M3 12h.01" /><path d="M3 18h.01" />
-              </svg>
-            </NavItem>
-            <NavItem view="projects" label="Projects" expanded={railExpanded} isActive={isNavActive('projects')} onClick={() => handleNavClick('projects')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7-7H4a2 2 0 0 0-2 2v17Z" /><path d="M14 2v7h7" />
-              </svg>
-            </NavItem>
-            <NavItem view="swarmfeed" label="Feed" expanded={railExpanded} isActive={isNavActive('swarmfeed')} onClick={() => handleNavClick('swarmfeed')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 11a9 9 0 0 1 9 9" /><path d="M4 4a16 16 0 0 1 16 16" /><circle cx="5" cy="19" r="1" />
-              </svg>
-            </NavItem>
-            <NavItem view="marketplace" label="Marketplace" expanded={railExpanded} isActive={isNavActive('marketplace')} onClick={() => handleNavClick('marketplace')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><line x1="3" x2="21" y1="6" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
-              </svg>
-            </NavItem>
-          </div>
-
-          <div className={`flex flex-col gap-0.5 ${railExpanded ? '' : 'items-center'}`}>
-            {railExpanded ? (
-              <div className="px-3 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">Execution</div>
-            ) : (
-              <div className="my-1 h-px w-6 bg-layer-2" />
-            )}
-            <NavItem view="tasks" label="Tasks" expanded={railExpanded} isActive={isNavActive('tasks')} onClick={() => handleNavClick('tasks')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /><path d="M9 14l2 2 4-4" />
-              </svg>
-            </NavItem>
-            <ExtensionPagesAfter view="tasks" expanded={railExpanded} onNavigate={handleExtensionNavClick} />
-
-            <NavItem view="missions" label="Missions" expanded={railExpanded} isActive={isNavActive('missions')} onClick={() => handleNavClick('missions')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <circle cx="12" cy="12" r="10" />
-                <circle cx="12" cy="12" r="6" />
-                <circle cx="12" cy="12" r="2" />
-              </svg>
-            </NavItem>
-
-            <NavItem view="schedules" label="Schedules" expanded={railExpanded} isActive={isNavActive('schedules')} onClick={() => handleNavClick('schedules')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-              </svg>
-            </NavItem>
-            <NavItem view="memory" label="Memory" expanded={railExpanded} isActive={isNavActive('memory')} onClick={() => handleNavClick('memory')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-              </svg>
-            </NavItem>
-            <NavItem view="stream" label="Stream" expanded={railExpanded} isActive={isNavActive('stream')} onClick={() => handleNavClick('stream')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-              </svg>
-            </NavItem>
-            <NavItem view="quality" label="Quality" expanded={railExpanded} isActive={isNavActive('quality')} onClick={() => handleNavClick('quality')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 12l2 2 4-4" />
-                <path d="M12 3l7 4v5c0 4.4-2.9 8.5-7 9-4.1-.5-7-4.6-7-9V7l7-4z" />
-              </svg>
-            </NavItem>
-          </div>
-
-          <div className={`flex flex-col gap-0.5 ${railExpanded ? '' : 'items-center'}`}>
-            {railExpanded ? (
-              <div className="px-3 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">Knowledge</div>
-            ) : (
-              <div className="my-1 h-px w-6 bg-layer-2" />
-            )}
-            <NavItem view="knowledge" label="Knowledge" expanded={railExpanded} isActive={isNavActive('knowledge')} onClick={() => handleNavClick('knowledge')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-            </NavItem>
-            <NavItem view="skills" label="Skills" badge={skillDraftCount} expanded={railExpanded} isActive={isNavActive('skills')} onClick={() => handleNavClick('skills')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-              </svg>
-            </NavItem>
-            <NavItem view="connectors" label="Connectors" expanded={railExpanded} isActive={isNavActive('connectors')} onClick={() => handleNavClick('connectors')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M15 7h3a5 5 0 0 1 5 5 5 5 0 0 1-5 5h-3m-6 0H6a5 5 0 0 1-5-5 5 5 0 0 1 5-5h3" /><line x1="8" y1="12" x2="16" y2="12" />
-              </svg>
-            </NavItem>
-            {isViewEnabled('webhooks') && (
-              <NavItem view="webhooks" label="Webhooks" expanded={railExpanded} isActive={isNavActive('webhooks')} onClick={() => handleNavClick('webhooks')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M22 12h-4l-3 7L9 5l-3 7H2" />
-                </svg>
-              </NavItem>
-            )}
-            <NavItem view="mcp_servers" label="MCP Servers" expanded={railExpanded} isActive={isNavActive('mcp_servers')} onClick={() => handleNavClick('mcp_servers')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="2" y="2" width="20" height="8" rx="2" /><rect x="2" y="14" width="20" height="8" rx="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" />
-              </svg>
-            </NavItem>
-            <NavItem view="extensions" label="Extensions" expanded={railExpanded} isActive={isNavActive('extensions')} onClick={() => handleNavClick('extensions')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2v4m0 12v4M2 12h4m12 0h4" /><circle cx="12" cy="12" r="4" /><path d="M8 8L5.5 5.5M16 8l2.5-2.5M8 16l-2.5 2.5M16 16l2.5 2.5" />
-              </svg>
-            </NavItem>
-          </div>
-
-          <div className={`flex flex-col gap-0.5 ${railExpanded ? '' : 'items-center'}`}>
-            {railExpanded ? (
-              <div className="px-3 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">System</div>
-            ) : (
-              <div className="my-1 h-px w-6 bg-layer-2" />
-            )}
-            <NavItem view="vault" label="Vault" expanded={railExpanded} isActive={isNavActive('vault')} onClick={() => handleNavClick('vault')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
-            </NavItem>
-            <NavItem view="providers" label="Providers" expanded={railExpanded} isActive={isNavActive('providers')} onClick={() => handleNavClick('providers')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
-              </svg>
-            </NavItem>
-            <NavItem view="usage" label="Usage" expanded={railExpanded} isActive={isNavActive('usage')} onClick={() => handleNavClick('usage')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
-              </svg>
-            </NavItem>
-            <NavItem view="autonomy" label="Autonomy" expanded={railExpanded} isActive={isNavActive('autonomy')} onClick={() => handleNavClick('autonomy')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3l7 3v6c0 4.4-2.92 8.46-7 9-4.08-.54-7-4.6-7-9V6l7-3z" />
-                <path d="M12 8v5" />
-                <path d="M12 16h.01" />
-              </svg>
-            </NavItem>
-          </div>
-
-          <ExtensionPagesEndGroup expanded={railExpanded} onNavigate={handleExtensionNavClick} />
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Bottom: Docs + Daemon + Settings + User */}
-        <div className={`flex flex-col gap-1 ${railExpanded ? 'px-3' : 'items-center'}`}>
-          {railExpanded ? (
-            <a
-              href="https://swarmclaw.ai/docs"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
-                bg-transparent text-text-3 hover:text-text hover:bg-layer-2 no-underline"
+        {/* Search */}
+        {railExpanded ? (
+          <div className="px-3 mb-2">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
+                bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none"
               style={{ fontFamily: 'inherit' }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              Search
+              <kbd className="ml-auto px-1 py-0.5 rounded-xs bg-layer-2 border border-line-default text-[10px] font-mono text-text-3">
+                ⌘K
+              </kbd>
+            </button>
+          </div>
+        ) : (
+          <RailTooltip label="Search" description="Search across all entities (⌘K)">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
+              className="rail-btn self-center mb-2"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </button>
+          </RailTooltip>
+        )}
+
+        <div className="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-contain touch-pan-y">
+          <nav className={`flex flex-col gap-0.5 ${railExpanded ? 'px-3' : 'items-center'}`}>
+            {NAV_SECTIONS.filter((s) => !s.footer).map(renderSection)}
+          </nav>
+
+          <div className="flex-1" />
+
+          {/* Bottom: Docs + Daemon + Settings + User */}
+          <div className={`flex flex-col gap-1 ${railExpanded ? 'px-3' : 'items-center'}`}>
+            <RailExternalLink href="https://swarmclaw.ai/docs" label="Docs" description="Open documentation site" expanded={railExpanded}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
-              Docs
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="ml-auto opacity-40">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-            </a>
-          ) : (
-            <RailTooltip label="Docs" description="Open documentation site">
-              <a href="https://swarmclaw.ai/docs" target="_blank" rel="noopener noreferrer" className="rail-btn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                </svg>
-              </a>
-            </RailTooltip>
-          )}
-          {railExpanded ? (
-            <a
-              href={GITHUB_REPO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
-                bg-transparent text-text-3 hover:text-text hover:bg-layer-2 no-underline"
-              style={{ fontFamily: 'inherit' }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
+            </RailExternalLink>
+            <RailExternalLink href={GITHUB_REPO_URL} label="Star on GitHub" description="Support SwarmClaw with a GitHub star" expanded={railExpanded}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
-              Star on GitHub
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="ml-auto opacity-40">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-            </a>
-          ) : (
-            <RailTooltip label="Star on GitHub" description="Support SwarmClaw with a GitHub star">
-              <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" className="rail-btn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-              </a>
-            </RailTooltip>
-          )}
-          {railExpanded ? (
-            <a
-              href={DISCORD_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
-                bg-transparent text-text-3 hover:text-text hover:bg-layer-2 no-underline"
-              style={{ fontFamily: 'inherit' }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
+            </RailExternalLink>
+            <RailExternalLink href={DISCORD_URL} label="Join Discord" description="Open the SwarmClaw community" expanded={railExpanded}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 <path d="M8 10h.01M12 10h.01M16 10h.01" />
               </svg>
-              Join Discord
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="ml-auto opacity-40">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-            </a>
-          ) : (
-            <RailTooltip label="Join Discord" description="Open the SwarmClaw community">
-              <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" className="rail-btn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  <path d="M8 10h.01M12 10h.01M16 10h.01" />
-                </svg>
-              </a>
-            </RailTooltip>
-          )}
-          {railExpanded && <DaemonIndicator />}
-          {railExpanded ? (
-            <NotificationCenter variant="row" align="left" direction="up" />
-          ) : (
-            <RailTooltip label="Notifications" description="View system notifications">
-              <div className="rail-btn flex items-center justify-center">
-                <NotificationCenter align="left" direction="up" />
-              </div>
-            </RailTooltip>
-          )}
-          <NavItem view="settings" label="Settings" expanded={railExpanded} isActive={isNavActive('settings')} onClick={() => handleNavClick('settings')}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </NavItem>
+            </RailExternalLink>
+            {railExpanded && <DaemonIndicator />}
+            {railExpanded ? (
+              <NotificationCenter variant="row" align="left" direction="up" />
+            ) : (
+              <RailTooltip label="Notifications" description="View system notifications">
+                <div className="rail-btn flex items-center justify-center">
+                  <NotificationCenter align="left" direction="up" />
+                </div>
+              </RailTooltip>
+            )}
 
-          {railExpanded ? (
-            <button
-              onClick={onSwitchUser}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm cursor-pointer transition-all
-                bg-transparent hover:bg-layer-2 border-none"
-              style={{ fontFamily: 'inherit' }}
-            >
-              <Avatar user={currentUser!} size="sm" avatarSeed={appSettings.userAvatarSeed} />
-              <span className="text-[13px] font-500 text-text-2 capitalize truncate">{currentUser}</span>
-            </button>
-          ) : (
-            <RailTooltip label="Profile" description="Edit your profile">
-              <button onClick={onSwitchUser} className="mt-2 bg-transparent border-none cursor-pointer shrink-0">
+            <nav className={`flex flex-col gap-0.5 ${railExpanded ? '' : 'items-center'}`}>
+              {NAV_SECTIONS.filter((s) => s.footer).map(renderSection)}
+            </nav>
+
+            {railExpanded ? (
+              <button
+                onClick={onSwitchUser}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm cursor-pointer transition-all
+                  bg-transparent hover:bg-layer-2 border-none"
+                style={{ fontFamily: 'inherit' }}
+              >
                 <Avatar user={currentUser!} size="sm" avatarSeed={appSettings.userAvatarSeed} />
+                <span className="text-[13px] font-500 text-text-2 capitalize truncate">{currentUser}</span>
               </button>
-            </RailTooltip>
-          )}
+            ) : (
+              <RailTooltip label="Profile" description="Edit your profile">
+                <button onClick={onSwitchUser} className="mt-2 bg-transparent border-none cursor-pointer shrink-0">
+                  <Avatar user={currentUser!} size="sm" avatarSeed={appSettings.userAvatarSeed} />
+                </button>
+              </RailTooltip>
+            )}
+          </div>
         </div>
       </div>
+
+      {panelSection && (
+        <NavSectionPanel
+          section={panelSection}
+          isViewEnabled={isViewEnabled}
+          badges={badges}
+          onSelectView={handleNavClick}
+          onExtensionNavigate={handleExtensionNavClick}
+        />
+      )}
     </div>
   )
 }
