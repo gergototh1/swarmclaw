@@ -339,6 +339,16 @@ and "Built-in platform capabilities are **not** extensions."
   `SWARMCLAW_EXTENSION_FAILURE_THRESHOLD` (default 3). An extension that throws
   on a common path will disappear from agents on its own, so treat a
   "the tool vanished" report as a possible auto-disable before anything else.
+- A page in `ui.pages` picks its place in the rail with **`section`**, one of
+  the seven ids in `src/lib/app/nav-sections.ts` (`home`, `chat`, `work`,
+  `knowledge`, `connect`, `operations`, `settings`). It defaults to `work`,
+  and an unrecognized value falls back to `work` too — a page never drops out
+  of the navigation. `order` (default `100`) sorts a page among the other
+  extension pages of the same section; ties break on `label`. Within a
+  section, extension pages render above that section's built-in entries.
+  The old `position` field (`'end'`, `'after:<view>'`) still parses so an
+  installed extension doesn't break, but nothing reads it for placement —
+  every value resolves to `work`.
 
 ### Proving a Capability Reaches an Agent
 
