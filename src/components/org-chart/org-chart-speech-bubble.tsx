@@ -30,7 +30,7 @@ export function OrgChartSpeechBubble({ text, x, y }: Props) {
       <div className="relative bg-raised/95 border border-line-default rounded-[8px] px-2.5 py-1.5 shadow-lg max-w-[120px]">
         <div className="text-[9px] text-text-2 truncate">{text.slice(0, 40)}</div>
         {/* Tail */}
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-[-5px] w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-white/[0.1]" />
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-[-5px] w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-line-default" />
       </div>
     </div>
   )

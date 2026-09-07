@@ -190,7 +190,7 @@ export function NotificationCenter({
             <button
               key={n.id}
               onClick={() => handleNotificationClick(n)}
-              className={`w-full text-left px-4 py-3 border-l-[3px] border-b border-b-white/[0.03] bg-transparent
+              className={`w-full text-left px-4 py-3 border-l-[3px] border-b border-b-line-subtle bg-transparent
                 hover:bg-layer-1 transition-colors cursor-pointer border-t-0 border-r-0
                 ${TYPE_COLORS[n.type]}
                 ${n.read ? 'opacity-50' : ''}`}

@@ -38,3 +38,12 @@ test('an unmappable class returns null instead of a guess', () => {
   assert.equal(mapWhiteAlphaClass('shadow-white/[0.04]'), null)
   assert.equal(mapWhiteAlphaClass('bg-black/[0.04]'), null)
 })
+
+test('directional border/divide forms map onto the same line ladder', () => {
+  assert.equal(mapWhiteAlphaClass('border-t-white/[0.1]'), 'border-t-line-default')
+  assert.equal(mapWhiteAlphaClass('border-b-white/[0.03]'), 'border-b-line-subtle')
+  assert.equal(mapWhiteAlphaClass('border-x-white/[0.2]'), 'border-x-line-strong')
+  assert.equal(mapWhiteAlphaClass('divide-y-white/[0.06]'), 'divide-y-line-subtle')
+  assert.equal(mapWhiteAlphaClass('hover:border-t-white/[0.06]'), 'hover:border-t-line-subtle')
+  assert.equal(mapWhiteAlphaClass('border-t-white/[0.4]'), null)
+})

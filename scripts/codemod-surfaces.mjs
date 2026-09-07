@@ -26,8 +26,10 @@ const LINE_STEPS = [[0.06, 'line-subtle'], [0.12, 'line-default'], [1, 'line-str
 const SURFACE_PREFIXES = ['bg']
 /** Utility prefixes that take a line token. */
 const LINE_PREFIXES = ['border', 'divide', 'ring', 'outline']
+/** Directional suffixes the line-ladder prefixes may carry (`border-t-`, `divide-x-`, ...). */
+const DIRECTIONS = ['t', 'b', 'l', 'r', 'x', 'y', 's', 'e']
 
-const CLASS_RE = /^((?:[a-z0-9-]+:)*)([a-z-]+)-white\/\[([0-9.]+)\]$/
+const CLASS_RE = /^((?:[a-z0-9-]+:)*)([a-z]+)(-[tblrxyse])?-white\/\[([0-9.]+)\]$/
 
 function step(steps, alpha) {
   for (const [bound, token] of steps) if (alpha <= bound) return token
@@ -42,9 +44,13 @@ function step(steps, alpha) {
 export function mapWhiteAlphaClass(cls) {
   const m = CLASS_RE.exec(cls)
   if (!m) return null
-  const [, variants, prefix, alphaRaw] = m
+  const [, variants, prefix, direction, alphaRaw] = m
   const alpha = Number(alphaRaw)
   if (!Number.isFinite(alpha) || alpha <= 0) return null
+
+  // Only the line-ladder prefixes take a directional form. `bg-t-` etc. isn't
+  // a Tailwind utility, so refuse rather than guess.
+  if (direction && !LINE_PREFIXES.includes(prefix)) return null
 
   if (SURFACE_PREFIXES.includes(prefix)) {
     // Above 0.13 a background is an overlay, not a surface. The ladder tops out
@@ -54,7 +60,7 @@ export function mapWhiteAlphaClass(cls) {
   }
   if (LINE_PREFIXES.includes(prefix)) {
     if (alpha > 0.3) return null
-    return `${variants}${prefix}-${step(LINE_STEPS, alpha)}`
+    return `${variants}${prefix}${direction ?? ''}-${step(LINE_STEPS, alpha)}`
   }
   if (prefix === 'text') {
     if (alpha >= 0.8) return `${variants}text-fg-1`
@@ -64,7 +70,10 @@ export function mapWhiteAlphaClass(cls) {
   return null
 }
 
-const TARGET_RE = /(?:[a-z0-9-]+:)*(?:bg|border|divide|ring|outline|text)-white\/\[[0-9.]+\]/g
+const TARGET_RE = new RegExp(
+  `(?:[a-z0-9-]+:)*(?:bg|(?:border|divide|ring|outline)(?:-(?:${DIRECTIONS.join('|')}))?|text)-white/\\[[0-9.]+\\]`,
+  'g'
+)
 
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
