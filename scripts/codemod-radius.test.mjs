@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mapRadiusClass } from './codemod-radius.mjs'
+import { mapRadiusClass, findRadiusClasses } from './codemod-radius.mjs'
 
 test('pixel radii collapse onto the five-step scale', () => {
   assert.equal(mapRadiusClass('rounded-[4px]'), 'rounded-xs')
@@ -34,4 +34,27 @@ test('non-pixel and non-radius classes are refused', () => {
 
 test('a radius of zero is refused rather than rounded up', () => {
   assert.equal(mapRadiusClass('rounded-[0px]'), null)
+})
+
+test('findRadiusClasses catches non-px arbitrary radii, not just \\d+px', () => {
+  const source = `
+    <div className="rounded-[50%]" />
+    <div className="rounded-[inherit]" />
+    <div className="rounded-[var(--r)]" />
+    <div className="rounded-t-[1rem]" />
+    <div className="rounded-[12px]" />
+  `
+  assert.deepEqual(findRadiusClasses(source), [
+    'rounded-[50%]',
+    'rounded-[inherit]',
+    'rounded-[var(--r)]',
+    'rounded-t-[1rem]',
+    'rounded-[12px]',
+  ])
+})
+
+test('classes findRadiusClasses catches but CLASS_RE declines map to null, for the refusal report', () => {
+  for (const cls of ['rounded-[50%]', 'rounded-[inherit]', 'rounded-[var(--r)]', 'rounded-t-[1rem]']) {
+    assert.equal(mapRadiusClass(cls), null, `${cls} should be refused, not silently dropped`)
+  }
 })

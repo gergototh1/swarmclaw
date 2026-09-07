@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 /**
- * One-shot codemod: arbitrary rounded-[Npx] classes, spread over fifteen
- * distinct pixel values, onto a five-step scale. Fifteen radii is why the
- * surface reads as unplanned; the ESLint guard keeps a sixteenth from
- * appearing.
+ * One-shot codemod: 1837 arbitrary rounded-[Npx] classes, spread over
+ * nineteen distinct pixel values (3-28px, plus 999px for pills), onto a
+ * five-step scale. Nineteen radii is why the surface reads as unplanned; a
+ * future ESLint rule (see eslint.config.mjs) is meant to keep a twentieth
+ * from appearing, but that guard has not landed yet -- nothing enforces the
+ * scale today beyond review.
  *
  * Same shape as codemod-surfaces.mjs: refuse and report rather than guess.
  * The two regexes below are deliberately asymmetric for the same reason that
@@ -52,15 +54,29 @@ export function mapRadiusClass(cls) {
 }
 
 /**
- * Every `rounded[-<anything>]-[Npx]` in the text, whatever the suffix.
+ * Every `rounded[-<anything>]-[...]` in the text, whatever the suffix and
+ * whatever is inside the brackets.
  *
- * Deliberately wider than the set of sides CLASS_RE knows: CLASS_RE is the
- * single authority on which side/corner suffix is valid Tailwind, and a
- * suffix it declines has to reach the refusal list rather than be filtered
- * out here and vanish.
+ * Deliberately wider than the set of sides CLASS_RE knows, and deliberately
+ * wider than the `\d+px` shape CLASS_RE maps: CLASS_RE is the single
+ * authority on which side/corner suffix is valid Tailwind and which bracket
+ * contents this scale expresses, and anything it declines -- a percentage,
+ * a CSS variable, `inherit`, a unit other than px -- has to reach the
+ * refusal list rather than be filtered out here and vanish. An earlier,
+ * narrower version of this regex matched only `\[\d+px\]` and so never even
+ * saw `rounded-[50%]` or `rounded-[inherit]` to refuse them -- the same bug
+ * class that hit codemod-surfaces.mjs's TARGET_RE/CLASS_RE split twice.
  */
-const TARGET_RE = /(?:[a-z0-9-]+:)*rounded(?:-[a-z]+)?-\[\d+px\]/g
+const TARGET_RE = /(?:[a-z0-9-]+:)*rounded(?:-[a-z]+)?-\[[^\]]+\]/g
 
+/**
+ * Read-only counterpart to main(): every arbitrary radius class TARGET_RE
+ * finds, mapped or not, without rewriting anything. main() does not call
+ * this -- it drives the replace itself -- but a future audit script or the
+ * ESLint rule promised above can call it to list what a file contains
+ * without mutating it. Covered directly in the test file so the widened
+ * TARGET_RE stays exercised even though main() never touches it.
+ */
 export function findRadiusClasses(source) {
   return source.match(TARGET_RE) ?? []
 }
