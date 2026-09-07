@@ -56,8 +56,7 @@ export function pathToView(pathname: string): AppView | null {
 /**
  * Resolve which `AppView`, if any, the sidebar rail should render as active
  * for a given pathname. Returns `null` for any path that isn't a registered
- * `AppView` — an extension page under `/x/`, or an in-app route (like the
- * merged `/stream` page) that hasn't been given a view yet.
+ * `AppView` — an extension page under `/x/`, for instance.
  *
  * Nothing highlighted is the correct behavior for those paths. Falling back to
  * `'home'` would light up the wrong rail entry for every unrecognized route,
