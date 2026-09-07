@@ -144,16 +144,23 @@ const MAX_HIANYZO_ELOFORDULAS = 4
 const GMT_ELTOLAS = /^GMT(?:([+-])(\d{1,2})(?::(\d{2}))?)?$/
 
 /**
- * One `Intl.DateTimeFormat` for one zone, and the module's named refusal when
- * the configured zone is not a zone.
+ * One `Intl.DateTimeFormat` for one zone, and the module's named refusals when
+ * the zone is missing or is not a zone.
  *
- * The refusal names the setting and the module's own default, never the value
- * the caller passed -- an unknown zone name is exactly the kind of string a
- * refusal must not hand back next to the module's own text.
+ * TWO DIFFERENT FACTS, TWO DIFFERENT SENTENCES: "you did not pass one" points
+ * the caller at `idozonaOf` and the setting, because the fix is to go and read
+ * it; "that is not a zone I know" points the operator at the settings field,
+ * because the fix is to correct what is stored there.
+ *
+ * Both are the module's own text. `Intl.DateTimeFormat` throws a bare
+ * `RangeError: Invalid time zone specified: ...` for an unknown zone, which is
+ * an unnamed refusal AND echoes the caller's value back -- exactly what a
+ * refusal in this module may not do. It is caught here so it never reaches an
+ * operator.
  */
 function zonaFormatter(zona) {
-  if (typeof zona !== 'string' || zona === '') {
-    throw new TypeError(`kovetkezoSzabadSav: az idozona csak IANA-zónanév lehet (a modul alapértéke: ${ALAP_IDOZONA})`)
+  if (typeof zona !== 'string' || zona.trim() === '') {
+    throw new TypeError(`kovetkezoSzabadSav: az idozona kötelező, és csak IANA-zónanév lehet -- a modul beállításából olvasd ki (idozonaOf), az adja az alapértéket is: ${ALAP_IDOZONA}`)
   }
   try {
     return new Intl.DateTimeFormat('en-US', { timeZone: zona, timeZoneName: 'longOffset' })
@@ -287,11 +294,23 @@ function ervenytelenFoglalas(foglalas) {
  * whose free occurrences are the same instant -- goes to the one EARLIER IN
  * `savok`, which `savok()` (src/db.mjs) orders by `nap, ora, perc`.
  *
- * `zona` is the IANA zone the slot's `nap`/`ora`/`perc` is read in; see the
- * file docblock for why a slot is a wall clock and not a UTC triple. The
- * default is the module's own `ALAP_IDOZONA`, which is also the `idozona`
- * setting's default, so a caller that forgets to pass the setting gets the
- * configured default rather than UTC.
+ * `zona` is the IANA zone the slot's `nap`/`ora`/`perc` is read in -- see the
+ * file docblock for why a slot is a wall clock and not a UTC triple -- and it
+ * is REQUIRED, with no default.
+ *
+ * A default here would read as a kindness and behave as a trap. `ALAP_IDOZONA`
+ * is the module's CONSTANT, not the operator's SETTING, and the two stop being
+ * the same string the moment the operator edits the field. A caller that
+ * forgot the argument would then compute Budapest slots while the settings
+ * page said Lisbon, with nothing anywhere reporting the disagreement -- the
+ * same silent wrongness as a due filter reading a column that does not exist,
+ * one layer up. Required makes that unwritable: there is no way to reach this
+ * function without having gone and read the setting.
+ *
+ * The default belongs at the ONE place that reads the setting, which is
+ * `idozonaOf` below, and at the settings field's own `defaultValue`
+ * (`index.mjs`) -- so an operator who never opens the field still gets
+ * `ALAP_IDOZONA`, and the arithmetic still never guesses.
  *
  * Pure: no clock read, no database read, no `TZ` read. `most` is always the
  * caller's own `new Date()` (or a fixture's), so this is testable without one.
@@ -299,10 +318,10 @@ function ervenytelenFoglalas(foglalas) {
  * @param {Array<{ id: string, nap: number, ora: number, perc: number }>} savok
  * @param {Array<{ savId: string, idopont: string }>} foglaltak
  * @param {Date} most
- * @param {string} [zona]
+ * @param {string} zona
  * @returns {{ savId: string, idopont: string } | null}
  */
-export function kovetkezoSzabadSav(savok, foglaltak, most, zona = ALAP_IDOZONA) {
+export function kovetkezoSzabadSav(savok, foglaltak, most, zona) {
   if (!Array.isArray(savok)) throw new TypeError('kovetkezoSzabadSav: a savok csak sáv-sorok tömbje lehet')
   if (!Array.isArray(foglaltak)) throw new TypeError('kovetkezoSzabadSav: a foglaltak csak foglalt sáv-előfordulások tömbje lehet')
   if (!(most instanceof Date) || Number.isNaN(most.getTime())) throw new TypeError('kovetkezoSzabadSav: a most csak érvényes Date lehet')

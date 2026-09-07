@@ -28,6 +28,9 @@ import { freshRepo } from './helpers.mjs'
  * CET again after that.
  */
 
+/** The zone every call below reads its slots in. There is no default on the arithmetic -- see `kovetkezoSzabadSav`'s own docblock -- so a fixture names it the same way a caller does. */
+const BUDAPEST = ALAP_IDOZONA
+
 /** The thrown error itself, so a refusal's own sentence can be asserted -- `assert.throws` returns nothing. Same helper as `test/db.test.mjs`. */
 function refusal(fn) {
   try {
@@ -42,9 +45,9 @@ test('a jóváhagyott kiadás a következő SZABAD sávba áll', () => {
   const savok = [{ id: 's1', nap: 1, ora: 9, perc: 0 }, { id: 's2', nap: 1, ora: 18, perc: 0 }]
   // Hétfő 07:00 budapesti idő: a 09:00-s sáv még előttünk van.
   const most = new Date('2026-09-07T05:00:00.000Z')
-  assert.equal(kovetkezoSzabadSav(savok, [], most).savId, 's1')
+  assert.equal(kovetkezoSzabadSav(savok, [], most, BUDAPEST).savId, 's1')
   const foglalt = [{ savId: 's1', idopont: '2026-09-07T07:00:00.000Z' }]
-  assert.equal(kovetkezoSzabadSav(savok, foglalt, most).savId, 's2')
+  assert.equal(kovetkezoSzabadSav(savok, foglalt, most, BUDAPEST).savId, 's2')
 })
 
 test('kovetkezoSzabadSav: a sávok hetente ismétlődnek -- a mai lejárt előfordulás után a JÖVŐ HETIT adja, sosem múltbelit', () => {
@@ -55,7 +58,7 @@ test('kovetkezoSzabadSav: a sávok hetente ismétlődnek -- a mai lejárt előfo
   // mint semmi.
   const savok = [{ id: 's1', nap: 1, ora: 9, perc: 0 }]
   const most = new Date('2026-09-07T10:00:00.000Z') // hétfő 12:00 Budapest, a 09:00 elment
-  const r = kovetkezoSzabadSav(savok, [], most)
+  const r = kovetkezoSzabadSav(savok, [], most, BUDAPEST)
   assert.ok(r !== null && Date.parse(r.idopont) > most.getTime(), 'soha nem ad múltbeli időpontot')
   assert.equal(r.idopont, '2026-09-14T07:00:00.000Z') // a KÖVETKEZŐ hétfő 09:00 budapesti idő
 })
@@ -110,8 +113,8 @@ test('a kiszámolt idopont és az operátor felulirt_idopont-ja két külön osz
 
 test('ugyanaz a sáv júliusban és decemberben ugyanazt a BUDAPESTI fali órát adja, két különböző UTC-pillanattal', () => {
   const savok = [{ id: 's1', nap: 1, ora: 9, perc: 0 }] // "hétfő 9:00", ahogy az operátor beírja
-  const nyar = kovetkezoSzabadSav(savok, [], new Date('2026-07-01T00:00:00.000Z'))
-  const tel = kovetkezoSzabadSav(savok, [], new Date('2026-12-01T00:00:00.000Z'))
+  const nyar = kovetkezoSzabadSav(savok, [], new Date('2026-07-01T00:00:00.000Z'), BUDAPEST)
+  const tel = kovetkezoSzabadSav(savok, [], new Date('2026-12-01T00:00:00.000Z'), BUDAPEST)
   // Nyáron CEST (+2), télen CET (+1): két különböző UTC-pillanat...
   assert.equal(nyar.idopont, '2026-07-06T07:00:00.000Z')
   assert.equal(tel.idopont, '2026-12-07T08:00:00.000Z')
@@ -128,8 +131,8 @@ test('a "hétfő 00:30 budapesti idő" sáv egész évben ugyanaz a sor -- UTC-b
   // nap/ora/perc hármas sincs, ha a hármas UTC-t jelent. Fali óraként egy sor
   // elég, és az UTC-pillanat vasárnapra csúszik -- mindkét évszakban.
   const savok = [{ id: 'ejfel', nap: 1, ora: 0, perc: 30 }]
-  assert.equal(kovetkezoSzabadSav(savok, [], new Date('2026-07-01T00:00:00.000Z')).idopont, '2026-07-05T22:30:00.000Z')
-  assert.equal(kovetkezoSzabadSav(savok, [], new Date('2026-12-01T00:00:00.000Z')).idopont, '2026-12-06T23:30:00.000Z')
+  assert.equal(kovetkezoSzabadSav(savok, [], new Date('2026-07-01T00:00:00.000Z'), BUDAPEST).idopont, '2026-07-05T22:30:00.000Z')
+  assert.equal(kovetkezoSzabadSav(savok, [], new Date('2026-12-01T00:00:00.000Z'), BUDAPEST).idopont, '2026-12-06T23:30:00.000Z')
 })
 
 test('a heti ismétlés HÉT FALIÓRA-NAP, nem 168 óra: a tavaszi óraátállításon át sem csúszik el', () => {
@@ -139,9 +142,9 @@ test('a heti ismétlés HÉT FALIÓRA-NAP, nem 168 óra: a tavaszi óraátállí
   // az operátor beírt.
   const savok = [{ id: 's1', nap: 1, ora: 9, perc: 0 }]
   const most = new Date('2026-03-23T00:00:00.000Z')
-  const elso = kovetkezoSzabadSav(savok, [], most)
+  const elso = kovetkezoSzabadSav(savok, [], most, BUDAPEST)
   assert.equal(elso.idopont, '2026-03-23T08:00:00.000Z') // hétfő 09:00 CET
-  const masodik = kovetkezoSzabadSav(savok, [{ savId: 's1', idopont: elso.idopont }], most)
+  const masodik = kovetkezoSzabadSav(savok, [{ savId: 's1', idopont: elso.idopont }], most, BUDAPEST)
   assert.equal(masodik.idopont, '2026-03-30T07:00:00.000Z') // hétfő 09:00 CEST, nem 08:00Z
 })
 
@@ -150,7 +153,7 @@ test('a tavasszal KIMARADÓ falióra-perc egy hetet ugrik, nem csúszik át a sz
   // 02:30" azon a héten nem létezik. A 03:30-ra igazítás olyan időpontra
   // tenné ki a kiadást, amit az operátor sosem kért.
   const savok = [{ id: 'hajnali', nap: 0, ora: 2, perc: 30 }]
-  const r = kovetkezoSzabadSav(savok, [], new Date('2026-03-23T00:00:00.000Z'))
+  const r = kovetkezoSzabadSav(savok, [], new Date('2026-03-23T00:00:00.000Z'), BUDAPEST)
   assert.equal(r.idopont, '2026-04-05T00:30:00.000Z') // a KÖVETKEZŐ vasárnap 02:30 CEST
 })
 
@@ -160,25 +163,55 @@ test('az ősszel KÉTSZER lejátszódó falióra-perc a második előfordulásra
   // modul az óraátállítás UTÁNI előfordulást adja. Nem mindegy, melyiket --
   // de az számít, hogy ki legyen mondva és pinnelve.
   const savok = [{ id: 'hajnali', nap: 0, ora: 2, perc: 30 }]
-  const r = kovetkezoSzabadSav(savok, [], new Date('2026-10-19T00:00:00.000Z'))
+  const r = kovetkezoSzabadSav(savok, [], new Date('2026-10-19T00:00:00.000Z'), BUDAPEST)
   assert.equal(r.idopont, '2026-10-25T01:30:00.000Z')
 })
 
 test('a zóna a modul ADATA: más zónában ugyanaz a sáv más pillanatot ad', () => {
   const savok = [{ id: 's1', nap: 1, ora: 9, perc: 0 }]
   const most = new Date('2026-09-07T05:00:00.000Z')
-  assert.equal(kovetkezoSzabadSav(savok, [], most).idopont, '2026-09-07T07:00:00.000Z') // alapból Europe/Budapest
+  assert.equal(kovetkezoSzabadSav(savok, [], most, BUDAPEST).idopont, '2026-09-07T07:00:00.000Z')
   assert.equal(kovetkezoSzabadSav(savok, [], most, 'UTC').idopont, '2026-09-07T09:00:00.000Z')
   assert.equal(kovetkezoSzabadSav(savok, [], most, 'Pacific/Kiritimati').idopont, '2026-09-13T19:00:00.000Z')
 })
 
-test('kovetkezoSzabadSav: elutasítja az ismeretlen időzónát, a hívó értékét vissza nem mondva', () => {
+test('a zóna KÖTELEZŐ: elhagyva megnevezett elutasítás, nem csendben budapesti számolás', () => {
+  // Nincs alapértéke a számtannak. Az `ALAP_IDOZONA` a modul KONSTANSA, nem az
+  // operátor BEÁLLÍTÁSA, és a kettő nem ugyanaz a string abban a pillanatban,
+  // amikor az operátor átírja a mezőt. Egy alapérték itt azt jelentené, hogy
+  // egy hívó, aki elfelejtette átadni a beállítást, budapesti sávokat
+  // számolna, miközben a beállítás-lap mást mond -- és semmi nem jelezné az
+  // eltérést. Ugyanaz a néma tévedés, mint egy nem létező oszlopra szűrni.
+  const savok = [{ id: 's1', nap: 1, ora: 9, perc: 0 }]
+  const most = new Date('2026-09-07T05:00:00.000Z')
+  const hianyzik = refusal(() => kovetkezoSzabadSav(savok, [], most))
+  assert.ok(hianyzik instanceof TypeError, 'a zóna elhagyása nem lehet csendes')
+  assert.match(hianyzik.message, /idozona/)
+  // Az elutasítás megmondja, mi a teendő: olvasd ki a beállításból.
+  assert.match(hianyzik.message, /idozonaOf/)
+  for (const nemZona of [undefined, null, '', '   ', 42, {}]) {
+    assert.throws(() => kovetkezoSzabadSav(savok, [], most, nemZona), TypeError)
+  }
+  // És a zóna hiánya akkor is elutasítás, ha egyetlen sáv sincs beállítva --
+  // az üres-tömb ág nem kerülheti meg az ellenőrzést.
+  assert.throws(() => kovetkezoSzabadSav([], [], most), TypeError)
+})
+
+test('kovetkezoSzabadSav: elutasítja az ismeretlen időzónát a saját mondatával, nem az Intl RangeError-jával', () => {
+  // Az `Intl.DateTimeFormat` nyers `RangeError: Invalid time zone specified:
+  // Nincs/Ilyen`-t dob: megnevezetlen elutasítás, ami ráadásul visszamondja a
+  // hívó értékét. Egyik sem érhet el az operátorig.
   const savok = [{ id: 's1', nap: 1, ora: 9, perc: 0 }]
   const err = refusal(() => kovetkezoSzabadSav(savok, [], new Date('2026-09-07T05:00:00.000Z'), 'Nincs/Ilyen'))
   assert.ok(err instanceof TypeError, 'nem utasította el az ismeretlen zónát')
+  assert.equal(err instanceof RangeError, false, 'az Intl saját RangeError-ja nem szivároghat ki')
   assert.match(err.message, /idozona/)
   assert.equal(err.message.includes('Nincs/Ilyen'), false, 'a hívó által küldött érvénytelen érték nem jelenhet meg az elutasításban')
-  assert.throws(() => kovetkezoSzabadSav(savok, [], new Date('2026-09-07T05:00:00.000Z'), ''), TypeError)
+  assert.equal(/Invalid time zone/.test(err.message), false, 'az Intl saját szövege nem jelenhet meg az elutasításban')
+  // A hiányzó és az ismeretlen zóna KÉT KÜLÖN tény, két külön mondattal: az
+  // egyik a hívót küldi a beállításhoz, a másik az operátort a mezőhöz.
+  const hianyzik = refusal(() => kovetkezoSzabadSav(savok, [], new Date('2026-09-07T05:00:00.000Z')))
+  assert.notEqual(err.message, hianyzik.message)
 })
 
 test('idozonaOf: a kiürített és a soha be nem állított mező is a modul alapértékét adja', () => {
@@ -201,10 +234,10 @@ test('két sáv ugyanarra a percre NEM duplázza a kapacitást: a foglalás a pi
   // operátor kétszer írta be ugyanazt az időt.
   const savok = [{ id: 's1', nap: 1, ora: 9, perc: 0 }, { id: 's2', nap: 1, ora: 9, perc: 0 }]
   const most = new Date('2026-09-07T05:00:00.000Z')
-  const elso = kovetkezoSzabadSav(savok, [], most)
+  const elso = kovetkezoSzabadSav(savok, [], most, BUDAPEST)
   assert.equal(elso.idopont, '2026-09-07T07:00:00.000Z')
 
-  const masodik = kovetkezoSzabadSav(savok, [{ savId: elso.savId, idopont: elso.idopont }], most)
+  const masodik = kovetkezoSzabadSav(savok, [{ savId: elso.savId, idopont: elso.idopont }], most, BUDAPEST)
   assert.equal(masodik.idopont, '2026-09-14T07:00:00.000Z', 'a másik sáv nem oszthatja ki újra ugyanazt a percet')
 })
 
@@ -214,7 +247,7 @@ test('kovetkezoSzabadSav: holtversenynél a savok tömbben ELŐBB álló sáv ny
   // összehasonlításában a KÉSŐBBI tömbelemet adná -- ugyanaz a pillanat, más
   // savId, és a naptár más sávba rajzolná a bejegyzést.
   const savok = [{ id: 'elso', nap: 1, ora: 9, perc: 0 }, { id: 'masodik', nap: 1, ora: 9, perc: 0 }]
-  const r = kovetkezoSzabadSav(savok, [], new Date('2026-09-07T05:00:00.000Z'))
+  const r = kovetkezoSzabadSav(savok, [], new Date('2026-09-07T05:00:00.000Z'), BUDAPEST)
   assert.equal(r.savId, 'elso')
 })
 
@@ -226,7 +259,7 @@ test('kovetkezoSzabadSav: az ora és a perc nem cserélhető fel némán -- a po
   // pillanat az állítás.
   const savok = [{ id: 's1', nap: 2, ora: 9, perc: 47 }, { id: 's2', nap: 2, ora: 9, perc: 12 }]
   const most = new Date('2026-09-08T00:00:00.000Z') // kedd 02:00 Budapest (nap = 2)
-  const r = kovetkezoSzabadSav(savok, [], most)
+  const r = kovetkezoSzabadSav(savok, [], most, BUDAPEST)
   assert.equal(r.savId, 's2')
   assert.equal(r.idopont, '2026-09-08T07:12:00.000Z') // kedd 09:12 CEST
 })
@@ -234,7 +267,7 @@ test('kovetkezoSzabadSav: az ora és a perc nem cserélhető fel némán -- a po
 test('kovetkezoSzabadSav: a nap száma a ZÓNA fali napja szerint dönt, nem a tömbindex', () => {
   const savok = [{ id: 'pentek', nap: 5, ora: 8, perc: 0 }, { id: 'szerda', nap: 3, ora: 8, perc: 0 }]
   const most = new Date('2026-09-07T00:00:00.000Z') // hétfő 02:00 Budapest
-  const r = kovetkezoSzabadSav(savok, [], most)
+  const r = kovetkezoSzabadSav(savok, [], most, BUDAPEST)
   assert.equal(r.savId, 'szerda')
   assert.equal(r.idopont, '2026-09-09T06:00:00.000Z') // a két nappal későbbi szerda 08:00 CEST, nem a péntek
 })
@@ -242,12 +275,12 @@ test('kovetkezoSzabadSav: a nap száma a ZÓNA fali napja szerint dönt, nem a t
 test('kovetkezoSzabadSav: a most-tal pontosan egybeeső előfordulás NEM szabad -- egy héttel odébb ugrik', () => {
   const savok = [{ id: 's1', nap: 1, ora: 9, perc: 0 }]
   const most = new Date('2026-09-07T07:00:00.000Z') // pontosan a sáv saját pillanata
-  const r = kovetkezoSzabadSav(savok, [], most)
+  const r = kovetkezoSzabadSav(savok, [], most, BUDAPEST)
   assert.equal(r.idopont, '2026-09-14T07:00:00.000Z')
 })
 
 test('kovetkezoSzabadSav: üres savok esetén null', () => {
-  assert.equal(kovetkezoSzabadSav([], [], new Date('2026-09-07T09:00:00.000Z')), null)
+  assert.equal(kovetkezoSzabadSav([], [], new Date('2026-09-07T09:00:00.000Z'), BUDAPEST), null)
 })
 
 test('kovetkezoSzabadSav: elutasítja az érvénytelen sávot a nap HATÁRÁN is, a hívó értékét vissza nem mondva', () => {
@@ -255,19 +288,19 @@ test('kovetkezoSzabadSav: elutasítja az érvénytelen sávot a nap HATÁRÁN is
   // A 7 a nap első ÉRVÉNYTELEN értéke. Az `ujSav` (src/db.mjs) pinneli, de a
   // `kovetkezoSzabadSav` publikus belépő, ami bárhonnan kaphat sort -- a
   // saját határát a saját tesztje kell hogy őrizze.
-  const hetes = refusal(() => kovetkezoSzabadSav([{ id: 's1', nap: 7, ora: 9, perc: 0 }], [], most))
+  const hetes = refusal(() => kovetkezoSzabadSav([{ id: 's1', nap: 7, ora: 9, perc: 0 }], [], most, BUDAPEST))
   assert.ok(hetes instanceof TypeError, 'a 7-es nap az első ÉRVÉNYTELEN érték, és elutasítást kell kapnia')
   assert.equal(hetes.message.includes('nap: 7'), false)
-  assert.throws(() => kovetkezoSzabadSav([{ id: 's1', nap: -1, ora: 9, perc: 0 }], [], most), TypeError)
-  assert.throws(() => kovetkezoSzabadSav([{ id: 's1', nap: 9, ora: 9, perc: 0 }], [], most), TypeError)
-  assert.throws(() => kovetkezoSzabadSav([{ id: 's1', nap: 1, ora: 24, perc: 0 }], [], most), TypeError)
-  assert.throws(() => kovetkezoSzabadSav([{ id: 's1', nap: 1, ora: 9, perc: 60 }], [], most), TypeError)
-  assert.throws(() => kovetkezoSzabadSav([{ nap: 1, ora: 9, perc: 0 }], [], most), TypeError)
+  assert.throws(() => kovetkezoSzabadSav([{ id: 's1', nap: -1, ora: 9, perc: 0 }], [], most, BUDAPEST), TypeError)
+  assert.throws(() => kovetkezoSzabadSav([{ id: 's1', nap: 9, ora: 9, perc: 0 }], [], most, BUDAPEST), TypeError)
+  assert.throws(() => kovetkezoSzabadSav([{ id: 's1', nap: 1, ora: 24, perc: 0 }], [], most, BUDAPEST), TypeError)
+  assert.throws(() => kovetkezoSzabadSav([{ id: 's1', nap: 1, ora: 9, perc: 60 }], [], most, BUDAPEST), TypeError)
+  assert.throws(() => kovetkezoSzabadSav([{ nap: 1, ora: 9, perc: 0 }], [], most, BUDAPEST), TypeError)
 })
 
 test('kovetkezoSzabadSav: elutasítja az érvénytelen most-ot', () => {
-  assert.throws(() => kovetkezoSzabadSav([], [], new Date('nem-datum')), TypeError)
-  assert.throws(() => kovetkezoSzabadSav([], [], 'nem is Date'), TypeError)
+  assert.throws(() => kovetkezoSzabadSav([], [], new Date('nem-datum'), BUDAPEST), TypeError)
+  assert.throws(() => kovetkezoSzabadSav([], [], 'nem is Date', BUDAPEST), TypeError)
 })
 
 test('kovetkezoSzabadSav: a foglaltak minden elemét ELLENŐRZI, nem csak a savok-at', () => {
@@ -275,14 +308,14 @@ test('kovetkezoSzabadSav: a foglaltak minden elemét ELLENŐRZI, nem csak a savo
   const most = new Date('2026-09-07T05:00:00.000Z')
   // Enélkül: nyers `RangeError: Invalid time value` a V8-tól, egy operátornak
   // szánt felületen.
-  const rossz = refusal(() => kovetkezoSzabadSav(savok, [{ savId: 's1', idopont: 'nem-datum' }], most))
+  const rossz = refusal(() => kovetkezoSzabadSav(savok, [{ savId: 's1', idopont: 'nem-datum' }], most, BUDAPEST))
   assert.ok(rossz instanceof TypeError, 'nem utasította el a hibás foglalást')
   assert.match(rossz.message, /foglaltak/)
   assert.equal(rossz.message.includes('nem-datum'), false, 'a hívó által küldött érvénytelen érték nem jelenhet meg az elutasításban')
-  assert.throws(() => kovetkezoSzabadSav(savok, [{ savId: 's1' }], most), TypeError)
-  assert.throws(() => kovetkezoSzabadSav(savok, [{ idopont: '2026-09-07T07:00:00.000Z' }], most), TypeError)
-  assert.throws(() => kovetkezoSzabadSav(savok, [null], most), TypeError)
-  assert.throws(() => kovetkezoSzabadSav(savok, ['2026-09-07T07:00:00.000Z'], most), TypeError)
+  assert.throws(() => kovetkezoSzabadSav(savok, [{ savId: 's1' }], most, BUDAPEST), TypeError)
+  assert.throws(() => kovetkezoSzabadSav(savok, [{ idopont: '2026-09-07T07:00:00.000Z' }], most, BUDAPEST), TypeError)
+  assert.throws(() => kovetkezoSzabadSav(savok, [null], most, BUDAPEST), TypeError)
+  assert.throws(() => kovetkezoSzabadSav(savok, ['2026-09-07T07:00:00.000Z'], most, BUDAPEST), TypeError)
 })
 
 test('kovetkezoSzabadSav: a savId nélküli foglalás nem látszik szabadnak', () => {
@@ -291,7 +324,7 @@ test('kovetkezoSzabadSav: a savId nélküli foglalás nem látszik szabadnak', (
   // ugyanarra a percre egy második kiadás került. Most megnevezett elutasítás.
   const savok = [{ id: 's1', nap: 1, ora: 9, perc: 0 }]
   const most = new Date('2026-09-07T05:00:00.000Z')
-  assert.throws(() => kovetkezoSzabadSav(savok, [{ savId: '', idopont: '2026-09-07T07:00:00.000Z' }], most), TypeError)
+  assert.throws(() => kovetkezoSzabadSav(savok, [{ savId: '', idopont: '2026-09-07T07:00:00.000Z' }], most, BUDAPEST), TypeError)
 })
 
 // --- esedekes: több kiadás egyszerre, és a HARMADIK tény ---
