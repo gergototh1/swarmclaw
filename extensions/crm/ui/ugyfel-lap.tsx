@@ -74,6 +74,43 @@ export function idovonalOsztaly(kind: string): string {
   return 'crm-tlitem crm-tl-note'
 }
 
+/**
+ * Feladat-státusz magyar felirata.
+ *
+ * A lap két forrásból kap feladatot ugyanazon a `status` mezőn: a host saját
+ * feladattáblája (`src/lib/server/tasks/task-route-service.ts`
+ * `BoardTaskStatus`) `backlog`/`queued`/`running`/`completed`/`failed`/
+ * `archived`-et ad, a CRM-3 (elfogadott javaslatból/lezárt ígéretből
+ * született) feladatok pedig `open`/`in_progress`/`done`-t -- ezért mindkét
+ * halmaz szerepel itt. `ugyfelek.tsx` STATUSZ táblázatával egyező minta:
+ * ismeretlen értékre a nyers string a visszaesés, hogy egy új/nem listázott
+ * státusz inkább csúnyán, mint némán tűnjön el.
+ */
+const FELADAT_STATUSZ: Record<string, string> = {
+  open: 'Nyitott', in_progress: 'Folyamatban', done: 'Kész',
+  backlog: 'Várólistán', queued: 'Sorban áll', running: 'Fut',
+  completed: 'Kész', failed: 'Sikertelen', archived: 'Archivált',
+}
+
+export function feladatStatuszCimke(status: string): string {
+  return FELADAT_STATUSZ[status] || status
+}
+
+/**
+ * Idővonal-esemény fajtájának magyar felirata (lásd `idovonalOsztaly` a
+ * fajta-osztály párjához, ugyanazon a `kind` mezőn). Zárt halmaz -- csak
+ * `src/rpc.mjs` és `src/sweep.mjs` ír `kind`-ot eseményre, mindhárom itt
+ * szerepel --, de ismeretlenre itt is a nyers érték a visszaesés, ugyanazon
+ * okból, mint `FELADAT_STATUSZ`-nál.
+ */
+const ESEMENY_FAJTA: Record<string, string> = {
+  note: 'Jegyzet', email_in: 'Bejövő email', email_out: 'Kimenő email',
+}
+
+export function esemenyFajtaCimke(kind: string): string {
+  return ESEMENY_FAJTA[kind] || kind
+}
+
 export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: string; onBack: () => void }) {
   const [lap, setLap] = useState<Lap | null>(null)
   const [hiba, setHiba] = useState('')
@@ -287,7 +324,7 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
                     {feladatok.map((f) => (
                       <li key={f.id} className="crm-row">
                         <span className="crm-grow">{f.title}</span>
-                        <span className="crm-pill crm-pill-plain">{f.status}</span>
+                        <span className="crm-pill crm-pill-plain">{feladatStatuszCimke(f.status)}</span>
                         {f.dueAt
                           ? <time className="crm-age" dateTime={new Date(f.dueAt).toISOString()}>{new Date(f.dueAt).toLocaleDateString('hu-HU')}</time>
                           : <span className="crm-age">nincs határidő</span>}
@@ -374,7 +411,7 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
                       <time className="crm-tltime" dateTime={e.occurred_at}>
                         {e.occurred_at.slice(0, 16).replace('T', ' ')}
                       </time>
-                      <span className="crm-pill crm-pill-plain">{e.kind}</span>
+                      <span className="crm-pill crm-pill-plain">{esemenyFajtaCimke(e.kind)}</span>
                     </div>
                     {e.title && <span className="crm-atttitle">{e.title}</span>}
                     {teljes === undefined

@@ -221,3 +221,83 @@ test('a .crm-pipe negy szakasz-oszlopot ad, es 900px/520px alatt omlik ossze', (
   assert.ok(szukGrid, 'a harmadik .crm-pipe szabalynak grid-template-columns-t kell deklaralnia')
   assert.equal(szukGrid[1].trim(), '1fr', 'a legszukebb nezetben egyetlen oszlopra kell omolnia')
 })
+
+/**
+ * Zarojel-melysegtudatos tordelo: a `grid-template-columns` ertekeben a
+ * ket oszlopot elvalaszto szokoz megtalalasahoz a fuggveny-argumentumok
+ * (`minmax(0, 380px)`) BELSO vesszo utani szokozeit NEM szabad
+ * oszlophatarnak nezni -- egy naiv `split(/\s+/)` ezt elrontana.
+ */
+function oszlopokra(ertek) {
+  const eredmeny = []
+  let darab = ''
+  let melyseg = 0
+  for (const ch of ertek.trim()) {
+    if (ch === '(') melyseg += 1
+    if (ch === ')') melyseg -= 1
+    if (/\s/.test(ch) && melyseg === 0) {
+      if (darab) eredmeny.push(darab)
+      darab = ''
+    } else {
+      darab += ch
+    }
+  }
+  if (darab) eredmeny.push(darab)
+  return eredmeny
+}
+
+test('a .crm-tri jobb (pickers) oszlopa korlatos, nem tudja 0-ra nyomni a bal (kuldo/targy) oszlopot', () => {
+  // Regresszios teszt az F1 review-talalatra: `grid-template-columns: 1fr
+  // auto` mellett egy hosszu <option> szoveg (valos eset: egy 115
+  // karakteres magyar cegnev) a <select> max-content szelesseget 789px-re
+  // hizlalta, az 'auto' oszlop erre nott, es a bal '1fr' oszlop (`min-
+  // width: 0` miatt osszenyomhato) 0px-re esett ossze -- a kuldo cime es a
+  // targy egy-egy karakter szelessegu oszlopba tordelodott. A jobb
+  // oszlopnak explicit, FIX (nem szazalekos, nem "auto") felso korlatot
+  // kell viselnie, kulonben ez a regresszio megismetlodhet.
+  //
+  // FONTOS, amit egy javitasi kiserlet soran a bongeszoben mertem: a
+  // `minmax(0, min(46%, max-content))` -- ami csak akkor korlatozna, ha
+  // tenylegesen szukseges lenne -- ERVENYTELEN CSS grid track-meretkent
+  // (a %-ot es a max-content kulcsszot nem lehet `min()`-ben keverni):
+  // Chrome-ban `getComputedStyle(...).gridTemplateColumns` ilyenkor
+  // csendben "none"-ra esik, es a regi, hibas `auto` viselkedes marad
+  // eletben. Ezert ez a teszt kifejezetten kizarja a `min(`-et tartalmazo
+  // erteket is, nem csak a csupasz "auto"-t.
+  //
+  // Egy masik latszolagos javitas, a `minmax(0, 46%)` (tiszta szazalek)
+  // szinten ERVENYES CSS, DE a grid track-meretezo "Maximize Tracks"
+  // lepese ilyenkor a jobb oszlopot MINDIG pontosan 46%-ra hizlalja, meg
+  // akkor is, ha a tartalma ennel sokkal kevesebb helyet igenyelne --
+  // mertem: egy rovid (2 opcios) select-tel is 46%-ot foglalt a jobb
+  // oszlop, feleslegesen szukitve a bal oszlopot minden NORMAL sorban is,
+  // nem csak a patologikus esetben. Ezert ez a teszt a szazalekos erteket
+  // is elutasitja -- fix (px/rem/em) korlat kell.
+  const blokkok = szabalyBlokkok(kommentNelkul)
+  const alap = blokkok.find((b) => b.szelektorok.includes('.crm-tri') && /display:\s*grid/.test(b.torzs))
+  assert.ok(alap, '.crm-tri alap szabalynak grid elrendezesnek kell lennie')
+
+  const gridMatch = alap.torzs.match(/grid-template-columns:\s*([^;]+);/)
+  assert.ok(gridMatch, '.crm-tri-nek grid-template-columns-t kell deklaralnia')
+  const oszlopok = oszlopokra(gridMatch[1])
+  assert.equal(oszlopok.length, 2, '.crm-tri pontosan ket oszlopot ad')
+
+  const jobb = oszlopok[1]
+  assert.notEqual(jobb, 'auto', 'a jobb oszlop nem lehet korlatlan "auto" -- ez pontosan az F1 regresszios mintazata')
+  assert.doesNotMatch(jobb, /^minmax\(0,\s*auto\)$/, 'a jobb oszlop "auto" maximuma ugyanugy korlatlan, akkor is, ha minmax()-ba csomagolva')
+  assert.doesNotMatch(jobb, /min\(/, 'a `min()` egy szazalekot es egy max-content kulcsszot keverve ERVENYTELEN grid track-meretkent -- a bongeszo csendben eldobja az egesz deklaraciot, es a regi "auto" hibara esik vissza')
+  assert.doesNotMatch(jobb, /%/, 'egy tiszta szazalekos felso korlat a "Maximize Tracks" lepes miatt MINDIG arra a szazalekra hizlalna az oszlopot, akkor is, ha rovid a tartalom -- fix (px/rem/em) korlat kell')
+  assert.match(jobb, /\d+(px|rem|em)\)?$/, 'a jobb oszlopnak fix hosszusagu felso korlatot kell viselnie')
+
+  // A <select> es a talalgatas-pill (mindketto tarolt szoveget mutat,
+  // mindketto `.crm-btn`-tol orokolt `white-space: nowrap`) onmagaban is
+  // szet tudna feszíteni egy mar korlatos oszlopot -- lasd style.css F1
+  // kommentjet. Mindkettonek explicit `max-width`-et kell kapnia.
+  const selectSzabaly = blokkok.find((b) => b.szelektorok.some((s) => s.includes('.crm-tri-pickers') && s.includes('select')))
+  assert.ok(selectSzabaly, 'a .crm-tri-pickers select-nek sajat max-width szabalyt kell kapnia')
+  assert.match(selectSzabaly.torzs, /max-width:\s*\d/, 'a select max-width-jenek fix hosszusagunak kell lennie (nem szazalek -- lasd a komment a korkoros fuggosegrol)')
+
+  const guessSzabaly = blokkok.find((b) => b.szelektorok.some((s) => s.includes('.crm-tri-pickers') && s.includes('crm-pill')))
+  assert.ok(guessSzabaly, 'a talalgatas-pillnek (.crm-tri-pickers button.crm-pill) sajat max-width szabalyt kell kapnia')
+  assert.match(guessSzabaly.torzs, /max-width:\s*\d/, 'a talalgatas-pill max-width-jenek fix hosszusagunak kell lennie')
+})

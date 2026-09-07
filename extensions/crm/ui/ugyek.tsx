@@ -84,9 +84,19 @@ export function UgyekNezet({ rpc }: { rpc: Rpc }) {
                     <span className="crm-dealt">{d.title}</span>
                     <span className="crm-deala">{nevOf(d.account_id)}</span>
                     {d.value_huf > 0 && <span className="crm-dealv">{d.value_huf.toLocaleString('hu-HU')} Ft</span>}
+                    {/*
+                      F3: a "Tovább" -- a leggyakoribb, könnyen visszavonható
+                      lépés (a lead a következő szakaszba kerül) -- kapja a
+                      hangsúlyos (primary) stílust. A "Nyert"/"Elvesztett" a
+                      ritka, lezáró, nehezen visszavonható döntés -- ugyanazt
+                      a halk (quiet) kezelést kapják, egymással egyenrangúan,
+                      hogy egyik se tűnjön a másiknál "biztonságosabb"
+                      alapértelmezésnek. A handlerek, a feltétel és a magyar
+                      feliratok változatlanok.
+                    */}
                     <div className="crm-attact">
-                      {kovetkezo && <button className="crm-btn crm-btn-sm" onClick={() => lept(d.id, kovetkezo)}>Tovább</button>}
-                      <button className="crm-btn crm-btn-primary crm-btn-sm" onClick={() => lezar(d.id, 'won')}>Nyert</button>
+                      {kovetkezo && <button className="crm-btn crm-btn-primary crm-btn-sm" onClick={() => lept(d.id, kovetkezo)}>Tovább</button>}
+                      <button className="crm-btn crm-btn-quiet crm-btn-sm" onClick={() => lezar(d.id, 'won')}>Nyert</button>
                       <button className="crm-btn crm-btn-quiet crm-btn-sm" onClick={() => lezar(d.id, 'lost')}>Elvesztett</button>
                     </div>
                   </div>

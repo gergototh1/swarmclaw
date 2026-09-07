@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { bundle } from '../scripts/build.mjs'
-import { idovonalOsztaly, lapozottIdovonal, ugyfelFeladatai } from '../ui/ugyfel-lap.tsx'
+import {
+  esemenyFajtaCimke, feladatStatuszCimke, idovonalOsztaly, lapozottIdovonal, ugyfelFeladatai,
+} from '../ui/ugyfel-lap.tsx'
 
 /**
  * A "Korábbiak" gomb a `timeline` rpc-t hívja a lista végén (a legrégebbi
@@ -89,4 +91,34 @@ test('az esemeny fajtaja adja az idovonal-osztalyt', () => {
   assert.equal(idovonalOsztaly('email_out'), 'crm-tlitem crm-tl-out')
   assert.equal(idovonalOsztaly('note'), 'crm-tlitem crm-tl-note')
   assert.equal(idovonalOsztaly('barmi_mas'), 'crm-tlitem crm-tl-note')
+})
+
+/**
+ * F4: a feladat-státusz és az esemény-fajta pillek korábban a nyers
+ * (angol) adatértéket mutatták egy egyébként magyar felületen
+ * (`in_progress`, `open`, `done`, `note`, `email_in`, `email_out`) --
+ * `ugyfelek.tsx` STATUSZ táblázatával egyező mintát követve most magyar
+ * feliratot kapnak, ismeretlen értékre a nyers stringgel mint
+ * visszaeséssel, hogy egy új/nem listázott érték inkább csúnyán, mint
+ * némán tűnjön el.
+ */
+test('feladatStatuszCimke: ismert statuszra magyar feliratot ad', () => {
+  assert.equal(feladatStatuszCimke('open'), 'Nyitott')
+  assert.equal(feladatStatuszCimke('in_progress'), 'Folyamatban')
+  assert.equal(feladatStatuszCimke('done'), 'Kész')
+  assert.equal(feladatStatuszCimke('completed'), 'Kész')
+})
+
+test('feladatStatuszCimke: ismeretlen statuszra a nyers erteket adja vissza (visszaeses)', () => {
+  assert.equal(feladatStatuszCimke('barmi_ismeretlen'), 'barmi_ismeretlen')
+})
+
+test('esemenyFajtaCimke: ismert fajtara magyar feliratot ad', () => {
+  assert.equal(esemenyFajtaCimke('note'), 'Jegyzet')
+  assert.equal(esemenyFajtaCimke('email_in'), 'Bejövő email')
+  assert.equal(esemenyFajtaCimke('email_out'), 'Kimenő email')
+})
+
+test('esemenyFajtaCimke: ismeretlen fajtara a nyers erteket adja vissza (visszaeses)', () => {
+  assert.equal(esemenyFajtaCimke('barmi_ismeretlen'), 'barmi_ismeretlen')
 })
