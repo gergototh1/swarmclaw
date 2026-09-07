@@ -138,3 +138,63 @@ describe('files/serve media', () => {
     assert.equal(res.status, 403)
   })
 })
+
+/**
+ * The crash this file exists to keep out.
+ *
+ * A <video> element does not read a response to its end: it asks for
+ * `bytes=0-`, reads enough to find the duration, and drops the connection --
+ * and again on every seek. With `Readable.toWeb` the file stream kept pushing
+ * into a closed controller, the throw arrived on an I/O callback with nobody
+ * awaiting it, and Next exited code=1 with
+ * `ERR_INVALID_STATE: Controller is already closed`. Opening a video's page
+ * killed the app.
+ *
+ * `process.on('uncaughtException')` is what pins it: the failure was never a
+ * rejected promise the caller could see, which is exactly why no earlier test
+ * caught it.
+ */
+describe('files/serve media, reader leaves early', () => {
+  /**
+   * WHAT THESE TWO PIN, AND WHAT THEY DO NOT.
+   *
+   * They do NOT reproduce the crash this code was rewritten for. That crash --
+   * `ERR_INVALID_STATE: Controller is already closed`, an uncaughtException
+   * that exited the server code=1 the first time a browser opened a video's
+   * page -- was verified NOT to reproduce here: with `Readable.toWeb` back in
+   * place both of these still pass. It needs a real HTTP connection torn down
+   * by a real client on Electron's Node, which is where it was observed and
+   * where the fix was verified by hand. A test that claimed otherwise would be
+   * worse than none, so this comment is the claim.
+   *
+   * What they do pin is the two things the hand-built stream must get right
+   * and that the in-process reader can actually observe: cancelling must not
+   * leave a pull waiting on a stream that will never speak again, and it must
+   * release the descriptor so the next open still works.
+   */
+  it('a cancelled read does not leave the stream waiting forever', async () => {
+    const res = await serve(tempMp4(4 * 1024 * 1024))
+    assert.equal(res.status, 200)
+    const reader = res.body!.getReader()
+    await reader.read()
+    // `cancel()` resolving is the assertion: with a `pull` that waits on an
+    // event a destroyed stream never sends, this hangs and the runner reports
+    // the promise as still pending.
+    await reader.cancel()
+  })
+
+  it('twenty cancelled reads still leave the file openable', async () => {
+    const file = tempMp4(4 * 1024 * 1024)
+    for (let i = 0; i < 20; i += 1) {
+      const res = await serve(file)
+      const reader = res.body!.getReader()
+      await reader.read()
+      await reader.cancel()
+    }
+    // Not a descriptor count -- the platform owns that -- but the fact that a
+    // twenty-first open still succeeds, which is what a leak would take away.
+    const res = await serve(file)
+    assert.equal(res.status, 200)
+    assert.equal((await res.arrayBuffer()).byteLength, 4 * 1024 * 1024)
+  })
+})

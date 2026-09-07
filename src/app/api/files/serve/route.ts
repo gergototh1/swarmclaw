@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
-import { Readable } from 'node:stream'
 import { resolveWorkspacePath } from '@/lib/server/resolve-workspace-path'
 
 const MIME_MAP: Record<string, string> = {
@@ -95,6 +94,73 @@ function byteRange(header: string | null, size: number): { start: number; end: n
   return { start, end: Math.min(end, size - 1) }
 }
 
+/**
+ * One file range as a web stream that survives its reader leaving.
+ *
+ * Kept out of the handler because the handler is about which bytes to send and
+ * this is about the one way sending them can go wrong.
+ */
+function streamFile(file: string, start: number, end: number): ReadableStream<Uint8Array> {
+  const source = fs.createReadStream(/*turbopackIgnore: true*/ file, { start, end })
+  source.pause()
+  let done = false
+  // The one waiter a `pull` leaves behind when the file has nothing ready yet.
+  // It is a single slot, not a listener per pull: `once` per call accumulated
+  // handlers on a stream that may never emit again, and a promise waiting on
+  // an event a destroyed stream will not send is a hang, not a slow read.
+  let wake: (() => void) | null = null
+  const ebred = () => { const w = wake; wake = null; if (w) w() }
+
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      const zar = (err?: Error) => {
+        if (done) return
+        done = true
+        try {
+          if (err) controller.error(err)
+          else controller.close()
+        } catch {
+          // Already closed: the reader left first. There is nothing to report
+          // and nobody to report it to.
+        }
+        ebred()
+      }
+      source.on('readable', ebred)
+      source.on('end', () => zar())
+      source.on('close', () => { done = true; ebred() })
+      source.on('error', (err: Error) => zar(err))
+    },
+    async pull(controller) {
+      while (!done) {
+        const chunk = source.read() as Buffer | null
+        if (chunk !== null) {
+          try {
+            controller.enqueue(new Uint8Array(chunk))
+          } catch {
+            // The reader went away between our read and our enqueue.
+            done = true
+            source.destroy()
+          }
+          return
+        }
+        // Nothing buffered yet. Wait for the next `readable`, `end`, `close`
+        // or `error` -- all four resolve this, so a destroyed stream cannot
+        // leave the promise pending.
+        await new Promise<void>((resolve) => { wake = resolve })
+      }
+    },
+    cancel() {
+      // The browser dropped the connection -- on a seek, or because the page
+      // closed. Destroying the read stream is what releases the descriptor;
+      // without it every seek would leak one. `close` then wakes any pending
+      // pull, so nothing is left waiting on a stream that will not speak again.
+      done = true
+      source.destroy()
+      ebred()
+    },
+  })
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url)
   const filePath = url.searchParams.get('path')
@@ -149,15 +215,27 @@ export async function GET(req: Request) {
     // `readFileSync` used to answer a plain empty 200. There is nothing to
     // stream, so there is no stream.
     //
-    // `Readable.toWeb` really does produce a web stream of Uint8Array chunks;
-    // the cast only reconciles @types/node's `stream/web` declaration with the
-    // DOM one the Response constructor is typed against. A Node stream handed
-    // straight to NextResponse also works at runtime, but needs an
-    // `as unknown as` -- this keeps the assertion down to one hop of a type
-    // that is actually true.
-    const body = stat.size === 0
-      ? null
-      : Readable.toWeb(fs.createReadStream(/*turbopackIgnore: true*/ resolved, { start, end })) as ReadableStream<Uint8Array>
+    // WHY THIS IS HAND-BUILT AND NOT `Readable.toWeb`.
+    //
+    // `Readable.toWeb` was here, and it took the whole server down the first
+    // time a browser played a video. A <video> element does not read a
+    // response to its end: it asks for `bytes=0-`, reads enough to find the
+    // duration, and drops the connection -- and it does that again on every
+    // seek. When the consumer goes away the web stream's controller closes,
+    // the file stream underneath does not, and its next chunk lands on a
+    // closed controller. That throw happens on an I/O callback with nobody
+    // awaiting it, so it arrives as an uncaughtException and Next exits
+    // code=1. The log said `ERR_INVALID_STATE: Controller is already closed`
+    // and the app died on opening a video's page.
+    //
+    // So the two ends are wired together explicitly. `cancel` destroys the
+    // file stream, which is what closes the descriptor when the browser walks
+    // away mid-seek. `pull` reads one chunk at a time, so a 12 MB render is
+    // not buffered in memory to satisfy a reader that wants the first
+    // kilobyte. And every `enqueue`/`close` is guarded, because "the consumer
+    // left" is a normal event here, not an error to report -- there is no
+    // longer anyone to report it to.
+    const body = stat.size === 0 ? null : streamFile(resolved, start, end)
     return new NextResponse(body, {
       status: range ? 206 : 200,
       headers: {
