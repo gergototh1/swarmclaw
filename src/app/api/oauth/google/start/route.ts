@@ -43,15 +43,25 @@ const SCOPES: Record<string, string[]> = {
   // a single Google request. The first operator to connect a mailbox should
   // paste the screen's own sentence here with the date.
   gmail: ['https://www.googleapis.com/auth/gmail.modify'],
-  // The smallest single scope that inserts a video: `youtube.upload` can
-  // create, update and delete videos owned by the connected channel, but
-  // cannot read or write anything else about it. Deliberately absent are
+  // The smallest single scope that inserts a video, and it INSERTS AND
+  // NOTHING ELSE. YouTube Data API v3's own scope table accepts
+  // youtube.upload for videos.insert alone: videos.update and videos.delete
+  // both require youtube or youtube.force-ssl, so a token minted for this
+  // purpose cannot edit or remove a video even if this app asked it to --
+  // not the uploaded one, and not any other. Deliberately absent are
   // `youtube` (full read/write access to the channel: playlists,
   // subscriptions, comments) and `youtube.force-ssl` (the same, over a scope
   // Google requires for a few additional write calls this app never makes).
-  // A token minted for this purpose can therefore publish and remove videos
-  // it uploaded, but cannot read the channel's subscriber list, moderate
-  // comments, or touch a video this app did not upload itself.
+  //
+  // STILL UNRECORDED AS OF 2026-09-07, and recorded as unrecorded rather than
+  // guessed, exactly as the gmail entry above does: nobody has run this flow
+  // either. youtube.upload is a sensitive scope with its own verification
+  // question, so what is unknown here is the wording Google puts on the
+  // consent screen for it, whether an unverified project is let through, and
+  // whether the 1600-unit-per-upload cost and 10000-unit daily quota that
+  // extensions/publish/src/platform/youtube.mjs refuses from are the numbers
+  // a real response actually reports. The first operator to connect a channel
+  // should paste the screen's own sentence here with the date.
   publish: ['https://www.googleapis.com/auth/youtube.upload'],
 }
 

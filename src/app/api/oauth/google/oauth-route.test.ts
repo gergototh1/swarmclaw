@@ -151,20 +151,28 @@ describe('GET /api/oauth/google/start', () => {
     assert.doesNotMatch(out.location, /gmail\.settings/)
   })
 
-  it('keeps the aisignal purpose on gmail.readonly when gmail asks for more', () => {
-    // The two purposes key two separate credentials. Adding the wider grant
-    // must not widen the one the newsletter sweep already holds.
-    const out = runWithTempDataDir<{ aisignal: string; gmail: string }>(`
+  it('keeps every other purpose where it was when a new one is added', () => {
+    // Each purpose keys its own credential. Adding a purpose -- gmail's wider
+    // grant, or publish's YouTube one -- must not widen any of the others, so
+    // all three are read in one child process and compared against each other
+    // rather than each being pinned alone.
+    const out = runWithTempDataDir<{ aisignal: string; gmail: string; publish: string }>(`
       ${DESKTOP_ENV}
       ${LOAD_ROUTES}
       const scopeOf = async (purpose) => {
         const res = await start(new Request('http://127.0.0.1:4321/api/oauth/google/start?purpose=' + purpose))
         return new URL(res.headers.get('location')).searchParams.get('scope') || ''
       }
-      console.log(JSON.stringify({ aisignal: await scopeOf('aisignal'), gmail: await scopeOf('gmail') }))
+      console.log(JSON.stringify({ aisignal: await scopeOf('aisignal'), gmail: await scopeOf('gmail'), publish: await scopeOf('publish') }))
     `)
     assert.equal(out.aisignal, 'https://www.googleapis.com/auth/gmail.readonly')
     assert.equal(out.gmail, 'https://www.googleapis.com/auth/gmail.modify')
+    assert.equal(out.publish, 'https://www.googleapis.com/auth/youtube.upload')
+    // No purpose carries another's scope: the publish grant is not a Gmail
+    // grant and neither Gmail grant reaches YouTube.
+    assert.doesNotMatch(out.publish, /gmail/)
+    assert.doesNotMatch(out.aisignal, /youtube/)
+    assert.doesNotMatch(out.gmail, /youtube/)
   })
 
   it('asks for youtube.upload on the publish purpose, and for nothing wider', () => {
@@ -182,9 +190,17 @@ describe('GET /api/oauth/google/start', () => {
     assert.equal(out.status, 302)
     assert.equal(out.scope, 'https://www.googleapis.com/auth/youtube.upload')
     // Neither of the two scopes that would let this app read or moderate the
-    // rest of the channel (subscriptions, comments, playlists it did not
-    // upload) is ever requested.
-    assert.notEqual(out.scope, 'https://www.googleapis.com/auth/youtube')
+    // rest of the channel -- or edit or delete a video at all, which
+    // youtube.upload on its own cannot do -- is ever requested. Checked
+    // against the SPLIT scope list and not against the whole string: a bare
+    // `.../youtube` is a prefix of `.../youtube.upload`, so neither a
+    // substring match nor a `notEqual` on the joined value can tell
+    // 'youtube.upload' from 'youtube.upload youtube' apart, which is exactly
+    // the widening this test exists to catch.
+    const scopes = out.scope.split(' ')
+    assert.deepEqual(scopes, ['https://www.googleapis.com/auth/youtube.upload'])
+    assert.equal(scopes.includes('https://www.googleapis.com/auth/youtube'), false)
+    assert.equal(scopes.includes('https://www.googleapis.com/auth/youtube.force-ssl'), false)
     assert.doesNotMatch(out.location, /force-ssl/)
   })
 })

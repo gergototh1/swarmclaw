@@ -1,7 +1,7 @@
 import { AGENTS } from './src/agents.mjs'
 import { ALAP_IDOZONA, MIGRATIONS, createRepo } from './src/db.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
-import { createYoutubeAdapter } from './src/platform/youtube.mjs'
+import { ALAP_LATHATOSAG, createYoutubeAdapter } from './src/platform/youtube.mjs'
 import { createSzovegTools } from './src/szoveg.mjs'
 
 /**
@@ -179,10 +179,12 @@ const publish = {
     { extension: 'video', contract: 'videos', version: 1, reason: 'A kész, QA-átment videókból csinál kiadást: a fájl útját, az ujjlenyomatát, a hosszát és a narráció szövegét olvassa.' },
   ],
   /**
-   * No `pages` yet (design spec 10 lists `ui/` as a later task's file) -- one
-   * settings field, and it is the module's publishing zone.
+   * No `pages` yet (design spec 10 lists `ui/` as a later task's file) --
+   * three settings fields: the module's publishing zone, and the two
+   * decisions about a YouTube upload that this module refuses to make on the
+   * operator's behalf.
    *
-   * It is a FIELD and not a buried constant because a slot means a WALL CLOCK
+   * `idozona` is a FIELD and not a buried constant because a slot means a WALL CLOCK
    * (src/utemezes.mjs's file docblock): `{ nap: 1, ora: 9, perc: 0 }` is
    * "Monday 09:00" in the zone named here, all year, DST included. An
    * operator who never opens this page still gets `Europe/Budapest` --
@@ -194,6 +196,39 @@ const publish = {
     settingsFields: [
       { key: 'idozona', label: 'Publikálási időzóna', type: 'text', defaultValue: ALAP_IDOZONA, placeholder: ALAP_IDOZONA,
         help: 'IANA-zónanév. A publikálási sávok "hétfő 9:00"-ja ennek a zónának a fali óráján értendő, nyári időszámítással együtt -- nem UTC-ben.' },
+      // A NYILVÁNOS PUBLIKÁLÁS AZ EGYETLEN VISSZAFORDÍTHATATLAN LÉPÉS AZ EGÉSZ
+      // LÁNCBAN, ezért a `public` az operátor kifejezett választása mögé kerül
+      // és nem egy literál mögé a küldő kódjában (src/platform/youtube.mjs
+      // docblockja mondja el egészben, miért). Az alapérték `private`: a
+      // feltöltés ugyanúgy megtörténik, ugyanúgy valódi azonosítót és nézési
+      // URL-t ad vissza, ugyanúgy `kesz`-re állítja az ágat -- csak a csatorna
+      // nézői nem látják, amíg az operátor a Studióban meg nem nézte és át nem
+      // kapcsolta. `unlisted` azért van itt, mert valódi YouTube-állapot (egy
+      // linkkel megosztható előnézet), nem azért, mert a modulnak kellene.
+      { key: 'lathatosag', label: 'YouTube láthatóság', type: 'select', defaultValue: ALAP_LATHATOSAG,
+        options: [
+          { value: 'private', label: 'Privát -- csak te látod (alapértelmezett)' },
+          { value: 'unlisted', label: 'Nem listázott -- linkkel megnyitható' },
+          { value: 'public', label: 'Nyilvános -- azonnal kimegy a csatornára' },
+        ],
+        help: 'Az újonnan feltöltött videók láthatósága a YouTube-on. Alapból privát, hogy a feltöltést a YouTube Studióban meg tudd nézni, mielőtt bárki látná; a nyilvánosra kapcsolás visszafordíthatatlan lépés, ezért ez a te döntésed, nem a modulé.' },
+      // COPPA-NYILATKOZAT, ALAPÉRTÉK NÉLKÜL. A YouTube minden feltöltésnél
+      // megköveteli, hogy a feltöltő kijelentse, gyerekeknek készült-e a
+      // tartalom. Ez TÉNYÁLLÍTÁS, jogi súllyal, és a modulnak nincs se
+      // bemenete, se tartalomelemzése, amivel megállapíthatná -- egy
+      // bedrótozott `false` egyszerre lenne állítás és ellenőrizhetetlen.
+      // Ezért nincs `defaultValue`: amíg az operátor nem választ, a feltöltés
+      // megnevezetten elutasít (`gyerekeknek_nincs_beallitva`,
+      // src/platform/youtube.mjs) és erre a mezőre mutat. Az első listaelem
+      // értéke szándékosan üres, hogy a beállítási lap ne válasszon
+      // véletlenül az operátor helyett.
+      { key: 'gyerekeknek', label: 'Gyerekeknek készült tartalom (COPPA)', type: 'select',
+        options: [
+          { value: '', label: 'Nincs beállítva -- a feltöltés eddig elutasít' },
+          { value: 'nem', label: 'Nem gyerekeknek készült' },
+          { value: 'igen', label: 'Gyerekeknek készült' },
+        ],
+        help: 'A YouTube minden feltöltésnél megköveteli ezt a nyilatkozatot (COPPA). A modul nem tudja eldönteni helyetted, és nem is állít olyat, amit nem figyelt meg: amíg nem választasz, a feltöltés elutasít, és erre a mezőre mutat.' },
     ],
   },
   /**

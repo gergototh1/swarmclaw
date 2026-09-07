@@ -23,7 +23,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
  * Task 5 widens it again: `setup()` now also stores `ctx.oauth` (the seam
  * `src/platform/youtube.mjs`'s `createYoutubeAdapter` reads at call time),
  * and the module registers a real `youtube` sender in `state.adapterek` at
- * import time rather than leaving that registry empty for a later task.
+ * import time rather than leaving that registry empty for a later task. Its
+ * fix round widens it once more, with two settings fields that are not
+ * conveniences: `lathatosag` (default `private`) and `gyerekeknek` (NO
+ * default) are the two statements about a video this module refuses to make
+ * on the operator's behalf, and the `ui` pin below is where a later task
+ * quietly restoring a default shows up as a diff.
  */
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -83,23 +88,70 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   assert.deepEqual(out.consumes, ['video.videos'])
   assert.equal(out.migrations, 1)
   assert.equal(out.setup, 'function')
-  // No page yet (design spec 10 lists ui/ as a later task's file) -- one
-  // settings field, the publishing timezone. A slot's `nap`/`ora`/`perc` is a
-  // WALL CLOCK in this zone (src/utemezes.mjs), so the field is the one place
-  // the operator can say which wall. Pinned whole rather than by key count:
-  // a lost `defaultValue` would ship an install whose slots mean nothing in
+  // No page yet (design spec 10 lists ui/ as a later task's file) -- three
+  // settings fields. A slot's `nap`/`ora`/`perc` is a WALL CLOCK in the
+  // `idozona` zone (src/utemezes.mjs), so that field is the one place the
+  // operator can say which wall. Pinned WHOLE rather than by key count: a
+  // lost `defaultValue` would ship an install whose slots mean nothing in
   // particular, and that is exactly the kind of drift this file exists to
   // surface as a diff.
+  //
+  // The two YouTube fields are pinned for a stronger reason than drift. Both
+  // are decisions src/platform/youtube.mjs deliberately refuses to make on
+  // the operator's behalf, and the pin is what makes each one visible as a
+  // diff if a later task quietly restores a default:
+  //   - `lathatosag` MUST default to 'private'. A `defaultValue: 'public'`
+  //     here would mean the first execution of never-run code goes live on a
+  //     real channel with agent-written copy -- the one irreversible step in
+  //     the whole chain.
+  //   - `gyerekeknek` MUST have NO `defaultValue` at all, and its first
+  //     option MUST carry the empty value. It is a COPPA declaration of fact:
+  //     a default -- including a settings page that silently preselects the
+  //     first option -- would have this module state something nobody
+  //     observed. Until it is set, `feltolt` refuses by name.
   assert.deepEqual(out.ui, {
-    settingsFields: [{
-      key: 'idozona',
-      label: 'Publikálási időzóna',
-      type: 'text',
-      defaultValue: 'Europe/Budapest',
-      placeholder: 'Europe/Budapest',
-      help: 'IANA-zónanév. A publikálási sávok "hétfő 9:00"-ja ennek a zónának a fali óráján értendő, nyári időszámítással együtt -- nem UTC-ben.',
-    }],
+    settingsFields: [
+      {
+        key: 'idozona',
+        label: 'Publikálási időzóna',
+        type: 'text',
+        defaultValue: 'Europe/Budapest',
+        placeholder: 'Europe/Budapest',
+        help: 'IANA-zónanév. A publikálási sávok "hétfő 9:00"-ja ennek a zónának a fali óráján értendő, nyári időszámítással együtt -- nem UTC-ben.',
+      },
+      {
+        key: 'lathatosag',
+        label: 'YouTube láthatóság',
+        type: 'select',
+        defaultValue: 'private',
+        options: [
+          { value: 'private', label: 'Privát -- csak te látod (alapértelmezett)' },
+          { value: 'unlisted', label: 'Nem listázott -- linkkel megnyitható' },
+          { value: 'public', label: 'Nyilvános -- azonnal kimegy a csatornára' },
+        ],
+        help: 'Az újonnan feltöltött videók láthatósága a YouTube-on. Alapból privát, hogy a feltöltést a YouTube Studióban meg tudd nézni, mielőtt bárki látná; a nyilvánosra kapcsolás visszafordíthatatlan lépés, ezért ez a te döntésed, nem a modulé.',
+      },
+      {
+        key: 'gyerekeknek',
+        label: 'Gyerekeknek készült tartalom (COPPA)',
+        type: 'select',
+        options: [
+          { value: '', label: 'Nincs beállítva -- a feltöltés eddig elutasít' },
+          { value: 'nem', label: 'Nem gyerekeknek készült' },
+          { value: 'igen', label: 'Gyerekeknek készült' },
+        ],
+        help: 'A YouTube minden feltöltésnél megköveteli ezt a nyilatkozatot (COPPA). A modul nem tudja eldönteni helyetted, és nem is állít olyat, amit nem figyelt meg: amíg nem választasz, a feltöltés elutasít, és erre a mezőre mutat.',
+      },
+    ],
   })
+  // Said again as its own assertion, because a `deepEqual` over three fields
+  // reads as one shape check and this is the single most consequential fact
+  // in it: no default means no declaration, and no declaration means no
+  // upload.
+  const gyerekeknek = out.ui.settingsFields.find((f) => f.key === 'gyerekeknek')
+  assert.equal(Object.prototype.hasOwnProperty.call(gyerekeknek, 'defaultValue'), false)
+  assert.equal(gyerekeknek.options[0].value, '')
+  assert.equal(out.ui.settingsFields.find((f) => f.key === 'lathatosag').defaultValue, 'private')
   // Task 3: exactly one fixed-cadence run (design spec 7), pointed at
   // `publish-kuldo` -- Task 4's own agent key below, the KÖTÖTT NÉV
   // `test/agents.test.mjs` also pins directly against `src/agents.mjs`.
