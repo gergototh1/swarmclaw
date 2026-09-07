@@ -51,6 +51,8 @@ export function validateExtensionPages(
       entry,
       css,
       icon: typeof p.icon === 'string' ? p.icon : undefined,
+      section: typeof p.section === 'string' && p.section.trim() !== '' ? p.section.trim() : undefined,
+      order: typeof p.order === 'number' && Number.isFinite(p.order) ? p.order : undefined,
       position: typeof p.position === 'string' ? p.position : 'end',
     })
   }

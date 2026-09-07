@@ -8,8 +8,32 @@ import {
   Sparkles, Star, Tag, Terminal, TrendingUp, Users, Workflow, Zap,
 } from 'lucide-react'
 import { ExtensionNavItem } from '@/components/layout/nav-item'
-import { splitPagesByPosition, useExtensionPages, type ExtensionPage } from '@/hooks/use-extension-pages'
-import type { ExtensionNavAnchor, ExtensionPageIconName } from '@/lib/extension-page-nav'
+import { useExtensionPages, type ExtensionPage } from '@/hooks/use-extension-pages'
+import type { ExtensionPageIconName } from '@/lib/extension-page-nav'
+
+/**
+ * The one anchor position the rail has ever mounted a slot for.
+ *
+ * This is the last place that still reads the legacy `position` field for
+ * placement — `resolvePageSection`/`pagesForSection` (`@/lib/extension-page-nav`,
+ * `@/hooks/use-extension-pages`) are the section-based replacement and treat
+ * every `position` value, including this one, as belonging to the 'work'
+ * section. Rewiring this component onto sections is the next task; until then
+ * it keeps its own pre-existing anchor/trailing-group split so today's rail
+ * layout does not change out from under that task.
+ */
+const TASKS_ANCHOR_POSITION = 'after:tasks'
+
+/** A built-in view an extension page may anchor itself after. */
+type ExtensionNavAnchor = 'tasks'
+
+/** Select the extension pages that belong in one nav slot (see `TASKS_ANCHOR_POSITION`). */
+function splitPagesByPosition(pages: ExtensionPage[], view: ExtensionNavAnchor | null): ExtensionPage[] {
+  if (view === null) {
+    return pages.filter((p) => p.position !== TASKS_ANCHOR_POSITION)
+  }
+  return pages.filter((p) => p.position === TASKS_ANCHOR_POSITION)
+}
 
 /**
  * The components behind the icon names an extension may declare.
@@ -62,9 +86,10 @@ function ExtensionPageLinks({ pages, expanded, onNavigate }: {
  * Extension-contributed rail entries anchored directly after a built-in entry.
  *
  * `view` names that built-in entry, or `null` for the trailing slot. It is limited
- * to `EXTENSION_NAV_ANCHORS` so the rail cannot mount a slot the trailing group
- * does not know to skip, which would render those pages twice. An extension path
- * is still never an `AppView` and must not be widened into one.
+ * to `TASKS_ANCHOR_POSITION`'s one view so the rail cannot mount a slot the
+ * trailing group does not know to skip, which would render those pages twice.
+ * An extension path is still never an `AppView` and must not be widened into
+ * one.
  */
 export function ExtensionPagesAfter({ view, expanded, onNavigate }: {
   view: ExtensionNavAnchor | null
@@ -81,8 +106,8 @@ export function ExtensionPagesAfter({ view, expanded, onNavigate }: {
  * Trailing rail group for every extension page the rail does not anchor elsewhere.
  *
  * That covers pages with no position, pages that asked for `end`, and pages whose
- * anchor names a view outside `EXTENSION_NAV_ANCHORS`. Renders the same group
- * chrome as the built-in sections, and nothing at all when no extension
+ * anchor names a view other than `TASKS_ANCHOR_POSITION`'s. Renders the same
+ * group chrome as the built-in sections, and nothing at all when no extension
  * contributes a page.
  */
 export function ExtensionPagesEndGroup({ expanded, onNavigate }: {
