@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import type { Rpc } from './api'
+import { szakaszCimke } from './ugyek'
 
 type Event = { id: string; kind: string; occurred_at: string; title: string; excerpt: string }
 type SummaryView = { summary: { text: string; covers_event_at: string }; stale: boolean; newerEvents: number }
@@ -348,7 +349,7 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
                 <option value="lead">Lead</option>
                 <option value="engagement">Megbízás</option>
               </select>
-              <button className="crm-btn" onClick={ugyet}>Új ügy</button>
+              <button className="crm-btn crm-btn-primary" onClick={ugyet}>Új ügy</button>
             </div>
             {lap.deals.length === 0
               ? <p className="crm-empty">Nincs ügy.</p>
@@ -357,7 +358,10 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
                   {lap.deals.map((d) => (
                     <li key={d.id} className="crm-row">
                       <span className="crm-grow">{d.title}</span>
-                      <span className="crm-pill crm-pill-plain">{d.closed_at ? 'lezárt' : d.stage}</span>
+                      {/* I4: a nyers `stage` (`new`, `proposal`) volt az utolsó angol
+                          állapotnév a felületen -- egy sorral a magyar „lezárt" alatt.
+                          A szótár az `ugyek.tsx`-é, nem másolat. */}
+                      <span className="crm-pill crm-pill-plain">{d.closed_at ? 'lezárt' : szakaszCimke(d.stage)}</span>
                       {d.value_huf > 0 && <span className="crm-mono">{d.value_huf.toLocaleString('hu-HU')} Ft</span>}
                     </li>
                   ))}
@@ -375,7 +379,7 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
                      placeholder="Név" aria-label="Új kapcsolat neve" />
               <input value={ujSzerep} onChange={(e) => setUjSzerep(e.target.value)}
                      placeholder="Szerep" aria-label="Új kapcsolat szerepe" />
-              <button className="crm-btn" onClick={kapcsolatot}>Új kapcsolat</button>
+              <button className="crm-btn crm-btn-primary" onClick={kapcsolatot}>Új kapcsolat</button>
             </div>
             <ul className="crm-rows">
               {lap.contacts.map((c) => (
@@ -396,7 +400,7 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
           <div className="crm-toolbar">
             <input value={jegyzet} onChange={(e) => setJegyzet(e.target.value)}
                    placeholder="Jegyzet…" aria-label="Új jegyzet" />
-            <button className="crm-btn" onClick={jegyzetel}>Rögzít</button>
+            <button className="crm-btn crm-btn-primary" onClick={jegyzetel}>Rögzít</button>
           </div>
           <ul className="crm-tl">
             {lap.events.map((e) => {
@@ -420,7 +424,7 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
                           <span className="crm-attwhy">{e.excerpt}</span>
                           <button className="crm-btn crm-btn-quiet crm-btn-sm"
                                   onClick={() => teljesSzoveget(e.id)}
-                                  aria-label={`${e.title || e.kind} teljes szövege`}>Teljes szöveg</button>
+                                  aria-label={`${e.title || esemenyFajtaCimke(e.kind)} teljes szövege`}>Teljes szöveg</button>
                         </>
                       )
                       /* Az idegen szöveg (a levél törzse) sima szövegcsomópontként kerül

@@ -12,8 +12,33 @@
  * tétlen) nem esnek egybe a CRM trigger-típusaival, és egy néma ügy
  * `--status-idle`-ként olyan egyenértékűséget állítana, ami nem igaz.
  *
- * `overflow-wrap: anywhere` minden dobozon, ami tárolt szöveget tart. Azt
- * mind más írta: egy 4000 karakteres szó semmit nem tolhat le a képernyőről.
+ * `overflow-wrap: anywhere` a `.crm-app` GYÖKERÉN áll, nem dobozonként
+ * felsorolva. A tulajdonság öröklődik, tehát így minden leszármazott
+ * megkapja -- az is, ami holnap kerül a lapra. Ez szándékosan osztály-szintű
+ * javítás: a korábbi, dobozonkénti felsorolás kétszer is úgy maradt hiányos,
+ * hogy a hiányzó doboz (`.crm-tri-who`, majd az Ügyfelek domain-listája)
+ * pontosan ugyanazt az összeomlást hozta vissza. A tárolt szöveget mind más
+ * írta: egy 4000 karakteres szó semmit nem tolhat le a képernyőről.
+ *
+ * A tördelés önmagában nem elég: egy grid-sávnak, ami tárolt szöveget tart,
+ * KORLÁTOSNAK is kell lennie a szomszédjával szemben. Ezért minden ilyen
+ * gridben a szöveg sávja `minmax(0, 1fr)` (soha nem eshet a saját
+ * min-contentje alá kényszerítve a szomszédot), a mellette álló, tartalomból
+ * méretezett sáv pedig fix felső korlátot visel (`minmax(0, <px>)`) -- lásd
+ * `.crm-tri`, `.crm-acct`, `.crm-attrow`, `.crm-cols`, `.crm-tlitem`.
+ *
+ * A `--color-warning` tokent a hoszt SEHOL nem definiálja (sem a sötét, sem a
+ * világos témablokkban) -- a fallback `#fbbf24` az, ami ténylegesen
+ * megjelenik, mindkét témában. Világos témában ez a világos borostyán egy
+ * majdnem fehér kártyán olvashatatlan volt (1.37:1). Ezért minden jelentést
+ * hordozó SZÍNES SZÖVEG (a pillek és a `.crm-elavult`/`.crm-hiba`) a saját
+ * tokenjét a `--color-text` FELÉ keveri: a szöveg mindig a téma saját
+ * előtérszíne felé, tehát mindig a háttértől ELFELÉ mozdul, sötétben és
+ * világosban egyaránt. Így egyetlen szabály elég, nincs szükség `.light`
+ * felülírásra, amit egy jövőbeli szerkesztés kifelejthetne. A csík, a keret
+ * és a háttér-tint tiszta tokenszínt tart -- a jelzés-szín tehát megmarad,
+ * csak a betűk kapnak kontrasztot. A számított értékeket lásd az egyes
+ * szabályoknál.
  *
  * F2: a kártyák/gombok/pillek három "emelkedés" rétege korábban a hoszt
  * `--color-surface` / `-2` / `-3` tokenjeire épült. Ezek a hoszt saját
@@ -41,6 +66,8 @@
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text, #e2e2ec);
+  /* Öröklődik minden leszármazottra -- lásd a fájl tetején. */
+  overflow-wrap: anywhere;
 }
 .crm-appbar {
   display: flex; align-items: center; gap: 14px;
@@ -51,7 +78,9 @@
 .crm-tab {
   font: inherit; font-weight: 500;
   background: transparent; border: 1px solid transparent;
-  color: var(--color-text-3, #8282a0);
+  /* C2: `--color-text-3` a lap hátterén világos témában 3.97:1 -- a WCAG AA
+     4.5:1 küszöbe alatt. `--color-text-2`: világos 6.16:1, sötét 7.64:1. */
+  color: var(--color-text-2, #a0a0ba);
   padding: 6px 13px; border-radius: var(--radius-sm, .375rem); cursor: pointer;
 }
 .crm-tab:hover { color: var(--color-text, #e2e2ec); }
@@ -104,7 +133,6 @@
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
   padding: 1px 6px; border-radius: 999px;
 }
-.crm-spacer { margin-left: auto; }
 
 /* ---------- gombok ---------- */
 /*
@@ -148,21 +176,30 @@
   padding: 2px 8px; border-radius: 999px; white-space: nowrap;
   border: 1px solid transparent;
 }
+/*
+ * A négy jelentés-pill szövegszíne a saját tokenjét a `--color-text` felé
+ * keveri -- lásd a fájl tetején, miért ez, és miért nem `.light` felülírás
+ * vagy a fehér (`--color-accent-foreground`) felé keverés. A keverési arányok
+ * pilleként mértek, nem egységesek: a borostyán a legvilágosabb a négy közül
+ * (és tokenje sincs), ezért a legtöbb keverést az igényli.
+ * Kontraszt a saját tint-hátterén (világos / sötét):
+ *   .crm-pill-sajat  5.37 / 6.10   (korábban 3.56 / 4.76)
+ *   .crm-pill-valasz 5.28 / 11.18  (korábban 1.37 / 9.59)
+ *   .crm-pill-nema   5.98 / 5.71   (korábban 2.22 / 6.84)
+ *   .crm-pill-ok     5.35 / 9.85   (korábban 2.88 / 8.47)
+ */
 .crm-pill-sajat {
-  color: var(--color-danger, #f43f5e);
+  color: color-mix(in srgb, var(--color-danger, #f43f5e) 70%, var(--color-text, #e2e2ec));
   background: color-mix(in srgb, var(--color-danger, #f43f5e) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-danger, #f43f5e) 30%, transparent);
 }
 .crm-pill-valasz {
-  color: var(--color-warning, #fbbf24);
+  color: color-mix(in srgb, var(--color-warning, #fbbf24) 35%, var(--color-text, #e2e2ec));
   background: color-mix(in srgb, var(--color-warning, #fbbf24) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-warning, #fbbf24) 30%, transparent);
 }
 .crm-pill-nema {
-  /* A tiszta --color-accent szövegszín a 12%-os tintán 3.63:1 kontrasztot ad
-     (WCAG AA szöveghez 4.5:1 kell) -- a szöveget a fehér felé keverjük, hogy
-     a háttér-tinttel szemben olvasható maradjon (~6.5:1 a fallback-tokenekkel). */
-  color: color-mix(in srgb, var(--color-accent, #6366f1) 65%, var(--color-accent-foreground, #fff));
+  color: color-mix(in srgb, var(--color-accent, #6366f1) 70%, var(--color-text, #e2e2ec));
   background: color-mix(in srgb, var(--color-accent, #6366f1) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent, #6366f1) 30%, transparent);
 }
@@ -174,7 +211,7 @@
   border-color: var(--color-border, rgba(255,255,255,.07));
 }
 .crm-pill-ok {
-  color: var(--color-success, #34d399);
+  color: color-mix(in srgb, var(--color-success, #34d399) 55%, var(--color-text, #e2e2ec));
   background: color-mix(in srgb, var(--color-success, #34d399) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-success, #34d399) 30%, transparent);
 }
@@ -195,7 +232,7 @@
   border-bottom: 1px solid var(--color-border, rgba(255,255,255,.07));
 }
 .crm-row:last-child { border-bottom: 0; }
-.crm-grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.crm-grow { flex: 1; min-width: 0; }
 
 /* ---------- sávok, apróságok ---------- */
 .crm-strip {
@@ -210,30 +247,41 @@
   background: color-mix(in srgb, var(--color-warning, #fbbf24) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-warning, #fbbf24) 30%, transparent);
 }
-.crm-strip-good {
-  background: color-mix(in srgb, var(--color-success, #34d399) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-success, #34d399) 28%, transparent);
-}
 .crm-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .crm-mono { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; }
+/*
+ * C2: a lap minden HALK SZÖVEGE `--color-text-2`-t visel, nem
+ * `--color-text-3`-at. A `-3` világos témában a kártyán 4.13:1-et, a lap
+ * hátterén 3.97:1-et adott -- mindkettő a WCAG AA 4.5:1 küszöbe alatt. A
+ * `-2` kártyán 6.42:1 (világos) / 7.47:1 (sötét), a lap hátterén 6.16:1 /
+ * 7.64:1. A `--color-text-3` innentől már csak DÍSZ (csík, csomópont-keret),
+ * ahol nincs olvasandó betű.
+ */
 .crm-age {
   font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px;
-  color: var(--color-text-3, #8282a0); font-variant-numeric: tabular-nums;
+  color: var(--color-text-2, #a0a0ba); font-variant-numeric: tabular-nums;
 }
-.crm-halvany { color: var(--color-text-3, #8282a0); font-size: 13px; }
-.crm-empty { color: var(--color-text-3, #8282a0); font-size: 13px; padding: 3px 0; }
+.crm-halvany { color: var(--color-text-2, #a0a0ba); font-size: 13px; }
+.crm-empty { color: var(--color-text-2, #a0a0ba); font-size: 13px; padding: 3px 0; }
+/* C2: a tiszta `--color-danger` a saját 8%-os tintjén világos témában
+   3.53:1 -- egy hibaüzenet a legkevésbé engedheti meg magának, hogy
+   olvashatatlan legyen. A pillekkel azonos keverés: 5.32:1 / 6.40:1. */
 .crm-hiba {
-  color: var(--color-danger, #f43f5e);
+  color: color-mix(in srgb, var(--color-danger, #f43f5e) 70%, var(--color-text, #e2e2ec));
   background: color-mix(in srgb, var(--color-danger, #f43f5e) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-danger, #f43f5e) 30%, transparent);
   border-radius: var(--radius, .625rem);
   padding: 10px 13px; margin: 0;
 }
+/* C2: ugyanaz a keverés, mint a `.crm-pill-valasz`-nál -- a kártyán
+   (`--color-raised`) 5.50:1 (világos) / 13.31:1 (sötét); korábban 1.43 / 11.42.
+   A `.crm-summary-stale` borostyán csíkja tiszta tokenszínt tart. */
 .crm-elavult {
   display: flex; align-items: center; gap: 8px; margin: 0;
-  color: var(--color-warning, #fbbf24); font-size: 12.5px; font-weight: 600;
+  color: color-mix(in srgb, var(--color-warning, #fbbf24) 35%, var(--color-text, #e2e2ec));
+  font-size: 12.5px; font-weight: 600;
 }
-.crm-torzs { white-space: pre-wrap; overflow-wrap: anywhere; margin: .25rem 0 0; }
+.crm-torzs { white-space: pre-wrap; margin: .25rem 0 0; }
 
 .crm-app :focus-visible {
   outline: 2px solid var(--color-accent, #6366f1);
@@ -265,7 +313,8 @@
 .crm-sec-wrap { display: flex; flex-direction: column; gap: 22px; }
 .crm-att { display: flex; flex-direction: column; gap: 7px; list-style: none; margin: 0; padding: 0; }
 .crm-attrow {
-  display: grid; grid-template-columns: 3px 1fr auto; gap: 0 14px; align-items: center;
+  /* C1: a szövegsáv `minmax(0, 1fr)` -- a jobb oldali gombsáv sosem nyomhatja nullára. */
+  display: grid; grid-template-columns: 3px minmax(0, 1fr) auto; gap: 0 14px; align-items: center;
   /* F2 1. réteg -- lásd a fájl tetején. */
   background: var(--color-raised, #0f0f18);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
@@ -280,8 +329,8 @@
 .crm-k-idegen .crm-stripe { background: var(--color-text-3, #8282a0); }
 .crm-attbody { padding: 11px 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .crm-attline { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
-.crm-atttitle { font-weight: 500; overflow-wrap: anywhere; }
-.crm-attwhy { color: var(--color-text-3, #8282a0); font-size: 13px; overflow-wrap: anywhere; margin: 0; }
+.crm-atttitle { font-weight: 500; }
+.crm-attwhy { color: var(--color-text-2, #a0a0ba); font-size: 13px; margin: 0; }
 .crm-attact { display: flex; gap: 6px; padding-right: 12px; }
 
 /* ---------- Ma: javaslatok ---------- */
@@ -338,7 +387,13 @@
  *    ténylegesen szükséges -- ÉRVÉNYTELEN CSS grid track-méretben: a
  *    böngésző a teljes deklarációt eldobja, és a régi, hibás `auto`
  *    viselkedésre esik vissza. Mértem: `getComputedStyle(...).
- *    gridTemplateColumns` ilyenkor `"none"`.)
+ *    gridTemplateColumns` ilyenkor `"none"`.) A `minmax(0, 46%)` viszont
+ *    ÉRVÉNYES -- csak nem jobb: a "Maximize Tracks" lépés mindig pontosan
+ *    46%-ra hízlalja a jobb sávot, rövid tartalommal is. Amit a fix korlát
+ *    ehhez képest ad, az NEM az, hogy "csak ha kell" foglal -- mértem, a
+ *    `minmax(0, 380px)` is pontosan 380px-et foglal minden 720px fölötti
+ *    szélességen --, hanem az, hogy a foglalása NEM NŐ a nézettel: 1600px-en
+ *    a 46% már 736px-et venne el, a 380px továbbra is 380-at.
  * 3 Mértem a javítás után: 115 karakteres opcióval, 1600px-es nézetben a
  *    bal oszlop 1093px, 779px-es nézetben (a 720px töréspont fölött) 313px,
  *    mindkettő egysoros (42px) magas -- a katasztrofális összeomlás
@@ -352,17 +407,38 @@
   border-radius: var(--radius, .625rem);
   padding: 11px 13px;
 }
-.crm-tri-who { display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
+.crm-tri-who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .crm-tri-pickers { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
 .crm-tri-pickers select { max-width: 220px; }
 .crm-tri-pickers button.crm-pill { max-width: 260px; white-space: normal; text-align: left; }
 @media (max-width: 720px) { .crm-tri { grid-template-columns: 1fr; } }
 
 /* ---------- Ügyfelek ---------- */
+/*
+ * C1: a domain-lista sávja korábban korlátlan volt, és a `.crm-acct` a
+ * `.crm-tri` javításából kimaradt -- pontosan ugyanaz a hiba egy képernyővel
+ * odébb. `normalizeDomains` (`src/db.mjs`) csak kisbetűsít és üreset dob:
+ * hossz- vagy formátum-ellenőrzés nincs, az `updateAccount` rpc pedig
+ * `...patch`-csel ír. Mértem 1400px-en egy 215 karakteres domainnel: a
+ * névsáv 0px-re esett, a cégnév soronként EGY karakterrel tördelődött (507px
+ * magas sor), és `document.scrollWidth` 1877 lett egy 1400-as nézetben.
+ *
+ * A korlát MAGÁN AZ ELEMEN áll (`.crm-acct-dom { max-width }`), nem a
+ * grid-sávon -- ugyanaz a minta, mint a `.crm-tri-pickers select`-nél. Ez
+ * azért fontos, mert a domain-lista FELTÉTELES: domain nélküli ügyfélnél
+ * csak két grid-elem van. Mértem: `minmax(0, 260px)`-kel mint SÁVVAL az ilyen
+ * sorokban a statusz-pill csúszik a második sávba, és a "Maximize Tracks"
+ * lépés 260px szélesre nyújtja -- vagyis a sáv-korlát a saját, szűkebb
+ * változatában hozta vissza az I5 hibáját. Az elemre tett `max-width` a sáv
+ * max-content hozzájárulását ugyanúgy megfogja, de csak akkor van jelen,
+ * amikor az elem maga is. A névsáv `minmax(0, 1fr)`-je változatlanul
+ * megakadályozza, hogy a szomszédja nullára nyomja, a tördelést pedig a
+ * `.crm-app` gyökér `overflow-wrap`-ja adja (lásd a fájl tetején).
+ */
 .crm-accts { display: flex; flex-direction: column; gap: 6px; list-style: none; margin: 0; padding: 0; }
 .crm-acct {
   text-align: left; width: 100%;
-  display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center;
   /* F2 1. réteg -- lásd a fájl tetején. */
   background: var(--color-raised, #0f0f18);
   color: var(--color-text, #e2e2ec);
@@ -376,18 +452,26 @@
   background: color-mix(in srgb, var(--color-raised, #0f0f18) 92%, var(--color-accent-foreground, #fff));
 }
 .crm-acct .crm-grow { font-weight: 500; }
-@media (max-width: 640px) { .crm-acct { grid-template-columns: 1fr auto; } }
+.crm-acct-dom { max-width: 260px; }
+/*
+ * I5: a korábbi `1fr auto` KÉT sávot adott HÁROM grid-elemnek, így a
+ * státusz-pill a második sor `1fr` sávjába csúszott, és -- a grid
+ * alapértelmezett `stretch` igazítása miatt -- teljes szélességű sávvá
+ * nyúlt. Mértem 520px-en: 311px / 350px / 296px széles "pillek". A domain
+ * nélküli sorok helyesek maradtak, ezért volt könnyű nem észrevenni. Egy
+ * oszlop + `justify-items: start`: minden elem a saját tartalmának
+ * megfelelő szélességű marad, a pill újra chip.
+ */
+@media (max-width: 640px) {
+  .crm-acct { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+}
 
 /* ---------- Ügyfél lap ---------- */
 .crm-crumb { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-/*
- * A cím tipográfiáját a `.crm-h2` adja (lásd ott) -- ugyanaz a halk,
- * 15px-es cím kell ide is, mint a "Ma" és az "Ügyfelek" képernyőn. Itt csak
- * azt az egy tulajdonságot adjuk hozzá, ami a másik kettőtől eltér: az
- * ügyfélnév TÁROLT szöveg (nem statikus magyar felirat), ezért -- a többi
- * tárolt-szöveges dobozzal egyezően -- `overflow-wrap: anywhere` kell rá.
- */
-.crm-crumb h2 { overflow-wrap: anywhere; }
+/* A cím tipográfiáját a `.crm-h2` adja (lásd ott) -- ugyanaz a halk, 15px-es
+   cím kell ide is, mint a "Ma" és az "Ügyfelek" képernyőn. Az ügyfélnév
+   TÁROLT szöveg, de a tördelését a `.crm-app` gyökere adja, nem külön
+   szabály -- lásd a fájl tetején. */
 
 /*
  * Három névvel ellátott grid-terület, nem két oszlop-wrapper: az
@@ -418,30 +502,33 @@
  * Összefoglaló és az Idővonal közt a `gap` 20px-re esett vissza.)
  */
 .crm-cols {
-  display: grid; grid-template-columns: 1.35fr 1fr; grid-template-rows: min-content 1fr;
+  /* C1: mindkét hasáb `minmax(0, ...)` -- egy hosszú tárolt szó (ügycím,
+     tárgy, cím) egyik hasábban sem taszíthatja szét a másikat. */
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-rows: min-content 1fr;
   grid-template-areas: "summary checks" "timeline checks";
   gap: 20px; align-items: start;
 }
 .crm-checks { grid-area: checks; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .crm-timeline { grid-area: timeline; min-width: 0; }
 @media (max-width: 860px) {
-  .crm-cols { grid-template-columns: 1fr; grid-template-areas: "summary" "checks" "timeline"; }
+  .crm-cols { grid-template-columns: minmax(0, 1fr); grid-template-areas: "summary" "checks" "timeline"; }
 }
 .crm-summary {
   grid-area: summary; min-width: 0;
   /* F7: a sárga csík csak akkor jelent figyelmeztetést, ha az összefoglaló
      tényleg elavult -- lásd `.crm-summary-stale` -- friss összefoglalónak
-     semleges kerete van, hogy a szín ne állítson valótlant. A
-     `--color-warning` tokent a hoszt sehol nem definiálja (sem a sötét, sem
-     a világos témában) -- itt, csakúgy mint a `.crm-elavult`/`.crm-strip-warn`
-     esetében, a fallback hexa a ténylegesen megjelenő szín. */
+     semleges kerete van, hogy a szín ne állítson valótlant. A csík DÍSZ, nem
+     betű: tiszta tokenszínt tart (a `--color-warning` hiányáról és a
+     szövegszínek keveréséről lásd a fájl tetején). */
   border-left: 3px solid var(--color-border-hi, rgba(255,255,255,.13));
 }
 .crm-summary-stale { border-left-color: var(--color-warning, #fbbf24); }
 
 /* ---------- idővonal ---------- */
 .crm-tl { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
-.crm-tlitem { display: grid; grid-template-columns: 15px 1fr; gap: 0 12px; }
+/* C1: a törzs sávja `minmax(0, 1fr)` -- a sín 15px-es sávja mellett egy
+   hosszú tárgy vagy email-törzs sem tolhatja ki a sort. */
+.crm-tlitem { display: grid; grid-template-columns: 15px minmax(0, 1fr); gap: 0 12px; }
 .crm-tlrail { display: flex; flex-direction: column; align-items: center; }
 .crm-tlnode {
   width: 9px; height: 9px; border-radius: 50%; margin-top: 5px;
@@ -505,14 +592,14 @@
   padding: 11px;
 }
 .crm-deal:hover { border-color: var(--color-border-hi, rgba(255,255,255,.13)); }
-.crm-dealt { font-weight: 500; overflow-wrap: anywhere; }
+.crm-dealt { font-weight: 500; }
 /*
  * `.crm-deala` `--color-text-3`-mal a `.crm-deal` hátterén (F2 2. réteg)
  * 4.5:1 alatt maradna mindkét témában -- ugyanaz a hiba, amit az F2 már
  * egyszer javított a `.crm-tltime`-nál. `--color-text-2`-re váltva 6.50:1
  * (világos) / 6.17:1 (sötét).
  */
-.crm-deala { color: var(--color-text-2, #a0a0ba); font-size: 12.5px; overflow-wrap: anywhere; }
+.crm-deala { color: var(--color-text-2, #a0a0ba); font-size: 12.5px; }
 .crm-dealv {
   font-family: var(--font-mono, ui-monospace, monospace); font-size: 12.5px;
   font-variant-numeric: tabular-nums; color: var(--color-text-2, #a0a0ba);

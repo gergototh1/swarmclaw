@@ -71,7 +71,7 @@ export function UgyfelekNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) 
                 <li key={a.id}>
                   <button className="crm-acct" onClick={() => onOpen(a.id)}>
                     <span className="crm-grow">{a.name}</span>
-                    {a.domains.length > 0 && <span className="crm-mono crm-halvany">{a.domains.join(', ')}</span>}
+                    {a.domains.length > 0 && <span className="crm-mono crm-halvany crm-acct-dom">{a.domains.join(', ')}</span>}
                     <span className={`crm-pill ${STATUSZ_PILL[a.status] || 'crm-pill-plain'}`}>
                       {STATUSZ[a.status] || a.status}
                     </span>

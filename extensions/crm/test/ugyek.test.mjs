@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { bundle } from '../scripts/build.mjs'
-import { kovetkezoSzakasz, SZAKASZOK } from '../ui/ugyek.tsx'
+import { kovetkezoSzakasz, szakaszCimke, SZAKASZOK, SZAKASZ_NEV } from '../ui/ugyek.tsx'
 
 /**
  * `kovetkezoSzakasz`: a pipeline "Tovább" gombjának célja. A task-8-brief.md
@@ -26,11 +26,27 @@ test('ismeretlen szakaszra sincs kovetkezo', () => {
   assert.equal(kovetkezoSzakasz('nincs-ilyen'), null)
 })
 
-test('minden szakasz-oszlop fejlecet es darabszamot visel', async () => {
+/**
+ * I6: ez a teszt korabban a `crm-lanehead` / `crm-lanen` STRINGET kereste a
+ * bundle-ben -- de az a string a JSX `className`-jeben el, tehat a
+ * `.crm-lanehead` CSS-szabaly TELJES torlese is zolden hagyta. A szabalyok
+ * torzset most a `test/style.test.mjs` orzi (ott van a stiluslap); itt az
+ * marad, amit ez a fajl tud bizonyitani: hogy a fejlec a MAGYAR szakasznevet
+ * es az oszlop TENYLEGES darabszamat adja ki, nem egy rogzitett szoveget.
+ */
+test('minden szakasz-oszlop a magyar szakasznevet es az oszlop darabszamat adja ki', async () => {
   const out = await bundle({ write: false })
   const js = out.outputFiles[0].text
-  assert.match(js, /crm-lanehead/, 'hianyzik az oszlopfejlec')
-  assert.match(js, /crm-lanen/, 'hianyzik a darabszam az oszlopfejlecben')
+  assert.match(
+    js,
+    /className:\s*"crm-lanehead",\s*children:\s*\[[\s\S]{0,400}?"h4",\s*\{\s*children:\s*szakaszCimke\(sz\)\s*\}/,
+    'az oszlopfejlecnek a szakasz MAGYAR nevet kell mutatnia (szakaszCimke), nem a nyers kulcsot',
+  )
+  assert.match(
+    js,
+    /className:\s*"crm-lanen",\s*children:\s*oszlop\.length/,
+    'a darabszamnak az oszlop TENYLEGES hosszat kell mutatnia',
+  )
 })
 
 /**
@@ -59,4 +75,35 @@ test('a "Tovabb" a primary gomb, a "Nyert" es az "Elvesztett" egyenrangu, halk g
   const elvesztettMatch = js.match(/className:\s*"([^"]*)"[^{}]*children:\s*"Elvesztett"/)
   assert.ok(elvesztettMatch, 'nem talalhato az "Elvesztett" gomb JSX-e a bundle-ben')
   assert.match(elvesztettMatch[1], /\bcrm-btn-quiet\b/, 'az "Elvesztett"-nek halk (quiet) gombnak kell maradnia')
+})
+
+
+/**
+ * I4: a `SZAKASZ_NEV` szotar korabban NEM volt exportalva, ezert az ugyfel
+ * lap ugy-listaja a nyers `stage` erteket mutatta (`new`, `proposal`) --
+ * egy sorral a magyar „lezárt" alatt. Ez volt az utolsó angol allapotnev a
+ * feluleten. A szotar mostantol exportalt, es a `szakaszCimke` ugyanazt a
+ * visszaeses-mintat koveti, mint a `feladatStatuszCimke` es az
+ * `esemenyFajtaCimke` (`ugyfel-lap.tsx`).
+ */
+test('szakaszCimke: ismert szakaszra magyar feliratot ad', () => {
+  assert.equal(szakaszCimke('new'), 'Új')
+  assert.equal(szakaszCimke('talking'), 'Egyeztetés')
+  assert.equal(szakaszCimke('proposal'), 'Ajánlat')
+  assert.equal(szakaszCimke('negotiation'), 'Tárgyalás')
+  assert.equal(szakaszCimke('won'), 'Nyert')
+  assert.equal(szakaszCimke('lost'), 'Elvesztett')
+  assert.equal(szakaszCimke('running'), 'Fut')
+})
+
+test('szakaszCimke: ismeretlen szakaszra a nyers erteket adja vissza (visszaeses)', () => {
+  assert.equal(szakaszCimke('barmi_ismeretlen'), 'barmi_ismeretlen')
+  assert.equal(szakaszCimke(''), '')
+})
+
+test('a SZAKASZ_NEV minden lepteto szakaszt lefed -- egy uj szakasz nem eshet ki nyersen', () => {
+  for (const sz of SZAKASZOK) {
+    assert.equal(typeof SZAKASZ_NEV[sz], 'string', `${sz}: hianyzik a magyar felirat`)
+    assert.notEqual(SZAKASZ_NEV[sz], sz, `${sz}: a felirat nem lehet maga a nyers kulcs`)
+  }
 })

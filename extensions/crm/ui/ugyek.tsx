@@ -7,9 +7,25 @@ type Account = { id: string; name: string }
 
 /** A lead útja. A `won` és a `lost` végállapot; oda a lezárás visz, nem a léptetés. */
 export const SZAKASZOK = ['new', 'talking', 'proposal', 'negotiation'] as const
-const SZAKASZ_NEV: Record<string, string> = {
+/**
+ * A szakaszok magyar nevei. EXPORTÁLT, mert ugyanezt a szótárt az ügyfél lap
+ * ügy-listája is használja (`ugyfel-lap.tsx`) -- ott korábban a nyers `stage`
+ * érték jelent meg (`new`, `proposal`), egy sorral a magyar „lezárt" alatt.
+ * Két külön másolat helyett egy szótár, egy helyen karbantartva.
+ */
+export const SZAKASZ_NEV: Readonly<Record<string, string>> = Object.freeze({
   new: 'Új', talking: 'Egyeztetés', proposal: 'Ajánlat', negotiation: 'Tárgyalás',
   won: 'Nyert', lost: 'Elvesztett', running: 'Fut',
+})
+
+/**
+ * Egy szakasz magyar felirata, vagy -- ismeretlen értékre -- maga a nyers
+ * érték. Ugyanaz a visszaesés, mint `feladatStatuszCimke` és
+ * `esemenyFajtaCimke` (`ugyfel-lap.tsx`): egy új, nem listázott szakasz
+ * inkább csúnyán jelenjen meg, mint némán tűnjön el.
+ */
+export function szakaszCimke(stage: string): string {
+  return SZAKASZ_NEV[stage] || stage
 }
 
 /**
@@ -76,7 +92,7 @@ export function UgyekNezet({ rpc }: { rpc: Rpc }) {
               <div key={sz} className="crm-lane">
                 <div className="crm-lanehead">
                   <span className="crm-lanebar" aria-hidden="true"></span>
-                  <h4>{SZAKASZ_NEV[sz]}</h4>
+                  <h4>{szakaszCimke(sz)}</h4>
                   <span className="crm-lanen">{oszlop.length}</span>
                 </div>
                 {oszlop.map((d) => (

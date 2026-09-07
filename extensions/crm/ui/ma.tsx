@@ -482,6 +482,7 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
               {unmatched.map((u) => {
                 const lathatoLista = valaszthatoKapcsolatok(kapcsolatok, u.guess_account_id, !!mindet[u.id])
                 const kivalasztott = valasztott[u.id] || ''
+                const talalgatasNev = accounts.find((a) => a.id === u.guess_account_id)?.name
                 return (
                   <li key={u.id} className="crm-tri">
                     <div className="crm-tri-who">
@@ -489,11 +490,19 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
                       <span>{u.subject}</span>
                     </div>
                     <div className="crm-tri-pickers">
+                      {/* A `crm-btn-quiet` szándékosan NINCS a találgatás-pillen: a
+                          háttért, a keretet és a színt a `crm-pill-plain` adja (később
+                          áll a stíluslapban, tehát nyer), a quiet-ből csak a
+                          `:hover { background: transparent }` maradt volna élve -- a chip
+                          a mutatóra ELVESZTETTE a kitöltését. Az aria-label a látható
+                          szöveggel KEZDŐDIK (WCAG 2.5.3), és kimondja, hogy a gomb
+                          megnyit valamit -- a korábbi „valószínűleg X" önmagában nem
+                          árulta el, hogy navigál. */}
                       {u.guess_account_id && (
-                        <button className="crm-btn crm-pill crm-pill-plain crm-btn-quiet"
+                        <button className="crm-btn crm-pill crm-pill-plain"
                                 onClick={() => u.guess_account_id && megnyit(u.guess_account_id)}
-                                aria-label={`valószínűleg ${accounts.find((a) => a.id === u.guess_account_id)?.name ?? 'ismeretlen ügyfél'}`}>
-                          valószínűleg {accounts.find((a) => a.id === u.guess_account_id)?.name}
+                                aria-label={`valószínűleg ${talalgatasNev ?? 'ismeretlen ügyfél'} — ügyfél megnyitása`}>
+                          valószínűleg {talalgatasNev}
                         </button>
                       )}
                       <label className="crm-halvany">
