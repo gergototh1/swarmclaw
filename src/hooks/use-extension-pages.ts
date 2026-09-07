@@ -4,35 +4,25 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '@/lib/app/api-client'
 import { useWs } from '@/hooks/use-ws'
 import { isWsConnected, offWsStateChange, onWsStateChange } from '@/lib/ws-client'
-import { anchorPosition, isMountedAnchorPosition } from '@/lib/extension-page-nav'
+import { resolvePageOrder, resolvePageSection } from '@/lib/extension-page-nav'
+import type { NavSectionId } from '@/lib/app/nav-sections'
 import type { ExtensionPageDefinition } from '@/types/extension'
 
 /** A page declared by an installed extension, tagged with the extension that owns it. */
 export type ExtensionPage = ExtensionPageDefinition & { extensionId: string }
 
 /**
- * Select the extension pages that belong in one nav slot.
+ * The extension pages that belong in one rail section, in panel order.
  *
- * `view` is the built-in nav entry a page asked to sit after (an `AppView` value,
- * kept as a plain string here so extension positions never widen `AppView`), and
- * selects the pages anchored at exactly that view.
- *
- * Passing `null` selects the trailing slot, which takes every page that is not
- * anchored at one of `EXTENSION_NAV_ANCHORS`: pages with no position, pages that
- * asked for `end`, and pages whose anchor names a view the rail does not mount a
- * slot for (a typo, or a view that was later renamed). So a page can never fall
- * out of the rail entirely.
- *
- * The two slots only stay disjoint because the rail passes anchors from
- * `EXTENSION_NAV_ANCHORS` and nothing else, which `ExtensionPagesAfter`'s prop
- * type enforces.
+ * Sections are disjoint by construction — resolvePageSection returns exactly
+ * one id per page, and falls back to 'work' rather than to nothing — so no page
+ * can be rendered twice and none can fall out of the rail. That used to depend
+ * on the caller only ever passing anchors from a hand-maintained list.
  */
-export function splitPagesByPosition(pages: ExtensionPage[], view: string | null): ExtensionPage[] {
-  if (view === null) {
-    return pages.filter((p) => !isMountedAnchorPosition(p.position))
-  }
-  const wanted = anchorPosition(view)
-  return pages.filter((p) => p.position === wanted)
+export function pagesForSection(pages: ExtensionPage[], section: NavSectionId): ExtensionPage[] {
+  return pages
+    .filter((p) => resolvePageSection(p) === section)
+    .sort((a, b) => resolvePageOrder(a) - resolvePageOrder(b) || a.label.localeCompare(b.label))
 }
 
 export interface ExtensionPagesState {

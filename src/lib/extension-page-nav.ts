@@ -1,4 +1,4 @@
-import type { AppView } from '@/types'
+import { NAV_SECTION_IDS, type NavSectionId } from '@/lib/app/nav-sections'
 
 /** Every extension page path lives under this prefix. */
 export const EXTENSION_PAGE_PATH_PREFIX = '/x/'
@@ -8,32 +8,34 @@ export function isExtensionPagePath(pathname: string): boolean {
   return pathname.startsWith(EXTENSION_PAGE_PATH_PREFIX)
 }
 
+/** Where a page lands when it declares nothing, or declares something unknown. */
+const DEFAULT_PAGE_SECTION: NavSectionId = 'work'
+
+/** Where a page sits among its section's extension pages when it declares no order. */
+const DEFAULT_PAGE_ORDER = 100
+
 /**
- * Built-in rail entries that mount an anchored extension slot.
+ * The rail section a page belongs to.
  *
- * An extension page asks to sit directly after one of these with
- * `position: 'after:<view>'`. Any other position, including an anchor naming a
- * view that is not listed here, falls to the trailing "Extension Pages" group,
- * so a page can never fall out of the rail entirely.
- *
- * Adding a value here is only half the change: `sidebar-rail.tsx` must also
- * render an `<ExtensionPagesAfter view="<view>" />` next to that built-in entry,
- * otherwise pages anchored there stop rendering anywhere.
+ * `section` is the field extensions declare now. `position` is what they
+ * declared before: 'after:tasks' was the single anchor the rail ever mounted,
+ * and 'end' put the page in a trailing group at the very bottom — which is
+ * where the CRM page sat, below every built-in entry, for no reason a reader
+ * of that extension could see. Every legacy value resolves to Work, so the
+ * installed pages move without being edited.
  */
-export const EXTENSION_NAV_ANCHORS = ['tasks'] as const satisfies readonly AppView[]
-
-/** A built-in view an extension page may anchor itself after. */
-export type ExtensionNavAnchor = (typeof EXTENSION_NAV_ANCHORS)[number]
-
-/** The `position` string that anchors a page after `view`. */
-export function anchorPosition(view: string): string {
-  return `after:${view}`
+export function resolvePageSection(page: { section?: string; position?: string }): NavSectionId {
+  const declared = page.section
+  if (declared && (NAV_SECTION_IDS as readonly string[]).includes(declared)) {
+    return declared as NavSectionId
+  }
+  return DEFAULT_PAGE_SECTION
 }
 
-/** True when `position` anchors a page after a rail entry that is actually mounted. */
-export function isMountedAnchorPosition(position: string | undefined): boolean {
-  if (!position) return false
-  return EXTENSION_NAV_ANCHORS.some((view) => position === anchorPosition(view))
+/** A page's sort key within its section. Ties break on label, in the caller. */
+export function resolvePageOrder(page: { order?: number }): number {
+  const declared = page.order
+  return typeof declared === 'number' && Number.isFinite(declared) ? declared : DEFAULT_PAGE_ORDER
 }
 
 /**
