@@ -58,7 +58,7 @@ platform, melyik külső fiók (id és megjelenítendő név), mikor kötötték
     id, video_id, allapot, sav_id, felulirt_idopont, letrehozva, ...
 
 `allapot`: `vazlat` → `lektoralt` → `jovahagyva` → `utemezve` → `kesz`
-(vagy `reszben` / `hiba`, lásd 5.).
+(vagy `reszben` / `hiba` / `nincs_hova`, lásd 5.).
 
 **`ext_publish_agak`** — kiadásonként ÉS platformonként egy sor:
 
@@ -87,10 +87,12 @@ felülírja. A napt��r mindkettőt rajzolja, és megkülönbözteti őket.
 forrás nélküli állításokat** — csak most egy KIMENŐ csatorna előtt, ahol egy
 hibás mondat nem egy tervben marad, hanem nyilvánosan megjelenik.
 
-A lektor a videó modul kódjaiból örököl, ahol illik (`allitas_forras_nelkul`),
-és kap sajátokat arra, ami csak itt értelmes: hiányzó vagy kitalált hashtag,
-a platform hosszkorlátját túllépő szöveg, olyan állítás a leírásban, ami a
-videóban nem hangzik el.
+A lektornak **saját, zárt kódlistája** van ebben a modulban — a videó modul
+`LEKTOR_KODOK`-ja annak a modulnak a belső ügye, és bővítmény nem importál egy
+másikból. Ahol a jelentés ugyanaz, ott ugyanaz a SZÓ áll (`allitas_forras_nelkul`),
+hogy az operátor ne tanuljon két nevet egy tényre; a többi csak itt értelmes:
+hiányzó vagy kitalált hashtag, a platform hosszkorlátját túllépő szöveg, olyan
+állítás a leírásban, ami a videóban nem hangzik el.
 
 ---
 
@@ -104,6 +106,10 @@ mosható össze**:
 - `hiba` — egyik sem ment ki
 - egy platform, aminek **nincs összekötött fiókja**, nem hiba: az ága
   `nincs_fiok` állapotban marad, és a kiadás nem várja meg
+- ha **egyetlen platform sincs összekötve**, a kiadás `nincs_hova`, nem `kesz`.
+  A `kesz` üresen igaz lenne — nulla ágból nulla ment ki —, és az a modul
+  legrosszabb hazugsága: azt állítaná, hogy publikálva van valami, ami sehol
+  nincs fent
 
 Egy elbukott ág újrapróbálható **önmagában**, a többihez nyúlás nélkül. Amit
 egyszer kitettünk, azt nem tesszük ki újra: az ág az `url`-jét őrzi, és egy
@@ -156,14 +162,22 @@ kiküldést egy deklarált ütemezés hajtja, ami felébreszt egy ügynököt, a
 egyetlen toolt hív: „tedd ki, aminek eljött az ideje". Ugyanaz a minta, mint a
 videó modul 07:15-ös gyártó futása.
 
-**A sáv-alapú terv itt fizet:** mivel a kiküldés sávokban történik, az
-ütemezésnek nem kell percenként futnia. A modul a beállított sáv-időpontokra
-deklarál futást.
+**Egy ellentmondás, amit ki kell mondani:** a deklarált ütemezés az
+`index.mjs`-ben áll, a sávok viszont operátori adat egy táblában. Egy statikus
+deklaráció nem tudja követni a sávokat, és a bővítmény nem hozhat létre
+ütemezést menet közben.
 
-**A felülírt időpont ára ki van mondva:** egy sávon kívüli időpontra állított
-kiadás a következő ütemezett futáskor megy ki, tehát legfeljebb a futások
-sűrűségének megfelelő csúszással. A naptár ezt mutatja is — a felülírt
-időpont mellett az, hogy mikor fog ténylegesen kimenni.
+Ezért a modul **fix ütemben** deklarál egy futást (alapból 15 percenként), és
+az teszi ki mindazt, aminek eljött az ideje — sávra állítottat és felülírt
+időpontút egyaránt. A sáv így nem az ütemezőt vezérli, hanem azt mondja meg,
+melyik időpontra kerül a kiadás; a kiküldést a fix futás végzi.
+
+**A csúszás ára MINDEN kiadásra áll, nem csak a felülírtakra:** ami 09:00-ra
+van állítva, az a 09:00 utáni első futáskor megy ki — a fix ütem mellett
+legfeljebb negyed óra csúszással. A naptár ezt ki is mondja: a kért időpont
+mellett az, hogy melyik futás fogja kitenni. Egy naptár, ami percre pontos
+időt ígér, és negyed órát csúszik, rosszabb, mint az, amelyik megmondja a
+pontosságát.
 
 ---
 
