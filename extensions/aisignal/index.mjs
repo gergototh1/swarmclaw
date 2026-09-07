@@ -122,7 +122,9 @@ const aisignal = {
       // <workspace>/dist is ever served.
       entry: 'dist/index.js',
       css: 'dist/style.css',
-      // 'tasks' is the one anchor the rail actually mounts a slot for.
+      // Legacy. The rail mounts no anchors any more -- it places a page by
+      // `section` (one of NAV_SECTION_IDS) and orders it by `order`, and every
+      // old `position` value resolves to Work (src/lib/extension-page-nav.ts).
       position: 'after:tasks',
     }],
     settingsFields: [
