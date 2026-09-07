@@ -22,12 +22,54 @@ const css = fs.readFileSync(new URL('../ui/style.css', import.meta.url), 'utf8')
  */
 const kommentNelkul = css.replace(/\/\*[\s\S]*?\*\//g, '')
 
-/** A szabályok választói, at-szabály-preludiumok nélkül. */
+/**
+ * A szabályok választói, at-szabály-preludiumok nélkül.
+ *
+ * A prefix-halmazban a `{` is szerepel: egy `@media (...) { .crm-btn { ... } }`
+ * blokkban a beágyazott szelektor előtt nem `}`/`;`/szöveg-eleje áll, hanem az
+ * at-szabály saját nyitó `{`-je. A `{` felvétele ezt is látóvá teszi, az
+ * at-szabály preludiuma (`@media (max-width: 860px)`) viszont továbbra sem
+ * eshet bele a találatba: a capture-csoport `@`-t kizár, így egy `@`-lel
+ * kezdődő prelidum sosem tud a capture elejévé válni.
+ */
 function valasztok() {
-  return [...kommentNelkul.matchAll(/(?:^|[};])\s*([^{};@]+?)\s*\{/g)]
+  return [...kommentNelkul.matchAll(/(?:^|[{};])\s*([^{};@]+?)\s*\{/g)]
     .map((m) => m[1].trim())
     .filter((s) => s.length > 0)
     .flatMap((s) => s.split(',').map((x) => x.trim()))
+}
+
+/**
+ * Egy `var(...)` hívást a lezáró zárójeléig kivág -- beágyazott zárójelekkel
+ * együtt --, és 'VAR' helyőrzővel helyettesíti.
+ *
+ * Ezt egy regex nem tudja helyesen: a `var(--a, var(--b, #fff))` alak vagy a
+ * `var(--color-border, rgba(255,255,255,.07))` alak is zárójelet visz a
+ * fallback-be, és egy lusta `[^;]*?\)` a belső hívás záró zárójelénél
+ * megállna, kint hagyva a külsőt. Mély zárójel-számlálással kell párosítani
+ * a nyitást a záróval, függetlenül attól, hány szint ágyazódik egymásba.
+ */
+function varHivasokNelkul(szoveg) {
+  let eredmeny = ''
+  let i = 0
+  for (;;) {
+    const start = szoveg.indexOf('var(', i)
+    if (start === -1) {
+      eredmeny += szoveg.slice(i)
+      break
+    }
+    eredmeny += szoveg.slice(i, start)
+    let melyseg = 1
+    let j = start + 'var('.length
+    while (j < szoveg.length && melyseg > 0) {
+      if (szoveg[j] === '(') melyseg += 1
+      else if (szoveg[j] === ')') melyseg -= 1
+      j += 1
+    }
+    eredmeny += 'VAR'
+    i = j
+  }
+  return eredmeny
 }
 
 test('a stiluslap nem tolt be betutipust', () => {
@@ -45,12 +87,14 @@ test('minden valaszto crm- prefixet visel', () => {
 })
 
 test('minden szin tokenbol jon, fallbackkel', () => {
-  // A var(--token, fallback) hivasokat kivagjuk; ami hexa marad, az nyers.
+  // A var(--token, fallback) hivasokat -- beagyazott zarojelekkel egyutt --
+  // kivagjuk; ami hexa vagy rgb()/rgba()/hsl()/hsla() marad, az nyers.
   // Kommentek nelkul olvasunk: egy dokumentacios celu hexa szin egy
   // magyarazo mondatban nem valodi, ki nem szallitott stilus.
-  const maradek = kommentNelkul.replace(/var\(\s*--[a-z0-9-]+\s*(?:,[^;]*?)?\)/g, 'VAR')
-  const nyers = [...maradek.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0])
-  assert.deepEqual(nyers, [], 'nyers szin csak var() fallback-pozicioban allhat')
+  const maradek = varHivasokNelkul(kommentNelkul)
+  const nyersHexa = [...maradek.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0])
+  const nyersFuggveny = [...maradek.matchAll(/\b(?:rgba?|hsla?)\(/gi)].map((m) => m[0])
+  assert.deepEqual([...nyersHexa, ...nyersFuggveny], [], 'nyers szin csak var() fallback-pozicioban allhat')
 })
 
 test('minden var() hivas visz fallbacket', () => {
@@ -58,4 +102,15 @@ test('minden var() hivas visz fallbacket', () => {
   // var() hivas, nem is fut le, tehat nem eshet at ezen az ellenorzesen.
   const fallbackNelkul = [...kommentNelkul.matchAll(/var\(\s*(--[a-z0-9-]+)\s*\)/g)].map((m) => m[1])
   assert.deepEqual(fallbackNelkul, [], 'egy atnevezett token nelkul a lap olvashatatlan lenne')
+})
+
+test('varHivasokNelkul egy beagyazott var() fallbacket egyben nyel le', () => {
+  // A stiluslapban ma nincs var(--a, var(--b, ...)) alak, de a strippelo
+  // logikanak akkor is helyesen kellene kezelnie, kulonben egy jovobeli
+  // beagyazott var() a belso zarojelnel szakadna meg, es a #fff nyersen
+  // maradna -- lasd a fuggveny sajat kommentjet a zarojel-szamlalasrol.
+  const szintetikus = '.crm-x { color: var(--a, var(--b, blue), #fff); }'
+  const maradek = varHivasokNelkul(szintetikus)
+  assert.equal(/#[0-9a-fA-F]{3,8}/.test(maradek), false, 'a beagyazott fallback belseje sem maradhat nyersen lathato')
+  assert.equal(maradek.includes('VAR'), true, 'a teljes beagyazott var() hivast egy helyorzore kellett cserelni')
 })
