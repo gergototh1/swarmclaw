@@ -268,6 +268,27 @@ export const PLATFORM_KORLATOK = Object.freeze({
   tiktok: null,
 })
 
+/**
+ * One platform's limits, or `null` when there is no number to check against.
+ *
+ * A FUNCTION RATHER THAN A BARE LOOKUP, so the `undefined` case is reachable
+ * by a test. `PLATFORM_KORLATOK` is frozen and the two closed lists are pinned
+ * against each other, which means a platform with no entry cannot exist in a
+ * green tree -- and that is exactly what made the guard's `?? null` untestable
+ * through `publishDraft`: every platform a caller can name has a key, so
+ * reverting the coalesce left every test passing. Behind this function the
+ * missing-key branch is one call away.
+ *
+ * The two inputs are the SAME FACT to a caller: a limit deliberately left
+ * `null` (nobody has surveyed it) and a key nobody wrote (a merge added a
+ * platform and forgot the limit) both mean "there is no number here", and both
+ * must reach `publishDraft`'s named refusal rather than a bare `TypeError`
+ * from reading `.cim` off `undefined`.
+ */
+export function korlatOf(platform) {
+  return PLATFORM_KORLATOK[platform] ?? null
+}
+
 export const VERDIKTEK = Object.freeze(['atmegy', 'elbukik'])
 
 /** The four answers `kiadasAllapot` (src/allapot.mjs) may give a release whose every branch has just been resolved. Anything else -- `utemezve`, `ismeretlen` -- is this module's own bug, and `publishDue` skips that release rather than writing a word it cannot read. */
@@ -517,7 +538,7 @@ export function createSzovegTools(state) {
      */
     {
       name: 'publishQueue',
-      description: 'A publikálási munkasor, csak olvasva: mely kiadások vazlat (szövegírásra/lektorálásra vár) vagy lektoralt (jóváhagyásra vár) állapotban, ágankénti platformmal, a már megírt cím/leírás szövegével, és a videó narrációjával, ami ellen a lektor ellenőrizhet.',
+      description: 'A publikálási munkasor, csak olvasva: mely kiadások vazlat (szövegírásra/lektorálásra vár) vagy lektoralt (jóváhagyásra vár) állapotban, ágankénti platformmal, a már megírt cím/leírás szövegével, és a videó narrációjával, ami ellen a lektor ellenőrizhet. Egy olvashatatlan videó vagy ág a saját hibamondatát hozza (videoHiba, agak[].szovegHiba), a többit nem viszi magával.',
       parameters: { type: 'object', properties: {} },
       execute() {
         return guard(async () => {
@@ -543,13 +564,37 @@ export function createSzovegTools(state) {
               cim,
               narracioSzoveg,
               videoHiba,
+              // ONE BROKEN BRANCH COSTS ONE BRANCH, NOT THE QUEUE. Same
+              // best-effort discipline as the video read directly above, and
+              // it has to be said twice because the two reads fail
+              // differently: `videoLekerdez` raises `PublishError` and is
+              // already wrapped, while `olvasSzoveg` raises `SzovegError`
+              // from inside a `.map`, which escapes the map, escapes `guard`,
+              // and answers the WHOLE call as one `{ error }` -- every other
+              // release in the reviewer's queue gone with it.
+              //
+              // This is a widening this file did to itself: before the
+              // projection carried the text, this line was
+              // `vanSzoveg: a.szoveg !== null` and could not refuse at all.
+              // A stored value nobody can parse is one branch's fact, and it
+              // travels as one branch's field (`szovegHiba`) exactly the way
+              // `videoHiba` does, so the reviewer can say which branch it
+              // cannot read and still rule on the rest.
               agak: repo().agak(k.id).map((a) => {
-                const szoveg = olvasSzoveg(a.platform, a.szoveg)
+                let szoveg = null
+                let szovegHiba = null
+                try {
+                  szoveg = olvasSzoveg(a.platform, a.szoveg)
+                } catch (err) {
+                  if (!(err instanceof SzovegError)) throw err
+                  szovegHiba = err.message
+                }
                 return {
                   platform: a.platform,
                   vanSzoveg: szoveg !== null,
                   cim: szoveg === null ? null : szoveg.cim,
                   leiras: szoveg === null ? null : szoveg.leiras,
+                  szovegHiba,
                 }
               }),
             })
@@ -604,23 +649,18 @@ export function createSzovegTools(state) {
             const platform = readEnum(`szovegek[${i}].platform`, item.platform, PLATFORMOK, { required: true, code: 'platform_ismeretlen' })
             const cim = readString(`szovegek[${i}].cim`, item.cim, { required: true, max: MAX_SZOVEG_MEZO })
             const leiras = readString(`szovegek[${i}].leiras`, item.leiras, { required: true, max: MAX_SZOVEG_MEZO })
-            // `?? null`, NOT `=== null` ALONE. `platform` has already passed
-            // `readEnum` against `PLATFORMOK`, so it is one of the module's
-            // own four words -- and a word on that list with NO KEY in
-            // `PLATFORM_KORLATOK` read back as `undefined`, walked straight
-            // past this guard, and threw a bare `TypeError: Cannot read
-            // properties of undefined (reading 'cim')` two lines down. That
-            // throw escapes `guard` (it is neither refusal class), so the
-            // host counts it toward `MAX_CONSECUTIVE_EXTENSION_FAILURES` and
-            // auto-disables the extension on the third writer turn -- the
-            // "the publish tools vanished" failure `guard`'s own docblock
-            // describes. A platform whose limit nobody has written down and
-            // one whose limit is deliberately `null` are the SAME fact to a
-            // caller (there is no number to check against), so they get the
-            // same named refusal; `test/szoveg.test.mjs` pins the two lists
-            // against each other so the gap is a failing test rather than a
-            // silently unmeasured platform.
-            const korlat = PLATFORM_KORLATOK[platform] ?? null
+            // `korlatOf`, NOT A BARE LOOKUP: see that function's own docblock
+            // for why a missing key and a `null` limit are one fact here, and
+            // why the coalesce lives behind a callable name. Reading
+            // `PLATFORM_KORLATOK[platform]` directly answered `undefined` for
+            // a platform with no entry, walked straight past this guard, and
+            // threw a bare `TypeError: Cannot read properties of undefined
+            // (reading 'cim')` two lines down -- a throw that escapes `guard`
+            // (it is neither refusal class), so the host counts it toward
+            // `MAX_CONSECUTIVE_EXTENSION_FAILURES` and auto-disables the
+            // extension on the third writer turn, which reaches the operator
+            // as "the publish tools vanished".
+            const korlat = korlatOf(platform)
             if (korlat === null) {
               refuse('platform_felmeretlen', `a(z) ${platform} platform hosszkorlátja még nincs felmérve -- ezen a platformon egyelőre nem publikálható szöveg`, { platform })
             }

@@ -263,10 +263,11 @@ test('a LEKTOR_SOUL megnevezi azt a három mezőt, amiből a megítélendő szö
   // `cim`/`leiras`-t és a videó `narracioSzoveg`-ét (src/szoveg.mjs), de egy
   // soul, ami ezeket nem nevezi meg, olyan lektort ír le, ami tud olvasni,
   // csak nem tudja, hogy tud: az eszköz és a próza ugyanazt kell mondja.
-  for (const mezo of ['`agak[].cim`', '`agak[].leiras`', '`narracioSzoveg`', '`videoHiba`']) {
+  for (const mezo of ['`agak[].cim`', '`agak[].leiras`', '`narracioSzoveg`', '`videoHiba`', '`agak[].szovegHiba`']) {
     assert.ok(LEKTOR_SOUL.includes(mezo), `a LEKTOR_SOUL nem nevezi meg: ${mezo}`)
   }
   assert.match(LEKTOR_SOUL, /allitas_forras_nelkul[\s\S]{0,80}eldönthető/, 'kimondja, miért kell a narráció: enélkül ez a kód eldönthetetlen')
+  assert.ok(LEKTOR_SOUL.includes('csak az az egy ág néma -- a többit ugyanúgy átnézem'), 'kimondja a robbanási sugarat is: egy törött ág egy ág, nem az egész sor')
 })
 
 test('a KULDO_SOUL mind a NÉGY tényt megnevezi, amit a publishDue visszaad -- egyik sem marad ki a jelentésből', () => {

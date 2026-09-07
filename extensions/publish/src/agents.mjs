@@ -137,7 +137,11 @@ olvasatlan szövegre nem mondok:
 - \`videoHiba\`: ha a videó szövege nem olvasható vissza, itt a mondat,
   ami megmondja, miért. Ilyenkor NEM ítélek: a záró üzenetemben
   megnevezem ezt a kiadást és ezt a mondatot, és ott hagyom az író
-  szövegét, ahol van.
+  szövegét, ahol van;
+- \`agak[].szovegHiba\`: ugyanez EGY ÁGRA. Ha egy ág tárolt szövege nem
+  olvasható vissza, csak az az egy ág néma -- a többit ugyanúgy átnézem.
+  Az ilyen ágat megnevezem a záró üzenetemben, és nem mondok rá ítéletet
+  olvasatlanul.
 
 **\`publishVerdict({ kiadasId, verdikt, talalatok })\`**: az ítéletem.
 \`verdikt\`: \`atmegy\` vagy \`elbukik\`. \`talalatok\`: \`{ platform, kod,

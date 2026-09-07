@@ -3,7 +3,7 @@ import test from 'node:test'
 
 import { AGENTS } from '../src/agents.mjs'
 import { AG_ALLAPOTOK, KIADAS_ALLAPOTOK, PLATFORMOK } from '../src/db.mjs'
-import { LEKTOR_KODOK, PLATFORM_KORLATOK, SzovegError, VERDIKTEK, createSzovegTools, kiadastUjraprobal, kiadastUtemezSavba } from '../src/szoveg.mjs'
+import { LEKTOR_KODOK, PLATFORM_KORLATOK, SzovegError, VERDIKTEK, createSzovegTools, kiadastUjraprobal, kiadastUtemezSavba, korlatOf } from '../src/szoveg.mjs'
 import { freshRepo } from './helpers.mjs'
 
 /**
@@ -198,7 +198,7 @@ test('publishQueue lists only vazlat and lektoralt releases, with which platform
   repo.kiadasAllapototIr(k2.id, KIADAS_ALLAPOTOK.JOVAHAGYVA)
   const r = await run('publishQueue', {})
   assert.deepEqual(r.kiadasok.map((k) => k.kiadasId), [k1.id], 'a jovahagyva kiadás nem a munkasor tagja')
-  assert.deepEqual(r.kiadasok[0].agak, [{ platform: 'youtube', vanSzoveg: true, cim: 'x', leiras: null }])
+  assert.deepEqual(r.kiadasok[0].agak, [{ platform: 'youtube', vanSzoveg: true, cim: 'x', leiras: null, szovegHiba: null }])
 })
 
 // --- BLOKKOLÓ 1: a lektor LÁTJA azt, amit megítél -------------------------
@@ -747,14 +747,22 @@ test('PLATFORM_KORLATOK kulcsai PONTOSAN a PLATFORMOK -- egy kimaradt platform n
   assert.deepEqual(Object.keys(PLATFORM_KORLATOK).sort(), [...PLATFORMOK].sort())
 })
 
-test('a hiányzó korlát és a null korlát UGYANAZ a megnevezett elutasítás -- a guard undefined-ra is fog', async () => {
-  // A fenti pin megakadályozza, hogy a hiányzó kulcs becsússzon; ez a teszt
-  // az őrt magát méri. Egy `undefined` (hiányzó kulcs) és egy `null`
-  // (szándékosan fel nem mért) korlát a HÍVÓ számára ugyanaz a tény: nincs
-  // szám, amihez mérni lehetne. A régi `korlat === null` őr csak a
-  // másodikat fogta, az elsőt átengedte a `korlat.cim` olvasásába.
+test('korlatOf: a hiányzó kulcs és a null korlát UGYANAZ a válasz -- null, sosem undefined', () => {
+  // EZ AZ ÁLLÍTÁS KORÁBBAN HALOTT VOLT. A viselkedési fele a `facebook`-ot
+  // hajtotta, aminek a korlátja `null`, tehát a `?? null` visszavonása
+  // 319/319 zölden átment -- a teszt azt hitte, az `undefined` ágat méri,
+  // közben a `null` ágat mérte. A két lista egyezés-pinje miatt éles úton
+  // nem is nevezhető meg olyan platform, aminek nincs kulcsa, ezért a
+  // lookup egy hívható név mögé került: itt az `undefined` ág egy hívásnyira
+  // van, és `assert.equal` (strict) szerint az `undefined` NEM `null`.
   assert.equal(PLATFORM_KORLATOK.facebook, null, 'a null ág: szándékosan fel nem mért')
   assert.equal(PLATFORM_KORLATOK.mastodon, undefined, 'az undefined ág: nincs is ilyen kulcs')
+  assert.equal(korlatOf('facebook'), null)
+  assert.equal(korlatOf('mastodon'), null, 'a hiányzó kulcs is null, nem undefined -- különben a guard mellett nyers TypeError jön')
+  assert.deepEqual(korlatOf('youtube'), { cim: 100, leiras: 5000 }, 'a felmért korlát változatlanul átjön')
+})
+
+test('a hiányzó korlát és a null korlát UGYANAZ a megnevezett elutasítás a publishDraft-on', async () => {
   const { repo, run } = setup()
   const k = repo.ujKiadas({ videoId: 'v1' })
   const r = await run('publishDraft', { kiadasId: k.id, szovegek: [{ platform: 'facebook', cim: 'c', leiras: 'l' }] })
@@ -934,4 +942,48 @@ test('publishDue: egy másik futás által épp kiküldött ágat nem küld ki m
   assert.equal(elsoEredmeny.kikuldve, 1)
   assert.deepEqual(elsoEredmeny.folyamatban, [])
   assert.equal(repo.agak(k.id)[0].allapot, AG_ALLAPOTOK.KESZ)
+})
+
+test('BLOKKOLÓ 1 / robbanási sugár: egy olvashatatlan ág EGY ágba kerül, nem viszi el a lektor egész sorát', async () => {
+  // REGRESSZIÓ A b4cae31-HEZ KÉPEST, amit ez a kör maga nyitott. Amíg a
+  // vetítés `vanSzoveg: a.szoveg !== null` volt, nem tudott elutasítani;
+  // a szöveg beemelésével az `olvasSzoveg` `tarolt_ertek_olvashatatlan`-t
+  // dobhat a `.map`-ből, ami kiszökik a map-ből, kiszökik a `guard`-ból, és
+  // az EGÉSZ hívást egyetlen `{ error }`-ra váltja -- a lektor minden más
+  // kiadásával együtt. Bizonyítva volt: `releases returned: 0`, pedig a
+  // második kiadás ép.
+  //
+  // A tíz sorral fentebbi videó-olvasás már legjobb igyekezet; ez a két
+  // olvasás csak abban különbözik, HOGYAN bukik el (PublishError kontra
+  // SzovegError), a szabály ugyanaz: egy törött ág egy ágba kerüljön.
+  const { repo, run } = setup({ videos: [qaOkVideo('v-tort'), qaOkVideo('v-ep', { narracio_szoveg: 'Az ép kiadás narrációja.' })] })
+  const tort = repo.ujKiadas({ videoId: 'v-tort' })
+  repo.szovegetIr({ kiadasId: tort.id, platform: 'youtube', szoveg: 'nem json' })
+  repo.szovegetIr({ kiadasId: tort.id, platform: 'facebook', szoveg: JSON.stringify({ cim: 'Ép cím', leiras: 'Ép leírás.' }) })
+  const ep = repo.ujKiadas({ videoId: 'v-ep' })
+  repo.szovegetIr({ kiadasId: ep.id, platform: 'youtube', szoveg: JSON.stringify({ cim: 'C', leiras: 'L' }) })
+
+  const { hiv } = lektorEszkozei(run)
+  const r = await hiv('publishQueue', {})
+  assert.equal(r.error, undefined, 'a sor megjön, nem egyetlen hibává omlik össze')
+  assert.equal(r.kiadasok.length, 2, 'MINDKÉT kiadás visszajön, az ép is')
+
+  const epSor = r.kiadasok.find((x) => x.kiadasId === ep.id)
+  assert.equal(epSor.agak[0].cim, 'C', 'az ép kiadás szövege érintetlen')
+  assert.equal(epSor.agak[0].szovegHiba, null)
+  assert.equal(epSor.narracioSzoveg, 'Az ép kiadás narrációja.')
+
+  const tortSor = r.kiadasok.find((x) => x.kiadasId === tort.id)
+  const tortAg = tortSor.agak.find((a) => a.platform === 'youtube')
+  assert.equal(tortAg.vanSzoveg, false)
+  assert.equal(tortAg.cim, null)
+  assert.ok(typeof tortAg.szovegHiba === 'string' && tortAg.szovegHiba !== '', 'a törött ág a saját mondatát hozza')
+  assert.ok(tortAg.szovegHiba.includes('publishDraft'), 'és a mondat megmondja, mi a teendő')
+  assert.equal(tortAg.szovegHiba.includes('nem json'), false, 'a tárolt szöveget nem mondja vissza')
+
+  // ...és a TÖRÖTT kiadás másik ága ugyanabban a válaszban olvasható marad:
+  // egy ág költsége egy ág, nem a kiadásé és nem a soré.
+  const epTestver = tortSor.agak.find((a) => a.platform === 'facebook')
+  assert.equal(epTestver.cim, 'Ép cím')
+  assert.equal(epTestver.szovegHiba, null)
 })
