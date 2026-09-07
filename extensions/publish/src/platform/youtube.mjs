@@ -31,18 +31,20 @@ import { Readable } from 'node:stream'
  * NOT call `getToken` and it does NOT touch the disk: a dry run has to work
  * with no connected account and no real video on disk at all, since
  * inspecting the shape of a request is exactly what an operator needs BEFORE
- * there is anything to authenticate with. The four values that genuinely
- * cannot be known without the account and the file (the bearer token, the
- * file's byte length, the session URL YouTube hands back, and the bytes
- * themselves) are the module's own named placeholder constants below, and
- * nothing else in the returned request is a placeholder: the headers and the
- * framing come out of the SAME two builders (`munkamenetKeres`, `bajtKeres`)
- * the real send uses, so a dry run that looks right is evidence that the real
- * request is right. That is the whole point -- Facebook, Instagram and TikTok
- * (design spec 6) cannot be tried against a real account for weeks after
- * their code lands (Meta needs app review, TikTok needs an audit), they will
- * copy this shape, and the headers and the body framing are precisely the two
- * parts most likely to be wrong.
+ * there is anything to authenticate with. The five values that genuinely
+ * cannot be known without an account, a file and a running attempt (the
+ * bearer token, the file's byte length, the session URL YouTube hands back,
+ * the bytes themselves, and the abort signal) are the module's own named
+ * placeholder constants below, and NOTHING else in the returned request is a
+ * placeholder: the two builders below (`munkamenetKeres`, `bajtKeres`) return
+ * the WHOLE `fetch` init -- url, method, headers, body framing, `duplex` and
+ * `signal` -- and `kuld` sends exactly what they built, so the dry run and
+ * the real send cannot differ in anything a builder decides. That is the
+ * whole point: Facebook, Instagram and TikTok (design spec 6) cannot be tried
+ * against a real account for weeks after their code lands (Meta needs app
+ * review, TikTok needs an audit), they will copy this shape, and they will be
+ * streaming files too -- so the streaming contract and the attempt bound are
+ * as much a part of what has to be inspectable as the headers are.
  *
  * THE UPLOAD IS RESUMABLE, AND THAT IS A MEMORY DECISION BEFORE IT IS A
  * RELIABILITY ONE. The obvious implementation reads the file with
@@ -101,6 +103,18 @@ const FELTOLTES_URL = 'https://www.googleapis.com/upload/youtube/v3/videos?uploa
 const TARTALOM_TIPUS = 'video/*'
 
 /**
+ * THE ONE LINE THAT MAKES A STREAMED BODY POSSIBLE AT ALL. Node's `fetch`
+ * refuses a request whose body is a stream unless the init says `duplex:
+ * 'half'` -- it throws a `TypeError` from inside the call, which `kuld`'s
+ * catch would then report as `feltoltes_atviteli_hiba`: "look at the
+ * network", forever, on every single upload, for a fault that is entirely
+ * this module's. Declared on BOTH requests rather than only on the byte one,
+ * so the two inits have the same shape and the next three platforms copy a
+ * complete one; it is inert on a string body.
+ */
+const DUPLEX = 'half'
+
+/**
  * The four values a dry run genuinely cannot know, spelled as sentences
  * rather than as empty strings or zeroes.
  *
@@ -115,6 +129,7 @@ export const SZARAZ_TOKEN = '<hozzáférési token: száraz futásban nem kérü
 export const SZARAZ_HOSSZ = '<a fájl mérete bájtban: száraz futásban nem olvassuk a lemezt>'
 export const SZARAZ_MUNKAMENET_URL = '<a feltöltési munkamenet URL-je: ezt a YouTube adja a munkamenet-válasz Location fejlécében>'
 export const SZARAZ_BAJTOK = '<a videó bájtjai: száraz futásban nem olvassuk a lemezt>'
+export const SZARAZ_JEL = '<megszakítás-jel: száraz futásban nincs futó kísérlet, amit meg lehetne szakítani>'
 
 /**
  * The three values YouTube's `status.privacyStatus` accepts, and the one this
@@ -243,7 +258,7 @@ export function gyerekeknekOf(beallitasok) {
  * values that differ between the two callers, and both arrive as the module's
  * own placeholder constants on the dry path.
  */
-function munkamenetKeres({ metaadat, token, hossz }) {
+function munkamenetKeres({ metaadat, token, hossz, jel }) {
   return {
     url: FELTOLTES_URL,
     method: 'POST',
@@ -254,11 +269,13 @@ function munkamenetKeres({ metaadat, token, hossz }) {
       'x-upload-content-length': String(hossz),
     },
     body: JSON.stringify(metaadat),
+    duplex: DUPLEX,
+    signal: jel,
   }
 }
 
 /** The byte request: the PUT to whatever session URL the request above was answered with. Same one-builder discipline as `munkamenetKeres`; the body is the caller's, because on the real path it is a stream and on the dry path it is a sentence. */
-function bajtKeres({ url, hossz }) {
+function bajtKeres({ url, hossz, jel }) {
   return {
     url,
     method: 'PUT',
@@ -266,6 +283,8 @@ function bajtKeres({ url, hossz }) {
       'content-type': TARTALOM_TIPUS,
       'content-length': String(hossz),
     },
+    duplex: DUPLEX,
+    signal: jel,
   }
 }
 
@@ -279,16 +298,14 @@ function bajtKeres({ url, hossz }) {
  * attempt died.
  */
 async function kuld(fetchImpl, kerés, body, lejarat) {
+  // EVERYTHING EXCEPT THE BODY COMES FROM THE BUILDER, UNREAD. Picking fields
+  // off `kerés` by name here is what let `duplex` and `signal` live only on
+  // the real path and be invisible to a dry run; spreading whatever the
+  // builder decided makes the dry/real parity structural rather than a
+  // convention two functions have to keep agreeing on.
+  const { url, ...init } = kerés
   try {
-    return await fetchImpl(kerés.url, {
-      method: kerés.method,
-      headers: kerés.headers,
-      body,
-      // Node's fetch requires this to accept a streaming request body; an
-      // injected `fetchImpl` ignores it.
-      duplex: 'half',
-      signal: lejarat.signal,
-    })
+    return await fetchImpl(url, { ...init, body })
   } catch {
     if (lejarat.signal.aborted) refuse('feltoltes_idotullepes', 'a YouTube-feltöltés nem fejeződött be a megengedett időn belül')
     refuse('feltoltes_atviteli_hiba', 'a YouTube-feltöltés a hálózaton hiúsult meg, mielőtt válasz érkezett volna')
@@ -402,8 +419,8 @@ async function feltoltBelso({
         url: FELTOLTES_URL,
         metaadat,
         fajl,
-        munkamenet: munkamenetKeres({ metaadat, token: SZARAZ_TOKEN, hossz: SZARAZ_HOSSZ }),
-        bajtok: { ...bajtKeres({ url: SZARAZ_MUNKAMENET_URL, hossz: SZARAZ_HOSSZ }), body: SZARAZ_BAJTOK },
+        munkamenet: munkamenetKeres({ metaadat, token: SZARAZ_TOKEN, hossz: SZARAZ_HOSSZ, jel: SZARAZ_JEL }),
+        bajtok: { ...bajtKeres({ url: SZARAZ_MUNKAMENET_URL, hossz: SZARAZ_HOSSZ, jel: SZARAZ_JEL }), body: SZARAZ_BAJTOK },
       },
     }
   }
@@ -437,7 +454,7 @@ async function feltoltBelso({
   /** @type {import('node:fs').ReadStream | null} */
   let folyam = null
   try {
-    const mk = munkamenetKeres({ metaadat, token, hossz })
+    const mk = munkamenetKeres({ metaadat, token, hossz, jel: lejarat.signal })
     const munkamenetValasz = await kuld(fetchImpl, mk, mk.body, lejarat)
 
     // BOOKED HERE, NOT ON SUCCESS. YouTube charges the 1600 units for the
@@ -458,10 +475,14 @@ async function feltoltBelso({
       refuse('feltoltes_valasz_ertelmezhetetlen', 'a YouTube nem adott vissza feltöltési munkamenet-URL-t, így a videó bájtjainak nincs hova menniük')
     }
 
-    const bk = bajtKeres({ url: munkamenetUrl, hossz })
+    const bk = bajtKeres({ url: munkamenetUrl, hossz, jel: lejarat.signal })
     folyam = fs.createReadStream(fajl)
     const bajtValasz = await kuld(fetchImpl, bk, Readable.toWeb(folyam), lejarat)
 
+    // `308 Resume Incomplete` is the resumable protocol's "send me the rest",
+    // not a rejection -- and it cannot arise here, because this is a single
+    // PUT of the WHOLE body rather than a chunked upload. A later task that
+    // splits the body into chunks has to handle it before it splits anything.
     if (!bajtValasz.ok) {
       refuse('feltoltes_elutasitva', `a YouTube elutasította a feltöltést (státusz ${bajtValasz.status})`, { httpStatus: bajtValasz.status })
     }

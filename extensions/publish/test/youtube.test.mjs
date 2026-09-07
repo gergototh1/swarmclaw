@@ -12,6 +12,7 @@ import {
   LATHATOSAGOK,
   SZARAZ_BAJTOK,
   SZARAZ_HOSSZ,
+  SZARAZ_JEL,
   SZARAZ_MUNKAMENET_URL,
   SZARAZ_TOKEN,
   _szamlalotNullaz,
@@ -87,7 +88,10 @@ function ketFazis({ munkamenet, bajtok } = {}) {
   const hivasok = []
   const fetchImpl = async (url, init) => {
     hivasok.push({ url, init })
-    if (hivasok.length === 1) return munkamenet ?? munkamenetValasz()
+    // Dispatched on the METHOD, not on the call index, so one adapter can
+    // send more than once through the same recorder -- which is what the
+    // call-time settings test below needs in order to prove anything.
+    if (init.method === 'POST') return munkamenet ?? munkamenetValasz()
     return bajtok ?? bajtValasz()
   }
   return { hivasok, fetchImpl }
@@ -386,23 +390,77 @@ test('D11: the dry run returns BOTH requests, with the same headers the real sen
   assert.equal(szaraz.kerés.munkamenet.method, hivasok[0].init.method)
   assert.equal(szaraz.kerés.bajtok.method, hivasok[1].init.method)
   assert.equal(szaraz.kerés.munkamenet.headers['content-type'], hivasok[0].init.headers['content-type'])
-  assert.equal(szaraz.kerés.munkamenet.headers['x-upload-content-type'], hivasok[1].init.headers['content-type'])
   assert.equal(szaraz.kerés.bajtok.headers['content-type'], hivasok[1].init.headers['content-type'])
+  // DELIBERATELY CROSS-PHASE, and the one assertion here that is not a
+  // dry/real comparison: what the session request PROMISES the bytes will be
+  // (`x-upload-content-type`) has to be what the byte request actually SENDS
+  // (`content-type`). Two constants that drifted apart would be accepted by
+  // both builders and refused by YouTube.
+  assert.equal(szaraz.kerés.munkamenet.headers['x-upload-content-type'], hivasok[1].init.headers['content-type'])
+  assert.equal(hivasok[0].init.headers['x-upload-content-type'], hivasok[1].init.headers['content-type'])
   // The framing itself, not just the metadata object: the JSON body is what
   // actually goes on the wire.
   assert.equal(szaraz.kerés.munkamenet.body, hivasok[0].init.body)
 })
 
-test('D11: the four values a dry run cannot know are named placeholders, not empty strings or zeroes', async () => {
+test('F1/F3: the streaming contract is declared on BOTH requests, dry and real', async () => {
+  // `duplex: 'half'` is the one line that makes a streamed body possible at
+  // all: Node's fetch throws a TypeError without it, from INSIDE the call, so
+  // `kuld`'s catch would report `feltoltes_atviteli_hiba` -- "look at the
+  // network" -- forever, on every upload, for a fault that is entirely ours.
+  // Deleting it from either builder fails here.
+  const szaraz = await feltolt({ ...alap(), szarazFutas: true })
+  assert.equal(szaraz.kerés.munkamenet.duplex, 'half')
+  assert.equal(szaraz.kerés.bajtok.duplex, 'half')
+
+  const { hivasok, fetchImpl } = ketFazis()
+  await feltolt({ ...alap(), fetchImpl })
+  assert.equal(hivasok[0].init.duplex, 'half')
+  assert.equal(hivasok[1].init.duplex, 'half')
+})
+
+test('F3: the attempt bound reaches both requests, and it is ONE bound over the whole attempt', async () => {
+  const { hivasok, fetchImpl } = ketFazis()
+  await feltolt({ ...alap(), fetchImpl })
+  assert.ok(hivasok[0].init.signal instanceof AbortSignal)
+  assert.equal(hivasok[1].init.signal, hivasok[0].init.signal, 'egy kísérlet, egy határidő -- nem fázisonként egy')
+
+  // On the dry path there is no running attempt to abort, so the signal is
+  // the module's fifth named placeholder rather than a silently absent key:
+  // a missing `signal` in a shape three other platforms will copy reads as
+  // "this request has no timeout", which is the wrong lesson.
+  const szaraz = await feltolt({ ...alap(), szarazFutas: true })
+  assert.equal(szaraz.kerés.munkamenet.signal, SZARAZ_JEL)
+  assert.equal(szaraz.kerés.bajtok.signal, SZARAZ_JEL)
+})
+
+test('F3: the dry run and the real send agree on the WHOLE init, key for key, not only on the headers', async () => {
+  // `kuld` spreads whatever the builder returned, so this parity is
+  // structural; the assertion is what makes a future field added to only one
+  // of the two paths fail rather than quietly ship.
+  const szaraz = await feltolt({ ...alap(), szarazFutas: true })
+  const { hivasok, fetchImpl } = ketFazis()
+  await feltolt({ ...alap(), fetchImpl })
+  for (const [nev, dry, eles] of [['munkamenet', szaraz.kerés.munkamenet, hivasok[0].init], ['bajtok', szaraz.kerés.bajtok, hivasok[1].init]]) {
+    assert.deepEqual(
+      Object.keys(dry).filter((k) => k !== 'url').sort(),
+      Object.keys(eles).sort(),
+      `${nev}: a száraz kérés minden init-mezőt megépít, amit az éles kiküld`,
+    )
+  }
+})
+
+test('D11: the five values a dry run cannot know are named placeholders, not empty strings or zeroes', async () => {
   const szaraz = await feltolt({ ...alap(), szarazFutas: true })
   assert.equal(szaraz.kerés.munkamenet.headers.authorization, `Bearer ${SZARAZ_TOKEN}`)
   assert.equal(szaraz.kerés.munkamenet.headers['x-upload-content-length'], SZARAZ_HOSSZ)
   assert.equal(szaraz.kerés.bajtok.url, SZARAZ_MUNKAMENET_URL)
   assert.equal(szaraz.kerés.bajtok.headers['content-length'], SZARAZ_HOSSZ)
   assert.equal(szaraz.kerés.bajtok.body, SZARAZ_BAJTOK)
+  assert.equal(szaraz.kerés.munkamenet.signal, SZARAZ_JEL)
   // An operator has to be able to tell "the header is built wrong" from "this
-  // value only exists once there is an account and a file".
-  for (const helyorzo of [SZARAZ_TOKEN, SZARAZ_HOSSZ, SZARAZ_MUNKAMENET_URL, SZARAZ_BAJTOK]) {
+  // value only exists once there is an account, a file and a running attempt".
+  for (const helyorzo of [SZARAZ_TOKEN, SZARAZ_HOSSZ, SZARAZ_MUNKAMENET_URL, SZARAZ_BAJTOK, SZARAZ_JEL]) {
     assert.match(helyorzo, /^<.+>$/)
   }
 })
@@ -525,7 +583,12 @@ test('a token-stage failure with no no_credential code is still a named refusal,
 
 function fakeState({ connected = true, tokenError = null, beallitasok = { gyerekeknek: 'nem' } } = {}) {
   return {
-    settings: () => beallitasok,
+    // A COPY on every call, because that is what the host does: `ctx.settings()`
+    // reads the store and hands back a fresh object. Returning the same
+    // reference would let an adapter that captured the settings ONCE at build
+    // time still see later edits -- and the call-time test below would prove
+    // nothing at all.
+    settings: () => ({ ...beallitasok }),
     oauth: {
       hasGoogleCredential: (purpose) => { assert.equal(purpose, 'publish'); return connected },
       getGoogleAccessToken: async (purpose) => {
@@ -601,22 +664,23 @@ test('createYoutubeAdapter carries the operator\'s two settings onto the request
   // Read from `state.settings()` when the adapter runs, not when it is built:
   // an operator who sets the COPPA field between two dispatch ticks must not
   // have to reload the extension.
+  // ONE adapter instance, TWO sends, with the settings changed in between.
+  // Building a second adapter after the change would pass just as happily if
+  // `state.settings()` were read once at build time -- which is the mutation
+  // this test has to kill.
   const beallitasok = { gyerekeknek: 'nem', lathatosag: 'private' }
   const state = fakeState({ beallitasok })
   const { hivasok, fetchImpl } = ketFazis()
   const adapter = createYoutubeAdapter(state, { fetchImpl })
 
   await adapter({ ag: AG, video: { out_path: FAJL } })
-  let status = JSON.parse(hivasok[0].init.body).status
-  assert.deepEqual(status, { privacyStatus: 'private', selfDeclaredMadeForKids: false })
+  assert.deepEqual(JSON.parse(hivasok[0].init.body).status, { privacyStatus: 'private', selfDeclaredMadeForKids: false })
 
   beallitasok.lathatosag = 'public'
   beallitasok.gyerekeknek = 'igen'
-  const masodik = ketFazis()
-  const adapter2 = createYoutubeAdapter(state, { fetchImpl: masodik.fetchImpl })
-  await adapter2({ ag: AG, video: { out_path: FAJL } })
-  status = JSON.parse(masodik.hivasok[0].init.body).status
-  assert.deepEqual(status, { privacyStatus: 'public', selfDeclaredMadeForKids: true })
+  await adapter({ ag: AG, video: { out_path: FAJL } })
+  assert.equal(hivasok.length, 4, 'ugyanaz az adapter küldött másodszor is')
+  assert.deepEqual(JSON.parse(hivasok[2].init.body).status, { privacyStatus: 'public', selfDeclaredMadeForKids: true })
 })
 
 test('createYoutubeAdapter refuses gyerekeknek_nincs_beallitva until the operator has declared, and publishDue sees that name', async () => {
