@@ -21,10 +21,12 @@ import { timeAgo, timeUntil } from '@/lib/time-format'
 import type { Agent, Session, BoardTask, AppNotification, ActivityEntry } from '@/types'
 import { getEnabledCapabilityIds } from '@/lib/capability-selection'
 import { HintTip } from '@/components/shared/hint-tip'
+import { RouteTabs } from '@/components/shared/route-tabs'
 import { MainContent } from '@/components/layout/main-content'
 import { PageLoader } from '@/components/ui/page-loader'
 import { SectionHeader } from '@/components/ui/section-header'
 import { StatCard } from '@/components/ui/stat-card'
+import { HOME_TABS } from './home-tabs'
 
 const ACTIVITY_ICONS: Record<ActivityEntry['action'], string> = {
   created: 'M12 5v14m-7-7h14',
@@ -240,6 +242,7 @@ export default function HomePage() {
   if (!pageReady) {
     return (
       <MainContent>
+        <RouteTabs tabs={HOME_TABS} active="home" />
         <PageLoader label="Loading dashboard..." />
       </MainContent>
     )
@@ -274,6 +277,7 @@ export default function HomePage() {
   if (homeMode === 'launchpad') {
     return (
       <MainContent>
+        <RouteTabs tabs={HOME_TABS} active="home" />
         <div className="flex-1 overflow-y-auto">
           <HomeLaunchpad
             firstAgent={firstAgent}
@@ -303,6 +307,7 @@ export default function HomePage() {
 
   return (
     <MainContent>
+      <RouteTabs tabs={HOME_TABS} active="home" />
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-[800px] mx-auto px-6 py-10">
           {/* Header */}

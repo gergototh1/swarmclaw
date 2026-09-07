@@ -1,6 +1,6 @@
 'use client'
 
-import { useDeferredValue, useState } from 'react'
+import { useDeferredValue, useState, type ReactNode } from 'react'
 import { Bell, Hash, Search, Sparkles, TrendingUp, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
@@ -63,7 +63,14 @@ function formatTimestamp(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
-export function FeedPage() {
+/**
+ * `topBar` lets the caller slot in navigation (the Home/Feed RouteTabs) above
+ * the feed body without FeedPage itself depending on an app-route tab table.
+ * It renders inside FeedPage's own MainContent, after the MobileHeader,
+ * NetworkBanner and UpdateBanner that MainContent supplies, so a caller can't
+ * accidentally push those below it.
+ */
+export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
   const agents = useAppStore((s) => s.agents)
   const feedAgents = Object.values(agents).filter(
     (agent: Agent) => agent.swarmfeedEnabled && !agent.disabled && !agent.trashedAt,
@@ -323,6 +330,7 @@ export function FeedPage() {
 
   return (
     <MainContent>
+      {topBar}
       <div className="flex-1 overflow-y-auto overscroll-contain">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
           <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
