@@ -24,7 +24,7 @@ export function streamTabFromSearch(param: string | null): StreamTabKey {
  * The stubs at /runs, /activity and /logs import from here rather than writing
  * the path out, so renaming a tab cannot leave a bookmark pointing at nothing.
  */
-export const STREAM_REDIRECTS: Record<string, string> = {
+export const STREAM_REDIRECTS: Record<StreamTabKey, string> = {
   runs: '/stream?tab=runs',
   activity: '/stream?tab=activity',
   logs: '/stream?tab=logs',
