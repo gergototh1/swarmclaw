@@ -363,3 +363,54 @@
  * pedig legalább annyira olvasható marad, mint a text-3 volt.
  */
 .crm-tltime { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px; color: var(--color-text-2, #a0a0ba); }
+
+/* ---------- Ügyek: pipeline ---------- */
+.crm-pipe { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 11px; }
+@media (max-width: 900px) { .crm-pipe { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 520px) { .crm-pipe { grid-template-columns: 1fr; } }
+.crm-lane { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.crm-lanehead {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: var(--radius-sm, .375rem);
+  background: var(--color-surface, #14141f);
+  border: 1px solid var(--color-border, rgba(255,255,255,.07));
+}
+.crm-lanehead h4 {
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--color-text-2, #a0a0ba); margin: 0;
+}
+.crm-lanebar { width: 3px; height: 14px; border-radius: 2px; background: var(--color-accent, #6366f1); }
+/*
+ * A darabszam (`.crm-lanen`) `--color-text-3`-mal a sajat hattereret
+ * (`.crm-lanehead` -- `--color-surface`) csak 3.65:1 kontrasztot adna
+ * vilagos temaban (WCAG AA kis szoveghez 4.5:1 kell) -- ugyanaz a hiba,
+ * amit az F2 mar egyszer javitott a `.crm-tltime`-nal. `--color-text-2`-re
+ * valt, ami vilagosban 5.67:1-et, sotetben 7.19:1-et ad.
+ */
+.crm-lanen {
+  margin-left: auto;
+  font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px;
+  color: var(--color-text-2, #a0a0ba);
+}
+.crm-deal {
+  display: flex; flex-direction: column; gap: 7px; min-width: 0;
+  background: var(--color-surface-2, #1e1e30);
+  border: 1px solid var(--color-border, rgba(255,255,255,.07));
+  border-radius: var(--radius, .625rem);
+  padding: 11px;
+}
+.crm-deal:hover { border-color: var(--color-border-hi, rgba(255,255,255,.13)); }
+.crm-dealt { font-weight: 500; overflow-wrap: anywhere; }
+/*
+ * `.crm-deala` `--color-text-3`-mal a `.crm-deal` hatteren
+ * (`--color-surface-2`) 3.21:1-et adna vilagos temaban es 4.40:1-et
+ * sotetben -- mindketto a WCAG AA 4.5:1 kis-szoveg kuszobe alatt.
+ * `--color-text-2`-re valtva 4.98:1 (vilagos) / 6.41:1 (sotet).
+ */
+.crm-deala { color: var(--color-text-2, #a0a0ba); font-size: 12.5px; overflow-wrap: anywhere; }
+.crm-dealv {
+  font-family: var(--font-mono, ui-monospace, monospace); font-size: 12.5px;
+  font-variant-numeric: tabular-nums; color: var(--color-text-2, #a0a0ba);
+}
+.crm-deal .crm-attact { padding-right: 0; flex-wrap: wrap; }

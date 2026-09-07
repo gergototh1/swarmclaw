@@ -59,44 +59,63 @@ export function UgyekNezet({ rpc }: { rpc: Rpc }) {
   }
 
   return (
-    <section>
-      <h2>Ügyek</h2>
+    <section className="crm-sec-wrap">
+      <h2 className="crm-h2">Ügyek</h2>
       {hiba && <p className="crm-hiba" role="alert">{hiba}</p>}
 
-      <h3>Leadek</h3>
-      <div className="crm-pipeline">
-        {SZAKASZOK.map((sz) => {
-          const kovetkezo = kovetkezoSzakasz(sz)
-          return (
-            <div key={sz} className="crm-oszlop">
-              <h4>{SZAKASZ_NEV[sz]}</h4>
-              {deals.filter((d) => d.kind === 'lead' && d.stage === sz).map((d) => (
-                <div key={d.id} className="crm-kartya">
-                  <strong>{d.title}</strong>
-                  <span className="crm-halvany">{nevOf(d.account_id)}</span>
-                  {d.value_huf > 0 && <span>{d.value_huf.toLocaleString('hu-HU')} Ft</span>}
-                  <div className="crm-sor">
-                    {kovetkezo && <button onClick={() => lept(d.id, kovetkezo)}>Tovább</button>}
-                    <button onClick={() => lezar(d.id, 'won')}>Nyert</button>
-                    <button onClick={() => lezar(d.id, 'lost')}>Elvesztett</button>
-                  </div>
+      <div className="crm-sec">
+        <div className="crm-sechead">
+          <h3>Leadek</h3>
+          <span className="crm-count">{deals.filter((d) => d.kind === 'lead').length}</span>
+        </div>
+        <div className="crm-pipe">
+          {SZAKASZOK.map((sz) => {
+            const kovetkezo = kovetkezoSzakasz(sz)
+            const oszlop = deals.filter((d) => d.kind === 'lead' && d.stage === sz)
+            return (
+              <div key={sz} className="crm-lane">
+                <div className="crm-lanehead">
+                  <span className="crm-lanebar" aria-hidden="true"></span>
+                  <h4>{SZAKASZ_NEV[sz]}</h4>
+                  <span className="crm-lanen">{oszlop.length}</span>
                 </div>
-              ))}
-            </div>
-          )
-        })}
+                {oszlop.map((d) => (
+                  <div key={d.id} className="crm-deal">
+                    <span className="crm-dealt">{d.title}</span>
+                    <span className="crm-deala">{nevOf(d.account_id)}</span>
+                    {d.value_huf > 0 && <span className="crm-dealv">{d.value_huf.toLocaleString('hu-HU')} Ft</span>}
+                    <div className="crm-attact">
+                      {kovetkezo && <button className="crm-btn crm-btn-sm" onClick={() => lept(d.id, kovetkezo)}>Tovább</button>}
+                      <button className="crm-btn crm-btn-primary crm-btn-sm" onClick={() => lezar(d.id, 'won')}>Nyert</button>
+                      <button className="crm-btn crm-btn-quiet crm-btn-sm" onClick={() => lezar(d.id, 'lost')}>Elvesztett</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
-      <h3>Futó megbízások</h3>
-      {deals.filter((d) => d.kind === 'engagement').length === 0
-        ? <p className="crm-halvany">Nincs futó megbízás.</p>
-        : (
-          <ul className="crm-lista">
-            {deals.filter((d) => d.kind === 'engagement').map((d) => (
-              <li key={d.id}>{d.title} <span className="crm-halvany">{nevOf(d.account_id)}</span></li>
-            ))}
-          </ul>
-        )}
+      <div className="crm-sec">
+        <div className="crm-sechead">
+          <h3>Futó megbízások</h3>
+          <span className="crm-count">{deals.filter((d) => d.kind === 'engagement').length}</span>
+        </div>
+        {deals.filter((d) => d.kind === 'engagement').length === 0
+          ? <p className="crm-empty">Nincs futó megbízás.</p>
+          : (
+            <ul className="crm-rows crm-card">
+              {deals.filter((d) => d.kind === 'engagement').map((d) => (
+                <li key={d.id} className="crm-row">
+                  <span className="crm-grow">{d.title}</span>
+                  <span className="crm-halvany">{nevOf(d.account_id)}</span>
+                  {d.value_huf > 0 && <span className="crm-dealv">{d.value_huf.toLocaleString('hu-HU')} Ft</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+      </div>
     </section>
   )
 }

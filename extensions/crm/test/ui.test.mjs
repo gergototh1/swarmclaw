@@ -165,9 +165,18 @@ test('a "Tovabb" gomb TENYLEGESEN a kovetkezo szakaszt kuldi az updateDeal-nek, 
   // következő szakasz) értékkel hívja a `lept`-et, nem egy rögzített
   // stringgel -- ha valaki egy konkrét szakaszra (pl. mindig 'won'-ra)
   // cserélné, ez a minta nem illeszkedne.
+  //
+  // A task-5 (Ügyek képernyő vizuális átalakítása) a gombra egy
+  // `className="crm-btn crm-btn-sm"` propot tett, ami a props-objektumban
+  // az `onClick` ELÉ kerül -- a korábbi `\{\s*onClick:` (semmi köztes prop)
+  // ezért erre a jelöléscserére is elbukott volna, holott a bekötés maga
+  // (gate, `lept(d.id, kovetkezo)`, "Tovább" felirat) változatlan maradt.
+  // A `\{[\s\S]{0,80}?onClick:` innentől bármilyen köztes propot (pl.
+  // className) átenged, de a lényeget -- a gate-et, a pontos hívást és a
+  // feliratot -- továbbra is szó szerint megköveteli.
   assert.match(
     js,
-    /kovetkezo\s*&&[\s\S]{0,80}?"button",\s*\{\s*onClick:\s*\(\)\s*=>\s*lept\(d\.id,\s*kovetkezo\),\s*children:\s*"Tovább"/,
+    /kovetkezo\s*&&[\s\S]{0,80}?"button",\s*\{[\s\S]{0,80}?onClick:\s*\(\)\s*=>\s*lept\(d\.id,\s*kovetkezo\)[\s\S]{0,40}?children:\s*"Tovább"/,
     'hiányzik a bundle-ből a "Tovább" gomb gate-elt, `lept(d.id, kovetkezo)`-t hívó bekötése',
   )
 })

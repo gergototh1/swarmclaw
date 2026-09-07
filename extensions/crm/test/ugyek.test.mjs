@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import { bundle } from '../scripts/build.mjs'
 import { kovetkezoSzakasz, SZAKASZOK } from '../ui/ugyek.tsx'
 
 /**
@@ -23,4 +24,11 @@ test('az utolso szakaszon (negotiation) nincs kovetkezo -- onnan a lezaras visz 
 test('ismeretlen szakaszra sincs kovetkezo', () => {
   assert.equal(kovetkezoSzakasz('won'), null)
   assert.equal(kovetkezoSzakasz('nincs-ilyen'), null)
+})
+
+test('minden szakasz-oszlop fejlecet es darabszamot visel', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(js, /crm-lanehead/, 'hianyzik az oszlopfejlec')
+  assert.match(js, /crm-lanen/, 'hianyzik a darabszam az oszlopfejlecben')
 })

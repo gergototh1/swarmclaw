@@ -188,3 +188,36 @@ test('a .crm-cols szabaly tenylegesen ket hasabos gridet deklaral', () => {
   const oszlopok = gridMatch[1].trim().split(/\s+/)
   assert.equal(oszlopok.length, 2, 'a grid-template-columns pontosan ket oszlopot kell megadjon')
 })
+
+test('a .crm-pipe negy szakasz-oszlopot ad, es 900px/520px alatt omlik ossze', () => {
+  // Ugyanaz a mintazat, mint a fenti .crm-cols teszt (F4): a `.crm-pipe`
+  // SZELEKTOR meglete onmagaban semmit nem bizonyit -- a `crm-pipe` string a
+  // bundle-ben (ugyek.test.mjs) akkor is megtalalhato lenne, ha a szabaly
+  // torzse ures lenne, vagy ha nem negy, hanem ket oszlopot adna. Ez a teszt
+  // a torzset magat vizsgalja, es -- mivel a feladat brief-je szerint az
+  // Ugyek szinpados oszlopok szama a lenyeg -- azt is, hogy a ket media
+  // query tenyleg 2, majd 1 oszlopra tordeli a 4-et, nem csak letezik.
+  const blokkok = szabalyBlokkok(kommentNelkul)
+
+  const alap = blokkok.find((b) => b.szelektorok.includes('.crm-pipe') && /display:\s*grid/.test(b.torzs))
+  assert.ok(alap, 'a .crm-pipe alap szabalynak grid elrendezesnek kell lennie')
+  const alapGrid = alap.torzs.match(/grid-template-columns:\s*([^;]+);/)
+  assert.ok(alapGrid, 'a .crm-pipe alap szabalyanak grid-template-columns-t kell deklaralnia')
+  assert.match(alapGrid[1], /repeat\(\s*4\s*,/, 'a .crm-pipe alapertelmezetten negy oszlopot kell adjon')
+
+  // A ket @media blokk torzset kulon keressuk: a `szabalyBlokkok` a
+  // legbelso `.crm-pipe { ... }` deklaracios blokkot adja vissza minden
+  // egyes @media-n belul kulon talalatkent, at-szabaly nelkul -- ezert
+  // sorrendben (900px, majd 520px) a masodik es harmadik `.crm-pipe`
+  // talalat ezeket adja.
+  const pipeSzabalyok = blokkok.filter((b) => b.szelektorok.includes('.crm-pipe'))
+  assert.equal(pipeSzabalyok.length, 3, 'a .crm-pipe-nek az alap szabaly mellett ket media-query valtozatot kell adnia')
+
+  const kozepesGrid = pipeSzabalyok[1].torzs.match(/grid-template-columns:\s*([^;]+);/)
+  assert.ok(kozepesGrid, 'a masodik .crm-pipe szabalynak grid-template-columns-t kell deklaralnia')
+  assert.match(kozepesGrid[1], /repeat\(\s*2\s*,/, 'a keskenyebb nezetben ket oszlopra kell omolnia')
+
+  const szukGrid = pipeSzabalyok[2].torzs.match(/grid-template-columns:\s*([^;]+);/)
+  assert.ok(szukGrid, 'a harmadik .crm-pipe szabalynak grid-template-columns-t kell deklaralnia')
+  assert.equal(szukGrid[1].trim(), '1fr', 'a legszukebb nezetben egyetlen oszlopra kell omolnia')
+})
