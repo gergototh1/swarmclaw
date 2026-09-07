@@ -237,7 +237,9 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                     {/* 0.45 sits above the surface ladder's top step (layer-4 is
                         0.16); scripts/codemod-surfaces.mjs refuses anything past
                         0.25 as a scrim rather than a surface, and this idle dot
-                        is one. */}
+                        is one. Consequently it is hard to see in the light
+                        theme, which is a design decision, not something to
+                        guess at here. */}
                     <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${busy ? 'bg-amber-300' : 'bg-white/[0.45]'}`} />
                   </span>
                   <span className="label-mono text-amber-300/80">Message queue</span>

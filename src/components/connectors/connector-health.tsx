@@ -13,7 +13,12 @@ interface HealthResponse {
 const EVENT_CONFIG: Record<ConnectorHealthEventType, { color: string; label: string }> = {
   started: { color: 'bg-green-400', label: 'Started' },
   reconnected: { color: 'bg-green-400', label: 'Reconnected' },
-  stopped: { color: 'bg-layer-4', label: 'Stopped' },
+  // 0.30 sits above the surface ladder's top step (layer-4 is 0.16);
+  // scripts/codemod-surfaces.mjs refuses anything past 0.25 as a scrim rather
+  // than a surface, and this timeline dot is one. Consequently it is hard to
+  // see in the light theme, which is a design decision, not something to
+  // guess at here.
+  stopped: { color: 'bg-white/30', label: 'Stopped' },
   error: { color: 'bg-red-400', label: 'Error' },
   disconnected: { color: 'bg-amber-400', label: 'Disconnected' },
 }
@@ -97,7 +102,10 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
 
         <div className="max-h-[320px] overflow-y-auto pr-2 space-y-3 sm:max-h-[38vh]">
           {recentEvents.map((ev) => {
-            const cfg = EVENT_CONFIG[ev.event] ?? { color: 'bg-layer-4', label: ev.event }
+            // Same 0.30-above-ceiling, hard-to-see-in-light-theme tradeoff as
+            // the `stopped` entry above -- this is the fallback for an event
+            // type EVENT_CONFIG doesn't name.
+            const cfg = EVENT_CONFIG[ev.event] ?? { color: 'bg-white/30', label: ev.event }
             return (
               <div key={ev.id} className="relative flex items-start gap-3">
                 {/* Dot */}

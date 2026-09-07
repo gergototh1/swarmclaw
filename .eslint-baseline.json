@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-07T13:46:24.400Z",
-  "totalIssues": 397,
-  "uniqueIssues": 124,
+  "generatedAt": "2026-09-07T14:22:54.730Z",
+  "totalIssues": 402,
+  "uniqueIssues": 128,
   "issues": [
     {
       "filePath": "bin/worker-cmd.js",
@@ -138,6 +138,13 @@
       "count": 6
     },
     {
+      "filePath": "src/components/agents/agent-card.tsx",
+      "ruleId": "no-restricted-syntax",
+      "severity": 1,
+      "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-fg-1..3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
+      "count": 1
+    },
+    {
       "filePath": "src/components/chat/chat-card.tsx",
       "ruleId": "@typescript-eslint/no-unused-vars",
       "severity": 1,
@@ -178,6 +185,13 @@
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "count": 3
+    },
+    {
+      "filePath": "src/components/connectors/connector-health.tsx",
+      "ruleId": "no-restricted-syntax",
+      "severity": 1,
+      "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-fg-1..3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
+      "count": 2
     },
     {
       "filePath": "src/components/input/chat-input.tsx",
@@ -240,6 +254,13 @@
       "ruleId": "@typescript-eslint/no-unused-vars",
       "severity": 1,
       "message": "'useState' is defined but never used.",
+      "count": 1
+    },
+    {
+      "filePath": "src/components/projects/project-list.tsx",
+      "ruleId": "no-restricted-syntax",
+      "severity": 1,
+      "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-fg-1..3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
       "count": 1
     },
     {
@@ -311,6 +332,13 @@
       "severity": 1,
       "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-fg-1..3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
       "count": 2
+    },
+    {
+      "filePath": "src/components/shared/empty-state.tsx",
+      "ruleId": "no-restricted-syntax",
+      "severity": 1,
+      "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-fg-1..3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
+      "count": 1
     },
     {
       "filePath": "src/components/shared/file-preview.tsx",
