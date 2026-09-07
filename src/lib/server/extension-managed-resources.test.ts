@@ -37,6 +37,8 @@ import {
 import { DATA_DIR, WORKSPACE_DIR } from './data-dir'
 import { buildRuntimeSkillPromptBlocks, resolveRuntimeSkills } from './skills/runtime-skill-resolver'
 import { loadAgents, loadSchedules, loadSettings, saveAgents, saveSchedules, saveSettings } from './storage'
+import { loadProjects } from './projects/project-repository'
+import { queryActivity } from './activity/activity-log'
 import { DEFAULT_AGENT_ROUTE } from '@/lib/setup-defaults'
 import type { ExtensionManagedScheduleDeclaration } from '@/types'
 import { AGENTS as AISIGNAL_AGENTS } from '../../../extensions/aisignal/src/agents.mjs'
@@ -839,6 +841,25 @@ test('an extension that declares no agents or routines is left alone rather than
   assert.equal(outcome.error, undefined)
 })
 
+test('an extension whose only declared resource is a project is still reconciled on install', () => {
+  const id = extensionId('lifecycle_project_only')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Lifecycle Project Only Fixture',
+    // No agents, schedules or routines -- a project is the only declared
+    // resource. `declaresReconcilableResources` must count it, or this
+    // extension is reported as 'not_declared' and its project never gets
+    // created on install.
+    managedResources: {
+      projects: [{ projectKey: 'proj_only', displayName: 'Project Only' }],
+    },
+  })
+
+  const outcome = reconcileManagedResourcesForLifecycleChange(id, 'install')
+
+  assert.equal(outcome.status, 'reconciled')
+  assert.equal(outcome.result?.createdProjects.length, 1)
+})
+
 test('an extension the host has never heard of is not declared, not a failure', () => {
   const outcome = reconcileManagedResourcesForLifecycleChange('never_installed.mjs', 'enable')
   assert.equal(outcome.status, 'not_declared')
@@ -894,4 +915,73 @@ test('a reconcile that throws is returned as a failure and never escapes into th
   assert.equal(outcome.status, 'failed')
   assert.equal(outcome.error, 'routine declarations could not be read')
   assert.equal(outcome.result, undefined)
+})
+
+test('reconcile creates a declared project and marks it', () => {
+  const id = extensionId('managed_project')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Managed Project Fixture',
+    managedResources: {
+      projects: [
+        { projectKey: 'crm', displayName: 'CRM', objective: 'Ügyfélkezelés' },
+      ],
+    },
+  })
+
+  const result = reconcileExtensionManagedResources(id)
+  assert.equal(result.createdProjects.length, 1)
+
+  const project = Object.values(loadProjects()).find(
+    (p) => p.managedByExtension?.extensionId === id,
+  )
+  assert.ok(project)
+  assert.equal(project.name, 'CRM')
+  assert.equal(project.objective, 'Ügyfélkezelés')
+  assert.equal(project.managedByExtension?.extensionId, id)
+  assert.equal(project.managedByExtension?.resourceKind, 'project')
+})
+
+test('a project-only reconcile writes an activity-log entry, not just agents and schedules', () => {
+  // Same omission as the toast: `logActivity` used to gate on
+  // `agentEntries.length > 0 || scheduleEntries.length > 0`, so a reconcile
+  // that only created a project wrote nothing to the audit trail and never
+  // called notify('extensions'). The activity log is how an operator answers
+  // "where did this project come from" -- it must fire for projects too.
+  const id = extensionId('managed_project_activity')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Managed Project Activity Fixture',
+    managedResources: {
+      projects: [
+        { projectKey: 'crm', displayName: 'CRM Activity' },
+      ],
+    },
+  })
+
+  const result = reconcileExtensionManagedResources(id)
+  assert.equal(result.createdProjects.length, 1)
+
+  const entries = queryActivity({ entityType: 'extension', entityId: id }) as Array<{
+    action: string
+    summary: string
+  }>
+  assert.equal(entries.length, 1, 'no activity-log entry was written for a project-only reconcile')
+  assert.equal(entries[0].action, 'reconciled')
+  assert.match(entries[0].summary, /1 projects/)
+})
+
+test('reconcile is idempotent for an unchanged project declaration', () => {
+  const id = extensionId('managed_project_idempotent')
+  getExtensionManager().registerBuiltin(id, {
+    name: 'Managed Project Idempotent Fixture',
+    managedResources: {
+      projects: [
+        { projectKey: 'crm', displayName: 'CRM', objective: 'Ügyfélkezelés' },
+      ],
+    },
+  })
+
+  reconcileExtensionManagedResources(id)
+  const second = reconcileExtensionManagedResources(id)
+  assert.equal(second.createdProjects.length, 0)
+  assert.equal(second.updatedProjects.length, 0)
 })

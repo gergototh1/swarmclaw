@@ -1,6 +1,6 @@
 import type { MessageToolEvent } from './message'
 import type { MessageSource } from './connector'
-import type { ExtensionDefinitionCost, ExtensionInvocationRecord } from './extension'
+import type { ExtensionDefinitionCost, ExtensionInvocationRecord, ExtensionManagedResourceMarker } from './extension'
 import type { SkillInstallOption, SkillRequirements } from './skill'
 
 export interface SSEEvent {
@@ -178,6 +178,7 @@ export interface Project {
   heartbeatIntervalSec?: number
   createdAt: number
   updatedAt: number
+  managedByExtension?: ExtensionManagedResourceMarker | null
 }
 
 // --- Notifications ---
