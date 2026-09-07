@@ -163,6 +163,174 @@ function parseGatewayTagList(value: string): string[] {
     })
 }
 
+/** Everything the sheet edits, in one shape, so each tab takes one prop pair. */
+export interface AgentDraft {
+  name: string
+  description: string
+  soul: string
+  systemPrompt: string
+  provider: AgentProviderId
+  model: string
+  credentialId: string | null
+  apiEndpoint: string | null
+  gatewayProfileId: string | null
+  preferredGatewayTagsText: string
+  preferredGatewayUseCase: string
+  routingStrategy: AgentRoutingStrategy
+  routingTargets: AgentRoutingTarget[]
+  role: 'worker' | 'coordinator'
+  delegationEnabled: boolean
+  delegationTargetMode: 'all' | 'selected'
+  delegationTargetAgentIds: string[]
+  tools: string[]
+  /**
+   * Scoped tool access is the default for new agents (cuts ~3 k input tokens
+   * per turn). Existing agents with no toolAccessMode field persisted stay
+   * universal server-side for backward compat; the new-agent setup path
+   * also explicitly writes 'scoped' so it persists on save.
+   */
+  toolAccessMode: 'universal' | 'scoped'
+  extensions: string[]
+  skills: string[]
+  skillIds: string[]
+  mcpServerIds: string[]
+  mcpDisabledTools: string[]
+  fallbackCredentialIds: string[]
+  capabilities: string[]
+  ollamaMode: 'local' | 'cloud'
+  openclawEnabled: boolean
+  projectId: string | undefined
+  avatarSeed: string
+  avatarUrl: string | null
+  thinkingLevel: '' | 'minimal' | 'low' | 'medium' | 'high'
+  memoryScopeMode: 'auto' | 'all' | 'global' | 'agent' | 'session' | 'project'
+  memoryTierPreference: 'working' | 'durable' | 'archive' | 'blended'
+  proactiveMemory: boolean
+  autoDraftSkillSuggestions: boolean
+  planningMode: AgentPlanningMode
+  autoRecovery: boolean
+  disabled: boolean
+  filesystemScope: 'workspace' | 'machine'
+  voiceId: string
+  heartbeatEnabled: boolean
+  /** '' = default (30m) */
+  heartbeatIntervalSec: string
+  heartbeatModel: string
+  heartbeatPrompt: string
+  dreamEnabled: boolean
+  dreamCooldownMinutes: string
+  dreamTier2Enabled: boolean
+  orchestratorEnabled: boolean
+  orchestratorMission: string
+  orchestratorWakeInterval: string
+  orchestratorGovernance: 'autonomous' | 'approval-required' | 'notify-only'
+  orchestratorMaxCyclesPerDay: string
+  sessionResetMode: '' | 'idle' | 'daily' | 'isolated'
+  sessionIdleTimeoutSec: string
+  sessionMaxAgeSec: string
+  sessionDailyResetAt: string
+  sessionResetTimezone: string
+  identityPersonaLabel: string
+  identitySelfSummary: string
+  identityRelationshipSummary: string
+  identityToneStyle: string
+  identityBoundariesText: string
+  identityContinuityNotesText: string
+  budgetEnabled: boolean
+  hourlyBudget: string
+  dailyBudget: string
+  monthlyBudget: string
+  budgetAction: 'warn' | 'block'
+}
+
+/**
+ * One write into the draft. The function form exists because several of the
+ * moved controls toggle or append to the value they already hold, and reading
+ * that value from the updater is what keeps them correct under batching.
+ */
+export type AgentPatch = (
+  update: Partial<AgentDraft> | ((current: AgentDraft) => Partial<AgentDraft>),
+) => void
+
+export interface AgentTabProps {
+  draft: AgentDraft
+  patch: AgentPatch
+}
+
+function createEmptyAgentDraft(): AgentDraft {
+  return {
+    name: '',
+    description: '',
+    soul: '',
+    systemPrompt: '',
+    provider: 'claude-cli',
+    model: '',
+    credentialId: null,
+    apiEndpoint: null,
+    gatewayProfileId: null,
+    preferredGatewayTagsText: '',
+    preferredGatewayUseCase: '',
+    routingStrategy: 'single',
+    routingTargets: [],
+    role: 'worker',
+    delegationEnabled: false,
+    delegationTargetMode: 'all',
+    delegationTargetAgentIds: [],
+    tools: [],
+    toolAccessMode: 'scoped',
+    extensions: [],
+    skills: [],
+    skillIds: [],
+    mcpServerIds: [],
+    mcpDisabledTools: [],
+    fallbackCredentialIds: [],
+    capabilities: [],
+    ollamaMode: 'local',
+    openclawEnabled: false,
+    projectId: undefined,
+    avatarSeed: '',
+    avatarUrl: null,
+    thinkingLevel: '',
+    memoryScopeMode: 'auto',
+    memoryTierPreference: 'blended',
+    proactiveMemory: true,
+    autoDraftSkillSuggestions: true,
+    planningMode: 'off',
+    autoRecovery: false,
+    disabled: false,
+    filesystemScope: 'workspace',
+    voiceId: '',
+    heartbeatEnabled: false,
+    heartbeatIntervalSec: '',
+    heartbeatModel: '',
+    heartbeatPrompt: '',
+    dreamEnabled: false,
+    dreamCooldownMinutes: '360',
+    dreamTier2Enabled: true,
+    orchestratorEnabled: false,
+    orchestratorMission: '',
+    orchestratorWakeInterval: '5m',
+    orchestratorGovernance: 'autonomous',
+    orchestratorMaxCyclesPerDay: '',
+    sessionResetMode: '',
+    sessionIdleTimeoutSec: '',
+    sessionMaxAgeSec: '',
+    sessionDailyResetAt: '',
+    sessionResetTimezone: '',
+    identityPersonaLabel: '',
+    identitySelfSummary: '',
+    identityRelationshipSummary: '',
+    identityToneStyle: '',
+    identityBoundariesText: '',
+    identityContinuityNotesText: '',
+    budgetEnabled: false,
+    hourlyBudget: '',
+    dailyBudget: '',
+    monthlyBudget: '',
+    budgetAction: 'warn',
+  }
+}
+
 export function AgentSheet() {
   const open = useAppStore((s) => s.agentSheetOpen)
   const setOpen = useAppStore((s) => s.setAgentSheetOpen)
@@ -204,87 +372,91 @@ export function AgentSheet() {
     finally { setClaudeSkillsLoading(false) }
   }
 
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [soul, setSoul] = useState('')
+  const [draft, setDraft] = useState<AgentDraft>(createEmptyAgentDraft)
+  const patch = useCallback<AgentPatch>((update) => {
+    setDraft((current) => ({ ...current, ...(typeof update === 'function' ? update(current) : update) }))
+  }, [])
+  const {
+    name,
+    description,
+    soul,
+    systemPrompt,
+    provider,
+    model,
+    credentialId,
+    apiEndpoint,
+    gatewayProfileId,
+    preferredGatewayTagsText,
+    preferredGatewayUseCase,
+    routingStrategy,
+    routingTargets,
+    role,
+    delegationEnabled,
+    delegationTargetMode,
+    delegationTargetAgentIds,
+    tools,
+    toolAccessMode,
+    extensions,
+    skills,
+    skillIds,
+    mcpServerIds,
+    mcpDisabledTools,
+    fallbackCredentialIds,
+    capabilities,
+    ollamaMode,
+    openclawEnabled,
+    projectId,
+    avatarSeed,
+    avatarUrl,
+    thinkingLevel,
+    memoryScopeMode,
+    memoryTierPreference,
+    proactiveMemory,
+    autoDraftSkillSuggestions,
+    planningMode,
+    autoRecovery,
+    disabled,
+    filesystemScope,
+    voiceId,
+    heartbeatEnabled,
+    heartbeatIntervalSec,
+    heartbeatModel,
+    heartbeatPrompt,
+    dreamEnabled,
+    dreamCooldownMinutes,
+    dreamTier2Enabled,
+    orchestratorEnabled,
+    orchestratorMission,
+    orchestratorWakeInterval,
+    orchestratorGovernance,
+    orchestratorMaxCyclesPerDay,
+    sessionResetMode,
+    sessionIdleTimeoutSec,
+    sessionMaxAgeSec,
+    sessionDailyResetAt,
+    sessionResetTimezone,
+    identityPersonaLabel,
+    identitySelfSummary,
+    identityRelationshipSummary,
+    identityToneStyle,
+    identityBoundariesText,
+    identityContinuityNotesText,
+    budgetEnabled,
+    hourlyBudget,
+    dailyBudget,
+    monthlyBudget,
+    budgetAction,
+  } = draft
+
+  // Sheet-local UI state — none of this is part of the saved agent.
   const [soulInitial, setSoulInitial] = useState('')
   const [soulSaveState, setSoulSaveState] = useState<'idle' | 'saved'>('idle')
-  const [systemPrompt, setSystemPrompt] = useState('')
-  const [provider, setProvider] = useState<AgentProviderId>('claude-cli')
-  const [model, setModel] = useState('')
-  const [credentialId, setCredentialId] = useState<string | null>(null)
-  const [apiEndpoint, setApiEndpoint] = useState<string | null>(null)
-  const [gatewayProfileId, setGatewayProfileId] = useState<string | null>(null)
-  const [preferredGatewayTagsText, setPreferredGatewayTagsText] = useState('')
-  const [preferredGatewayUseCase, setPreferredGatewayUseCase] = useState('')
-  const [routingStrategy, setRoutingStrategy] = useState<AgentRoutingStrategy>('single')
-  const [routingTargets, setRoutingTargets] = useState<AgentRoutingTarget[]>([])
-  const [role, setRole] = useState<'worker' | 'coordinator'>('worker')
-  const [delegationEnabled, setDelegationEnabled] = useState(false)
-  const [delegationTargetMode, setDelegationTargetMode] = useState<'all' | 'selected'>('all')
-  const [delegationTargetAgentIds, setDelegationTargetAgentIds] = useState<string[]>([])
-  const [tools, setTools] = useState<string[]>([])
-  // Scoped tool access is the default for new agents (cuts ~3 k input tokens
-  // per turn). Existing agents with no toolAccessMode field persisted stay
-  // universal server-side for backward compat; the new-agent setup path
-  // below also explicitly writes 'scoped' so it persists on save.
-  const [toolAccessMode, setToolAccessMode] = useState<'universal' | 'scoped'>('scoped')
-  const [extensions, setExtensions] = useState<string[]>([])
   const [enabledExtensionIds, setEnabledExtensionIds] = useState<Set<string> | null>(null)
   const [externalTools, setExternalTools] = useState<ExtensionToolInfo[]>([])
-  const [skills, setSkills] = useState<string[]>([])
-  const [skillIds, setSkillIds] = useState<string[]>([])
-  const [mcpServerIds, setMcpServerIds] = useState<string[]>([])
-  const [mcpDisabledTools, setMcpDisabledTools] = useState<string[]>([])
   const [mcpTools, setMcpTools] = useState<Record<string, { name: string; description: string }[]>>({})
   const [mcpToolsLoading, setMcpToolsLoading] = useState(false)
-  const [fallbackCredentialIds, setFallbackCredentialIds] = useState<string[]>([])
-  const [capabilities, setCapabilities] = useState<string[]>([])
   const [capInput, setCapInput] = useState('')
-  const [ollamaMode, setOllamaMode] = useState<'local' | 'cloud'>('local')
-  const [openclawEnabled, setOpenclawEnabled] = useState(false)
-  const [projectId, setProjectId] = useState<string | undefined>(undefined)
-  const [avatarSeed, setAvatarSeed] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [thinkingLevel, setThinkingLevel] = useState<'' | 'minimal' | 'low' | 'medium' | 'high'>('')
-  const [memoryScopeMode, setMemoryScopeMode] = useState<'auto' | 'all' | 'global' | 'agent' | 'session' | 'project'>('auto')
-  const [memoryTierPreference, setMemoryTierPreference] = useState<'working' | 'durable' | 'archive' | 'blended'>('blended')
-  const [proactiveMemory, setProactiveMemory] = useState(true)
-  const [autoDraftSkillSuggestions, setAutoDraftSkillSuggestions] = useState(true)
-  const [planningMode, setPlanningMode] = useState<AgentPlanningMode>('off')
-  const [autoRecovery, setAutoRecovery] = useState(false)
-  const [disabled, setDisabled] = useState(false)
-  const [filesystemScope, setFilesystemScope] = useState<'workspace' | 'machine'>('workspace')
-  const [voiceId, setVoiceId] = useState('')
-  const [heartbeatEnabled, setHeartbeatEnabled] = useState(false)
-  const [heartbeatIntervalSec, setHeartbeatIntervalSec] = useState('')  // '' = default (30m)
-  const [heartbeatModel, setHeartbeatModel] = useState('')
-  const [heartbeatPrompt, setHeartbeatPrompt] = useState('')
-  const [dreamEnabled, setDreamEnabled] = useState(false)
-  const [dreamCooldownMinutes, setDreamCooldownMinutes] = useState('360')
-  const [dreamTier2Enabled, setDreamTier2Enabled] = useState(true)
-  const [orchestratorEnabled, setOrchestratorEnabled] = useState(false)
-  const [orchestratorMission, setOrchestratorMission] = useState('')
-  const [orchestratorWakeInterval, setOrchestratorWakeInterval] = useState('5m')
-  const [orchestratorGovernance, setOrchestratorGovernance] = useState<'autonomous' | 'approval-required' | 'notify-only'>('autonomous')
-  const [orchestratorMaxCyclesPerDay, setOrchestratorMaxCyclesPerDay] = useState<string>('')
-  const [sessionResetMode, setSessionResetMode] = useState<'' | 'idle' | 'daily' | 'isolated'>('')
-  const [sessionIdleTimeoutSec, setSessionIdleTimeoutSec] = useState('')
-  const [sessionMaxAgeSec, setSessionMaxAgeSec] = useState('')
-  const [sessionDailyResetAt, setSessionDailyResetAt] = useState('')
-  const [sessionResetTimezone, setSessionResetTimezone] = useState('')
-  const [identityPersonaLabel, setIdentityPersonaLabel] = useState('')
-  const [identitySelfSummary, setIdentitySelfSummary] = useState('')
-  const [identityRelationshipSummary, setIdentityRelationshipSummary] = useState('')
-  const [identityToneStyle, setIdentityToneStyle] = useState('')
-  const [identityBoundariesText, setIdentityBoundariesText] = useState('')
-  const [identityContinuityNotesText, setIdentityContinuityNotesText] = useState('')
-  const [budgetEnabled, setBudgetEnabled] = useState(false)
-  const [hourlyBudget, setHourlyBudget] = useState('')
-  const [dailyBudget, setDailyBudget] = useState('')
-  const [monthlyBudget, setMonthlyBudget] = useState('')
-  const [budgetAction, setBudgetAction] = useState<'warn' | 'block'>('warn')
   const [addingKey, setAddingKey] = useState(false)
   const [newKeyName, setNewKeyName] = useState('')
   const [newKeyValue, setNewKeyValue] = useState('')
@@ -375,9 +547,9 @@ export function AgentSheet() {
       await loadProviders()
     }
 
-    setModel((currentModel) => currentModel.trim() || result.models[0] || '')
+    patch((d) => ({ model: d.model.trim() || result.models[0] || '' }))
     return { synced: !sameModels, models: result.models }
-  }, [agentSelectableProviders, loadProviders, openclawEnabled])
+  }, [agentSelectableProviders, loadProviders, openclawEnabled, patch])
 
   const loadAgentConfigVersions = useCallback(async (agentId: string) => {
     setConfigVersionsLoading(true)
@@ -443,237 +615,239 @@ export function AgentSheet() {
       setTestDiagnostics([])
       setShowAdvancedSettings(false)
       if (editing) {
-        setName(editing.name)
-        setDescription(editing.description)
-        setSoul(editing.soul || '')
         setSoulInitial(editing.soul || '')
         setSoulSaveState('idle')
-        setSystemPrompt(editing.systemPrompt)
-        setProvider(editing.provider)
-        setModel(editing.model)
-        setCredentialId(editing.credentialId || null)
-        setApiEndpoint(editing.apiEndpoint || null)
-        setGatewayProfileId(editing.gatewayProfileId || null)
-        setPreferredGatewayTagsText(formatGatewayTagList(editing.preferredGatewayTags))
-        setPreferredGatewayUseCase(editing.preferredGatewayUseCase || '')
-        setRoutingStrategy(editing.routingStrategy || 'single')
-        setRoutingTargets(editing.routingTargets || [])
-        setRole(editing.role === 'coordinator' ? 'coordinator' : 'worker')
-        setDelegationEnabled(editing.delegationEnabled === true)
-        setDelegationTargetMode(editing.delegationTargetMode === 'selected' ? 'selected' : 'all')
-        setDelegationTargetAgentIds(editing.delegationTargetAgentIds || [])
-        setTools(getEnabledToolIds(editing))
-        setToolAccessMode(editing.toolAccessMode === 'scoped' ? 'scoped' : 'universal')
-        setExtensions(getEnabledExtensionIds(editing))
-        setSkills(editing.skills || [])
-        setSkillIds(editing.skillIds || [])
-        setMcpServerIds(editing.mcpServerIds || [])
-        setMcpDisabledTools(editing.mcpDisabledTools || [])
-        setFallbackCredentialIds(editing.fallbackCredentialIds || [])
-        setCapabilities(Array.isArray(editing.capabilities) ? editing.capabilities : [])
         setCapInput('')
-        setOllamaMode(resolveStoredOllamaMode({
-          ollamaMode: editing.ollamaMode ?? null,
-          apiEndpoint: editing.apiEndpoint ?? null,
-        }))
-        setOpenclawEnabled(editing.provider === 'openclaw')
-        setProjectId(editing.projectId)
-        setAvatarSeed(editing.avatarSeed || Math.random().toString(36).slice(2, 10))
-        setAvatarUrl(editing.avatarUrl || null)
-        setThinkingLevel(editing.thinkingLevel || '')
-        setMemoryScopeMode(editing.memoryScopeMode || 'auto')
-        setMemoryTierPreference(editing.memoryTierPreference || 'blended')
-        setProactiveMemory(editing.proactiveMemory !== false)
-        setAutoDraftSkillSuggestions(editing.autoDraftSkillSuggestions !== false)
-        setPlanningMode(normalizeAgentPlanningMode(editing.planningMode))
-        setAutoRecovery(editing.autoRecovery || false)
-        setDisabled(editing.disabled === true)
-        setFilesystemScope(editing.filesystemScope === 'machine' ? 'machine' : 'workspace')
-        setVoiceId(editing.elevenLabsVoiceId || '')
-        setHeartbeatEnabled(editing.heartbeatEnabled || false)
-        setHeartbeatIntervalSec(parseDurationToSec(editing.heartbeatInterval, editing.heartbeatIntervalSec))
-        setHeartbeatModel(editing.heartbeatModel || '')
-        setHeartbeatPrompt(editing.heartbeatPrompt || '')
-        setDreamEnabled(editing.dreamEnabled || false)
-        setDreamCooldownMinutes(editing.dreamConfig?.cooldownMinutes != null ? String(editing.dreamConfig.cooldownMinutes) : '360')
-        setDreamTier2Enabled(editing.dreamConfig?.tier2Enabled !== false)
-        setOrchestratorEnabled(editing.orchestratorEnabled || false)
-        setOrchestratorMission(editing.orchestratorMission || '')
-        setOrchestratorWakeInterval(typeof editing.orchestratorWakeInterval === 'string' ? editing.orchestratorWakeInterval : typeof editing.orchestratorWakeInterval === 'number' ? `${editing.orchestratorWakeInterval}s` : '5m')
-        setOrchestratorGovernance(editing.orchestratorGovernance || 'autonomous')
-        setOrchestratorMaxCyclesPerDay(editing.orchestratorMaxCyclesPerDay != null ? String(editing.orchestratorMaxCyclesPerDay) : '')
-        setSessionResetMode(editing.sessionResetMode || '')
-        setSessionIdleTimeoutSec(editing.sessionIdleTimeoutSec != null ? String(editing.sessionIdleTimeoutSec) : '')
-        setSessionMaxAgeSec(editing.sessionMaxAgeSec != null ? String(editing.sessionMaxAgeSec) : '')
-        setSessionDailyResetAt(editing.sessionDailyResetAt || '')
-        setSessionResetTimezone(editing.sessionResetTimezone || '')
-        setIdentityPersonaLabel(editing.identityState?.personaLabel || '')
-        setIdentitySelfSummary(editing.identityState?.selfSummary || '')
-        setIdentityRelationshipSummary(editing.identityState?.relationshipSummary || '')
-        setIdentityToneStyle(editing.identityState?.toneStyle || '')
-        setIdentityBoundariesText(formatIdentityList(editing.identityState?.boundaries))
-        setIdentityContinuityNotesText(formatIdentityList(editing.identityState?.continuityNotes))
-        setBudgetEnabled(
-          (typeof editing.hourlyBudget === 'number' && editing.hourlyBudget > 0)
-          || (typeof editing.dailyBudget === 'number' && editing.dailyBudget > 0)
-          || (typeof editing.monthlyBudget === 'number' && editing.monthlyBudget > 0),
-        )
-        setHourlyBudget(typeof editing.hourlyBudget === 'number' && editing.hourlyBudget > 0 ? String(editing.hourlyBudget) : '')
-        setDailyBudget(typeof editing.dailyBudget === 'number' && editing.dailyBudget > 0 ? String(editing.dailyBudget) : '')
-        setMonthlyBudget(typeof editing.monthlyBudget === 'number' && editing.monthlyBudget > 0 ? String(editing.monthlyBudget) : '')
-        setBudgetAction(editing.budgetAction || 'warn')
+        patch({
+          name: editing.name,
+          description: editing.description,
+          soul: editing.soul || '',
+          systemPrompt: editing.systemPrompt,
+          provider: editing.provider,
+          model: editing.model,
+          credentialId: editing.credentialId || null,
+          apiEndpoint: editing.apiEndpoint || null,
+          gatewayProfileId: editing.gatewayProfileId || null,
+          preferredGatewayTagsText: formatGatewayTagList(editing.preferredGatewayTags),
+          preferredGatewayUseCase: editing.preferredGatewayUseCase || '',
+          routingStrategy: editing.routingStrategy || 'single',
+          routingTargets: editing.routingTargets || [],
+          role: editing.role === 'coordinator' ? 'coordinator' : 'worker',
+          delegationEnabled: editing.delegationEnabled === true,
+          delegationTargetMode: editing.delegationTargetMode === 'selected' ? 'selected' : 'all',
+          delegationTargetAgentIds: editing.delegationTargetAgentIds || [],
+          tools: getEnabledToolIds(editing),
+          toolAccessMode: editing.toolAccessMode === 'scoped' ? 'scoped' : 'universal',
+          extensions: getEnabledExtensionIds(editing),
+          skills: editing.skills || [],
+          skillIds: editing.skillIds || [],
+          mcpServerIds: editing.mcpServerIds || [],
+          mcpDisabledTools: editing.mcpDisabledTools || [],
+          fallbackCredentialIds: editing.fallbackCredentialIds || [],
+          capabilities: Array.isArray(editing.capabilities) ? editing.capabilities : [],
+          ollamaMode: resolveStoredOllamaMode({
+            ollamaMode: editing.ollamaMode ?? null,
+            apiEndpoint: editing.apiEndpoint ?? null,
+          }),
+          openclawEnabled: editing.provider === 'openclaw',
+          projectId: editing.projectId,
+          avatarSeed: editing.avatarSeed || Math.random().toString(36).slice(2, 10),
+          avatarUrl: editing.avatarUrl || null,
+          thinkingLevel: editing.thinkingLevel || '',
+          memoryScopeMode: editing.memoryScopeMode || 'auto',
+          memoryTierPreference: editing.memoryTierPreference || 'blended',
+          proactiveMemory: editing.proactiveMemory !== false,
+          autoDraftSkillSuggestions: editing.autoDraftSkillSuggestions !== false,
+          planningMode: normalizeAgentPlanningMode(editing.planningMode),
+          autoRecovery: editing.autoRecovery || false,
+          disabled: editing.disabled === true,
+          filesystemScope: editing.filesystemScope === 'machine' ? 'machine' : 'workspace',
+          voiceId: editing.elevenLabsVoiceId || '',
+          heartbeatEnabled: editing.heartbeatEnabled || false,
+          heartbeatIntervalSec: parseDurationToSec(editing.heartbeatInterval, editing.heartbeatIntervalSec),
+          heartbeatModel: editing.heartbeatModel || '',
+          heartbeatPrompt: editing.heartbeatPrompt || '',
+          dreamEnabled: editing.dreamEnabled || false,
+          dreamCooldownMinutes: editing.dreamConfig?.cooldownMinutes != null ? String(editing.dreamConfig.cooldownMinutes) : '360',
+          dreamTier2Enabled: editing.dreamConfig?.tier2Enabled !== false,
+          orchestratorEnabled: editing.orchestratorEnabled || false,
+          orchestratorMission: editing.orchestratorMission || '',
+          orchestratorWakeInterval: typeof editing.orchestratorWakeInterval === 'string' ? editing.orchestratorWakeInterval : typeof editing.orchestratorWakeInterval === 'number' ? `${editing.orchestratorWakeInterval}s` : '5m',
+          orchestratorGovernance: editing.orchestratorGovernance || 'autonomous',
+          orchestratorMaxCyclesPerDay: editing.orchestratorMaxCyclesPerDay != null ? String(editing.orchestratorMaxCyclesPerDay) : '',
+          sessionResetMode: editing.sessionResetMode || '',
+          sessionIdleTimeoutSec: editing.sessionIdleTimeoutSec != null ? String(editing.sessionIdleTimeoutSec) : '',
+          sessionMaxAgeSec: editing.sessionMaxAgeSec != null ? String(editing.sessionMaxAgeSec) : '',
+          sessionDailyResetAt: editing.sessionDailyResetAt || '',
+          sessionResetTimezone: editing.sessionResetTimezone || '',
+          identityPersonaLabel: editing.identityState?.personaLabel || '',
+          identitySelfSummary: editing.identityState?.selfSummary || '',
+          identityRelationshipSummary: editing.identityState?.relationshipSummary || '',
+          identityToneStyle: editing.identityState?.toneStyle || '',
+          identityBoundariesText: formatIdentityList(editing.identityState?.boundaries),
+          identityContinuityNotesText: formatIdentityList(editing.identityState?.continuityNotes),
+          budgetEnabled: (typeof editing.hourlyBudget === 'number' && editing.hourlyBudget > 0)
+            || (typeof editing.dailyBudget === 'number' && editing.dailyBudget > 0)
+            || (typeof editing.monthlyBudget === 'number' && editing.monthlyBudget > 0),
+          hourlyBudget: typeof editing.hourlyBudget === 'number' && editing.hourlyBudget > 0 ? String(editing.hourlyBudget) : '',
+          dailyBudget: typeof editing.dailyBudget === 'number' && editing.dailyBudget > 0 ? String(editing.dailyBudget) : '',
+          monthlyBudget: typeof editing.monthlyBudget === 'number' && editing.monthlyBudget > 0 ? String(editing.monthlyBudget) : '',
+          budgetAction: editing.budgetAction || 'warn',
+        })
       } else if (useAppStore.getState().agentPrefill) {
         // Duplicate mode — prefill from source agent, then clear
         const src = useAppStore.getState().agentPrefill!
         setAgentPrefill(null)
         skipAutoModelRef.current = true
-        setName(`${src.name || 'Agent'} (Copy)`)
-        setDescription(src.description || '')
-        setSoul(src.soul || '')
         setSoulInitial(src.soul || '')
         setSoulSaveState('idle')
-        setSystemPrompt(src.systemPrompt || '')
-        setProvider(src.provider || 'claude-cli')
-        setModel(src.model || '')
-        setCredentialId(src.credentialId || null)
-        setApiEndpoint(src.apiEndpoint || null)
-        setGatewayProfileId(src.gatewayProfileId || null)
-        setPreferredGatewayTagsText(formatGatewayTagList(src.preferredGatewayTags))
-        setPreferredGatewayUseCase(src.preferredGatewayUseCase || '')
-        setRoutingStrategy(src.routingStrategy || 'single')
-        setRoutingTargets(src.routingTargets || [])
-        setRole(src.role === 'coordinator' ? 'coordinator' : 'worker')
-        setDelegationEnabled(src.delegationEnabled === true)
-        setDelegationTargetMode(src.delegationTargetMode === 'selected' ? 'selected' : 'all')
-        setDelegationTargetAgentIds(src.delegationTargetAgentIds || [])
-        setTools(getEnabledToolIds(src))
-        setToolAccessMode(src.toolAccessMode === 'scoped' ? 'scoped' : 'universal')
-        setExtensions(getEnabledExtensionIds(src))
-        setSkills(src.skills || [])
-        setSkillIds(src.skillIds || [])
-        setMcpServerIds(src.mcpServerIds || [])
-        setMcpDisabledTools(src.mcpDisabledTools || [])
-        setFallbackCredentialIds(src.fallbackCredentialIds || [])
-        setCapabilities(Array.isArray(src.capabilities) ? src.capabilities : [])
         setCapInput('')
-        setOllamaMode(resolveStoredOllamaMode({
-          ollamaMode: src.ollamaMode ?? null,
-          apiEndpoint: src.apiEndpoint ?? null,
-        }))
-        setOpenclawEnabled(src.provider === 'openclaw')
-        setProjectId(src.projectId)
-        setAvatarSeed(Math.random().toString(36).slice(2, 10))
-        setAvatarUrl(null)
-        setThinkingLevel(src.thinkingLevel || '')
-        setMemoryScopeMode(src.memoryScopeMode || 'auto')
-        setMemoryTierPreference(src.memoryTierPreference || 'blended')
-        setProactiveMemory(src.proactiveMemory !== false)
-        setAutoDraftSkillSuggestions(src.autoDraftSkillSuggestions !== false)
-        setPlanningMode(normalizeAgentPlanningMode(src.planningMode))
-        setAutoRecovery(src.autoRecovery || false)
-        setDisabled(false)
-        setFilesystemScope(src.filesystemScope === 'machine' ? 'machine' : 'workspace')
-        setVoiceId(src.elevenLabsVoiceId || '')
-        setHeartbeatEnabled(src.heartbeatEnabled || false)
-        setHeartbeatIntervalSec(parseDurationToSec(src.heartbeatInterval, src.heartbeatIntervalSec))
-        setHeartbeatModel(src.heartbeatModel || '')
-        setHeartbeatPrompt(src.heartbeatPrompt || '')
-        setDreamEnabled(src.dreamEnabled || false)
-        setDreamCooldownMinutes(src.dreamConfig?.cooldownMinutes != null ? String(src.dreamConfig.cooldownMinutes) : '360')
-        setDreamTier2Enabled(src.dreamConfig?.tier2Enabled !== false)
-        setOrchestratorEnabled(src.orchestratorEnabled || false)
-        setOrchestratorMission(src.orchestratorMission || '')
-        setOrchestratorWakeInterval(typeof src.orchestratorWakeInterval === 'string' ? src.orchestratorWakeInterval : typeof src.orchestratorWakeInterval === 'number' ? `${src.orchestratorWakeInterval}s` : '5m')
-        setOrchestratorGovernance(src.orchestratorGovernance || 'autonomous')
-        setOrchestratorMaxCyclesPerDay(src.orchestratorMaxCyclesPerDay != null ? String(src.orchestratorMaxCyclesPerDay) : '')
-        setSessionResetMode(src.sessionResetMode || '')
-        setSessionIdleTimeoutSec(src.sessionIdleTimeoutSec != null ? String(src.sessionIdleTimeoutSec) : '')
-        setSessionMaxAgeSec(src.sessionMaxAgeSec != null ? String(src.sessionMaxAgeSec) : '')
-        setSessionDailyResetAt(src.sessionDailyResetAt || '')
-        setSessionResetTimezone(src.sessionResetTimezone || '')
-        setIdentityPersonaLabel(src.identityState?.personaLabel || '')
-        setIdentitySelfSummary(src.identityState?.selfSummary || '')
-        setIdentityRelationshipSummary(src.identityState?.relationshipSummary || '')
-        setIdentityToneStyle(src.identityState?.toneStyle || '')
-        setIdentityBoundariesText(formatIdentityList(src.identityState?.boundaries))
-        setIdentityContinuityNotesText(formatIdentityList(src.identityState?.continuityNotes))
-        setBudgetEnabled(
-          (typeof src.hourlyBudget === 'number' && src.hourlyBudget > 0)
-          || (typeof src.dailyBudget === 'number' && src.dailyBudget > 0)
-          || (typeof src.monthlyBudget === 'number' && src.monthlyBudget > 0),
-        )
-        setHourlyBudget(typeof src.hourlyBudget === 'number' && src.hourlyBudget > 0 ? String(src.hourlyBudget) : '')
-        setDailyBudget(typeof src.dailyBudget === 'number' && src.dailyBudget > 0 ? String(src.dailyBudget) : '')
-        setMonthlyBudget(typeof src.monthlyBudget === 'number' && src.monthlyBudget > 0 ? String(src.monthlyBudget) : '')
-        setBudgetAction(src.budgetAction || 'warn')
+        patch({
+          name: `${src.name || 'Agent'} (Copy)`,
+          description: src.description || '',
+          soul: src.soul || '',
+          systemPrompt: src.systemPrompt || '',
+          provider: src.provider || 'claude-cli',
+          model: src.model || '',
+          credentialId: src.credentialId || null,
+          apiEndpoint: src.apiEndpoint || null,
+          gatewayProfileId: src.gatewayProfileId || null,
+          preferredGatewayTagsText: formatGatewayTagList(src.preferredGatewayTags),
+          preferredGatewayUseCase: src.preferredGatewayUseCase || '',
+          routingStrategy: src.routingStrategy || 'single',
+          routingTargets: src.routingTargets || [],
+          role: src.role === 'coordinator' ? 'coordinator' : 'worker',
+          delegationEnabled: src.delegationEnabled === true,
+          delegationTargetMode: src.delegationTargetMode === 'selected' ? 'selected' : 'all',
+          delegationTargetAgentIds: src.delegationTargetAgentIds || [],
+          tools: getEnabledToolIds(src),
+          toolAccessMode: src.toolAccessMode === 'scoped' ? 'scoped' : 'universal',
+          extensions: getEnabledExtensionIds(src),
+          skills: src.skills || [],
+          skillIds: src.skillIds || [],
+          mcpServerIds: src.mcpServerIds || [],
+          mcpDisabledTools: src.mcpDisabledTools || [],
+          fallbackCredentialIds: src.fallbackCredentialIds || [],
+          capabilities: Array.isArray(src.capabilities) ? src.capabilities : [],
+          ollamaMode: resolveStoredOllamaMode({
+            ollamaMode: src.ollamaMode ?? null,
+            apiEndpoint: src.apiEndpoint ?? null,
+          }),
+          openclawEnabled: src.provider === 'openclaw',
+          projectId: src.projectId,
+          avatarSeed: Math.random().toString(36).slice(2, 10),
+          avatarUrl: null,
+          thinkingLevel: src.thinkingLevel || '',
+          memoryScopeMode: src.memoryScopeMode || 'auto',
+          memoryTierPreference: src.memoryTierPreference || 'blended',
+          proactiveMemory: src.proactiveMemory !== false,
+          autoDraftSkillSuggestions: src.autoDraftSkillSuggestions !== false,
+          planningMode: normalizeAgentPlanningMode(src.planningMode),
+          autoRecovery: src.autoRecovery || false,
+          disabled: false,
+          filesystemScope: src.filesystemScope === 'machine' ? 'machine' : 'workspace',
+          voiceId: src.elevenLabsVoiceId || '',
+          heartbeatEnabled: src.heartbeatEnabled || false,
+          heartbeatIntervalSec: parseDurationToSec(src.heartbeatInterval, src.heartbeatIntervalSec),
+          heartbeatModel: src.heartbeatModel || '',
+          heartbeatPrompt: src.heartbeatPrompt || '',
+          dreamEnabled: src.dreamEnabled || false,
+          dreamCooldownMinutes: src.dreamConfig?.cooldownMinutes != null ? String(src.dreamConfig.cooldownMinutes) : '360',
+          dreamTier2Enabled: src.dreamConfig?.tier2Enabled !== false,
+          orchestratorEnabled: src.orchestratorEnabled || false,
+          orchestratorMission: src.orchestratorMission || '',
+          orchestratorWakeInterval: typeof src.orchestratorWakeInterval === 'string' ? src.orchestratorWakeInterval : typeof src.orchestratorWakeInterval === 'number' ? `${src.orchestratorWakeInterval}s` : '5m',
+          orchestratorGovernance: src.orchestratorGovernance || 'autonomous',
+          orchestratorMaxCyclesPerDay: src.orchestratorMaxCyclesPerDay != null ? String(src.orchestratorMaxCyclesPerDay) : '',
+          sessionResetMode: src.sessionResetMode || '',
+          sessionIdleTimeoutSec: src.sessionIdleTimeoutSec != null ? String(src.sessionIdleTimeoutSec) : '',
+          sessionMaxAgeSec: src.sessionMaxAgeSec != null ? String(src.sessionMaxAgeSec) : '',
+          sessionDailyResetAt: src.sessionDailyResetAt || '',
+          sessionResetTimezone: src.sessionResetTimezone || '',
+          identityPersonaLabel: src.identityState?.personaLabel || '',
+          identitySelfSummary: src.identityState?.selfSummary || '',
+          identityRelationshipSummary: src.identityState?.relationshipSummary || '',
+          identityToneStyle: src.identityState?.toneStyle || '',
+          identityBoundariesText: formatIdentityList(src.identityState?.boundaries),
+          identityContinuityNotesText: formatIdentityList(src.identityState?.continuityNotes),
+          budgetEnabled: (typeof src.hourlyBudget === 'number' && src.hourlyBudget > 0)
+            || (typeof src.dailyBudget === 'number' && src.dailyBudget > 0)
+            || (typeof src.monthlyBudget === 'number' && src.monthlyBudget > 0),
+          hourlyBudget: typeof src.hourlyBudget === 'number' && src.hourlyBudget > 0 ? String(src.hourlyBudget) : '',
+          dailyBudget: typeof src.dailyBudget === 'number' && src.dailyBudget > 0 ? String(src.dailyBudget) : '',
+          monthlyBudget: typeof src.monthlyBudget === 'number' && src.monthlyBudget > 0 ? String(src.monthlyBudget) : '',
+          budgetAction: src.budgetAction || 'warn',
+        })
       } else {
-        setName('')
-        setDescription('')
         const newSoul = randomSoul()
-        setSoul(newSoul)
         setSoulInitial(newSoul)
         setSoulSaveState('idle')
-        setSystemPrompt('')
-        setProvider('claude-cli')
-        setModel('')
-        setCredentialId(null)
-        setApiEndpoint(null)
-        setGatewayProfileId(null)
-        setPreferredGatewayTagsText('')
-        setPreferredGatewayUseCase('')
-        setRoutingStrategy('single')
-        setRoutingTargets([])
-        setRole('worker')
-        setDelegationEnabled(false)
-        setDelegationTargetMode('all')
-        setDelegationTargetAgentIds([])
-        setTools(getDefaultAgentToolIds())
-        setToolAccessMode('scoped')
-        setExtensions([])
-        setSkills([])
-        setSkillIds([])
-        setMcpDisabledTools([])
-        setFallbackCredentialIds([])
-        setCapabilities([])
         setCapInput('')
-        setOllamaMode('local')
-        setOpenclawEnabled(false)
-        setProjectId(undefined)
-        setAvatarSeed('')
-        setThinkingLevel('')
-        setMemoryScopeMode('auto')
-        setMemoryTierPreference('blended')
-        setProactiveMemory(true)
-        setAutoDraftSkillSuggestions(true)
-        setPlanningMode('off')
-        setAutoRecovery(false)
-        setDisabled(false)
-        setVoiceId('')
-        setHeartbeatEnabled(true)
-        setHeartbeatIntervalSec('')
-        setHeartbeatModel('')
-        setHeartbeatPrompt('')
-        setOrchestratorEnabled(false)
-        setOrchestratorMission('')
-        setOrchestratorWakeInterval('5m')
-        setOrchestratorGovernance('autonomous')
-        setOrchestratorMaxCyclesPerDay('')
-        setSessionResetMode('')
-        setSessionIdleTimeoutSec('')
-        setSessionMaxAgeSec('')
-        setSessionDailyResetAt('')
-        setSessionResetTimezone('')
-        setIdentityPersonaLabel('')
-        setIdentitySelfSummary('')
-        setIdentityRelationshipSummary('')
-        setIdentityToneStyle('')
-        setIdentityBoundariesText('')
-        setIdentityContinuityNotesText('')
-        setBudgetEnabled(false)
-        setHourlyBudget('')
-        setDailyBudget('')
-        setMonthlyBudget('')
-        setBudgetAction('warn')
+        patch({
+          name: '',
+          description: '',
+          soul: newSoul,
+          systemPrompt: '',
+          provider: 'claude-cli',
+          model: '',
+          credentialId: null,
+          apiEndpoint: null,
+          gatewayProfileId: null,
+          preferredGatewayTagsText: '',
+          preferredGatewayUseCase: '',
+          routingStrategy: 'single',
+          routingTargets: [],
+          role: 'worker',
+          delegationEnabled: false,
+          delegationTargetMode: 'all',
+          delegationTargetAgentIds: [],
+          tools: getDefaultAgentToolIds(),
+          toolAccessMode: 'scoped',
+          extensions: [],
+          skills: [],
+          skillIds: [],
+          mcpDisabledTools: [],
+          fallbackCredentialIds: [],
+          capabilities: [],
+          ollamaMode: 'local',
+          openclawEnabled: false,
+          projectId: undefined,
+          avatarSeed: '',
+          thinkingLevel: '',
+          memoryScopeMode: 'auto',
+          memoryTierPreference: 'blended',
+          proactiveMemory: true,
+          autoDraftSkillSuggestions: true,
+          planningMode: 'off',
+          autoRecovery: false,
+          disabled: false,
+          voiceId: '',
+          heartbeatEnabled: true,
+          heartbeatIntervalSec: '',
+          heartbeatModel: '',
+          heartbeatPrompt: '',
+          orchestratorEnabled: false,
+          orchestratorMission: '',
+          orchestratorWakeInterval: '5m',
+          orchestratorGovernance: 'autonomous',
+          orchestratorMaxCyclesPerDay: '',
+          sessionResetMode: '',
+          sessionIdleTimeoutSec: '',
+          sessionMaxAgeSec: '',
+          sessionDailyResetAt: '',
+          sessionResetTimezone: '',
+          identityPersonaLabel: '',
+          identitySelfSummary: '',
+          identityRelationshipSummary: '',
+          identityToneStyle: '',
+          identityBoundariesText: '',
+          identityContinuityNotesText: '',
+          budgetEnabled: false,
+          hourlyBudget: '',
+          dailyBudget: '',
+          monthlyBudget: '',
+          budgetAction: 'warn',
+        })
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -696,7 +870,7 @@ export function AgentSheet() {
       return
     }
     if (currentProvider?.models.length && !editing) {
-      setModel(currentProvider.models[0])
+      patch({ model: currentProvider.models[0] })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider, agentSelectableProviders])
@@ -752,25 +926,25 @@ export function AgentSheet() {
   }
 
   const applyGatewayProfileSelection = (nextGatewayProfileId: string | null) => {
-    setGatewayProfileId(nextGatewayProfileId)
+    patch({ gatewayProfileId: nextGatewayProfileId })
     const gateway = openclawGatewayProfiles.find((item) => item.id === nextGatewayProfileId)
     if (!gateway) return
-    setProvider('openclaw')
-    setOpenclawEnabled(true)
-    setApiEndpoint(gateway.endpoint)
-    if (gateway.credentialId) setCredentialId(gateway.credentialId)
-    if (!model) setModel('default')
+    patch({ provider: 'openclaw' })
+    patch({ openclawEnabled: true })
+    patch({ apiEndpoint: gateway.endpoint })
+    if (gateway.credentialId) patch({ credentialId: gateway.credentialId })
+    if (!model) patch({ model: 'default' })
   }
 
   const applyDirectProviderSelection = (nextProviderId: string) => {
     const nextProvider = agentSelectableProviders.find((item) => item.id === nextProviderId)
     const nextCredentials = resolveAgentSelectableProviderCredentials(nextProviderId, credentials, providerConfigs)
-    setProvider(nextProviderId)
-    setModel(nextProvider?.models[0] || '')
-    setCredentialId(nextCredentials[0]?.id || null)
-    setFallbackCredentialIds([])
-    setGatewayProfileId(null)
-    setApiEndpoint(nextProvider?.requiresEndpoint ? nextProvider.defaultEndpoint || null : null)
+    patch({ provider: nextProviderId })
+    patch({ model: nextProvider?.models[0] || '' })
+    patch({ credentialId: nextCredentials[0]?.id || null })
+    patch({ fallbackCredentialIds: [] })
+    patch({ gatewayProfileId: null })
+    patch({ apiEndpoint: nextProvider?.requiresEndpoint ? nextProvider.defaultEndpoint || null : null })
     setTestStatus('idle')
     setTestMessage('')
     setTestErrorCode(null)
@@ -780,16 +954,18 @@ export function AgentSheet() {
     setNewKeyValue('')
   }
 
-  const updateRoutingTarget = (targetId: string, patch: Partial<AgentRoutingTarget>) => {
-    setRoutingTargets((current) => current.map((target) => (
-      target.id === targetId
-        ? { ...target, ...patch }
-        : target
-    )))
+  const updateRoutingTarget = (targetId: string, targetPatch: Partial<AgentRoutingTarget>) => {
+    patch((d) => ({
+      routingTargets: d.routingTargets.map((target) => (
+        target.id === targetId
+          ? { ...target, ...targetPatch }
+          : target
+      )),
+    }))
   }
 
   const removeRoutingTarget = (targetId: string) => {
-    setRoutingTargets((current) => current.filter((target) => target.id !== targetId))
+    patch((d) => ({ routingTargets: d.routingTargets.filter((target) => target.id !== targetId) }))
   }
 
   const addRoutingTargetFromCurrent = () => {
@@ -808,7 +984,7 @@ export function AgentSheet() {
       preferredGatewayUseCase: preferredGatewayUseCase || null,
       priority: routingTargets.length + 1,
     }
-    setRoutingTargets((current) => [...current, nextTarget])
+    patch((d) => ({ routingTargets: [...d.routingTargets, nextTarget] }))
   }
 
   const handleSave = async () => {
@@ -1189,13 +1365,12 @@ export function AgentSheet() {
     : 'Defaults only'
 
   const toggleAgent = (id: string) => {
-    setDelegationTargetMode('selected')
-    setDelegationTargetAgentIds((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-      if (next.length === 0) {
-        setDelegationTargetMode('all')
+    patch((d) => {
+      const next = d.delegationTargetAgentIds.includes(id) ? d.delegationTargetAgentIds.filter((x) => x !== id) : [...d.delegationTargetAgentIds, id]
+      return {
+        delegationTargetMode: next.length === 0 ? 'all' : 'selected',
+        delegationTargetAgentIds: next,
       }
-      return next
     })
   }
 
@@ -1229,7 +1404,7 @@ export function AgentSheet() {
       >
       <div className="mb-8">
         <SectionLabel>Name</SectionLabel>
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. SEO Researcher" className={inputClass} style={{ fontFamily: 'inherit' }} />
+        <input type="text" value={name} onChange={(e) => patch({ name: e.target.value })} placeholder="e.g. SEO Researcher" className={inputClass} style={{ fontFamily: 'inherit' }} />
       </div>
 
       <div className="mb-8">
@@ -1259,8 +1434,8 @@ export function AgentSheet() {
                       })
                       const data = await res.json()
                       if (data.url) {
-                        setAvatarUrl(data.url)
-                        setAvatarSeed('')
+                        patch({ avatarUrl: data.url })
+                        patch({ avatarSeed: '' })
                         toast.success('Avatar image uploaded')
                       }
                     } catch {
@@ -1278,8 +1453,8 @@ export function AgentSheet() {
                 <button
                   type="button"
                   onClick={() => {
-                    setAvatarUrl(null)
-                    if (!avatarSeed) setAvatarSeed(Math.random().toString(36).slice(2, 10))
+                    patch({ avatarUrl: null })
+                    if (!avatarSeed) patch({ avatarSeed: Math.random().toString(36).slice(2, 10) })
                   }}
                   className="text-[11px] text-text-3 hover:text-red-400 transition-colors self-start cursor-pointer"
                 >
@@ -1293,14 +1468,14 @@ export function AgentSheet() {
             <input
               type="text"
               value={avatarSeed}
-              onChange={(e) => { setAvatarSeed(e.target.value); setAvatarUrl(null) }}
+              onChange={(e) => { patch({ avatarSeed: e.target.value }); patch({ avatarUrl: null }) }}
               placeholder="Avatar seed (any text)"
               className={inputClass}
               style={{ fontFamily: 'inherit', flex: 1 }}
             />
             <button
               type="button"
-              onClick={() => { setAvatarSeed(Math.random().toString(36).slice(2, 10)); setAvatarUrl(null) }}
+              onClick={() => { patch({ avatarSeed: Math.random().toString(36).slice(2, 10) }); patch({ avatarUrl: null }) }}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2 hover:text-text-2 active:scale-95 shrink-0"
               style={{ fontFamily: 'inherit' }}
               title="Shuffle avatar"
@@ -1318,7 +1493,7 @@ export function AgentSheet() {
 
       <div className="mb-8">
         <SectionLabel>Description</SectionLabel>
-        <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What does this agent do?" className={inputClass} style={{ fontFamily: 'inherit' }} />
+        <input type="text" value={description} onChange={(e) => patch({ description: e.target.value })} placeholder="What does this agent do?" className={inputClass} style={{ fontFamily: 'inherit' }} />
       </div>
       </SectionCard>
 
@@ -1342,18 +1517,18 @@ export function AgentSheet() {
                 setTestErrorCode(null)
                 setTestDiagnostics([])
                 if (!openclawEnabled) {
-                  setOpenclawEnabled(true)
-                  setProvider('openclaw')
-                  setModel('default')
-                  if (!apiEndpoint) setApiEndpoint('http://localhost:18789')
+                  patch({ openclawEnabled: true })
+                  patch({ provider: 'openclaw' })
+                  patch({ model: 'default' })
+                  if (!apiEndpoint) patch({ apiEndpoint: 'http://localhost:18789' })
                 } else {
-                  setOpenclawEnabled(false)
+                  patch({ openclawEnabled: false })
                   const first = agentSelectableProviders[0]?.id || 'claude-cli'
-                  setProvider(first)
-                  setModel('')
-                  setApiEndpoint(null)
-                  setCredentialId(null)
-                  setGatewayProfileId(null)
+                  patch({ provider: first })
+                  patch({ model: '' })
+                  patch({ apiEndpoint: null })
+                  patch({ credentialId: null })
+                  patch({ gatewayProfileId: null })
                 }
               }}
               className={`relative h-6 w-11 rounded-full border-none transition-colors duration-200 ${openclawEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
@@ -1390,7 +1565,7 @@ export function AgentSheet() {
               <input
                 type="text"
                 value={apiEndpoint || ''}
-                onChange={(e) => setApiEndpoint(e.target.value || null)}
+                onChange={(e) => patch({ apiEndpoint: e.target.value || null })}
                 placeholder="http://localhost:18789"
                 className={inputClass}
                 style={{ fontFamily: 'inherit' }}
@@ -1406,7 +1581,7 @@ export function AgentSheet() {
                       setNewKeyName('')
                       setNewKeyValue('')
                     } else {
-                      setCredentialId(e.target.value || null)
+                      patch({ credentialId: e.target.value || null })
                     }
                   }} className={`${inputClass} appearance-none cursor-pointer flex-1`} style={{ fontFamily: 'inherit' }}>
                     <option value="">No token (auth disabled)</option>
@@ -1453,7 +1628,7 @@ export function AgentSheet() {
                         try {
                           const cred = await api<{ id: string }>('POST', '/credentials', { provider: 'openclaw', name: newKeyName.trim() || 'OpenClaw token', apiKey: newKeyValue.trim() })
                           await loadCredentials()
-                          setCredentialId(cred.id)
+                          patch({ credentialId: cred.id })
                           setAddingKey(false)
                           setNewKeyName('')
                           setNewKeyValue('')
@@ -1609,7 +1784,7 @@ export function AgentSheet() {
           <ModelCombobox
             providerId={currentProvider.id}
             value={model}
-            onChange={setModel}
+            onChange={(value) => patch({ model: value })}
             models={currentProvider.models}
             defaultModels={currentProvider.defaultModels}
             credentialId={credentialId}
@@ -1632,13 +1807,13 @@ export function AgentSheet() {
               <button
                 key={mode}
                 onClick={() => {
-                  setOllamaMode(mode)
+                  patch({ ollamaMode: mode })
                   if (mode === 'local') {
-                    setApiEndpoint('http://localhost:11434')
-                    setCredentialId(null)
+                    patch({ apiEndpoint: 'http://localhost:11434' })
+                    patch({ credentialId: null })
                   } else {
-                    setApiEndpoint(null)
-                    if (providerCredentials.length > 0) setCredentialId(providerCredentials[0].id)
+                    patch({ apiEndpoint: null })
+                    if (providerCredentials.length > 0) patch({ credentialId: providerCredentials[0].id })
                   }
                 }}
                 className={`flex-1 py-3 rounded-md text-center cursor-pointer transition-all duration-200
@@ -1666,7 +1841,7 @@ export function AgentSheet() {
                   setNewKeyName('')
                   setNewKeyValue('')
                 } else {
-                  setCredentialId(e.target.value || null)
+                  patch({ credentialId: e.target.value || null })
                 }
               }} className={`${inputClass} appearance-none cursor-pointer flex-1`} style={{ fontFamily: 'inherit' }}>
                 <option value="">Select a key...</option>
@@ -1713,7 +1888,7 @@ export function AgentSheet() {
                         try {
                           const cred = await api<{ id: string }>('POST', '/credentials', { provider, name: newKeyName.trim() || `${provider} key`, apiKey: newKeyValue.trim() })
                           await loadCredentials()
-                          setCredentialId(cred.id)
+                          patch({ credentialId: cred.id })
                           const synced = await syncLiveProviderModels(provider, cred.id, apiEndpoint, ollamaMode, true).catch(() => null)
                           setAddingKey(false)
                           setNewKeyName('')
@@ -1750,7 +1925,7 @@ export function AgentSheet() {
               return (
                 <button
                   key={c.id}
-                  onClick={() => setFallbackCredentialIds((prev) => active ? prev.filter((x) => x !== c.id) : [...prev, c.id])}
+                  onClick={() => patch((d) => ({ fallbackCredentialIds: active ? d.fallbackCredentialIds.filter((x) => x !== c.id) : [...d.fallbackCredentialIds, c.id] }))}
                   className={`px-3 py-2 rounded-sm text-[12px] font-600 cursor-pointer transition-all border
                     ${active
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
@@ -1768,7 +1943,7 @@ export function AgentSheet() {
       {(currentProvider?.requiresEndpoint || currentProvider?.optionalEndpoint) && (provider !== 'ollama' || ollamaMode === 'local') && (
         <div className="mb-8">
           <SectionLabel>{provider === 'openclaw' ? 'OpenClaw Endpoint' : provider === 'hermes' ? 'Hermes API Endpoint' : provider === 'lmstudio' ? 'LM Studio Endpoint' : 'Endpoint'}</SectionLabel>
-          <input type="text" value={apiEndpoint || ''} onChange={(e) => setApiEndpoint(e.target.value || null)} placeholder={currentProvider.defaultEndpoint || 'http://localhost:11434'} className={`${inputClass} font-mono text-[14px]`} />
+          <input type="text" value={apiEndpoint || ''} onChange={(e) => patch({ apiEndpoint: e.target.value || null })} placeholder={currentProvider.defaultEndpoint || 'http://localhost:11434'} className={`${inputClass} font-mono text-[14px]`} />
           {provider === 'openclaw' && (
             <p className="text-[13px] text-text-3/70 mt-2">The URL of your OpenClaw gateway</p>
           )}
@@ -1808,7 +1983,7 @@ export function AgentSheet() {
             <p className="text-[12px] text-text-3/60">Define the agent&apos;s voice, tone, and personality. Injected before the system prompt.</p>
             <button
               type="button"
-              onClick={() => setSoul(randomSoul())}
+              onClick={() => patch({ soul: randomSoul() })}
               className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-sm border border-line-default bg-transparent text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors"
               style={{ fontFamily: 'inherit' }}
               title="Randomize personality"
@@ -1829,11 +2004,11 @@ export function AgentSheet() {
               Browse Library
             </button>
             <button onClick={() => soulFileRef.current?.click()} className="shrink-0 px-2 py-1 rounded-sm border border-line-default bg-surface text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors" style={{ fontFamily: 'inherit' }}>Upload .md</button>
-            <input ref={soulFileRef} type="file" accept=".md,.txt,.markdown" onChange={handleFileUpload(setSoul)} className="hidden" />
+            <input ref={soulFileRef} type="file" accept=".md,.txt,.markdown" onChange={handleFileUpload((value) => patch({ soul: value }))} className="hidden" />
           </div>
           <textarea
             value={soul}
-            onChange={(e) => setSoul(e.target.value)}
+            onChange={(e) => patch({ soul: e.target.value })}
             placeholder="e.g. You speak concisely and directly. You have a dry sense of humor. You always back claims with data."
             rows={3}
             className={`${inputClass} resize-y min-h-[80px]`}
@@ -1846,11 +2021,11 @@ export function AgentSheet() {
             <div className="mb-3 flex items-center gap-2">
               <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em]">System Prompt <HintTip text="Instructions that tell the agent what it can do, what tools to use, and how to behave" /></label>
               <button onClick={() => promptFileRef.current?.click()} className="shrink-0 px-2 py-1 rounded-sm border border-line-default bg-surface text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors" style={{ fontFamily: 'inherit' }}>Upload .md</button>
-              <input ref={promptFileRef} type="file" accept=".md,.txt,.markdown" onChange={handleFileUpload(setSystemPrompt)} className="hidden" />
+              <input ref={promptFileRef} type="file" accept=".md,.txt,.markdown" onChange={handleFileUpload((value) => patch({ systemPrompt: value }))} className="hidden" />
             </div>
             <textarea
               value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
+              onChange={(e) => patch({ systemPrompt: e.target.value })}
               placeholder="You are an expert..."
               rows={6}
               className={`${inputClass} resize-y min-h-[140px]`}
@@ -1882,8 +2057,8 @@ export function AgentSheet() {
                   key={r}
                   type="button"
                   onClick={() => {
-                    setRole(r)
-                    if (r === 'coordinator') setDelegationEnabled(true)
+                    patch({ role: r })
+                    if (r === 'coordinator') patch({ delegationEnabled: true })
                   }}
                   className={`px-4 py-1.5 rounded-sm text-[13px] font-display font-500 transition-all duration-200
                     ${role === r
@@ -1905,7 +2080,7 @@ export function AgentSheet() {
               <label className="flex items-center gap-3 cursor-pointer">
                 <div
                   onClick={() => {
-                    if (role !== 'coordinator') setDelegationEnabled((current) => !current)
+                    if (role !== 'coordinator') patch((d) => ({ delegationEnabled: !d.delegationEnabled }))
                   }}
                   className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0
                     ${canDelegateToAgents ? 'bg-accent-bright' : 'bg-layer-3'}
@@ -1932,8 +2107,8 @@ export function AgentSheet() {
                   noneOption={{
                     label: 'All Agents',
                     onSelect: () => {
-                      setDelegationTargetMode('all')
-                      setDelegationTargetAgentIds([])
+                      patch({ delegationTargetMode: 'all' })
+                      patch({ delegationTargetAgentIds: [] })
                     },
                   }}
                 />
@@ -1954,7 +2129,7 @@ export function AgentSheet() {
               </div>
               <button
                 type="button"
-                onClick={() => setOrchestratorEnabled((current) => !current)}
+                onClick={() => patch((d) => ({ orchestratorEnabled: !d.orchestratorEnabled }))}
                 className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${orchestratorEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
                 aria-pressed={orchestratorEnabled}
               >
@@ -1970,7 +2145,7 @@ export function AgentSheet() {
                   </label>
                   <textarea
                     value={orchestratorMission}
-                    onChange={(e) => setOrchestratorMission(e.target.value)}
+                    onChange={(e) => patch({ orchestratorMission: e.target.value })}
                     placeholder="Describe the orchestrator's mission — what should it manage, optimize, or oversee?"
                     rows={3}
                     className={`${inputClass} resize-y min-h-[84px]`}
@@ -1986,7 +2161,7 @@ export function AgentSheet() {
                     <input
                       type="text"
                       value={orchestratorWakeInterval}
-                      onChange={(e) => setOrchestratorWakeInterval(e.target.value)}
+                      onChange={(e) => patch({ orchestratorWakeInterval: e.target.value })}
                       placeholder="5m"
                       className={inputClass}
                       style={{ fontFamily: 'inherit' }}
@@ -1998,7 +2173,7 @@ export function AgentSheet() {
                     </label>
                     <select
                       value={orchestratorGovernance}
-                      onChange={(e) => setOrchestratorGovernance(e.target.value as typeof orchestratorGovernance)}
+                      onChange={(e) => patch({ orchestratorGovernance: e.target.value as typeof orchestratorGovernance })}
                       className={inputClass}
                       style={{ fontFamily: 'inherit' }}
                     >
@@ -2014,7 +2189,7 @@ export function AgentSheet() {
                     <input
                       type="number"
                       value={orchestratorMaxCyclesPerDay}
-                      onChange={(e) => setOrchestratorMaxCyclesPerDay(e.target.value)}
+                      onChange={(e) => patch({ orchestratorMaxCyclesPerDay: e.target.value })}
                       placeholder="No limit"
                       min={1}
                       className={inputClass}
@@ -2043,7 +2218,7 @@ export function AgentSheet() {
           </div>
           <button
             type="button"
-            onClick={() => setHeartbeatEnabled((current) => !current)}
+            onClick={() => patch((d) => ({ heartbeatEnabled: !d.heartbeatEnabled }))}
             className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${heartbeatEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
             aria-pressed={heartbeatEnabled}
           >
@@ -2062,7 +2237,7 @@ export function AgentSheet() {
           </div>
           <button
             type="button"
-            onClick={() => setDreamEnabled((current) => !current)}
+            onClick={() => patch((d) => ({ dreamEnabled: !d.dreamEnabled }))}
             className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${dreamEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
             aria-pressed={dreamEnabled}
           >
@@ -2078,7 +2253,7 @@ export function AgentSheet() {
               <input
                 type="number"
                 value={dreamCooldownMinutes}
-                onChange={(e) => setDreamCooldownMinutes(e.target.value)}
+                onChange={(e) => patch({ dreamCooldownMinutes: e.target.value })}
                 min={1}
                 placeholder="360"
                 className={inputClass}
@@ -2087,7 +2262,7 @@ export function AgentSheet() {
             </div>
             <label className="flex items-center gap-3 cursor-pointer">
               <div
-                onClick={() => setDreamTier2Enabled((current) => !current)}
+                onClick={() => patch((d) => ({ dreamTier2Enabled: !d.dreamTier2Enabled }))}
                 className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${dreamTier2Enabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
               >
                 <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${dreamTier2Enabled ? 'left-[22px]' : 'left-0.5'}`} />
@@ -2135,7 +2310,7 @@ export function AgentSheet() {
       <div className="space-y-3">
         <label className="flex items-center gap-3 cursor-pointer">
           <div
-            onClick={() => setToolAccessMode((current) => current === 'universal' ? 'scoped' : 'universal')}
+            onClick={() => patch((d) => ({ toolAccessMode: d.toolAccessMode === 'universal' ? 'scoped' : 'universal' }))}
             className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${toolAccessMode === 'universal' ? 'bg-accent-bright' : 'bg-layer-3'}`}
           >
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${toolAccessMode === 'universal' ? 'left-[22px]' : 'left-0.5'}`} />
@@ -2166,14 +2341,14 @@ export function AgentSheet() {
               <input
                 type="text"
                 value={voiceId}
-                onChange={(e) => setVoiceId(e.target.value)}
+                onChange={(e) => patch({ voiceId: e.target.value })}
                 placeholder="ElevenLabs voice ID"
                 className={inputClass}
                 style={{ fontFamily: 'inherit' }}
               />
               <button
                 type="button"
-                onClick={() => setVoiceId('')}
+                onClick={() => patch({ voiceId: '' })}
                 className="px-3 py-2.5 rounded-sm border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
@@ -2199,7 +2374,7 @@ export function AgentSheet() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <select
             value={heartbeatIntervalSec}
-            onChange={(e) => setHeartbeatIntervalSec(e.target.value)}
+            onChange={(e) => patch({ heartbeatIntervalSec: e.target.value })}
             className={inputClass}
             style={{ fontFamily: 'inherit' }}
           >
@@ -2211,7 +2386,7 @@ export function AgentSheet() {
           <input
             type="text"
             value={heartbeatModel}
-            onChange={(e) => setHeartbeatModel(e.target.value)}
+            onChange={(e) => patch({ heartbeatModel: e.target.value })}
             placeholder="Heartbeat model override"
             className={inputClass}
             style={{ fontFamily: 'inherit' }}
@@ -2219,7 +2394,7 @@ export function AgentSheet() {
         </div>
         <textarea
           value={heartbeatPrompt}
-          onChange={(e) => setHeartbeatPrompt(e.target.value)}
+          onChange={(e) => patch({ heartbeatPrompt: e.target.value })}
           placeholder="Optional custom heartbeat prompt"
           rows={3}
           className={`${inputClass} resize-y min-h-[84px]`}
@@ -2234,14 +2409,14 @@ export function AgentSheet() {
         className="mb-6 border-line-subtle bg-layer-1"
       >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        <select value={thinkingLevel} onChange={(e) => setThinkingLevel(e.target.value as typeof thinkingLevel)} className={inputClass}>
+        <select value={thinkingLevel} onChange={(e) => patch({ thinkingLevel: e.target.value as typeof thinkingLevel })} className={inputClass}>
           <option value="">Default thinking</option>
           <option value="minimal">Minimal</option>
           <option value="low">Low</option>
           <option value="medium">Medium</option>
           <option value="high">High</option>
         </select>
-        <select value={memoryScopeMode} onChange={(e) => setMemoryScopeMode(e.target.value as typeof memoryScopeMode)} className={inputClass}>
+        <select value={memoryScopeMode} onChange={(e) => patch({ memoryScopeMode: e.target.value as typeof memoryScopeMode })} className={inputClass}>
           <option value="auto">Auto memory scope</option>
           <option value="all">All</option>
           <option value="global">Global</option>
@@ -2249,13 +2424,13 @@ export function AgentSheet() {
           <option value="session">Session</option>
           <option value="project">Project</option>
         </select>
-        <select value={memoryTierPreference} onChange={(e) => setMemoryTierPreference(e.target.value as typeof memoryTierPreference)} className={inputClass}>
+        <select value={memoryTierPreference} onChange={(e) => patch({ memoryTierPreference: e.target.value as typeof memoryTierPreference })} className={inputClass}>
           <option value="blended">Blended tiering</option>
           <option value="working">Working memory</option>
           <option value="durable">Durable memory</option>
           <option value="archive">Archive memory</option>
         </select>
-        <select value={planningMode} onChange={(e) => setPlanningMode(normalizeAgentPlanningMode(e.target.value))} className={inputClass}>
+        <select value={planningMode} onChange={(e) => patch({ planningMode: normalizeAgentPlanningMode(e.target.value) })} className={inputClass}>
           {AGENT_PLANNING_MODE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
@@ -2267,7 +2442,7 @@ export function AgentSheet() {
       <div className="space-y-3">
         <label className="flex items-center gap-3 cursor-pointer">
           <div
-            onClick={() => setProactiveMemory((current) => !current)}
+            onClick={() => patch((d) => ({ proactiveMemory: !d.proactiveMemory }))}
             className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${proactiveMemory ? 'bg-accent-bright' : 'bg-layer-3'}`}
           >
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${proactiveMemory ? 'left-[22px]' : 'left-0.5'}`} />
@@ -2276,7 +2451,7 @@ export function AgentSheet() {
         </label>
         <label className="flex items-center gap-3 cursor-pointer">
           <div
-            onClick={() => setAutoDraftSkillSuggestions((current) => !current)}
+            onClick={() => patch((d) => ({ autoDraftSkillSuggestions: !d.autoDraftSkillSuggestions }))}
             className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${autoDraftSkillSuggestions ? 'bg-accent-bright' : 'bg-layer-3'}`}
           >
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${autoDraftSkillSuggestions ? 'left-[22px]' : 'left-0.5'}`} />
@@ -2296,15 +2471,15 @@ export function AgentSheet() {
           Identity Continuity <HintTip text="Seeds the agent's continuity state so session memory can preserve a stable persona and relationship context." />
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-          <input type="text" value={identityPersonaLabel} onChange={(e) => setIdentityPersonaLabel(e.target.value)} placeholder="Persona label" className={inputClass} style={{ fontFamily: 'inherit' }} />
-          <input type="text" value={identityToneStyle} onChange={(e) => setIdentityToneStyle(e.target.value)} placeholder="Tone style" className={inputClass} style={{ fontFamily: 'inherit' }} />
+          <input type="text" value={identityPersonaLabel} onChange={(e) => patch({ identityPersonaLabel: e.target.value })} placeholder="Persona label" className={inputClass} style={{ fontFamily: 'inherit' }} />
+          <input type="text" value={identityToneStyle} onChange={(e) => patch({ identityToneStyle: e.target.value })} placeholder="Tone style" className={inputClass} style={{ fontFamily: 'inherit' }} />
         </div>
         <div className="grid grid-cols-1 gap-3">
-          <textarea value={identitySelfSummary} onChange={(e) => setIdentitySelfSummary(e.target.value)} placeholder="How this agent should summarize itself across sessions." rows={3} className={`${inputClass} resize-y min-h-[84px]`} style={{ fontFamily: 'inherit' }} />
-          <textarea value={identityRelationshipSummary} onChange={(e) => setIdentityRelationshipSummary(e.target.value)} placeholder="Relationship framing or standing context the agent should keep in mind." rows={3} className={`${inputClass} resize-y min-h-[84px]`} style={{ fontFamily: 'inherit' }} />
+          <textarea value={identitySelfSummary} onChange={(e) => patch({ identitySelfSummary: e.target.value })} placeholder="How this agent should summarize itself across sessions." rows={3} className={`${inputClass} resize-y min-h-[84px]`} style={{ fontFamily: 'inherit' }} />
+          <textarea value={identityRelationshipSummary} onChange={(e) => patch({ identityRelationshipSummary: e.target.value })} placeholder="Relationship framing or standing context the agent should keep in mind." rows={3} className={`${inputClass} resize-y min-h-[84px]`} style={{ fontFamily: 'inherit' }} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <textarea value={identityBoundariesText} onChange={(e) => setIdentityBoundariesText(e.target.value)} placeholder="Boundaries, one per line." rows={4} className={`${inputClass} resize-y min-h-[108px]`} style={{ fontFamily: 'inherit' }} />
-            <textarea value={identityContinuityNotesText} onChange={(e) => setIdentityContinuityNotesText(e.target.value)} placeholder="Continuity notes, one per line." rows={4} className={`${inputClass} resize-y min-h-[108px]`} style={{ fontFamily: 'inherit' }} />
+            <textarea value={identityBoundariesText} onChange={(e) => patch({ identityBoundariesText: e.target.value })} placeholder="Boundaries, one per line." rows={4} className={`${inputClass} resize-y min-h-[108px]`} style={{ fontFamily: 'inherit' }} />
+            <textarea value={identityContinuityNotesText} onChange={(e) => patch({ identityContinuityNotesText: e.target.value })} placeholder="Continuity notes, one per line." rows={4} className={`${inputClass} resize-y min-h-[108px]`} style={{ fontFamily: 'inherit' }} />
           </div>
         </div>
         <p className="mt-2 text-[12px] leading-[1.5] text-text-3/60">
@@ -2317,18 +2492,18 @@ export function AgentSheet() {
           Session Reset Policy <HintTip text="Controls when this agent's sessions are considered stale and should be refreshed." />
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-          <select value={sessionResetMode} onChange={(e) => setSessionResetMode(e.target.value as typeof sessionResetMode)} className={inputClass} style={{ fontFamily: 'inherit' }}>
+          <select value={sessionResetMode} onChange={(e) => patch({ sessionResetMode: e.target.value as typeof sessionResetMode })} className={inputClass} style={{ fontFamily: 'inherit' }}>
             <option value="">Inherit global default</option>
             <option value="idle">Idle</option>
             <option value="daily">Daily</option>
             <option value="isolated">Isolated (fresh context per run)</option>
           </select>
-          <input type="number" min={0} value={sessionIdleTimeoutSec} onChange={(e) => setSessionIdleTimeoutSec(e.target.value)} placeholder="Idle timeout in seconds" className={inputClass} style={{ fontFamily: 'inherit' }} />
+          <input type="number" min={0} value={sessionIdleTimeoutSec} onChange={(e) => patch({ sessionIdleTimeoutSec: e.target.value })} placeholder="Idle timeout in seconds" className={inputClass} style={{ fontFamily: 'inherit' }} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input type="number" min={0} value={sessionMaxAgeSec} onChange={(e) => setSessionMaxAgeSec(e.target.value)} placeholder="Max age in seconds" className={inputClass} style={{ fontFamily: 'inherit' }} />
-          <input type="text" value={sessionDailyResetAt} onChange={(e) => setSessionDailyResetAt(e.target.value)} placeholder="Daily reset time (HH:MM)" className={inputClass} style={{ fontFamily: 'inherit' }} />
-          <input type="text" value={sessionResetTimezone} onChange={(e) => setSessionResetTimezone(e.target.value)} placeholder="Timezone (optional)" className={inputClass} style={{ fontFamily: 'inherit' }} />
+          <input type="number" min={0} value={sessionMaxAgeSec} onChange={(e) => patch({ sessionMaxAgeSec: e.target.value })} placeholder="Max age in seconds" className={inputClass} style={{ fontFamily: 'inherit' }} />
+          <input type="text" value={sessionDailyResetAt} onChange={(e) => patch({ sessionDailyResetAt: e.target.value })} placeholder="Daily reset time (HH:MM)" className={inputClass} style={{ fontFamily: 'inherit' }} />
+          <input type="text" value={sessionResetTimezone} onChange={(e) => patch({ sessionResetTimezone: e.target.value })} placeholder="Timezone (optional)" className={inputClass} style={{ fontFamily: 'inherit' }} />
         </div>
       </div>
       </SectionCard>
@@ -2341,7 +2516,7 @@ export function AgentSheet() {
       {Object.keys(projects).length > 0 && (
         <div className="mb-8">
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Project</label>
-          <select value={projectId || ''} onChange={(e) => setProjectId(e.target.value || undefined)} className={inputClass} style={{ fontFamily: 'inherit' }}>
+          <select value={projectId || ''} onChange={(e) => patch({ projectId: e.target.value || undefined })} className={inputClass} style={{ fontFamily: 'inherit' }}>
             <option value="">No project</option>
             {Object.values(projects).map((project) => (
               <option key={project.id} value={project.id}>{project.name}</option>
@@ -2358,11 +2533,11 @@ export function AgentSheet() {
             <input
               type="text"
               value={preferredGatewayTagsText}
-              onChange={(e) => setPreferredGatewayTagsText(e.target.value)}
+              onChange={(e) => patch({ preferredGatewayTagsText: e.target.value })}
               placeholder="gpu, local, research"
               className={inputClass}
             />
-            <select value={preferredGatewayUseCase} onChange={(e) => setPreferredGatewayUseCase(e.target.value)} className={inputClass}>
+            <select value={preferredGatewayUseCase} onChange={(e) => patch({ preferredGatewayUseCase: e.target.value })} className={inputClass}>
               <option value="">Any OpenClaw template</option>
               <option value="local-dev">Local Dev</option>
               <option value="single-vps">Single VPS</option>
@@ -2381,7 +2556,7 @@ export function AgentSheet() {
           Model Routing <HintTip text="Route this agent through a provider/model pool instead of a single fixed model. The base provider remains the default when no route matches." />
         </label>
         <div className="flex items-center gap-3 mb-3">
-          <select value={routingStrategy} onChange={(e) => setRoutingStrategy(e.target.value as AgentRoutingStrategy)} className={inputClass}>
+          <select value={routingStrategy} onChange={(e) => patch({ routingStrategy: e.target.value as AgentRoutingStrategy })} className={inputClass}>
             <option value="single">Single route</option>
             <option value="balanced">Balanced</option>
             <option value="economy">Economy</option>
@@ -2519,7 +2694,7 @@ export function AgentSheet() {
         <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Filesystem Access</label>
         <select
           value={filesystemScope}
-          onChange={(e) => setFilesystemScope(e.target.value as 'workspace' | 'machine')}
+          onChange={(e) => patch({ filesystemScope: e.target.value as 'workspace' | 'machine' })}
           className="w-full h-10 px-3 rounded-sm bg-layer-2 border border-line-subtle text-[14px] text-text-2"
         >
           <option value="workspace">Workspace only</option>
@@ -2538,13 +2713,13 @@ export function AgentSheet() {
       >
       <div className="space-y-3 mb-6">
         <label className="flex items-center gap-3 cursor-pointer">
-          <div onClick={() => setDisabled((current) => !current)} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${disabled ? 'bg-accent-bright' : 'bg-layer-3'}`}>
+          <div onClick={() => patch((d) => ({ disabled: !d.disabled }))} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${disabled ? 'bg-accent-bright' : 'bg-layer-3'}`}>
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${disabled ? 'left-[22px]' : 'left-0.5'}`} />
           </div>
           <span className="text-[13px] text-text-2">Disable this agent</span>
         </label>
         <label className="flex items-center gap-3 cursor-pointer">
-          <div onClick={() => setAutoRecovery((current) => !current)} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${autoRecovery ? 'bg-accent-bright' : 'bg-layer-3'}`}>
+          <div onClick={() => patch((d) => ({ autoRecovery: !d.autoRecovery }))} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${autoRecovery ? 'bg-accent-bright' : 'bg-layer-3'}`}>
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${autoRecovery ? 'left-[22px]' : 'left-0.5'}`} />
           </div>
           <span className="text-[13px] text-text-2">Guardian auto-recovery</span>
@@ -2553,7 +2728,7 @@ export function AgentSheet() {
 
       <div className="mb-4">
         <label className="flex items-center gap-3 cursor-pointer">
-          <div onClick={() => setBudgetEnabled((current) => !current)} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${budgetEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}>
+          <div onClick={() => patch((d) => ({ budgetEnabled: !d.budgetEnabled }))} className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${budgetEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}>
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${budgetEnabled ? 'left-[22px]' : 'left-0.5'}`} />
           </div>
           <span className="text-[13px] text-text-2">Spend limits</span>
@@ -2561,10 +2736,10 @@ export function AgentSheet() {
       </div>
       {budgetEnabled && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <input type="number" min={0} step="0.01" value={hourlyBudget} onChange={(e) => setHourlyBudget(e.target.value)} placeholder="Hourly" className={inputClass} style={{ fontFamily: 'inherit' }} />
-          <input type="number" min={0} step="0.01" value={dailyBudget} onChange={(e) => setDailyBudget(e.target.value)} placeholder="Daily" className={inputClass} style={{ fontFamily: 'inherit' }} />
-          <input type="number" min={0} step="0.01" value={monthlyBudget} onChange={(e) => setMonthlyBudget(e.target.value)} placeholder="Monthly" className={inputClass} style={{ fontFamily: 'inherit' }} />
-          <select value={budgetAction} onChange={(e) => setBudgetAction(e.target.value as typeof budgetAction)} className={inputClass} style={{ fontFamily: 'inherit' }}>
+          <input type="number" min={0} step="0.01" value={hourlyBudget} onChange={(e) => patch({ hourlyBudget: e.target.value })} placeholder="Hourly" className={inputClass} style={{ fontFamily: 'inherit' }} />
+          <input type="number" min={0} step="0.01" value={dailyBudget} onChange={(e) => patch({ dailyBudget: e.target.value })} placeholder="Daily" className={inputClass} style={{ fontFamily: 'inherit' }} />
+          <input type="number" min={0} step="0.01" value={monthlyBudget} onChange={(e) => patch({ monthlyBudget: e.target.value })} placeholder="Monthly" className={inputClass} style={{ fontFamily: 'inherit' }} />
+          <select value={budgetAction} onChange={(e) => patch({ budgetAction: e.target.value as typeof budgetAction })} className={inputClass} style={{ fontFamily: 'inherit' }}>
             <option value="warn">Warn</option>
             <option value="block">Block</option>
           </select>
@@ -2590,7 +2765,7 @@ export function AgentSheet() {
                 return (
                   <label key={t.id} className={`flex items-center gap-3 ${extensionDisabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`} title={extensionDisabled ? 'Enable in Extensions page' : undefined}>
                     <div
-                      onClick={() => !extensionDisabled && setTools((prev) => prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id])}
+                      onClick={() => !extensionDisabled && patch((d) => ({ tools: d.tools.includes(t.id) ? d.tools.filter((x) => x !== t.id) : [...d.tools, t.id] }))}
                       className={`w-11 h-6 rounded-full transition-all duration-200 relative shrink-0
                         ${extensionDisabled ? 'bg-layer-2 cursor-not-allowed' : tools.includes(t.id) ? 'bg-accent-bright cursor-pointer' : 'bg-layer-3 cursor-pointer'}`}
                     >
@@ -2613,7 +2788,7 @@ export function AgentSheet() {
         <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Filesystem Access</label>
         <select
           value={filesystemScope}
-          onChange={(e) => setFilesystemScope(e.target.value as 'workspace' | 'machine')}
+          onChange={(e) => patch({ filesystemScope: e.target.value as 'workspace' | 'machine' })}
           className="w-full h-10 px-3 rounded-sm bg-layer-2 border border-line-subtle text-[14px] text-text-2"
         >
           <option value="workspace">Workspace only</option>
@@ -2636,7 +2811,7 @@ export function AgentSheet() {
                 return (
                   <label key={t.id} className={`flex items-center gap-3 ${extensionDisabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`} title={extensionDisabled ? 'Enable in Extensions page' : undefined}>
                     <div
-                      onClick={() => !extensionDisabled && setTools((prev) => prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id])}
+                      onClick={() => !extensionDisabled && patch((d) => ({ tools: d.tools.includes(t.id) ? d.tools.filter((x) => x !== t.id) : [...d.tools, t.id] }))}
                       className={`w-11 h-6 rounded-full transition-all duration-200 relative shrink-0
                         ${extensionDisabled ? 'bg-layer-2 cursor-not-allowed' : tools.includes(t.id) ? 'bg-accent-bright cursor-pointer' : 'bg-layer-3 cursor-pointer'}`}
                     >
@@ -2667,7 +2842,7 @@ export function AgentSheet() {
               return (
                 <label key={`${t.extensionId}:${t.toolName}`} className="flex items-center gap-3 cursor-pointer">
                   <div
-                    onClick={() => setExtensions((prev) => prev.includes(t.extensionId) ? prev.filter((x) => x !== t.extensionId) : [...prev, t.extensionId])}
+                    onClick={() => patch((d) => ({ extensions: d.extensions.includes(t.extensionId) ? d.extensions.filter((x) => x !== t.extensionId) : [...d.extensions, t.extensionId] }))}
                     className={`w-11 h-6 rounded-full transition-all duration-200 relative shrink-0 ${attached ? 'bg-accent-bright cursor-pointer' : 'bg-layer-3 cursor-pointer'}`}
                   >
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${attached ? 'left-[22px]' : 'left-0.5'}`} />
@@ -2739,7 +2914,7 @@ export function AgentSheet() {
                 return (
                   <button
                     key={s.id}
-                    onClick={() => setSkills((prev) => active ? prev.filter((x) => x !== s.id) : [...prev, s.id])}
+                    onClick={() => patch((d) => ({ skills: active ? d.skills.filter((x) => x !== s.id) : [...d.skills, s.id] }))}
                     className={`px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                       ${active
                         ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
@@ -2771,7 +2946,7 @@ export function AgentSheet() {
               return (
                 <button
                   key={s.id}
-                  onClick={() => setSkillIds((prev) => active ? prev.filter((x) => x !== s.id) : [...prev, s.id])}
+                  onClick={() => patch((d) => ({ skillIds: active ? d.skillIds.filter((x) => x !== s.id) : [...d.skillIds, s.id] }))}
                   className={`px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                     ${active
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
@@ -2800,7 +2975,7 @@ export function AgentSheet() {
               return (
                 <button
                   key={s.id}
-                  onClick={() => setMcpServerIds((prev) => active ? prev.filter((x) => x !== s.id) : [...prev, s.id])}
+                  onClick={() => patch((d) => ({ mcpServerIds: active ? d.mcpServerIds.filter((x) => x !== s.id) : [...d.mcpServerIds, s.id] }))}
                   className={`px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                     ${active
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
@@ -2841,9 +3016,9 @@ export function AgentSheet() {
                       return (
                         <label key={fullName} className="flex items-center gap-3 cursor-pointer">
                           <div
-                            onClick={() => setMcpDisabledTools((prev) =>
-                              enabled ? [...prev, fullName] : prev.filter((x) => x !== fullName)
-                            )}
+                            onClick={() => patch((d) => ({
+                              mcpDisabledTools: enabled ? [...d.mcpDisabledTools, fullName] : d.mcpDisabledTools.filter((x) => x !== fullName),
+                            }))}
                             className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0
                               ${enabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
                           >
@@ -2873,7 +3048,7 @@ export function AgentSheet() {
                 {capability}
                 <button
                   type="button"
-                  onClick={() => setCapabilities((current) => current.filter((entry) => entry !== capability))}
+                  onClick={() => patch((d) => ({ capabilities: d.capabilities.filter((entry) => entry !== capability) }))}
                   className="bg-transparent border-none text-accent-bright/70 hover:text-accent-bright cursor-pointer"
                 >
                   ×
@@ -2892,7 +3067,7 @@ export function AgentSheet() {
               e.preventDefault()
               const next = capInput.trim()
               if (!next || capabilities.includes(next)) return
-              setCapabilities((current) => [...current, next])
+              patch((d) => ({ capabilities: [...d.capabilities, next] }))
               setCapInput('')
             }}
             placeholder="Add a capability tag"
@@ -2904,7 +3079,7 @@ export function AgentSheet() {
             onClick={() => {
               const next = capInput.trim()
               if (!next || capabilities.includes(next)) return
-              setCapabilities((current) => [...current, next])
+              patch((d) => ({ capabilities: [...d.capabilities, next] }))
               setCapInput('')
             }}
             className="shrink-0 px-3 py-2.5 rounded-sm bg-accent-soft/50 text-accent-bright text-[12px] font-700 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
@@ -3058,7 +3233,7 @@ export function AgentSheet() {
     <SoulLibraryPicker
       open={soulLibraryOpen}
       onClose={() => setSoulLibraryOpen(false)}
-      onSelect={(s) => setSoul(s)}
+      onSelect={(s) => patch({ soul: s })}
     />
     </>
   )
