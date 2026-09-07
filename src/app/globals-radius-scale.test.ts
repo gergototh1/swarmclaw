@@ -29,7 +29,7 @@ import { test } from 'node:test'
 import fs from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { compileCandidates } from './globals-css-harness'
+import { compileCandidates } from './globals-css-harness.test-support'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 

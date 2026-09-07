@@ -25,7 +25,7 @@ import { test } from 'node:test'
 import { readFile, writeFile, unlink } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { compileCandidates, GLOBALS_CSS } from './globals-css-harness'
+import { compileCandidates, GLOBALS_CSS } from './globals-css-harness.test-support'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 
