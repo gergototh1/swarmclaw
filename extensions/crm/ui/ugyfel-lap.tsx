@@ -60,6 +60,20 @@ export function lapozottIdovonal(meglevo: Event[], ujOldal: Event[]): Event[] {
   return [...meglevo, ...ujOldal.filter((e) => !ismertIdk.has(e.id))]
 }
 
+/**
+ * Az idővonal-elem osztálya az esemény fajtájából.
+ *
+ * A csomópont kerete jelöli az irányt: a bejövő az akcent, a kimenő a siker
+ * színét kapja, minden más semlegeset. Tiszta függvény, mert a „minden
+ * ismeretlen fajta is kap valamit" szabály külön tesztelhető kell legyen --
+ * enélkül egy új esemény-fajta csomópont nélkül, a sínen kívül jelenne meg.
+ */
+export function idovonalOsztaly(kind: string): string {
+  if (kind === 'email_in') return 'crm-tlitem'
+  if (kind === 'email_out') return 'crm-tlitem crm-tl-out'
+  return 'crm-tlitem crm-tl-note'
+}
+
 export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: string; onBack: () => void }) {
   const [lap, setLap] = useState<Lap | null>(null)
   const [hiba, setHiba] = useState('')
@@ -172,149 +186,201 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
   if (!lap) return <p>Betöltés…</p>
 
   return (
-    <section>
-      <button onClick={onBack}>← Vissza</button>
-      {hiba && <p className="crm-hiba" role="alert">{hiba}</p>}
-      <h2>{lap.account.name}</h2>
-
-      <h3>Összefoglaló</h3>
-      {lap.summary
-        ? (
-          <div>
-            {/* A frissesség tény, nem becslés: a szerver a legfrissebb lefedett
-                esemény idejét bélyegezte az összefoglalóra, és ez egy COUNT. */}
-            {lap.summary.stale && (
-              <p className="crm-elavult">
-                Elavult — {lap.summary.newerEvents} új esemény azóta
-              </p>
-            )}
-            <p>{lap.summary.summary.text}</p>
-          </div>
-        )
-        : <p className="crm-halvany">Még nincs összefoglaló.</p>}
-
-      <h3>Ügyek</h3>
-      <div className="crm-sor">
-        <input value={ujUgy} onChange={(e) => setUjUgy(e.target.value)}
-               placeholder="Ügy címe" aria-label="Új ügy címe" />
-        <input type="number" value={ujErtek} onChange={(e) => setUjErtek(e.target.value)}
-               placeholder="Érték (Ft)" aria-label="Új ügy értéke" />
-        <select value={ujFajta} onChange={(e) => setUjFajta(e.target.value)} aria-label="Ügy fajtája">
-          <option value="lead">Lead</option>
-          <option value="engagement">Megbízás</option>
-        </select>
-        <button onClick={ugyet}>Új ügy</button>
+    <section className="crm-sec-wrap">
+      <div className="crm-crumb">
+        <button className="crm-btn crm-btn-quiet crm-btn-sm" onClick={onBack}>← Vissza</button>
+        <h2 className="crm-h2">{lap.account.name}</h2>
       </div>
-      {lap.deals.length === 0
-        ? <p className="crm-halvany">Nincs ügy.</p>
-        : (
-          <ul className="crm-lista">
-            {lap.deals.map((d) => (
-              <li key={d.id}>
-                {d.title}
-                <span className="crm-cimke">{d.closed_at ? 'lezárt' : d.stage}</span>
-                {d.value_huf > 0 && <span>{d.value_huf.toLocaleString('hu-HU')} Ft</span>}
-              </li>
-            ))}
-          </ul>
-        )}
+      {hiba && <p className="crm-hiba" role="alert">{hiba}</p>}
 
-      <h3>Nyitott ígéretek</h3>
-      {/* A repo `openOnly`-ja (src/db.mjs listCommitments) is így definiálja a
-          nyitottat: status = 'open' ÉS nincs task_id. Ma a kettő egybeesik --
-          minden ígéret 'open'-ként jön létre --, de csak azért, mert semmi
-          nem állít mást. A `task_id`-ra szűrés önmagában akkor is a régi
-          eredményt adná, ha egy ígéret státusza már 'done' vagy 'cancelled'
-          lenne. */}
-      {lap.commitments.filter((c) => c.status === 'open' && !c.task_id).length === 0
-        ? <p className="crm-halvany">Nincs nyitott ígéret.</p>
-        : (
-          <ul>
-            {lap.commitments.filter((c) => c.status === 'open' && !c.task_id).map((c) => (
-              <li key={c.id}>
-                <span className="crm-cimke">{c.direction === 'ours' ? 'Én ígértem' : 'Nekem ígérték'}</span>
-                {c.text}
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="crm-cols">
+        <div className="crm-col">
 
-      <h3>Feladatok</h3>
-      {/* A CRM-3 (7. feladat) elfogadott javaslataiból és lezárt ígéreteiből
-          született feladatok -- a host `/api/tasks`-ából, `customFields.crm_account`-ra
-          szűrve. Üres lista soha nem marad néma dobozként: vagy mutatja, hogy
-          még nincs feladat, vagy a lekérdezés hibáját. */}
-      {feladatHiba && <p className="crm-hiba" role="alert">{feladatHiba}</p>}
-      {feladatok === null
-        ? <p className="crm-halvany">Feladatok betöltése…</p>
-        : feladatok.length === 0
-          ? <p className="crm-halvany">Ehhez az ügyfélhez még nincs feladat.</p>
-          : (
-            <ul className="crm-lista">
-              {feladatok.map((f) => (
-                <li key={f.id}>
-                  {f.title}
-                  <span className="crm-cimke">{f.status}</span>
-                  {f.dueAt
-                    ? <time dateTime={new Date(f.dueAt).toISOString()}>{new Date(f.dueAt).toLocaleDateString('hu-HU')}</time>
-                    : <span className="crm-halvany">nincs határidő</span>}
+          <div className="crm-card crm-summary">
+            <div className="crm-sechead"><h3>Összefoglaló</h3></div>
+            {lap.summary
+              ? (
+                <>
+                  {/* A frissesség tény, nem becslés: a szerver a legfrissebb lefedett
+                      esemény idejét bélyegezte az összefoglalóra, és ez egy COUNT. */}
+                  {lap.summary.stale && (
+                    <p className="crm-elavult">Elavult — {lap.summary.newerEvents} új esemény azóta</p>
+                  )}
+                  <p className="crm-torzs">{lap.summary.summary.text}</p>
+                </>
+              )
+              : <p className="crm-empty">Még nincs összefoglaló.</p>}
+          </div>
+
+          <div className="crm-sec">
+            <div className="crm-sechead"><h3>Idővonal</h3></div>
+            <div className="crm-toolbar">
+              <input value={jegyzet} onChange={(e) => setJegyzet(e.target.value)}
+                     placeholder="Jegyzet…" aria-label="Új jegyzet" />
+              <button className="crm-btn" onClick={jegyzetel}>Rögzít</button>
+            </div>
+            <ul className="crm-tl">
+              {lap.events.map((e) => {
+                const teljes = teljesSzovegek[e.id]
+                return (
+                  <li key={e.id} className={idovonalOsztaly(e.kind)}>
+                    <span className="crm-tlrail" aria-hidden="true">
+                      <span className="crm-tlnode"></span><span className="crm-tlline"></span>
+                    </span>
+                    <div className="crm-tlbody">
+                      <div className="crm-tlmeta">
+                        <time className="crm-tltime" dateTime={e.occurred_at}>
+                          {e.occurred_at.slice(0, 16).replace('T', ' ')}
+                        </time>
+                        <span className="crm-pill crm-pill-plain">{e.kind}</span>
+                      </div>
+                      {e.title && <span className="crm-atttitle">{e.title}</span>}
+                      {teljes === undefined
+                        ? (
+                          <>
+                            <span className="crm-attwhy">{e.excerpt}</span>
+                            <button className="crm-btn crm-btn-quiet crm-btn-sm"
+                                    onClick={() => teljesSzoveget(e.id)}
+                                    aria-label={`${e.title || e.kind} teljes szövege`}>Teljes szöveg</button>
+                          </>
+                        )
+                        /* Az idegen szöveg (a levél törzse) sima szövegcsomópontként kerül
+                           a JSX-be -- soha nem dangerouslySetInnerHTML-lel --, hogy egy
+                           levélbe rejtett jelölés ne válhasson a felület részévé. */
+                        : <p className="crm-torzs">{teljes}</p>}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+            {!nincsTobbEsemeny && lap.events.length > 0 && (
+              <button className="crm-btn crm-btn-quiet crm-btn-sm"
+                      onClick={korabbiak} aria-label="Korábbi események betöltése">Korábbiak</button>
+            )}
+          </div>
+
+        </div>
+
+        <div className="crm-col">
+          {/* Nyitott ígéretek, Feladatok, Ügyek, Kapcsolatok -- mind `crm-card`,
+              a soraik `crm-rows` / `crm-row`. A szűrések, az űrlapok, a
+              feladat-betöltés hibaága és minden szöveg változatlan. */}
+
+          <div className="crm-card">
+            <div className="crm-sechead">
+              <h3>Nyitott ígéretek</h3>
+              <span className="crm-count">
+                {lap.commitments.filter((c) => c.status === 'open' && !c.task_id).length}
+              </span>
+            </div>
+            {/* A repo `openOnly`-ja (src/db.mjs listCommitments) is így definiálja a
+                nyitottat: status = 'open' ÉS nincs task_id. Ma a kettő egybeesik --
+                minden ígéret 'open'-ként jön létre --, de csak azért, mert semmi
+                nem állít mást. A `task_id`-ra szűrés önmagában akkor is a régi
+                eredményt adná, ha egy ígéret státusza már 'done' vagy 'cancelled'
+                lenne. */}
+            {lap.commitments.filter((c) => c.status === 'open' && !c.task_id).length === 0
+              ? <p className="crm-empty">Nincs nyitott ígéret.</p>
+              : (
+                <ul className="crm-rows">
+                  {lap.commitments.filter((c) => c.status === 'open' && !c.task_id).map((c) => (
+                    <li key={c.id} className="crm-row">
+                      <span className={`crm-pill ${c.direction === 'ours' ? 'crm-pill-sajat' : 'crm-pill-idegen'}`}>
+                        {c.direction === 'ours' ? 'Én ígértem' : 'Nekem ígérték'}
+                      </span>
+                      <span className="crm-grow">{c.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </div>
+
+          <div className="crm-card">
+            <div className="crm-sechead">
+              <h3>Feladatok</h3>
+              <span className="crm-count">{feladatok ? feladatok.length : 0}</span>
+            </div>
+            {/* A CRM-3 (7. feladat) elfogadott javaslataiból és lezárt ígéreteiből
+                született feladatok -- a host `/api/tasks`-ából, `customFields.crm_account`-ra
+                szűrve. Üres lista soha nem marad néma dobozként: vagy mutatja, hogy
+                még nincs feladat, vagy a lekérdezés hibáját. */}
+            {feladatHiba && <p className="crm-hiba" role="alert">{feladatHiba}</p>}
+            {feladatok === null
+              ? <p className="crm-empty">Feladatok betöltése…</p>
+              : feladatok.length === 0
+                ? <p className="crm-empty">Ehhez az ügyfélhez még nincs feladat.</p>
+                : (
+                  <ul className="crm-rows">
+                    {feladatok.map((f) => (
+                      <li key={f.id} className="crm-row">
+                        <span className="crm-grow">{f.title}</span>
+                        <span className="crm-pill crm-pill-plain">{f.status}</span>
+                        {f.dueAt
+                          ? <time className="crm-age" dateTime={new Date(f.dueAt).toISOString()}>{new Date(f.dueAt).toLocaleDateString('hu-HU')}</time>
+                          : <span className="crm-age">nincs határidő</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+          </div>
+
+          <div className="crm-card">
+            <div className="crm-sechead">
+              <h3>Ügyek</h3>
+              <span className="crm-count">{lap.deals.length}</span>
+            </div>
+            <div className="crm-toolbar">
+              <input value={ujUgy} onChange={(e) => setUjUgy(e.target.value)}
+                     placeholder="Ügy címe" aria-label="Új ügy címe" />
+              <input type="number" value={ujErtek} onChange={(e) => setUjErtek(e.target.value)}
+                     placeholder="Érték (Ft)" aria-label="Új ügy értéke" />
+              <select value={ujFajta} onChange={(e) => setUjFajta(e.target.value)} aria-label="Ügy fajtája">
+                <option value="lead">Lead</option>
+                <option value="engagement">Megbízás</option>
+              </select>
+              <button className="crm-btn" onClick={ugyet}>Új ügy</button>
+            </div>
+            {lap.deals.length === 0
+              ? <p className="crm-empty">Nincs ügy.</p>
+              : (
+                <ul className="crm-rows">
+                  {lap.deals.map((d) => (
+                    <li key={d.id} className="crm-row">
+                      <span className="crm-grow">{d.title}</span>
+                      <span className="crm-pill crm-pill-plain">{d.closed_at ? 'lezárt' : d.stage}</span>
+                      {d.value_huf > 0 && <span className="crm-mono">{d.value_huf.toLocaleString('hu-HU')} Ft</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </div>
+
+          <div className="crm-card">
+            <div className="crm-sechead">
+              <h3>Kapcsolatok</h3>
+              <span className="crm-count">{lap.contacts.length}</span>
+            </div>
+            <div className="crm-toolbar">
+              <input value={ujKapcsolat} onChange={(e) => setUjKapcsolat(e.target.value)}
+                     placeholder="Név" aria-label="Új kapcsolat neve" />
+              <input value={ujSzerep} onChange={(e) => setUjSzerep(e.target.value)}
+                     placeholder="Szerep" aria-label="Új kapcsolat szerepe" />
+              <button className="crm-btn" onClick={kapcsolatot}>Új kapcsolat</button>
+            </div>
+            <ul className="crm-rows">
+              {lap.contacts.map((c) => (
+                <li key={c.id} className="crm-row">
+                  <span className="crm-grow">{c.name}{c.role && ` — ${c.role}`}</span>
+                  <input value={cimek[c.id] || ''} onChange={(e) => setCimek({ ...cimek, [c.id]: e.target.value })}
+                         placeholder="email@cim.hu" aria-label={`${c.name} email-címe`} />
+                  <button className="crm-btn" onClick={() => cimet(c.id)}>Cím hozzáadása</button>
                 </li>
               ))}
             </ul>
-          )}
+          </div>
 
-      <h3>Kapcsolatok</h3>
-      <div className="crm-sor">
-        <input value={ujKapcsolat} onChange={(e) => setUjKapcsolat(e.target.value)}
-               placeholder="Név" aria-label="Új kapcsolat neve" />
-        <input value={ujSzerep} onChange={(e) => setUjSzerep(e.target.value)}
-               placeholder="Szerep" aria-label="Új kapcsolat szerepe" />
-        <button onClick={kapcsolatot}>Új kapcsolat</button>
+        </div>
       </div>
-      <ul>
-        {lap.contacts.map((c) => (
-          <li key={c.id}>
-            {c.name}{c.role && ` — ${c.role}`}
-            <input value={cimek[c.id] || ''} onChange={(e) => setCimek({ ...cimek, [c.id]: e.target.value })}
-                   placeholder="email@cim.hu" aria-label={`${c.name} email-címe`} />
-            <button onClick={() => cimet(c.id)}>Cím hozzáadása</button>
-          </li>
-        ))}
-      </ul>
-
-      <h3>Idővonal</h3>
-      <div className="crm-sor">
-        <input value={jegyzet} onChange={(e) => setJegyzet(e.target.value)}
-               placeholder="Jegyzet…" aria-label="Új jegyzet" />
-        <button onClick={jegyzetel}>Rögzít</button>
-      </div>
-      <ul className="crm-idovonal">
-        {lap.events.map((e) => {
-          const teljes = teljesSzovegek[e.id]
-          return (
-            <li key={e.id}>
-              <time dateTime={e.occurred_at}>{e.occurred_at.slice(0, 16).replace('T', ' ')}</time>
-              <span className="crm-cimke">{e.kind}</span>
-              {e.title && <strong>{e.title}</strong>}
-              {teljes === undefined
-                ? (
-                  <>
-                    {' '}{e.excerpt}
-                    <button onClick={() => teljesSzoveget(e.id)}
-                            aria-label={`${e.title || e.kind} teljes szövege`}>Teljes szöveg</button>
-                  </>
-                )
-                /* Az idegen szöveg (a levél törzse) sima szövegcsomópontként kerül
-                   a JSX-be -- soha nem dangerouslySetInnerHTML-lel --, hogy egy
-                   levélbe rejtett jelölés ne válhasson a felület részévé. */
-                : <p className="crm-torzs">{teljes}</p>}
-            </li>
-          )
-        })}
-      </ul>
-      {!nincsTobbEsemeny && lap.events.length > 0 && (
-        <button onClick={korabbiak} aria-label="Korábbi események betöltése">Korábbiak</button>
-      )}
     </section>
   )
 }

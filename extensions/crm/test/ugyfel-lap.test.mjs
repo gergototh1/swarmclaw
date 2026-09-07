@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { lapozottIdovonal, ugyfelFeladatai } from '../ui/ugyfel-lap.tsx'
+import { bundle } from '../scripts/build.mjs'
+import { idovonalOsztaly, lapozottIdovonal, ugyfelFeladatai } from '../ui/ugyfel-lap.tsx'
 
 /**
  * A "Korábbiak" gomb a `timeline` rpc-t hívja a lista végén (a legrégebbi
@@ -68,4 +69,24 @@ test('csak az adott ügyfélhez tartozó feladatokat adja, a legfrissebbel elöl
 
 test('üres feladatlistára üres tömböt ad', () => {
   assert.deepEqual(ugyfelFeladatai({}, 'acc_1'), [])
+})
+
+test('az ugyfel lap ket hasabra bomlik', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(js, /crm-cols/, 'hianyzik a ket hasab kerete')
+  assert.match(js, /crm-tl-out/, 'az idovonal iranyt jelol')
+})
+
+test('az idovonal minden esemenynek iranyt ad, ismeretlennek is', async () => {
+  const out = await bundle({ write: false })
+  const js = out.outputFiles[0].text
+  assert.match(js, /idovonalOsztaly/, 'az irany-lekepezes kiemelt fuggveny')
+})
+
+test('az esemeny fajtaja adja az idovonal-osztalyt', () => {
+  assert.equal(idovonalOsztaly('email_in'), 'crm-tlitem')
+  assert.equal(idovonalOsztaly('email_out'), 'crm-tlitem crm-tl-out')
+  assert.equal(idovonalOsztaly('note'), 'crm-tlitem crm-tl-note')
+  assert.equal(idovonalOsztaly('barmi_mas'), 'crm-tlitem crm-tl-note')
 })
