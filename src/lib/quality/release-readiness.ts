@@ -129,7 +129,7 @@ export function buildReleaseReadinessReport(input: {
       status: 'warning',
       title: 'Runs are still active',
       summary: `${plural(input.pulse.kpis.runningRuns, 'run')} queued or running while this report was generated.`,
-      href: '/runs',
+      href: '/stream?tab=runs',
     })
   }
 
