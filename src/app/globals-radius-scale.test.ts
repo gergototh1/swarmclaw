@@ -112,14 +112,35 @@ test('the step-less radius utility does not exist on this scale', async () => {
   assert.equal(emittedRadius(css, 'rounded'), null)
 })
 
-test('no component asks for the step-less radius class, which would render square', () => {
-  // The compile tests above prove the class emits nothing; this proves nothing
-  // asks for it. Every line of every .ts and .tsx under src is read: the
-  // earlier version only read lines that also carried `className`, `class=` or
-  // `cn(`, which hid the 4% of radius-carrying lines that build a class string
-  // somewhere other than the JSX attribute -- `const btn = '... rounded ...'`,
-  // a cva() variant map, a shared inputClass constant. All of those were among
-  // the 57 sites this test exists to keep from coming back.
+/**
+ * Every spelling that compiles to no rule at all, as one regex.
+ *
+ * The step-less `rounded` and the five dead named steps are the same bug with
+ * two spellings, and only one of them was guarded. The ESLint selector in
+ * eslint.config.mjs matches the arbitrary form `rounded-...-[...]` and nothing
+ * else, and the sweep below used to look only for the step-less class -- so
+ * typing `rounded-xl` reintroduced the exact failure that cost three
+ * correction rounds with every gate green. The suffixes come off
+ * FORBIDDEN_STEPS rather than being retyped, so the compile assertions above
+ * and this walk cannot drift apart.
+ *
+ * The optional `-[a-z]{1,2}` covers the side and corner forms (`rounded-t-xl`,
+ * `rounded-bl-2xl`), which are dead for the same reason.
+ */
+const DEAD_RADIUS_RE = new RegExp(
+  `\\brounded\\b(?![-\\w])|\\brounded(?:-[a-z]{1,2})?-(?:${
+    FORBIDDEN_STEPS.map((c) => c.slice('rounded-'.length)).join('|')
+  })\\b`,
+)
+
+test('no component asks for a radius class that compiles to nothing', () => {
+  // The compile tests above prove these classes emit nothing; this proves
+  // nothing asks for one. Every line of every .ts and .tsx under src is read:
+  // the earlier version only read lines that also carried `className`, `class=`
+  // or `cn(`, which hid the 4% of radius-carrying lines that build a class
+  // string somewhere other than the JSX attribute -- `const btn = '... rounded
+  // ...'`, a cva() variant map, a shared inputClass constant. All of those were
+  // among the 57 sites this test exists to keep from coming back.
   const srcRoot = resolve(HERE, '..')
   const SELF = resolve(HERE, 'globals-radius-scale.test.ts')
   const offenders: string[] = []
@@ -136,7 +157,7 @@ test('no component asks for the step-less radius class, which would render squar
       fs.readFileSync(full, 'utf8')
         .split('\n')
         .forEach((line, index) => {
-          if (/\brounded\b(?![-\w])/.test(line)) offenders.push(`${full}:${index + 1}`)
+          if (DEAD_RADIUS_RE.test(line)) offenders.push(`${full}:${index + 1}`)
         })
     }
   }
@@ -144,7 +165,7 @@ test('no component asks for the step-less radius class, which would render squar
   assert.deepEqual(
     offenders,
     [],
-    'a step-less radius class emits no rule here -- use rounded-xs. Comments are read too, ' +
-      'so if the line above is prose rather than a class list, rephrase it or hyphenate the word',
+    'this radius class emits no rule here -- the scale is rounded-xs|sm|md|lg|full. Comments ' +
+      'are read too, so if the line above is prose rather than a class list, rephrase it',
   )
 })
