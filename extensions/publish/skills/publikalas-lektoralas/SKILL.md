@@ -27,7 +27,7 @@ A menetet és a `publishVerdict` hívását a promptod írja le; itt az áll,
    hosszkorlátja a beadás óta szigorodott. Ha a cím vagy a leírás a
    jelenlegi korlát fölött van, ez a találat.
 
-Bármi más, ami nem fér a fenti háromba (elírás, hangnem, ismétlés), a
+Bármi más, ami nem fér a fenti négybe (elírás, hangnem, ismétlés), a
 `szoveg` mezőben leírható, a hozzá legközelebb álló kóddal -- ismeretlen
 kódra a tool csak figyelmeztet, nem utasít el, de egy találat, amit egyik
 kód sem közelít, kevésbé érthető annak, aki javítja.

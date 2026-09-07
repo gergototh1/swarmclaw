@@ -156,15 +156,49 @@ test('every tool name a soul uses in backticks is a tool that agent is actually 
   }
 })
 
+/**
+ * Every `` `toolName({ a, b })` `` call site a soul actually writes, as
+ * `[tool, [keys]]`.
+ *
+ * READ OUT OF THE PROSE, not restated beside it. An earlier version of the
+ * test below walked a hardcoded key list, which meant it asserted the tools'
+ * schemas against themselves and passed unchanged when a soul was edited to
+ * tell its agent to pass an argument no tool declares -- the one failure this
+ * test exists to catch. The argument list may wrap across lines in a soul, so
+ * the brace body is matched greedily-free rather than line by line.
+ */
+function soulCallSites(text) {
+  const out = []
+  for (const m of text.matchAll(/`([a-zA-Z][a-zA-Z0-9_]*)\(\{([^}]*)\}\)/g)) {
+    out.push([m[1], m[2].split(',').map((k) => k.trim()).filter((k) => k !== '')])
+  }
+  return out
+}
+
 test('every argument a soul tells an agent to pass is declared by the tool it names', () => {
   const byName = new Map(publish.tools.map((t) => [t.name, t]))
-  for (const [tool, keys] of [
-    ['publishOpen', ['videoId']],
-    ['publishDraft', ['kiadasId', 'szovegek']],
-    ['publishVerdict', ['kiadasId', 'verdikt', 'talalatok']],
-  ]) {
-    const declared = new Set(Object.keys(byName.get(tool).parameters.properties || {}))
-    for (const key of keys) assert.ok(declared.has(key), `${tool} must declare ${key}`)
+  const latott = new Set()
+  for (const agent of AGENTS) {
+    for (const [tool, keys] of soulCallSites(SOUL_BY_KEY[agent.agentKey])) {
+      assert.ok(byName.has(tool), `${agent.agentKey}'s soul shows a call to ${tool}({...}), which this extension does not declare`)
+      assert.ok(agent.tools.includes(tool), `${agent.agentKey}'s soul shows a call to ${tool} but the declaration does not list it`)
+      assert.ok(keys.length > 0, `${agent.agentKey}'s soul writes ${tool}({}) with no argument named -- either it takes none, and the braces should go, or name them`)
+      const declared = new Set(Object.keys(byName.get(tool).parameters.properties || {}))
+      for (const key of keys) {
+        assert.ok(declared.has(key), `${agent.agentKey}'s soul tells the agent to pass ${tool}({ ${key} }), which ${tool} does not declare -- the run would send an argument the tool drops`)
+      }
+      latott.add(`${agent.agentKey}:${tool}`)
+    }
+  }
+  // ...and the walk above is not vacuous: every argument-taking tool an agent
+  // carries must have a call site in that agent's own soul, so deleting the
+  // call sites cannot make this test pass by finding nothing to check.
+  for (const agent of AGENTS) {
+    for (const tool of agent.tools) {
+      if (HOST_TOOL_IDS.has(tool)) continue
+      if (Object.keys(byName.get(tool).parameters.properties || {}).length === 0) continue
+      assert.ok(latott.has(`${agent.agentKey}:${tool}`), `${agent.agentKey} carries ${tool}, which takes arguments, but its soul never shows how to call it`)
+    }
   }
   // publishQueue and publishDue take no arguments, and neither soul calls them with a parenthesised argument list.
   for (const name of ['publishQueue', 'publishDue']) {
@@ -178,4 +212,17 @@ test('the four review codes the lektor soul lists are exactly LEKTOR_KODOK, and 
   assert.equal(LEKTOR_KODOK.length, 4)
   for (const kod of LEKTOR_KODOK) assert.ok(LEKTOR_SOUL.includes(`\`${kod}\``), `LEKTOR_SOUL does not name ${kod}`)
   assert.ok(LEKTOR_SOUL.includes(`A ${LEKTOR_KODOK.length} kód`), 'the soul\'s own count of the review codes must track LEKTOR_KODOK.length')
+})
+
+test('the reviewer skill names every review code, and never contradicts its own count of them', () => {
+  // Agent-facing prose: the skill's heading said "A NÉGY kód" and its closing
+  // paragraph "nem fér a fenti HÁROMBA", so an agent reading it top to bottom
+  // was told two different numbers for the same closed list. There is no
+  // fallback for a reviewer that picks the wrong one -- it just files fewer
+  // codes than exist.
+  const body = skillBody('publikalas-lektoralas')
+  for (const kod of LEKTOR_KODOK) assert.ok(body.includes(`\`${kod}\``), `the reviewer skill does not name ${kod}`)
+  assert.ok(body.includes('A négy kód'), 'the skill states the code count in its heading')
+  assert.equal(/fenti\s+(?:kettőbe|háromba|ötbe)/.test(body), false, 'the skill contradicts its own heading about how many codes there are')
+  assert.ok(body.includes('fenti négybe'), 'the closing paragraph must name the same count as the heading')
 })

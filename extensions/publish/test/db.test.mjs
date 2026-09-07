@@ -141,7 +141,7 @@ test('ujKiadas stores the videoId and starts with no assigned sáv', () => {
   assert.equal(typeof k.letrehozva_at, 'string')
 })
 
-test('az ext_publish_kiadasok oszlopai -- az idopont NEM hiányozhat a sémából', () => {
+test('az ext_publish_kiadasok oszlopai -- az idopont és a talalatok NEM hiányozhat a sémából', () => {
   // Ez a pin a néma meghibásodás második őre. Az `esedekes` (src/utemezes.mjs)
   // erre az oszlopra szűr; ha kimarad a migrációból, minden ütemezett sor
   // `undefined` idopont-tal jön vissza, minden futás üres tömböt ad, és a
@@ -150,7 +150,12 @@ test('az ext_publish_kiadasok oszlopai -- az idopont NEM hiányozhat a sémábó
   // az a csend.
   const { storage } = freshRepo()
   const oszlopok = storage.raw.prepare('SELECT name FROM pragma_table_info(?) ORDER BY cid').all('ext_publish_kiadasok').map((r) => r.name)
-  assert.deepEqual(oszlopok, ['id', 'video_id', 'allapot', 'sav_id', 'idopont', 'felulirt_idopont', 'letrehozva_at', 'updated_at'])
+  // A `talalatok` ugyanennek a csendnek a másik fele: az író és a lektor két
+  // külön session, és ha ez az oszlop kimarad, az `elbukik` verdikt találatai
+  // sehol nem érik el az írót -- az egyetlen elérhető lépése a kitalált
+  // szöveggel újraírás lenne, hiba és naplósor nélkül (src/szoveg.mjs
+  // fájl-docblock).
+  assert.deepEqual(oszlopok, ['id', 'video_id', 'allapot', 'sav_id', 'idopont', 'felulirt_idopont', 'talalatok', 'letrehozva_at', 'updated_at'])
 })
 
 test('agak returns only the branches of the release asked for, in creation order', () => {
@@ -367,6 +372,38 @@ test('INVARIANT 1: idopontFeluliras collapses the override onto idopont in the s
   // A rendszer szemszögéből: a régi sáv-pillanatnál a kiadás már NEM esedékes, a felülírtnál IGEN -- ha a bug visszatérne (idopont a régi maradna), ez a két assert fordítva sülne el.
   assert.deepEqual(esedekes([felulirva], new Date('2026-09-07T09:05:00.000Z')), [], 'a régi (felülírt) sáv-pillanatnál a kiadás már nem esedékes')
   assert.deepEqual(esedekes([felulirva], new Date('2026-09-08T18:05:00.000Z')).map((k) => k.id), [j.id], 'az új, felülírt pillanatnál esedékes')
+})
+
+test('INVARIANT 1, backwards: kiadastUtemez clears a stale felulirt_idopont -- one column decides, and it is idopont', () => {
+  // Az 1. invariáns eddig csak a felülírás IRÁNYÁBAN állt. Visszafelé -- egy
+  // újraütemezés, ami a kiadást jovahagyva-ba teszi vissza, majd új sávba
+  // állítja -- a sor megtartotta az elavult felulirt_idopont-ot, miközben az
+  // idopont elmozdult. A naptár, ami épp a kettő megkülönböztetéséért tartja
+  // a két oszlopot, akkor olyan időt mutatna, amikor semmi nem fog kimenni.
+  const { repo } = freshRepo()
+  const j = jovahagyva(repo, 'v1')
+  repo.kiadastUtemez({ kiadasId: j.id, savId: 's1', idopont: '2026-09-07T09:00:00.000Z' })
+  repo.idopontFeluliras({ kiadasId: j.id, felulirtIdopont: '2026-09-08T18:00:00.000Z' })
+  repo.kiadasAllapototIr(j.id, KIADAS_ALLAPOTOK.JOVAHAGYVA)
+  const ujra = repo.kiadastUtemez({ kiadasId: j.id, savId: 's2', idopont: '2026-09-14T09:00:00.000Z' })
+  assert.equal(ujra.idopont, '2026-09-14T09:00:00.000Z')
+  assert.equal(ujra.felulirt_idopont, null, 'az új ütemezés törli a régi kézi felülírást -- különben a naptár egy olyan időt mutatna, amikor semmi nem megy ki')
+  assert.deepEqual(esedekes([ujra], new Date('2026-09-08T18:05:00.000Z')), [], 'és a régi felülírt pillanatnál a kiadás nem esedékes')
+})
+
+test('talalatokatIr stores the reviewer findings as an opaque string, and clears them with null', () => {
+  // A repository nem értelmezi, amit tárol (ugyanaz a fegyelem, mint a
+  // szovegetIr `szoveg`-jénél): a JSON a tool-határé (src/szoveg.mjs), ahol
+  // egy olvashatatlan érték még megnevezett elutasítás tud lenni, nem a
+  // repository-ból kiszökő SyntaxError.
+  const { repo } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  assert.equal(k.talalatok, null, 'egy friss kiadásnak nincs lektori találata')
+  const nyers = '[{"platform":"youtube","kod":"hashtag_kitalalt","szoveg":"x"}]'
+  assert.equal(repo.talalatokatIr({ kiadasId: k.id, talalatok: nyers }).talalatok, nyers)
+  assert.equal(repo.talalatokatIr({ kiadasId: k.id, talalatok: null }).talalatok, null)
+  assert.throws(() => repo.talalatokatIr({ kiadasId: k.id, talalatok: [] }), /talalatok/)
+  assert.throws(() => repo.talalatokatIr({ kiadasId: '', talalatok: null }), /kiadasId/)
 })
 
 test('idopontFeluliras only accepts an already-utemezve release', () => {

@@ -173,6 +173,36 @@ export const AG_ALLAPOTOK = Object.freeze({
 /** `ujAg`'s starting state: written, not yet sent. Later tasks write the other three. */
 export const AG_KEZDO_ALLAPOT = AG_ALLAPOTOK.VAR
 
+/**
+ * The schema, as ONE version-1 migration that is still edited IN PLACE.
+ *
+ * This module has never shipped: it is not on `main`, no install has an
+ * `ext_migrations` row for it, and no database anywhere holds a version-1
+ * `ext_publish_kiadasok` without the columns below. So a column a later task
+ * discovers it needs is added to version 1 rather than bolted on as version
+ * 2 -- the same call Task 3 made for `idopont`, and Task 4's `talalatok`
+ * follows it. The moment this module DOES ship, that stops being true and
+ * the next column is a version-2 `ALTER TABLE`; the marker for "has it
+ * shipped" is a released tag, not a merged commit.
+ *
+ * `talalatok` holds the findings of the release's most recent
+ * `publishVerdict` -- a JSON array of `{ platform, kod, szoveg }`, or NULL
+ * when the last verdict was `atmegy` (or there has been none). It is a
+ * column and not a table because nothing asks a question of a finding that a
+ * release does not already answer: there is exactly one current set per
+ * release, it is read whole, and it is replaced whole. Like `ext_publish_agak.szoveg`
+ * beside it, this repository stores the string and never interprets it --
+ * the JSON is `src/szoveg.mjs`'s, written and read at the tool boundary
+ * where a malformed value can still become a named refusal.
+ *
+ * WHY IT IS STORED AT ALL. The writer and the reviewer are two managed
+ * agents in two different sessions (src/agents.mjs), and a rejected verdict
+ * returns its findings only to the reviewer's own turn. Without this column
+ * the writer's second pass has an id and a `vanSzoveg: true` flag and no way
+ * to learn what was wrong -- so its only available move is to overwrite a
+ * good draft with invented text, and the review loop degrades instead of
+ * converging.
+ */
 export const MIGRATIONS = Object.freeze([{
   version: 1,
   sql: `
@@ -192,6 +222,7 @@ CREATE TABLE IF NOT EXISTS ext_publish_kiadasok (
   sav_id TEXT,
   idopont TEXT,
   felulirt_idopont TEXT,
+  talalatok TEXT,
   letrehozva_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -285,8 +316,8 @@ ON CONFLICT(platform, kulso_id) DO UPDATE SET nev = excluded.nev, updated_at = e
       if (typeof videoId !== 'string' || videoId === '') throw new Error('ujKiadas: videoId nem lehet üres')
       const id = uid()
       const t = now()
-      S.exec('INSERT INTO ext_publish_kiadasok (id, video_id, allapot, sav_id, idopont, felulirt_idopont, letrehozva_at, updated_at) VALUES (?,?,?,?,?,?,?,?)',
-        [id, videoId, KIADAS_KEZDO_ALLAPOT, null, null, null, t, t])
+      S.exec('INSERT INTO ext_publish_kiadasok (id, video_id, allapot, sav_id, idopont, felulirt_idopont, talalatok, letrehozva_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)',
+        [id, videoId, KIADAS_KEZDO_ALLAPOT, null, null, null, null, t, t])
       return repo.kiadas(id)
     },
     kiadas(id) { return S.get('SELECT * FROM ext_publish_kiadasok WHERE id = ?', [id]) || null },
@@ -404,6 +435,31 @@ ON CONFLICT(kiadas_id, platform) DO UPDATE SET szoveg = excluded.szoveg, updated
     },
 
     /**
+     * Replaces a release's stored review findings with one string, or clears
+     * them with `null` -- the write half of the `talalatok` column described
+     * beside the migration above.
+     *
+     * A STRING, not an array: this repository does not interpret the text it
+     * stores, so the JSON is the caller's (`publishVerdict`, src/szoveg.mjs),
+     * exactly as `szovegetIr` above takes an already-serialised branch text.
+     * That is also what keeps a malformed value a NAMED refusal at the tool
+     * boundary instead of a `SyntaxError` thrown from a repository read.
+     *
+     * EVERY verdict writes this, including `atmegy` (with `null`). Findings
+     * describe the last review, so a passed review must leave none behind --
+     * otherwise the next writer to open the release reads objections to text
+     * a reviewer has since accepted. A redraft does NOT clear them: the
+     * writer may fix one platform, lose its session, and come back for the
+     * rest, which is the exact hand-off this column exists for.
+     */
+    talalatokatIr({ kiadasId, talalatok }) {
+      if (typeof kiadasId !== 'string' || kiadasId === '') throw new Error('talalatokatIr: kiadasId nem lehet üres')
+      if (talalatok !== null && (typeof talalatok !== 'string' || talalatok === '')) throw new Error('talalatokatIr: talalatok csak nem üres szöveg (JSON) vagy null lehet')
+      S.exec('UPDATE ext_publish_kiadasok SET talalatok = ?, updated_at = ? WHERE id = ?', [talalatok, now(), kiadasId])
+      return repo.kiadas(kiadasId)
+    },
+
+    /**
      * Sets a release's stored workflow/outcome column directly. A mechanical
      * setter -- it does not check the CURRENT value before writing, the same
      * way `fiokotIr`'s upsert does not read first -- because every state
@@ -468,6 +524,16 @@ ON CONFLICT(kiadas_id, platform) DO UPDATE SET szoveg = excluded.szoveg, updated
      * out of this file. The caller (`src/szoveg.mjs`) is the one that reads
      * `foglaltSavIdopontok()` above, calls `kovetkezoSzabadSav`, and hands
      * the ONE resulting `{ savId, idopont }` pair here.
+     *
+     * `felulirt_idopont` IS CLEARED in the same UPDATE. `idopontFeluliras`
+     * below collapses an override onto `idopont` so the two columns agree
+     * going forward; this is the same rule read backwards. A release that
+     * was overridden, sent back to `jovahagyva` and rescheduled would
+     * otherwise keep the stale override while `idopont` moved to the new
+     * slot -- and the calendar, whose whole reason for keeping the two
+     * columns apart is to show an overridden release differently, would
+     * print an instant at which nothing will go out. One column decides,
+     * and it is `idopont`.
      */
     kiadastUtemez({ kiadasId, savId, idopont }) {
       const k = repo.kiadas(kiadasId)
@@ -475,7 +541,7 @@ ON CONFLICT(kiadas_id, platform) DO UPDATE SET szoveg = excluded.szoveg, updated
       if (k.allapot !== KIADAS_ALLAPOTOK.JOVAHAGYVA) throw new Error(`kiadastUtemez: csak ${KIADAS_ALLAPOTOK.JOVAHAGYVA} állapotú kiadás ütemezhető (jelenlegi: ${k.allapot})`)
       if (typeof savId !== 'string' || savId === '') throw new Error('kiadastUtemez: savId nem lehet üres')
       if (typeof idopont !== 'string' || Number.isNaN(Date.parse(idopont))) throw new Error('kiadastUtemez: idopont csak érvényes ISO időpont lehet')
-      S.exec('UPDATE ext_publish_kiadasok SET sav_id = ?, idopont = ?, allapot = ?, updated_at = ? WHERE id = ?',
+      S.exec('UPDATE ext_publish_kiadasok SET sav_id = ?, idopont = ?, felulirt_idopont = NULL, allapot = ?, updated_at = ? WHERE id = ?',
         [savId, idopont, KIADAS_ALLAPOTOK.UTEMEZVE, now(), kiadasId])
       return repo.kiadas(kiadasId)
     },

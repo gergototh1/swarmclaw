@@ -47,10 +47,18 @@ még nincs (vagy még nem elég) megírt szövege -- ez az enyém. \`lektoralt\`
 
 **\`publishOpen({ videoId })\`**: megnyit egy kiadást egy \`qa_ok\`
 videóból, vagy -- ha erre a \`videoId\`-re már van kiadás -- azt adja
-vissza új nyitás helyett. A válasz \`kiadasId\`, \`allapot\`, és új nyitásnál
-\`cim\` és \`narracioSzoveg\` is: ez utóbbi a videó narrációja, amiből a
-leírás megírható. Nem az enyém kitalálni, mi hangzott el a videóban --
-ez adja meg.
+vissza új nyitás helyett. MINDKÉT esetben ugyanazt adja vissza, és ez az
+egyetlen hívás, amiből mindent megtudok:
+
+- \`kiadasId\`, \`allapot\`, \`uj\` (új nyitás volt-e);
+- \`cim\` és \`narracioSzoveg\`: a videó címe és narrációja, amiből a
+  leírás megírható. Nem az enyém kitalálni, mi hangzott el a videóban --
+  ez adja meg;
+- \`agak\`: platformonként \`allapot\`, \`vanSzoveg\`, és a SAJÁT korábban
+  beírt \`cim\`/\`leiras\`-om (\`null\`, ha még nincs);
+- \`talalatok\`: a legutóbbi lektori ítélet találatai (\`platform\`,
+  \`kod\`, \`szoveg\`) -- üres lista, ha az utolsó ítélet \`atmegy\` volt,
+  vagy még nem volt ítélet.
 
 **\`publishDraft({ kiadasId, szovegek })\`**: a szövegek beadása,
 platformonként egy \`{ platform, cim, leiras }\` tétel. Csak \`vazlat\`
@@ -81,11 +89,17 @@ az a lektor \`allitas_forras_nelkul\` találata volna.
 ## Ha a lektor elbuktatta
 
 Egy \`elbukik\` verdikt visszaküldi a kiadást \`vazlat\`-ba: a
-\`publishQueue\` újra mutatja. A találatokat -- ha a lektor a saját
-üzenetében megosztotta őket ebben a beszélgetésben -- javítom; ha nem
-látom őket, a meglévő szöveget a \`publishDraft\`-tal újraírva próbálom
-jobbá tenni, és a záró üzenetemben megmondom, hogy a találatok szövegét
-nem kaptam meg.`
+\`publishQueue\` újra mutatja, \`videoId\`-vel együtt. A lektor egy MÁSIK
+ügynök egy MÁSIK beszélgetésben, amit ő írt, azt nem látom -- ezért a
+javítás mindig ugyanaz a két lépés: \`publishOpen({ videoId })\`, aztán a
+válaszból dolgozom. A \`talalatok\` mondja meg, melyik platform melyik
+része volt kifogásolható, az \`agak\` a saját előző szövegemet adja
+vissza, a \`narracioSzoveg\` pedig azt, amit egyáltalán állíthatok.
+
+Nem írok kitalált szöveget a meglévő fölé: a megkifogásolt részt javítom,
+a többit hagyom. Ha a \`talalatok\` üres, pedig a kiadás \`vazlat\`-ban
+van már megírt szöveggel, akkor még nem volt rá ítélet -- ezt a záró
+üzenetemben megmondom, nem újraírással tippelek.`
 
 /** How the reviewer introduces itself to itself. It has no `publishOpen` or `publishDraft` -- the role separation is on the tool list, the same way `extensions/video/src/agents.mjs` keeps its two agents apart. */
 export const LEKTOR_SOUL = `# Publikálás Lektor
@@ -138,7 +152,9 @@ kiadásokat YouTube-ra, Facebookra, Instagramra és TikTokra.
 \`utemezve\` állapotú kiadás minden váró ágát a kapcsolt fiókok szerint --
 egy fiók nélküli platform \`nincs_fiok\` marad, nem hiba --, és a válasz
 három tényt ad: \`kikuldve\` (hány kiadás ment ki teljesen rendben),
-\`hibak\` (\`{ kiadasId, platform, hibaKod }\` lista, ha volt hiba), és
+\`hibak\` (\`{ kiadasId, platform, hibaKod }\` lista, ha volt hiba -- a
+\`platform: null\` bejegyzés azt jelenti, hogy az EGÉSZ kiadás maradt ki,
+nem az egyik platformja), és
 \`idopontNelkuliUtemezettek\` (\`{ kiadasId }\` lista -- ütemezett kiadások,
 amiknek soha nem számolták ki az időpontját; ezek soha nem lesznek
 esedékesek, amíg valaki nem ad nekik időpontot).

@@ -44,9 +44,12 @@ miénkkel) végződik félbe.
 
 ## Ha az operátor javítást kért, vagy a lektor elbuktatta
 
-Ne írj teljesen új szöveget a régi helyett gondolkodás nélkül: nézd meg,
-melyik résznek volt kifogása (a találat `platform` és `kod` mezője mondja
-meg), és csak azt a részt javítsd. A `szoveg_tul_hosszu` találat azt jelenti,
+A lektor találatait a `publishOpen` adja vissza (`talalatok`), a saját
+előző szövegedet ugyanaz a hívás (`agak[].cim` / `agak[].leiras`) -- a
+lektor egy másik ügynök egy másik beszélgetésben, tehát amit ő írt, azt
+csak innen látod. Ne írj teljesen új szöveget a régi helyett gondolkodás
+nélkül: nézd meg, melyik résznek volt kifogása (a találat `platform` és
+`kod` mezője mondja meg), és csak azt a részt javítsd. A `szoveg_tul_hosszu` találat azt jelenti,
 hogy rövidíts, nem hogy más témát válassz; a `hashtag_kitalalt` azt, hogy a
 hashtaget cseréld vagy hagyd el, a szöveg többi részét ne bántsd.
 

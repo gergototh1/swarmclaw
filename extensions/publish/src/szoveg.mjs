@@ -1,7 +1,7 @@
 import { AG_ALLAPOTOK, KIADAS_ALLAPOTOK, PLATFORMOK } from './db.mjs'
 import { kiadasAllapot } from './allapot.mjs'
 import { esedekes, idopontNelkuliUtemezettek, idozonaOf, kovetkezoSzabadSav } from './utemezes.mjs'
-import { videoLekerdez } from './video-szerzodes.mjs'
+import { PublishError, videoLekerdez } from './video-szerzodes.mjs'
 
 /**
  * The writer, the reviewer, and the sender: the three tools design spec 4's
@@ -41,15 +41,25 @@ import { videoLekerdez } from './video-szerzodes.mjs'
  * tool, but nothing today stops one operator-run session from acting as
  * both).
  *
- * WHERE A REJECTED VERDICT'S FINDINGS GO, AND WHY NOWHERE YET. `elbukik`
- * sends the release back to `vazlat` so the writer's queue picks it up
- * again, but the findings themselves are returned to the caller and nowhere
- * else -- there is no findings table in this schema, unlike video's
- * `verdiktek`. A writer agent in a LATER turn has no tool that reads what a
- * PAST verdict found. This is a real gap for a second task to close (a
- * `talalatok` table plus a `publishFixes`-shaped read, mirroring
- * `videoFixes`/`videoRevise`); flagged here rather than solved, because it
- * is a schema decision past what this task's tests ask for.
+ * WHERE A REJECTED VERDICT'S FINDINGS GO, AND WHY THE LOOP DEPENDS ON IT.
+ * `elbukik` sends the release back to `vazlat` so the writer's queue picks
+ * it up again -- and it STORES the findings, on the release's own
+ * `talalatok` column (src/db.mjs), because the writer is a different
+ * managed agent in a different session (src/agents.mjs) and a value returned
+ * to the reviewer's turn never reaches it.
+ *
+ * Everything the writer needs for a second pass therefore comes back from
+ * ONE call, `publishOpen`, on the repeat path as much as on the first: the
+ * video's `cim` and `narracioSzoveg` (what may be claimed at all), the
+ * branches' OWN STORED TEXT (what it wrote last time), and `talalatok`
+ * (what the reviewer objected to, by `platform` and `kod`). Without all
+ * three the model's only available move is `publishDraft` with invented
+ * text -- it overwrites a better draft, resets the release to `vazlat`, and
+ * the review loop degrades instead of converging, with a reviewer free to
+ * pass that blind rewrite on to four platforms. The same hole breaks the
+ * FIRST draft across any session boundary (open in one session, write in
+ * the next), which is why the read is on the tool and not on a "second
+ * pass" special case.
  */
 
 // --- refusal discipline -----------------------------------------------
@@ -61,7 +71,7 @@ import { videoLekerdez } from './video-szerzodes.mjs'
 // value or stored text, `guard` turning a refusal into `{ error }`) is the
 // same discipline `constraints.md` states for the whole module.
 
-class SzovegError extends Error {
+export class SzovegError extends Error {
   constructor(code, message, extra = {}) {
     super(message || code)
     this.name = 'SzovegError'
@@ -74,12 +84,33 @@ function refuse(code, message, extra = {}) {
   throw new SzovegError(code, message, extra)
 }
 
-/** Runs a tool body; a `SzovegError` becomes `{ error: { code, message, ...extra } }`, anything else propagates as the bug it is. */
+/**
+ * Runs a tool body; a NAMED refusal becomes `{ error: { code, message,
+ * ...extra } }`, anything else propagates as the bug it is.
+ *
+ * TWO classes are named refusals here, not one. `SzovegError` is this
+ * file's own; `PublishError` (src/video-szerzodes.mjs) is what
+ * `videoLekerdez` raises, and its own docblock says it is "meant to be
+ * caught at whichever tool or rpc boundary a later task adds" -- this file
+ * is that boundary, and `publishOpen` is the only caller. Letting it escape
+ * is not cosmetic: the host counts a THROWING tool toward
+ * `MAX_CONSECUTIVE_EXTENSION_FAILURES` (default 3) and then calls
+ * `autoDisableExternalExtension` (src/lib/server/extensions.ts), so three
+ * writer turns taken while the `video` extension happens to be switched off
+ * would switch THIS extension off -- presenting to the operator as "the
+ * publish tools vanished", with the real cause three log lines back.
+ * A refusal that already carries an operator sentence must never reach the
+ * host as an exception.
+ *
+ * A bug still propagates. Swallowing everything here would turn a genuine
+ * crash into an `{ error }` an agent would dutifully retry forever.
+ */
 async function guard(fn) {
   try {
     return await fn()
   } catch (err) {
     if (err instanceof SzovegError) return { error: { code: err.code, message: err.message, ...err.extra } }
+    if (err instanceof PublishError) return { error: { code: err.code, message: err.message } }
     throw err
   }
 }
@@ -116,10 +147,68 @@ function readArray(what, raw, { required = false, max = 1000 } = {}) {
   return raw
 }
 
-/** The calling agent, from the session the host hands the tool; '' when there is none. Never from an argument -- same reasoning as `extensions/video/src/args.mjs`'s `agentIdOf`. */
+/**
+ * The calling agent, from the session the host hands the tool; '' when there
+ * is none. Never from an argument -- same reasoning as
+ * `extensions/video/src/args.mjs`'s `agentIdOf`.
+ *
+ * `publishVerdict` reads it and then discards it, which looks like dead
+ * weight and is not: the EMPTINESS is the check. A verdict is the last gate
+ * before four platforms, and the only thing that makes it attributable is
+ * the host stamping a session onto the call -- over the MCP shim that stamp
+ * is `SWARMCLAW_AGENT_ID` in the shim's env (src/lib/providers/claude-cli.ts).
+ * A verdict arriving with no agent means it came from somewhere that stamp
+ * never reached, and passing it would let an unattributable caller approve a
+ * post. It stays until there is an author column to compare it against, at
+ * which point it becomes the self-review gate this file's docblock says is
+ * missing.
+ */
 function agentIdOf(ctx) {
   const id = ctx && ctx.session ? ctx.session.agentId : null
   return typeof id === 'string' && id !== '' ? id : ''
+}
+
+/**
+ * A stored branch text, back as the `{ cim, leiras }` pair `publishDraft`
+ * wrote -- or `null` for a branch that has none yet.
+ *
+ * The JSON lives at THIS boundary rather than in the repository (src/db.mjs
+ * stores strings and does not interpret them), which is also what lets a
+ * malformed column become a NAMED refusal instead of a `SyntaxError`
+ * escaping `guard` -- see `guard`'s own docblock for what an escaping throw
+ * costs. The refusal names the platform and the field, never the stored
+ * text: this module's constants and the argument's NAME only.
+ */
+function olvasSzoveg(platform, raw) {
+  if (raw === null || raw === undefined) return null
+  let parsed = null
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    refuse('tarolt_ertek_olvashatatlan', `a(z) ${platform} ág tárolt szövege nem olvasható vissza; írasd újra a szöveget a publishDraft-tal`, { platform, mezo: 'szoveg' })
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    refuse('tarolt_ertek_olvashatatlan', `a(z) ${platform} ág tárolt szövege nem olvasható vissza; írasd újra a szöveget a publishDraft-tal`, { platform, mezo: 'szoveg' })
+  }
+  return {
+    cim: typeof parsed.cim === 'string' ? parsed.cim : null,
+    leiras: typeof parsed.leiras === 'string' ? parsed.leiras : null,
+  }
+}
+
+/** The findings of a release's most recent verdict, back as the list `publishVerdict` stored -- `[]` when the last verdict was `atmegy` or there has been none. Same boundary and same named refusal as `olvasSzoveg` above. */
+function olvasTalalatok(raw) {
+  if (raw === null || raw === undefined || raw === '') return []
+  let parsed = null
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    refuse('tarolt_ertek_olvashatatlan', 'ennek a kiadásnak a tárolt lektori találatai nem olvashatók vissza; kérj új lektori ítéletet', { mezo: 'talalatok' })
+  }
+  if (!Array.isArray(parsed)) {
+    refuse('tarolt_ertek_olvashatatlan', 'ennek a kiadásnak a tárolt lektori találatai nem olvashatók vissza; kérj új lektori ítéletet', { mezo: 'talalatok' })
+  }
+  return parsed
 }
 
 // --- the two closed vocabularies this module produces ------------------
@@ -177,6 +266,9 @@ export const PLATFORM_KORLATOK = Object.freeze({
 
 export const VERDIKTEK = Object.freeze(['atmegy', 'elbukik'])
 
+/** The four answers `kiadasAllapot` (src/allapot.mjs) may give a release whose every branch has just been resolved. Anything else -- `utemezve`, `ismeretlen` -- is this module's own bug, and `publishDue` skips that release rather than writing a word it cannot read. */
+const VEGSO_ALLAPOTOK = Object.freeze([KIADAS_ALLAPOTOK.KESZ, KIADAS_ALLAPOTOK.RESZBEN, KIADAS_ALLAPOTOK.HIBA, KIADAS_ALLAPOTOK.NINCS_HOVA])
+
 /** A sanity bound on a text field BEFORE it is compared to a platform's real limit -- well above every real limit in `PLATFORM_KORLATOK`, so it never fires on an honest post and exists only so a caller cannot hand this module a multi-megabyte string to compare. */
 const MAX_SZOVEG_MEZO = 20000
 
@@ -227,21 +319,49 @@ export function createSzovegTools(state) {
      * exists rather than opening a duplicate (design spec 9 does not forbid
      * a second release on one video, but an agent calling this twice by
      * accident should not be the way to get one).
+     *
+     * THE REPEAT CALL ANSWERS EXACTLY WHAT THE FIRST ONE DOES. This is the
+     * writer's only read of everything it needs -- see the file docblock's
+     * "WHERE A REJECTED VERDICT'S FINDINGS GO" note for the loop that
+     * depends on it. Two consequences follow, and both are deliberate:
+     *
+     * - The contract read (`videoLekerdez`) runs on BOTH paths, so a repeat
+     *   open costs a call. A release whose narration cannot be fetched is
+     *   refused BY NAME rather than answered without it: a writer with no
+     *   narration cannot write a description that only claims what was
+     *   said, and the one move left to it would be to invent.
+     * - The `qa_ok` gate is NOT re-applied on the repeat path. It gates
+     *   OPENING a release, and this release is already open; re-refusing it
+     *   because the video has since moved to another status would strand a
+     *   release mid-review with no tool able to touch it. The operator's
+     *   approval click is still ahead of anything going out.
      */
     {
       name: 'publishOpen',
-      description: 'Megnyit egy kiadást egy kész (qa_ok) videóból, a video.videos szerződésen át. Ha ehhez a videoId-hez már van kiadás, azt adja vissza új nyitás helyett.',
+      description: 'Megnyit egy kiadást egy kész (qa_ok) videóból, a video.videos szerződésen át, vagy -- ha ehhez a videoId-hez már van kiadás -- azt adja vissza. Mindkét esetben visszaadja a videó címét és narrációját, az ágak eddig megírt szövegét, és a legutóbbi lektori ítélet találatait.',
       parameters: { type: 'object', required: ['videoId'], properties: { videoId: { type: 'string' } } },
       execute(args) {
         return guard(async () => {
           const videoId = readString('videoId', args.videoId, { required: true, max: 64 })
           const letezo = repo().kiadasVideohoz(videoId)
-          if (letezo) return { kiadasId: letezo.id, allapot: letezo.allapot, uj: false }
           const video = await videoLekerdez(state, videoId)
           if (!video) refuse('video_ismeretlen', 'nincs videó a megadott videoId-vel')
-          if (video.status !== 'qa_ok') refuse('video_nem_qa_ok', 'csak a QA-t átment (qa_ok) videóból nyitható kiadás', { status: video.status })
-          const k = repo().ujKiadas({ videoId })
-          return { kiadasId: k.id, allapot: k.allapot, cim: video.cim, narracioSzoveg: video.narracio_szoveg, uj: true }
+          if (!letezo && video.status !== 'qa_ok') {
+            refuse('video_nem_qa_ok', 'csak a QA-t átment (qa_ok) videóból nyitható kiadás', { status: video.status })
+          }
+          const kiadas = letezo ?? repo().ujKiadas({ videoId })
+          return {
+            kiadasId: kiadas.id,
+            allapot: kiadas.allapot,
+            uj: letezo === null,
+            cim: video.cim,
+            narracioSzoveg: video.narracio_szoveg,
+            agak: repo().agak(kiadas.id).map((a) => {
+              const szoveg = olvasSzoveg(a.platform, a.szoveg)
+              return { platform: a.platform, allapot: a.allapot, vanSzoveg: szoveg !== null, cim: szoveg === null ? null : szoveg.cim, leiras: szoveg === null ? null : szoveg.leiras }
+            }),
+            talalatok: olvasTalalatok(kiadas.talalatok),
+          }
         })
       },
     },
@@ -370,7 +490,18 @@ export function createSzovegTools(state) {
             return { platform: t.platform, kod: t.kod, szoveg: t.szoveg }
           })
           if (verdikt === 'elbukik' && talalatok.length === 0) refuse('talalat_hianyzik', 'egy elbukik verdikthez legalább egy találat kell, különben nem javítható')
-          const uj = repo().kiadasAllapototIr(kiadasId, verdikt === VERDIKTEK[0] ? KIADAS_ALLAPOTOK.LEKTORALT : KIADAS_ALLAPOTOK.VAZLAT)
+          // THE FINDINGS AND THE STATE CHANGE ARE ONE WRITE. The release going
+          // back to `vazlat` is what puts it in the writer's queue; the
+          // findings are what make that second pass a fix rather than a blind
+          // rewrite. A crash between the two would produce exactly the state
+          // this task exists to remove -- "you failed, and I will not say
+          // why" -- so they land together or not at all. `atmegy` clears the
+          // column: a passed review must leave no objections behind for the
+          // next writer to read as current.
+          const uj = repo().storage.transaction(() => {
+            repo().talalatokatIr({ kiadasId, talalatok: verdikt === VERDIKTEK[0] ? null : JSON.stringify(talalatok) })
+            return repo().kiadasAllapototIr(kiadasId, verdikt === VERDIKTEK[0] ? KIADAS_ALLAPOTOK.LEKTORALT : KIADAS_ALLAPOTOK.VAZLAT)
+          })
           return { kiadasId, allapot: uj.allapot, figyelmeztetesek, talalatok }
         })
       },
@@ -447,14 +578,25 @@ export function createSzovegTools(state) {
               }
             }
             const vegso = kiadasAllapot(repo().agak(kiadas.id))
-            if (![KIADAS_ALLAPOTOK.KESZ, KIADAS_ALLAPOTOK.RESZBEN, KIADAS_ALLAPOTOK.HIBA, KIADAS_ALLAPOTOK.NINCS_HOVA].includes(vegso)) {
+            if (!VEGSO_ALLAPOTOK.includes(vegso)) {
               // A bug, not a caller mistake: every VAR branch of this release
               // was just resolved above, so kiadasAllapot has no relevans
               // branch left to answer `utemezve` for, and every branch it saw
               // is one this module itself just wrote -- `ismeretlen` would mean
-              // agEredmenyetIr wrote a word AG_ALLAPOTOK does not have. Thrown,
-              // not refused: an agent cannot fix this by calling differently.
-              throw new Error(`publishDue: a(z) ${kiadas.id} kiadás ágai után kiadasAllapot ${vegso}-t adott, ami dispatch után nem várt válasz -- ez a modul hibája`)
+              // a branch row carries a word AG_ALLAPOTOK does not have.
+              //
+              // SKIPPED AND REPORTED, NOT THROWN. A throw here escapes `guard`
+              // from INSIDE the loop, so one unreadable row would cancel every
+              // remaining due release in the tick -- every fifteen minutes,
+              // forever, and the operator would see a failing schedule rather
+              // than the one release that is actually broken. The loud instinct
+              // is right; the blast radius was wrong. `platform: null` says
+              // this is the release that failed, not one of its platforms.
+              hibak.push({ kiadasId: kiadas.id, platform: null, hibaKod: 'kiadas_allapot_ismeretlen' })
+              if (state.log && typeof state.log.warn === 'function') {
+                state.log.warn(`publishDue: a(z) ${kiadas.id} kiadás ágai után kiadasAllapot ${vegso}-t adott, ami dispatch után nem várt válasz -- ez a modul hibája; a kiadás kimarad, a futás folytatódik`)
+              }
+              continue
             }
             repo().kiadasAllapototIr(kiadas.id, vegso)
             if (vegso === KIADAS_ALLAPOTOK.KESZ) kikuldve += 1

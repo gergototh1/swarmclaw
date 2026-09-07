@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { KIADAS_ALLAPOTOK } from '../src/db.mjs'
-import { LEKTOR_KODOK, PLATFORM_KORLATOK, VERDIKTEK, createSzovegTools, kiadastUtemezSavba } from '../src/szoveg.mjs'
+import { LEKTOR_KODOK, PLATFORM_KORLATOK, SzovegError, VERDIKTEK, createSzovegTools, kiadastUtemezSavba } from '../src/szoveg.mjs'
 import { freshRepo } from './helpers.mjs'
 
 /**
@@ -16,13 +16,15 @@ import { freshRepo } from './helpers.mjs'
  * state with an in-memory repository and a `contracts` double, a `run`
  * helper that calls a tool's `execute` the way the host does.
  */
-function setup({ video = null, why = 'provider_missing', adapterek = {}, settings = {} } = {}) {
+function setup({ video = null, why = 'provider_missing', adapterek = {}, settings = {}, contracts, log } = {}) {
   const { repo } = freshRepo()
   const state = {
     repo,
     settings: () => settings,
-    log: { info() {}, warn() {}, error() {} },
-    contracts: { get: (e, c) => (e === 'video' && c === 'videos' ? { get: async ({ id }) => (video && video.id === id ? video : null) } : null), why: () => why },
+    log: log ?? { info() {}, warn() {}, error() {} },
+    contracts: contracts === undefined
+      ? { get: (e, c) => (e === 'video' && c === 'videos' ? { get: async ({ id }) => (video && video.id === id ? video : null) } : null), why: () => why }
+      : contracts,
     adapterek,
   }
   const tools = Object.fromEntries(createSzovegTools(state).map((t) => [t.name, t]))
@@ -152,10 +154,14 @@ test('publishOpen opens a release from a qa_ok video, and returns the existing o
   assert.equal(a.uj, true)
   assert.equal(a.cim, 'Egy videó')
   assert.equal(a.narracioSzoveg, 'Ez hangzik el a videóban.')
+  assert.deepEqual(a.agak, [], 'egy frissen nyitott kiadásnak még nincs ága')
+  assert.deepEqual(a.talalatok, [], 'és nincs lektori találata sem')
   assert.equal(repo.kiadas(a.kiadasId).video_id, 'vid-1')
   const b = await run('publishOpen', { videoId: 'vid-1' })
   assert.equal(b.uj, false)
   assert.equal(b.kiadasId, a.kiadasId, 'ugyanaz a kiadás jön vissza, nem egy második')
+  assert.equal(b.cim, 'Egy videó', 'az ismétlő ág is elolvassa a videót -- e nélkül a második nekifutás vakon ír')
+  assert.equal(b.narracioSzoveg, 'Ez hangzik el a videóban.')
 })
 
 test('publishOpen refuses a video that has not passed QA, by name, and an unknown videoId', async () => {
@@ -292,4 +298,236 @@ test('kiadastUtemezSavba: two releases scheduled one after the other never share
 
 test('VERDIKTEK is exactly atmegy and elbukik', () => {
   assert.deepEqual(VERDIKTEK, ['atmegy', 'elbukik'])
+})
+
+// --- the review loop: what the writer can actually SEE on a second pass ----
+//
+// The writer (`publish-iro`) and the reviewer (`publish-lektor`) are two
+// managed agents in two different sessions (src/agents.mjs), and nothing in
+// this module joins their conversations. Everything the writer needs for a
+// second pass therefore has to come back out of storage, through
+// `publishOpen`. These tests replay the whole loop and assert on what that
+// call answers, because the failure they guard is silent: a writer that
+// cannot see the findings, its own previous text or the narration has exactly
+// one move left -- `publishDraft` with invented text -- and a reviewer may
+// pass that blind rewrite straight to four platforms.
+
+test('the review loop end to end: after an elbukik verdict, publishOpen hands the writer the findings, its own previous text, and the narration', async () => {
+  const video = qaOkVideo('vid-1')
+  const { run } = setup({ video })
+
+  // open #1 -> the writer drafts
+  const nyitas = await run('publishOpen', { videoId: 'vid-1' })
+  assert.equal(nyitas.uj, true)
+  await run('publishDraft', { kiadasId: nyitas.kiadasId, szovegek: [
+    { platform: 'youtube', cim: 'Az első címem', leiras: 'Az első leírásom. #kitalalt' },
+  ] })
+
+  // verdict -> elbukik, back to vazlat, findings to the REVIEWER's turn only
+  const itelet = await run('publishVerdict', { kiadasId: nyitas.kiadasId, verdikt: 'elbukik', talalatok: [
+    { platform: 'youtube', kod: 'hashtag_kitalalt', szoveg: 'a #kitalalt nem a videó témájából jön' },
+  ] }, 'ag-lektor', 's-lektor')
+  assert.equal(itelet.allapot, KIADAS_ALLAPOTOK.VAZLAT)
+
+  // queue -> the writer finds the work again, with the videoId it needs
+  const sor = await run('publishQueue', {}, 'ag-iro', 's-iro-2')
+  assert.deepEqual(sor.kiadasok.map((k) => [k.kiadasId, k.videoId, k.allapot]), [[nyitas.kiadasId, 'vid-1', KIADAS_ALLAPOTOK.VAZLAT]])
+
+  // open #2, in a DIFFERENT session -- all three facts must be there
+  const masodik = await run('publishOpen', { videoId: 'vid-1' }, 'ag-iro', 's-iro-2')
+  assert.equal(masodik.error, undefined)
+  assert.equal(masodik.uj, false)
+  assert.equal(masodik.kiadasId, nyitas.kiadasId)
+  assert.deepEqual(masodik.talalatok, [
+    { platform: 'youtube', kod: 'hashtag_kitalalt', szoveg: 'a #kitalalt nem a videó témájából jön' },
+  ], 'a lektori találatok túlélik a session-határt -- e nélkül az író tudja, hogy elbukott, de nem tudja, miért')
+  assert.deepEqual(masodik.agak, [
+    { platform: 'youtube', allapot: 'var', vanSzoveg: true, cim: 'Az első címem', leiras: 'Az első leírásom. #kitalalt' },
+  ], 'a saját előző szövege visszaolvasható -- e nélkül a javítás csak újraírás lehet')
+  assert.equal(masodik.narracioSzoveg, 'Ez hangzik el a videóban.', 'a narráció újra lekérhető -- e nélkül az író csak kitalálhat')
+  assert.equal(masodik.cim, 'Egy videó')
+})
+
+test('an atmegy verdict clears the stored findings: a passed review leaves no stale objection for the next writer', async () => {
+  const video = qaOkVideo('vid-1')
+  const { run, repo } = setup({ video })
+  const nyitas = await run('publishOpen', { videoId: 'vid-1' })
+  await run('publishDraft', { kiadasId: nyitas.kiadasId, szovegek: [{ platform: 'youtube', cim: 'c', leiras: 'l' }] })
+  await run('publishVerdict', { kiadasId: nyitas.kiadasId, verdikt: 'elbukik', talalatok: [{ platform: 'youtube', kod: 'hashtag_hianyzik', szoveg: 'nincs hashtag' }] })
+  assert.equal(typeof repo.kiadas(nyitas.kiadasId).talalatok, 'string')
+  await run('publishDraft', { kiadasId: nyitas.kiadasId, szovegek: [{ platform: 'youtube', cim: 'c2', leiras: 'l2 #tema' }] })
+  assert.equal(typeof repo.kiadas(nyitas.kiadasId).talalatok, 'string', 'egy újraírás NEM törli a találatokat: az író javíthat platformonként, két session-ben')
+  await run('publishVerdict', { kiadasId: nyitas.kiadasId, verdikt: 'atmegy' })
+  assert.equal(repo.kiadas(nyitas.kiadasId).talalatok, null)
+  const ujra = await run('publishOpen', { videoId: 'vid-1' })
+  assert.deepEqual(ujra.talalatok, [])
+})
+
+test('a stored value this module cannot read back is a NAMED refusal, not a SyntaxError escaping the tool', async () => {
+  // A JSON.parse that throws out of a tool reaches the host as an extension
+  // failure (see `guard`'s docblock), so the parse lives at the boundary
+  // where it can still become a sentence.
+  const video = qaOkVideo('vid-1')
+  const { run, repo } = setup({ video })
+  const nyitas = await run('publishOpen', { videoId: 'vid-1' })
+  repo.szovegetIr({ kiadasId: nyitas.kiadasId, platform: 'youtube', szoveg: 'nem json' })
+  const r = await run('publishOpen', { videoId: 'vid-1' })
+  assert.equal(r.error.code, 'tarolt_ertek_olvashatatlan')
+  assert.equal(r.error.platform, 'youtube')
+  assert.equal(r.error.mezo, 'szoveg')
+  assert.equal(r.error.message.includes('nem json'), false, 'a tárolt szöveg nem kerül az üzenetbe')
+  repo.szovegetIr({ kiadasId: nyitas.kiadasId, platform: 'youtube', szoveg: '{"cim":"c","leiras":"l"}' })
+  repo.talalatokatIr({ kiadasId: nyitas.kiadasId, talalatok: '{"nem":"tomb"}' })
+  const r2 = await run('publishOpen', { videoId: 'vid-1' })
+  assert.equal(r2.error.code, 'tarolt_ertek_olvashatatlan')
+  assert.equal(r2.error.mezo, 'talalatok')
+})
+
+// --- guard: what becomes { error }, and what stays a bug -------------------
+
+test('publishOpen refuses a missing video contract by NAME instead of throwing -- three throws would auto-disable the whole extension', async () => {
+  // src/lib/server/extensions.ts: markExtensionFailure ->
+  // MAX_CONSECUTIVE_EXTENSION_FAILURES (3) -> autoDisableExternalExtension.
+  // Three writer turns taken while the `video` extension happens to be off
+  // would switch the publish extension off, and the operator would see "the
+  // tools vanished" rather than "the video extension is disabled".
+  const { run } = setup({ contracts: { get: () => null, why: () => 'provider_disabled' } })
+  const r = await run('publishOpen', { videoId: 'vid-1' })
+  assert.equal(r.error.code, 'szerzodes_hianyzik')
+  assert.match(r.error.message, /Videó bővítmény ki van kapcsolva/)
+  assert.equal(/sikertelen/i.test(r.error.message), false)
+})
+
+test('publishOpen refuses by name even before setup() has handed over contracts', async () => {
+  const { run } = setup({ contracts: null })
+  const r = await run('publishOpen', { videoId: 'vid-1' })
+  assert.equal(r.error.code, 'szerzodes_hianyzik')
+  assert.notEqual(r.error.message, 'szerzodes_hianyzik')
+})
+
+test('guard lets a real bug through as the bug it is: only a named refusal becomes { error }', async () => {
+  // The mirror of the two tests above. A guard that swallowed everything
+  // would turn a crash into an { error } an agent would retry forever.
+  const state = {
+    repo: { kiadasok() { throw new Error('a repository elszállt') } },
+    settings: () => ({}),
+    log: { info() {}, warn() {}, error() {} },
+    contracts: null,
+    adapterek: {},
+  }
+  const tools = Object.fromEntries(createSzovegTools(state).map((t) => [t.name, t]))
+  await assert.rejects(() => tools.publishQueue.execute({}, { session: { id: 's1', agentId: 'ag-1' } }), /a repository elszállt/)
+})
+
+// --- the refusals are NAMED: a code AND a sentence that says what to do ----
+
+/** A refusal is a code and a SENTENCE. The bare code is not a sentence, and "sikertelen" is not a reason (constraints.md). */
+function nevezett(r, kod, mondat) {
+  assert.equal(r.error.code, kod)
+  assert.notEqual(r.error.message, kod, 'a kód nem mondat: az elutasítás kódból ÉS mondatból áll')
+  assert.match(r.error.message, mondat)
+  assert.equal(/sikertelen/i.test(r.error.message), false, 'a "sikertelen" szó nem fordul elő')
+}
+
+test('every publishDraft refusal carries a sentence that says what is wrong, not just its code', async () => {
+  const { repo, run } = setup()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  nevezett(await run('publishDraft', { kiadasId: 'nincs-ilyen', szovegek: [{ platform: 'youtube', cim: 'c', leiras: 'l' }] }), 'kiadas_ismeretlen', /nincs kiadás a megadott kiadasId-vel/)
+  nevezett(await run('publishDraft', { kiadasId: k.id, szovegek: [{ platform: 'tiktok', cim: 'c', leiras: 'l' }] }), 'platform_felmeretlen', /hosszkorlátja még nincs felmérve/)
+  nevezett(await run('publishDraft', { kiadasId: k.id, szovegek: [{ platform: 'youtube', cim: 'x'.repeat(101), leiras: 'l' }] }), 'szoveg_tul_hosszu', /legfeljebb 100 karakter/)
+  nevezett(await run('publishDraft', { kiadasId: k.id, szovegek: [{ platform: 'youtube', cim: 'c', leiras: 'x'.repeat(5001) }] }), 'szoveg_tul_hosszu', /legfeljebb 5000 karakter/)
+  nevezett(await run('publishDraft', { kiadasId: k.id, szovegek: [
+    { platform: 'youtube', cim: 'a', leiras: 'l' },
+    { platform: 'youtube', cim: 'b', leiras: 'l' },
+  ] }), 'platform_ismetlodik', /legfeljebb egyszer/)
+  nevezett(await run('publishDraft', { kiadasId: k.id, szovegek: [{ platform: 'mastodon', cim: 'c', leiras: 'l' }] }), 'platform_ismeretlen', /youtube, facebook, instagram, tiktok/)
+  nevezett(await run('publishDraft', { kiadasId: k.id, szovegek: 'nem lista' }), 'argumentum_hibas', /szovegek: lista kell/)
+  repo.kiadasAllapototIr(k.id, KIADAS_ALLAPOTOK.JOVAHAGYVA)
+  nevezett(await run('publishDraft', { kiadasId: k.id, szovegek: [{ platform: 'youtube', cim: 'c', leiras: 'l' }] }), 'kiadas_lezart_szovegre', /szövegírás fázisán/)
+})
+
+test('every publishVerdict, publishOpen and kiadastUtemezSavba refusal carries its own sentence too', async () => {
+  const { repo, run, state } = setup({ video: qaOkVideo('vid-1', { status: 'render_hiba' }) })
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  nevezett(await run('publishVerdict', { kiadasId: k.id, verdikt: 'atmegy' }, null), 'agent_hianyzik', /ügynök kell/)
+  nevezett(await run('publishVerdict', { kiadasId: 'nincs-ilyen', verdikt: 'atmegy' }), 'kiadas_ismeretlen', /nincs kiadás a megadott kiadasId-vel/)
+  nevezett(await run('publishVerdict', { kiadasId: k.id, verdikt: 'atmegy' }), 'szoveg_hianyzik', /még nincs megírt szöveg/)
+  await run('publishDraft', { kiadasId: k.id, szovegek: [{ platform: 'youtube', cim: 'c', leiras: 'l' }] })
+  nevezett(await run('publishVerdict', { kiadasId: k.id, verdikt: 'talan' }), 'verdikt_ismeretlen', /atmegy, elbukik/)
+  nevezett(await run('publishVerdict', { kiadasId: k.id, verdikt: 'elbukik' }), 'talalat_hianyzik', /legalább egy találat/)
+  nevezett(await run('publishVerdict', { kiadasId: k.id, verdikt: 'elbukik', talalatok: [{ platform: 'youtube', kod: 'NAGYBETŰS', szoveg: 'x' }] }), 'argumentum_hibas', /kisbetűs_kód/)
+  repo.kiadasAllapototIr(k.id, KIADAS_ALLAPOTOK.JOVAHAGYVA)
+  nevezett(await run('publishVerdict', { kiadasId: k.id, verdikt: 'atmegy' }), 'kiadas_nincs_vazlatban', /csak vazlat állapotú kiadás lektorálható/)
+
+  nevezett(await run('publishOpen', { videoId: 'vid-1' }), 'video_nem_qa_ok', /csak a QA-t átment \(qa_ok\) videóból/)
+  nevezett(await run('publishOpen', { videoId: 'nincs-ilyen' }), 'video_ismeretlen', /nincs videó a megadott videoId-vel/)
+  nevezett(await run('publishOpen', {}), 'argumentum_hibas', /videoId kötelező/)
+
+  const j = repo.ujKiadas({ videoId: 'v2' })
+  repo.kiadasAllapototIr(j.id, KIADAS_ALLAPOTOK.LEKTORALT)
+  repo.kiadastJovahagy(j.id)
+  assert.throws(() => kiadastUtemezSavba(state, { kiadasId: j.id, most: new Date('2026-09-07T07:00:00.000Z') }), (err) => {
+    assert.ok(err instanceof SzovegError, 'a modul exportálja azt az osztályt, amit dob -- egy későbbi hívó .code szerint kapja el')
+    assert.equal(err.code, 'nincs_szabad_sav')
+    assert.notEqual(err.message, err.code)
+    assert.match(err.message, /nincs egyetlen publikálási sáv sem beállítva/)
+    return true
+  })
+})
+
+// --- publishDue: one broken release must not cancel the tick ---------------
+
+test('publishDue names an adapter failure that carries no code of its own, rather than reporting a nameless one', async () => {
+  // A REAL adapter (task 5's) can throw a plain Error. Without the fallback
+  // the branch would store hiba_kod = null and the report would say
+  // hibaKod: null -- an unnamed failure in the one path where the name
+  // matters most.
+  const { repo, run } = setup({ adapterek: { youtube: async () => { throw new Error('a hálózat elszállt') } } })
+  repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Csatorna' })
+  const k = esedekesKiadas(repo, 'v1', ['youtube'])
+  const r = await run('publishDue', {})
+  assert.deepEqual(r.hibak, [{ kiadasId: k.id, platform: 'youtube', hibaKod: 'kikuldes_hiba' }])
+  assert.equal(repo.agak(k.id)[0].hiba_kod, 'kikuldes_hiba')
+})
+
+test('publishDue never re-sends a branch that is no longer waiting -- only a var branch is dispatched', async () => {
+  // The only thing standing between a future "retry the failed release" path
+  // and a second post of an already-published branch.
+  let hivasok = 0
+  const { repo, run } = setup({ adapterek: { youtube: async () => { hivasok += 1; return { url: 'https://youtu.be/masodik' } } } })
+  repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Csatorna' })
+  const k = esedekesKiadas(repo, 'v1', ['youtube'])
+  const ag = repo.agak(k.id)[0]
+  repo.agEredmenyetIr({ agId: ag.id, allapot: 'kesz', url: 'https://youtu.be/elso' })
+  const r = await run('publishDue', {})
+  assert.equal(hivasok, 0, 'egy már kiment ág nem megy ki másodszor')
+  assert.deepEqual(r.hibak, [])
+  assert.equal(repo.agak(k.id)[0].url, 'https://youtu.be/elso', 'és az első kiküldés url-je marad')
+})
+
+test('publishDue skips a release it cannot read the state of, reports it, and still sends every other due release', async () => {
+  // A single ext_publish_agak row with an unrecognised allapot makes
+  // kiadasAllapot answer `ismeretlen`. Thrown from inside the loop, that
+  // cancelled every remaining due release in the tick -- every 15 minutes,
+  // forever, and the operator would see a failing schedule rather than the
+  // one release that is broken.
+  const figyelmeztetesek = []
+  const { repo, run } = setup({
+    adapterek: { youtube: async () => ({ url: 'https://youtu.be/x' }) },
+    log: { info() {}, warn: (m) => figyelmeztetesek.push(m), error() {} },
+  })
+  repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Csatorna' })
+  const jo = esedekesKiadas(repo, 'v-jo', ['youtube'])
+  const torott = esedekesKiadas(repo, 'v-torott', ['youtube'])
+  // `kiadasok()` is newest-first, so the broken release is processed FIRST:
+  // if it aborted the run, the good one below would never be dispatched.
+  repo.storage.exec('UPDATE ext_publish_agak SET allapot = ? WHERE id = ?', ['valami_amit_ez_a_verzio_nem_ismer', repo.agak(torott.id)[0].id])
+
+  const r = await run('publishDue', {})
+  assert.equal(r.error, undefined, 'a törött kiadás nem szakítja meg a futást')
+  assert.equal(r.kikuldve, 1, 'a másik esedékes kiadás kiment')
+  assert.equal(repo.kiadas(jo.id).allapot, KIADAS_ALLAPOTOK.KESZ)
+  assert.deepEqual(r.hibak, [{ kiadasId: torott.id, platform: null, hibaKod: 'kiadas_allapot_ismeretlen' }], 'a kimaradt kiadás jelentve van, platform nélkül: az EGÉSZ kiadás maradt ki')
+  assert.equal(repo.kiadas(torott.id).allapot, KIADAS_ALLAPOTOK.UTEMEZVE, 'és nem írunk rá olyan szót, amit nem tudunk elolvasni')
+  assert.equal(figyelmeztetesek.length, 1, 'és egy naplósor is marad utána')
 })
