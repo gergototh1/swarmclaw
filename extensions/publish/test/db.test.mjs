@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { AG_KEZDO_ALLAPOT, KIADAS_KEZDO_ALLAPOT, isUniqueViolationOn } from '../src/db.mjs'
+import { AG_ALLAPOTOK, AG_KEZDO_ALLAPOT, KIADAS_ALLAPOTOK, KIADAS_KEZDO_ALLAPOT, isUniqueViolationOn } from '../src/db.mjs'
 import { freshRepo } from './helpers.mjs'
 
 function refusal(fn) {
@@ -41,8 +41,16 @@ test('a kiadás ágai platformonként egy sor, és a kiadás nem duplázódik', 
   assert.deepEqual(repo.agak(k.id).map((a) => a.allapot), ['var', 'var'])
   assert.equal(KIADAS_KEZDO_ALLAPOT, 'vazlat')
   assert.deepEqual(repo.agak(k.id).map((a) => a.platform), ['youtube', 'tiktok'])
-  assert.throws(() => repo.ujAg({ kiadasId: k.id, platform: 'youtube' }), /platform/,
-    'egy kiadáson egy platform egyszer szerepel')
+  // A modul MEGNEVEZETT mondatához illesztünk, nem a `/platform/`-hoz: a nyers
+  // meghajtó-szöveg (`UNIQUE constraint failed: ext_publish_agak.kiadas_id,
+  // ext_publish_agak.platform`) is illeszkedne rá, tehát a teszt akkor is
+  // átmenne, ha az operátor a séma szövegét kapná vissza -- egy nem megnevezett
+  // elutasítás és visszamondott tárolt szöveg egyszerre.
+  const utkozes = refusal(() => repo.ujAg({ kiadasId: k.id, platform: 'youtube' }))
+  assert.ok(utkozes, 'egy kiadáson egy platform egyszer szerepel')
+  assert.match(utkozes.message, /már van ág/)
+  assert.equal(utkozes.message.includes('UNIQUE constraint failed'), false,
+    'a meghajtó nyers séma-szövege nem kerülhet az operátor elé')
 })
 
 test('a fiók platformonként és külső id szerint egyedi', () => {
@@ -154,6 +162,45 @@ test('isUniqueViolationOn narrows to exactly the named columns: an id collision 
     false,
     'egy id-ütközés nem ugyanaz a tény, mint egy (kiadas_id, platform) ütközés',
   )
+})
+
+test('isUniqueViolationOn a NEVEZETT oszlopokra igazat mond, és csak Error-ra felel', () => {
+  // A pozitív ág: a valódi (kiadas_id, platform) ütközés szövegét fel kell
+  // ismernie. Ez az, ami az `ujAg` megnevezett mondatát elsüti -- az
+  // oszlop-listát összefűző elválasztó elrontása (`', '` -> `','`) itt bukik.
+  const { storage, repo } = freshRepo()
+  const k = repo.ujKiadas({ videoId: 'v1' })
+  repo.ujAg({ kiadasId: k.id, platform: 'youtube' })
+  const t = new Date().toISOString()
+  const par = refusal(() => storage.raw
+    .prepare('INSERT INTO ext_publish_agak (id, kiadas_id, platform, szoveg, allapot, hiba_kod, url, kikuldve_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
+    .run('masik_iro', k.id, 'youtube', null, 'var', null, null, null, t, t))
+  assert.ok(par)
+  assert.equal(isUniqueViolationOn(par, 'ext_publish_agak', ['kiadas_id', 'platform']), true)
+
+  // És csak Error-ra: egy nem-Error, ami történetesen ugyanazt a `message`
+  // mezőt hordja (egy soros API-válasz, egy JSON-ból visszaállított objektum),
+  // nem bizonyíték egy adatbázis-ütközésről. Az `instanceof` őr nélkül ez
+  // igazat adna -- vagy a `null`-on kivételt dobna a saját hívójában.
+  assert.equal(isUniqueViolationOn({ message: par.message }, 'ext_publish_agak', ['kiadas_id', 'platform']), false)
+  assert.equal(isUniqueViolationOn(par.message, 'ext_publish_agak', ['kiadas_id', 'platform']), false)
+  assert.equal(isUniqueViolationOn(null, 'ext_publish_agak', ['kiadas_id', 'platform']), false)
+  assert.equal(isUniqueViolationOn(undefined, 'ext_publish_agak', ['kiadas_id', 'platform']), false)
+})
+
+test('a két oszlop szókincse az oszlopok mellett áll, egy helyen', () => {
+  // A négy ág-szó a spec 8 négy naptár-jelzője (kiment / vár / elbukott /
+  // nincs fiók), a nyolc kiadás-szó a spec 3 oszlop-domainje. Mindkettőt a
+  // `src/allapot.mjs` és a 6. feladat lapja is olvassa; ha egy szó itt
+  // elmozdul, ott is elmozdul, nem csúszik szét.
+  assert.deepEqual(AG_ALLAPOTOK, { VAR: 'var', KESZ: 'kesz', HIBA: 'hiba', NINCS_FIOK: 'nincs_fiok' })
+  assert.ok(Object.isFrozen(AG_ALLAPOTOK))
+  assert.equal(AG_KEZDO_ALLAPOT, AG_ALLAPOTOK.VAR)
+
+  assert.deepEqual(Object.values(KIADAS_ALLAPOTOK),
+    ['vazlat', 'lektoralt', 'jovahagyva', 'utemezve', 'kesz', 'reszben', 'hiba', 'nincs_hova'])
+  assert.ok(Object.isFrozen(KIADAS_ALLAPOTOK))
+  assert.equal(KIADAS_KEZDO_ALLAPOT, KIADAS_ALLAPOTOK.VAZLAT)
 })
 
 test('a séma mind a négy táblát létrehozza', () => {

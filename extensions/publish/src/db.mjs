@@ -78,11 +78,53 @@ export const uid = () => crypto.randomBytes(8).toString('hex')
 /** The four platforms this spec ships (design spec 1, 6). A closed list: nothing here guesses a fifth. */
 export const PLATFORMOK = Object.freeze(['youtube', 'facebook', 'instagram', 'tiktok'])
 
-/** `ujKiadas`'s starting state (design spec 4: `vazlat -> lektoralt -> jovahagyva -> utemezve -> kesz`, or `reszben`/`hiba`/`nincs_hova` per spec 5). Later tasks write the rest of this arrow. */
-export const KIADAS_KEZDO_ALLAPOT = 'vazlat'
+/**
+ * Every word `ext_publish_kiadasok.allapot` may hold -- all EIGHT of them, in
+ * the order design spec 4 walks them, followed by spec 5's three outcomes.
+ *
+ * It lives here, beside the column it describes, and not beside
+ * `kiadasAllapot` (src/allapot.mjs), because that function produces only five
+ * of these words: `vazlat`, `lektoralt` and `jovahagyva` are WORKFLOW states
+ * an operator and a reviewer move a release through, written on this column by
+ * later tasks' approval step, and they are not derivable from a branch's own
+ * state at all (a draft and an approved-but-unsent release show the identical
+ * branch shape -- every branch `var`). A caller that needs to know which of
+ * those a release is in reads this column; a caller that needs to know how the
+ * dispatch turned out calls `kiadasAllapot`. Task 6's `vazlat`/`jovahagyva`
+ * fixtures name them from here.
+ */
+export const KIADAS_ALLAPOTOK = Object.freeze({
+  VAZLAT: 'vazlat',
+  LEKTORALT: 'lektoralt',
+  JOVAHAGYVA: 'jovahagyva',
+  UTEMEZVE: 'utemezve',
+  KESZ: 'kesz',
+  RESZBEN: 'reszben',
+  HIBA: 'hiba',
+  NINCS_HOVA: 'nincs_hova',
+})
 
-/** `ujAg`'s starting state: written, not yet sent (design spec 8: `kiment / vár / elbukott / nincs fiók`). Later tasks write the other three. */
-export const AG_KEZDO_ALLAPOT = 'var'
+/** `ujKiadas`'s starting state (design spec 4: `vazlat -> lektoralt -> jovahagyva -> utemezve -> kesz`, or `reszben`/`hiba`/`nincs_hova` per spec 5). Later tasks write the rest of this arrow. */
+export const KIADAS_KEZDO_ALLAPOT = KIADAS_ALLAPOTOK.VAZLAT
+
+/**
+ * Every word `ext_publish_agak.allapot` may hold -- design spec 8's four
+ * per-platform flags (`kiment / vár / elbukott / nincs fiók`).
+ *
+ * Beside the column, for the same reason as above and for one more: spec 8
+ * says the calendar draws one entry per release with FOUR platform flags, so
+ * the page (task 6) names these words too, as does `kiadasAllapot`, which
+ * reads them. Three readers, one place they are spelled.
+ */
+export const AG_ALLAPOTOK = Object.freeze({
+  VAR: 'var',
+  KESZ: 'kesz',
+  HIBA: 'hiba',
+  NINCS_FIOK: 'nincs_fiok',
+})
+
+/** `ujAg`'s starting state: written, not yet sent. Later tasks write the other three. */
+export const AG_KEZDO_ALLAPOT = AG_ALLAPOTOK.VAR
 
 export const MIGRATIONS = Object.freeze([{
   version: 1,

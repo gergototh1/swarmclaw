@@ -1,3 +1,5 @@
+import { AG_ALLAPOTOK } from './db.mjs'
+
 /**
  * The one rule a release's four branches add up to.
  *
@@ -9,109 +11,117 @@
  * (design spec 5's whole point); said once and imported three times, they
  * cannot.
  *
- * A branch (`ag`, `ext_publish_agak` row) carries its own `allapot`, written
- * by `src/db.mjs`'s `ujAg` and later tasks' adapters:
+ * WHERE THE JURISDICTION ENDS, IN ONE SENTENCE: the workflow states
+ * (`vazlat`, `lektoralt`, `jovahagyva`) are told by the stored
+ * `ext_publish_kiadasok.allapot` column, the outcome states are computed by
+ * this function, and a caller must never write this function's answer back
+ * onto a release that has not been approved.
  *
- *   - `var`        -- opened, not yet sent (`AG_KEZDO_ALLAPOT`)
- *   - `kesz`       -- sent, the platform has it
- *   - `hiba`       -- sent and refused, named by `hiba_kod`
- *   - `nincs_fiok` -- this release has no connected account for this
- *                     platform, so nothing was ever attempted
+ * That last clause is the sharp one. A release still in draft has every
+ * branch in `var`, and any `var` makes this function answer `utemezve` --
+ * which is exactly the value task 3's `esedekes()` filters on. Nothing in
+ * this module writes this answer onto the column today, and nothing may
+ * start: a single `patch(kiadas, { allapot: kiadasAllapot(agak) })` would
+ * send an unapproved draft to four platforms. `kiadasAllapot` cannot even
+ * name the workflow words any more (see `KIADAS_ALLAPOT` below), so the
+ * mistake now has to be written on purpose rather than by picking a
+ * plausible-looking constant.
+ *
+ * A branch (`ag`, `ext_publish_agak` row) carries its own `allapot`, one of
+ * the four words `AG_ALLAPOTOK` (src/db.mjs) spells beside the column that
+ * stores them: `var`, `kesz`, `hiba`, `nincs_fiok`.
  *
  * THREE DIFFERENT FACTS, THREE DIFFERENT STATES (constraints.md's first
  * rule, sharpest in this module): a platform with no connected account, a
  * platform that tried and failed, and a platform that has not had its turn
  * yet are three different things that happened (or did not), not shades of
  * "not kész" that could share a state. `kiadasAllapot` keeps them apart
- * below rather than folding any pair into a boolean.
+ * below rather than folding any pair into a boolean -- and `ismeretlen` is
+ * the fourth such fact, added for the same reason: see below.
  */
-
-/** The four branch-level facts `kiadasAllapot` reads. Not exported: nothing outside this file needs to name a branch's own state to compute a release's. */
-const AG = Object.freeze({
-  VAR: 'var',
-  KESZ: 'kesz',
-  HIBA: 'hiba',
-  NINCS_FIOK: 'nincs_fiok',
-})
 
 /**
- * The release-level outcomes this function can actually produce.
+ * The release-level outcomes this function can actually produce -- all of
+ * them, and nothing else.
  *
- * `kiadasAllapot`'s declared range (task-2-brief.md's interface line) is
- * `'vazlat' | 'utemezve' | 'kesz' | 'reszben' | 'hiba' | 'nincs_hova'` --
- * the full domain of the `ext_publish_kiadasok.allapot` column, so a caller
- * reading either source names the same six words. `vazlat` and `lektoralt`
- * (design spec 4's first two arrow steps) are NOT reachable through this
- * function and are written on the constant below only for that domain
- * match, never returned: a release drafts and gets reviewed before its
- * branches carry any fact worth asking about, and at that point the caller
- * has not opened branches to ask this question of yet, or -- once it has --
- * every branch still reads `var`, which is indistinguishable from a
- * scheduled-and-waiting release. That distinction is not a branch fact; it
- * lives on the release row itself (`ext_publish_kiadasok.allapot`, written
- * by the approval step, a later task), and a caller still drafting a
- * release must read that column directly rather than call this function.
+ * This is NOT the `ext_publish_kiadasok.allapot` domain. That column holds
+ * eight words and is spelled out in `KIADAS_ALLAPOTOK` (src/db.mjs), beside
+ * itself; five of these six overlap with it and `ismeretlen` deliberately
+ * does not. The three workflow words (`vazlat`, `lektoralt`, `jovahagyva`)
+ * are absent here because this function cannot produce them: they are moved
+ * by an operator and a reviewer, not derived from branches, and a union
+ * advertising a value the function never returns is a lying type -- tasks 3
+ * and 6 would write a `case` for it that never fires.
  */
 export const KIADAS_ALLAPOT = Object.freeze({
-  VAZLAT: 'vazlat',
   UTEMEZVE: 'utemezve',
   KESZ: 'kesz',
   RESZBEN: 'reszben',
   HIBA: 'hiba',
   NINCS_HOVA: 'nincs_hova',
+  ISMERETLEN: 'ismeretlen',
 })
+
+/** The branch words this version of the module understands. Anything else on a branch row is a fact this code has no reading of -- see `ismeretlen` below. */
+const ISMERT_AG_ALLAPOT = new Set(Object.values(AG_ALLAPOTOK))
 
 /**
  * One release's status, from its branches alone.
  *
- * Pure: no database read, no throw, for any input -- a malformed `agak`
- * (not an array, or an array holding something other than
- * `{ platform, allapot }`) is treated as no branches rather than raising,
- * because every caller of this function (the calendar page, the dispatch
- * run, the report) is a read path with nothing to catch a throw with.
+ * Pure: no database read. It throws only on a malformed `agak` -- see the
+ * refusals at the top of the body -- and never on a well-formed branch list,
+ * whatever those branches say.
  *
- * The logic, in the order it decides:
+ * `nincs_fiok` COUNTS FOR NEITHER SIDE. Design spec 5: a platform with no
+ * connected account "nem hiba" (not a failure) and the release "nem várja
+ * meg" it (does not wait on it). So those branches are dropped before
+ * anything is counted -- they are not successes, not failures, and not
+ * pending; they are simply not part of the set that decides the release.
  *
- * 1. Drop every `nincs_fiok` branch first. Design spec 5: a platform with no
- *    connected account "nem hiba" (not a failure) and the release "nem várja
- *    meg" it (does not wait on it) -- it counts toward neither "kiment" nor
- *    "elbukott" nor "vár", so it is simply not part of the count that
- *    decides the release.
+ * AN EMPTY SET IS `nincs_hova`, NEVER `kesz`. This is the case the brief
+ * calls out by name: "minden ág kiment" (every branch went out) is VACUOUSLY
+ * true over zero branches, so a release connected to nothing would report
+ * `kesz` and the page would state that something is published when it is
+ * nowhere on the internet. The empty check therefore runs before any
+ * counting can turn zero branches into `kesz` by accident.
  *
- * 2. If NOTHING is left after that drop -- either `agak` was empty, or every
- *    branch was `nincs_fiok` -- the release is `nincs_hova`, never `kesz`.
- *    This is the case the brief calls out by name: "minden ág kiment" (every
- *    branch went out) is VACUOUSLY true over zero branches, and reporting
- *    `kesz` for a release connected to nothing would state that something is
- *    published when it is nowhere on the internet. `nincs_hova` is checked
- *    before anything else below can turn an empty set into `kesz` by
- *    accident.
- *
- * 3. If any remaining branch is still `var` (waiting its turn), the release
- *    is `utemezve` -- REGARDLESS of what the other branches already did.
- *    One branch already `kesz` and one still `var` is not "partially done
- *    already, so reszben" -- the release has not finished being dispatched
- *    yet, and `reszben`/`hiba` are outcomes for when nothing is pending any
- *    more.
- *
- * 4. Otherwise every remaining branch is settled (`kesz` or `hiba`, or any
- *    other value a future branch state might introduce -- treated here as
- *    "not kész", the safe default for an outcome this function does not yet
- *    know the name of): all `kesz` is `kesz`, none `kesz` is `hiba`, and a
- *    mix is `reszben`.
+ * AN UNRECOGNISED BRANCH WORD IS `ismeretlen`, NOT `hiba`. Folding it into
+ * the failure count would put an unobserved fact in the denominator but not
+ * the numerator, and the release would then assert a failed dispatch on the
+ * strength of a row nobody here can read -- the exact "one fact spoken with
+ * another fact's state" this module's first constraint forbids. `ismeretlen`
+ * is the only answer that neither stays silent nor lies, and it wins over
+ * every other outcome, `utemezve` included: a release this version does not
+ * understand must not slip into task 3's dispatch set.
  *
  * @param {Array<{ platform: string, allapot: string }>} agak
- * @returns {'vazlat'|'utemezve'|'kesz'|'reszben'|'hiba'|'nincs_hova'}
+ * @returns {'utemezve'|'kesz'|'reszben'|'hiba'|'nincs_hova'|'ismeretlen'}
+ * @throws {TypeError} if `agak` is not an array of branch rows. A malformed
+ *   argument is a programmer error, and loud is correct: the old silent
+ *   fallback answered `nincs_hova`, which is not a neutral default but a
+ *   specific claim ("no platform is connected at all") that task 6 prints to
+ *   the operator verbatim. Every caller passes `repo.agak(id)`, which is
+ *   always an array of rows, so a throw here can only mean a bug upstream.
  */
 export function kiadasAllapot(agak) {
-  const relevant = (Array.isArray(agak) ? agak : [])
-    .filter((a) => a && a.allapot !== AG.NINCS_FIOK)
+  if (!Array.isArray(agak)) {
+    throw new TypeError('kiadasAllapot: az agak csak ág-sorok tömbje lehet -- add át a repo.agak(kiadasId) eredményét')
+  }
+  for (const a of agak) {
+    if (typeof a !== 'object' || a === null || typeof a.allapot !== 'string') {
+      throw new TypeError('kiadasAllapot: az agak minden eleme ág-sor kell legyen, string allapot mezővel -- add át a repo.agak(kiadasId) eredményét')
+    }
+  }
 
-  if (relevant.length === 0) return KIADAS_ALLAPOT.NINCS_HOVA
-  if (relevant.some((a) => a.allapot === AG.VAR)) return KIADAS_ALLAPOT.UTEMEZVE
+  if (agak.some((a) => !ISMERT_AG_ALLAPOT.has(a.allapot))) return KIADAS_ALLAPOT.ISMERETLEN
 
-  const kiment = relevant.filter((a) => a.allapot === AG.KESZ).length
-  if (kiment === relevant.length) return KIADAS_ALLAPOT.KESZ
+  const relevans = agak.filter((a) => a.allapot !== AG_ALLAPOTOK.NINCS_FIOK)
+
+  if (relevans.length === 0) return KIADAS_ALLAPOT.NINCS_HOVA
+  if (relevans.some((a) => a.allapot === AG_ALLAPOTOK.VAR)) return KIADAS_ALLAPOT.UTEMEZVE
+
+  const kiment = relevans.filter((a) => a.allapot === AG_ALLAPOTOK.KESZ).length
+  if (kiment === relevans.length) return KIADAS_ALLAPOT.KESZ
   if (kiment === 0) return KIADAS_ALLAPOT.HIBA
   return KIADAS_ALLAPOT.RESZBEN
 }
