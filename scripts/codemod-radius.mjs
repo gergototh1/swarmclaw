@@ -2,10 +2,9 @@
 /**
  * One-shot codemod: 1837 arbitrary rounded-[Npx] classes, spread over
  * nineteen distinct pixel values (3-28px, plus 999px for pills), onto a
- * five-step scale. Nineteen radii is why the surface reads as unplanned; a
- * future ESLint rule (see eslint.config.mjs) is meant to keep a twentieth
- * from appearing, but that guard has not landed yet -- nothing enforces the
- * scale today beyond review.
+ * five-step scale. Nineteen radii is why the surface reads as unplanned; the
+ * ESLint guard in eslint.config.mjs keeps a twentieth from appearing now that
+ * this has run.
  *
  * Same shape as codemod-surfaces.mjs: refuse and report rather than guess.
  * The two regexes below are deliberately asymmetric for the same reason that

@@ -78,6 +78,31 @@ describe('hardcoded-style guard', () => {
     await assertComplains(`export const B3 = () => <div className="rounded-[0.5rem]" />\n`, radiusComplaint)
   })
 
+  it('rejects non-numeric arbitrary radii the narrower px|rem|em selector used to miss', async () => {
+    // An earlier version of this selector required a numeric length with a
+    // px/rem/em unit, so it never even saw these forms to refuse them -- the
+    // same bug class codemod-radius.mjs's TARGET_RE comment warns against.
+    await assertComplains(`export const B4 = () => <div className="rounded-[50%]" />\n`, radiusComplaint)
+    await assertComplains(`export const B5 = () => <div className="rounded-[var(--x)]" />\n`, radiusComplaint)
+    await assertComplains(`export const B6 = () => <div className="rounded-[2vh]" />\n`, radiusComplaint)
+    await assertComplains(`export const B7 = () => <div className="rounded-[calc(1rem+2px)]" />\n`, radiusComplaint)
+  })
+
+  it('still leaves rounded-[inherit] alone even though the radius selector now catches every other bracket form', async () => {
+    // The one keyword site that must survive: src/components/ui/scroll-area.tsx
+    // takes its parent's corner via `rounded-[inherit]`, not a length at all.
+    await assertSilent(`export const B8 = () => <div className="rounded-[inherit]" />\n`)
+  })
+
+  it('rejects a gradient-stop or shadow white-alpha, not just surface/text/line utilities', async () => {
+    // via-white/20 and friends were reachable by the prefix list's absence
+    // and tracked nowhere: three real via-white/20 shimmer sites existed with
+    // no lint complaint and no baseline entry.
+    await assertComplains(`export const F = () => <div className="via-white/20" />\n`, surfaceComplaint)
+    await assertComplains(`export const F2 = () => <div className="from-white/[0.1]" />\n`, surfaceComplaint)
+    await assertComplains(`export const F3 = () => <div className="shadow-white/10" />\n`, surfaceComplaint)
+  })
+
   it('catches the same patterns inside a template literal', async () => {
     await assertComplains(
       'export const C = ({ on }: { on: boolean }) => <div className={`p-2 ${on ? "x" : ""} bg-white/[0.06]`} />\n',

@@ -77,10 +77,22 @@ const eslintConfig = defineConfig([
   //    the easier one to type; a guard on the bracket form alone would leave
   //    the wider door open. That is why this rule reports on sites the codemod
   //    never rewrote -- see .eslint-baseline.json for the ones that stay.
-  //  - The radius selector requires a numeric length, so `rounded-[inherit]`
-  //    (src/components/ui/scroll-area.tsx: a primitive taking its parent's
-  //    corner) is left alone. A rule that forces a disable comment is worse
-  //    than a narrower rule.
+  //    The prefix list also covers `via`/`from` gradient stops and `shadow`,
+  //    not just the surface/text/line utilities the codemod touched -- three
+  //    `via-white/20` shimmer-gradient sites (agent-card.tsx, project-list.tsx,
+  //    empty-state.tsx) were reachable by the old prefix list's absence and
+  //    tracked nowhere. They are baselined rather than mapped: the ladder has
+  //    no step for a gradient highlight sweep over a colored bar, and guessing
+  //    one is exactly the mistake this file exists to refuse.
+  //  - The radius selector matches any bracket content, the same width as the
+  //    codemod's own TARGET_RE, minus the one keyword form that must stay:
+  //    `rounded-[inherit]` (src/components/ui/scroll-area.tsx: a primitive
+  //    taking its parent's corner). An earlier version of this selector
+  //    required a numeric length with a px/rem/em unit, which meant it never
+  //    even saw `rounded-[50%]`, `rounded-[var(--x)]`, or `rounded-[2vh]` to
+  //    refuse them -- the exact bug class codemod-radius.mjs's own TARGET_RE
+  //    comment warns against. A rule that forces a disable comment on the one
+  //    legitimate keyword site is worse than a rule with one named exception.
   //  - Opaque `bg-white` / `text-white` are not flagged: there is no alpha
   //    channel being hardcoded, and the always-dark share page needs them.
   {
@@ -93,27 +105,27 @@ const eslintConfig = defineConfig([
         "warn",
         {
           selector:
-            "Literal[value=/(?:bg|border|divide|ring|outline|text)(?:-[xytblrse])?-white\\/(?:\\[|\\d)/]",
+            "Literal[value=/(?:bg|border|divide|ring|outline|text|via|from|shadow)(?:-[xytblrse])?-white\\/(?:\\[|\\d)/]",
           message:
             "Use the surface ladder (bg-layer-1..4, border-line-*, text-fg-1..3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
         },
         {
           selector:
-            "TemplateElement[value.raw=/(?:bg|border|divide|ring|outline|text)(?:-[xytblrse])?-white\\/(?:\\[|\\d)/]",
+            "TemplateElement[value.raw=/(?:bg|border|divide|ring|outline|text|via|from|shadow)(?:-[xytblrse])?-white\\/(?:\\[|\\d)/]",
           message:
             "Use the surface ladder (bg-layer-1..4, border-line-*, text-fg-1..3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
         },
         {
           selector:
-            "Literal[value=/rounded(?:-(?:tl|tr|bl|br|ss|se|es|ee|t|b|l|r|s|e))?-\\[\\d*\\.?\\d+(?:px|rem|em)\\]/]",
+            "Literal[value=/rounded(?:-[a-z]+)?-\\[(?!inherit\\])[^\\]]+\\]/]",
           message:
-            "Use the radius scale (rounded-xs|sm|md|lg|full), not an arbitrary pixel radius.",
+            "Use the radius scale (rounded-xs|sm|md|lg|full), not an arbitrary radius.",
         },
         {
           selector:
-            "TemplateElement[value.raw=/rounded(?:-(?:tl|tr|bl|br|ss|se|es|ee|t|b|l|r|s|e))?-\\[\\d*\\.?\\d+(?:px|rem|em)\\]/]",
+            "TemplateElement[value.raw=/rounded(?:-[a-z]+)?-\\[(?!inherit\\])[^\\]]+\\]/]",
           message:
-            "Use the radius scale (rounded-xs|sm|md|lg|full), not an arbitrary pixel radius.",
+            "Use the radius scale (rounded-xs|sm|md|lg|full), not an arbitrary radius.",
         },
       ],
     },
