@@ -389,6 +389,7 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
 
   return (
     <section className="crm-sec-wrap">
+      <h2 className="crm-h2">Ma</h2>
       {hiba && <p className="crm-hiba" role="alert">{hiba}</p>}
 
       <div className={`crm-strip${postafiok && !postafiok.available ? ' crm-strip-warn' : ''}`}>
@@ -485,12 +486,13 @@ export function MaNezet({ rpc, onOpen }: { rpc: Rpc; onOpen: (id: string) => voi
                   <li key={u.id} className="crm-tri">
                     <div className="crm-tri-who">
                       <span className="crm-mono">{u.sender_address}</span>
-                      <span className="crm-grow">{u.subject}</span>
+                      <span>{u.subject}</span>
                     </div>
                     <div className="crm-tri-pickers">
                       {u.guess_account_id && (
-                        <button className="crm-pill crm-pill-plain crm-btn-quiet"
-                                onClick={() => u.guess_account_id && megnyit(u.guess_account_id)}>
+                        <button className="crm-btn crm-pill crm-pill-plain crm-btn-quiet"
+                                onClick={() => u.guess_account_id && megnyit(u.guess_account_id)}
+                                aria-label={`valószínűleg ${accounts.find((a) => a.id === u.guess_account_id)?.name ?? 'ismeretlen ügyfél'}`}>
                           valószínűleg {accounts.find((a) => a.id === u.guess_account_id)?.name}
                         </button>
                       )}

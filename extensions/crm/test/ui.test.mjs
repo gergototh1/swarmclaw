@@ -222,12 +222,13 @@ test('a figyelem-sor a tipusat, a cimet ES az indokat is mutatja, nem csak az eg
 test('a figyelem-sor Megnyit gombja az ugyfel lapjara visz, a sor accountId-javal', async () => {
   const out = await bundle({ write: false })
   const js = out.outputFiles[0].text
-  // A Task 2 jelolese elott a "className" a bekot elso propja; a minta ezert
-  // opcionalis className-mezot enged az onClick elott, maga a bekotes
-  // (megnyit(f.accountId) hivja meg a gomb) valtozatlan.
+  // A minta a prop-sorrendtol fuggetlenul illeszkedik: a bekot lenyege az,
+  // hogy egy "button" objektumon BELUL van egy onClick: () => megnyit(f.accountId)
+  // ES egy children: "Megnyit" -- nem az, hogy melyik prop all elobb (a Task 2
+  // jelolese elott peldaul a "className" allt a legelso helyen).
   assert.match(
     js,
-    /"button",\s*\{\s*(?:className:\s*"[^"]*",\s*)?onClick:\s*\(\)\s*=>\s*megnyit\(f\.accountId\),\s*children:\s*"Megnyit"/,
+    /"button",\s*\{[^}]*?onClick:\s*\(\)\s*=>\s*megnyit\(f\.accountId\)[^}]*?children:\s*"Megnyit"/,
     'hianyzik a figyelem-sor `megnyit(f.accountId)`-t hivo Megnyit gombja',
   )
 })

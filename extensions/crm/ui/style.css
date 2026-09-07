@@ -41,7 +41,26 @@
   background: var(--color-surface-3, #262636);
   border-color: var(--color-border-hi, rgba(255,255,255,.13));
 }
-.crm-screen { padding: 20px 22px 26px; display: flex; flex-direction: column; gap: 22px; }
+/*
+ * A `main.crm-screen` mindig PONTOSAN EGY nézetet rendereli egyszerre
+ * (`main.tsx` -- `ma`, `ugyfelek`/`ugyfel-lap`, `ügyek` kizárják egymást),
+ * ezért a flex-column + gap itt sosem hoz létre tényleges rést két elem
+ * között. A tényleges, több gyereket tördelő elrendezést a nézet saját
+ * gyökere (`.crm-sec-wrap`) adja -- lásd ott.
+ */
+.crm-screen { padding: 20px 22px 26px; }
+
+/*
+ * A nézet saját <h2> címe -- valódi h2 marad a dokumentumban (a
+ * képernyőolvasó fejezetkiosztásához), de vizuálisan halkabb a böngésző
+ * alap h2-jénél, hogy illeszkedjen a `crm-sechead h3` tömör tipográfiájához.
+ */
+.crm-h2 {
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 15px; font-weight: 600;
+  color: var(--color-text, #e2e2ec);
+  margin: 0;
+}
 
 /* ---------- szakasz ---------- */
 .crm-sec { display: flex; flex-direction: column; gap: 11px; }
@@ -101,7 +120,10 @@
   border-color: color-mix(in srgb, var(--color-warning, #fbbf24) 30%, transparent);
 }
 .crm-pill-nema {
-  color: var(--color-accent, #6366f1);
+  /* A tiszta --color-accent szövegszín a 12%-os tintán 3.63:1 kontrasztot ad
+     (WCAG AA szöveghez 4.5:1 kell) -- a szöveget a fehér felé keverjük, hogy
+     a háttér-tinttel szemben olvasható maradjon (~6.5:1 a fallback-tokenekkel). */
+  color: color-mix(in srgb, var(--color-accent, #6366f1) 65%, var(--color-accent-foreground, #fff));
   background: color-mix(in srgb, var(--color-accent, #6366f1) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent, #6366f1) 30%, transparent);
 }
@@ -214,7 +236,10 @@
 
 /* ---------- Ma: javaslatok ---------- */
 .crm-sugs {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 10px;
+  /* min(310px, 100%): a 310px hard minimum a .crm-screen 44px vízszintes
+     paddingjével együtt egy szűk panelen (kb. 354px alatt) a kártyákat a
+     konténernél szélesebbre feszítette, és a lap oldalra gördült. */
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr)); gap: 10px;
   list-style: none; margin: 0; padding: 0;
 }
 .crm-sug {
