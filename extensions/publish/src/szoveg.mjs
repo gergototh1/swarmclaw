@@ -537,6 +537,38 @@ export function createSzovegTools(state) {
      * (`hibaKod: 'adapter_nincs'`), reported the same way a network failure
      * would be -- the operator sees a named reason rather than a release
      * that never moves.
+     *
+     * R1 (Task 4's review, task-5-brief.md): THE FRESHNESS GATE. A release's
+     * `jovahagyva` approval is the operator's judgement on the VIDEO FILE AS
+     * IT WAS on the day they clicked approve -- not a promise about whatever
+     * file `out_path` names days later when this tick actually sends it.
+     * `extensions/video/src/render.mjs`'s `videoStatusAfterRender` can move a
+     * `qa_ok` video to `qa_hiba` on a re-render, or an operator can close it
+     * to `lezart`, at any point after approval and before the scheduled
+     * instant. Before this gate, NOTHING between approval and dispatch
+     * re-read the video's status: a re-render that failed QA went out to all
+     * four platforms anyway, reported `kikuldve: 1, hibak: []`, because every
+     * branch's own dispatch genuinely succeeded -- the video handed to the
+     * adapters was simply the wrong one to send.
+     *
+     * So every due release is re-checked against `video.videos@1`
+     * (`videoLekerdez`, src/video-szerzodes.mjs) ONCE per release, lazily --
+     * only when a branch would otherwise actually reach an adapter, so a
+     * release with no connected account or no registered adapter for any of
+     * its platforms costs no contract call at all -- and the answer is
+     * reused across every platform of that release rather than re-fetched
+     * per branch. `status !== 'qa_ok'` refuses each affected branch by the
+     * SAME name `publishOpen` already uses for the same fact
+     * (`video_nem_qa_ok`, constraints.md's "same word for the same fact"),
+     * and never calls the adapter at all -- a branch that never sent is
+     * `hiba`, not `kesz`, and the release's own aggregate
+     * (`kiadasAllapot`) reads that the same way it reads any other failed
+     * branch. A `PublishError` from the contract call itself (the video
+     * module reloading, or disabled) is reported with the HOST's own code as
+     * `hibaKod`, the same "skip and report, never throw from inside the
+     * loop" discipline the `kiadas_allapot_ismeretlen` branch below already
+     * uses -- one release whose video cannot be read must not cancel every
+     * other due release in the tick.
      */
     {
       name: 'publishDue',
@@ -554,6 +586,26 @@ export function createSzovegTools(state) {
           let kikuldve = 0
 
           for (const kiadas of esedekesek) {
+            // R1's cache: fetched at most once per release, and only if a
+            // branch actually reaches this point (see the tool docblock's
+            // "R1" note above for why lazy). `undefined` = not yet asked;
+            // `{ friss: true, video }` = re-checked and still qa_ok;
+            // `{ friss: false, hibaKod }` = stale or unreadable, named.
+            let videoFrissesseg
+            const videoFrissessegLekerdez = async () => {
+              if (videoFrissesseg !== undefined) return videoFrissesseg
+              try {
+                const video = await videoLekerdez(state, kiadas.video_id)
+                videoFrissesseg = video && video.status === 'qa_ok'
+                  ? { friss: true, video }
+                  : { friss: false, hibaKod: 'video_nem_qa_ok' }
+              } catch (err) {
+                if (!(err instanceof PublishError)) throw err
+                videoFrissesseg = { friss: false, hibaKod: err.code }
+              }
+              return videoFrissesseg
+            }
+
             for (const ag of repo().agak(kiadas.id)) {
               if (ag.allapot !== AG_ALLAPOTOK.VAR) continue
               const fiok = fiokByPlatform.get(ag.platform)
@@ -567,8 +619,14 @@ export function createSzovegTools(state) {
                 hibak.push({ kiadasId: kiadas.id, platform: ag.platform, hibaKod: 'adapter_nincs' })
                 continue
               }
+              const friss = await videoFrissessegLekerdez()
+              if (!friss.friss) {
+                repo().agEredmenyetIr({ agId: ag.id, allapot: AG_ALLAPOTOK.HIBA, hibaKod: friss.hibaKod })
+                hibak.push({ kiadasId: kiadas.id, platform: ag.platform, hibaKod: friss.hibaKod })
+                continue
+              }
               try {
-                const eredmeny = await adapter({ ag, kiadas, fiok })
+                const eredmeny = await adapter({ ag, kiadas, fiok, video: friss.video })
                 const url = eredmeny && typeof eredmeny.url === 'string' ? eredmeny.url : null
                 repo().agEredmenyetIr({ agId: ag.id, allapot: AG_ALLAPOTOK.KESZ, url })
               } catch (err) {

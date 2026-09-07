@@ -1,13 +1,14 @@
 import { AGENTS } from './src/agents.mjs'
 import { ALAP_IDOZONA, MIGRATIONS, createRepo } from './src/db.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
+import { createYoutubeAdapter } from './src/platform/youtube.mjs'
 import { createSzovegTools } from './src/szoveg.mjs'
 
 /**
  * Publikálás, ütemezés és naptár -- Task 1 (the module's skeleton), Task 3
  * (the clock) and Task 4 (the writer, the reviewer and the sender).
  *
- * This is the first, third and fourth of six tasks
+ * This is the first, third, fourth and fifth of six tasks
  * (doc/specs/2026-09-07-publikalas-design.md). Task 1 built the package, the
  * entry, the database schema and the read side of the `video.videos@1`
  * contract. Task 3 added `SCHEDULES` below -- the one fixed-cadence run
@@ -16,11 +17,16 @@ import { createSzovegTools } from './src/szoveg.mjs'
  * `publishVerdict`, `publishDue`) -- the whole `vazlat -> lektoralt ->
  * jovahagyva -> utemezve -> kesz|reszben|hiba|nincs_hova` chain design spec
  * 4 draws, except the operator's own approval click, which stays a later
- * task's rpc surface (src/szoveg.mjs's own docblock says why). Nothing here
- * sends anything to YouTube, Facebook, Instagram or TikTok yet -- the four
- * adapters (spec 6) and the calendar page (spec 8) are later tasks' work,
- * and `publishDue` dispatches through `state.adapterek`, a registry those
- * tasks populate.
+ * task's rpc surface (src/szoveg.mjs's own docblock says why). Task 5 sends
+ * to ONE of the four platforms: `state.adapterek.youtube`
+ * (src/platform/youtube.mjs's `createYoutubeAdapter`), riding the host's
+ * Google OAuth (`state.oauth`, the same seam `extensions/gmail/index.mjs`
+ * uses) under the `publish` purpose
+ * (`src/app/api/oauth/google/start/route.ts`'s Task 5 entry). Facebook,
+ * Instagram and TikTok have no adapter yet -- design spec 6's other three --
+ * and the calendar page (spec 8) is Task 6's work; `publishDue` still
+ * dispatches every platform through `state.adapterek`, so registering the
+ * next adapter is the whole cost of a later task's send path.
  *
  * Everything the host hands over in `setup()`, plus the test's own seam.
  *
@@ -34,10 +40,31 @@ export const state = {
   settings: () => ({}),
   log: console,
   contracts: null,
+  /** The host's Google OAuth seam (`getGoogleAccessToken`, `hasGoogleCredential`), the same shape `extensions/gmail/index.mjs` stores -- Task 5's `createYoutubeAdapter` below reads it at CALL time, well after `setup()` has filled it in. */
+  oauth: null,
   repo: null,
-  /** Platform -> `async ({ ag, kiadas, fiok }) => { url }` sender, populated by a later task (design spec 6's four adapters; Task 5 registers `youtube` here). Empty today: `publishDue` (src/szoveg.mjs) treats a connected account with no registered adapter as a named `hiba`, never a silent no-op. */
+  /**
+   * Platform -> `async ({ ag, kiadas, fiok, video }) => { url }` sender.
+   * Task 5 registers `youtube` below, built once at module load from THIS
+   * `state` object (not a snapshot of it) so `createYoutubeAdapter`'s closure
+   * keeps seeing `state.oauth` as `setup()` fills and refills it. Facebook,
+   * Instagram and TikTok (design spec 6) have no adapter yet: `publishDue`
+   * (src/szoveg.mjs) treats a connected account with no registered adapter
+   * as a named `hiba`, never a silent no-op.
+   */
   adapterek: {},
 }
+
+/**
+ * Registered once, at import time, on the module-scope `state` above -- not
+ * inside `setup()`, because `setup()` only ever assigns the SAME `state`
+ * object's fields, and `createYoutubeAdapter(state)` needs to close over
+ * that object exactly once. Re-registering on every `setup()` re-run (a
+ * write under data/extensions triggers one) would replace a working closure
+ * with an identical one for no reason -- harmless here, but a needless
+ * departure from "plain assignment is idempotent" above.
+ */
+state.adapterek.youtube = createYoutubeAdapter(state)
 
 /** 15 minutes, in milliseconds -- design spec 7's default cadence, and the module's own upper bound on how late a due release can go out. */
 const ALAP_UTEMEZES_MS = 15 * 60 * 1000
@@ -108,6 +135,7 @@ const publish = {
     state.settings = ctx.settings
     state.log = ctx.log
     state.contracts = ctx.contracts
+    state.oauth = ctx.oauth
     state.repo = createRepo(ctx.storage)
   },
   /**

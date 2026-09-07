@@ -19,6 +19,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
  * declared. Adding a tool or an agent is a real decision -- this test exists
  * so that decision shows up here as a diff, not a silent shape change; the
  * brief's own words for this ("update the pin, do not weaken it").
+ *
+ * Task 5 widens it again: `setup()` now also stores `ctx.oauth` (the seam
+ * `src/platform/youtube.mjs`'s `createYoutubeAdapter` reads at call time),
+ * and the module registers a real `youtube` sender in `state.adapterek` at
+ * import time rather than leaving that registry empty for a later task.
  */
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -148,5 +153,12 @@ test('setup() is synchronous and idempotent: it fills state and starts nothing',
   assert.equal(state.settings, settings)
   assert.equal(state.log, log)
   assert.equal(state.contracts, ctx.contracts)
+  assert.equal(state.oauth, ctx.oauth, 'Task 5: setup() stores the host oauth seam, the same way extensions/gmail/index.mjs does')
   assert.equal(typeof state.repo, 'object')
+})
+
+test('Task 5: a real youtube sender is registered at import time, not left for a later task', async () => {
+  const { state } = await import(pathToFileURL(entry).href)
+  assert.deepEqual(Object.keys(state.adapterek), ['youtube'])
+  assert.equal(typeof state.adapterek.youtube, 'function')
 })

@@ -43,6 +43,16 @@ const SCOPES: Record<string, string[]> = {
   // a single Google request. The first operator to connect a mailbox should
   // paste the screen's own sentence here with the date.
   gmail: ['https://www.googleapis.com/auth/gmail.modify'],
+  // The smallest single scope that inserts a video: `youtube.upload` can
+  // create, update and delete videos owned by the connected channel, but
+  // cannot read or write anything else about it. Deliberately absent are
+  // `youtube` (full read/write access to the channel: playlists,
+  // subscriptions, comments) and `youtube.force-ssl` (the same, over a scope
+  // Google requires for a few additional write calls this app never makes).
+  // A token minted for this purpose can therefore publish and remove videos
+  // it uploaded, but cannot read the channel's subscriber list, moderate
+  // comments, or touch a video this app did not upload itself.
+  publish: ['https://www.googleapis.com/auth/youtube.upload'],
 }
 
 /**

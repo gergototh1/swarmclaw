@@ -166,6 +166,27 @@ describe('GET /api/oauth/google/start', () => {
     assert.equal(out.aisignal, 'https://www.googleapis.com/auth/gmail.readonly')
     assert.equal(out.gmail, 'https://www.googleapis.com/auth/gmail.modify')
   })
+
+  it('asks for youtube.upload on the publish purpose, and for nothing wider', () => {
+    const out = runWithTempDataDir<{ status: number; location: string; scope: string }>(`
+      ${DESKTOP_ENV}
+      ${LOAD_ROUTES}
+      const res = await start(new Request('http://127.0.0.1:4321/api/oauth/google/start?purpose=publish'))
+      const location = res.headers.get('location') || ''
+      console.log(JSON.stringify({
+        status: res.status,
+        location,
+        scope: new URL(location).searchParams.get('scope') || '',
+      }))
+    `)
+    assert.equal(out.status, 302)
+    assert.equal(out.scope, 'https://www.googleapis.com/auth/youtube.upload')
+    // Neither of the two scopes that would let this app read or moderate the
+    // rest of the channel (subscriptions, comments, playlists it did not
+    // upload) is ever requested.
+    assert.notEqual(out.scope, 'https://www.googleapis.com/auth/youtube')
+    assert.doesNotMatch(out.location, /force-ssl/)
+  })
 })
 
 describe('GET /api/oauth/google/callback', () => {

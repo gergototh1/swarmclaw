@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { KIADAS_ALLAPOTOK } from '../src/db.mjs'
+import { AG_ALLAPOTOK, KIADAS_ALLAPOTOK } from '../src/db.mjs'
 import { LEKTOR_KODOK, PLATFORM_KORLATOK, SzovegError, VERDIKTEK, createSzovegTools, kiadastUtemezSavba } from '../src/szoveg.mjs'
 import { freshRepo } from './helpers.mjs'
 
@@ -16,14 +16,19 @@ import { freshRepo } from './helpers.mjs'
  * state with an in-memory repository and a `contracts` double, a `run`
  * helper that calls a tool's `execute` the way the host does.
  */
-function setup({ video = null, why = 'provider_missing', adapterek = {}, settings = {}, contracts, log } = {}) {
+function setup({ video = null, videos = null, why = 'provider_missing', adapterek = {}, settings = {}, contracts, log } = {}) {
   const { repo } = freshRepo()
+  // `video` (singular) stays for every test that only ever asks about one
+  // video by id; `videos` is the R1 addition for a test whose fixture needs
+  // more than one (publishDue now reads the video row of EVERY due release,
+  // not only the one `publishOpen` opened).
+  const videoById = new Map((videos ?? (video ? [video] : [])).map((v) => [v.id, v]))
   const state = {
     repo,
     settings: () => settings,
     log: log ?? { info() {}, warn() {}, error() {} },
     contracts: contracts === undefined
-      ? { get: (e, c) => (e === 'video' && c === 'videos' ? { get: async ({ id }) => (video && video.id === id ? video : null) } : null), why: () => why }
+      ? { get: (e, c) => (e === 'video' && c === 'videos' ? { get: async ({ id }) => videoById.get(id) ?? null } : null), why: () => why }
       : contracts,
     adapterek,
   }
@@ -208,7 +213,7 @@ test('publishDue leaves a release with no connected accounts at nincs_hova, none
 })
 
 test('publishDue sends through a registered adapter for a connected account, and counts the release once every branch is kesz', async () => {
-  const { repo, run } = setup({ adapterek: { youtube: async () => ({ url: 'https://youtu.be/x' }) } })
+  const { repo, run } = setup({ video: qaOkVideo('v1'), adapterek: { youtube: async () => ({ url: 'https://youtu.be/x' }) } })
   repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Csatorna' })
   const k = esedekesKiadas(repo, 'v1', ['youtube'])
   const r = await run('publishDue', {})
@@ -233,6 +238,7 @@ test('publishDue reports a connected account with no registered adapter as a nam
 
 test('publishDue reports a partial release as reszben, with one branch kesz and one hiba', async () => {
   const { repo, run } = setup({
+    video: qaOkVideo('v1'),
     adapterek: {
       youtube: async () => ({ url: 'https://youtu.be/x' }),
       tiktok: async () => { const e = new Error('nem sikerült'); e.code = 'kulso_hiba'; throw e },
@@ -245,6 +251,104 @@ test('publishDue reports a partial release as reszben, with one branch kesz and 
   assert.equal(r.kikuldve, 0, 'a reszben kiadás nem számít bele a rendben kimentek közé')
   assert.deepEqual(r.hibak, [{ kiadasId: k.id, platform: 'tiktok', hibaKod: 'kulso_hiba' }])
   assert.equal(repo.kiadas(k.id).allapot, KIADAS_ALLAPOTOK.RESZBEN)
+})
+
+// --- R1 (task 5): the freshness gate --------------------------------------
+//
+// Task 4's review proved this exact scenario: a release approved while its
+// video was qa_ok, re-rendered to qa_hiba days later, still went out to
+// every platform with `kikuldve: 1, hibak: []` -- because nothing between
+// approval and dispatch ever asked the video module again. These tests
+// exercise that gate directly, with an adapter that would prove it by
+// throwing if it were ever reached.
+
+test('publishDue refuses every var branch of a release whose video is no longer qa_ok, and never calls the adapter', async () => {
+  let hivva = false
+  const { repo, run } = setup({
+    video: qaOkVideo('v1', { status: 'qa_hiba' }),
+    adapterek: { youtube: async () => { hivva = true; return { url: 'https://youtu.be/x' } } },
+  })
+  repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Csatorna' })
+  const k = esedekesKiadas(repo, 'v1', ['youtube'])
+  const r = await run('publishDue', {})
+  assert.equal(hivva, false, 'a stale videó miatt az adapter meg sem hívódik')
+  assert.equal(r.kikuldve, 0)
+  assert.deepEqual(r.hibak, [{ kiadasId: k.id, platform: 'youtube', hibaKod: 'video_nem_qa_ok' }])
+  assert.equal(repo.kiadas(k.id).allapot, KIADAS_ALLAPOTOK.HIBA)
+  assert.equal(repo.agak(k.id)[0].allapot, AG_ALLAPOTOK.HIBA)
+})
+
+test('publishDue refuses a release whose video was closed (lezart) after approval, by the same named code as an operator-facing failed re-render', async () => {
+  const { repo, run } = setup({
+    video: qaOkVideo('v1', { status: 'lezart' }),
+    adapterek: { youtube: async () => ({ url: 'https://youtu.be/x' }) },
+  })
+  repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Csatorna' })
+  const k = esedekesKiadas(repo, 'v1', ['youtube'])
+  const r = await run('publishDue', {})
+  assert.deepEqual(r.hibak, [{ kiadasId: k.id, platform: 'youtube', hibaKod: 'video_nem_qa_ok' }])
+})
+
+test('publishDue re-checks the video ONCE per release, not once per platform', async () => {
+  let hivasok = 0
+  const { repo, run } = setup({
+    video: qaOkVideo('v1'),
+    contracts: {
+      get: (e, c) => (e === 'video' && c === 'videos' ? { get: async ({ id }) => { hivasok += 1; return id === 'v1' ? qaOkVideo('v1') : null } } : null),
+      why: () => 'provider_missing',
+    },
+    adapterek: {
+      youtube: async () => ({ url: 'https://youtu.be/x' }),
+      tiktok: async () => ({ url: 'https://tiktok.example/x' }),
+    },
+  })
+  repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Csatorna' })
+  repo.fiokotIr({ platform: 'tiktok', kulsoId: 'x', nev: 'x' })
+  const k = esedekesKiadas(repo, 'v1', ['youtube', 'tiktok'])
+  const r = await run('publishDue', {})
+  assert.equal(r.kikuldve, 1)
+  assert.equal(hivasok, 1, 'a videó szerződés egyszer kérdeződik le két platform ellenére')
+  assert.equal(repo.kiadas(k.id).allapot, KIADAS_ALLAPOTOK.KESZ)
+})
+
+test('publishDue never asks the video contract for a release with no connected account or no registered adapter, at all', async () => {
+  let hivasok = 0
+  const { repo, run } = setup({
+    contracts: {
+      get: (e, c) => (e === 'video' && c === 'videos' ? { get: async () => { hivasok += 1; return null } } : null),
+      why: () => 'provider_missing',
+    },
+    adapterek: {},
+  })
+  const k = esedekesKiadas(repo, 'v1', ['youtube', 'tiktok'])
+  await run('publishDue', {})
+  assert.equal(hivasok, 0, 'nincs csatlakoztatott fiók vagy adapter egyik platformhoz sem -- a videó lekérdezés felesleges lenne')
+  assert.deepEqual(repo.agak(k.id).map((a) => a.allapot), ['nincs_fiok', 'nincs_fiok'])
+})
+
+test('publishDue skips (not throws) a release whose video contract cannot be resolved at dispatch time, reporting the host\'s own reason code', async () => {
+  const { repo, run } = setup({
+    video: qaOkVideo('v1'),
+    contracts: { get: () => null, why: () => 'provider_disabled' },
+    adapterek: { youtube: async () => ({ url: 'https://youtu.be/x' }) },
+  })
+  repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Csatorna' })
+  const k = esedekesKiadas(repo, 'v1', ['youtube'])
+  const r = await run('publishDue', {})
+  assert.equal(r.error, undefined, 'egy megnevezett szerződés-hiba nem szakítja meg a futást')
+  assert.deepEqual(r.hibak, [{ kiadasId: k.id, platform: 'youtube', hibaKod: 'szerzodes_hianyzik' }])
+})
+
+test('the R1 gate hands the fresh video row to the adapter, not the one from approval time', async () => {
+  let kapottVideo
+  const { repo, run } = setup({
+    video: qaOkVideo('v1', { out_path: '/renders/v1/uj.mp4' }),
+    adapterek: { youtube: async ({ video }) => { kapottVideo = video; return { url: 'https://youtu.be/x' } } },
+  })
+  repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Csatorna' })
+  esedekesKiadas(repo, 'v1', ['youtube'])
+  await run('publishDue', {})
+  assert.equal(kapottVideo.out_path, '/renders/v1/uj.mp4')
 })
 
 test('publishDue never touches a release that is not yet due, and reports időpont nélküli ütemezett kiadás as its own, third fact', async () => {
@@ -482,7 +586,7 @@ test('publishDue names an adapter failure that carries no code of its own, rathe
   // the branch would store hiba_kod = null and the report would say
   // hibaKod: null -- an unnamed failure in the one path where the name
   // matters most.
-  const { repo, run } = setup({ adapterek: { youtube: async () => { throw new Error('a hálózat elszállt') } } })
+  const { repo, run } = setup({ video: qaOkVideo('v1'), adapterek: { youtube: async () => { throw new Error('a hálózat elszállt') } } })
   repo.fiokotIr({ platform: 'youtube', kulsoId: 'UC1', nev: 'Csatorna' })
   const k = esedekesKiadas(repo, 'v1', ['youtube'])
   const r = await run('publishDue', {})
@@ -513,6 +617,7 @@ test('publishDue skips a release it cannot read the state of, reports it, and st
   // one release that is broken.
   const figyelmeztetesek = []
   const { repo, run } = setup({
+    videos: [qaOkVideo('v-jo')],
     adapterek: { youtube: async () => ({ url: 'https://youtu.be/x' }) },
     log: { info() {}, warn: (m) => figyelmeztetesek.push(m), error() {} },
   })
