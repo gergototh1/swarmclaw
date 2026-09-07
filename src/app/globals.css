@@ -43,7 +43,22 @@
   /* ===== Radius scale =====
      Five steps, not fifteen. xs: badges and small icon buttons. sm: inputs,
      buttons, nav rows. md: cards and list rows. lg: sheets and dialogs.
-     full: avatars and status pills. Adding a sixth needs a reason in review. */
+     full: avatars and status pills. Adding a sixth needs a reason in review.
+
+     Collapsing onto these five steps also changed the rendered size of 58
+     pre-existing named-class sites that were already using rounded-xs/sm/md/lg
+     before the codemod ran: rounded-md 8px->12px (31 sites), rounded-lg
+     10px->16px (21), rounded-sm 6px->8px (5), rounded-xs 2px->6px (1). That
+     is the intended unification, not a regression -- recorded here because
+     nothing else said so.
+
+     The namespace reset below is load-bearing, not tidiness. Tailwind v4
+     ships --radius-xs..--radius-4xl in its own `@theme default` block
+     (node_modules/tailwindcss/theme.css), and a user @theme overrides only
+     the keys it redeclares. Without this, rounded-xl/2xl/3xl/4xl keep
+     compiling at Tailwind's defaults and the five-step scale is a comment,
+     not a rule. */
+  --radius-*: initial;
   --radius-xs: 6px;
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -103,6 +118,12 @@
   --font-dm-sans: 'Segoe UI';
   --font-sora: 'Segoe UI';
   --font-jetbrains-mono: 'SF Mono';
+  /* Dead to this app -- no `var(--radius` reference remains in src -- but kept
+     on purpose. shadcn/dist/index.js hardcodes `calc(var(--radius) - 4px)`
+     style tokens into the primitives it writes and appends any it can't find
+     in the @theme inline block, so re-running the shadcn CLI would resurrect
+     this old single-value scale. The --radius-* namespace reset above does
+     not stop that; it only governs Tailwind's own rounded-* utilities. */
   --radius: 0.625rem;
 
   /* ===== Single-Tint Theming ===== */
