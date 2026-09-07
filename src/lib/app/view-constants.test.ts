@@ -25,4 +25,15 @@ describe('panel sidebar route helpers', () => {
     assert.equal(FULL_WIDTH_VIEWS.has('quality'), true)
     assert.equal(isPanelSidebarView('quality'), false)
   })
+
+  it('does not treat runs or logs as panel-backed now that /stream owns them', () => {
+    // Their route layouts (the ones that rendered a SidebarPanelShell) were
+    // dropped when /runs and /logs became plain redirects into /stream. If
+    // either came back here, clicking them would set sidebarOpen with no
+    // panel behind it, and that would leak into the next panel-backed view.
+    assert.equal(isPanelSidebarView('runs'), false)
+    assert.equal(isPanelSidebarView('logs'), false)
+    assert.equal(shouldAutoOpenPanelSidebar('runs', true), false)
+    assert.equal(shouldAutoOpenPanelSidebar('logs', true), false)
+  })
 })
