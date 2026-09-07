@@ -13,9 +13,14 @@ import "./globals.css"
 // both resolved to system-ui and `font-display` was a no-op.
 // latin-ext is required because the UI carries Hungarian copy (`Doksik`,
 // `Videó`) -- without it, ő and ű render in the fallback font.
-const sans = DM_Sans({ subsets: ["latin", "latin-ext"], variable: "--font-sans", display: "swap" })
-const display = Sora({ subsets: ["latin", "latin-ext"], variable: "--font-display", display: "swap" })
-const mono = JetBrains_Mono({ subsets: ["latin", "latin-ext"], variable: "--font-mono", display: "swap" })
+const sans = DM_Sans({ subsets: ["latin", "latin-ext"], variable: "--font-sans-face", display: "swap" })
+const display = Sora({ subsets: ["latin", "latin-ext"], variable: "--font-display-face", display: "swap" })
+const mono = JetBrains_Mono({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-mono-face",
+  display: "swap",
+  preload: false,
+})
 
 export const metadata: Metadata = {
   title: "SwarmClaw",
