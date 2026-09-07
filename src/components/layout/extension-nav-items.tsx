@@ -35,9 +35,8 @@ function PageIcon({ name }: { name?: string }) {
   return <Icon size={18} />
 }
 
-function ExtensionPageLinks({ pages, expanded, onNavigate }: {
+function ExtensionPageLinks({ pages, onNavigate }: {
   pages: ExtensionPage[]
-  expanded: boolean
   onNavigate?: () => void
 }) {
   const pathname = usePathname()
@@ -48,7 +47,6 @@ function ExtensionPageLinks({ pages, expanded, onNavigate }: {
           key={`${p.extensionId}:${p.id}`}
           href={p.path}
           label={p.label}
-          expanded={expanded}
           isActive={pathname === p.path || pathname.startsWith(`${p.path}/`)}
           onClick={onNavigate}
         >
@@ -80,7 +78,7 @@ export function ExtensionPagesForSection({ section, onNavigate }: {
   if (pages.length === 0) return null
   return (
     <>
-      <ExtensionPageLinks pages={pages} expanded onNavigate={onNavigate} />
+      <ExtensionPageLinks pages={pages} onNavigate={onNavigate} />
       <div className="my-2 mx-2 h-px bg-line-subtle" />
     </>
   )
