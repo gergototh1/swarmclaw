@@ -141,7 +141,12 @@
   --color-shereen: #EC4899;
   --color-user-bubble: #4338CA;
   --color-user-bubble-2: #6366F1;
-  --color-ai-bubble: #12121e;
+  /* The AI message bubble. #1c1c2e and not the #12121e this token used to
+     hold: nothing ever read the token, .bubble-ai painted itself #1c1c2e
+     directly, and #1c1c2e is therefore what dark mode has always looked
+     like. Keeping it means wiring the class to the token changes light
+     mode only, which is the bug being fixed. */
+  --color-ai-bubble: #1c1c2e;
   --color-glass: rgba(16,16,28,0.75);
   --color-glass-border: rgba(255,255,255,0.05);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -402,11 +407,11 @@ textarea:disabled,
 }
 
 /* Scrollbar */
-* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
+* { scrollbar-width: thin; scrollbar-color: var(--color-layer-3) transparent; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+::-webkit-scrollbar-thumb { background: var(--color-layer-3); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-layer-4); }
 textarea { scrollbar-width: none; }
 textarea::-webkit-scrollbar { width: 0; }
 textarea:hover { scrollbar-width: thin; }
@@ -701,7 +706,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 
 .msg-content hr { border: none; height: 1px; background: var(--color-border-hi); margin: 16px 0; }
 
-.msg-content img { max-width: 100%; border-radius: 12px; margin: 8px 0; border: 1px solid rgba(255,255,255,0.08); }
+.msg-content img { max-width: 100%; border-radius: 12px; margin: 8px 0; border: 1px solid var(--color-line-default); }
 
 /* Streaming cursor */
 .streaming-cursor::after {
@@ -745,7 +750,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.rail-btn:hover { background: rgba(255,255,255,0.04); color: var(--color-text-2); }
+.rail-btn:hover { background: var(--color-layer-2); color: var(--color-text-2); }
 .rail-btn.active { background: var(--color-accent-soft); color: var(--color-accent-bright); }
 
 /* Message bubble styles */
@@ -757,8 +762,8 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 }
 
 .bubble-ai {
-  background: #1c1c2e;
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--color-ai-bubble);
+  border: 1px solid var(--color-line-default);
   border-radius: 20px 20px 20px 6px;
 }
 
@@ -839,16 +844,16 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 /* Mini chat bubble markdown */
 .mini-chat-md p { margin: 0 0 0.3em; }
 .mini-chat-md p:last-child { margin-bottom: 0; }
-.mini-chat-md code { font-size: 0.9em; background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px; }
-.mini-chat-md pre { font-size: 0.85em; background: rgba(255,255,255,0.04); padding: 6px 8px; border-radius: 6px; overflow-x: auto; margin: 4px 0; }
+.mini-chat-md code { font-size: 0.9em; background: var(--color-layer-2); padding: 1px 4px; border-radius: 3px; }
+.mini-chat-md pre { font-size: 0.85em; background: var(--color-layer-2); padding: 6px 8px; border-radius: 6px; overflow-x: auto; margin: 4px 0; }
 .mini-chat-md pre code { background: none; padding: 0; }
 .mini-chat-md ul, .mini-chat-md ol { margin: 2px 0; padding-left: 1.2em; }
 .mini-chat-md li { margin: 1px 0; }
 .mini-chat-md a { color: var(--accent-bright, #6366f1); text-decoration: underline; }
 .mini-chat-md h1, .mini-chat-md h2, .mini-chat-md h3 { font-size: 1em; font-weight: 600; margin: 4px 0 2px; }
-.mini-chat-md blockquote { border-left: 2px solid rgba(255,255,255,0.1); padding-left: 8px; margin: 4px 0; opacity: 0.8; }
+.mini-chat-md blockquote { border-left: 2px solid var(--color-line-default); padding-left: 8px; margin: 4px 0; opacity: 0.8; }
 .mini-chat-md table { font-size: 0.9em; border-collapse: collapse; margin: 4px 0; }
-.mini-chat-md th, .mini-chat-md td { border: 1px solid rgba(255,255,255,0.08); padding: 2px 6px; }
+.mini-chat-md th, .mini-chat-md td { border: 1px solid var(--color-line-default); padding: 2px 6px; }
 
 @layer base {
   * {
