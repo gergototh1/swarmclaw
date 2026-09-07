@@ -43,7 +43,7 @@ export function WalletList() {
   if (!walletList.length) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
-        <div className="w-12 h-12 rounded-[14px] bg-layer-1 border border-line-subtle flex items-center justify-center mb-4">
+        <div className="w-12 h-12 rounded-md bg-layer-1 border border-line-subtle flex items-center justify-center mb-4">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
             <rect x="2" y="6" width="20" height="14" rx="2" /><path d="M22 10H18a2 2 0 0 0 0 4h4" /><path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" />
           </svg>
@@ -62,7 +62,7 @@ export function WalletList() {
           return (
             <div
               key={wallet.id}
-              className="w-full text-left p-4 rounded-[14px] bg-surface border border-line-subtle
+              className="w-full text-left p-4 rounded-md bg-surface border border-line-subtle
                 hover:border-line-default hover:bg-layer-1 transition-all group"
               style={{
                 fontFamily: 'inherit',
@@ -82,7 +82,7 @@ export function WalletList() {
                 </span>
                 <button
                   onClick={(e) => handleDelete(e, wallet.id)}
-                  className={`text-[10px] font-600 px-1.5 py-0.5 rounded-[6px] transition-colors cursor-pointer ${
+                  className={`text-[10px] font-600 px-1.5 py-0.5 rounded-xs transition-colors cursor-pointer ${
                     deletingId === wallet.id
                       ? 'text-red-400 bg-red-400/10'
                       : 'text-text-3/40 hover:text-red-400'
@@ -117,11 +117,11 @@ export function WalletList() {
 
               {/* Badges row */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-600 px-1.5 py-0.5 rounded-[6px] bg-blue-500/10 text-blue-400">
+                <span className="text-[10px] font-600 px-1.5 py-0.5 rounded-xs bg-blue-500/10 text-blue-400">
                   Base L2
                 </span>
                 {wallet.requireApproval && (
-                  <span className="text-[10px] font-600 px-1.5 py-0.5 rounded-[6px] bg-amber-500/10 text-amber-400">
+                  <span className="text-[10px] font-600 px-1.5 py-0.5 rounded-xs bg-amber-500/10 text-amber-400">
                     Approval Required
                   </span>
                 )}

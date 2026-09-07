@@ -330,7 +330,7 @@ export default function SettingsRoute() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search settings or jump to a section..."
-                className="w-full pl-8 pr-2 py-1.5 text-[12px] bg-layer-2 rounded-[8px] border border-line-subtle text-text placeholder:text-text-3/40 outline-none focus:border-line-default transition-colors"
+                className="w-full pl-8 pr-2 py-1.5 text-[12px] bg-layer-2 rounded-sm border border-line-subtle text-text placeholder:text-text-3/40 outline-none focus:border-line-default transition-colors"
                 style={{ fontFamily: 'inherit' }}
               />
             </div>
@@ -341,7 +341,7 @@ export default function SettingsRoute() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all border-none text-left
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all border-none text-left
                   ${dimmed ? 'opacity-30' : ''}
                   ${activeTab === tab.id
                     ? 'bg-accent-soft text-accent-bright'
@@ -371,7 +371,7 @@ export default function SettingsRoute() {
             </div>
 
             {searchQuery && (
-              <div className="mb-8 rounded-[16px] border border-line-subtle bg-layer-1 p-4">
+              <div className="mb-8 rounded-lg border border-line-subtle bg-layer-1 p-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <p className="text-[12px] font-600 text-text-2">
@@ -384,7 +384,7 @@ export default function SettingsRoute() {
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="px-2.5 py-1.5 rounded-[8px] bg-layer-2 text-[11px] text-text-3 hover:text-text hover:bg-layer-3 transition-colors border-none cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-sm bg-layer-2 text-[11px] text-text-3 hover:text-text hover:bg-layer-3 transition-colors border-none cursor-pointer"
                       style={{ fontFamily: 'inherit' }}
                     >
                       Clear
@@ -397,7 +397,7 @@ export default function SettingsRoute() {
                       <button
                         key={section.id}
                         onClick={() => focusSection(section.id, section.tabId)}
-                        className="px-3 py-2 rounded-[10px] border border-line-subtle bg-transparent text-left hover:bg-layer-2 transition-colors cursor-pointer"
+                        className="px-3 py-2 rounded-sm border border-line-subtle bg-transparent text-left hover:bg-layer-2 transition-colors cursor-pointer"
                         style={{ fontFamily: 'inherit' }}
                       >
                         <div className="text-[12px] font-600 text-text">{section.title}</div>

@@ -58,7 +58,7 @@ export default function WalletsPage() {
               }
             }}
             disabled={generating}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer disabled:opacity-50"
             style={{ fontFamily: 'inherit' }}
           >
             {generating ? (
@@ -77,7 +77,7 @@ export default function WalletsPage() {
           {showPicker && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} />
-              <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-[12px] bg-surface border border-line-default shadow-xl overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-md bg-surface border border-line-default shadow-xl overflow-hidden">
                 <div className="px-3 py-2 border-b border-line-subtle">
                   <span className="text-[11px] font-600 text-text-3">Select Agent</span>
                 </div>
@@ -101,7 +101,7 @@ export default function WalletsPage() {
       </div>
 
       {error && (
-        <div className="mx-6 mb-2 px-3 py-2 rounded-[10px] bg-red-500/10 border border-red-500/20 text-[12px] text-red-400 font-600">
+        <div className="mx-6 mb-2 px-3 py-2 rounded-sm bg-red-500/10 border border-red-500/20 text-[12px] text-red-400 font-600">
           {error}
         </div>
       )}

@@ -103,7 +103,7 @@ export function UpdateBanner() {
           </span>
           <button
             onClick={handleUpdate}
-            className="text-[10px] font-600 text-accent-bright hover:text-white bg-accent-bright/20 hover:bg-accent-bright/30 px-2 py-0.5 rounded-[6px] border-none cursor-pointer transition-all shrink-0"
+            className="text-[10px] font-600 text-accent-bright hover:text-white bg-accent-bright/20 hover:bg-accent-bright/30 px-2 py-0.5 rounded-xs border-none cursor-pointer transition-all shrink-0"
             style={{ fontFamily: 'inherit' }}
           >
             Update
@@ -147,7 +147,7 @@ export function UpdateBanner() {
           <span className="text-red-400/80 flex-1 truncate">{errorMsg}</span>
           <button
             onClick={() => setUpdateState('idle')}
-            className="text-[10px] font-600 text-text-3 hover:text-text bg-layer-2 px-2 py-0.5 rounded-[6px] border-none cursor-pointer transition-all shrink-0"
+            className="text-[10px] font-600 text-text-3 hover:text-text bg-layer-2 px-2 py-0.5 rounded-xs border-none cursor-pointer transition-all shrink-0"
             style={{ fontFamily: 'inherit' }}
           >
             Retry

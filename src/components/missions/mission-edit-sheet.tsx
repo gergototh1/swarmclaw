@@ -138,7 +138,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-[12px] border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-[14px] font-600 text-text mb-1">Edit mission</div>
@@ -182,7 +182,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
             />
           </label>
 
-          <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2.5">
+          <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
             <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-2">
               Budget <HintTip text="Leave any field blank to remove that cap." />
             </div>
@@ -240,7 +240,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
             </div>
           </div>
 
-          <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2.5">
+          <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
             <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-2">Periodic reports</div>
             <label className="flex items-center gap-2 flex-wrap mb-2">
               <input

@@ -63,7 +63,7 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
 
   if (loading) {
     return (
-      <div className="p-4 rounded-[14px] border border-line-subtle bg-layer-1">
+      <div className="p-4 rounded-md border border-line-subtle bg-layer-1">
         <div className="text-[13px] text-text-3 animate-pulse">Loading health data...</div>
       </div>
     )
@@ -71,7 +71,7 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
 
   if (!data || data.events.length === 0) {
     return (
-      <div className="p-4 rounded-[14px] border border-line-subtle bg-layer-1">
+      <div className="p-4 rounded-md border border-line-subtle bg-layer-1">
         <div className="text-[13px] text-text-3">No health events recorded yet.</div>
       </div>
     )
@@ -81,11 +81,11 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
   const recentEvents = [...data.events].reverse().slice(0, 50)
 
   return (
-    <div className="p-4 rounded-[14px] border border-line-subtle bg-layer-1 space-y-4">
+    <div className="p-4 rounded-md border border-line-subtle bg-layer-1 space-y-4">
       {/* Uptime badge */}
       <div className="flex items-center justify-between">
         <div className="text-[13px] font-600 text-text-2">Health Timeline</div>
-        <span className={`px-3 py-1 rounded-[8px] text-[12px] font-600 border ${uptimeBadgeColor(data.uptimePercent)}`}>
+        <span className={`px-3 py-1 rounded-sm text-[12px] font-600 border ${uptimeBadgeColor(data.uptimePercent)}`}>
           {data.uptimePercent}% uptime
         </span>
       </div>

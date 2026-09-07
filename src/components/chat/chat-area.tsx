@@ -645,21 +645,21 @@ export function ChatArea() {
             <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
               <div className="h-3 w-24 rounded bg-layer-2 animate-pulse" />
-              <div className="h-16 rounded-[12px] bg-layer-2 animate-pulse" />
+              <div className="h-16 rounded-md bg-layer-2 animate-pulse" />
             </div>
           </div>
           <div className="flex gap-3 max-w-[60%] self-end flex-row-reverse">
             <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
               <div className="h-3 w-16 rounded bg-layer-2 animate-pulse ml-auto" />
-              <div className="h-10 rounded-[12px] bg-layer-2 animate-pulse" />
+              <div className="h-10 rounded-md bg-layer-2 animate-pulse" />
             </div>
           </div>
           <div className="flex gap-3 max-w-[65%]">
             <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
               <div className="h-3 w-20 rounded bg-layer-2 animate-pulse" />
-              <div className="h-24 rounded-[12px] bg-layer-2 animate-pulse" />
+              <div className="h-24 rounded-md bg-layer-2 animate-pulse" />
             </div>
           </div>
         </div>
@@ -707,7 +707,7 @@ export function ChatArea() {
               <button
                 key={prompt.text}
                 onClick={() => handlePrompt(prompt.text)}
-                className={`suggestion-card p-4 rounded-[14px] border border-line-subtle bg-gradient-to-br ${prompt.gradient}
+                className={`suggestion-card p-4 rounded-md border border-line-subtle bg-gradient-to-br ${prompt.gradient}
                   text-left cursor-pointer flex flex-col gap-3 min-h-[110px] active:scale-[0.97]`}
                 style={{ fontFamily: 'inherit', animation: `fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.07 + 0.15}s both` }}
               >
@@ -795,7 +795,7 @@ export function ChatArea() {
 
       {isDragging && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none">
-          <div className="px-8 py-6 rounded-[20px] border-2 border-dashed border-accent-bright/50 bg-surface/80 text-center">
+          <div className="px-8 py-6 rounded-lg border-2 border-dashed border-accent-bright/50 bg-surface/80 text-center">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-accent-bright mx-auto mb-3">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />

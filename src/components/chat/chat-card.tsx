@@ -115,7 +115,7 @@ export function ChatCard({ session, active, onClick }: Props) {
         data-testid="chat-row"
         data-session-id={session.id}
         data-agent-id={session.agentId || undefined}
-        className={`group/card relative py-3.5 px-4 cursor-pointer rounded-[14px]
+        className={`group/card relative py-3.5 px-4 cursor-pointer rounded-md
           transition-all duration-200 active:scale-[0.98]
           ${active
             ? 'bg-accent-soft border border-accent-bright/10'
@@ -138,18 +138,18 @@ export function ChatCard({ session, active, onClick }: Props) {
             platform={connector.platform}
             size={16}
             iconSize={9}
-            roundedClassName="rounded-[5px]"
+            roundedClassName="rounded-xs"
             title={`${connector.name} (${connector.platform})`}
           />
         )}
         <span className="font-display text-[14px] font-600 truncate flex-1 tracking-[-0.01em]">{displayName}</span>
         {active && (
-          <span className="shrink-0 text-[9px] font-700 uppercase tracking-[0.08em] text-accent-bright bg-accent-bright/15 px-1.5 py-0.5 rounded-[6px]">
+          <span className="shrink-0 text-[9px] font-700 uppercase tracking-[0.08em] text-accent-bright bg-accent-bright/15 px-1.5 py-0.5 rounded-xs">
             Selected
           </span>
         )}
         {providerLabel && (
-          <span className="shrink-0 text-[10px] font-600 uppercase tracking-wider text-text-3/70 bg-layer-1 px-2 py-0.5 rounded-[6px]">
+          <span className="shrink-0 text-[10px] font-600 uppercase tracking-wider text-text-3/70 bg-layer-1 px-2 py-0.5 rounded-xs">
             {providerLabel}
           </span>
         )}

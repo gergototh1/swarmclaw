@@ -62,7 +62,7 @@ export function ChatPreviewPanel({ content, onClose }: Props) {
         </span>
         <button
           onClick={onClose}
-          className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors"
+          className="p-1 rounded-xs text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors"
           aria-label="Close preview"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -95,7 +95,7 @@ export function ChatPreviewPanel({ content, onClose }: Props) {
             <img
               src={content.url}
               alt={content.title || 'Preview'}
-              className="max-w-full max-h-full rounded-[8px] object-contain"
+              className="max-w-full max-h-full rounded-sm object-contain"
             />
           </div>
         )}

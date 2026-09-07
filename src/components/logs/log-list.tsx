@@ -150,7 +150,7 @@ export function LogList() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search logs..."
-          className="w-full px-3 py-2 rounded-[8px] bg-layer-2 border border-line-subtle text-[12px] text-text placeholder:text-text-3/50 outline-none focus:border-accent/30"
+          className="w-full px-3 py-2 rounded-sm bg-layer-2 border border-line-subtle text-[12px] text-text placeholder:text-text-3/50 outline-none focus:border-accent/30"
         />
         {/* Saved filters */}
         {savedFilters.length > 0 && (
@@ -159,7 +159,7 @@ export function LogList() {
               <button
                 key={i}
                 onClick={() => { setLevelFilter(f.levels); setSearch(f.search) }}
-                className="group flex items-center gap-1 px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none bg-accent-soft text-accent-bright hover:bg-accent-bright/15"
+                className="group flex items-center gap-1 px-2 py-1 rounded-xs text-[10px] font-600 cursor-pointer transition-all border-none bg-accent-soft text-accent-bright hover:bg-accent-bright/15"
               >
                 {f.name}
                 <span
@@ -183,7 +183,7 @@ export function LogList() {
             <button
               key={level}
               onClick={() => toggleLevel(level)}
-              className={`px-2 py-1 rounded-[6px] text-[10px] font-700 uppercase tracking-wider cursor-pointer transition-all border-none ${
+              className={`px-2 py-1 rounded-xs text-[10px] font-700 uppercase tracking-wider cursor-pointer transition-all border-none ${
                 levelFilter.length === 0 || levelFilter.includes(level)
                   ? `${LEVEL_BG[level]} ${LEVEL_COLORS[level]}`
                   : 'bg-layer-1 text-text-3/70'
@@ -195,7 +195,7 @@ export function LogList() {
           <div className="flex-1" />
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none ${
+            className={`px-2 py-1 rounded-xs text-[10px] font-600 cursor-pointer transition-all border-none ${
               autoRefresh ? 'bg-green-500/10 text-green-400' : 'bg-layer-2 text-text-3'
             }`}
             title={autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
@@ -204,7 +204,7 @@ export function LogList() {
           </button>
           <button
             onClick={clearLogs}
-            className="px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none bg-layer-2 text-text-3 hover:text-red-400 hover:bg-red-500/10"
+            className="px-2 py-1 rounded-xs text-[10px] font-600 cursor-pointer transition-all border-none bg-layer-2 text-text-3 hover:text-red-400 hover:bg-red-500/10"
             title="Clear all logs"
           >
             CLEAR
@@ -219,7 +219,7 @@ export function LogList() {
               a.click()
               URL.revokeObjectURL(url)
             }}
-            className="px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none bg-layer-2 text-text-3 hover:text-accent-bright hover:bg-accent-soft"
+            className="px-2 py-1 rounded-xs text-[10px] font-600 cursor-pointer transition-all border-none bg-layer-2 text-text-3 hover:text-accent-bright hover:bg-accent-soft"
             title="Export logs as JSON"
           >
             EXPORT
@@ -234,7 +234,7 @@ export function LogList() {
               safeStorageSet('sc_log_filters', JSON.stringify(existing))
               setSavedFilters(existing)
             }}
-            className="px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none bg-layer-2 text-text-3 hover:text-accent-bright hover:bg-accent-soft"
+            className="px-2 py-1 rounded-xs text-[10px] font-600 cursor-pointer transition-all border-none bg-layer-2 text-text-3 hover:text-accent-bright hover:bg-accent-soft"
             title="Save current filter"
           >
             SAVE
@@ -258,7 +258,7 @@ export function LogList() {
             <button
               key={i}
               onClick={() => { setSelected(entry); setTaskAgentId('') }}
-              className={`w-full text-left px-2 py-1.5 rounded-[6px] hover:bg-layer-1 transition-colors cursor-pointer bg-transparent border-none block
+              className={`w-full text-left px-2 py-1.5 rounded-xs hover:bg-layer-1 transition-colors cursor-pointer bg-transparent border-none block
                 ${entry.level === 'ERROR' ? 'hover:bg-red-500/[0.04]' : ''}`}
             >
               <div className="flex items-start gap-2">
@@ -290,7 +290,7 @@ export function LogList() {
           <>
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-3">
-                <span className={`text-[11px] font-700 uppercase tracking-wider px-2.5 py-1 rounded-[6px] ${LEVEL_BG[selected.level]} ${LEVEL_COLORS[selected.level]}`}>
+                <span className={`text-[11px] font-700 uppercase tracking-wider px-2.5 py-1 rounded-xs ${LEVEL_BG[selected.level]} ${LEVEL_COLORS[selected.level]}`}>
                   {selected.level}
                 </span>
                 <span className="text-[12px] font-600 text-accent/80 font-mono">{selected.tag}</span>
@@ -305,7 +305,7 @@ export function LogList() {
             {selected.data && (
               <div className="mb-8">
                 <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Details</label>
-                <pre className="text-[11px] text-text-3/80 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-[12px] p-4 max-h-[300px] overflow-auto border border-line-subtle">
+                <pre className="text-[11px] text-text-3/80 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-md p-4 max-h-[300px] overflow-auto border border-line-subtle">
                   {selected.data}
                 </pre>
               </div>
@@ -323,7 +323,7 @@ export function LogList() {
                 <select
                   value={taskAgentId}
                   onChange={(e) => setTaskAgentId(e.target.value)}
-                  className="flex-1 px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none appearance-none cursor-pointer"
+                  className="flex-1 px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none appearance-none cursor-pointer"
                   style={{ fontFamily: 'inherit' }}
                 >
                   <option value="">Unassigned</option>
@@ -334,7 +334,7 @@ export function LogList() {
                 <button
                   onClick={handleCreateTask}
                   disabled={creatingTask}
-                  className="px-5 py-3 rounded-[14px] border-none bg-accent-bright text-white text-[14px] font-600
+                  className="px-5 py-3 rounded-md border-none bg-accent-bright text-white text-[14px] font-600
                     cursor-pointer active:scale-[0.97] disabled:opacity-40 transition-all
                     shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110 shrink-0"
                   style={{ fontFamily: 'inherit' }}

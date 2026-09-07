@@ -11,7 +11,7 @@ export function MemorySection({ appSettings, patchSettings, inputClass }: Settin
       <p className="text-[12px] text-text-3 mb-5">
         Guardrails for memory graph traversal and lookup fan-out. These limits are enforced server-side.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">

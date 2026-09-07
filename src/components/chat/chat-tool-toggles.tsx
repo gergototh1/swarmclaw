@@ -116,7 +116,7 @@ export function ChatToolToggles({ session }: Props) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] transition-colors cursor-pointer border-none
+        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm transition-colors cursor-pointer border-none
           ${open ? 'bg-accent-soft text-accent-bright' : 'bg-layer-2 text-text-3 hover:bg-layer-3'}`}
       >
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -128,7 +128,7 @@ export function ChatToolToggles({ session }: Props) {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1.5 w-[260px] max-h-[420px] overflow-y-auto rounded-[12px] border border-line-default shadow-xl z-[120] overflow-hidden"
+        <div className="absolute top-full left-0 mt-1.5 w-[260px] max-h-[420px] overflow-y-auto rounded-md border border-line-default shadow-xl z-[120] overflow-hidden"
           style={{ animation: 'fade-in 0.15s ease', backgroundColor: '#171a2b' }}>
          <TooltipProvider delayDuration={300}>
           {groups.map((group, gi) => {

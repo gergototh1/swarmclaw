@@ -86,7 +86,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search memories..."
-          className="w-full px-3 py-2 rounded-[10px] border border-line-subtle bg-surface text-text
+          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-surface text-text
             text-[12px] outline-none transition-all duration-200 placeholder:text-text-3/70 focus-glow"
           style={{ fontFamily: 'inherit' }}
         />
@@ -98,7 +98,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
           <div className="flex gap-1 flex-wrap">
             <button
               onClick={() => setMemoryAgentFilter(null)}
-              className={`px-2.5 py-1 rounded-[7px] text-[10px] font-600 cursor-pointer transition-all
+              className={`px-2.5 py-1 rounded-xs text-[10px] font-600 cursor-pointer transition-all
                 ${!memoryAgentFilter ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -111,7 +111,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
                 <button
                   key={agentId}
                   onClick={() => setMemoryAgentFilter(id)}
-                  className={`px-2.5 py-1 rounded-[7px] text-[10px] font-600 cursor-pointer transition-all truncate max-w-[120px]
+                  className={`px-2.5 py-1 rounded-xs text-[10px] font-600 cursor-pointer transition-all truncate max-w-[120px]
                     ${memoryAgentFilter === id ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`}
                   style={{ fontFamily: 'inherit' }}
                 >
@@ -129,7 +129,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
           <div className="flex gap-1 flex-wrap">
             <button
               onClick={() => setCategoryFilter('')}
-              className={`px-2 py-0.5 rounded-[6px] text-[9px] font-600 cursor-pointer transition-all uppercase tracking-wider
+              className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all uppercase tracking-wider
                 ${!categoryFilter ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'}`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -139,7 +139,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
               <button
                 key={c}
                 onClick={() => setCategoryFilter(categoryFilter === c ? '' : c)}
-                className={`px-2 py-0.5 rounded-[6px] text-[9px] font-600 cursor-pointer transition-all uppercase tracking-wider
+                className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all uppercase tracking-wider
                   ${categoryFilter === c ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'}`}
                 style={{ fontFamily: 'inherit' }}
               >
@@ -179,7 +179,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
           <p className="text-[12px] text-text-3/60">{error}</p>
           <button
             onClick={() => { void load(search) }}
-            className="px-3 py-1.5 rounded-[8px] bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer border-none"
+            className="px-3 py-1.5 rounded-sm bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer border-none"
             style={{ fontFamily: 'inherit' }}
           >
             Retry
@@ -187,7 +187,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
         </div>
       ) : loaded ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-text-3 p-8 text-center">
-          <div className="w-12 h-12 rounded-[14px] bg-accent-soft flex items-center justify-center mb-1">
+          <div className="w-12 h-12 rounded-md bg-accent-soft flex items-center justify-center mb-1">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-accent-bright">
               <ellipse cx="12" cy="5" rx="9" ry="3" />
               <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />

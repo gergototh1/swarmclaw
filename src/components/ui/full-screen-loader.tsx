@@ -115,14 +115,14 @@ export function FullScreenLoader(props: {
             <button
               type="button"
               onClick={props.onReload}
-              className="px-4 py-2 rounded-[12px] border border-line-default bg-surface text-[12px] text-text-2 transition-colors hover:bg-surface-2"
+              className="px-4 py-2 rounded-md border border-line-default bg-surface text-[12px] text-text-2 transition-colors hover:bg-surface-2"
             >
               Reload
             </button>
             <button
               type="button"
               onClick={props.onReset}
-              className="px-4 py-2 rounded-[12px] border border-line-default bg-transparent text-[12px] text-text-3 transition-colors hover:bg-layer-2"
+              className="px-4 py-2 rounded-md border border-line-default bg-transparent text-[12px] text-text-3 transition-colors hover:bg-layer-2"
             >
               Reset Local Session
             </button>

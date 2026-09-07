@@ -102,7 +102,7 @@ export function AttachmentChip({
         <img
           src={url} alt="Attached"
           loading="lazy"
-          className="max-w-[240px] rounded-[12px] mb-2 border border-white/10 cursor-pointer hover:border-white/25 transition-colors"
+          className="max-w-[240px] rounded-md mb-2 border border-white/10 cursor-pointer hover:border-white/25 transition-colors"
           onClick={() => {
             if (onOpenImage) {
               onOpenImage({ url, filename })
@@ -117,7 +117,7 @@ export function AttachmentChip({
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer"
             onClick={() => setLightbox(false)}
           >
-            <img src={url} alt="Preview" className="max-w-[90vw] max-h-[90vh] rounded-[12px] shadow-2xl" />
+            <img src={url} alt="Preview" className="max-w-[90vw] max-h-[90vh] rounded-md shadow-2xl" />
           </div>
         )}
       </>
@@ -126,9 +126,9 @@ export function AttachmentChip({
 
   if (isPdf) {
     return (
-      <div className="mb-2 rounded-[12px] border border-line-default bg-[rgba(255,255,255,0.02)] overflow-hidden" style={{ maxWidth: 480 }}>
+      <div className="mb-2 rounded-md border border-line-default bg-[rgba(255,255,255,0.02)] overflow-hidden" style={{ maxWidth: 480 }}>
         <div className="flex items-center gap-3 px-4 py-2.5">
-          <div className="flex items-center justify-center w-8 h-8 rounded-[8px] shrink-0 bg-red-500/10 text-red-400">
+          <div className="flex items-center justify-center w-8 h-8 rounded-sm shrink-0 bg-red-500/10 text-red-400">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -170,8 +170,8 @@ export function AttachmentChip({
 
   return (
     <div className="mb-2">
-      <div className={`flex items-center gap-3 px-4 py-2.5 rounded-[12px] border ${chipBg}`}>
-        <div className={`flex items-center justify-center w-8 h-8 rounded-[8px] shrink-0 ${iconBg} ${colorClass}`}>
+      <div className={`flex items-center gap-3 px-4 py-2.5 rounded-md border ${chipBg}`}>
+        <div className={`flex items-center justify-center w-8 h-8 rounded-sm shrink-0 ${iconBg} ${colorClass}`}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
@@ -184,7 +184,7 @@ export function AttachmentChip({
         {isCode && (
           <button
             onClick={handleCodePreview}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-[11px] font-600 no-underline transition-colors shrink-0 border-none cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-600 no-underline transition-colors shrink-0 border-none cursor-pointer ${
               isUserMsg ? 'bg-layer-3 hover:bg-layer-4 text-white' : 'bg-accent-soft hover:bg-accent-soft/80 text-accent-bright'
             }`}
           >
@@ -197,7 +197,7 @@ export function AttachmentChip({
         )}
         {isPreviewable && (
           <a href={url} target="_blank" rel="noopener noreferrer"
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-[11px] font-600 no-underline transition-colors shrink-0 ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-600 no-underline transition-colors shrink-0 ${
               isUserMsg ? 'bg-layer-3 hover:bg-layer-4 text-white' : 'bg-accent-soft hover:bg-accent-soft/80 text-accent-bright'
             }`}
             title="Preview in new tab">
@@ -209,7 +209,7 @@ export function AttachmentChip({
           </a>
         )}
         <a href={url} download={filename}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-[11px] font-600 no-underline transition-colors shrink-0 ${btnBg}`}>
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-600 no-underline transition-colors shrink-0 ${btnBg}`}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
@@ -219,7 +219,7 @@ export function AttachmentChip({
         </a>
       </div>
       {isCode && codeExpanded && codePreview !== null && (
-        <div className="mt-1 rounded-[10px] border border-line-subtle overflow-hidden" style={{ animation: 'fade-in 0.2s ease' }}>
+        <div className="mt-1 rounded-sm border border-line-subtle overflow-hidden" style={{ animation: 'fade-in 0.2s ease' }}>
           <CodeBlock className={`language-${ext}`}>
             {codePreview.split('\n').slice(0, codeExpanded ? undefined : 10).join('\n')}
           </CodeBlock>

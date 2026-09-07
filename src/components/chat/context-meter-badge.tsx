@@ -132,7 +132,7 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className={`inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1 text-[10px] font-600 transition-colors shrink-0 cursor-pointer ${colors.bg} ${colors.border} ${colors.text} hover:border-line-strong hover:text-text-2`}
+        className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[10px] font-600 transition-colors shrink-0 cursor-pointer ${colors.bg} ${colors.border} ${colors.text} hover:border-line-strong hover:text-text-2`}
         title={`${status.effectiveTokens.toLocaleString()} of ${status.contextWindow.toLocaleString()} tokens used`}
         aria-expanded={open}
         aria-label={`Context usage ${percent}%. Click for details.`}
@@ -146,7 +146,7 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
       {open && (
         <div
           ref={panelRef}
-          className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-[14px] border border-line-default bg-raised/95 p-3 shadow-[0_16px_64px_rgba(0,0,0,0.6)] backdrop-blur-xl"
+          className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-md border border-line-default bg-raised/95 p-3 shadow-[0_16px_64px_rgba(0,0,0,0.6)] backdrop-blur-xl"
           style={{ animation: 'fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)' }}
         >
           <div className="flex items-baseline justify-between">
@@ -184,7 +184,7 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
               type="button"
               onClick={handleCompact}
               disabled={compacting || status.messageCount < 3}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-accent-bright/25 bg-accent-soft/40 px-2.5 py-1.5 text-[11px] font-600 text-accent-bright transition-colors hover:border-accent-bright/40 hover:bg-accent-soft/60 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-sm border border-accent-bright/25 bg-accent-soft/40 px-2.5 py-1.5 text-[11px] font-600 text-accent-bright transition-colors hover:border-accent-bright/40 hover:bg-accent-soft/60 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {compacting ? (
                 <>
@@ -206,7 +206,7 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
             <button
               type="button"
               onClick={handleClearClick}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-line-default bg-layer-1 px-2.5 py-1.5 text-[11px] font-600 text-text-2 transition-colors hover:border-red-500/25 hover:bg-red-500/10 hover:text-red-300"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-sm border border-line-default bg-layer-1 px-2.5 py-1.5 text-[11px] font-600 text-text-2 transition-colors hover:border-red-500/25 hover:bg-red-500/10 hover:text-red-300"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 6h18" />

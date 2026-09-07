@@ -29,7 +29,7 @@ function kpiTone(value: number, danger = false): string {
 
 function Kpi({ label, value, danger = false }: { label: string; value: number; danger?: boolean }) {
   return (
-    <div className="min-w-[110px] rounded-[12px] border border-line-subtle bg-layer-1 px-3 py-2">
+    <div className="min-w-[110px] rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
       <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3/55">{label}</div>
       <div className={cn('mt-1 font-display text-[22px] font-700 tracking-normal', kpiTone(value, danger))}>{value}</div>
     </div>
@@ -88,7 +88,7 @@ export function OperationsPulsePanel({
   }, [pulse])
 
   return (
-    <section className={cn('rounded-[16px] border border-line-subtle bg-layer-1 p-4', className)}>
+    <section className={cn('rounded-lg border border-line-subtle bg-layer-1 p-4', className)}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-[10px] font-700 uppercase tracking-[0.16em] text-accent-bright/70">Operations Pulse</div>
@@ -104,7 +104,7 @@ export function OperationsPulsePanel({
               type="button"
               onClick={() => setRange(item)}
               className={cn(
-                'rounded-[9px] px-2.5 py-1.5 text-[11px] font-700 transition-colors',
+                'rounded-sm px-2.5 py-1.5 text-[11px] font-700 transition-colors',
                 range === item ? 'bg-accent-soft text-accent-bright' : 'bg-layer-2 text-text-3 hover:bg-layer-3 hover:text-text-2',
               )}
             >
@@ -114,7 +114,7 @@ export function OperationsPulsePanel({
           <button
             type="button"
             onClick={() => void loadPulse(range, true)}
-            className="inline-flex items-center gap-1.5 rounded-[9px] border border-line-default bg-layer-2 px-2.5 py-1.5 text-[11px] font-700 text-text-2 hover:bg-layer-3"
+            className="inline-flex items-center gap-1.5 rounded-sm border border-line-default bg-layer-2 px-2.5 py-1.5 text-[11px] font-700 text-text-2 hover:bg-layer-3"
           >
             <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
             Refresh
@@ -123,11 +123,11 @@ export function OperationsPulsePanel({
       </div>
 
       {loading ? (
-        <div className="mt-4 rounded-[12px] border border-line-subtle bg-layer-1 px-3 py-4 text-[12px] text-text-3/60">
+        <div className="mt-4 rounded-md border border-line-subtle bg-layer-1 px-3 py-4 text-[12px] text-text-3/60">
           Loading pulse...
         </div>
       ) : !pulse ? (
-        <div className="mt-4 rounded-[12px] border border-rose-500/20 bg-rose-500/[0.06] px-3 py-3 text-[12px] text-rose-200">
+        <div className="mt-4 rounded-md border border-rose-500/20 bg-rose-500/[0.06] px-3 py-3 text-[12px] text-rose-200">
           Operations pulse is unavailable.
         </div>
       ) : (
@@ -144,7 +144,7 @@ export function OperationsPulsePanel({
 
           <div className="mt-4">
             {stable || actions.length === 0 ? (
-              <div className="rounded-[12px] border border-emerald-500/15 bg-emerald-500/[0.05] px-3 py-3 text-[12px] text-emerald-200">
+              <div className="rounded-md border border-emerald-500/15 bg-emerald-500/[0.05] px-3 py-3 text-[12px] text-emerald-200">
                 No current blockers in the selected window.
               </div>
             ) : (
@@ -154,7 +154,7 @@ export function OperationsPulsePanel({
                     key={action.id}
                     type="button"
                     onClick={() => router.push(action.href)}
-                    className={cn('rounded-[12px] border px-3 py-3 text-left transition-colors hover:bg-layer-2', SEVERITY_CLASS[action.severity])}
+                    className={cn('rounded-md border px-3 py-3 text-left transition-colors hover:bg-layer-2', SEVERITY_CLASS[action.severity])}
                   >
                     <div className="flex items-start gap-2">
                       <span className="mt-0.5 shrink-0">{actionIcon(action)}</span>

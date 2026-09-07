@@ -16,7 +16,7 @@ export function SkillsSection({ appSettings, patchSettings, inputClass }: Settin
       <p className="text-[12px] text-text-3 mb-5">
         Control how runtime skill recommendations are ranked and how many candidates are surfaced per query.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle space-y-5">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle space-y-5">
         <div>
           <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Recommendation Mode</label>
           <div className="grid grid-cols-2 gap-2">
@@ -27,7 +27,7 @@ export function SkillsSection({ appSettings, patchSettings, inputClass }: Settin
               <button
                 key={entry.id}
                 onClick={() => patchSettings({ runtimeSkillRetrievalMode: entry.id })}
-                className={`rounded-[12px] border px-4 py-3 text-left transition-all cursor-pointer ${
+                className={`rounded-md border px-4 py-3 text-left transition-all cursor-pointer ${
                   mode === entry.id
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                     : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'

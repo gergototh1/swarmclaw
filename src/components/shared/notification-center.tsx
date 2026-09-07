@@ -148,7 +148,7 @@ export function NotificationCenter({
   const panelNode = open ? (
     <div
       ref={panelRef}
-      className="fixed w-[340px] max-h-[460px] bg-raised border border-line-subtle rounded-[14px] shadow-[0_16px_64px_rgba(0,0,0,0.6)] backdrop-blur-xl z-[1200] flex flex-col overflow-hidden"
+      className="fixed w-[340px] max-h-[460px] bg-raised border border-line-subtle rounded-md shadow-[0_16px_64px_rgba(0,0,0,0.6)] backdrop-blur-xl z-[1200] flex flex-col overflow-hidden"
       style={{
         ...panelStyle,
         animation: 'fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -244,8 +244,8 @@ export function NotificationCenter({
         onClick={() => setOpen((v) => !v)}
         className={
           isRow
-            ? 'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none'
-            : 'relative flex items-center justify-center w-8 h-8 rounded-[8px] bg-transparent hover:bg-layer-2 transition-colors cursor-pointer border-none'
+            ? 'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none'
+            : 'relative flex items-center justify-center w-8 h-8 rounded-sm bg-transparent hover:bg-layer-2 transition-colors cursor-pointer border-none'
         }
         aria-label="Notifications"
         title={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}

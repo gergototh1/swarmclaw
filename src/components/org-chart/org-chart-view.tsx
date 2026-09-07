@@ -807,7 +807,7 @@ export function OrgChartView() {
 
       {/* Linking mode banner */}
       {linkingState && agents[linkingState.agentId] && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-accent-bright/20 border border-accent-bright/30 rounded-[10px] backdrop-blur-sm text-[12px] text-text flex items-center gap-3">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-accent-bright/20 border border-accent-bright/30 rounded-sm backdrop-blur-sm text-[12px] text-text flex items-center gap-3">
           <span>
             {linkingState.direction === 'child'
               ? <>Click a node to add as child of <strong>{agents[linkingState.agentId].name}</strong></>
@@ -815,7 +815,7 @@ export function OrgChartView() {
           </span>
           <button
             onClick={() => setLinkingState(null)}
-            className="text-[11px] text-text-3 hover:text-text px-2 py-0.5 rounded-[6px] border border-line-default bg-layer-2 cursor-pointer"
+            className="text-[11px] text-text-3 hover:text-text px-2 py-0.5 rounded-xs border border-line-default bg-layer-2 cursor-pointer"
           >
             Cancel
           </button>

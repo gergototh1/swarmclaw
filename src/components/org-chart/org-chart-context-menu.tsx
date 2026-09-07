@@ -51,7 +51,7 @@ export function OrgChartContextMenu({ agent, teamNames, x, y, onClose, onAction 
   return (
     <div
       ref={ref}
-      className="fixed z-[100] min-w-[180px] bg-raised border border-line-default rounded-[10px] shadow-xl shadow-black/40 py-1 text-[12px]"
+      className="fixed z-[100] min-w-[180px] bg-raised border border-line-default rounded-sm shadow-xl shadow-black/40 py-1 text-[12px]"
       style={{ left: x, top: y }}
       onPointerDown={(e) => e.stopPropagation()}
     >
@@ -101,7 +101,7 @@ export function OrgChartContextMenu({ agent, teamNames, x, y, onClose, onAction 
                   onAction({ type: 'set_team_label', label: currentTeam === t ? '' : t })
                   onClose()
                 }}
-                className={`w-full text-left px-2 py-1 rounded-[5px] text-[11px] transition-colors cursor-pointer border-none ${
+                className={`w-full text-left px-2 py-1 rounded-xs text-[11px] transition-colors cursor-pointer border-none ${
                   currentTeam === t
                     ? 'bg-accent-bright/10 text-accent-bright font-500'
                     : 'bg-transparent text-text-2 hover:bg-layer-2'

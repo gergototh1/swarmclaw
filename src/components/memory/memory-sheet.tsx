@@ -89,7 +89,7 @@ export function MemorySheet() {
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setAgentId(null)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+            className={`flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
               ${!agentId
                 ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
                 : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
@@ -106,7 +106,7 @@ export function MemorySheet() {
             <button
               key={agent.id}
               onClick={() => setAgentId(agent.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+              className={`flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                 ${agentId === agent.id
                   ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
                   : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
@@ -142,7 +142,7 @@ export function MemorySheet() {
                   <button
                     key={agent.id}
                     onClick={() => setSharedWith(isShared ? sharedWith.filter((id) => id !== agent.id) : [...sharedWith, agent.id])}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+                    className={`flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                       ${isShared
                         ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
                         : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
@@ -179,7 +179,7 @@ export function MemorySheet() {
                 setCategory(c)
                 setTier(getMemoryTierForCategory(c))
               }}
-              className={`px-3 py-1.5 rounded-[8px] text-[12px] font-600 capitalize cursor-pointer transition-all border-none
+              className={`px-3 py-1.5 rounded-sm text-[12px] font-600 capitalize cursor-pointer transition-all border-none
                 ${category === c
                   ? 'bg-accent-soft text-accent-bright'
                   : 'bg-layer-1 text-text-3 hover:text-text-2 hover:bg-layer-2'}`}

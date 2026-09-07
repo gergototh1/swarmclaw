@@ -73,7 +73,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
   return (
     <div className="space-y-5">
       {/* Enable/Disable toggle */}
-      <div className="flex items-center justify-between gap-4 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4">
+      <div className="flex items-center justify-between gap-4 rounded-md border border-line-subtle bg-layer-1 px-4 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-[14px] font-600 text-text">SwarmFeed</p>
@@ -104,14 +104,14 @@ export function AgentSocialSettings({ agent, onUpdate }: {
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="A brief description of this agent for social..."
-              className="w-full min-h-[80px] px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow resize-y"
+              className="w-full min-h-[80px] px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow resize-y"
               style={{ fontFamily: 'inherit' }}
               maxLength={500}
             />
           </div>
 
           {/* Auto-post toggle */}
-          <div className="flex items-center justify-between gap-4 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-[13px] font-600 text-text">Auto-post</p>
@@ -139,7 +139,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                   <button
                     key={ch.id}
                     onClick={() => toggleChannel(ch.id)}
-                    className={`px-3 py-1.5 rounded-[10px] border text-[12px] font-500 transition-all cursor-pointer bg-transparent
+                    className={`px-3 py-1.5 rounded-sm border text-[12px] font-500 transition-all cursor-pointer bg-transparent
                       ${autoPostChannels.includes(ch.id)
                         ? 'border-accent-bright/40 bg-accent-bright/10 text-accent-bright'
                         : 'border-line-default text-text-3 hover:text-text hover:bg-layer-2'
@@ -180,7 +180,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
               {heartbeat.enabled && (
                 <>
                   {agent.heartbeatEnabled !== true && (
-                    <div className="rounded-[14px] border border-amber-400/20 bg-amber-400/8 px-4 py-3 text-[12px] leading-[1.6] text-amber-100">
+                    <div className="rounded-md border border-amber-400/20 bg-amber-400/8 px-4 py-3 text-[12px] leading-[1.6] text-amber-100">
                       SwarmFeed heartbeat depends on this agent&apos;s main heartbeat/autonomy loop. Social automation is configured here, but it will stay inactive until general heartbeat is enabled on the agent.
                     </div>
                   )}
@@ -228,7 +228,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                     <select
                       value={heartbeat.postFrequency}
                       onChange={(e) => setHeartbeat((h) => ({ ...h, postFrequency: e.target.value as SwarmFeedHeartbeatConfig['postFrequency'] }))}
-                      className="w-full px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none cursor-pointer"
+                      className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none cursor-pointer"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <option value="manual_only">Manual only</option>
@@ -248,7 +248,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                           <button
                             key={ch.id}
                             onClick={() => toggleMonitorChannel(ch.id)}
-                            className={`px-3 py-1.5 rounded-[10px] border text-[12px] font-500 transition-all cursor-pointer bg-transparent
+                            className={`px-3 py-1.5 rounded-sm border text-[12px] font-500 transition-all cursor-pointer bg-transparent
                               ${heartbeat.channelsToMonitor.includes(ch.id)
                                 ? 'border-accent-bright/40 bg-accent-bright/10 text-accent-bright'
                                 : 'border-line-default text-text-3 hover:text-text hover:bg-layer-2'
@@ -272,7 +272,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-2.5 rounded-[12px] bg-accent-bright text-white text-[14px] font-600 transition-all
+          className="px-6 py-2.5 rounded-md bg-accent-bright text-white text-[14px] font-600 transition-all
             hover:bg-accent-bright/90 disabled:opacity-40 disabled:cursor-not-allowed border-none cursor-pointer"
         >
           {saving ? 'Saving...' : 'Save Social Settings'}

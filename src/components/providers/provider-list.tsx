@@ -345,7 +345,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
           <button
             type="button"
             onClick={() => handleEditGateway(null)}
-            className="px-3 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 transition-all cursor-pointer"
           >
             + Gateway
           </button>
@@ -364,7 +364,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 handleEdit(item.id)
               }
             }}
-            className="w-full text-left p-4 rounded-[14px] border transition-all duration-200
+            className="w-full text-left p-4 rounded-md border transition-all duration-200
               cursor-pointer hover:bg-layer-1 bg-surface border-line-subtle hover:border-line-default hover:scale-[1.01]"
             style={{
               animation: 'spring-in 0.5s var(--ease-spring) both',
@@ -374,7 +374,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             <div className="flex items-center justify-between mb-1.5">
               <span className="font-display text-[14px] font-600 text-text truncate">{item.name}</span>
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-[10px] font-600 px-2 py-0.5 rounded-[5px] uppercase tracking-wider
+                <span className={`text-[10px] font-600 px-2 py-0.5 rounded-xs uppercase tracking-wider
                   ${item.type === 'builtin' ? 'bg-layer-2 text-text-3' : 'bg-accent-bright/10 text-[#6366F1]'}`}>
                   {item.type === 'builtin' ? 'Built-in' : 'Custom'}
                 </span>
@@ -438,7 +438,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     handleEdit(item.id)
                   }
                 }}
-                className="w-full text-left p-4 rounded-[14px] border transition-all duration-200
+                className="w-full text-left p-4 rounded-md border transition-all duration-200
                   cursor-pointer bg-surface/60 border-line-subtle hover:bg-layer-1 hover:border-line-default"
                 style={{
                   animation: 'spring-in 0.5s var(--ease-spring) both',
@@ -448,7 +448,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="font-display text-[14px] font-600 text-text truncate">{item.name}</span>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-[10px] font-600 px-2 py-0.5 rounded-[5px] uppercase tracking-wider
+                    <span className={`text-[10px] font-600 px-2 py-0.5 rounded-xs uppercase tracking-wider
                       ${item.type === 'builtin' ? 'bg-layer-2 text-text-3' : 'bg-accent-bright/10 text-[#6366F1]'}`}>
                       {item.type === 'builtin' ? 'Built-in' : 'Custom'}
                     </span>
@@ -490,14 +490,14 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
               type="button"
               onClick={() => void handleRefreshFleetTopology()}
               disabled={gatewayFleetTopologyQuery.isFetching}
-              className="px-3 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 transition-all cursor-pointer disabled:opacity-40"
+              className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 transition-all cursor-pointer disabled:opacity-40"
             >
               {gatewayFleetTopologyQuery.isFetching ? 'Refreshing…' : 'Refresh Fleet'}
             </button>
             <button
               type="button"
               onClick={() => handleEditGateway(null)}
-              className="px-3 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 transition-all cursor-pointer"
             >
               + New Gateway
             </button>
@@ -505,7 +505,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
         )}
       </div>
       {!inSidebar && gatewayFleetTopology && (
-        <div className="mb-4 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-3">
+        <div className="mb-4 rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[12px] font-800 text-text">Gateway fleet topology</div>
@@ -537,7 +537,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
         </div>
       )}
       {!inSidebar && (
-        <div className="mb-4 rounded-[16px] border border-line-subtle bg-layer-1 p-4">
+        <div className="mb-4 rounded-lg border border-line-subtle bg-layer-1 p-4">
           <OpenClawDeployPanel
             compact
             title="Deploy OpenClaw Control Planes"
@@ -545,7 +545,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             onApply={handleDeployApply}
           />
           {deployDraft?.endpoint && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-emerald-500/20 bg-emerald-500/[0.05] px-4 py-3">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-emerald-500/20 bg-emerald-500/[0.05] px-4 py-3">
               <div>
                 <div className="text-[13px] font-700 text-emerald-300">Prepared gateway profile</div>
                 <div className="mt-1 text-[12px] text-text-3">
@@ -557,7 +557,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   type="button"
                   onClick={() => void handleSavePreparedGateway()}
                   disabled={savingDeploy}
-                  className="rounded-[10px] bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-white border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
+                  className="rounded-sm bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-white border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
                 >
                   {savingDeploy ? 'Saving…' : 'Save Prepared Gateway'}
                 </button>
@@ -590,7 +590,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 handleEditGateway(gateway.id)
               }
             }}
-            className="w-full text-left p-4 rounded-[14px] border transition-all duration-200
+            className="w-full text-left p-4 rounded-md border transition-all duration-200
               cursor-pointer hover:bg-layer-1 bg-surface border-line-subtle hover:border-line-default hover:scale-[1.01]"
             style={{
               animation: 'spring-in 0.5s var(--ease-spring) both',
@@ -604,9 +604,9 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {gateway.isDefault && (
-                  <span className="text-[10px] font-700 px-2 py-0.5 rounded-[5px] bg-accent-bright/10 text-accent-bright uppercase tracking-wider">Default</span>
+                  <span className="text-[10px] font-700 px-2 py-0.5 rounded-xs bg-accent-bright/10 text-accent-bright uppercase tracking-wider">Default</span>
                 )}
-                <span className={`text-[10px] font-700 px-2 py-0.5 rounded-[5px] border uppercase tracking-wider ${gatewayLifecycleBadgeClass(lifecycleState)}`}>
+                <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs border uppercase tracking-wider ${gatewayLifecycleBadgeClass(lifecycleState)}`}>
                   {gatewayLifecycleLabel(lifecycleState)}
                 </span>
                 <StatusDot
@@ -627,39 +627,39 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             </div>
             {!inSidebar && (
               <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-text-3/65">
-                <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="uppercase tracking-[0.08em] text-text-3/50">Deploy</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.method || 'manual'}
                     {deployment?.provider ? ` · ${deployment.provider}` : ''}
                   </div>
                 </div>
-                <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="uppercase tracking-[0.08em] text-text-3/50">Route hints</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.useCase || 'general'}
                     {deployment?.exposure ? ` · ${deployment.exposure}` : ''}
                   </div>
                 </div>
-                <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="uppercase tracking-[0.08em] text-text-3/50">Nodes / devices</div>
                   <div className="mt-1 text-text-2">
                     {stats?.connectedNodeCount ?? 0}/{stats?.nodeCount ?? 0} nodes · {stats?.pairedDeviceCount ?? 0} devices
                   </div>
                 </div>
-                <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="uppercase tracking-[0.08em] text-text-3/50">Environments</div>
                   <div className="mt-1 text-text-2">
                     {stats?.availableEnvironmentCount ?? 0}/{stats?.environmentCount ?? 0} available
                   </div>
                 </div>
-                <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="uppercase tracking-[0.08em] text-text-3/50">Sessions</div>
                   <div className="mt-1 text-text-2">
                     {stats?.sessionCount ?? 0} sessions · {stats?.presenceCount ?? 0} presence
                   </div>
                 </div>
-                <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="uppercase tracking-[0.08em] text-text-3/50">Runtimes</div>
                   <div className="mt-1 text-text-2">
                     {runtimeStats.active}/{runtimeStats.total} active
@@ -690,7 +690,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
               </div>
             )}
             {!inSidebar && (pendingPairings > 0 || topologyErrorCount > 0) && (
-              <div className={`mt-3 rounded-[10px] border px-3 py-2 text-[11px] leading-relaxed ${
+              <div className={`mt-3 rounded-sm border px-3 py-2 text-[11px] leading-relaxed ${
                 topologyErrorCount > 0
                   ? 'border-rose-400/20 bg-rose-400/[0.06] text-rose-200'
                   : 'border-amber-400/20 bg-amber-400/[0.06] text-amber-200'
@@ -711,7 +711,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   <button
                     onClick={(e) => void handleGatewayControl(e, gateway.id, 'activate')}
                     disabled={gatewayControlMutation.isPending}
-                    className="px-2.5 py-1.5 rounded-[8px] border border-emerald-400/20 bg-emerald-400/[0.06] text-[11px] font-700 text-emerald-200 hover:bg-emerald-400/[0.1] cursor-pointer transition-all disabled:opacity-40"
+                    className="px-2.5 py-1.5 rounded-sm border border-emerald-400/20 bg-emerald-400/[0.06] text-[11px] font-700 text-emerald-200 hover:bg-emerald-400/[0.1] cursor-pointer transition-all disabled:opacity-40"
                   >
                     Activate
                   </button>
@@ -720,14 +720,14 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     <button
                       onClick={(e) => void handleGatewayControl(e, gateway.id, 'drain')}
                       disabled={gatewayControlMutation.isPending}
-                      className="px-2.5 py-1.5 rounded-[8px] border border-amber-400/20 bg-amber-400/[0.06] text-[11px] font-700 text-amber-200 hover:bg-amber-400/[0.1] cursor-pointer transition-all disabled:opacity-40"
+                      className="px-2.5 py-1.5 rounded-sm border border-amber-400/20 bg-amber-400/[0.06] text-[11px] font-700 text-amber-200 hover:bg-amber-400/[0.1] cursor-pointer transition-all disabled:opacity-40"
                     >
                       Drain
                     </button>
                     <button
                       onClick={(e) => void handleGatewayControl(e, gateway.id, 'cordon')}
                       disabled={gatewayControlMutation.isPending}
-                      className="px-2.5 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all disabled:opacity-40"
+                      className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all disabled:opacity-40"
                     >
                       Cordon
                     </button>
@@ -736,24 +736,24 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 <button
                   onClick={(e) => void handleGatewayControl(e, gateway.id, 'restart')}
                   disabled={gatewayControlMutation.isPending}
-                  className="px-2.5 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all disabled:opacity-40"
+                  className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all disabled:opacity-40"
                 >
                   Restart
                 </button>
-                <button onClick={(e) => void handleHealthCheckGateway(e, gateway.id)} className="px-2.5 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
+                <button onClick={(e) => void handleHealthCheckGateway(e, gateway.id)} className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
                   Health
                 </button>
                 <button
                   onClick={(e) => void handleRefreshGatewayTopology(e, gateway.id)}
                   disabled={refreshGatewayTopologyMutation.isPending}
-                  className="px-2.5 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all disabled:opacity-40"
+                  className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all disabled:opacity-40"
                 >
                   Topology
                 </button>
-                <button onClick={(e) => void handleCloneGateway(e, gateway)} className="px-2.5 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
+                <button onClick={(e) => void handleCloneGateway(e, gateway)} className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
                   Clone
                 </button>
-                <button onClick={(e) => handleDeleteGateway(e, gateway.id)} className="px-2.5 py-1.5 rounded-[8px] border border-red-400/20 bg-red-400/[0.06] text-[11px] font-700 text-red-300 hover:bg-red-400/[0.1] cursor-pointer transition-all">
+                <button onClick={(e) => handleDeleteGateway(e, gateway.id)} className="px-2.5 py-1.5 rounded-sm border border-red-400/20 bg-red-400/[0.06] text-[11px] font-700 text-red-300 hover:bg-red-400/[0.1] cursor-pointer transition-all">
                   Delete
                 </button>
               </div>
@@ -763,7 +763,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
           })()
         ))}
         {gatewayProfiles.length === 0 && (
-          <div className="p-4 rounded-[14px] border border-dashed border-line-default text-[13px] text-text-3/70">
+          <div className="p-4 rounded-md border border-dashed border-line-default text-[13px] text-text-3/70">
             No gateway profiles yet. Use Smart Deploy above for a local runtime, a Docker VPS bundle, or a hosted OpenClaw deployment profile.
           </div>
         )}
@@ -775,14 +775,14 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">External Agent Runtimes</div>
             <div className="text-[11px] text-text-3/60">Direct registration + heartbeat</div>
           </div>
-          <div className="mb-3 rounded-[12px] border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3/70">
+          <div className="mb-3 rounded-md border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3/70">
             External workers can register themselves at <code className="text-text-2">/api/external-agents/register</code> and then send heartbeats to
             {' '}
             <code className="text-text-2">/api/external-agents/&lt;id&gt;/heartbeat</code>.
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {externalAgents.map((runtime) => (
-              <div key={runtime.id} className="p-4 rounded-[14px] bg-surface border border-line-subtle">
+              <div key={runtime.id} className="p-4 rounded-md bg-surface border border-line-subtle">
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <div className="min-w-0">
                     <div className="font-display text-[14px] font-600 text-text truncate">{runtime.name}</div>
@@ -792,7 +792,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
-                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-[5px] uppercase tracking-wider ${
+                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs uppercase tracking-wider ${
                       runtime.lifecycleState === 'cordoned'
                         ? 'bg-red-400/10 text-red-300'
                         : runtime.lifecycleState === 'draining'
@@ -801,7 +801,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     }`}>
                       {runtime.lifecycleState || 'active'}
                     </span>
-                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-[5px] uppercase tracking-wider ${
+                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs uppercase tracking-wider ${
                       runtime.status === 'online'
                         ? 'bg-emerald-400/10 text-emerald-300'
                         : runtime.status === 'stale'
@@ -813,24 +813,24 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-text-3/65">
-                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="uppercase tracking-[0.08em] text-text-3/50">Provider</div>
                     <div className="mt-1 text-text-2">
                       {runtime.provider || 'No provider'}
                       {runtime.model ? ` · ${runtime.model}` : ''}
                     </div>
                   </div>
-                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="uppercase tracking-[0.08em] text-text-3/50">Gateway</div>
                     <div className="mt-1 text-text-2">
                       {runtime.gatewayProfileId ? (gatewayNameById.get(runtime.gatewayProfileId) || runtime.gatewayProfileId) : 'Standalone'}
                     </div>
                   </div>
-                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="uppercase tracking-[0.08em] text-text-3/50">Template</div>
                     <div className="mt-1 text-text-2">{runtime.gatewayUseCase || 'general'}</div>
                   </div>
-                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="uppercase tracking-[0.08em] text-text-3/50">Last seen</div>
                     <div className="mt-1 text-text-2">{formatRuntimeTimestamp(runtime.lastSeenAt || runtime.lastHeartbeatAt)}</div>
                   </div>
@@ -851,23 +851,23 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'activate')} className="px-2.5 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
+                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'activate')} className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
                     Activate
                   </button>
-                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'drain')} className="px-2.5 py-1.5 rounded-[8px] border border-amber-400/20 bg-amber-400/[0.06] text-[11px] font-700 text-amber-300 hover:bg-amber-400/[0.1] cursor-pointer transition-all">
+                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'drain')} className="px-2.5 py-1.5 rounded-sm border border-amber-400/20 bg-amber-400/[0.06] text-[11px] font-700 text-amber-300 hover:bg-amber-400/[0.1] cursor-pointer transition-all">
                     Drain
                   </button>
-                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'cordon')} className="px-2.5 py-1.5 rounded-[8px] border border-red-400/20 bg-red-400/[0.06] text-[11px] font-700 text-red-300 hover:bg-red-400/[0.1] cursor-pointer transition-all">
+                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'cordon')} className="px-2.5 py-1.5 rounded-sm border border-red-400/20 bg-red-400/[0.06] text-[11px] font-700 text-red-300 hover:bg-red-400/[0.1] cursor-pointer transition-all">
                     Cordon
                   </button>
-                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'restart')} className="px-2.5 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
+                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'restart')} className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
                     Restart
                   </button>
                 </div>
               </div>
             ))}
             {externalAgents.length === 0 && (
-              <div className="p-4 rounded-[14px] border border-dashed border-line-default text-[13px] text-text-3/70">
+              <div className="p-4 rounded-md border border-dashed border-line-default text-[13px] text-text-3/70">
                 No external runtimes have registered yet.
               </div>
             )}

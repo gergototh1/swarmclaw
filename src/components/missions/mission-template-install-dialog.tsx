@@ -159,7 +159,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-xl rounded-[14px] border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-xl rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3 mb-4">
@@ -183,7 +183,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
         </div>
 
         {template.setupNote && (
-          <div className="mb-4 text-[11px] text-amber-200/90 bg-amber-500/10 border border-amber-500/20 rounded-[10px] px-3 py-2 leading-[1.5]">
+          <div className="mb-4 text-[11px] text-amber-200/90 bg-amber-500/10 border border-amber-500/20 rounded-sm px-3 py-2 leading-[1.5]">
             <span className="font-700">Setup: </span>
             {template.setupNote}
           </div>
@@ -224,7 +224,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
                 type="button"
                 onClick={() => void createDriverSession()}
                 disabled={busy}
-                className="mt-2 self-start rounded-[10px] border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[12px] font-700 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40"
+                className="mt-2 self-start rounded-sm border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[12px] font-700 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40"
               >
                 Create mission driver chat
               </button>
@@ -274,7 +274,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
                 </label>
               </div>
 
-              <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2.5">
+              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
                 <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-1.5">Periodic reports</div>
                 <label className="flex items-center gap-2 flex-wrap">
                   <input type="checkbox" checked={reportsEnabled} onChange={(e) => setReportsEnabled(e.target.checked)} />

@@ -25,7 +25,7 @@ export function Dropdown({ open, onClose, children }: Props) {
   return (
     <div
       ref={ref}
-      className="fixed top-12 right-3 bg-raised border border-line-subtle rounded-[14px]
+      className="fixed top-12 right-3 bg-raised border border-line-subtle rounded-md
         p-1.5 z-90 min-w-[200px] shadow-[0_16px_64px_rgba(0,0,0,0.6)]
         backdrop-blur-xl"
       style={{ animation: 'fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)' }}
@@ -40,7 +40,7 @@ export function DropdownItem({ children, danger, onClick }: { children: ReactNod
     <button
       onClick={onClick}
       className={`block w-full px-3.5 py-2.5 border-none bg-transparent text-[13px] font-500
-        text-left cursor-pointer rounded-[10px] transition-all duration-150
+        text-left cursor-pointer rounded-sm transition-all duration-150
         hover:bg-layer-2 active:bg-layer-3
         ${danger ? 'text-danger' : 'text-text-2 hover:text-text'}`}
       style={{ fontFamily: 'inherit' }}

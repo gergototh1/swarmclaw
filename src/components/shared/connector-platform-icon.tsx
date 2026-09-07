@@ -184,7 +184,7 @@ export function ConnectorPlatformBadge({
   size = 36,
   iconSize,
   className,
-  roundedClassName = 'rounded-[10px]',
+  roundedClassName = 'rounded-sm',
   title,
 }: ConnectorPlatformBadgeProps) {
   const meta = resolveConnectorPlatformMeta(platform)

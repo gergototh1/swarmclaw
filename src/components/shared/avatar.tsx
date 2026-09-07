@@ -9,10 +9,10 @@ interface Props {
 }
 
 const sizes = {
-  xs: 'w-6 h-6 text-[9px] rounded-[7px]',
-  sm: 'w-7 h-7 text-[10px] rounded-[8px]',
-  md: 'w-9 h-9 text-[13px] rounded-[10px]',
-  lg: 'w-[72px] h-[72px] text-[24px] rounded-[22px]',
+  xs: 'w-6 h-6 text-[9px] rounded-xs',
+  sm: 'w-7 h-7 text-[10px] rounded-sm',
+  md: 'w-9 h-9 text-[13px] rounded-sm',
+  lg: 'w-[72px] h-[72px] text-[24px] rounded-lg',
 }
 
 /** Generate a consistent gradient from a username */
@@ -58,7 +58,7 @@ export function AiAvatar({ size = 'md', mood }: { size?: 'sm' | 'md'; mood?: AiM
   const iconSize = size === 'sm' ? 12 : 16
   const animCls = mood ? moodAnimClass[mood] : ''
   return (
-    <div className={`${s} rounded-[8px] bg-accent-soft flex items-center justify-center shrink-0 ${animCls}`}>
+    <div className={`${s} rounded-sm bg-accent-soft flex items-center justify-center shrink-0 ${animCls}`}>
       <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" className="text-accent-bright">
         <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"
           fill="currentColor" />

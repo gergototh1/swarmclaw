@@ -106,7 +106,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
             onClick={() => {
               navigateTo('agents', agent.id)
             }}
-            className="flex-1 text-[12px] font-500 text-text-2 hover:text-text py-1 rounded-[6px] bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
+            className="flex-1 text-[12px] font-500 text-text-2 hover:text-text py-1 rounded-xs bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
           >
             Chat
           </button>
@@ -115,7 +115,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
               useAppStore.getState().setEditingAgentId(agent.id)
               useAppStore.getState().setAgentSheetOpen(true)
             }}
-            className="flex-1 text-[12px] font-500 text-text-2 hover:text-text py-1 rounded-[6px] bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
+            className="flex-1 text-[12px] font-500 text-text-2 hover:text-text py-1 rounded-xs bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
           >
             Edit
           </button>

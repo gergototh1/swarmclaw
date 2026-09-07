@@ -189,7 +189,7 @@ function ActionButton(
     <button
       {...rest}
       className={[
-        'px-2.5 py-1.5 rounded-[10px] text-[12px] font-600 cursor-pointer transition-all border',
+        'px-2.5 py-1.5 rounded-sm text-[12px] font-600 cursor-pointer transition-all border',
         tone === 'danger'
           ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
           : 'border-line-default text-text-2 hover:bg-layer-2',
@@ -530,14 +530,14 @@ export function ScheduleConsole() {
             { label: 'Due Soon', value: summary.dueSoon, tone: 'text-accent-bright' },
             { label: 'Archived', value: summary.archived, tone: 'text-text-2' },
           ].map((card) => (
-            <div key={card.label} className="rounded-[18px] border border-line-subtle bg-surface px-4 py-4">
+            <div key={card.label} className="rounded-lg border border-line-subtle bg-surface px-4 py-4">
               <div className="text-[11px] uppercase tracking-[0.08em] text-text-3/60 font-700">{card.label}</div>
               <div className={`mt-2 text-[26px] font-display font-700 ${card.tone}`}>{card.value}</div>
             </div>
           ))}
         </div>
 
-        <div className="rounded-[22px] border border-line-subtle bg-raised/70 overflow-hidden">
+        <div className="rounded-lg border border-line-subtle bg-raised/70 overflow-hidden">
           <div className="px-5 pt-5 pb-4 border-b border-line-subtle">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
@@ -571,7 +571,7 @@ export function ScheduleConsole() {
                   <select
                     value={runStatusFilter}
                     onChange={(e) => setRunStatusFilter(e.target.value as ScheduleRunStatusFilter)}
-                    className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
+                    className="w-full px-3 py-2.5 rounded-md border border-line-subtle bg-surface text-text-2"
                   >
                     <option value="all">All runs</option>
                     <option value="queued">Queued</option>
@@ -584,7 +584,7 @@ export function ScheduleConsole() {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as ScheduleFilterStatus)}
-                    className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
+                    className="w-full px-3 py-2.5 rounded-md border border-line-subtle bg-surface text-text-2"
                   >
                     <option value="all">All statuses</option>
                     {scope === 'archived'
@@ -606,7 +606,7 @@ export function ScheduleConsole() {
                 <select
                   value={cadenceFilter}
                   onChange={(e) => setCadenceFilter(e.target.value as ScheduleCadenceFilter)}
-                  className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
+                  className="w-full px-3 py-2.5 rounded-md border border-line-subtle bg-surface text-text-2"
                 >
                   <option value="all">All cadence</option>
                   <option value="cron">Cron</option>
@@ -620,7 +620,7 @@ export function ScheduleConsole() {
                 <select
                   value={agentFilter}
                   onChange={(e) => setAgentFilter(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
+                  className="w-full px-3 py-2.5 rounded-md border border-line-subtle bg-surface text-text-2"
                 >
                   <option value="all">All agents</option>
                   {Object.values(agents)
@@ -637,7 +637,7 @@ export function ScheduleConsole() {
                   <select
                     value={deliveryFilter}
                     onChange={(e) => setDeliveryFilter(e.target.value as ScheduleDeliveryFilter)}
-                    className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
+                    className="w-full px-3 py-2.5 rounded-md border border-line-subtle bg-surface text-text-2"
                   >
                     <option value="all">Any delivery</option>
                     <option value="ok">Healthy</option>
@@ -653,7 +653,7 @@ export function ScheduleConsole() {
                   <select
                     value="history"
                     disabled
-                    className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-3"
+                    className="w-full px-3 py-2.5 rounded-md border border-line-subtle bg-surface text-text-3"
                   >
                     <option value="history">Newest changes</option>
                   </select>
@@ -661,7 +661,7 @@ export function ScheduleConsole() {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as ScheduleSortBy)}
-                    className="w-full px-3 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-2"
+                    className="w-full px-3 py-2.5 rounded-md border border-line-subtle bg-surface text-text-2"
                   >
                     <option value="nextRunAt">Next run</option>
                     <option value="lastRunAt">Last run</option>
@@ -689,7 +689,7 @@ export function ScheduleConsole() {
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                          <span className={`px-2 py-0.5 rounded-[8px] border text-[10px] font-700 uppercase tracking-[0.08em] ${badgeClass(run.status)}`}>{run.status}</span>
+                          <span className={`px-2 py-0.5 rounded-sm border text-[10px] font-700 uppercase tracking-[0.08em] ${badgeClass(run.status)}`}>{run.status}</span>
                           <span className="text-[11px] text-text-3/60 uppercase tracking-[0.08em]">{run.scheduleName}</span>
                           <span className="text-[11px] text-text-3/40 uppercase tracking-[0.08em]">
                             {run.kind === 'protocol' ? 'Structured session' : 'Legacy task'}
@@ -699,7 +699,7 @@ export function ScheduleConsole() {
                         <div className="text-[13px] text-text-3 mt-1 line-clamp-2">{run.preview}</div>
                         <div className="flex flex-wrap items-center gap-2 mt-3">
                           {agent && (
-                            <div className="inline-flex items-center gap-2 rounded-[10px] bg-layer-1 px-2.5 py-1.5 text-[12px] text-text-2">
+                            <div className="inline-flex items-center gap-2 rounded-sm bg-layer-1 px-2.5 py-1.5 text-[12px] text-text-2">
                               <AgentAvatar
                                 seed={agent.avatarSeed}
                                 avatarUrl={agent.avatarUrl}
@@ -739,7 +739,7 @@ export function ScheduleConsole() {
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                          <span className={`px-2 py-0.5 rounded-[8px] border text-[10px] font-700 uppercase tracking-[0.08em] ${historyActionBadge(entry.action)}`}>
+                          <span className={`px-2 py-0.5 rounded-sm border text-[10px] font-700 uppercase tracking-[0.08em] ${historyActionBadge(entry.action)}`}>
                             {historyActionLabel(entry.action)}
                           </span>
                           <span className="text-[11px] text-text-3/60 uppercase tracking-[0.08em]">{schedule.scheduleType}</span>
@@ -750,7 +750,7 @@ export function ScheduleConsole() {
                         {changes.length > 0 && (
                           <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
                             {changes.map((change) => (
-                              <div key={`${entry.id}:${change.field}`} className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                              <div key={`${entry.id}:${change.field}`} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                                 <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/50 font-700">{change.label}</div>
                                 <div className="mt-1 text-[12px] text-text-2 break-words">
                                   <span className="text-text-3">{formatHistoryValue(change.before)}</span>
@@ -760,7 +760,7 @@ export function ScheduleConsole() {
                               </div>
                             ))}
                             {remainingChanges > 0 && (
-                              <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
+                              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                                 {remainingChanges} more change{remainingChanges === 1 ? '' : 's'}
                               </div>
                             )}
@@ -768,7 +768,7 @@ export function ScheduleConsole() {
                         )}
                         <div className="flex flex-wrap items-center gap-2 mt-3">
                           {agent && (
-                            <div className="inline-flex items-center gap-2 rounded-[10px] bg-layer-1 px-2.5 py-1.5 text-[12px] text-text-2">
+                            <div className="inline-flex items-center gap-2 rounded-sm bg-layer-1 px-2.5 py-1.5 text-[12px] text-text-2">
                               <AgentAvatar
                                 seed={agent.avatarSeed}
                                 avatarUrl={agent.avatarUrl}
@@ -810,10 +810,10 @@ export function ScheduleConsole() {
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                          <span className={`px-2 py-0.5 rounded-[8px] border text-[10px] font-700 uppercase tracking-[0.08em] ${badgeClass(schedule.status)}`}>{schedule.status}</span>
+                          <span className={`px-2 py-0.5 rounded-sm border text-[10px] font-700 uppercase tracking-[0.08em] ${badgeClass(schedule.status)}`}>{schedule.status}</span>
                           <span className="text-[11px] text-text-3/60 uppercase tracking-[0.08em]">{schedule.scheduleType}</span>
                           {schedule.lastDeliveryStatus && (
-                            <span className={`px-2 py-0.5 rounded-[8px] border text-[10px] font-700 uppercase tracking-[0.08em] ${badgeClass(schedule.lastDeliveryStatus === 'ok' ? 'completed' : 'failed')}`}>
+                            <span className={`px-2 py-0.5 rounded-sm border text-[10px] font-700 uppercase tracking-[0.08em] ${badgeClass(schedule.lastDeliveryStatus === 'ok' ? 'completed' : 'failed')}`}>
                               {schedule.lastDeliveryStatus === 'ok' ? 'healthy' : 'delivery error'}
                             </span>
                           )}
@@ -823,7 +823,7 @@ export function ScheduleConsole() {
                         <div className="text-[13px] text-text-3/80 mt-1 line-clamp-2">{schedule.taskPrompt}</div>
                         <div className="flex flex-wrap items-center gap-2 mt-3">
                           {agent && (
-                            <div className="inline-flex items-center gap-2 rounded-[10px] bg-layer-1 px-2.5 py-1.5 text-[12px] text-text-2">
+                            <div className="inline-flex items-center gap-2 rounded-sm bg-layer-1 px-2.5 py-1.5 text-[12px] text-text-2">
                               <AgentAvatar
                                 seed={agent.avatarSeed}
                                 avatarUrl={agent.avatarUrl}

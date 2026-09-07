@@ -68,7 +68,7 @@ function formatDuration(ms: number): string {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-[12px] border border-white/10 bg-layer-2 px-4 py-3">
+    <div className="rounded-md border border-white/10 bg-layer-2 px-4 py-3">
       <div className="text-[10px] font-700 uppercase tracking-[0.12em] text-white/45">{label}</div>
       <div className="mt-2 font-display text-[22px] font-700 tracking-normal text-white">{value}</div>
       {hint ? <div className="mt-1 text-[11px] leading-relaxed text-white/45">{hint}</div> : null}
@@ -155,31 +155,31 @@ function renderBody(payload: SharedPayload) {
           </div>
         </div>
         {payload.successCriteria.length > 0 ? (
-          <div className="rounded-[14px] border border-white/10 bg-layer-1 p-4">
+          <div className="rounded-md border border-white/10 bg-layer-1 p-4">
             <h3 className="text-[12px] font-800 uppercase tracking-[0.12em] text-white/55">Success criteria</h3>
             <ul className="mt-3 grid gap-2 text-[13px] text-white/70 md:grid-cols-2">
               {payload.successCriteria.map((c, i) => (
-                <li key={i} className="rounded-[10px] border border-white/10 bg-layer-1 px-3 py-2">{c}</li>
+                <li key={i} className="rounded-sm border border-white/10 bg-layer-1 px-3 py-2">{c}</li>
               ))}
             </ul>
           </div>
         ) : null}
         {payload.latestReport ? (
-          <article className="rounded-[14px] border border-emerald-400/20 bg-emerald-400/[0.04] p-4">
+          <article className="rounded-md border border-emerald-400/20 bg-emerald-400/[0.04] p-4">
             <div className="text-[11px] font-800 uppercase tracking-[0.12em] text-emerald-200/80">Latest report</div>
             <div className="mt-1 text-[15px] font-800 text-white">{payload.latestReport.title}</div>
             <div className="mt-1 text-[11px] text-white/45">{formatTime(payload.latestReport.at)} - {payload.latestReport.format}</div>
-            <div className="mt-4 rounded-[12px] border border-white/10 bg-black/20 px-4 py-3">
+            <div className="mt-4 rounded-md border border-white/10 bg-black/20 px-4 py-3">
               <ReportMarkdown content={payload.latestReport.content} />
             </div>
           </article>
         ) : null}
         {payload.milestones.length > 0 ? (
-          <div className="rounded-[14px] border border-white/10 bg-layer-1 p-4">
+          <div className="rounded-md border border-white/10 bg-layer-1 p-4">
             <h3 className="text-[12px] font-800 uppercase tracking-[0.12em] text-white/55">Milestones</h3>
             <ol className="mt-3 space-y-2">
               {payload.milestones.map((m, i) => (
-                <li key={i} className="flex gap-3 rounded-[10px] border border-white/10 bg-layer-1 px-3 py-2 text-[12px]">
+                <li key={i} className="flex gap-3 rounded-sm border border-white/10 bg-layer-1 px-3 py-2 text-[12px]">
                   <span className="shrink-0 text-white/40">{formatTime(m.at)}</span>
                   <span className="shrink-0 font-800 text-white/55">{m.kind}</span>
                   <span className="text-white/75">{m.summary}</span>
@@ -189,11 +189,11 @@ function renderBody(payload: SharedPayload) {
           </div>
         ) : null}
         {payload.reports.length > 1 ? (
-          <div className="rounded-[14px] border border-white/10 bg-layer-1 p-4">
+          <div className="rounded-md border border-white/10 bg-layer-1 p-4">
             <h3 className="text-[12px] font-800 uppercase tracking-[0.12em] text-white/55">Earlier reports</h3>
             <div className="mt-3 grid gap-3">
               {payload.reports.slice(1).map((r) => (
-                <article key={r.id} className="rounded-[12px] border border-white/10 bg-layer-1 p-4">
+                <article key={r.id} className="rounded-md border border-white/10 bg-layer-1 p-4">
                   <div className="text-[13px] font-800 text-white">{r.title}</div>
                   <div className="mt-1 text-[11px] text-white/45">{formatTime(r.at)} - {r.format}</div>
                   <div className="mt-3">
@@ -210,7 +210,7 @@ function renderBody(payload: SharedPayload) {
 
   if (payload.kind === 'skill') {
     return (
-      <section className="rounded-[14px] border border-white/10 bg-layer-1 p-5">
+      <section className="rounded-md border border-white/10 bg-layer-1 p-5">
         <h2 className="font-display text-[22px] font-700 text-white">{payload.name}</h2>
         {payload.tags.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-2">
@@ -222,7 +222,7 @@ function renderBody(payload: SharedPayload) {
           </div>
         ) : null}
         <p className="mt-4 text-[13px] leading-relaxed text-white/65">{payload.description}</p>
-        <pre className="mt-6 whitespace-pre-wrap rounded-[12px] border border-white/10 bg-black/20 p-4 text-sm text-white/70">
+        <pre className="mt-6 whitespace-pre-wrap rounded-md border border-white/10 bg-black/20 p-4 text-sm text-white/70">
           {payload.content}
         </pre>
       </section>
@@ -230,7 +230,7 @@ function renderBody(payload: SharedPayload) {
   }
 
   return (
-    <section className="rounded-[14px] border border-white/10 bg-layer-1 p-5">
+    <section className="rounded-md border border-white/10 bg-layer-1 p-5">
       <h2 className="font-display text-[22px] font-700 text-white">{payload.name}</h2>
       {payload.agentName ? (
         <div className="mt-1 text-sm text-white/50">Agent: {payload.agentName}</div>
@@ -239,7 +239,7 @@ function renderBody(payload: SharedPayload) {
         {payload.messages.map((m, i) => (
           <article
             key={i}
-            className="rounded-[12px] border border-white/10 bg-layer-1 p-4"
+            className="rounded-md border border-white/10 bg-layer-1 p-4"
           >
             <div className="mb-1 flex items-center justify-between text-xs text-white/45">
               <span className="uppercase">{m.role}</span>

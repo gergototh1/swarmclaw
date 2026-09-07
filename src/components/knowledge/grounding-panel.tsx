@@ -31,7 +31,7 @@ export function GroundingPanel(props: {
   const selected = explicit.length > 0
 
   return (
-    <details className={`group rounded-[12px] border border-sky-400/15 bg-sky-400/[0.04] ${props.className || ''}`}>
+    <details className={`group rounded-md border border-sky-400/15 bg-sky-400/[0.04] ${props.className || ''}`}>
       <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-2.5 select-none [&::-webkit-details-marker]:hidden">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-sky-300/70 transition-transform group-open:rotate-90">
           <polyline points="9 18 15 12 9 6" />
@@ -53,13 +53,13 @@ export function GroundingPanel(props: {
 
       <div className="space-y-2 px-3.5 pb-3 pt-1">
         {props.retrievalTrace?.query && (
-          <div className="rounded-[10px] border border-line-subtle bg-black/20 px-3 py-2 text-[11px] text-text-3/75">
+          <div className="rounded-sm border border-line-subtle bg-black/20 px-3 py-2 text-[11px] text-text-3/75">
             Query: <span className="text-text-2">{props.retrievalTrace.query}</span>
           </div>
         )}
 
         {items.map((citation) => (
-          <div key={`${citation.sourceId}:${citation.chunkId}`} className="rounded-[10px] border border-line-subtle bg-black/15 px-3 py-2.5">
+          <div key={`${citation.sourceId}:${citation.chunkId}`} className="rounded-sm border border-line-subtle bg-black/15 px-3 py-2.5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[12px] font-600 text-text-2">{citation.sourceTitle}</div>

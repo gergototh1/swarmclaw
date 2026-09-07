@@ -44,7 +44,7 @@ const GROUPS: ShortcutGroup[] = [
 
 function Kbd({ children }: { children: string }) {
   return (
-    <kbd className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-[5px] bg-layer-3 border border-line-default text-[11px] font-mono text-text-2 leading-none">
+    <kbd className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-xs bg-layer-3 border border-line-default text-[11px] font-mono text-text-2 leading-none">
       {children}
     </kbd>
   )
@@ -77,12 +77,12 @@ export function KeyboardShortcutsDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-[420px] p-0 bg-surface/95 backdrop-blur-xl border-line-default shadow-[0_24px_80px_rgba(0,0,0,0.6)] rounded-[16px] overflow-hidden gap-0"
+        className="sm:max-w-[420px] p-0 bg-surface/95 backdrop-blur-xl border-line-default shadow-[0_24px_80px_rgba(0,0,0,0.6)] rounded-lg overflow-hidden gap-0"
       >
         <DialogTitle className="sr-only">Keyboard shortcuts</DialogTitle>
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-line-subtle">
           <span className="text-[14px] font-600 text-text">Keyboard Shortcuts</span>
-          <kbd className="px-1.5 py-0.5 rounded-[5px] bg-layer-2 border border-line-default text-[10px] font-mono text-text-3">
+          <kbd className="px-1.5 py-0.5 rounded-xs bg-layer-2 border border-line-default text-[10px] font-mono text-text-3">
             ESC
           </kbd>
         </div>

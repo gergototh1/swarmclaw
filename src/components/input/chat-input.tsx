@@ -206,7 +206,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
       style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="relative" ref={extrasRef}>
         {busy && visibleQueuedMessages.length === 0 && (
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-[14px] border border-amber-500/15 bg-amber-500/[0.06] px-3.5 py-2">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/15 bg-amber-500/[0.06] px-3.5 py-2">
             <div className="min-w-0">
               <div className="text-[12px] font-600 text-amber-300">Reply in progress</div>
               <div className="text-[11px] text-amber-200/70">
@@ -228,7 +228,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
         )}
 
         {visibleQueuedMessages.length > 0 && (
-          <div className="mb-2 overflow-hidden rounded-[16px] border border-amber-500/18 bg-[linear-gradient(180deg,rgba(245,158,11,0.08)_0%,rgba(245,158,11,0.03)_100%)] shadow-[0_10px_32px_rgba(245,158,11,0.06)]">
+          <div className="mb-2 overflow-hidden rounded-lg border border-amber-500/18 bg-[linear-gradient(180deg,rgba(245,158,11,0.08)_0%,rgba(245,158,11,0.03)_100%)] shadow-[0_10px_32px_rgba(245,158,11,0.06)]">
             <div className="flex items-start justify-between gap-3 border-b border-amber-500/10 px-3.5 py-3">
               <div className="min-w-0 overflow-hidden">
                 <div className="flex flex-wrap items-center gap-2">
@@ -286,7 +286,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
               {displayedQueuedMessages.map((item, index) => (
                 <div
                   key={item.runId}
-                  className={`group flex items-start gap-3 rounded-[12px] border px-3 py-2.5 transition-all ${
+                  className={`group flex items-start gap-3 rounded-md border px-3 py-2.5 transition-all ${
                     item.sending
                       ? 'border-sky-300/15 bg-sky-300/[0.06]'
                       : item.runId === nextPendingRunId
@@ -294,7 +294,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                         : 'border-line-subtle bg-layer-1'
                   }`}
                 >
-                  <div className={`mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-[8px] px-2 text-[10px] font-700 ${
+                  <div className={`mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-sm px-2 text-[10px] font-700 ${
                     item.sending
                       ? 'bg-sky-300/15 text-sky-100'
                       : item.runId === nextPendingRunId
@@ -338,7 +338,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                     <button
                       type="button"
                       onClick={() => { if (sessionId) void removeQueuedMessage(sessionId, item.runId) }}
-                      className="shrink-0 rounded-[8px] border border-transparent bg-transparent p-1.5 text-amber-300/60 transition-all hover:border-amber-300/20 hover:bg-amber-300/[0.08] hover:text-amber-100 cursor-pointer"
+                      className="shrink-0 rounded-sm border border-transparent bg-transparent p-1.5 text-amber-300/60 transition-all hover:border-amber-300/20 hover:bg-amber-300/[0.08] hover:text-amber-100 cursor-pointer"
                       aria-label={`Remove queued message ${index + 1}`}
                       title="Remove from queue"
                     >
@@ -369,7 +369,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 onClick={() => setExtrasOpen((open) => !open)}
                 aria-label="Add attachment"
                 data-testid="chat-add"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] border-none bg-transparent
+                className="flex items-center gap-1.5 px-3 py-2 rounded-sm border-none bg-transparent
                   text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all duration-200"
                 style={{ fontFamily: 'inherit' }}
               >
@@ -391,7 +391,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 disabled={!hasContent}
                 aria-label={shouldQueue ? 'Queue message' : 'Send message'}
                 data-testid="chat-send"
-                className={`w-9 h-9 rounded-[11px] border-none flex items-center justify-center
+                className={`w-9 h-9 rounded-md border-none flex items-center justify-center
                   shrink-0 cursor-pointer transition-all duration-250
                   ${hasContent
                     ? shouldQueue
@@ -433,14 +433,14 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
         </ComposerShell>
 
         {extrasOpen && (
-          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-[16px] border border-line-default bg-raised/95 p-2 shadow-[0_18px_64px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-default bg-raised/95 p-2 shadow-[0_18px_64px_rgba(0,0,0,0.55)] backdrop-blur-xl">
             <button
               type="button"
               onClick={() => {
                 setExtrasOpen(false)
                 fileInputRef.current?.click()
               }}
-              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -454,7 +454,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 setExtrasOpen(false)
                 imageInputRef.current?.click()
               }}
-              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -471,7 +471,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   setExtrasOpen(false)
                   toggleRecording()
                 }}
-                className={`flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] cursor-pointer transition-colors ${
+                className={`flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-[13px] cursor-pointer transition-colors ${
                   recording ? 'text-danger bg-danger/[0.06]' : 'text-text-2 hover:bg-layer-2'
                 }`}
                 style={recording ? { animation: 'mic-pulse 1.5s ease-out infinite', fontFamily: 'inherit' } : { fontFamily: 'inherit' }}
@@ -491,7 +491,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 void useChatStore.getState().clearContext()
               }}
               disabled={streaming}
-              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -525,7 +525,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                           }
                           else if (action.action === 'link') window.open(action.value, '_blank')
                         }}
-                        className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-emerald-300 hover:bg-emerald-500/[0.08] cursor-pointer transition-colors"
+                        className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-[13px] text-emerald-300 hover:bg-emerald-500/[0.08] cursor-pointer transition-colors"
                         style={{ fontFamily: 'inherit' }}
                       >
                         {action.label}

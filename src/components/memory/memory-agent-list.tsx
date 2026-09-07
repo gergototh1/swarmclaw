@@ -43,7 +43,7 @@ export function MemoryAgentList() {
       <div className="px-2 flex flex-col gap-0.5">
         <button
           onClick={() => handleSelect(null)}
-          className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] cursor-pointer transition-all w-full text-left border-none
+          className={`relative flex items-center gap-3 px-3 py-2.5 rounded-sm cursor-pointer transition-all w-full text-left border-none
             ${!memoryAgentFilter
               ? 'bg-accent-soft'
               : 'bg-transparent hover:bg-layer-1'}`}
@@ -63,7 +63,7 @@ export function MemoryAgentList() {
             All Memories
           </span>
           {totalCount > 0 && (
-            <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-[5px]">
+            <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-xs">
               {totalCount}
             </span>
           )}
@@ -72,7 +72,7 @@ export function MemoryAgentList() {
         {/* Global row */}
         <button
           onClick={() => handleSelect('_global')}
-          className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] cursor-pointer transition-all w-full text-left border-none
+          className={`relative flex items-center gap-3 px-3 py-2.5 rounded-sm cursor-pointer transition-all w-full text-left border-none
             ${memoryAgentFilter === '_global'
               ? 'bg-accent-soft'
               : 'bg-transparent hover:bg-layer-1'}`}
@@ -92,7 +92,7 @@ export function MemoryAgentList() {
             Global
           </span>
           {globalCount > 0 && (
-            <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-[5px]">
+            <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-xs">
               {globalCount}
             </span>
           )}
@@ -111,7 +111,7 @@ export function MemoryAgentList() {
             <button
               key={agent.id}
               onClick={() => handleSelect(agent.id)}
-              className={`relative flex items-center gap-3 px-3 py-2 rounded-[10px] cursor-pointer transition-all w-full text-left border-none
+              className={`relative flex items-center gap-3 px-3 py-2 rounded-sm cursor-pointer transition-all w-full text-left border-none
                 ${isActive
                   ? 'bg-accent-soft'
                   : 'bg-transparent hover:bg-layer-1'}`}
@@ -125,7 +125,7 @@ export function MemoryAgentList() {
                 {agent.name}
               </span>
               {count > 0 && (
-                <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-[5px]">
+                <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-xs">
                   {count}
                 </span>
               )}

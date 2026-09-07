@@ -38,7 +38,7 @@ export function StepPath({
               key={path.id}
               type="button"
               onClick={() => onPathChange(path.id)}
-              className={`rounded-[18px] border px-5 py-4 text-left transition-all duration-200 cursor-pointer ${
+              className={`rounded-lg border px-5 py-4 text-left transition-all duration-200 cursor-pointer ${
                 active
                   ? 'border-accent-bright/35 bg-accent-soft shadow-[0_0_24px_rgba(99,102,241,0.12)]'
                   : 'border-line-default bg-surface hover:border-accent-bright/20 hover:bg-layer-2'
@@ -62,7 +62,7 @@ export function StepPath({
       </div>
 
       {onboardingPath === 'intent' && (
-        <div className="mb-6 rounded-[18px] border border-line-default bg-surface px-5 py-4 text-left">
+        <div className="mb-6 rounded-lg border border-line-default bg-surface px-5 py-4 text-left">
           <label className="block text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/60 mb-2">
             What Are You Setting Up SwarmClaw To Do?
           </label>
@@ -71,7 +71,7 @@ export function StepPath({
             onChange={(event) => onIntentTextChange(event.target.value)}
             rows={3}
             placeholder="e.g. Help me run product research every week, summarize findings, and turn them into follow-up tasks."
-            className="w-full rounded-[14px] border border-line-default bg-bg px-4 py-3 text-[14px] text-text outline-none transition-all duration-200 resize-none placeholder:text-text-3/45 focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+            className="w-full rounded-md border border-line-default bg-bg px-4 py-3 text-[14px] text-text outline-none transition-all duration-200 resize-none placeholder:text-text-3/45 focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
           />
           <p className="mt-2 text-[12px] leading-relaxed text-text-3/72">
             This is used only to seed the starter prompts. It does not auto-classify your workflow.
@@ -79,7 +79,7 @@ export function StepPath({
         </div>
       )}
 
-      <div className="rounded-[20px] border border-line-default bg-surface p-5 text-left">
+      <div className="rounded-lg border border-line-default bg-surface p-5 text-left">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Starting Shape</div>
@@ -100,7 +100,7 @@ export function StepPath({
                 key={kit.id}
                 type="button"
                 onClick={() => onStarterKitChange(kit.id)}
-                className={`rounded-[18px] border px-4 py-4 text-left transition-all duration-200 cursor-pointer ${
+                className={`rounded-lg border px-4 py-4 text-left transition-all duration-200 cursor-pointer ${
                   active
                     ? 'border-accent-bright/35 bg-accent-soft shadow-[0_0_24px_rgba(99,102,241,0.12)]'
                     : 'border-line-default bg-layer-1 hover:border-accent-bright/20 hover:bg-layer-2'
@@ -128,7 +128,7 @@ export function StepPath({
                     ))}
                   </div>
                 ) : (
-                  <div className="mt-4 rounded-[12px] border border-dashed border-line-subtle bg-layer-1 px-3 py-2 text-[11px] text-text-3/70">
+                  <div className="mt-4 rounded-md border border-dashed border-line-subtle bg-layer-1 px-3 py-2 text-[11px] text-text-3/70">
                     Finish setup without starter agents.
                   </div>
                 )}
@@ -141,13 +141,13 @@ export function StepPath({
       <div className="mt-6 flex items-center justify-center gap-3">
         <button
           onClick={onBack}
-          className="px-6 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[14px] font-display font-500 cursor-pointer hover:bg-layer-1 transition-all duration-200"
+          className="px-6 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[14px] font-display font-500 cursor-pointer hover:bg-layer-1 transition-all duration-200"
         >
           Back
         </button>
         <button
           onClick={onContinue}
-          className="px-8 py-3.5 rounded-[14px] border-none bg-accent-bright text-white text-[15px] font-display font-600 cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200 shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
+          className="px-8 py-3.5 rounded-md border-none bg-accent-bright text-white text-[15px] font-display font-600 cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200 shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
         >
           Continue to Providers
         </button>

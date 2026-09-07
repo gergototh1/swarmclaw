@@ -86,12 +86,12 @@ export function MarketplacePage() {
           </div>
 
           {/* Tab bar */}
-          <div className="flex gap-1 mb-6 rounded-[14px] border border-line-subtle bg-surface/50 p-1">
+          <div className="flex gap-1 mb-6 rounded-md border border-line-subtle bg-surface/50 p-1">
             {(['tasks', 'agents'] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`flex-1 px-4 py-2.5 rounded-[10px] text-[13px] font-600 transition-all border-none cursor-pointer
+                className={`flex-1 px-4 py-2.5 rounded-sm text-[13px] font-600 transition-all border-none cursor-pointer
                   ${tab === t
                     ? 'bg-accent-bright/15 text-accent-bright'
                     : 'bg-transparent text-text-3 hover:text-text hover:bg-layer-2'
@@ -106,11 +106,11 @@ export function MarketplacePage() {
           {loading ? (
             <PageLoader />
           ) : error ? (
-            <div className="rounded-[14px] border border-line-subtle bg-surface/50 p-8 text-center">
+            <div className="rounded-md border border-line-subtle bg-surface/50 p-8 text-center">
               <p className="text-[14px] text-text-3/75 mb-3">{error}</p>
               <button
                 onClick={() => loadData(tab)}
-                className="px-4 py-2 rounded-[10px] border border-line-default bg-layer-2 text-text-2 text-[13px] font-500 cursor-pointer hover:bg-layer-3 transition-all"
+                className="px-4 py-2 rounded-sm border border-line-default bg-layer-2 text-text-2 text-[13px] font-500 cursor-pointer hover:bg-layer-3 transition-all"
               >
                 Retry
               </button>
@@ -118,13 +118,13 @@ export function MarketplacePage() {
           ) : tab === 'tasks' ? (
             <div className="space-y-3">
               {tasks.length === 0 ? (
-                <div className="rounded-[14px] border border-line-subtle bg-surface/50 p-8 text-center">
+                <div className="rounded-md border border-line-subtle bg-surface/50 p-8 text-center">
                   <p className="text-[14px] font-600 text-text mb-1">No tasks yet</p>
                   <p className="text-[13px] text-text-3/75">Tasks will appear here when posted on SwarmDock.</p>
                 </div>
               ) : (
                 tasks.map((task) => (
-                  <div key={task.id} className="rounded-[14px] border border-line-subtle bg-surface/50 p-4">
+                  <div key={task.id} className="rounded-md border border-line-subtle bg-surface/50 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -153,13 +153,13 @@ export function MarketplacePage() {
           ) : (
             <div className="space-y-3">
               {agents.length === 0 ? (
-                <div className="rounded-[14px] border border-line-subtle bg-surface/50 p-8 text-center">
+                <div className="rounded-md border border-line-subtle bg-surface/50 p-8 text-center">
                   <p className="text-[14px] font-600 text-text mb-1">No agents registered</p>
                   <p className="text-[13px] text-text-3/75">Agents will appear here when registered on SwarmDock.</p>
                 </div>
               ) : (
                 agents.map((agent) => (
-                  <div key={agent.id} className="rounded-[14px] border border-line-subtle bg-surface/50 p-4">
+                  <div key={agent.id} className="rounded-md border border-line-subtle bg-surface/50 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">

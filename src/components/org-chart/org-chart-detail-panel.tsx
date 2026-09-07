@@ -65,7 +65,7 @@ export function OrgChartDetailPanel({
         </div>
         <button
           onClick={onClose}
-          className="w-6 h-6 rounded-[6px] flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
+          className="w-6 h-6 rounded-xs flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M18 6L6 18" /><path d="M6 6l12 12" />
@@ -91,7 +91,7 @@ export function OrgChartDetailPanel({
               <button
                 key={r}
                 onClick={() => patchAgent({ role: r })}
-                className={`flex-1 text-[11px] font-500 py-1.5 rounded-[6px] border transition-colors cursor-pointer ${
+                className={`flex-1 text-[11px] font-500 py-1.5 rounded-xs border transition-colors cursor-pointer ${
                   role === r
                     ? 'border-accent-bright/30 text-accent-bright bg-accent-bright/10'
                     : 'border-line-subtle text-text-3 bg-transparent hover:bg-layer-2'
@@ -111,7 +111,7 @@ export function OrgChartDetailPanel({
               <div className="flex gap-1">
                 <button
                   onClick={() => patchAgent({ delegationEnabled: true })}
-                  className={`flex-1 text-[11px] font-500 py-1.5 rounded-[6px] border transition-colors cursor-pointer ${
+                  className={`flex-1 text-[11px] font-500 py-1.5 rounded-xs border transition-colors cursor-pointer ${
                     delegationEnabled
                       ? 'border-accent-bright/30 text-accent-bright bg-accent-bright/10'
                       : 'border-line-subtle text-text-3 bg-transparent hover:bg-layer-2'
@@ -121,7 +121,7 @@ export function OrgChartDetailPanel({
                 </button>
                 <button
                   onClick={() => patchAgent({ delegationEnabled: false })}
-                  className={`flex-1 text-[11px] font-500 py-1.5 rounded-[6px] border transition-colors cursor-pointer ${
+                  className={`flex-1 text-[11px] font-500 py-1.5 rounded-xs border transition-colors cursor-pointer ${
                     !delegationEnabled
                       ? 'border-accent-bright/30 text-accent-bright bg-accent-bright/10'
                       : 'border-line-subtle text-text-3 bg-transparent hover:bg-layer-2'
@@ -140,7 +140,7 @@ export function OrgChartDetailPanel({
                       <button
                         key={m}
                         onClick={() => patchAgent({ delegationTargetMode: m })}
-                        className={`flex-1 text-[11px] font-500 py-1.5 rounded-[6px] border transition-colors cursor-pointer ${
+                        className={`flex-1 text-[11px] font-500 py-1.5 rounded-xs border transition-colors cursor-pointer ${
                           delegationMode === m
                             ? 'border-accent-bright/30 text-accent-bright bg-accent-bright/10'
                             : 'border-line-subtle text-text-3 bg-transparent hover:bg-layer-2'
@@ -175,7 +175,7 @@ export function OrgChartDetailPanel({
             <div className="flex gap-1">
               <button
                 onClick={() => patchAgent({ orchestratorEnabled: true })}
-                className={`flex-1 text-[11px] font-500 py-1.5 rounded-[6px] border transition-colors cursor-pointer ${
+                className={`flex-1 text-[11px] font-500 py-1.5 rounded-xs border transition-colors cursor-pointer ${
                   agent.orchestratorEnabled
                     ? 'border-amber-400/30 text-amber-400 bg-amber-400/10'
                     : 'border-line-subtle text-text-3 bg-transparent hover:bg-layer-2'
@@ -185,7 +185,7 @@ export function OrgChartDetailPanel({
               </button>
               <button
                 onClick={() => patchAgent({ orchestratorEnabled: false })}
-                className={`flex-1 text-[11px] font-500 py-1.5 rounded-[6px] border transition-colors cursor-pointer ${
+                className={`flex-1 text-[11px] font-500 py-1.5 rounded-xs border transition-colors cursor-pointer ${
                   !agent.orchestratorEnabled
                     ? 'border-amber-400/30 text-amber-400 bg-amber-400/10'
                     : 'border-line-subtle text-text-3 bg-transparent hover:bg-layer-2'
@@ -220,7 +220,7 @@ export function OrgChartDetailPanel({
                       }])
                       setTeamInput(next || '')
                     }}
-                    className={`text-[10px] font-500 px-2 py-1 rounded-[6px] border cursor-pointer transition-colors ${
+                    className={`text-[10px] font-500 px-2 py-1 rounded-xs border cursor-pointer transition-colors ${
                       teamLabel === t
                         ? 'border-accent-bright/30 text-accent-bright bg-accent-bright/10'
                         : 'border-line-subtle text-text-3 bg-transparent hover:bg-layer-2'
@@ -252,12 +252,12 @@ export function OrgChartDetailPanel({
                   if (e.key === 'Escape') setShowNewTeamInput(false)
                 }}
                 placeholder="New team name..."
-                className="w-full px-2 py-1.5 text-[11px] bg-layer-2 border border-line-default rounded-[6px] text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40"
+                className="w-full px-2 py-1.5 text-[11px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40"
               />
             ) : (
               <button
                 onClick={() => { setTeamInput(''); setShowNewTeamInput(true) }}
-                className="w-full text-[10px] font-500 py-1.5 rounded-[6px] border border-dashed border-line-default text-text-3 bg-transparent hover:bg-layer-2 hover:text-text-2 transition-colors cursor-pointer flex items-center justify-center gap-1"
+                className="w-full text-[10px] font-500 py-1.5 rounded-xs border border-dashed border-line-default text-text-3 bg-transparent hover:bg-layer-2 hover:text-text-2 transition-colors cursor-pointer flex items-center justify-center gap-1"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -300,13 +300,13 @@ export function OrgChartDetailPanel({
       <div className="px-4 py-3 border-t border-line-subtle flex flex-col gap-1.5">
         <button
           onClick={() => onNavigate('agents', agent.id)}
-          className="w-full text-[11px] font-500 py-2 rounded-[6px] border border-accent-bright/20 text-accent-bright bg-accent-bright/5 hover:bg-accent-bright/10 transition-colors cursor-pointer"
+          className="w-full text-[11px] font-500 py-2 rounded-xs border border-accent-bright/20 text-accent-bright bg-accent-bright/5 hover:bg-accent-bright/10 transition-colors cursor-pointer"
         >
           Open in Agents
         </button>
         <button
           onClick={onRemove}
-          className="w-full text-[11px] font-500 py-2 rounded-[6px] border border-red-400/20 text-red-400/80 bg-transparent hover:bg-red-500/10 transition-colors cursor-pointer"
+          className="w-full text-[11px] font-500 py-2 rounded-xs border border-red-400/20 text-red-400/80 bg-transparent hover:bg-red-500/10 transition-colors cursor-pointer"
         >
           Remove from Chart
         </button>

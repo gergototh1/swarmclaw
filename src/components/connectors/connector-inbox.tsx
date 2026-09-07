@@ -475,7 +475,7 @@ export function ConnectorInbox() {
 
   return (
     <div className="flex-1 flex flex-col h-full min-h-0 px-5 md:px-6 py-5 gap-4">
-      <div className="rounded-[22px] border border-line-default bg-[linear-gradient(135deg,rgba(37,99,235,0.12),rgba(8,15,32,0.84)_48%,rgba(16,185,129,0.08))] overflow-hidden">
+      <div className="rounded-lg border border-line-default bg-[linear-gradient(135deg,rgba(37,99,235,0.12),rgba(8,15,32,0.84)_48%,rgba(16,185,129,0.08))] overflow-hidden">
         <div className="px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-[720px]">
             <div className="text-[11px] uppercase tracking-[0.14em] text-accent-bright/80 font-700">Connector Inbox</div>
@@ -487,12 +487,12 @@ export function ConnectorInbox() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 md:min-w-[300px]">
-            <div className="rounded-[16px] border border-line-default bg-black/20 px-4 py-3">
+            <div className="rounded-lg border border-line-default bg-black/20 px-4 py-3">
               <div className="text-[10px] uppercase tracking-[0.12em] text-text-3/70">Connectors</div>
               <div className="mt-2 text-[26px] font-display font-700 tracking-[-0.04em] text-text">{connectorItems.length}</div>
               <div className="text-[11px] text-text-3">Bridges with active external conversations</div>
             </div>
-            <div className="rounded-[16px] border border-line-default bg-black/20 px-4 py-3">
+            <div className="rounded-lg border border-line-default bg-black/20 px-4 py-3">
               <div className="text-[10px] uppercase tracking-[0.12em] text-text-3/70">Conversations</div>
               <div className="mt-2 text-[26px] font-display font-700 tracking-[-0.04em] text-text">{inboxSessions.length}</div>
               <div className="text-[11px] text-text-3">Strictly isolated external sender sessions</div>
@@ -502,7 +502,7 @@ export function ConnectorInbox() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[300px_360px_minmax(0,1fr)] gap-4 flex-1 min-h-0">
-        <section className="rounded-[20px] border border-line-default bg-layer-1 overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
+        <section className="rounded-lg border border-line-default bg-layer-1 overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
           <div className="px-4 py-4 border-b border-line-subtle space-y-3 shrink-0">
             <SearchInput
               size="sm"
@@ -521,7 +521,7 @@ export function ConnectorInbox() {
                   setSelectedConnectorId(null)
                   setSelectedSessionId(null)
                 }}
-                className="w-full rounded-[12px] border border-line-default bg-black/20 px-3 py-2.5 text-[13px] text-text outline-none focus:border-accent-bright/35"
+                className="w-full rounded-md border border-line-default bg-black/20 px-3 py-2.5 text-[13px] text-text outline-none focus:border-accent-bright/35"
               >
                 <option value="all">All connector types</option>
                 {platformOptions.map((platform) => (
@@ -564,7 +564,7 @@ export function ConnectorInbox() {
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <ConnectorPlatformBadge platform={item.platform} size={38} iconSize={18} roundedClassName="rounded-[12px]" />
+                      <ConnectorPlatformBadge platform={item.platform} size={38} iconSize={18} roundedClassName="rounded-md" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-3">
                           <div className="text-[13px] font-700 text-text truncate">{item.label}</div>
@@ -592,10 +592,10 @@ export function ConnectorInbox() {
           )}
         </section>
 
-        <section className="rounded-[20px] border border-line-default bg-layer-1 overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
+        <section className="rounded-lg border border-line-default bg-layer-1 overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
           <div className="px-4 py-4 border-b border-line-subtle shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0" style={{ backgroundColor: activePlatformMeta.color }}>
+              <div className="w-10 h-10 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: activePlatformMeta.color }}>
                 <ConnectorPlatformIcon platform={selectedConnectorItem?.platform || selectedSession?.connectorContext?.platform || 'connector'} size={18} className="text-white" />
               </div>
               <div className="min-w-0">
@@ -650,7 +650,7 @@ export function ConnectorInbox() {
                       active ? 'bg-layer-2' : 'hover:bg-layer-1'
                     }`}
                   >
-                    <div className={`rounded-[16px] px-3 py-3 ${accessClasses?.accent || ''}`}>
+                    <div className={`rounded-lg px-3 py-3 ${accessClasses?.accent || ''}`}>
                       <div className="flex items-start gap-3">
                         <SenderAvatar
                           name={session.connectorContext?.senderName || session.connectorContext?.channelId || session.name}
@@ -711,7 +711,7 @@ export function ConnectorInbox() {
           )}
         </section>
 
-        <section className="rounded-[20px] border border-line-default bg-layer-1 overflow-hidden min-h-[380px] xl:min-h-0 flex flex-col">
+        <section className="rounded-lg border border-line-default bg-layer-1 overflow-hidden min-h-[380px] xl:min-h-0 flex flex-col">
           {selectedSession ? (
             <>
               <div className="px-5 py-4 border-b border-line-subtle">
@@ -731,7 +731,7 @@ export function ConnectorInbox() {
                   <button
                     type="button"
                     onClick={() => setAccessSheetOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-[12px] border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 transition-colors hover:bg-layer-3 cursor-pointer"
+                    className="inline-flex items-center gap-2 rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 transition-colors hover:bg-layer-3 cursor-pointer"
                   >
                     <span>Access &amp; ownership</span>
                     {accessSnapshot && (
@@ -749,7 +749,7 @@ export function ConnectorInbox() {
               </div>
 
               <div className="flex-1 overflow-y-auto px-5 py-4">
-                <div className="rounded-[18px] border border-line-default bg-layer-1 overflow-hidden">
+                <div className="rounded-lg border border-line-default bg-layer-1 overflow-hidden">
                   <div className="border-b border-line-subtle px-4 py-3">
                     <div className="text-[13px] font-700 text-text">Transcript</div>
                     <div className="mt-1 text-[12px] text-text-3">
@@ -812,7 +812,7 @@ export function ConnectorInbox() {
                               />
                             )}
                             <div
-                              className={`max-w-[88%] rounded-[18px] border px-4 py-3 ${
+                              className={`max-w-[88%] rounded-lg border px-4 py-3 ${
                                 outbound
                                   ? 'bg-accent-soft/90 border-accent-bright/15 text-text'
                                   : 'bg-layer-2 border-line-subtle text-text'

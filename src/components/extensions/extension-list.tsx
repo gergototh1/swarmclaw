@@ -286,7 +286,7 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
             onClick={(e) => { void handleReconcile(e, null) }}
             disabled={reconciling !== null}
             title="Create or update the agents and routines every installed extension declares"
-            className="h-8 px-3 rounded-[9px] bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-8 px-3 rounded-sm bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {reconciling === ALL_EXTENSIONS ? 'Reconciling...' : 'Reconcile all'}
           </button>
@@ -300,7 +300,7 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search extensions..."
-            className="w-full pl-8 pr-3 py-2 rounded-[10px] bg-surface border border-line-subtle text-[12px] text-text placeholder:text-text-3/40 outline-none focus:border-accent-bright/30 transition-colors"
+            className="w-full pl-8 pr-3 py-2 rounded-sm bg-surface border border-line-subtle text-[12px] text-text placeholder:text-text-3/40 outline-none focus:border-accent-bright/30 transition-colors"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
@@ -333,7 +333,7 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
           emptyAction={!search ? (
             <button
               onClick={() => setTab('marketplace')}
-              className="mt-3 px-4 py-2 rounded-[10px] bg-transparent text-accent-bright text-[12px] font-600 cursor-pointer border border-accent-bright/20 hover:bg-accent-soft transition-all"
+              className="mt-3 px-4 py-2 rounded-sm bg-transparent text-accent-bright text-[12px] font-600 cursor-pointer border border-accent-bright/20 hover:bg-accent-soft transition-all"
               style={{ fontFamily: 'inherit' }}
             >
               Browse Marketplace
@@ -542,7 +542,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
       tabIndex={0}
       onClick={() => onEdit(ext.filename)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(ext.filename) } }}
-      className={`group relative text-left p-4 rounded-[14px] border transition-all cursor-pointer
+      className={`group relative text-left p-4 rounded-md border transition-all cursor-pointer
         ${ext.enabled
           ? 'border-line-subtle bg-surface hover:bg-surface-2 hover:border-line-default'
           : 'border-line-subtle bg-surface/50 hover:bg-surface hover:border-line-default opacity-70 hover:opacity-100'
@@ -676,7 +676,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
             title={ext.enabled
               ? 'Create or update the agents and routines this extension declares'
               : 'Switch the extension on first: a disabled extension is not loaded, so the host has no declarations to reconcile'}
-            className="shrink-0 h-6 px-2 rounded-[8px] bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 h-6 px-2 rounded-sm bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {reconciling ? 'Reconciling...' : 'Reconcile'}
           </button>
@@ -704,7 +704,7 @@ function SidebarExtensionCard({ ext, onEdit }: { ext: ExtensionMeta; onEdit: (fi
       tabIndex={0}
       onClick={() => onEdit(ext.filename)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(ext.filename) } }}
-      className="w-full text-left p-3 rounded-[12px] border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer"
+      className="w-full text-left p-3 rounded-md border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer"
     >
       <div className="flex items-center justify-between mb-0.5">
         <span className="font-display text-[13px] font-600 text-text truncate">{ext.name}</span>
@@ -787,7 +787,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
       <div className="flex items-center gap-1.5 flex-wrap">
         <button
           onClick={() => setActiveTag(null)}
-          className={`px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none ${
+          className={`px-2 py-1 rounded-xs text-[10px] font-600 cursor-pointer transition-all border-none ${
             !activeTag ? 'bg-accent-soft text-accent-bright' : 'bg-layer-1 text-text-3/60 hover:text-text-3'
           }`}
         >
@@ -797,7 +797,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
           <button
             key={t}
             onClick={() => setActiveTag(activeTag === t ? null : t)}
-            className={`px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none ${
+            className={`px-2 py-1 rounded-xs text-[10px] font-600 cursor-pointer transition-all border-none ${
               activeTag === t ? 'bg-accent-soft text-accent-bright' : 'bg-layer-1 text-text-3/60 hover:text-text-3'
             }`}
           >
@@ -808,7 +808,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as 'name' | 'downloads')}
-          className="px-2 py-1 rounded-[6px] bg-surface border border-line-subtle text-[10px] text-text-3 outline-none cursor-pointer appearance-none"
+          className="px-2 py-1 rounded-xs bg-surface border border-line-subtle text-[10px] text-text-3 outline-none cursor-pointer appearance-none"
           style={{ fontFamily: 'inherit' }}
         >
           <option value="downloads">Popular</option>
@@ -823,7 +823,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
           {filtered.map((p) => {
             const isInstalled = installedFilenames.has(`${p.id}.js`)
             return (
-              <div key={p.id} className="py-3.5 px-4 rounded-[14px] bg-surface border border-line-subtle">
+              <div key={p.id} className="py-3.5 px-4 rounded-md bg-surface border border-line-subtle">
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -857,7 +857,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
                   <button
                     onClick={() => !isInstalled && onInstall(p)}
                     disabled={isInstalled || installing === p.id}
-                    className={`shrink-0 py-2 px-4 rounded-[10px] text-[12px] font-600 transition-all cursor-pointer
+                    className={`shrink-0 py-2 px-4 rounded-sm text-[12px] font-600 transition-all cursor-pointer
                       ${isInstalled
                         ? 'bg-layer-2 text-text-3/70 cursor-default'
                         : installing === p.id

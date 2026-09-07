@@ -87,7 +87,7 @@ export function ProjectList() {
   if (!filtered.length && !search) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-text-3 p-8 text-center" style={{ animation: 'fade-up 0.5s var(--ease-spring)' }}>
-        <div className="w-14 h-14 rounded-[16px] bg-accent-soft flex items-center justify-center mb-1">
+        <div className="w-14 h-14 rounded-lg bg-accent-soft flex items-center justify-center mb-1">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-accent-bright">
             <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7-7H4a2 2 0 0 0-2 2v17Z" />
             <path d="M14 2v7h7" />
@@ -99,7 +99,7 @@ export function ProjectList() {
         </p>
         <button
           onClick={() => { setEditingProjectId(null); setProjectSheetOpen(true) }}
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 text-[13px] font-600 text-white bg-accent-bright rounded-[10px] hover:brightness-110 transition-all cursor-pointer border-none"
+          className="inline-flex items-center gap-1.5 px-5 py-2.5 text-[13px] font-600 text-white bg-accent-bright rounded-sm hover:brightness-110 transition-all cursor-pointer border-none"
           style={{ fontFamily: 'inherit' }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -126,7 +126,7 @@ export function ProjectList() {
           </div>
           <button
             onClick={() => { setEditingProjectId(null); setProjectSheetOpen(true) }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-600 text-white bg-accent-bright rounded-[10px] hover:brightness-110 transition-all cursor-pointer border-none"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-600 text-white bg-accent-bright rounded-sm hover:brightness-110 transition-all cursor-pointer border-none"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -148,7 +148,7 @@ export function ProjectList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search projects..."
-            className="w-full pl-9 pr-3 py-2.5 rounded-[10px] bg-layer-2 border border-line-subtle text-[13px] text-text placeholder:text-text-3/40 focus:outline-none focus:border-accent-bright/30 transition-colors"
+            className="w-full pl-9 pr-3 py-2.5 rounded-sm bg-layer-2 border border-line-subtle text-[13px] text-text placeholder:text-text-3/40 focus:outline-none focus:border-accent-bright/30 transition-colors"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
@@ -165,7 +165,7 @@ export function ProjectList() {
             return (
               <div
                 key={project.id}
-                className={`group relative rounded-[14px] border transition-all duration-200 cursor-pointer overflow-hidden
+                className={`group relative rounded-md border transition-all duration-200 cursor-pointer overflow-hidden
                   ${isActive
                     ? 'bg-layer-2 border-accent-bright/30 shadow-[0_0_20px_rgba(99,102,241,0.08)]'
                     : 'bg-layer-1 border-line-subtle hover:bg-layer-2 hover:border-line-default hover:scale-[1.01]'}`}
@@ -176,7 +176,7 @@ export function ProjectList() {
                 }}
               >
                 {/* Color accent stripe */}
-                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-[14px]" style={{ backgroundColor: project.color || '#6B7280', animation: 'spring-in 0.6s var(--ease-spring)' }} />
+                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-md" style={{ backgroundColor: project.color || '#6B7280', animation: 'spring-in 0.6s var(--ease-spring)' }} />
 
                 <div className="pl-5 pr-4 py-4">
                   <div className="flex items-start justify-between gap-3">
@@ -184,7 +184,7 @@ export function ProjectList() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-display text-[14px] font-600 text-text truncate">{project.name}</h3>
                         {isActive && (
-                          <span className="shrink-0 text-[9px] font-700 uppercase tracking-wider text-accent-bright bg-accent-soft px-1.5 py-0.5 rounded-[5px]" style={{ animation: 'spring-in 0.3s var(--ease-spring)' }}>
+                          <span className="shrink-0 text-[9px] font-700 uppercase tracking-wider text-accent-bright bg-accent-soft px-1.5 py-0.5 rounded-xs" style={{ animation: 'spring-in 0.3s var(--ease-spring)' }}>
                             active filter
                           </span>
                         )}
@@ -195,7 +195,7 @@ export function ProjectList() {
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditingProjectId(project.id); setProjectSheetOpen(true) }}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-[8px] hover:bg-layer-3 transition-all text-text-3/50 hover:text-text-2 cursor-pointer bg-transparent border-none shrink-0"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-sm hover:bg-layer-3 transition-all text-text-3/50 hover:text-text-2 cursor-pointer bg-transparent border-none shrink-0"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                         <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />

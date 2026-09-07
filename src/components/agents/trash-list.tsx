@@ -32,7 +32,7 @@ export function TrashList() {
   if (!agents.length) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-3 p-8 text-center">
-        <div className="w-12 h-12 rounded-[14px] bg-layer-1 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-md bg-layer-1 flex items-center justify-center">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/50">
             <polyline points="3 6 5 6 21 6" />
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -49,7 +49,7 @@ export function TrashList() {
         {agents.map((agent) => (
           <div
             key={agent.id}
-            className="py-3 px-4 rounded-[14px] border border-line-subtle bg-layer-1"
+            className="py-3 px-4 rounded-md border border-line-subtle bg-layer-1"
           >
             <div className="flex items-center gap-2.5">
               <span className="font-display text-[14px] font-600 truncate flex-1 tracking-[-0.01em] text-text-2/70">
@@ -65,7 +65,7 @@ export function TrashList() {
             <div className="flex items-center gap-2 mt-2.5">
               <button
                 onClick={() => handleRestore(agent.id)}
-                className="px-3 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[12px] font-600
+                className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[12px] font-600
                   text-accent-bright cursor-pointer hover:bg-accent-soft transition-all"
                 style={{ fontFamily: 'inherit' }}
               >
@@ -73,7 +73,7 @@ export function TrashList() {
               </button>
               <button
                 onClick={() => setConfirmPermanent(agent)}
-                className="px-3 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[12px] font-600
+                className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[12px] font-600
                   text-red-400 cursor-pointer hover:bg-red-400/10 transition-all"
                 style={{ fontFamily: 'inherit' }}
               >

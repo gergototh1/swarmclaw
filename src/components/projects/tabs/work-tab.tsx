@@ -66,7 +66,7 @@ export function WorkTab() {
           <select
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
-            className="text-[11px] bg-layer-2 border border-line-subtle rounded-[8px] px-2 py-1.5 text-text-2 outline-none"
+            className="text-[11px] bg-layer-2 border border-line-subtle rounded-sm px-2 py-1.5 text-text-2 outline-none"
             style={{ fontFamily: 'inherit' }}
           >
             <option value="status">Sort: Status</option>
@@ -78,7 +78,7 @@ export function WorkTab() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="text-[11px] bg-layer-2 border border-line-subtle rounded-[8px] px-2 py-1.5 text-text-2 outline-none"
+            className="text-[11px] bg-layer-2 border border-line-subtle rounded-sm px-2 py-1.5 text-text-2 outline-none"
             style={{ fontFamily: 'inherit' }}
           >
             <option value="all">All statuses</option>
@@ -94,7 +94,7 @@ export function WorkTab() {
             <select
               value={agentFilter || ''}
               onChange={(e) => setAgentFilter(e.target.value || null)}
-              className="text-[11px] bg-layer-2 border border-line-subtle rounded-[8px] px-2 py-1.5 text-text-2 outline-none"
+              className="text-[11px] bg-layer-2 border border-line-subtle rounded-sm px-2 py-1.5 text-text-2 outline-none"
               style={{ fontFamily: 'inherit' }}
             >
               <option value="">All agents</option>
@@ -118,7 +118,7 @@ export function WorkTab() {
 
         <button
           onClick={() => { setEditingTaskId(null); setTaskSheetOpen(true) }}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
           style={{ fontFamily: 'inherit' }}
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -131,7 +131,7 @@ export function WorkTab() {
 
       {/* Task list */}
       {sortedTasks.length === 0 ? (
-        <div className="rounded-[12px] border border-dashed border-line-default px-5 py-8 text-center">
+        <div className="rounded-md border border-dashed border-line-default px-5 py-8 text-center">
           <p className="text-[12px] text-text-3/40">
             {projectTasks.length === 0 ? 'No tasks yet.' : 'No tasks match the current filters.'}
           </p>
@@ -147,10 +147,10 @@ export function WorkTab() {
               <button
                 key={task.id}
                 onClick={() => { setEditingTaskId(task.id); setTaskSheetOpen(true) }}
-                className="flex items-center gap-3 px-4 py-3 rounded-[10px] border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer text-left w-full"
+                className="flex items-center gap-3 px-4 py-3 rounded-sm border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer text-left w-full"
                 style={{ fontFamily: 'inherit' }}
               >
-                <span className={`shrink-0 px-2 py-0.5 rounded-[5px] text-[10px] font-600 uppercase tracking-wider ${STATUS_STYLES[task.status] || STATUS_STYLES.backlog}`}>
+                <span className={`shrink-0 px-2 py-0.5 rounded-xs text-[10px] font-600 uppercase tracking-wider ${STATUS_STYLES[task.status] || STATUS_STYLES.backlog}`}>
                   {task.status}
                 </span>
                 <div className="flex-1 min-w-0">

@@ -115,7 +115,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
     const displayFile = file ? file.split('/').pop() : null
     return (
       <div className="flex items-center gap-2">
-        <div className="flex-1 min-w-0 px-4 py-3 rounded-[14px] border border-accent-bright/20 bg-accent-soft overflow-hidden">
+        <div className="flex-1 min-w-0 px-4 py-3 rounded-md border border-accent-bright/20 bg-accent-soft overflow-hidden">
           <div className="text-accent-bright text-[14px] font-mono truncate">{displayDir}</div>
           {displayFile && (
             <div className="text-accent-bright/60 text-[12px] font-mono truncate mt-0.5">
@@ -125,7 +125,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
         </div>
         <button
           onClick={onClear}
-          className="shrink-0 px-3 py-3 rounded-[14px] border border-line-default bg-surface text-text-3 text-[13px] cursor-pointer hover:bg-surface-2 transition-colors"
+          className="shrink-0 px-3 py-3 rounded-md border border-line-default bg-surface text-text-3 text-[13px] cursor-pointer hover:bg-surface-2 transition-colors"
           style={{ fontFamily: 'inherit' }}
         >
           Clear
@@ -143,7 +143,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
             <button
               onClick={() => handlePick('folder')}
               disabled={picking !== null}
-              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-[14px] border border-line-default bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-strong transition-all disabled:opacity-40"
+              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-md border border-line-default bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-strong transition-all disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}
             >
               {picking === 'folder' ? (
@@ -160,7 +160,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
             <button
               onClick={() => handlePick('file')}
               disabled={picking !== null}
-              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-[14px] border border-line-default bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-strong transition-all disabled:opacity-40"
+              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-md border border-line-default bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-strong transition-all disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}
             >
               {picking === 'file' ? (
@@ -192,7 +192,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
             onChange={(e) => setPathInput(e.target.value)}
             onKeyDown={handlePathSubmit}
             placeholder="Type a path and press Enter..."
-            className="w-full px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] font-mono outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
+            className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] font-mono outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
           />
 
           {/* Breadcrumb bar */}
@@ -200,7 +200,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
             {parentPath && (
               <button
                 onClick={() => navigateTo(parentPath)}
-                className="shrink-0 w-7 h-7 rounded-[8px] border border-line-subtle bg-surface text-text-3 text-[13px] cursor-pointer hover:bg-surface-2 hover:text-text-2 transition-colors flex items-center justify-center"
+                className="shrink-0 w-7 h-7 rounded-sm border border-line-subtle bg-surface text-text-3 text-[13px] cursor-pointer hover:bg-surface-2 hover:text-text-2 transition-colors flex items-center justify-center"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6" />
@@ -212,7 +212,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
                 {i > 0 && <span className="text-text-3/60 text-[12px] mx-0.5">/</span>}
                 <button
                   onClick={() => navigateTo(bc.path)}
-                  className={`px-2 py-1 rounded-[6px] text-[12px] font-600 cursor-pointer transition-colors
+                  className={`px-2 py-1 rounded-xs text-[12px] font-600 cursor-pointer transition-colors
                     ${i === breadcrumbs.length - 1
                       ? 'text-text bg-layer-2'
                       : 'text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
@@ -235,7 +235,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
           )}
 
           {/* Directory list */}
-          <div className="max-h-[200px] overflow-y-auto rounded-[14px] border border-line-subtle bg-surface divide-y divide-line-subtle">
+          <div className="max-h-[200px] overflow-y-auto rounded-md border border-line-subtle bg-surface divide-y divide-line-subtle">
             {loading ? (
               <div className="py-8 text-center text-[13px] text-text-3/50">Loading...</div>
             ) : filteredDirs.length === 0 ? (
@@ -265,7 +265,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
           <div className="flex gap-3">
             <button
               onClick={() => onChange(currentPath, null)}
-              className="flex-1 py-3 rounded-[14px] border border-accent-bright/20 bg-accent-soft text-accent-bright text-[14px] font-600 cursor-pointer hover:brightness-110 transition-all"
+              className="flex-1 py-3 rounded-md border border-accent-bright/20 bg-accent-soft text-accent-bright text-[14px] font-600 cursor-pointer hover:brightness-110 transition-all"
               style={{ fontFamily: 'inherit' }}
             >
               Select This Directory

@@ -196,7 +196,7 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
   return (
     <div
       ref={ref}
-      className="absolute right-0 bottom-8 z-50 bg-[#13131e] border border-line-default rounded-[12px] shadow-[0_8px_40px_rgba(0,0,0,0.6)] w-[320px] flex flex-col overflow-hidden"
+      className="absolute right-0 bottom-8 z-50 bg-[#13131e] border border-line-default rounded-md shadow-[0_8px_40px_rgba(0,0,0,0.6)] w-[320px] flex flex-col overflow-hidden"
       style={{ animation: 'msg-in 0.15s ease-out both' }}
     >
       {/* Search */}
@@ -207,7 +207,7 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Filter by category or paste emoji..."
-          className="w-full px-2.5 py-1.5 rounded-[8px] bg-layer-2 border border-line-default text-[12px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
+          className="w-full px-2.5 py-1.5 rounded-sm bg-layer-2 border border-line-default text-[12px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
         />
         {search.trim() && (
           <p className="mt-1 px-0.5 text-[10px] text-text-3/55">
@@ -224,7 +224,7 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               title={cat.label}
-              className={`flex-1 py-1 flex items-center justify-center rounded-[6px] text-[14px] cursor-pointer transition-all ${
+              className={`flex-1 py-1 flex items-center justify-center rounded-xs text-[14px] cursor-pointer transition-all ${
                 activeCategory === cat.id ? 'bg-layer-3' : 'hover:bg-layer-2'
               }`}
             >
@@ -243,7 +243,7 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
                 <button
                   key={`${emoji}-${i}`}
                   onClick={() => onSelect(emoji)}
-                  className="w-[34px] h-[34px] flex items-center justify-center rounded-[6px] hover:bg-layer-3 transition-all cursor-pointer text-[18px]"
+                  className="w-[34px] h-[34px] flex items-center justify-center rounded-xs hover:bg-layer-3 transition-all cursor-pointer text-[18px]"
                 >
                   {emoji}
                 </button>
@@ -263,7 +263,7 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
                   <button
                     key={`${emoji}-${i}`}
                     onClick={() => onSelect(emoji)}
-                    className="w-[34px] h-[34px] flex items-center justify-center rounded-[6px] hover:bg-layer-3 transition-all cursor-pointer text-[18px]"
+                    className="w-[34px] h-[34px] flex items-center justify-center rounded-xs hover:bg-layer-3 transition-all cursor-pointer text-[18px]"
                   >
                     {emoji}
                   </button>

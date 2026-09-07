@@ -64,7 +64,7 @@ export function SkillInstallDialog({ open, onClose, skillName, installOptions = 
                 key={m.kind}
                 onClick={() => setSelectedMethod(m.kind)}
                 disabled={installing}
-                className={`px-3 py-1.5 rounded-[8px] text-[12px] font-600 cursor-pointer transition-all border
+                className={`px-3 py-1.5 rounded-sm text-[12px] font-600 cursor-pointer transition-all border
                   ${selectedMethod === m.kind
                     ? 'bg-accent-soft text-accent-bright border-accent-bright/30'
                     : 'bg-transparent text-text-3 border-line-default hover:border-line-strong'
@@ -82,7 +82,7 @@ export function SkillInstallDialog({ open, onClose, skillName, installOptions = 
           <button
             onClick={onClose}
             disabled={installing}
-            className="px-4 py-2 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[13px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+            className="px-4 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[13px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             Cancel
@@ -90,7 +90,7 @@ export function SkillInstallDialog({ open, onClose, skillName, installOptions = 
           <button
             onClick={handleInstall}
             disabled={installing}
-            className="px-4 py-2 rounded-[10px] border-none bg-accent-bright text-white text-[13px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
+            className="px-4 py-2 rounded-sm border-none bg-accent-bright text-white text-[13px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             {installing ? 'Installing...' : 'Install'}

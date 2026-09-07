@@ -222,7 +222,7 @@ function renderToolMediaEntry(
           src={media.url}
           alt={media.name}
           loading="lazy"
-          className="max-w-[400px] rounded-[10px] border border-white/10 cursor-pointer hover:border-white/25 transition-all"
+          className="max-w-[400px] rounded-sm border border-white/10 cursor-pointer hover:border-white/25 transition-all"
           onClick={() => onOpenImage?.({ url: media.url, name: media.name })}
           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
         />
@@ -230,7 +230,7 @@ function renderToolMediaEntry(
           href={media.url}
           download
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-[8px] p-1.5 hover:bg-black/80 opacity-0 group-hover/img:opacity-100 transition-opacity"
+          className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-sm p-1.5 hover:bg-black/80 opacity-0 group-hover/img:opacity-100 transition-opacity"
           title="Download"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
@@ -251,14 +251,14 @@ function renderToolMediaEntry(
         controls
         playsInline
         preload="none"
-        className="max-w-full rounded-[10px] border border-white/10"
+        className="max-w-full rounded-sm border border-white/10"
       />
     )
   }
 
   if (media.kind === 'pdf') {
     return (
-      <div key={key} className="rounded-[10px] border border-white/10 overflow-hidden">
+      <div key={key} className="rounded-sm border border-white/10 overflow-hidden">
         <iframe src={media.url} loading="lazy" className="w-full h-[400px] bg-white" title={media.name} />
         <a
           href={media.url}
@@ -283,7 +283,7 @@ function renderToolMediaEntry(
       href={media.url}
       download
       onClick={(e) => e.stopPropagation()}
-      className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-white/10 bg-surface/60 hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
+      className="flex items-center gap-2 px-3 py-2 rounded-sm border border-white/10 bg-surface/60 hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -628,7 +628,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
       {/* Tool events expanded card (controlled by pill toggle) */}
       {hasToolEvents && effectiveToolSectionOpen && (
         <div className="max-w-[85%] md:max-w-[72%] mb-2" data-testid="tool-activity">
-          <div className="rounded-[16px] border border-line-default bg-surface/72 backdrop-blur-sm overflow-hidden">
+          <div className="rounded-lg border border-line-default bg-surface/72 backdrop-blur-sm overflow-hidden">
             <ToolEventsSection toolEvents={displayToolEvents} controlled />
           </div>
         </div>
@@ -638,7 +638,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
       {/* Thinking block (collapsible, shown for assistant messages with persisted thinking) */}
       {!isUser && effectiveThinking && (
         <div className="max-w-[85%] md:max-w-[72%] mb-2">
-          <details className="group rounded-[12px] border border-purple-500/15 bg-purple-500/[0.04]">
+          <details className="group rounded-md border border-purple-500/15 bg-purple-500/[0.04]">
             <summary className="flex items-center gap-2 px-3.5 py-2.5 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-purple-400/60 shrink-0 transition-transform group-open:rotate-90">
                 <polyline points="9 18 15 12 9 6" />
@@ -686,7 +686,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
         /* Message bubble */
         <div className={`${isStructured ? 'max-w-[92%] md:max-w-[85%]' : 'max-w-[85%] md:max-w-[72%]'} ${isUser ? 'bubble-user px-5 py-3.5' : isHeartbeat ? 'bubble-ai px-4 py-3' : 'bubble-ai px-5 py-3.5'}`}>
           {installRequest ? (
-          <div className="flex flex-col gap-3 p-4 rounded-[18px] bg-emerald-500/[0.03] border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
+          <div className="flex flex-col gap-3 p-4 rounded-lg bg-emerald-500/[0.03] border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -698,7 +698,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               <span className="text-[11px] font-700 uppercase tracking-wider text-emerald-400/80">Extension Installed</span>
             </div>
             <p className="text-[13px] text-text-2/90 leading-relaxed">{installRequest.message}</p>
-            <div className="p-3 rounded-[12px] bg-black/40 border border-white/5 flex flex-col gap-1">
+            <div className="p-3 rounded-md bg-black/40 border border-white/5 flex flex-col gap-1">
               <div className="text-[11px] text-text-3/60 font-600 uppercase tracking-tight">Extension</div>
               <div className="text-[12px] font-mono text-emerald-200/70">{installRequest.filename || installRequest.extensionId || 'extension'}</div>
               <div className="text-[11px] text-text-3/60 font-600 uppercase tracking-tight mt-2">Source URL</div>
@@ -706,7 +706,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
             </div>
           </div>
         ) : scaffoldRequest ? (
-          <div className="flex flex-col gap-3 p-4 rounded-[18px] bg-amber-500/[0.03] border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.05)]">
+          <div className="flex flex-col gap-3 p-4 rounded-lg bg-amber-500/[0.03] border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.05)]">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -716,7 +716,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               <span className="text-[11px] font-700 uppercase tracking-wider text-amber-400/80">Extension Created</span>
             </div>
             <p className="text-[13px] text-text-2/90 leading-relaxed">{scaffoldRequest.message}</p>
-            <div className="p-3 rounded-[12px] bg-black/40 border border-white/5">
+            <div className="p-3 rounded-md bg-black/40 border border-white/5">
               <div className="text-[11px] font-mono text-text-3/60 mb-2 border-b border-white/5 pb-1">filename: {scaffoldRequest.filename}</div>
               {scaffoldRequest.filePath && (
                 <div className="text-[12px] font-mono text-amber-200/70 break-all">
@@ -726,7 +726,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
             </div>
           </div>
         ) : isExtensionUI ? (
-          <div className="flex flex-col gap-2 p-4 rounded-[18px] bg-emerald-500/[0.03] border border-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
+          <div className="flex flex-col gap-2 p-4 rounded-lg bg-emerald-500/[0.03] border border-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5">
@@ -743,7 +743,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                 <button
                   key={action.id}
                   onClick={() => window.open(action.href, '_blank')}
-                  className="px-3 py-1.5 rounded-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[11px] font-600 transition-all border border-emerald-500/10"
+                  className="px-3 py-1.5 rounded-sm bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[11px] font-600 transition-all border border-emerald-500/10"
                 >
                   {action.label}
                 </button>
@@ -755,7 +755,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
             <button
               type="button"
               onClick={() => setHeartbeatExpanded((v) => !v)}
-              className="w-full rounded-[12px] px-3.5 py-3 border border-line-default bg-layer-1 text-left hover:bg-layer-2 transition-colors cursor-pointer"
+              className="w-full rounded-md px-3.5 py-3 border border-line-default bg-layer-1 text-left hover:bg-layer-2 transition-colors cursor-pointer"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -769,7 +769,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                     const meta = parseHeartbeatMeta(message.text)
                     if (!meta?.status) return null
                     const color = STATUS_COLORS[meta.status] || '#6B7280'
-                    return <span className="text-[10px] font-500 px-1.5 py-0.5 rounded-[4px]" style={{ color, background: `${color}18` }}>{meta.status}</span>
+                    return <span className="text-[10px] font-500 px-1.5 py-0.5 rounded-xs" style={{ color, background: `${color}18` }}>{meta.status}</span>
                   })()}
                 </div>
                 <span className="text-[11px] text-text-3">{heartbeatExpanded ? 'Collapse' : 'Expand'}</span>
@@ -798,7 +798,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               })()}
             </button>
             {heartbeatExpanded && (
-              <div className="msg-content text-[14px] leading-[1.7] text-text break-words px-3 py-2 rounded-[10px] border border-line-default bg-black/20">
+              <div className="msg-content text-[14px] leading-[1.7] text-text break-words px-3 py-2 rounded-sm border border-line-default bg-black/20">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}
@@ -853,16 +853,16 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                                     src={preview.href}
                                     alt={preview.label}
                                     loading="lazy"
-                                    className="max-w-[400px] rounded-[10px] border border-white/10 hover:border-white/25 transition-colors"
+                                    className="max-w-[400px] rounded-sm border border-white/10 hover:border-white/25 transition-colors"
                                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                                   />
                                 </a>
                               )}
                               {preview.type === 'video' && (
-                                <video src={preview.href} controls playsInline preload="none" className="max-w-full rounded-[10px] border border-white/10" />
+                                <video src={preview.href} controls playsInline preload="none" className="max-w-full rounded-sm border border-white/10" />
                               )}
                               {preview.type === 'pdf' && (
-                                <span className="block w-full max-w-[520px] overflow-hidden rounded-[10px] border border-white/10">
+                                <span className="block w-full max-w-[520px] overflow-hidden rounded-sm border border-white/10">
                                   <iframe src={preview.href} loading="lazy" className="h-[360px] w-full bg-white" title={preview.label} />
                                 </span>
                               )}
@@ -938,7 +938,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                           </a>
                           {uploadIsHtml && (
                             <a href={href} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-accent-soft hover:bg-accent-soft/80 text-accent-bright text-[10px] font-600 no-underline transition-colors"
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-accent-soft hover:bg-accent-soft/80 text-accent-bright text-[10px] font-600 no-underline transition-colors"
                               title="Preview in new tab">
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -1056,13 +1056,13 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
           <textarea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="w-full min-h-[80px] p-3 rounded-[12px] bg-surface border border-line-default text-text text-[14px] resize-y outline-none focus:border-accent-bright/30"
+            className="w-full min-h-[80px] p-3 rounded-md bg-surface border border-line-default text-text text-[14px] resize-y outline-none focus:border-accent-bright/30"
             style={{ fontFamily: 'inherit' }}
           />
           <div className="flex gap-2 mt-2 justify-end">
             <button
               onClick={() => setEditing(false)}
-              className="px-3 py-1.5 rounded-[8px] text-[11px] font-600 text-text-3 bg-layer-2 hover:bg-layer-3 border-none cursor-pointer transition-colors"
+              className="px-3 py-1.5 rounded-sm text-[11px] font-600 text-text-3 bg-layer-2 hover:bg-layer-3 border-none cursor-pointer transition-colors"
             >
               Cancel
             </button>
@@ -1073,7 +1073,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                   setEditing(false)
                 }
               }}
-              className="px-3 py-1.5 rounded-[8px] text-[11px] font-600 text-white bg-accent-bright hover:bg-accent-bright/80 border-none cursor-pointer transition-colors"
+              className="px-3 py-1.5 rounded-sm text-[11px] font-600 text-white bg-accent-bright hover:bg-accent-bright/80 border-none cursor-pointer transition-colors"
             >
               Save & Resend
             </button>

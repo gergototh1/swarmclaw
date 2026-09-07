@@ -52,7 +52,7 @@ export function ProjectDetailHeader({ project, failedCount, blockedCount, creden
       <div className="px-8 pt-6 pb-4">
         <div className="flex items-center gap-3">
           <div
-            className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 text-[14px] font-700 text-white/90"
+            className="w-8 h-8 rounded-sm flex items-center justify-center shrink-0 text-[14px] font-700 text-white/90"
             style={{ backgroundColor: project.color || '#6366F1' }}
           >
             {project.name.charAt(0).toUpperCase()}
@@ -62,7 +62,7 @@ export function ProjectDetailHeader({ project, failedCount, blockedCount, creden
           </h1>
           <button
             onClick={() => { setEditingProjectId(project.id); setProjectSheetOpen(true) }}
-            className="shrink-0 p-1.5 rounded-[8px] hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none text-text-3/50 hover:text-text-2"
+            className="shrink-0 p-1.5 rounded-sm hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none text-text-3/50 hover:text-text-2"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />

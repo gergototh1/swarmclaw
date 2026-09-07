@@ -91,7 +91,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
             return (
               <div
                 key={card.label}
-                className={`rounded-[12px] border border-line-subtle px-4 py-3 transition-opacity ${isZero ? 'opacity-40' : 'bg-surface/60'}`}
+                className={`rounded-md border border-line-subtle px-4 py-3 transition-opacity ${isZero ? 'opacity-40' : 'bg-surface/60'}`}
               >
                 <div className={`text-[22px] font-display font-700 tracking-[-0.02em] ${isZero ? 'text-text-3/50' : card.tone}`}>
                   {card.value}
@@ -106,7 +106,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
 
       {/* Section 3: Progress */}
       {totalTasks > 0 && (
-        <div className="rounded-[12px] border border-line-subtle bg-layer-1 px-5 py-4">
+        <div className="rounded-md border border-line-subtle bg-layer-1 px-5 py-4">
           <div className="flex items-center justify-between mb-2.5">
             <span className="text-[12px] font-600 text-text-2">Overall Progress</span>
             <span className={`text-[13px] font-mono font-700 ${progressPct === 100 ? 'text-emerald-400' : 'text-text-2'}`}>

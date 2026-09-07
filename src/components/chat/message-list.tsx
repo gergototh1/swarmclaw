@@ -433,7 +433,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <button
                 type="button"
                 onClick={() => void handleDeleteMessage(originalIndex)}
-                className="opacity-0 group-hover/ctx:opacity-100 text-[10px] font-600 text-amber-400/60 hover:text-amber-400 bg-transparent border-none cursor-pointer transition-all px-1.5 py-0.5 rounded-[4px] hover:bg-amber-400/10"
+                className="opacity-0 group-hover/ctx:opacity-100 text-[10px] font-600 text-amber-400/60 hover:text-amber-400 bg-transparent border-none cursor-pointer transition-all px-1.5 py-0.5 rounded-xs hover:bg-amber-400/10"
                 title="Undo — restore full context"
               >
                 Undo
@@ -481,7 +481,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <div className="flex-1 h-px bg-layer-2" />
             </div>
           )}
-          <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-[16px] bg-amber-400/[0.04]' : isSearchMatch ? 'bg-layer-1 rounded-[16px]' : ''}>
+          <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-lg bg-amber-400/[0.04]' : isSearchMatch ? 'bg-layer-1 rounded-lg' : ''}>
             <BubbleComponent
               message={msg}
               assistantName={assistantName}
@@ -673,7 +673,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
   return (
     <div className="relative flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden isolate" data-testid="message-list">
       <div className="shrink-0 px-4 md:px-12 lg:px-16 pt-3">
-        <div className="flex flex-wrap items-center gap-2 rounded-[14px] border border-line-subtle bg-surface/55 px-3 py-2 backdrop-blur-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-line-subtle bg-surface/55 px-3 py-2 backdrop-blur-sm">
           <button
             type="button"
             onClick={() => {
@@ -685,7 +685,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                 openSearch()
               }
             }}
-            className={`inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1.5 text-[11px] font-600 transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-600 transition-colors cursor-pointer ${
               searchOpen
                 ? 'border-accent-bright/25 bg-accent-soft/60 text-accent-bright'
                 : 'border-line-subtle bg-layer-1 text-text-3 hover:text-text-2 hover:bg-layer-2'
@@ -701,7 +701,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
           <button
             type="button"
             onClick={() => setBookmarkFilter((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1.5 text-[11px] font-600 transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-600 transition-colors cursor-pointer ${
               bookmarkFilter
                 ? 'border-amber-400/25 bg-amber-500/10 text-amber-300'
                 : 'border-line-subtle bg-layer-1 text-text-3 hover:text-text-2 hover:bg-layer-2'
@@ -721,7 +721,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                 setSearchIdx(0)
                 setBookmarkFilter(false)
               }}
-              className="inline-flex items-center gap-1.5 rounded-[9px] border border-line-subtle bg-transparent px-2.5 py-1.5 text-[11px] font-600 text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-sm border border-line-subtle bg-transparent px-2.5 py-1.5 text-[11px] font-600 text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
             >
               Reset filters
             </button>
@@ -777,7 +777,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             onClick={() => setSearchIdx((v) => Math.max(0, v - 1))}
             disabled={!searchMatches.length}
             aria-label="Previous match"
-            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-layer-2 disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
+            className="p-1 rounded-xs text-text-3 hover:text-text-2 hover:bg-layer-2 disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m18 15-6-6-6 6" /></svg>
           </button>
@@ -785,14 +785,14 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             onClick={() => setSearchIdx((v) => Math.min(searchMatches.length - 1, v + 1))}
             disabled={!searchMatches.length}
             aria-label="Next match"
-            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-layer-2 disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
+            className="p-1 rounded-xs text-text-3 hover:text-text-2 hover:bg-layer-2 disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
           </button>
           <button
             onClick={() => setBookmarkFilter((v) => !v)}
             aria-label={bookmarkFilter ? 'Show all messages' : 'Show bookmarked only'}
-            className={`p-1 rounded-[6px] hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors ${bookmarkFilter ? 'text-amber-500' : 'text-text-3 hover:text-text-2'}`}
+            className={`p-1 rounded-xs hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors ${bookmarkFilter ? 'text-amber-500' : 'text-text-3 hover:text-text-2'}`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarkFilter ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
@@ -801,7 +801,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
           <button
             onClick={() => { setSearchOpen(false); setSearchQuery(''); setSearchIdx(0) }}
             aria-label="Close search"
-            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors"
+            className="p-1 rounded-xs text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
@@ -882,7 +882,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                       setSearchIdx(0)
                       setBookmarkFilter(false)
                     }}
-                    className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
+                    className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
                   >
                     Clear thread filters
                   </button>

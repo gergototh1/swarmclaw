@@ -26,7 +26,7 @@ export function TraceBlock({ trace }: Props) {
       : '<'
 
   return (
-    <details className={`my-1 rounded-[8px] border ${bgColor} overflow-hidden`} open={trace.collapsed === false || undefined}>
+    <details className={`my-1 rounded-sm border ${bgColor} overflow-hidden`} open={trace.collapsed === false || undefined}>
       <summary className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer select-none transition-colors hover:bg-layer-1 ${labelColor} [&::-webkit-details-marker]:hidden list-none`}>
         <span className="font-mono text-[10px] shrink-0">{icon}</span>
         <span className="text-[11px] font-600 truncate">

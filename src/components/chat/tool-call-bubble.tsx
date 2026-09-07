@@ -424,7 +424,7 @@ function TimeoutQuickFix({ event }: { event: ToolEvent }) {
     <button
       type="button"
       onClick={handleIncrease}
-      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-600
+      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[12px] font-600
         bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20
         cursor-pointer transition-all"
       style={{ fontFamily: 'inherit' }}
@@ -491,7 +491,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
       <details open={isError || isRunning} className="group/tool">
         <summary
           data-testid="tool-call-summary"
-          className="w-full text-left rounded-[12px] border bg-surface/80 backdrop-blur-sm transition-all duration-200 hover:bg-surface-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+          className="w-full text-left rounded-md border bg-surface/80 backdrop-blur-sm transition-all duration-200 hover:bg-surface-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden"
           style={{ borderLeft: `3px solid ${color}`, borderColor: `${color}33` }}
         >
           <div className="flex items-center gap-2.5 px-3.5 py-2.5">
@@ -559,14 +559,14 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
 
         <div className="px-3.5 pb-3 pt-1 space-y-2 border-t border-line-subtle mt-0" onClick={(e) => e.stopPropagation()}>
           <div className="label-mono">Input</div>
-          <pre className="text-[12px] text-text-2 font-mono whitespace-pre-wrap break-all bg-bg/50 rounded-[8px] px-3 py-2 max-h-[200px] overflow-y-auto">
+          <pre className="text-[12px] text-text-2 font-mono whitespace-pre-wrap break-all bg-bg/50 rounded-sm px-3 py-2 max-h-[200px] overflow-y-auto">
             {formattedInput}
           </pre>
           {event.output && (
             <>
               <div className="label-mono mt-2">{isError ? 'Error' : 'Output'}</div>
               {formattedCleanOutput && (
-                <pre className="text-[12px] text-text-2 font-mono whitespace-pre-wrap break-all bg-bg/50 rounded-[8px] px-3 py-2 max-h-[300px] overflow-y-auto">
+                <pre className="text-[12px] text-text-2 font-mono whitespace-pre-wrap break-all bg-bg/50 rounded-sm px-3 py-2 max-h-[300px] overflow-y-auto">
                   {formattedCleanOutput}
                 </pre>
               )}
@@ -586,7 +586,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
                 src={src}
                 alt={`Screenshot ${i + 1}`}
                 loading="lazy"
-                className={`rounded-[10px] border border-white/10 cursor-pointer transition-all duration-200 hover:border-white/25 ${imgExpanded ? 'max-w-full' : 'max-w-[400px]'}`}
+                className={`rounded-sm border border-white/10 cursor-pointer transition-all duration-200 hover:border-white/25 ${imgExpanded ? 'max-w-full' : 'max-w-[400px]'}`}
                 onClick={(e) => { e.stopPropagation(); setImgExpanded(!imgExpanded) }}
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
               />
@@ -596,7 +596,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
                     e.stopPropagation()
                     useChatStore.getState().setPreviewContent({ type: 'image', url: src, title: `${label} — Screenshot` })
                   }}
-                  className="bg-black/60 backdrop-blur-sm rounded-[8px] p-1.5 hover:bg-black/80 border-none cursor-pointer"
+                  className="bg-black/60 backdrop-blur-sm rounded-sm p-1.5 hover:bg-black/80 border-none cursor-pointer"
                   title="Open in side panel"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
@@ -608,7 +608,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
                   href={src}
                   download
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-black/60 backdrop-blur-sm rounded-[8px] p-1.5 hover:bg-black/80"
+                  className="bg-black/60 backdrop-blur-sm rounded-sm p-1.5 hover:bg-black/80"
                   title="Download"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
@@ -627,7 +627,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
       {media.videos.length > 0 && (
         <div className="mt-2 flex flex-col gap-2">
           {media.videos.map((src, i) => (
-            <video key={i} src={src} controls playsInline preload="none" className="max-w-full rounded-[10px] border border-white/10" />
+            <video key={i} src={src} controls playsInline preload="none" className="max-w-full rounded-sm border border-white/10" />
           ))}
         </div>
       )}
@@ -636,7 +636,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
       {media.pdfs.length > 0 && (
         <div className="mt-2 flex flex-col gap-2">
           {media.pdfs.map((file, i) => (
-            <div key={i} className="rounded-[10px] border border-white/10 overflow-hidden">
+            <div key={i} className="rounded-sm border border-white/10 overflow-hidden">
               <iframe src={file.url} loading="lazy" className="w-full h-[400px] bg-white" title={file.name} />
               <a
                 href={file.url}
@@ -665,7 +665,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
               href={file.url}
               download
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-white/10 bg-surface/60 hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
+              className="flex items-center gap-2 px-3 py-2 rounded-sm border border-white/10 bg-surface/60 hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />

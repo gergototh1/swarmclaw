@@ -82,7 +82,7 @@ export function TaskColumn({
 
   return (
     <div
-      className={`flex-1 min-w-[240px] max-w-[320px] min-h-0 flex flex-col rounded-[16px] transition-colors duration-150 ${
+      className={`flex-1 min-w-[240px] max-w-[320px] min-h-0 flex flex-col rounded-lg transition-colors duration-150 ${
         dragOver ? 'bg-accent-bright/[0.04] ring-1 ring-accent-bright/20' : ''
       }`}
       onDragOver={handleDragOver}
@@ -96,7 +96,7 @@ export function TaskColumn({
         {selectionMode && tasks.length > 0 && (
           <button
             onClick={onSelectAll}
-            className={`text-[10px] font-600 px-1.5 py-0.5 rounded-[5px] cursor-pointer border-none transition-colors
+            className={`text-[10px] font-600 px-1.5 py-0.5 rounded-xs cursor-pointer border-none transition-colors
               ${selectedCount === tasks.length && selectedCount > 0
                 ? 'bg-accent-bright/20 text-accent-bright'
                 : 'bg-layer-2 text-text-3 hover:bg-layer-3'}`}
@@ -116,7 +116,7 @@ export function TaskColumn({
             onChange={(e) => setQuickAddValue(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd() }}
             placeholder={`+ Add to ${config.label.toLowerCase()}...`}
-            className="w-full px-3 py-2 rounded-[10px] bg-layer-1 border border-dashed border-line-default text-[12px] text-text placeholder:text-text-3/30 outline-none focus:border-line-strong focus:bg-layer-2 transition-colors"
+            className="w-full px-3 py-2 rounded-sm bg-layer-1 border border-dashed border-line-default text-[12px] text-text placeholder:text-text-3/30 outline-none focus:border-line-strong focus:bg-layer-2 transition-colors"
             style={{ fontFamily: 'inherit' }}
             disabled={adding}
           />
@@ -138,7 +138,7 @@ export function TaskColumn({
           />
         ))}
         {tasks.length === 0 && (
-          <div className={`text-[12px] text-text-3/50 text-center py-8 rounded-[12px] border border-dashed transition-colors ${
+          <div className={`text-[12px] text-text-3/50 text-center py-8 rounded-md border border-dashed transition-colors ${
             dragOver ? 'border-accent-bright/30 text-accent-bright/50' : 'border-transparent'
           }`}>
             {dragOver ? 'Drop here' : 'No tasks'}

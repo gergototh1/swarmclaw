@@ -104,7 +104,7 @@ export function StorageSection(
         Uploaded files from agent tools (screenshots, images, documents). Manage disk usage.
       </p>
 
-      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         {/* Summary */}
         {loading ? (
           <div className="text-[13px] text-text-3/60 animate-pulse">Loading storage info...</div>
@@ -135,7 +135,7 @@ export function StorageSection(
               <button
                 onClick={() => setBrowserOpen(true)}
                 disabled={!data?.count}
-                className="px-4 py-2.5 rounded-[12px] bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer
+                className="px-4 py-2.5 rounded-md bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer
                   hover:brightness-110 active:scale-[0.97] transition-all border border-accent-bright/20
                   disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ fontFamily: 'inherit' }}
@@ -145,7 +145,7 @@ export function StorageSection(
               <button
                 onClick={() => setConfirmAction('clearOld')}
                 disabled={!data?.count}
-                className="px-4 py-2.5 rounded-[12px] bg-layer-2 text-text-2 text-[12px] font-600 cursor-pointer
+                className="px-4 py-2.5 rounded-md bg-layer-2 text-text-2 text-[12px] font-600 cursor-pointer
                   hover:bg-layer-3 active:scale-[0.97] transition-all border border-line-subtle
                   disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ fontFamily: 'inherit' }}
@@ -155,7 +155,7 @@ export function StorageSection(
               <button
                 onClick={() => setConfirmAction('clearAll')}
                 disabled={!data?.count}
-                className="px-4 py-2.5 rounded-[12px] bg-danger/10 text-danger text-[12px] font-600 cursor-pointer
+                className="px-4 py-2.5 rounded-md bg-danger/10 text-danger text-[12px] font-600 cursor-pointer
                   hover:bg-danger/20 active:scale-[0.97] transition-all border border-danger/20
                   disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ fontFamily: 'inherit' }}

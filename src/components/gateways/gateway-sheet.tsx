@@ -287,7 +287,7 @@ export function GatewaySheet() {
     }
   }
 
-  const inputClass = 'w-full px-4 py-3.5 rounded-[14px] border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow'
+  const inputClass = 'w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow'
 
   const applyDeployPatch = (patch: { endpoint?: string; token?: string; name?: string; notes?: string; deployment?: GatewayProfile['deployment'] | Record<string, unknown> | null }) => {
     if (patch.endpoint) {
@@ -382,14 +382,14 @@ export function GatewaySheet() {
             <button
               type="button"
               onClick={() => importFileRef.current?.click()}
-              className="px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
+              className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
             >
               Import JSON
             </button>
             <button
               type="button"
               onClick={handleExportGateway}
-              className="px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
+              className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
             >
               Export JSON
             </button>
@@ -430,18 +430,18 @@ export function GatewaySheet() {
       </div>
 
       {deployment && (
-        <div className="mb-6 rounded-[16px] border border-line-subtle bg-layer-1 p-4">
+        <div className="mb-6 rounded-lg border border-line-subtle bg-layer-1 p-4">
           <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70 mb-2">Deploy metadata</div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[12px] text-text-3/75">
-            <div className="rounded-[12px] border border-line-subtle bg-surface px-3 py-3">
+            <div className="rounded-md border border-line-subtle bg-surface px-3 py-3">
               <div className="uppercase tracking-[0.08em] text-text-3/55">Method</div>
               <div className="mt-1 text-text-2">{deployment.method || 'manual'}</div>
             </div>
-            <div className="rounded-[12px] border border-line-subtle bg-surface px-3 py-3">
+            <div className="rounded-md border border-line-subtle bg-surface px-3 py-3">
               <div className="uppercase tracking-[0.08em] text-text-3/55">Use case</div>
               <div className="mt-1 text-text-2">{deployment.useCase || 'general'}</div>
             </div>
-            <div className="rounded-[12px] border border-line-subtle bg-surface px-3 py-3">
+            <div className="rounded-md border border-line-subtle bg-surface px-3 py-3">
               <div className="uppercase tracking-[0.08em] text-text-3/55">Exposure</div>
               <div className="mt-1 text-text-2">{deployment.exposure || 'manual'}</div>
             </div>
@@ -469,7 +469,7 @@ export function GatewaySheet() {
                     setEndpoint(detectedEndpoint)
                     if (!name.trim()) setName(`Gateway ${item.host}:${item.port}`)
                   }}
-                  className="px-3 py-2 rounded-[10px] border border-line-default bg-layer-1 text-text-2 text-[12px] font-600 hover:bg-layer-2 cursor-pointer transition-all"
+                  className="px-3 py-2 rounded-sm border border-line-default bg-layer-1 text-text-2 text-[12px] font-600 hover:bg-layer-2 cursor-pointer transition-all"
                 >
                   {item.host}:{item.port}
                   {item.models?.length ? ` · ${item.models[0]}` : ''}
@@ -521,7 +521,7 @@ export function GatewaySheet() {
       </div>
 
       {editing && (
-        <div className="mb-8 rounded-[18px] border border-line-subtle bg-layer-1 p-4 md:p-5">
+        <div className="mb-8 rounded-lg border border-line-subtle bg-layer-1 p-4 md:p-5">
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
               <div className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Nodes & Devices</div>
@@ -532,32 +532,32 @@ export function GatewaySheet() {
             <button
               type="button"
               onClick={() => void loadNodesAndDevices(editing.id)}
-              className="px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
+              className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
             >
               {nodesLoading ? 'Refreshing…' : 'Refresh'}
             </button>
           </div>
 
           {nodesError && (
-            <div className="mb-4 rounded-[12px] border border-red-400/20 bg-red-400/[0.06] px-3 py-2 text-[12px] text-red-200">
+            <div className="mb-4 rounded-md border border-red-400/20 bg-red-400/[0.06] px-3 py-2 text-[12px] text-red-200">
               {nodesError}
             </div>
           )}
 
           <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-            <div className="rounded-[12px] border border-line-subtle bg-layer-1 px-3 py-2">
+            <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
               <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3/55">Nodes</div>
               <div className="mt-1 font-display text-[18px] font-700 text-text">{nodes.filter((node) => node.connected).length}/{nodes.length}</div>
             </div>
-            <div className="rounded-[12px] border border-line-subtle bg-layer-1 px-3 py-2">
+            <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
               <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3/55">Pairings</div>
               <div className="mt-1 font-display text-[18px] font-700 text-amber-300">{nodePairings.length + devicePairings.length}</div>
             </div>
-            <div className="rounded-[12px] border border-line-subtle bg-layer-1 px-3 py-2">
+            <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
               <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3/55">Sessions</div>
               <div className="mt-1 font-display text-[18px] font-700 text-text">{gatewaySessions.length}</div>
             </div>
-            <div className={`rounded-[12px] border px-3 py-2 ${
+            <div className={`rounded-md border px-3 py-2 ${
               gatewayTopologyErrors.length > 0
                 ? 'border-rose-400/20 bg-rose-400/[0.06]'
                 : 'border-line-subtle bg-layer-1'
@@ -570,14 +570,14 @@ export function GatewaySheet() {
           </div>
 
           {gatewayTopologyErrors.length > 0 && (
-            <div className="mb-4 rounded-[12px] border border-rose-400/20 bg-rose-400/[0.06] px-3 py-2 text-[12px] text-rose-200">
+            <div className="mb-4 rounded-md border border-rose-400/20 bg-rose-400/[0.06] px-3 py-2 text-[12px] text-rose-200">
               {gatewayTopologyErrors[0]?.method}: {gatewayTopologyErrors[0]?.message}
             </div>
           )}
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <div className="space-y-4">
-              <div className="rounded-[14px] border border-line-subtle bg-surface p-4">
+              <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">Pending Node Pairings</div>
                   <div className="text-[11px] text-text-3/50">{nodePairings.length}</div>
@@ -585,12 +585,12 @@ export function GatewaySheet() {
                 {nodePairings.length > 0 ? (
                   <div className="space-y-2">
                     {nodePairings.map((request) => (
-                      <div key={request.requestId} className="rounded-[12px] border border-line-subtle bg-layer-1 p-3">
+                      <div key={request.requestId} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                         <div className="text-[13px] font-600 text-text-2">{request.displayName || request.nodeId || request.requestId}</div>
                         <div className="text-[11px] text-text-3/60 mt-1">{request.platform || 'Unknown platform'}{request.remoteIp ? ` · ${request.remoteIp}` : ''}</div>
                         <div className="mt-3 flex gap-2">
-                          <button type="button" onClick={() => void handlePairingDecision('node', request.requestId, 'approve')} className="px-2.5 py-1.5 rounded-[8px] bg-emerald-400/10 text-emerald-300 text-[11px] font-700 border-none cursor-pointer hover:bg-emerald-400/15 transition-all">Approve</button>
-                          <button type="button" onClick={() => void handlePairingDecision('node', request.requestId, 'reject')} className="px-2.5 py-1.5 rounded-[8px] bg-red-400/10 text-red-300 text-[11px] font-700 border-none cursor-pointer hover:bg-red-400/15 transition-all">Reject</button>
+                          <button type="button" onClick={() => void handlePairingDecision('node', request.requestId, 'approve')} className="px-2.5 py-1.5 rounded-sm bg-emerald-400/10 text-emerald-300 text-[11px] font-700 border-none cursor-pointer hover:bg-emerald-400/15 transition-all">Approve</button>
+                          <button type="button" onClick={() => void handlePairingDecision('node', request.requestId, 'reject')} className="px-2.5 py-1.5 rounded-sm bg-red-400/10 text-red-300 text-[11px] font-700 border-none cursor-pointer hover:bg-red-400/15 transition-all">Reject</button>
                         </div>
                       </div>
                     ))}
@@ -600,7 +600,7 @@ export function GatewaySheet() {
                 )}
               </div>
 
-              <div className="rounded-[14px] border border-line-subtle bg-surface p-4">
+              <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">Pending Device Pairings</div>
                   <div className="text-[11px] text-text-3/50">{devicePairings.length}</div>
@@ -608,12 +608,12 @@ export function GatewaySheet() {
                 {devicePairings.length > 0 ? (
                   <div className="space-y-2">
                     {devicePairings.map((request) => (
-                      <div key={request.requestId} className="rounded-[12px] border border-line-subtle bg-layer-1 p-3">
+                      <div key={request.requestId} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                         <div className="text-[13px] font-600 text-text-2">{request.displayName || request.deviceId || request.requestId}</div>
                         <div className="text-[11px] text-text-3/60 mt-1">{request.role || 'device'}{request.platform ? ` · ${request.platform}` : ''}{request.remoteIp ? ` · ${request.remoteIp}` : ''}</div>
                         <div className="mt-3 flex gap-2">
-                          <button type="button" onClick={() => void handlePairingDecision('device', request.requestId, 'approve')} className="px-2.5 py-1.5 rounded-[8px] bg-emerald-400/10 text-emerald-300 text-[11px] font-700 border-none cursor-pointer hover:bg-emerald-400/15 transition-all">Approve</button>
-                          <button type="button" onClick={() => void handlePairingDecision('device', request.requestId, 'reject')} className="px-2.5 py-1.5 rounded-[8px] bg-red-400/10 text-red-300 text-[11px] font-700 border-none cursor-pointer hover:bg-red-400/15 transition-all">Reject</button>
+                          <button type="button" onClick={() => void handlePairingDecision('device', request.requestId, 'approve')} className="px-2.5 py-1.5 rounded-sm bg-emerald-400/10 text-emerald-300 text-[11px] font-700 border-none cursor-pointer hover:bg-emerald-400/15 transition-all">Approve</button>
+                          <button type="button" onClick={() => void handlePairingDecision('device', request.requestId, 'reject')} className="px-2.5 py-1.5 rounded-sm bg-red-400/10 text-red-300 text-[11px] font-700 border-none cursor-pointer hover:bg-red-400/15 transition-all">Reject</button>
                         </div>
                       </div>
                     ))}
@@ -625,7 +625,7 @@ export function GatewaySheet() {
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-[14px] border border-line-subtle bg-surface p-4">
+              <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">Connected / Paired Nodes</div>
                   <div className="text-[11px] text-text-3/50">{nodes.length}</div>
@@ -633,7 +633,7 @@ export function GatewaySheet() {
                 {nodes.length > 0 ? (
                   <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
                     {nodes.map((node) => (
-                      <div key={node.nodeId} className="rounded-[12px] border border-line-subtle bg-layer-1 p-3">
+                      <div key={node.nodeId} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-[13px] font-600 text-text-2 truncate">{node.displayName || node.nodeId}</div>
@@ -643,7 +643,7 @@ export function GatewaySheet() {
                               {node.deviceFamily ? ` · ${node.deviceFamily}` : ''}
                             </div>
                           </div>
-                          <div className={`text-[10px] font-700 uppercase tracking-[0.08em] px-2 py-0.5 rounded-[6px] ${
+                          <div className={`text-[10px] font-700 uppercase tracking-[0.08em] px-2 py-0.5 rounded-xs ${
                             node.connected
                               ? 'bg-emerald-400/10 text-emerald-300'
                               : 'bg-layer-2 text-text-3/70'
@@ -664,7 +664,7 @@ export function GatewaySheet() {
                               setInvokeNodeId(node.nodeId)
                               setInvokeCommand(node.commands?.[0] || invokeCommand)
                             }}
-                            className="px-2.5 py-1.5 rounded-[8px] border border-line-default bg-transparent text-text-2 text-[11px] font-700 hover:bg-layer-2 cursor-pointer transition-all"
+                            className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-text-2 text-[11px] font-700 hover:bg-layer-2 cursor-pointer transition-all"
                           >
                             Use in Invoke
                           </button>
@@ -677,7 +677,7 @@ export function GatewaySheet() {
                 )}
               </div>
 
-              <div className="rounded-[14px] border border-line-subtle bg-surface p-4">
+              <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">Paired Devices</div>
                   <div className="text-[11px] text-text-3/50">{pairedDevices.length}</div>
@@ -685,13 +685,13 @@ export function GatewaySheet() {
                 {pairedDevices.length > 0 ? (
                   <div className="space-y-2">
                     {pairedDevices.map((device) => (
-                      <div key={device.deviceId} className="rounded-[12px] border border-line-subtle bg-layer-1 p-3">
+                      <div key={device.deviceId} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-[13px] font-600 text-text-2 truncate">{device.displayName || device.deviceId}</div>
                             <div className="text-[11px] text-text-3/60 mt-1">{device.role || 'device'}{device.platform ? ` · ${device.platform}` : ''}{device.remoteIp ? ` · ${device.remoteIp}` : ''}</div>
                           </div>
-                          <button type="button" onClick={() => void handleRemoveDevice(device.deviceId)} className="px-2.5 py-1.5 rounded-[8px] bg-red-400/10 text-red-300 text-[11px] font-700 border-none cursor-pointer hover:bg-red-400/15 transition-all">Remove</button>
+                          <button type="button" onClick={() => void handleRemoveDevice(device.deviceId)} className="px-2.5 py-1.5 rounded-sm bg-red-400/10 text-red-300 text-[11px] font-700 border-none cursor-pointer hover:bg-red-400/15 transition-all">Remove</button>
                         </div>
                       </div>
                     ))}
@@ -703,7 +703,7 @@ export function GatewaySheet() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-[14px] border border-line-subtle bg-surface p-4">
+          <div className="mt-4 rounded-md border border-line-subtle bg-surface p-4">
             <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70 mb-3">Invoke Node Command</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <select value={invokeNodeId} onChange={(e) => setInvokeNodeId(e.target.value)} className={inputClass}>
@@ -725,12 +725,12 @@ export function GatewaySheet() {
               <p className="text-[11px] text-text-3/55">
                 Use commands exposed by the selected node, such as file, shell, or notification actions that gateway policy allows.
               </p>
-              <button type="button" onClick={handleInvoke} disabled={invoking || !invokeNodeId || !invokeCommand.trim()} className="px-3 py-2 rounded-[10px] bg-accent-bright text-white text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">
+              <button type="button" onClick={handleInvoke} disabled={invoking || !invokeNodeId || !invokeCommand.trim()} className="px-3 py-2 rounded-sm bg-accent-bright text-white text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">
                 {invoking ? 'Sending…' : 'Invoke'}
               </button>
             </div>
             {invokeResult && (
-              <pre className="mt-3 rounded-[12px] border border-line-subtle bg-black/20 p-3 text-[11px] text-text-2/80 overflow-x-auto whitespace-pre-wrap">
+              <pre className="mt-3 rounded-md border border-line-subtle bg-black/20 p-3 text-[11px] text-text-2/80 overflow-x-auto whitespace-pre-wrap">
                 {invokeResult}
               </pre>
             )}
@@ -743,10 +743,10 @@ export function GatewaySheet() {
           {checkMessage || 'Run a health check before saving if you want to verify endpoint + token.'}
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={handleCheck} className="px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer">
+          <button type="button" onClick={handleCheck} className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer">
             {checking ? 'Checking…' : 'Health Check'}
           </button>
-          <button type="button" onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-[10px] bg-accent-bright text-white text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">
+          <button type="button" onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-sm bg-accent-bright text-white text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">
             {saving ? 'Saving…' : (editing ? 'Save Gateway' : 'Create Gateway')}
           </button>
         </div>

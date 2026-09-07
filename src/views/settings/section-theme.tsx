@@ -58,7 +58,7 @@ export function ThemeSection({ appSettings, patchSettings, inputClass }: Setting
         Choose a color scheme and shift the UI palette with a preset or custom hex color.
       </p>
 
-      <div className="inline-grid grid-cols-3 rounded-[8px] border border-line-default bg-layer-1 p-1 mb-5">
+      <div className="inline-grid grid-cols-3 rounded-sm border border-line-default bg-layer-1 p-1 mb-5">
         {THEME_MODES.map(({ id, label, Icon }) => {
           const isActive = currentMode === id
           return (
@@ -67,7 +67,7 @@ export function ThemeSection({ appSettings, patchSettings, inputClass }: Setting
               type="button"
               onClick={() => applyMode(id)}
               aria-pressed={isActive}
-              className={`h-9 px-3 rounded-[6px] flex items-center justify-center gap-2 text-[12px] font-600 transition-colors ${
+              className={`h-9 px-3 rounded-xs flex items-center justify-center gap-2 text-[12px] font-600 transition-colors ${
                 isActive
                   ? 'bg-accent text-white'
                   : 'text-text-3 hover:text-text hover:bg-layer-2'

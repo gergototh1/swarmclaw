@@ -214,7 +214,7 @@ export function SearchDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-[520px] p-0 bg-surface/95 backdrop-blur-xl border-line-default shadow-[0_24px_80px_rgba(0,0,0,0.6)] rounded-[16px] overflow-hidden gap-0"
+        className="sm:max-w-[520px] p-0 bg-surface/95 backdrop-blur-xl border-line-default shadow-[0_24px_80px_rgba(0,0,0,0.6)] rounded-lg overflow-hidden gap-0"
         onKeyDown={handleKeyDown}
       >
         <DialogTitle className="sr-only">Search</DialogTitle>
@@ -232,7 +232,7 @@ export function SearchDialog() {
             className="flex-1 bg-transparent border-none outline-none text-[14px] text-text placeholder:text-text-3/60 font-[inherit]"
             autoFocus
           />
-          <kbd className="px-1.5 py-0.5 rounded-[5px] bg-layer-2 border border-line-default text-[10px] font-mono text-text-3 shrink-0">
+          <kbd className="px-1.5 py-0.5 rounded-xs bg-layer-2 border border-line-default text-[10px] font-mono text-text-3 shrink-0">
             ESC
           </kbd>
         </div>
@@ -264,7 +264,7 @@ export function SearchDialog() {
               style={{ fontFamily: 'inherit' }}
             >
               {/* Type icon */}
-              <div className={`w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0
+              <div className={`w-8 h-8 rounded-sm flex items-center justify-center shrink-0
                 ${idx === selectedIdx ? 'bg-accent-bright/20' : 'bg-layer-2'}`}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                   className={idx === selectedIdx ? 'text-accent-bright' : 'text-text-3'}>

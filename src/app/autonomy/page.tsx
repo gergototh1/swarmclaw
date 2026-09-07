@@ -356,16 +356,16 @@ export default function AutonomyPage() {
     return (
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto max-w-6xl space-y-5 animate-pulse">
-          <div className="h-56 rounded-[24px] border border-line-subtle bg-layer-1" />
+          <div className="h-56 rounded-lg border border-line-subtle bg-layer-1" />
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="h-24 rounded-[16px] border border-line-subtle bg-layer-1" />
-            <div className="h-24 rounded-[16px] border border-line-subtle bg-layer-1" />
-            <div className="h-24 rounded-[16px] border border-line-subtle bg-layer-1" />
-            <div className="h-24 rounded-[16px] border border-line-subtle bg-layer-1" />
+            <div className="h-24 rounded-lg border border-line-subtle bg-layer-1" />
+            <div className="h-24 rounded-lg border border-line-subtle bg-layer-1" />
+            <div className="h-24 rounded-lg border border-line-subtle bg-layer-1" />
+            <div className="h-24 rounded-lg border border-line-subtle bg-layer-1" />
           </div>
           <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-            <div className="h-[420px] rounded-[20px] border border-line-subtle bg-layer-1" />
-            <div className="h-[420px] rounded-[20px] border border-line-subtle bg-layer-1" />
+            <div className="h-[420px] rounded-lg border border-line-subtle bg-layer-1" />
+            <div className="h-[420px] rounded-lg border border-line-subtle bg-layer-1" />
           </div>
         </div>
       </div>
@@ -375,7 +375,7 @@ export default function AutonomyPage() {
   return (
     <div className="flex-1 overflow-y-auto px-6 py-6">
       <div className="mx-auto max-w-6xl space-y-5">
-        <section className="relative overflow-hidden rounded-[24px] border border-line-subtle bg-surface">
+        <section className="relative overflow-hidden rounded-lg border border-line-subtle bg-surface">
           <div className={`absolute inset-0 bg-gradient-to-br ${tone.glow}`} />
           <div className="absolute right-[-60px] top-[-80px] h-48 w-48 rounded-full bg-layer-2 blur-3xl" />
           <div className="relative grid gap-6 p-6 md:p-7 xl:grid-cols-[minmax(0,1.4fr)_320px]">
@@ -405,7 +405,7 @@ export default function AutonomyPage() {
               </div>
             </div>
 
-            <div className={`rounded-[20px] border p-5 backdrop-blur-sm ${tone.panel}`}>
+            <div className={`rounded-lg border p-5 backdrop-blur-sm ${tone.panel}`}>
               <div className="mb-2 text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/65">Current State</div>
               <div className="font-display text-[24px] font-700 tracking-[-0.03em] text-text">{modeLabel}</div>
               <p className="mt-2 text-[13px] leading-[1.7] text-text-3/78">
@@ -463,14 +463,14 @@ export default function AutonomyPage() {
 
         {(error || actionMessage) && (
           <div className="grid gap-3 lg:grid-cols-2">
-            <div className={`rounded-[16px] border px-4 py-3 text-[12px] ${
+            <div className={`rounded-lg border px-4 py-3 text-[12px] ${
               error
                 ? 'border-red-500/20 bg-red-500/[0.06] text-red-200'
                 : 'border-transparent bg-transparent text-transparent'
             }`}>
               {error || ' '}
             </div>
-            <div className={`rounded-[16px] border px-4 py-3 text-[12px] ${
+            <div className={`rounded-lg border px-4 py-3 text-[12px] ${
               actionMessage
                 ? 'border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-200'
                 : 'border-transparent bg-transparent text-transparent'
@@ -480,7 +480,7 @@ export default function AutonomyPage() {
           </div>
         )}
 
-        <section className="rounded-[20px] border border-line-subtle bg-surface p-5">
+        <section className="rounded-lg border border-line-subtle bg-surface p-5">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Orchestrators</h2>
@@ -494,7 +494,7 @@ export default function AutonomyPage() {
           </div>
 
           {orchestrators.length === 0 ? (
-            <div className="flex min-h-[120px] items-center justify-center rounded-[16px] border border-dashed border-line-default bg-layer-1 p-6 text-center">
+            <div className="flex min-h-[120px] items-center justify-center rounded-lg border border-dashed border-line-default bg-layer-1 p-6 text-center">
               <div className="max-w-[320px]">
                 <h3 className="font-display text-[14px] font-700 tracking-[-0.02em] text-text">No orchestrators configured</h3>
                 <p className="mt-2 text-[12px] leading-[1.7] text-text-3/70">
@@ -519,7 +519,7 @@ export default function AutonomyPage() {
                 return (
                   <div
                     key={agent.id}
-                    className={`rounded-[16px] border p-4 ${isDisabled ? 'border-line-subtle bg-layer-1 opacity-60' : 'border-line-subtle bg-layer-1'}`}
+                    className={`rounded-lg border p-4 ${isDisabled ? 'border-line-subtle bg-layer-1 opacity-60' : 'border-line-subtle bg-layer-1'}`}
                   >
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
@@ -581,7 +581,7 @@ export default function AutonomyPage() {
         </section>
 
         <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <section className="rounded-[20px] border border-line-subtle bg-surface p-5">
+          <section className="rounded-lg border border-line-subtle bg-surface p-5">
             <div className="mb-4 flex items-start gap-3">
               <div className="flex-1">
                 <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Operator Actions</h2>
@@ -593,14 +593,14 @@ export default function AutonomyPage() {
                 type="button"
                 onClick={() => void refresh()}
                 disabled={pendingAction === 'refresh'}
-                className="rounded-[10px] border border-line-default bg-layer-1 px-3 py-2 text-[11px] font-700 uppercase tracking-[0.08em] text-text-2 transition-all hover:bg-layer-2 cursor-pointer disabled:cursor-default disabled:opacity-45"
+                className="rounded-sm border border-line-default bg-layer-1 px-3 py-2 text-[11px] font-700 uppercase tracking-[0.08em] text-text-2 transition-all hover:bg-layer-2 cursor-pointer disabled:cursor-default disabled:opacity-45"
               >
                 {pendingAction === 'refresh' ? 'Refreshing' : 'Refresh'}
               </button>
             </div>
 
             <div className="space-y-3">
-              <div className="rounded-[16px] border border-amber-500/16 bg-amber-500/[0.05] p-4">
+              <div className="rounded-lg border border-amber-500/16 bg-amber-500/[0.05] p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="rounded-full bg-amber-500/12 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-amber-300">
                     Background only
@@ -614,13 +614,13 @@ export default function AutonomyPage() {
                   type="button"
                   onClick={() => void engage('autonomy')}
                   disabled={pendingAction !== null || estop?.level === 'autonomy'}
-                  className="mt-4 w-full rounded-[12px] border-none bg-amber-500/14 px-3 py-2.5 text-[12px] font-700 text-amber-200 transition-all hover:bg-amber-500/20 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
+                  className="mt-4 w-full rounded-md border-none bg-amber-500/14 px-3 py-2.5 text-[12px] font-700 text-amber-200 transition-all hover:bg-amber-500/20 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
                 >
                   {pendingAction === 'autonomy' ? 'Engaging autonomy estop...' : estop?.level === 'autonomy' ? 'Autonomy estop active' : 'Engage autonomy estop'}
                 </button>
               </div>
 
-              <div className="rounded-[16px] border border-red-500/16 bg-red-500/[0.05] p-4">
+              <div className="rounded-lg border border-red-500/16 bg-red-500/[0.05] p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="rounded-full bg-red-500/12 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-red-300">
                     Hard stop
@@ -634,13 +634,13 @@ export default function AutonomyPage() {
                   type="button"
                   onClick={() => void engage('all')}
                   disabled={pendingAction !== null || estop?.level === 'all'}
-                  className="mt-4 w-full rounded-[12px] border-none bg-red-500/14 px-3 py-2.5 text-[12px] font-700 text-red-200 transition-all hover:bg-red-500/20 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
+                  className="mt-4 w-full rounded-md border-none bg-red-500/14 px-3 py-2.5 text-[12px] font-700 text-red-200 transition-all hover:bg-red-500/20 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
                 >
                   {pendingAction === 'all' ? 'Engaging full estop...' : estop?.level === 'all' ? 'Full estop active' : 'Engage full estop'}
                 </button>
               </div>
 
-              <div className="rounded-[16px] border border-sky-500/14 bg-sky-500/[0.05] p-4">
+              <div className="rounded-lg border border-sky-500/14 bg-sky-500/[0.05] p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="rounded-full bg-sky-500/12 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-sky-300">
                     Policy
@@ -679,7 +679,7 @@ export default function AutonomyPage() {
                 </div>
               </div>
 
-              <div className="rounded-[16px] border border-line-default bg-layer-1 p-4">
+              <div className="rounded-lg border border-line-default bg-layer-1 p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="rounded-full bg-layer-2 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
                     Recovery
@@ -690,7 +690,7 @@ export default function AutonomyPage() {
                   {recoveryDescription}
                 </p>
                 {approval && (
-                  <div className="mt-3 rounded-[12px] border border-line-default bg-black/10 px-3 py-2.5 text-[11px] text-text-3/70">
+                  <div className="mt-3 rounded-md border border-line-default bg-black/10 px-3 py-2.5 text-[11px] text-text-3/70">
                     <div className="flex items-center justify-between gap-3">
                       <span>Approval id</span>
                       <span className="font-mono text-text-2">{approval.id}</span>
@@ -706,7 +706,7 @@ export default function AutonomyPage() {
                     type="button"
                     onClick={() => void resumeNow()}
                     disabled={pendingAction !== null || estop?.level === 'none'}
-                    className="mt-4 w-full rounded-[12px] border border-emerald-500/18 bg-emerald-500/12 px-3 py-2.5 text-[12px] font-700 text-emerald-200 transition-all hover:bg-emerald-500/18 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
+                    className="mt-4 w-full rounded-md border border-emerald-500/18 bg-emerald-500/12 px-3 py-2.5 text-[12px] font-700 text-emerald-200 transition-all hover:bg-emerald-500/18 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
                   >
                     {pendingAction === 'resume' ? 'Resuming autonomy...' : estop?.level === 'none' ? 'No estop active' : 'Resume now'}
                   </button>
@@ -716,7 +716,7 @@ export default function AutonomyPage() {
                       type="button"
                       onClick={() => void approveAndResume()}
                       disabled={pendingAction !== null || estop?.level === 'none'}
-                      className="rounded-[12px] border border-emerald-500/18 bg-emerald-500/12 px-3 py-2.5 text-[12px] font-700 text-emerald-200 transition-all hover:bg-emerald-500/18 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
+                      className="rounded-md border border-emerald-500/18 bg-emerald-500/12 px-3 py-2.5 text-[12px] font-700 text-emerald-200 transition-all hover:bg-emerald-500/18 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
                     >
                       {pendingAction === 'approve' ? 'Approving and resuming...' : 'Approve and resume'}
                     </button>
@@ -724,7 +724,7 @@ export default function AutonomyPage() {
                       type="button"
                       onClick={() => void rejectResume()}
                       disabled={pendingAction !== null}
-                      className="rounded-[12px] border border-line-default bg-layer-2 px-3 py-2.5 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
+                      className="rounded-md border border-line-default bg-layer-2 px-3 py-2.5 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
                     >
                       {pendingAction === 'reject' ? 'Rejecting...' : 'Reject'}
                     </button>
@@ -734,7 +734,7 @@ export default function AutonomyPage() {
                     type="button"
                     onClick={() => void resumeNow(approval.id)}
                     disabled={pendingAction !== null || estop?.level === 'none'}
-                    className="mt-4 w-full rounded-[12px] border border-emerald-500/18 bg-emerald-500/12 px-3 py-2.5 text-[12px] font-700 text-emerald-200 transition-all hover:bg-emerald-500/18 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
+                    className="mt-4 w-full rounded-md border border-emerald-500/18 bg-emerald-500/12 px-3 py-2.5 text-[12px] font-700 text-emerald-200 transition-all hover:bg-emerald-500/18 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
                   >
                     {pendingAction === 'resume' ? 'Resuming autonomy...' : estop?.level === 'none' ? 'No estop active' : 'Resume now'}
                   </button>
@@ -743,7 +743,7 @@ export default function AutonomyPage() {
                     type="button"
                     onClick={() => void resumeNow()}
                     disabled={pendingAction !== null || estop?.level === 'none'}
-                    className="mt-4 w-full rounded-[12px] border border-line-default bg-layer-2 px-3 py-2.5 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
+                    className="mt-4 w-full rounded-md border border-line-default bg-layer-2 px-3 py-2.5 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-45"
                   >
                     {pendingAction === 'resume'
                       ? 'Requesting resume approval...'
@@ -758,7 +758,7 @@ export default function AutonomyPage() {
             </div>
           </section>
 
-          <section className="rounded-[20px] border border-line-subtle bg-surface p-5">
+          <section className="rounded-lg border border-line-subtle bg-surface p-5">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
               <div className="flex-1">
                 <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Recent Incidents</h2>
@@ -786,9 +786,9 @@ export default function AutonomyPage() {
             </div>
 
             {filteredIncidents.length === 0 ? (
-              <div className="flex min-h-[280px] items-center justify-center rounded-[18px] border border-dashed border-line-default bg-layer-1 p-8 text-center">
+              <div className="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed border-line-default bg-layer-1 p-8 text-center">
                 <div className="max-w-[320px]">
-                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] border border-line-default bg-layer-1 text-text-3/55">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-line-default bg-layer-1 text-text-3/55">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 3l7 3v6c0 4.4-2.92 8.46-7 9-4.08-.54-7-4.6-7-9V6l7-3z" />
                       <path d="M9.5 12.5l1.7 1.7 3.3-4.2" />
@@ -809,7 +809,7 @@ export default function AutonomyPage() {
                   return (
                     <article
                       key={incident.id}
-                      className="relative overflow-hidden rounded-[16px] border border-line-subtle bg-layer-1 p-4 transition-all hover:bg-layer-2"
+                      className="relative overflow-hidden rounded-lg border border-line-subtle bg-layer-1 p-4 transition-all hover:bg-layer-2"
                     >
                       <div className={`absolute inset-y-0 left-0 w-1 ${severity.rail}`} />
                       <div className="pl-2">
@@ -840,7 +840,7 @@ export default function AutonomyPage() {
                         </div>
 
                         {incident.remediation && (
-                          <div className="mt-3 rounded-[12px] border border-emerald-500/14 bg-emerald-500/[0.05] px-3 py-2.5">
+                          <div className="mt-3 rounded-md border border-emerald-500/14 bg-emerald-500/[0.05] px-3 py-2.5">
                             <div className="mb-1 text-[10px] font-700 uppercase tracking-[0.08em] text-emerald-300/85">Remediation</div>
                             <div className="text-[12px] leading-[1.7] text-emerald-100/80 whitespace-pre-wrap">{incident.remediation}</div>
                           </div>
@@ -859,7 +859,7 @@ export default function AutonomyPage() {
                               )
                             }
                             return (
-                              <div className={`mt-3 rounded-[12px] border px-3 py-2.5 ${
+                              <div className={`mt-3 rounded-md border px-3 py-2.5 ${
                                 isHtmlPayload
                                   ? 'border-red-500/16 bg-red-500/[0.05]'
                                   : 'border-line-default bg-layer-1'
@@ -867,7 +867,7 @@ export default function AutonomyPage() {
                                 <div className="text-[12px] leading-[1.7] text-text-2/82 whitespace-pre-wrap break-words">
                                   {detailsPreview}
                                 </div>
-                                <details className="mt-2 rounded-[10px] border border-line-subtle bg-black/10">
+                                <details className="mt-2 rounded-sm border border-line-subtle bg-black/10">
                                   <summary className="cursor-pointer list-none px-3 py-2 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/62 [&::-webkit-details-marker]:hidden">
                                     {isHtmlPayload ? 'Show raw payload' : 'Show full details'}
                                   </summary>
@@ -881,7 +881,7 @@ export default function AutonomyPage() {
                         )}
 
                         {incident.repairPrompt && (
-                          <div className="mt-3 rounded-[12px] border border-line-default bg-black/10 px-3 py-2.5">
+                          <div className="mt-3 rounded-md border border-line-default bg-black/10 px-3 py-2.5">
                             <div className="mb-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/60">Repair Prompt</div>
                             <div className="text-[12px] leading-[1.7] text-text-2/88 whitespace-pre-wrap">{incident.repairPrompt}</div>
                           </div>

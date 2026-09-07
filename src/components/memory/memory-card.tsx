@@ -25,7 +25,7 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
   return (
     <div
       onClick={onClick}
-      className={`relative py-3 px-4 cursor-pointer rounded-[14px]
+      className={`relative py-3 px-4 cursor-pointer rounded-md
         transition-all duration-200 active:scale-[0.98]
         ${active
           ? 'bg-accent-soft border border-accent-bright/10'
@@ -35,11 +35,11 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
         <div className="absolute left-0 top-3 bottom-3 w-[2.5px] rounded-full bg-accent-bright" />
       )}
       <div className="flex items-center gap-2">
-        <span className="shrink-0 text-[9px] font-700 uppercase tracking-wider text-accent-bright/70 bg-accent-soft px-1.5 py-0.5 rounded-[5px]">
+        <span className="shrink-0 text-[9px] font-700 uppercase tracking-wider text-accent-bright/70 bg-accent-soft px-1.5 py-0.5 rounded-xs">
           {entry.category || 'note'}
         </span>
         {isDreamOrigin && (
-          <span className="shrink-0 text-[9px] font-700 uppercase tracking-wider text-violet-300/70 bg-violet-400/10 px-1.5 py-0.5 rounded-[5px]">
+          <span className="shrink-0 text-[9px] font-700 uppercase tracking-wider text-violet-300/70 bg-violet-400/10 px-1.5 py-0.5 rounded-xs">
             dream
           </span>
         )}
@@ -57,10 +57,10 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
         {entry.content || '(empty)'}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="px-1.5 py-0.5 rounded-[5px] text-[9px] font-700 uppercase tracking-[0.08em] bg-layer-2 text-text-3/75">
+        <span className="px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.08em] bg-layer-2 text-text-3/75">
           {getMemoryScopeLabel(scope)}
         </span>
-        <span className={`px-1.5 py-0.5 rounded-[5px] text-[9px] font-700 uppercase tracking-[0.08em] ${
+        <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.08em] ${
           tier === 'working'
             ? 'bg-amber-400/10 text-amber-300'
             : tier === 'archive'
@@ -71,7 +71,7 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
         </span>
       </div>
       {(entry.image?.path || entry.imagePath) && (
-        <div className="mt-2 w-10 h-10 rounded-[6px] overflow-hidden bg-layer-2 shrink-0">
+        <div className="mt-2 w-10 h-10 rounded-xs overflow-hidden bg-layer-2 shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={

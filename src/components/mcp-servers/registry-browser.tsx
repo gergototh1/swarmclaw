@@ -137,7 +137,7 @@ export function RegistryBrowser({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
-        className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-[20px] border border-line-default bg-surface"
+        className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-line-default bg-surface"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line-subtle px-6 py-4">
@@ -165,7 +165,7 @@ export function RegistryBrowser({
             placeholder="Search — e.g. postgres, pdf, github"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-[12px] border border-line-default bg-surface-2 px-4 py-2.5 text-[14px] outline-none focus-glow"
+            className="w-full rounded-md border border-line-default bg-surface-2 px-4 py-2.5 text-[14px] outline-none focus-glow"
             style={{ fontFamily: 'inherit' }}
             autoFocus
           />
@@ -186,7 +186,7 @@ export function RegistryBrowser({
                     type="button"
                     onClick={() => handleSelect(server.slug)}
                     disabled={selecting !== null}
-                    className="group flex w-full flex-col gap-1 rounded-[12px] border border-transparent px-3 py-2.5 text-left transition-all hover:border-line-default hover:bg-surface-2 disabled:opacity-60"
+                    className="group flex w-full flex-col gap-1 rounded-md border border-transparent px-3 py-2.5 text-left transition-all hover:border-line-default hover:bg-surface-2 disabled:opacity-60"
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-[14px] font-600 group-hover:text-accent-bright">{server.name}</span>

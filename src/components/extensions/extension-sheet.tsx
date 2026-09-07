@@ -249,7 +249,7 @@ export function ExtensionSheet() {
   const installedFilenames = new Set(Object.keys(extensions))
 
   const tabClass = (t: string) =>
-    `py-2.5 px-4 rounded-[10px] text-center cursor-pointer transition-all text-[12px] font-600 border
+    `py-2.5 px-4 rounded-sm text-center cursor-pointer transition-all text-[12px] font-600 border
     ${tab === t
       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
       : 'bg-bg border-line-subtle text-text-3 hover:bg-surface-2'}`
@@ -258,7 +258,7 @@ export function ExtensionSheet() {
     <BottomSheet open={open} onClose={handleClose}>
       {editing ? (
         <div className="space-y-5">
-          <div className="py-4 px-4 rounded-[14px] bg-surface border border-line-subtle">
+          <div className="py-4 px-4 rounded-md bg-surface border border-line-subtle">
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -276,7 +276,7 @@ export function ExtensionSheet() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
-              <div className="rounded-[10px] bg-bg/50 border border-line-subtle px-2.5 py-2">
+              <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
                 <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Type</div>
                 <div className="text-[11px] text-text-2">
                   {editing.isBuiltin
@@ -288,11 +288,11 @@ export function ExtensionSheet() {
                         : 'Local Extension'}
                 </div>
               </div>
-              <div className="rounded-[10px] bg-bg/50 border border-line-subtle px-2.5 py-2">
+              <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
                 <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Publisher</div>
                 <div className="text-[11px] text-text-2">{getExtensionSourceLabel(editing.sourceLabel)}</div>
               </div>
-              <div className="rounded-[10px] bg-bg/50 border border-line-subtle px-2.5 py-2">
+              <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
                 <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Installed Via</div>
                 <div className="text-[11px] text-text-2">{getExtensionSourceLabel(editing.installSource || editing.sourceLabel)}</div>
               </div>
@@ -324,7 +324,7 @@ export function ExtensionSheet() {
             </div>
 
             {editing.autoDisabled && (
-              <div className="mt-3 p-2.5 rounded-[10px] bg-amber-500/[0.06] border border-amber-500/20 text-[11px] text-amber-300/90">
+              <div className="mt-3 p-2.5 rounded-sm bg-amber-500/[0.06] border border-amber-500/20 text-[11px] text-amber-300/90">
                 Auto-disabled after {editing.failureCount ?? 0} failures
                 {editing.lastFailureStage ? ` at ${editing.lastFailureStage}` : ''}.
                 {editing.lastFailureError ? ` ${editing.lastFailureError}` : ''}
@@ -333,7 +333,7 @@ export function ExtensionSheet() {
           </div>
 
           {(editing.hasDependencyManifest || !editing.isBuiltin) && (
-            <div className="py-4 px-4 rounded-[14px] bg-surface border border-line-subtle">
+            <div className="py-4 px-4 rounded-md bg-surface border border-line-subtle">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[13px] font-600 text-text">Dependencies</div>
@@ -347,7 +347,7 @@ export function ExtensionSheet() {
                   <button
                     onClick={() => { void installDependencies() }}
                     disabled={dependencyInstalling}
-                    className="px-3 py-2 rounded-[10px] bg-accent-soft text-[11px] font-700 text-accent-bright hover:bg-accent-bright/15 transition-all cursor-pointer border-none disabled:opacity-50"
+                    className="px-3 py-2 rounded-sm bg-accent-soft text-[11px] font-700 text-accent-bright hover:bg-accent-bright/15 transition-all cursor-pointer border-none disabled:opacity-50"
                     style={{ fontFamily: 'inherit' }}
                   >
                     {dependencyInstalling ? 'Installing…' : 'Install / Refresh'}
@@ -356,18 +356,18 @@ export function ExtensionSheet() {
               </div>
 
               <div className="grid grid-cols-2 gap-2 mt-3">
-                <div className="rounded-[10px] bg-bg/50 border border-line-subtle px-2.5 py-2">
+                <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
                   <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Runtime deps</div>
                   <div className="text-[11px] text-text-2">{editing.dependencyCount ?? 0}</div>
                 </div>
-                <div className="rounded-[10px] bg-bg/50 border border-line-subtle px-2.5 py-2">
+                <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
                   <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Status</div>
                   <div className="text-[11px] text-text-2">{editing.dependencyInstallStatus || 'none'}</div>
                 </div>
               </div>
 
               {editing.dependencyInstallError && (
-                <div className="mt-3 p-2.5 rounded-[10px] bg-red-500/[0.08] border border-red-500/20 text-[11px] text-red-300/90">
+                <div className="mt-3 p-2.5 rounded-sm bg-red-500/[0.08] border border-red-500/20 text-[11px] text-red-300/90">
                   {editing.dependencyInstallError}
                 </div>
               )}
@@ -387,7 +387,7 @@ export function ExtensionSheet() {
             </div>
           )}
 
-          <div className="flex items-center justify-between py-3 px-4 rounded-[14px] bg-surface border border-line-subtle">
+          <div className="flex items-center justify-between py-3 px-4 rounded-md bg-surface border border-line-subtle">
             <div>
               <span className="text-[13px] font-600 text-text block">Enabled</span>
               <span className="text-[11px] text-text-3/60">Disable to keep the extension installed but inactive.</span>
@@ -403,7 +403,7 @@ export function ExtensionSheet() {
           </div>
 
           {editing.settingsFields && editing.settingsFields.length > 0 && (
-            <div className="py-4 px-4 rounded-[14px] bg-surface border border-line-subtle space-y-3">
+            <div className="py-4 px-4 rounded-md bg-surface border border-line-subtle space-y-3">
               <div className="text-[13px] font-600 text-text">Settings</div>
               {extensionSettingsLoading ? (
                 <p className="text-[11px] text-text-3/60">Loading...</p>
@@ -421,7 +421,7 @@ export function ExtensionSheet() {
                   <button
                     onClick={saveExtensionSettings}
                     disabled={extensionSettingsSaving}
-                    className="w-full py-2 rounded-[10px] text-[12px] font-600 bg-accent-soft text-accent-bright border border-accent-bright/20
+                    className="w-full py-2 rounded-sm text-[12px] font-600 bg-accent-soft text-accent-bright border border-accent-bright/20
                       hover:bg-accent-soft/80 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-default mt-1"
                     style={{ fontFamily: 'inherit' }}
                   >
@@ -436,7 +436,7 @@ export function ExtensionSheet() {
             <button
               onClick={() => setConfirmDelete(true)}
               disabled={deleting}
-              className="w-full py-2.5 rounded-[10px] text-[13px] font-600 bg-red-500/10 text-red-400 border border-red-500/20
+              className="w-full py-2.5 rounded-sm text-[13px] font-600 bg-red-500/10 text-red-400 border border-red-500/20
                 hover:bg-red-500/20 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-default"
               style={{ fontFamily: 'inherit' }}
             >
@@ -485,7 +485,7 @@ export function ExtensionSheet() {
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
                           placeholder="Search extensions..."
-                          className="w-full px-3 py-2.5 rounded-[10px] bg-bg border border-line-subtle text-[12px] text-text placeholder:text-text-3/50 outline-none focus:border-accent-bright/30"
+                          className="w-full px-3 py-2.5 rounded-sm bg-bg border border-line-subtle text-[12px] text-text placeholder:text-text-3/50 outline-none focus:border-accent-bright/30"
                           style={{ fontFamily: 'inherit' }}
                         />
 
@@ -493,7 +493,7 @@ export function ExtensionSheet() {
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <button
                             onClick={() => setActiveTag(null)}
-                            className={`px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none ${
+                            className={`px-2 py-1 rounded-xs text-[10px] font-600 cursor-pointer transition-all border-none ${
                               !activeTag ? 'bg-accent-soft text-accent-bright' : 'bg-layer-1 text-text-3/60 hover:text-text-3'
                             }`}
                           >
@@ -503,7 +503,7 @@ export function ExtensionSheet() {
                             <button
                               key={t}
                               onClick={() => setActiveTag(activeTag === t ? null : t)}
-                              className={`px-2 py-1 rounded-[6px] text-[10px] font-600 cursor-pointer transition-all border-none ${
+                              className={`px-2 py-1 rounded-xs text-[10px] font-600 cursor-pointer transition-all border-none ${
                                 activeTag === t ? 'bg-accent-soft text-accent-bright' : 'bg-layer-1 text-text-3/60 hover:text-text-3'
                               }`}
                             >
@@ -514,7 +514,7 @@ export function ExtensionSheet() {
                           <select
                             value={sort}
                             onChange={(e) => setSort(e.target.value as 'name' | 'downloads')}
-                            className="px-2 py-1 rounded-[6px] bg-bg border border-line-subtle text-[10px] text-text-3 outline-none cursor-pointer appearance-none"
+                            className="px-2 py-1 rounded-xs bg-bg border border-line-subtle text-[10px] text-text-3 outline-none cursor-pointer appearance-none"
                             style={{ fontFamily: 'inherit' }}
                           >
                             <option value="downloads">Popular</option>
@@ -530,7 +530,7 @@ export function ExtensionSheet() {
                             {filtered.map((p) => {
                               const isInstalled = installedFilenames.has(`${p.id}.js`)
                               return (
-                                <div key={p.id} className="py-3.5 px-4 rounded-[14px] bg-surface border border-line-subtle">
+                                <div key={p.id} className="py-3.5 px-4 rounded-md bg-surface border border-line-subtle">
                                   <div className="flex items-start gap-3">
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2">
@@ -570,7 +570,7 @@ export function ExtensionSheet() {
                                     <button
                                       onClick={() => !isInstalled && installFromMarketplace(p)}
                                       disabled={isInstalled || installing === p.id}
-                                      className={`shrink-0 py-2 px-4 rounded-[10px] text-[12px] font-600 transition-all cursor-pointer
+                                      className={`shrink-0 py-2 px-4 rounded-sm text-[12px] font-600 transition-all cursor-pointer
                                         ${isInstalled
                                           ? 'bg-layer-2 text-text-3/70 cursor-default'
                                           : installing === p.id
@@ -592,7 +592,7 @@ export function ExtensionSheet() {
           )}
 
           {tab === 'url' && (
-            <div className="p-5 rounded-[14px] bg-surface border border-line-subtle">
+            <div className="p-5 rounded-md bg-surface border border-line-subtle">
               <div className="mb-4">
                 <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Extension URL</label>
                 <input
@@ -600,7 +600,7 @@ export function ExtensionSheet() {
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   placeholder="https://example.com/my-extension.js"
-                  className="w-full py-2.5 px-3 rounded-[10px] text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3/60 outline-none focus:border-accent-bright/30"
+                  className="w-full py-2.5 px-3 rounded-sm text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3/60 outline-none focus:border-accent-bright/30"
                   style={{ fontFamily: 'inherit' }}
                 />
               </div>
@@ -611,14 +611,14 @@ export function ExtensionSheet() {
                   value={urlFilename}
                   onChange={(e) => setUrlFilename(e.target.value)}
                   placeholder="my-extension.js"
-                  className="w-full py-2.5 px-3 rounded-[10px] text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3/60 outline-none focus:border-accent-bright/30"
+                  className="w-full py-2.5 px-3 rounded-sm text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3/60 outline-none focus:border-accent-bright/30"
                   style={{ fontFamily: 'inherit' }}
                 />
               </div>
               <button
                 onClick={installFromUrl}
                 disabled={!urlInput || !urlFilename || installing === 'url'}
-                className="w-full py-2.5 rounded-[10px] text-[13px] font-600 bg-accent-soft text-accent-bright border border-accent-bright/20
+                className="w-full py-2.5 rounded-sm text-[13px] font-600 bg-accent-soft text-accent-bright border border-accent-bright/20
                   hover:bg-accent-soft/80 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-default"
                 style={{ fontFamily: 'inherit' }}
               >
@@ -664,7 +664,7 @@ function ExtensionSettingRow({
   configured: boolean
   onChange: (v: unknown) => void
 }) {
-  const inputCls = 'w-full py-2 px-3 rounded-[8px] text-[12px] bg-bg border border-line-subtle text-text placeholder:text-text-3/50 outline-none focus:border-accent-bright/30'
+  const inputCls = 'w-full py-2 px-3 rounded-sm text-[12px] bg-bg border border-line-subtle text-text placeholder:text-text-3/50 outline-none focus:border-accent-bright/30'
 
   return (
     <div>

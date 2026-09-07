@@ -147,7 +147,7 @@ export function GatewayConnectionPanel() {
         <span className={`w-2 h-2 rounded-full ${dotColor}`} />
         <span className="text-[13px] font-600 text-text capitalize">{status}</span>
         {actionableIssues.length > 0 && (
-          <span className="ml-auto px-2 py-0.5 rounded-[6px] bg-amber-400/10 text-amber-400 text-[10px] font-700">
+          <span className="ml-auto px-2 py-0.5 rounded-xs bg-amber-400/10 text-amber-400 text-[10px] font-700">
             {actionableIssues.length} issue{actionableIssues.length !== 1 ? 's' : ''}
           </span>
         )}
@@ -160,7 +160,7 @@ export function GatewayConnectionPanel() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="ws://127.0.0.1:18789"
-          className="w-full px-3 py-2 rounded-[10px] border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-line-default transition-colors"
+          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-line-default transition-colors"
         />
       </div>
 
@@ -171,7 +171,7 @@ export function GatewayConnectionPanel() {
           value={token}
           onChange={(e) => setToken(e.target.value)}
           placeholder="Access token"
-          className="w-full px-3 py-2 rounded-[10px] border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-line-default transition-colors"
+          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-line-default transition-colors"
         />
       </div>
 
@@ -180,7 +180,7 @@ export function GatewayConnectionPanel() {
           <button
             onClick={handleConnect}
             disabled={status === 'connecting'}
-            className="px-4 py-2 rounded-[10px] border-none bg-accent-bright text-white text-[12px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
+            className="px-4 py-2 rounded-sm border-none bg-accent-bright text-white text-[12px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             {status === 'connecting' ? 'Connecting...' : 'Connect'}
@@ -188,7 +188,7 @@ export function GatewayConnectionPanel() {
         ) : (
           <button
             onClick={handleDisconnect}
-            className="px-4 py-2 rounded-[10px] border border-line-default bg-transparent text-red-400 text-[12px] font-600 cursor-pointer transition-all hover:bg-red-400/10"
+            className="px-4 py-2 rounded-sm border border-line-default bg-transparent text-red-400 text-[12px] font-600 cursor-pointer transition-all hover:bg-red-400/10"
             style={{ fontFamily: 'inherit' }}
           >
             Disconnect
@@ -196,7 +196,7 @@ export function GatewayConnectionPanel() {
         )}
         <button
           onClick={checkStatus}
-          className="px-4 py-2 rounded-[10px] border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2"
+          className="px-4 py-2 rounded-sm border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2"
           style={{ fontFamily: 'inherit' }}
         >
           Refresh
@@ -217,7 +217,7 @@ export function GatewayConnectionPanel() {
                 key={rm.value}
                 onClick={() => handleReloadModeChange(rm.value)}
                 disabled={reloadSaving}
-                className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border
+                className={`px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all border
                   ${reloadMode === rm.value
                     ? 'bg-accent-soft text-accent-bright border-accent-bright/30'
                     : 'bg-transparent text-text-3 border-line-subtle hover:border-line-default'
@@ -242,7 +242,7 @@ export function GatewayConnectionPanel() {
           {actionableIssues.map((issue, idx) => (
             <div
               key={issue.id}
-              className={`flex items-start gap-3 p-3 rounded-[10px] border ${
+              className={`flex items-start gap-3 p-3 rounded-sm border ${
                 issue.severity === 'error'
                   ? 'bg-red-400/[0.04] border-red-400/20'
                   : 'bg-amber-400/[0.04] border-amber-400/20'
@@ -264,7 +264,7 @@ export function GatewayConnectionPanel() {
                 <button
                   onClick={() => handleRepair(issue.repairAction!)}
                   disabled={repairingId === issue.repairAction}
-                  className="shrink-0 px-3 py-1 rounded-[7px] border-none bg-accent-bright text-white text-[10px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
+                  className="shrink-0 px-3 py-1 rounded-xs border-none bg-accent-bright text-white text-[10px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {repairingId === issue.repairAction ? 'Repairing...' : 'Repair'}

@@ -15,7 +15,7 @@ export function EmptyState({ icon, title, subtitle, className, action }: Props) 
   return (
     <div className={`flex-1 flex flex-col items-center justify-center gap-4 text-text-3 p-8 text-center group/empty ${className ?? ''}`}>
       <div
-        className="w-14 h-14 rounded-[16px] bg-accent-soft flex items-center justify-center mb-1 relative"
+        className="w-14 h-14 rounded-lg bg-accent-soft flex items-center justify-center mb-1 relative"
         style={{ animation: 'float 4s ease-in-out infinite' }}
       >
         <div className="text-accent-bright transition-transform duration-500 group-hover/empty:scale-110 group-hover/empty:rotate-[10deg]">
@@ -32,7 +32,7 @@ export function EmptyState({ icon, title, subtitle, className, action }: Props) 
         <Button
           variant="accent"
           onClick={action.onClick}
-          className="mt-3 px-8 py-3 rounded-[14px] text-[14px] cursor-pointer active:scale-95 shadow-[0_4px_16px_rgba(99,102,241,0.2)] relative overflow-hidden group/btn"
+          className="mt-3 px-8 py-3 rounded-md text-[14px] cursor-pointer active:scale-95 shadow-[0_4px_16px_rgba(99,102,241,0.2)] relative overflow-hidden group/btn"
           style={{ animation: 'spring-in 0.6s var(--ease-spring) 0.2s both' }}
         >
           <span className="relative z-10">{action.label}</span>

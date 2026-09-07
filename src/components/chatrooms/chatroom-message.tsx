@@ -356,7 +356,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
           />
         )}
         {showModMenu && !isUser && (
-          <div className="absolute right-0 top-7 z-50 bg-[#1a1a2e] border border-line-default rounded-[8px] shadow-lg py-1 min-w-[160px]">
+          <div className="absolute right-0 top-7 z-50 bg-[#1a1a2e] border border-line-default rounded-sm shadow-lg py-1 min-w-[160px]">
             {onDeleteMessage && (
               <button
                 onClick={() => {

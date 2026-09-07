@@ -67,7 +67,7 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
   return (
     <div
       onClick={handleClick}
-      className="relative py-3.5 px-4 cursor-pointer rounded-[14px]
+      className="relative py-3.5 px-4 cursor-pointer rounded-md
         transition-all duration-200 active:scale-[0.98]
         bg-transparent border border-transparent hover:bg-layer-1 hover:border-line-subtle hover:scale-[1.01]"
       style={{
@@ -90,7 +90,7 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
               />
             </div>
           )}
-          <span className={`text-[10px] font-600 uppercase tracking-wider px-2 py-0.5 rounded-[6px] ${statusClass}`}>
+          <span className={`text-[10px] font-600 uppercase tracking-wider px-2 py-0.5 rounded-xs ${statusClass}`}>
             {schedule.status}
           </span>
           {!inSidebar && (

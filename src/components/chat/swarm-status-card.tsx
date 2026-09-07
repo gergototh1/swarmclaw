@@ -131,7 +131,7 @@ const SwarmMemberCard = memo(function SwarmMemberCard({
 
   return (
     <div
-      className="rounded-[10px] overflow-hidden transition-all"
+      className="rounded-sm overflow-hidden transition-all"
       style={{
         background: 'rgba(255,255,255,0.015)',
         border: `1px solid rgba(255,255,255,0.05)`,
@@ -226,7 +226,7 @@ function SwarmSummaryBar({ data }: { data: SwarmStatusData }) {
 
   return (
     <div
-      className="flex items-center gap-2 px-3 py-2 rounded-[8px]"
+      className="flex items-center gap-2 px-3 py-2 rounded-sm"
       style={{ background: `${cfg.color}08` }}
     >
       <span className="text-[11px] font-700" style={{ color: cfg.color }}>
@@ -269,7 +269,7 @@ export const SwarmStatusCard = memo(function SwarmStatusCard({
 
   return (
     <div
-      className="rounded-[14px] overflow-hidden"
+      className="rounded-md overflow-hidden"
       style={{
         background: cfg.bg,
         border: `1px solid ${cfg.border}`,

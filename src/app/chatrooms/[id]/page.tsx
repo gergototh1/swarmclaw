@@ -30,7 +30,7 @@ export default function ChatroomByIdPage() {
                 useChatroomStore.getState().setEditingChatroomId(null)
                 useChatroomStore.getState().setChatroomSheetOpen(true)
               }}
-              className="flex items-center gap-1 px-2 py-1 rounded-[6px] text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1 rounded-xs text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

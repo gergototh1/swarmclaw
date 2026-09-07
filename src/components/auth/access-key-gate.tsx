@@ -143,7 +143,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                 {generatedKey ? (
                   <div className="flex flex-col items-center gap-4">
                     <div
-                      className="w-full max-w-[380px] px-5 py-4 rounded-[16px] border border-line-default bg-surface
+                      className="w-full max-w-[380px] px-5 py-4 rounded-lg border border-line-default bg-surface
                         flex items-center justify-between gap-3"
                       style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.2s both' }}
                     >
@@ -174,7 +174,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                       <button
                         type="button"
                         onClick={() => setFirstTimeStep('confirm')}
-                        className="px-12 py-4 rounded-[16px] border-none bg-accent-bright text-white text-[16px] font-display font-600
+                        className="px-12 py-4 rounded-lg border-none bg-accent-bright text-white text-[16px] font-display font-600
                           cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
                           shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
                       >
@@ -226,7 +226,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                             placeholder="Enter custom access key"
                             autoFocus
                             autoComplete="off"
-                            className="w-full max-w-[320px] px-6 py-4 rounded-[16px] border border-line-default bg-surface
+                            className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                               text-text text-[16px] text-center font-mono outline-none
                               transition-all duration-200 placeholder:text-text-3/70
                               focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
@@ -234,7 +234,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                           <button
                             type="submit"
                             disabled={loading || !key.trim()}
-                            className="px-8 py-3 rounded-[12px] border border-line-default bg-layer-2 text-text text-[14px] font-display font-600
+                            className="px-8 py-3 rounded-md border border-line-default bg-layer-2 text-text text-[14px] font-display font-600
                               cursor-pointer hover:bg-layer-3 transition-all duration-200 disabled:opacity-30"
                           >
                             {loading ? 'Saving...' : 'Use this key instead'}
@@ -254,7 +254,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                         placeholder="Enter access key from terminal"
                         autoFocus
                         autoComplete="off"
-                        className="w-full max-w-[320px] px-6 py-4 rounded-[16px] border border-line-default bg-surface
+                        className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                           text-text text-[16px] text-center font-mono outline-none
                           transition-all duration-200 placeholder:text-text-3/70
                           focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
@@ -273,7 +273,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                       <button
                         type="submit"
                         disabled={loading || !key.trim()}
-                        className="px-12 py-4 rounded-[16px] border-none bg-accent-bright text-white text-[16px] font-display font-600
+                        className="px-12 py-4 rounded-lg border-none bg-accent-bright text-white text-[16px] font-display font-600
                           cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
                           shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
                       >
@@ -301,7 +301,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                   <button
                     type="button"
                     onClick={() => setFirstTimeStep('show-key')}
-                    className="px-8 py-4 rounded-[16px] border border-line-default bg-layer-2 text-text text-[16px] font-display font-600
+                    className="px-8 py-4 rounded-lg border border-line-default bg-layer-2 text-text text-[16px] font-display font-600
                       cursor-pointer hover:bg-layer-3 transition-all duration-200"
                   >
                     Go Back
@@ -309,7 +309,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                   <button
                     type="button"
                     onClick={() => { setKey(''); setError(''); setFirstTimeStep('paste-key') }}
-                    className="px-8 py-4 rounded-[16px] border-none bg-accent-bright text-white text-[16px] font-display font-600
+                    className="px-8 py-4 rounded-lg border-none bg-accent-bright text-white text-[16px] font-display font-600
                       cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
                       shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
                   >
@@ -339,7 +339,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                       placeholder="Paste access key"
                       autoFocus
                       autoComplete="off"
-                      className="w-full max-w-[320px] px-6 py-4 rounded-[16px] border border-line-default bg-surface
+                      className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                         text-text text-[16px] text-center font-mono outline-none
                         transition-all duration-200 placeholder:text-text-3/70
                         focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
@@ -354,7 +354,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                     <button
                       type="submit"
                       disabled={!key.trim() || loading}
-                      className="px-12 py-4 rounded-[16px] border-none bg-accent-bright text-white text-[16px] font-display font-600
+                      className="px-12 py-4 rounded-lg border-none bg-accent-bright text-white text-[16px] font-display font-600
                         cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
                         shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
                     >
@@ -396,7 +396,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                   placeholder="Access key"
                   autoFocus
                   autoComplete="off"
-                  className="w-full max-w-[320px] px-6 py-4 rounded-[16px] border border-line-default bg-surface
+                  className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                     text-text text-[16px] text-center font-mono outline-none
                     transition-all duration-200 placeholder:text-text-3/70
                     focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
@@ -411,7 +411,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                 <button
                   type="submit"
                   disabled={!key.trim() || loading}
-                  className="px-12 py-4 rounded-[16px] border-none bg-accent-bright text-white text-[16px] font-display font-600
+                  className="px-12 py-4 rounded-lg border-none bg-accent-bright text-white text-[16px] font-display font-600
                     cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
                     shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
                 >

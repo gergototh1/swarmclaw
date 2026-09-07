@@ -141,7 +141,7 @@ const ToolSummaryRow = memo(function ToolSummaryRow({ event, caption }: { event:
 
   return (
     <div
-      className={`rounded-[14px] border px-3.5 py-3 ${
+      className={`rounded-md border px-3.5 py-3 ${
       isRunning
         ? 'border-amber-500/20 bg-amber-500/[0.06]'
         : isError
@@ -277,7 +277,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
           type="button"
           onClick={() => setExpanded((value) => !value)}
           data-testid="tool-activity-toggle"
-          className="inline-flex items-center gap-2 rounded-[10px] border border-line-default bg-layer-1 px-3 py-1.5 text-[11px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
+          className="inline-flex items-center gap-2 rounded-sm border border-line-default bg-layer-1 px-3 py-1.5 text-[11px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`transition-transform ${expanded ? 'rotate-180' : ''}`}>
             <polyline points="6 9 12 15 18 9" />
@@ -300,20 +300,20 @@ export const ToolEventsSection = memo(function ToolEventsSection({
               src={src}
               alt={`Screenshot ${i + 1}`}
               loading="lazy"
-              className="max-w-[400px] rounded-[10px] border border-white/10"
+              className="max-w-[400px] rounded-sm border border-white/10"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           ))}
           {collapsedMedia.videos.map((src, i) => (
-            <video key={`cv-${i}`} src={src} controls playsInline preload="none" className="max-w-full rounded-[10px] border border-white/10" />
+            <video key={`cv-${i}`} src={src} controls playsInline preload="none" className="max-w-full rounded-sm border border-white/10" />
           ))}
           {collapsedMedia.pdfs.map((file, i) => (
-            <div key={`cp-${i}`} className="rounded-[10px] border border-white/10 overflow-hidden">
+            <div key={`cp-${i}`} className="rounded-sm border border-white/10 overflow-hidden">
               <iframe src={file.url} loading="lazy" className="w-full h-[400px] bg-white" title={file.name} />
             </div>
           ))}
           {collapsedMedia.files.map((file, i) => (
-            <a key={`cf-${i}`} href={file.url} download className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-white/10 bg-surface/60 text-[13px] text-text-2 no-underline">
+            <a key={`cf-${i}`} href={file.url} download className="flex items-center gap-2 px-3 py-2 rounded-sm border border-white/10 bg-surface/60 text-[13px] text-text-2 no-underline">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
@@ -342,7 +342,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
   /* ── Uncontrolled mode: full standalone card (legacy) ─── */
   return (
     <div className="max-w-[85%] md:max-w-[72%] mb-2" data-testid="tool-activity">
-      <div className="rounded-[16px] border border-line-default bg-surface/72 backdrop-blur-sm overflow-hidden">
+      <div className="rounded-lg border border-line-default bg-surface/72 backdrop-blur-sm overflow-hidden">
         {/* Compact header — always visible */}
         <button
           type="button"

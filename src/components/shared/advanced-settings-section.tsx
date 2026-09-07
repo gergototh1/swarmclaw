@@ -13,11 +13,11 @@ interface Props {
 
 export function AdvancedSettingsSection({ open, onToggle, summary, badges = [], children }: Props) {
   return (
-    <section className="mb-8 rounded-[20px] border border-line-subtle bg-surface/70">
+    <section className="mb-8 rounded-lg border border-line-subtle bg-surface/70">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-start justify-between gap-4 rounded-[20px] bg-transparent px-5 py-5 text-left transition-all hover:bg-layer-1 sm:px-6"
+        className="flex w-full items-start justify-between gap-4 rounded-lg bg-transparent px-5 py-5 text-left transition-all hover:bg-layer-1 sm:px-6"
         style={{ fontFamily: 'inherit' }}
       >
         <div className="min-w-0">
@@ -37,7 +37,7 @@ export function AdvancedSettingsSection({ open, onToggle, summary, badges = [], 
               {badges.slice(0, 5).map((badge) => (
                 <span
                   key={badge}
-                  className="rounded-[9px] border border-line-default bg-layer-1 px-2.5 py-1 text-[11px] font-600 text-text-3"
+                  className="rounded-sm border border-line-default bg-layer-1 px-2.5 py-1 text-[11px] font-600 text-text-3"
                 >
                   {badge}
                 </span>
@@ -45,7 +45,7 @@ export function AdvancedSettingsSection({ open, onToggle, summary, badges = [], 
             </div>
           )}
         </div>
-        <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-line-subtle bg-layer-1 text-text-3">
+        <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line-subtle bg-layer-1 text-text-3">
           <ChevronDown className={`size-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </span>
       </button>

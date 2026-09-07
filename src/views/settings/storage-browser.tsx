@@ -115,7 +115,7 @@ export function StorageBrowser({ files, onDelete }: Props) {
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortField)}
-          className="px-3 py-1.5 rounded-[10px] border border-line-default bg-bg text-text text-[12px] outline-none cursor-pointer"
+          className="px-3 py-1.5 rounded-sm border border-line-default bg-bg text-text text-[12px] outline-none cursor-pointer"
           style={{ fontFamily: 'inherit' }}
         >
           <option value="modified">Newest first</option>
@@ -180,13 +180,13 @@ export function StorageBrowser({ files, onDelete }: Props) {
             <div
               key={file.name}
               onClick={() => toggleSelect(file.name)}
-              className={`relative p-3 rounded-[14px] border cursor-pointer transition-all
+              className={`relative p-3 rounded-md border cursor-pointer transition-all
                 ${selected.has(file.name)
                   ? 'border-accent-bright/40 bg-accent-soft/30'
                   : 'border-line-subtle bg-surface hover:border-line-default'}`}
             >
               {/* Checkbox */}
-              <div className={`absolute top-2 right-2 w-4 h-4 rounded-[5px] border transition-all flex items-center justify-center
+              <div className={`absolute top-2 right-2 w-4 h-4 rounded-xs border transition-all flex items-center justify-center
                 ${selected.has(file.name)
                   ? 'border-accent-bright bg-accent-bright'
                   : 'border-line-strong bg-transparent'}`}
@@ -199,13 +199,13 @@ export function StorageBrowser({ files, onDelete }: Props) {
               </div>
 
               {/* Thumbnail / icon */}
-              <div className="w-full aspect-square rounded-[10px] bg-layer-1 mb-2 flex items-center justify-center overflow-hidden">
+              <div className="w-full aspect-square rounded-sm bg-layer-1 mb-2 flex items-center justify-center overflow-hidden">
                 {file.category === 'image' ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={file.url}
                     alt={file.name}
-                    className="w-full h-full object-cover rounded-[10px]"
+                    className="w-full h-full object-cover rounded-sm"
                     loading="lazy"
                   />
                 ) : (
@@ -231,7 +231,7 @@ export function StorageBrowser({ files, onDelete }: Props) {
           </span>
           <button
             onClick={handleDeleteSelected}
-            className="px-4 py-2 rounded-[10px] bg-danger text-white text-[12px] font-600 cursor-pointer
+            className="px-4 py-2 rounded-sm bg-danger text-white text-[12px] font-600 cursor-pointer
               hover:brightness-110 active:scale-[0.97] transition-all border-none"
             style={{ fontFamily: 'inherit' }}
           >

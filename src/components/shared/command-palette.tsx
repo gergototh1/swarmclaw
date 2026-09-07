@@ -276,7 +276,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh]">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setOpen(false)} />
       <div
-        className="relative w-full max-w-[520px] mx-4 bg-raised rounded-[16px] border border-line-default shadow-[0_24px_80px_rgba(0,0,0,0.6)] overflow-hidden"
+        className="relative w-full max-w-[520px] mx-4 bg-raised rounded-lg border border-line-default shadow-[0_24px_80px_rgba(0,0,0,0.6)] overflow-hidden"
         style={{ animation: 'modal-in 0.3s var(--ease-spring)' }}
       >
         {/* Breathing glow effect */}
@@ -297,7 +297,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
               placeholder="Search chats, agents, tasks, settings..."
               className="flex-1 bg-transparent border-none outline-none text-[14px] text-text-1 placeholder:text-text-3/50"
             />
-          <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-[6px] bg-layer-2 text-[11px] text-text-3 font-500">
+          <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-xs bg-layer-2 text-[11px] text-text-3 font-500">
             esc
           </kbd>
         </div>

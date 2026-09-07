@@ -120,7 +120,7 @@ function ExtraDetail({ data }: { data: Record<string, unknown> }) {
   const entries = Object.entries(data).filter(([, v]) => v !== null && v !== undefined)
   if (entries.length === 0) return null
   return (
-    <div className="mt-2 rounded-[8px] bg-black/30 border border-line-subtle p-3 text-[11px] font-mono space-y-1">
+    <div className="mt-2 rounded-sm bg-black/30 border border-line-subtle p-3 text-[11px] font-mono space-y-1">
       {entries.map(([k, v]) => (
         <div key={k} className="flex gap-2 flex-wrap">
           <span className="text-text-3/70 shrink-0">{k}:</span>
@@ -200,16 +200,16 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
         </svg>
         <span className="font-display text-[16px] font-600 tracking-[-0.02em] flex-1">Session X-Ray</span>
 
-        <div className="flex bg-layer-2 p-0.5 rounded-[8px] mr-2">
+        <div className="flex bg-layer-2 p-0.5 rounded-sm mr-2">
           <button
             onClick={() => setTab('log')}
-            className={`px-3 py-1 rounded-[6px] text-[11px] font-600 transition-all ${tab === 'log' ? 'bg-layer-3 text-text shadow-sm' : 'text-text-3 hover:text-text-2'}`}
+            className={`px-3 py-1 rounded-xs text-[11px] font-600 transition-all ${tab === 'log' ? 'bg-layer-3 text-text shadow-sm' : 'text-text-3 hover:text-text-2'}`}
           >
             Event Log
           </button>
           <button
             onClick={() => setTab('checkpoints')}
-            className={`px-3 py-1 rounded-[6px] text-[11px] font-600 transition-all ${tab === 'checkpoints' ? 'bg-accent-soft text-accent-bright' : 'text-text-3 hover:text-text-2'}`}
+            className={`px-3 py-1 rounded-xs text-[11px] font-600 transition-all ${tab === 'checkpoints' ? 'bg-accent-soft text-accent-bright' : 'text-text-3 hover:text-text-2'}`}
           >
             Checkpoints
           </button>
@@ -231,7 +231,7 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
               <button
                 key={f.id}
                 onClick={() => setFilter(f.id)}
-                className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border whitespace-nowrap
+                className={`px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all border whitespace-nowrap
                   ${filter === f.id
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                     : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
@@ -244,7 +244,7 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
               <button
                 onClick={() => void fetchExecLogs(currentSessionId)}
                 disabled={loadingExec}
-                className="ml-auto px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border bg-surface border-line-subtle text-text-3 hover:text-text-2 disabled:opacity-40 whitespace-nowrap"
+                className="ml-auto px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all border bg-surface border-line-subtle text-text-3 hover:text-text-2 disabled:opacity-40 whitespace-nowrap"
                 style={{ fontFamily: 'inherit' }}
               >
                 {loadingExec ? 'Refreshing…' : '↺ Refresh'}

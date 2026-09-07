@@ -90,7 +90,7 @@ export function AgentSwitchDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-[440px] p-0 bg-surface/95 backdrop-blur-xl border-line-default shadow-[0_24px_80px_rgba(0,0,0,0.6)] rounded-[16px] overflow-hidden gap-0"
+        className="sm:max-w-[440px] p-0 bg-surface/95 backdrop-blur-xl border-line-default shadow-[0_24px_80px_rgba(0,0,0,0.6)] rounded-lg overflow-hidden gap-0"
         onKeyDown={handleKeyDown}
       >
         <DialogTitle className="sr-only">Switch Agent</DialogTitle>
@@ -108,7 +108,7 @@ export function AgentSwitchDialog() {
             className="flex-1 bg-transparent border-none outline-none text-[14px] text-text placeholder:text-text-3/60 font-[inherit]"
             autoFocus
           />
-          <kbd className="px-1.5 py-0.5 rounded-[5px] bg-layer-2 border border-line-default text-[10px] font-mono text-text-3 shrink-0">
+          <kbd className="px-1.5 py-0.5 rounded-xs bg-layer-2 border border-line-default text-[10px] font-mono text-text-3 shrink-0">
             ESC
           </kbd>
         </div>

@@ -107,7 +107,7 @@ export function SidebarRail({
     >
       {/* Logo + collapse toggle */}
       <div className={`flex items-center mb-4 shrink-0 ${railExpanded ? 'px-4 gap-3' : 'justify-center'}`}>
-        <div className="w-10 h-10 rounded-[11px] bg-gradient-to-br from-[#4338CA] to-[#6366F1] flex items-center justify-center shrink-0
+        <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#4338CA] to-[#6366F1] flex items-center justify-center shrink-0
           shadow-[0_2px_12px_rgba(99,102,241,0.2)]">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-white">
             <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor" />
@@ -116,7 +116,7 @@ export function SidebarRail({
         {railExpanded && !mobile && (
           <button
             onClick={toggleRail}
-            className="ml-auto w-7 h-7 rounded-[8px] flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-all cursor-pointer bg-transparent border-none"
+            className="ml-auto w-7 h-7 rounded-sm flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-all cursor-pointer bg-transparent border-none"
             title="Collapse sidebar"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -144,7 +144,7 @@ export function SidebarRail({
         <div className="px-3 mb-2.5">
           <button
             onClick={goToDefaultChat}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-[13px] font-600 cursor-pointer transition-all text-left
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-[13px] font-600 cursor-pointer transition-all text-left
               ${isDefaultChat
                 ? 'bg-accent-bright/15 border border-[#6366F1]/25 text-accent-bright'
                 : 'bg-accent-bright/10 border border-[#6366F1]/20 text-accent-bright hover:bg-accent-bright/15'}`}
@@ -189,7 +189,7 @@ export function SidebarRail({
         <div className="px-3 mb-2">
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
               bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none"
             style={{ fontFamily: 'inherit' }}
           >
@@ -197,7 +197,7 @@ export function SidebarRail({
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             Search
-            <kbd className="ml-auto px-1.5 py-0.5 rounded-[5px] bg-layer-2 border border-line-default text-[10px] font-mono text-text-3">
+            <kbd className="ml-auto px-1.5 py-0.5 rounded-xs bg-layer-2 border border-line-default text-[10px] font-mono text-text-3">
               ⌘K
             </kbd>
           </button>
@@ -420,7 +420,7 @@ export function SidebarRail({
               href="https://swarmclaw.ai/docs"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
                 bg-transparent text-text-3 hover:text-text hover:bg-layer-2 no-underline"
               style={{ fontFamily: 'inherit' }}
             >
@@ -446,7 +446,7 @@ export function SidebarRail({
               href={GITHUB_REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
                 bg-transparent text-text-3 hover:text-text hover:bg-layer-2 no-underline"
               style={{ fontFamily: 'inherit' }}
             >
@@ -472,7 +472,7 @@ export function SidebarRail({
               href={DISCORD_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
                 bg-transparent text-text-3 hover:text-text hover:bg-layer-2 no-underline"
               style={{ fontFamily: 'inherit' }}
             >
@@ -515,7 +515,7 @@ export function SidebarRail({
           {railExpanded ? (
             <button
               onClick={onSwitchUser}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] cursor-pointer transition-all
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm cursor-pointer transition-all
                 bg-transparent hover:bg-layer-2 border-none"
               style={{ fontFamily: 'inherit' }}
             >

@@ -26,7 +26,7 @@ export function ExecApprovalCard({ approval }: Props) {
   const disabled = !!approval.resolving || expired || alreadyResolved
 
   return (
-    <div className="my-2 rounded-[12px] border border-amber-500/20 bg-amber-500/[0.04] p-3.5">
+    <div className="my-2 rounded-md border border-amber-500/20 bg-amber-500/[0.04] p-3.5">
       <div className="flex items-center gap-2 mb-2">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-amber-400 shrink-0">
           <path d="M12 9v2m0 4h.01" />
@@ -39,7 +39,7 @@ export function ExecApprovalCard({ approval }: Props) {
         <p className="text-[13px] text-text-2 mb-2">{approval.ask}</p>
       )}
 
-      <div className="rounded-[8px] bg-black/20 px-3 py-2 mb-2 overflow-x-auto">
+      <div className="rounded-sm bg-black/20 px-3 py-2 mb-2 overflow-x-auto">
         <code className="text-[12px] text-text font-mono whitespace-pre-wrap break-all">
           {approval.command}
         </code>
@@ -68,7 +68,7 @@ export function ExecApprovalCard({ approval }: Props) {
           <button
             onClick={() => handleResolve('allow-once')}
             disabled={disabled}
-            className="px-3 py-1.5 rounded-[8px] border border-line-default bg-emerald-500/10 text-[12px] font-600
+            className="px-3 py-1.5 rounded-sm border border-line-default bg-emerald-500/10 text-[12px] font-600
               text-emerald-400 cursor-pointer hover:bg-emerald-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ fontFamily: 'inherit' }}
           >
@@ -77,7 +77,7 @@ export function ExecApprovalCard({ approval }: Props) {
           <button
             onClick={() => handleResolve('allow-always')}
             disabled={disabled}
-            className="px-3 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[12px] font-600
+            className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[12px] font-600
               text-text-3 cursor-pointer hover:bg-layer-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ fontFamily: 'inherit' }}
           >
@@ -86,7 +86,7 @@ export function ExecApprovalCard({ approval }: Props) {
           <button
             onClick={() => handleResolve('deny')}
             disabled={disabled}
-            className="px-3 py-1.5 rounded-[8px] border border-line-default bg-transparent text-[12px] font-600
+            className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[12px] font-600
               text-red-400 cursor-pointer hover:bg-red-400/10 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ fontFamily: 'inherit' }}
           >

@@ -144,7 +144,7 @@ export function TaskCard({
           setTaskSheetOpen(true)
         }
       }}
-      className={`py-3 px-4 rounded-[14px] border border-l-[3px] ${borderColor} bg-surface hover:bg-surface-2 transition-all group
+      className={`py-3 px-4 rounded-md border border-l-[3px] ${borderColor} bg-surface hover:bg-surface-2 transition-all group
         ${selectionMode || !allowDrag ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'} touch-pan-y
         ${dragging ? 'opacity-40 scale-[0.97]' : ''}
         ${selected ? 'border-accent-bright/40 bg-accent-bright/[0.04] ring-1 ring-accent-bright/20 shadow-lg' : 'border-line-subtle hover:border-line-default hover:scale-[1.01] hover:shadow-md'}`}
@@ -158,7 +158,7 @@ export function TaskCard({
         {(selectionMode || selected) && (
           <button
             onClick={(e) => { e.stopPropagation(); onToggleSelect?.(task.id) }}
-            className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center shrink-0 mt-0.5 cursor-pointer transition-all
+            className={`w-5 h-5 rounded-xs border-2 flex items-center justify-center shrink-0 mt-0.5 cursor-pointer transition-all
               ${selected
                 ? 'bg-accent-bright border-accent-bright'
                 : 'bg-transparent border-line-strong hover:border-white/[0.4]'}`}
@@ -177,12 +177,12 @@ export function TaskCard({
         )}
         <h4 className="flex-1 text-[14px] font-600 text-text leading-[1.4] line-clamp-2">{task.title}</h4>
         {prio && (
-          <span className={`px-1.5 py-0.5 rounded-[5px] text-[10px] font-600 shrink-0 ${prio.cls}`}>
+          <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-600 shrink-0 ${prio.cls}`}>
             {prio.label}
           </span>
         )}
         {isBlocked && (
-          <span className="px-1.5 py-0.5 rounded-[5px] bg-rose-500/10 text-rose-400 text-[10px] font-600 shrink-0">
+          <span className="px-1.5 py-0.5 rounded-xs bg-rose-500/10 text-rose-400 text-[10px] font-600 shrink-0">
             {task.blockedBy?.length}
           </span>
         )}
@@ -193,7 +193,7 @@ export function TaskCard({
       )}
 
       {task.objective && (
-        <div className="mb-3 rounded-[12px] border border-line-subtle bg-layer-1 px-3 py-2">
+        <div className="mb-3 rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
           <span className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/68">Objective</span>
           <div className="text-[12px] font-600 text-text line-clamp-2 mt-1">{task.objective}</div>
         </div>
@@ -203,7 +203,7 @@ export function TaskCard({
       {task.tags && task.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {task.tags.map((tag) => (
-            <span key={tag} className="px-1.5 py-0.5 rounded-[5px] bg-indigo-500/10 text-indigo-400 text-[10px] font-600">
+            <span key={tag} className="px-1.5 py-0.5 rounded-xs bg-indigo-500/10 text-indigo-400 text-[10px] font-600">
               {tag}
             </span>
           ))}
@@ -221,10 +221,10 @@ export function TaskCard({
       {task.images && task.images.length > 0 && (
         <div className="flex gap-1.5 mb-3 overflow-x-auto">
           {task.images.slice(0, 3).map((url, i) => (
-            <img key={i} src={url} alt="" className="w-12 h-12 rounded-[8px] object-cover border border-line-subtle shrink-0" />
+            <img key={i} src={url} alt="" className="w-12 h-12 rounded-sm object-cover border border-line-subtle shrink-0" />
           ))}
           {task.images.length > 3 && (
-            <span className="w-12 h-12 rounded-[8px] bg-surface-2 border border-line-subtle flex items-center justify-center text-[11px] text-text-3 font-600 shrink-0">
+            <span className="w-12 h-12 rounded-sm bg-surface-2 border border-line-subtle flex items-center justify-center text-[11px] text-text-3 font-600 shrink-0">
               +{task.images.length - 3}
             </span>
           )}
@@ -234,7 +234,7 @@ export function TaskCard({
       {/* Schedule run stats */}
       {task.sourceType === 'schedule' && (
         <div className="flex items-center gap-2 mb-3 text-[11px] text-text-3">
-          <span className="px-1.5 py-0.5 rounded-[5px] bg-purple-500/10 text-purple-400 font-600">
+          <span className="px-1.5 py-0.5 rounded-xs bg-purple-500/10 text-purple-400 font-600">
             Run #{task.runNumber || 1}
           </span>
           {(task.totalRuns ?? 0) > 0 && (
@@ -281,7 +281,7 @@ export function TaskCard({
                 target="_blank"
                 rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 rounded-[7px] bg-sky-500/10 px-2 py-1 text-[10px] font-600 text-sky-300 hover:bg-sky-500/15"
+                className="inline-flex items-center gap-1.5 rounded-xs bg-sky-500/10 px-2 py-1 text-[10px] font-600 text-sky-300 hover:bg-sky-500/15"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="shrink-0">
                   <path d="M12 .5C5.65.5.5 5.65.5 12A11.5 11.5 0 0 0 8.36 22.9c.57.1.78-.25.78-.55 0-.27-.01-1.17-.02-2.13-3.2.69-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.17a10.9 10.9 0 0 1 5.73 0c2.18-1.48 3.14-1.17 3.14-1.17.63 1.57.24 2.73.12 3.02.74.8 1.18 1.82 1.18 3.07 0 4.41-2.7 5.38-5.27 5.66.42.36.78 1.06.78 2.14 0 1.55-.01 2.79-.01 3.17 0 .31.2.66.79.55A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
@@ -317,7 +317,7 @@ export function TaskCard({
               target="_blank"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1.5 rounded-[7px] bg-emerald-500/10 px-2 py-1 text-[10px] font-600 text-emerald-300 hover:bg-emerald-500/15"
+              className="inline-flex items-center gap-1.5 rounded-xs bg-emerald-500/10 px-2 py-1 text-[10px] font-600 text-emerald-300 hover:bg-emerald-500/15"
             >
               <ExternalLink size={10} />
               {previewLink.label || 'Preview'}
@@ -328,12 +328,12 @@ export function TaskCard({
 
       <div className="flex items-center gap-2 flex-wrap">
         {agent && (
-          <span className="px-2 py-1 rounded-[6px] bg-accent-soft text-accent-bright text-[11px] font-600">
+          <span className="px-2 py-1 rounded-xs bg-accent-soft text-accent-bright text-[11px] font-600">
             {agent.name}
           </span>
         )}
         {project && (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-[6px] bg-layer-2 text-text-2 text-[11px] font-600">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xs bg-layer-2 text-text-2 text-[11px] font-600">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.color || '#6366F1' }} />
             {project.name}
           </span>
@@ -349,7 +349,7 @@ export function TaskCard({
         )}
         {Array.isArray(task.blocks) && task.blocks.length > 0 && (
           <span
-            className="px-1.5 py-0.5 rounded-[5px] bg-amber-500/10 text-amber-400 text-[10px] font-600"
+            className="px-1.5 py-0.5 rounded-xs bg-amber-500/10 text-amber-400 text-[10px] font-600"
             title={`Blocks: ${task.blocks.map((bid) => tasksById[bid]?.title || bid).join(', ')}`}
           >
             blocks {task.blocks.length}
@@ -359,7 +359,7 @@ export function TaskCard({
         {task.status === 'backlog' && (
           <button
             onClick={handleQueue}
-            className="ml-auto px-2.5 py-1 rounded-[8px] text-[11px] font-600 bg-amber-500/10 text-amber-400 border-none cursor-pointer
+            className="ml-auto px-2.5 py-1 rounded-sm text-[11px] font-600 bg-amber-500/10 text-amber-400 border-none cursor-pointer
               opacity-0 group-hover:opacity-100 transition-opacity hover:bg-amber-500/20"
             style={{ fontFamily: 'inherit' }}
           >
@@ -370,7 +370,7 @@ export function TaskCard({
         {task.sessionId && (task.status === 'running' || task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled') && (
           <button
             onClick={handleViewSession}
-            className="ml-auto px-2.5 py-1 rounded-[8px] text-[11px] font-600 bg-layer-2 text-text-2 border-none cursor-pointer
+            className="ml-auto px-2.5 py-1 rounded-sm text-[11px] font-600 bg-layer-2 text-text-2 border-none cursor-pointer
               opacity-0 group-hover:opacity-100 transition-opacity hover:bg-layer-3"
             style={{ fontFamily: 'inherit' }}
           >
@@ -382,7 +382,7 @@ export function TaskCard({
           <button
             onClick={(e) => { e.stopPropagation(); setConfirmArchive(true) }}
             aria-label="Archive task"
-            className="ml-auto px-2.5 py-1 rounded-[8px] text-[11px] font-600 bg-layer-2 text-text-3 border-none cursor-pointer
+            className="ml-auto px-2.5 py-1 rounded-sm text-[11px] font-600 bg-layer-2 text-text-3 border-none cursor-pointer
               opacity-0 group-hover:opacity-100 transition-opacity hover:bg-layer-3"
             style={{ fontFamily: 'inherit' }}
           >

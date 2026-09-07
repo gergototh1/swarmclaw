@@ -49,7 +49,7 @@ function SidebarSkillList() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden px-3 pb-4">
-      <div className="rounded-[14px] border border-line-default bg-surface/75 p-3">
+      <div className="rounded-md border border-line-default bg-surface/75 p-3">
         <label className="relative block">
           <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-3/45" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <circle cx="11" cy="11" r="8" />
@@ -59,7 +59,7 @@ function SidebarSkillList() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Filter local skills..."
-            className="w-full rounded-[12px] border border-line-default bg-bg/65 py-2.5 pl-9 pr-3 text-[12px] text-text outline-none transition-colors placeholder:text-text-3/45 focus:border-accent-bright/35"
+            className="w-full rounded-md border border-line-default bg-bg/65 py-2.5 pl-9 pr-3 text-[12px] text-text outline-none transition-colors placeholder:text-text-3/45 focus:border-accent-bright/35"
             style={{ fontFamily: 'inherit' }}
           />
         </label>
@@ -85,7 +85,7 @@ function SidebarSkillList() {
             Loading skills...
           </div>
         ) : skillList.length === 0 ? (
-          <div className="rounded-[16px] border border-dashed border-line-default px-4 py-8 text-center">
+          <div className="rounded-lg border border-dashed border-line-default px-4 py-8 text-center">
             <div className="text-[13px] font-600 text-text">{query.trim() ? 'No matching skills' : 'No local skills yet'}</div>
             <p className="mt-1 text-[11px] leading-[1.6] text-text-3/65">
               {query.trim()
@@ -109,7 +109,7 @@ function SidebarSkillList() {
                       setPageState({ tab: 'skills', skill: skill.id })
                     }
                   }}
-                  className={`rounded-[14px] border px-3 py-3 text-left transition-all ${
+                  className={`rounded-md border px-3 py-3 text-left transition-all ${
                     selected
                       ? 'cursor-pointer border-accent-bright/20 bg-accent-soft/60'
                       : 'cursor-pointer border-line-subtle bg-surface hover:border-line-default hover:bg-surface-2'

@@ -36,13 +36,13 @@ export function AgentPickerList({
 
   return (
     <div
-      className="flex flex-col gap-1 rounded-[14px] border border-line-subtle bg-surface p-1.5 overflow-y-auto"
+      className="flex flex-col gap-1 rounded-md border border-line-subtle bg-surface p-1.5 overflow-y-auto"
       style={{ maxHeight }}
     >
       {noneOption && (
         <button
           onClick={noneOption.onSelect}
-          className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] cursor-pointer transition-all w-full text-left border-none
+          className={`relative flex items-center gap-3 px-3 py-2.5 rounded-sm cursor-pointer transition-all w-full text-left border-none
             ${noneSelected ? 'bg-accent-soft' : 'bg-transparent hover:bg-layer-1'}`}
           style={{ fontFamily: 'inherit' }}
         >
@@ -65,7 +65,7 @@ export function AgentPickerList({
           <button
             key={a.id}
             onClick={() => onSelect(a.id)}
-            className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] cursor-pointer transition-all w-full text-left border-none
+            className={`relative flex items-center gap-3 px-3 py-2.5 rounded-sm cursor-pointer transition-all w-full text-left border-none
               ${active ? 'bg-accent-soft' : 'bg-transparent hover:bg-layer-1'}`}
             style={{ fontFamily: 'inherit' }}
           >

@@ -146,7 +146,7 @@ export function MemoryDetail() {
   if (!entry) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-text-3 p-8 text-center">
-        <div className="w-14 h-14 rounded-[16px] bg-layer-1 flex items-center justify-center mb-2">
+        <div className="w-14 h-14 rounded-lg bg-layer-1 flex items-center justify-center mb-2">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/60">
             <ellipse cx="12" cy="5" rx="9" ry="3" />
             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
@@ -172,7 +172,7 @@ export function MemoryDetail() {
       : imagePath
     : null
 
-  const inputClass = "w-full px-4 py-3 rounded-[12px] border border-line-subtle bg-layer-1 text-text outline-none transition-all duration-200 placeholder:text-text-3/70 focus:border-accent-bright/20 focus:bg-layer-2"
+  const inputClass = "w-full px-4 py-3 rounded-md border border-line-subtle bg-layer-1 text-text outline-none transition-all duration-200 placeholder:text-text-3/70 focus:border-accent-bright/20 focus:bg-layer-2"
   const refs = entry.references || []
   const showRefsCollapse = refs.length > 3
   const entryMeta = entry.metadata && typeof entry.metadata === 'object'
@@ -195,13 +195,13 @@ export function MemoryDetail() {
       <div className="shrink-0 px-6 py-4 border-b border-line-subtle flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5">
-            <span className="shrink-0 text-[10px] font-700 uppercase tracking-wider text-accent-bright/70 bg-accent-soft px-2 py-0.5 rounded-[6px]">
+            <span className="shrink-0 text-[10px] font-700 uppercase tracking-wider text-accent-bright/70 bg-accent-soft px-2 py-0.5 rounded-xs">
               {entry.category || 'note'}
             </span>
-            <span className="shrink-0 text-[10px] font-700 uppercase tracking-wider text-text-3/70 bg-layer-2 px-2 py-0.5 rounded-[6px]">
+            <span className="shrink-0 text-[10px] font-700 uppercase tracking-wider text-text-3/70 bg-layer-2 px-2 py-0.5 rounded-xs">
               {getMemoryScopeLabel(scope)}
             </span>
-            <span className={`shrink-0 text-[10px] font-700 uppercase tracking-wider px-2 py-0.5 rounded-[6px] ${
+            <span className={`shrink-0 text-[10px] font-700 uppercase tracking-wider px-2 py-0.5 rounded-xs ${
               tier === 'working'
                 ? 'bg-amber-400/10 text-amber-300'
                 : tier === 'archive'
@@ -240,7 +240,7 @@ export function MemoryDetail() {
           {/* Pin/unpin toggle */}
           <button
             onClick={handleTogglePin}
-            className={`p-2 rounded-[8px] cursor-pointer transition-all bg-transparent border-none
+            className={`p-2 rounded-sm cursor-pointer transition-all bg-transparent border-none
               ${entry.pinned ? 'text-amber-400 hover:text-amber-300' : 'text-text-3/40 hover:text-amber-400/70'}`}
             title={entry.pinned ? 'Unpin memory' : 'Pin memory (always preloaded)'}
           >
@@ -260,7 +260,7 @@ export function MemoryDetail() {
                   setEditSharedWith(entry.sharedWith || [])
                   setEditing(false)
                 }}
-                className="px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+                className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
                 style={{ fontFamily: 'inherit' }}
               >
                 Cancel
@@ -268,7 +268,7 @@ export function MemoryDetail() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-4 py-2 rounded-[10px] bg-accent-bright text-white text-[12px] font-600
+                className="px-4 py-2 rounded-sm bg-accent-bright text-white text-[12px] font-600
                   cursor-pointer border-none transition-all hover:brightness-110 active:scale-[0.97]
                   disabled:opacity-50 shadow-[0_2px_10px_rgba(99,102,241,0.2)]"
                 style={{ fontFamily: 'inherit' }}
@@ -279,7 +279,7 @@ export function MemoryDetail() {
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-2 transition-all flex items-center gap-1.5"
+              className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-2 transition-all flex items-center gap-1.5"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -291,7 +291,7 @@ export function MemoryDetail() {
           )}
           <button
             onClick={() => setConfirmDelete(true)}
-            className="p-2 rounded-[8px] text-text-3/70 hover:text-red-400 hover:bg-red-400/[0.06]
+            className="p-2 rounded-sm text-text-3/70 hover:text-red-400 hover:bg-red-400/[0.06]
               cursor-pointer transition-all bg-transparent border-none"
             title="Delete memory"
           >
@@ -329,7 +329,7 @@ export function MemoryDetail() {
                     <button
                       key={c}
                       onClick={() => setCategory(c)}
-                      className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 capitalize cursor-pointer transition-all border-none
+                      className={`px-3 py-1.5 rounded-sm text-[11px] font-600 capitalize cursor-pointer transition-all border-none
                         ${category === c
                           ? 'bg-accent-soft text-accent-bright'
                           : 'bg-layer-1 text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
@@ -361,7 +361,7 @@ export function MemoryDetail() {
                 <div className="flex gap-1.5 flex-wrap">
                   <button
                     onClick={() => setEditAgentId(null)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all border
                       ${!editAgentId
                         ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
                         : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
@@ -377,7 +377,7 @@ export function MemoryDetail() {
                     <button
                       key={agent.id}
                       onClick={() => setEditAgentId(agent.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all border
                         ${editAgentId === agent.id
                           ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
                           : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
@@ -408,7 +408,7 @@ export function MemoryDetail() {
                                 ? editSharedWith.filter((id) => id !== agent.id)
                                 : [...editSharedWith, agent.id])
                             }}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all border
                               ${isShared
                                 ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
                                 : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
@@ -452,7 +452,7 @@ export function MemoryDetail() {
               </div>
 
               {knowledgeSourceId && (
-                <div className="rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-3">
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
                   <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Source</label>
                   <div className="space-y-1.5">
                     <p className="text-[13px] text-text-2">
@@ -486,7 +486,7 @@ export function MemoryDetail() {
                     {entry.sharedWith.map((aid) => {
                       const a = agents[aid]
                       return (
-                        <span key={aid} className="flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] bg-layer-1 text-[11px] text-text-3">
+                        <span key={aid} className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-layer-1 text-[11px] text-text-3">
                           <AgentAvatar seed={a?.avatarSeed || null} avatarUrl={a?.avatarUrl} name={a?.name || aid} size={16} />
                           {a?.name || aid}
                         </span>
@@ -502,7 +502,7 @@ export function MemoryDetail() {
           {imageUrl && (
             <div>
               {editing && <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Image</label>}
-              <a href={imageUrl} target="_blank" rel="noreferrer" className="inline-block rounded-[12px] overflow-hidden border border-line-default">
+              <a href={imageUrl} target="_blank" rel="noreferrer" className="inline-block rounded-md overflow-hidden border border-line-default">
                 <img src={imageUrl} alt={entry.title} className="max-w-[600px] w-full max-h-[400px] object-cover block" />
               </a>
             </div>
@@ -517,7 +517,7 @@ export function MemoryDetail() {
                   <button
                     key={id}
                     onClick={() => setSelectedId(id)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-[10px] bg-layer-1 border border-line-subtle hover:bg-layer-2 cursor-pointer transition-colors text-left w-full"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-sm bg-layer-1 border border-line-subtle hover:bg-layer-2 cursor-pointer transition-colors text-left w-full"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-accent-bright/60 shrink-0">
                       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -551,7 +551,7 @@ export function MemoryDetail() {
               {(refsExpanded || !showRefsCollapse) && (
                 <div className="space-y-2">
                   {refs.map((ref, idx) => (
-                    <div key={`${ref.type}-${ref.path || ref.title || idx}`} className="text-[12px] rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                    <div key={`${ref.type}-${ref.path || ref.title || idx}`} className="text-[12px] rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                       <div className="text-text-2/70">
                         <span className="uppercase text-[10px] tracking-[0.06em] mr-1">{ref.type}</span>
                         {ref.path || ref.title || '(no path)'}

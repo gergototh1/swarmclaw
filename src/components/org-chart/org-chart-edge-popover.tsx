@@ -69,7 +69,7 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
   return (
     <div
       data-edge-popover
-      className="absolute z-50 rounded-[12px] border border-line-default bg-[#12121e] shadow-2xl shadow-black/60 overflow-hidden"
+      className="absolute z-50 rounded-md border border-line-default bg-[#12121e] shadow-2xl shadow-black/60 overflow-hidden"
       style={{ left: x, top: y, width: 320, maxHeight: 360, transform: 'translate(-50%, -50%)' }}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
@@ -85,7 +85,7 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
         <div className="flex-1" />
         <button
           onClick={onClose}
-          className="w-5 h-5 rounded-[4px] flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-3 cursor-pointer border-none transition-colors"
+          className="w-5 h-5 rounded-xs flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-3 cursor-pointer border-none transition-colors"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <path d="M1 1l8 8M9 1l-8 8" />
@@ -106,10 +106,10 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
         {jobs.map((job) => {
           const badge = STATUS_BADGE[job.status] || STATUS_BADGE.queued
           return (
-            <div key={job.id} className="rounded-[8px] border border-line-subtle bg-layer-1 p-2.5">
+            <div key={job.id} className="rounded-sm border border-line-subtle bg-layer-1 p-2.5">
               {/* Status + time */}
               <div className="flex items-center gap-1.5 mb-1">
-                <span className={`text-[8px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-[3px] leading-none ${badge.cls}`}>
+                <span className={`text-[8px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-xs leading-none ${badge.cls}`}>
                   {badge.label}
                 </span>
                 <span className="text-[9px] text-text-3/40 ml-auto">{timeAgo(job.updatedAt || job.createdAt)}</span>

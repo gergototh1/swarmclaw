@@ -16,7 +16,7 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
       <p className="text-[12px] text-text-3 mb-5">
         Configure voice playback (TTS), the default ElevenLabs voice, and speech-to-text input.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         {/* ElevenLabs toggle */}
         <div className="flex items-center justify-between mb-5">
           <div>
@@ -64,7 +64,7 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
         )}
 
         {showVoiceConfig && !enabled && (
-          <p className="mb-5 rounded-[12px] border border-line-subtle bg-layer-1 px-3 py-2.5 text-[11px] text-text-3/70">
+          <p className="mb-5 rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5 text-[11px] text-text-3/70">
             ElevenLabs credentials and default voice can be prepared here even while playback is turned off.
           </p>
         )}

@@ -23,7 +23,7 @@ export default function ChatroomsPage() {
                   useChatroomStore.getState().setEditingChatroomId(null)
                   useChatroomStore.getState().setChatroomSheetOpen(true)
                 }}
-                className="flex items-center gap-1 px-2 py-1 rounded-[6px] text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer"
+                className="flex items-center gap-1 px-2 py-1 rounded-xs text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -41,7 +41,7 @@ export default function ChatroomsPage() {
                 type="button"
                 onClick={() => setViewMode(mode)}
                 data-active={viewMode === mode || undefined}
-                className="rounded-[8px] border-none px-3 py-1.5 text-[11px] font-600 capitalize cursor-pointer transition-all focus-visible:ring-1 focus-visible:ring-accent-bright/50
+                className="rounded-sm border-none px-3 py-1.5 text-[11px] font-600 capitalize cursor-pointer transition-all focus-visible:ring-1 focus-visible:ring-accent-bright/50
                   data-[active]:bg-accent-soft data-[active]:text-accent-bright
                   bg-transparent text-text-3 hover:text-text-2 hover:bg-layer-2"
               >

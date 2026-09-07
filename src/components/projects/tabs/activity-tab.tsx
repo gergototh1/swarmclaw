@@ -73,7 +73,7 @@ export function ActivityTab() {
                     {item.type}
                   </span>
                   {item.status && (
-                    <span className={`text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] ${STATUS_STYLES[item.status] || 'bg-layer-2 text-text-3'}`}>
+                    <span className={`text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-xs ${STATUS_STYLES[item.status] || 'bg-layer-2 text-text-3'}`}>
                       {item.status}
                     </span>
                   )}

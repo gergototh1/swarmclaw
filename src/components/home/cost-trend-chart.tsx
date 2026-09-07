@@ -29,7 +29,7 @@ export default function CostTrendChart({ costTrend }: Props) {
                 ? new Date(d.bucket + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
                 : ''
               return (
-                <div className="rounded-[8px] bg-surface border border-line-default px-3 py-2 shadow-lg">
+                <div className="rounded-sm bg-surface border border-line-default px-3 py-2 shadow-lg">
                   <p className="text-[11px] text-text-3/70 m-0">{label}</p>
                   <p className="text-[14px] font-600 text-text m-0 mt-0.5">${d.cost.toFixed(4)}</p>
                 </div>

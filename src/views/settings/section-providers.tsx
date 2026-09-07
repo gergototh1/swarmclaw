@@ -55,10 +55,10 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
           {providers.map((p) => {
             const providerCreds = credList.filter((c) => c.provider === p.id)
             return (
-              <div key={p.id} className="p-6 rounded-[18px] bg-surface border border-line-subtle">
+              <div key={p.id} className="p-6 rounded-lg bg-surface border border-line-subtle">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-display text-[17px] font-600 tracking-[-0.01em]">{p.name}</span>
-                  <span className={`text-[12px] font-600 px-3 py-1 rounded-[8px]
+                  <span className={`text-[12px] font-600 px-3 py-1 rounded-sm
                     ${p.requiresApiKey
                       ? providerCreds.length > 0 ? 'text-success bg-success/[0.1]' : 'text-text-3 bg-layer-2'
                       : 'text-success bg-success/[0.1]'}`}>
@@ -77,7 +77,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
                 {(p.requiresApiKey || p.optionalApiKey) && providerCreds.length > 0 && (
                   <div className="mt-5 space-y-2.5">
                     {providerCreds.map((cred) => (
-                      <div key={cred.id} className="flex items-center gap-3 py-3 px-4 rounded-[12px] bg-bg border border-line-subtle">
+                      <div key={cred.id} className="flex items-center gap-3 py-3 px-4 rounded-md bg-bg border border-line-subtle">
                         <span className="text-[14px] font-500 flex-1 truncate">{cred.name}</span>
                         {deleting === cred.id ? (
                           <div className="flex gap-2">
@@ -90,7 +90,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
                             </button>
                             <button
                               onClick={() => handleDelete(cred.id)}
-                              className="px-3 py-1.5 text-[13px] font-600 bg-danger text-white border-none cursor-pointer rounded-[8px] transition-colors hover:brightness-110"
+                              className="px-3 py-1.5 text-[13px] font-600 bg-danger text-white border-none cursor-pointer rounded-sm transition-colors hover:brightness-110"
                               style={{ fontFamily: 'inherit' }}
                             >
                               Delete
@@ -113,7 +113,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
                 {(p.requiresApiKey || p.optionalApiKey) && (
                   <button
                     onClick={() => setAddProvider(p.id)}
-                    className="mt-5 w-full py-3 rounded-[12px] border border-dashed border-line-default
+                    className="mt-5 w-full py-3 rounded-md border border-dashed border-line-default
                       bg-transparent text-text-3 text-[13px] font-600 cursor-pointer
                       hover:border-accent-bright/30 hover:text-accent-bright hover:bg-accent-soft transition-all duration-200"
                     style={{ fontFamily: 'inherit' }}
@@ -135,7 +135,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
 
       {/* Add key form */}
       {addProvider && (
-        <div className="mb-8 p-6 rounded-[18px] bg-surface border border-line-subtle">
+        <div className="mb-8 p-6 rounded-lg bg-surface border border-line-subtle">
           <div className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-4">
             New {providers.find((p) => p.id === addProvider)?.name} API Key
           </div>
@@ -159,7 +159,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => { setAddProvider(null); setNewName(''); setNewKey('') }}
-                className="flex-1 py-3 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-colors"
+                className="flex-1 py-3 rounded-md border border-line-default bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-colors"
                 style={{ fontFamily: 'inherit' }}
               >
                 Cancel
@@ -167,7 +167,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
               <button
                 onClick={handleAdd}
                 disabled={!newKey.trim()}
-                className="flex-1 py-3 rounded-[14px] border-none bg-accent-bright text-white text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
+                className="flex-1 py-3 rounded-md border-none bg-accent-bright text-white text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
                 style={{ fontFamily: 'inherit' }}
               >
                 Save Key

@@ -158,7 +158,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
     return (
       <div className="flex-1 overflow-y-auto pb-20">
         {error && (
-          <div className="mx-4 mt-2 mb-1 px-3 py-2 rounded-[8px] bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] leading-snug">
+          <div className="mx-4 mt-2 mb-1 px-3 py-2 rounded-sm bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] leading-snug">
             {error}
           </div>
         )}
@@ -200,7 +200,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
   return (
     <div className="flex-1 overflow-y-auto pb-20 px-5 pt-2">
       {error && (
-        <div className="mb-3 px-3 py-2 rounded-[8px] bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] leading-snug">
+        <div className="mb-3 px-3 py-2 rounded-sm bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] leading-snug">
           {error}
         </div>
       )}
@@ -209,7 +209,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
           <button
             key={group}
             onClick={() => setGroupFilter((current) => (current === group ? 'all' : group))}
-            className={`rounded-[14px] border px-4 py-3 text-left transition-all cursor-pointer ${
+            className={`rounded-md border px-4 py-3 text-left transition-all cursor-pointer ${
               groupFilter === group
                 ? 'border-line-default bg-layer-2'
                 : 'border-line-subtle bg-layer-1 hover:bg-layer-2'
@@ -228,7 +228,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
           <button
             key={group}
             onClick={() => setGroupFilter(group)}
-            className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 transition-all cursor-pointer border-none ${
+            className={`px-3 py-1.5 rounded-sm text-[11px] font-600 transition-all cursor-pointer border-none ${
               groupFilter === group
                 ? 'bg-accent-soft text-accent-bright'
                 : 'bg-layer-2 text-text-3 hover:bg-layer-3 hover:text-text-2'
@@ -286,7 +286,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                             openConnector(c.id)
                           }
                         }}
-                        className={`group relative flex flex-col rounded-[14px] border p-4 cursor-pointer transition-all hover:border-line-default hover:bg-layer-1 hover:scale-[1.01] text-left w-full ${
+                        className={`group relative flex flex-col rounded-md border p-4 cursor-pointer transition-all hover:border-line-default hover:bg-layer-1 hover:scale-[1.01] text-left w-full ${
                           group === 'healthy'
                             ? 'border-emerald-500/15 bg-emerald-500/[0.03]'
                             : group === 'attention'
@@ -300,7 +300,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                         }}
                       >
                         <div className="flex items-start gap-3 mb-3">
-                          <ConnectorPlatformBadge platform={c.platform} size={40} iconSize={20} roundedClassName="rounded-[10px]" />
+                          <ConnectorPlatformBadge platform={c.platform} size={40} iconSize={20} roundedClassName="rounded-sm" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="text-[14px] font-600 text-text truncate">{c.name}</span>
@@ -311,7 +311,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                               />
                             </div>
                             <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                              <span className={`px-1.5 py-0.5 rounded-[5px] text-[10px] font-700 uppercase tracking-[0.08em] ${meta.tone} bg-layer-2`}>
+                              <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-700 uppercase tracking-[0.08em] ${meta.tone} bg-layer-2`}>
                                 {meta.label}
                               </span>
                               <span className="text-[11px] text-text-3">
@@ -352,7 +352,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                         {issues.length > 0 ? (
                           <div className="flex flex-wrap gap-1.5 mb-3">
                             {issues.map((issue) => (
-                              <span key={issue.label} title={issue.detail} className={`px-2 py-1 rounded-[7px] text-[10px] font-700 ${issue.tone}`}>
+                              <span key={issue.label} title={issue.detail} className={`px-2 py-1 rounded-xs text-[10px] font-700 ${issue.tone}`}>
                                 {issue.label}
                               </span>
                             ))}
@@ -363,7 +363,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                           </div>
                         )}
 
-                        <div className="mb-3 rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                        <div className="mb-3 rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                           <div className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55">Readiness</div>
                           <div className="mt-1 text-[11px] text-text-2">{readiness.summary}</div>
                           <div className="mt-2 flex flex-col gap-1">
@@ -394,7 +394,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                               href={readiness.doctorHref}
                               target="_blank"
                               rel="noreferrer"
-                              className="px-2 py-1 rounded-[6px] text-[10px] font-600 transition-all opacity-0 group-hover:opacity-100 bg-layer-2 text-text-3 hover:bg-layer-3 hover:text-text-2"
+                              className="px-2 py-1 rounded-xs text-[10px] font-600 transition-all opacity-0 group-hover:opacity-100 bg-layer-2 text-text-3 hover:bg-layer-3 hover:text-text-2"
                             >
                               Doctor
                             </a>
@@ -403,7 +403,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                                 onClick={(e) => handleReconnect(e, c)}
                                 disabled={reconnecting === c.id}
                                 title="Reconnect"
-                                className="px-2 py-1 rounded-[6px] text-[10px] font-600 transition-all cursor-pointer border-none opacity-0 group-hover:opacity-100 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 disabled:opacity-50"
+                                className="px-2 py-1 rounded-xs text-[10px] font-600 transition-all cursor-pointer border-none opacity-0 group-hover:opacity-100 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 disabled:opacity-50"
                               >
                                 {reconnecting === c.id ? '...' : 'Reconnect'}
                               </button>
@@ -413,7 +413,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                                 onClick={(e) => handleToggle(e, c)}
                                 disabled={isToggling}
                                 title={isRunning ? 'Stop' : 'Start'}
-                                className={`w-7 h-7 rounded-[6px] flex items-center justify-center transition-all cursor-pointer border-none ${
+                                className={`w-7 h-7 rounded-xs flex items-center justify-center transition-all cursor-pointer border-none ${
                                   isToggling ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                                 } ${isRunning
                                   ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'

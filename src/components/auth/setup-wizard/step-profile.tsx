@@ -87,7 +87,7 @@ export function StepProfile({ onContinue, onSkip }: StepProfileProps) {
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
           autoFocus
-          className="w-full max-w-[300px] px-6 py-4 rounded-[16px] border border-line-default bg-surface
+          className="w-full max-w-[300px] px-6 py-4 rounded-lg border border-line-default bg-surface
             text-text text-[18px] text-center font-display font-600 outline-none
             transition-all duration-200 placeholder:text-text-3/70
             focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
@@ -108,14 +108,14 @@ export function StepProfile({ onContinue, onSkip }: StepProfileProps) {
               value={avatarSeed}
               onChange={(e) => setAvatarSeed(e.target.value)}
               placeholder="Avatar seed"
-              className="w-[160px] px-3 py-2 rounded-[10px] border border-line-default bg-surface
+              className="w-[160px] px-3 py-2 rounded-sm border border-line-default bg-surface
                 text-text text-[13px] text-center outline-none transition-all
                 focus:border-accent-bright/30"
             />
             <button
               type="button"
               onClick={randomizeSeed}
-              className="px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-text-3 text-[12px] font-600
+              className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-3 text-[12px] font-600
                 cursor-pointer transition-all hover:bg-layer-2 shrink-0"
             >
               Randomize
@@ -127,7 +127,7 @@ export function StepProfile({ onContinue, onSkip }: StepProfileProps) {
           <button
             type="button"
             onClick={onSkip}
-            className="px-6 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[14px]
+            className="px-6 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[14px]
               font-display font-500 cursor-pointer hover:bg-layer-1 transition-all duration-200"
           >
             Skip for now
@@ -135,7 +135,7 @@ export function StepProfile({ onContinue, onSkip }: StepProfileProps) {
           <button
             type="submit"
             disabled={!hasName}
-            className="px-10 py-3.5 rounded-[14px] border-none bg-accent-bright text-white text-[15px] font-display font-600
+            className="px-10 py-3.5 rounded-md border-none bg-accent-bright text-white text-[15px] font-display font-600
               cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
               shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
           >

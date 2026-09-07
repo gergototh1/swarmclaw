@@ -81,7 +81,7 @@ export function OrgChartActivityFeed({ agents, onSelectAgent, onClose }: Props) 
         <div className="flex-1 text-[13px] font-600 text-text">Activity</div>
         <button
           onClick={onClose}
-          className="w-6 h-6 rounded-[6px] flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
+          className="w-6 h-6 rounded-xs flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M18 6L6 18" /><path d="M6 6l12 12" />

@@ -48,7 +48,7 @@ export function ProjectDetail() {
     return (
       <div className="flex-1 flex items-center justify-center px-8">
         <div className="text-center max-w-[420px]">
-          <div className="w-14 h-14 rounded-[16px] bg-layer-2 flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 rounded-lg bg-layer-2 flex items-center justify-center mx-auto mb-4">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/40">
               <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7-7H4a2 2 0 0 0-2 2v17Z" />
               <path d="M14 2v7h7" />

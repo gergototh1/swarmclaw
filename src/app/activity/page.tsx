@@ -57,7 +57,7 @@ export default function ActivityPage() {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border bg-transparent border-line-subtle text-text-3 hover:bg-layer-1 appearance-none"
+            className="px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border bg-transparent border-line-subtle text-text-3 hover:bg-layer-1 appearance-none"
             style={{ fontFamily: 'inherit', minWidth: 130 }}
           >
             <option value="">All Types</option>
@@ -81,12 +81,12 @@ export default function ActivityPage() {
                     animationDelay: `${Math.min(idx * 0.03, 0.5)}s`
                   }}
                 >
-                  <div className="w-8 h-8 rounded-[8px] bg-surface-2 flex items-center justify-center text-[12px] font-700 text-text-3 shrink-0">
+                  <div className="w-8 h-8 rounded-sm bg-surface-2 flex items-center justify-center text-[12px] font-700 text-text-3 shrink-0">
                     {ENTITY_ICONS[entry.entityType] || '?'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`px-1.5 py-0.5 rounded-[5px] text-[10px] font-600 ${ACTION_COLORS[entry.action] || 'bg-layer-2 text-text-3'}`}>
+                      <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-600 ${ACTION_COLORS[entry.action] || 'bg-layer-2 text-text-3'}`}>
                         {entry.action}
                       </span>
                       <span className="text-[10px] text-text-3/50 font-mono">{entry.entityType}</span>

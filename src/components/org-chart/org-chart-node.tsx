@@ -93,7 +93,7 @@ export function OrgChartNode({
       <div
         className={`
           select-none
-          rounded-[14px] border px-3 py-2.5 transition-all duration-150
+          rounded-md border px-3 py-2.5 transition-all duration-150
           ${disabled ? 'opacity-40' : ''}
           ${isDimmed ? 'opacity-30 pointer-events-none' : ''}
           ${isDragging ? 'opacity-80 scale-105 shadow-lg shadow-black/30 z-50' : ''}
@@ -166,17 +166,17 @@ export function OrgChartNode({
 
         {/* Row 3: Badges — role, team, children */}
         <div className="flex items-center gap-1 flex-wrap">
-          <span className={`text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] leading-none ${badge.cls}`}>
+          <span className={`text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-xs leading-none ${badge.cls}`}>
             {badge.label}
           </span>
           {agent.orchestratorEnabled && (
-            <span className="text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] leading-none text-amber-400 bg-amber-400/15">
+            <span className="text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-xs leading-none text-amber-400 bg-amber-400/15">
               Orchestrator
             </span>
           )}
           {teamLabel && (
             <span
-              className="text-[9px] font-500 px-1.5 py-0.5 rounded-[4px] leading-none border"
+              className="text-[9px] font-500 px-1.5 py-0.5 rounded-xs leading-none border"
               style={{
                 color: teamColor || '#6366F1',
                 backgroundColor: (teamColor || '#6366F1') + '18',
@@ -187,7 +187,7 @@ export function OrgChartNode({
             </span>
           )}
           {childCount != null && childCount > 0 && (
-            <span className="text-[9px] font-500 text-text-3/60 px-1 py-0.5 rounded-[4px] bg-layer-2 leading-none">+{childCount}</span>
+            <span className="text-[9px] font-500 text-text-3/60 px-1 py-0.5 rounded-xs bg-layer-2 leading-none">+{childCount}</span>
           )}
           {providerLabel && (
             <span className="text-[9px] text-text-3/40 px-1 py-0.5 leading-none">{providerLabel}</span>
@@ -200,7 +200,7 @@ export function OrgChartNode({
             {tools.map((p) => (
               <span
                 key={p}
-                className="text-[8px] text-text-3/50 bg-layer-1 border border-line-subtle rounded-[3px] px-1 py-[1px] leading-none"
+                className="text-[8px] text-text-3/50 bg-layer-1 border border-line-subtle rounded-xs px-1 py-[1px] leading-none"
               >
                 {p}
               </span>
@@ -236,7 +236,7 @@ export function OrgChartNode({
       {!isDragGhost && (
         <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center
+            className="w-[18px] h-[18px] rounded-xs flex items-center justify-center
               bg-layer-2 hover:bg-accent-bright/20 cursor-pointer border-none text-text-3 hover:text-accent-bright transition-colors"
             onClick={(e) => { e.stopPropagation(); onChatClick?.(e) }}
             onPointerDown={(e) => e.stopPropagation()}
@@ -247,7 +247,7 @@ export function OrgChartNode({
             </svg>
           </button>
           <button
-            className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center
+            className="w-[18px] h-[18px] rounded-xs flex items-center justify-center
               bg-layer-2 hover:bg-layer-3 cursor-pointer border-none text-text-3 hover:text-text transition-colors"
             onClick={(e) => { e.stopPropagation(); onMenuClick?.(e) }}
             onPointerDown={(e) => e.stopPropagation()}

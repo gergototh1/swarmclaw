@@ -105,7 +105,7 @@ function MissionCard({ mission, isSelected, onSelect }: MissionCardProps) {
   return (
     <button
       onClick={onSelect}
-      className={`text-left w-full rounded-[10px] border transition-all px-4 py-3
+      className={`text-left w-full rounded-sm border transition-all px-4 py-3
         ${isSelected ? 'border-line-strong bg-raised' : 'border-line-subtle hover:border-line-default hover:bg-layer-1'}`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -291,7 +291,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-[12px] border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-[14px] font-600 text-text mb-1">New autonomous mission</div>
@@ -362,7 +362,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
             </label>
           </div>
 
-          <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2.5">
+          <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
             <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-1.5">Periodic reports</div>
             <label className="flex items-center gap-2 flex-wrap">
               <input type="checkbox" checked={reportsEnabled} onChange={(e) => setReportsEnabled(e.target.checked)} />
@@ -510,7 +510,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
         {mission.endReason && <p className="text-[11px] text-rose-300/80 mt-2">End reason: {mission.endReason}</p>}
       </div>
 
-      <div className="rounded-[10px] border border-line-subtle p-4 flex flex-col gap-3">
+      <div className="rounded-sm border border-line-subtle p-4 flex flex-col gap-3">
         <div className="text-[11px] font-600 uppercase tracking-wide text-text-3">Budget</div>
         <BudgetBar label="USD" used={mission.usage.usdSpent} cap={mission.budget.maxUsd} format={formatUsd} />
         <BudgetBar label="Tokens" used={mission.usage.tokensUsed} cap={mission.budget.maxTokens} format={(n) => `${Math.round(n).toLocaleString()}`} />
@@ -523,7 +523,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
         <MissionControls mission={mission} onAction={onAction} onForceReport={onForceReport} onEdit={onEdit} busy={busy} />
       </div>
 
-      <div className="rounded-[12px] border border-line-subtle bg-layer-1 p-4">
+      <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="text-[11px] font-600 uppercase tracking-wide text-text-3">Public share</div>
@@ -537,7 +537,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
                 <button
                   type="button"
                   onClick={() => void copyShareUrl()}
-                  className="rounded-[9px] border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-700 text-emerald-200 hover:bg-emerald-500/15"
+                  className="rounded-sm border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-700 text-emerald-200 hover:bg-emerald-500/15"
                 >
                   Copy link
                 </button>
@@ -545,7 +545,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
                   type="button"
                   disabled={!!shareBusy}
                   onClick={() => void revokeShareLink()}
-                  className="rounded-[9px] border border-rose-500/20 bg-rose-500/[0.06] px-2.5 py-1.5 text-[11px] font-700 text-rose-200 hover:bg-rose-500/[0.1] disabled:opacity-40"
+                  className="rounded-sm border border-rose-500/20 bg-rose-500/[0.06] px-2.5 py-1.5 text-[11px] font-700 text-rose-200 hover:bg-rose-500/[0.1] disabled:opacity-40"
                 >
                   {shareBusy === activeShare.id ? 'Revoking...' : 'Revoke'}
                 </button>
@@ -555,7 +555,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
                 type="button"
                 disabled={!!shareBusy}
                 onClick={() => void createShareLink()}
-                className="rounded-[9px] border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-700 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40"
+                className="rounded-sm border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-700 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40"
               >
                 {shareBusy === 'create' ? 'Creating...' : 'Create share link'}
               </button>
@@ -563,7 +563,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
           </div>
         </div>
         {activeShare && (
-          <div className="mt-3 rounded-[10px] border border-line-subtle bg-black/20 px-3 py-2 text-[11px] text-text-3">
+          <div className="mt-3 rounded-sm border border-line-subtle bg-black/20 px-3 py-2 text-[11px] text-text-3">
             <span className="font-mono text-text">{shareUrl}</span>
             <span className="ml-2 text-text-3/55">Created {formatTimestamp(activeShare.createdAt)}</span>
           </div>
@@ -636,7 +636,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
       {selectedReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedReport(null)}>
           <div
-            className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-[12px] border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5"
+            className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
@@ -892,7 +892,7 @@ export default function MissionsPage() {
           onClick={() => setGalleryOpen(false)}
         >
           <div
-            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[14px] border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-6"
+            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">

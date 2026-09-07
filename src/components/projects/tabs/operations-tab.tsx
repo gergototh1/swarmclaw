@@ -66,7 +66,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
           <div className="relative">
             <button
               onClick={() => setAssignPickerOpen(!assignPickerOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -84,7 +84,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
           </div>
         </div>
         {projectAgents.length === 0 ? (
-          <div className="rounded-[12px] border border-dashed border-line-default px-5 py-6 text-center">
+          <div className="rounded-md border border-dashed border-line-default px-5 py-6 text-center">
             <p className="text-[12px] text-text-3/40">No agents assigned yet.</p>
           </div>
         ) : (
@@ -92,7 +92,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
             {projectAgents.map((agent) => (
               <div
                 key={agent.id}
-                className="group/agent flex items-center gap-3 px-4 py-3 rounded-[12px] border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all"
+                className="group/agent flex items-center gap-3 px-4 py-3 rounded-md border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all"
               >
                 <button
                   onClick={() => navigateTo('agents', agent.id)}
@@ -111,7 +111,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
                 <button
                   onClick={() => handleUnassignAgent(agent.id)}
                   title="Remove from project"
-                  className="opacity-0 group-hover/agent:opacity-100 p-1 rounded-[6px] hover:bg-red-500/10 text-text-3/30 hover:text-red-400 transition-all cursor-pointer bg-transparent border-none shrink-0"
+                  className="opacity-0 group-hover/agent:opacity-100 p-1 rounded-xs hover:bg-red-500/10 text-text-3/30 hover:text-red-400 transition-all cursor-pointer bg-transparent border-none shrink-0"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -199,7 +199,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
           <p className="text-[11px] text-text-3/40">{projectSecrets.length} linked secret{projectSecrets.length === 1 ? '' : 's'}</p>
           <button
             onClick={() => { setEditingSecretId(null); setSecretSheetOpen(true) }}
-            className="px-3 py-2 rounded-[10px] bg-accent-soft text-[12px] font-600 text-accent-bright hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
+            className="px-3 py-2 rounded-sm bg-accent-soft text-[12px] font-600 text-accent-bright hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
             style={{ fontFamily: 'inherit' }}
           >
             Add project secret
@@ -215,7 +215,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
           </h3>
           <button
             onClick={() => { setEditingScheduleId(null); setScheduleSheetOpen(true) }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -226,7 +226,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
           </button>
         </div>
         {projectSchedules.length === 0 ? (
-          <div className="rounded-[12px] border border-dashed border-line-default px-5 py-6 text-center">
+          <div className="rounded-md border border-dashed border-line-default px-5 py-6 text-center">
             <p className="text-[12px] text-text-3/40">No schedules yet.</p>
           </div>
         ) : (
@@ -237,7 +237,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
                 <button
                   key={schedule.id}
                   onClick={() => { setEditingScheduleId(schedule.id); setScheduleSheetOpen(true) }}
-                  className="flex items-center gap-3 px-4 py-3 rounded-[10px] border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer text-left w-full"
+                  className="flex items-center gap-3 px-4 py-3 rounded-sm border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer text-left w-full"
                   style={{ fontFamily: 'inherit' }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-amber-400/60 shrink-0">
@@ -245,7 +245,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
                   <span className="text-[13px] text-text truncate flex-1">{schedule.name}</span>
-                  <span className={`shrink-0 px-2 py-0.5 rounded-[5px] text-[10px] font-600 uppercase tracking-wider ${
+                  <span className={`shrink-0 px-2 py-0.5 rounded-xs text-[10px] font-600 uppercase tracking-wider ${
                     schedule.status === 'active' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-layer-2 text-text-3'
                   }`}>
                     {schedule.status}
@@ -266,7 +266,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
 
         {/* Heartbeat config */}
         {(project.heartbeatPrompt || project.heartbeatIntervalSec) && (
-          <div className="mt-4 rounded-[12px] border border-line-subtle bg-surface/60 px-4 py-3">
+          <div className="mt-4 rounded-md border border-line-subtle bg-surface/60 px-4 py-3">
             <div className="text-[11px] font-700 uppercase tracking-[0.08em] text-sky-400">
               Heartbeat &middot; Every {formatHeartbeatInterval(project.heartbeatIntervalSec)}
             </div>

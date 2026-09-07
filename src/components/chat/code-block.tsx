@@ -67,7 +67,7 @@ export function CodeBlock({ children, className }: Props) {
               <button
                 onClick={handlePreview}
                 className={`flex items-center gap-1.5 text-[10px] font-600 bg-transparent border-none cursor-pointer
-                  transition-all duration-200 px-2 py-0.5 rounded-[6px]
+                  transition-all duration-200 px-2 py-0.5 rounded-xs
                   ${previewing ? 'text-accent-bright' : 'text-text-3/50 hover:text-text-2 hover:bg-layer-2'}`}
                 style={{ fontFamily: 'inherit' }}
               >
@@ -80,7 +80,7 @@ export function CodeBlock({ children, className }: Props) {
               <button
                 onClick={handleOpenTab}
                 className="flex items-center gap-1.5 text-[10px] font-600 bg-transparent border-none cursor-pointer
-                  transition-all duration-200 px-2 py-0.5 rounded-[6px] text-text-3/50 hover:text-text-2 hover:bg-layer-2"
+                  transition-all duration-200 px-2 py-0.5 rounded-xs text-text-3/50 hover:text-text-2 hover:bg-layer-2"
                 style={{ fontFamily: 'inherit' }}
                 title="Open in new tab"
               >
@@ -96,7 +96,7 @@ export function CodeBlock({ children, className }: Props) {
           <button
             onClick={handleSave}
             className="flex items-center gap-1.5 text-[10px] font-600 bg-transparent border-none cursor-pointer
-              transition-all duration-200 px-2 py-0.5 rounded-[6px] text-text-3/50 hover:text-text-2 hover:bg-layer-2"
+              transition-all duration-200 px-2 py-0.5 rounded-xs text-text-3/50 hover:text-text-2 hover:bg-layer-2"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -109,7 +109,7 @@ export function CodeBlock({ children, className }: Props) {
           <button
             onClick={handleCopy}
             className={`flex items-center gap-1.5 text-[10px] font-600 bg-transparent border-none cursor-pointer
-              transition-all duration-200 px-2 py-0.5 rounded-[6px]
+              transition-all duration-200 px-2 py-0.5 rounded-xs
               ${copied
                 ? 'text-success'
                 : 'text-text-3/50 hover:text-text-2 hover:bg-layer-2'}`}
@@ -136,7 +136,7 @@ export function CodeBlock({ children, className }: Props) {
         <iframe
           srcDoc={getText()}
           sandbox="allow-scripts"
-          className="w-full border-none bg-white rounded-b-[8px]"
+          className="w-full border-none bg-white rounded-b-sm"
           style={{ minHeight: 300, maxHeight: 600 }}
           title="Code preview"
         />

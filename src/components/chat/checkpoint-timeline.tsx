@@ -56,7 +56,7 @@ export function CheckpointTimeline({ sessionId }: Props) {
         {checkpoints.map((cp, i) => (
           <div 
             key={cp.checkpointId}
-            className="group relative flex flex-col gap-2 p-3 rounded-[12px] border border-line-subtle bg-layer-1 hover:bg-layer-2 transition-all"
+            className="group relative flex flex-col gap-2 p-3 rounded-md border border-line-subtle bg-layer-1 hover:bg-layer-2 transition-all"
           >
             <div className="flex flex-col">
               <span className="text-[11px] font-700 text-accent-bright uppercase tracking-wider">
@@ -68,7 +68,7 @@ export function CheckpointTimeline({ sessionId }: Props) {
             </div>
             
             {cp.values && Array.isArray(cp.values.messages) && cp.values.messages.length > 0 && (
-              <div className="mt-1 p-2 rounded-[8px] bg-black/20 text-[11px] text-text-3 line-clamp-2 italic">
+              <div className="mt-1 p-2 rounded-sm bg-black/20 text-[11px] text-text-3 line-clamp-2 italic">
                 Last message: {String((cp.values.messages[cp.values.messages.length - 1] as Record<string, unknown>)?.content ?? 'Empty state')}
               </div>
             )}

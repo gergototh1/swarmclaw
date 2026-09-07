@@ -79,7 +79,7 @@ function SectionCard({
   className?: string
 }) {
   return (
-    <section className={`mb-8 rounded-[20px] border border-line-subtle bg-surface/70 p-5 sm:p-6 ${className}`}>
+    <section className={`mb-8 rounded-lg border border-line-subtle bg-surface/70 p-5 sm:p-6 ${className}`}>
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <h3 className="font-display text-[17px] font-700 tracking-[-0.02em] text-text">{title}</h3>
@@ -1199,7 +1199,7 @@ export function AgentSheet() {
     })
   }
 
-  const inputClass = "w-full px-4 py-3.5 rounded-[14px] border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
+  const inputClass = "w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
   const configVersionSummaries = configVersions.map((version) => buildAgentConfigVersionSummary(version))
 
   return (
@@ -1211,7 +1211,7 @@ export function AgentSheet() {
             <h2 className="font-display text-[28px] font-700 tracking-[-0.03em]">
               {editing ? 'Edit Agent' : 'New Agent'}
             </h2>
-            <span className={`rounded-[999px] px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.1em] ${
+            <span className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.1em] ${
               disabled
                 ? 'border border-amber-400/20 bg-amber-400/[0.08] text-amber-300'
                 : 'border border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-300'
@@ -1301,7 +1301,7 @@ export function AgentSheet() {
             <button
               type="button"
               onClick={() => { setAvatarSeed(Math.random().toString(36).slice(2, 10)); setAvatarUrl(null) }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2 hover:text-text-2 active:scale-95 shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2 hover:text-text-2 active:scale-95 shrink-0"
               style={{ fontFamily: 'inherit' }}
               title="Shuffle avatar"
             >
@@ -1327,7 +1327,7 @@ export function AgentSheet() {
         description="Choose how this agent connects to a model, then verify the setup before saving."
       >
       <div className="mb-8">
-        <div className="flex items-center justify-between gap-3 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
           <div>
             <p className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Runtime</p>
             <p className="mt-1 text-[14px] font-600 text-text">{openclawEnabled ? 'OpenClaw gateway' : 'Direct provider connection'}</p>
@@ -1418,13 +1418,13 @@ export function AgentSheet() {
                   <button
                     type="button"
                     onClick={() => { setAddingKey(true); setNewKeyName(''); setNewKeyValue('') }}
-                    className="shrink-0 px-3 py-2.5 rounded-[10px] bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
+                    className="shrink-0 px-3 py-2.5 rounded-sm bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
                   >
                     + New
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3 p-4 rounded-[12px] border border-accent-bright/15 bg-accent-soft/10">
+                <div className="space-y-3 p-4 rounded-md border border-accent-bright/15 bg-accent-soft/10">
                   <input
                     type="text"
                     value={newKeyName}
@@ -1460,7 +1460,7 @@ export function AgentSheet() {
                         } catch (err: unknown) { toast.error(`Failed to save: ${errorMessage(err)}`) }
                         finally { setSavingKey(false) }
                       }}
-                      className="px-4 py-1.5 rounded-[8px] bg-accent-bright text-white text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40"
+                      className="px-4 py-1.5 rounded-sm bg-accent-bright text-white text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40"
                       style={{ fontFamily: 'inherit' }}
                     >
                       {savingKey ? 'Saving...' : 'Save Token'}
@@ -1477,7 +1477,7 @@ export function AgentSheet() {
             const isRemote = url && !/localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]/i.test(url)
             const isSecure = /^(https|wss):\/\//i.test(url)
             if (isRemote && !isSecure) return (
-              <div className="px-3 py-2.5 rounded-[10px] bg-[#fbbf24]/[0.06] border border-[#fbbf24]/20">
+              <div className="px-3 py-2.5 rounded-sm bg-[#fbbf24]/[0.06] border border-[#fbbf24]/20">
                 <p className="text-[13px] text-[#fbbf24] leading-[1.5]">
                   Unencrypted connection. Use HTTPS or an SSH tunnel for production.
                 </p>
@@ -1488,7 +1488,7 @@ export function AgentSheet() {
 
           {/* Status feedback — single unified block */}
           {testStatus === 'pass' && (
-            <div className="p-4 rounded-[12px] bg-emerald-500/[0.06] border border-emerald-500/15 space-y-2">
+            <div className="p-4 rounded-md bg-emerald-500/[0.06] border border-emerald-500/15 space-y-2">
               <div className="flex items-center gap-2">
                 <StatusDot status="online" />
                 <p className="text-[14px] text-emerald-400 font-600">Connected</p>
@@ -1498,7 +1498,7 @@ export function AgentSheet() {
             </div>
           )}
           {testStatus === 'fail' && (
-            <div className="p-4 rounded-[12px] border space-y-3"
+            <div className="p-4 rounded-md border space-y-3"
               style={{
                 background: testErrorCode === 'PAIRING_REQUIRED' ? 'rgba(34,197,94,0.04)' : 'rgba(var(--accent-bright-rgb,120,100,255),0.06)',
                 borderColor: testErrorCode === 'PAIRING_REQUIRED' ? 'rgba(34,197,94,0.2)' : 'rgba(var(--accent-bright-rgb,120,100,255),0.15)',
@@ -1516,7 +1516,7 @@ export function AgentSheet() {
                   href={(() => { const ep = (apiEndpoint || 'http://localhost:18789').replace(/\/+$/, ''); return /^https?:\/\//i.test(ep) ? ep : `http://${ep}` })()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-[10px] bg-layer-2 border border-line-default text-[13px] text-text-2 font-500 hover:bg-layer-3 transition-colors"
+                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-sm bg-layer-2 border border-line-default text-[13px] text-text-2 font-500 hover:bg-layer-3 transition-colors"
                 >
                   Approve in Dashboard →
                 </a>
@@ -1529,7 +1529,7 @@ export function AgentSheet() {
                   href={(() => { const ep = (apiEndpoint || 'http://localhost:18789').replace(/\/+$/, ''); return /^https?:\/\//i.test(ep) ? ep : `http://${ep}` })()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-[10px] bg-layer-2 border border-line-default text-[13px] text-text-2 font-500 hover:bg-layer-3 transition-colors"
+                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-sm bg-layer-2 border border-line-default text-[13px] text-text-2 font-500 hover:bg-layer-3 transition-colors"
                 >
                   Approve in Dashboard →
                 </a>
@@ -1586,7 +1586,7 @@ export function AgentSheet() {
               <button
                 key={p.id}
                 onClick={() => applyDirectProviderSelection(p.id)}
-                className={`relative py-3.5 px-4 rounded-[14px] text-center cursor-pointer transition-all duration-200
+                className={`relative py-3.5 px-4 rounded-md text-center cursor-pointer transition-all duration-200
                   active:scale-[0.97] text-[14px] font-600 border
                   ${provider === p.id
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
@@ -1627,7 +1627,7 @@ export function AgentSheet() {
       {!openclawEnabled && provider === 'ollama' && (
         <div className="mb-8">
           <SectionLabel>Mode</SectionLabel>
-          <div className="flex p-1 rounded-[14px] bg-surface border border-line-subtle">
+          <div className="flex p-1 rounded-md bg-surface border border-line-subtle">
             {(['local', 'cloud'] as const).map((mode) => (
               <button
                 key={mode}
@@ -1641,7 +1641,7 @@ export function AgentSheet() {
                     if (providerCredentials.length > 0) setCredentialId(providerCredentials[0].id)
                   }
                 }}
-                className={`flex-1 py-3 rounded-[12px] text-center cursor-pointer transition-all duration-200
+                className={`flex-1 py-3 rounded-md text-center cursor-pointer transition-all duration-200
                   text-[14px] font-600 capitalize
                   ${ollamaMode === mode
                     ? 'bg-accent-soft text-accent-bright shadow-[0_0_20px_rgba(99,102,241,0.1)]'
@@ -1678,13 +1678,13 @@ export function AgentSheet() {
               <button
                 type="button"
                 onClick={() => { setAddingKey(true); setNewKeyName(''); setNewKeyValue('') }}
-                className="shrink-0 px-3 py-2.5 rounded-[10px] bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
+                className="shrink-0 px-3 py-2.5 rounded-sm bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
               >
                 + New
               </button>
             </div>
           ) : (
-            <div className="space-y-3 p-4 rounded-[12px] border border-accent-bright/15 bg-accent-soft/20">
+            <div className="space-y-3 p-4 rounded-md border border-accent-bright/15 bg-accent-soft/20">
               <input
                 type="text"
                 value={newKeyName}
@@ -1726,7 +1726,7 @@ export function AgentSheet() {
                         } catch (err: unknown) { toast.error(`Failed to save: ${errorMessage(err)}`) }
                         finally { setSavingKey(false) }
                       }}
-                  className="px-4 py-1.5 rounded-[8px] bg-accent-bright text-white text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40"
+                  className="px-4 py-1.5 rounded-sm bg-accent-bright text-white text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {savingKey ? 'Saving...' : 'Save Key'}
@@ -1751,7 +1751,7 @@ export function AgentSheet() {
                 <button
                   key={c.id}
                   onClick={() => setFallbackCredentialIds((prev) => active ? prev.filter((x) => x !== c.id) : [...prev, c.id])}
-                  className={`px-3 py-2 rounded-[10px] text-[12px] font-600 cursor-pointer transition-all border
+                  className={`px-3 py-2 rounded-sm text-[12px] font-600 cursor-pointer transition-all border
                     ${active
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                       : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
@@ -1809,7 +1809,7 @@ export function AgentSheet() {
             <button
               type="button"
               onClick={() => setSoul(randomSoul())}
-              className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-[8px] border border-line-default bg-transparent text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-sm border border-line-default bg-transparent text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors"
               style={{ fontFamily: 'inherit' }}
               title="Randomize personality"
             >
@@ -1823,12 +1823,12 @@ export function AgentSheet() {
             <button
               type="button"
               onClick={() => setSoulLibraryOpen(true)}
-              className="shrink-0 px-2 py-1 rounded-[8px] border border-accent-bright/20 bg-accent-soft text-[11px] text-accent-bright hover:brightness-110 cursor-pointer transition-colors"
+              className="shrink-0 px-2 py-1 rounded-sm border border-accent-bright/20 bg-accent-soft text-[11px] text-accent-bright hover:brightness-110 cursor-pointer transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               Browse Library
             </button>
-            <button onClick={() => soulFileRef.current?.click()} className="shrink-0 px-2 py-1 rounded-[8px] border border-line-default bg-surface text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors" style={{ fontFamily: 'inherit' }}>Upload .md</button>
+            <button onClick={() => soulFileRef.current?.click()} className="shrink-0 px-2 py-1 rounded-sm border border-line-default bg-surface text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors" style={{ fontFamily: 'inherit' }}>Upload .md</button>
             <input ref={soulFileRef} type="file" accept=".md,.txt,.markdown" onChange={handleFileUpload(setSoul)} className="hidden" />
           </div>
           <textarea
@@ -1845,7 +1845,7 @@ export function AgentSheet() {
           <div className="mb-1">
             <div className="mb-3 flex items-center gap-2">
               <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em]">System Prompt <HintTip text="Instructions that tell the agent what it can do, what tools to use, and how to behave" /></label>
-              <button onClick={() => promptFileRef.current?.click()} className="shrink-0 px-2 py-1 rounded-[8px] border border-line-default bg-surface text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors" style={{ fontFamily: 'inherit' }}>Upload .md</button>
+              <button onClick={() => promptFileRef.current?.click()} className="shrink-0 px-2 py-1 rounded-sm border border-line-default bg-surface text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors" style={{ fontFamily: 'inherit' }}>Upload .md</button>
               <input ref={promptFileRef} type="file" accept=".md,.txt,.markdown" onChange={handleFileUpload(setSystemPrompt)} className="hidden" />
             </div>
             <textarea
@@ -1858,7 +1858,7 @@ export function AgentSheet() {
             />
           </div>
         ) : (
-          <div className="rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4 text-[13px] leading-[1.6] text-text-3">
+          <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-4 text-[13px] leading-[1.6] text-text-3">
             OpenClaw agents rely on the gateway runtime for tool execution and node routing. Expand advanced settings if you need continuity, voice, or heartbeat overrides.
           </div>
         )}
@@ -1871,7 +1871,7 @@ export function AgentSheet() {
       >
         {/* --- Role subsection --- */}
         {!WORKER_ONLY_PROVIDER_IDS.has(provider) && (
-          <div className="rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4 mb-4">
+          <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-4 mb-4">
             <div className="flex items-center gap-2 mb-3">
               <SectionLabel>Role</SectionLabel>
               <HintTip text="Coordinators automatically receive a list of available agents and can decompose complex goals, delegate to specialists, and synthesize results." />
@@ -1885,7 +1885,7 @@ export function AgentSheet() {
                     setRole(r)
                     if (r === 'coordinator') setDelegationEnabled(true)
                   }}
-                  className={`px-4 py-1.5 rounded-[8px] text-[13px] font-display font-500 transition-all duration-200
+                  className={`px-4 py-1.5 rounded-sm text-[13px] font-display font-500 transition-all duration-200
                     ${role === r
                       ? 'bg-accent-bright text-white'
                       : 'bg-layer-2 text-text-3 hover:bg-layer-3'}`}
@@ -1944,7 +1944,7 @@ export function AgentSheet() {
 
         {/* --- Orchestrator subsection --- */}
         {isOrchestratorProviderEligible(provider) && (
-          <div className="rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4">
+          <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-4">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-[14px] font-600 text-text">Orchestrator Mode</p>
@@ -2034,7 +2034,7 @@ export function AgentSheet() {
         title="Behavior"
         description="Keep the core autonomy switch visible. Expert heartbeat controls stay in advanced settings."
       >
-        <div className="flex items-center justify-between gap-4 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4">
+        <div className="flex items-center justify-between gap-4 rounded-md border border-line-subtle bg-layer-1 px-4 py-4">
           <div className="min-w-0">
             <p className="text-[14px] font-600 text-text">Heartbeat</p>
             <p className="mt-1 text-[12px] leading-[1.6] text-text-3/75">
@@ -2050,7 +2050,7 @@ export function AgentSheet() {
             <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${heartbeatEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
         </div>
-        <div className="flex items-center justify-between gap-4 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4 mt-3">
+        <div className="flex items-center justify-between gap-4 rounded-md border border-line-subtle bg-layer-1 px-4 py-4 mt-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <p className="text-[14px] font-600 text-text">Dreaming</p>
@@ -2070,7 +2070,7 @@ export function AgentSheet() {
           </button>
         </div>
         {dreamEnabled && (
-          <div className="mt-3 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4 space-y-3">
+          <div className="mt-3 rounded-md border border-line-subtle bg-layer-1 px-4 py-4 space-y-3">
             <div>
               <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 mb-1.5">
                 Cooldown (minutes) <HintTip text="Minimum minutes between dream cycles" />
@@ -2174,7 +2174,7 @@ export function AgentSheet() {
               <button
                 type="button"
                 onClick={() => setVoiceId('')}
-                className="px-3 py-2.5 rounded-[10px] border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all cursor-pointer"
+                className="px-3 py-2.5 rounded-sm border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 Use global default
@@ -2391,7 +2391,7 @@ export function AgentSheet() {
           <button
             type="button"
             onClick={addRoutingTargetFromCurrent}
-            className="shrink-0 px-3 py-2.5 rounded-[10px] bg-accent-soft/50 text-accent-bright text-[12px] font-700 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
+            className="shrink-0 px-3 py-2.5 rounded-sm bg-accent-soft/50 text-accent-bright text-[12px] font-700 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
           >
             + Add Current Route
           </button>
@@ -2400,7 +2400,7 @@ export function AgentSheet() {
           {routingTargets.map((target, index) => {
             const targetCredentials = resolveAgentSelectableProviderCredentials(target.provider, credentials, providerConfigs)
             return (
-              <div key={target.id} className="p-4 rounded-[12px] border border-line-default bg-layer-1 space-y-3">
+              <div key={target.id} className="p-4 rounded-md border border-line-default bg-layer-1 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
                     value={target.label || ''}
@@ -2503,7 +2503,7 @@ export function AgentSheet() {
                   </select>
                 </div>
                 <div className="flex justify-end">
-                  <button type="button" onClick={() => removeRoutingTarget(target.id)} className="px-3 py-1.5 rounded-[8px] border border-red-400/20 bg-red-400/[0.06] text-[12px] font-700 text-red-300 hover:bg-red-400/[0.1] transition-all cursor-pointer">
+                  <button type="button" onClick={() => removeRoutingTarget(target.id)} className="px-3 py-1.5 rounded-sm border border-red-400/20 bg-red-400/[0.06] text-[12px] font-700 text-red-300 hover:bg-red-400/[0.1] transition-all cursor-pointer">
                     Remove Route
                   </button>
                 </div>
@@ -2520,7 +2520,7 @@ export function AgentSheet() {
         <select
           value={filesystemScope}
           onChange={(e) => setFilesystemScope(e.target.value as 'workspace' | 'machine')}
-          className="w-full h-10 px-3 rounded-[10px] bg-layer-2 border border-line-subtle text-[14px] text-text-2"
+          className="w-full h-10 px-3 rounded-sm bg-layer-2 border border-line-subtle text-[14px] text-text-2"
         >
           <option value="workspace">Workspace only</option>
           <option value="machine">Full machine</option>
@@ -2614,7 +2614,7 @@ export function AgentSheet() {
         <select
           value={filesystemScope}
           onChange={(e) => setFilesystemScope(e.target.value as 'workspace' | 'machine')}
-          className="w-full h-10 px-3 rounded-[10px] bg-layer-2 border border-line-subtle text-[14px] text-text-2"
+          className="w-full h-10 px-3 rounded-sm bg-layer-2 border border-line-subtle text-[14px] text-text-2"
         >
           <option value="workspace">Workspace only</option>
           <option value="machine">Full machine</option>
@@ -2683,7 +2683,7 @@ export function AgentSheet() {
 
       {/* Native capability provider note — not shown for OpenClaw (covered in connection status) */}
       {hasNativeCapabilities && !openclawEnabled && (
-        <div className="mb-8 p-4 rounded-[14px] bg-layer-1 border border-line-subtle">
+        <div className="mb-8 p-4 rounded-md bg-layer-1 border border-line-subtle">
           <p className="text-[13px] text-text-3">
             {provider === 'claude-cli'
               ? 'Claude CLI uses its own built-in capabilities — no additional local tool/platform configuration is needed.'
@@ -2740,7 +2740,7 @@ export function AgentSheet() {
                   <button
                     key={s.id}
                     onClick={() => setSkills((prev) => active ? prev.filter((x) => x !== s.id) : [...prev, s.id])}
-                    className={`px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+                    className={`px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                       ${active
                         ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                         : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
@@ -2772,7 +2772,7 @@ export function AgentSheet() {
                 <button
                   key={s.id}
                   onClick={() => setSkillIds((prev) => active ? prev.filter((x) => x !== s.id) : [...prev, s.id])}
-                  className={`px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+                  className={`px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                     ${active
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                       : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
@@ -2801,7 +2801,7 @@ export function AgentSheet() {
                 <button
                   key={s.id}
                   onClick={() => setMcpServerIds((prev) => active ? prev.filter((x) => x !== s.id) : [...prev, s.id])}
-                  className={`px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+                  className={`px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                     ${active
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                       : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
@@ -2869,7 +2869,7 @@ export function AgentSheet() {
         {capabilities.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
             {capabilities.map((capability) => (
-              <span key={capability} className="inline-flex items-center gap-1.5 rounded-[8px] border border-accent-bright/20 bg-accent-soft/20 px-3 py-1 text-[12px] text-accent-bright">
+              <span key={capability} className="inline-flex items-center gap-1.5 rounded-sm border border-accent-bright/20 bg-accent-soft/20 px-3 py-1 text-[12px] text-accent-bright">
                 {capability}
                 <button
                   type="button"
@@ -2907,7 +2907,7 @@ export function AgentSheet() {
               setCapabilities((current) => [...current, next])
               setCapInput('')
             }}
-            className="shrink-0 px-3 py-2.5 rounded-[10px] bg-accent-soft/50 text-accent-bright text-[12px] font-700 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
+            className="shrink-0 px-3 py-2.5 rounded-sm bg-accent-soft/50 text-accent-bright text-[12px] font-700 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
           >
             Add
           </button>
@@ -2925,7 +2925,7 @@ export function AgentSheet() {
               type="button"
               onClick={() => void loadAgentConfigVersions(editing.id)}
               disabled={configVersionsLoading}
-              className="px-3 py-2 rounded-[10px] border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all disabled:opacity-50"
+              className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all disabled:opacity-50"
               style={{ fontFamily: 'inherit' }}
             >
               {configVersionsLoading ? 'Refreshing' : 'Refresh'}
@@ -2933,15 +2933,15 @@ export function AgentSheet() {
           )}
         >
           {configVersionsError ? (
-            <div className="rounded-[12px] border border-red-500/20 bg-red-500/[0.06] p-3 text-[13px] text-red-300">
+            <div className="rounded-md border border-red-500/20 bg-red-500/[0.06] p-3 text-[13px] text-red-300">
               {configVersionsError}
             </div>
           ) : configVersionsLoading && configVersionSummaries.length === 0 ? (
-            <div className="rounded-[12px] border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
+            <div className="rounded-md border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
               Loading saved versions...
             </div>
           ) : configVersionSummaries.length === 0 ? (
-            <div className="rounded-[12px] border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
+            <div className="rounded-md border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
               No saved versions yet.
             </div>
           ) : (
@@ -2949,7 +2949,7 @@ export function AgentSheet() {
               {configVersionSummaries.slice(0, 8).map((summary) => (
                 <div
                   key={summary.id}
-                  className="flex flex-col gap-3 rounded-[12px] border border-line-subtle bg-layer-1 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-md border border-line-subtle bg-layer-1 p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-[14px] font-700 text-text">{summary.title}</div>
@@ -2960,7 +2960,7 @@ export function AgentSheet() {
                     type="button"
                     onClick={() => void handleRestoreConfigVersion(summary.id)}
                     disabled={Boolean(restoringConfigVersionId)}
-                    className="shrink-0 rounded-[10px] border border-accent-bright/20 bg-accent-soft/30 px-3 py-2 text-[12px] font-700 text-accent-bright transition-all hover:bg-accent-soft disabled:opacity-50"
+                    className="shrink-0 rounded-sm border border-accent-bright/20 bg-accent-soft/30 px-3 py-2 text-[12px] font-700 text-accent-bright transition-all hover:bg-accent-soft disabled:opacity-50"
                     style={{ fontFamily: 'inherit' }}
                   >
                     {restoringConfigVersionId === summary.id ? 'Restoring' : 'Restore'}
@@ -2982,7 +2982,7 @@ export function AgentSheet() {
           <button
             type="button"
             onClick={handleExport}
-            className="px-4 py-2.5 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-2 transition-all"
+            className="px-4 py-2.5 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-2 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             Export agent
@@ -2991,7 +2991,7 @@ export function AgentSheet() {
           <button
             type="button"
             onClick={() => importFileRef.current?.click()}
-            className="px-4 py-2.5 rounded-[10px] border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-2 transition-all"
+            className="px-4 py-2.5 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-2 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             Import agent
@@ -3004,7 +3004,7 @@ export function AgentSheet() {
 
       {/* Provider key warning */}
       {providerNeedsKey && (
-        <div className="mb-4 p-3 rounded-[12px] bg-amber-500/[0.08] border border-amber-500/20">
+        <div className="mb-4 p-3 rounded-md bg-amber-500/[0.08] border border-amber-500/20">
           <p className="text-[13px] text-amber-400">
             Add an API key for {currentProvider?.name || provider} above before creating this agent.
           </p>
@@ -3013,13 +3013,13 @@ export function AgentSheet() {
 
       {/* Test connection result (hidden for OpenClaw — inline status block handles it) */}
       {!openclawEnabled && testStatus === 'fail' && (
-        <div className="mb-4 p-3 rounded-[12px] bg-red-500/[0.08] border border-red-500/20">
+        <div className="mb-4 p-3 rounded-md bg-red-500/[0.08] border border-red-500/20">
           <p className="text-[13px] text-red-400">{testMessage || 'Connection test failed'}</p>
           <ProviderDiagnosticsList diagnostics={testDiagnostics} />
         </div>
       )}
       {!openclawEnabled && testStatus === 'pass' && (
-        <div className="mb-4 p-3 rounded-[12px] bg-emerald-500/[0.08] border border-emerald-500/20">
+        <div className="mb-4 p-3 rounded-md bg-emerald-500/[0.08] border border-emerald-500/20">
           <p className="text-[13px] text-emerald-400">{testMessage || 'Connected successfully'}</p>
           <ProviderDiagnosticsList diagnostics={testDiagnostics} />
         </div>
@@ -3030,17 +3030,17 @@ export function AgentSheet() {
 
       <div className="flex gap-3 pt-2 border-t border-line-subtle">
         {editing && (
-          <button onClick={handleDelete} className="py-3.5 px-6 rounded-[14px] border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
+          <button onClick={handleDelete} className="py-3.5 px-6 rounded-md border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Delete
           </button>
         )}
-        <button onClick={onClose} className="flex-1 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
+        <button onClick={onClose} className="flex-1 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
           Cancel
         </button>
         <button
           onClick={handleTestAndSave}
           disabled={!name.trim() || providerNeedsKey || testStatus === 'testing' || saving || (!openclawEnabled && testStatus === 'pass')}
-          className={`flex-1 py-3.5 rounded-[14px] border-none text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-60 transition-all hover:brightness-110
+          className={`flex-1 py-3.5 rounded-md border-none text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-60 transition-all hover:brightness-110
             ${testStatus === 'pass' ? 'bg-emerald-600 shadow-[0_4px_20px_rgba(16,185,129,0.25)]' : 'bg-accent-bright shadow-[0_4px_20px_rgba(99,102,241,0.25)]'}`}
           style={{ fontFamily: 'inherit' }}
         >

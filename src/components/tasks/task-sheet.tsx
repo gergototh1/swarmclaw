@@ -486,7 +486,7 @@ export function TaskSheet() {
         <button
           onClick={handleCopyHandoff}
           disabled={handoffCopying}
-          className="inline-flex items-center gap-2 rounded-[10px] border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3 disabled:opacity-50"
           style={{ fontFamily: 'inherit' }}
         >
           <ClipboardCopy size={13} />
@@ -496,7 +496,7 @@ export function TaskSheet() {
           href={handoffUrl}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-[10px] border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3"
+          className="inline-flex items-center gap-2 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3"
         >
           <FileText size={13} />
           Open Packet
@@ -504,7 +504,7 @@ export function TaskSheet() {
         <button
           onClick={handleSaveHandoff}
           disabled={handoffSaving}
-          className="inline-flex items-center gap-2 rounded-[10px] border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3 disabled:opacity-50"
           style={{ fontFamily: 'inherit' }}
         >
           <Save size={13} />
@@ -530,11 +530,11 @@ export function TaskSheet() {
             {editing.title}
           </h2>
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className={`px-2.5 py-1 rounded-[8px] text-[12px] font-600 border border-transparent ${STATUS_STYLES[editing.status] || 'bg-layer-2 text-text-3'}`}>
+            <span className={`px-2.5 py-1 rounded-sm text-[12px] font-600 border border-transparent ${STATUS_STYLES[editing.status] || 'bg-layer-2 text-text-3'}`}>
               {editing.status}
             </span>
             {editing.priority && (
-              <span className={`px-2.5 py-1 rounded-[8px] text-[12px] font-600 border ${PRIORITY_STYLES[editing.priority] || ''}`}>
+              <span className={`px-2.5 py-1 rounded-sm text-[12px] font-600 border ${PRIORITY_STYLES[editing.priority] || ''}`}>
                 {editing.priority}
               </span>
             )}
@@ -550,7 +550,7 @@ export function TaskSheet() {
         {editing.description && (
           <div className="mb-8">
             <SectionLabel>Description</SectionLabel>
-            <div className="msg-content text-[14px] leading-[1.7] text-text-2 break-words p-4 rounded-[14px] border border-line-subtle bg-surface">
+            <div className="msg-content text-[14px] leading-[1.7] text-text-2 break-words p-4 rounded-md border border-line-subtle bg-surface">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{editing.description}</ReactMarkdown>
             </div>
           </div>
@@ -559,7 +559,7 @@ export function TaskSheet() {
         {editing.objective && (
           <div className="mb-8">
             <SectionLabel>Objective</SectionLabel>
-            <div className="rounded-[14px] border border-line-subtle bg-surface px-4 py-3">
+            <div className="rounded-md border border-line-subtle bg-surface px-4 py-3">
               <div className="text-[14px] font-600 text-text">{editing.objective}</div>
             </div>
           </div>
@@ -569,7 +569,7 @@ export function TaskSheet() {
         {taskAgent && (
           <div className="mb-8">
             <SectionLabel>Agent</SectionLabel>
-            <div className="flex items-center gap-2.5 px-4 py-3 rounded-[14px] border border-line-subtle bg-surface">
+            <div className="flex items-center gap-2.5 px-4 py-3 rounded-md border border-line-subtle bg-surface">
               <AgentAvatar seed={taskAgent.avatarSeed || null} avatarUrl={taskAgent.avatarUrl} name={taskAgent.name} size={24} />
               <span className="text-[14px] font-600 text-text">{taskAgent.name}</span>
             </div>
@@ -580,7 +580,7 @@ export function TaskSheet() {
         {taskProject && (
           <div className="mb-8">
             <SectionLabel>Project</SectionLabel>
-            <span className="inline-flex items-center gap-2 px-3 py-2 rounded-[10px] border border-line-subtle bg-surface text-[13px] font-600 text-text-2">
+            <span className="inline-flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface text-[13px] font-600 text-text-2">
               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: taskProject.color || '#6366F1' }} />
               {taskProject.name}
             </span>
@@ -591,7 +591,7 @@ export function TaskSheet() {
         {(editing.cwd || editing.file) && (
           <div className="mb-8">
             <SectionLabel>{editing.file ? 'File' : 'Directory'}</SectionLabel>
-            <code className="block px-4 py-3 rounded-[14px] border border-line-subtle bg-surface text-[13px] text-text-2 font-mono break-all">
+            <code className="block px-4 py-3 rounded-md border border-line-subtle bg-surface text-[13px] text-text-2 font-mono break-all">
               {editing.file || editing.cwd}
             </code>
           </div>
@@ -599,7 +599,7 @@ export function TaskSheet() {
 
         <div className="mb-8">
           <SectionLabel>Execution</SectionLabel>
-          <div className="rounded-[14px] border border-line-subtle bg-surface p-4 space-y-3">
+          <div className="rounded-md border border-line-subtle bg-surface p-4 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               {editing.liveness && (
                 <InfoChip tone={livenessTone(editing.liveness.state)} title={editing.liveness.reason}>
@@ -631,13 +631,13 @@ export function TaskSheet() {
             {(editing.executionWorkspace?.contextPath || editing.executionWorkspace?.envPath) && (
               <div className="grid grid-cols-1 gap-2 text-[11px] text-text-3/70">
                 {editing.executionWorkspace.contextPath && (
-                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="uppercase tracking-[0.08em] text-text-3/50">Context</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.contextPath}</code>
                   </div>
                 )}
                 {editing.executionWorkspace.envPath && (
-                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="uppercase tracking-[0.08em] text-text-3/50">Env</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.envPath}</code>
                   </div>
@@ -661,7 +661,7 @@ export function TaskSheet() {
                     href={link.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-[8px] bg-emerald-500/10 px-2.5 py-1.5 text-[12px] font-600 text-emerald-300 hover:bg-emerald-500/15"
+                    className="inline-flex items-center gap-1.5 rounded-sm bg-emerald-500/10 px-2.5 py-1.5 text-[12px] font-600 text-emerald-300 hover:bg-emerald-500/15"
                   >
                     <ExternalLink size={12} />
                     {link.label || 'Preview'}
@@ -674,7 +674,7 @@ export function TaskSheet() {
               <button
                 onClick={handlePrepareWorkspace}
                 disabled={workspacePreparing}
-                className="inline-flex items-center gap-2 rounded-[10px] border border-accent-bright/20 bg-accent-bright/10 px-3 py-2 text-[12px] font-600 text-accent-bright hover:bg-accent-bright/14 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-sm border border-accent-bright/20 bg-accent-bright/10 px-3 py-2 text-[12px] font-600 text-accent-bright hover:bg-accent-bright/14 disabled:opacity-50"
                 style={{ fontFamily: 'inherit' }}
               >
                 <FolderOpen size={13} />
@@ -690,7 +690,7 @@ export function TaskSheet() {
             <SectionLabel>Tags</SectionLabel>
             <div className="flex flex-wrap gap-1.5">
               {editing.tags.map((tag) => (
-                <span key={tag} className="px-2.5 py-1 rounded-[8px] bg-indigo-500/10 text-indigo-400 text-[12px] font-600">
+                <span key={tag} className="px-2.5 py-1 rounded-sm bg-indigo-500/10 text-indigo-400 text-[12px] font-600">
                   {tag}
                 </span>
               ))}
@@ -706,7 +706,7 @@ export function TaskSheet() {
               {editing.blockedBy.map((bid) => {
                 const bt = tasks[bid]
                 return (
-                  <span key={bid} className="px-2.5 py-1 rounded-[8px] bg-layer-2 text-text-3 text-[12px] font-600">
+                  <span key={bid} className="px-2.5 py-1 rounded-sm bg-layer-2 text-text-3 text-[12px] font-600">
                     {bt ? bt.title : bid}
                   </span>
                 )
@@ -723,7 +723,7 @@ export function TaskSheet() {
               {editing.blocks.map((bid) => {
                 const bt = tasks[bid]
                 return bt ? (
-                  <span key={bid} className="px-2.5 py-1 rounded-[8px] bg-layer-2 text-text-3 text-[12px] font-600">{bt.title}</span>
+                  <span key={bid} className="px-2.5 py-1 rounded-sm bg-layer-2 text-text-3 text-[12px] font-600">{bt.title}</span>
                 ) : null
               })}
             </div>
@@ -759,7 +759,7 @@ export function TaskSheet() {
         {editing.qualityGate?.enabled && (
           <div className="mb-8">
             <SectionLabel>Quality Gate</SectionLabel>
-            <div className="p-4 rounded-[14px] border border-line-subtle bg-surface space-y-1.5 text-[12px] text-text-2">
+            <div className="p-4 rounded-md border border-line-subtle bg-surface space-y-1.5 text-[12px] text-text-2">
               <p>Min result chars: {editing.qualityGate.minResultChars ?? 80}</p>
               <p>Min evidence signals: {editing.qualityGate.minEvidenceItems ?? 2}</p>
               <p>Verification required: {(editing.qualityGate.requireVerification ?? false) ? 'Yes' : 'No'}</p>
@@ -772,7 +772,7 @@ export function TaskSheet() {
         {editing.executionPolicy?.enabled && (
           <div className="mb-8">
             <SectionLabel>Execution Policy</SectionLabel>
-            <div className="rounded-[14px] border border-line-subtle bg-surface p-4 space-y-3">
+            <div className="rounded-md border border-line-subtle bg-surface p-4 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <InfoChip tone={executionPolicyStatus === 'completed' ? 'success' : executionPolicyStatus === 'changes_requested' ? 'danger' : 'warning'}>
                   {executionPolicyStatus.replace(/_/g, ' ')}
@@ -787,7 +787,7 @@ export function TaskSheet() {
                 {editing.executionPolicy.stages.map((stage) => {
                   const stageState = editing.executionPolicyState?.stages.find((item) => item.id === stage.id)
                   return (
-                    <div key={stage.id} className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                    <div key={stage.id} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-[12px] font-700 text-text">{stage.title}</div>
                         <span className="text-[11px] text-text-3">{(stageState?.status || 'pending').replace(/_/g, ' ')}</span>
@@ -811,7 +811,7 @@ export function TaskSheet() {
                     <button
                       onClick={() => void handlePolicyDecision('approve')}
                       disabled={policyDecisionMutation.isPending}
-                      className="inline-flex items-center gap-2 rounded-[10px] border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-[12px] font-700 text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-sm border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-[12px] font-700 text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-50"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <CheckCircle2 size={13} />
@@ -820,7 +820,7 @@ export function TaskSheet() {
                     <button
                       onClick={() => void handlePolicyDecision('request_changes')}
                       disabled={policyDecisionMutation.isPending}
-                      className="inline-flex items-center gap-2 rounded-[10px] border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-300 hover:bg-red-500/15 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-sm border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-300 hover:bg-red-500/15 disabled:opacity-50"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <XCircle size={13} />
@@ -829,7 +829,7 @@ export function TaskSheet() {
                     <button
                       onClick={() => void handlePolicyDecision('reset')}
                       disabled={policyDecisionMutation.isPending}
-                      className="inline-flex items-center gap-2 rounded-[10px] border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 hover:bg-layer-3 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 hover:bg-layer-3 disabled:opacity-50"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <RotateCcw size={13} />
@@ -852,7 +852,7 @@ export function TaskSheet() {
             <div className="flex gap-2 flex-wrap">
               {editing.images.map((url, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={url} alt="" className="w-20 h-20 rounded-[10px] object-cover border border-line-default" />
+                <img key={i} src={url} alt="" className="w-20 h-20 rounded-sm object-cover border border-line-default" />
               ))}
             </div>
           </div>
@@ -862,7 +862,7 @@ export function TaskSheet() {
         {editing.result && (
           <div className="mb-8">
             <SectionLabel>Result</SectionLabel>
-            <div className="p-4 rounded-[14px] border border-line-subtle bg-surface text-[13px] text-text-2 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+            <div className="p-4 rounded-md border border-line-subtle bg-surface text-[13px] text-text-2 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
               {editing.result}
             </div>
           </div>
@@ -894,31 +894,31 @@ export function TaskSheet() {
             <SectionLabel>CLI Sessions</SectionLabel>
             <div className="flex flex-wrap gap-2">
               {editing.claudeResumeId && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-line-subtle bg-surface">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
                   <span className="text-[11px] font-600 text-amber-400">Claude</span>
                   <code className="text-[11px] text-text-3 font-mono">{editing.claudeResumeId}</code>
                 </div>
               )}
               {editing.codexResumeId && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-line-subtle bg-surface">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
                   <span className="text-[11px] font-600 text-emerald-400">Codex</span>
                   <code className="text-[11px] text-text-3 font-mono">{editing.codexResumeId}</code>
                 </div>
               )}
               {editing.opencodeResumeId && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-line-subtle bg-surface">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
                   <span className="text-[11px] font-600 text-sky-400">OpenCode</span>
                   <code className="text-[11px] text-text-3 font-mono">{editing.opencodeResumeId}</code>
                 </div>
               )}
               {editing.geminiResumeId && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-line-subtle bg-surface">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
                   <span className="text-[11px] font-600 text-fuchsia-400">Gemini</span>
                   <code className="text-[11px] text-text-3 font-mono">{editing.geminiResumeId}</code>
                 </div>
               )}
               {!(editing.claudeResumeId || editing.codexResumeId || editing.opencodeResumeId || editing.geminiResumeId) && editing.cliResumeId && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-line-subtle bg-surface">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
                   <span className="text-[11px] font-600 text-text-2">{editing.cliProvider || 'CLI'}</span>
                   <code className="text-[11px] text-text-3 font-mono">{editing.cliResumeId}</code>
                 </div>
@@ -941,7 +941,7 @@ export function TaskSheet() {
           return (
             <div className="mb-8">
               <label className={`block font-display text-[12px] font-600 uppercase tracking-[0.08em] mb-3 ${labelTone}`}>{label}</label>
-              <div className={`p-4 rounded-[14px] border text-[13px] whitespace-pre-wrap ${tone}`}>
+              <div className={`p-4 rounded-md border text-[13px] whitespace-pre-wrap ${tone}`}>
                 {editing.error}
               </div>
             </div>
@@ -955,7 +955,7 @@ export function TaskSheet() {
           {editing.comments && editing.comments.length > 0 && (
             <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto">
               {editing.comments.map((c) => (
-                <div key={c.id} className="p-3.5 rounded-[12px] border border-line-subtle bg-surface">
+                <div key={c.id} className="p-3.5 rounded-md border border-line-subtle bg-surface">
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className={`text-[12px] font-600 ${c.agentId ? 'text-accent-bright' : 'text-text-2'}`}>
                       {c.author}
@@ -981,7 +981,7 @@ export function TaskSheet() {
             <button
               onClick={handleAddComment}
               disabled={!commentText.trim()}
-              className="px-4 py-3 rounded-[14px] border-none bg-accent-soft text-accent-bright text-[13px] font-600 cursor-pointer disabled:opacity-30 hover:brightness-110 transition-all shrink-0"
+              className="px-4 py-3 rounded-md border-none bg-accent-soft text-accent-bright text-[13px] font-600 cursor-pointer disabled:opacity-30 hover:brightness-110 transition-all shrink-0"
               style={{ fontFamily: 'inherit' }}
             >
               Post
@@ -994,7 +994,7 @@ export function TaskSheet() {
           {activeStructuredRunId && (
             <button
               onClick={() => router.push(`/protocols?runId=${encodeURIComponent(activeStructuredRunId)}`)}
-              className="flex-1 py-3.5 rounded-[14px] border border-sky-500/20 bg-sky-500/10 text-sky-100 text-[15px] font-600 cursor-pointer hover:bg-sky-500/14 transition-all"
+              className="flex-1 py-3.5 rounded-md border border-sky-500/20 bg-sky-500/10 text-sky-100 text-[15px] font-600 cursor-pointer hover:bg-sky-500/14 transition-all"
               style={{ fontFamily: 'inherit' }}
             >
               Open Session
@@ -1002,21 +1002,21 @@ export function TaskSheet() {
           )}
           <button
             onClick={() => setStructuredSessionOpen(true)}
-            className="flex-1 py-3.5 rounded-[14px] border border-accent-bright/20 bg-accent-bright/10 text-accent-bright text-[15px] font-600 cursor-pointer hover:bg-accent-bright/14 transition-all"
+            className="flex-1 py-3.5 rounded-md border border-accent-bright/20 bg-accent-bright/10 text-accent-bright text-[15px] font-600 cursor-pointer hover:bg-accent-bright/14 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             {activeStructuredRunId ? 'Run Another Session' : 'Run Structured Session'}
           </button>
           <button
             onClick={onClose}
-            className="flex-1 py-3.5 rounded-[14px] border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+            className="flex-1 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             Close
           </button>
           <button
             onClick={() => setViewOnly(false)}
-            className="flex-1 py-3.5 rounded-[14px] border-none bg-accent-bright text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
+            className="flex-1 py-3.5 rounded-md border-none bg-accent-bright text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             Edit
@@ -1065,7 +1065,7 @@ export function TaskSheet() {
       {editing?.objective && (
         <div className="mb-8">
           <SectionLabel>Objective</SectionLabel>
-          <div className="rounded-[14px] border border-line-subtle bg-surface px-4 py-3 text-[12px] leading-[1.7] text-text-3/75">
+          <div className="rounded-md border border-line-subtle bg-surface px-4 py-3 text-[12px] leading-[1.7] text-text-3/75">
             <div className="font-600 text-text">{editing.objective}</div>
           </div>
         </div>
@@ -1084,7 +1084,7 @@ export function TaskSheet() {
             <button
               key={val}
               onClick={() => setPriority(val as typeof priority)}
-              className={`px-4 py-3 rounded-[12px] text-[14px] font-600 cursor-pointer transition-all border
+              className={`px-4 py-3 rounded-md text-[14px] font-600 cursor-pointer transition-all border
                 ${priority === val
                   ? `${cls} ring-1 ring-current`
                   : 'bg-surface border-line-subtle text-text-2 hover:bg-surface-2'}`}
@@ -1103,7 +1103,7 @@ export function TaskSheet() {
           <div className="flex gap-2 flex-wrap mb-3">
             {images.map((url, i) => (
               <div key={i} className="relative group">
-                <img src={url} alt="" className="w-20 h-20 rounded-[10px] object-cover border border-line-default" />
+                <img src={url} alt="" className="w-20 h-20 rounded-sm object-cover border border-line-default" />
                 <button
                   onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
                   className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[11px] font-700 cursor-pointer
@@ -1115,7 +1115,7 @@ export function TaskSheet() {
             ))}
           </div>
         )}
-        <label className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text-3 text-[13px] font-600 cursor-pointer hover:bg-surface-2 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+        <label className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-md border border-line-subtle bg-surface text-text-3 text-[13px] font-600 cursor-pointer hover:bg-surface-2 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <rect x="3" y="3" width="18" height="18" rx="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />
@@ -1141,7 +1141,7 @@ export function TaskSheet() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setProjectId('')}
-            className={`px-4 py-3 rounded-[12px] text-[14px] font-600 cursor-pointer transition-all border
+            className={`px-4 py-3 rounded-md text-[14px] font-600 cursor-pointer transition-all border
               ${!projectId
                 ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                 : 'bg-surface border-line-subtle text-text-2 hover:bg-surface-2'}`}
@@ -1153,7 +1153,7 @@ export function TaskSheet() {
             <button
               key={p.id}
               onClick={() => setProjectId(p.id)}
-              className={`px-4 py-3 rounded-[12px] text-[14px] font-600 cursor-pointer transition-all border flex items-center gap-2
+              className={`px-4 py-3 rounded-md text-[14px] font-600 cursor-pointer transition-all border flex items-center gap-2
                 ${projectId === p.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                   : 'bg-surface border-line-subtle text-text-2 hover:bg-surface-2'}`}
@@ -1187,7 +1187,7 @@ export function TaskSheet() {
       <div className="mb-8">
         <SectionLabel>Execution Workspace</SectionLabel>
         {editing ? (
-          <div className="rounded-[14px] border border-line-subtle bg-surface p-4 space-y-3">
+          <div className="rounded-md border border-line-subtle bg-surface p-4 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               {editing.liveness && (
                 <InfoChip tone={livenessTone(editing.liveness.state)} title={editing.liveness.reason}>
@@ -1213,13 +1213,13 @@ export function TaskSheet() {
             {(editing.executionWorkspace?.contextPath || editing.executionWorkspace?.envPath) && (
               <div className="grid grid-cols-1 gap-2 text-[11px] text-text-3/70">
                 {editing.executionWorkspace.contextPath && (
-                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="uppercase tracking-[0.08em] text-text-3/50">Context</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.contextPath}</code>
                   </div>
                 )}
                 {editing.executionWorkspace.envPath && (
-                  <div className="rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="uppercase tracking-[0.08em] text-text-3/50">Env</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.envPath}</code>
                   </div>
@@ -1243,7 +1243,7 @@ export function TaskSheet() {
                     href={link.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-[8px] bg-emerald-500/10 px-2.5 py-1.5 text-[12px] font-600 text-emerald-300 hover:bg-emerald-500/15"
+                    className="inline-flex items-center gap-1.5 rounded-sm bg-emerald-500/10 px-2.5 py-1.5 text-[12px] font-600 text-emerald-300 hover:bg-emerald-500/15"
                   >
                     <ExternalLink size={12} />
                     {link.label || 'Preview'}
@@ -1255,7 +1255,7 @@ export function TaskSheet() {
             <button
               onClick={handlePrepareWorkspace}
               disabled={workspacePreparing}
-              className="inline-flex items-center gap-2 rounded-[10px] border border-accent-bright/20 bg-accent-bright/10 px-3 py-2 text-[12px] font-600 text-accent-bright hover:bg-accent-bright/14 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-sm border border-accent-bright/20 bg-accent-bright/10 px-3 py-2 text-[12px] font-600 text-accent-bright hover:bg-accent-bright/14 disabled:opacity-50"
               style={{ fontFamily: 'inherit' }}
             >
               <FolderOpen size={13} />
@@ -1263,7 +1263,7 @@ export function TaskSheet() {
             </button>
           </div>
         ) : (
-          <label className="flex items-center gap-2 rounded-[14px] border border-line-subtle bg-surface px-4 py-3 text-[13px] text-text-2">
+          <label className="flex items-center gap-2 rounded-md border border-line-subtle bg-surface px-4 py-3 text-[13px] text-text-2">
             <input
               type="checkbox"
               checked={provisionWorkspace}
@@ -1281,7 +1281,7 @@ export function TaskSheet() {
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {tags.map((tag) => (
-              <span key={tag} className="inline-flex items-center gap-1 px-2 py-1 rounded-[8px] bg-indigo-500/10 text-indigo-400 text-[12px] font-600">
+              <span key={tag} className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-indigo-500/10 text-indigo-400 text-[12px] font-600">
                 {tag}
                 <button onClick={() => setTags((prev) => prev.filter((t) => t !== tag))} className="text-indigo-400/60 hover:text-indigo-400 cursor-pointer border-none bg-transparent p-0 text-[14px] leading-none">&times;</button>
               </span>
@@ -1324,7 +1324,7 @@ export function TaskSheet() {
             {blockedBy.map((bid) => {
               const bt = tasks[bid]
               return (
-                <span key={bid} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[8px] bg-rose-500/10 text-rose-400 text-[12px] font-600">
+                <span key={bid} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm bg-rose-500/10 text-rose-400 text-[12px] font-600">
                   {bt ? bt.title : bid}
                   <button
                     onClick={() => setBlockedBy((prev) => prev.filter((b) => b !== bid))}
@@ -1348,7 +1348,7 @@ export function TaskSheet() {
             style={{ fontFamily: 'inherit' }}
           />
           {depSearch.trim() && (
-            <div className="absolute z-20 top-full left-0 right-0 mt-1 max-h-[200px] overflow-y-auto rounded-[12px] border border-line-default bg-surface shadow-xl">
+            <div className="absolute z-20 top-full left-0 right-0 mt-1 max-h-[200px] overflow-y-auto rounded-md border border-line-default bg-surface shadow-xl">
               {Object.values(tasks)
                 .filter((t) =>
                   t.id !== editingId &&
@@ -1392,7 +1392,7 @@ export function TaskSheet() {
               {editing.blocks.map((bid) => {
                 const bt = tasks[bid]
                 return bt ? (
-                  <span key={bid} className="px-2 py-1 rounded-[6px] bg-layer-2 text-text-3 text-[11px] font-600">{bt.title}</span>
+                  <span key={bid} className="px-2 py-1 rounded-xs bg-layer-2 text-text-3 text-[11px] font-600">{bt.title}</span>
                 ) : null
               })}
             </div>
@@ -1417,7 +1417,7 @@ export function TaskSheet() {
         <p className="text-[12px] text-text-3 mb-3">
           Checks that must pass before this task can be marked completed.
         </p>
-        <div className="p-4 rounded-[14px] border border-line-subtle bg-surface">
+        <div className="p-4 rounded-md border border-line-subtle bg-surface">
           <button
             onClick={() => setQualityGateEnabled((prev) => !prev)}
             className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${qualityGateEnabled ? 'bg-accent' : 'bg-layer-3'}`}
@@ -1486,7 +1486,7 @@ export function TaskSheet() {
 
       <div className="mb-8">
         <SectionLabel>Execution Policy</SectionLabel>
-        <div className="p-4 rounded-[14px] border border-line-subtle bg-surface">
+        <div className="p-4 rounded-md border border-line-subtle bg-surface">
           <button
             onClick={() => setExecutionPolicyEnabled((prev) => !prev)}
             className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${executionPolicyEnabled ? 'bg-accent' : 'bg-layer-3'}`}
@@ -1525,7 +1525,7 @@ export function TaskSheet() {
                 Verification
               </label>
               {editing?.executionPolicyState && (
-                <div className="md:col-span-3 rounded-[10px] border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
+                <div className="md:col-span-3 rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                   Current state: {executionPolicyStatus.replace(/_/g, ' ')}
                   {currentPolicyStage ? ` at ${currentPolicyStage.title}` : ''}
                 </div>
@@ -1574,7 +1574,7 @@ export function TaskSheet() {
       {editing?.result && (
         <div className="mb-8">
           <SectionLabel>Result</SectionLabel>
-          <div className="p-4 rounded-[14px] border border-line-subtle bg-surface text-[13px] text-text-2 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+          <div className="p-4 rounded-md border border-line-subtle bg-surface text-[13px] text-text-2 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
             {editing.result}
           </div>
         </div>
@@ -1585,31 +1585,31 @@ export function TaskSheet() {
           <SectionLabel>CLI Sessions</SectionLabel>
           <div className="flex flex-wrap gap-2">
             {editing.claudeResumeId && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-line-subtle bg-surface">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
                 <span className="text-[11px] font-600 text-amber-400">Claude</span>
                 <code className="text-[11px] text-text-3 font-mono">{editing.claudeResumeId}</code>
               </div>
             )}
             {editing.codexResumeId && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-line-subtle bg-surface">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
                 <span className="text-[11px] font-600 text-emerald-400">Codex</span>
                 <code className="text-[11px] text-text-3 font-mono">{editing.codexResumeId}</code>
               </div>
             )}
             {editing.opencodeResumeId && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-line-subtle bg-surface">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
                 <span className="text-[11px] font-600 text-sky-400">OpenCode</span>
                 <code className="text-[11px] text-text-3 font-mono">{editing.opencodeResumeId}</code>
               </div>
             )}
             {editing.geminiResumeId && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-line-subtle bg-surface">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
                 <span className="text-[11px] font-600 text-fuchsia-400">Gemini</span>
                 <code className="text-[11px] text-text-3 font-mono">{editing.geminiResumeId}</code>
               </div>
             )}
             {!(editing.claudeResumeId || editing.codexResumeId || editing.opencodeResumeId || editing.geminiResumeId) && editing.cliResumeId && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-line-subtle bg-surface">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
                 <span className="text-[11px] font-600 text-text-2">{editing.cliProvider || 'CLI'}</span>
                 <code className="text-[11px] text-text-3 font-mono">{editing.cliResumeId}</code>
               </div>
@@ -1621,7 +1621,7 @@ export function TaskSheet() {
       {editing?.error && (
         <div className="mb-8">
           <label className="block font-display text-[12px] font-600 text-red-400 uppercase tracking-[0.08em] mb-3">Error</label>
-          <div className="p-4 rounded-[14px] border border-red-500/10 bg-red-500/[0.03] text-[13px] text-red-400/80 whitespace-pre-wrap">
+          <div className="p-4 rounded-md border border-red-500/10 bg-red-500/[0.03] text-[13px] text-red-400/80 whitespace-pre-wrap">
             {editing.error}
           </div>
         </div>
@@ -1635,7 +1635,7 @@ export function TaskSheet() {
           {editing.comments && editing.comments.length > 0 && (
             <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto">
               {editing.comments.map((c) => (
-                <div key={c.id} className="p-3.5 rounded-[12px] border border-line-subtle bg-surface">
+                <div key={c.id} className="p-3.5 rounded-md border border-line-subtle bg-surface">
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className={`text-[12px] font-600 ${c.agentId ? 'text-accent-bright' : 'text-text-2'}`}>
                       {c.author}
@@ -1661,7 +1661,7 @@ export function TaskSheet() {
             <button
               onClick={handleAddComment}
               disabled={!commentText.trim()}
-              className="px-4 py-3 rounded-[14px] border-none bg-accent-soft text-accent-bright text-[13px] font-600 cursor-pointer disabled:opacity-30 hover:brightness-110 transition-all shrink-0"
+              className="px-4 py-3 rounded-md border-none bg-accent-soft text-accent-bright text-[13px] font-600 cursor-pointer disabled:opacity-30 hover:brightness-110 transition-all shrink-0"
               style={{ fontFamily: 'inherit' }}
             >
               Post
@@ -1677,27 +1677,27 @@ export function TaskSheet() {
         saveDisabled={!title.trim() || !agentId}
         left={<>
           {editing && activeStructuredRunId && (
-            <button onClick={() => router.push(`/protocols?runId=${encodeURIComponent(activeStructuredRunId)}`)} className="py-3.5 px-6 rounded-[14px] border border-sky-500/20 bg-transparent text-sky-100 text-[15px] font-600 cursor-pointer hover:bg-sky-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
+            <button onClick={() => router.push(`/protocols?runId=${encodeURIComponent(activeStructuredRunId)}`)} className="py-3.5 px-6 rounded-md border border-sky-500/20 bg-transparent text-sky-100 text-[15px] font-600 cursor-pointer hover:bg-sky-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
               Open Session
             </button>
           )}
           {editing && (
-            <button onClick={() => setStructuredSessionOpen(true)} className="py-3.5 px-6 rounded-[14px] border border-accent-bright/20 bg-transparent text-accent-bright text-[15px] font-600 cursor-pointer hover:bg-accent-bright/10 transition-all" style={{ fontFamily: 'inherit' }}>
+            <button onClick={() => setStructuredSessionOpen(true)} className="py-3.5 px-6 rounded-md border border-accent-bright/20 bg-transparent text-accent-bright text-[15px] font-600 cursor-pointer hover:bg-accent-bright/10 transition-all" style={{ fontFamily: 'inherit' }}>
               {activeStructuredRunId ? 'Run Another Session' : 'Run Structured Session'}
             </button>
           )}
           {editing && editing.status !== 'archived' && (
-            <button onClick={handleArchive} className="py-3.5 px-6 rounded-[14px] border border-line-default bg-transparent text-text-3 text-[15px] font-600 cursor-pointer hover:bg-layer-2 transition-all" style={{ fontFamily: 'inherit' }}>
+            <button onClick={handleArchive} className="py-3.5 px-6 rounded-md border border-line-default bg-transparent text-text-3 text-[15px] font-600 cursor-pointer hover:bg-layer-2 transition-all" style={{ fontFamily: 'inherit' }}>
               Archive
             </button>
           )}
           {editing && editing.status === 'archived' && (
-            <button onClick={handleUnarchive} className="py-3.5 px-6 rounded-[14px] border border-accent-bright/20 bg-transparent text-accent-bright text-[15px] font-600 cursor-pointer hover:bg-accent-bright/10 transition-all" style={{ fontFamily: 'inherit' }}>
+            <button onClick={handleUnarchive} className="py-3.5 px-6 rounded-md border border-accent-bright/20 bg-transparent text-accent-bright text-[15px] font-600 cursor-pointer hover:bg-accent-bright/10 transition-all" style={{ fontFamily: 'inherit' }}>
               Unarchive
             </button>
           )}
           {editing && editing.status === 'backlog' && (
-            <button onClick={handleQueue} className="py-3.5 px-6 rounded-[14px] border border-amber-500/20 bg-transparent text-amber-400 text-[15px] font-600 cursor-pointer hover:bg-amber-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
+            <button onClick={handleQueue} className="py-3.5 px-6 rounded-md border border-amber-500/20 bg-transparent text-amber-400 text-[15px] font-600 cursor-pointer hover:bg-amber-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
               Queue
             </button>
           )}

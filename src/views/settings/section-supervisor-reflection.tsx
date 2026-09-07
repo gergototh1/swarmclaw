@@ -41,7 +41,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
       <p className="text-[12px] text-text-3 mb-5">
         Let SwarmClaw recover from bad loops automatically and write reflection memory after meaningful runs.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Automatic Recovery</label>
         <div className="flex items-center gap-3 mb-5">
           <button
@@ -61,7 +61,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
             <button
               key={option.id}
               onClick={() => patchSettings({ supervisorRuntimeScope: option.id })}
-              className={`rounded-[12px] border px-3 py-3 text-left transition-colors ${
+              className={`rounded-md border px-3 py-3 text-left transition-colors ${
                 runtimeScope === option.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                   : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'

@@ -266,7 +266,7 @@ function SwarmAgentCard({ agent }: { agent: SwarmAgent }) {
 
   return (
     <div
-      className="rounded-[10px] overflow-hidden transition-all duration-200"
+      className="rounded-sm overflow-hidden transition-all duration-200"
       style={{
         background: cfg.bg,
         border: `1px solid ${cfg.border}`,
@@ -341,7 +341,7 @@ export function SwarmPanel({ data }: { data: SwarmPanelData }) {
 
   return (
     <div
-      className="rounded-[14px] overflow-hidden"
+      className="rounded-md overflow-hidden"
       style={{
         background: overallCfg.bg,
         border: `1px solid ${overallCfg.border}`,
@@ -394,7 +394,7 @@ export function SwarmPanel({ data }: { data: SwarmPanelData }) {
           <button
             type="button"
             onClick={() => setShowAll(true)}
-            className="self-start px-2.5 py-1 rounded-[7px] bg-layer-2 hover:bg-layer-3 text-[11px] text-text-3 border border-line-subtle cursor-pointer transition-colors"
+            className="self-start px-2.5 py-1 rounded-xs bg-layer-2 hover:bg-layer-3 text-[11px] text-text-3 border border-line-subtle cursor-pointer transition-colors"
             style={{ fontFamily: 'inherit' }}
           >
             Show {hiddenCount} more agent{hiddenCount !== 1 ? 's' : ''}

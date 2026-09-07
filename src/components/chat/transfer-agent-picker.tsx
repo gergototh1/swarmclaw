@@ -30,14 +30,14 @@ export function TransferAgentPicker({ excludeIds, filterIds, onSelect, onClose }
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute left-0 bottom-full mb-2 z-50 w-[220px] rounded-[10px] bg-surface/95 backdrop-blur-xl border border-line-default shadow-[0_12px_40px_rgba(0,0,0,0.5)] overflow-hidden">
+      <div className="absolute left-0 bottom-full mb-2 z-50 w-[220px] rounded-sm bg-surface/95 backdrop-blur-xl border border-line-default shadow-[0_12px_40px_rgba(0,0,0,0.5)] overflow-hidden">
         <div className="p-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search agents..."
             autoFocus
-            className="w-full px-2 py-1.5 text-[12px] bg-layer-2 rounded-[6px] border border-line-default text-text placeholder:text-text-3/50 outline-none"
+            className="w-full px-2 py-1.5 text-[12px] bg-layer-2 rounded-xs border border-line-default text-text placeholder:text-text-3/50 outline-none"
             style={{ fontFamily: 'inherit' }}
           />
         </div>

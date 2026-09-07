@@ -358,7 +358,7 @@ export default function ProtocolsPage() {
     <MainContent>
       <div className="flex-1 min-h-0 overflow-y-auto bg-bg px-4 py-5 md:px-6 md:py-6">
         <div className="mx-auto max-w-[1680px] space-y-5">
-          <section className="rounded-[24px] border border-line-subtle bg-layer-1 p-5 md:p-6">
+          <section className="rounded-lg border border-line-subtle bg-layer-1 p-5 md:p-6">
             <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
               <div className="max-w-[780px]">
                 <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.18em] text-text-3/70">
@@ -369,7 +369,7 @@ export default function ProtocolsPage() {
                   Start structured sessions from chats, chatrooms, tasks, or schedules. Runs stay temporary and bounded, while templates remain reusable for the next time you need them.
                 </p>
               </div>
-              <div className="w-full max-w-[520px] rounded-[20px] border border-line-subtle bg-surface/70 p-4">
+              <div className="w-full max-w-[520px] rounded-lg border border-line-subtle bg-surface/70 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Launch and Templates</div>
@@ -381,21 +381,21 @@ export default function ProtocolsPage() {
                     <button
                       type="button"
                       onClick={() => setLauncherOpen(true)}
-                      className="rounded-[10px] bg-accent-bright px-3 py-2 text-[12px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
+                      className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
                     >
                       Start structured session
                     </button>
                     <button
                       type="button"
                       onClick={() => openTemplateEditor()}
-                      className="rounded-[10px] border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
+                      className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
                     >
                       New template
                     </button>
                     <button
                       type="button"
                       onClick={() => router.push(DEFAULT_BUILDER_ROUTE)}
-                      className="rounded-[10px] border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
+                      className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
                     >
                       Open visual builder
                     </button>
@@ -403,21 +403,21 @@ export default function ProtocolsPage() {
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
-                  <div className="rounded-[16px] border border-line-subtle bg-layer-1 p-4">
+                  <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                     <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Built-in Templates</div>
                     <div className="mt-2 text-[28px] font-700 tracking-[-0.03em] text-text">{builtInTemplates.length}</div>
                     <div className="mt-2 text-[12px] leading-relaxed text-text-3/68">
                       Use a neutral starter for review, discussion, decision rounds, or single-agent structured work.
                     </div>
                   </div>
-                  <div className="rounded-[16px] border border-line-subtle bg-layer-1 p-4">
+                  <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                     <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Custom Templates</div>
                     <div className="mt-2 text-[28px] font-700 tracking-[-0.03em] text-text">{customTemplates.length}</div>
                     <div className="mt-2 text-[12px] leading-relaxed text-text-3/68">
                       Keep reusable step graphs here without forcing every launch through advanced JSON authoring.
                     </div>
                   </div>
-                  <div className="rounded-[16px] border border-line-subtle bg-layer-1 p-4">
+                  <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                     <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Recent Runs</div>
                     <div className="mt-2 text-[28px] font-700 tracking-[-0.03em] text-text">{runs.length}</div>
                     <div className="mt-2 text-[12px] leading-relaxed text-text-3/68">
@@ -426,7 +426,7 @@ export default function ProtocolsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-[16px] border border-line-subtle bg-layer-1 p-4">
+                <div className="mt-4 rounded-lg border border-line-subtle bg-layer-1 p-4">
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div className="max-w-[720px]">
                       <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Visual Workflow Templates</div>
@@ -438,7 +438,7 @@ export default function ProtocolsPage() {
                     <button
                       type="button"
                       onClick={() => router.push(DEFAULT_BUILDER_ROUTE)}
-                      className="rounded-[10px] bg-accent-bright px-3 py-2 text-[12px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
+                      className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
                     >
                       Open builder
                     </button>
@@ -448,7 +448,7 @@ export default function ProtocolsPage() {
                   </div>
                 </div>
 
-                <details className="mt-4 rounded-[16px] border border-line-subtle bg-layer-1 p-4">
+                <details className="mt-4 rounded-lg border border-line-subtle bg-layer-1 p-4">
                   <summary className="cursor-pointer list-none text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">
                     Advanced Manual Run Builder
                   </summary>
@@ -458,12 +458,12 @@ export default function ProtocolsPage() {
                         value={form.title}
                         onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
                         placeholder="Title"
-                        className="rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
                       />
                       <select
                         value={form.templateId}
                         onChange={(event) => setForm((current) => ({ ...current, templateId: event.target.value }))}
-                        className="rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none"
                       >
                         {templates.map((template) => (
                           <option key={template.id} value={template.id}>{template.name}</option>
@@ -472,7 +472,7 @@ export default function ProtocolsPage() {
                       <select
                         value={form.facilitatorAgentId}
                         onChange={(event) => setForm((current) => ({ ...current, facilitatorAgentId: event.target.value }))}
-                        className="rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none"
                       >
                         <option value="">Facilitator: first participant</option>
                         {Object.values(agents).map((agent) => (
@@ -483,19 +483,19 @@ export default function ProtocolsPage() {
                         value={form.goal}
                         onChange={(event) => setForm((current) => ({ ...current, goal: event.target.value }))}
                         placeholder="Objective or goal"
-                        className="rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
                       />
                       <textarea
                         value={form.kickoffMessage}
                         onChange={(event) => setForm((current) => ({ ...current, kickoffMessage: event.target.value }))}
                         placeholder="Optional kickoff context"
                         rows={3}
-                        className="rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
                       />
                       <select
                         value={form.parentChatroomId}
                         onChange={(event) => setForm((current) => ({ ...current, parentChatroomId: event.target.value }))}
-                        className="rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none"
                       >
                         <option value="">No parent chatroom</option>
                         {Object.values(chatrooms).map((chatroom) => (
@@ -505,7 +505,7 @@ export default function ProtocolsPage() {
                       <select
                         value={form.taskId}
                         onChange={(event) => setForm((current) => ({ ...current, taskId: event.target.value }))}
-                        className="rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none"
                       >
                         <option value="">No linked task</option>
                         {Object.values(tasks).map((task) => (
@@ -516,19 +516,19 @@ export default function ProtocolsPage() {
                         value={form.roundLimit}
                         onChange={(event) => setForm((current) => ({ ...current, roundLimit: event.target.value }))}
                         placeholder="Round limit"
-                        className="rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
                       />
                       <input
                         value={form.decisionMode}
                         onChange={(event) => setForm((current) => ({ ...current, decisionMode: event.target.value }))}
                         placeholder="Decision mode"
-                        className="rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
                       />
                     </div>
 
                     <div>
                       <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Participants</div>
-                      <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-[14px] border border-line-subtle bg-layer-1 p-3">
+                      <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-md border border-line-subtle bg-layer-1 p-3">
                         {Object.values(agents).map((agent) => {
                           const active = form.participantAgentIds.includes(agent.id)
                           return (
@@ -555,7 +555,7 @@ export default function ProtocolsPage() {
                     </div>
 
                     {selectedTemplate && (
-                      <div className="rounded-[14px] border border-line-subtle bg-layer-1 p-3">
+                      <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="text-[12px] font-700 text-text">{selectedTemplate.name}</div>
                           <div className="flex items-center gap-2">
@@ -570,7 +570,7 @@ export default function ProtocolsPage() {
                               <button
                                 type="button"
                                 onClick={() => openTemplateEditor(selectedTemplate)}
-                                className="rounded-[8px] border border-line-default bg-layer-2 px-2.5 py-1 text-[11px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
+                                className="rounded-sm border border-line-default bg-layer-2 px-2.5 py-1 text-[11px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
                               >
                                 Edit
                               </button>
@@ -600,7 +600,7 @@ export default function ProtocolsPage() {
                     <button
                       type="button"
                       onClick={() => void handleCreate()}
-                      className="inline-flex items-center justify-center rounded-[12px] bg-accent-bright px-4 py-2.5 text-[13px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
+                      className="inline-flex items-center justify-center rounded-md bg-accent-bright px-4 py-2.5 text-[13px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
                     >
                       Create structured session
                     </button>
@@ -608,7 +608,7 @@ export default function ProtocolsPage() {
                 </details>
 
                 {templateEditorOpen && (
-                  <div className="mt-4 rounded-[16px] border border-sky-500/18 bg-sky-500/[0.04] p-4">
+                  <div className="mt-4 rounded-lg border border-sky-500/18 bg-sky-500/[0.04] p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-sky-200/72">
@@ -625,7 +625,7 @@ export default function ProtocolsPage() {
                           setEditingTemplateId(null)
                           setTemplateDraft(DEFAULT_TEMPLATE_DRAFT)
                         }}
-                        className="rounded-[8px] border border-line-default bg-layer-2 px-2.5 py-1 text-[11px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
+                        className="rounded-sm border border-line-default bg-layer-2 px-2.5 py-1 text-[11px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
                       >
                         Close
                       </button>
@@ -635,9 +635,9 @@ export default function ProtocolsPage() {
                         value={templateDraft.name}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, name: event.target.value }))}
                         placeholder="Template name"
-                        className="rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
                       />
-                      <label className="flex items-center gap-2 rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[13px] text-text-2">
+                      <label className="flex items-center gap-2 rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[13px] text-text-2">
                         <input
                           type="checkbox"
                           checked={templateDraft.singleAgentAllowed}
@@ -650,38 +650,38 @@ export default function ProtocolsPage() {
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, description: event.target.value }))}
                         placeholder="Template description"
                         rows={3}
-                        className="rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
                       />
                       <input
                         value={templateDraft.tags}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, tags: event.target.value }))}
                         placeholder="Tags (comma separated)"
-                        className="rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
                       />
                       <input
                         value={templateDraft.recommendedOutputs}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, recommendedOutputs: event.target.value }))}
                         placeholder="Recommended outputs (comma separated)"
-                        className="rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
                       />
                       <input
                         value={templateDraft.entryStepId}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, entryStepId: event.target.value }))}
                         placeholder="Entry step id"
-                        className="rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
                       />
                       <textarea
                         value={templateDraft.stepsJson}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, stepsJson: event.target.value }))}
                         rows={10}
-                        className="rounded-[12px] border border-line-subtle bg-black/35 px-3 py-2.5 font-mono text-[12px] leading-relaxed text-text outline-none md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-black/35 px-3 py-2.5 font-mono text-[12px] leading-relaxed text-text outline-none md:col-span-2"
                       />
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => void handleSaveTemplate()}
-                        className="rounded-[10px] bg-accent-bright px-3 py-2 text-[12px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
+                        className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
                       >
                         {templatePending === 'save-new' || templatePending === 'save-edit'
                           ? 'Saving…'
@@ -692,14 +692,14 @@ export default function ProtocolsPage() {
                           <button
                             type="button"
                             onClick={() => router.push(`/protocols/builder/${editingTemplateId}`)}
-                            className="rounded-[10px] border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-[12px] font-700 text-blue-200 transition-all hover:bg-blue-500/14 cursor-pointer"
+                            className="rounded-sm border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-[12px] font-700 text-blue-200 transition-all hover:bg-blue-500/14 cursor-pointer"
                           >
                             Visual Builder
                           </button>
                           <button
                             type="button"
                             onClick={() => void handleDeleteTemplate(editingTemplateId)}
-                            className="rounded-[10px] border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-200 transition-all hover:bg-red-500/14 cursor-pointer"
+                            className="rounded-sm border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-200 transition-all hover:bg-red-500/14 cursor-pointer"
                           >
                             {templatePending === `delete:${editingTemplateId}` ? 'Deleting…' : 'Delete template'}
                           </button>
@@ -710,7 +710,7 @@ export default function ProtocolsPage() {
                 )}
 
                 {customTemplates.length > 0 && (
-                  <div className="mt-4 rounded-[14px] border border-line-subtle bg-layer-1 p-3">
+                  <div className="mt-4 rounded-md border border-line-subtle bg-layer-1 p-3">
                     <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Custom Templates</div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {customTemplates.map((template) => (
@@ -729,14 +729,14 @@ export default function ProtocolsPage() {
               </div>
             </div>
             {resolvedError && (
-              <div className="mt-4 rounded-[14px] border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
+              <div className="mt-4 rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
                 {resolvedError}
               </div>
             )}
           </section>
 
           <div className="grid min-h-0 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-            <section className="min-h-0 rounded-[24px] border border-line-subtle bg-layer-1 p-4">
+            <section className="min-h-0 rounded-lg border border-line-subtle bg-layer-1 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-[16px] font-700 text-text">Runs</h2>
@@ -745,7 +745,7 @@ export default function ProtocolsPage() {
                 <button
                   type="button"
                   onClick={() => setLauncherOpen(true)}
-                  className="rounded-[10px] border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
+                  className="rounded-sm border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
                 >
                   Start
                 </button>
@@ -755,7 +755,7 @@ export default function ProtocolsPage() {
                   value={runSearch}
                   onChange={(event) => setRunSearch(event.target.value)}
                   placeholder="Search title, template, or summary"
-                  className="w-full rounded-[12px] border border-line-subtle bg-layer-2 px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-text-3/35"
+                  className="w-full rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-text-3/35"
                 />
                 <div className="flex flex-wrap gap-2">
                   {(['all', 'draft', 'running', 'waiting', 'paused', 'completed', 'failed'] as RunStatusFilter[]).map((filter) => (
@@ -778,7 +778,7 @@ export default function ProtocolsPage() {
                 {loading ? (
                   <div className="text-[13px] text-text-3/65">Loading structured sessions…</div>
                 ) : filteredRuns.length === 0 ? (
-                  <div className="rounded-[16px] border border-line-subtle bg-layer-1 p-4 text-[13px] text-text-3/65">
+                  <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 text-[13px] text-text-3/65">
                     No structured sessions match the current filters.
                   </div>
                 ) : filteredRuns.map((run) => (
@@ -786,7 +786,7 @@ export default function ProtocolsPage() {
                     key={run.id}
                     type="button"
                     onClick={() => handleSelectRun(run.id)}
-                    className={`w-full rounded-[16px] border px-4 py-3 text-left transition-all cursor-pointer ${
+                    className={`w-full rounded-lg border px-4 py-3 text-left transition-all cursor-pointer ${
                       selectedRunId === run.id
                         ? 'border-accent-bright/20 bg-accent-soft/45'
                         : 'border-line-subtle bg-layer-1 hover:bg-layer-2'
@@ -811,16 +811,16 @@ export default function ProtocolsPage() {
               </div>
             </section>
 
-            <section className="min-h-0 rounded-[24px] border border-line-subtle bg-layer-1 p-4 md:p-5">
+            <section className="min-h-0 rounded-lg border border-line-subtle bg-layer-1 p-4 md:p-5">
               {detailLoading ? (
                 <div className="text-[13px] text-text-3/65">Loading structured session detail…</div>
               ) : !detail ? (
-                <div className="rounded-[16px] border border-line-subtle bg-layer-1 p-4 text-[13px] text-text-3/65">
+                <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 text-[13px] text-text-3/65">
                   Select a structured session to inspect its protocol state, transcript, and outputs.
                 </div>
               ) : (
                 <div className="flex min-h-0 flex-col gap-4">
-                  <div className="flex flex-col gap-3 rounded-[20px] border border-line-subtle bg-layer-1 p-4">
+                  <div className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-layer-1 p-4">
                     <div className="flex flex-wrap items-start gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Current Run</div>
@@ -848,7 +848,7 @@ export default function ProtocolsPage() {
                         <button
                           type="button"
                           onClick={() => router.push(`/chatrooms/${encodeURIComponent(detail.transcript?.id || '')}`)}
-                          className="rounded-[10px] border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-[12px] font-700 text-sky-100 cursor-pointer"
+                          className="rounded-sm border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-[12px] font-700 text-sky-100 cursor-pointer"
                         >
                           {detail.run.status === 'running' || detail.run.status === 'waiting' || detail.run.status === 'paused'
                             ? 'Watch Live Room'
@@ -856,58 +856,58 @@ export default function ProtocolsPage() {
                         </button>
                       )}
                       {detail.run.status === 'draft' && (
-                        <button type="button" onClick={() => void handleAction({ action: 'start' })} className="rounded-[10px] bg-accent-bright px-3 py-2 text-[12px] font-700 text-black cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'start' })} className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-black cursor-pointer">
                           {actionPending === 'start' ? 'Starting…' : 'Start'}
                         </button>
                       )}
                       {(detail.run.status === 'waiting' || detail.run.status === 'paused') && (
-                        <button type="button" onClick={() => void handleAction({ action: 'resume' })} className="rounded-[10px] bg-accent-bright px-3 py-2 text-[12px] font-700 text-black cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'resume' })} className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-black cursor-pointer">
                           {actionPending === 'resume' ? 'Resuming…' : 'Resume'}
                         </button>
                       )}
                       {detail.run.status !== 'completed' && detail.run.status !== 'cancelled' && detail.run.status !== 'archived' && detail.run.status !== 'paused' && (
-                        <button type="button" onClick={() => void handleAction({ action: 'pause' })} className="rounded-[10px] border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-[12px] font-700 text-indigo-200 cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'pause' })} className="rounded-sm border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-[12px] font-700 text-indigo-200 cursor-pointer">
                           {actionPending === 'pause' ? 'Pausing…' : 'Pause'}
                         </button>
                       )}
                       {detail.run.status !== 'completed' && detail.run.status !== 'cancelled' && detail.run.status !== 'archived' && (
-                        <button type="button" onClick={() => void handleAction({ action: 'retry_phase' })} className="rounded-[10px] border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'retry_phase' })} className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
                           {actionPending === 'retry_phase' ? 'Retrying…' : 'Retry step'}
                         </button>
                       )}
                       {detail.run.status !== 'completed' && detail.run.status !== 'cancelled' && detail.run.status !== 'archived' && !!currentStepDefinition(detail.run) && (
-                        <button type="button" onClick={() => void handleAction({ action: 'skip_phase' })} className="rounded-[10px] border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'skip_phase' })} className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
                           {actionPending === 'skip_phase' ? 'Skipping…' : 'Skip step'}
                         </button>
                       )}
                       {detail.run.status !== 'completed' && detail.run.status !== 'cancelled' && detail.run.status !== 'archived' && (
-                        <button type="button" onClick={() => void handleAction({ action: 'cancel' })} className="rounded-[10px] border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-200 cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'cancel' })} className="rounded-sm border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-200 cursor-pointer">
                           {actionPending === 'cancel' ? 'Cancelling…' : 'Cancel'}
                         </button>
                       )}
                       {(detail.run.status === 'completed' || detail.run.status === 'cancelled' || detail.run.status === 'failed') && (
-                        <button type="button" onClick={() => void handleAction({ action: 'archive' })} className="rounded-[10px] border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'archive' })} className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
                           {actionPending === 'archive' ? 'Archiving…' : 'Archive'}
                         </button>
                       )}
                     </div>
                     {detail.run.waitingReason && (
-                      <div className="rounded-[14px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-100">
+                      <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-100">
                         {detail.run.waitingReason}
                       </div>
                     )}
                     {detail.run.pauseReason && (
-                      <div className="rounded-[14px] border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-[13px] text-indigo-100">
+                      <div className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-[13px] text-indigo-100">
                         {detail.run.pauseReason}
                       </div>
                     )}
                     {detail.run.summary && (
-                      <div className="rounded-[16px] border border-emerald-500/14 bg-emerald-500/8 px-4 py-3">
+                      <div className="rounded-lg border border-emerald-500/14 bg-emerald-500/8 px-4 py-3">
                         <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-emerald-200/80">Latest Summary</div>
                         <div className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-text-2">{detail.run.summary}</div>
                       </div>
                     )}
-                    <div className="rounded-[16px] border border-line-subtle bg-layer-1 p-4">
+                    <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                       <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Operator Context</div>
                       <div className="mt-2 text-[12px] leading-relaxed text-text-3/68">
                         Inject steering context without becoming a normal protocol participant.
@@ -917,14 +917,14 @@ export default function ProtocolsPage() {
                         onChange={(event) => setContextDraft(event.target.value)}
                         rows={3}
                         placeholder="Add guidance, constraints, or a correction for the next step."
-                        className="mt-3 w-full rounded-[12px] border border-line-subtle bg-black/20 px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-text-3/35"
+                        className="mt-3 w-full rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-text-3/35"
                       />
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() => void handleAction({ action: 'inject_context', context: contextDraft })}
                           disabled={!contextDraft.trim()}
-                          className="rounded-[10px] border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-[12px] font-700 text-sky-100 transition-all enabled:hover:bg-sky-500/16 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                          className="rounded-sm border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-[12px] font-700 text-sky-100 transition-all enabled:hover:bg-sky-500/16 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
                         >
                           {actionPending === 'inject_context' ? 'Injecting…' : 'Inject context'}
                         </button>
@@ -940,11 +940,11 @@ export default function ProtocolsPage() {
                   <div className="grid min-h-0 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
                     <div className="min-h-0 space-y-4">
                       {!!Object.keys(detail.run.parallelState || {}).length && (
-                        <div className="rounded-[20px] border border-line-subtle bg-layer-1 p-4">
+                        <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                           <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Parallel Branches</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.parallelState || {}).map((state) => (
-                              <div key={state.stepId} className="rounded-[16px] border border-line-subtle bg-layer-1 p-3">
+                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((step) => step.id === state.stepId)?.label || state.stepId}</div>
@@ -958,7 +958,7 @@ export default function ProtocolsPage() {
                                 </div>
                                 <div className="mt-3 space-y-2">
                                   {state.branches.map((branch) => (
-                                    <div key={branch.runId} className="rounded-[14px] border border-line-subtle bg-black/15 p-3">
+                                    <div key={branch.runId} className="rounded-md border border-line-subtle bg-black/15 p-3">
                                       <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
                                           <div className="text-[13px] font-700 text-text">{branch.label}</div>
@@ -979,7 +979,7 @@ export default function ProtocolsPage() {
                                         <button
                                           type="button"
                                           onClick={() => handleSelectRun(branch.runId)}
-                                          className="rounded-[10px] border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer"
+                                          className="rounded-sm border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer"
                                         >
                                           Open branch
                                         </button>
@@ -987,7 +987,7 @@ export default function ProtocolsPage() {
                                           <button
                                             type="button"
                                             onClick={() => void handleBranchAction(branch.runId, { action: 'retry_phase' })}
-                                            className="rounded-[10px] border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer"
+                                            className="rounded-sm border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer"
                                           >
                                             {actionPending === `retry_phase:${branch.runId}` ? 'Retrying…' : 'Retry branch'}
                                           </button>
@@ -1003,11 +1003,11 @@ export default function ProtocolsPage() {
                       )}
 
                       {!!Object.keys(detail.run.forEachState || {}).length && (
-                        <div className="rounded-[20px] border border-line-subtle bg-layer-1 p-4">
+                        <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                           <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">For-Each Branches</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.forEachState || {}).map((state) => (
-                              <div key={state.stepId} className="rounded-[16px] border border-line-subtle bg-layer-1 p-3">
+                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((s) => s.id === state.stepId)?.label || state.stepId}</div>
@@ -1021,7 +1021,7 @@ export default function ProtocolsPage() {
                                 </div>
                                 <div className="mt-3 space-y-2">
                                   {state.branches.map((branch) => (
-                                    <div key={branch.runId} className="rounded-[14px] border border-line-subtle bg-black/15 p-3">
+                                    <div key={branch.runId} className="rounded-md border border-line-subtle bg-black/15 p-3">
                                       <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
                                           <div className="text-[13px] font-700 text-text">{branch.label}</div>
@@ -1039,7 +1039,7 @@ export default function ProtocolsPage() {
                                         <button
                                           type="button"
                                           onClick={() => handleSelectRun(branch.runId)}
-                                          className="rounded-[10px] border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer"
+                                          className="rounded-sm border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer"
                                         >
                                           Open branch
                                         </button>
@@ -1054,11 +1054,11 @@ export default function ProtocolsPage() {
                       )}
 
                       {!!Object.keys(detail.run.subflowState || {}).length && (
-                        <div className="rounded-[20px] border border-line-subtle bg-layer-1 p-4">
+                        <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                           <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Subflows</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.subflowState || {}).map((state) => (
-                              <div key={state.stepId} className="rounded-[16px] border border-line-subtle bg-layer-1 p-3">
+                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((s) => s.id === state.stepId)?.label || state.templateId}</div>
@@ -1074,7 +1074,7 @@ export default function ProtocolsPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleSelectRun(state.childRunId)}
-                                    className="rounded-[10px] border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer"
+                                    className="rounded-sm border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer"
                                   >
                                     Open subflow
                                   </button>
@@ -1086,11 +1086,11 @@ export default function ProtocolsPage() {
                       )}
 
                       {!!Object.keys(detail.run.swarmState || {}).length && (
-                        <div className="rounded-[20px] border border-line-subtle bg-layer-1 p-4">
+                        <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                           <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Swarm Claims</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.swarmState || {}).map((state) => (
-                              <div key={state.stepId} className="rounded-[16px] border border-line-subtle bg-layer-1 p-3">
+                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((s) => s.id === state.stepId)?.label || state.stepId}</div>
@@ -1107,7 +1107,7 @@ export default function ProtocolsPage() {
                                 </div>
                                 <div className="mt-3 space-y-1">
                                   {state.claims.map((claim) => (
-                                    <div key={claim.id} className="flex items-center justify-between rounded-[10px] border border-line-subtle bg-black/15 px-3 py-2">
+                                    <div key={claim.id} className="flex items-center justify-between rounded-sm border border-line-subtle bg-black/15 px-3 py-2">
                                       <div className="text-[12px] text-text">{claim.workItemLabel}</div>
                                       <div className="flex items-center gap-2">
                                         <span className="text-[11px] text-text-3/62">{agents[claim.agentId]?.name || claim.agentId}</span>
@@ -1128,7 +1128,7 @@ export default function ProtocolsPage() {
                         </div>
                       )}
 
-                      <div className="rounded-[20px] border border-line-subtle bg-layer-1 p-4">
+                      <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                       <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Protocol</div>
                       <div className="mt-3 space-y-2">
                           {stepsForRun(detail.run).map((step, index) => {
@@ -1157,7 +1157,7 @@ export default function ProtocolsPage() {
                             const statusLabel = isFailed ? 'failed' : done ? 'done' : active ? 'running' : isReady ? 'ready' : isWaiting ? 'waiting' : 'pending'
                             const borderClass = isFailed ? 'border-red-500/20 bg-red-500/10' : active ? 'border-accent-bright/20 bg-accent-soft/35' : isReady ? 'border-blue-400/20 bg-blue-500/10' : isWaiting ? 'border-amber-400/20 bg-amber-500/10' : 'border-line-subtle bg-layer-1'
                             return (
-                              <div key={step.id} className={`rounded-[14px] border px-4 py-3 ${borderClass}`}>
+                              <div key={step.id} className={`rounded-md border px-4 py-3 ${borderClass}`}>
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="text-[13px] font-600 text-text">{step.label}</div>
                                   <span className={`text-[11px] ${statusColor}`}>{statusLabel}</span>
@@ -1204,13 +1204,13 @@ export default function ProtocolsPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-[20px] border border-line-subtle bg-layer-1 p-4">
+                      <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                         <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Artifacts</div>
                         <div className="mt-3 space-y-3">
                           {(detail.run.artifacts || []).length === 0 ? (
                             <div className="text-[13px] text-text-3/65">No artifacts yet.</div>
                           ) : detail.run.artifacts?.map((artifact) => (
-                            <div key={artifact.id} className="rounded-[14px] border border-line-subtle bg-layer-1 p-4">
+                            <div key={artifact.id} className="rounded-md border border-line-subtle bg-layer-1 p-4">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="text-[13px] font-700 text-text">{artifact.title}</div>
                                 <span className="text-[11px] text-text-3/60">{artifact.kind.replace(/_/g, ' ')}</span>
@@ -1228,7 +1228,7 @@ export default function ProtocolsPage() {
                     </div>
 
                     <div className="min-h-0 space-y-4">
-                      <div className="rounded-[20px] border border-line-subtle bg-layer-1 p-4">
+                      <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Transcript Preview</div>
@@ -1240,7 +1240,7 @@ export default function ProtocolsPage() {
                             <button
                               type="button"
                               onClick={() => router.push(`/chatrooms/${encodeURIComponent(detail.transcript?.id || '')}`)}
-                              className="rounded-[10px] border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer"
+                              className="rounded-sm border border-line-default bg-layer-2 px-3 py-1.5 text-[11px] font-700 text-text-2 cursor-pointer"
                             >
                               Open Room
                             </button>
@@ -1248,7 +1248,7 @@ export default function ProtocolsPage() {
                         </div>
                         <div className="mt-3 max-h-[360px] space-y-3 overflow-y-auto pr-1">
                           {detail.transcript?.messages?.length ? detail.transcript.messages.slice(-8).map((message) => (
-                            <div key={message.id} className="rounded-[14px] border border-line-subtle bg-layer-1 p-3">
+                            <div key={message.id} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                               <div className="flex items-center gap-2 text-[11px] text-text-3/62">
                                 <span>{message.senderName}</span>
                                 <span>•</span>
@@ -1262,13 +1262,13 @@ export default function ProtocolsPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-[20px] border border-line-subtle bg-layer-1 p-4">
+                      <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                         <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Event Timeline</div>
                         <div className="mt-3 max-h-[360px] space-y-3 overflow-y-auto pr-1">
                           {detail.events.length === 0 ? (
                             <div className="text-[13px] text-text-3/65">No run events yet.</div>
                           ) : detail.events.map((event) => (
-                            <div key={event.id} className="rounded-[14px] border border-line-subtle bg-layer-1 p-3">
+                            <div key={event.id} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/60">{event.type.replace(/_/g, ' ')}</div>
                                 <div className="text-[11px] text-text-3/55">{timeAgo(event.createdAt)}</div>

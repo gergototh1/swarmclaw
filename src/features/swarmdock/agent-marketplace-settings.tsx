@@ -80,7 +80,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
   return (
     <div className="space-y-5">
       {/* Enable/Disable toggle */}
-      <div className="flex items-center justify-between gap-4 rounded-[14px] border border-line-subtle bg-layer-1 px-4 py-4">
+      <div className="flex items-center justify-between gap-4 rounded-md border border-line-subtle bg-layer-1 px-4 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-[14px] font-600 text-text">SwarmDock</p>
@@ -111,7 +111,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what this agent specializes in..."
-              className="w-full min-h-[80px] px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow resize-y"
+              className="w-full min-h-[80px] px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow resize-y"
               style={{ fontFamily: 'inherit' }}
               maxLength={500}
             />
@@ -128,7 +128,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                   <button
                     key={skill}
                     onClick={() => removeSkill(skill)}
-                    className="px-3 py-1.5 rounded-[10px] border border-accent-bright/40 bg-accent-bright/10 text-accent-bright text-[12px] font-500 transition-all cursor-pointer bg-transparent hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400"
+                    className="px-3 py-1.5 rounded-sm border border-accent-bright/40 bg-accent-bright/10 text-accent-bright text-[12px] font-500 transition-all cursor-pointer bg-transparent hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400"
                   >
                     {skill} &times;
                   </button>
@@ -141,14 +141,14 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                 onChange={(e) => setSkillInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }}
                 placeholder="e.g. data-analysis, web-design"
-                className="flex-1 px-4 py-2.5 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                className="flex-1 px-4 py-2.5 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
                 style={{ fontFamily: 'inherit' }}
               />
               <button
                 type="button"
                 onClick={addSkill}
                 disabled={!skillInput.trim()}
-                className="px-4 py-2.5 rounded-[12px] border border-line-default bg-layer-2 text-text-2 text-[13px] font-500 transition-all hover:bg-layer-3 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                className="px-4 py-2.5 rounded-md border border-line-default bg-layer-2 text-text-2 text-[13px] font-500 transition-all hover:bg-layer-3 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
                 Add
               </button>
@@ -164,7 +164,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
               <select
                 value={walletId || ''}
                 onChange={(e) => setWalletId(e.target.value || null)}
-                className="w-full px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none cursor-pointer"
+                className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 <option value="">No wallet selected</option>
@@ -255,7 +255,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                       value={marketplace.maxBudgetUsdc}
                       onChange={(e) => setMarketplace((m) => ({ ...m, maxBudgetUsdc: e.target.value.replace(/[^0-9]/g, '') }))}
                       placeholder="5000000"
-                      className="w-full px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                      className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
                       style={{ fontFamily: 'inherit' }}
                     />
                     <p className="mt-1 text-[11px] text-text-3/60">
@@ -272,7 +272,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                         value={marketplace.autoBidMaxPrice}
                         onChange={(e) => setMarketplace((m) => ({ ...m, autoBidMaxPrice: e.target.value.replace(/[^0-9]/g, '') }))}
                         placeholder="1000000"
-                        className="w-full px-4 py-3 rounded-[14px] border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                        className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
                         style={{ fontFamily: 'inherit' }}
                       />
                       <p className="mt-1 text-[11px] text-text-3/60">
@@ -292,7 +292,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-2.5 rounded-[12px] bg-accent-bright text-white text-[14px] font-600 transition-all
+          className="px-6 py-2.5 rounded-md bg-accent-bright text-white text-[14px] font-600 transition-all
             hover:bg-accent-bright/90 disabled:opacity-40 disabled:cursor-not-allowed border-none cursor-pointer"
         >
           {saving ? 'Saving...' : 'Save Marketplace Settings'}

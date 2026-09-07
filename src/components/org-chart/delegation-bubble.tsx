@@ -39,7 +39,7 @@ export function DelegationBubble({ data, isHoverOnly }: Props) {
       onWheel={isHoverOnly ? (e) => e.stopPropagation() : undefined}
     >
       <div
-        className="rounded-[8px] px-3 py-2 shadow-lg"
+        className="rounded-sm px-3 py-2 shadow-lg"
         style={{
           background: '#12121e',
           border: `1px solid ${accent.border}`,

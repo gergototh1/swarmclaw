@@ -67,7 +67,7 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
       <div className="flex items-center gap-2.5 mb-2 px-1">
         <span className="text-[12px] font-600 text-text-3">{assistantName || 'Claude'}</span>
         {agentStatus?.status && (
-          <span className={`px-1.5 py-0.5 rounded-[4px] text-[9px] font-700 uppercase tracking-wider ${
+          <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-wider ${
             agentStatus.status === 'progress' ? 'bg-blue-500/10 text-blue-400' :
             agentStatus.status === 'ok' ? 'bg-emerald-500/10 text-emerald-400' :
             agentStatus.status === 'blocked' ? 'bg-red-500/10 text-red-400' :
@@ -79,7 +79,7 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
       </div>
 
       {hasMission && (
-        <div className="mb-2 w-full max-w-[85%] md:max-w-[72%] p-3 rounded-[12px] border border-accent-bright/10 bg-accent-bright/[0.02]"
+        <div className="mb-2 w-full max-w-[85%] md:max-w-[72%] p-3 rounded-md border border-accent-bright/10 bg-accent-bright/[0.02]"
           style={{ animation: 'fade-up 0.4s var(--ease-spring)' }}>
           <div className="text-[10px] font-700 text-accent-bright/60 uppercase tracking-widest mb-1.5 flex items-center gap-2">
             <span className="w-1 h-1 rounded-full bg-accent-bright/40" />
@@ -118,7 +118,7 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
               </svg>
             </div>
           </summary>
-          <div className="px-4 py-3 rounded-b-[12px] bg-bg/60 border-x border-b border-line-subtle max-h-[300px] overflow-y-auto">
+          <div className="px-4 py-3 rounded-b-md bg-bg/60 border-x border-b border-line-subtle max-h-[300px] overflow-y-auto">
             <div className="msg-content text-[13px] leading-[1.6] text-text-3/80">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {thinkingText}

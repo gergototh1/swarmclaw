@@ -26,7 +26,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
       <p className="text-[12px] text-text-3 mb-5">
         Enable semantic search for agent memory. Requires an embedding model provider.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Provider</label>
         <div className="grid grid-cols-4 gap-2 mb-5">
           {[
@@ -38,7 +38,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
             <button
               key={String(p.id)}
               onClick={() => patchSettings({ embeddingProvider: p.id, embeddingModel: null, embeddingCredentialId: null, embeddingEndpoint: null })}
-              className={`py-3 px-3 rounded-[12px] text-center cursor-pointer transition-all text-[13px] font-600 border
+              className={`py-3 px-3 rounded-md text-center cursor-pointer transition-all text-[13px] font-600 border
                 ${(appSettings.embeddingProvider || null) === p.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                   : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'}`}
@@ -102,11 +102,11 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
                         setNewKeyValue('')
                       } catch (err: unknown) { toast.error(`Failed to save: ${errorMessage(err)}`) }
                       finally { setSavingKey(false) }
-                    }} className="px-4 py-1.5 rounded-[8px] bg-accent-bright text-white text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40" style={{ fontFamily: 'inherit' }}>
+                    }} className="px-4 py-1.5 rounded-sm bg-accent-bright text-white text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40" style={{ fontFamily: 'inherit' }}>
                       {savingKey ? 'Saving...' : 'Save Key'}
                     </button>
                     {credList.filter(c => c.provider === 'openai').length > 0 && (
-                      <button type="button" onClick={() => { setAddingKey(false); setNewKeyName(''); setNewKeyValue('') }} className="px-4 py-1.5 rounded-[8px] bg-surface-2 text-text-2 text-[12px] font-600 cursor-pointer border-none hover:bg-surface-3 transition-all" style={{ fontFamily: 'inherit' }}>Cancel</button>
+                      <button type="button" onClick={() => { setAddingKey(false); setNewKeyName(''); setNewKeyValue('') }} className="px-4 py-1.5 rounded-sm bg-surface-2 text-text-2 text-[12px] font-600 cursor-pointer border-none hover:bg-surface-3 transition-all" style={{ fontFamily: 'inherit' }}>Cancel</button>
                     )}
                   </div>
                 </div>

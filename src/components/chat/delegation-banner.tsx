@@ -76,7 +76,7 @@ export function DelegationBanner({ agentName, agentAvatarSeed, agentAvatarUrl, t
 
   return (
     <div
-      className="rounded-[12px] px-3.5 py-2.5 flex items-center gap-2.5"
+      className="rounded-md px-3.5 py-2.5 flex items-center gap-2.5"
       style={{
         background: cfg.bg,
         border: `1px solid ${cfg.border}`,
@@ -99,7 +99,7 @@ export function DelegationBanner({ agentName, agentAvatarSeed, agentAvatarUrl, t
         <button
           type="button"
           onClick={handleTaskClick}
-          className="shrink-0 text-[10px] font-600 px-2 py-1 rounded-[6px] cursor-pointer border-none transition-colors"
+          className="shrink-0 text-[10px] font-600 px-2 py-1 rounded-xs cursor-pointer border-none transition-colors"
           style={{
             color: cfg.color,
             background: `${cfg.color}15`,
@@ -204,7 +204,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
 
   return (
     <div
-      className="rounded-[14px] overflow-hidden"
+      className="rounded-md overflow-hidden"
       style={{
         background: isSuccess ? 'rgba(52,211,153,0.04)' : 'rgba(244,63,94,0.04)',
         border: `1px solid ${isSuccess ? 'rgba(52,211,153,0.15)' : 'rgba(244,63,94,0.15)'}`,
@@ -246,7 +246,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
           <button
             type="button"
             onClick={handleTaskClick}
-            className="shrink-0 text-[10px] font-600 px-2.5 py-1 rounded-[6px] cursor-pointer border-none transition-colors"
+            className="shrink-0 text-[10px] font-600 px-2.5 py-1 rounded-xs cursor-pointer border-none transition-colors"
             style={{
               color: isSuccess ? '#34D399' : '#F43F5E',
               background: isSuccess ? 'rgba(52,211,153,0.1)' : 'rgba(244,63,94,0.1)',
@@ -319,7 +319,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
                     key={fileRef}
                     type="button"
                     onClick={() => { api('POST', '/files/open', { path: openPath }).catch(() => {}) }}
-                    className="px-2 py-1 rounded-[7px] text-[10px] font-mono bg-layer-1 border border-line-default text-text-3/70 hover:text-text-3 cursor-pointer max-w-full truncate"
+                    className="px-2 py-1 rounded-xs text-[10px] font-mono bg-layer-1 border border-line-default text-text-3/70 hover:text-text-3 cursor-pointer max-w-full truncate"
                     title={`Open ${openPath}`}
                   >
                     {fileRef}
@@ -355,7 +355,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
               src={info.imageUrl}
               alt="Task result"
               loading="lazy"
-              className="max-w-full rounded-[10px] border border-line-subtle"
+              className="max-w-full rounded-sm border border-line-subtle"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           </div>
@@ -364,7 +364,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
         {/* Result body */}
         {info.resultBody && (
           <div className="mt-0.5">
-            <div className="rounded-[10px] bg-layer-1 border border-line-subtle px-3 py-2.5 max-h-[260px] overflow-y-auto">
+            <div className="rounded-sm bg-layer-1 border border-line-subtle px-3 py-2.5 max-h-[260px] overflow-y-auto">
               <div className="text-[12px] leading-[1.6] text-text-3/80 break-words">
                 <ReactMarkdown
                   components={{
@@ -384,7 +384,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
                         src={src || ''}
                         alt={alt || 'Task artifact'}
                         loading="lazy"
-                        className="max-w-full rounded-[8px] border border-line-default my-2"
+                        className="max-w-full rounded-sm border border-line-default my-2"
                       />
                     ),
                     p: ({ children }) => <p className="m-0 mb-2">{children}</p>,
@@ -425,7 +425,7 @@ export function DelegationSourceBanner({ delegatorName, delegatorAvatarSeed, del
 
   return (
     <div
-      className="rounded-[12px] px-3.5 py-2.5 flex items-start gap-2.5 bg-indigo-500/[0.05] border border-indigo-500/[0.12]"
+      className="rounded-md px-3.5 py-2.5 flex items-start gap-2.5 bg-indigo-500/[0.05] border border-indigo-500/[0.12]"
       style={{ animation: 'delegation-handoff-in 0.45s cubic-bezier(0.16, 1, 0.3, 1)' }}
     >
       <div className="shrink-0 mt-0.5" style={{ animation: 'delegation-handoff-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both' }}>

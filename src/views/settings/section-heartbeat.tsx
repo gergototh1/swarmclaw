@@ -50,7 +50,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
       <p className="text-[12px] text-text-3 mb-5">
         Global defaults inherited by agents. Enable heartbeat and set interval/model per-agent in the agent editor.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
           <div>
             <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Default Prompt</label>
@@ -85,7 +85,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Show OK Messages</label>
             <button
               onClick={() => patchSettings({ heartbeatShowOk: !(appSettings.heartbeatShowOk ?? DEFAULT_HEARTBEAT_SHOW_OK) })}
-              className={`px-3 py-2 rounded-[10px] border text-[12px] font-600 transition-colors cursor-pointer ${
+              className={`px-3 py-2 rounded-sm border text-[12px] font-600 transition-colors cursor-pointer ${
                 appSettings.heartbeatShowOk
                   ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300'
                   : 'border-line-default bg-layer-1 text-text-3'
@@ -99,7 +99,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Show Alert Messages</label>
             <button
               onClick={() => patchSettings({ heartbeatShowAlerts: !(appSettings.heartbeatShowAlerts ?? DEFAULT_HEARTBEAT_SHOW_ALERTS) })}
-              className={`px-3 py-2 rounded-[10px] border text-[12px] font-600 transition-colors cursor-pointer ${
+              className={`px-3 py-2 rounded-sm border text-[12px] font-600 transition-colors cursor-pointer ${
                 (appSettings.heartbeatShowAlerts ?? DEFAULT_HEARTBEAT_SHOW_ALERTS)
                   ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300'
                   : 'border-line-default bg-layer-1 text-text-3'
@@ -199,7 +199,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             <button
               onClick={handleDisableAllHeartbeats}
               disabled={disablingHeartbeats}
-              className="px-3.5 py-2 rounded-[10px] border border-rose-400/25 bg-rose-500/10 text-rose-300 hover:bg-rose-500/16 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-[12px] font-600"
+              className="px-3.5 py-2 rounded-sm border border-rose-400/25 bg-rose-500/10 text-rose-300 hover:bg-rose-500/16 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-[12px] font-600"
               style={{ fontFamily: 'inherit' }}
             >
               {disablingHeartbeats ? 'Stopping\u2026' : 'Stop All Heartbeats'}

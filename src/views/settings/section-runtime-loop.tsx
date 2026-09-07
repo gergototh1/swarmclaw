@@ -26,7 +26,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
       <p className="text-[12px] text-text-3 mb-5">
         Control how far agents can run on their own and set safety guards for delegation and tool execution.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Background Daemon</label>
         <div className="flex items-center gap-3 mb-6">
           <button
@@ -64,7 +64,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
             <button
               key={mode.id}
               onClick={() => patchSettings({ loopMode: mode.id })}
-              className={`py-3 px-3 rounded-[12px] text-center cursor-pointer transition-all text-[13px] font-600 border
+              className={`py-3 px-3 rounded-md text-center cursor-pointer transition-all text-[13px] font-600 border
                 ${loopMode === mode.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                   : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'}`}

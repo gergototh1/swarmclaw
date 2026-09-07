@@ -10,7 +10,7 @@ interface Props {
 
 export function OrgChartToolbar({ onAutoLayout, onZoomIn, onZoomOut, onFitToScreen, scale }: Props) {
   return (
-    <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-raised/90 backdrop-blur-sm border border-line-subtle rounded-[10px] px-1.5 py-1 shadow-lg" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-raised/90 backdrop-blur-sm border border-line-subtle rounded-sm px-1.5 py-1 shadow-lg" onPointerDown={(e) => e.stopPropagation()}>
       <ToolbarBtn title="Auto-layout" onClick={onAutoLayout}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
@@ -44,7 +44,7 @@ function ToolbarBtn({ children, title, onClick }: { children: React.ReactNode; t
     <button
       onClick={onClick}
       title={title}
-      className="w-7 h-7 rounded-[6px] flex items-center justify-center transition-colors cursor-pointer bg-transparent border-none text-text-3 hover:text-text hover:bg-layer-2"
+      className="w-7 h-7 rounded-xs flex items-center justify-center transition-colors cursor-pointer bg-transparent border-none text-text-3 hover:text-text hover:bg-layer-2"
     >
       {children}
     </button>

@@ -28,7 +28,7 @@ export function DevServerBar({ status, onStop }: Props) {
       )}
       <button
         onClick={onStop}
-        className="px-2.5 py-1 rounded-[8px] border border-danger/15 bg-transparent
+        className="px-2.5 py-1 rounded-sm border border-danger/15 bg-transparent
           text-danger text-[11px] font-600 cursor-pointer hover:bg-danger-soft transition-all duration-200"
         style={{ fontFamily: 'inherit' }}
       >

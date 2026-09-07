@@ -22,7 +22,7 @@ export default function AgentsLayout({ children }: { children: React.ReactNode }
               <button
                 key={mode}
                 onClick={() => setAgentViewMode(mode)}
-                className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 capitalize cursor-pointer transition-all
+                className={`px-3 py-1.5 rounded-sm text-[11px] font-600 capitalize cursor-pointer transition-all
                   ${agentViewMode === mode ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`}
                 style={{ fontFamily: 'inherit' }}
               >

@@ -11,7 +11,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
       <p className="text-[12px] text-text-3 mb-5">
         Centralized guardrails for agent tool families and platform features. SwarmClaw now relies on direct capability policy and explicit feature gates rather than a workflow approval queue.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-line-subtle">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Policy Mode</label>
         <div className="grid grid-cols-3 gap-2 mb-5">
           {([
@@ -22,7 +22,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
             <button
               key={mode.id}
               onClick={() => patchSettings({ capabilityPolicyMode: mode.id })}
-              className={`py-3 px-3 rounded-[12px] text-center cursor-pointer transition-all text-[13px] font-600 border
+              className={`py-3 px-3 rounded-md text-center cursor-pointer transition-all text-[13px] font-600 border
                 ${(appSettings.capabilityPolicyMode || 'permissive') === mode.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                   : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'}`}
@@ -35,7 +35,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
 
         <div className="grid grid-cols-1 gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-[12px] border border-line-subtle bg-bg px-4 py-4">
+            <div className="rounded-md border border-line-subtle bg-bg px-4 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[12px] font-600 text-text-2">Task Management</div>
@@ -53,7 +53,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
               </div>
             </div>
 
-            <div className="rounded-[12px] border border-line-subtle bg-bg px-4 py-4">
+            <div className="rounded-md border border-line-subtle bg-bg px-4 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[12px] font-600 text-text-2">Project Management</div>
@@ -72,7 +72,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
             </div>
           </div>
 
-          <div className="rounded-[12px] border border-line-subtle bg-bg px-4 py-4">
+          <div className="rounded-md border border-line-subtle bg-bg px-4 py-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-[12px] font-600 text-text-2">Outbound Connector Confirmation</div>

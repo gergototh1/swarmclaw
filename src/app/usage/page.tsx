@@ -258,12 +258,12 @@ export default function UsagePage() {
 
         {/* Range tabs */}
         <div className="px-8 pb-4 shrink-0" style={{ animation: 'fade-up 0.5s var(--ease-spring) 0.05s both' }}>
-          <div className="flex gap-1 bg-surface-2 rounded-[10px] p-1 w-fit">
+          <div className="flex gap-1 bg-surface-2 rounded-sm p-1 w-fit">
             {RANGES.map((r) => (
               <button
                 key={r}
                 onClick={() => setRange(r)}
-                className={`px-3.5 py-1.5 rounded-[8px] text-[12px] font-600 transition-all cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-sm text-[12px] font-600 transition-all cursor-pointer ${
                   range === r
                     ? 'bg-accent-soft text-accent-bright'
                     : 'text-text-3 hover:text-text-2'
@@ -297,7 +297,7 @@ export default function UsagePage() {
               {insightCards.map((card, index) => (
                 <div
                   key={card.label}
-                  className="bg-surface-2 rounded-[12px] p-4 border border-line-subtle hover:bg-surface transition-all"
+                  className="bg-surface-2 rounded-md p-4 border border-line-subtle hover:bg-surface transition-all"
                   style={{ animation: 'spring-in 0.6s var(--ease-spring) both', animationDelay: `${0.12 + index * 0.04}s` }}
                 >
                   <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3/60 mb-2">{card.label}</p>
@@ -405,7 +405,7 @@ export default function UsagePage() {
                   {extensionData.filter((p) => p.invocations > 0).map((p, idx) => (
                     <div
                       key={p.name}
-                      className="bg-surface-2 rounded-[10px] p-3 border border-line-subtle hover:bg-surface transition-all"
+                      className="bg-surface-2 rounded-sm p-3 border border-line-subtle hover:bg-surface transition-all"
                       style={{ animation: 'spring-in 0.5s var(--ease-spring) both', animationDelay: `${0.3 + idx * 0.03}s` }}
                     >
                       <p className="text-[12px] font-600 text-text truncate">{p.name}</p>
@@ -512,7 +512,7 @@ export default function UsagePage() {
                     .map(([name, h], idx) => (
                       <div
                         key={name}
-                        className="bg-surface-2 rounded-[12px] p-4 border border-line-subtle flex flex-col gap-3 hover:bg-surface transition-all hover:scale-[1.02]"
+                        className="bg-surface-2 rounded-md p-4 border border-line-subtle flex flex-col gap-3 hover:bg-surface transition-all hover:scale-[1.02]"
                         style={{ animation: 'spring-in 0.5s var(--ease-spring) both', animationDelay: `${0.45 + idx * 0.03}s` }}
                       >
                         <div className="flex items-center justify-between">
@@ -538,7 +538,7 @@ export default function UsagePage() {
                             {h.models.map((m) => (
                               <span
                                 key={m}
-                                className="px-2 py-0.5 rounded-[6px] bg-layer-2 text-[11px] text-text-3 font-500"
+                                className="px-2 py-0.5 rounded-xs bg-layer-2 text-[11px] text-text-3 font-500"
                               >
                                 {m}
                               </span>

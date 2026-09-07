@@ -123,7 +123,7 @@ export default function MemoryPage() {
     return (
       <div className="flex-1 flex items-center justify-center px-8">
         <div className="text-center max-w-[380px]">
-          <div className="w-14 h-14 rounded-[16px] bg-layer-1 flex items-center justify-center mb-4 mx-auto">
+          <div className="w-14 h-14 rounded-lg bg-layer-1 flex items-center justify-center mb-4 mx-auto">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/60">
               <ellipse cx="12" cy="5" rx="9" ry="3" />
               <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
@@ -143,16 +143,16 @@ export default function MemoryPage() {
         <div className="px-3 pt-3 pb-1 shrink-0">
           <div className="flex items-center gap-2 mb-2">
             <h3 className="font-display text-[13px] font-600 text-text-2 tracking-[-0.01em] flex-1 truncate">{filterLabel}</h3>
-            <div className="flex bg-layer-2 p-0.5 rounded-[8px]">
+            <div className="flex bg-layer-2 p-0.5 rounded-sm">
                <button
                  onClick={() => setViewMode('list')}
-                 className={`p-1 rounded-[6px] transition-colors ${viewMode === 'list' ? 'bg-layer-3 text-text' : 'text-text-3 hover:text-text-2'}`}
+                 className={`p-1 rounded-xs transition-colors ${viewMode === 'list' ? 'bg-layer-3 text-text' : 'text-text-3 hover:text-text-2'}`}
                >
                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                </button>
                <button
                  onClick={() => setViewMode('graph')}
-                 className={`p-1 rounded-[6px] transition-colors ${viewMode === 'graph' ? 'bg-layer-3 text-text' : 'text-text-3 hover:text-text-2'}`}
+                 className={`p-1 rounded-xs transition-colors ${viewMode === 'graph' ? 'bg-layer-3 text-text' : 'text-text-3 hover:text-text-2'}`}
                >
                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                </button>
@@ -164,7 +164,7 @@ export default function MemoryPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search memories..."
-            className="w-full px-4 py-2.5 rounded-[12px] border border-line-subtle bg-surface text-text
+            className="w-full px-4 py-2.5 rounded-md border border-line-subtle bg-surface text-text
               text-[13px] outline-none transition-all duration-200 placeholder:text-text-3/70 focus-glow"
             style={{ fontFamily: 'inherit' }}
           />
@@ -184,7 +184,7 @@ export default function MemoryPage() {
                 key={tier}
                 type="button"
                 onClick={() => setMemoryTierFilter(tier)}
-                className={`px-2.5 py-1 rounded-[8px] text-[10px] font-700 uppercase tracking-[0.08em] border transition-all ${
+                className={`px-2.5 py-1 rounded-sm text-[10px] font-700 uppercase tracking-[0.08em] border transition-all ${
                   memoryTierFilter === tier
                     ? 'bg-layer-3 text-text-2 border-line-default'
                     : 'bg-transparent text-text-3/70 border-line-subtle hover:text-text-2 hover:bg-layer-1'
@@ -196,7 +196,7 @@ export default function MemoryPage() {
             <button
               type="button"
               onClick={() => setDueOnly((current) => !current)}
-              className={`px-2.5 py-1 rounded-[8px] text-[10px] font-700 uppercase tracking-[0.08em] border transition-all ${
+              className={`px-2.5 py-1 rounded-sm text-[10px] font-700 uppercase tracking-[0.08em] border transition-all ${
                 dueOnly
                   ? 'bg-amber-500/12 text-amber-300 border-amber-500/20'
                   : 'bg-transparent text-text-3/70 border-line-subtle hover:text-text-2 hover:bg-layer-1'
@@ -215,7 +215,7 @@ export default function MemoryPage() {
             <div className="flex gap-1 flex-wrap">
               <button
                 onClick={() => setCategoryFilter('')}
-                className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border-none
+                className={`px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all border-none
                   ${!categoryFilter ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'}`}
                 style={{ fontFamily: 'inherit' }}
               >
@@ -225,7 +225,7 @@ export default function MemoryPage() {
                 <button
                   key={c}
                   onClick={() => setCategoryFilter(categoryFilter === c ? '' : c)}
-                  className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border-none
+                  className={`px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all border-none
                     ${categoryFilter === c ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'}`}
                   style={{ fontFamily: 'inherit' }}
                 >
@@ -262,7 +262,7 @@ export default function MemoryPage() {
                 <p className="text-[12px] text-text-3/60">{error}</p>
                 <button
                   onClick={() => { void load(search) }}
-                  className="px-3 py-1.5 rounded-[8px] bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer border-none"
+                  className="px-3 py-1.5 rounded-sm bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer border-none"
                   style={{ fontFamily: 'inherit' }}
                 >
                   Retry
@@ -270,7 +270,7 @@ export default function MemoryPage() {
               </div>
             ) : loaded ? (
               <div className="flex flex-col items-center justify-center gap-3 text-text-3 p-8 text-center">
-                <div className="w-10 h-10 rounded-[12px] bg-accent-soft flex items-center justify-center">
+                <div className="w-10 h-10 rounded-md bg-accent-soft flex items-center justify-center">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-accent-bright">
                     <ellipse cx="12" cy="5" rx="9" ry="3" />
                     <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
