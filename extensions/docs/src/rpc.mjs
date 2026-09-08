@@ -54,7 +54,10 @@ export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus,
       return {
         gyoker: vaultOf().root,
         kozosMappaNev: sharedFolder(),
-        mappak: foldersOf(all.map((d) => d.path), [AGENTS_ROOT, sharedFolder()]),
+        // A mappák a LEMEZRŐL jönnek, nem csak a doksik útvonalaiból: egy
+        // frissen létrehozott, még üres mappa különben nem jelenne meg, pedig
+        // a `mappaLetrehoz` valódi könyvtárat írt.
+        mappak: foldersOf(all.map((d) => d.path), [AGENTS_ROOT, sharedFolder(), ...vaultOf().listFolders()]),
         doksik: all.map((d) => ({
           id: d.id, cim: d.title, utvonal: d.path, tulajdonos: d.owner, frissitve: d.updated, tagek: d.tags,
         })),

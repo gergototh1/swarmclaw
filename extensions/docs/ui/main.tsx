@@ -29,6 +29,15 @@ export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
   const [allapotHiba, setAllapotHiba] = useState<string | null>(null)
   const [aktivId, setAktivId] = useState<string | null>(null)
   const [agentNevek, setAgentNevek] = useState<Map<string, string>>(new Map())
+  // AZ ADATOK-HASÁB ZÁRVA INDUL. Amíg mindig ott állt, a szerkesztő harmadik
+  // hasábként osztozott a szélességen egy olyan panellel, aminek a tartalma
+  // -- útvonal, tulajdonos, dátumok -- a szerkesztés közben nem változik és
+  // nem is kell hozzá. A szöveg kapja a helyet, és aki az adatokra kíváncsi,
+  // egy kattintással előhozza.
+  const [panelNyitva, setPanelNyitva] = useState(false)
+  // Melyik doksi született épp most. Egyetlen dolgot vezérel: a szerkesztő a
+  // címre viszi a kurzort, hogy a "Névtelen doksi" ne maradjon úgy.
+  const [frissDoksiId, setFrissDoksiId] = useState<string | null>(null)
 
   const refresh = useCallback(() => {
     rpc('fa')
@@ -47,6 +56,25 @@ export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
   }, [rpc])
 
   useEffect(() => { refresh() }, [refresh])
+
+  /**
+   * DELETING IS A MOVE TO THE TRASH, NOT A REMOVAL.
+   *
+   * `torol` sets `deleted_at`; the document leaves the tree and turns up under
+   * Archívum, where "Vissza" brings it back and "Végleg" is the one
+   * irreversible button on this page. The undo is one click away and visible
+   * in the same column, which is why this asks nothing first.
+   *
+   * It lives here rather than in the tree because it acts on the OPEN
+   * document: the editor has to be closed in the same step, or it goes on
+   * autosaving into a row nothing shows any more.
+   */
+  const torol = useCallback(() => {
+    if (!aktivId) return
+    rpc('torol', { id: aktivId })
+      .then(() => { setAktivId(null); refresh() })
+      .catch(() => refresh())
+  }, [aktivId, rpc, refresh])
 
   const cimek = useMemo(() => new Set(fa?.cimek ?? []), [fa])
 
@@ -72,7 +100,7 @@ export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
         </p>
       )}
 
-      <div className="docs-hasabok">
+      <div className={`docs-hasabok${panelNyitva ? ' docs-hasabok-panellel' : ''}`}>
         <FaOszlop
           rpc={rpc}
           fa={fa}
@@ -80,10 +108,21 @@ export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
           aktivId={aktivId}
           onOpen={setAktivId}
           onValtozott={refresh}
+          onUjDoksi={setFrissDoksiId}
           agentNevek={agentNevek}
         />
-        <Szerkeszto rpc={rpc} id={aktivId} cimek={cimek} onMentve={refresh} />
-        <Panel rpc={rpc} id={aktivId} onValtozott={refresh} />
+        <Szerkeszto
+          rpc={rpc}
+          id={aktivId}
+          cimek={cimek}
+          onMentve={refresh}
+          panelNyitva={panelNyitva}
+          onPanelValt={() => setPanelNyitva((elozo) => !elozo)}
+          onTorol={torol}
+          fokuszCim={frissDoksiId !== null && frissDoksiId === aktivId}
+          onCimFokuszalva={() => setFrissDoksiId(null)}
+        />
+        {panelNyitva && <Panel rpc={rpc} id={aktivId} onValtozott={refresh} />}
       </div>
     </div>
   )

@@ -267,6 +267,32 @@ export function createVault({ root }) {
     return found
   }
 
+  /**
+   * Every folder under the root, root-relative, with `.swarmdocs/` skipped.
+   *
+   * The tree used to derive its folder list from the document paths alone, so
+   * a folder held a place only as long as something was filed in it. That made
+   * `mkdirp` -- the whole point of which is that an empty folder can exist
+   * before it has a file -- write a real directory the page could not show:
+   * the operator created a folder, the tree did not change, and nothing said
+   * why. Reading the directories is the only answer that cannot drift from
+   * what is on disk.
+   */
+  function listFolders() {
+    const found = []
+    const walk = (dirRel) => {
+      const dirAbs = dirRel === '' ? realRoot : abs(dirRel)
+      for (const entry of fs.readdirSync(dirAbs, { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.name === '.swarmdocs') continue
+        const childRel = dirRel === '' ? entry.name : `${dirRel}/${entry.name}`
+        found.push(childRel)
+        walk(childRel)
+      }
+    }
+    if (fs.existsSync(realRoot)) walk('')
+    return found.sort()
+  }
+
   /** Creates a folder, so that an empty one can exist before it has a file. */
   function mkdirp(relDir) {
     fs.mkdirSync(abs(relDir), { recursive: true })
@@ -327,6 +353,7 @@ export function createVault({ root }) {
     readDoc,
     writeDoc,
     listDocs,
+    listFolders,
     mkdirp,
     move,
     trash,

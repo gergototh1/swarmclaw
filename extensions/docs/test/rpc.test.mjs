@@ -179,6 +179,14 @@ test('mappaLetrehoz makes an empty folder the tree can show', async () => {
   try {
     await h.rpc.mappaLetrehoz({ mappa: 'kozos/uj-mappa' })
     assert.equal(h.build().vault.exists('kozos/uj-mappa'), true)
+
+    // A NÉV ÁLLÍTÁSÁT IS MEG KELL KÉRDEZNI. Ez a teszt korábban csak a
+    // lemezt nézte, ezért zöld maradt akkor is, amikor a `fa` a mappákat
+    // kizárólag a doksik útvonalaiból vezette le -- a mappa létrejött, és a
+    // fából hiányzott. A művelet ott számít késznek, ahol a lap látja.
+    const fa = await h.rpc.fa()
+    assert.ok(fa.mappak.includes('kozos/uj-mappa'), `a fa nem mutatja: ${fa.mappak.join(', ')}`)
+
     const bad = await h.rpc.mappaLetrehoz({ mappa: '  ' })
     assert.equal(bad.hiba, HIBA.rossz_parameter)
   } finally { h.cleanup() }

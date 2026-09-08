@@ -66,11 +66,16 @@ function Eszkoztar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   )
 }
 
-export function Szerkeszto({ rpc, id, cimek, onMentve }: {
+export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt, onTorol, fokuszCim, onCimFokuszalva }: {
   rpc: Rpc
   id: string | null
   cimek: Set<string>
   onMentve: () => void
+  panelNyitva: boolean
+  onPanelValt: () => void
+  onTorol: () => void
+  fokuszCim: boolean
+  onCimFokuszalva: () => void
 }) {
   const [doc, setDoc] = useState<Doc | null>(null)
   const [betoltesHiba, setBetoltesHiba] = useState<string | null>(null)
@@ -78,6 +83,10 @@ export function Szerkeszto({ rpc, id, cimek, onMentve }: {
   const [verzio, setVerzio] = useState<number>(0)
   const savedMd = useRef<string>('')
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // A cím szerkeszthető, ezért saját mezőállapota van. A `doc.cim` a szerverről
+  // jött érték; ez az, amit épp gépelnek.
+  const [cim, setCim] = useState('')
+  const cimMezo = useRef<HTMLInputElement | null>(null)
 
   const editor = useEditor({
     extensions: [StarterKit, Table.configure({ resizable: false }), TableRow, TableHeader, TableCell],
@@ -97,6 +106,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve }: {
         const loaded = readDoc(raw)
         setDoc(loaded)
         setVerzio(loaded.verzio)
+        setCim(loaded.cim)
         savedMd.current = loaded.tartalom
         editor.commands.setContent(mdToHtml(loaded.tartalom, cimek))
         setAllas({ kind: 'nyugalom' })
@@ -124,6 +134,42 @@ export function Szerkeszto({ rpc, id, cimek, onMentve }: {
       })
       .catch((err) => setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) }))
   }, [id, rpc, onMentve])
+
+  /**
+   * Renaming goes through the same `ment` call as the body, because a title is
+   * stored in the document's own front matter -- there is no separate rename.
+   * It is sent on blur and on Enter rather than on every keystroke: a rename
+   * writes a version, and one per letter would bury the real history.
+   */
+  const mentCim = useCallback(() => {
+    if (!id) return
+    const tiszta = cim.trim()
+    if (tiszta === '' || tiszta === doc?.cim) { setCim(doc?.cim ?? ''); return }
+    setAllas({ kind: 'mentes' })
+    rpc('ment', { id, tartalom: savedMd.current, cim: tiszta, baseVersion: verzio })
+      .then((raw) => {
+        if (isConflict(raw)) { setAllas({ kind: 'utkozes', utkozes: raw, sajat: savedMd.current }); return }
+        const message = errorText(raw)
+        if (message) { setAllas({ kind: 'hiba', uzenet: message }); return }
+        const uj = (raw as { verzio?: number }).verzio
+        if (typeof uj === 'number') setVerzio(uj)
+        setDoc((elozo) => (elozo ? { ...elozo, cim: tiszta } : elozo))
+        setAllas({ kind: 'mentve', mikor: Date.now() })
+        onMentve()
+      })
+      .catch((err) => setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) }))
+  }, [id, cim, doc, rpc, verzio, onMentve])
+
+  // Egy frissen létrehozott doksi címe a helykitöltő; a kurzor odamegy, és a
+  // szöveg ki van jelölve, hogy gépelni lehessen rá.
+  useEffect(() => {
+    if (!fokuszCim || !doc) return
+    const mezo = cimMezo.current
+    if (!mezo) return
+    mezo.focus()
+    mezo.select()
+    onCimFokuszalva()
+  }, [fokuszCim, doc, onCimFokuszalva])
 
   // Automatikus mentés: csak akkor, ha a markdown tényleg más, mint amit a
   // szerver utoljára visszaigazolt.
@@ -155,7 +201,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve }: {
 
   if (!id) {
     return (
-      <section className="docs-oszlop docs-szerkeszto">
+      <section className="docs-oszlop docs-szerkeszto docs-szerkeszto-ures">
         <p className="docs-halvany">Válassz egy doksit a bal oldali fából, vagy hozz létre újat.</p>
       </section>
     )
@@ -204,8 +250,44 @@ export function Szerkeszto({ rpc, id, cimek, onMentve }: {
         </div>
       )}
 
+      <div className="docs-szerkeszto-teteje">
       <header className="docs-szerkeszto-fejlec">
-        <h2>{doc?.cim ?? '…'}</h2>
+        <div className="docs-szerkeszto-cim">
+          <input
+            ref={cimMezo}
+            className="docs-cim"
+            value={cim}
+            placeholder="A doksi címe"
+            aria-label="A doksi címe"
+            onChange={(e) => setCim(e.target.value)}
+            onBlur={mentCim}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() }
+              if (e.key === 'Escape') { setCim(doc?.cim ?? ''); e.currentTarget.blur() }
+            }}
+          />
+          <div className="docs-fejgombok">
+            <button
+              type="button"
+              className={`docs-panelvalt${panelNyitva ? ' docs-aktiv' : ''}`}
+              aria-pressed={panelNyitva}
+              onClick={onPanelValt}
+            >
+              Adatok
+            </button>
+            <button
+              type="button"
+              className="docs-torol"
+              aria-label="A doksi a kukába"
+              title="A kukába"
+              onClick={onTorol}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6M10 11v6M14 11v6" />
+              </svg>
+            </button>
+          </div>
+        </div>
         <span className="docs-halvany">
           {doc?.utvonal} · v{verzio}
           {allas.kind === 'mentes' && ' · mentés…'}
@@ -215,6 +297,8 @@ export function Szerkeszto({ rpc, id, cimek, onMentve }: {
       </header>
 
       <Eszkoztar editor={editor} />
+      </div>
+
       <EditorContent editor={editor} className="docs-editor" />
     </section>
   )

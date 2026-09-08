@@ -99,7 +99,7 @@ function Mappa({ node, nyitva, setNyitva, aktivId, onOpen, onDrop, agentNev }: {
                 className={`docs-fa-doksi${d.id === aktivId ? ' docs-aktiv' : ''}`}
                 onClick={() => onOpen(d.id)}
               >
-                {d.cim}
+                <span className="docs-fa-doksicim">{d.cim}</span>
               </button>
             </li>
           ))}
@@ -109,13 +109,17 @@ function Mappa({ node, nyitva, setNyitva, aktivId, onOpen, onDrop, agentNev }: {
   )
 }
 
-export function FaOszlop({ rpc, fa, faHiba, aktivId, onOpen, onValtozott, agentNevek }: {
+/** The title a document is born with, until its author replaces it. */
+export const UJ_DOKSI_CIM = 'Névtelen doksi'
+
+export function FaOszlop({ rpc, fa, faHiba, aktivId, onOpen, onValtozott, onUjDoksi, agentNevek }: {
   rpc: Rpc
   fa: Fa | null
   faHiba: string | null
   aktivId: string | null
   onOpen: (id: string) => void
   onValtozott: () => void
+  onUjDoksi: (id: string) => void
   agentNevek: Map<string, string>
 }) {
   const [q, setQ] = useState('')
@@ -125,6 +129,12 @@ export function FaOszlop({ rpc, fa, faHiba, aktivId, onOpen, onValtozott, agentN
   const [kukaNyitva, setKukaNyitva] = useState(false)
   const [nyitva, setNyitva] = useState<Set<string>>(new Set(['agents']))
   const [muveletHiba, setMuveletHiba] = useState<string | null>(null)
+  // Mappa létrehozása kérdez -- az útvonalat nem lehet kitalálni. Doksinál nem
+  // kérdezünk: a lap létrehozza, megnyitja, és a címet a szerkesztőben lehet
+  // átírni. Lásd a `letrehozKesz` fölötti megjegyzést arról, miért mező ez és
+  // nem `window.prompt`.
+  const [ujMi, setUjMi] = useState<null | 'mappa'>(null)
+  const [ujNev, setUjNev] = useState('')
 
   const tree = useMemo(() => (fa ? buildTree(fa) : null), [fa])
 
@@ -161,8 +171,24 @@ export function FaOszlop({ rpc, fa, faHiba, aktivId, onOpen, onValtozott, agentN
       .catch((err) => setMuveletHiba(String(err?.message ?? err)))
   }
 
-  const ujDoksi = (mappa: string) => {
-    const cim = window.prompt('Az új doksi címe:')
+/**
+ * A NÉV EGY MEZŐBŐL JÖN, NEM `window.prompt`-BÓL.
+ *
+ * A modul a desktop appban is fut, és az Electron a `window.prompt`-ot nem
+ * valósítja meg: a hívás nem dob, csak `undefined`-del tér vissza és a
+ * konzolra ír. Vagyis mindkét létrehozó gomb néma maradt -- rákattintani
+ * lehetett, történni nem történt semmi, és a lap sem tudott róla. Egy saját
+ * mező ugyanabban a dokumentumban fut, mint a lap többi része, tehát nincs
+ * olyan futtatókörnyezet, ahol ez a különbség előjönne.
+ */
+  const letrehozKesz = (nev: string) => {
+    const tiszta = nev.trim()
+    setUjMi(null)
+    setUjNev('')
+    if (tiszta) muvelet('mappaLetrehoz', { mappa: tiszta })
+  }
+
+  const ujDoksi = (mappa: string, cim: string) => {
     if (!cim) return
     rpc('letrehoz', { mappa, cim })
       .then((raw) => {
@@ -170,19 +196,27 @@ export function FaOszlop({ rpc, fa, faHiba, aktivId, onOpen, onValtozott, agentN
         if (message) { setMuveletHiba(message); return }
         onValtozott()
         const id = (raw as { id?: string })?.id
-        if (id) onOpen(id)
+        if (id) { onOpen(id); onUjDoksi(id) }
       })
       .catch((err) => setMuveletHiba(String(err?.message ?? err)))
   }
 
-  const ujMappa = () => {
-    const mappa = window.prompt('Az új mappa útvonala (pl. kozos/projektek):')
-    if (!mappa) return
-    muvelet('mappaLetrehoz', { mappa })
-  }
-
   return (
     <aside className="docs-oszlop docs-fa">
+      <header className="docs-fa-cim">
+        <h1>Doksik</h1>
+        <div className="docs-fa-cim-gombok">
+          <button type="button" onClick={() => { setUjMi('mappa'); setUjNev('') }}>+ Mappa</button>
+          <button
+            type="button"
+            className="docs-elsodleges"
+            onClick={() => ujDoksi(fa?.kozosMappaNev ?? 'kozos', UJ_DOKSI_CIM)}
+          >
+            + Doksi
+          </button>
+        </div>
+      </header>
+
       <div className="docs-fa-fejlec">
         <input
           type="search"
@@ -191,11 +225,44 @@ export function FaOszlop({ rpc, fa, faHiba, aktivId, onOpen, onValtozott, agentN
           onChange={(e) => setQ(e.target.value)}
           aria-label="Keresés a doksikban"
         />
-        <div className="docs-fa-gombok">
-          <button type="button" onClick={() => ujDoksi(fa?.kozosMappaNev ?? 'kozos')}>+ Doksi</button>
-          <button type="button" onClick={ujMappa}>+ Mappa</button>
-        </div>
       </div>
+
+      {ujMi && (
+        <div
+          className="docs-modal-hatter"
+          role="presentation"
+          onClick={() => { setUjMi(null); setUjNev('') }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setUjMi(null); setUjNev('') } }}
+        >
+          <div
+            className="docs-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="docs-modal-cim"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="docs-modal-cim">Új mappa</h2>
+            <p className="docs-halvany">
+              Az útvonal a doksi-gyökérhez képest értendő. Egy köztes mappa magától létrejön.
+            </p>
+            <form onSubmit={(e) => { e.preventDefault(); letrehozKesz(ujNev) }}>
+              <input
+                autoFocus
+                value={ujNev}
+                onChange={(e) => setUjNev(e.target.value)}
+                placeholder="pl. kozos/projektek"
+                aria-label="Az új mappa útvonala"
+              />
+              <div className="docs-modal-gombok">
+                <button type="button" onClick={() => { setUjMi(null); setUjNev('') }}>Mégse</button>
+                <button type="submit" className="docs-elsodleges" disabled={ujNev.trim() === ''}>
+                  Létrehozom
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {muveletHiba && <p className="docs-hiba" role="alert">{muveletHiba}</p>}
 
@@ -215,6 +282,7 @@ export function FaOszlop({ rpc, fa, faHiba, aktivId, onOpen, onValtozott, agentN
         <>
           {faHiba && <p className="docs-hiba" role="alert">{faHiba}</p>}
           {!fa && !faHiba && <p className="docs-halvany">Betöltés…</p>}
+          {tree && <p className="docs-cimke">Doksik</p>}
           {tree && (
             <ul className="docs-fa-lista docs-fa-gyoker">
               {tree.mappak.map((m) => (
@@ -232,7 +300,7 @@ export function FaOszlop({ rpc, fa, faHiba, aktivId, onOpen, onValtozott, agentN
               {tree.doksik.map((d) => (
                 <li key={d.id}>
                   <button type="button" className={`docs-fa-doksi${d.id === aktivId ? ' docs-aktiv' : ''}`} onClick={() => onOpen(d.id)}>
-                    {d.cim}
+                    <span className="docs-fa-doksicim">{d.cim}</span>
                   </button>
                 </li>
               ))}
@@ -242,6 +310,7 @@ export function FaOszlop({ rpc, fa, faHiba, aktivId, onOpen, onValtozott, agentN
       )}
 
       <div className="docs-kuka">
+        <p className="docs-cimke">Archívum</p>
         <button
           type="button"
           className="docs-fa-mappanev"

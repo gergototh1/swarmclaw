@@ -173,3 +173,35 @@ test('readDoc names a missing file', () => {
     fs.rmSync(root, { recursive: true, force: true })
   }
 })
+
+test('listFolders reports a folder that holds nothing', () => {
+  // A `mkdirp` egyetlen célja, hogy üres mappa is létezhessen. Amíg a fa a
+  // mappákat a doksik útvonalaiból vezette le, egy ilyen mappa a lemezen ott
+  // volt, a lapon soha -- a művelet sikeres volt és láthatatlan.
+  const root = tempRoot()
+  try {
+    const vault = createVault({ root })
+    vault.ensureRoot()
+    vault.mkdirp('kozos/ures')
+    vault.writeDoc('kozos/telt/a.md', { meta: { id: 'doc_a', title: 'A', owner: 'user', tags: [] }, body: 'x\n' })
+
+    const folders = vault.listFolders()
+    assert.ok(folders.includes('kozos/ures'), 'az üres mappa hiányzik')
+    assert.ok(folders.includes('kozos/telt'), 'a doksit tartó mappa hiányzik')
+    assert.ok(folders.includes('kozos'), 'a köztes mappa hiányzik')
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('listFolders skips the index directory', () => {
+  const root = tempRoot()
+  try {
+    const vault = createVault({ root })
+    vault.ensureRoot()
+    vault.mkdirp('.swarmdocs/belso')
+    assert.deepEqual(vault.listFolders().filter((f) => f.startsWith('.swarmdocs')), [])
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
