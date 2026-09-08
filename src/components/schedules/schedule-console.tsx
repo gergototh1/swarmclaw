@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ButtonHTMLAttributes } from 'react'
 import { useRouter } from 'next/navigation'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { PageLoader } from '@/components/ui/page-loader'
+import { CountTile } from '@/components/shared/count-tile'
 import { SearchInput } from '@/components/ui/search-input'
 import { FilterPill } from '@/components/ui/filter-pill'
 import { SectionHeader } from '@/components/ui/section-header'
@@ -525,15 +526,15 @@ export function ScheduleConsole() {
       <div className="px-6 py-5 max-w-[1200px] mx-auto">
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
           {[
-            { label: 'Active', value: summary.active, tone: 'text-emerald-400' },
-            { label: 'Needs Attention', value: summary.attention, tone: summary.attention > 0 ? 'text-red-400' : 'text-text-2' },
-            { label: 'Due Soon', value: summary.dueSoon, tone: 'text-accent-bright' },
-            { label: 'Archived', value: summary.archived, tone: 'text-text-2' },
+            // `Active` was emerald and `Due Soon` the accent, which made a
+            // healthy console look like three different alerts. Only a
+            // non-zero Needs Attention is actually trouble.
+            { label: 'Active', value: summary.active },
+            { label: 'Needs attention', value: summary.attention, tone: summary.attention > 0 ? ('danger' as const) : undefined },
+            { label: 'Due soon', value: summary.dueSoon },
+            { label: 'Archived', value: summary.archived },
           ].map((card) => (
-            <div key={card.label} className="rounded-lg border border-line-subtle bg-surface px-4 py-4">
-              <div className="text-[11px] tracking-[0.03em] text-text-3 font-700">{card.label}</div>
-              <div className={`mt-2 text-[26px] font-display font-700 ${card.tone}`}>{card.value}</div>
-            </div>
+            <CountTile key={card.label} label={card.label} value={card.value} tone={card.tone} />
           ))}
         </div>
 

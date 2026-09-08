@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useState, useRef, useMemo } from 'react'
 import { useAppStore } from '@/stores/use-app-store'
+import { CountTile } from '@/components/shared/count-tile'
 import { useAgentsQuery } from '@/features/agents/queries'
 import { useProjectsQuery } from '@/features/projects/queries'
 import {
@@ -625,31 +626,23 @@ export default function TasksPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-8 pb-4">
         {[
-          { key: 'needs-attention', label: 'Needs Attention', value: stats.attention, tone: 'text-red-300', accent: 'bg-red-500/10' },
-          { key: 'blocked', label: 'Blocked', value: stats.blocked, tone: 'text-rose-400', accent: 'bg-rose-500/10' },
-          { key: 'overdue', label: 'Overdue', value: stats.overdue, tone: 'text-red-400', accent: 'bg-red-500/10' },
-          { key: 'failed', label: 'Failed', value: stats.failed, tone: 'text-orange-400', accent: 'bg-orange-500/10' },
+          // Only `failed` carries a tone. The other three were painted from
+          // the red family too, so four buckets that mean different things
+          // arrived as one wash of alarm.
+          { key: 'needs-attention', label: 'Needs attention', value: stats.attention },
+          { key: 'blocked', label: 'Blocked', value: stats.blocked },
+          { key: 'overdue', label: 'Overdue', value: stats.overdue },
+          { key: 'failed', label: 'Failed', value: stats.failed, tone: 'danger' as const },
         ].map((item) => (
-          <button
+          <CountTile
             key={item.key}
+            label={item.label}
+            value={item.value}
+            tone={item.value > 0 ? item.tone : undefined}
+            caption={item.value === 0 ? 'Nothing waiting here' : 'Click to focus this queue'}
+            selected={attentionFilter === item.key}
             onClick={() => setAttentionFilter((current) => (current === item.key ? 'all' : item.key as AttentionFilter))}
-            className={`rounded-md border px-4 py-3 text-left transition-all cursor-pointer ${
-              attentionFilter === item.key
-                ? 'border-line-default bg-layer-2'
-                : 'border-line-subtle bg-layer-1 hover:bg-layer-2'
-            }`}
-            style={{ fontFamily: 'inherit' }}
-          >
-            <div className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-700 tracking-[0.03em] ${item.accent} ${item.tone}`}>
-              {item.label}
-            </div>
-            <div className={`mt-3 text-[24px] font-display font-700 tracking-[-0.03em] ${item.tone}`}>
-              {item.value}
-            </div>
-            <p className="mt-1 text-[11px] text-text-3">
-              {item.value === 0 ? 'Nothing waiting here' : 'Click to focus this queue'}
-            </p>
-          </button>
+          />
         ))}
       </div>
 

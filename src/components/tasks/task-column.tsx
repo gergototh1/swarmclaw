@@ -5,15 +5,24 @@ import { TaskCard } from './task-card'
 import { useCreateTaskMutation } from '@/features/tasks/queries'
 import type { Agent, BoardTask, BoardTaskStatus, Project } from '@/types'
 
+/**
+ * The dot carries the status; the label does not.
+ *
+ * Every column title used to take the status colour, so a board read as a row
+ * of differently-coloured headings -- blue "Running" beside green "Completed"
+ * beside amber "Queued" -- and the colour said the same thing the dot next to
+ * it already said. One signal per fact: the dot is the signal, and the label
+ * is a label.
+ */
 const COLUMN_CONFIG: Record<BoardTaskStatus, { label: string; color: string; dot: string }> = {
-  backlog: { label: 'Backlog', color: 'text-text-3', dot: 'bg-layer-4' },
-  queued: { label: 'Queued', color: 'text-amber-400', dot: 'bg-amber-400' },
-  running: { label: 'Running', color: 'text-blue-400', dot: 'bg-blue-400' },
-  completed: { label: 'Completed', color: 'text-emerald-400', dot: 'bg-emerald-400' },
-  failed: { label: 'Failed', color: 'text-red-400', dot: 'bg-red-400' },
+  backlog: { label: 'Backlog', color: 'text-text-2', dot: 'bg-layer-4' },
+  queued: { label: 'Queued', color: 'text-text-2', dot: 'bg-amber-400' },
+  running: { label: 'Running', color: 'text-text-2', dot: 'bg-blue-400' },
+  completed: { label: 'Completed', color: 'text-text-2', dot: 'bg-emerald-400' },
+  failed: { label: 'Failed', color: 'text-text-2', dot: 'bg-red-400' },
   cancelled: { label: 'Cancelled', color: 'text-text-3', dot: 'bg-layer-4' },
   archived: { label: 'Archived', color: 'text-text-3', dot: 'bg-layer-3' },
-  deferred: { label: 'Deferred', color: 'text-orange-400', dot: 'bg-orange-400' },
+  deferred: { label: 'Deferred', color: 'text-text-2', dot: 'bg-orange-400' },
 }
 
 interface Props {
