@@ -8,7 +8,7 @@ import type { SettingsSectionProps } from './types'
 const PRESETS = [
   // Must equal --neutral-tint in globals.css: this is both the swatch the user
   // sees and, through PRESETS[0].color below, the value themeHue falls back to.
-  { label: 'Default', color: '#0B0C0E' },
+  { label: 'Default', color: '#1C1C1E' },
   { label: 'Midnight', color: '#1a1a3a' },
   { label: 'Forest', color: '#1a2e1e' },
   { label: 'Warm', color: '#2e1e1a' },

@@ -59,19 +59,19 @@ function emittedRadius(css: string, className: string): string | null {
 /**
  * The five steps globals.css declares, and nothing else.
  *
- * These are macOS control metrics, which is why sm and md now hold the same
- * number: AppKit does not round a text field and a list row differently. The
- * two names still exist because 220-odd components were written against the
- * semantic split, not because the pixels differ -- so the pair below is the
- * one place in this file that cannot discriminate between two live steps, and
- * the xs/lg/full assertions plus the whole second and third test are what keep
- * the file from passing on a scale that has quietly gone flat.
+ * These are Apple's published web metrics: 5 / 8 / 11 / 18 / pill. The scale
+ * ran 4 / 6 / 6 / 10 while it was tracking AppKit control geometry, where a
+ * text field and a list row are rounded alike; sm and md held the same number
+ * and the pair could not discriminate between two live steps. They differ now,
+ * so every one of the five assertions below carries its own weight, and lg
+ * moving 10 -> 18 is the single loudest change in the redesign -- a card reads
+ * as an Apple card at 18 and as a generic panel at 10.
  */
 const INTENDED_SCALE: ReadonlyArray<readonly [string, string]> = [
-  ['rounded-xs', '4px'],
-  ['rounded-sm', '6px'],
-  ['rounded-md', '6px'],
-  ['rounded-lg', '10px'],
+  ['rounded-xs', '5px'],
+  ['rounded-sm', '8px'],
+  ['rounded-md', '11px'],
+  ['rounded-lg', '18px'],
   ['rounded-full', '9999px'],
 ]
 
@@ -114,7 +114,7 @@ test('the five named radius steps compile to their intended pixel values', async
 
 test('the radius steps outside the scale compile to nothing at all', async () => {
   const css = await compileCandidates(ALL_CANDIDATES)
-  assert.equal(emittedRadius(css, 'rounded-md'), '6px', CANARY)
+  assert.equal(emittedRadius(css, 'rounded-md'), '11px', CANARY)
   for (const className of FORBIDDEN_STEPS) {
     assert.equal(
       emittedRadius(css, className),
@@ -131,7 +131,7 @@ test('the step-less radius utility does not exist on this scale', async () => {
   // a sixth radius should not exist. If this ever emits a rule again, the
   // reset has been weakened or --radius re-declared.
   const css = await compileCandidates(ALL_CANDIDATES)
-  assert.equal(emittedRadius(css, 'rounded-md'), '6px', CANARY)
+  assert.equal(emittedRadius(css, 'rounded-md'), '11px', CANARY)
   assert.equal(emittedRadius(css, 'rounded'), null)
 })
 

@@ -105,10 +105,10 @@
      step would defeat the collapse -- and src/app/globals-radius-scale.test.ts
      pins both halves: the five steps emit, and the step-less one does not. */
   --radius-*: initial;
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
+  --radius-xs: 5px;
+  --radius-sm: 8px;
+  --radius-md: 11px;
+  --radius-lg: 18px;
   --radius-full: 9999px;
 
   /* ===== macOS system palette =====
@@ -169,15 +169,19 @@
   --color-accent-glow: var(--ac-glow);
   --color-accent-bright: var(--ac);
   /* The foreground for text sitting ON a filled accent surface, and the one
-     token in this block that exists because Orchid is not systemBlue. A blue
-     accent is dark in both themes, so `text-white` on it was always right and
-     ~85 class lists say exactly that. Orchid is light in dark mode (#A78BFA)
-     and dark in light mode (#7C3AED), so a fixed white label measures 2.72:1
-     on the dark-mode button -- unreadable -- and 5.70:1 on the light-mode one.
-     --ac-fg flips with the theme instead: near-black on the light violet,
-     white on the dark violet, 7.19:1 and 5.70:1. --color-user-text is the same
-     value under its older name, because the user bubble is a filled accent
-     surface like any other and had the same bug. */
+     token in this block that exists because the accent is not systemBlue. A
+     blue accent is dark in both themes, so `text-white` on it was always right
+     and ~85 class lists say exactly that. Coral is not: the dark-mode fill
+     #FF6B54 is a *light* surface (white on it is 2.51:1, unreadable) and the
+     light-mode fill #C9452F is a dark one (white is 4.80:1). --ac-fg flips
+     with the theme instead -- near-black on the bright coral at 6.06:1, white
+     on the deep coral at 4.80:1. --color-user-text is the same value under its
+     older name, because the user bubble is a filled accent surface like any
+     other and had the same bug.
+
+     This token is why a future accent change is a two-line edit rather than a
+     hunt through 85 class lists, and it survived the move from Orchid to coral
+     without one of them being touched. */
   --color-accent-fg: var(--ac-fg);
   --color-user-text: var(--ac-fg);
   --color-success: var(--st-green);
@@ -377,33 +381,32 @@
      something. It is the dark ground of the "cool deep" palette, and the four
      surfaces above it are mixed off it toward --surface-lift.
 
-     The lift is not white, and that is the whole difference between this
-     palette and the AppKit greys it replaces. Cool deep separates its layers
-     by getting *bluer* as it rises -- the blue-minus-red gap runs 3, 4, 6, 11
-     across the four steps -- and mixing any colour toward white can only
-     shrink that gap. #6F7C93 is the tint plus (100, 112, 133), the direction
-     that fits all four chosen steps at once, so mixing toward it opens the gap
-     instead of closing it. The percentages land the default within one step of
-     255 of the values that were chosen from the rendered candidates:
+     The lift is systemGray. Apple's dark ladder is very nearly neutral -- the
+     blue-minus-red gap is 2 at every step -- so a strongly blue lift would
+     tint the surfaces away from it as they rise. #8E8E93 is systemGray itself,
+     which is where the ladder is heading, so mixing toward it reproduces
+     Apple's steps rather than drifting off them. The four percentages land the
+     default exactly on the values Apple ships:
 
-       ground   #0B0C0E (exact)   rail/panels #121417 (#121316)
-       cards    #17191E (#17191D) selected    #20242A (#20242B)
+       ground   #1C1C1E (exact)   rail/panels #242426 (exact)
+       cards    #2C2C2E (exact)   selected    #3A3A3C (exact)
+       elevated #48484A (within one part of 255)
 
      Deriving rather than hardcoding is what keeps a chosen hue coherent: pick
      Forest and the cards go green with the page instead of staying grey on a
      green ground. Everything that is not a surface -- labels, separators,
      accent, status -- stays neutral or system-coloured and does not take the
      tint. The .light ladder does NOT derive: see the note there. */
-  --neutral-tint: #0B0C0E;
-  --surface-lift: #6F7C93;
+  --neutral-tint: #1C1C1E;
+  --surface-lift: #8E8E93;
 
   /* Opaque surface ladder. Dark is :root; .light redefines these five plus the
      ladder, lines, labels, accent and status below, and nothing else. */
   --surface-bg: var(--neutral-tint);
   --surface-raised: color-mix(in srgb, var(--neutral-tint) 93%, var(--surface-lift));
-  --surface-card: color-mix(in srgb, var(--neutral-tint) 88%, var(--surface-lift));
-  --surface-selected: color-mix(in srgb, var(--neutral-tint) 79%, var(--surface-lift));
-  --surface-elevated: color-mix(in srgb, var(--neutral-tint) 72%, var(--surface-lift));
+  --surface-card: color-mix(in srgb, var(--neutral-tint) 86%, var(--surface-lift));
+  --surface-selected: color-mix(in srgb, var(--neutral-tint) 74%, var(--surface-lift));
+  --surface-elevated: color-mix(in srgb, var(--neutral-tint) 61%, var(--surface-lift));
 
   /* Translucent overlay ladder. sf-2 over the window ground composites to the
      rail/panel step, which is the point of the ramp. */
@@ -413,54 +416,64 @@
   --sf-3: rgba(255,255,255,0.10);
   --sf-4: rgba(255,255,255,0.16);
 
-  /* hairline / separator / strong. Cool deep runs its rules brighter than
-     AppKit did, because the ground underneath them is much darker. */
-  --ln-subtle: rgba(255,255,255,0.07);
-  --ln-default: rgba(255,255,255,0.13);
-  --ln-strong: rgba(255,255,255,0.20);
+  /* hairline / separator / strong. Raised across the board, because this
+     design draws no shadows at all: a card is told apart from the page by its
+     rule and its fill step, and nothing else. 0.10 over the ground composites
+     to #3A3A3C, which is Apple's own separator. */
+  --ln-subtle: rgba(255,255,255,0.10);
+  --ln-default: rgba(255,255,255,0.16);
+  --ln-strong: rgba(255,255,255,0.24);
 
-  /* label / secondary / tertiary. Solid near-whites now, not white alphas:
-     an alpha label changes colour with whatever surface it lands on, and this
-     palette separates its surfaces far enough that that started to show.
+  /* label / secondary / tertiary, on Apple's ladder. This closes the gap the
+     previous tertiary left open at 4.26:1 and recorded as "left for a pass
+     that changes dark-mode values" -- this is that pass.
 
-     --tx-3 is the one that used to be a stopgap. It was 0.50 white alpha,
-     picked to survive the Tailwind opacity modifiers that 1,393 of the 2,332
-     text-text-3 call sites stacked on top of it. It is now the palette's own
-     tertiary, #6E7681, 4.26:1 on the ground -- a hair under WCAG's 4.5:1 for
-     normal text, and honest about it.
+     The tertiary is #98989D, which is what Apple's dark secondaryLabel
+     (rgba(235,235,245,0.6)) composites to, and NOT systemGray #8E8E93. The
+     difference is the whole reason to measure against the right surface:
+     #8E8E93 is 5.22:1 on the window ground and would look finished, but
+     tertiary type mostly sits on a CARD, where it drops to 4.27:1 and misses
+     AA again. #98989D is 5.93:1 on the ground and 4.85:1 on the card. On the
+     selected fill it is 3.95:1, which is under -- that fill is a transient
+     pressed state rather than a reading surface, and this is the one place
+     the ladder does not clear AA.
 
-     What has changed under it is that 4.26:1 is now what those sites actually
-     render at. scripts/codemod-text-dim.mjs stripped 1,323 of the stacked
-     modifiers; the 117 it refused are hover, disabled and ternary-branch
-     treatments, where dimmer is the point. So the remaining gap is a decision
-     about this one value rather than about 1,393 call sites, and it is left
-     for a pass that changes dark-mode values -- this one did not. */
-  --tx-1: #F2F3F5;
-  --tx-2: #A8AEB8;
-  --tx-3: #6E7681;
+     What none of these are is the flat #cccccc and #7a7a7a of Apple's
+     marketing site: those are dead neutrals, and beside a warm accent they
+     read as dirt. Every grey here carries the same slight cool lean. */
+  --tx-1: #FFFFFF;
+  --tx-2: #D1D1D6;
+  --tx-3: #98989D;
 
-  /* ===== Orchid =====
+  /* ===== Coral =====
      The accent, and the one colour in this file that is a product decision
-     rather than a system value. It is deliberately far from systemGreen,
-     systemOrange and systemRed, which mean running, queued and failed, so a
-     violet control can never be mistaken for a status.
+     rather than a system value.
 
-     The two themes do NOT share a value, and cannot. #A78BFA is 7.19:1 on the
-     dark ground and 2.56:1 on the light one -- it fails as text on a light
-     page by more than a factor of two. #7C3AED is the same family four steps
-     down: 5.36:1 on the light ground, and the white label on top of it is
-     5.70:1. --ac-fg is what carries that flip to every filled accent surface.
+     It is a warm accent, and that is a real cost worth stating: Orchid before
+     it was picked to sit far from systemOrange and systemRed, which mean
+     queued and failed, and coral sits between them. The mitigation is
+     grammatical rather than chromatic -- status is carried by the word and by
+     the badge's outline, never by a coral fill, and no status token below was
+     moved. A coral surface is always a control.
+
+     The two themes do NOT share a value, and cannot. A coral vivid enough to
+     read as coral cannot carry a white label: #FF6B54 measures 2.51:1 against
+     white. So the label flips instead. On the dark ground #FF6B54 is a 4.98:1
+     surface with near-black type at 5.47:1; on the light one the fill drops to
+     #C9452F, where white measures 4.80:1. --ac-fg carries that flip to every
+     filled accent surface, and --ac-2 is the step that reads as *text* on each
+     ground, where a fill colour would not.
 
      --st-blue is systemBlue, kept because the repointed sky/blue ramps and the
-     "connected" badge still mean blue and should not turn violet with the
+     "connected" badge still mean blue and must not turn coral with the
      accent. */
-  --ac: #A78BFA;
-  --ac-2: #C4B5FD;
-  --ac-fg: #0B0C0E;
-  --ac-soft: rgba(167,139,250,0.20);
-  --ac-glow: rgba(167,139,250,0.30);
-  --ac-ring: rgba(167,139,250,0.55);
-  --ac-select: rgba(167,139,250,0.32);
+  --ac: #FF6B54;
+  --ac-2: #FF8A75;
+  --ac-fg: #1C1C1E;
+  --ac-soft: rgba(255,107,84,0.18);
+  --ac-glow: rgba(255,107,84,0.28);
+  --ac-ring: rgba(255,107,84,0.50);
+  --ac-select: rgba(255,107,84,0.30);
 
   /* systemGreen / systemRed / systemOrange / systemYellow / systemPink.
      Separate from the accent on purpose: the accent is what the user's Mac
@@ -487,14 +500,14 @@
   --ramp-200: 26%;
   --ramp-300: 55%;
 
-  --sf-glass: rgba(11,12,14,0.72);
+  --sf-glass: rgba(28,28,30,0.72);
 
   /* The code block's ground stays dark in both themes: highlight.js is loaded
      with github-dark-dimmed at the top of this file, and its token colours are
-     unreadable on a light surface. It moved off AppKit's warm #1c1c1e onto the
-     cool ladder so a code block does not read as a warm patch on a blue-black
-     page. */
-  --code-surface: #16181C;
+     unreadable on a light surface. The ground is now #1C1C1E itself, so the
+     block sits one step below the card on Apple's inset value and no longer
+     needs a value of its own to avoid reading as a warm patch. */
+  --code-surface: #242426;
 
   --background: var(--surface-bg);
   --foreground: var(--tx-1);
@@ -596,8 +609,18 @@
   --surface-bg: #EAEDF2;
   --surface-raised: #FFFFFF;
   --surface-card: #FFFFFF;
-  --surface-selected: #DCE1E9;
-  --surface-elevated: #D0D6E0;
+  --surface-selected: #E8E8ED;
+  --surface-elevated: #DCDCE1;
+
+  /* The ground stays #EAEDF2 and does not move to Apple's #F5F5F7, which is
+     the one value in this redesign that was not taken. #F5F5F7 is 1.06:1 from
+     a white card -- the exact figure the note above records as having failed,
+     and the reason the ground was dropped here in the first place. Apple gets
+     away with it because a marketing page has three cards on it and each one
+     carries a visible #D2D2D7 rule; a console has forty, and half of them are
+     nested. The two selected steps below DID move onto Apple's neutrals, and
+     the rules below carry Apple's hairline, so the difference that remains is
+     five parts in 255 on one value. */
 
   /* raised and card hold the same value on purpose. In dark they are two
      steps of one ramp; in light both mean "forward of the page" and white is
@@ -615,16 +638,27 @@
   --sf-3: rgba(16,24,40,0.10);
   --sf-4: rgba(16,24,40,0.16);
 
-  --ln-subtle: rgba(16,24,40,0.09);
-  --ln-default: rgba(16,24,40,0.14);
-  --ln-strong: rgba(16,24,40,0.22);
+  /* Apple draws two rules on light, not one: #E8E8ED inside a card and a
+     visible #D2D2D7 around it. --ln-default is that hairline exactly (0.19
+     over white composites to #D3D3D7); --ln-subtle sits between the two,
+     because it is what most card borders in this app ask for and the soft
+     divider alone would not hold an edge. Raised across the board for the same
+     reason as the dark set: this design draws no shadows. */
+  --ln-subtle: rgba(16,24,40,0.13);
+  --ln-default: rgba(16,24,40,0.19);
+  --ln-strong: rgba(16,24,40,0.28);
 
   /* Solid, like :root's, and all three now clear WCAG AA for normal text on
      both the ground and a white card:
 
-       --tx-1  #0F172A  15.21:1 on #EAEDF2   17.85:1 on #FFFFFF
-       --tx-2  #44506A   6.88:1              8.07:1
-       --tx-3  #626C7B   4.53:1              5.32:1
+       --tx-1  #1D1D1F  13.72:1 on #EAEDF2   16.10:1 on #FFFFFF
+       --tx-2  #424245   7.76:1              9.10:1
+       --tx-3  #65656A   4.66:1              5.71:1
+
+     #1D1D1F and #424245 are apple.com's own ink and secondary. The tertiary
+     is not: Apple's #6E6E73 measures 4.14:1 on this ground, which is the same
+     kind of near-miss the previous tertiary was, so it goes two steps deeper
+     to #65656A and clears AA on the ground and on a white card both.
 
      --tx-3 was #98A2B3, 2.42:1 on the old ground -- decorative weight, and
      the file said so. The value alone would not have finished the job either:
@@ -635,24 +669,25 @@
      on text-text-2 -- so the token value is what renders. The 117 it refused
      keep their modifier because it is a hover, disabled or ternary-branch
      treatment, where dimmer is the point. */
-  --tx-1: #0F172A;
-  --tx-2: #44506A;
-  --tx-3: #626C7B;
+  --tx-1: #1D1D1F;
+  --tx-2: #424245;
+  --tx-3: #65656A;
 
-  /* Orchid, four steps down. See the :root note for why it cannot be the same
-     value: #A78BFA measures 2.32:1 on --surface-bg here, 2.72:1 on a white
-     card. #7C3AED is 4.86:1 on the ground and 5.70:1 on white, and the white
-     label on top of it is 5.70:1. --ac-soft went 0.10 -> 0.14 because the
-     ground moved down and the cards moved up: a 10% violet wash on #FFFFFF
-     is 1.16:1, which reads as a rendering artefact rather than a fill. At
-     0.14 it is #EDE3FC, 1.24:1, and reads as a fill. */
-  --ac: #7C3AED;
-  --ac-2: #8B5CF6;
+  /* Coral, deep. See the :root note for why the two themes cannot share a
+     value: the dark fill #FF6B54 measures 2.11:1 on this ground and 2.51:1
+     against white, so it fails as text and as a white-labelled surface both.
+     #C9452F is the same hue carried down until white sits on it at 4.80:1,
+     and --ac-2 goes deeper still (#B93E2B, 4.89:1 on the ground) because that
+     is the step that has to work as *text*, which the fill does not.
+     --ac-soft holds 0.14 for the reason recorded before: a 10% wash on
+     #FFFFFF is 1.16:1 and reads as a rendering artefact. */
+  --ac: #C9452F;
+  --ac-2: #B93E2B;
   --ac-fg: #ffffff;
-  --ac-soft: rgba(124,58,237,0.14);
-  --ac-glow: rgba(124,58,237,0.24);
-  --ac-ring: rgba(124,58,237,0.45);
-  --ac-select: rgba(124,58,237,0.24);
+  --ac-soft: rgba(201,69,47,0.14);
+  --ac-glow: rgba(201,69,47,0.24);
+  --ac-ring: rgba(201,69,47,0.45);
+  --ac-select: rgba(201,69,47,0.24);
 
   /* The system colours split in light mode, and this is the one place in the
      palette where the light value is not simply the light variant of the dark
@@ -663,7 +698,7 @@
      foreground colours take Apple's own accessible (increased-contrast)
      variants of the same five system colours. Both halves are AppKit's; this
      is the pairing AppKit itself uses when Increase Contrast is on. Dark mode
-     needs no such split -- #32D74B on #0B0C0E is 11.6:1 -- so :root above holds
+     needs no such split -- #32D74B on #1C1C1E is 10.6:1 -- so :root above holds
      one value per colour. */
   --st-green: #248A3D;
   --st-green-soft: rgba(40,205,65,0.16);
@@ -738,9 +773,13 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
-  /* SF Pro is optically sized and needs no tracking correction; the -0.01em
-     this carried was compensating for DM Sans. */
-  letter-spacing: normal;
+  /* Apple's own specification tightens every size from 14px up: -0.224px at
+     14, -0.374px at 17, -0.28px at 56. As a ratio that is a consistent
+     -0.016em through the UI sizes, which is what this sets. The -0.01em this
+     carried before the AppKit round was compensating for DM Sans, and the
+     "SF Pro needs no correction" that replaced it was wrong about Apple's own
+     practice. Below 12px the correction is dropped, per the same spec. */
+  letter-spacing: -0.016em;
 }
 
 /* ===== Hairlines =====
