@@ -198,22 +198,22 @@ export function StructuredSessionLauncher({
       description={launcherDescription}
     >
       <div className="mb-8">
-        <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/70">
+        <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">
           Structured Sessions
         </div>
         <h2 className="mt-4 font-display text-[28px] font-700 tracking-[-0.03em] text-text">{launcherTitle}</h2>
-        <p className="mt-2 max-w-[720px] text-[14px] leading-relaxed text-text-3/72">
+        <p className="mt-2 max-w-[720px] text-[14px] leading-relaxed text-text-3">
           {launcherHeroCopy}
         </p>
       </div>
 
       {linkedContext.length > 0 && (
         <div className="mb-6 rounded-lg border border-line-subtle bg-layer-1 p-4">
-          <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Starting From</div>
+          <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Starting From</div>
           <div className="mt-3 flex flex-wrap gap-2">
             {linkedContext.map((entry) => (
               <span key={`${entry.label}-${entry.value}`} className="rounded-full border border-line-default bg-layer-1 px-3 py-1.5 text-[12px] text-text-2">
-                <span className="mr-1 text-text-3/60">{entry.label}:</span>
+                <span className="mr-1 text-text-3">{entry.label}:</span>
                 {entry.value}
               </span>
             ))}
@@ -230,19 +230,19 @@ export function StructuredSessionLauncher({
       <div className="space-y-6">
         <div className="grid gap-3 md:grid-cols-2">
           <div className="md:col-span-2">
-            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Title</div>
+            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Title</div>
             <input
               value={form.title}
               onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
               placeholder="What should this run be called?"
-              className="mt-2 w-full rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+              className="mt-2 w-full rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
             />
           </div>
 
           {!breakoutMode && (
             <>
               <div>
-                <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Template</div>
+                <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Template</div>
                 <select
                   value={form.templateId}
                   onChange={(event) => setForm((current) => ({ ...current, templateId: event.target.value }))}
@@ -255,7 +255,7 @@ export function StructuredSessionLauncher({
               </div>
 
               <div>
-                <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Facilitator</div>
+                <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Facilitator</div>
                 <select
                   value={form.facilitatorAgentId}
                   onChange={(event) => setForm((current) => ({ ...current, facilitatorAgentId: event.target.value }))}
@@ -271,51 +271,51 @@ export function StructuredSessionLauncher({
           )}
 
           <div className="md:col-span-2">
-            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Goal</div>
+            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Goal</div>
             <input
               value={form.goal}
               onChange={(event) => setForm((current) => ({ ...current, goal: event.target.value }))}
               placeholder="What should this structured session accomplish?"
-              className="mt-2 w-full rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+              className="mt-2 w-full rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
             />
           </div>
 
           <div className="md:col-span-2">
-            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Kickoff Context</div>
+            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Kickoff Context</div>
             <textarea
               value={form.kickoffMessage}
               onChange={(event) => setForm((current) => ({ ...current, kickoffMessage: event.target.value }))}
               placeholder="Optional background, constraints, or initial framing"
               rows={4}
-              className="mt-2 w-full rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+              className="mt-2 w-full rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
             />
           </div>
         </div>
 
         {breakoutMode ? (
           <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Room Participants</div>
+            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Room Participants</div>
             <div className="mt-3 flex flex-wrap gap-2">
               {loading ? (
-                <div className="text-[13px] text-text-3/60">Loading room members…</div>
+                <div className="text-[13px] text-text-3">Loading room members…</div>
               ) : breakoutParticipantNames.length > 0 ? breakoutParticipantNames.map((name) => (
                 <span key={name} className="rounded-full border border-line-default bg-layer-1 px-3 py-1.5 text-[12px] text-text-2">
                   {name}
                 </span>
               )) : (
-                <div className="text-[13px] text-text-3/60">No participants were prefilled from this room.</div>
+                <div className="text-[13px] text-text-3">No participants were prefilled from this room.</div>
               )}
             </div>
-            <div className="mt-3 text-[12px] leading-relaxed text-text-3/72">
+            <div className="mt-3 text-[12px] leading-relaxed text-text-3">
               This breakout uses the room&apos;s current participants and default facilitator so you can start quickly from the chat context.
             </div>
           </div>
         ) : (
           <div>
-            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Participants</div>
+            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Participants</div>
             <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-md border border-line-subtle bg-layer-1 p-3">
               {loading ? (
-                <div className="text-[13px] text-text-3/60">Loading options…</div>
+                <div className="text-[13px] text-text-3">Loading options…</div>
               ) : agentOptions.map((agent) => {
                 const active = form.participantAgentIds.includes(agent.id)
                 return (
@@ -354,7 +354,7 @@ export function StructuredSessionLauncher({
                 {selectedTemplate.builtIn ? 'built in' : 'custom'}
               </span>
             </div>
-            <div className="mt-2 text-[12px] leading-relaxed text-text-3/72">{selectedTemplate.description}</div>
+            <div className="mt-2 text-[12px] leading-relaxed text-text-3">{selectedTemplate.description}</div>
             {!!selectedTemplate.steps?.length && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {selectedTemplate.steps.map((step) => (
@@ -381,13 +381,13 @@ export function StructuredSessionLauncher({
                 value={form.roundLimit}
                 onChange={(event) => setForm((current) => ({ ...current, roundLimit: event.target.value }))}
                 placeholder="Round limit"
-                className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
               />
               <input
                 value={form.decisionMode}
                 onChange={(event) => setForm((current) => ({ ...current, decisionMode: event.target.value }))}
                 placeholder="Decision mode"
-                className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
               />
 
               {allowContextSelection && (

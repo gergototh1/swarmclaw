@@ -34,7 +34,7 @@ export function SecretsList() {
           </svg>
         </div>
         <p className="text-[13px] text-text-3 mb-1 font-600">No secrets yet</p>
-        <p className="text-[12px] text-text-3/60">Add API keys & credentials for your agents</p>
+        <p className="text-[12px] text-text-3">Add API keys & credentials for your agents</p>
         <button
           onClick={() => { setEditingSecretId(null); setSecretSheetOpen(true) }}
           className="mt-3 px-4 py-2 rounded-sm bg-transparent text-accent-bright text-[13px] font-600 cursor-pointer border border-accent-bright/20 hover:bg-accent-soft transition-all"
@@ -88,7 +88,7 @@ export function SecretsList() {
                 <span className="text-[14px] font-600 text-text truncate flex-1">{secret.name}</span>
                 <button
                   onClick={(e) => handleDelete(e, secret.id)}
-                  className="text-text-3/40 hover:text-red-400 transition-colors p-0.5 shrink-0"
+                  className="text-text-3 hover:text-red-400 transition-colors p-0.5 shrink-0"
                   title="Delete"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -98,7 +98,7 @@ export function SecretsList() {
               </div>
               <div className="flex items-center gap-2 pl-[22px]">
                 <span className="text-[11px] font-mono text-text-3">{secret.service}</span>
-                <span className="text-[11px] text-text-3/60">·</span>
+                <span className="text-[11px] text-text-3">·</span>
                 <span className={`text-[10px] font-600 ${
                   secret.scope === 'global' ? 'text-emerald-400' : 'text-amber-400'
                 }`}>
@@ -113,7 +113,7 @@ export function SecretsList() {
                     ))}
                   </div>
                   {scopedAgents.length > 5 && (
-                    <span className="text-[10px] font-600 text-text-3/60 ml-0.5">+{scopedAgents.length - 5}</span>
+                    <span className="text-[10px] font-600 text-text-3 ml-0.5">+{scopedAgents.length - 5}</span>
                   )}
                 </div>
               )}

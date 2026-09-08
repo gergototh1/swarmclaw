@@ -293,7 +293,7 @@ export function ScheduleSheet() {
         )}
       </div>
       {scheduleType === 'cron' && cron && (
-        <div className="font-mono text-[12px] text-text-3/50 mb-3">{cron}</div>
+        <div className="font-mono text-[12px] text-text-3 mb-3">{cron}</div>
       )}
       {timingPreviewLoading && (
         <div className="text-[12px] text-text-3">Checking schedule...</div>
@@ -305,7 +305,7 @@ export function ScheduleSheet() {
         <>
           {previewOk.nextRuns.length > 0 ? (
             <div className="space-y-1.5">
-              <div className="text-[11px] text-text-3/60 uppercase tracking-wider font-600">Next runs</div>
+              <div className="text-[11px] text-text-3 uppercase tracking-wider font-600">Next runs</div>
               {previewOk.nextRuns.map((run) => (
                 <div key={run.iso} className="text-[12px] text-text-3 font-mono">{run.label}</div>
               ))}
@@ -398,8 +398,8 @@ export function ScheduleSheet() {
                   </div>
                   <div className="min-w-0">
                     <div className="text-[14px] font-600 text-text mb-0.5">{tpl.name}</div>
-                    <div className="text-[12px] text-text-3/70 leading-[1.4]">{tpl.description}</div>
-                    <div className="mt-1.5 text-[11px] text-text-3/40 capitalize">{tpl.category}</div>
+                    <div className="text-[12px] text-text-3 leading-[1.4]">{tpl.description}</div>
+                    <div className="mt-1.5 text-[11px] text-text-3 capitalize">{tpl.category}</div>
                   </div>
                 </button>
               )
@@ -692,16 +692,16 @@ export function ScheduleSheet() {
         <div className="mb-8">
           <div className="p-5 rounded-lg bg-surface border border-line-subtle space-y-4">
             <div>
-              <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Name</span>
+              <span className="text-[11px] text-text-3 uppercase tracking-wider font-600">Name</span>
               <div className="text-[14px] text-text font-600 mt-0.5">{name}</div>
             </div>
             <div>
-              <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Agent</span>
+              <span className="text-[11px] text-text-3 uppercase tracking-wider font-600">Agent</span>
               <div className="text-[14px] text-text font-600 mt-0.5">{selectedAgent?.name || agentId}</div>
             </div>
             {editing && (
               <div>
-                <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Created By</span>
+                <span className="text-[11px] text-text-3 uppercase tracking-wider font-600">Created By</span>
                 {creatorAgent ? (
                   <div className="mt-1 inline-flex items-center gap-2 rounded-sm bg-layer-2 px-3 py-2 text-[13px] text-text-2">
                     <AgentAvatar
@@ -720,28 +720,28 @@ export function ScheduleSheet() {
               </div>
             )}
             <div>
-              <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Mode</span>
+              <span className="text-[11px] text-text-3 uppercase tracking-wider font-600">Mode</span>
               <div className="text-[14px] text-text font-600 mt-0.5">{taskMode === 'wake_only' ? 'Wake agent only' : taskMode === 'protocol' ? 'Structured session' : 'Create task'}</div>
             </div>
             <div>
-              <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">{taskMode === 'wake_only' ? 'Wake Message' : taskMode === 'protocol' ? 'Session Goal' : 'Task'}</span>
+              <span className="text-[11px] text-text-3 uppercase tracking-wider font-600">{taskMode === 'wake_only' ? 'Wake Message' : taskMode === 'protocol' ? 'Session Goal' : 'Task'}</span>
               <div className="text-[13px] text-text-2 mt-0.5 whitespace-pre-wrap">{taskMode === 'wake_only' ? message : taskPrompt}</div>
             </div>
             {taskMode === 'protocol' && message.trim() && (
               <div>
-                <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Kickoff Context</span>
+                <span className="text-[11px] text-text-3 uppercase tracking-wider font-600">Kickoff Context</span>
                 <div className="text-[13px] text-text-2 mt-0.5 whitespace-pre-wrap">{message}</div>
               </div>
             )}
             {taskMode === 'protocol' && (
               <div>
-                <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Template</span>
+                <span className="text-[11px] text-text-3 uppercase tracking-wider font-600">Template</span>
                 <div className="text-[13px] text-text-2 mt-0.5">Single-agent structured run</div>
               </div>
             )}
             <div className="h-px bg-layer-2" />
             <div>
-              <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Schedule</span>
+              <span className="text-[11px] text-text-3 uppercase tracking-wider font-600">Schedule</span>
               <div className="text-[14px] text-text font-600 mt-0.5 capitalize">{scheduleType}</div>
               {scheduleType === 'cron' && (
                 <div className="text-[12px] text-text-3 font-mono mt-0.5">{cronHuman} ({cron})</div>
@@ -764,7 +764,7 @@ export function ScheduleSheet() {
             </div>
             {editing && (
               <div>
-                <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Status</span>
+                <span className="text-[11px] text-text-3 uppercase tracking-wider font-600">Status</span>
                 <div className="text-[14px] text-text font-600 mt-0.5 capitalize">{status}</div>
               </div>
             )}

@@ -35,7 +35,7 @@ export function SkillsSection({ appSettings, patchSettings, inputClass }: Settin
                 style={{ fontFamily: 'inherit' }}
               >
                 <div className="text-[13px] font-600">{entry.name}</div>
-                <div className="text-[11px] text-text-3/70 mt-1">{entry.detail}</div>
+                <div className="text-[11px] text-text-3 mt-1">{entry.detail}</div>
               </button>
             ))}
           </div>
@@ -55,7 +55,7 @@ export function SkillsSection({ appSettings, patchSettings, inputClass }: Settin
             className={inputClass}
             style={{ fontFamily: 'inherit' }}
           />
-          <p className="text-[11px] text-text-3/60 mt-2">
+          <p className="text-[11px] text-text-3 mt-2">
             Applies to `use_skill` and `manage_skills` recommendations when a per-request limit is not supplied.
           </p>
         </div>

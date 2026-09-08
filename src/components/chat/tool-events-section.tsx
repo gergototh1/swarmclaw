@@ -169,7 +169,7 @@ const ToolSummaryRow = memo(function ToolSummaryRow({ event, caption }: { event:
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-600 uppercase tracking-[0.08em] text-text-3/55">{caption}</span>
+            <span className="text-[10px] font-600 uppercase tracking-[0.08em] text-text-3">{caption}</span>
             <span className="text-[13px] font-600 text-text-2">{label}</span>
             <ToolStatusPill status={event.status} />
           </div>
@@ -285,7 +285,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
           {expanded ? 'Hide call details' : `View ${summary.total === 1 ? 'call' : `${summary.total} calls`} details`}
         </button>
         {summary.running > 0 && (
-          <span className="text-[11px] text-text-3/55">
+          <span className="text-[11px] text-text-3">
             Updates stream here without reflowing the whole thread
           </span>
         )}
@@ -358,14 +358,14 @@ export const ToolEventsSection = memo(function ToolEventsSection({
             stroke="currentColor"
             strokeWidth="2.5"
             strokeLinecap="round"
-            className={`shrink-0 text-text-3/55 transition-transform ${effectiveSectionOpen ? 'rotate-90' : ''}`}
+            className={`shrink-0 text-text-3 transition-transform ${effectiveSectionOpen ? 'rotate-90' : ''}`}
           >
             <polyline points="9 6 15 12 9 18" />
           </svg>
-          <span className="text-[11px] font-600 uppercase tracking-[0.08em] text-text-3/55">
+          <span className="text-[11px] font-600 uppercase tracking-[0.08em] text-text-3">
             Tool Activity
           </span>
-          <span className="text-[12px] text-text-3/50">
+          <span className="text-[12px] text-text-3">
             {summary.total} call{summary.total === 1 ? '' : 's'}
           </span>
           <div className="ml-auto flex flex-wrap items-center gap-1.5">

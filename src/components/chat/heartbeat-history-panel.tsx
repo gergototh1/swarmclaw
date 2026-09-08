@@ -151,7 +151,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
           </svg>
           <h3 className="font-display text-[14px] font-600 text-text">Heartbeat History</h3>
-          <span className="text-[11px] text-text-3/50 tabular-nums">{entries.length}</span>
+          <span className="text-[11px] text-text-3 tabular-nums">{entries.length}</span>
         </div>
         <button
           onClick={onClose}
@@ -193,10 +193,10 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" className="text-text-3/30">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" className="text-text-3">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
             </svg>
-            <span className="text-[13px] text-text-3/50">No heartbeat activity yet</span>
+            <span className="text-[13px] text-text-3">No heartbeat activity yet</span>
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
@@ -224,7 +224,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
                     <span className="text-[10px] font-600 uppercase tracking-wider" style={{ color }}>
                       {entry.status}
                     </span>
-                    <span className="text-[10px] text-text-3/40 ml-auto tabular-nums">
+                    <span className="text-[10px] text-text-3 ml-auto tabular-nums">
                       {relativeTime(entry.msg.time)}
                     </span>
                   </div>
@@ -238,7 +238,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
 
                   {/* Next action */}
                   {entry.meta?.next_action && (
-                    <div className="text-[11px] text-text-3/70 mb-1 leading-snug">
+                    <div className="text-[11px] text-text-3 mb-1 leading-snug">
                       Next: {entry.meta.next_action}
                     </div>
                   )}

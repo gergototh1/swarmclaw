@@ -30,7 +30,7 @@ function ElapsedTimer({ startTime }: { startTime: number }) {
   const mins = Math.floor(elapsed / 60)
   const secs = elapsed % 60
   return (
-    <span className="text-[10px] text-text-3/50 font-mono tabular-nums">
+    <span className="text-[10px] text-text-3 font-mono tabular-nums">
       {mins > 0 ? `${mins}m ${secs}s` : `${secs}s`}
     </span>
   )
@@ -88,8 +88,8 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
           <p className="text-[13px] font-500 text-text-2 leading-snug">{agentStatus.goal}</p>
           {agentStatus.nextAction && (
             <div className="mt-2 pt-2 border-t border-line-subtle">
-              <span className="text-[10px] font-600 text-text-3/40 uppercase block mb-0.5">Next Action</span>
-              <p className="text-[11px] text-text-3/80 italic">&ldquo;{agentStatus.nextAction}&rdquo;</p>
+              <span className="text-[10px] font-600 text-text-3 uppercase block mb-0.5">Next Action</span>
+              <p className="text-[11px] text-text-3 italic">&ldquo;{agentStatus.nextAction}&rdquo;</p>
             </div>
           )}
         </div>
@@ -112,14 +112,14 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
               <svg
                 width="12" height="12" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                className="shrink-0 text-text-3/50 transition-transform duration-200 group-open/think:rotate-180 ml-auto"
+                className="shrink-0 text-text-3 transition-transform duration-200 group-open/think:rotate-180 ml-auto"
               >
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </div>
           </summary>
           <div className="px-4 py-3 rounded-b-md bg-bg/60 border-x border-b border-line-subtle max-h-[300px] overflow-y-auto">
-            <div className="msg-content text-[13px] leading-[1.6] text-text-3/80">
+            <div className="msg-content text-[13px] leading-[1.6] text-text-3">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {thinkingText}
               </ReactMarkdown>

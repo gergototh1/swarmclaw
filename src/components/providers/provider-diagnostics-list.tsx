@@ -25,7 +25,7 @@ export function ProviderDiagnosticsList({
 
   return (
     <div className={`mt-3 border-t border-line-subtle pt-3 ${className}`}>
-      <div className="mb-2 text-[11px] font-700 uppercase tracking-[0.1em] text-text-3/70">
+      <div className="mb-2 text-[11px] font-700 uppercase tracking-[0.1em] text-text-3">
         Diagnostics
       </div>
       <ol className="space-y-2">

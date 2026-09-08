@@ -76,7 +76,7 @@ export function TabAdvanced({
                   <div className="min-w-0">
                     <div className="truncate text-[14px] font-700 text-text">{summary.title}</div>
                     <div className="mt-1 truncate text-[12px] text-text-3">{summary.subtitle}</div>
-                    <div className="mt-1 text-[11px] text-text-3/70">{summary.meta}</div>
+                    <div className="mt-1 text-[11px] text-text-3">{summary.meta}</div>
                   </div>
                   <button
                     type="button"

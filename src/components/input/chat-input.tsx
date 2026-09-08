@@ -388,7 +388,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
 
               <div className="flex-1" />
 
-              <span className="text-[11px] text-text-3/60 tabular-nums mr-2 font-mono">
+              <span className="text-[11px] text-text-3 tabular-nums mr-2 font-mono">
                 {value.length > 0 && value.length}
               </span>
 
@@ -433,7 +433,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
             data-testid="chat-input"
             rows={1}
             className="w-full px-5 pt-4 pb-2 bg-transparent text-text text-[15px] outline-none resize-none
-              max-h-[140px] leading-[1.55] placeholder:text-text-3/70 border-none"
+              max-h-[140px] leading-[1.55] placeholder:text-text-3 border-none"
             style={{ fontFamily: 'inherit' }}
           />
         </ComposerShell>
@@ -510,7 +510,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
             {extensionChatActions.length > 0 && (
               <>
                 <div className="mx-2 my-1 h-px bg-layer-2" />
-                <div className="px-3 pb-1 pt-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/50">
+                <div className="px-3 pb-1 pt-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
                   Quick actions
                 </div>
                 {extensionChatActions.map((action) => (

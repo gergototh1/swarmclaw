@@ -138,21 +138,21 @@ export function SoulLibraryPicker({ open, onClose, onSelect }: SoulLibraryPicker
               </span>
             </div>
             <p className="text-[12px] text-text-3 mb-2 line-clamp-2">{template.description}</p>
-            <p className="text-[11px] text-text-3/60 line-clamp-2 italic">{template.soul}</p>
+            <p className="text-[11px] text-text-3 line-clamp-2 italic">{template.soul}</p>
           </button>
         ))}
         {!loading && results.length === 0 && (
           <div className="col-span-2 text-center py-12">
              <div className="w-12 h-12 rounded-full bg-layer-1 flex items-center justify-center mx-auto mb-3">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/40"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4Z"/><path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4Z"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4Z"/><path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4Z"/></svg>
              </div>
              <p className="text-[14px] font-600 text-text-2">No personalities match</p>
-             <p className="text-[12px] text-text-3/50 mt-1">{source === 'forge' ? 'Be the first to forge a custom soul in this category!' : 'Try a different search term.'}</p>
+             <p className="text-[12px] text-text-3 mt-1">{source === 'forge' ? 'Be the first to forge a custom soul in this category!' : 'Try a different search term.'}</p>
           </div>
         )}
       </div>
 
-      <p className="text-[11px] text-text-3/50 mt-4 text-center">
+      <p className="text-[11px] text-text-3 mt-4 text-center">
         {source === 'library' ? `${SOUL_LIBRARY.length} verified templates` : `${customSouls.length} custom souls in your forge`}
       </p>
     </BottomSheet>

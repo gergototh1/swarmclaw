@@ -117,7 +117,7 @@ function MissionCard({ mission, isSelected, onSelect }: MissionCardProps) {
           {badge.label}
         </span>
       </div>
-      <div className="mt-2 flex items-center gap-3 text-[10px] text-text-3/70">
+      <div className="mt-2 flex items-center gap-3 text-[10px] text-text-3">
         <span>{mission.usage.turnsRun} turns</span>
         {mission.usage.usdSpent > 0 && <span>{formatUsd(mission.usage.usdSpent)}</span>}
         {lastMilestone && (
@@ -502,8 +502,8 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
           <span className={`text-[10px] font-600 uppercase tracking-wide px-1.5 py-0.5 rounded-xs ${STATUS_BADGE[mission.status].cls}`}>
             {STATUS_BADGE[mission.status].label}
           </span>
-          <span className="text-[10px] text-text-3/60">Created {formatTimestamp(mission.createdAt)}</span>
-          {mission.endedAt && <span className="text-[10px] text-text-3/60">Ended {formatTimestamp(mission.endedAt)}</span>}
+          <span className="text-[10px] text-text-3">Created {formatTimestamp(mission.createdAt)}</span>
+          {mission.endedAt && <span className="text-[10px] text-text-3">Ended {formatTimestamp(mission.endedAt)}</span>}
         </div>
         <h2 className="text-[15px] font-600 text-text">{mission.title}</h2>
         <p className="text-[12px] text-text-3 mt-1">{mission.goal}</p>
@@ -527,7 +527,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="text-[11px] font-600 uppercase tracking-wide text-text-3">Public share</div>
-            <p className="mt-1 max-w-[620px] text-[12px] leading-relaxed text-text-3/70">
+            <p className="mt-1 max-w-[620px] text-[12px] leading-relaxed text-text-3">
               Publish a revocable mission artifact with status, budgets, milestones, and generated reports. Secrets, credentials, private files, and hidden runtime metadata stay out of the payload.
             </p>
           </div>
@@ -565,7 +565,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
         {activeShare && (
           <div className="mt-3 rounded-sm border border-line-subtle bg-black/20 px-3 py-2 text-[11px] text-text-3">
             <span className="font-mono text-text">{shareUrl}</span>
-            <span className="ml-2 text-text-3/55">Created {formatTimestamp(activeShare.createdAt)}</span>
+            <span className="ml-2 text-text-3">Created {formatTimestamp(activeShare.createdAt)}</span>
           </div>
         )}
       </div>
@@ -583,7 +583,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
           <ul className="flex flex-col gap-1">
             {mission.successCriteria.map((c, i) => (
               <li key={i} className="text-[12px] text-text flex items-start gap-2">
-                <span className="text-text-3/50 mt-[2px]">-</span>
+                <span className="text-text-3 mt-[2px]">-</span>
                 <span>{c}</span>
               </li>
             ))}
@@ -594,12 +594,12 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
       <div>
         <div className="text-[11px] font-600 uppercase tracking-wide text-text-3 mb-2">Timeline</div>
         {mission.milestones.length === 0 ? (
-          <div className="text-[11px] text-text-3/60">No milestones yet.</div>
+          <div className="text-[11px] text-text-3">No milestones yet.</div>
         ) : (
           <div className="flex flex-col gap-1.5 max-h-[240px] overflow-y-auto">
             {[...mission.milestones].reverse().map((ms) => (
               <div key={ms.id} className="text-[11px] flex items-start gap-2">
-                <span className="text-text-3/50 font-mono">{new Date(ms.at).toLocaleTimeString()}</span>
+                <span className="text-text-3 font-mono">{new Date(ms.at).toLocaleTimeString()}</span>
                 <span className="text-text-3 font-600">{ms.kind}</span>
                 <span className="text-text">{ms.summary}</span>
               </div>
@@ -607,7 +607,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
           </div>
         )}
         {events.length > 0 && (
-          <div className="text-[10px] text-text-3/50 mt-2">{events.length} total events in log</div>
+          <div className="text-[10px] text-text-3 mt-2">{events.length} total events in log</div>
         )}
       </div>
 
@@ -616,7 +616,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
           <div className="text-[11px] font-600 uppercase tracking-wide text-text-3">Reports ({reports.length})</div>
         </div>
         {reports.length === 0 ? (
-          <div className="text-[11px] text-text-3/60">No reports yet. Click &quot;Generate report now&quot; to produce one.</div>
+          <div className="text-[11px] text-text-3">No reports yet. Click &quot;Generate report now&quot; to produce one.</div>
         ) : (
           <div className="flex flex-col gap-1">
             {reports.map((r) => (
@@ -626,7 +626,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
                 className="text-left text-[11px] text-text-3 px-2 py-1.5 rounded-xs border border-line-subtle hover:border-line-default hover:bg-layer-1"
               >
                 <span className="text-text">{r.title}</span>
-                <span className="text-text-3/60 ml-2">{formatTimestamp(r.generatedAt)}</span>
+                <span className="text-text-3 ml-2">{formatTimestamp(r.generatedAt)}</span>
               </button>
             ))}
           </div>

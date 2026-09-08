@@ -218,7 +218,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
           >
             <div className={`text-[11px] font-700 uppercase tracking-[0.08em] ${meta.tone}`}>{meta.label}</div>
             <div className={`mt-2 text-[24px] font-display font-700 tracking-[-0.03em] ${meta.tone}`}>{groupedConnectors[group].length}</div>
-            <p className="text-[11px] text-text-3/55 mt-1 leading-relaxed">{meta.description}</p>
+            <p className="text-[11px] text-text-3 mt-1 leading-relaxed">{meta.description}</p>
           </button>
         ))}
       </div>
@@ -251,9 +251,9 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                 <div className="flex items-end justify-between gap-3 mb-3">
                   <div>
                     <h2 className={`text-[12px] font-700 uppercase tracking-[0.1em] ${meta.tone}`}>{meta.label}</h2>
-                    <p className="text-[12px] text-text-3/55 mt-1">{meta.description}</p>
+                    <p className="text-[12px] text-text-3 mt-1">{meta.description}</p>
                   </div>
-                  <span className="text-[11px] text-text-3/45">{connectorsForGroup.length} connector{connectorsForGroup.length === 1 ? '' : 's'}</span>
+                  <span className="text-[11px] text-text-3">{connectorsForGroup.length} connector{connectorsForGroup.length === 1 ? '' : 's'}</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -331,7 +331,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <span className="text-[12px] font-600 text-text-2 block truncate">{chatroom.name}</span>
-                                <span className="text-[10px] text-text-3/60 block">
+                                <span className="text-[10px] text-text-3 block">
                                   Room · {chatroom.agentIds.length} agent{chatroom.agentIds.length !== 1 ? 's' : ''}
                                 </span>
                               </div>
@@ -341,7 +341,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                               <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={24} />
                               <div className="flex-1 min-w-0">
                                 <span className="text-[12px] font-600 text-text-2 block truncate">{agent.name}</span>
-                                <span className="text-[10px] text-text-3/60 block">Agent route</span>
+                                <span className="text-[10px] text-text-3 block">Agent route</span>
                               </div>
                             </>
                           ) : (
@@ -358,18 +358,18 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                             ))}
                           </div>
                         ) : (
-                          <div className="text-[11px] text-text-3/55 mb-3">
+                          <div className="text-[11px] text-text-3 mb-3">
                             {platformLabel} routed to {chatroom ? 'chatroom' : agent ? 'agent' : 'connector'}.
                           </div>
                         )}
 
                         <div className="mb-3 rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                          <div className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55">Readiness</div>
+                          <div className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">Readiness</div>
                           <div className="mt-1 text-[11px] text-text-2">{readiness.summary}</div>
                           <div className="mt-2 flex flex-col gap-1">
                             {readiness.checks.slice(0, 3).map((check) => (
                               <div key={check.id} className="flex items-start justify-between gap-2 text-[10px]">
-                                <span className="text-text-3/65">{check.label}</span>
+                                <span className="text-text-3">{check.label}</span>
                                 <span className={`max-w-[150px] break-words text-right ${check.status === 'ready' ? 'text-emerald-300' : check.status === 'error' ? 'text-red-300' : 'text-amber-300'}`}>
                                   {check.detail}
                                 </span>
@@ -384,9 +384,9 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                               {c.lastError.slice(0, 50)}{c.lastError.length > 50 ? '...' : ''}
                             </span>
                           ) : lastMsg ? (
-                            <span className="text-[10px] text-text-3/60 flex-1">Last message {relativeTime(lastMsg)}</span>
+                            <span className="text-[10px] text-text-3 flex-1">Last message {relativeTime(lastMsg)}</span>
                           ) : (
-                            <span className="text-[10px] text-text-3/40 flex-1">No messages yet</span>
+                            <span className="text-[10px] text-text-3 flex-1">No messages yet</span>
                           )}
 
                           <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>

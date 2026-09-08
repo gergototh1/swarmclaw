@@ -69,14 +69,14 @@ export function OverviewTab({ project }: OverviewTabProps) {
         <div className="space-y-3">
           {project.objective && (
             <div>
-              <div className="text-[11px] font-600 text-text-3/50 mb-1">Objective</div>
+              <div className="text-[11px] font-600 text-text-3 mb-1">Objective</div>
               <p className="text-[13px] text-text leading-relaxed">{project.objective}</p>
             </div>
           )}
           {project.audience && (
             <div>
-              <div className="text-[11px] font-600 text-text-3/50 mb-1">Audience</div>
-              <p className="text-[13px] text-text-2/80 leading-relaxed">{project.audience}</p>
+              <div className="text-[11px] font-600 text-text-3 mb-1">Audience</div>
+              <p className="text-[13px] text-text-2 leading-relaxed">{project.audience}</p>
             </div>
           )}
         </div>
@@ -84,7 +84,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
 
       {/* Section 2: Health Grid */}
       <div>
-        <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60 mb-3">Health</h3>
+        <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3 mb-3">Health</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {healthCards.map((card) => {
             const isZero = card.value === 0
@@ -97,7 +97,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
                   {card.value}
                 </div>
                 <div className="text-[11px] font-600 text-text-2 mt-0.5">{card.label}</div>
-                <p className="text-[10px] text-text-3/45 mt-1 leading-relaxed">{card.hint}</p>
+                <p className="text-[10px] text-text-3 mt-1 leading-relaxed">{card.hint}</p>
               </div>
             )
           })}
@@ -122,7 +122,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
               }}
             />
           </div>
-          <div className="flex items-center gap-4 mt-3 text-[10px] text-text-3/40">
+          <div className="flex items-center gap-4 mt-3 text-[10px] text-text-3">
             {Object.entries(tasksByStatus).map(([status, count]) => (
               <span key={status} className="flex items-center gap-1">
                 <span className={`w-1.5 h-1.5 rounded-full ${

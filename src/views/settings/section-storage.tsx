@@ -107,7 +107,7 @@ export function StorageSection(
       <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         {/* Summary */}
         {loading ? (
-          <div className="text-[13px] text-text-3/60 animate-pulse">Loading storage info...</div>
+          <div className="text-[13px] text-text-3 animate-pulse">Loading storage info...</div>
         ) : (
           <>
             <div className="flex items-baseline gap-3 mb-4">
@@ -123,7 +123,7 @@ export function StorageSection(
             {Object.keys(breakdown).length > 0 && (
               <div className="flex flex-wrap gap-x-4 gap-y-1 mb-5">
                 {Object.entries(breakdown).map(([cat, info]) => (
-                  <span key={cat} className="text-[11px] text-text-3/70">
+                  <span key={cat} className="text-[11px] text-text-3">
                     {CATEGORY_LABELS[cat] || cat}: {info.count} ({formatBytes(info.size)})
                   </span>
                 ))}

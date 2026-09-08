@@ -334,7 +334,7 @@ export function SkillsWorkspace() {
   if (skillsQuery.isPending || agentsQuery.isPending) {
     return (
       <div className="flex-1 flex items-center justify-center px-6">
-        <div className="flex items-center gap-3 text-[13px] text-text-3/65">
+        <div className="flex items-center gap-3 text-[13px] text-text-3">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-line-default border-t-accent-bright" />
           Loading skills library...
         </div>
@@ -350,13 +350,13 @@ export function SkillsWorkspace() {
           <div className="relative z-10">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">
-                <div className="text-[11px] font-700 uppercase tracking-[0.16em] text-text-3/70">
+                <div className="text-[11px] font-700 uppercase tracking-[0.16em] text-text-3">
                   Skills + ClawHub
                 </div>
                 <h1 className="mt-2 font-display text-[28px] font-700 tracking-[-0.04em] text-text md:text-[34px]">
                   Inspect what a skill does before you install or run it.
                 </h1>
-                <p className="mt-3 max-w-2xl text-[14px] leading-[1.7] text-text-2/80">
+                <p className="mt-3 max-w-2xl text-[14px] leading-[1.7] text-text-2">
                   Search your local skill library, open a clear detail view, then jump into ClawHub when you want to explore community tools.
                 </p>
               </div>
@@ -437,8 +437,8 @@ export function SkillsWorkspace() {
             <div className="rounded-lg border border-line-default bg-surface/70 p-4 md:p-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/65">Library</div>
-                  <p className="mt-1 text-[13px] text-text-3/75">
+                  <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">Library</div>
+                  <p className="mt-1 text-[13px] text-text-3">
                     Search local skills and use the buttons on each card to open details or edit.
                   </p>
                 </div>
@@ -477,7 +477,7 @@ export function SkillsWorkspace() {
               />
 
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                <div className="text-[12px] text-text-3/70">
+                <div className="text-[12px] text-text-3">
                   Showing <span className="font-700 text-text">{filteredSkills.length}</span> of {skillCount} skills
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -492,7 +492,7 @@ export function SkillsWorkspace() {
                         setLibraryScope('all')
                         setActiveLibraryTag(null)
                       }}
-                      className="cursor-pointer rounded-full border border-line-default px-3 py-1 text-[11px] font-600 text-text-3/80 transition-colors hover:border-line-strong hover:text-text"
+                      className="cursor-pointer rounded-full border border-line-default px-3 py-1 text-[11px] font-600 text-text-3 transition-colors hover:border-line-strong hover:text-text"
                     >
                       Clear filters
                     </button>
@@ -550,8 +550,8 @@ export function SkillsWorkspace() {
           <div className="space-y-6 pt-5">
             <section className="rounded-lg border border-line-default bg-surface/70 p-4 md:p-5">
               <div>
-                <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/65">ClawHub</div>
-                <p className="mt-1 max-w-2xl text-[13px] leading-[1.7] text-text-3/75">
+                <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">ClawHub</div>
+                <p className="mt-1 max-w-2xl text-[13px] leading-[1.7] text-text-3">
                   Search the marketplace, use Details to learn what a tool does, or Open listing to visit the source page.
                 </p>
 
@@ -619,7 +619,7 @@ export function SkillsWorkspace() {
             ) : null}
 
             {hubLoading && !hubSearched ? (
-              <div className="flex items-center justify-center py-16 text-[13px] text-text-3/65">
+              <div className="flex items-center justify-center py-16 text-[13px] text-text-3">
                 <span className="mr-3 h-4 w-4 animate-spin rounded-full border-2 border-line-default border-t-accent-bright" />
                 Loading marketplace...
               </div>
@@ -709,13 +709,13 @@ function SkillDetailView({
       <section className="rounded-lg border border-line-default bg-surface/70 p-5 md:p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/65">
+            <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">
               Local Skill
             </div>
             <h2 className="mt-2 font-display text-[28px] font-700 tracking-[-0.04em] text-text md:text-[34px]">
               {skill.name}
             </h2>
-            <p className="mt-3 text-[14px] leading-[1.7] text-text-2/80">
+            <p className="mt-3 text-[14px] leading-[1.7] text-text-2">
               {plainPreview || 'No description provided. Review the full markdown below to understand the workflow.'}
             </p>
           </div>
@@ -807,7 +807,7 @@ function SkillDetailView({
                       <div className="min-w-0">
                         <div className="truncate text-[13px] font-600 text-text">{agent.name}</div>
                         {agent.description ? (
-                          <div className="line-clamp-1 text-[11px] text-text-3/65">{agent.description}</div>
+                          <div className="line-clamp-1 text-[11px] text-text-3">{agent.description}</div>
                         ) : null}
                       </div>
                     </div>
@@ -855,13 +855,13 @@ function HubSkillDetailView({
       <section className="rounded-lg border border-line-default bg-surface/70 p-5 md:p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/65">
+            <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">
               ClawHub Skill
             </div>
             <h2 className="mt-2 font-display text-[28px] font-700 tracking-[-0.04em] text-text md:text-[34px]">
               {skill.name}
             </h2>
-            <p className="mt-3 text-[14px] leading-[1.7] text-text-2/80">
+            <p className="mt-3 text-[14px] leading-[1.7] text-text-2">
               {detailDescription}
             </p>
           </div>
@@ -903,7 +903,7 @@ function HubSkillDetailView({
             subtitle="Parsed from the actual remote skill file, not just the marketplace summary."
           />
           {previewLoading ? (
-            <div className="flex items-center gap-3 rounded-lg border border-line-subtle bg-bg/50 px-4 py-4 text-[13px] text-text-3/70">
+            <div className="flex items-center gap-3 rounded-lg border border-line-subtle bg-bg/50 px-4 py-4 text-[13px] text-text-3">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-line-default border-t-accent-bright" />
               Loading the skill file preview...
             </div>
@@ -964,8 +964,8 @@ function SuggestionsPanel({
     <section className="rounded-lg border border-line-default bg-surface/70 p-4 md:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/65">Draft Suggestions</div>
-          <p className="mt-1 text-[13px] text-text-3/75">
+          <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">Draft Suggestions</div>
+          <p className="mt-1 text-[13px] text-text-3">
             Conversation-derived drafts you can review before they become part of the library.
           </p>
         </div>
@@ -973,7 +973,7 @@ function SuggestionsPanel({
       </div>
 
       {loading ? (
-        <div className="mt-4 flex items-center gap-3 rounded-lg border border-line-subtle bg-bg/50 px-4 py-4 text-[13px] text-text-3/70">
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-line-subtle bg-bg/50 px-4 py-4 text-[13px] text-text-3">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-line-default border-t-accent-bright" />
           Loading suggestion drafts...
         </div>
@@ -990,7 +990,7 @@ function SuggestionsPanel({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="truncate text-[13px] font-600 text-text">{suggestion.name}</div>
-                    <div className="mt-1 text-[11px] text-text-3/65">
+                    <div className="mt-1 text-[11px] text-text-3">
                       {suggestion.sourceSessionName || suggestion.sourceSessionId}
                       {suggestion.sourceAgentName ? ` | ${suggestion.sourceAgentName}` : ''}
                     </div>
@@ -998,14 +998,14 @@ function SuggestionsPanel({
                   <MiniBadge tone="warning">Draft</MiniBadge>
                 </div>
                 {suggestion.description ? (
-                  <p className="mt-2 text-[12px] leading-[1.6] text-text-3/75">{suggestion.description}</p>
+                  <p className="mt-2 text-[12px] leading-[1.6] text-text-3">{suggestion.description}</p>
                 ) : null}
                 {suggestion.content ? (
                   <details className="mt-3 rounded-md border border-line-subtle bg-surface/60 px-3 py-2">
-                    <summary className="cursor-pointer list-none text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/65 [&::-webkit-details-marker]:hidden">
+                    <summary className="cursor-pointer list-none text-[11px] font-700 uppercase tracking-[0.12em] text-text-3 [&::-webkit-details-marker]:hidden">
                       Preview draft body
                     </summary>
-                    <pre className="mt-2 whitespace-pre-wrap text-[11px] leading-[1.6] text-text-3/75">
+                    <pre className="mt-2 whitespace-pre-wrap text-[11px] leading-[1.6] text-text-3">
                       {truncateText(suggestion.content, 800)}
                     </pre>
                   </details>
@@ -1048,14 +1048,14 @@ function SkillCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate font-display text-[16px] font-600 text-text">{skill.name}</div>
-          <div className="mt-1 text-[11px] text-text-3/60">
+          <div className="mt-1 text-[11px] text-text-3">
             {skill.filename} | updated {formatTimestamp(skill.updatedAt || skill.createdAt)}
           </div>
         </div>
         <MiniBadge>{scopeLabel}</MiniBadge>
       </div>
 
-      <p className="mt-3 line-clamp-3 text-[13px] leading-[1.7] text-text-3/75">
+      <p className="mt-3 line-clamp-3 text-[13px] leading-[1.7] text-text-3">
         {description || 'Open the detail view to inspect the full markdown instructions.'}
       </p>
 
@@ -1068,7 +1068,7 @@ function SkillCard({
       {(skill.tags?.length || skill.toolNames?.length || skill.capabilities?.length) ? (
         <div className="mt-4 flex flex-wrap gap-1.5">
           {[...(skill.tags || []).slice(0, 3), ...(skill.toolNames || []).slice(0, 2)].slice(0, 5).map((item) => (
-            <span key={`${skill.id}-${item}`} className="rounded-full bg-layer-2 px-2 py-1 text-[10px] font-700 text-text-3/65">
+            <span key={`${skill.id}-${item}`} className="rounded-full bg-layer-2 px-2 py-1 text-[10px] font-700 text-text-3">
               {item}
             </span>
           ))}
@@ -1090,7 +1090,7 @@ function SkillCard({
             ))}
           </div>
           {scopedAgents.length > 5 ? (
-            <span className="text-[10px] font-600 text-text-3/60">+{scopedAgents.length - 5} more</span>
+            <span className="text-[10px] font-600 text-text-3">+{scopedAgents.length - 5} more</span>
           ) : null}
         </div>
       ) : null}
@@ -1129,7 +1129,7 @@ function HubSkillCard({
           <div className="truncate font-display text-[16px] font-600 text-text">
             {skill.name}
           </div>
-          <div className="mt-1 text-[11px] text-text-3/60">
+          <div className="mt-1 text-[11px] text-text-3">
             by {skill.author} | v{skill.version}
             {skill.updatedAt ? ` | ${formatTimestamp(skill.updatedAt)}` : ''}
           </div>
@@ -1144,7 +1144,7 @@ function HubSkillCard({
         </button>
       </div>
 
-      <p className="mt-3 line-clamp-3 text-[13px] leading-[1.7] text-text-3/75">
+      <p className="mt-3 line-clamp-3 text-[13px] leading-[1.7] text-text-3">
         {skill.description || 'Open the detail view for the parsed skill preview and source listing.'}
       </p>
 
@@ -1208,14 +1208,14 @@ function SetupOverview({ skill }: { skill: Partial<Skill> }) {
       ) : null}
       {security ? (
         <div className="rounded-md border border-line-subtle bg-bg/45 p-3">
-          <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/65">
+          <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">
             Security
           </div>
           <div className="mt-2 flex items-center gap-2">
             <MiniBadge tone={securityTone(security.level)}>{security.level} risk</MiniBadge>
           </div>
           {security.notes.length ? (
-            <ul className="mt-3 space-y-1 text-[12px] leading-[1.6] text-text-3/75">
+            <ul className="mt-3 space-y-1 text-[12px] leading-[1.6] text-text-3">
               {security.notes.slice(0, 5).map((note) => (
                 <li key={note}>- {note}</li>
               ))}
@@ -1261,7 +1261,7 @@ function MarkdownPreview({ content }: { content: string }) {
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className="cursor-pointer rounded-full border border-line-default px-3 py-1 text-[11px] font-600 text-text-3/80 transition-colors hover:border-line-strong hover:text-text"
+          className="cursor-pointer rounded-full border border-line-default px-3 py-1 text-[11px] font-600 text-text-3 transition-colors hover:border-line-strong hover:text-text"
         >
           {expanded ? 'Show shorter preview' : 'Show full skill'}
         </button>
@@ -1275,7 +1275,7 @@ function BackButton({ label, onClick }: { label: string; onClick: () => void }) 
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line-default px-3 py-1.5 text-[12px] font-600 text-text-3/80 transition-colors hover:border-line-strong hover:text-text"
+      className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line-default px-3 py-1.5 text-[12px] font-600 text-text-3 transition-colors hover:border-line-strong hover:text-text"
     >
       <span aria-hidden="true">&lt;-</span>
       {label}
@@ -1322,7 +1322,7 @@ function SearchField({
 }) {
   return (
     <label className="relative block">
-      <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-3/45" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
@@ -1330,7 +1330,7 @@ function SearchField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-md border border-line-default bg-bg/65 py-3 pl-10 pr-4 text-[13px] text-text outline-none transition-colors placeholder:text-text-3/45 focus:border-accent-bright/40"
+        className="w-full rounded-md border border-line-default bg-bg/65 py-3 pl-10 pr-4 text-[13px] text-text outline-none transition-colors placeholder:text-text-3 focus:border-accent-bright/40"
         style={{ fontFamily: 'inherit' }}
       />
     </label>
@@ -1354,7 +1354,7 @@ function FilterRow({
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">
-      <span className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/60">{label}</span>
+      <span className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">{label}</span>
       <button type="button" onClick={onClear} className={active ? activeChipClassName : chipClassName}>
         All
       </button>
@@ -1377,7 +1377,7 @@ function QuickStatPill({ label, value, muted = false }: { label: string; value: 
     <div className={`rounded-full border px-3.5 py-2 ${muted ? 'border-line-default bg-layer-1' : 'border-line-default bg-black/10'}`}>
       <div className="flex items-center gap-2">
         <span className="text-[14px] font-700 text-text">{value}</span>
-        <span className="text-[11px] font-600 text-text-3/70">{label}</span>
+        <span className="text-[11px] font-600 text-text-3">{label}</span>
       </div>
     </div>
   )
@@ -1428,8 +1428,8 @@ function ActionAnchor({
 function DetailCard({ title, body }: { title: string; body: string }) {
   return (
     <div className="rounded-lg border border-line-default bg-bg/45 p-4">
-      <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/65">{title}</div>
-      <p className="mt-2 whitespace-pre-line text-[13px] leading-[1.7] text-text-2/80">{body}</p>
+      <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">{title}</div>
+      <p className="mt-2 whitespace-pre-line text-[13px] leading-[1.7] text-text-2">{body}</p>
     </div>
   )
 }
@@ -1437,8 +1437,8 @@ function DetailCard({ title, body }: { title: string; body: string }) {
 function SectionHeading({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="mb-4">
-      <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3/65">{title}</div>
-      <p className="mt-1 text-[13px] text-text-3/75">{subtitle}</p>
+      <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">{title}</div>
+      <p className="mt-1 text-[13px] text-text-3">{subtitle}</p>
     </div>
   )
 }
@@ -1446,13 +1446,13 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle: string }
 function MetadataRow({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <div className="rounded-md border border-line-subtle bg-bg/45 px-3 py-2.5">
-      <div className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/60">{label}</div>
+      <div className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3">{label}</div>
       {href ? (
         <a href={href} target="_blank" rel="noreferrer" className="mt-1 block cursor-pointer break-words text-[12px] leading-[1.6] text-accent-bright hover:underline">
           {value}
         </a>
       ) : (
-        <div className="mt-1 break-words text-[12px] leading-[1.6] text-text-2/80">{value}</div>
+        <div className="mt-1 break-words text-[12px] leading-[1.6] text-text-2">{value}</div>
       )}
     </div>
   )
@@ -1501,7 +1501,7 @@ function EmptyState({
     <div className="rounded-lg border border-dashed border-line-default bg-surface/50 px-6 py-12 text-center">
       <div className="mx-auto max-w-xl">
         <h3 className="font-display text-[22px] font-700 tracking-[-0.03em] text-text">{title}</h3>
-        <p className="mt-2 text-[13px] leading-[1.7] text-text-3/75">{body}</p>
+        <p className="mt-2 text-[13px] leading-[1.7] text-text-3">{body}</p>
       </div>
       <div className="mt-5 flex flex-wrap justify-center gap-2">
         <button type="button" onClick={onAction} className={primaryButtonClassName}>
@@ -1519,7 +1519,7 @@ function EmptyState({
 
 function MutedNote({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-lg border border-line-subtle bg-bg/45 px-4 py-4 text-[13px] leading-[1.7] text-text-3/75 ${className}`}>
+    <div className={`rounded-lg border border-line-subtle bg-bg/45 px-4 py-4 text-[13px] leading-[1.7] text-text-3 ${className}`}>
       {children}
     </div>
   )
@@ -1659,10 +1659,10 @@ function dedupeHubSkills(skills: ClawHubSkill[]) {
 }
 
 const selectClassName = 'cursor-pointer rounded-md border border-line-default bg-bg/65 px-3 py-3 text-[12px] text-text outline-none transition-colors focus:border-accent-bright/40'
-const chipClassName = 'cursor-pointer rounded-full border border-line-default px-3 py-1 text-[11px] font-600 text-text-3/75 transition-colors hover:border-line-strong hover:text-text'
+const chipClassName = 'cursor-pointer rounded-full border border-line-default px-3 py-1 text-[11px] font-600 text-text-3 transition-colors hover:border-line-strong hover:text-text'
 const activeChipClassName = 'cursor-pointer rounded-full border border-accent-bright/20 bg-accent-soft px-3 py-1 text-[11px] font-600 text-accent-bright transition-colors'
 const primaryButtonClassName = 'inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-accent-bright/20 bg-accent-soft px-3.5 py-2 text-[12px] font-700 text-accent-bright transition-colors hover:bg-accent-soft/80 disabled:cursor-default disabled:opacity-55'
-const secondaryButtonClassName = 'inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-line-default bg-layer-1 px-3.5 py-2 text-[12px] font-700 text-text-2/85 transition-colors hover:border-line-strong hover:text-text disabled:cursor-default disabled:opacity-55'
-const ghostButtonClassName = 'inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-transparent bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-3/80 transition-colors hover:border-line-default hover:bg-layer-1 hover:text-text'
+const secondaryButtonClassName = 'inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-line-default bg-layer-1 px-3.5 py-2 text-[12px] font-700 text-text-2 transition-colors hover:border-line-strong hover:text-text disabled:cursor-default disabled:opacity-55'
+const ghostButtonClassName = 'inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-transparent bg-transparent px-3.5 py-2 text-[12px] font-700 text-text-3 transition-colors hover:border-line-default hover:bg-layer-1 hover:text-text'
 const dangerButtonClassName = 'inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-3.5 py-2 text-[12px] font-700 text-red-300 transition-colors hover:bg-red-500/15 disabled:cursor-default disabled:opacity-55'
-const disabledButtonClassName = 'inline-flex items-center gap-1.5 rounded-md border border-line-default bg-layer-2 px-3.5 py-2 text-[12px] font-700 text-text-3/65'
+const disabledButtonClassName = 'inline-flex items-center gap-1.5 rounded-md border border-line-default bg-layer-2 px-3.5 py-2 text-[12px] font-700 text-text-3'

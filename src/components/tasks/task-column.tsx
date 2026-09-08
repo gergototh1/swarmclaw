@@ -12,7 +12,7 @@ const COLUMN_CONFIG: Record<BoardTaskStatus, { label: string; color: string; dot
   completed: { label: 'Completed', color: 'text-emerald-400', dot: 'bg-emerald-400' },
   failed: { label: 'Failed', color: 'text-red-400', dot: 'bg-red-400' },
   cancelled: { label: 'Cancelled', color: 'text-text-3', dot: 'bg-layer-4' },
-  archived: { label: 'Archived', color: 'text-text-3/50', dot: 'bg-layer-3' },
+  archived: { label: 'Archived', color: 'text-text-3', dot: 'bg-layer-3' },
   deferred: { label: 'Deferred', color: 'text-orange-400', dot: 'bg-orange-400' },
 }
 
@@ -116,7 +116,7 @@ export function TaskColumn({
             onChange={(e) => setQuickAddValue(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd() }}
             placeholder={`+ Add to ${config.label.toLowerCase()}...`}
-            className="w-full px-3 py-2 rounded-sm bg-layer-1 border border-dashed border-line-default text-[12px] text-text placeholder:text-text-3/30 outline-none focus:border-line-strong focus:bg-layer-2 transition-colors"
+            className="w-full px-3 py-2 rounded-sm bg-layer-1 border border-dashed border-line-default text-[12px] text-text placeholder:text-text-3 outline-none focus:border-line-strong focus:bg-layer-2 transition-colors"
             style={{ fontFamily: 'inherit' }}
             disabled={adding}
           />
@@ -138,7 +138,7 @@ export function TaskColumn({
           />
         ))}
         {tasks.length === 0 && (
-          <div className={`text-[12px] text-text-3/50 text-center py-8 rounded-md border border-dashed transition-colors ${
+          <div className={`text-[12px] text-text-3 text-center py-8 rounded-md border border-dashed transition-colors ${
             dragOver ? 'border-accent-bright/30 text-accent-bright/50' : 'border-transparent'
           }`}>
             {dragOver ? 'Drop here' : 'No tasks'}

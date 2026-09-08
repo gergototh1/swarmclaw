@@ -78,7 +78,7 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-line-subtle bg-layer-1">
         <span className="text-[11px] font-600 text-text truncate">{parentAgent.name}</span>
-        <svg width="12" height="8" viewBox="0 0 12 8" fill="none" className="text-text-3/50 shrink-0">
+        <svg width="12" height="8" viewBox="0 0 12 8" fill="none" className="text-text-3 shrink-0">
           <path d="M0 4h9M7 1l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <span className="text-[11px] font-600 text-text truncate">{childAgent.name}</span>
@@ -96,10 +96,10 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
       {/* Content */}
       <div className="overflow-y-auto px-3 py-2 space-y-2" style={{ maxHeight: 310 }}>
         {loading && (
-          <div className="text-[11px] text-text-3/50 text-center py-6">Loading...</div>
+          <div className="text-[11px] text-text-3 text-center py-6">Loading...</div>
         )}
         {!loading && jobs.length === 0 && (
-          <div className="text-[11px] text-text-3/40 text-center py-6">
+          <div className="text-[11px] text-text-3 text-center py-6">
             No recent delegation activity between these agents
           </div>
         )}
@@ -112,19 +112,19 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
                 <span className={`text-[8px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-xs leading-none ${badge.cls}`}>
                   {badge.label}
                 </span>
-                <span className="text-[9px] text-text-3/40 ml-auto">{timeAgo(job.updatedAt || job.createdAt)}</span>
+                <span className="text-[9px] text-text-3 ml-auto">{timeAgo(job.updatedAt || job.createdAt)}</span>
               </div>
 
               {/* Task */}
               <div className="text-[11px] text-text-2 leading-snug mb-1">
-                <span className="text-text-3/50 font-500">Task: </span>
+                <span className="text-text-3 font-500">Task: </span>
                 {job.task.length > 120 ? job.task.slice(0, 120) + '...' : job.task}
               </div>
 
               {/* Result preview */}
               {job.resultPreview && (
                 <div className="text-[10px] text-emerald-400/70 leading-snug mt-1">
-                  <span className="text-text-3/50 font-500">Result: </span>
+                  <span className="text-text-3 font-500">Result: </span>
                   {job.resultPreview.length > 120 ? job.resultPreview.slice(0, 120) + '...' : job.resultPreview}
                 </div>
               )}
@@ -132,7 +132,7 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
               {/* Error */}
               {job.error && (
                 <div className="text-[10px] text-red-400/70 leading-snug mt-1">
-                  <span className="text-text-3/50 font-500">Error: </span>
+                  <span className="text-text-3 font-500">Error: </span>
                   {job.error.length > 120 ? job.error.slice(0, 120) + '...' : job.error}
                 </div>
               )}

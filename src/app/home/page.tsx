@@ -394,7 +394,7 @@ export default function HomePage() {
                   return (
                     <div className="rounded-md border border-dashed border-line-subtle bg-layer-1 px-4 py-5">
                       <p className="text-[13px] font-600 text-text">Everything looks stable.</p>
-                      <p className="text-[12px] text-text-3/60 mt-1">
+                      <p className="text-[12px] text-text-3 mt-1">
                         No failed tasks, no blocked tasks, and no connector issues right now.
                       </p>
                     </div>
@@ -419,7 +419,7 @@ export default function HomePage() {
                         }`} />
                         <div className="min-w-0">
                           <div className="text-[13px] font-600 text-text truncate">{item.label}</div>
-                          <div className="text-[11px] text-text-3/65 mt-1">{item.meta}</div>
+                          <div className="text-[11px] text-text-3 mt-1">{item.meta}</div>
                         </div>
                       </button>
                     ))}
@@ -440,7 +440,7 @@ export default function HomePage() {
           {/* Cost trend sparkline */}
           {costTrend.length > 1 && (
             <div className="mb-10 px-1" style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
-              <p className="text-[10px] text-text-3/50 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <p className="text-[10px] text-text-3 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                 7-day cost trend <HintTip text="Daily API spend over the past week — hover for details" />
               </p>
               <ResponsiveContainer width="100%" height={60}>
@@ -460,7 +460,7 @@ export default function HomePage() {
                         : ''
                       return (
                         <div className="rounded-sm bg-surface border border-line-default px-3 py-2 shadow-lg">
-                          <p className="text-[11px] text-text-3/70 m-0">{label}</p>
+                          <p className="text-[11px] text-text-3 m-0">{label}</p>
                           <p className="text-[14px] font-600 text-text m-0 mt-0.5">${d.cost.toFixed(4)}</p>
                         </div>
                       )
@@ -500,15 +500,15 @@ export default function HomePage() {
                       }`} />
                       <div className="flex-1 min-w-0">
                         <span className="text-[13px] font-500 text-text">{n.title}</span>
-                        {n.message && <p className="text-[11px] text-text-3/60 truncate mt-0.5 m-0">{n.message}</p>}
+                        {n.message && <p className="text-[11px] text-text-3 truncate mt-0.5 m-0">{n.message}</p>}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                         {getNotificationOccurrenceCount(n) > 1 && (
-                          <span className="rounded-full border border-line-default bg-layer-2 px-1.5 py-0.5 text-[9px] font-600 text-text-3/80">
+                          <span className="rounded-full border border-line-default bg-layer-2 px-1.5 py-0.5 text-[9px] font-600 text-text-3">
                             x{getNotificationOccurrenceCount(n)}
                           </span>
                         )}
-                        <span className="text-[10px] text-text-3/40">{timeAgo(getNotificationActivityAt(n), now)}</span>
+                        <span className="text-[10px] text-text-3">{timeAgo(getNotificationActivityAt(n), now)}</span>
                       </div>
                     </button>
                   ))}
@@ -532,7 +532,7 @@ export default function HomePage() {
                         : c.status === 'error' ? 'bg-red-400' : 'bg-text-3/30'
                     }`} />
                     <span className="text-[12px] font-500 text-text">{c.name}</span>
-                    <span className="text-[10px] text-text-3/50">{PLATFORM_LABELS[c.platform] || c.platform}</span>
+                    <span className="text-[10px] text-text-3">{PLATFORM_LABELS[c.platform] || c.platform}</span>
                   </div>
                 ))}
               </div>
@@ -563,7 +563,7 @@ export default function HomePage() {
                         }`} />
                         <div className="flex-1 min-w-0">
                           <span className="text-[13px] font-500 text-text truncate block">{task.title}</span>
-                          <span className="text-[11px] text-text-3/50">
+                          <span className="text-[11px] text-text-3">
                             {agent?.name || 'Unassigned'} · {task.status === 'running' ? 'running' : 'queued'}{task.startedAt ? ` · ${timeAgo(task.startedAt, now)}` : ''}
                           </span>
                         </div>
@@ -572,7 +572,7 @@ export default function HomePage() {
                   })}
                 </div>
               ) : (
-                <div className="py-4 px-3 text-[12px] text-text-3/40">No tasks running</div>
+                <div className="py-4 px-3 text-[12px] text-text-3">No tasks running</div>
               )}
             </section>
 
@@ -588,12 +588,12 @@ export default function HomePage() {
                         key={sched.id}
                         className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm"
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/50 shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
                           <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                         </svg>
                         <div className="flex-1 min-w-0">
                           <span className="text-[13px] font-500 text-text truncate block">{sched.name}</span>
-                          <span className="text-[11px] text-text-3/50">
+                          <span className="text-[11px] text-text-3">
                             {agent?.name || 'No agent'} · {sched.nextRunAt ? timeUntil(sched.nextRunAt, now) : '—'}
                           </span>
                         </div>
@@ -602,7 +602,7 @@ export default function HomePage() {
                   })}
                 </div>
               ) : (
-                <div className="py-4 px-3 text-[12px] text-text-3/40">No upcoming schedules</div>
+                <div className="py-4 px-3 text-[12px] text-text-3">No upcoming schedules</div>
               )}
             </section>
           </div>
@@ -655,7 +655,7 @@ export default function HomePage() {
                         </span>
                       )}
                       {modelLabel && (
-                        <span className="text-[9px] text-text-3/40 font-mono truncate max-w-[110px]">
+                        <span className="text-[9px] text-text-3 font-mono truncate max-w-[110px]">
                           {modelLabel}
                         </span>
                       )}
@@ -665,7 +665,7 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="py-6 px-4 rounded-md bg-layer-1 border border-dashed border-line-subtle text-center">
-                <p className="text-[13px] text-text-3/60">
+                <p className="text-[13px] text-text-3">
                   Star agents from the chat list for quick access
                 </p>
               </div>
@@ -700,12 +700,12 @@ export default function HomePage() {
                           <span className="text-[13px] font-600 text-text truncate">
                             {displayName}
                           </span>
-                          <span className="text-[11px] text-text-3/50 shrink-0">
+                          <span className="text-[11px] text-text-3 shrink-0">
                             {timeAgo(session.lastActiveAt || session.createdAt, now)}
                           </span>
                         </div>
                         {lastMsg && (
-                          <p className="text-[12px] text-text-3/60 truncate mt-0.5 m-0">
+                          <p className="text-[12px] text-text-3 truncate mt-0.5 m-0">
                             {lastMsg.text.slice(0, 80)}
                           </p>
                         )}
@@ -730,8 +730,8 @@ export default function HomePage() {
                       className={`shrink-0 ${ACTIVITY_COLORS[entry.action] || 'text-text-3'}`}>
                       <path d={ACTIVITY_ICONS[entry.action] || ACTIVITY_ICONS.updated} />
                     </svg>
-                    <span className="text-[12px] text-text-3/80 flex-1 truncate">{entry.summary}</span>
-                    <span className="text-[10px] text-text-3/40 shrink-0">{timeAgo(entry.timestamp, now)}</span>
+                    <span className="text-[12px] text-text-3 flex-1 truncate">{entry.summary}</span>
+                    <span className="text-[10px] text-text-3 shrink-0">{timeAgo(entry.timestamp, now)}</span>
                   </div>
                 ))}
               </div>
@@ -764,7 +764,7 @@ function StatusPill({ label, tone }: { label: string; tone: 'neutral' | 'warning
 function EmptySection({ text }: { text: string }) {
   return (
     <div className="py-6 px-4 rounded-md bg-layer-1 border border-dashed border-line-subtle text-center">
-      <p className="text-[13px] text-text-3/60">{text}</p>
+      <p className="text-[13px] text-text-3">{text}</p>
     </div>
   )
 }

@@ -123,7 +123,7 @@ function ExtraDetail({ data }: { data: Record<string, unknown> }) {
     <div className="mt-2 rounded-sm bg-black/30 border border-line-subtle p-3 text-[11px] font-mono space-y-1">
       {entries.map(([k, v]) => (
         <div key={k} className="flex gap-2 flex-wrap">
-          <span className="text-text-3/70 shrink-0">{k}:</span>
+          <span className="text-text-3 shrink-0">{k}:</span>
           <span className="text-text-2 break-all">
             {Array.isArray(v)
               ? v.map(String).join(', ') || '(empty)'
@@ -278,9 +278,9 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
                       <span className="text-[11px] font-700 uppercase tracking-wider" style={{ color }}>
                         {event.label}
                       </span>
-                      <span className="text-[10px] text-text-3/70 font-mono">{fmtTime(event.time)}</span>
+                      <span className="text-[10px] text-text-3 font-mono">{fmtTime(event.time)}</span>
                       {event.source === 'execlog' && (
-                        <span className="text-[9px] text-text-3/40 font-mono uppercase tracking-wider">exec</span>
+                        <span className="text-[9px] text-text-3 font-mono uppercase tracking-wider">exec</span>
                       )}
                     </div>
 
@@ -323,7 +323,7 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
                 </span>
               )
             })}
-            <span className="ml-auto text-[10px] text-text-3/40 font-mono">{execLogs.length} exec log entries</span>
+            <span className="ml-auto text-[10px] text-text-3 font-mono">{execLogs.length} exec log entries</span>
           </div>
         </>
       ) : (

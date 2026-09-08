@@ -488,12 +488,12 @@ export function ConnectorInbox() {
           </div>
           <div className="grid grid-cols-2 gap-3 md:min-w-[300px]">
             <div className="rounded-lg border border-line-default bg-black/20 px-4 py-3">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-3/70">Connectors</div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-3">Connectors</div>
               <div className="mt-2 text-[26px] font-display font-700 tracking-[-0.04em] text-text">{connectorItems.length}</div>
               <div className="text-[11px] text-text-3">Bridges with active external conversations</div>
             </div>
             <div className="rounded-lg border border-line-default bg-black/20 px-4 py-3">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-3/70">Conversations</div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-3">Conversations</div>
               <div className="mt-2 text-[26px] font-display font-700 tracking-[-0.04em] text-text">{inboxSessions.length}</div>
               <div className="text-[11px] text-text-3">Strictly isolated external sender sessions</div>
             </div>
@@ -513,7 +513,7 @@ export function ConnectorInbox() {
               aria-label="Search inbox conversations"
             />
             <div>
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-3/65 mb-2">Connector type</div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-3 mb-2">Connector type</div>
               <select
                 value={platformFilter}
                 onChange={(e) => {
@@ -538,7 +538,7 @@ export function ConnectorInbox() {
               <div className="text-[12px] font-700 text-text">Bridges</div>
               <div className="text-[11px] text-text-3">Switch between connector instances</div>
             </div>
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-3/65">
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-3">
               {connectorItems.length} active
             </div>
           </div>
@@ -698,7 +698,7 @@ export function ConnectorInbox() {
                               {accessState.detail}
                             </div>
                           )}
-                          <div className="mt-2 text-[12px] text-text-2/85 line-clamp-2">
+                          <div className="mt-2 text-[12px] text-text-2 line-clamp-2">
                             {sessionPreview(session)}
                           </div>
                         </div>

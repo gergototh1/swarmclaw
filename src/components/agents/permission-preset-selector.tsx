@@ -48,11 +48,11 @@ export function PermissionPresetSelector({ agentId, onPresetChanged }: Props) {
     }
   }
 
-  if (loading) return <div className="text-[12px] text-text-3/50 py-2">Loading presets...</div>
+  if (loading) return <div className="text-[12px] text-text-3 py-2">Loading presets...</div>
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="block text-[11px] font-600 uppercase tracking-wider text-text-3/50">Permission Preset</label>
+      <label className="block text-[11px] font-600 uppercase tracking-wider text-text-3">Permission Preset</label>
       <div className="flex gap-2">
         {PRESETS.map((p) => (
           <button
@@ -67,12 +67,12 @@ export function PermissionPresetSelector({ agentId, onPresetChanged }: Props) {
             style={{ fontFamily: 'inherit' }}
           >
             <span className="text-[11px] font-600">{p.label}</span>
-            <span className="text-[9px] text-text-3/50 text-center leading-tight">{p.desc}</span>
+            <span className="text-[9px] text-text-3 text-center leading-tight">{p.desc}</span>
           </button>
         ))}
       </div>
       {current === 'custom' && (
-        <span className="text-[10px] text-text-3/50">Custom configuration — select a preset to override</span>
+        <span className="text-[10px] text-text-3">Custom configuration — select a preset to override</span>
       )}
     </div>
   )

@@ -380,13 +380,13 @@ export default function AutonomyPage() {
           <div className="absolute right-[-60px] top-[-80px] h-48 w-48 rounded-full bg-layer-2 blur-3xl" />
           <div className="relative grid gap-6 p-6 md:p-7 xl:grid-cols-[minmax(0,1.4fr)_320px]">
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[10px] font-700 uppercase tracking-[0.14em] text-text-3/70">
+              <div className="inline-flex items-center gap-2 rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[10px] font-700 uppercase tracking-[0.14em] text-text-3">
                 Runtime Safety Desk
-                {refreshing && <span className="text-[9px] text-text-3/50">Refreshing</span>}
+                {refreshing && <span className="text-[9px] text-text-3">Refreshing</span>}
               </div>
               <div className="space-y-2">
                 <h1 className="font-display text-[28px] font-700 tracking-[-0.03em] text-text">Autonomy Control</h1>
-                <p className="max-w-2xl text-[14px] leading-[1.7] text-text-3/78">
+                <p className="max-w-2xl text-[14px] leading-[1.7] text-text-3">
                   Control emergency stops, see recent runtime failures, and manage the operator handoff when autonomy needs intervention.
                 </p>
               </div>
@@ -394,11 +394,11 @@ export default function AutonomyPage() {
                 <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-700 uppercase tracking-[0.08em] ${tone.badge}`}>
                   {modeLabel}
                 </span>
-                <span className="inline-flex items-center rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] text-text-3/72">
+                <span className="inline-flex items-center rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] text-text-3">
                   Refreshed {refreshedAt ? timeAgo(refreshedAt, now) : 'recently'}
                 </span>
                 {latestIncident && (
-                  <span className="inline-flex items-center rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] text-text-3/72">
+                  <span className="inline-flex items-center rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] text-text-3">
                     Latest incident {timeAgo(latestIncident.createdAt, now)}
                   </span>
                 )}
@@ -406,12 +406,12 @@ export default function AutonomyPage() {
             </div>
 
             <div className={`rounded-lg border p-5 backdrop-blur-sm ${tone.panel}`}>
-              <div className="mb-2 text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/65">Current State</div>
+              <div className="mb-2 text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Current State</div>
               <div className="font-display text-[24px] font-700 tracking-[-0.03em] text-text">{modeLabel}</div>
-              <p className="mt-2 text-[13px] leading-[1.7] text-text-3/78">
+              <p className="mt-2 text-[13px] leading-[1.7] text-text-3">
                 {estop?.reason || modeDescription}
               </p>
-              <div className="mt-4 space-y-2 text-[12px] text-text-3/72">
+              <div className="mt-4 space-y-2 text-[12px] text-text-3">
                 <div className="flex items-center justify-between gap-3">
                   <span>Updated</span>
                   <span className="font-mono text-text-2">{formatTimestamp(estop?.updatedAt)}</span>
@@ -484,11 +484,11 @@ export default function AutonomyPage() {
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Orchestrators</h2>
-              <p className="mt-1 text-[12px] leading-[1.7] text-text-3/72">
+              <p className="mt-1 text-[12px] leading-[1.7] text-text-3">
                 Agents running in orchestrator mode with autonomous wake cycles. Toggle individual orchestrators on or off without leaving the safety desk.
               </p>
             </div>
-            <div className="rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] text-text-3/72">
+            <div className="rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] text-text-3">
               {orchestrators.length} active
             </div>
           </div>
@@ -497,7 +497,7 @@ export default function AutonomyPage() {
             <div className="flex min-h-[120px] items-center justify-center rounded-lg border border-dashed border-line-default bg-layer-1 p-6 text-center">
               <div className="max-w-[320px]">
                 <h3 className="font-display text-[14px] font-700 tracking-[-0.02em] text-text">No orchestrators configured</h3>
-                <p className="mt-2 text-[12px] leading-[1.7] text-text-3/70">
+                <p className="mt-2 text-[12px] leading-[1.7] text-text-3">
                   Enable orchestrator mode on an agent to have it appear here with autonomous wake cycles.
                 </p>
               </div>
@@ -553,16 +553,16 @@ export default function AutonomyPage() {
                     </div>
                     <div className="text-[14px] font-600 text-text">{agent.name}</div>
                     {agent.description && (
-                      <div className="mt-1 text-[12px] leading-[1.7] text-text-3/72">{agent.description}</div>
+                      <div className="mt-1 text-[12px] leading-[1.7] text-text-3">{agent.description}</div>
                     )}
                     {agent.orchestratorMission && (
-                      <div className="mt-2 text-[12px] leading-[1.7] text-text-2/82">
+                      <div className="mt-2 text-[12px] leading-[1.7] text-text-2">
                         {agent.orchestratorMission.length > 120
                           ? `${agent.orchestratorMission.slice(0, 119).trimEnd()}…`
                           : agent.orchestratorMission}
                       </div>
                     )}
-                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-3/58">
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-3">
                       {agent.orchestratorLastWakeAt && (
                         <span>Last wake {timeAgo(agent.orchestratorLastWakeAt, now)}</span>
                       )}
@@ -585,7 +585,7 @@ export default function AutonomyPage() {
             <div className="mb-4 flex items-start gap-3">
               <div className="flex-1">
                 <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Operator Actions</h2>
-                <p className="mt-1 text-[12px] leading-[1.7] text-text-3/72">
+                <p className="mt-1 text-[12px] leading-[1.7] text-text-3">
                   Use the lightest stop that matches the issue. Resume approvals are disabled by default while the safety desk is still being validated, but you can turn them on here if you want the extra gate.
                 </p>
               </div>
@@ -607,7 +607,7 @@ export default function AutonomyPage() {
                   </span>
                 </div>
                 <h3 className="text-[13px] font-700 text-text">Engage autonomy estop</h3>
-                <p className="mt-1 text-[12px] leading-[1.7] text-text-3/72">
+                <p className="mt-1 text-[12px] leading-[1.7] text-text-3">
                   Pauses scheduler, daemon, connectors, retries, and other autonomous background work while keeping direct operator chats available.
                 </p>
                 <button
@@ -627,7 +627,7 @@ export default function AutonomyPage() {
                   </span>
                 </div>
                 <h3 className="text-[13px] font-700 text-text">Engage full estop</h3>
-                <p className="mt-1 text-[12px] leading-[1.7] text-text-3/72">
+                <p className="mt-1 text-[12px] leading-[1.7] text-text-3">
                   Blocks all new chat, tool, and model execution. Use this when the runtime needs a complete halt before recovery.
                 </p>
                 <button
@@ -649,7 +649,7 @@ export default function AutonomyPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-[13px] font-700 text-text">Require approval before resume</h3>
-                    <p className="mt-1 text-[12px] leading-[1.7] text-text-3/72">
+                    <p className="mt-1 text-[12px] leading-[1.7] text-text-3">
                       Leave this off to let operators clear estops directly. Turn it on if you want a human-loop approval step before autonomy resumes.
                     </p>
                   </div>
@@ -670,7 +670,7 @@ export default function AutonomyPage() {
                     }`} />
                   </button>
                 </div>
-                <div className="mt-3 text-[11px] text-text-3/65">
+                <div className="mt-3 text-[11px] text-text-3">
                   {pendingAction === 'policy'
                     ? 'Updating policy...'
                     : resumeRequiresApproval
@@ -681,16 +681,16 @@ export default function AutonomyPage() {
 
               <div className="rounded-lg border border-line-default bg-layer-1 p-4">
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="rounded-full bg-layer-2 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+                  <span className="rounded-full bg-layer-2 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
                     Recovery
                   </span>
                 </div>
                 <h3 className="text-[13px] font-700 text-text">{recoveryTitle}</h3>
-                <p className="mt-1 text-[12px] leading-[1.7] text-text-3/72">
+                <p className="mt-1 text-[12px] leading-[1.7] text-text-3">
                   {recoveryDescription}
                 </p>
                 {approval && (
-                  <div className="mt-3 rounded-md border border-line-default bg-black/10 px-3 py-2.5 text-[11px] text-text-3/70">
+                  <div className="mt-3 rounded-md border border-line-default bg-black/10 px-3 py-2.5 text-[11px] text-text-3">
                     <div className="flex items-center justify-between gap-3">
                       <span>Approval id</span>
                       <span className="font-mono text-text-2">{approval.id}</span>
@@ -762,7 +762,7 @@ export default function AutonomyPage() {
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
               <div className="flex-1">
                 <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Recent Incidents</h2>
-                <p className="mt-1 text-[12px] leading-[1.7] text-text-3/72">
+                <p className="mt-1 text-[12px] leading-[1.7] text-text-3">
                   Filter the incident feed to focus on the most urgent failures or the normalized runtime-family issues added for autonomy recovery.
                 </p>
               </div>
@@ -788,14 +788,14 @@ export default function AutonomyPage() {
             {filteredIncidents.length === 0 ? (
               <div className="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed border-line-default bg-layer-1 p-8 text-center">
                 <div className="max-w-[320px]">
-                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-line-default bg-layer-1 text-text-3/55">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-line-default bg-layer-1 text-text-3">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 3l7 3v6c0 4.4-2.92 8.46-7 9-4.08-.54-7-4.6-7-9V6l7-3z" />
                       <path d="M9.5 12.5l1.7 1.7 3.3-4.2" />
                     </svg>
                   </div>
                   <h3 className="font-display text-[16px] font-700 tracking-[-0.02em] text-text">No incidents in this view</h3>
-                  <p className="mt-2 text-[12px] leading-[1.7] text-text-3/70">
+                  <p className="mt-2 text-[12px] leading-[1.7] text-text-3">
                     {incidentFilter === 'all'
                       ? 'The runtime has not recorded any supervisor incidents yet.'
                       : 'Try switching filters to view the broader incident stream.'}
@@ -817,22 +817,22 @@ export default function AutonomyPage() {
                           <span className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] ${severity.badge}`}>
                             {incident.severity}
                           </span>
-                          <span className="rounded-full border border-line-default bg-layer-1 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+                          <span className="rounded-full border border-line-default bg-layer-1 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
                             {incident.kind.replace(/_/g, ' ')}
                           </span>
                           {incident.failureFamily && (
-                            <span className="rounded-full border border-line-default bg-layer-1 px-2.5 py-1 text-[10px] text-text-3/65">
+                            <span className="rounded-full border border-line-default bg-layer-1 px-2.5 py-1 text-[10px] text-text-3">
                               {incident.failureFamily}
                             </span>
                           )}
-                          <span className="ml-auto text-[11px] text-text-3/55" title={formatTimestamp(incident.createdAt)}>
+                          <span className="ml-auto text-[11px] text-text-3" title={formatTimestamp(incident.createdAt)}>
                             {timeAgo(incident.createdAt, now)}
                           </span>
                         </div>
 
                         <h3 className="text-[14px] font-700 text-text">{incident.summary}</h3>
 
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-3/58">
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-3">
                           <span>Source {incident.source}</span>
                           {incident.agentId && <span>Agent {incident.agentId}</span>}
                           {incident.runId && <span>Run {incident.runId}</span>}
@@ -853,7 +853,7 @@ export default function AutonomyPage() {
                             const needsExpansion = isHtmlPayload || incident.details.length > INCIDENT_DETAILS_PREVIEW_CHARS
                             if (!needsExpansion) {
                               return (
-                                <div className="mt-3 text-[12px] leading-[1.7] text-text-3/72 whitespace-pre-wrap break-words">
+                                <div className="mt-3 text-[12px] leading-[1.7] text-text-3 whitespace-pre-wrap break-words">
                                   {incident.details}
                                 </div>
                               )
@@ -864,14 +864,14 @@ export default function AutonomyPage() {
                                   ? 'border-red-500/16 bg-red-500/[0.05]'
                                   : 'border-line-default bg-layer-1'
                               }`}>
-                                <div className="text-[12px] leading-[1.7] text-text-2/82 whitespace-pre-wrap break-words">
+                                <div className="text-[12px] leading-[1.7] text-text-2 whitespace-pre-wrap break-words">
                                   {detailsPreview}
                                 </div>
                                 <details className="mt-2 rounded-sm border border-line-subtle bg-black/10">
-                                  <summary className="cursor-pointer list-none px-3 py-2 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/62 [&::-webkit-details-marker]:hidden">
+                                  <summary className="cursor-pointer list-none px-3 py-2 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3 [&::-webkit-details-marker]:hidden">
                                     {isHtmlPayload ? 'Show raw payload' : 'Show full details'}
                                   </summary>
-                                  <div className="max-h-64 overflow-auto border-t border-line-subtle px-3 py-3 text-[12px] leading-[1.7] text-text-3/72 whitespace-pre-wrap break-all">
+                                  <div className="max-h-64 overflow-auto border-t border-line-subtle px-3 py-3 text-[12px] leading-[1.7] text-text-3 whitespace-pre-wrap break-all">
                                     {incident.details}
                                   </div>
                                 </details>
@@ -882,8 +882,8 @@ export default function AutonomyPage() {
 
                         {incident.repairPrompt && (
                           <div className="mt-3 rounded-md border border-line-default bg-black/10 px-3 py-2.5">
-                            <div className="mb-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/60">Repair Prompt</div>
-                            <div className="text-[12px] leading-[1.7] text-text-2/88 whitespace-pre-wrap">{incident.repairPrompt}</div>
+                            <div className="mb-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">Repair Prompt</div>
+                            <div className="text-[12px] leading-[1.7] text-text-2 whitespace-pre-wrap">{incident.repairPrompt}</div>
                           </div>
                         )}
                       </div>

@@ -30,7 +30,7 @@ function kpiTone(value: number, danger = false): string {
 function Kpi({ label, value, danger = false }: { label: string; value: number; danger?: boolean }) {
   return (
     <div className="min-w-[110px] rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
-      <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3/55">{label}</div>
+      <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">{label}</div>
       <div className={cn('mt-1 font-display text-[22px] font-700 tracking-normal', kpiTone(value, danger))}>{value}</div>
     </div>
   )
@@ -93,7 +93,7 @@ export function OperationsPulsePanel({
         <div>
           <div className="text-[10px] font-700 uppercase tracking-[0.16em] text-accent-bright/70">Operations Pulse</div>
           <h2 className="mt-1 font-display text-[16px] font-700 tracking-normal text-text">What needs operator attention next</h2>
-          <p className="mt-1 max-w-[680px] text-[12px] leading-relaxed text-text-3/68">
+          <p className="mt-1 max-w-[680px] text-[12px] leading-relaxed text-text-3">
             Missions, runs, approvals, connector readiness, OpenClaw gateways, and budget pressure rolled into one triage queue.
           </p>
         </div>
@@ -123,7 +123,7 @@ export function OperationsPulsePanel({
       </div>
 
       {loading ? (
-        <div className="mt-4 rounded-md border border-line-subtle bg-layer-1 px-3 py-4 text-[12px] text-text-3/60">
+        <div className="mt-4 rounded-md border border-line-subtle bg-layer-1 px-3 py-4 text-[12px] text-text-3">
           Loading pulse...
         </div>
       ) : !pulse ? (
@@ -161,13 +161,13 @@ export function OperationsPulsePanel({
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center justify-between gap-3">
                           <span className="truncate text-[12px] font-800 text-text">{action.title}</span>
-                          <span className="shrink-0 text-[10px] text-text-3/55">{formatRelative(action.createdAt, pulse.generatedAt)}</span>
+                          <span className="shrink-0 text-[10px] text-text-3">{formatRelative(action.createdAt, pulse.generatedAt)}</span>
                         </span>
-                        <span className="mt-1 line-clamp-2 block text-[12px] leading-relaxed text-text-3/72">{action.summary}</span>
+                        <span className="mt-1 line-clamp-2 block text-[12px] leading-relaxed text-text-3">{action.summary}</span>
                         {action.evidence.length > 0 && (
                           <span className="mt-2 flex flex-wrap gap-1.5">
                             {action.evidence.slice(0, 2).map((item) => (
-                              <span key={item} className="rounded-full bg-layer-2 px-2 py-0.5 text-[10px] font-700 text-text-3/80">
+                              <span key={item} className="rounded-full bg-layer-2 px-2 py-0.5 text-[10px] font-700 text-text-3">
                                 {item}
                               </span>
                             ))}

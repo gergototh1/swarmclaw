@@ -54,7 +54,7 @@ export function WebhookList({ inSidebar }: { inSidebar?: boolean }) {
           </svg>
         </div>
         <p className="text-[13px] text-text-3 mb-1 font-600">No webhooks yet</p>
-        <p className="text-[12px] text-text-3/60">Create inbound endpoints to trigger agent runs</p>
+        <p className="text-[12px] text-text-3">Create inbound endpoints to trigger agent runs</p>
         <button
           onClick={() => {
             setEditingWebhookId(null)

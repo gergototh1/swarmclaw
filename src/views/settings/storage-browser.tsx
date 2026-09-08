@@ -171,7 +171,7 @@ export function StorageBrowser({ files, onDelete }: Props) {
 
       {/* File grid */}
       {filtered.length === 0 ? (
-        <div className="py-12 text-center text-[13px] text-text-3/60">
+        <div className="py-12 text-center text-[13px] text-text-3">
           {files.length === 0 ? 'No uploaded files.' : 'No files match this filter.'}
         </div>
       ) : (
@@ -215,7 +215,7 @@ export function StorageBrowser({ files, onDelete }: Props) {
 
               {/* Meta */}
               <p className="text-[11px] font-600 text-text truncate" title={file.name}>{file.name}</p>
-              <p className="text-[10px] text-text-3/60 mt-0.5">
+              <p className="text-[10px] text-text-3 mt-0.5">
                 {formatBytes(file.size)} &middot; {formatDate(file.modified)}
               </p>
             </div>

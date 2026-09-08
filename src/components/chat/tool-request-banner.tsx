@@ -108,7 +108,7 @@ export function ToolRequestBanner({ text, toolOutputs = [] }: Props) {
               <p className="text-[12px] text-text-2 font-600">
                 Requesting tool access to <span className="text-amber-400">{label}</span>
               </p>
-              {reason && <p className="text-[11px] text-text-3/60 mt-0.5 truncate">{reason}</p>}
+              {reason && <p className="text-[11px] text-text-3 mt-0.5 truncate">{reason}</p>}
             </div>
             {isGranted ? (
               <span className="text-[11px] text-emerald-400 font-600 shrink-0">Granted</span>

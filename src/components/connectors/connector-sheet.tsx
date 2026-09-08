@@ -901,7 +901,7 @@ export function ConnectorSheet() {
   }, [advancedAccessFields, advancedPlatformFields, config, doctorWarnings.length])
   const advancedSummary = configuredAdvancedCount > 0 ? `${configuredAdvancedCount} configured` : 'Defaults only'
 
-  const inputClass = "w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus:border-line-strong"
+  const inputClass = "w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus:border-line-strong"
 
   const updateConfigValue = useCallback((key: string, value: string) => {
     setConfig((prev) => {
@@ -922,7 +922,7 @@ export function ConnectorSheet() {
             {field.label} <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
             {FIELD_HINTS[field.key] && <HintTip text={FIELD_HINTS[field.key]} />}
           </label>
-          {field.help && <p className="text-[12px] text-text-3/60 mb-2">{field.help}</p>}
+          {field.help && <p className="text-[12px] text-text-3 mb-2">{field.help}</p>}
           <div className="flex flex-wrap gap-2 mb-2">
             {tags.map((tag, i) => (
               <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-accent-soft/50 border border-accent-bright/20 text-[12px] font-mono text-accent-bright">
@@ -984,7 +984,7 @@ export function ConnectorSheet() {
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
             {field.label} <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
           </label>
-          {field.help && <p className="text-[12px] text-text-3/60 mb-2">{field.help}</p>}
+          {field.help && <p className="text-[12px] text-text-3 mb-2">{field.help}</p>}
           <select
             value={config[field.key] || ''}
             onChange={(e) => updateConfigValue(field.key, e.target.value)}
@@ -1005,7 +1005,7 @@ export function ConnectorSheet() {
         <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
           {field.label} <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
         </label>
-        {field.help && <p className="text-[12px] text-text-3/60 mb-2">{field.help}</p>}
+        {field.help && <p className="text-[12px] text-text-3 mb-2">{field.help}</p>}
         <input
           value={config[field.key] || ''}
           onChange={(e) => updateConfigValue(field.key, e.target.value)}
@@ -1092,7 +1092,7 @@ export function ConnectorSheet() {
                 <span className="w-5 h-5 rounded-full bg-layer-2 flex items-center justify-center text-[10px] font-700 text-text-3 shrink-0 mt-0.5">
                   {i + 1}
                 </span>
-                <span className="text-[13px] text-text-2/80 leading-[1.5]">{linkify(step)}</span>
+                <span className="text-[13px] text-text-2 leading-[1.5]">{linkify(step)}</span>
               </div>
             ))}
           </div>
@@ -1138,7 +1138,7 @@ export function ConnectorSheet() {
         </div>
         {routeMode === 'agent' ? (
           <>
-            <p className="text-[12px] text-text-3/60 mb-2">Incoming messages will be handled by this agent</p>
+            <p className="text-[12px] text-text-3 mb-2">Incoming messages will be handled by this agent</p>
             <AgentPickerList
               agents={agentList}
               selected={agentId}
@@ -1148,7 +1148,7 @@ export function ConnectorSheet() {
           </>
         ) : (
           <>
-            <p className="text-[12px] text-text-3/60 mb-2">Incoming messages will be routed to a chat room with multiple agents</p>
+            <p className="text-[12px] text-text-3 mb-2">Incoming messages will be routed to a chat room with multiple agents</p>
             <ChatroomPickerList
               chatrooms={Object.values(chatrooms)}
               selected={chatroomId}
@@ -1162,7 +1162,7 @@ export function ConnectorSheet() {
       {showCredentialSection && (
         <div className="mb-6">
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">{platformConfig.tokenLabel}</label>
-          <p className="text-[12px] text-text-3/60 mb-2">{platformConfig.tokenHelp}</p>
+          <p className="text-[12px] text-text-3 mb-2">{platformConfig.tokenHelp}</p>
           <div className="flex gap-2">
             <select
               value={credentialId}
@@ -1265,7 +1265,7 @@ export function ConnectorSheet() {
       {basicPlatformFields.length > 0 && (
         <div className="mb-2">
           <SectionLabel>Platform Settings</SectionLabel>
-          <p className="text-[12px] text-text-3/60 mb-4">
+          <p className="text-[12px] text-text-3 mb-4">
             Settings specific to {platformConfig.label}. Leave optional values unset unless you need to override the defaults.
           </p>
           {basicPlatformFields.map((field) => renderConfigField(field))}
@@ -1275,7 +1275,7 @@ export function ConnectorSheet() {
       {supportsAccessControls && (
         <div className="mb-2">
           <SectionLabel>Behavior</SectionLabel>
-          <p className="text-[12px] text-text-3/60 mb-4">
+          <p className="text-[12px] text-text-3 mb-4">
             Keep the everyday DM policy and owner routing visible. Detailed lists and live access actions stay in advanced settings.
           </p>
           {basicAccessFields.map((field) => renderConfigField(field))}
@@ -1404,7 +1404,7 @@ export function ConnectorSheet() {
         {advancedPlatformFields.length > 0 && (
           <div className="mb-8">
             <SectionLabel>Platform Overrides</SectionLabel>
-            <p className="text-[12px] text-text-3/60 mb-4">
+            <p className="text-[12px] text-text-3 mb-4">
               Optional targeting and platform-specific overrides for {platformConfig.label}.
             </p>
             {advancedPlatformFields.map((field) => renderConfigField(field))}
@@ -1414,7 +1414,7 @@ export function ConnectorSheet() {
         {supportsAccessControls && (
           <div className="mb-8">
             <SectionLabel>Access Lists</SectionLabel>
-            <p className="text-[12px] text-text-3/60 mb-4">
+            <p className="text-[12px] text-text-3 mb-4">
               Manage connector-specific allow and deny lists, plus any live pairing state for this connector.
             </p>
             {advancedAccessFields.map((field) => renderConfigField(field))}
@@ -1441,7 +1441,7 @@ export function ConnectorSheet() {
 
         <div className="mb-8">
           <SectionLabel>Runtime Policy</SectionLabel>
-          <p className="text-[12px] text-text-3/60 mb-4">
+          <p className="text-[12px] text-text-3 mb-4">
             Conversation identity, reply behavior, reset policy, and other connector runtime overrides.
           </p>
           {COMMON_CONFIG_FIELDS.map((field) => renderConfigField(field))}
@@ -1451,7 +1451,7 @@ export function ConnectorSheet() {
           <div className="flex items-center justify-between gap-3 mb-2">
             <div>
               <div className="text-[13px] font-600 text-text-2">Connector Doctor</div>
-              <div className="text-[12px] text-text-3/70">
+              <div className="text-[12px] text-text-3">
                 Live autonomy and safety preview for the current connector settings.
               </div>
             </div>
@@ -1467,29 +1467,29 @@ export function ConnectorSheet() {
           </div>
           {doctorPolicy && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
-              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3/80">
+              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                 Scope: <span className="text-text-2">{doctorPolicy.scope || 'channel-peer'}</span>{' '}
                 · Reply: <span className="text-text-2">{doctorPolicy.replyMode || 'first'}</span>{' '}
                 · Thread: <span className="text-text-2">{doctorPolicy.threadBinding || 'prefer'}</span>
               </div>
-              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3/80">
+              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                 DMs: <span className="text-text-2">{config.dmPolicy || 'open'}</span>{' '}
                 · Group: <span className="text-text-2">{doctorPolicy.groupPolicy || 'reply-or-mention'}</span>{' '}
                 · Debounce: <span className="text-text-2">{doctorPolicy.inboundDebounceMs ?? 700}ms</span>
               </div>
-              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3/80">
+              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                 Allowlist: <span className="text-text-2">{localAllowlistCount + globalWhatsAppAllowlistCount}</span>{' '}
                 · Blocked: <span className="text-text-2">{localBlocklistCount}</span>{' '}
                 · Reactions: <span className="text-text-2">{doctorPolicy.statusReactions === false ? 'off' : 'on'}</span>{' '}
                 · Typing: <span className="text-text-2">{doctorPolicy.typingIndicators === false ? 'off' : 'on'}</span>
               </div>
-              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3/80">
+              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                 Reset: <span className="text-text-2">{doctorPolicy.resetMode || 'idle'}</span>{' '}
                 {doctorPolicy.resetMode === 'daily'
                   ? `at ${doctorPolicy.dailyResetAt || 'unset'} (${doctorPolicy.resetTimezone || 'server timezone'})`
                   : `idle ${doctorPolicy.idleTimeoutSec ?? 0}s / max ${doctorPolicy.maxAgeSec ?? 0}s`}
               </div>
-              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3/80">
+              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                 Runtime: <span className="text-text-2">{doctorPolicy.thinkingLevel || 'inherit'}</span>{' '}
                 · Provider: <span className="text-text-2">{doctorPolicy.providerOverride || 'agent default'}</span>{' '}
                 · Model: <span className="text-text-2">{doctorPolicy.modelOverride || 'agent default'}</span>
@@ -1509,7 +1509,7 @@ export function ConnectorSheet() {
               {doctorLoading ? 'Running checks…' : 'No autonomy or safety warnings detected for the current form values.'}
             </div>
           )}
-          <p className="text-[11px] text-text-3/55 mt-2">
+          <p className="text-[11px] text-text-3 mt-2">
             This preview updates from the form directly, so you can catch risky connector policy changes before saving.
           </p>
         </div>

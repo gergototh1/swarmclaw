@@ -50,7 +50,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
         </div>
 
         {appSettings.embeddingProvider === 'local' && (
-          <p className="text-[12px] text-text-3/80 mb-5">
+          <p className="text-[12px] text-text-3 mb-5">
             Runs <span className="text-text-2 font-600">all-MiniLM-L6-v2</span> locally in Node.js — no API key, no cost, works offline. Model downloads once (~23MB).
           </p>
         )}
@@ -138,7 +138,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
                 className={inputClass}
                 style={{ fontFamily: 'inherit' }}
               />
-              <p className="text-[11px] text-text-3/60 mt-2">Leave empty to use the local Ollama default.</p>
+              <p className="text-[11px] text-text-3 mt-2">Leave empty to use the local Ollama default.</p>
             </div>
           </div>
         )}

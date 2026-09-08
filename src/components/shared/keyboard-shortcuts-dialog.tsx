@@ -89,7 +89,7 @@ export function KeyboardShortcutsDialog() {
         <div className="py-2 max-h-[400px] overflow-y-auto">
           {GROUPS.map((group) => (
             <div key={group.title} className="px-5 py-2">
-              <h3 className="text-[11px] font-700 uppercase tracking-wider text-text-3/60 mb-2">
+              <h3 className="text-[11px] font-700 uppercase tracking-wider text-text-3 mb-2">
                 {group.title}
               </h3>
               <div className="flex flex-col gap-1.5">

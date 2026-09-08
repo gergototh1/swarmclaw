@@ -96,7 +96,7 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
           {!inSidebar && (
             <button
               onClick={handleDelete}
-              className="text-text-3/40 hover:text-red-400 transition-colors p-0.5"
+              className="text-text-3 hover:text-red-400 transition-colors p-0.5"
               title="Delete"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -106,13 +106,13 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
           )}
         </div>
       </div>
-      <div className="text-[12px] text-text-3/70 mt-1.5 truncate">
+      <div className="text-[12px] text-text-3 mt-1.5 truncate">
         Runs on {agent?.name || 'Unknown agent'} &middot; {schedule.scheduleType}
         {!inSidebar && schedule.scheduleType === 'cron' && schedule.cron && (
-          <span className="text-text-3/50 ml-1" title={schedule.cron}>({cronToHuman(schedule.cron)})</span>
+          <span className="text-text-3 ml-1" title={schedule.cron}>({cronToHuman(schedule.cron)})</span>
         )}
         {!inSidebar && schedule.scheduleType === 'interval' && schedule.intervalMs && (
-          <span className="text-text-3/50 ml-1">
+          <span className="text-text-3 ml-1">
             (every {schedule.intervalMs >= 3600000
               ? `${Math.round(schedule.intervalMs / 3600000)}h`
               : `${Math.round(schedule.intervalMs / 60000)}m`})
@@ -140,7 +140,7 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
           </InfoChip>
         )}
       </div>
-      <div className="text-[11px] text-text-3/60 mt-1">
+      <div className="text-[11px] text-text-3 mt-1">
         Next: {formatNext(schedule.nextRunAt, now)}
       </div>
     </div>

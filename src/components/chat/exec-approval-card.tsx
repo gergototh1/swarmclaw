@@ -45,7 +45,7 @@ export function ExecApprovalCard({ approval }: Props) {
         </code>
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-3/60 mb-3">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-3 mb-3">
         {approval.cwd && <span>cwd: {approval.cwd}</span>}
         {approval.host && <span>host: {approval.host}</span>}
         {approval.security && (
@@ -60,9 +60,9 @@ export function ExecApprovalCard({ approval }: Props) {
       )}
 
       {alreadyResolved ? (
-        <p className="text-[12px] text-text-3/50 italic">Already resolved by another session</p>
+        <p className="text-[12px] text-text-3 italic">Already resolved by another session</p>
       ) : expired ? (
-        <p className="text-[12px] text-text-3/50 italic">Approval expired</p>
+        <p className="text-[12px] text-text-3 italic">Approval expired</p>
       ) : (
         <div className="flex items-center gap-2">
           <button

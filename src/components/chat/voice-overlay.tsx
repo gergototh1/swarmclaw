@@ -64,7 +64,7 @@ export function VoiceOverlay({ state, interimText, transcript, onStop }: VoiceOv
       {(transcript || interimText) && (
         <div className="max-w-md px-6 text-center">
           {transcript && <p className="text-[14px] text-text-1 mb-1">{transcript}</p>}
-          {interimText && <p className="text-[13px] text-text-3/60 italic">{interimText}</p>}
+          {interimText && <p className="text-[13px] text-text-3 italic">{interimText}</p>}
         </div>
       )}
 

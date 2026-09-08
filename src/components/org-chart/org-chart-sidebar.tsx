@@ -202,7 +202,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search agents..."
-              className="w-full px-2 py-1 text-[11px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40"
+              className="w-full px-2 py-1 text-[11px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3"
             />
           </div>
           <div className="px-2 pt-1.5 pb-1 flex gap-1">
@@ -232,7 +232,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
               </div>
             ))}
             {filtered.length === 0 && (
-              <div className="text-[10px] text-text-3/40 text-center py-2">No matches</div>
+              <div className="text-[10px] text-text-3 text-center py-2">No matches</div>
             )}
           </div>
         </>
@@ -241,7 +241,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
       {tab === 'teams' && (
         <div className="flex-1 overflow-y-auto overscroll-contain p-2 flex flex-col gap-1">
           {teams.length === 0 && !showNewTeam && (
-            <div className="text-[10px] text-text-3/40 text-center py-4">No teams yet</div>
+            <div className="text-[10px] text-text-3 text-center py-4">No teams yet</div>
           )}
           {teams.map((team) => {
             const isExpanded = expandedTeam === team.label
@@ -266,7 +266,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                   {/* Expand */}
                   <button
                     onClick={() => setExpandedTeam(isExpanded ? null : team.label)}
-                    className="w-3.5 h-3.5 flex items-center justify-center text-text-3/40 hover:text-text-2 bg-transparent border-none cursor-pointer shrink-0"
+                    className="w-3.5 h-3.5 flex items-center justify-center text-text-3 hover:text-text-2 bg-transparent border-none cursor-pointer shrink-0"
                   >
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
                       style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}
@@ -313,7 +313,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                       {team.label}
                     </span>
                   )}
-                  <span className="text-[9px] text-text-3/40 tabular-nums">{team.agentIds.length}</span>
+                  <span className="text-[9px] text-text-3 tabular-nums">{team.agentIds.length}</span>
                   {/* Place */}
                   {unplacedCount > 0 && (
                     <button
@@ -333,7 +333,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                   ) : (
                     <button
                       onClick={() => setConfirmDelete(team.label)}
-                      className="hidden group-hover:flex w-3.5 h-3.5 rounded-xs items-center justify-center text-text-3/40 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
+                      className="hidden group-hover:flex w-3.5 h-3.5 rounded-xs items-center justify-center text-text-3 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
                     >
                       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                         <path d="M3 6h18" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
@@ -363,7 +363,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                           <span className="flex-1 text-[10px] text-text-2 truncate">{a.name}</span>
                           <button
                             onClick={(e) => { e.stopPropagation(); removeFromTeam(id) }}
-                            className="hidden group-hover/member:flex w-3.5 h-3.5 rounded-xs items-center justify-center text-text-3/30 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
+                            className="hidden group-hover/member:flex w-3.5 h-3.5 rounded-xs items-center justify-center text-text-3 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
                             title="Remove from team"
                           >
                             <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -385,7 +385,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                     ) : (
                       <button
                         onClick={() => { setShowAddAgent(team.label); setAddAgentSearch('') }}
-                        className="flex items-center gap-1 px-2 py-1 text-[9px] text-text-3/40 hover:text-text-2 bg-transparent border-none cursor-pointer transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 text-[9px] text-text-3 hover:text-text-2 bg-transparent border-none cursor-pointer transition-colors"
                       >
                         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                           <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -415,7 +415,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                         if (e.key === 'Escape') { setShowNewTeam(false); setNewTeamName(''); setNewTeamConfirmed(false); setNewTeamColor(TEAM_COLORS[0]) }
                       }}
                       placeholder="Team name..."
-                      className="flex-1 min-w-0 px-2 py-1.5 text-[10px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40"
+                      className="flex-1 min-w-0 px-2 py-1.5 text-[10px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3"
                     />
                     <button
                       onClick={() => { if (newTeamName.trim()) setNewTeamConfirmed(true) }}
@@ -426,7 +426,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                     </button>
                   </div>
                   <div className="flex items-center gap-1 px-0.5">
-                    <span className="text-[8px] text-text-3/40 mr-0.5">Color</span>
+                    <span className="text-[8px] text-text-3 mr-0.5">Color</span>
                     {TEAM_COLORS.map((c) => (
                       <button
                         key={c}
@@ -447,7 +447,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                     <span className="text-[10px] font-600 text-text-2 truncate flex-1">{newTeamName.trim()}</span>
                     <button onClick={() => setNewTeamConfirmed(false)} className="text-[8px] text-text-3 hover:text-text-2 bg-transparent border-none cursor-pointer">edit</button>
                   </div>
-                  <div className="text-[8px] text-text-3/40 px-1">Pick first agent:</div>
+                  <div className="text-[8px] text-text-3 px-1">Pick first agent:</div>
                   <AgentPicker
                     agents={unassignedAgents}
                     search={addAgentSearch}
@@ -479,7 +479,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
               )}
               <button
                 onClick={() => { setShowNewTeam(false); setNewTeamName(''); setNewTeamColor(TEAM_COLORS[0]); setNewTeamConfirmed(false); setAddAgentSearch('') }}
-                className="text-[8px] text-text-3/40 hover:text-text-2 bg-transparent border-none cursor-pointer self-center py-0.5"
+                className="text-[8px] text-text-3 hover:text-text-2 bg-transparent border-none cursor-pointer self-center py-0.5"
               >
                 Cancel
               </button>
@@ -527,14 +527,14 @@ function AgentPicker({
           onChange={(e) => onSearchChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
           placeholder="Search..."
-          className="w-full px-1.5 py-1 text-[9px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40 mb-0.5"
+          className="w-full px-1.5 py-1 text-[9px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3 mb-0.5"
         />
       )}
       <div className="max-h-[100px] overflow-y-auto flex flex-col gap-0.5">
         {agents.length === 0 ? (
-          <div className="text-[9px] text-text-3/40 text-center py-1.5">All agents assigned</div>
+          <div className="text-[9px] text-text-3 text-center py-1.5">All agents assigned</div>
         ) : filtered.length === 0 ? (
-          <div className="text-[9px] text-text-3/40 text-center py-1.5">No matches</div>
+          <div className="text-[9px] text-text-3 text-center py-1.5">No matches</div>
         ) : (
           filtered.map((a) => (
             <button

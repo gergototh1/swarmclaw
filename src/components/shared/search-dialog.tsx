@@ -229,7 +229,7 @@ export function SearchDialog() {
             onChange={(e) => handleQueryChange(e.target.value)}
             placeholder="Search agents, tasks, schedules..."
             aria-label="Search"
-            className="flex-1 bg-transparent border-none outline-none text-[14px] text-text placeholder:text-text-3/60 font-[inherit]"
+            className="flex-1 bg-transparent border-none outline-none text-[14px] text-text placeholder:text-text-3 font-[inherit]"
             autoFocus
           />
           <kbd className="px-1.5 py-0.5 rounded-xs bg-layer-2 border border-line-default text-[10px] font-mono text-text-3 shrink-0">
@@ -250,7 +250,7 @@ export function SearchDialog() {
             </div>
           )}
           {!loading && query.length < 2 && (
-            <div className="px-4 py-8 text-center text-[13px] text-text-3/60">
+            <div className="px-4 py-8 text-center text-[13px] text-text-3">
               Type at least 2 characters to search
             </div>
           )}
@@ -287,7 +287,7 @@ export function SearchDialog() {
                 )}
               </div>
               {/* Type label */}
-              <span className="text-[10px] text-text-3/60 uppercase tracking-wider shrink-0">
+              <span className="text-[10px] text-text-3 uppercase tracking-wider shrink-0">
                 {TYPE_LABELS[result.type]}
               </span>
             </button>
@@ -296,7 +296,7 @@ export function SearchDialog() {
 
         {/* Footer hint */}
         {results.length > 0 && (
-          <div className="flex items-center gap-3 px-4 py-2 border-t border-line-subtle text-[11px] text-text-3/50">
+          <div className="flex items-center gap-3 px-4 py-2 border-t border-line-subtle text-[11px] text-text-3">
             <span className="flex items-center gap-1">
               <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px] font-mono">↑↓</kbd>
               navigate

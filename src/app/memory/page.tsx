@@ -124,14 +124,14 @@ export default function MemoryPage() {
       <div className="flex-1 flex items-center justify-center px-8">
         <div className="text-center max-w-[380px]">
           <div className="w-14 h-14 rounded-lg bg-layer-1 flex items-center justify-center mb-4 mx-auto">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/60">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3">
               <ellipse cx="12" cy="5" rx="9" ry="3" />
               <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
               <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
             </svg>
           </div>
           <h2 className="font-display text-[15px] font-600 text-text-2 mb-2">Browse Memories</h2>
-          <p className="text-[13px] text-text-3/70">Select an agent from the sidebar to browse their memories, or view all.</p>
+          <p className="text-[13px] text-text-3">Select an agent from the sidebar to browse their memories, or view all.</p>
         </div>
       </div>
     )
@@ -157,7 +157,7 @@ export default function MemoryPage() {
                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                </button>
             </div>
-            <span className="text-[10px] font-mono tabular-nums text-text-3/50">{filtered.length}</span>
+            <span className="text-[10px] font-mono tabular-nums text-text-3">{filtered.length}</span>
           </div>
           <input
             type="text"
@@ -165,7 +165,7 @@ export default function MemoryPage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search memories..."
             className="w-full px-4 py-2.5 rounded-md border border-line-subtle bg-surface text-text
-              text-[13px] outline-none transition-all duration-200 placeholder:text-text-3/70 focus-glow"
+              text-[13px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
             style={{ fontFamily: 'inherit' }}
           />
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
@@ -205,7 +205,7 @@ export default function MemoryPage() {
               Due follow-ups
             </button>
           </div>
-          <p className="mt-2 text-[11px] text-text-3/55">
+          <p className="mt-2 text-[11px] text-text-3">
             Scope shows what kind of memory it is. Tier shows how long it should stay salient.
           </p>
         </div>
@@ -259,7 +259,7 @@ export default function MemoryPage() {
             ) : error ? (
               <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-3 p-8 text-center">
                 <p className="font-display text-[14px] font-600 text-text-2">Couldn&apos;t load memories</p>
-                <p className="text-[12px] text-text-3/60">{error}</p>
+                <p className="text-[12px] text-text-3">{error}</p>
                 <button
                   onClick={() => { void load(search) }}
                   className="px-3 py-1.5 rounded-sm bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer border-none"
@@ -278,7 +278,7 @@ export default function MemoryPage() {
                   </svg>
                 </div>
                 <p className="font-display text-[14px] font-600 text-text-2">No memories match these filters</p>
-                <p className="text-[12px] text-text-3/50">
+                <p className="text-[12px] text-text-3">
                   {memoryScopeFilter === 'all' && memoryTierFilter === 'all'
                     ? 'Agents store knowledge here as they learn'
                     : `Try a different ${memoryScopeFilter !== 'all' ? 'scope' : 'tier'} filter`}

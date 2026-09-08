@@ -425,13 +425,16 @@
 
      --tx-3 is the one that used to be a stopgap. It was 0.50 white alpha,
      picked to survive the Tailwind opacity modifiers that 1,393 of the 2,332
-     text-text-3 call sites stack on top of it. It is now the palette's own
-     tertiary, #6E7681, and it is honest about what that buys: 4.26:1 on the
-     ground unmodified -- a hair under WCAG's 4.5:1 for normal text -- and
-     every stacked modifier takes it below that. /40 sites cannot reach 4.5:1
-     at any --tx-3 value; the modifier alone caps the effective alpha too low.
-     The real fix is still stripping the stacked modifiers, which is a codemod
-     over ~1,390 call sites and deliberately not done in this pass. */
+     text-text-3 call sites stacked on top of it. It is now the palette's own
+     tertiary, #6E7681, 4.26:1 on the ground -- a hair under WCAG's 4.5:1 for
+     normal text, and honest about it.
+
+     What has changed under it is that 4.26:1 is now what those sites actually
+     render at. scripts/codemod-text-dim.mjs stripped 1,323 of the stacked
+     modifiers; the 117 it refused are hover, disabled and ternary-branch
+     treatments, where dimmer is the point. So the remaining gap is a decision
+     about this one value rather than about 1,393 call sites, and it is left
+     for a pass that changes dark-mode values -- this one did not. */
   --tx-1: #F2F3F5;
   --tx-2: #A8AEB8;
   --tx-3: #6E7681;
@@ -624,9 +627,14 @@
        --tx-3  #626C7B   4.53:1              5.32:1
 
      --tx-3 was #98A2B3, 2.42:1 on the old ground -- decorative weight, and
-     the file said so. The value alone does not finish the job: 1,393 call
-     sites still stack a Tailwind opacity modifier on text-text-3, and a /40
-     cannot reach 4.5:1 at any token value. Stripping those is the codemod. */
+     the file said so. The value alone would not have finished the job either:
+     1,393 call sites stacked a further Tailwind opacity modifier on
+     text-text-3, and text-text-3/40 cannot reach 4.5:1 at any token value,
+     because the modifier alone caps the effective alpha too low. Those are
+     gone -- scripts/codemod-text-dim.mjs stripped 1,323 of them, plus all 47
+     on text-text-2 -- so the token value is what renders. The 117 it refused
+     keep their modifier because it is a hover, disabled or ternary-branch
+     treatment, where dimmer is the point. */
   --tx-1: #0F172A;
   --tx-2: #44506A;
   --tx-3: #626C7B;

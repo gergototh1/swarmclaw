@@ -125,7 +125,7 @@ export function ClawHubBrowser({ open, onOpenChange, onInstalled }: ClawHubBrows
           <SheetTitle className="font-display text-[16px] font-600 text-text">
             ClawHub
           </SheetTitle>
-          <p className="text-[12px] text-text-3/60">Browse and install community skills</p>
+          <p className="text-[12px] text-text-3">Browse and install community skills</p>
         </SheetHeader>
 
         <div className="flex gap-2 px-4">
@@ -153,9 +153,9 @@ export function ClawHubBrowser({ open, onOpenChange, onInstalled }: ClawHubBrows
 
           {!error && !loading && searched && skills.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-[13px] text-text-3/60">No skills found</p>
+              <p className="text-[13px] text-text-3">No skills found</p>
               {query && (
-                <p className="text-[11px] text-text-3/40 mt-1">Try a different search term</p>
+                <p className="text-[11px] text-text-3 mt-1">Try a different search term</p>
               )}
             </div>
           )}
@@ -173,11 +173,11 @@ export function ClawHubBrowser({ open, onOpenChange, onInstalled }: ClawHubBrows
                         <span className="font-display text-[14px] font-600 text-text truncate">
                           {skill.name}
                         </span>
-                        <span className="text-[10px] font-mono text-text-3/40 shrink-0">
+                        <span className="text-[10px] font-mono text-text-3 shrink-0">
                           v{skill.version}
                         </span>
                       </div>
-                      <p className="text-[12px] text-text-3/60 line-clamp-2 mb-2">
+                      <p className="text-[12px] text-text-3 line-clamp-2 mb-2">
                         {skill.description}
                       </p>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -191,7 +191,7 @@ export function ClawHubBrowser({ open, onOpenChange, onInstalled }: ClawHubBrows
                           </Badge>
                         ))}
                       </div>
-                      <div className="flex items-center gap-3 mt-2 text-[11px] text-text-3/50">
+                      <div className="flex items-center gap-3 mt-2 text-[11px] text-text-3">
                         <span>{skill.author}</span>
                         <span>{skill.downloads.toLocaleString()} installs</span>
                       </div>
@@ -216,7 +216,7 @@ export function ClawHubBrowser({ open, onOpenChange, onInstalled }: ClawHubBrows
                     variant="ghost"
                     onClick={handleLoadMore}
                     disabled={loading}
-                    className="text-[12px] text-text-3/60"
+                    className="text-[12px] text-text-3"
                   >
                     {loading ? 'Loading...' : 'Load More'}
                   </Button>

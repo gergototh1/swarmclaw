@@ -421,7 +421,7 @@ export function TabEssentials({
                 <StatusDot status="online" />
                 <p className="text-[14px] text-emerald-400 font-600">Connected</p>
               </div>
-              <p className="text-[13px] text-text-2/80 leading-[1.6]">Gateway is reachable and this device is paired. Tools and models are managed by the OpenClaw instance.</p>
+              <p className="text-[13px] text-text-2 leading-[1.6]">Gateway is reachable and this device is paired. Tools and models are managed by the OpenClaw instance.</p>
               <ProviderDiagnosticsList diagnostics={testDiagnostics} />
             </div>
           )}
@@ -437,8 +437,8 @@ export function TabEssentials({
                   <StatusDot status="online" pulse />
                   <p className="text-[14px] text-success font-600">Awaiting Approval</p>
                 </div>
-                <p className="text-[13px] text-text-2/80 leading-[1.6]">
-                  This device is pending approval on your gateway. Go to <span className="text-text-2 font-500">Nodes</span>, approve the device{(testDeviceId || openclawDeviceId) ? <> (<code className="text-[12px] font-mono text-text-2/70">{(testDeviceId || openclawDeviceId)!.slice(0, 12)}...</code>)</> : null}, then click <span className="text-text-2 font-500">Retry Connection</span>.
+                <p className="text-[13px] text-text-2 leading-[1.6]">
+                  This device is pending approval on your gateway. Go to <span className="text-text-2 font-500">Nodes</span>, approve the device{(testDeviceId || openclawDeviceId) ? <> (<code className="text-[12px] font-mono text-text-2">{(testDeviceId || openclawDeviceId)!.slice(0, 12)}...</code>)</> : null}, then click <span className="text-text-2 font-500">Retry Connection</span>.
                 </p>
                 <a
                   href={(() => { const ep = (apiEndpoint || 'http://localhost:18789').replace(/\/+$/, ''); return /^https?:\/\//i.test(ep) ? ep : `http://${ep}` })()}
@@ -450,8 +450,8 @@ export function TabEssentials({
                 </a>
               </>) : testErrorCode === 'DEVICE_AUTH_INVALID' ? (<>
                 <p className="text-[14px] text-accent-bright font-600">Device Not Paired</p>
-                <p className="text-[13px] text-text-2/80 leading-[1.6]">
-                  The gateway doesn&apos;t recognize this device. Go to <span className="text-text-2 font-500">Nodes</span>, and add or approve this device{(testDeviceId || openclawDeviceId) ? <> (<code className="text-[12px] font-mono text-text-2/70">{(testDeviceId || openclawDeviceId)!.slice(0, 12)}...</code>)</> : null}.
+                <p className="text-[13px] text-text-2 leading-[1.6]">
+                  The gateway doesn&apos;t recognize this device. Go to <span className="text-text-2 font-500">Nodes</span>, and add or approve this device{(testDeviceId || openclawDeviceId) ? <> (<code className="text-[12px] font-mono text-text-2">{(testDeviceId || openclawDeviceId)!.slice(0, 12)}...</code>)</> : null}.
                 </p>
                 <a
                   href={(() => { const ep = (apiEndpoint || 'http://localhost:18789').replace(/\/+$/, ''); return /^https?:\/\//i.test(ep) ? ep : `http://${ep}` })()}
@@ -463,25 +463,25 @@ export function TabEssentials({
                 </a>
               </>) : testErrorCode === 'AUTH_TOKEN_MISSING' ? (<>
                 <p className="text-[14px] text-accent-bright font-600">Token Required</p>
-                <p className="text-[13px] text-text-2/80 leading-[1.6]">
+                <p className="text-[13px] text-text-2 leading-[1.6]">
                   This gateway requires an auth token. Add one above and try again.
                 </p>
               </>) : testErrorCode === 'AUTH_TOKEN_INVALID' ? (<>
                 <p className="text-[14px] text-accent-bright font-600">Invalid Token</p>
-                <p className="text-[13px] text-text-2/80 leading-[1.6]">
+                <p className="text-[13px] text-text-2 leading-[1.6]">
                   The gateway rejected this token. Check that it matches the one configured on your OpenClaw instance.
                 </p>
               </>) : (<>
                 <p className="text-[14px] text-accent-bright font-600">Connection Failed</p>
-                <p className="text-[13px] text-text-2/80 leading-[1.6]">
+                <p className="text-[13px] text-text-2 leading-[1.6]">
                   {testMessage || 'Could not reach the gateway. Check the URL, token, and that the gateway is running.'}
                 </p>
               </>)}
               {/* Device ID footer — always shown on failure for debugging */}
               {(testDeviceId || openclawDeviceId) && testErrorCode !== 'AUTH_TOKEN_MISSING' && testErrorCode !== 'AUTH_TOKEN_INVALID' && (
                 <div className="pt-2 border-t border-line-subtle">
-                  <p className="text-[12px] text-text-3/70 flex items-center gap-1.5">
-                    Device <code className="font-mono text-text-2/70 select-all">{(testDeviceId || openclawDeviceId)}</code>
+                  <p className="text-[12px] text-text-3 flex items-center gap-1.5">
+                    Device <code className="font-mono text-text-2 select-all">{(testDeviceId || openclawDeviceId)}</code>
                     <button
                       type="button"
                       onClick={() => {
@@ -676,7 +676,7 @@ export function TabEssentials({
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
             Fallback Keys <span className="normal-case tracking-normal font-normal text-text-3">(for auto-failover)</span>
           </label>
-          <p className="text-[12px] text-text-3/60 mb-3">If the primary key fails (rate limit, auth error), these keys will be tried in order.</p>
+          <p className="text-[12px] text-text-3 mb-3">If the primary key fails (rate limit, auth error), these keys will be tried in order.</p>
           <div className="flex flex-wrap gap-2">
             {providerCredentials.filter((c) => c.id !== credentialId).map((c) => {
               const active = fallbackCredentialIds.includes(c.id)
@@ -703,13 +703,13 @@ export function TabEssentials({
           <SectionLabel>{provider === 'openclaw' ? 'OpenClaw Endpoint' : provider === 'hermes' ? 'Hermes API Endpoint' : provider === 'lmstudio' ? 'LM Studio Endpoint' : 'Endpoint'}</SectionLabel>
           <input type="text" value={apiEndpoint || ''} onChange={(e) => patch({ apiEndpoint: e.target.value || null })} placeholder={currentProvider.defaultEndpoint || 'http://localhost:11434'} className={`${inputClass} font-mono text-[14px]`} />
           {provider === 'openclaw' && (
-            <p className="text-[13px] text-text-3/70 mt-2">The URL of your OpenClaw gateway</p>
+            <p className="text-[13px] text-text-3 mt-2">The URL of your OpenClaw gateway</p>
           )}
           {provider === 'hermes' && (
-            <p className="text-[13px] text-text-3/70 mt-2">Point this at the Hermes API server, usually <code className="text-text-2">http://127.0.0.1:8642/v1</code>.</p>
+            <p className="text-[13px] text-text-3 mt-2">Point this at the Hermes API server, usually <code className="text-text-2">http://127.0.0.1:8642/v1</code>.</p>
           )}
           {provider === 'lmstudio' && (
-            <p className="text-[13px] text-text-3/70 mt-2">Point this at the LM Studio local server. A bare host is normalized to <code className="text-text-2">/v1</code>.</p>
+            <p className="text-[13px] text-text-3 mt-2">Point this at the LM Studio local server. A bare host is normalized to <code className="text-text-2">/v1</code>.</p>
           )}
         </div>
       )}
@@ -739,7 +739,7 @@ export function TabEssentials({
             )}
           </label>
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <p className="text-[12px] text-text-3/60">Define the agent&apos;s voice, tone, and personality. Injected before the system prompt.</p>
+            <p className="text-[12px] text-text-3">Define the agent&apos;s voice, tone, and personality. Injected before the system prompt.</p>
             <button
               type="button"
               onClick={() => patch({ soul: randomSoul() })}

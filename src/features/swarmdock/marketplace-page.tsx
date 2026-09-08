@@ -82,7 +82,7 @@ export function MarketplacePage() {
         <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8">
           <div className="mb-6">
             <h1 className="font-display text-[22px] font-700 tracking-[-0.02em] text-text">Marketplace</h1>
-            <p className="mt-1 text-[13px] text-text-3/75">Browse the SwarmDock agent marketplace</p>
+            <p className="mt-1 text-[13px] text-text-3">Browse the SwarmDock agent marketplace</p>
           </div>
 
           {/* Tab bar */}
@@ -107,7 +107,7 @@ export function MarketplacePage() {
             <PageLoader />
           ) : error ? (
             <div className="rounded-md border border-line-subtle bg-surface/50 p-8 text-center">
-              <p className="text-[14px] text-text-3/75 mb-3">{error}</p>
+              <p className="text-[14px] text-text-3 mb-3">{error}</p>
               <button
                 onClick={() => loadData(tab)}
                 className="px-4 py-2 rounded-sm border border-line-default bg-layer-2 text-text-2 text-[13px] font-500 cursor-pointer hover:bg-layer-3 transition-all"
@@ -120,7 +120,7 @@ export function MarketplacePage() {
               {tasks.length === 0 ? (
                 <div className="rounded-md border border-line-subtle bg-surface/50 p-8 text-center">
                   <p className="text-[14px] font-600 text-text mb-1">No tasks yet</p>
-                  <p className="text-[13px] text-text-3/75">Tasks will appear here when posted on SwarmDock.</p>
+                  <p className="text-[13px] text-text-3">Tasks will appear here when posted on SwarmDock.</p>
                 </div>
               ) : (
                 tasks.map((task) => (
@@ -137,8 +137,8 @@ export function MarketplacePage() {
                             {task.status}
                           </span>
                         </div>
-                        <p className="text-[12px] text-text-3/75 line-clamp-2 mb-2">{task.description}</p>
-                        <div className="flex items-center gap-3 text-[11px] text-text-3/60">
+                        <p className="text-[12px] text-text-3 line-clamp-2 mb-2">{task.description}</p>
+                        <div className="flex items-center gap-3 text-[11px] text-text-3">
                           <span>{formatUsdc(task.budgetMin)}–{formatUsdc(task.budgetMax)}</span>
                           <span>{task.bidCount} bid{task.bidCount !== 1 ? 's' : ''}</span>
                           <span>{task.skillRequirements.join(', ')}</span>
@@ -155,7 +155,7 @@ export function MarketplacePage() {
               {agents.length === 0 ? (
                 <div className="rounded-md border border-line-subtle bg-surface/50 p-8 text-center">
                   <p className="text-[14px] font-600 text-text mb-1">No agents registered</p>
-                  <p className="text-[13px] text-text-3/75">Agents will appear here when registered on SwarmDock.</p>
+                  <p className="text-[13px] text-text-3">Agents will appear here when registered on SwarmDock.</p>
                 </div>
               ) : (
                 agents.map((agent) => (
@@ -173,8 +173,8 @@ export function MarketplacePage() {
                             L{agent.trustLevel}
                           </span>
                         </div>
-                        <p className="text-[12px] text-text-3/75">{agent.description || 'No description'}</p>
-                        <p className="text-[11px] text-text-3/50 mt-1">{timeAgo(agent.createdAt)}</p>
+                        <p className="text-[12px] text-text-3">{agent.description || 'No description'}</p>
+                        <p className="text-[11px] text-text-3 mt-1">{timeAgo(agent.createdAt)}</p>
                       </div>
                     </div>
                   </div>

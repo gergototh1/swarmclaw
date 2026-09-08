@@ -154,7 +154,7 @@ const SwarmMemberCard = memo(function SwarmMemberCard({
           <span className="text-[10px] truncate" style={{ color: cfg.color }}>
             {cfg.label}
             {member.durationMs > 0 && member.status !== 'running' && (
-              <span className="text-text-3/50 ml-1">
+              <span className="text-text-3 ml-1">
                 {formatDuration(member.durationMs)}
               </span>
             )}
@@ -169,7 +169,7 @@ const SwarmMemberCard = memo(function SwarmMemberCard({
             stroke="currentColor"
             strokeWidth="2"
             strokeLinecap="round"
-            className="shrink-0 text-text-3/30 transition-transform"
+            className="shrink-0 text-text-3 transition-transform"
             style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
           >
             <polyline points="6 9 12 15 18 9" />
@@ -189,7 +189,7 @@ const SwarmMemberCard = memo(function SwarmMemberCard({
             </div>
           )}
           {member.resultPreview && !member.error && (
-            <div className="text-[11px] text-text-3/70 leading-relaxed break-words mt-1.5 max-h-[120px] overflow-y-auto">
+            <div className="text-[11px] text-text-3 leading-relaxed break-words mt-1.5 max-h-[120px] overflow-y-auto">
               {member.resultPreview}
             </div>
           )}
@@ -238,7 +238,7 @@ function SwarmSummaryBar({ data }: { data: SwarmStatusData }) {
         </span>
       )}
       {isTerminal && (
-        <span className="text-[10px] text-text-3/40 ml-auto">
+        <span className="text-[10px] text-text-3 ml-auto">
           {formatDuration(durationMs)}
         </span>
       )}
@@ -296,7 +296,7 @@ export const SwarmStatusCard = memo(function SwarmStatusCard({
           <span className="text-[12px] font-700" style={{ color: cfg.color }}>
             Swarm spawned by {data.parentAgentName}
           </span>
-          <span className="text-[10px] text-text-3/50">
+          <span className="text-[10px] text-text-3">
             {data.memberCount} agent{data.memberCount !== 1 ? 's' : ''}
             {' · '}
             {new Date(data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

@@ -460,7 +460,7 @@ export function TaskSheet() {
     'in-progress': 'bg-sky-500/10 text-sky-400',
     completed: 'bg-emerald-500/10 text-emerald-400',
     failed: 'bg-red-500/10 text-red-400',
-    archived: 'bg-layer-2 text-text-3/60',
+    archived: 'bg-layer-2 text-text-3',
   }
 
   const taskAgent = editing ? agents[editing.agentId] : null
@@ -629,16 +629,16 @@ export function TaskSheet() {
               <code className="block text-[12px] text-text-3 font-mono break-all">{editing.executionWorkspace.path}</code>
             )}
             {(editing.executionWorkspace?.contextPath || editing.executionWorkspace?.envPath) && (
-              <div className="grid grid-cols-1 gap-2 text-[11px] text-text-3/70">
+              <div className="grid grid-cols-1 gap-2 text-[11px] text-text-3">
                 {editing.executionWorkspace.contextPath && (
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Context</div>
+                    <div className="uppercase tracking-[0.08em] text-text-3">Context</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.contextPath}</code>
                   </div>
                 )}
                 {editing.executionWorkspace.envPath && (
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Env</div>
+                    <div className="uppercase tracking-[0.08em] text-text-3">Env</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.envPath}</code>
                   </div>
                 )}
@@ -792,7 +792,7 @@ export function TaskSheet() {
                         <div className="text-[12px] font-700 text-text">{stage.title}</div>
                         <span className="text-[11px] text-text-3">{(stageState?.status || 'pending').replace(/_/g, ' ')}</span>
                       </div>
-                      <div className="mt-1 text-[11px] text-text-3/70">{stage.kind}</div>
+                      <div className="mt-1 text-[11px] text-text-3">{stage.kind}</div>
                     </div>
                   )
                 })}
@@ -960,7 +960,7 @@ export function TaskSheet() {
                     <span className={`text-[12px] font-600 ${c.agentId ? 'text-accent-bright' : 'text-text-2'}`}>
                       {c.author}
                     </span>
-                    <span className="text-[10px] text-text-3/50 font-mono">{fmtTime(c.createdAt)}</span>
+                    <span className="text-[10px] text-text-3 font-mono">{fmtTime(c.createdAt)}</span>
                   </div>
                   <p className="text-[13px] text-text-2 leading-[1.5] whitespace-pre-wrap">{c.text}</p>
                 </div>
@@ -1065,7 +1065,7 @@ export function TaskSheet() {
       {editing?.objective && (
         <div className="mb-8">
           <SectionLabel>Objective</SectionLabel>
-          <div className="rounded-md border border-line-subtle bg-surface px-4 py-3 text-[12px] leading-[1.7] text-text-3/75">
+          <div className="rounded-md border border-line-subtle bg-surface px-4 py-3 text-[12px] leading-[1.7] text-text-3">
             <div className="font-600 text-text">{editing.objective}</div>
           </div>
         </div>
@@ -1211,16 +1211,16 @@ export function TaskSheet() {
               <code className="block text-[12px] text-text-3 font-mono break-all">{editing.executionWorkspace.path}</code>
             )}
             {(editing.executionWorkspace?.contextPath || editing.executionWorkspace?.envPath) && (
-              <div className="grid grid-cols-1 gap-2 text-[11px] text-text-3/70">
+              <div className="grid grid-cols-1 gap-2 text-[11px] text-text-3">
                 {editing.executionWorkspace.contextPath && (
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Context</div>
+                    <div className="uppercase tracking-[0.08em] text-text-3">Context</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.contextPath}</code>
                   </div>
                 )}
                 {editing.executionWorkspace.envPath && (
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Env</div>
+                    <div className="uppercase tracking-[0.08em] text-text-3">Env</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.envPath}</code>
                   </div>
                 )}
@@ -1640,7 +1640,7 @@ export function TaskSheet() {
                     <span className={`text-[12px] font-600 ${c.agentId ? 'text-accent-bright' : 'text-text-2'}`}>
                       {c.author}
                     </span>
-                    <span className="text-[10px] text-text-3/50 font-mono">{fmtTime(c.createdAt)}</span>
+                    <span className="text-[10px] text-text-3 font-mono">{fmtTime(c.createdAt)}</span>
                   </div>
                   <p className="text-[13px] text-text-2 leading-[1.5] whitespace-pre-wrap">{c.text}</p>
                 </div>

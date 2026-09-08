@@ -60,7 +60,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
       {/* Section 1: Agents */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">
+          <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">
             Agents ({projectAgents.length})
           </h3>
           <div className="relative">
@@ -85,7 +85,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
         </div>
         {projectAgents.length === 0 ? (
           <div className="rounded-md border border-dashed border-line-default px-5 py-6 text-center">
-            <p className="text-[12px] text-text-3/40">No agents assigned yet.</p>
+            <p className="text-[12px] text-text-3">No agents assigned yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
@@ -102,16 +102,16 @@ export function OperationsTab({ project }: OperationsTabProps) {
                   <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={28} />
                   <div className="min-w-0 flex-1">
                     <div className="text-[13px] font-600 text-text truncate">{agent.name}</div>
-                    <div className="text-[11px] text-text-3/50 truncate">{agent.model || agent.provider}</div>
+                    <div className="text-[11px] text-text-3 truncate">{agent.model || agent.provider}</div>
                   </div>
                 </button>
                 {agent.lastUsedAt && (
-                  <span className="text-[10px] text-text-3/30 shrink-0">{relativeDate(agent.lastUsedAt)}</span>
+                  <span className="text-[10px] text-text-3 shrink-0">{relativeDate(agent.lastUsedAt)}</span>
                 )}
                 <button
                   onClick={() => handleUnassignAgent(agent.id)}
                   title="Remove from project"
-                  className="opacity-0 group-hover/agent:opacity-100 p-1 rounded-xs hover:bg-red-500/10 text-text-3/30 hover:text-red-400 transition-all cursor-pointer bg-transparent border-none shrink-0"
+                  className="opacity-0 group-hover/agent:opacity-100 p-1 rounded-xs hover:bg-red-500/10 text-text-3 hover:text-red-400 transition-all cursor-pointer bg-transparent border-none shrink-0"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -127,11 +127,11 @@ export function OperationsTab({ project }: OperationsTabProps) {
       {/* Section 2: Operating Context */}
       {(priorities.length > 0 || openObjectives.length > 0 || capabilityHints.length > 0 || successMetrics.length > 0) && (
         <div>
-          <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60 mb-3">Operating Context</h3>
+          <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3 mb-3">Operating Context</h3>
           <div className="space-y-4">
             {priorities.length > 0 && (
               <div>
-                <div className="text-[11px] font-600 text-text-3/50 mb-1.5">Pilot Priorities</div>
+                <div className="text-[11px] font-600 text-text-3 mb-1.5">Pilot Priorities</div>
                 <div className="flex flex-wrap gap-1.5">
                   {priorities.map((p) => (
                     <span key={p} className="rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-600 text-accent-bright">{p}</span>
@@ -141,7 +141,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
             )}
             {openObjectives.length > 0 && (
               <div>
-                <div className="text-[11px] font-600 text-text-3/50 mb-1.5">Open Objectives</div>
+                <div className="text-[11px] font-600 text-text-3 mb-1.5">Open Objectives</div>
                 <div className="space-y-1.5">
                   {openObjectives.map((o) => (
                     <div key={o} className="flex items-start gap-2 text-[12px] text-text-2">
@@ -154,7 +154,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
             )}
             {capabilityHints.length > 0 && (
               <div>
-                <div className="text-[11px] font-600 text-text-3/50 mb-1.5">Capability Hints</div>
+                <div className="text-[11px] font-600 text-text-3 mb-1.5">Capability Hints</div>
                 <div className="flex flex-wrap gap-1.5">
                   {capabilityHints.map((h) => (
                     <span key={h} className="rounded-full bg-layer-2 px-2.5 py-1 text-[11px] font-600 text-text-2">{h}</span>
@@ -164,7 +164,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
             )}
             {successMetrics.length > 0 && (
               <div>
-                <div className="text-[11px] font-600 text-text-3/50 mb-1.5">Success Metrics</div>
+                <div className="text-[11px] font-600 text-text-3 mb-1.5">Success Metrics</div>
                 <div className="space-y-1.5">
                   {successMetrics.map((m) => (
                     <div key={m} className="flex items-start gap-2 text-[12px] text-text-2">
@@ -181,11 +181,11 @@ export function OperationsTab({ project }: OperationsTabProps) {
 
       {/* Section 3: Credentials & Secrets */}
       <div>
-        <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60 mb-3">Credentials & Secrets</h3>
+        <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3 mb-3">Credentials & Secrets</h3>
         <div className="space-y-3">
           {credentialRequirements.length > 0 && (
             <div>
-              <div className="text-[11px] font-600 text-text-3/50 mb-1">Credential Requirements</div>
+              <div className="text-[11px] font-600 text-text-3 mb-1">Credential Requirements</div>
               <div className="space-y-1.5">
                 {credentialRequirements.map((item) => (
                   <div key={item} className="flex items-start gap-2 text-[12px] text-text-2">
@@ -196,7 +196,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
               </div>
             </div>
           )}
-          <p className="text-[11px] text-text-3/40">{projectSecrets.length} linked secret{projectSecrets.length === 1 ? '' : 's'}</p>
+          <p className="text-[11px] text-text-3">{projectSecrets.length} linked secret{projectSecrets.length === 1 ? '' : 's'}</p>
           <button
             onClick={() => { setEditingSecretId(null); setSecretSheetOpen(true) }}
             className="px-3 py-2 rounded-sm bg-accent-soft text-[12px] font-600 text-accent-bright hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
@@ -210,7 +210,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
       {/* Section 4: Schedules */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">
+          <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">
             Schedules ({projectSchedules.length})
           </h3>
           <button
@@ -227,7 +227,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
         </div>
         {projectSchedules.length === 0 ? (
           <div className="rounded-md border border-dashed border-line-default px-5 py-6 text-center">
-            <p className="text-[12px] text-text-3/40">No schedules yet.</p>
+            <p className="text-[12px] text-text-3">No schedules yet.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
@@ -251,12 +251,12 @@ export function OperationsTab({ project }: OperationsTabProps) {
                     {schedule.status}
                   </span>
                   {agent && (
-                    <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-text-3/40">
+                    <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-text-3">
                       <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={16} />
                     </span>
                   )}
                   {schedule.nextRunAt && (
-                    <span className="text-[10px] text-text-3/30 shrink-0">next: {relativeDate(schedule.nextRunAt)}</span>
+                    <span className="text-[10px] text-text-3 shrink-0">next: {relativeDate(schedule.nextRunAt)}</span>
                   )}
                 </button>
               )

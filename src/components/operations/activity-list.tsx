@@ -83,12 +83,12 @@ export function ActivityList() {
                     <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-600 ${ACTION_COLORS[entry.action] || 'bg-layer-2 text-text-3'}`}>
                       {entry.action}
                     </span>
-                    <span className="text-[10px] text-text-3/50 font-mono">{entry.entityType}</span>
-                    <span className="text-[10px] text-text-3/40">{entry.actor}</span>
+                    <span className="text-[10px] text-text-3 font-mono">{entry.entityType}</span>
+                    <span className="text-[10px] text-text-3">{entry.actor}</span>
                   </div>
                   <p className="text-[13px] text-text-2 leading-[1.4] truncate">{entry.summary}</p>
                 </div>
-                <span className="text-[11px] text-text-3/50 shrink-0 pt-1">{timeAgo(entry.timestamp, now)}</span>
+                <span className="text-[11px] text-text-3 shrink-0 pt-1">{timeAgo(entry.timestamp, now)}</span>
               </div>
             ))}
           </div>

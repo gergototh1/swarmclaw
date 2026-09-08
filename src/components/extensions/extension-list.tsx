@@ -293,14 +293,14 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
         )}
         {/* Search */}
         <div className="relative w-[260px]">
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3/40" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search extensions..."
-            className="w-full pl-8 pr-3 py-2 rounded-sm bg-surface border border-line-subtle text-[12px] text-text placeholder:text-text-3/40 outline-none focus:border-accent-bright/30 transition-colors"
+            className="w-full pl-8 pr-3 py-2 rounded-sm bg-surface border border-line-subtle text-[12px] text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30 transition-colors"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
@@ -378,7 +378,7 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
       <span className={`text-[18px] font-700 tabular-nums ${accent ? 'text-accent-bright' : 'text-text'}`}>
         {value}
       </span>
-      <span className="text-[11px] text-text-3/60 font-500">{label}</span>
+      <span className="text-[11px] text-text-3 font-500">{label}</span>
     </div>
   )
 }
@@ -446,12 +446,12 @@ function extensionCapabilityBadges(ext: ExtensionMeta): string[] {
 function ContractConsumptions({ consumed }: { consumed: ExtensionContractConsumedMeta[] }) {
   return (
     <div className="mt-2.5 pt-2.5 border-t border-line-subtle">
-      <p className="text-[10px] font-600 uppercase tracking-wide text-text-3/40 mb-1">Data access</p>
+      <p className="text-[10px] font-600 uppercase tracking-wide text-text-3 mb-1">Data access</p>
       <ul className="space-y-1">
         {consumed.map((entry) => (
           <li key={`${entry.extension}:${entry.contract}`} className="text-[11px] leading-relaxed">
-            <span className="font-mono text-text-3/70">{entry.extension}.{entry.contract} v{entry.version}</span>
-            <span className="text-text-3/55"> &mdash; {entry.reason}</span>
+            <span className="font-mono text-text-3">{entry.extension}.{entry.contract} v{entry.version}</span>
+            <span className="text-text-3"> &mdash; {entry.reason}</span>
             {entry.unavailable && (
               <span className="text-amber-400/90"> Unavailable: {entry.unavailable}.</span>
             )}
@@ -482,11 +482,11 @@ function InstalledGrid({ extensions, allowDelete, search, agents, reconciling, o
     return (
       <div className="text-center py-16">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-layer-1 mb-3">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-3/30">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-3">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <p className="text-[13px] text-text-3/50">{emptyMessage}</p>
+        <p className="text-[13px] text-text-3">{emptyMessage}</p>
         {emptyAction}
       </div>
     )
@@ -570,7 +570,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
             <HighlightText text={ext.name} highlight={highlight} />
           </span>
           {ext.version && (
-            <span className="text-[10px] font-mono text-text-3/40 shrink-0">v{ext.version}</span>
+            <span className="text-[10px] font-mono text-text-3 shrink-0">v{ext.version}</span>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -585,7 +585,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
           {allowDelete && (
             <button
               onClick={(e) => onDelete(e, ext.filename, ext.name)}
-              className="text-text-3/30 hover:text-red-400 transition-colors p-0.5 opacity-0 group-hover:opacity-100"
+              className="text-text-3 hover:text-red-400 transition-colors p-0.5 opacity-0 group-hover:opacity-100"
               title="Delete"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -597,14 +597,14 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
       </div>
 
       {/* Description */}
-      <p className="text-[12px] text-text-3/60 leading-relaxed line-clamp-2 mb-2.5">
+      <p className="text-[12px] text-text-3 leading-relaxed line-clamp-2 mb-2.5">
         {extensionDescription(ext)}
       </p>
 
       {/* Badges */}
       <div className="flex items-center gap-1.5 flex-wrap">
         {badges.map((badge) => (
-          <span key={badge} className="text-[10px] font-600 px-1.5 py-0.5 rounded-full text-text-3/70 bg-layer-2">
+          <span key={badge} className="text-[10px] font-600 px-1.5 py-0.5 rounded-full text-text-3 bg-layer-2">
             {badge}
           </span>
         ))}
@@ -626,7 +626,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
           </span>
         )}
         {ext.author && (
-          <span className="text-[10px] text-text-3/40 ml-auto">
+          <span className="text-[10px] text-text-3 ml-auto">
             {ext.author}
           </span>
         )}
@@ -666,7 +666,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
       */}
       {managedCount > 0 && (
         <div className="mt-2.5 pt-2.5 border-t border-line-subtle flex items-center justify-between gap-2">
-          <span className="text-[11px] text-text-3/55">
+          <span className="text-[11px] text-text-3">
             Declares {ext.managedAgentCount ?? 0} agent{(ext.managedAgentCount ?? 0) === 1 ? '' : 's'} and {ext.managedScheduleCount ?? 0} routine{(ext.managedScheduleCount ?? 0) === 1 ? '' : 's'}
           </span>
           <button
@@ -714,7 +714,7 @@ function SidebarExtensionCard({ ext, onEdit }: { ext: ExtensionMeta; onEdit: (fi
           {ext.enabled ? 'On' : 'Off'}
         </span>
       </div>
-      <p className="text-[11px] text-text-3/50 line-clamp-1">{extensionDescription(ext)}</p>
+      <p className="text-[11px] text-text-3 line-clamp-1">{extensionDescription(ext)}</p>
     </div>
   )
 }
@@ -748,18 +748,18 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
   setSort: (v: 'name' | 'downloads') => void
   onInstall: (p: MarketplaceExtension) => void
 }) {
-  if (loading) return <p className="text-[12px] text-text-3/70 py-8 text-center">Loading marketplace...</p>
+  if (loading) return <p className="text-[12px] text-text-3 py-8 text-center">Loading marketplace...</p>
 
   if (marketplace.length === 0) {
     return (
       <div className="text-center py-16">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-layer-1 mb-3">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-3/30">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-3">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" strokeLinecap="round" strokeLinejoin="round" />
             <polyline points="9,22 9,12 15,12 15,22" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <p className="text-[13px] text-text-3/50">No extensions available in the marketplace</p>
+        <p className="text-[13px] text-text-3">No extensions available in the marketplace</p>
       </div>
     )
   }
@@ -817,7 +817,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-[12px] text-text-3/50 text-center py-4">No extensions match your search</p>
+        <p className="text-[12px] text-text-3 text-center py-4">No extensions match your search</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {filtered.map((p) => {
@@ -828,7 +828,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[14px] font-600 text-text">{p.name}</span>
-                      <span className="text-[10px] font-mono text-text-3/70">v{p.version}</span>
+                      <span className="text-[10px] font-mono text-text-3">v{p.version}</span>
                       {p.openclaw && <span className="text-[9px] font-600 text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded-full">OpenClaw</span>}
                     </div>
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
@@ -837,10 +837,10 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
                         <SourceChip label={`via ${getExtensionSourceLabel(p.catalogSource)}`} tone="catalog" />
                       )}
                     </div>
-                    <div className="text-[11px] text-text-3/60 mt-1 line-clamp-2">{p.description}</div>
+                    <div className="text-[11px] text-text-3 mt-1 line-clamp-2">{p.description}</div>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[10px] text-text-3/70">by {p.author}</span>
-                      <span className="text-[10px] text-text-3/50">&middot;</span>
+                      <span className="text-[10px] text-text-3">by {p.author}</span>
+                      <span className="text-[10px] text-text-3">&middot;</span>
                       {(p.tags ?? []).slice(0, 3).map((t) => (
                         <button
                           key={t}

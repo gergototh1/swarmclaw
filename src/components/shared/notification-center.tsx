@@ -182,7 +182,7 @@ export function NotificationCenter({
       {/* List */}
       <div className="flex-1 overflow-y-auto">
         {notifications.length === 0 ? (
-          <div className="flex items-center justify-center py-10 text-[13px] text-text-3/50">
+          <div className="flex items-center justify-center py-10 text-[13px] text-text-3">
             No notifications
           </div>
         ) : (
@@ -204,11 +204,11 @@ export function NotificationCenter({
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] font-600 text-text truncate flex-1">{n.title}</span>
                     {getNotificationOccurrenceCount(n) > 1 && (
-                      <span className="shrink-0 rounded-full border border-line-default bg-layer-2 px-1.5 py-0.5 text-[9px] font-600 text-text-3/80">
+                      <span className="shrink-0 rounded-full border border-line-default bg-layer-2 px-1.5 py-0.5 text-[9px] font-600 text-text-3">
                         x{getNotificationOccurrenceCount(n)}
                       </span>
                     )}
-                    <span className="text-[10px] text-text-3/50 shrink-0">{timeAgo(getNotificationActivityAt(n), now)}</span>
+                    <span className="text-[10px] text-text-3 shrink-0">{timeAgo(getNotificationActivityAt(n), now)}</span>
                   </div>
                   {n.message && (
                     <p className="text-[11px] text-text-3 mt-0.5 leading-relaxed line-clamp-2 m-0">
@@ -221,7 +221,7 @@ export function NotificationCenter({
                     </span>
                   )}
                   {n.entityType && (
-                    <span className="inline-block mt-1 text-[10px] text-text-3/40 font-mono">
+                    <span className="inline-block mt-1 text-[10px] text-text-3 font-mono">
                       {n.entityType}{n.entityId ? `:${n.entityId.slice(0, 8)}` : ''}
                     </span>
                   )}

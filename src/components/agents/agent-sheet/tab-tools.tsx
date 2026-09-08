@@ -75,7 +75,7 @@ export function TabTools({
           <span className="text-[13px] text-text-2">Universal tool access</span>
           <HintTip text="Off (default, recommended): the agent only sees tools enabled in its Tools list. On: every built-in tool is described in the system prompt. Turn on only for coordinator agents that need visibility across every possible downstream tool, or temporarily for debugging." />
         </label>
-        <p className="text-[12px] text-text-3/70 pl-[56px] -mt-1">
+        <p className="text-[12px] text-text-3 pl-[56px] -mt-1">
           {toolAccessMode === 'universal'
             ? 'Full tool universe is injected into the prompt. Costs ~3 k more input tokens per turn.'
             : 'Only the tools enabled above are visible to the agent — this is the focused default.'}
@@ -94,7 +94,7 @@ export function TabTools({
       {!hasNativeCapabilities && (
         <div className="mb-8">
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Tools</label>
-          <p className="text-[12px] text-text-3/60 mb-3">Enable built-in tool families for this agent.</p>
+          <p className="text-[12px] text-text-3 mb-3">Enable built-in tool families for this agent.</p>
           <div className="space-y-3">
             {AVAILABLE_TOOLS
               .map((t) => {
@@ -140,7 +140,7 @@ export function TabTools({
       {!hasNativeCapabilities && (
         <div className="mb-8">
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Platform Tools</label>
-          <p className="text-[12px] text-text-3/60 mb-3">Allow this agent to manage platform resources directly.</p>
+          <p className="text-[12px] text-text-3 mb-3">Allow this agent to manage platform resources directly.</p>
           <div className="space-y-3">
             {PLATFORM_TOOLS
               .map((t) => {
@@ -169,7 +169,7 @@ export function TabTools({
       {!hasNativeCapabilities && externalTools.length > 0 && (
         <div className="mb-8">
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Extension Tools</label>
-          <p className="text-[12px] text-text-3/60 mb-3">Attach enabled external extension tools to this agent.</p>
+          <p className="text-[12px] text-text-3 mb-3">Attach enabled external extension tools to this agent.</p>
           <div className="space-y-3">
             {externalTools.map((t) => {
               const attached = extensions.includes(t.extensionId)
@@ -243,7 +243,7 @@ export function TabTools({
               Refresh
             </button>
           </div>
-          <p className="text-[12px] text-text-3/60 mb-3">Optional preference list. Pinned Claude skills are called out explicitly when this agent is delegated work.</p>
+          <p className="text-[12px] text-text-3 mb-3">Optional preference list. Pinned Claude skills are called out explicitly when this agent is delegated work.</p>
           {claudeSkills.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {claudeSkills.map((s) => {
@@ -265,7 +265,7 @@ export function TabTools({
               })}
             </div>
           ) : (
-            <p className="text-[12px] text-text-3/70">No skills found in ~/.claude/skills/</p>
+            <p className="text-[12px] text-text-3">No skills found in ~/.claude/skills/</p>
           )}
         </div>
       )}
@@ -276,7 +276,7 @@ export function TabTools({
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
             Pinned Skills <span className="normal-case tracking-normal font-normal text-text-3">(from Skills manager)</span>
           </label>
-          <p className="text-[12px] text-text-3/60 mb-3">All ready local skills are discoverable by default. Pin skills here only when they should stay in this agent&apos;s prompt as always-on guidance.</p>
+          <p className="text-[12px] text-text-3 mb-3">All ready local skills are discoverable by default. Pin skills here only when they should stay in this agent&apos;s prompt as always-on guidance.</p>
           <div className="flex flex-wrap gap-2">
             {Object.values(dynamicSkills).map((s) => {
               const active = skillIds.includes(s.id)
@@ -305,7 +305,7 @@ export function TabTools({
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
             MCP Servers
           </label>
-          <p className="text-[12px] text-text-3/60 mb-3">Connect external tool servers to this agent via MCP.</p>
+          <p className="text-[12px] text-text-3 mb-3">Connect external tool servers to this agent via MCP.</p>
           <div className="flex flex-wrap gap-2">
             {Object.values(mcpServers).map((s) => {
               const active = mcpServerIds.includes(s.id)
@@ -334,7 +334,7 @@ export function TabTools({
           <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
             MCP Tools
           </label>
-          <p className="text-[12px] text-text-3/60 mb-3">
+          <p className="text-[12px] text-text-3 mb-3">
             Toggle individual tools from connected MCP servers.{mcpToolsLoading ? ' Loading…' : ''}
           </p>
           <div className="space-y-4">
@@ -377,7 +377,7 @@ export function TabTools({
 
       <div className="mb-2">
         <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Capabilities</label>
-        <p className="text-[12px] text-text-3/60 mb-3">Optional tags that describe what this agent is especially good at.</p>
+        <p className="text-[12px] text-text-3 mb-3">Optional tags that describe what this agent is especially good at.</p>
         {capabilities.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
             {capabilities.map((capability) => (

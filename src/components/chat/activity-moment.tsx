@@ -127,7 +127,7 @@ export function ActivityMoment({ toolName, toolInput, onDismiss }: Props) {
           {config.label}
         </span>
         {snippet && (
-          <span className="text-[10px] text-text-3/60 max-w-[120px] truncate">
+          <span className="text-[10px] text-text-3 max-w-[120px] truncate">
             {snippet}
           </span>
         )}

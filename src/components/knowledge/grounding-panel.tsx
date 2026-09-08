@@ -37,11 +37,11 @@ export function GroundingPanel(props: {
           <polyline points="9 18 15 12 9 6" />
         </svg>
         <span className="text-[11px] font-600 uppercase tracking-[0.05em] text-sky-200/80">{title}</span>
-        <span className="text-[10px] font-mono text-text-3/50">
+        <span className="text-[10px] font-mono text-text-3">
           {selected ? `${explicit.length} citation${explicit.length === 1 ? '' : 's'}` : `${fallback.length} retrieved`}
         </span>
         {props.retrievalTrace?.selectorStatus && (
-          <span className="ml-auto text-[10px] text-text-3/45">
+          <span className="ml-auto text-[10px] text-text-3">
             {props.retrievalTrace.selectorStatus === 'selected'
               ? 'selected'
               : props.retrievalTrace.selectorStatus === 'no_match'
@@ -53,7 +53,7 @@ export function GroundingPanel(props: {
 
       <div className="space-y-2 px-3.5 pb-3 pt-1">
         {props.retrievalTrace?.query && (
-          <div className="rounded-sm border border-line-subtle bg-black/20 px-3 py-2 text-[11px] text-text-3/75">
+          <div className="rounded-sm border border-line-subtle bg-black/20 px-3 py-2 text-[11px] text-text-3">
             Query: <span className="text-text-2">{props.retrievalTrace.query}</span>
           </div>
         )}
@@ -63,12 +63,12 @@ export function GroundingPanel(props: {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[12px] font-600 text-text-2">{citation.sourceTitle}</div>
-                <div className="mt-0.5 text-[10px] text-text-3/60">
+                <div className="mt-0.5 text-[10px] text-text-3">
                   Chunk {citation.chunkIndex + 1} of {citation.chunkCount}
                   {citation.sectionLabel ? ` • ${citation.sectionLabel}` : ''}
                 </div>
               </div>
-              <div className="shrink-0 text-[10px] font-mono text-text-3/55">
+              <div className="shrink-0 text-[10px] font-mono text-text-3">
                 {citation.score.toFixed(2)}
               </div>
             </div>
@@ -77,12 +77,12 @@ export function GroundingPanel(props: {
               <div className="mt-2 text-[11px] text-sky-100/78">{citation.whyMatched}</div>
             )}
 
-            <div className={`mt-2 whitespace-pre-wrap break-words text-text-2/85 ${compact ? 'text-[11px]' : 'text-[12px]'}`}>
+            <div className={`mt-2 whitespace-pre-wrap break-words text-text-2 ${compact ? 'text-[11px]' : 'text-[12px]'}`}>
               {citation.snippet}
             </div>
 
             {(citation.sourceLabel || citation.sourceUrl) && (
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-text-3/55">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-text-3">
                 {citation.sourceLabel && <span>{citation.sourceLabel}</span>}
                 {citation.sourceUrl && (
                   <a href={citation.sourceUrl} target="_blank" rel="noreferrer" className="text-sky-300 hover:underline">

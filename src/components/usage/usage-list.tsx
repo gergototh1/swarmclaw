@@ -77,7 +77,7 @@ export function UsageList() {
       <div className="mb-2">
         <h3 className="text-[11px] font-600 text-text-3 uppercase tracking-wider mb-2">By Provider</h3>
         {providers.length === 0 ? (
-          <div className="text-center py-6 text-[12px] text-text-3/60">No usage data yet</div>
+          <div className="text-center py-6 text-[12px] text-text-3">No usage data yet</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {providers.map(([provider, stats]) => {

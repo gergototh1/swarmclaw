@@ -112,9 +112,9 @@ export function DreamHistory({ agentId }: Props) {
       )}
 
       {loading && cycles.length === 0 ? (
-        <p className="text-[12px] text-text-3/60 py-4 text-center">Loading dream cycles...</p>
+        <p className="text-[12px] text-text-3 py-4 text-center">Loading dream cycles...</p>
       ) : cycles.length === 0 ? (
-        <p className="text-[12px] text-text-3/60 py-4 text-center">No dream cycles yet. Trigger one manually or enable dreaming in agent settings.</p>
+        <p className="text-[12px] text-text-3 py-4 text-center">No dream cycles yet. Trigger one manually or enable dreaming in agent settings.</p>
       ) : (
         <div className="space-y-2">
           {cycles.map((cycle) => (
@@ -126,20 +126,20 @@ export function DreamHistory({ agentId }: Props) {
                 <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.08em] ${statusColors[cycle.status] || 'bg-layer-2 text-text-3/75'}`}>
                   {cycle.status}
                 </span>
-                <span className="px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.08em] bg-layer-2 text-text-3/75">
+                <span className="px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.08em] bg-layer-2 text-text-3">
                   {cycle.trigger}
                 </span>
                 {cycle.status === 'completed' && cycle.startedAt && cycle.completedAt && (
-                  <span className="text-[10px] text-text-3/50 font-mono tabular-nums">
+                  <span className="text-[10px] text-text-3 font-mono tabular-nums">
                     {formatDuration(cycle.completedAt - cycle.startedAt)}
                   </span>
                 )}
-                <span className="ml-auto text-[10px] text-text-3/50 tabular-nums font-mono">
+                <span className="ml-auto text-[10px] text-text-3 tabular-nums font-mono">
                   {timeAgo(cycle.startedAt, now)}
                 </span>
               </div>
               {cycle.status === 'completed' && cycle.result && (
-                <p className="mt-1.5 text-[11px] text-text-3/70 leading-[1.5]">
+                <p className="mt-1.5 text-[11px] text-text-3 leading-[1.5]">
                   {cycle.result.decayed} decayed, {cycle.result.pruned} pruned, {cycle.result.promoted} promoted, {cycle.result.consolidated} consolidated
                 </p>
               )}

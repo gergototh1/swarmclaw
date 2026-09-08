@@ -712,7 +712,7 @@ export function ChatArea() {
                 style={{ fontFamily: 'inherit', animation: `fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.07 + 0.15}s both` }}
               >
                 <PromptIcon type={prompt.icon} />
-                <span className="text-[12px] text-text-2/80 leading-snug flex-1">{prompt.text}</span>
+                <span className="text-[12px] text-text-2 leading-snug flex-1">{prompt.text}</span>
               </button>
             ))}
           </div>

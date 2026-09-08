@@ -117,7 +117,7 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
                     <span className="text-[11px] text-text-3">{formatTimestamp(ev.timestamp, now)}</span>
                   </div>
                   {ev.message && (
-                    <p className="text-[12px] text-text-3/70 mt-0.5 leading-[1.4] break-words">{ev.message}</p>
+                    <p className="text-[12px] text-text-3 mt-0.5 leading-[1.4] break-words">{ev.message}</p>
                   )}
                 </div>
               </div>

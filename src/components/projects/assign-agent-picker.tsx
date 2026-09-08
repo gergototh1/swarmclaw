@@ -32,13 +32,13 @@ export function AssignAgentPicker({ projectId, onClose }: { projectId: string; o
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search agents..."
             autoFocus
-            className="w-full px-2.5 py-1.5 text-[12px] bg-layer-2 rounded-sm border border-line-default text-text placeholder:text-text-3/50 outline-none"
+            className="w-full px-2.5 py-1.5 text-[12px] bg-layer-2 rounded-sm border border-line-default text-text placeholder:text-text-3 outline-none"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
         <div className="max-h-[240px] overflow-y-auto p-1">
           {unassigned.length === 0 && (
-            <div className="px-3 py-4 text-[11px] text-text-3/50 text-center">
+            <div className="px-3 py-4 text-[11px] text-text-3 text-center">
               {query ? 'No matching agents' : 'All agents are already assigned'}
             </div>
           )}
@@ -52,9 +52,9 @@ export function AssignAgentPicker({ projectId, onClose }: { projectId: string; o
               <AgentAvatar seed={a.avatarSeed} avatarUrl={a.avatarUrl} name={a.name} size={22} />
               <div className="min-w-0 flex-1">
                 <div className="text-[12px] text-text truncate">{a.name}</div>
-                <div className="text-[10px] text-text-3/40 truncate">{a.model || a.provider}</div>
+                <div className="text-[10px] text-text-3 truncate">{a.model || a.provider}</div>
               </div>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/30 shrink-0">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>

@@ -63,7 +63,7 @@ export function MemoryAgentList() {
             All Memories
           </span>
           {totalCount > 0 && (
-            <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-xs">
+            <span className="text-[10px] font-mono tabular-nums text-text-3 bg-layer-2 px-1.5 py-0.5 rounded-xs">
               {totalCount}
             </span>
           )}
@@ -92,7 +92,7 @@ export function MemoryAgentList() {
             Global
           </span>
           {globalCount > 0 && (
-            <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-xs">
+            <span className="text-[10px] font-mono tabular-nums text-text-3 bg-layer-2 px-1.5 py-0.5 rounded-xs">
               {globalCount}
             </span>
           )}
@@ -125,7 +125,7 @@ export function MemoryAgentList() {
                 {agent.name}
               </span>
               {count > 0 && (
-                <span className="text-[10px] font-mono tabular-nums text-text-3/60 bg-layer-2 px-1.5 py-0.5 rounded-xs">
+                <span className="text-[10px] font-mono tabular-nums text-text-3 bg-layer-2 px-1.5 py-0.5 rounded-xs">
                   {count}
                 </span>
               )}
@@ -133,7 +133,7 @@ export function MemoryAgentList() {
           )
         })}
         {agentList.length === 0 && (
-          <div className="text-[12px] text-text-3/50 px-3 py-4 text-center">
+          <div className="text-[12px] text-text-3 px-3 py-4 text-center">
             No agents yet
           </div>
         )}

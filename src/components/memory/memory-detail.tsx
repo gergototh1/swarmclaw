@@ -147,14 +147,14 @@ export function MemoryDetail() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-text-3 p-8 text-center">
         <div className="w-14 h-14 rounded-lg bg-layer-1 flex items-center justify-center mb-2">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/60">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3">
             <ellipse cx="12" cy="5" rx="9" ry="3" />
             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
             <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
           </svg>
         </div>
         <p className="font-display text-[17px] font-600 text-text-2">Select a Memory</p>
-        <p className="text-[13px] text-text-3/70 max-w-[300px]">
+        <p className="text-[13px] text-text-3 max-w-[300px]">
           Choose a memory from the list to view its details
         </p>
       </div>
@@ -172,7 +172,7 @@ export function MemoryDetail() {
       : imagePath
     : null
 
-  const inputClass = "w-full px-4 py-3 rounded-md border border-line-subtle bg-layer-1 text-text outline-none transition-all duration-200 placeholder:text-text-3/70 focus:border-accent-bright/20 focus:bg-layer-2"
+  const inputClass = "w-full px-4 py-3 rounded-md border border-line-subtle bg-layer-1 text-text outline-none transition-all duration-200 placeholder:text-text-3 focus:border-accent-bright/20 focus:bg-layer-2"
   const refs = entry.references || []
   const showRefsCollapse = refs.length > 3
   const entryMeta = entry.metadata && typeof entry.metadata === 'object'
@@ -198,7 +198,7 @@ export function MemoryDetail() {
             <span className="shrink-0 text-[10px] font-700 uppercase tracking-wider text-accent-bright/70 bg-accent-soft px-2 py-0.5 rounded-xs">
               {entry.category || 'note'}
             </span>
-            <span className="shrink-0 text-[10px] font-700 uppercase tracking-wider text-text-3/70 bg-layer-2 px-2 py-0.5 rounded-xs">
+            <span className="shrink-0 text-[10px] font-700 uppercase tracking-wider text-text-3 bg-layer-2 px-2 py-0.5 rounded-xs">
               {getMemoryScopeLabel(scope)}
             </span>
             <span className={`shrink-0 text-[10px] font-700 uppercase tracking-wider px-2 py-0.5 rounded-xs ${
@@ -216,7 +216,7 @@ export function MemoryDetail() {
           </div>
           <div className="flex items-center gap-3 mt-1">
             {agentName && (
-              <span className="text-[11px] text-text-3/50 flex items-center gap-1">
+              <span className="text-[11px] text-text-3 flex items-center gap-1">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                 {agentName}
               </span>
@@ -230,7 +230,7 @@ export function MemoryDetail() {
                 {sessionName}
               </button>
             )}
-            <span className="text-[10px] text-text-3/50 font-mono tabular-nums">
+            <span className="text-[10px] text-text-3 font-mono tabular-nums">
               {new Date(entry.createdAt).toLocaleString()}
             </span>
           </div>
@@ -291,7 +291,7 @@ export function MemoryDetail() {
           )}
           <button
             onClick={() => setConfirmDelete(true)}
-            className="p-2 rounded-sm text-text-3/70 hover:text-red-400 hover:bg-red-400/[0.06]
+            className="p-2 rounded-sm text-text-3 hover:text-red-400 hover:bg-red-400/[0.06]
               cursor-pointer transition-all bg-transparent border-none"
             title="Delete memory"
           >
@@ -310,7 +310,7 @@ export function MemoryDetail() {
             <>
               {/* Title input */}
               <div>
-                <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Title</label>
+                <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.06em] mb-2">Title</label>
                 <input
                   type="text"
                   value={title}
@@ -323,7 +323,7 @@ export function MemoryDetail() {
 
               {/* Category picker */}
               <div>
-                <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Category</label>
+                <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.06em] mb-2">Category</label>
                 <div className="flex gap-1.5 flex-wrap">
                   {CATEGORIES.map((c) => (
                     <button
@@ -342,7 +342,7 @@ export function MemoryDetail() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Tier</label>
+                <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.06em] mb-2">Tier</label>
                 <select
                   value={editTier}
                   onChange={(e) => setEditTier(e.target.value as typeof editTier)}
@@ -357,7 +357,7 @@ export function MemoryDetail() {
 
               {/* Agent assignment */}
               <div>
-                <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Visibility</label>
+                <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.06em] mb-2">Visibility</label>
                 <div className="flex gap-1.5 flex-wrap">
                   <button
                     onClick={() => setEditAgentId(null)}
@@ -393,7 +393,7 @@ export function MemoryDetail() {
               {/* Shared with */}
               {editAgentId && (
                 <div>
-                  <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Share with</label>
+                  <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.06em] mb-2">Share with</label>
                   <div className="flex gap-1.5 flex-wrap">
                     {Object.values(agents)
                       .filter((a) => a.id !== editAgentId)
@@ -421,14 +421,14 @@ export function MemoryDetail() {
                       })}
                   </div>
                   {editSharedWith.length === 0 && (
-                    <p className="text-[10px] text-text-3/40 mt-1.5">No agents selected — only the assigned agent can access this memory</p>
+                    <p className="text-[10px] text-text-3 mt-1.5">No agents selected — only the assigned agent can access this memory</p>
                   )}
                 </div>
               )}
 
               {/* Content textarea */}
               <div>
-                <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Content</label>
+                <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.06em] mb-2">Content</label>
                 <textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
@@ -453,21 +453,21 @@ export function MemoryDetail() {
 
               {knowledgeSourceId && (
                 <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
-                  <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Source</label>
+                  <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.06em] mb-2">Source</label>
                   <div className="space-y-1.5">
                     <p className="text-[13px] text-text-2">
                       {knowledgeSourceTitle || entry.title}
                       {knowledgeSourceKind ? ` • ${knowledgeSourceKind}` : ''}
                     </p>
                     {knowledgeSourceLabel && (
-                      <p className="text-[12px] text-text-3/65">{knowledgeSourceLabel}</p>
+                      <p className="text-[12px] text-text-3">{knowledgeSourceLabel}</p>
                     )}
                     {knowledgeSourceUrl && (
                       <a href={knowledgeSourceUrl} target="_blank" rel="noreferrer" className="text-[12px] text-accent-bright hover:underline break-all">
                         {knowledgeSourceUrl}
                       </a>
                     )}
-                    <p className="text-[11px] text-text-3/55">
+                    <p className="text-[11px] text-text-3">
                       {knowledgeChunkIndex != null && knowledgeChunkCount != null
                         ? `Chunk ${knowledgeChunkIndex + 1} of ${knowledgeChunkCount}`
                         : 'Source-backed knowledge'}
@@ -481,7 +481,7 @@ export function MemoryDetail() {
               {/* Shared with (read mode) */}
               {entry.sharedWith && entry.sharedWith.length > 0 && (
                 <div>
-                  <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Shared with</label>
+                  <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.06em] mb-2">Shared with</label>
                   <div className="flex gap-1.5 flex-wrap">
                     {entry.sharedWith.map((aid) => {
                       const a = agents[aid]
@@ -501,7 +501,7 @@ export function MemoryDetail() {
           {/* Image (both modes) */}
           {imageUrl && (
             <div>
-              {editing && <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Image</label>}
+              {editing && <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.06em] mb-2">Image</label>}
               <a href={imageUrl} target="_blank" rel="noreferrer" className="inline-block rounded-md overflow-hidden border border-line-default">
                 <img src={imageUrl} alt={entry.title} className="max-w-[600px] w-full max-h-[400px] object-cover block" />
               </a>
@@ -511,7 +511,7 @@ export function MemoryDetail() {
           {/* Linked Memories */}
           {entry.linkedMemoryIds?.length ? (
             <div>
-              <label className="block text-[11px] font-600 text-text-3/60 uppercase tracking-[0.06em] mb-2">Linked Memories</label>
+              <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.06em] mb-2">Linked Memories</label>
               <div className="flex flex-col gap-1.5">
                 {entry.linkedMemoryIds.map((id) => (
                   <button
@@ -552,12 +552,12 @@ export function MemoryDetail() {
                 <div className="space-y-2">
                   {refs.map((ref, idx) => (
                     <div key={`${ref.type}-${ref.path || ref.title || idx}`} className="text-[12px] rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                      <div className="text-text-2/70">
+                      <div className="text-text-2">
                         <span className="uppercase text-[10px] tracking-[0.06em] mr-1">{ref.type}</span>
                         {ref.path || ref.title || '(no path)'}
                       </div>
                       {(ref.projectName || ref.projectRoot || ref.note || typeof ref.exists === 'boolean') && (
-                        <div className="text-text-3/55 mt-1">
+                        <div className="text-text-3 mt-1">
                           {ref.projectName ? `project: ${ref.projectName} ` : ''}
                           {ref.projectRoot ? `root: ${ref.projectRoot} ` : ''}
                           {typeof ref.exists === 'boolean' ? (ref.exists ? 'exists' : 'missing') : ''}
@@ -590,40 +590,40 @@ export function MemoryDetail() {
               <div className="mt-3 pt-3 border-t border-line-subtle">
                 <div className="grid grid-cols-2 gap-4 text-[11px]">
                   <div>
-                    <span className="text-text-3/70 block mb-1">ID</span>
-                    <span className="text-text-3/60 font-mono">{entry.id}</span>
+                    <span className="text-text-3 block mb-1">ID</span>
+                    <span className="text-text-3 font-mono">{entry.id}</span>
                   </div>
                   <div>
-                    <span className="text-text-3/70 block mb-1">Created</span>
-                    <span className="text-text-3/60 font-mono">{new Date(entry.createdAt).toLocaleString()}</span>
+                    <span className="text-text-3 block mb-1">Created</span>
+                    <span className="text-text-3 font-mono">{new Date(entry.createdAt).toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="text-text-3/70 block mb-1">Updated</span>
-                    <span className="text-text-3/60 font-mono">{new Date(entry.updatedAt).toLocaleString()}</span>
+                    <span className="text-text-3 block mb-1">Updated</span>
+                    <span className="text-text-3 font-mono">{new Date(entry.updatedAt).toLocaleString()}</span>
                   </div>
                   {entry.agentId && (
                     <div>
-                      <span className="text-text-3/70 block mb-1">Owner</span>
-                      <span className="text-text-3/60 font-mono">{agentName}</span>
+                      <span className="text-text-3 block mb-1">Owner</span>
+                      <span className="text-text-3 font-mono">{agentName}</span>
                     </div>
                   )}
                   <div>
-                    <span className="text-text-3/70 block mb-1">Scope</span>
-                    <span className="text-text-3/60 font-mono">{getMemoryScopeLabel(scope)}</span>
+                    <span className="text-text-3 block mb-1">Scope</span>
+                    <span className="text-text-3 font-mono">{getMemoryScopeLabel(scope)}</span>
                   </div>
                   <div>
-                    <span className="text-text-3/70 block mb-1">Tier</span>
-                    <span className="text-text-3/60 font-mono">{tier}</span>
+                    <span className="text-text-3 block mb-1">Tier</span>
+                    <span className="text-text-3 font-mono">{tier}</span>
                   </div>
                   {knowledgeSourceId && (
                     <div>
-                      <span className="text-text-3/70 block mb-1">Knowledge Source</span>
-                      <span className="text-text-3/60 font-mono">{knowledgeSourceId}</span>
+                      <span className="text-text-3 block mb-1">Knowledge Source</span>
+                      <span className="text-text-3 font-mono">{knowledgeSourceId}</span>
                     </div>
                   )}
                   {entry.sessionId && (
                     <div>
-                      <span className="text-text-3/70 block mb-1">Chat</span>
+                      <span className="text-text-3 block mb-1">Chat</span>
                       <button
                         onClick={handleNavigateToSession}
                         className="text-accent-bright/60 hover:text-accent-bright font-mono bg-transparent border-none cursor-pointer p-0 text-[11px] transition-colors"

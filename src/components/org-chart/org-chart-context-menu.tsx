@@ -55,7 +55,7 @@ export function OrgChartContextMenu({ agent, teamNames, x, y, onClose, onAction 
       style={{ left: x, top: y }}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div className="px-3 py-1.5 text-[10px] font-700 uppercase tracking-wider text-text-3/50 truncate">
+      <div className="px-3 py-1.5 text-[10px] font-700 uppercase tracking-wider text-text-3 truncate">
         {agent.name}
       </div>
       <div className="h-px bg-layer-2 my-0.5" />
@@ -92,7 +92,7 @@ export function OrgChartContextMenu({ agent, teamNames, x, y, onClose, onAction 
       {showTeamPicker ? (
         <div className="px-2 py-1 flex flex-col gap-0.5">
           {teamNames.length === 0 ? (
-            <div className="text-[10px] text-text-3/40 text-center py-1.5">No teams yet</div>
+            <div className="text-[10px] text-text-3 text-center py-1.5">No teams yet</div>
           ) : (
             teamNames.map((t) => (
               <button

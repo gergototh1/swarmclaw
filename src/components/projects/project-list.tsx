@@ -94,7 +94,7 @@ export function ProjectList() {
           </svg>
         </div>
         <p className="font-display text-[16px] font-600 text-text-2">No projects yet</p>
-        <p className="text-[13px] text-text-3/60 max-w-[280px]">
+        <p className="text-[13px] text-text-3 max-w-[280px]">
           Projects group your agents, tasks, and schedules together. Create one to get organized.
         </p>
         <button
@@ -119,7 +119,7 @@ export function ProjectList() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-display text-[20px] font-700 text-text tracking-[-0.02em]">Projects</h2>
-            <p className="text-[12px] text-text-3/60 mt-0.5">
+            <p className="text-[12px] text-text-3 mt-0.5">
               {totalProjects} project{totalProjects !== 1 ? 's' : ''}
               {totalTasks > 0 && <> &middot; {totalCompleted}/{totalTasks} tasks done</>}
             </p>
@@ -139,7 +139,7 @@ export function ProjectList() {
 
         {/* Search */}
         <div className="relative">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-text-3/50">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-text-3">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -148,7 +148,7 @@ export function ProjectList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search projects..."
-            className="w-full pl-9 pr-3 py-2.5 rounded-sm bg-layer-2 border border-line-subtle text-[13px] text-text placeholder:text-text-3/40 focus:outline-none focus:border-accent-bright/30 transition-colors"
+            className="w-full pl-9 pr-3 py-2.5 rounded-sm bg-layer-2 border border-line-subtle text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/30 transition-colors"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
@@ -190,12 +190,12 @@ export function ProjectList() {
                         )}
                       </div>
                       {project.description && (
-                        <p className="text-[12px] text-text-3/60 mt-1 line-clamp-2 leading-relaxed">{project.description}</p>
+                        <p className="text-[12px] text-text-3 mt-1 line-clamp-2 leading-relaxed">{project.description}</p>
                       )}
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditingProjectId(project.id); setProjectSheetOpen(true) }}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-sm hover:bg-layer-3 transition-all text-text-3/50 hover:text-text-2 cursor-pointer bg-transparent border-none shrink-0"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-sm hover:bg-layer-3 transition-all text-text-3 hover:text-text-2 cursor-pointer bg-transparent border-none shrink-0"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                         <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
@@ -204,7 +204,7 @@ export function ProjectList() {
                   </div>
 
                   {/* Stats row */}
-                  <div className="flex items-center gap-4 mt-3 text-[11px] text-text-3/50">
+                  <div className="flex items-center gap-4 mt-3 text-[11px] text-text-3">
                     <span className="flex items-center gap-1.5">
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -228,7 +228,7 @@ export function ProjectList() {
                         {stats.schedules} schedule{stats.schedules !== 1 ? 's' : ''}
                       </span>
                     )}
-                    <span className="ml-auto text-text-3/40">
+                    <span className="ml-auto text-text-3">
                       {relativeDate(stats.lastActivity)}
                     </span>
                   </div>

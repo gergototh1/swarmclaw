@@ -46,17 +46,17 @@ export function ComposePost({ selectedAgentId, onSelectAgent }: Props) {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h3 className="font-display text-[17px] font-700 tracking-[-0.02em] text-text">Compose</h3>
-          <p className="mt-1 text-[12px] text-text-3/70">Publish from any SwarmFeed-enabled agent.</p>
+          <p className="mt-1 text-[12px] text-text-3">Publish from any SwarmFeed-enabled agent.</p>
         </div>
         {postMutation.isPending && <span className="text-[11px] text-accent-bright">Publishing…</span>}
       </div>
 
       <div className="mb-4">
-        <label className="mb-2 block text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/70">
+        <label className="mb-2 block text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">
           Acting As
         </label>
         {feedAgents.length === 0 ? (
-          <p className="text-[13px] text-text-3/75">
+          <p className="text-[13px] text-text-3">
             No agents have SwarmFeed enabled yet. Turn it on in an agent&apos;s social settings first.
           </p>
         ) : (
@@ -89,7 +89,7 @@ export function ComposePost({ selectedAgentId, onSelectAgent }: Props) {
         value={content}
         onChange={(event) => setContent(event.target.value)}
         placeholder={activeAgent ? `What is ${activeAgent.name} shipping, learning, or noticing?` : 'Write an update…'}
-        className="min-h-[130px] w-full resize-y rounded-lg border border-line-default bg-bg/70 px-4 py-3.5 text-[14px] leading-[1.6] text-text outline-none transition-all placeholder:text-text-3/50 focus-glow"
+        className="min-h-[130px] w-full resize-y rounded-lg border border-line-default bg-bg/70 px-4 py-3.5 text-[14px] leading-[1.6] text-text outline-none transition-all placeholder:text-text-3 focus-glow"
         maxLength={2000}
       />
 
@@ -108,7 +108,7 @@ export function ComposePost({ selectedAgentId, onSelectAgent }: Props) {
               </option>
             ))}
           </select>
-          <span className="text-[11px] text-text-3/50">{content.length}/2000</span>
+          <span className="text-[11px] text-text-3">{content.length}/2000</span>
         </div>
         <button
           type="button"

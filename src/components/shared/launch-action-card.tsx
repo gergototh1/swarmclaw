@@ -10,7 +10,7 @@ export function LaunchActionCard({ title, description, actionLabel, onClick, ton
   return (
     <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
       <div className="text-[15px] font-display font-700 text-text">{title}</div>
-      <p className="mt-2 text-[13px] leading-relaxed text-text-3/72">{description}</p>
+      <p className="mt-2 text-[13px] leading-relaxed text-text-3">{description}</p>
       <button
         type="button"
         onClick={onClick}

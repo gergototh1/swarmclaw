@@ -30,7 +30,7 @@ export function MemorySection({ appSettings, patchSettings, inputClass }: Settin
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">How far linked memory traversal can go.</p>
+            <p className="text-[11px] text-text-3 mt-2">How far linked memory traversal can go.</p>
           </div>
           <div>
             <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">
@@ -49,7 +49,7 @@ export function MemorySection({ appSettings, patchSettings, inputClass }: Settin
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Total memories returned in one retrieval call.</p>
+            <p className="text-[11px] text-text-3 mt-2">Total memories returned in one retrieval call.</p>
           </div>
           <div>
             <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">
@@ -68,7 +68,7 @@ export function MemorySection({ appSettings, patchSettings, inputClass }: Settin
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Caps how many linked nodes can be expanded per lookup.</p>
+            <p className="text-[11px] text-text-3 mt-2">Caps how many linked nodes can be expanded per lookup.</p>
           </div>
         </div>
       </div>

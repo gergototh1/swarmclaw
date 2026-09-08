@@ -614,12 +614,12 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               </span>
             </span>
           )}
-          <span className="text-[11px] text-text-3/70 font-mono" title={message.time ? new Date(message.time).toLocaleString() : ''}>
+          <span className="text-[11px] text-text-3 font-mono" title={message.time ? new Date(message.time).toLocaleString() : ''}>
             {message.time ? formatMessageTimestamp(message) : ''}
           </span>
         </div>
         {connectorMeta && (
-          <div className={`text-[10px] font-mono text-text-3/55 ${isUser ? 'text-right' : ''}`}>
+          <div className={`text-[10px] font-mono text-text-3 ${isUser ? 'text-right' : ''}`}>
             {connectorMeta}
           </div>
         )}
@@ -645,11 +645,11 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               </svg>
               <span className="text-[11px] font-600 text-purple-400/70 uppercase tracking-[0.05em]">Thinking</span>
               {!liveStreamActive && (
-                <span className="text-[10px] text-text-3/40 font-mono">{Math.ceil(effectiveThinking.length / 4)} tokens</span>
+                <span className="text-[10px] text-text-3 font-mono">{Math.ceil(effectiveThinking.length / 4)} tokens</span>
               )}
             </summary>
             <div className="px-3.5 pb-3 pt-1 max-h-[300px] overflow-y-auto">
-              <div className="text-[13px] leading-[1.6] text-text-3/70 whitespace-pre-wrap break-words">
+              <div className="text-[13px] leading-[1.6] text-text-3 whitespace-pre-wrap break-words">
                 {effectiveThinking}
               </div>
             </div>
@@ -697,14 +697,14 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               </div>
               <span className="text-[11px] font-700 uppercase tracking-wider text-emerald-400/80">Extension Installed</span>
             </div>
-            <p className="text-[13px] text-text-2/90 leading-relaxed">{installRequest.message}</p>
+            <p className="text-[13px] text-text-2 leading-relaxed">{installRequest.message}</p>
             {/* bg-black/40 is a fixed dark inset, not a ladder surface, so its
                 hairline stays white-alpha: border-line-subtle would turn dark
                 against a dark inset under .light. */}
             <div className="p-3 rounded-md bg-black/40 border border-white/5 flex flex-col gap-1">
-              <div className="text-[11px] text-text-3/60 font-600 uppercase tracking-tight">Extension</div>
+              <div className="text-[11px] text-text-3 font-600 uppercase tracking-tight">Extension</div>
               <div className="text-[12px] font-mono text-emerald-200/70">{installRequest.filename || installRequest.extensionId || 'extension'}</div>
-              <div className="text-[11px] text-text-3/60 font-600 uppercase tracking-tight mt-2">Source URL</div>
+              <div className="text-[11px] text-text-3 font-600 uppercase tracking-tight mt-2">Source URL</div>
               <div className="text-[12px] font-mono text-emerald-200/70 truncate">{installRequest.url}</div>
             </div>
           </div>
@@ -718,9 +718,9 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               </div>
               <span className="text-[11px] font-700 uppercase tracking-wider text-amber-400/80">Extension Created</span>
             </div>
-            <p className="text-[13px] text-text-2/90 leading-relaxed">{scaffoldRequest.message}</p>
+            <p className="text-[13px] text-text-2 leading-relaxed">{scaffoldRequest.message}</p>
             <div className="p-3 rounded-md bg-black/40 border border-white/5">
-              <div className="text-[11px] font-mono text-text-3/60 mb-2 border-b border-white/5 pb-1">filename: {scaffoldRequest.filename}</div>
+              <div className="text-[11px] font-mono text-text-3 mb-2 border-b border-white/5 pb-1">filename: {scaffoldRequest.filename}</div>
               {scaffoldRequest.filePath && (
                 <div className="text-[12px] font-mono text-amber-200/70 break-all">
                   {scaffoldRequest.filePath}
@@ -738,7 +738,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               </div>
               <span className="text-[11px] font-700 uppercase tracking-wider text-emerald-400/80">Extension UI Extension</span>
             </div>
-            <div className="text-[14px] text-text-2/90 leading-relaxed">
+            <div className="text-[14px] text-text-2 leading-relaxed">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
             </div>
             <div className="flex gap-2 mt-2">
@@ -785,19 +785,19 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                       {meta.goal && (
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-[10px] uppercase tracking-[0.06em] text-text-3 font-600 shrink-0">Goal</span>
-                          <span className="text-[12px] text-text-2/90 truncate">{meta.goal}</span>
+                          <span className="text-[12px] text-text-2 truncate">{meta.goal}</span>
                         </div>
                       )}
                       {meta.next_action && (
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-[10px] uppercase tracking-[0.06em] text-text-3 font-600 shrink-0">Next</span>
-                          <span className="text-[12px] text-text-2/90 truncate">{meta.next_action}</span>
+                          <span className="text-[12px] text-text-2 truncate">{meta.next_action}</span>
                         </div>
                       )}
                     </div>
                   )
                 }
-                return <p className="text-[13px] text-text-2/90 leading-[1.5] mt-1.5">{heartbeatSummary(message.text)}</p>
+                return <p className="text-[13px] text-text-2 leading-[1.5] mt-1.5">{heartbeatSummary(message.text)}</p>
               })()}
             </button>
             {heartbeatExpanded && (

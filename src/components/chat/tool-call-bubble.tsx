@@ -540,7 +540,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
               {statusLabel}
             </span>
             {hasMedia && (
-              <span className="text-[10px] text-text-3/50 font-500 shrink-0 group-open/tool:hidden">
+              <span className="text-[10px] text-text-3 font-500 shrink-0 group-open/tool:hidden">
                 {media.images.length > 0 && `${media.images.length} image${media.images.length > 1 ? 's' : ''}`}
                 {media.videos.length > 0 && `${(media.images.length > 0) ? ' · ' : ''}${media.videos.length} video${media.videos.length > 1 ? 's' : ''}`}
                 {media.pdfs.length > 0 && `${(media.images.length > 0 || media.videos.length > 0) ? ' · ' : ''}${media.pdfs.length} PDF${media.pdfs.length > 1 ? 's' : ''}`}
@@ -550,7 +550,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
             <svg
               width="12" height="12" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-              className="shrink-0 text-text-3/70 transition-transform duration-200 group-open/tool:rotate-180"
+              className="shrink-0 text-text-3 transition-transform duration-200 group-open/tool:rotate-180"
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>

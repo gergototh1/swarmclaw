@@ -163,7 +163,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="px-3 py-2 border-b border-line-subtle flex items-center justify-between">
-        <span className="text-[11px] font-700 uppercase tracking-wider text-text-3/60">Teams</span>
+        <span className="text-[11px] font-700 uppercase tracking-wider text-text-3">Teams</span>
         <button
           onClick={onClose}
           className="w-5 h-5 rounded-xs flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
@@ -176,7 +176,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
 
       <div className="max-h-[400px] overflow-y-auto p-2 flex flex-col gap-1">
         {teams.length === 0 && !showNewTeam && (
-          <div className="text-[11px] text-text-3/40 text-center py-4">No teams yet. Create one below or assign a team via the detail panel.</div>
+          <div className="text-[11px] text-text-3 text-center py-4">No teams yet. Create one below or assign a team via the detail panel.</div>
         )}
         {teams.map((team) => {
           const isExpanded = expandedTeam === team.label
@@ -187,7 +187,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                 {/* Expand chevron */}
                 <button
                   onClick={() => setExpandedTeam(isExpanded ? null : team.label)}
-                  className="w-3.5 h-3.5 flex items-center justify-center text-text-3/40 hover:text-text-2 bg-transparent border-none cursor-pointer transition-colors shrink-0"
+                  className="w-3.5 h-3.5 flex items-center justify-center text-text-3 hover:text-text-2 bg-transparent border-none cursor-pointer transition-colors shrink-0"
                 >
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
                     style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}
@@ -238,7 +238,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                   </span>
                 )}
 
-                <span className="text-[10px] text-text-3/40 tabular-nums">{team.agentIds.length}</span>
+                <span className="text-[10px] text-text-3 tabular-nums">{team.agentIds.length}</span>
 
                 {/* Place on chart */}
                 {(() => {
@@ -250,7 +250,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                   return (
                     <button
                       onClick={() => placeTeamOnChart(team)}
-                      className="hidden group-hover:flex items-center justify-center w-4 h-4 rounded-xs text-text-3/40 hover:text-accent-bright bg-transparent border-none cursor-pointer transition-colors"
+                      className="hidden group-hover:flex items-center justify-center w-4 h-4 rounded-xs text-text-3 hover:text-accent-bright bg-transparent border-none cursor-pointer transition-colors"
                       title="Place on chart"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -269,7 +269,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                 ) : (
                   <button
                     onClick={() => setConfirmDelete(team.label)}
-                    className="hidden group-hover:flex w-4 h-4 rounded-xs items-center justify-center text-text-3/40 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
+                    className="hidden group-hover:flex w-4 h-4 rounded-xs items-center justify-center text-text-3 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <path d="M3 6h18" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
@@ -288,10 +288,10 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                       <div key={aid} className="flex items-center gap-2 pl-5 pr-1 py-1 rounded-xs hover:bg-layer-1 group/member">
                         <AgentAvatar seed={a.avatarSeed || null} avatarUrl={a.avatarUrl} name={a.name} size={18} />
                         <span className="flex-1 text-[10px] text-text-2 truncate">{a.name}</span>
-                        <span className="text-[9px] text-text-3/30 capitalize">{a.role || 'worker'}</span>
+                        <span className="text-[9px] text-text-3 capitalize">{a.role || 'worker'}</span>
                         <button
                           onClick={() => removeFromTeam(aid)}
-                          className="hidden group-hover/member:flex w-3.5 h-3.5 rounded-xs items-center justify-center text-text-3/30 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
+                          className="hidden group-hover/member:flex w-3.5 h-3.5 rounded-xs items-center justify-center text-text-3 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
                           title="Remove from team"
                         >
                           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -306,7 +306,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                   {showAddAgent === team.label ? (
                     <div className="pl-5 mt-1 flex flex-col gap-0.5 max-h-[120px] overflow-y-auto rounded-xs border border-line-subtle bg-layer-1 p-1">
                       {unassignedAgents.length === 0 ? (
-                        <div className="text-[10px] text-text-3/40 text-center py-2">All agents assigned</div>
+                        <div className="text-[10px] text-text-3 text-center py-2">All agents assigned</div>
                       ) : (
                         unassignedAgents.map((a) => (
                           <button
@@ -323,7 +323,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                   ) : (
                     <button
                       onClick={() => setShowAddAgent(team.label)}
-                      className="flex items-center gap-1 pl-5 py-1 text-[10px] text-text-3/40 hover:text-text-2 bg-transparent border-none cursor-pointer transition-colors"
+                      className="flex items-center gap-1 pl-5 py-1 text-[10px] text-text-3 hover:text-text-2 bg-transparent border-none cursor-pointer transition-colors"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                         <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -351,7 +351,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                   if (e.key === 'Escape') { setShowNewTeam(false); setNewTeamName(''); setNewTeamConfirmed(false) }
                 }}
                 placeholder="Team name, then press Enter..."
-                className="w-full px-2 py-1.5 text-[11px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40"
+                className="w-full px-2 py-1.5 text-[11px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3"
               />
             ) : (
               /* Step 2: Pick agents */
@@ -367,7 +367,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                 </div>
                 <div className="flex flex-col gap-0.5 max-h-[140px] overflow-y-auto">
                   {unassignedAgents.length === 0 ? (
-                    <div className="text-[10px] text-text-3/40 text-center py-2">No unassigned agents</div>
+                    <div className="text-[10px] text-text-3 text-center py-2">No unassigned agents</div>
                   ) : (
                     unassignedAgents.map((a) => (
                       <button
@@ -392,7 +392,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
             )}
             <button
               onClick={() => { setShowNewTeam(false); setNewTeamName(''); setNewTeamConfirmed(false) }}
-              className="text-[9px] text-text-3/40 hover:text-text-2 bg-transparent border-none cursor-pointer self-center"
+              className="text-[9px] text-text-3 hover:text-text-2 bg-transparent border-none cursor-pointer self-center"
             >
               Cancel
             </button>

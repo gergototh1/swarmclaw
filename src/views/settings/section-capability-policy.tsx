@@ -39,7 +39,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[12px] font-600 text-text-2">Task Management</div>
-                  <p className="text-[11px] text-text-3/60 mt-1 leading-relaxed">
+                  <p className="text-[11px] text-text-3 mt-1 leading-relaxed">
                     Controls the task board and agent access to durable backlog tracking. Internal queue execution still works underneath.
                   </p>
                 </div>
@@ -57,7 +57,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[12px] font-600 text-text-2">Project Management</div>
-                  <p className="text-[11px] text-text-3/60 mt-1 leading-relaxed">
+                  <p className="text-[11px] text-text-3 mt-1 leading-relaxed">
                     Controls the project operating-system UI and agent access to durable project context for objectives, credentials, and heartbeat plans.
                   </p>
                 </div>
@@ -76,7 +76,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-[12px] font-600 text-text-2">Outbound Connector Confirmation</div>
-                <p className="text-[11px] text-text-3/60 mt-1 leading-relaxed">
+                <p className="text-[11px] text-text-3 mt-1 leading-relaxed">
                   Require connector sends to pass an explicit `approved=true` confirmation boundary. This is a direct feature gate, not an approvals queue.
                 </p>
               </div>
@@ -107,7 +107,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Supported categories: filesystem, execution, network, browser, memory, delegation, platform, outbound.</p>
+            <p className="text-[11px] text-text-3 mt-2">Supported categories: filesystem, execution, network, browser, memory, delegation, platform, outbound.</p>
           </div>
 
           <div>
@@ -142,7 +142,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Use this to re-allow specific tool families when running in strict mode.</p>
+            <p className="text-[11px] text-text-3 mt-2">Use this to re-allow specific tool families when running in strict mode.</p>
           </div>
 
         </div>

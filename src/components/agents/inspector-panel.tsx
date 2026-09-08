@@ -116,10 +116,10 @@ function ModelSwitcherInline({ session, agent }: { session: Session; agent: Agen
         disabled={streaming}
         className="mt-2 flex items-center gap-1.5 w-full text-left bg-transparent border-none cursor-pointer disabled:cursor-default disabled:opacity-50 group"
       >
-        <span className="inline-flex items-center rounded-sm border border-line-subtle bg-layer-1 px-2 py-1 text-[10px] font-600 text-text-3/70 group-hover:border-line-default group-hover:text-text-2 transition-colors">
+        <span className="inline-flex items-center rounded-sm border border-line-subtle bg-layer-1 px-2 py-1 text-[10px] font-600 text-text-3 group-hover:border-line-default group-hover:text-text-2 transition-colors">
           {providerLabel}
         </span>
-        <span className="inline-flex max-w-[180px] items-center rounded-sm border border-line-subtle bg-layer-1 px-2 py-1 text-[10px] font-mono text-text-3/70 truncate group-hover:border-line-default group-hover:text-text-2 transition-colors">
+        <span className="inline-flex max-w-[180px] items-center rounded-sm border border-line-subtle bg-layer-1 px-2 py-1 text-[10px] font-mono text-text-3 truncate group-hover:border-line-default group-hover:text-text-2 transition-colors">
           {session.model || agent.model || 'Default model'}
         </span>
         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-text-3/30 group-hover:text-text-3/60 transition-colors ml-auto shrink-0">
@@ -132,7 +132,7 @@ function ModelSwitcherInline({ session, agent }: { session: Session; agent: Agen
   return (
     <div className="mt-2 rounded-sm border border-line-default bg-black/[0.12] p-2.5">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/45">Switch Model</span>
+        <span className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3">Switch Model</span>
         <button
           type="button"
           onClick={() => setExpanded(false)}
@@ -185,10 +185,10 @@ function WorkspacePath({ cwd }: { cwd: string }) {
       onClick={handleClick}
       className="mt-2 flex items-center gap-1.5 w-full text-left bg-transparent border-none cursor-pointer group"
     >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/40 shrink-0">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
       </svg>
-      <span className="text-[10px] text-text-3/60 font-mono truncate group-hover:text-text-2 transition-colors">{display}</span>
+      <span className="text-[10px] text-text-3 font-mono truncate group-hover:text-text-2 transition-colors">{display}</span>
     </button>
   )
 }
@@ -198,7 +198,7 @@ function panelCardClass(className = '') {
 }
 
 function SectionLabel({ children }: { children: ReactNode }) {
-  return <label className="block text-[11px] font-700 uppercase tracking-[0.16em] text-text-3/45 mb-2">{children}</label>
+  return <label className="block text-[11px] font-700 uppercase tracking-[0.16em] text-text-3 mb-2">{children}</label>
 }
 
 function ToggleSwitch({ on, onChange, disabled }: { on: boolean; onChange: () => void; disabled?: boolean }) {
@@ -408,9 +408,9 @@ function IdentityCard({ agent }: { agent: Agent }) {
           className="group w-full text-left bg-transparent border-none cursor-pointer p-0"
         >
           <p className="text-[13px] text-text-2 leading-relaxed">
-            {agent.description || <span className="text-text-3/40 italic">Add a description...</span>}
+            {agent.description || <span className="text-text-3 italic">Add a description...</span>}
           </p>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="mt-1 text-text-3/30 opacity-0 group-hover:opacity-100 transition-opacity">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="mt-1 text-text-3 opacity-0 group-hover:opacity-100 transition-opacity">
             <path d="M12 20h9" />
             <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
           </svg>
@@ -545,7 +545,7 @@ function HeartbeatSection({ agent, session }: { agent: Agent; session: Session }
         <ToggleSwitch on={heartbeatWillRun} onChange={() => void handleToggleHeartbeat()} disabled={heartbeatSaving} />
       </div>
       {heartbeatWillRun && (
-        <div className="flex items-center gap-2 text-[12px] text-text-3/70">
+        <div className="flex items-center gap-2 text-[12px] text-text-3">
           <span>Every</span>
           <div className="relative" ref={hbDropdownRef}>
             <button
@@ -574,7 +574,7 @@ function HeartbeatSection({ agent, session }: { agent: Agent; session: Session }
             )}
           </div>
           {agent.heartbeatModel && (
-            <span className="text-text-3/50 text-[11px]">({agent.heartbeatModel})</span>
+            <span className="text-text-3 text-[11px]">({agent.heartbeatModel})</span>
           )}
         </div>
       )}
@@ -713,7 +713,7 @@ function MemorySection({ agentId }: { agentId: string }) {
     if (category.includes('working') || category === 'working') return 'text-amber-300 bg-amber-400/10 border-amber-400/15'
     if (category.includes('durable') || category === 'durable') return 'text-emerald-300 bg-emerald-400/10 border-emerald-400/15'
     if (category.includes('archive') || category === 'archive') return 'text-blue-300 bg-blue-400/10 border-blue-400/15'
-    return 'text-text-3/60 bg-layer-2 border-line-subtle'
+    return 'text-text-3 bg-layer-2 border-line-subtle'
   }
 
   return (
@@ -735,7 +735,7 @@ function MemorySection({ agentId }: { agentId: string }) {
           {[0, 1, 2].map((i) => <div key={i} className="h-6 rounded-sm bg-layer-2 animate-pulse" />)}
         </div>
       ) : entries.length === 0 ? (
-        <p className="text-[12px] text-text-3/40 italic">No memories yet</p>
+        <p className="text-[12px] text-text-3 italic">No memories yet</p>
       ) : (
         <div className="flex flex-col gap-1.5">
           {entries.map((entry) => (
@@ -743,7 +743,7 @@ function MemorySection({ agentId }: { agentId: string }) {
               <span className={`shrink-0 px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-wider border ${tierColor(entry.category)}`}>
                 {entry.category}
               </span>
-              <span className="text-[11px] text-text-3/70 truncate flex-1">{entry.title || entry.content}</span>
+              <span className="text-[11px] text-text-3 truncate flex-1">{entry.title || entry.content}</span>
             </div>
           ))}
         </div>
@@ -956,7 +956,7 @@ function SessionsSection({ agent }: { agent: Agent }) {
               {connector ? (
                 <ConnectorPlatformIcon platform={connector.platform} size={14} />
               ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/40 shrink-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
                 </svg>
               )}
@@ -1043,7 +1043,7 @@ function StickyFooter({ agent, isMainChat, onEditAgent, onDuplicateAgent, onClea
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="p-2 rounded-sm border border-line-subtle bg-layer-1 text-text-3/60 hover:text-text-2 hover:bg-layer-2 cursor-pointer transition-all"
+            className="p-2 rounded-sm border border-line-subtle bg-layer-1 text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -1115,7 +1115,7 @@ function ConfigTab({ agent }: { agent: Agent }) {
             initialAllowed={agent.openclawAllowedSkills}
           />
         ) : (
-          <p className="text-[12px] text-text-3/50">Skills are configured in the agent editor.</p>
+          <p className="text-[12px] text-text-3">Skills are configured in the agent editor.</p>
         )}
       </div>
 
@@ -1152,20 +1152,20 @@ function ConfigTab({ agent }: { agent: Agent }) {
         <div className="flex flex-col gap-3">
           {agent.thinkingLevel && (
             <div>
-              <label className="text-[10px] text-text-3/50 block mb-1">Thinking Level</label>
+              <label className="text-[10px] text-text-3 block mb-1">Thinking Level</label>
               <p className="text-[12px] text-text-2 capitalize">{agent.thinkingLevel}</p>
             </div>
           )}
           <div>
-            <label className="text-[10px] text-text-3/50 block mb-1">Agent ID</label>
+            <label className="text-[10px] text-text-3 block mb-1">Agent ID</label>
             <p className="text-[12px] text-text-3 font-mono select-all break-all">{agent.id}</p>
           </div>
           <div>
-            <label className="text-[10px] text-text-3/50 block mb-1">Created</label>
+            <label className="text-[10px] text-text-3 block mb-1">Created</label>
             <p className="text-[12px] text-text-3">{new Date(agent.createdAt).toLocaleString()}</p>
           </div>
           <div>
-            <label className="text-[10px] text-text-3/50 block mb-1">Updated</label>
+            <label className="text-[10px] text-text-3 block mb-1">Updated</label>
             <p className="text-[12px] text-text-3">{new Date(agent.updatedAt).toLocaleString()}</p>
           </div>
         </div>
@@ -1184,8 +1184,8 @@ function CollapsibleSection({ title, open, onToggle, children }: { title: string
         onClick={onToggle}
         className="flex items-center justify-between w-full px-4 py-3 bg-transparent border-none cursor-pointer text-left"
       >
-        <span className="text-[11px] font-700 uppercase tracking-[0.16em] text-text-3/45">{title}</span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className={`text-text-3/40 transition-transform ${open ? 'rotate-180' : ''}`}>
+        <span className="text-[11px] font-700 uppercase tracking-[0.16em] text-text-3">{title}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className={`text-text-3 transition-transform ${open ? 'rotate-180' : ''}`}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
@@ -1242,7 +1242,7 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
                 {s.status}
               </span>
             </div>
-            <div className="text-[11px] text-text-3/50 mt-1">
+            <div className="text-[11px] text-text-3 mt-1">
               {s.scheduleType}{s.cron ? ` (${s.cron})` : ''}
             </div>
           </div>
@@ -1250,7 +1250,7 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
 
         {isOpenClaw && (
           <>
-            {cronLoading && <div className="text-[12px] text-text-3/50">Loading gateway crons...</div>}
+            {cronLoading && <div className="text-[12px] text-text-3">Loading gateway crons...</div>}
             {gatewayCrons.map((c) => (
               <div key={c.id} className="rounded-sm border border-line-subtle bg-black/[0.08] py-2 px-3">
                 <div className="flex items-center gap-2">
@@ -1260,7 +1260,7 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
                     {c.enabled ? 'active' : 'disabled'}
                   </span>
                 </div>
-                <div className="text-[11px] text-text-3/50 mt-1">
+                <div className="text-[11px] text-text-3 mt-1">
                   {c.schedule?.kind} {c.schedule?.value}
                   {c.state?.nextRun && ` — next: ${c.state.nextRun}`}
                 </div>
@@ -1285,7 +1285,7 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
         )}
 
         {!schedules.length && !gatewayCrons.length && !cronLoading && !showCronForm && (
-          <p className="text-[12px] text-text-3/50">No automations linked to this agent.</p>
+          <p className="text-[12px] text-text-3">No automations linked to this agent.</p>
         )}
       </div>
     </div>
@@ -1322,11 +1322,11 @@ function ExecuteToolConfigSection({ agent }: { agent: Agent }) {
 
   return (
     <div className="pt-3 flex flex-col gap-3">
-      <div className="text-[11px] text-text-3/60">
+      <div className="text-[11px] text-text-3">
         `execute` uses just-bash in sandbox mode by default. Host mode is explicit and required for persistent writes.
       </div>
       <div>
-        <label className="text-[10px] text-text-3/50 block mb-1">Backend</label>
+        <label className="text-[10px] text-text-3 block mb-1">Backend</label>
         <select
           value={config.backend || 'sandbox'}
           onChange={(e) => void update({ backend: e.target.value as 'sandbox' | 'host' })}
@@ -1338,7 +1338,7 @@ function ExecuteToolConfigSection({ agent }: { agent: Agent }) {
         </select>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-[11px] text-text-3/60">Allow network in sandbox mode</span>
+        <span className="text-[11px] text-text-3">Allow network in sandbox mode</span>
         <ToggleSwitch
           on={config.network?.enabled !== false}
           onChange={() => void update({ network: { ...(config.network || {}), enabled: config.network?.enabled === false } })}
@@ -1346,7 +1346,7 @@ function ExecuteToolConfigSection({ agent }: { agent: Agent }) {
         />
       </div>
       <div>
-        <label className="text-[10px] text-text-3/50 block mb-1">Timeout (seconds)</label>
+        <label className="text-[10px] text-text-3 block mb-1">Timeout (seconds)</label>
         <input
           type="number"
           defaultValue={config.timeout || 30}
@@ -1356,7 +1356,7 @@ function ExecuteToolConfigSection({ agent }: { agent: Agent }) {
           className="w-full rounded-sm border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text font-mono outline-none focus:border-accent-bright/30"
         />
       </div>
-      <div className="text-[11px] text-text-3/50">
+      <div className="text-[11px] text-text-3">
         `shell` remains the host command/process tool. Use `execute` for sandboxed one-shot scripts.
       </div>
     </div>
@@ -1430,7 +1430,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
       {browserEnabled && (
         <div className="flex flex-col gap-2.5 mt-1">
           <div>
-            <label className="text-[10px] text-text-3/50 block mb-1">Scope</label>
+            <label className="text-[10px] text-text-3 block mb-1">Scope</label>
             <select
               defaultValue={config.scope || 'session'}
               onChange={(e) => void update({ scope: e.target.value as 'session' | 'agent' })}
@@ -1441,7 +1441,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             </select>
           </div>
           <div>
-            <label className="text-[10px] text-text-3/50 block mb-1">Mode</label>
+            <label className="text-[10px] text-text-3 block mb-1">Mode</label>
             <select
               defaultValue={config.mode === 'non-main' ? 'non-main' : 'all'}
               onChange={(e) => void update({ mode: e.target.value as 'all' | 'non-main' })}
@@ -1452,7 +1452,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             </select>
           </div>
           <div>
-            <label className="text-[10px] text-text-3/50 block mb-1">Workspace access</label>
+            <label className="text-[10px] text-text-3 block mb-1">Workspace access</label>
             <select
               defaultValue={config.workspaceAccess || 'rw'}
               onChange={(e) => void update({ workspaceAccess: e.target.value as 'ro' | 'rw' })}
@@ -1463,7 +1463,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             </select>
           </div>
           <div>
-            <label className="text-[10px] text-text-3/50 block mb-1">Browser network</label>
+            <label className="text-[10px] text-text-3 block mb-1">Browser network</label>
             <select
               defaultValue={config.browser?.network || 'bridge'}
               onChange={(e) => void update({ browser: { ...(config.browser || {}), network: e.target.value as 'none' | 'bridge' } })}
@@ -1474,7 +1474,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             </select>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-text-3/60">Headless browser</span>
+            <span className="text-[11px] text-text-3">Headless browser</span>
             <ToggleSwitch
               on={config.browser?.headless !== false}
               onChange={() => void update({ browser: { ...(config.browser || {}), headless: config.browser?.headless === false } })}
@@ -1482,7 +1482,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-text-3/60">Enable noVNC observer</span>
+            <span className="text-[11px] text-text-3">Enable noVNC observer</span>
             <ToggleSwitch
               on={config.browser?.enableNoVnc !== false}
               onChange={() => void update({ browser: { ...(config.browser || {}), enableNoVnc: config.browser?.enableNoVnc === false } })}
@@ -1490,7 +1490,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-text-3/60">Mount uploads into sandbox browser</span>
+            <span className="text-[11px] text-text-3">Mount uploads into sandbox browser</span>
             <ToggleSwitch
               on={config.browser?.mountUploads !== false}
               onChange={() => void update({ browser: { ...(config.browser || {}), mountUploads: config.browser?.mountUploads === false } })}

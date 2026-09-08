@@ -59,7 +59,7 @@ export function ScheduleList({ inSidebar }: Props) {
           </svg>
         </div>
         <p className="font-display text-[15px] font-600 text-text-2">No schedules yet</p>
-        <p className="text-[13px] text-text-3/50">Automate tasks with cron or intervals</p>
+        <p className="text-[13px] text-text-3">Automate tasks with cron or intervals</p>
         {!inSidebar && (
           <>
             <Button
@@ -70,7 +70,7 @@ export function ScheduleList({ inSidebar }: Props) {
               + New Schedule
             </Button>
             <div className="mt-6 w-full max-w-lg">
-              <p className="text-[12px] text-text-3/40 uppercase tracking-wider font-600 mb-3">Quick start</p>
+              <p className="text-[12px] text-text-3 uppercase tracking-wider font-600 mb-3">Quick start</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {featuredTemplates.map((tpl) => {
                   const IconComp = FEATURED_ICONS[tpl.icon] || FileText
@@ -96,7 +96,7 @@ export function ScheduleList({ inSidebar }: Props) {
                         <IconComp size={14} className="text-accent-bright" />
                       </div>
                       <span className="text-[12px] font-600 text-text-2">{tpl.name}</span>
-                      <span className="text-[11px] text-text-3/50 leading-[1.3]">{tpl.description}</span>
+                      <span className="text-[11px] text-text-3 leading-[1.3]">{tpl.description}</span>
                     </button>
                   )
                 })}

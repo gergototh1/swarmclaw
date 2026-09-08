@@ -276,7 +276,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
                   Deliver via connectors <HintTip text="Reports post to the selected connector channels. Leave empty to keep reports in-app only." />
                 </div>
                 {connectors.length === 0 ? (
-                  <div className="text-[11px] text-text-3/60">No connectors configured.</div>
+                  <div className="text-[11px] text-text-3">No connectors configured.</div>
                 ) : (
                   <div className="flex flex-col gap-1 max-h-[160px] overflow-y-auto">
                     {connectors.map((c) => (
@@ -287,7 +287,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
                           onChange={() => toggleConnector(c.id)}
                         />
                         <span className="font-600">{c.name}</span>
-                        <span className="text-text-3/60">({c.platform})</span>
+                        <span className="text-text-3">({c.platform})</span>
                       </label>
                     ))}
                   </div>

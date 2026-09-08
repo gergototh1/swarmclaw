@@ -217,7 +217,7 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-0">
         {loading && (
-          <div className="text-[11px] text-text-3/50 text-center py-8">Loading...</div>
+          <div className="text-[11px] text-text-3 text-center py-8">Loading...</div>
         )}
         {!loading && error && (
           <div className="text-center py-8 space-y-2">
@@ -231,7 +231,7 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
           </div>
         )}
         {!loading && !error && visibleMessages.length === 0 && !streaming && (
-          <div className="text-[11px] text-text-3/40 text-center py-8">
+          <div className="text-[11px] text-text-3 text-center py-8">
             Start a conversation with {agent.name}
           </div>
         )}
@@ -271,7 +271,7 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
           placeholder="Type a message..."
           disabled={loading || !!error || !sessionId}
-          className="flex-1 text-[12px] bg-layer-2 border border-line-subtle rounded-xs px-2.5 py-1.5 text-text placeholder:text-text-3/30 outline-none focus:border-accent-bright/30 transition-colors disabled:opacity-40"
+          className="flex-1 text-[12px] bg-layer-2 border border-line-subtle rounded-xs px-2.5 py-1.5 text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30 transition-colors disabled:opacity-40"
         />
         {streaming ? (
           <button

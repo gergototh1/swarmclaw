@@ -120,7 +120,7 @@ export function OrgChartNode({
               className="cursor-grab active:cursor-grabbing shrink-0 flex flex-col gap-[2px] py-1 px-0.5 rounded-xs hover:bg-layer-2 transition-colors"
               onPointerDown={(e) => { e.stopPropagation(); onDragHandlePointerDown?.(e) }}
             >
-              <svg width="6" height="10" viewBox="0 0 6 10" className="text-text-3/40">
+              <svg width="6" height="10" viewBox="0 0 6 10" className="text-text-3">
                 <circle cx="1.5" cy="1.5" r="1" fill="currentColor" />
                 <circle cx="4.5" cy="1.5" r="1" fill="currentColor" />
                 <circle cx="1.5" cy="5" r="1" fill="currentColor" />
@@ -139,7 +139,7 @@ export function OrgChartNode({
           <div className="flex-1 min-w-0">
             <div className="text-[12px] font-600 text-text truncate leading-tight">{agent.name}</div>
             {modelLabel && (
-              <div className="text-[9px] text-text-3/50 truncate leading-tight mt-0.5">{modelLabel}</div>
+              <div className="text-[9px] text-text-3 truncate leading-tight mt-0.5">{modelLabel}</div>
             )}
           </div>
           <span
@@ -161,7 +161,7 @@ export function OrgChartNode({
 
         {/* Row 2: Description */}
         {description && (
-          <div className="text-[10px] text-text-3/60 leading-snug mb-1.5 line-clamp-2">{description}</div>
+          <div className="text-[10px] text-text-3 leading-snug mb-1.5 line-clamp-2">{description}</div>
         )}
 
         {/* Row 3: Badges — role, team, children */}
@@ -187,10 +187,10 @@ export function OrgChartNode({
             </span>
           )}
           {childCount != null && childCount > 0 && (
-            <span className="text-[9px] font-500 text-text-3/60 px-1 py-0.5 rounded-xs bg-layer-2 leading-none">+{childCount}</span>
+            <span className="text-[9px] font-500 text-text-3 px-1 py-0.5 rounded-xs bg-layer-2 leading-none">+{childCount}</span>
           )}
           {providerLabel && (
-            <span className="text-[9px] text-text-3/40 px-1 py-0.5 leading-none">{providerLabel}</span>
+            <span className="text-[9px] text-text-3 px-1 py-0.5 leading-none">{providerLabel}</span>
           )}
         </div>
 
@@ -200,13 +200,13 @@ export function OrgChartNode({
             {tools.map((p) => (
               <span
                 key={p}
-                className="text-[8px] text-text-3/50 bg-layer-1 border border-line-subtle rounded-xs px-1 py-[1px] leading-none"
+                className="text-[8px] text-text-3 bg-layer-1 border border-line-subtle rounded-xs px-1 py-[1px] leading-none"
               >
                 {p}
               </span>
             ))}
             {(agent.tools || []).length > 4 && (
-              <span className="text-[8px] text-text-3/30 leading-none py-[1px]">+{(agent.tools || []).length - 4}</span>
+              <span className="text-[8px] text-text-3 leading-none py-[1px]">+{(agent.tools || []).length - 4}</span>
             )}
           </div>
         )}
@@ -228,7 +228,7 @@ export function OrgChartNode({
           <div className="text-[9px] text-amber-400/80 mt-0.5 truncate leading-tight">{activeTask}</div>
         )}
         {projectName && (
-          <div className="text-[9px] text-text-3/50 mt-0.5 truncate leading-tight">{projectName}</div>
+          <div className="text-[9px] text-text-3 mt-0.5 truncate leading-tight">{projectName}</div>
         )}
       </div>
 

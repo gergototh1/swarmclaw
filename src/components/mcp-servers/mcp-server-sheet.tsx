@@ -264,7 +264,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
     toast.success(`Prefilled from SwarmDock MCP Registry: ${prefill.sourceSlug}`)
   }
 
-  const inputClass = "w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
+  const inputClass = "w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
   const labelClass = "block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3"
 
   return (
@@ -492,7 +492,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
                                 <span className="text-[10px] font-mono text-text-3 shrink-0">{t.tokens.toLocaleString()} tok</span>
                               </div>
                               {t.description && (
-                                <p className="text-[12px] text-text-3/80 leading-[1.4] mt-0.5 line-clamp-2">{t.description}</p>
+                                <p className="text-[12px] text-text-3 leading-[1.4] mt-0.5 line-clamp-2">{t.description}</p>
                               )}
                             </div>
                           </label>

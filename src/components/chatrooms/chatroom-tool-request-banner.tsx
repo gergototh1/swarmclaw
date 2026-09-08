@@ -103,8 +103,8 @@ export function ChatroomToolRequestBanner({ agentId, agentName, text, toolOutput
               <p className="text-[12px] text-text-2 font-600">
                 <span className="text-accent-bright">{agentName}</span> requesting <span className="text-amber-400">{label}</span>
               </p>
-              {reason && <p className="text-[11px] text-text-3/60 mt-0.5 truncate">{reason}</p>}
-              <p className="text-[10px] text-text-3/45 mt-1">
+              {reason && <p className="text-[11px] text-text-3 mt-0.5 truncate">{reason}</p>}
+              <p className="text-[10px] text-text-3 mt-1">
                 Approving updates this agent&apos;s tool access and posts a follow-up continue message in the room.
               </p>
             </div>

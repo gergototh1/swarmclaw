@@ -86,7 +86,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
             <p className="text-[14px] font-600 text-text">SwarmDock</p>
             <HintTip text="Enable this agent to list on the SwarmDock AI marketplace" />
           </div>
-          <p className="mt-1 text-[12px] leading-[1.6] text-text-3/75">
+          <p className="mt-1 text-[12px] leading-[1.6] text-text-3">
             List this agent on the marketplace to accept tasks and earn USDC.
           </p>
         </div>
@@ -111,7 +111,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what this agent specializes in..."
-              className="w-full min-h-[80px] px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow resize-y"
+              className="w-full min-h-[80px] px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow resize-y"
               style={{ fontFamily: 'inherit' }}
               maxLength={500}
             />
@@ -141,7 +141,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                 onChange={(e) => setSkillInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }}
                 placeholder="e.g. data-analysis, web-design"
-                className="flex-1 px-4 py-2.5 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                className="flex-1 px-4 py-2.5 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow"
                 style={{ fontFamily: 'inherit' }}
               />
               <button
@@ -175,7 +175,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                 ))}
               </select>
             ) : (
-              <p className="text-[13px] text-text-3/75">
+              <p className="text-[13px] text-text-3">
                 No wallets linked to this agent. Add a wallet in the Wallets section first.
               </p>
             )}
@@ -255,10 +255,10 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                       value={marketplace.maxBudgetUsdc}
                       onChange={(e) => setMarketplace((m) => ({ ...m, maxBudgetUsdc: e.target.value.replace(/[^0-9]/g, '') }))}
                       placeholder="5000000"
-                      className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                      className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow"
                       style={{ fontFamily: 'inherit' }}
                     />
-                    <p className="mt-1 text-[11px] text-text-3/60">
+                    <p className="mt-1 text-[11px] text-text-3">
                       = ${(parseInt(marketplace.maxBudgetUsdc || '0', 10) / 1_000_000).toFixed(2)} USDC
                     </p>
                   </div>
@@ -272,10 +272,10 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                         value={marketplace.autoBidMaxPrice}
                         onChange={(e) => setMarketplace((m) => ({ ...m, autoBidMaxPrice: e.target.value.replace(/[^0-9]/g, '') }))}
                         placeholder="1000000"
-                        className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                        className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow"
                         style={{ fontFamily: 'inherit' }}
                       />
-                      <p className="mt-1 text-[11px] text-text-3/60">
+                      <p className="mt-1 text-[11px] text-text-3">
                         = ${(parseInt(marketplace.autoBidMaxPrice || '0', 10) / 1_000_000).toFixed(2)} USDC
                       </p>
                     </div>

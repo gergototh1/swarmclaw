@@ -197,7 +197,7 @@ export function TaskCard({
 
       {task.objective && (
         <div className="mb-3 rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
-          <span className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/68">Objective</span>
+          <span className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">Objective</span>
           <div className="text-[12px] font-600 text-text line-clamp-2 mt-1">{task.objective}</div>
         </div>
       )}
@@ -344,7 +344,7 @@ export function TaskCard({
         <span className="text-[11px] text-text-3">{timeAgo(task.updatedAt, now)}</span>
         {task.comments && task.comments.length > 0 && (
           <span className="flex items-center gap-1 text-[11px] text-text-3">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/60">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             {task.comments.length}

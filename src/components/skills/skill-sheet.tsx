@@ -164,7 +164,7 @@ export function SkillSheet() {
     }
   }
 
-  const inputClass = "w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
+  const inputClass = "w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
   const previewSecurity = metadataPreview?.security as SkillSecuritySummary | undefined
   const requirementCount = (metadataPreview?.skillRequirements?.env?.length || 0)
     + (metadataPreview?.skillRequirements?.bins?.length || 0)
@@ -227,7 +227,7 @@ export function SkillSheet() {
         <div className="mb-8 rounded-md border border-line-default bg-layer-1 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3/60">Skill Metadata</div>
+              <div className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3">Skill Metadata</div>
               <p className="mt-1 text-[13px] text-text-2">
                 {metadataPreview.version ? `v${metadataPreview.version}` : 'Unversioned'}
                 {metadataPreview.sourceFormat ? ` · ${metadataPreview.sourceFormat}` : ''}
@@ -248,7 +248,7 @@ export function SkillSheet() {
           </div>
 
           {(metadataPreview.primaryEnv || metadataPreview.homepage || metadataPreview.skillKey) && (
-            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-text-3/70">
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-text-3">
               {metadataPreview.primaryEnv && <span className="rounded-full border border-line-default px-2 py-1">Primary env: {metadataPreview.primaryEnv}</span>}
               {metadataPreview.skillKey && <span className="rounded-full border border-line-default px-2 py-1">Skill key: {metadataPreview.skillKey}</span>}
               {metadataPreview.homepage && <span className="rounded-full border border-line-default px-2 py-1">Homepage linked</span>}
@@ -258,11 +258,11 @@ export function SkillSheet() {
           {previewSecurity?.notes?.length ? (
             <div className="mt-3 space-y-1">
               {previewSecurity.notes.slice(0, 4).map((note) => (
-                <p key={note} className="text-[12px] text-text-3/75">- {note}</p>
+                <p key={note} className="text-[12px] text-text-3">- {note}</p>
               ))}
             </div>
           ) : (
-            <p className="mt-3 text-[12px] text-text-3/65">No obvious requirement or security signals were detected.</p>
+            <p className="mt-3 text-[12px] text-text-3">No obvious requirement or security signals were detected.</p>
           )}
         </div>
       )}
@@ -289,7 +289,7 @@ export function SkillSheet() {
           className={`${inputClass} resize-y min-h-[200px] font-mono text-[13px]`}
           style={{ fontFamily: 'inherit' }}
         />
-        <p className="text-[11px] text-text-3/70 mt-2">{content.length} characters</p>
+        <p className="text-[11px] text-text-3 mt-2">{content.length} characters</p>
       </div>
 
       <div className="mb-8">
@@ -308,7 +308,7 @@ export function SkillSheet() {
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-text-3/60 mt-1.5 pl-1">{scopeHelperText}</p>
+        <p className="text-[11px] text-text-3 mt-1.5 pl-1">{scopeHelperText}</p>
       </div>
 
       {scope === 'agent' && (

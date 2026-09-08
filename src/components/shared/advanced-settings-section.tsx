@@ -29,7 +29,7 @@ export function AdvancedSettingsSection({ open, onToggle, summary, badges = [], 
               </span>
             )}
           </div>
-          <p className="mt-1 text-[13px] leading-[1.6] text-text-3/75">
+          <p className="mt-1 text-[13px] leading-[1.6] text-text-3">
             Power-user controls for routing, runtime behavior, and expert overrides.
           </p>
           {badges.length > 0 && (

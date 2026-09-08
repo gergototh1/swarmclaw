@@ -49,15 +49,15 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
           </svg>
         )}
         <span className="font-display text-[13px] font-600 truncate flex-1 tracking-[-0.01em]">{entry.title}</span>
-        <span className="text-[10px] text-text-3/60 shrink-0 tabular-nums font-mono">
+        <span className="text-[10px] text-text-3 shrink-0 tabular-nums font-mono">
           {timeAgoShort(entry.updatedAt || entry.createdAt, now)}
         </span>
       </div>
-      <div className="text-[12px] text-text-2/40 mt-1 line-clamp-3 leading-relaxed">
+      <div className="text-[12px] text-text-2 mt-1 line-clamp-3 leading-relaxed">
         {entry.content || '(empty)'}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.08em] bg-layer-2 text-text-3/75">
+        <span className="px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.08em] bg-layer-2 text-text-3">
           {getMemoryScopeLabel(scope)}
         </span>
         <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.08em] ${
@@ -85,7 +85,7 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
         </div>
       )}
       {(entry.references?.length || entry.linkedMemoryIds?.length || entry.image?.path || entry.imagePath) && (
-        <div className="flex items-center gap-2 mt-1.5 text-[10px] text-text-3/35">
+        <div className="flex items-center gap-2 mt-1.5 text-[10px] text-text-3">
           {entry.references?.length ? <span>{entry.references.length} ref{entry.references.length === 1 ? '' : 's'}</span> : null}
           {entry.linkedMemoryIds?.length ? <span>{entry.linkedMemoryIds.length} linked</span> : null}
           {(entry.image?.path || entry.imagePath) ? <span>image</span> : null}
@@ -94,15 +94,15 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
       {agentName ? (
         <div className="flex items-center gap-1.5 mt-1.5">
           <AgentAvatar seed={agentAvatarSeed || null} avatarUrl={agentAvatarUrl} name={agentName} size={16} />
-          <span className="text-[10px] text-text-3/60 truncate">{agentName}</span>
+          <span className="text-[10px] text-text-3 truncate">{agentName}</span>
         </div>
       ) : !entry.agentId ? (
         <div className="flex items-center gap-1 mt-1.5">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/50">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3">
             <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
           </svg>
-          <span className="text-[10px] text-text-3/50">Global</span>
+          <span className="text-[10px] text-text-3">Global</span>
         </div>
       ) : null}
     </div>

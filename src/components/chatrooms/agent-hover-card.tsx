@@ -64,7 +64,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
         {/* Tools toggles */}
         <div className="mt-2">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-600 text-text-3/60 uppercase tracking-wider">Tools</span>
+            <span className="text-[10px] font-600 text-text-3 uppercase tracking-wider">Tools</span>
             <button
               onClick={() => setShowAll(!showAll)}
               className="text-[10px] text-accent-bright/70 hover:text-accent-bright font-500 bg-transparent border-none cursor-pointer"
@@ -74,7 +74,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
           </div>
           <div className="max-h-[200px] overflow-y-auto -mx-1 px-1">
             {displayTools.length === 0 && (
-              <p className="text-[11px] text-text-3/50 py-1">No tools enabled</p>
+              <p className="text-[11px] text-text-3 py-1">No tools enabled</p>
             )}
             {displayTools.map((toolId) => {
               const enabled = tools.includes(toolId)

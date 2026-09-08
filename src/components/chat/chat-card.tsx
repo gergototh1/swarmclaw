@@ -149,7 +149,7 @@ export function ChatCard({ session, active, onClick }: Props) {
           </span>
         )}
         {providerLabel && (
-          <span className="shrink-0 text-[10px] font-600 uppercase tracking-wider text-text-3/70 bg-layer-1 px-2 py-0.5 rounded-xs">
+          <span className="shrink-0 text-[10px] font-600 uppercase tracking-wider text-text-3 bg-layer-1 px-2 py-0.5 rounded-xs">
             {providerLabel}
           </span>
         )}
@@ -162,7 +162,7 @@ export function ChatCard({ session, active, onClick }: Props) {
             </span>
           ) : null
         })()}
-        <span className="text-[11px] text-text-3/70 shrink-0 tabular-nums font-mono">
+        <span className="text-[11px] text-text-3 shrink-0 tabular-nums font-mono">
           {timeAgoShort(session.lastActiveAt, now)}
         </span>
         <button
@@ -176,7 +176,7 @@ export function ChatCard({ session, active, onClick }: Props) {
           </svg>
         </button>
       </div>
-      <div className="text-[12px] text-text-3/70 font-mono mt-1.5 truncate">
+      <div className="text-[12px] text-text-3 font-mono mt-1.5 truncate">
         {shortPath(session.cwd)}
       </div>
       {isTyping ? (
@@ -203,7 +203,7 @@ export function ChatCard({ session, active, onClick }: Props) {
           {queuedCount} queued {queuedCount === 1 ? 'message' : 'messages'} waiting
         </div>
       ) : (
-        <div className="text-[13px] text-text-2/50 truncate mt-1 leading-relaxed">{preview}</div>
+        <div className="text-[13px] text-text-2 truncate mt-1 leading-relaxed">{preview}</div>
       )}
       </div>
       <ConfirmDialog

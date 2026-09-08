@@ -490,7 +490,7 @@ export function StepAgents({
                       onChange={(soul) => onUpdateDraft(draft.id, { soul })}
                     />
                     {matchedProvider?.setupProvider === 'openclaw' && (
-                      <p className="mt-1.5 ml-1 text-[11px] text-text-3/70">
+                      <p className="mt-1.5 ml-1 text-[11px] text-text-3">
                         Synced to the gateway as SOUL.md on save.
                       </p>
                     )}

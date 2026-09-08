@@ -8,9 +8,9 @@ import type { Agent } from '@/types'
 function SnapshotItem({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
     <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
-      <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">{label}</div>
+      <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">{label}</div>
       <div className="mt-2 text-[24px] font-display font-700 tracking-[-0.03em] text-text">{value}</div>
-      <div className="mt-1 text-[12px] leading-relaxed text-text-3/68">{hint}</div>
+      <div className="mt-1 text-[12px] leading-relaxed text-text-3">{hint}</div>
     </div>
   )
 }
@@ -34,9 +34,9 @@ function PathCard({
 }) {
   return (
     <div className="flex min-h-[220px] flex-col rounded-lg border border-line-default bg-layer-1 p-5">
-      <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">{kicker}</div>
+      <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">{kicker}</div>
       <div className="mt-3 text-[18px] font-display font-700 tracking-normal text-text">{title}</div>
-      <p className="mt-2 flex-1 text-[13px] leading-relaxed text-text-3/72">{description}</p>
+      <p className="mt-2 flex-1 text-[13px] leading-relaxed text-text-3">{description}</p>
       <div className="mt-5 flex flex-wrap gap-2">
         <button
           type="button"
@@ -103,7 +103,7 @@ export function HomeLaunchpad({
   return (
     <div className="max-w-[980px] mx-auto px-6 py-10">
       <div className="rounded-lg border border-line-subtle bg-layer-1 p-6">
-        <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.16em] text-text-3/70">
+        <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.16em] text-text-3">
           Mission Command
         </div>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -111,12 +111,12 @@ export function HomeLaunchpad({
             <h1 className="font-display text-[34px] font-700 tracking-normal text-text">
               Pick a path and watch the workspace move.
             </h1>
-            <p className="mt-3 text-[15px] leading-relaxed text-text-3/72">
+            <p className="mt-3 text-[15px] leading-relaxed text-text-3">
               Start with a local assistant, a reusable workflow, or a budgeted autonomous mission. The rest of the control plane stays one click away.
             </p>
           </div>
           <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 min-w-[240px]">
-            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Workspace Anchor</div>
+            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Workspace Anchor</div>
             <div className="mt-3 flex items-center gap-3">
               {firstAgent ? (
                 <>
@@ -128,13 +128,13 @@ export function HomeLaunchpad({
                   />
                   <div>
                     <div className="text-[14px] font-display font-700 text-text">{firstAgent.name}</div>
-                    <div className="text-[12px] text-text-3/70">
+                    <div className="text-[12px] text-text-3">
                       {firstAgent.model ? firstAgent.model.split('/').pop()?.split(':')[0] : firstAgent.provider}
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="text-[13px] leading-relaxed text-text-3/72">
+                <div className="text-[13px] leading-relaxed text-text-3">
                   No agents yet. Start by creating one or use the workflow tools first.
                 </div>
               )}
@@ -178,8 +178,8 @@ export function HomeLaunchpad({
       <div className="mt-6 rounded-lg border border-line-subtle bg-layer-1 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Mission starters</div>
-            <p className="mt-1 max-w-[620px] text-[12px] leading-relaxed text-text-3/68">
+            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Mission starters</div>
+            <p className="mt-1 max-w-[620px] text-[12px] leading-relaxed text-text-3">
               Jump directly into the workflows that produce reusable evidence and shareable reports.
             </p>
           </div>

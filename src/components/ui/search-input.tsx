@@ -24,7 +24,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           type="text"
           value={value}
           className={cn(
-            'w-full border bg-surface text-text outline-none transition-all duration-200 placeholder:text-text-3/70 focus-glow',
+            'w-full border bg-surface text-text outline-none transition-all duration-200 placeholder:text-text-3 focus-glow',
             SIZE_CLASSES[size],
           )}
           style={{ fontFamily: 'inherit' }}

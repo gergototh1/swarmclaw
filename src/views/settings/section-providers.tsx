@@ -69,7 +69,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
                         : p.requiresEndpoint ? 'Local' : 'Built-in'}
                   </span>
                 </div>
-                <div className="text-[13px] text-text-2/50 font-mono">
+                <div className="text-[13px] text-text-2 font-mono">
                   {p.models.slice(0, 3).join(', ')}
                   {p.models.length > 3 && ` +${p.models.length - 3} more`}
                 </div>
@@ -123,7 +123,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
                 )}
 
                 {p.requiresEndpoint && (
-                  <div className="mt-5 text-[13px] text-text-3/50 font-mono">
+                  <div className="mt-5 text-[13px] text-text-3 font-mono">
                     Endpoint: {(p as any).defaultEndpoint || 'http://localhost:11434'}
                   </div>
                 )}

@@ -62,7 +62,7 @@ export function PageLoader({ label }: { label?: string }) {
 
       {/* Optional label */}
       {label && (
-        <p className="mt-3 text-[12px] text-text-3/60">{label}</p>
+        <p className="mt-3 text-[12px] text-text-3">{label}</p>
       )}
     </div>
   )

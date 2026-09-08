@@ -47,7 +47,7 @@ export function ChatroomPickerList({
               <span className={`text-[13px] font-600 block truncate ${active ? 'text-accent-bright' : 'text-text-2'}`}>
                 {cr.name}
               </span>
-              <span className="text-[11px] text-text-3/60 block truncate">
+              <span className="text-[11px] text-text-3 block truncate">
                 {cr.agentIds.length} agent{cr.agentIds.length !== 1 ? 's' : ''}
                 {cr.chatMode === 'parallel' ? ' · parallel' : ' · sequential'}
               </span>

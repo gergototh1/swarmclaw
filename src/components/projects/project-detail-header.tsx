@@ -62,7 +62,7 @@ export function ProjectDetailHeader({ project, failedCount, blockedCount, creden
           </h1>
           <button
             onClick={() => { setEditingProjectId(project.id); setProjectSheetOpen(true) }}
-            className="shrink-0 p-1.5 rounded-sm hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none text-text-3/50 hover:text-text-2"
+            className="shrink-0 p-1.5 rounded-sm hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none text-text-3 hover:text-text-2"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
@@ -70,16 +70,16 @@ export function ProjectDetailHeader({ project, failedCount, blockedCount, creden
           </button>
         </div>
         {project.description && (
-          <p className="text-[13px] text-text-3/60 mt-1.5 truncate">{project.description}</p>
+          <p className="text-[13px] text-text-3 mt-1.5 truncate">{project.description}</p>
         )}
         {/* Compact stat bar */}
-        <div className="flex items-center gap-1.5 mt-2.5 text-[11px] text-text-3/50">
+        <div className="flex items-center gap-1.5 mt-2.5 text-[11px] text-text-3">
           <span>{projectAgentCount} agent{projectAgentCount !== 1 ? 's' : ''}</span>
-          <span className="text-text-3/20">&middot;</span>
+          <span className="text-text-3">&middot;</span>
           <span>{totalTasks} task{totalTasks !== 1 ? 's' : ''}</span>
-          <span className="text-text-3/20">&middot;</span>
+          <span className="text-text-3">&middot;</span>
           <span>{completedTasks} completed</span>
-          <span className="text-text-3/20">&middot;</span>
+          <span className="text-text-3">&middot;</span>
           <span className={progressPct === 100 ? 'text-emerald-400' : ''}>{progressPct}%</span>
         </div>
       </div>

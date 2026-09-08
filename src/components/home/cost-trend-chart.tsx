@@ -10,7 +10,7 @@ interface Props {
 export default function CostTrendChart({ costTrend }: Props) {
   return (
     <div className="mb-10 px-1" style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
-      <p className="text-[10px] text-text-3/50 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+      <p className="text-[10px] text-text-3 uppercase tracking-wider mb-1 flex items-center gap-1.5">
         7-day cost trend <HintTip text="Daily API spend over the past week — hover for details" />
       </p>
       <ResponsiveContainer width="100%" height={60}>
@@ -30,7 +30,7 @@ export default function CostTrendChart({ costTrend }: Props) {
                 : ''
               return (
                 <div className="rounded-sm bg-surface border border-line-default px-3 py-2 shadow-lg">
-                  <p className="text-[11px] text-text-3/70 m-0">{label}</p>
+                  <p className="text-[11px] text-text-3 m-0">{label}</p>
                   <p className="text-[14px] font-600 text-text m-0 mt-0.5">${d.cost.toFixed(4)}</p>
                 </div>
               )

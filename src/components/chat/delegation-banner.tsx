@@ -261,7 +261,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
       <div className="px-4 py-3 flex flex-col gap-2.5">
         {/* Task title */}
         <div className="flex items-start gap-2">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-0.5 text-text-3/50">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-0.5 text-text-3">
             <path d="M9 11l3 3L22 4" />
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
@@ -281,7 +281,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
         {/* Working directory */}
         {info.workingDir && (
           <div className="flex items-center gap-2">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3/40">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
             <button
@@ -298,17 +298,17 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
         {/* Resume info */}
         {info.resumeInfo && (
           <div className="flex items-center gap-2">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3/40">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3">
               <polyline points="4 17 10 11 4 5" />
               <line x1="12" y1="19" x2="20" y2="19" />
             </svg>
-            <span className="text-[11px] text-text-3/60 font-mono truncate">{info.resumeInfo}</span>
+            <span className="text-[11px] text-text-3 font-mono truncate">{info.resumeInfo}</span>
           </div>
         )}
 
         {info.outputFiles.length > 0 && (
           <div className="flex flex-col gap-1">
-            <span className="text-[11px] text-text-3/55">Output files</span>
+            <span className="text-[11px] text-text-3">Output files</span>
             <div className="flex flex-wrap gap-1.5">
               {info.outputFiles.map((fileRef) => {
                 const openPath = info.workingDir && !fileRef.startsWith('/') && !fileRef.startsWith('~/')
@@ -332,7 +332,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
 
         {info.reportPath && (
           <div className="flex items-center gap-2">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3/40">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
             </svg>
@@ -365,7 +365,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
         {info.resultBody && (
           <div className="mt-0.5">
             <div className="rounded-sm bg-layer-1 border border-line-subtle px-3 py-2.5 max-h-[260px] overflow-y-auto">
-              <div className="text-[12px] leading-[1.6] text-text-3/80 break-words">
+              <div className="text-[12px] leading-[1.6] text-text-3 break-words">
                 <ReactMarkdown
                   components={{
                     a: ({ href, children }) => (

@@ -43,16 +43,16 @@ export function SandboxEnvPanel() {
     }
   }
 
-  if (loading) return <div className="text-[12px] text-text-3/50 py-2">Loading env keys...</div>
+  if (loading) return <div className="text-[12px] text-text-3 py-2">Loading env keys...</div>
 
   if (!available.length) {
-    return <div className="text-[12px] text-text-3/50 py-2">No .env keys found on gateway.</div>
+    return <div className="text-[12px] text-text-3 py-2">No .env keys found on gateway.</div>
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="block text-[11px] font-600 uppercase tracking-wider text-text-3/50">OpenClaw Sandbox Env Allowlist</label>
-      <p className="text-[12px] text-text-3/50">
+      <label className="block text-[11px] font-600 uppercase tracking-wider text-text-3">OpenClaw Sandbox Env Allowlist</label>
+      <p className="text-[12px] text-text-3">
         Applies to OpenClaw gateway Docker sandboxes only. SwarmClaw local agents use the per-agent sandbox settings in the inspector.
       </p>
       <div className="flex flex-col gap-1">

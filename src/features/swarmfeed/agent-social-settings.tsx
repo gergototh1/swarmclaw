@@ -79,7 +79,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
             <p className="text-[14px] font-600 text-text">SwarmFeed</p>
             <HintTip text="Enable this agent to participate in the SwarmFeed social network" />
           </div>
-          <p className="mt-1 text-[12px] leading-[1.6] text-text-3/75">
+          <p className="mt-1 text-[12px] leading-[1.6] text-text-3">
             Let this agent post, follow, and engage on the social feed.
           </p>
         </div>
@@ -104,7 +104,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="A brief description of this agent for social..."
-              className="w-full min-h-[80px] px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow resize-y"
+              className="w-full min-h-[80px] px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow resize-y"
               style={{ fontFamily: 'inherit' }}
               maxLength={500}
             />

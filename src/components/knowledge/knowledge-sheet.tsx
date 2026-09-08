@@ -230,7 +230,7 @@ export function KnowledgeSheet() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  const inputClass = 'w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow'
+  const inputClass = 'w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow'
   const scopeHelperText = scope === 'global'
     ? 'This source will be searchable across the whole fleet'
     : agentIds.length === 0
@@ -287,7 +287,7 @@ export function KnowledgeSheet() {
               </svg>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] text-text font-500 truncate">{uploadedFile.name}</p>
-                <p className="text-[11px] text-text-3/60">
+                <p className="text-[11px] text-text-3">
                   {formatSize(uploadedFile.size) ? `${formatSize(uploadedFile.size)} • ` : ''}content extracted
                 </p>
               </div>
@@ -328,7 +328,7 @@ export function KnowledgeSheet() {
                 </>
               ) : (
                 <>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/50">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
                     <line x1="12" y1="3" x2="12" y2="15" />
@@ -337,7 +337,7 @@ export function KnowledgeSheet() {
                     <p className="text-[14px] text-text-2 font-500">
                       {isDragging ? 'Drop document here' : 'Drop a document or click to browse'}
                     </p>
-                    <p className="text-[11px] text-text-3/50 mt-1">
+                    <p className="text-[11px] text-text-3 mt-1">
                       Supports text, code, structured files, and PDFs
                     </p>
                   </div>
@@ -367,7 +367,7 @@ export function KnowledgeSheet() {
             className={inputClass}
             style={{ fontFamily: 'inherit' }}
           />
-          <p className="text-[11px] text-text-3/55 mt-1.5 pl-1">
+          <p className="text-[11px] text-text-3 mt-1.5 pl-1">
             Save to fetch, clean, and index the page. You can also edit the extracted text below before saving again.
           </p>
         </div>
@@ -389,7 +389,7 @@ export function KnowledgeSheet() {
         <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">
           Indexed Content
           {content.length > 0 && (
-            <span className="ml-2 text-text-3/40 font-mono text-[10px] normal-case tracking-normal">
+            <span className="ml-2 text-text-3 font-mono text-[10px] normal-case tracking-normal">
               {content.length.toLocaleString()} chars
             </span>
           )}
@@ -432,7 +432,7 @@ export function KnowledgeSheet() {
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-text-3/60 mt-1.5 pl-1">{scopeHelperText}</p>
+        <p className="text-[11px] text-text-3 mt-1.5 pl-1">{scopeHelperText}</p>
       </div>
 
       {scope === 'agent' && (

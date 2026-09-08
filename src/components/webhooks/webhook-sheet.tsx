@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 type WebhookApiResponse = Webhook | { error: string }
 type DeleteWebhookResponse = { ok: boolean } | { error: string }
 
-const inputClass = 'w-full px-4 py-3 rounded-md bg-bg border border-line-subtle text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3/70'
+const inputClass = 'w-full px-4 py-3 rounded-md bg-bg border border-line-subtle text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3'
 
 function webhookPath(id: string): string {
   return `/api/webhooks/${id}`
@@ -219,7 +219,7 @@ export function WebhookSheet() {
             {historyLoading ? (
               <div className="text-center py-8 text-[13px] text-text-3">Loading history...</div>
             ) : history.length === 0 ? (
-              <div className="text-center py-8 text-[13px] text-text-3/60">No webhook invocations yet</div>
+              <div className="text-center py-8 text-[13px] text-text-3">No webhook invocations yet</div>
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {history.map((entry) => (
@@ -230,8 +230,8 @@ export function WebhookSheet() {
                       }`}>
                         {entry.status}
                       </span>
-                      <span className="text-[11px] text-text-3/60 font-mono">{entry.event}</span>
-                      <span className="text-[10px] text-text-3/40 ml-auto">
+                      <span className="text-[11px] text-text-3 font-mono">{entry.event}</span>
+                      <span className="text-[10px] text-text-3 ml-auto">
                         {new Date(entry.timestamp).toLocaleString()}
                       </span>
                     </div>
@@ -239,7 +239,7 @@ export function WebhookSheet() {
                       <div className="text-[11px] text-red-300/80 mt-1">{entry.error}</div>
                     )}
                     {entry.sessionId && (
-                      <div className="text-[10px] text-text-3/50 mt-1 font-mono">Chat: {entry.sessionId}</div>
+                      <div className="text-[10px] text-text-3 mt-1 font-mono">Chat: {entry.sessionId}</div>
                     )}
                   </div>
                 ))}
@@ -271,7 +271,7 @@ export function WebhookSheet() {
                 {copied === 'endpoint' ? 'Copied' : 'Copy'}
               </button>
             </div>
-            <p className="mt-2 text-[11px] text-text-3/70">
+            <p className="mt-2 text-[11px] text-text-3">
               POST JSON payloads to this URL. Include <code className="font-mono">x-webhook-secret</code> if a secret is set.
             </p>
           </div>
@@ -319,7 +319,7 @@ export function WebhookSheet() {
 
         <div>
           <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">
-            Events <span className="normal-case tracking-normal font-normal text-text-3/70">(optional)</span>
+            Events <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
           </label>
           <textarea
             value={eventsText}
@@ -329,12 +329,12 @@ export function WebhookSheet() {
             className={`${inputClass} resize-y min-h-[86px] font-mono text-[12px]`}
             style={{ fontFamily: 'inherit' }}
           />
-          <p className="mt-1.5 text-[11px] text-text-3/70">Leave blank for all events. Use commas or new lines. Use <code>*</code> to match all.</p>
+          <p className="mt-1.5 text-[11px] text-text-3">Leave blank for all events. Use commas or new lines. Use <code>*</code> to match all.</p>
         </div>
 
         <div>
           <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">
-            Secret <span className="normal-case tracking-normal font-normal text-text-3/70">(optional but recommended)</span>
+            Secret <span className="normal-case tracking-normal font-normal text-text-3">(optional but recommended)</span>
           </label>
           <div className="flex gap-2">
             <input

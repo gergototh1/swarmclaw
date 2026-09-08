@@ -112,8 +112,8 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
   if (message.senderId === 'system') {
     return (
       <div className="flex justify-center py-1.5 px-4">
-        <span className="text-[11px] text-text-3/50 font-500 flex items-center gap-1.5">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/40">
+        <span className="text-[11px] text-text-3 font-500 flex items-center gap-1.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3">
             {message.text.includes('left') ? (
               <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></>
             ) : (

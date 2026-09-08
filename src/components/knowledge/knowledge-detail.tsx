@@ -213,17 +213,17 @@ export function KnowledgeDetail() {
               </div>
 
               {source.topSnippet && (
-                <p className="text-[14px] text-text-3/75 max-w-[720px] leading-relaxed">{source.topSnippet}</p>
+                <p className="text-[14px] text-text-3 max-w-[720px] leading-relaxed">{source.topSnippet}</p>
               )}
 
               <div className="flex items-center gap-2 mt-3 flex-wrap">
                 <span className={`text-[11px] font-600 ${source.scope === 'global' ? 'text-emerald-400' : 'text-amber-400'}`}>
                   {source.scope === 'global' ? 'Global access' : `${source.agentIds.length} agent(s)`}
                 </span>
-                <span className="text-[11px] text-text-3/55">
+                <span className="text-[11px] text-text-3">
                   {source.chunkCount} chunk{source.chunkCount === 1 ? '' : 's'}
                 </span>
-                <span className="text-[11px] text-text-3/55">
+                <span className="text-[11px] text-text-3">
                   {source.contentLength.toLocaleString()} chars
                 </span>
               </div>
@@ -250,7 +250,7 @@ export function KnowledgeDetail() {
                       />
                     ))}
                   </div>
-                  <span className="text-[11px] text-text-3/60">
+                  <span className="text-[11px] text-text-3">
                     {scopedAgents.map((agent) => agent.name).join(', ')}
                   </span>
                 </div>
@@ -305,7 +305,7 @@ export function KnowledgeDetail() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
             <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
-              <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55 mb-1">Source</p>
+              <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3 mb-1">Source</p>
               <p className="text-[13px] text-text-2">{source.sourceLabel || 'Manual note'}</p>
               {source.sourceUrl && (
                 <a href={source.sourceUrl} target="_blank" rel="noreferrer" className="text-[12px] text-accent-bright hover:underline break-all">
@@ -313,22 +313,22 @@ export function KnowledgeDetail() {
                 </a>
               )}
               {source.sourcePath && (
-                <p className="text-[12px] text-text-3/65 break-all mt-1">{source.sourcePath}</p>
+                <p className="text-[12px] text-text-3 break-all mt-1">{source.sourcePath}</p>
               )}
             </div>
 
             <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
-              <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55 mb-1">Indexing</p>
+              <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3 mb-1">Indexing</p>
               <p className="text-[12px] text-text-2">Last indexed: {formatDateTime(source.lastIndexedAt)}</p>
-              <p className="text-[12px] text-text-3/70 mt-1">Last sync: {formatDateTime(source.lastSyncedAt)}</p>
+              <p className="text-[12px] text-text-3 mt-1">Last sync: {formatDateTime(source.lastSyncedAt)}</p>
               {source.maintenanceUpdatedAt ? (
-                <p className="text-[12px] text-text-3/70 mt-1">Last maintenance: {formatDateTime(source.maintenanceUpdatedAt)}</p>
+                <p className="text-[12px] text-text-3 mt-1">Last maintenance: {formatDateTime(source.maintenanceUpdatedAt)}</p>
               ) : null}
               {source.maintenanceNotes ? (
-                <p className="text-[12px] text-text-3/70 mt-1">{source.maintenanceNotes}</p>
+                <p className="text-[12px] text-text-3 mt-1">{source.maintenanceNotes}</p>
               ) : null}
               {source.archivedReason ? (
-                <p className="text-[12px] text-text-3/70 mt-1">Archive reason: {source.archivedReason}</p>
+                <p className="text-[12px] text-text-3 mt-1">Archive reason: {source.archivedReason}</p>
               ) : null}
               {source.lastError && (
                 <p className="text-[12px] text-red-200 mt-2">{source.lastError}</p>
@@ -337,7 +337,7 @@ export function KnowledgeDetail() {
           </div>
 
           <div className="mt-4 rounded-md border border-line-subtle bg-layer-1 p-4">
-            <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55 mb-2">Supersede Source</p>
+            <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3 mb-2">Supersede Source</p>
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <input
                 value={supersedeTargetId}
@@ -355,7 +355,7 @@ export function KnowledgeDetail() {
               </button>
             </div>
             {source.supersededBySourceId && (
-              <p className="mt-2 text-[12px] text-text-3/70">Superseded by {source.supersededBySourceId}</p>
+              <p className="mt-2 text-[12px] text-text-3">Superseded by {source.supersededBySourceId}</p>
             )}
           </div>
         </div>
@@ -363,7 +363,7 @@ export function KnowledgeDetail() {
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-display text-[16px] font-600 text-text-2 tracking-[-0.02em]">Indexed Chunks</h2>
-            <span className="text-[11px] text-text-3/55">{chunks.length} result{chunks.length === 1 ? '' : 's'}</span>
+            <span className="text-[11px] text-text-3">{chunks.length} result{chunks.length === 1 ? '' : 's'}</span>
           </div>
 
           {chunks.map((chunk) => {
@@ -380,18 +380,18 @@ export function KnowledgeDetail() {
               <div key={chunk.id} className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div>
-                    <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3/55">
+                    <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3">
                       Chunk {chunkIndex + 1} of {chunkCount}
                     </p>
                     <h3 className="font-display text-[15px] font-600 text-text-2 mt-1">
                       {sectionLabel || chunk.title || source.title}
                     </h3>
                   </div>
-                  <span className="text-[11px] text-text-3/55 font-mono">
+                  <span className="text-[11px] text-text-3 font-mono">
                     {charStart.toLocaleString()}-{charEnd.toLocaleString()}
                   </span>
                 </div>
-                <p className="text-[13px] text-text-2/85 whitespace-pre-wrap break-words leading-relaxed">{chunk.content}</p>
+                <p className="text-[13px] text-text-2 whitespace-pre-wrap break-words leading-relaxed">{chunk.content}</p>
               </div>
             )
           })}

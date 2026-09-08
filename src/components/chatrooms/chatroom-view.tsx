@@ -392,7 +392,7 @@ export function ChatroomView() {
                   {linkedRun.status}
                 </span>
               )}
-              <span className="px-1.5 py-0.5 rounded-xs bg-layer-2 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+              <span className="px-1.5 py-0.5 rounded-xs bg-layer-2 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
                 {isStructuredSessionRoom ? 'Structured Session' : chatroom.chatMode === 'parallel' ? 'Parallel' : 'Sequential'}
               </span>
               {!isStructuredSessionRoom && (
@@ -528,7 +528,7 @@ export function ChatroomView() {
               <span className="font-700 uppercase tracking-[0.08em] text-sky-200/72">Watching Live Room</span>
               {linkedRun?.title && <span className="text-text-2">· {linkedRun.title}</span>}
             </div>
-            <div className="mt-1 text-[12px] text-text-3/72">
+            <div className="mt-1 text-[12px] text-text-3">
               This temporary room mirrors the active structured session. Use Inject Context to steer the run without turning this room into a normal free-form chat.
             </div>
           </div>
@@ -576,7 +576,7 @@ export function ChatroomView() {
               <div className="flex items-center justify-center h-full px-6">
                 <div className="text-center">
                   <p className="text-[13px] text-text-3 mb-1">No messages yet</p>
-                  <p className="text-[12px] text-text-3/60">Use @AgentName to mention specific agents, or @all for everyone</p>
+                  <p className="text-[12px] text-text-3">Use @AgentName to mention specific agents, or @all for everyone</p>
                 </div>
               </div>
             ) : (
@@ -654,7 +654,7 @@ export function ChatroomView() {
         </div>
 
         {isStructuredSessionRoom && (
-          <div className="border-t border-line-subtle bg-layer-1 px-4 py-2.5 text-[12px] text-text-3/68">
+          <div className="border-t border-line-subtle bg-layer-1 px-4 py-2.5 text-[12px] text-text-3">
             Live rooms are watch-first. To steer the session, use <span className="font-700 text-text-2">Inject Context</span> instead of sending a normal room message.
           </div>
         )}
@@ -726,29 +726,29 @@ export function ChatroomView() {
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
                 <div className="text-[16px] font-display font-700 text-text">{inspectedMessages.length}</div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3/50">Messages</div>
+                <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3">Messages</div>
               </div>
               <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
                 <div className="text-[16px] font-display font-700 text-sky-300">{inspectedExecLogs.length}</div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3/50">Events</div>
+                <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3">Events</div>
               </div>
               <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
                 <div className="text-[12px] font-mono text-text-2 truncate" title={inspectedSessionId || undefined}>
                   {inspectedSessionId || '—'}
                 </div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3/50">Session ID</div>
+                <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3">Session ID</div>
               </div>
             </div>
 
             <section>
-              <h4 className="mb-2 text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Recent Messages</h4>
+              <h4 className="mb-2 text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Recent Messages</h4>
               <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-md border border-line-subtle bg-layer-1 p-3">
                 {inspectedMessages.length === 0 ? (
                   <p className="text-[12px] text-text-3">No messages yet for this session.</p>
                 ) : (
                   inspectedMessages.slice(-12).map((message, index) => (
                     <div key={`${message.time}-${message.role}-${index}`} className="rounded-sm border border-line-subtle bg-black/20 px-3 py-2">
-                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.08em] text-text-3/60">
+                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.08em] text-text-3">
                         <span>{message.role}</span>
                         <span>·</span>
                         <span>{new Date(message.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -763,7 +763,7 @@ export function ChatroomView() {
             </section>
 
             <section>
-              <h4 className="mb-2 text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Execution Log</h4>
+              <h4 className="mb-2 text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Execution Log</h4>
               <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-md border border-line-subtle bg-layer-1 p-3">
                 {inspectedExecLogs.length === 0 ? (
                   <p className="text-[12px] text-text-3">No execution log entries yet.</p>
@@ -773,7 +773,7 @@ export function ChatroomView() {
                     .sort((a, b) => b.ts - a.ts)
                     .map((entry) => (
                       <div key={entry.id} className="rounded-sm border border-line-subtle bg-black/20 px-3 py-2">
-                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.08em] text-text-3/60">
+                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.08em] text-text-3">
                           <span>{entry.category}</span>
                           <span>·</span>
                           <span>{new Date(entry.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -821,7 +821,7 @@ export function ChatroomView() {
           onChange={(event) => setInjectContext(event.target.value)}
           rows={5}
           placeholder="Add a correction, tighter constraint, or something the session should focus on next."
-          className="w-full rounded-md border border-line-subtle bg-layer-2 px-4 py-3 text-[14px] leading-relaxed text-text outline-none placeholder:text-text-3/35"
+          className="w-full rounded-md border border-line-subtle bg-layer-2 px-4 py-3 text-[14px] leading-relaxed text-text outline-none placeholder:text-text-3"
         />
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           <button
@@ -873,7 +873,7 @@ function RoomDetailsPanel({
   return (
     <div className={`flex flex-col ${compact ? 'gap-5' : 'h-full'}`}>
       <div className={compact ? '' : 'border-b border-line-subtle px-4 py-4'}>
-        <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Room Status</h3>
+        <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Room Status</h3>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {[
             { label: 'Members', value: String(memberAgents.length), tone: 'text-text' },
@@ -883,11 +883,11 @@ function RoomDetailsPanel({
           ].map((item) => (
             <div key={item.label} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
               <div className={`text-[18px] font-display font-700 tracking-[-0.02em] ${item.tone}`}>{item.value}</div>
-              <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3/50">{item.label}</div>
+              <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3">{item.label}</div>
             </div>
           ))}
         </div>
-        <div className="mt-3 space-y-1 text-[11px] text-text-3/65">
+        <div className="mt-3 space-y-1 text-[11px] text-text-3">
           <div>Mode: {chatroom.chatMode === 'parallel' ? 'Parallel replies' : 'Sequential replies'}</div>
           <div>Auto-address: {chatroom.autoAddress ? 'Enabled' : 'Off'}</div>
           <div>Admins: {adminCount}</div>
@@ -897,8 +897,8 @@ function RoomDetailsPanel({
       <div className={compact ? 'space-y-4' : 'flex-1 overflow-y-auto px-4 py-4 space-y-4'}>
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h4 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Members</h4>
-            <span className="text-[11px] text-text-3/40">{memberAgents.length}</span>
+            <h4 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Members</h4>
+            <span className="text-[11px] text-text-3">{memberAgents.length}</span>
           </div>
           <div className="space-y-2">
             {memberAgents.map((agent) => {
@@ -922,7 +922,7 @@ function RoomDetailsPanel({
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[12px] font-600 text-text">{agent.name}</div>
                       <div className="mt-1 flex flex-wrap gap-1.5">
-                        <span className="rounded-xs bg-layer-2 px-1.5 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+                        <span className="rounded-xs bg-layer-2 px-1.5 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
                           {role}
                         </span>
                         {muted && (
@@ -947,8 +947,8 @@ function RoomDetailsPanel({
         {pinnedMessages.length > 0 && (
           <section>
             <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Pinned</h4>
-              <span className="text-[11px] text-text-3/40">{pinnedMessages.length}</span>
+              <h4 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Pinned</h4>
+              <span className="text-[11px] text-text-3">{pinnedMessages.length}</span>
             </div>
             <div className="space-y-2">
               {pinnedMessages.slice(0, compact ? pinnedMessages.length : 4).map((message) => (

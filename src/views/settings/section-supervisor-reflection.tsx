@@ -52,7 +52,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
           </button>
           <div>
             <div className="text-[12px] text-text-2">Enable the supervisor loop</div>
-            <div className="text-[11px] text-text-3/60 mt-1">Detect repeated tool use, no-progress loops, context pressure, and hard budget pressure.</div>
+            <div className="text-[11px] text-text-3 mt-1">Detect repeated tool use, no-progress loops, context pressure, and hard budget pressure.</div>
           </div>
         </div>
 
@@ -68,7 +68,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
               }`}
             >
               <div className="text-[13px] font-600">{option.label}</div>
-              <div className="text-[11px] text-text-3/70 mt-1">{option.help}</div>
+              <div className="text-[11px] text-text-3 mt-1">{option.help}</div>
             </button>
           ))}
         </div>
@@ -92,7 +92,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">How many autonomous follow-ups can stall before the supervisor forces a recovery step.</p>
+            <p className="text-[11px] text-text-3 mt-2">How many autonomous follow-ups can stall before the supervisor forces a recovery step.</p>
           </div>
           <div>
             <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Repeated Tool Limit</label>
@@ -112,7 +112,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">How many times the same tool can fire in one run before the supervisor intervenes.</p>
+            <p className="text-[11px] text-text-3 mt-2">How many times the same tool can fire in one run before the supervisor intervenes.</p>
           </div>
         </div>
 
@@ -126,7 +126,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
           </button>
           <div>
             <div className="text-[12px] text-text-2">Generate reflections after meaningful runs</div>
-            <div className="text-[11px] text-text-3/60 mt-1">Distill stable invariants, short-lived heuristics, failures, and reusable lessons.</div>
+            <div className="text-[11px] text-text-3 mt-1">Distill stable invariants, short-lived heuristics, failures, and reusable lessons.</div>
           </div>
         </div>
 
@@ -139,7 +139,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
           </button>
           <div>
             <div className="text-[12px] text-text-2">Auto-write reflection memory</div>
-            <div className="text-[11px] text-text-3/60 mt-1">Write low-risk reflection memory automatically so later runs can retrieve it without review.</div>
+            <div className="text-[11px] text-text-3 mt-1">Write low-risk reflection memory automatically so later runs can retrieve it without review.</div>
           </div>
         </div>
       </div>

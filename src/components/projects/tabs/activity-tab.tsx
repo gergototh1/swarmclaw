@@ -48,7 +48,7 @@ export function ActivityTab() {
   if (activityItems.length === 0) {
     return (
       <div className="max-w-3xl mx-auto px-8 py-6">
-        <p className="text-[12px] text-text-3/45">No activity yet.</p>
+        <p className="text-[12px] text-text-3">No activity yet.</p>
       </div>
     )
   }
@@ -69,7 +69,7 @@ export function ActivityTab() {
               }`} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-600 uppercase tracking-wider text-text-3/40">
+                  <span className="text-[10px] font-600 uppercase tracking-wider text-text-3">
                     {item.type}
                   </span>
                   {item.status && (
@@ -80,13 +80,13 @@ export function ActivityTab() {
                 </div>
                 <p className="text-[12px] text-text-2 truncate mt-0.5">{item.name}</p>
               </div>
-              <span className="text-[10px] text-text-3/30 shrink-0 mt-0.5">{relativeDate(item.time)}</span>
+              <span className="text-[10px] text-text-3 shrink-0 mt-0.5">{relativeDate(item.time)}</span>
             </div>
           ))}
         </div>
       </div>
       {truncated && (
-        <p className="text-[11px] text-text-3/40 text-center mt-4">Showing most recent {MAX_ITEMS} items</p>
+        <p className="text-[11px] text-text-3 text-center mt-4">Showing most recent {MAX_ITEMS} items</p>
       )}
     </div>
   )

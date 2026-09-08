@@ -76,7 +76,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Responses under this length are suppressed as HEARTBEAT_OK.</p>
+            <p className="text-[11px] text-text-3 mt-2">Responses under this length are suppressed as HEARTBEAT_OK.</p>
           </div>
         </div>
 
@@ -126,7 +126,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
           <h4 className="font-display text-[11px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
             Session Reset Defaults
           </h4>
-          <p className="text-[11px] text-text-3/60 mb-4">
+          <p className="text-[11px] text-text-3 mb-4">
             Freshness policy inherited by new sessions unless overridden on the agent or session itself.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -204,12 +204,12 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             >
               {disablingHeartbeats ? 'Stopping\u2026' : 'Stop All Heartbeats'}
             </button>
-            <span className="text-[11px] text-text-3/70">
+            <span className="text-[11px] text-text-3">
               Disables heartbeat on every agent and cancels queued runs.
             </span>
           </div>
           {heartbeatBulkNotice && (
-            <p className="text-[11px] text-text-3/70 mt-2">{heartbeatBulkNotice}</p>
+            <p className="text-[11px] text-text-3 mt-2">{heartbeatBulkNotice}</p>
           )}
         </div>
       </div>

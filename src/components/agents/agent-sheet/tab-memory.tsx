@@ -70,7 +70,7 @@ export function TabMemory({ draft, patch, inputClass }: Props) {
           ))}
         </select>
       </div>
-      <p className="mb-4 text-[12px] leading-[1.6] text-text-3/70">
+      <p className="mb-4 text-[12px] leading-[1.6] text-text-3">
         {describeAgentPlanningMode(planningMode)}
       </p>
       <div className="space-y-3">
@@ -118,7 +118,7 @@ export function TabMemory({ draft, patch, inputClass }: Props) {
             <textarea value={identityContinuityNotesText} onChange={(e) => patch({ identityContinuityNotesText: e.target.value })} placeholder="Continuity notes, one per line." rows={4} className={`${inputClass} resize-y min-h-[108px]`} style={{ fontFamily: 'inherit' }} />
           </div>
         </div>
-        <p className="mt-2 text-[12px] leading-[1.5] text-text-3/60">
+        <p className="mt-2 text-[12px] leading-[1.5] text-text-3">
           Use one line per item. Boundaries are stable guardrails; continuity notes are recurring relationship or project context worth carrying across sessions.
         </p>
       </div>

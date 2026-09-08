@@ -51,7 +51,7 @@ function SidebarSkillList() {
     <div className="flex flex-1 flex-col overflow-hidden px-3 pb-4">
       <div className="rounded-md border border-line-default bg-surface/75 p-3">
         <label className="relative block">
-          <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-3/45" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -59,13 +59,13 @@ function SidebarSkillList() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Filter local skills..."
-            className="w-full rounded-md border border-line-default bg-bg/65 py-2.5 pl-9 pr-3 text-[12px] text-text outline-none transition-colors placeholder:text-text-3/45 focus:border-accent-bright/35"
+            className="w-full rounded-md border border-line-default bg-bg/65 py-2.5 pl-9 pr-3 text-[12px] text-text outline-none transition-colors placeholder:text-text-3 focus:border-accent-bright/35"
             style={{ fontFamily: 'inherit' }}
           />
         </label>
 
         <div className="mt-3 flex items-center justify-between gap-2">
-          <div className="text-[11px] text-text-3/65">
+          <div className="text-[11px] text-text-3">
             {skillList.length} skill{skillList.length === 1 ? '' : 's'}
           </div>
           <button
@@ -80,14 +80,14 @@ function SidebarSkillList() {
 
       <div className="mt-3 flex-1 overflow-y-auto">
         {skillsQuery.isPending ? (
-          <div className="flex items-center justify-center py-10 text-[12px] text-text-3/65">
+          <div className="flex items-center justify-center py-10 text-[12px] text-text-3">
             <span className="mr-3 h-4 w-4 animate-spin rounded-full border-2 border-line-default border-t-accent-bright" />
             Loading skills...
           </div>
         ) : skillList.length === 0 ? (
           <div className="rounded-lg border border-dashed border-line-default px-4 py-8 text-center">
             <div className="text-[13px] font-600 text-text">{query.trim() ? 'No matching skills' : 'No local skills yet'}</div>
-            <p className="mt-1 text-[11px] leading-[1.6] text-text-3/65">
+            <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
               {query.trim()
                 ? 'Try a broader search or browse ClawHub for something new.'
                 : 'Create a skill or import one from the marketplace.'}
@@ -120,12 +120,12 @@ function SidebarSkillList() {
                       <div className={`truncate text-[13px] font-700 ${selected ? 'text-accent-bright' : 'text-text'}`}>
                         {skill.name}
                       </div>
-                      <div className="mt-1 line-clamp-2 text-[11px] leading-[1.6] text-text-3/65">
+                      <div className="mt-1 line-clamp-2 text-[11px] leading-[1.6] text-text-3">
                         {skill.description || plainTextExcerpt(skill.content, 96)}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-text-3/60 transition-colors ${
+                      <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-text-3 transition-colors ${
                         selected ? 'border-accent-bright/20 text-accent-bright' : 'border-line-default'
                       }`}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -140,7 +140,7 @@ function SidebarSkillList() {
                           setEditingSkillId(skill.id)
                           setSkillSheetOpen(true)
                         }}
-                        className="cursor-pointer rounded-full border border-line-default px-2 py-1 text-[10px] font-700 text-text-3/70 transition-colors hover:border-line-strong hover:text-text"
+                        className="cursor-pointer rounded-full border border-line-default px-2 py-1 text-[10px] font-700 text-text-3 transition-colors hover:border-line-strong hover:text-text"
                       >
                         Edit
                       </button>

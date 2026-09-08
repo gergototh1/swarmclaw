@@ -109,7 +109,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search rooms, members, or recent messages..."
-              className="w-full rounded-md border border-line-subtle bg-surface px-3 py-2.5 text-[13px] text-text placeholder:text-text-3/70 focus:outline-none focus:border-accent-bright/35"
+              className="w-full rounded-md border border-line-subtle bg-surface px-3 py-2.5 text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/35"
             />
             <div className="flex flex-wrap items-center gap-1">
               {(['all', 'active', 'recent', 'unread'] as const).map((value) => (
@@ -125,7 +125,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
                   {value}
                 </button>
               ))}
-              <span className="ml-auto text-[11px] text-text-3/55">
+              <span className="ml-auto text-[11px] text-text-3">
                 {filtered.length} {viewMode === 'sessions' ? 'session' : 'room'}{filtered.length === 1 ? '' : 's'}
               </span>
             </div>
@@ -134,7 +134,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
           {filtered.length === 0 ? (
             <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-8 text-center">
               <div className="text-[13px] font-600 text-text-2">No {viewMode === 'sessions' ? 'sessions' : 'rooms'} match this view</div>
-              <div className="mt-1 text-[12px] text-text-3/65">
+              <div className="mt-1 text-[12px] text-text-3">
                 Clear the search or switch filters to see more {viewMode === 'sessions' ? 'sessions' : 'chatrooms'}.
               </div>
             </div>
@@ -175,7 +175,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
                               {unreadCount > 99 ? '99+' : unreadCount}
                             </span>
                           )}
-                          <span className="ml-auto shrink-0 text-[10px] font-mono text-text-3/55">
+                          <span className="ml-auto shrink-0 text-[10px] font-mono text-text-3">
                             {formatRoomTime(lastMsg?.time || chatroom.updatedAt, now)}
                           </span>
                         </div>
@@ -189,12 +189,12 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
                           )}
                         </div>
                         {memberNames.length > 0 && (
-                          <p className="mt-1 truncate text-[11px] text-text-3/80">
+                          <p className="mt-1 truncate text-[11px] text-text-3">
                             {memberNames.slice(0, 3).join(', ')}{memberNames.length > 3 ? ` +${memberNames.length - 3}` : ''}
                           </p>
                         )}
                         {lastMsg && (
-                          <p className="mt-1 truncate text-[11px] text-text-3/65">
+                          <p className="mt-1 truncate text-[11px] text-text-3">
                             {lastMsg.senderName}: {lastMsg.text.slice(0, 72)}
                           </p>
                         )}

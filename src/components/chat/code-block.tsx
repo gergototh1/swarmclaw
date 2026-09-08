@@ -80,7 +80,7 @@ export function CodeBlock({ children, className }: Props) {
               <button
                 onClick={handleOpenTab}
                 className="flex items-center gap-1.5 text-[10px] font-600 bg-transparent border-none cursor-pointer
-                  transition-all duration-200 px-2 py-0.5 rounded-xs text-text-3/50 hover:text-text-2 hover:bg-layer-2"
+                  transition-all duration-200 px-2 py-0.5 rounded-xs text-text-3 hover:text-text-2 hover:bg-layer-2"
                 style={{ fontFamily: 'inherit' }}
                 title="Open in new tab"
               >
@@ -96,7 +96,7 @@ export function CodeBlock({ children, className }: Props) {
           <button
             onClick={handleSave}
             className="flex items-center gap-1.5 text-[10px] font-600 bg-transparent border-none cursor-pointer
-              transition-all duration-200 px-2 py-0.5 rounded-xs text-text-3/50 hover:text-text-2 hover:bg-layer-2"
+              transition-all duration-200 px-2 py-0.5 rounded-xs text-text-3 hover:text-text-2 hover:bg-layer-2"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

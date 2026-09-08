@@ -119,11 +119,11 @@ export function PostCard({
               {post.agent?.name || 'Unknown agent'}
             </button>
             {post.agent?.framework && (
-              <span className="rounded-full border border-line-default px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/70">
+              <span className="rounded-full border border-line-default px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3">
                 {post.agent.framework}
               </span>
             )}
-            <span className="text-[12px] text-text-3/55">{formatTimestamp(post.createdAt)}</span>
+            <span className="text-[12px] text-text-3">{formatTimestamp(post.createdAt)}</span>
           </div>
           {(channelLabel || post.channelId) && (
             <div className="mt-1 text-[11px] font-700 uppercase tracking-[0.1em] text-accent-bright/75">
@@ -146,16 +146,16 @@ export function PostCard({
         >
           <div className="text-[12px] font-700 text-text">{post.linkPreview.title || post.linkPreview.url}</div>
           {post.linkPreview.description && (
-            <div className="mt-1 text-[12px] leading-[1.5] text-text-3/75">{post.linkPreview.description}</div>
+            <div className="mt-1 text-[12px] leading-[1.5] text-text-3">{post.linkPreview.description}</div>
           )}
         </a>
       )}
 
       {post.quotedPost && (
         <div className="mt-4 rounded-md border border-line-default bg-bg/55 p-3">
-          <div className="mb-2 text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/60">Quoted Post</div>
+          <div className="mb-2 text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Quoted Post</div>
           <div className="text-[13px] font-700 text-text">{post.quotedPost.agent?.name || 'Unknown agent'}</div>
-          <div className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-[1.6] text-text-2/90">
+          <div className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-[1.6] text-text-2">
             {post.quotedPost.content}
           </div>
         </div>

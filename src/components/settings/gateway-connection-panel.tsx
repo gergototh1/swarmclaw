@@ -154,24 +154,24 @@ export function GatewayConnectionPanel() {
       </div>
 
       <div className="flex flex-col gap-2" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.05s both' }}>
-        <label className="text-[11px] font-600 uppercase tracking-wider text-text-3/50">Gateway URL</label>
+        <label className="text-[11px] font-600 uppercase tracking-wider text-text-3">Gateway URL</label>
         <input
           type="text"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="ws://127.0.0.1:18789"
-          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-line-default transition-colors"
+          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3 focus:border-line-default transition-colors"
         />
       </div>
 
       <div className="flex flex-col gap-2" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.1s both' }}>
-        <label className="text-[11px] font-600 uppercase tracking-wider text-text-3/50">Token (optional)</label>
+        <label className="text-[11px] font-600 uppercase tracking-wider text-text-3">Token (optional)</label>
         <input
           type="password"
           value={token}
           onChange={(e) => setToken(e.target.value)}
           placeholder="Access token"
-          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-line-default transition-colors"
+          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3 focus:border-line-default transition-colors"
         />
       </div>
 
@@ -210,7 +210,7 @@ export function GatewayConnectionPanel() {
       {/* Reload Mode Toggle (F21) */}
       {status === 'connected' && (
         <div className="flex flex-col gap-2 pt-2 border-t border-line-subtle" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.2s both' }}>
-          <label className="text-[11px] font-600 uppercase tracking-wider text-text-3/50">Reload Mode</label>
+          <label className="text-[11px] font-600 uppercase tracking-wider text-text-3">Reload Mode</label>
           <div className="flex gap-1">
             {reloadModes.map((rm) => (
               <button
@@ -229,7 +229,7 @@ export function GatewayConnectionPanel() {
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-text-3/40">
+          <p className="text-[10px] text-text-3">
             {reloadModes.find((r) => r.value === reloadMode)?.desc}
           </p>
         </div>
@@ -238,7 +238,7 @@ export function GatewayConnectionPanel() {
       {/* Config Issues (F19) */}
       {actionableIssues.length > 0 && (
         <div className="flex flex-col gap-2 pt-2 border-t border-line-subtle" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.25s both' }}>
-          <label className="text-[11px] font-600 uppercase tracking-wider text-text-3/50">Config Issues</label>
+          <label className="text-[11px] font-600 uppercase tracking-wider text-text-3">Config Issues</label>
           {actionableIssues.map((issue, idx) => (
             <div
               key={issue.id}
@@ -258,7 +258,7 @@ export function GatewayConnectionPanel() {
                 }`}>
                   {issue.title}
                 </p>
-                <p className="text-[11px] text-text-3/60 mt-0.5">{issue.description}</p>
+                <p className="text-[11px] text-text-3 mt-0.5">{issue.description}</p>
               </div>
               {issue.repairAction && (
                 <button

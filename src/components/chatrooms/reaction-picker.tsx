@@ -210,7 +210,7 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
           className="w-full px-2.5 py-1.5 rounded-sm bg-layer-2 border border-line-default text-[12px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
         />
         {search.trim() && (
-          <p className="mt-1 px-0.5 text-[10px] text-text-3/55">
+          <p className="mt-1 px-0.5 text-[10px] text-text-3">
             This picker filters category labels rather than emoji names.
           </p>
         )}
@@ -250,7 +250,7 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
               ))}
             </div>
           ) : (
-            <div className="px-2 py-6 text-center text-[11px] text-text-3/60">
+            <div className="px-2 py-6 text-center text-[11px] text-text-3">
               No category matches. Try terms like <span className="text-text-3">food</span>, <span className="text-text-3">travel</span>, or paste an emoji.
             </div>
           )

@@ -263,10 +263,10 @@ export function ExtensionSheet() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-[15px] font-700 text-text truncate">{editing.name}</span>
-                  <span className="text-[10px] font-mono text-text-3/70">v{editing.version || '1.0.0'}</span>
+                  <span className="text-[10px] font-mono text-text-3">v{editing.version || '1.0.0'}</span>
                   {editing.openclaw && <span className="text-[9px] font-600 text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded-full">OpenClaw</span>}
                 </div>
-                <p className="text-[12px] text-text-3/80 leading-relaxed">{extensionDescription(editing)}</p>
+                <p className="text-[12px] text-text-3 leading-relaxed">{extensionDescription(editing)}</p>
               </div>
               <span className={`shrink-0 text-[10px] font-600 px-2 py-1 rounded-full ${
                 editing.enabled ? 'text-emerald-300 bg-emerald-500/10' : 'text-text-3/80 bg-layer-2'
@@ -277,7 +277,7 @@ export function ExtensionSheet() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
               <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
-                <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Type</div>
+                <div className="text-[10px] uppercase tracking-[0.08em] text-text-3 mb-0.5">Type</div>
                 <div className="text-[11px] text-text-2">
                   {editing.isBuiltin
                     ? 'Core Platform'
@@ -289,27 +289,27 @@ export function ExtensionSheet() {
                 </div>
               </div>
               <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
-                <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Publisher</div>
+                <div className="text-[10px] uppercase tracking-[0.08em] text-text-3 mb-0.5">Publisher</div>
                 <div className="text-[11px] text-text-2">{getExtensionSourceLabel(editing.sourceLabel)}</div>
               </div>
               <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
-                <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Installed Via</div>
+                <div className="text-[10px] uppercase tracking-[0.08em] text-text-3 mb-0.5">Installed Via</div>
                 <div className="text-[11px] text-text-2">{getExtensionSourceLabel(editing.installSource || editing.sourceLabel)}</div>
               </div>
             </div>
 
-            <div className="text-[11px] text-text-3/60 mt-2">{editing.author || 'Unknown author'}</div>
+            <div className="text-[11px] text-text-3 mt-2">{editing.author || 'Unknown author'}</div>
 
-            <div className="text-[11px] font-mono text-text-3/60 mt-3 break-all">{editing.filename}</div>
+            <div className="text-[11px] font-mono text-text-3 mt-3 break-all">{editing.filename}</div>
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               {extensionCapabilityBadges(editing).length > 0 ? (
                 extensionCapabilityBadges(editing).map((badge) => (
-                  <span key={badge} className="text-[10px] font-600 px-1.5 py-0.5 rounded-full text-text-3/80 bg-layer-2">
+                  <span key={badge} className="text-[10px] font-600 px-1.5 py-0.5 rounded-full text-text-3 bg-layer-2">
                     {badge}
                   </span>
                 ))
               ) : (
-                <span className="text-[10px] text-text-3/50">No declared tools/hooks metadata</span>
+                <span className="text-[10px] text-text-3">No declared tools/hooks metadata</span>
               )}
               {editing.sourceLabel && (
                 <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-sky-500/10 text-sky-300">
@@ -317,7 +317,7 @@ export function ExtensionSheet() {
                 </span>
               )}
               {editing.installSource && editing.installSource !== editing.sourceLabel && (
-                <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-layer-2 text-text-3/75">
+                <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-layer-2 text-text-3">
                   via {getExtensionSourceLabel(editing.installSource)}
                 </span>
               )}
@@ -337,7 +337,7 @@ export function ExtensionSheet() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[13px] font-600 text-text">Dependencies</div>
-                  <p className="text-[11px] text-text-3/60 mt-1">
+                  <p className="text-[11px] text-text-3 mt-1">
                     {editing.hasDependencyManifest
                       ? `Managed in a per-extension workspace${editing.packageManager ? ` via ${editing.packageManager}` : ''}.`
                       : 'No package.json manifest is currently attached to this extension.'}
@@ -357,11 +357,11 @@ export function ExtensionSheet() {
 
               <div className="grid grid-cols-2 gap-2 mt-3">
                 <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
-                  <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Runtime deps</div>
+                  <div className="text-[10px] uppercase tracking-[0.08em] text-text-3 mb-0.5">Runtime deps</div>
                   <div className="text-[11px] text-text-2">{editing.dependencyCount ?? 0}</div>
                 </div>
                 <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
-                  <div className="text-[10px] uppercase tracking-[0.08em] text-text-3/60 mb-0.5">Status</div>
+                  <div className="text-[10px] uppercase tracking-[0.08em] text-text-3 mb-0.5">Status</div>
                   <div className="text-[11px] text-text-2">{editing.dependencyInstallStatus || 'none'}</div>
                 </div>
               </div>
@@ -373,13 +373,13 @@ export function ExtensionSheet() {
               )}
 
               {editing.dependencyInstalledAt && (
-                <p className="text-[10px] text-text-3/45 mt-3">
+                <p className="text-[10px] text-text-3 mt-3">
                   Last installed {new Date(editing.dependencyInstalledAt).toLocaleString()}
                 </p>
               )}
 
               {editing.dependencyInstallStatus === 'installed' && (
-                <p className="text-[10px] text-text-3/45 mt-1.5">
+                <p className="text-[10px] text-text-3 mt-1.5">
                   Reloading an extension re-runs its own files, but a package it depends on
                   is loaded once per process. Restart SwarmClaw to run an upgraded package.
                 </p>
@@ -390,7 +390,7 @@ export function ExtensionSheet() {
           <div className="flex items-center justify-between py-3 px-4 rounded-md bg-surface border border-line-subtle">
             <div>
               <span className="text-[13px] font-600 text-text block">Enabled</span>
-              <span className="text-[11px] text-text-3/60">Disable to keep the extension installed but inactive.</span>
+              <span className="text-[11px] text-text-3">Disable to keep the extension installed but inactive.</span>
             </div>
             <div
               onClick={() => toggleExtension(editing.filename, !editing.enabled)}
@@ -406,7 +406,7 @@ export function ExtensionSheet() {
             <div className="py-4 px-4 rounded-md bg-surface border border-line-subtle space-y-3">
               <div className="text-[13px] font-600 text-text">Settings</div>
               {extensionSettingsLoading ? (
-                <p className="text-[11px] text-text-3/60">Loading...</p>
+                <p className="text-[11px] text-text-3">Loading...</p>
               ) : (
                 <>
                   {editing.settingsFields.map((field: ExtensionSettingsField) => (
@@ -457,9 +457,9 @@ export function ExtensionSheet() {
 
           {tab === 'marketplace' && (
             loading
-              ? <p className="text-[12px] text-text-3/70">Loading marketplace...</p>
+              ? <p className="text-[12px] text-text-3">Loading marketplace...</p>
               : marketplace.length === 0
-                ? <p className="text-[12px] text-text-3/70">No extensions available</p>
+                ? <p className="text-[12px] text-text-3">No extensions available</p>
                 : (() => {
                     const allTags = dedup(marketplace.flatMap((p) => (p.tags ?? []))).sort()
                     const q = search.toLowerCase()
@@ -485,7 +485,7 @@ export function ExtensionSheet() {
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
                           placeholder="Search extensions..."
-                          className="w-full px-3 py-2.5 rounded-sm bg-bg border border-line-subtle text-[12px] text-text placeholder:text-text-3/50 outline-none focus:border-accent-bright/30"
+                          className="w-full px-3 py-2.5 rounded-sm bg-bg border border-line-subtle text-[12px] text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30"
                           style={{ fontFamily: 'inherit' }}
                         />
 
@@ -524,7 +524,7 @@ export function ExtensionSheet() {
 
                         {/* Results */}
                         {filtered.length === 0 ? (
-                          <p className="text-[12px] text-text-3/50 text-center py-4">No extensions match your search</p>
+                          <p className="text-[12px] text-text-3 text-center py-4">No extensions match your search</p>
                         ) : (
                           <div className="space-y-2.5">
                             {filtered.map((p) => {
@@ -535,7 +535,7 @@ export function ExtensionSheet() {
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2">
                                         <span className="text-[14px] font-600 text-text">{p.name}</span>
-                                        <span className="text-[10px] font-mono text-text-3/70">v{p.version}</span>
+                                        <span className="text-[10px] font-mono text-text-3">v{p.version}</span>
                                         {p.openclaw && <span className="text-[9px] font-600 text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded-full">OpenClaw</span>}
                                       </div>
                                       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
@@ -545,15 +545,15 @@ export function ExtensionSheet() {
                                           </span>
                                         )}
                                         {p.catalogSource && p.catalogSource !== p.source && (
-                                          <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-layer-2 text-text-3/75">
+                                          <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-layer-2 text-text-3">
                                             via {getExtensionSourceLabel(p.catalogSource)}
                                           </span>
                                         )}
                                       </div>
-                                      <div className="text-[11px] text-text-3/60 mt-1">{p.description}</div>
+                                      <div className="text-[11px] text-text-3 mt-1">{p.description}</div>
                                       <div className="flex items-center gap-2 mt-2">
-                                        <span className="text-[10px] text-text-3/70">by {p.author}</span>
-                                        <span className="text-[10px] text-text-3/50">&middot;</span>
+                                        <span className="text-[10px] text-text-3">by {p.author}</span>
+                                        <span className="text-[10px] text-text-3">&middot;</span>
                                         {(p.tags ?? []).slice(0, 3).map((t) => (
                                           <button
                                             key={t}
@@ -600,7 +600,7 @@ export function ExtensionSheet() {
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   placeholder="https://example.com/my-extension.js"
-                  className="w-full py-2.5 px-3 rounded-sm text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3/60 outline-none focus:border-accent-bright/30"
+                  className="w-full py-2.5 px-3 rounded-sm text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30"
                   style={{ fontFamily: 'inherit' }}
                 />
               </div>
@@ -611,7 +611,7 @@ export function ExtensionSheet() {
                   value={urlFilename}
                   onChange={(e) => setUrlFilename(e.target.value)}
                   placeholder="my-extension.js"
-                  className="w-full py-2.5 px-3 rounded-sm text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3/60 outline-none focus:border-accent-bright/30"
+                  className="w-full py-2.5 px-3 rounded-sm text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30"
                   style={{ fontFamily: 'inherit' }}
                 />
               </div>
@@ -629,7 +629,7 @@ export function ExtensionSheet() {
                   {urlStatus.message}
                 </p>
               )}
-              <p className="text-[10px] text-text-3/60 mt-3">
+              <p className="text-[10px] text-text-3 mt-3">
                 Works with `.js` / `.mjs` SwarmClaw and OpenClaw extension formats. URL must be HTTPS.
               </p>
             </div>
@@ -664,7 +664,7 @@ function ExtensionSettingRow({
   configured: boolean
   onChange: (v: unknown) => void
 }) {
-  const inputCls = 'w-full py-2 px-3 rounded-sm text-[12px] bg-bg border border-line-subtle text-text placeholder:text-text-3/50 outline-none focus:border-accent-bright/30'
+  const inputCls = 'w-full py-2 px-3 rounded-sm text-[12px] bg-bg border border-line-subtle text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30'
 
   return (
     <div>
@@ -715,7 +715,7 @@ function ExtensionSettingRow({
       {field.type === 'secret' && configured && (
         <p className="text-[10px] text-emerald-400/90 mt-1">Stored securely. Leave blank to keep the current value.</p>
       )}
-      {field.help && <p className="text-[10px] text-text-3/60 mt-1">{field.help}</p>}
+      {field.help && <p className="text-[10px] text-text-3 mt-1">{field.help}</p>}
     </div>
   )
 }

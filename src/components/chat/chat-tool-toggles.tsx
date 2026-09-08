@@ -135,7 +135,7 @@ export function ChatToolToggles({ session }: Props) {
             if (group.tools.length === 0) return null
             return (
               <div key={group.label} className={`px-3 pb-1 ${gi === 0 ? 'pt-3' : 'pt-1 border-t border-line-subtle'}`}>
-                <p className="text-[10px] font-600 text-text-3/60 uppercase tracking-wider mb-2">{group.label}</p>
+                <p className="text-[10px] font-600 text-text-3 uppercase tracking-wider mb-2">{group.label}</p>
                 {group.tools.map((tool) => {
                   const extDisabled = !isExtensionEnabled(tool)
                   const enabled = !extDisabled && (
@@ -172,7 +172,7 @@ export function ChatToolToggles({ session }: Props) {
 
           {agentSkillIds.length > 0 && (
             <div className="px-3 pb-2 pt-1 border-t border-line-subtle">
-              <p className="text-[10px] font-600 text-text-3/60 uppercase tracking-wider mb-2">Skills</p>
+              <p className="text-[10px] font-600 text-text-3 uppercase tracking-wider mb-2">Skills</p>
               {agentSkillIds.map((skillId) => {
                 const skill = skills[skillId]
                 if (!skill) return null
@@ -188,7 +188,7 @@ export function ChatToolToggles({ session }: Props) {
 
          </TooltipProvider>
           <div className="px-3 py-2 border-t border-line-subtle bg-layer-1">
-            <p className="text-[10px] text-text-3/70">Changes apply to the next message</p>
+            <p className="text-[10px] text-text-3">Changes apply to the next message</p>
           </div>
         </div>
       )}

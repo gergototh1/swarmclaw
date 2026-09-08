@@ -132,11 +132,11 @@ export function WorkTab() {
       {/* Task list */}
       {sortedTasks.length === 0 ? (
         <div className="rounded-md border border-dashed border-line-default px-5 py-8 text-center">
-          <p className="text-[12px] text-text-3/40">
+          <p className="text-[12px] text-text-3">
             {projectTasks.length === 0 ? 'No tasks yet.' : 'No tasks match the current filters.'}
           </p>
           {projectTasks.length === 0 && (
-            <p className="text-[11px] text-text-3/30 mt-1">Create a task to get started.</p>
+            <p className="text-[11px] text-text-3 mt-1">Create a task to get started.</p>
           )}
         </div>
       ) : (
@@ -156,16 +156,16 @@ export function WorkTab() {
                 <div className="flex-1 min-w-0">
                   <span className="text-[13px] text-text truncate block">{task.title}</span>
                   {task.objective && (
-                    <span className="text-[10px] text-text-3/40 truncate block mt-0.5">{task.objective}</span>
+                    <span className="text-[10px] text-text-3 truncate block mt-0.5">{task.objective}</span>
                   )}
                 </div>
                 {agent && (
-                  <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-text-3/40">
+                  <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-text-3">
                     <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={16} />
                     {agent.name}
                   </span>
                 )}
-                <span className="text-[10px] text-text-3/30 shrink-0">{relativeDate(task.updatedAt)}</span>
+                <span className="text-[10px] text-text-3 shrink-0">{relativeDate(task.updatedAt)}</span>
               </button>
             )
           })}

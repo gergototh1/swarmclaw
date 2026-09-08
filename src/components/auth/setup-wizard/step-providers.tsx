@@ -74,13 +74,13 @@ export function StepProviders({
         onChange={(e) => setProviderSearch(e.target.value)}
         placeholder="Search providers, CLIs, or runtimes..."
         className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[13px]
-          outline-none transition-all duration-200 placeholder:text-text-3/50 focus:border-accent-bright/30 mb-4"
+          outline-none transition-all duration-200 placeholder:text-text-3 focus:border-accent-bright/30 mb-4"
       />
 
       <div className="flex flex-col gap-3 max-h-[42vh] overflow-y-auto pr-1">
         {providerGroups.map((group) => (
           <div key={group.id} className="space-y-2">
-            <div className="px-1 text-[10px] font-700 uppercase tracking-[0.1em] text-text-3/70">
+            <div className="px-1 text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">
               {group.label}
             </div>
             {group.items.map((candidate) => {
@@ -161,7 +161,7 @@ export function StepProviders({
               </div>
             ))}
             {!!doctorReport.actions?.length && (
-              <div className="mt-2 text-[11px] text-text-3/80">
+              <div className="mt-2 text-[11px] text-text-3">
                 Next: {doctorReport.actions.slice(0, 2).join(' ')}
               </div>
             )}

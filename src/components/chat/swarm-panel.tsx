@@ -284,7 +284,7 @@ function SwarmAgentCard({ agent }: { agent: SwarmAgent }) {
           {agent.agentName}
         </span>
         {agent.durationMs != null && agent.durationMs > 0 && (
-          <span className="text-[10px] text-text-3/50 font-mono shrink-0">
+          <span className="text-[10px] text-text-3 font-mono shrink-0">
             {formatDurationMs(agent.durationMs)}
           </span>
         )}
@@ -295,7 +295,7 @@ function SwarmAgentCard({ agent }: { agent: SwarmAgent }) {
           <svg
             width="10" height="10" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-            className={`shrink-0 text-text-3/50 transition-transform duration-150 ${expanded ? 'rotate-180' : ''}`}
+            className={`shrink-0 text-text-3 transition-transform duration-150 ${expanded ? 'rotate-180' : ''}`}
           >
             <polyline points="6 9 12 15 18 9" />
           </svg>
@@ -309,7 +309,7 @@ function SwarmAgentCard({ agent }: { agent: SwarmAgent }) {
             </pre>
           )}
           {agent.response && (
-            <pre className="text-[11px] text-text-3/70 font-mono whitespace-pre-wrap break-all mt-1.5 max-h-[200px] overflow-y-auto">
+            <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all mt-1.5 max-h-[200px] overflow-y-auto">
               {agent.response.length > 1500 ? `${agent.response.slice(0, 1500)}...` : agent.response}
             </pre>
           )}
@@ -370,7 +370,7 @@ export function SwarmPanel({ data }: { data: SwarmPanelData }) {
             {data.kind === 'batch' ? 'Swarm' : 'Subagent'} — {agentCount} agent{agentCount !== 1 ? 's' : ''}
           </span>
           {summaryParts.length > 0 && (
-            <span className="text-[10px] text-text-3/60">
+            <span className="text-[10px] text-text-3">
               {summaryParts.join(' · ')}
               {data.totalDurationMs ? ` · ${formatDurationMs(data.totalDurationMs)}` : ''}
             </span>

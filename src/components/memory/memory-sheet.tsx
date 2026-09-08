@@ -118,12 +118,12 @@ export function MemorySheet() {
           ))}
         </div>
         {selectedAgent && (
-          <p className="text-[11px] text-text-3/50 mt-2">
+          <p className="text-[11px] text-text-3 mt-2">
             Owned by <span className="text-text-2">{selectedAgent.name}</span>. Add collaborators below if other agents should be able to recall it too.
           </p>
         )}
         {!agentId && (
-          <p className="text-[11px] text-text-3/50 mt-2">
+          <p className="text-[11px] text-text-3 mt-2">
             Global memories are accessible to every agent in the workspace.
           </p>
         )}
@@ -155,7 +155,7 @@ export function MemorySheet() {
               })}
           </div>
           {sharedWith.length > 0 && (
-            <p className="text-[11px] text-text-3/50 mt-2">
+            <p className="text-[11px] text-text-3 mt-2">
               Shared with {sharedWith.length} agent{sharedWith.length === 1 ? '' : 's'} in addition to the owner
             </p>
           )}
@@ -203,7 +203,7 @@ export function MemorySheet() {
           <option value="durable">Durable: keep this around as reusable knowledge</option>
           <option value="archive">Archive: preserve, but keep less salient</option>
         </select>
-        <p className="text-[11px] text-text-3/50 mt-2">
+        <p className="text-[11px] text-text-3 mt-2">
           Tier controls how aggressively this memory should stay in active recall.
         </p>
       </div>

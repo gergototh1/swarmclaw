@@ -159,7 +159,7 @@ export function ModelCombobox({
           }}
           onFocus={() => setOpen(true)}
           placeholder={value || 'Select model…'}
-          className="w-full bg-transparent outline-none text-inherit placeholder:text-text-3/50"
+          className="w-full bg-transparent outline-none text-inherit placeholder:text-text-3"
           style={{ fontFamily: 'inherit' }}
         />
         <svg className="w-4 h-4 text-text-3 shrink-0 ml-2" viewBox="0 0 16 16" fill="none">
@@ -184,7 +184,7 @@ export function ModelCombobox({
                   void loadDiscoveredModels(true)
                 }}
                 disabled={discoveryState === 'loading'}
-                className="shrink-0 rounded-xs border border-line-default bg-layer-1 px-2 py-1 text-[10px] font-600 text-text-3/80 transition-colors hover:bg-layer-2 hover:text-text disabled:cursor-default disabled:opacity-60"
+                className="shrink-0 rounded-xs border border-line-default bg-layer-1 px-2 py-1 text-[10px] font-600 text-text-3 transition-colors hover:bg-layer-2 hover:text-text disabled:cursor-default disabled:opacity-60"
               >
                 {discoveryState === 'loading' ? 'Loading...' : discoveredModels.length > 0 ? 'Refresh' : 'Fetch live'}
               </button>

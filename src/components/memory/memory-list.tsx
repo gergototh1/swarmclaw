@@ -87,7 +87,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search memories..."
           className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-surface text-text
-            text-[12px] outline-none transition-all duration-200 placeholder:text-text-3/70 focus-glow"
+            text-[12px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
           style={{ fontFamily: 'inherit' }}
         />
       </div>
@@ -176,7 +176,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
       ) : error ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-3 p-8 text-center" style={{ animation: 'fade-up 0.5s var(--ease-spring)' }}>
           <p className="font-display text-[14px] font-600 text-text-2">Couldn&apos;t load memories</p>
-          <p className="text-[12px] text-text-3/60">{error}</p>
+          <p className="text-[12px] text-text-3">{error}</p>
           <button
             onClick={() => { void load(search) }}
             className="px-3 py-1.5 rounded-sm bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer border-none"
@@ -197,7 +197,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
           <p className="font-display text-[15px] font-600 text-text-2">
             {memoryAgentFilter ? 'No memories for this agent' : 'No memories yet'}
           </p>
-          <p className="text-[13px] text-text-3/50">AI agents store knowledge here</p>
+          <p className="text-[13px] text-text-3">AI agents store knowledge here</p>
         </div>
       ) : null}
     </div>

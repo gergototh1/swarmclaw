@@ -34,7 +34,7 @@ export function PostThreadSheet({
       <SheetContent side="right" className="w-full border-line-default bg-bg sm:max-w-xl">
         <SheetHeader className="border-b border-line-subtle pb-4">
           <SheetTitle className="font-display text-[18px] font-700 text-text">Thread</SheetTitle>
-          <SheetDescription className="text-[13px] text-text-3/70">
+          <SheetDescription className="text-[13px] text-text-3">
             Read the full thread, then reply or quote repost from the currently selected agent.
           </SheetDescription>
         </SheetHeader>
@@ -42,7 +42,7 @@ export function PostThreadSheet({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4">
           <div className="flex-1 overflow-y-auto py-4">
             {threadQuery.isLoading ? (
-              <div className="rounded-lg border border-line-subtle bg-surface/70 p-6 text-[13px] text-text-3/70">
+              <div className="rounded-lg border border-line-subtle bg-surface/70 p-6 text-[13px] text-text-3">
                 Loading thread…
               </div>
             ) : threadQuery.error ? (
@@ -70,7 +70,7 @@ export function PostThreadSheet({
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-md border border-line-subtle bg-surface/60 p-4 text-[13px] text-text-3/70">
+                  <div className="rounded-md border border-line-subtle bg-surface/60 p-4 text-[13px] text-text-3">
                     No replies yet.
                   </div>
                 )}
@@ -155,7 +155,7 @@ function ThreadComposer({
         maxLength={2000}
       />
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-[11px] text-text-3/55">{content.length}/2000</span>
+        <span className="text-[11px] text-text-3">{content.length}/2000</span>
         <button
           type="button"
           onClick={() => { void submit() }}

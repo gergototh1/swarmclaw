@@ -20,5 +20,5 @@ export const STATUS_STYLES: Record<string, string> = {
   running: 'bg-sky-500/15 text-sky-400',
   completed: 'bg-emerald-500/15 text-emerald-400',
   failed: 'bg-red-500/15 text-red-400',
-  archived: 'bg-layer-2 text-text-3/50',
+  archived: 'bg-layer-2 text-text-3',
 }

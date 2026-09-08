@@ -128,14 +128,14 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
       return {
         label: 'Idle',
         dotClass: 'bg-text-3/30',
-        textClass: 'text-text-3/45',
+        textClass: 'text-text-3',
       }
     }
     if (!now) {
       return {
         label: 'Idle',
         dotClass: 'bg-text-3/30',
-        textClass: 'text-text-3/45',
+        textClass: 'text-text-3',
       }
     }
     const ago = now - lastAt
@@ -156,7 +156,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
     return {
       label: 'Idle',
       dotClass: 'bg-text-3/30',
-      textClass: 'text-text-3/45',
+      textClass: 'text-text-3',
     }
   }, [connector, connectorPresence?.lastMessageAt, now])
 
@@ -418,7 +418,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                     ? agent.name
                     : session.name}
                 </span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3/40 opacity-0 transition-opacity group-hover/title:opacity-100 group-focus-visible/title:opacity-100">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3 opacity-0 transition-opacity group-hover/title:opacity-100 group-focus-visible/title:opacity-100">
                   <path d="M12 20h9" />
                   <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
                 </svg>
@@ -468,7 +468,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                 <button
                   type="button"
                   onClick={onStartNewSession}
-                  className="inline-flex items-center gap-1.5 rounded-sm border border-line-subtle bg-layer-1 px-2.5 py-1 text-[10px] font-600 text-text-3/70 transition-colors shrink-0 cursor-pointer hover:border-line-strong hover:bg-layer-2 hover:text-text-2"
+                  className="inline-flex items-center gap-1.5 rounded-sm border border-line-subtle bg-layer-1 px-2.5 py-1 text-[10px] font-600 text-text-3 transition-colors shrink-0 cursor-pointer hover:border-line-strong hover:bg-layer-2 hover:text-text-2"
                   aria-label="Start a new chat session"
                   title={newSessionTitle}
                 >
@@ -498,7 +498,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
               {liveStatus.status}
             </HeaderChip>
             {!mobile && liveStatus?.nextAction && (
-              <span className="text-[10px] text-text-3/45 font-mono truncate max-w-[min(34vw,220px)]" title={liveStatus.nextAction}>
+              <span className="text-[10px] text-text-3 font-mono truncate max-w-[min(34vw,220px)]" title={liveStatus.nextAction}>
                 Next: {liveStatus.nextAction}
               </span>
             )}
@@ -557,7 +557,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
               onClick={handleCopyContextPack}
               disabled={contextPackLoading}
               aria-label="Copy session context pack"
-              className="flex min-w-[122px] items-center justify-center gap-1 px-2.5 py-1 rounded-sm bg-layer-1 hover:bg-layer-2 disabled:opacity-70 disabled:cursor-wait transition-colors cursor-pointer text-[10px] font-600 text-text-3/60 hover:text-text-2 shrink-0"
+              className="flex min-w-[122px] items-center justify-center gap-1 px-2.5 py-1 rounded-sm bg-layer-1 hover:bg-layer-2 disabled:opacity-70 disabled:cursor-wait transition-colors cursor-pointer text-[10px] font-600 text-text-3 hover:text-text-2 shrink-0"
             >
               <ClipboardList className="h-3 w-3 shrink-0" aria-hidden="true" strokeWidth={2.2} />
               <span>{contextPackLoading ? 'Packing' : contextPackCopied ? 'Copied' : 'Context pack'}</span>
@@ -649,7 +649,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                 onClick={handleCopySessionId}
                 className="flex min-w-0 items-center gap-1 px-2 py-1 rounded-l-xs hover:bg-layer-2 transition-colors cursor-pointer"
               >
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/40 shrink-0">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
                   <path d="M4 17l6 0l0 -6" /><path d="M20 7l-6 0l0 6" /><path d="M4 17l10 -10" />
                 </svg>
                 <span className="text-[10px] font-mono text-text-3/40 group-hover/resume:text-text-3/60 truncate max-w-[min(46vw,220px)]">
@@ -679,7 +679,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                 <rect x="3" y="3" width="18" height="14" rx="2" /><path d="M3 9h18" />
               </svg>
               <span className="text-accent-bright group-hover:text-red-400">Browser</span>
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-text-3/40 group-hover:text-red-400">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-text-3 group-hover:text-red-400">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>

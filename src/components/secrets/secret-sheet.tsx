@@ -8,7 +8,7 @@ import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { api } from '@/lib/app/api-client'
 import { toast } from 'sonner'
 
-const inputClass = 'w-full px-4 py-3 rounded-md bg-bg border border-line-subtle text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3/70'
+const inputClass = 'w-full px-4 py-3 rounded-md bg-bg border border-line-subtle text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3'
 
 export function SecretSheet() {
   const open = useAppStore((s) => s.secretSheetOpen)
@@ -153,7 +153,7 @@ export function SecretSheet() {
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-text-3/60 mt-1.5 pl-1">{scopeHelperText}</p>
+          <p className="text-[11px] text-text-3 mt-1.5 pl-1">{scopeHelperText}</p>
         </div>
 
         {scope === 'agent' && (

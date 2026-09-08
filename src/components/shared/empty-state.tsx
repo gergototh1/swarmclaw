@@ -26,7 +26,7 @@ export function EmptyState({ icon, title, subtitle, className, action }: Props) 
       </div>
       <div style={{ animation: 'fade-up 0.5s var(--ease-spring) both' }}>
         <p className="font-display text-[15px] font-600 text-text-2">{title}</p>
-        {subtitle && <p className="text-[13px] text-text-3/50 mt-1">{subtitle}</p>}
+        {subtitle && <p className="text-[13px] text-text-3 mt-1">{subtitle}</p>}
       </div>
       {action && (
         <Button

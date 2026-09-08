@@ -35,7 +35,7 @@ export function ComposerShell({
         {footer}
       </div>
       {hint ? (
-        <p className={cn('mt-1.5 px-1 text-[10px] text-text-3/40 select-none', hintClassName)}>
+        <p className={cn('mt-1.5 px-1 text-[10px] text-text-3 select-none', hintClassName)}>
           {hint}
         </p>
       ) : null}

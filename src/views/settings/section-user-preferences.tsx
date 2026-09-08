@@ -60,7 +60,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
       <div className="mt-6 flex items-center justify-between">
         <div>
           <label className="text-[12px] font-600 text-text-2 block">Suggested Replies</label>
-          <p className="text-[11px] text-text-3/60 mt-0.5">
+          <p className="text-[11px] text-text-3 mt-0.5">
             Show follow-up suggestions after each agent response.
           </p>
         </div>
@@ -77,7 +77,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
       {/* Default agent */}
       <div className="mt-6">
         <label className="text-[12px] font-600 text-text-2 block mb-1.5">Default Agent</label>
-        <p className="text-[11px] text-text-3/60 mb-2">
+        <p className="text-[11px] text-text-3 mb-2">
           The agent that opens automatically when you start the app or use the default-agent shortcut.
         </p>
         <div className="flex flex-wrap gap-2">
@@ -111,7 +111,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
 
       <div className="mt-6">
         <label className="text-[12px] font-600 text-text-2 block mb-1.5">WhatsApp Approved Users</label>
-        <p className="text-[11px] text-text-3/60 mb-3">
+        <p className="text-[11px] text-text-3 mb-3">
           These numbers or JIDs are globally approved for WhatsApp DMs. They bypass per-connector pairing and are merged into WhatsApp allowlists.
         </p>
 
@@ -124,7 +124,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
               >
                 <div className="min-w-0">
                   <div className="text-[12px] font-600 text-text truncate">{entry.label}</div>
-                  <div className="text-[11px] text-text-3/70 truncate">{entry.phone}</div>
+                  <div className="text-[11px] text-text-3 truncate">{entry.phone}</div>
                 </div>
                 <button
                   type="button"
@@ -138,7 +138,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
             ))}
           </div>
         ) : (
-          <div className="mb-3 rounded-md border border-dashed border-line-default bg-layer-1 px-3 py-3 text-[11px] text-text-3/70">
+          <div className="mb-3 rounded-md border border-dashed border-line-default bg-layer-1 px-3 py-3 text-[11px] text-text-3">
             No globally approved WhatsApp users yet.
           </div>
         )}

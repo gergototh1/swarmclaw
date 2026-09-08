@@ -252,7 +252,7 @@ export function OrgChartDetailPanel({
                   if (e.key === 'Escape') setShowNewTeamInput(false)
                 }}
                 placeholder="New team name..."
-                className="w-full px-2 py-1.5 text-[11px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40"
+                className="w-full px-2 py-1.5 text-[11px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3"
               />
             ) : (
               <button
@@ -318,7 +318,7 @@ export function OrgChartDetailPanel({
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[10px] font-600 uppercase tracking-wider text-text-3/50 mb-1.5">{label}</div>
+      <div className="text-[10px] font-600 uppercase tracking-wider text-text-3 mb-1.5">{label}</div>
       {children}
     </div>
   )

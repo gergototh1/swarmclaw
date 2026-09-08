@@ -55,7 +55,7 @@ export function StepPath({
                 ) : null}
               </div>
               <p className="mt-2 text-[13px] leading-relaxed text-text-2">{path.description}</p>
-              <p className="mt-3 text-[12px] leading-relaxed text-text-3/72">{path.detail}</p>
+              <p className="mt-3 text-[12px] leading-relaxed text-text-3">{path.detail}</p>
             </button>
           )
         })}
@@ -63,7 +63,7 @@ export function StepPath({
 
       {onboardingPath === 'intent' && (
         <div className="mb-6 rounded-lg border border-line-default bg-surface px-5 py-4 text-left">
-          <label className="block text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/60 mb-2">
+          <label className="block text-[12px] font-700 uppercase tracking-[0.12em] text-text-3 mb-2">
             What Are You Setting Up SwarmClaw To Do?
           </label>
           <textarea
@@ -71,9 +71,9 @@ export function StepPath({
             onChange={(event) => onIntentTextChange(event.target.value)}
             rows={3}
             placeholder="e.g. Help me run product research every week, summarize findings, and turn them into follow-up tasks."
-            className="w-full rounded-md border border-line-default bg-bg px-4 py-3 text-[14px] text-text outline-none transition-all duration-200 resize-none placeholder:text-text-3/45 focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+            className="w-full rounded-md border border-line-default bg-bg px-4 py-3 text-[14px] text-text outline-none transition-all duration-200 resize-none placeholder:text-text-3 focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
           />
-          <p className="mt-2 text-[12px] leading-relaxed text-text-3/72">
+          <p className="mt-2 text-[12px] leading-relaxed text-text-3">
             This is used only to seed the starter prompts. It does not auto-classify your workflow.
           </p>
         </div>
@@ -82,12 +82,12 @@ export function StepPath({
       <div className="rounded-lg border border-line-default bg-surface p-5 text-left">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Starting Shape</div>
-            <div className="mt-1 text-[13px] text-text-3/72">
+            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Starting Shape</div>
+            <div className="mt-1 text-[13px] text-text-3">
               Start from a broad team shape instead of a niche preset. You can still edit every agent before setup finishes.
             </div>
           </div>
-          <div className="rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/70">
+          <div className="rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">
             {visibleStarterKits.length} options
           </div>
         </div>
@@ -115,7 +115,7 @@ export function StepPath({
                   </span>
                 </div>
                 <p className="mt-2 text-[13px] leading-relaxed text-text-2">{kit.description}</p>
-                <p className="mt-3 text-[12px] leading-relaxed text-text-3/72">{kit.detail}</p>
+                <p className="mt-3 text-[12px] leading-relaxed text-text-3">{kit.detail}</p>
                 {kit.agents.length > 0 ? (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {kit.agents.map((agent) => (
@@ -128,7 +128,7 @@ export function StepPath({
                     ))}
                   </div>
                 ) : (
-                  <div className="mt-4 rounded-md border border-dashed border-line-subtle bg-layer-1 px-3 py-2 text-[11px] text-text-3/70">
+                  <div className="mt-4 rounded-md border border-dashed border-line-subtle bg-layer-1 px-3 py-2 text-[11px] text-text-3">
                     Finish setup without starter agents.
                   </div>
                 )}

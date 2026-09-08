@@ -150,7 +150,7 @@ export function LogList() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search logs..."
-          className="w-full px-3 py-2 rounded-sm bg-layer-2 border border-line-subtle text-[12px] text-text placeholder:text-text-3/50 outline-none focus:border-accent/30"
+          className="w-full px-3 py-2 rounded-sm bg-layer-2 border border-line-subtle text-[12px] text-text placeholder:text-text-3 outline-none focus:border-accent/30"
         />
         {/* Saved filters */}
         {savedFilters.length > 0 && (
@@ -243,7 +243,7 @@ export function LogList() {
       </div>
 
       {/* Total count */}
-      <div className="px-5 py-1 text-[10px] text-text-3/60">
+      <div className="px-5 py-1 text-[10px] text-text-3">
         {entries.length} of {total} entries
       </div>
 
@@ -262,7 +262,7 @@ export function LogList() {
                 ${entry.level === 'ERROR' ? 'hover:bg-red-500/[0.04]' : ''}`}
             >
               <div className="flex items-start gap-2">
-                <span className="text-[10px] text-text-3/50 font-mono shrink-0 mt-[1px] w-[58px]">
+                <span className="text-[10px] text-text-3 font-mono shrink-0 mt-[1px] w-[58px]">
                   {formatTime(entry.time)}
                 </span>
                 <span className={`text-[9px] font-700 uppercase tracking-wider shrink-0 mt-[2px] w-[36px] ${LEVEL_COLORS[entry.level] || 'text-text-3'}`}>
@@ -275,7 +275,7 @@ export function LogList() {
                   {entry.message}
                 </span>
                 {/* Arrow indicator */}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/50 shrink-0 mt-[2px]">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0 mt-[2px]">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </div>
@@ -298,14 +298,14 @@ export function LogList() {
               <h2 className="font-display text-[22px] font-700 tracking-[-0.02em] mb-2 leading-snug">
                 {selected.message}
               </h2>
-              <p className="text-[12px] text-text-3/60 font-mono">{formatFullTime(selected.time)}</p>
+              <p className="text-[12px] text-text-3 font-mono">{formatFullTime(selected.time)}</p>
             </div>
 
             {/* Data payload */}
             {selected.data && (
               <div className="mb-8">
                 <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Details</label>
-                <pre className="text-[11px] text-text-3/80 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-md p-4 max-h-[300px] overflow-auto border border-line-subtle">
+                <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-md p-4 max-h-[300px] overflow-auto border border-line-subtle">
                   {selected.data}
                 </pre>
               </div>
@@ -316,7 +316,7 @@ export function LogList() {
               <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">
                 Create as Task
               </label>
-              <p className="text-[12px] text-text-3/60 mb-3">
+              <p className="text-[12px] text-text-3 mb-3">
                 Turn this log entry into a task and optionally assign it to an agent to investigate.
               </p>
               <div className="flex gap-2">

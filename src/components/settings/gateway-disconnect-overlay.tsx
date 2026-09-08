@@ -67,7 +67,7 @@ export function GatewayDisconnectOverlay({ agentId = null }: GatewayDisconnectOv
         </span>
         <div>
           <h3 className="font-display text-[16px] font-600 text-text mb-1">Gateway Disconnected</h3>
-          <p className="text-[13px] text-text-3/60">
+          <p className="text-[13px] text-text-3">
             The OpenClaw gateway is offline. Connect to resume chatting with this agent.
           </p>
         </div>

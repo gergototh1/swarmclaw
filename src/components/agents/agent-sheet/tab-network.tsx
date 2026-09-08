@@ -110,7 +110,7 @@ export function TabNetwork({
               <option value="team-control">Team Control</option>
             </select>
           </div>
-          <p className="text-[11px] text-text-3/70 mt-2">
+          <p className="text-[11px] text-text-3 mt-2">
             These preferences bias scheduling toward matching OpenClaw control planes without hard-locking the agent to one gateway.
           </p>
         </div>
@@ -251,7 +251,7 @@ export function TabNetwork({
           })}
         </div>
         {routingTargets.length === 0 && (
-          <p className="text-[11px] text-text-3/70 mt-2">No route pool yet. Add one if this agent should switch between cheaper, stronger, or gateway-specific models.</p>
+          <p className="text-[11px] text-text-3 mt-2">No route pool yet. Add one if this agent should switch between cheaper, stronger, or gateway-specific models.</p>
         )}
       </div>
       <div>

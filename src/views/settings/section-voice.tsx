@@ -21,7 +21,7 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
         <div className="flex items-center justify-between mb-5">
           <div>
             <label className="font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em]">ElevenLabs TTS</label>
-            <p className="text-[11px] text-text-3/60 mt-0.5">Enable text-to-speech for agent responses</p>
+            <p className="text-[11px] text-text-3 mt-0.5">Enable text-to-speech for agent responses</p>
           </div>
           <button
             type="button"
@@ -58,13 +58,13 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
                 className={inputClass}
                 style={{ fontFamily: 'inherit' }}
               />
-              <p className="text-[11px] text-text-3/60 mt-1.5">Fallback voice when an agent has no override set. Agents can override this in their own create/edit sheet.</p>
+              <p className="text-[11px] text-text-3 mt-1.5">Fallback voice when an agent has no override set. Agents can override this in their own create/edit sheet.</p>
             </div>
           </div>
         )}
 
         {showVoiceConfig && !enabled && (
-          <p className="mb-5 rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5 text-[11px] text-text-3/70">
+          <p className="mb-5 rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5 text-[11px] text-text-3">
             ElevenLabs credentials and default voice can be prepared here even while playback is turned off.
           </p>
         )}

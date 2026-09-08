@@ -86,7 +86,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
     .filter((g) => g.items.length > 0)
 
   if (loading) {
-    return <div className="flex items-center justify-center gap-2 h-32 text-[13px] text-text-3/50"><span className="w-3 h-3 rounded-full border-2 border-text-3/20 border-t-accent-bright animate-spin" />Loading skills...</div>
+    return <div className="flex items-center justify-center gap-2 h-32 text-[13px] text-text-3"><span className="w-3 h-3 rounded-full border-2 border-text-3/20 border-t-accent-bright animate-spin" />Loading skills...</div>
   }
 
   if (error) {
@@ -132,7 +132,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
       {/* Skill groups */}
       {grouped.map(({ source, items }) => (
         <div key={source}>
-          <h4 className="text-[11px] font-600 uppercase tracking-wider text-text-3/50 mb-2 px-1">
+          <h4 className="text-[11px] font-600 uppercase tracking-wider text-text-3 mb-2 px-1">
             {source}
           </h4>
           <div className="flex flex-col gap-1">
@@ -169,7 +169,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
                     </span>
                   </div>
                   {skill.description && (
-                    <p className="text-[11px] text-text-3/60 mt-0.5 truncate">{skill.description}</p>
+                    <p className="text-[11px] text-text-3 mt-0.5 truncate">{skill.description}</p>
                   )}
                   {skill.missing && skill.missing.length > 0 && (
                     <p className="text-[10px] text-amber-400/60 mt-0.5">
@@ -214,7 +214,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
       ))}
 
       {skills.length === 0 && (
-        <div className="text-[13px] text-text-3/50 text-center py-4">No skills discovered</div>
+        <div className="text-[13px] text-text-3 text-center py-4">No skills discovered</div>
       )}
 
       {/* Save button */}

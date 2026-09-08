@@ -361,19 +361,19 @@ export default function ProtocolsPage() {
           <section className="rounded-lg border border-line-subtle bg-layer-1 p-5 md:p-6">
             <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
               <div className="max-w-[780px]">
-                <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.18em] text-text-3/70">
+                <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.18em] text-text-3">
                   Structured Sessions
                 </div>
                 <h1 className="mt-4 font-display text-[34px] font-700 tracking-[-0.03em] text-text">Bounded Collaboration Runs</h1>
-                <p className="mt-3 max-w-[720px] text-[15px] leading-relaxed text-text-3/72">
+                <p className="mt-3 max-w-[720px] text-[15px] leading-relaxed text-text-3">
                   Start structured sessions from chats, chatrooms, tasks, or schedules. Runs stay temporary and bounded, while templates remain reusable for the next time you need them.
                 </p>
               </div>
               <div className="w-full max-w-[520px] rounded-lg border border-line-subtle bg-surface/70 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Launch and Templates</div>
-                    <div className="mt-1 text-[13px] leading-relaxed text-text-3/68">
+                    <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Launch and Templates</div>
+                    <div className="mt-1 text-[13px] leading-relaxed text-text-3">
                       Start from here when you need a blank run. Normal use should start from the chat, task, or chatroom you are already in.
                     </div>
                   </div>
@@ -404,23 +404,23 @@ export default function ProtocolsPage() {
 
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
                   <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-                    <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Built-in Templates</div>
+                    <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Built-in Templates</div>
                     <div className="mt-2 text-[28px] font-700 tracking-[-0.03em] text-text">{builtInTemplates.length}</div>
-                    <div className="mt-2 text-[12px] leading-relaxed text-text-3/68">
+                    <div className="mt-2 text-[12px] leading-relaxed text-text-3">
                       Use a neutral starter for review, discussion, decision rounds, or single-agent structured work.
                     </div>
                   </div>
                   <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-                    <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Custom Templates</div>
+                    <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Custom Templates</div>
                     <div className="mt-2 text-[28px] font-700 tracking-[-0.03em] text-text">{customTemplates.length}</div>
-                    <div className="mt-2 text-[12px] leading-relaxed text-text-3/68">
+                    <div className="mt-2 text-[12px] leading-relaxed text-text-3">
                       Keep reusable step graphs here without forcing every launch through advanced JSON authoring.
                     </div>
                   </div>
                   <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-                    <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Recent Runs</div>
+                    <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Recent Runs</div>
                     <div className="mt-2 text-[28px] font-700 tracking-[-0.03em] text-text">{runs.length}</div>
-                    <div className="mt-2 text-[12px] leading-relaxed text-text-3/68">
+                    <div className="mt-2 text-[12px] leading-relaxed text-text-3">
                       Use the list below for inspection, retries, archives, and branch-aware detail.
                     </div>
                   </div>
@@ -429,9 +429,9 @@ export default function ProtocolsPage() {
                 <div className="mt-4 rounded-lg border border-line-subtle bg-layer-1 p-4">
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div className="max-w-[720px]">
-                      <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Visual Workflow Templates</div>
+                      <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Visual Workflow Templates</div>
                       <div className="mt-2 text-[15px] font-700 text-text">Pick a built-in protocol and open it in the builder.</div>
-                      <div className="mt-2 text-[13px] leading-relaxed text-text-3/72">
+                      <div className="mt-2 text-[13px] leading-relaxed text-text-3">
                         Use the gallery for the fastest path into structured workflows. Custom templates stay here too, so teams can refine reusable runs without dropping straight into JSON first.
                       </div>
                     </div>
@@ -449,7 +449,7 @@ export default function ProtocolsPage() {
                 </div>
 
                 <details className="mt-4 rounded-lg border border-line-subtle bg-layer-1 p-4">
-                  <summary className="cursor-pointer list-none text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">
+                  <summary className="cursor-pointer list-none text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">
                     Advanced Manual Run Builder
                   </summary>
                   <div className="mt-4 space-y-4">
@@ -458,7 +458,7 @@ export default function ProtocolsPage() {
                         value={form.title}
                         onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
                         placeholder="Title"
-                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3 md:col-span-2"
                       />
                       <select
                         value={form.templateId}
@@ -483,14 +483,14 @@ export default function ProtocolsPage() {
                         value={form.goal}
                         onChange={(event) => setForm((current) => ({ ...current, goal: event.target.value }))}
                         placeholder="Objective or goal"
-                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3 md:col-span-2"
                       />
                       <textarea
                         value={form.kickoffMessage}
                         onChange={(event) => setForm((current) => ({ ...current, kickoffMessage: event.target.value }))}
                         placeholder="Optional kickoff context"
                         rows={3}
-                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3 md:col-span-2"
                       />
                       <select
                         value={form.parentChatroomId}
@@ -516,18 +516,18 @@ export default function ProtocolsPage() {
                         value={form.roundLimit}
                         onChange={(event) => setForm((current) => ({ ...current, roundLimit: event.target.value }))}
                         placeholder="Round limit"
-                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
                       />
                       <input
                         value={form.decisionMode}
                         onChange={(event) => setForm((current) => ({ ...current, decisionMode: event.target.value }))}
                         placeholder="Decision mode"
-                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
                       />
                     </div>
 
                     <div>
-                      <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Participants</div>
+                      <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Participants</div>
                       <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-md border border-line-subtle bg-layer-1 p-3">
                         {Object.values(agents).map((agent) => {
                           const active = form.participantAgentIds.includes(agent.id)
@@ -577,7 +577,7 @@ export default function ProtocolsPage() {
                             )}
                           </div>
                         </div>
-                        <div className="mt-1 text-[12px] leading-relaxed text-text-3/72">{selectedTemplate.description}</div>
+                        <div className="mt-1 text-[12px] leading-relaxed text-text-3">{selectedTemplate.description}</div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {stepsForTemplate(selectedTemplate).map((step) => (
                             <span key={step.id} className="rounded-full border border-line-default bg-layer-1 px-2.5 py-1 text-[11px] text-text-3">
@@ -614,7 +614,7 @@ export default function ProtocolsPage() {
                         <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-sky-200/72">
                           {editingTemplateId ? 'Edit Custom Template' : 'New Custom Template'}
                         </div>
-                        <div className="mt-1 text-[12px] leading-relaxed text-text-3/72">
+                        <div className="mt-1 text-[12px] leading-relaxed text-text-3">
                           Persist a neutral structured-session template with JSON step definitions.
                         </div>
                       </div>
@@ -635,7 +635,7 @@ export default function ProtocolsPage() {
                         value={templateDraft.name}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, name: event.target.value }))}
                         placeholder="Template name"
-                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
                       />
                       <label className="flex items-center gap-2 rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[13px] text-text-2">
                         <input
@@ -650,25 +650,25 @@ export default function ProtocolsPage() {
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, description: event.target.value }))}
                         placeholder="Template description"
                         rows={3}
-                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3 md:col-span-2"
                       />
                       <input
                         value={templateDraft.tags}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, tags: event.target.value }))}
                         placeholder="Tags (comma separated)"
-                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
                       />
                       <input
                         value={templateDraft.recommendedOutputs}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, recommendedOutputs: event.target.value }))}
                         placeholder="Recommended outputs (comma separated)"
-                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35"
+                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
                       />
                       <input
                         value={templateDraft.entryStepId}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, entryStepId: event.target.value }))}
                         placeholder="Entry step id"
-                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3/35 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3 md:col-span-2"
                       />
                       <textarea
                         value={templateDraft.stepsJson}
@@ -711,7 +711,7 @@ export default function ProtocolsPage() {
 
                 {customTemplates.length > 0 && (
                   <div className="mt-4 rounded-md border border-line-subtle bg-layer-1 p-3">
-                    <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Custom Templates</div>
+                    <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Custom Templates</div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {customTemplates.map((template) => (
                         <button
@@ -740,7 +740,7 @@ export default function ProtocolsPage() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-[16px] font-700 text-text">Runs</h2>
-                  <span className="text-[12px] text-text-3/60">{filteredRuns.length} visible</span>
+                  <span className="text-[12px] text-text-3">{filteredRuns.length} visible</span>
                 </div>
                 <button
                   type="button"
@@ -755,7 +755,7 @@ export default function ProtocolsPage() {
                   value={runSearch}
                   onChange={(event) => setRunSearch(event.target.value)}
                   placeholder="Search title, template, or summary"
-                  className="w-full rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-text-3/35"
+                  className="w-full rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-text-3"
                 />
                 <div className="flex flex-wrap gap-2">
                   {(['all', 'draft', 'running', 'waiting', 'paused', 'completed', 'failed'] as RunStatusFilter[]).map((filter) => (
@@ -776,9 +776,9 @@ export default function ProtocolsPage() {
               </div>
               <div className="mt-4 max-h-[880px] space-y-2 overflow-y-auto pr-1">
                 {loading ? (
-                  <div className="text-[13px] text-text-3/65">Loading structured sessions…</div>
+                  <div className="text-[13px] text-text-3">Loading structured sessions…</div>
                 ) : filteredRuns.length === 0 ? (
-                  <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 text-[13px] text-text-3/65">
+                  <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 text-[13px] text-text-3">
                     No structured sessions match the current filters.
                   </div>
                 ) : filteredRuns.map((run) => (
@@ -795,13 +795,13 @@ export default function ProtocolsPage() {
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[13px] font-700 text-text">{run.title}</div>
-                        <div className="mt-1 text-[11px] text-text-3/72">{run.templateName}</div>
+                        <div className="mt-1 text-[11px] text-text-3">{run.templateName}</div>
                       </div>
                       <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] ${statusTone(run.status)}`}>
                         {run.status}
                       </span>
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-text-3/65">
+                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-text-3">
                       <span>{run.participantAgentIds.length} participant{run.participantAgentIds.length === 1 ? '' : 's'}</span>
                       <span>Step {Math.min(currentStepIndex(run) + 1, Math.max(stepsForRun(run).length, 1))}/{stepsForRun(run).length}</span>
                       <span>{timeAgo(run.updatedAt)}</span>
@@ -813,9 +813,9 @@ export default function ProtocolsPage() {
 
             <section className="min-h-0 rounded-lg border border-line-subtle bg-layer-1 p-4 md:p-5">
               {detailLoading ? (
-                <div className="text-[13px] text-text-3/65">Loading structured session detail…</div>
+                <div className="text-[13px] text-text-3">Loading structured session detail…</div>
               ) : !detail ? (
-                <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 text-[13px] text-text-3/65">
+                <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 text-[13px] text-text-3">
                   Select a structured session to inspect its protocol state, transcript, and outputs.
                 </div>
               ) : (
@@ -823,9 +823,9 @@ export default function ProtocolsPage() {
                   <div className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-layer-1 p-4">
                     <div className="flex flex-wrap items-start gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Current Run</div>
+                        <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3">Current Run</div>
                         <h2 className="mt-2 text-[24px] font-700 tracking-[-0.02em] text-text">{detail.run.title}</h2>
-                        <div className="mt-2 flex flex-wrap gap-2 text-[12px] text-text-3/68">
+                        <div className="mt-2 flex flex-wrap gap-2 text-[12px] text-text-3">
                           <span>{detail.run.templateName}</span>
                           <span>•</span>
                           <span>{detail.run.sourceRef.kind}</span>
@@ -908,8 +908,8 @@ export default function ProtocolsPage() {
                       </div>
                     )}
                     <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-                      <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/55">Operator Context</div>
-                      <div className="mt-2 text-[12px] leading-relaxed text-text-3/68">
+                      <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Operator Context</div>
+                      <div className="mt-2 text-[12px] leading-relaxed text-text-3">
                         Inject steering context without becoming a normal protocol participant.
                       </div>
                       <textarea
@@ -917,7 +917,7 @@ export default function ProtocolsPage() {
                         onChange={(event) => setContextDraft(event.target.value)}
                         rows={3}
                         placeholder="Add guidance, constraints, or a correction for the next step."
-                        className="mt-3 w-full rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-text-3/35"
+                        className="mt-3 w-full rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-text-3"
                       />
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
@@ -929,7 +929,7 @@ export default function ProtocolsPage() {
                           {actionPending === 'inject_context' ? 'Injecting…' : 'Inject context'}
                         </button>
                         {!!detail.run.operatorContext?.length && (
-                          <span className="self-center text-[12px] text-text-3/62">
+                          <span className="self-center text-[12px] text-text-3">
                             {detail.run.operatorContext.length} operator note{detail.run.operatorContext.length === 1 ? '' : 's'}
                           </span>
                         )}
@@ -941,14 +941,14 @@ export default function ProtocolsPage() {
                     <div className="min-h-0 space-y-4">
                       {!!Object.keys(detail.run.parallelState || {}).length && (
                         <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-                          <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Parallel Branches</div>
+                          <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3">Parallel Branches</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.parallelState || {}).map((state) => (
                               <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((step) => step.id === state.stepId)?.label || state.stepId}</div>
-                                    <div className="mt-1 text-[11px] text-text-3/62">
+                                    <div className="mt-1 text-[11px] text-text-3">
                                       {state.joinReady ? 'Join ready' : `${state.waitingOnBranchIds?.length || 0} branch${(state.waitingOnBranchIds?.length || 0) === 1 ? '' : 'es'} still running`}
                                     </div>
                                   </div>
@@ -962,7 +962,7 @@ export default function ProtocolsPage() {
                                       <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
                                           <div className="text-[13px] font-700 text-text">{branch.label}</div>
-                                          <div className="mt-1 text-[11px] text-text-3/62">
+                                          <div className="mt-1 text-[11px] text-text-3">
                                             {(branch.participantAgentIds || []).map((agentId) => agents[agentId]?.name || agentId).join(', ')}
                                           </div>
                                         </div>
@@ -1004,14 +1004,14 @@ export default function ProtocolsPage() {
 
                       {!!Object.keys(detail.run.forEachState || {}).length && (
                         <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-                          <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">For-Each Branches</div>
+                          <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3">For-Each Branches</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.forEachState || {}).map((state) => (
                               <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((s) => s.id === state.stepId)?.label || state.stepId}</div>
-                                    <div className="mt-1 text-[11px] text-text-3/62">
+                                    <div className="mt-1 text-[11px] text-text-3">
                                       {state.items.length} item{state.items.length === 1 ? '' : 's'} • {state.joinReady ? 'all done' : `${state.waitingOnBranchIds?.length || 0} running`}
                                     </div>
                                   </div>
@@ -1055,14 +1055,14 @@ export default function ProtocolsPage() {
 
                       {!!Object.keys(detail.run.subflowState || {}).length && (
                         <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-                          <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Subflows</div>
+                          <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3">Subflows</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.subflowState || {}).map((state) => (
                               <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((s) => s.id === state.stepId)?.label || state.templateId}</div>
-                                    <div className="mt-1 text-[11px] text-text-3/62">Template: {state.templateId}</div>
+                                    <div className="mt-1 text-[11px] text-text-3">Template: {state.templateId}</div>
                                     {state.summary && <div className="mt-1 text-[12px] text-text-2">{state.summary}</div>}
                                     {state.lastError && <div className="mt-1 text-[12px] text-red-300">{state.lastError}</div>}
                                   </div>
@@ -1087,14 +1087,14 @@ export default function ProtocolsPage() {
 
                       {!!Object.keys(detail.run.swarmState || {}).length && (
                         <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-                          <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Swarm Claims</div>
+                          <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3">Swarm Claims</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.swarmState || {}).map((state) => (
                               <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((s) => s.id === state.stepId)?.label || state.stepId}</div>
-                                    <div className="mt-1 text-[11px] text-text-3/62">
+                                    <div className="mt-1 text-[11px] text-text-3">
                                       {state.workItems.length} work item{state.workItems.length === 1 ? '' : 's'} • {state.claims.length} claimed • {state.unclaimedItemIds.length} unclaimed
                                       {state.timedOut && ' • timed out'}
                                     </div>
@@ -1110,7 +1110,7 @@ export default function ProtocolsPage() {
                                     <div key={claim.id} className="flex items-center justify-between rounded-sm border border-line-subtle bg-black/15 px-3 py-2">
                                       <div className="text-[12px] text-text">{claim.workItemLabel}</div>
                                       <div className="flex items-center gap-2">
-                                        <span className="text-[11px] text-text-3/62">{agents[claim.agentId]?.name || claim.agentId}</span>
+                                        <span className="text-[11px] text-text-3">{agents[claim.agentId]?.name || claim.agentId}</span>
                                         <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-700 uppercase ${
                                           claim.status === 'completed' ? 'border-emerald-500/30 text-emerald-300' :
                                           claim.status === 'failed' ? 'border-red-500/30 text-red-300' :
@@ -1129,7 +1129,7 @@ export default function ProtocolsPage() {
                       )}
 
                       <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-                      <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Protocol</div>
+                      <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3">Protocol</div>
                       <div className="mt-3 space-y-2">
                           {stepsForRun(detail.run).map((step, index) => {
                             const isDagMode = Object.keys(detail.run.stepState || {}).length > 0
@@ -1162,39 +1162,39 @@ export default function ProtocolsPage() {
                                   <div className="text-[13px] font-600 text-text">{step.label}</div>
                                   <span className={`text-[11px] ${statusColor}`}>{statusLabel}</span>
                                 </div>
-                                <div className="mt-1 text-[12px] text-text-3/68">{step.kind.replace(/_/g, ' ')}</div>
+                                <div className="mt-1 text-[12px] text-text-3">{step.kind.replace(/_/g, ' ')}</div>
                                 {depLabels.length > 0 && (
-                                  <div className="mt-1 text-[11px] text-text-3/50">depends on: {depLabels.join(', ')}</div>
+                                  <div className="mt-1 text-[11px] text-text-3">depends on: {depLabels.join(', ')}</div>
                                 )}
                                 {isFailed && detail.run.stepState?.[step.id]?.error && (
                                   <div className="mt-2 text-[11px] text-red-300">{detail.run.stepState[step.id].error}</div>
                                 )}
                                 {step.kind === 'repeat' && (
-                                  <div className="mt-2 text-[11px] text-text-3/58">Iteration {iterationCount}/{step.repeat?.maxIterations || 0}</div>
+                                  <div className="mt-2 text-[11px] text-text-3">Iteration {iterationCount}/{step.repeat?.maxIterations || 0}</div>
                                 )}
                                 {step.kind === 'parallel' && parallelState && (
-                                  <div className="mt-2 text-[11px] text-text-3/58">
+                                  <div className="mt-2 text-[11px] text-text-3">
                                     {parallelState.branches.length} branch{parallelState.branches.length === 1 ? '' : 'es'} • {parallelState.joinReady ? 'join ready' : `${parallelState.waitingOnBranchIds?.length || 0} pending`}
                                   </div>
                                 )}
                                 {step.kind === 'for_each' && forEachState && (
-                                  <div className="mt-2 text-[11px] text-text-3/58">
+                                  <div className="mt-2 text-[11px] text-text-3">
                                     {forEachState.items.length} item{forEachState.items.length === 1 ? '' : 's'} • {forEachState.joinReady ? 'all done' : `${forEachState.waitingOnBranchIds?.length || 0} pending`}
                                   </div>
                                 )}
                                 {step.kind === 'subflow' && subflowState && (
-                                  <div className="mt-2 text-[11px] text-text-3/58">
+                                  <div className="mt-2 text-[11px] text-text-3">
                                     template: {subflowState.templateId} • {subflowState.status}
                                   </div>
                                 )}
                                 {step.kind === 'swarm_claim' && swarmState && (
-                                  <div className="mt-2 text-[11px] text-text-3/58">
+                                  <div className="mt-2 text-[11px] text-text-3">
                                     {swarmState.claims.length} claim{swarmState.claims.length === 1 ? '' : 's'} • {swarmState.unclaimedItemIds.length} unclaimed
                                     {swarmState.timedOut && ' • timed out'}
                                   </div>
                                 )}
                                 {step.kind === 'join' && (
-                                  <div className="mt-2 text-[11px] text-text-3/58">
+                                  <div className="mt-2 text-[11px] text-text-3">
                                     {joinSource?.joinReady ? 'ready to merge' : 'waiting for parallel branches'}
                                   </div>
                                 )}
@@ -1205,15 +1205,15 @@ export default function ProtocolsPage() {
                       </div>
 
                       <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-                        <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Artifacts</div>
+                        <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3">Artifacts</div>
                         <div className="mt-3 space-y-3">
                           {(detail.run.artifacts || []).length === 0 ? (
-                            <div className="text-[13px] text-text-3/65">No artifacts yet.</div>
+                            <div className="text-[13px] text-text-3">No artifacts yet.</div>
                           ) : detail.run.artifacts?.map((artifact) => (
                             <div key={artifact.id} className="rounded-md border border-line-subtle bg-layer-1 p-4">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="text-[13px] font-700 text-text">{artifact.title}</div>
-                                <span className="text-[11px] text-text-3/60">{artifact.kind.replace(/_/g, ' ')}</span>
+                                <span className="text-[11px] text-text-3">{artifact.kind.replace(/_/g, ' ')}</span>
                               </div>
                               <div className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-text-2">{artifact.content}</div>
                               {artifactCitationMap.get(artifact.id)?.length ? (
@@ -1231,8 +1231,8 @@ export default function ProtocolsPage() {
                       <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Transcript Preview</div>
-                            <div className="mt-1 text-[12px] text-text-3/62">
+                            <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3">Transcript Preview</div>
+                            <div className="mt-1 text-[12px] text-text-3">
                               The full live room stays hidden from the normal chatroom list and opens only from this run or its parent context.
                             </div>
                           </div>
@@ -1249,7 +1249,7 @@ export default function ProtocolsPage() {
                         <div className="mt-3 max-h-[360px] space-y-3 overflow-y-auto pr-1">
                           {detail.transcript?.messages?.length ? detail.transcript.messages.slice(-8).map((message) => (
                             <div key={message.id} className="rounded-md border border-line-subtle bg-layer-1 p-3">
-                              <div className="flex items-center gap-2 text-[11px] text-text-3/62">
+                              <div className="flex items-center gap-2 text-[11px] text-text-3">
                                 <span>{message.senderName}</span>
                                 <span>•</span>
                                 <span>{timeAgo(message.time)}</span>
@@ -1257,21 +1257,21 @@ export default function ProtocolsPage() {
                               <div className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-text-2">{message.text}</div>
                             </div>
                           )) : (
-                            <div className="text-[13px] text-text-3/65">No transcript messages yet.</div>
+                            <div className="text-[13px] text-text-3">No transcript messages yet.</div>
                           )}
                         </div>
                       </div>
 
                       <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-                        <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/55">Event Timeline</div>
+                        <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3">Event Timeline</div>
                         <div className="mt-3 max-h-[360px] space-y-3 overflow-y-auto pr-1">
                           {detail.events.length === 0 ? (
-                            <div className="text-[13px] text-text-3/65">No run events yet.</div>
+                            <div className="text-[13px] text-text-3">No run events yet.</div>
                           ) : detail.events.map((event) => (
                             <div key={event.id} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                               <div className="flex items-center justify-between gap-3">
-                                <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3/60">{event.type.replace(/_/g, ' ')}</div>
-                                <div className="text-[11px] text-text-3/55">{timeAgo(event.createdAt)}</div>
+                                <div className="text-[12px] font-700 uppercase tracking-[0.12em] text-text-3">{event.type.replace(/_/g, ' ')}</div>
+                                <div className="text-[11px] text-text-3">{timeAgo(event.createdAt)}</div>
                               </div>
                               <div className="mt-2 text-[13px] leading-relaxed text-text-2">{event.summary}</div>
                               {event.citations?.length ? (

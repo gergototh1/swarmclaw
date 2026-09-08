@@ -462,7 +462,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                 ? 'Use @AgentName or @all to direct the next reply, or /breakout to spin up a focused session.'
                 : 'Start the next round here.'}
           </span>
-          <span className="text-[10px] text-text-3/50">Enter sends · Shift+Enter newline</span>
+          <span className="text-[10px] text-text-3">Enter sends · Shift+Enter newline</span>
         </div>
       )}
 
@@ -527,7 +527,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
 
             <div className="flex-1" />
 
-            <span className="text-[11px] text-text-3/60 tabular-nums mr-2 font-mono">
+            <span className="text-[11px] text-text-3 tabular-nums mr-2 font-mono">
               {text.length > 0 && text.length}
             </span>
 
@@ -580,7 +580,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
             placeholder="Ask the room anything... Use @ to mention agents or /breakout to focus the room"
             disabled={disabled}
             rows={1}
-            className="relative w-full resize-none border-none bg-transparent px-5 pt-4 pb-2 text-[15px] text-transparent caret-white placeholder:text-text-3/70 focus:outline-none selection:bg-accent-bright/20 max-h-[160px] leading-[1.55] disabled:opacity-50"
+            className="relative w-full resize-none border-none bg-transparent px-5 pt-4 pb-2 text-[15px] text-transparent caret-white placeholder:text-text-3 focus:outline-none selection:bg-accent-bright/20 max-h-[160px] leading-[1.55] disabled:opacity-50"
             style={{ minHeight: '56px', caretColor: 'rgb(244 244 245)' }}
           />
         </div>

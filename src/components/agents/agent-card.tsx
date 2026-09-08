@@ -255,16 +255,16 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
             </span>
           )}
         </div>
-        <div className="text-[12px] text-text-3/70 mt-1.5 truncate">{agent.description}</div>
+        <div className="text-[12px] text-text-3 mt-1.5 truncate">{agent.description}</div>
         <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-[11px] text-text-3/60 font-mono">{agent.model || agent.provider}</span>
+          <span className="text-[11px] text-text-3 font-mono">{agent.model || agent.provider}</span>
           {getEnabledToolIds(agent).includes('browser') && (
             <span className="text-[10px] font-600 uppercase tracking-wider text-sky-400/70 bg-sky-400/[0.08] px-1.5 py-0.5 rounded-xs">
               browser
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-text-3/50">
+        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-text-3">
           {agent.lastUsedAt ? (
             <span>Last used: {(() => {
               const days = Math.floor((Date.now() - agent.lastUsedAt) / 86400000)
@@ -282,7 +282,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
         </div>
         {hasMonthlyBudget && (
           <div className="mt-2">
-            <div className="flex items-center justify-between text-[10px] text-text-3/60 mb-1">
+            <div className="flex items-center justify-between text-[10px] text-text-3 mb-1">
               <span>${(agent.monthlySpend ?? 0).toFixed(2)} / ${monthlyBudget.toFixed(2)}</span>
               <span className={`font-600 ${(agent.monthlySpend ?? 0) >= monthlyBudget ? 'text-red-400' : 'text-text-3/50'}`}>
                 {agent.budgetAction === 'block' ? 'hard cap' : 'soft cap'}
@@ -348,7 +348,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
               onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmRun() }}
               placeholder="Describe the task..."
               autoFocus
-              className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus:border-line-strong"
+              className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus:border-line-strong"
               style={{ fontFamily: 'inherit' }}
             />
           </div>

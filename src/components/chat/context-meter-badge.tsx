@@ -47,7 +47,7 @@ function resolveColor(strategy: ContextStatusResponse['strategy']): {
   }
   return {
     dot: 'bg-emerald-400/80',
-    text: 'text-text-3/70',
+    text: 'text-text-3',
     border: 'border-line-subtle',
     bg: 'bg-layer-1',
   }
@@ -139,7 +139,7 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
       >
         <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
         <span>{percent}%</span>
-        <span className="text-text-3/45 font-500">
+        <span className="text-text-3 font-500">
           {formatTokens(status.effectiveTokens)}
         </span>
       </button>
@@ -150,7 +150,7 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
           style={{ animation: 'fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)' }}
         >
           <div className="flex items-baseline justify-between">
-            <span className="text-[11px] font-600 uppercase tracking-wider text-text-3/60">Context window</span>
+            <span className="text-[11px] font-600 uppercase tracking-wider text-text-3">Context window</span>
             <span className={`text-[11px] font-600 ${colors.text}`}>{percent}%</span>
           </div>
           <div className="mt-2 h-1.5 w-full rounded-full bg-layer-2 overflow-hidden">
@@ -165,17 +165,17 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
           </div>
           <dl className="mt-3 space-y-1 text-[11px]">
             <div className="flex justify-between">
-              <dt className="text-text-3/60">Used</dt>
+              <dt className="text-text-3">Used</dt>
               <dd className="text-text-2 font-mono">
                 {status.effectiveTokens.toLocaleString()} / {status.contextWindow.toLocaleString()}
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-text-3/60">Remaining</dt>
+              <dt className="text-text-3">Remaining</dt>
               <dd className="text-text-2 font-mono">{status.remainingTokens.toLocaleString()}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-text-3/60">Messages</dt>
+              <dt className="text-text-3">Messages</dt>
               <dd className="text-text-2 font-mono">{status.messageCount}</dd>
             </div>
           </dl>
@@ -217,7 +217,7 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
               Clear
             </button>
           </div>
-          <p className="mt-2.5 text-[10px] leading-relaxed text-text-3/55">
+          <p className="mt-2.5 text-[10px] leading-relaxed text-text-3">
             Long-term memory, skills, and facts are preserved. Clear only affects this chat transcript.
           </p>
         </div>

@@ -475,7 +475,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
           {showDateSep && (
             <div className="flex items-center gap-4 py-2 mb-2">
               <div className="flex-1 h-px bg-layer-2" />
-              <span className="text-[10px] font-600 text-text-3/50 uppercase tracking-[0.1em]">
+              <span className="text-[10px] font-600 text-text-3 uppercase tracking-[0.1em]">
                 {dateSeparator(msg.time)}
               </span>
               <div className="flex-1 h-px bg-layer-2" />
@@ -696,7 +696,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             Find
-            <span className="hidden sm:inline text-text-3/50">Cmd/Ctrl+F</span>
+            <span className="hidden sm:inline text-text-3">Cmd/Ctrl+F</span>
           </button>
           <button
             type="button"
@@ -726,7 +726,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               Reset filters
             </button>
           )}
-          <div className="ml-auto flex items-center gap-2 text-[11px] text-text-3/60">
+          <div className="ml-auto flex items-center gap-2 text-[11px] text-text-3">
             {searchQuery ? (
               <span className="tabular-nums">
                 {searchMatches.length > 0 ? `${searchIdx + 1}/${searchMatches.length}` : '0 results'}
@@ -735,7 +735,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <span>{filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'}</span>
             )}
             {loading && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-layer-2 px-2 py-1 text-text-3/70">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-layer-2 px-2 py-1 text-text-3">
                 <span className="w-2 h-2 rounded-full bg-accent-bright animate-pulse" />
                 Loading thread
               </span>
@@ -758,7 +758,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             onChange={(e) => { setSearchQuery(e.target.value); setSearchIdx(0) }}
             placeholder="Search in conversation..."
             aria-label="Search messages"
-            className="flex-1 bg-transparent text-text text-[13px] outline-none placeholder:text-text-3/50"
+            className="flex-1 bg-transparent text-text text-[13px] outline-none placeholder:text-text-3"
             style={{ fontFamily: 'inherit' }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -848,7 +848,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                       <path d="m5 12 7-7 7 7" />
                     </svg>
                     Load earlier messages
-                    <span className="text-text-3/50">({totalMessages - messages.length} more)</span>
+                    <span className="text-text-3">({totalMessages - messages.length} more)</span>
                   </>
                 )}
               </button>
@@ -858,7 +858,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             searchQuery.trim() || bookmarkFilter || connectorFilter ? (
               <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
                 <div className="w-12 h-12 rounded-full bg-layer-2 border border-line-subtle flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-text-3/70">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-text-3">
                     <circle cx="11" cy="11" r="8" />
                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
                   </svg>
@@ -866,7 +866,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                 <span className="font-display text-[16px] font-600 text-text-2">
                   {bookmarkFilter ? 'No bookmarked messages here' : 'No messages match these filters'}
                 </span>
-                <span className="text-[13px] text-text-3/60 max-w-[360px]">
+                <span className="text-[13px] text-text-3 max-w-[360px]">
                   {searchQuery.trim()
                     ? `Nothing in this thread matches "${searchQuery.trim()}".`
                     : connectorFilter
@@ -892,7 +892,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <div className="flex flex-col items-center justify-center gap-3 py-20 text-center" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both' }}>
                 <AgentAvatar seed={agent?.avatarSeed || null} avatarUrl={agent?.avatarUrl} name={agent?.name || 'Agent'} size={48} />
                 <span className="font-display text-[16px] font-600 text-text-2">{agent?.name || 'Assistant'}</span>
-                <span className="text-[14px] text-text-3/60">
+                <span className="text-[14px] text-text-3">
                   {INTRO_GREETINGS[stableHash(agent?.id || session?.id || '') % INTRO_GREETINGS.length]}
                 </span>
               </div>

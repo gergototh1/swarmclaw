@@ -49,7 +49,7 @@ export function WalletList() {
           </svg>
         </div>
         <p className="text-[13px] text-text-3 mb-1 font-600">No wallets yet</p>
-        <p className="text-[12px] text-text-3/60">Generate a wallet for your agents to transact on Base L2</p>
+        <p className="text-[12px] text-text-3">Generate a wallet for your agents to transact on Base L2</p>
       </div>
     )
   }
@@ -102,7 +102,7 @@ export function WalletList() {
                 <span className="text-[12px] font-mono text-text-3 truncate">{truncateAddress(wallet.walletAddress)}</span>
                 <button
                   onClick={(e) => handleCopy(e, wallet.walletAddress, wallet.id)}
-                  className="text-text-3/40 hover:text-text-2 transition-colors shrink-0 cursor-pointer"
+                  className="text-text-3 hover:text-text-2 transition-colors shrink-0 cursor-pointer"
                   title="Copy address"
                 >
                   {copiedId === wallet.id ? (
@@ -126,12 +126,12 @@ export function WalletList() {
                   </span>
                 )}
                 {wallet.spendingLimitUsdc && (
-                  <span className="text-[10px] font-600 text-text-3/60">
+                  <span className="text-[10px] font-600 text-text-3">
                     Limit: ${wallet.spendingLimitUsdc} USDC
                   </span>
                 )}
                 {wallet.dailyLimitUsdc && (
-                  <span className="text-[10px] font-600 text-text-3/60">
+                  <span className="text-[10px] font-600 text-text-3">
                     Daily: ${wallet.dailyLimitUsdc} USDC
                   </span>
                 )}
@@ -139,7 +139,7 @@ export function WalletList() {
 
               {/* Label */}
               {wallet.label && (
-                <div className="mt-2 text-[11px] text-text-3/60 truncate">{wallet.label}</div>
+                <div className="mt-2 text-[11px] text-text-3 truncate">{wallet.label}</div>
               )}
             </div>
           )

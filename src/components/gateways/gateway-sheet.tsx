@@ -287,7 +287,7 @@ export function GatewaySheet() {
     }
   }
 
-  const inputClass = 'w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow'
+  const inputClass = 'w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow'
 
   const applyDeployPatch = (patch: { endpoint?: string; token?: string; name?: string; notes?: string; deployment?: GatewayProfile['deployment'] | Record<string, unknown> | null }) => {
     if (patch.endpoint) {
@@ -414,7 +414,7 @@ export function GatewaySheet() {
           </button>
         </div>
         <input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="http://localhost:18789" className={`${inputClass} font-mono text-[14px]`} />
-        <p className="text-[11px] text-text-3/60 mt-2">Remote HTTPS URLs and local loopback endpoints are both supported.</p>
+        <p className="text-[11px] text-text-3 mt-2">Remote HTTPS URLs and local loopback endpoints are both supported.</p>
       </div>
 
       <div className="mb-6">
@@ -431,18 +431,18 @@ export function GatewaySheet() {
 
       {deployment && (
         <div className="mb-6 rounded-lg border border-line-subtle bg-layer-1 p-4">
-          <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70 mb-2">Deploy metadata</div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[12px] text-text-3/75">
+          <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3 mb-2">Deploy metadata</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[12px] text-text-3">
             <div className="rounded-md border border-line-subtle bg-surface px-3 py-3">
-              <div className="uppercase tracking-[0.08em] text-text-3/55">Method</div>
+              <div className="uppercase tracking-[0.08em] text-text-3">Method</div>
               <div className="mt-1 text-text-2">{deployment.method || 'manual'}</div>
             </div>
             <div className="rounded-md border border-line-subtle bg-surface px-3 py-3">
-              <div className="uppercase tracking-[0.08em] text-text-3/55">Use case</div>
+              <div className="uppercase tracking-[0.08em] text-text-3">Use case</div>
               <div className="mt-1 text-text-2">{deployment.useCase || 'general'}</div>
             </div>
             <div className="rounded-md border border-line-subtle bg-surface px-3 py-3">
-              <div className="uppercase tracking-[0.08em] text-text-3/55">Exposure</div>
+              <div className="uppercase tracking-[0.08em] text-text-3">Exposure</div>
               <div className="mt-1 text-text-2">{deployment.exposure || 'manual'}</div>
             </div>
           </div>
@@ -457,7 +457,7 @@ export function GatewaySheet() {
 
       {discoveries.length > 0 && (
         <div className="mb-6">
-          <div className="text-[12px] text-text-3/70 mb-2">Detected healthy gateways</div>
+          <div className="text-[12px] text-text-3 mb-2">Detected healthy gateways</div>
           <div className="flex flex-wrap gap-2">
             {discoveries.map((item) => {
               const detectedEndpoint = `http://${item.host}:${item.port}`
@@ -497,7 +497,7 @@ export function GatewaySheet() {
           placeholder="Or paste/generate a new gateway token"
           className={`${inputClass} mt-3 font-mono text-[13px]`}
         />
-        <p className="mt-2 text-[11px] text-text-3/60">
+        <p className="mt-2 text-[11px] text-text-3">
           A pasted token is stored as a new encrypted OpenClaw credential when you save this gateway.
         </p>
       </div>
@@ -546,15 +546,15 @@ export function GatewaySheet() {
 
           <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
             <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
-              <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3/55">Nodes</div>
+              <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">Nodes</div>
               <div className="mt-1 font-display text-[18px] font-700 text-text">{nodes.filter((node) => node.connected).length}/{nodes.length}</div>
             </div>
             <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
-              <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3/55">Pairings</div>
+              <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">Pairings</div>
               <div className="mt-1 font-display text-[18px] font-700 text-amber-300">{nodePairings.length + devicePairings.length}</div>
             </div>
             <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
-              <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3/55">Sessions</div>
+              <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">Sessions</div>
               <div className="mt-1 font-display text-[18px] font-700 text-text">{gatewaySessions.length}</div>
             </div>
             <div className={`rounded-md border px-3 py-2 ${
@@ -562,7 +562,7 @@ export function GatewaySheet() {
                 ? 'border-rose-400/20 bg-rose-400/[0.06]'
                 : 'border-line-subtle bg-layer-1'
             }`}>
-              <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3/55">Presence</div>
+              <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">Presence</div>
               <div className={gatewayTopologyErrors.length > 0 ? 'mt-1 font-display text-[18px] font-700 text-rose-200' : 'mt-1 font-display text-[18px] font-700 text-text'}>
                 {gatewayPresence.length}
               </div>
@@ -579,15 +579,15 @@ export function GatewaySheet() {
             <div className="space-y-4">
               <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">Pending Node Pairings</div>
-                  <div className="text-[11px] text-text-3/50">{nodePairings.length}</div>
+                  <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Pending Node Pairings</div>
+                  <div className="text-[11px] text-text-3">{nodePairings.length}</div>
                 </div>
                 {nodePairings.length > 0 ? (
                   <div className="space-y-2">
                     {nodePairings.map((request) => (
                       <div key={request.requestId} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                         <div className="text-[13px] font-600 text-text-2">{request.displayName || request.nodeId || request.requestId}</div>
-                        <div className="text-[11px] text-text-3/60 mt-1">{request.platform || 'Unknown platform'}{request.remoteIp ? ` · ${request.remoteIp}` : ''}</div>
+                        <div className="text-[11px] text-text-3 mt-1">{request.platform || 'Unknown platform'}{request.remoteIp ? ` · ${request.remoteIp}` : ''}</div>
                         <div className="mt-3 flex gap-2">
                           <button type="button" onClick={() => void handlePairingDecision('node', request.requestId, 'approve')} className="px-2.5 py-1.5 rounded-sm bg-emerald-400/10 text-emerald-300 text-[11px] font-700 border-none cursor-pointer hover:bg-emerald-400/15 transition-all">Approve</button>
                           <button type="button" onClick={() => void handlePairingDecision('node', request.requestId, 'reject')} className="px-2.5 py-1.5 rounded-sm bg-red-400/10 text-red-300 text-[11px] font-700 border-none cursor-pointer hover:bg-red-400/15 transition-all">Reject</button>
@@ -596,21 +596,21 @@ export function GatewaySheet() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-[12px] text-text-3/60">No pending node approvals.</div>
+                  <div className="text-[12px] text-text-3">No pending node approvals.</div>
                 )}
               </div>
 
               <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">Pending Device Pairings</div>
-                  <div className="text-[11px] text-text-3/50">{devicePairings.length}</div>
+                  <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Pending Device Pairings</div>
+                  <div className="text-[11px] text-text-3">{devicePairings.length}</div>
                 </div>
                 {devicePairings.length > 0 ? (
                   <div className="space-y-2">
                     {devicePairings.map((request) => (
                       <div key={request.requestId} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                         <div className="text-[13px] font-600 text-text-2">{request.displayName || request.deviceId || request.requestId}</div>
-                        <div className="text-[11px] text-text-3/60 mt-1">{request.role || 'device'}{request.platform ? ` · ${request.platform}` : ''}{request.remoteIp ? ` · ${request.remoteIp}` : ''}</div>
+                        <div className="text-[11px] text-text-3 mt-1">{request.role || 'device'}{request.platform ? ` · ${request.platform}` : ''}{request.remoteIp ? ` · ${request.remoteIp}` : ''}</div>
                         <div className="mt-3 flex gap-2">
                           <button type="button" onClick={() => void handlePairingDecision('device', request.requestId, 'approve')} className="px-2.5 py-1.5 rounded-sm bg-emerald-400/10 text-emerald-300 text-[11px] font-700 border-none cursor-pointer hover:bg-emerald-400/15 transition-all">Approve</button>
                           <button type="button" onClick={() => void handlePairingDecision('device', request.requestId, 'reject')} className="px-2.5 py-1.5 rounded-sm bg-red-400/10 text-red-300 text-[11px] font-700 border-none cursor-pointer hover:bg-red-400/15 transition-all">Reject</button>
@@ -619,7 +619,7 @@ export function GatewaySheet() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-[12px] text-text-3/60">No pending device approvals.</div>
+                  <div className="text-[12px] text-text-3">No pending device approvals.</div>
                 )}
               </div>
             </div>
@@ -627,8 +627,8 @@ export function GatewaySheet() {
             <div className="space-y-4">
               <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">Connected / Paired Nodes</div>
-                  <div className="text-[11px] text-text-3/50">{nodes.length}</div>
+                  <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Connected / Paired Nodes</div>
+                  <div className="text-[11px] text-text-3">{nodes.length}</div>
                 </div>
                 {nodes.length > 0 ? (
                   <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
@@ -637,7 +637,7 @@ export function GatewaySheet() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-[13px] font-600 text-text-2 truncate">{node.displayName || node.nodeId}</div>
-                            <div className="text-[11px] text-text-3/60 mt-1">
+                            <div className="text-[11px] text-text-3 mt-1">
                               {node.platform || 'Unknown platform'}
                               {node.remoteIp ? ` · ${node.remoteIp}` : ''}
                               {node.deviceFamily ? ` · ${node.deviceFamily}` : ''}
@@ -652,7 +652,7 @@ export function GatewaySheet() {
                           </div>
                         </div>
                         {node.commands?.length ? (
-                          <div className="mt-2 text-[11px] text-text-3/60 truncate">
+                          <div className="mt-2 text-[11px] text-text-3 truncate">
                             {node.commands.slice(0, 4).join(', ')}
                             {node.commands.length > 4 ? ` +${node.commands.length - 4}` : ''}
                           </div>
@@ -673,14 +673,14 @@ export function GatewaySheet() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-[12px] text-text-3/60">No nodes are paired to this gateway yet.</div>
+                  <div className="text-[12px] text-text-3">No nodes are paired to this gateway yet.</div>
                 )}
               </div>
 
               <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">Paired Devices</div>
-                  <div className="text-[11px] text-text-3/50">{pairedDevices.length}</div>
+                  <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Paired Devices</div>
+                  <div className="text-[11px] text-text-3">{pairedDevices.length}</div>
                 </div>
                 {pairedDevices.length > 0 ? (
                   <div className="space-y-2">
@@ -689,7 +689,7 @@ export function GatewaySheet() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-[13px] font-600 text-text-2 truncate">{device.displayName || device.deviceId}</div>
-                            <div className="text-[11px] text-text-3/60 mt-1">{device.role || 'device'}{device.platform ? ` · ${device.platform}` : ''}{device.remoteIp ? ` · ${device.remoteIp}` : ''}</div>
+                            <div className="text-[11px] text-text-3 mt-1">{device.role || 'device'}{device.platform ? ` · ${device.platform}` : ''}{device.remoteIp ? ` · ${device.remoteIp}` : ''}</div>
                           </div>
                           <button type="button" onClick={() => void handleRemoveDevice(device.deviceId)} className="px-2.5 py-1.5 rounded-sm bg-red-400/10 text-red-300 text-[11px] font-700 border-none cursor-pointer hover:bg-red-400/15 transition-all">Remove</button>
                         </div>
@@ -697,14 +697,14 @@ export function GatewaySheet() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-[12px] text-text-3/60">No paired devices on this gateway.</div>
+                  <div className="text-[12px] text-text-3">No paired devices on this gateway.</div>
                 )}
               </div>
             </div>
           </div>
 
           <div className="mt-4 rounded-md border border-line-subtle bg-surface p-4">
-            <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70 mb-3">Invoke Node Command</div>
+            <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3 mb-3">Invoke Node Command</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <select value={invokeNodeId} onChange={(e) => setInvokeNodeId(e.target.value)} className={inputClass}>
                 <option value="">Select node</option>
@@ -722,7 +722,7 @@ export function GatewaySheet() {
               className={`${inputClass} font-mono text-[13px] resize-y min-h-[120px]`}
             />
             <div className="mt-3 flex items-center justify-between gap-3">
-              <p className="text-[11px] text-text-3/55">
+              <p className="text-[11px] text-text-3">
                 Use commands exposed by the selected node, such as file, shell, or notification actions that gateway policy allows.
               </p>
               <button type="button" onClick={handleInvoke} disabled={invoking || !invokeNodeId || !invokeCommand.trim()} className="px-3 py-2 rounded-sm bg-accent-bright text-accent-fg text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">
@@ -730,7 +730,7 @@ export function GatewaySheet() {
               </button>
             </div>
             {invokeResult && (
-              <pre className="mt-3 rounded-md border border-line-subtle bg-black/20 p-3 text-[11px] text-text-2/80 overflow-x-auto whitespace-pre-wrap">
+              <pre className="mt-3 rounded-md border border-line-subtle bg-black/20 p-3 text-[11px] text-text-2 overflow-x-auto whitespace-pre-wrap">
                 {invokeResult}
               </pre>
             )}
@@ -739,7 +739,7 @@ export function GatewaySheet() {
       )}
 
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[12px] text-text-3/70">
+        <div className="text-[12px] text-text-3">
           {checkMessage || 'Run a health check before saving if you want to verify endpoint + token.'}
         </div>
         <div className="flex items-center gap-2">

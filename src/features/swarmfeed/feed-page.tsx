@@ -190,7 +190,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
       return (
         <div className="space-y-5">
           <div className="rounded-lg border border-line-subtle bg-surface/70 p-4">
-            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/60">Search Results</div>
+            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Search Results</div>
             <div className="mt-2 text-[14px] text-text">
               {result?.total || 0} result{result?.total === 1 ? '' : 's'} for <span className="font-700 text-accent-bright">{deferredSearchQuery}</span>
             </div>
@@ -218,11 +218,11 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                       <AgentAvatar seed={agent.id} avatarUrl={agent.avatar || null} name={agent.name} size={36} />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-700 text-text">{agent.name}</div>
-                        <div className="mt-1 text-[11px] uppercase tracking-[0.1em] text-text-3/55">
+                        <div className="mt-1 text-[11px] uppercase tracking-[0.1em] text-text-3">
                           {agent.framework || 'unknown'}
                         </div>
                         {agent.bio && (
-                          <p className="mt-2 line-clamp-3 text-[12px] leading-[1.6] text-text-3/75">{agent.bio}</p>
+                          <p className="mt-2 line-clamp-3 text-[12px] leading-[1.6] text-text-3">{agent.bio}</p>
                         )}
                       </div>
                     </div>
@@ -336,12 +336,12 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
           <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="font-display text-[24px] font-700 tracking-[-0.02em] text-text">SwarmFeed</h1>
-              <p className="mt-1 max-w-2xl text-[13px] leading-[1.7] text-text-3/75">
+              <p className="mt-1 max-w-2xl text-[13px] leading-[1.7] text-text-3">
                 A social network for agents. Humans can direct an update, but every post, follow, and reaction is executed as the selected agent identity.
               </p>
             </div>
             <div className="rounded-lg border border-line-subtle bg-surface/65 px-4 py-3">
-              <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/60">Acting As</div>
+              <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Acting As</div>
               {selectedAgent ? (
                 <div className="mt-2 flex items-center gap-2">
                   <AgentAvatar
@@ -352,13 +352,13 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                   />
                   <div className="min-w-0">
                     <div className="truncate text-[13px] font-700 text-text">{selectedAgent.name}</div>
-                    <div className="text-[11px] uppercase tracking-[0.1em] text-text-3/55">
+                    <div className="text-[11px] uppercase tracking-[0.1em] text-text-3">
                       {selectedAgent.model || selectedAgent.provider}
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="mt-2 text-[12px] text-text-3/70">No SwarmFeed-enabled agents available yet.</div>
+                <div className="mt-2 text-[12px] text-text-3">No SwarmFeed-enabled agents available yet.</div>
               )}
             </div>
           </div>
@@ -372,14 +372,14 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
 
               <div className="rounded-lg border border-line-default bg-surface/80 p-5">
                 <div className="mb-3 flex items-center gap-2">
-                  <Search size={14} className="text-text-3/60" />
-                  <div className="text-[13px] font-700 uppercase tracking-[0.1em] text-text-3/60">Search SwarmFeed</div>
+                  <Search size={14} className="text-text-3" />
+                  <div className="text-[13px] font-700 uppercase tracking-[0.1em] text-text-3">Search SwarmFeed</div>
                 </div>
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Find posts, agents, channels, hashtags…"
-                  className="w-full rounded-md border border-line-default bg-bg/65 px-4 py-3 text-[14px] text-text outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                  className="w-full rounded-md border border-line-default bg-bg/65 px-4 py-3 text-[14px] text-text outline-none transition-all placeholder:text-text-3 focus-glow"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
                   {SEARCH_FILTERS.map((filter) => (
@@ -397,7 +397,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                     </button>
                   ))}
                 </div>
-                <div className="mt-3 text-[11px] text-text-3/60">
+                <div className="mt-3 text-[11px] text-text-3">
                   {searchQuery.trim().length === 1
                     ? 'Type at least 2 characters to search.'
                     : isSearching
@@ -410,12 +410,12 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
 
               <div className="rounded-lg border border-line-default bg-surface/80 p-5">
                 <div className="mb-3 flex items-center gap-2">
-                  <Users size={14} className="text-text-3/60" />
-                  <div className="text-[13px] font-700 uppercase tracking-[0.1em] text-text-3/60">Suggested Follows</div>
+                  <Users size={14} className="text-text-3" />
+                  <div className="text-[13px] font-700 uppercase tracking-[0.1em] text-text-3">Suggested Follows</div>
                 </div>
 
                 {suggestedQuery.isLoading ? (
-                  <div className="text-[13px] text-text-3/70">Loading suggestions…</div>
+                  <div className="text-[13px] text-text-3">Loading suggestions…</div>
                 ) : suggestedQuery.error ? (
                   <div className="text-[13px] text-red-200">
                     {suggestedQuery.error instanceof Error ? suggestedQuery.error.message : 'Failed to load suggestions'}
@@ -434,13 +434,13 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-[13px] text-text-3/70">No suggestions available right now.</div>
+                  <div className="text-[13px] text-text-3">No suggestions available right now.</div>
                 )}
               </div>
 
               {channels.length > 0 ? (
                 <div className="rounded-lg border border-line-default bg-surface/80 p-5">
-                  <div className="mb-3 text-[13px] font-700 uppercase tracking-[0.1em] text-text-3/60">Channels</div>
+                  <div className="mb-3 text-[13px] font-700 uppercase tracking-[0.1em] text-text-3">Channels</div>
                   <div className="flex flex-wrap gap-2">
                     {channels.slice(0, 12).map((channel) => (
                       <div
@@ -535,7 +535,7 @@ function SuggestedAgentRow({
         className="min-w-0 flex-1 cursor-pointer border-none bg-transparent p-0 text-left"
       >
         <div className="truncate text-[13px] font-700 text-text">{agent.name}</div>
-        <div className="mt-1 text-[11px] uppercase tracking-[0.08em] text-text-3/55">
+        <div className="mt-1 text-[11px] uppercase tracking-[0.08em] text-text-3">
           {agent.framework || 'unknown'}{typeof agent.followerCount === 'number' ? ` · ${agent.followerCount} followers` : ''}
         </div>
       </button>
@@ -584,11 +584,11 @@ function NotificationsList({
                   {notification.actorName || notification.actorId}
                 </div>
               </button>
-              <div className="mt-1 text-[12px] uppercase tracking-[0.1em] text-text-3/55">
+              <div className="mt-1 text-[12px] uppercase tracking-[0.1em] text-text-3">
                 {notification.type} · {formatTimestamp(notification.createdAt)}
               </div>
               {notification.content ? (
-                <p className="mt-3 whitespace-pre-wrap break-words text-[13px] leading-[1.6] text-text-2/85">
+                <p className="mt-3 whitespace-pre-wrap break-words text-[13px] leading-[1.6] text-text-2">
                   {notification.content}
                 </p>
               ) : null}
@@ -610,14 +610,14 @@ function NotificationsList({
 }
 
 function SectionTitle({ children }: { children: string }) {
-  return <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/60">{children}</div>
+  return <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">{children}</div>
 }
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
     <div className="rounded-lg border border-line-subtle bg-surface/75 p-8 text-center">
       <p className="text-[14px] font-700 text-text">{title}</p>
-      <p className="mx-auto mt-2 max-w-xl text-[13px] leading-[1.7] text-text-3/75">{description}</p>
+      <p className="mx-auto mt-2 max-w-xl text-[13px] leading-[1.7] text-text-3">{description}</p>
     </div>
   )
 }

@@ -171,8 +171,8 @@ export function KnowledgeList() {
           <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/55">Hygiene</div>
-                <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-text-2/80">
+                <div className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3">Hygiene</div>
+                <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-text-2">
                   <span>stale {hygiene.counts.stale}</span>
                   <span>duplicates {hygiene.counts.duplicate}</span>
                   <span>broken {hygiene.counts.broken}</span>
@@ -189,7 +189,7 @@ export function KnowledgeList() {
               </button>
             </div>
             <div className="mt-3 flex items-center justify-between gap-3">
-              <div className="text-[10px] text-text-3/55">
+              <div className="text-[10px] text-text-3">
                 Last scan {new Date(hygiene.scannedAt).toLocaleTimeString()}
               </div>
               <button
@@ -259,7 +259,7 @@ export function KnowledgeList() {
                           <span className="font-display text-[13px] font-600 text-text truncate">{hit.sourceTitle}</span>
                           <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase">{hit.sourceKind}</Badge>
                         </div>
-                        <p className="text-[10px] text-text-3/55">
+                        <p className="text-[10px] text-text-3">
                           Chunk {hit.chunkIndex + 1} of {hit.chunkCount}
                           {hit.sectionLabel ? ` • ${hit.sectionLabel}` : ''}
                         </p>
@@ -272,7 +272,7 @@ export function KnowledgeList() {
                           event.stopPropagation()
                           openSheet(hit.sourceId)
                         }}
-                        className="text-text-3/40 hover:text-accent-bright transition-colors p-0.5 cursor-pointer"
+                        className="text-text-3 hover:text-accent-bright transition-colors p-0.5 cursor-pointer"
                         title="Edit"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -282,7 +282,7 @@ export function KnowledgeList() {
                       </button>
                     </div>
 
-                    <p className="text-[11px] text-text-2/80 line-clamp-4">{hit.snippet}</p>
+                    <p className="text-[11px] text-text-2 line-clamp-4">{hit.snippet}</p>
 
                     <div className="flex items-center gap-2 mt-2.5 flex-wrap">
                       {hit.tags.map((tag) => (
@@ -340,7 +340,7 @@ export function KnowledgeList() {
                             <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase text-text-3">superseded</Badge>
                           ) : null}
                         </div>
-                        <p className="text-[10px] text-text-3/55">
+                        <p className="text-[10px] text-text-3">
                           {source.chunkCount} chunk{source.chunkCount === 1 ? '' : 's'}
                           {' • '}
                           {formatDate(source.lastIndexedAt)}
@@ -353,7 +353,7 @@ export function KnowledgeList() {
                             event.stopPropagation()
                             openSheet(source.id)
                           }}
-                          className="text-text-3/40 hover:text-accent-bright transition-colors p-0.5 cursor-pointer"
+                          className="text-text-3 hover:text-accent-bright transition-colors p-0.5 cursor-pointer"
                           title="Edit"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -366,7 +366,7 @@ export function KnowledgeList() {
                             event.stopPropagation()
                             void handleDelete(source.id)
                           }}
-                          className="text-text-3/40 hover:text-red-400 transition-colors p-0.5 cursor-pointer"
+                          className="text-text-3 hover:text-red-400 transition-colors p-0.5 cursor-pointer"
                           title="Delete"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -377,7 +377,7 @@ export function KnowledgeList() {
                     </div>
 
                     {source.topSnippet && (
-                      <p className="text-[11px] text-text-3/70 line-clamp-3 mb-2">{source.topSnippet}</p>
+                      <p className="text-[11px] text-text-3 line-clamp-3 mb-2">{source.topSnippet}</p>
                     )}
 
                     <div className="flex items-center gap-2 flex-wrap">
@@ -395,7 +395,7 @@ export function KnowledgeList() {
                         {source.scope === 'global' ? 'Global' : `${source.agentIds.length} agent(s)`}
                       </span>
                       {source.sourceLabel && (
-                        <span className="text-[10px] text-text-3/55 truncate">{source.sourceLabel}</span>
+                        <span className="text-[10px] text-text-3 truncate">{source.sourceLabel}</span>
                       )}
                     </div>
 
@@ -422,7 +422,7 @@ export function KnowledgeList() {
                           ))}
                         </div>
                         {scopedAgents.length > 5 && (
-                          <span className="text-[10px] font-600 text-text-3/60">+{scopedAgents.length - 5}</span>
+                          <span className="text-[10px] font-600 text-text-3">+{scopedAgents.length - 5}</span>
                         )}
                       </div>
                     )}
@@ -433,7 +433,7 @@ export function KnowledgeList() {
       ) : error ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-3 p-8 text-center" style={{ animation: 'fade-up 0.5s var(--ease-spring)' }}>
           <p className="font-display text-[14px] font-600 text-text-2">Couldn&apos;t load knowledge</p>
-          <p className="text-[12px] text-text-3/60">{error}</p>
+          <p className="text-[12px] text-text-3">{error}</p>
           <button
             onClick={() => { void load(search, activeTag) }}
             className="px-3 py-1.5 rounded-sm bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer border-none"

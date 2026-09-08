@@ -95,7 +95,7 @@ export function TabBehavior({
                 </button>
               ))}
             </div>
-            <p className="text-[12px] text-text-3/75">
+            <p className="text-[12px] text-text-3">
               {role === 'coordinator'
                 ? 'Breaks down complex goals, delegates to specialists, and synthesizes results'
                 : 'Executes tasks when prompted by users or other agents'}
@@ -149,7 +149,7 @@ export function TabBehavior({
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-[14px] font-600 text-text">Orchestrator Mode</p>
-                <p className="mt-1 text-[12px] leading-[1.6] text-text-3/75">
+                <p className="mt-1 text-[12px] leading-[1.6] text-text-3">
                   Wakes on a schedule to autonomously review platform state and take action.
                 </p>
               </div>
@@ -238,7 +238,7 @@ export function TabBehavior({
         <div className="flex items-center justify-between gap-4 rounded-md border border-line-subtle bg-layer-1 px-4 py-4">
           <div className="min-w-0">
             <p className="text-[14px] font-600 text-text">Heartbeat</p>
-            <p className="mt-1 text-[12px] leading-[1.6] text-text-3/75">
+            <p className="mt-1 text-[12px] leading-[1.6] text-text-3">
               Keep this agent alive in the background for proactive work and scheduled follow-through.
             </p>
           </div>
@@ -257,7 +257,7 @@ export function TabBehavior({
               <p className="text-[14px] font-600 text-text">Dreaming</p>
               <HintTip text="When enabled, this agent consolidates and optimizes its memories during idle periods" />
             </div>
-            <p className="mt-1 text-[12px] leading-[1.6] text-text-3/75">
+            <p className="mt-1 text-[12px] leading-[1.6] text-text-3">
               Consolidate, decay, and reflect on memories when the agent is idle.
             </p>
           </div>
@@ -332,13 +332,13 @@ export function TabBehavior({
                 Use global default
               </button>
             </div>
-            <p className="mt-2 text-[12px] leading-[1.6] text-text-3/70">
+            <p className="mt-2 text-[12px] leading-[1.6] text-text-3">
               Current effective voice: <span className="text-text-2">{effectiveVoiceId}</span> · {effectiveVoiceSource}
               {!voicePlaybackEnabled && ' · Voice playback is disabled globally'}
             </p>
           </>
         ) : (
-          <p className="text-[12px] leading-[1.6] text-text-3/70">
+          <p className="text-[12px] leading-[1.6] text-text-3">
             ElevenLabs is not configured yet. Add a global API key in Settings to enable voice overrides here.
           </p>
         )}

@@ -93,11 +93,11 @@ export function OrgChartActivityFeed({ agents, onSelectAgent, onClose }: Props) 
       <div className="flex-1 overflow-y-auto overscroll-contain" onWheel={(e) => e.stopPropagation()}>
         {loading && entries.length === 0 ? (
           <div className="flex items-center justify-center py-12">
-            <span className="text-[11px] text-text-3/50">Loading...</span>
+            <span className="text-[11px] text-text-3">Loading...</span>
           </div>
         ) : entries.length === 0 ? (
           <div className="flex items-center justify-center py-12">
-            <span className="text-[11px] text-text-3/50">No activity yet</span>
+            <span className="text-[11px] text-text-3">No activity yet</span>
           </div>
         ) : (
           <div className="flex flex-col">
@@ -126,7 +126,7 @@ export function OrgChartActivityFeed({ agents, onSelectAgent, onClose }: Props) 
                       <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={20} />
                     ) : (
                       <div className="w-5 h-5 rounded-full bg-layer-2 flex items-center justify-center">
-                        <span className="text-[8px] text-text-3/50">{entry.entityType.charAt(0).toUpperCase()}</span>
+                        <span className="text-[8px] text-text-3">{entry.entityType.charAt(0).toUpperCase()}</span>
                       </div>
                     )}
                   </div>
@@ -140,7 +140,7 @@ export function OrgChartActivityFeed({ agents, onSelectAgent, onClose }: Props) 
                       <span className={`text-[9px] font-500 uppercase tracking-wider ${actionColor}`}>
                         {entry.action}
                       </span>
-                      <span className="text-[9px] text-text-3/30">
+                      <span className="text-[9px] text-text-3">
                         {timeAgo(entry.timestamp)}
                       </span>
                     </div>

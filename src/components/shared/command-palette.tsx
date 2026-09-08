@@ -296,7 +296,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search chats, agents, tasks, settings..."
-              className="flex-1 bg-transparent border-none outline-none text-[14px] text-text-1 placeholder:text-text-3/50"
+              className="flex-1 bg-transparent border-none outline-none text-[14px] text-text-1 placeholder:text-text-3"
             />
           <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-xs bg-layer-2 text-[11px] text-text-3 font-500">
             esc
@@ -306,11 +306,11 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
         {/* Results */}
         <div ref={listRef} className="max-h-[360px] overflow-y-auto py-2">
           {filtered.length === 0 ? (
-            <div className="px-4 py-8 text-center text-[13px] text-text-3/50">No results found</div>
+            <div className="px-4 py-8 text-center text-[13px] text-text-3">No results found</div>
           ) : (
             Array.from(grouped.entries()).map(([category, groupItems]) => (
               <div key={category}>
-                <div className="px-4 py-1.5 text-[11px] font-600 text-text-3/50 uppercase tracking-wider">
+                <div className="px-4 py-1.5 text-[11px] font-600 text-text-3 uppercase tracking-wider">
                   {categoryLabel[category as keyof typeof categoryLabel]}
                 </div>
                 {groupItems.map((item) => {
@@ -344,7 +344,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
         </div>
 
         {/* Footer hint */}
-        <div className="px-4 py-2 border-t border-line-subtle flex items-center gap-4 text-[11px] text-text-3/40">
+        <div className="px-4 py-2 border-t border-line-subtle flex items-center gap-4 text-[11px] text-text-3">
           <span className="flex items-center gap-1">
             <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px]">&uarr;&darr;</kbd> navigate
           </span>

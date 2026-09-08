@@ -87,7 +87,7 @@ function TemplateCard({ template, onInstall }: { template: MissionTemplate; onIn
         <span className="text-[22px] leading-none" aria-hidden>{template.icon}</span>
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-700 text-text">{template.name}</div>
-          <div className="text-[10px] uppercase tracking-wide text-text-3/70 mt-0.5">
+          <div className="text-[10px] uppercase tracking-wide text-text-3 mt-0.5">
             {CATEGORY_LABELS[template.category]}
           </div>
         </div>
@@ -98,7 +98,7 @@ function TemplateCard({ template, onInstall }: { template: MissionTemplate; onIn
           {template.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="text-[10px] text-text-3/70 px-1.5 py-0.5 rounded-xs border border-line-subtle bg-layer-1"
+              className="text-[10px] text-text-3 px-1.5 py-0.5 rounded-xs border border-line-subtle bg-layer-1"
             >
               {tag}
             </span>

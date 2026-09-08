@@ -153,7 +153,7 @@ export function AgentFilesEditor({ agentId }: Props) {
       {/* Editor area */}
       <div className="flex-1 min-h-0 px-2 pb-2 overflow-y-auto">
         {current?.loading ? (
-          <div className="flex items-center justify-center h-full text-[13px] text-text-3/50">Loading...</div>
+          <div className="flex items-center justify-center h-full text-[13px] text-text-3">Loading...</div>
         ) : current?.error ? (
           <div className="flex items-center justify-center h-full text-[13px] text-red-400">{current.error}</div>
         ) : showGuided ? (
@@ -171,7 +171,7 @@ export function AgentFilesEditor({ agentId }: Props) {
             onChange={(e) => handleContentChange(activeTab, e.target.value)}
             className="w-full h-full resize-none rounded-sm border border-line-subtle bg-black/20 px-3 py-2.5
               text-[13px] text-text font-mono leading-relaxed outline-none
-              placeholder:text-text-3/40 focus:border-line-default transition-colors"
+              placeholder:text-text-3 focus:border-line-default transition-colors"
             placeholder={`${activeTab} content...`}
             style={{ fontFamily: 'ui-monospace, monospace' }}
           />

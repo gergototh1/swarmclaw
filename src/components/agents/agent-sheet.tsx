@@ -1033,7 +1033,7 @@ export function AgentSheet() {
     })
   }
 
-  const inputClass = "w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
+  const inputClass = "w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
   const configVersionSummaries = configVersions.map((version) => buildAgentConfigVersionSummary(version))
 
   return (

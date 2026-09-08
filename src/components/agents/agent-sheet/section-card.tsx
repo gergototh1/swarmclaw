@@ -19,7 +19,7 @@ export function SectionCard({
         <div>
           <h3 className="font-display text-[17px] font-700 tracking-[-0.02em] text-text">{title}</h3>
           {description && (
-            <p className="mt-1 text-[13px] leading-[1.6] text-text-3/75">{description}</p>
+            <p className="mt-1 text-[13px] leading-[1.6] text-text-3">{description}</p>
           )}
         </div>
         {action}

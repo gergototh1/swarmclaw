@@ -228,7 +228,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                             autoComplete="off"
                             className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                               text-text text-[16px] text-center font-mono outline-none
-                              transition-all duration-200 placeholder:text-text-3/70
+                              transition-all duration-200 placeholder:text-text-3
                               focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
                           />
                           <button
@@ -256,7 +256,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                         autoComplete="off"
                         className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                           text-text text-[16px] text-center font-mono outline-none
-                          transition-all duration-200 placeholder:text-text-3/70
+                          transition-all duration-200 placeholder:text-text-3
                           focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
                       />
                     </div>
@@ -341,7 +341,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                       autoComplete="off"
                       className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                         text-text text-[16px] text-center font-mono outline-none
-                        transition-all duration-200 placeholder:text-text-3/70
+                        transition-all duration-200 placeholder:text-text-3
                         focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
                     />
                   </div>
@@ -398,7 +398,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                   autoComplete="off"
                   className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                     text-text text-[16px] text-center font-mono outline-none
-                    transition-all duration-200 placeholder:text-text-3/70
+                    transition-all duration-200 placeholder:text-text-3
                     focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
                 />
               </div>

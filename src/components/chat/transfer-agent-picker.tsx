@@ -37,13 +37,13 @@ export function TransferAgentPicker({ excludeIds, filterIds, onSelect, onClose }
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search agents..."
             autoFocus
-            className="w-full px-2 py-1.5 text-[12px] bg-layer-2 rounded-xs border border-line-default text-text placeholder:text-text-3/50 outline-none"
+            className="w-full px-2 py-1.5 text-[12px] bg-layer-2 rounded-xs border border-line-default text-text placeholder:text-text-3 outline-none"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
         <div className="max-h-[200px] overflow-y-auto">
           {filtered.length === 0 && (
-            <div className="px-3 py-2 text-[11px] text-text-3/60 text-center">No agents</div>
+            <div className="px-3 py-2 text-[11px] text-text-3 text-center">No agents</div>
           )}
           {filtered.map((a) => (
             <button

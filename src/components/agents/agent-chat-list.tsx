@@ -223,7 +223,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
           </svg>
         </div>
         <p className="font-display text-[15px] font-600 text-text-2">No agents yet</p>
-        <p className="text-[13px] text-text-3/50">Create agents to start chatting</p>
+        <p className="text-[13px] text-text-3">Create agents to start chatting</p>
         {!inSidebar && (
           <Button
             variant="accent"
@@ -374,7 +374,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                           : 'Thinking...'}
                       </div>
                     ) : (
-                      <div className="text-[12px] text-text-3/70 mt-1 truncate">
+                      <div className="text-[12px] text-text-3 mt-1 truncate">
                         {preview}
                       </div>
                     )}
@@ -466,7 +466,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                         Default
                       </span>
                     )}
-                    <span className="text-[10px] text-text-3/60 font-mono shrink-0 max-w-[30%] truncate">
+                    <span className="text-[10px] text-text-3 font-mono shrink-0 max-w-[30%] truncate">
                       {(threadSession?.model || agent.model)
                         ? (threadSession?.model || agent.model)!.split('/').pop()?.split(':')[0]
                         : agent.provider}
@@ -530,7 +530,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                         : 'Thinking...'}
                     </div>
                   ) : preview ? (
-                    <div className="text-[12px] text-text-3/70 mt-0.5 truncate">
+                    <div className="text-[12px] text-text-3 mt-0.5 truncate">
                       {preview}
                     </div>
                   ) : null}

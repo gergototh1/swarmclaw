@@ -195,7 +195,7 @@ export function AgentList({ inSidebar }: Props) {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search agents..."
             className="w-full px-4 py-2.5 rounded-md border border-line-subtle bg-surface text-text
-              text-[13px] outline-none transition-all duration-200 placeholder:text-text-3/70 focus-glow"
+              text-[13px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
@@ -251,8 +251,8 @@ export function AgentList({ inSidebar }: Props) {
         <div className="mx-4 mb-3 rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Fleet Roles</h3>
-              <p className="text-[12px] text-text-3/65 mt-1">
+              <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Fleet Roles</h3>
+              <p className="text-[12px] text-text-3 mt-1">
                 Delegating agents can hand work to other agents. Solo agents stay on their own thread and tools.
               </p>
             </div>

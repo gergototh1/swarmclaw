@@ -192,7 +192,7 @@ export function ChatList({ inSidebar, onSelect }: Props) {
           <div className="ml-auto relative">
             <button
               onClick={() => setBulkMenuOpen((open) => !open)}
-              className="p-1.5 rounded-sm text-text-3/70 hover:text-text-2 hover:bg-layer-2
+              className="p-1.5 rounded-sm text-text-3 hover:text-text-2 hover:bg-layer-2
                 cursor-pointer transition-all bg-transparent border-none"
               title="More actions"
             >
@@ -268,7 +268,7 @@ export function ChatList({ inSidebar, onSelect }: Props) {
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-3 p-8 text-center">
-          <p className="text-[13px] text-text-3/50">
+          <p className="text-[13px] text-text-3">
             No {typeFilter === 'active' ? 'active' : typeFilter} chats{search ? ` matching "${search}"` : ''}
           </p>
         </div>

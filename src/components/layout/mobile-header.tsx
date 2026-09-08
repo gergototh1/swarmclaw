@@ -42,7 +42,7 @@ export function MobileHeader() {
         <h1 className="font-display text-[14px] font-600 tracking-[-0.02em] truncate">
           {title}
         </h1>
-        <p className="text-[10px] text-text-3/60 truncate mt-0.5">
+        <p className="text-[10px] text-text-3 truncate mt-0.5">
           {subtitle}
         </p>
       </div>

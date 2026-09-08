@@ -192,7 +192,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
             onChange={(e) => setPathInput(e.target.value)}
             onKeyDown={handlePathSubmit}
             placeholder="Type a path and press Enter..."
-            className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] font-mono outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
+            className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] font-mono outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
           />
 
           {/* Breadcrumb bar */}
@@ -209,7 +209,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
             )}
             {breadcrumbs.map((bc, i) => (
               <span key={bc.path} className="flex items-center shrink-0">
-                {i > 0 && <span className="text-text-3/60 text-[12px] mx-0.5">/</span>}
+                {i > 0 && <span className="text-text-3 text-[12px] mx-0.5">/</span>}
                 <button
                   onClick={() => navigateTo(bc.path)}
                   className={`px-2 py-1 rounded-xs text-[12px] font-600 cursor-pointer transition-colors
@@ -237,9 +237,9 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
           {/* Directory list */}
           <div className="max-h-[200px] overflow-y-auto rounded-md border border-line-subtle bg-surface divide-y divide-line-subtle">
             {loading ? (
-              <div className="py-8 text-center text-[13px] text-text-3/50">Loading...</div>
+              <div className="py-8 text-center text-[13px] text-text-3">Loading...</div>
             ) : filteredDirs.length === 0 ? (
-              <div className="py-8 text-center text-[13px] text-text-3/50">
+              <div className="py-8 text-center text-[13px] text-text-3">
                 {search ? 'No matching directories' : 'No subdirectories'}
               </div>
             ) : (
@@ -249,7 +249,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
                   onClick={() => navigateTo(d.path)}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-colors hover:bg-layer-1 group"
                 >
-                  <svg className="shrink-0 text-text-3/70 group-hover:text-accent-bright/60 transition-colors" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <svg className="shrink-0 text-text-3 group-hover:text-accent-bright/60 transition-colors" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2Z" />
                   </svg>
                   <span className="text-[13px] font-600 text-text-2 group-hover:text-text truncate">{d.name}</span>

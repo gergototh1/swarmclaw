@@ -89,7 +89,7 @@ export function StepProfile({ onContinue, onSkip }: StepProfileProps) {
           autoFocus
           className="w-full max-w-[300px] px-6 py-4 rounded-lg border border-line-default bg-surface
             text-text text-[18px] text-center font-display font-600 outline-none
-            transition-all duration-200 placeholder:text-text-3/70
+            transition-all duration-200 placeholder:text-text-3
             focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
         />
 

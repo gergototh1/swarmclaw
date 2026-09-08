@@ -63,7 +63,7 @@ export function WebSearchSection({ appSettings, patchSettings, inputClass }: Set
             {hasTavilyKey && (
               <p className="text-[11px] text-emerald-400/90 mt-1.5">Stored securely. Clear the field and save to remove it.</p>
             )}
-            <p className="text-[11px] text-text-3/60 mt-2">Get your API key from <a href="https://tavily.com" target="_blank" rel="noopener noreferrer" className="text-accent-bright hover:underline">tavily.com</a></p>
+            <p className="text-[11px] text-text-3 mt-2">Get your API key from <a href="https://tavily.com" target="_blank" rel="noopener noreferrer" className="text-accent-bright hover:underline">tavily.com</a></p>
           </div>
         )}
 
@@ -81,7 +81,7 @@ export function WebSearchSection({ appSettings, patchSettings, inputClass }: Set
             {hasBraveKey && (
               <p className="text-[11px] text-emerald-400/90 mt-1.5">Stored securely. Clear the field and save to remove it.</p>
             )}
-            <p className="text-[11px] text-text-3/60 mt-2">Get your API key from <a href="https://brave.com/search/api/" target="_blank" rel="noopener noreferrer" className="text-accent-bright hover:underline">brave.com/search/api</a></p>
+            <p className="text-[11px] text-text-3 mt-2">Get your API key from <a href="https://brave.com/search/api/" target="_blank" rel="noopener noreferrer" className="text-accent-bright hover:underline">brave.com/search/api</a></p>
           </div>
         )}
 
@@ -99,7 +99,7 @@ export function WebSearchSection({ appSettings, patchSettings, inputClass }: Set
             {hasExaKey && (
               <p className="text-[11px] text-emerald-400/90 mt-1.5">Stored securely. Clear the field and save to remove it.</p>
             )}
-            <p className="text-[11px] text-text-3/60 mt-2">Get your API key from <a href="https://exa.ai" target="_blank" rel="noopener noreferrer" className="text-accent-bright hover:underline">exa.ai</a>. You can also set the <code className="text-[11px] font-mono text-text-2">EXA_API_KEY</code> environment variable.</p>
+            <p className="text-[11px] text-text-3 mt-2">Get your API key from <a href="https://exa.ai" target="_blank" rel="noopener noreferrer" className="text-accent-bright hover:underline">exa.ai</a>. You can also set the <code className="text-[11px] font-mono text-text-2">EXA_API_KEY</code> environment variable.</p>
           </div>
         )}
       </div>

@@ -340,7 +340,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
   return (
     <div className={`flex-1 overflow-y-auto ${inSidebar ? 'px-3 pb-4' : 'px-5 pb-6'}`}>
       <div className="mb-4 flex items-center justify-between">
-        <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Model Providers</div>
+        <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Model Providers</div>
         {!inSidebar && (
           <button
             type="button"
@@ -393,7 +393,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     {item.type === 'custom' && (
                       <button
                         onClick={(e) => handleDelete(e, item.id)}
-                        className="text-text-3/40 hover:text-red-400 transition-colors p-0.5"
+                        className="text-text-3 hover:text-red-400 transition-colors p-0.5"
                         title="Delete provider"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -409,7 +409,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 />
               </div>
             </div>
-            <div className="text-[12px] text-text-3/60 font-mono truncate">
+            <div className="text-[12px] text-text-3 font-mono truncate">
               {!inSidebar ? item.models.join(', ') : (
                 <>
                   {item.models.slice(0, 3).join(', ')}
@@ -423,7 +423,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
       {!inSidebar && disabledItems.length > 0 && (
         <>
           <div className="mt-8 mb-4 flex items-center justify-between">
-            <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Disabled Providers</div>
+            <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Disabled Providers</div>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {disabledItems.map((item, idx) => (
@@ -461,7 +461,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     {item.type === 'custom' && (
                       <button
                         onClick={(e) => handleDelete(e, item.id)}
-                        className="text-text-3/40 hover:text-red-400 transition-colors p-0.5"
+                        className="text-text-3 hover:text-red-400 transition-colors p-0.5"
                         title="Delete provider"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -472,7 +472,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     <StatusDot status="idle" pulse={false} />
                   </div>
                 </div>
-                <div className="text-[12px] text-text-3/60 font-mono truncate">
+                <div className="text-[12px] text-text-3 font-mono truncate">
                   {item.models.slice(0, 3).join(', ')}
                   {item.models.length > 3 && ` +${item.models.length - 3}`}
                 </div>
@@ -483,7 +483,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
       )}
 
       <div className="mt-8 mb-4 flex items-center justify-between">
-        <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">OpenClaw Gateways</div>
+        <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">OpenClaw Gateways</div>
         {!inSidebar && (
           <div className="flex items-center gap-2">
             <button
@@ -509,13 +509,13 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[12px] font-800 text-text">Gateway fleet topology</div>
-              <div className="mt-1 text-[11px] text-text-3/70">
+              <div className="mt-1 text-[11px] text-text-3">
                 {gatewayFleetTopology.totals.connectedGatewayCount}/{gatewayFleetTopology.totals.gatewayCount} gateways connected ·{' '}
                 {gatewayFleetTopology.totals.connectedNodeCount}/{gatewayFleetTopology.totals.nodeCount} nodes connected ·{' '}
                 {gatewayFleetTopology.totals.availableEnvironmentCount || 0}/{gatewayFleetTopology.totals.environmentCount || 0} environments available
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 text-[11px] text-text-3/70">
+            <div className="flex flex-wrap gap-2 text-[11px] text-text-3">
               <span className="rounded-full border border-line-subtle bg-layer-1 px-2.5 py-1">
                 {gatewayFleetTopology.totals.environmentCount || 0} environments
               </span>
@@ -600,7 +600,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             <div className="flex items-center justify-between mb-2">
               <div className="min-w-0">
                 <div className="font-display text-[14px] font-600 text-text truncate">{gateway.name}</div>
-                <div className="text-[11px] text-text-3/60 font-mono truncate">{gateway.endpoint}</div>
+                <div className="text-[11px] text-text-3 font-mono truncate">{gateway.endpoint}</div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {gateway.isDefault && (
@@ -622,45 +622,45 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 />
               </div>
             </div>
-            <div className="text-[12px] text-text-3/70">
+            <div className="text-[12px] text-text-3">
               {gateway.tags?.length ? gateway.tags.join(', ') : (gateway.notes || 'Dedicated OpenClaw control plane')}
             </div>
             {!inSidebar && (
-              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-text-3/65">
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-text-3">
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Deploy</div>
+                  <div className="uppercase tracking-[0.08em] text-text-3">Deploy</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.method || 'manual'}
                     {deployment?.provider ? ` · ${deployment.provider}` : ''}
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Route hints</div>
+                  <div className="uppercase tracking-[0.08em] text-text-3">Route hints</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.useCase || 'general'}
                     {deployment?.exposure ? ` · ${deployment.exposure}` : ''}
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Nodes / devices</div>
+                  <div className="uppercase tracking-[0.08em] text-text-3">Nodes / devices</div>
                   <div className="mt-1 text-text-2">
                     {stats?.connectedNodeCount ?? 0}/{stats?.nodeCount ?? 0} nodes · {stats?.pairedDeviceCount ?? 0} devices
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Environments</div>
+                  <div className="uppercase tracking-[0.08em] text-text-3">Environments</div>
                   <div className="mt-1 text-text-2">
                     {stats?.availableEnvironmentCount ?? 0}/{stats?.environmentCount ?? 0} available
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Sessions</div>
+                  <div className="uppercase tracking-[0.08em] text-text-3">Sessions</div>
                   <div className="mt-1 text-text-2">
                     {stats?.sessionCount ?? 0} sessions · {stats?.presenceCount ?? 0} presence
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Runtimes</div>
+                  <div className="uppercase tracking-[0.08em] text-text-3">Runtimes</div>
                   <div className="mt-1 text-text-2">
                     {runtimeStats.active}/{runtimeStats.total} active
                   </div>
@@ -683,7 +683,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   </span>
                 ))}
                 {environments.length > 4 && (
-                  <span className="rounded-full border border-line-subtle bg-layer-1 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+                  <span className="rounded-full border border-line-subtle bg-layer-1 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
                     +{environments.length - 4}
                   </span>
                 )}
@@ -701,7 +701,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
               </div>
             )}
             {!inSidebar && deployment?.lastVerifiedMessage && (
-              <div className="mt-3 text-[11px] text-text-3/60">
+              <div className="mt-3 text-[11px] text-text-3">
                 {deployment.lastVerifiedMessage}
               </div>
             )}
@@ -763,7 +763,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
           })()
         ))}
         {gatewayProfiles.length === 0 && (
-          <div className="p-4 rounded-md border border-dashed border-line-default text-[13px] text-text-3/70">
+          <div className="p-4 rounded-md border border-dashed border-line-default text-[13px] text-text-3">
             No gateway profiles yet. Use Smart Deploy above for a local runtime, a Docker VPS bundle, or a hosted OpenClaw deployment profile.
           </div>
         )}
@@ -772,10 +772,10 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
       {!inSidebar && (
         <>
           <div className="mt-8 mb-4 flex items-center justify-between">
-            <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">External Agent Runtimes</div>
-            <div className="text-[11px] text-text-3/60">Direct registration + heartbeat</div>
+            <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">External Agent Runtimes</div>
+            <div className="text-[11px] text-text-3">Direct registration + heartbeat</div>
           </div>
-          <div className="mb-3 rounded-md border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3/70">
+          <div className="mb-3 rounded-md border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
             External workers can register themselves at <code className="text-text-2">/api/external-agents/register</code> and then send heartbeats to
             {' '}
             <code className="text-text-2">/api/external-agents/&lt;id&gt;/heartbeat</code>.
@@ -786,7 +786,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <div className="min-w-0">
                     <div className="font-display text-[14px] font-600 text-text truncate">{runtime.name}</div>
-                    <div className="text-[11px] text-text-3/60 truncate">
+                    <div className="text-[11px] text-text-3 truncate">
                       {runtime.sourceType} · {runtime.transport || 'custom'}
                       {runtime.version ? ` · ${runtime.version}` : ''}
                     </div>
@@ -812,41 +812,41 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     </span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-text-3/65">
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-text-3">
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Provider</div>
+                    <div className="uppercase tracking-[0.08em] text-text-3">Provider</div>
                     <div className="mt-1 text-text-2">
                       {runtime.provider || 'No provider'}
                       {runtime.model ? ` · ${runtime.model}` : ''}
                     </div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Gateway</div>
+                    <div className="uppercase tracking-[0.08em] text-text-3">Gateway</div>
                     <div className="mt-1 text-text-2">
                       {runtime.gatewayProfileId ? (gatewayNameById.get(runtime.gatewayProfileId) || runtime.gatewayProfileId) : 'Standalone'}
                     </div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Template</div>
+                    <div className="uppercase tracking-[0.08em] text-text-3">Template</div>
                     <div className="mt-1 text-text-2">{runtime.gatewayUseCase || 'general'}</div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Last seen</div>
+                    <div className="uppercase tracking-[0.08em] text-text-3">Last seen</div>
                     <div className="mt-1 text-text-2">{formatRuntimeTimestamp(runtime.lastSeenAt || runtime.lastHeartbeatAt)}</div>
                   </div>
                 </div>
-                <div className="text-[11px] text-text-3/55 mt-3 font-mono truncate">{runtime.endpoint || runtime.workspace || runtime.id}</div>
+                <div className="text-[11px] text-text-3 mt-3 font-mono truncate">{runtime.endpoint || runtime.workspace || runtime.id}</div>
                 {runtime.gatewayTags?.length ? (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {runtime.gatewayTags.slice(0, 6).map((tag) => (
-                      <span key={`${runtime.id}-${tag}`} className="rounded-full border border-line-subtle bg-layer-1 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+                      <span key={`${runtime.id}-${tag}`} className="rounded-full border border-line-subtle bg-layer-1 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
                         {tag}
                       </span>
                     ))}
                   </div>
                 ) : null}
                 {runtime.lastHealthNote && (
-                  <div className="mt-3 text-[11px] text-text-3/65 leading-relaxed">
+                  <div className="mt-3 text-[11px] text-text-3 leading-relaxed">
                     {runtime.lastHealthNote}
                   </div>
                 )}
@@ -867,7 +867,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
               </div>
             ))}
             {externalAgents.length === 0 && (
-              <div className="p-4 rounded-md border border-dashed border-line-default text-[13px] text-text-3/70">
+              <div className="p-4 rounded-md border border-dashed border-line-default text-[13px] text-text-3">
                 No external runtimes have registered yet.
               </div>
             )}

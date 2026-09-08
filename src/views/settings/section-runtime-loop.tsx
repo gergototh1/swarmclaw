@@ -37,7 +37,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </button>
           <div>
             <div className="text-[12px] text-text-2">Start the daemon automatically when the app boots</div>
-            <div className="text-[11px] text-text-3/60 mt-1">Enabled by default. This controls scheduler, queue processing, connector recovery, and other background runtime work.</div>
+            <div className="text-[11px] text-text-3 mt-1">Enabled by default. This controls scheduler, queue processing, connector recovery, and other background runtime work.</div>
           </div>
         </div>
 
@@ -51,7 +51,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </button>
           <div>
             <div className="text-[12px] text-text-2">Require human approval before clearing an autonomy or full estop</div>
-            <div className="text-[11px] text-text-3/60 mt-1">Disabled by default while the autonomy safety desk is still being validated. Turn it on if you want an approval gate before resumes.</div>
+            <div className="text-[11px] text-text-3 mt-1">Disabled by default while the autonomy safety desk is still being validated. Turn it on if you want an approval gate before resumes.</div>
           </div>
         </div>
 
@@ -124,7 +124,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
                 className={inputClass}
                 style={{ fontFamily: 'inherit' }}
               />
-              <p className="text-[11px] text-text-3/60 mt-2">Set to 0 to disable the runtime guard.</p>
+              <p className="text-[11px] text-text-3 mt-2">Set to 0 to disable the runtime guard.</p>
             </div>
           </div>
         )}
@@ -212,7 +212,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Aborts a turn if no tokens arrive for this long. Raise for slow local models.</p>
+            <p className="text-[11px] text-text-3 mt-2">Aborts a turn if no tokens arrive for this long. Raise for slow local models.</p>
           </div>
           <div>
             <label className="block text-[11px] text-text-3 mb-2">Required Tool Kickoff</label>
@@ -228,7 +228,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Max wait for a required tool call before forcing a continuation.</p>
+            <p className="text-[11px] text-text-3 mt-2">Max wait for a required tool call before forcing a continuation.</p>
           </div>
         </div>
 
