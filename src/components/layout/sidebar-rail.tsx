@@ -94,7 +94,7 @@ function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtens
             href={href}
             onClick={() => onSelectView(view)}
             aria-current={on ? 'page' : undefined}
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-sm text-[12.5px] transition-colors no-underline ${
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-full text-[12.5px] transition-colors no-underline ${
               on ? 'bg-accent-soft text-accent-bright font-600' : 'text-text-2 hover:bg-layer-2 hover:text-text'
             }`}
           >
@@ -281,7 +281,7 @@ export function SidebarRail({
     )
 
     const className = railExpanded
-      ? `w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border-none no-underline text-left
+      ? `w-full flex items-center gap-2.5 px-3 py-2 rounded-full text-[13px] font-600 cursor-pointer transition-all border-none no-underline text-left
           ${highlighted ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text hover:bg-layer-2'}`
       : `rail-btn ${highlighted ? 'active' : ''} relative no-underline`
 
@@ -383,7 +383,7 @@ export function SidebarRail({
         <div className="px-3 mb-2.5">
           <button
             onClick={goToDefaultChat}
-            className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-[12px] font-600 cursor-pointer transition-all text-left
+            className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-full text-[12px] font-600 cursor-pointer transition-all text-left
               ${isDefaultChat
                 ? 'bg-accent-bright/15 border border-accent-bright/25 text-text'
                 : 'bg-surface border border-line-default text-text hover:bg-surface-2'}`}
@@ -428,7 +428,7 @@ export function SidebarRail({
         <div className="px-3 mb-2">
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-full text-[13px] font-600 cursor-pointer transition-all
               bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none"
             style={{ fontFamily: 'inherit' }}
           >
