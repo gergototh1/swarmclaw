@@ -67,7 +67,7 @@ function FilterChip({ active, onClick, label }: { active: boolean; onClick: () =
       onClick={onClick}
       className={`text-[11px] font-600 px-2.5 py-1 rounded-full border transition-colors ${
         active
-          ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-200'
+          ? 'border-accent-bright/40 bg-accent-bright/15 text-accent-bright'
           : 'border-line-default bg-layer-1 text-text-3 hover:border-line-strong hover:text-text'
       }`}
     >
@@ -104,7 +104,7 @@ function TemplateCard({ template, onInstall }: { template: MissionTemplate; onIn
             </span>
           ))}
         </div>
-        <span className="text-[11px] font-600 text-emerald-300 group-hover:text-emerald-200">
+        <span className="text-[11px] font-600 text-accent-bright group-hover:text-accent-bright">
           Install →
         </span>
       </div>

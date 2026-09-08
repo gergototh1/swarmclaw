@@ -32,7 +32,7 @@ interface ShareLink {
 
 const STATUS_BADGE: Record<Mission['status'], { label: string; cls: string }> = {
   draft: { label: 'Draft', cls: 'bg-layer-2 text-text-3' },
-  running: { label: 'Running', cls: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' },
+  running: { label: 'Running', cls: 'bg-accent-bright/15 text-accent-bright border border-accent-bright/30' },
   paused: { label: 'Paused', cls: 'bg-amber-500/15 text-amber-300 border border-amber-500/30' },
   completed: { label: 'Completed', cls: 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30' },
   failed: { label: 'Failed', cls: 'bg-rose-500/15 text-rose-300 border border-rose-500/30' },
@@ -73,7 +73,7 @@ interface BudgetBarProps {
 
 function BudgetBar({ label, used, cap, format, hint }: BudgetBarProps) {
   const pct = cap && cap > 0 ? Math.min(100, (used / cap) * 100) : 0
-  const barCls = pct >= 95 ? 'bg-rose-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
+  const barCls = pct >= 95 ? 'bg-rose-500' : pct >= 80 ? 'bg-amber-500' : 'bg-accent-bright'
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between text-[11px] text-text-3">
@@ -147,7 +147,7 @@ function MissionControls({ mission, onAction, onForceReport, onEdit, busy }: Con
         <button
           disabled={busy}
           onClick={() => onAction('start')}
-          className={`${btn} border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15`}
+          className={`${btn} border-accent-bright/30 bg-accent-bright/10 text-accent-bright hover:bg-accent-bright/15`}
         >
           {mission.status === 'paused' ? 'Resume' : 'Start'}
         </button>
@@ -390,7 +390,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
           <button
             onClick={submit}
             disabled={busy}
-            className="text-[12px] font-600 px-3 py-1.5 rounded-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40"
+            className="text-[12px] font-600 px-3 py-1.5 rounded-xs bg-accent-bright/20 text-accent-bright border border-accent-bright/30 hover:bg-accent-bright/25 disabled:opacity-40"
           >
             {busy ? 'Creating...' : 'Create mission'}
           </button>
@@ -537,7 +537,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
                 <button
                   type="button"
                   onClick={() => void copyShareUrl()}
-                  className="rounded-sm border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-700 text-emerald-200 hover:bg-emerald-500/15"
+                  className="rounded-sm border border-accent-bright/25 bg-accent-bright/10 px-2.5 py-1.5 text-[11px] font-700 text-accent-bright hover:bg-accent-bright/15"
                 >
                   Copy link
                 </button>
@@ -555,7 +555,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
                 type="button"
                 disabled={!!shareBusy}
                 onClick={() => void createShareLink()}
-                className="rounded-sm border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-700 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40"
+                className="rounded-sm border border-accent-bright/30 bg-accent-bright/10 px-2.5 py-1.5 text-[11px] font-700 text-accent-bright hover:bg-accent-bright/15 disabled:opacity-40"
               >
                 {shareBusy === 'create' ? 'Creating...' : 'Create share link'}
               </button>
@@ -810,7 +810,7 @@ export default function MissionsPage() {
                   }
                   setCreateOpen(true)
                 }}
-                className="text-[11px] font-600 px-2.5 py-1 rounded-xs border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15"
+                className="text-[11px] font-600 px-2.5 py-1 rounded-xs border border-accent-bright/30 bg-accent-bright/10 text-accent-bright hover:bg-accent-bright/15"
               >
                 + Mission
               </button>
@@ -835,7 +835,7 @@ export default function MissionsPage() {
                 {templates.length > 0 && (
                   <button
                     onClick={() => setGalleryOpen(true)}
-                    className="text-[11px] font-600 px-2.5 py-1 rounded-xs border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15 self-start"
+                    className="text-[11px] font-600 px-2.5 py-1 rounded-xs border border-accent-bright/30 bg-accent-bright/10 text-accent-bright hover:bg-accent-bright/15 self-start"
                   >
                     Open template gallery
                   </button>

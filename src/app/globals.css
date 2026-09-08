@@ -105,6 +105,26 @@
      step would defeat the collapse -- and src/app/globals-radius-scale.test.ts
      pins both halves: the five steps emit, and the step-less one does not. */
   --radius-*: initial;
+
+  /* ===== No shadows =====
+     Same namespace reset as the radius scale above, and for a stronger reason:
+     this design has exactly one drop shadow and it belongs to product
+     photography, which an operator's console does not have. Sixty-one class
+     lists still asked for shadow-sm..shadow-2xl, most of them on cards and
+     buttons, and every one of them was drawing a lift this language does not
+     use. Depth here is the surface ladder and the hairline, full stop.
+
+     Killing the namespace rather than editing sixty-one call sites is what
+     makes it stay dead: a `shadow-lg` typed tomorrow compiles to nothing
+     instead of quietly reintroducing the idiom.
+
+     The one exception is .overlay-panel further down, which is raw CSS and so
+     is not on this namespace. A panel floating over a dimmed copy of the whole
+     app is doing something no ladder step can express, and macOS shadows its
+     own sheets for the same reason -- but it is the only one. */
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
   --radius-xs: 5px;
   --radius-sm: 8px;
   --radius-md: 11px;
@@ -502,6 +522,9 @@
 
   --sf-glass: rgba(28,28,30,0.72);
 
+  /* The only shadow in the design. See the namespace reset at the top. */
+  --overlay-shadow: 0 16px 48px rgba(0, 0, 0, 0.44);
+
   /* The code block's ground stays dark in both themes: highlight.js is loaded
      with github-dark-dimmed at the top of this file, and its token colours are
      unreadable on a light surface. The ground is now #1C1C1E itself, so the
@@ -729,6 +752,7 @@
   --ramp-300: 88%;
 
   --sf-glass: rgba(255,255,255,0.72);
+  --overlay-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
 
   --status-running-border: rgba(40,205,65,0.34);
   --status-error-border: rgba(255,59,48,0.32);
@@ -1290,7 +1314,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   background: var(--color-raised);
   border: 1px solid var(--color-line-subtle);
   border-radius: var(--radius-lg);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
+  box-shadow: var(--overlay-shadow);
 }
 
 /* A dialog sits above a sheet, and a sheet above the app. Three levels that

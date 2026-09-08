@@ -308,7 +308,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
           <button
             onClick={submit}
             disabled={busy || !canEdit}
-            className="text-[12px] font-600 px-3 py-1.5 rounded-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40"
+            className="text-[12px] font-600 px-3 py-1.5 rounded-xs bg-accent-bright/20 text-accent-bright border border-accent-bright/30 hover:bg-accent-bright/25 disabled:opacity-40"
           >
             {busy ? 'Saving...' : 'Save changes'}
           </button>

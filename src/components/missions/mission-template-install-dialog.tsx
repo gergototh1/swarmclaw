@@ -224,7 +224,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
                 type="button"
                 onClick={() => void createDriverSession()}
                 disabled={busy}
-                className="mt-2 self-start rounded-sm border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[12px] font-700 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40"
+                className="mt-2 self-start rounded-sm border border-accent-bright/30 bg-accent-bright/10 px-3 py-2 text-[12px] font-700 text-accent-bright hover:bg-accent-bright/15 disabled:opacity-40"
               >
                 Create mission driver chat
               </button>
@@ -304,7 +304,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
           <button
             onClick={submit}
             disabled={busy}
-            className="text-[12px] font-600 px-3 py-1.5 rounded-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40"
+            className="text-[12px] font-600 px-3 py-1.5 rounded-xs bg-accent-bright/20 text-accent-bright border border-accent-bright/30 hover:bg-accent-bright/25 disabled:opacity-40"
           >
             {busy ? 'Installing…' : 'Install mission'}
           </button>
