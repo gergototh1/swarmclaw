@@ -132,7 +132,7 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[10px] font-600 transition-colors shrink-0 cursor-pointer ${colors.bg} ${colors.border} ${colors.text} hover:border-line-strong hover:text-text-2`}
+        className={`inline-flex items-center gap-1.5 rounded-full px-0 py-0 text-[11px] font-400 transition-colors shrink-0 cursor-pointer border-none bg-transparent text-text-3 hover:text-text`}
         title={`${status.effectiveTokens.toLocaleString()} of ${status.contextWindow.toLocaleString()} tokens used`}
         aria-expanded={open}
         aria-label={`Context usage ${percent}%. Click for details.`}

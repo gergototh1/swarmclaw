@@ -1,5 +1,7 @@
 'use client'
 
+import { createPortal } from 'react-dom'
+
 import { DEFAULT_HEARTBEAT_SHOW_ALERTS, DEFAULT_HEARTBEAT_SHOW_OK } from '@/lib/runtime/heartbeat-defaults'
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -230,6 +232,15 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
   const prevMsgCountRef = useRef(messages.length)
 
   // Bookmark filter
+  /* ChatHeader renders the element this portals into, so it does not exist on
+     the first render. The effect runs after mount, when it does. */
+  const [threadControlsSlot, setThreadControlsSlot] = useState<HTMLElement | null>(null)
+  const [threadFactsSlot, setThreadFactsSlot] = useState<HTMLElement | null>(null)
+  useEffect(() => {
+    setThreadControlsSlot(document.getElementById('chat-thread-controls'))
+    setThreadFactsSlot(document.getElementById('chat-thread-facts'))
+  }, [sessionId])
+
   const [bookmarkFilter, setBookmarkFilter] = useState(false)
 
   // Connector filtering is handled via connectorFilter prop from chat-area
@@ -679,10 +690,30 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
 
   return (
     <div className="relative flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden isolate" data-testid="message-list">
-      <div className="shrink-0 border-b border-line-subtle bg-raised px-4 pb-2 md:px-12 lg:px-16">
-        <div className="flex flex-wrap items-center gap-1">
-          <button
+      {threadFactsSlot && createPortal(
+        <div className="flex items-center gap-2 text-[11px] text-text-3">
+            {searchQuery ? (
+              <span className="tabular-nums">
+                {searchMatches.length > 0 ? `${searchIdx + 1}/${searchMatches.length}` : '0 results'}
+              </span>
+            ) : (
+              <span>{filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'}</span>
+            )}
+            {loading && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-layer-2 px-2 py-1 text-text-3">
+                <span className="w-2 h-2 rounded-full bg-accent-bright animate-pulse" />
+                Loading thread
+              </span>
+            )}
+          </div>,
+        threadFactsSlot,
+      )}
+      {threadControlsSlot && createPortal(
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
+                    <button
             type="button"
+            title="Find in thread  (Cmd/Ctrl+F)"
+            aria-label="Find in thread"
             onClick={() => {
               if (searchOpen) {
                 setSearchOpen(false)
@@ -702,11 +733,11 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            Find
-            <span className="hidden sm:inline text-text-3">Cmd/Ctrl+F</span>
           </button>
           <button
             type="button"
+            title={bookmarkFilter ? 'Showing bookmarked only' : 'Show bookmarked only'}
+            aria-label="Filter to bookmarked messages"
             onClick={() => setBookmarkFilter((v) => !v)}
             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-600 transition-colors cursor-pointer ${
               bookmarkFilter
@@ -717,7 +748,6 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             <svg width="12" height="12" viewBox="0 0 24 24" fill={bookmarkFilter ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
             </svg>
-            {bookmarkFilter ? 'Bookmarked' : 'Bookmarks'}
           </button>
           {(searchQuery || bookmarkFilter) && (
             <button
@@ -733,23 +763,9 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               Reset filters
             </button>
           )}
-          <div className="ml-auto flex items-center gap-2 text-[11px] text-text-3">
-            {searchQuery ? (
-              <span className="tabular-nums">
-                {searchMatches.length > 0 ? `${searchIdx + 1}/${searchMatches.length}` : '0 results'}
-              </span>
-            ) : (
-              <span>{filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'}</span>
-            )}
-            {loading && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-layer-2 px-2 py-1 text-text-3">
-                <span className="w-2 h-2 rounded-full bg-accent-bright animate-pulse" />
-                Loading thread
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+        </div>,
+        threadControlsSlot,
+      )}
 
       {/* In-thread search bar */}
       {searchOpen && (

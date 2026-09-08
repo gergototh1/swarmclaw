@@ -385,7 +385,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
         )}
 
         {/* Identity + metadata — fills center */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 shrink">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {renaming && agent ? (
               <span ref={renameContainerRef} className="inline-flex items-center gap-2">
@@ -453,6 +453,8 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                 Responding
               </HeaderChip>
             )}
+          </div>
+          <div className="mt-0.5 flex min-w-0 items-center gap-2 text-[11px] text-text-3">
             {messageCount > 0 && onCompactComplete && onClearRequest && (
               <ContextMeterBadge
                 sessionId={session.id}
@@ -461,20 +463,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                 onClearRequest={onClearRequest}
               />
             )}
-            {canStartNewSession && (
-              <Tip label={newSessionTitle}>
-                <button
-                  type="button"
-                  onClick={onStartNewSession}
-                  className="inline-flex items-center gap-1.5 rounded-sm border border-line-subtle bg-layer-1 px-2.5 py-1 text-[10px] font-600 text-text-3 transition-colors shrink-0 cursor-pointer hover:border-line-strong hover:bg-layer-2 hover:text-text-2"
-                  aria-label="Start a new chat session"
-                  title={newSessionTitle}
-                >
-                  <Plus className="h-3 w-3" aria-hidden="true" strokeWidth={2.2} />
-                  <span>New chat</span>
-                </button>
-              </Tip>
-            )}
+            <div id="chat-thread-facts" className="flex min-w-0 items-center gap-2" />
           </div>
           {liveStatus?.status && (
           <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
@@ -504,9 +493,24 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
           )}
         </div>
 
-        <div className={`flex items-center gap-2 shrink-0 ${mobile ? 'w-full justify-between pt-1' : 'ml-auto'}`}>
+        {/* Where MessageList portals its thread controls -- Find, Bookmarks and
+            the message count. They belong on this row: the header had a wide
+            empty middle and they had a band of their own underneath it, with a
+            seam between the two. A portal rather than lifted state, because
+            those filters are referenced thirty-seven times inside MessageList
+            and hoisting them to get a rectangle right would be a refactor in
+            service of a rectangle. */}
+        {/* Session facts -- what am I looking at. MessageList portals the
+            message count here, beside the context meter, so the right side of
+            the bar is controls and nothing else. */}
+        <div className="min-w-0 flex-1" />
+
+
+        <div className={`flex items-center gap-2 shrink-0 ${mobile ? 'w-full justify-between pt-1' : ''}`}>
           {/* Action buttons */}
-          <div className="flex items-center shrink-0 rounded-md border border-line-subtle bg-layer-1 p-1">
+          <div className="flex items-center shrink-0 rounded-full border border-line-subtle bg-layer-1 p-1">
+          {/* Find and Bookmarks, portalled here from MessageList. */}
+          <div id="chat-thread-controls" className="flex items-center gap-0.5" />
           {streaming && (
             <>
               <IconButton onClick={onStop} variant="danger" tooltip="Stop" aria-label="Stop generation" size="sm">
@@ -560,6 +564,20 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                 <circle cx="12" cy="12" r="3" />
               </svg>
             </IconButton>
+          )}
+          {canStartNewSession && (
+            <Tip label={newSessionTitle}>
+              <button
+                type="button"
+                onClick={onStartNewSession}
+                className="inline-flex items-center gap-1.5 rounded-full bg-accent-bright px-3 py-1.5 text-[11px] font-600 text-accent-fg transition-colors cursor-pointer border-none"
+                aria-label="Start a new chat session"
+                title={newSessionTitle}
+              >
+                <Plus className="h-3 w-3" aria-hidden="true" strokeWidth={2.2} />
+                <span>New chat</span>
+              </button>
+            </Tip>
           )}
         </div>
         </div>
