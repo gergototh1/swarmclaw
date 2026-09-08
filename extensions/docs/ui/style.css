@@ -53,7 +53,7 @@
 }
 
 .docs-sav-baj {
-  background: var(--destructive-muted, #fef2f2);
+  background: var(--color-danger-soft);
   color: var(--destructive, #b91c1c);
 }
 
@@ -69,7 +69,7 @@
 /* --- Fa --- */
 
 .docs-fa-fejlec { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
-.docs-fa-fejlec input { width: 100%; padding: 6px 8px; border: 1px solid var(--border, #e4e4e7); border-radius: 6px; background: transparent; color: inherit; }
+.docs-fa-fejlec input { width: 100%; padding: 6px 8px; border: 1px solid var(--border, #e4e4e7); border-radius: var(--radius-sm, 8px); background: transparent; color: inherit; }
 .docs-fa-gombok { display: flex; gap: 6px; }
 
 .docs-fa-lista { list-style: none; margin: 0; padding-left: 12px; }
@@ -83,7 +83,7 @@
   width: 100%;
   padding: 3px 6px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-xs, 5px);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -98,7 +98,7 @@
 .docs-talalatok { display: flex; flex-direction: column; gap: 6px; }
 .docs-talalat {
   display: flex; flex-direction: column; gap: 2px;
-  padding: 6px; border: 1px solid var(--border, #e4e4e7); border-radius: 6px;
+  padding: 6px; border: 1px solid var(--border, #e4e4e7); border-radius: var(--radius-sm, 8px);
   background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
 .docs-talalat:hover { background: var(--accent, #f4f4f5); }
@@ -131,7 +131,7 @@
 .docs-verziok button {
   padding: 3px 8px;
   border: 1px solid var(--border, #e4e4e7);
-  border-radius: 4px;
+  border-radius: var(--radius-xs, 5px);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -149,7 +149,7 @@
 .docs-proza p { margin: 8px 0; }
 .docs-proza ul, .docs-proza ol { padding-left: 22px; }
 .docs-proza blockquote { margin: 8px 0; padding-left: 12px; border-left: 3px solid var(--border, #e4e4e7); color: var(--muted-foreground, #71717a); }
-.docs-proza pre { padding: 8px; overflow-x: auto; border-radius: 6px; background: var(--muted, #f4f4f5); }
+.docs-proza pre { padding: 8px; overflow-x: auto; border-radius: var(--radius-sm, 8px); background: var(--muted, #f4f4f5); }
 .docs-proza table { border-collapse: collapse; width: 100%; }
 .docs-proza th, .docs-proza td { border: 1px solid var(--border, #e4e4e7); padding: 4px 8px; }
 
@@ -160,19 +160,19 @@
   padding: 10px;
   margin-bottom: 10px;
   border: 1px solid var(--destructive, #b91c1c);
-  border-radius: 6px;
-  background: var(--destructive-muted, #fef2f2);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-danger-soft);
 }
 .docs-utkozes p { margin: 0 0 6px; }
 .docs-utkozes-gombok { display: flex; gap: 6px; margin-top: 8px; }
 .docs-diff { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .docs-diff h4 { margin: 0 0 4px; font-size: 12px; }
-.docs-diff pre { max-height: 240px; overflow: auto; padding: 6px; background: var(--background, #fff); border: 1px solid var(--border, #e4e4e7); border-radius: 4px; white-space: pre-wrap; }
+.docs-diff pre { max-height: 240px; overflow: auto; padding: 6px; background: var(--background, #fff); border: 1px solid var(--border, #e4e4e7); border-radius: var(--radius-xs, 5px); white-space: pre-wrap; }
 
 /* --- Panel --- */
 
 .docs-panel section { margin-bottom: 16px; }
-.docs-panel h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted-foreground, #71717a); }
+.docs-panel h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: 0.03em; color: var(--muted-foreground, #71717a); }
 
 .docs-meta { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; }
 .docs-meta dt { color: var(--muted-foreground, #71717a); }
@@ -181,6 +181,6 @@
 .docs-verziok, .docs-backlinkek { list-style: none; margin: 0; padding: 0; }
 .docs-verziok li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 2px 0; }
 .docs-verziok li > button:first-child { flex: 1; text-align: left; }
-.docs-elonezet { flex-basis: 100%; max-height: 200px; overflow: auto; padding: 6px; background: var(--muted, #f4f4f5); border-radius: 4px; white-space: pre-wrap; }
+.docs-elonezet { flex-basis: 100%; max-height: 200px; overflow: auto; padding: 6px; background: var(--muted, #f4f4f5); border-radius: var(--radius-xs, 5px); white-space: pre-wrap; }
 .docs-backlinkek li { display: flex; flex-direction: column; padding: 3px 0; }
 .docs-masodlagos { opacity: 0.8; }

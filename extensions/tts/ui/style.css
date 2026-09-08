@@ -21,7 +21,7 @@
 .tts-error {
   color: var(--color-danger, #dc2626);
   border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 35%, transparent);
-  border-radius: 10px;
+  border-radius: var(--radius-md, 11px);
   padding: 10px 14px;
   margin: 0 0 12px;
   white-space: pre-wrap;
@@ -33,7 +33,7 @@
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
   background: var(--card, transparent);
   color: inherit;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   padding: 8px 14px;
   font: inherit;
   cursor: pointer;
@@ -45,7 +45,7 @@
 .tts-section {
   background: var(--card, transparent);
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 16px 18px;
   margin-bottom: 16px;
   overflow-wrap: anywhere;
@@ -59,7 +59,7 @@
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 12px;
   background: color-mix(in srgb, var(--border, rgba(127, 127, 127, 0.2)) 30%, transparent);
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   padding: 12px 14px;
   margin: 0;
   white-space: pre-wrap;
@@ -79,7 +79,7 @@
 .tts-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--color-text-3, #8282a0); }
 .tts-badge {
   border: 1px solid currentColor;
-  border-radius: 999px;
+  border-radius: var(--radius-full, 999px);
   padding: 0 8px;
   font-size: 11px;
 }

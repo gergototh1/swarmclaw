@@ -81,7 +81,7 @@
   /* C2: `--color-text-3` a lap hátterén világos témában 3.97:1 -- a WCAG AA
      4.5:1 küszöbe alatt. `--color-text-2`: világos 6.16:1, sötét 7.64:1. */
   color: var(--color-text-2, #a0a0ba);
-  padding: 6px 13px; border-radius: var(--radius-sm, .375rem); cursor: pointer;
+  padding: 6px 13px; border-radius: var(--radius-sm, 8px); cursor: pointer;
 }
 .crm-tab:hover { color: var(--color-text, #e2e2ec); }
 .crm-tab[aria-selected="true"] {
@@ -117,7 +117,7 @@
 .crm-sechead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
 .crm-sechead h3 {
   font-family: var(--font-display, system-ui, sans-serif);
-  font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  font-size: 13px; font-weight: 600; letter-spacing: .01em;
   color: var(--color-text-2, #a0a0ba); margin: 0;
 }
 .crm-count {
@@ -131,7 +131,7 @@
   color: var(--color-text-2, #a0a0ba);
   background: var(--color-raised, #0f0f18);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
-  padding: 1px 6px; border-radius: 999px;
+  padding: 1px 6px; border-radius: var(--radius-full, 999px);
 }
 
 /* ---------- gombok ---------- */
@@ -152,7 +152,7 @@
   background: color-mix(in srgb, var(--color-raised, #0f0f18) 92%, var(--color-accent-foreground, #fff));
   color: var(--color-text, #e2e2ec);
   border: 1px solid var(--color-border-hi, rgba(255,255,255,.13));
-  padding: 6px 12px; border-radius: var(--radius-sm, .375rem);
+  padding: 6px 12px; border-radius: var(--radius-sm, 8px);
 }
 .crm-btn:hover { filter: brightness(1.12); }
 .crm-btn:disabled { opacity: .55; cursor: default; }
@@ -173,7 +173,7 @@
 /* ---------- pillek: a jelentés SOHA nem csak szín, mindig van szöveg is ---------- */
 .crm-pill {
   font-size: 11px; font-weight: 600; letter-spacing: .03em;
-  padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  padding: 2px 8px; border-radius: var(--radius-full, 999px); white-space: nowrap;
   border: 1px solid transparent;
 }
 /*
@@ -221,7 +221,7 @@
   /* F2 1. réteg -- lásd a fájl tetején. */
   background: var(--color-raised, #0f0f18);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
-  border-radius: var(--radius, .625rem);
+  border-radius: var(--radius-md, 11px);
   padding: 14px 15px;
   display: flex; flex-direction: column; gap: 10px;
 }
@@ -240,7 +240,7 @@
   /* F2 1. réteg -- lásd a fájl tetején. */
   background: var(--color-raised, #0f0f18);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
-  border-radius: var(--radius, .625rem);
+  border-radius: var(--radius-md, 11px);
   padding: 10px 13px;
 }
 .crm-strip-warn {
@@ -270,7 +270,7 @@
   color: color-mix(in srgb, var(--color-danger, #f43f5e) 70%, var(--color-text, #e2e2ec));
   background: color-mix(in srgb, var(--color-danger, #f43f5e) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-danger, #f43f5e) 30%, transparent);
-  border-radius: var(--radius, .625rem);
+  border-radius: var(--radius-md, 11px);
   padding: 10px 13px; margin: 0;
 }
 /* C2: ugyanaz a keverés, mint a `.crm-pill-valasz`-nál -- a kártyán
@@ -286,7 +286,7 @@
 .crm-app :focus-visible {
   outline: 2px solid var(--color-accent, #6366f1);
   outline-offset: 2px;
-  border-radius: var(--radius-sm, .375rem);
+  border-radius: var(--radius-sm, 8px);
 }
 .crm-app input, .crm-app select {
   font: inherit;
@@ -294,7 +294,7 @@
   background: color-mix(in srgb, var(--color-raised, #0f0f18) 92%, var(--color-accent-foreground, #fff));
   color: var(--color-text, #e2e2ec);
   border: 1px solid var(--color-border-hi, rgba(255,255,255,.13));
-  border-radius: var(--radius-sm, .375rem);
+  border-radius: var(--radius-sm, 8px);
   padding: 6px 9px; max-width: 100%;
 }
 /* F2: --color-text-3 ezen a (2. réteg) háttéren sötétben is, világosban is
@@ -318,7 +318,7 @@
   /* F2 1. réteg -- lásd a fájl tetején. */
   background: var(--color-raised, #0f0f18);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
-  border-radius: var(--radius, .625rem);
+  border-radius: var(--radius-md, 11px);
   overflow: hidden;
 }
 .crm-attrow:hover { border-color: var(--color-border-hi, rgba(255,255,255,.13)); }
@@ -347,7 +347,7 @@
   background: var(--color-raised, #0f0f18);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
   border-left: 3px solid var(--color-accent, #6366f1);
-  border-radius: var(--radius, .625rem);
+  border-radius: var(--radius-md, 11px);
   padding: 12px 13px;
 }
 .crm-sug .crm-attact { padding-right: 0; }
@@ -404,7 +404,7 @@
   /* F2 1. réteg -- lásd a fájl tetején. */
   background: var(--color-raised, #0f0f18);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
-  border-radius: var(--radius, .625rem);
+  border-radius: var(--radius-md, 11px);
   padding: 11px 13px;
 }
 .crm-tri-who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -443,7 +443,7 @@
   background: var(--color-raised, #0f0f18);
   color: var(--color-text, #e2e2ec);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
-  border-radius: var(--radius, .625rem);
+  border-radius: var(--radius-md, 11px);
   padding: 11px 13px;
 }
 .crm-acct:hover {
@@ -531,7 +531,7 @@
 .crm-tlitem { display: grid; grid-template-columns: 15px minmax(0, 1fr); gap: 0 12px; }
 .crm-tlrail { display: flex; flex-direction: column; align-items: center; }
 .crm-tlnode {
-  width: 9px; height: 9px; border-radius: 50%; margin-top: 5px;
+  width: 9px; height: 9px; border-radius: var(--radius-full, 999px); margin-top: 5px;
   /* F2 3. réteg -- lásd a fájl tetején. */
   background: color-mix(in srgb, var(--color-raised, #0f0f18) 85%, var(--color-accent-foreground, #fff));
   border: 2px solid var(--color-accent, #6366f1);
@@ -559,17 +559,17 @@
 .crm-lane { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .crm-lanehead {
   display: flex; align-items: center; gap: 8px;
-  padding: 7px 10px; border-radius: var(--radius-sm, .375rem);
+  padding: 7px 10px; border-radius: var(--radius-sm, 8px);
   /* F2 1. réteg -- lásd a fájl tetején. */
   background: var(--color-raised, #0f0f18);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
 }
 .crm-lanehead h4 {
   font-family: var(--font-display, system-ui, sans-serif);
-  font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  font-size: 12px; font-weight: 600; letter-spacing: .01em;
   color: var(--color-text-2, #a0a0ba); margin: 0;
 }
-.crm-lanebar { width: 3px; height: 14px; border-radius: 2px; background: var(--color-accent, #6366f1); }
+.crm-lanebar { width: 3px; height: 14px; border-radius: var(--radius-xs, 5px); background: var(--color-accent, #6366f1); }
 /*
  * A darabszám (`.crm-lanen`) `--color-text-3`-mal a saját háttérén
  * (`.crm-lanehead` -- F2 1. réteg, `--color-raised`) csak 4.13:1 kontrasztot
@@ -588,7 +588,7 @@
   /* F2 2. réteg -- lásd a fájl tetején. */
   background: color-mix(in srgb, var(--color-raised, #0f0f18) 92%, var(--color-accent-foreground, #fff));
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
-  border-radius: var(--radius, .625rem);
+  border-radius: var(--radius-md, 11px);
   padding: 11px;
 }
 .crm-deal:hover { border-color: var(--color-border-hi, rgba(255,255,255,.13)); }
