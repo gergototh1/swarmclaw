@@ -35,17 +35,17 @@ import { buildNewAgentSessionPayload, summarizeFirstMessageAsTitle } from '@/lib
 import { getEnabledCapabilityIds, getEnabledToolIds } from '@/lib/capability-selection'
 
 const DIRECT_PROMPT_SUGGESTIONS = [
-  { text: 'What can you help me with?', icon: 'book', gradient: 'from-[#6366F1]/10 to-[#818CF8]/5' },
-  { text: 'Help me choose the right agent for this', icon: 'bot', gradient: 'from-[#34D399]/10 to-[#6EE7B7]/5' },
-  { text: 'Help me set up a new connector', icon: 'link', gradient: 'from-[#EC4899]/10 to-[#F472B6]/5' },
-  { text: 'Summarize what needs attention in this workspace', icon: 'check', gradient: 'from-[#F59E0B]/10 to-[#FBBF24]/5' },
+  { text: 'What can you help me with?', icon: 'book', gradient: 'from-accent-bright/10 to-accent-bright/5' },
+  { text: 'Help me choose the right agent for this', icon: 'bot', gradient: 'from-success/10 to-success/5' },
+  { text: 'Help me set up a new connector', icon: 'link', gradient: 'from-shereen/10 to-shereen/5' },
+  { text: 'Summarize what needs attention in this workspace', icon: 'check', gradient: 'from-warning/10 to-warning/5' },
 ]
 
 const AGENT_PROMPT_SUGGESTIONS = [
-  { text: 'Give me a quick overview of what you can help with', icon: 'book', gradient: 'from-[#6366F1]/10 to-[#818CF8]/5' },
-  { text: 'Review what needs attention right now', icon: 'check', gradient: 'from-[#F59E0B]/10 to-[#FBBF24]/5' },
-  { text: 'Summarize our recent context before we continue', icon: 'link', gradient: 'from-[#EC4899]/10 to-[#F472B6]/5' },
-  { text: 'Help me map the next best step', icon: 'bot', gradient: 'from-[#34D399]/10 to-[#6EE7B7]/5' },
+  { text: 'Give me a quick overview of what you can help with', icon: 'book', gradient: 'from-accent-bright/10 to-accent-bright/5' },
+  { text: 'Review what needs attention right now', icon: 'check', gradient: 'from-warning/10 to-warning/5' },
+  { text: 'Summarize our recent context before we continue', icon: 'link', gradient: 'from-shereen/10 to-shereen/5' },
+  { text: 'Help me map the next best step', icon: 'bot', gradient: 'from-success/10 to-success/5' },
 ]
 
 export function ChatArea() {

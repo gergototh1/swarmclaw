@@ -405,8 +405,8 @@ export function TabEssentials({
             const isRemote = url && !/localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]/i.test(url)
             const isSecure = /^(https|wss):\/\//i.test(url)
             if (isRemote && !isSecure) return (
-              <div className="px-3 py-2.5 rounded-sm bg-[#fbbf24]/[0.06] border border-[#fbbf24]/20">
-                <p className="text-[13px] text-[#fbbf24] leading-[1.5]">
+              <div className="px-3 py-2.5 rounded-sm bg-warning/[0.06] border border-warning/20">
+                <p className="text-[13px] text-warning leading-[1.5]">
                   Unencrypted connection. Use HTTPS or an SSH tunnel for production.
                 </p>
               </div>
@@ -435,7 +435,7 @@ export function TabEssentials({
               {testErrorCode === 'PAIRING_REQUIRED' ? (<>
                 <div className="flex items-center gap-2">
                   <StatusDot status="online" pulse />
-                  <p className="text-[14px] text-[#22c55e] font-600">Awaiting Approval</p>
+                  <p className="text-[14px] text-success font-600">Awaiting Approval</p>
                 </div>
                 <p className="text-[13px] text-text-2/80 leading-[1.6]">
                   This device is pending approval on your gateway. Go to <span className="text-text-2 font-500">Nodes</span>, approve the device{(testDeviceId || openclawDeviceId) ? <> (<code className="text-[12px] font-mono text-text-2/70">{(testDeviceId || openclawDeviceId)!.slice(0, 12)}...</code>)</> : null}, then click <span className="text-text-2 font-500">Retry Connection</span>.

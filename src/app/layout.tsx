@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next"
 import { headers } from "next/headers"
-import { fontVariables } from "./fonts"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { DashboardShell } from "@/components/layout/dashboard-shell"
@@ -35,7 +34,7 @@ export default async function RootLayout({
   const nonce = (await headers()).get("x-nonce") ?? undefined
 
   return (
-    <html lang="en" suppressHydrationWarning className={fontVariables}>
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased" cz-shortcut-listen="true">
         <ThemeProvider nonce={nonce}>
           <AppQueryProvider>

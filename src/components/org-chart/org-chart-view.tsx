@@ -403,7 +403,7 @@ export function OrgChartView() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden bg-[#0a0a14] select-none"
+      className="relative w-full h-full overflow-hidden bg-bg select-none"
       style={{ touchAction: 'none' }}
       {...panHandlers}
       onPointerMove={(e) => {

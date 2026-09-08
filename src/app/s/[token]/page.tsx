@@ -29,7 +29,7 @@ export default async function SharedEntityPage({
   // one string literal, so a class added to a className that already reports is
   // the one thing the count cannot see.)
   return (
-    <main className="min-h-screen bg-[#080a0f] text-white">
+    <main className="min-h-screen bg-bg text-text">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10">
         <header className="border-b border-white/10 pb-6">
           <div className="text-[11px] font-700 uppercase tracking-[0.16em] text-emerald-300/80">

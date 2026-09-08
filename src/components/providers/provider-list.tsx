@@ -375,7 +375,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
               <span className="font-display text-[14px] font-600 text-text truncate">{item.name}</span>
               <div className="flex items-center gap-2 shrink-0">
                 <span className={`text-[10px] font-600 px-2 py-0.5 rounded-xs uppercase tracking-wider
-                  ${item.type === 'builtin' ? 'bg-layer-2 text-text-3' : 'bg-accent-bright/10 text-[#6366F1]'}`}>
+                  ${item.type === 'builtin' ? 'bg-layer-2 text-text-3' : 'bg-accent-bright/10 text-accent-bright'}`}>
                   {item.type === 'builtin' ? 'Built-in' : 'Custom'}
                 </span>
                 {!inSidebar && (
@@ -449,7 +449,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   <span className="font-display text-[14px] font-600 text-text truncate">{item.name}</span>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={`text-[10px] font-600 px-2 py-0.5 rounded-xs uppercase tracking-wider
-                      ${item.type === 'builtin' ? 'bg-layer-2 text-text-3' : 'bg-accent-bright/10 text-[#6366F1]'}`}>
+                      ${item.type === 'builtin' ? 'bg-layer-2 text-text-3' : 'bg-accent-bright/10 text-accent-bright'}`}>
                       {item.type === 'builtin' ? 'Built-in' : 'Custom'}
                     </span>
                     <div

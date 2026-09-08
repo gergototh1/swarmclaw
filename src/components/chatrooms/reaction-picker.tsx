@@ -196,7 +196,7 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
   return (
     <div
       ref={ref}
-      className="absolute right-0 bottom-8 z-50 bg-[#13131e] border border-line-default rounded-md shadow-[0_8px_40px_rgba(0,0,0,0.6)] w-[320px] flex flex-col overflow-hidden"
+      className="absolute right-0 bottom-8 z-50 bg-raised border border-line-default rounded-md shadow-[0_8px_40px_rgba(0,0,0,0.6)] w-[320px] flex flex-col overflow-hidden"
       style={{ animation: 'msg-in 0.15s ease-out both' }}
     >
       {/* Search */}

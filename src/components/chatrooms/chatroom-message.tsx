@@ -295,8 +295,8 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
                 onClick={() => onToggleReaction(message.id, emoji)}
                 className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] transition-all cursor-pointer ${
                   hasUser
-                    ? 'bg-[#1a1a3a] border border-accent-bright/30'
-                    : 'bg-[#16162a] border border-line-default hover:bg-[#1e1e38]'
+                    ? 'bg-accent-soft border border-accent-bright/30'
+                    : 'bg-surface border border-line-default hover:bg-surface-2'
                 }`}
               >
                 <span>{emoji}</span>
@@ -356,7 +356,7 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
           />
         )}
         {showModMenu && !isUser && (
-          <div className="absolute right-0 top-7 z-50 bg-[#1a1a2e] border border-line-default rounded-sm shadow-lg py-1 min-w-[160px]">
+          <div className="absolute right-0 top-7 z-50 bg-raised border border-line-default rounded-sm shadow-lg py-1 min-w-[160px]">
             {onDeleteMessage && (
               <button
                 onClick={() => {

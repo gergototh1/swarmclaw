@@ -160,7 +160,7 @@ export function ChatToolToggles({ session }: Props) {
                           </span>
                         </label>
                       </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={8} className="max-w-[200px] bg-[#1e2140] text-text-2 border border-line-default text-[11px] leading-snug px-2.5 py-1.5">
+                      <TooltipContent side="right" sideOffset={8} className="max-w-[200px] bg-surface text-text-2 border border-line-default text-[11px] leading-snug px-2.5 py-1.5">
                         {extDisabled ? 'Enable in Extensions page' : tool.description}
                       </TooltipContent>
                     </Tooltip>

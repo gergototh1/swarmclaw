@@ -189,7 +189,7 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
 
   return (
     <div
-      className="flex flex-col rounded-md border border-line-default bg-[#12121e] shadow-2xl shadow-black/50 overflow-hidden"
+      className="flex flex-col rounded-md border border-line-default bg-raised shadow-2xl shadow-black/50 overflow-hidden"
       style={{ width: BUBBLE_W, height: 400 }}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}

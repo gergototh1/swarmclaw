@@ -242,11 +242,11 @@ export function MemoryGraphView() {
       {/* Legend */}
       <div className="absolute bottom-4 left-4 p-3 bg-surface/80 backdrop-blur rounded-md border border-line-subtle flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-[#10B981]" />
+          <div className="w-3 h-3 rounded-full bg-success" />
           <span className="text-[11px] text-text-3">Knowledge</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-[#6366F1]" />
+          <div className="w-3 h-3 rounded-full bg-accent-bright" />
           <span className="text-[11px] text-text-3">Note / Working</span>
         </div>
       </div>

@@ -346,7 +346,7 @@ export function SidebarRail({
     >
       {/* Logo + collapse toggle */}
       <div className={`flex items-center mb-4 shrink-0 ${railExpanded ? 'px-3 gap-2' : 'justify-center'}`}>
-        <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#4338CA] to-[#6366F1] flex items-center justify-center shrink-0
+        <div className="w-10 h-10 rounded-md bg-accent-bright flex items-center justify-center shrink-0
           shadow-[0_2px_12px_rgba(99,102,241,0.2)]">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-white">
             <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor" />
@@ -385,8 +385,8 @@ export function SidebarRail({
             onClick={goToDefaultChat}
             className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-[12px] font-600 cursor-pointer transition-all text-left
               ${isDefaultChat
-                ? 'bg-accent-bright/15 border border-[#6366F1]/25 text-accent-bright'
-                : 'bg-accent-bright/10 border border-[#6366F1]/20 text-accent-bright hover:bg-accent-bright/15'}`}
+                ? 'bg-accent-bright/15 border border-accent-bright/25 text-accent-bright'
+                : 'bg-accent-bright/10 border border-accent-bright/20 text-accent-bright hover:bg-accent-bright/15'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {defaultAgent ? (

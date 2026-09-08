@@ -8,35 +8,36 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* next/font (src/app/fonts.ts) writes the actual font-family values onto
-     <html> as --font-sans-face / --font-display-face / --font-mono-face --
-     each one the webfont's own name plus its metric-adjusted "* Fallback"
-     face, which is what next/font swaps in while the webfont loads (not
-     system-ui). The theme keys below just add the generic system stack
-     after that.
+  /* ===== Type =====
+     SF Pro is the macOS system face and ships with the OS, so these three
+     stacks name faces that are already on the machine: nothing is downloaded
+     and nothing is swapped in after first paint. They replace the next/font
+     loaders this app used to pull from Google (Sora, DM Sans, JetBrains
+     Mono) and, with them, the whole --font-*-face indirection those wrote
+     onto <html>.
 
-     Two separate ways this breaks, both silent and both real. First, the
-     "-face" suffix is load-bearing rather than stylistic: a custom property
-     whose value references itself (e.g. --font-sans: var(--font-sans), ...)
-     is invalid at computed-value time, so making the two sides of a pair
-     match again drops the whole font-family declaration, generic tail
-     included. Keep them different.
+     The indirection had two silent failure modes, and literal stacks are
+     immune to both -- which is the point, and the contract
+     src/app/globals-font-family.test.ts now pins by compiling this file.
+     First, a custom property whose value references itself
+     (--font-sans: var(--font-sans), ...) is invalid at computed-value time,
+     so Chromium discards the entire declaration, generic tail included.
+     Second, a var() with neither a declaration nor a fallback is the same
+     guaranteed-invalid value, which is what any root that did not carry
+     next/font's class names produced -- src/app/global-error.tsx renders its
+     own <html> and did exactly that, leaving body with no font-family at all
+     on that route. Neither produces a build, lint or type error. A stack
+     with no var() in it cannot do either, so the test asserts exactly that:
+     no var(), a real named face at the head, a generic family at the tail.
 
-     Second, `var(--font-sans-face)` here has no fallback, so a root that
-     does not carry next/font's three class names produces the same
-     guaranteed-invalid value and the same whole-declaration drop. That was
-     not hypothetical: src/app/global-error.tsx renders its own <html> --
-     it replaces the document rather than nesting inside RootLayout -- and
-     carried only `dark`, so body had no font-family at all on that route.
-     Both roots now take their classes from the one `fontVariables` export
-     in src/app/fonts.ts. A third root would have to do the same.
-
-     Neither failure produces a build, lint or type error;
-     src/app/globals-font-family.test.ts covers the first by compiling this
-     file. */
-  --font-sans: var(--font-sans-face), system-ui, sans-serif;
-  --font-display: var(--font-display-face), system-ui, sans-serif;
-  --font-mono: var(--font-mono-face), ui-monospace, 'SF Mono', monospace;
+     -apple-system and BlinkMacSystemFont are what resolve to SF Pro Text and
+     SF Pro Display at the sizes this UI uses; the quoted names cover
+     Chromium builds that expose the families but not the -apple-system
+     alias. Everything non-Apple falls through to system-ui, which is the
+     right face there rather than a downloaded approximation of this one. */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -71,6 +72,14 @@
      buttons, nav rows. md: cards and list rows. lg: sheets and dialogs.
      full: avatars and status pills. Adding a sixth needs a reason in review.
 
+     The pixel values are macOS control metrics, not web ones: 4 / 6 / 6 / 10.
+     sm and md are deliberately the same number -- AppKit does not distinguish
+     a text field's corner from a list row's -- and they stay two names
+     because the semantic split (control vs container) is what the 220-odd
+     consuming components were written against, and collapsing the names would
+     be a component-wide edit for no rendered difference. Anything rounder
+     than 10px reads as a web card rather than a window.
+
      Collapsing onto these five steps also changed the rendered size of 58
      pre-existing named-class sites that were already using rounded-xs/sm/md/lg
      before the codemod ran: rounded-md 8px->12px (31 sites), rounded-lg
@@ -96,61 +105,242 @@
      step would defeat the collapse -- and src/app/globals-radius-scale.test.ts
      pins both halves: the five steps emit, and the step-less one does not. */
   --radius-*: initial;
-  --radius-xs: 6px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
   --radius-full: 9999px;
 
-  /* ===== Midnight Glass Palette ===== */
-  /* ===== Semantic surface ladder =====
-     Every hardcoded bg-white/[α] in the app maps onto these four steps
-     (scripts/codemod-surfaces.mjs). Redefining them under .light is the whole
-     light theme — there is no !important override layer any more.
+  /* ===== macOS system palette =====
+     Every colour key below is `var(--something)` and never a literal. That is
+     load-bearing, not style. `@theme inline` substitutes a key's value into
+     the utility it generates, so a key holding a literal bakes that literal
+     into `.text-text { color: #e2e2ec }` and redefining the key under `.light`
+     changes nothing -- which is precisely why this file used to carry an
+     `html.light .text-text { ... !important }` alias layer under the theme.
+     A key holding `var(--tx-1)` compiles to `color: var(--tx-1)`, the cascade
+     resolves it per theme, and the alias layer is not needed at all. It is
+     gone; see the note where it used to be.
 
-     `layer-*` and not `surface-*`: --color-surface, --color-surface-2 and
-     --color-surface-3 already exist above as opaque tinted surfaces, and every
-     `bg-surface-2` in the app today means one of those. Leave them alone. */
+     The values themselves are AppKit's, not approximations of them:
+     windowBackgroundColor, underPageBackgroundColor, controlBackgroundColor,
+     selectedContentBackgroundColor, separatorColor, the four label levels and
+     the system accent/status set. Dark is :root, light is .light. */
+
+  /* Translucent overlay ladder (bg-layer-0..4). layer-0 is the opaque window
+     ground; 1..4 are neutral white/black alphas that composite over whatever
+     they sit on, which is how AppKit builds hover, fill and selection states
+     rather than shipping an opaque colour for every combination. */
   --color-layer-0: var(--sf-0);
   --color-layer-1: var(--sf-1);
   --color-layer-2: var(--sf-2);
   --color-layer-3: var(--sf-3);
   --color-layer-4: var(--sf-4);
+
+  /* separatorColor and its two neighbours. See the hairline rule further down
+     for why these are drawn at 0.5px on a retina display. */
   --color-line-subtle: var(--ln-subtle);
   --color-line-default: var(--ln-default);
   --color-line-strong: var(--ln-strong);
-  /* Surfaces derived from --neutral-tint for single-knob theming */
-  --color-bg: color-mix(in srgb, var(--neutral-tint, #1e1e30) 40%, #000);
-  --color-raised: color-mix(in srgb, var(--neutral-tint, #1e1e30) 50%, #000);
-  --color-surface: color-mix(in srgb, var(--neutral-tint, #1e1e30) 65%, #000);
-  --color-surface-2: var(--neutral-tint, #1e1e30);
-  --color-surface-3: color-mix(in srgb, var(--neutral-tint, #1e1e30) 80%, #333);
-  --color-border-hi: rgba(255,255,255,0.07);
-  --color-border-focus: rgba(99,102,241,0.5);
-  --color-text: #e2e2ec;
-  --color-text-2: #a0a0ba;
-  --color-text-3: #8282a0;
-  --color-accent-soft: rgba(99,102,241,0.08);
-  --color-accent-glow: rgba(99,102,241,0.18);
-  --color-accent-bright: #818CF8;
-  --color-user-text: #fff;
-  --color-success: #34D399;
-  --color-success-soft: rgba(52,211,153,0.08);
-  --color-danger: #F43F5E;
-  --color-danger-soft: rgba(244,63,94,0.08);
-  --color-shereen: #EC4899;
-  --color-user-bubble: #4338CA;
-  --color-user-bubble-2: #6366F1;
-  /* The AI message bubble. #1c1c2e and not the #12121e this token used to
-     hold: nothing ever read the token, .bubble-ai painted itself #1c1c2e
-     directly, and #1c1c2e is therefore what dark mode has always looked
-     like. Keeping it means wiring the class to the token changes light
-     mode only, which is the bug being fixed. */
-  --color-ai-bubble: #1c1c2e;
-  --color-glass: rgba(16,16,28,0.75);
-  --color-glass-border: rgba(255,255,255,0.05);
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* The opaque surface ladder, by emphasis rather than by lightness: in dark
+     more emphasis is lighter, in light it is darker, which is what selection
+     actually does on macOS. bg is the window ground, surface is the card
+     (360 call sites, the workhorse), surface-2 is a selected/pressed fill. */
+  --color-bg: var(--surface-bg);
+  --color-raised: var(--surface-raised);
+  --color-surface: var(--surface-card);
+  --color-surface-2: var(--surface-selected);
+  --color-surface-3: var(--surface-elevated);
+
+  --color-border-hi: var(--ln-subtle);
+  --color-border-focus: var(--ac-ring);
+
+  /* labelColor / secondaryLabelColor / tertiaryLabelColor. Alphas, not
+     opaque greys, so they read correctly over every step of the ladder. */
+  --color-text: var(--tx-1);
+  --color-text-2: var(--tx-2);
+  --color-text-3: var(--tx-3);
+
+  --color-accent-soft: var(--ac-soft);
+  --color-accent-glow: var(--ac-glow);
+  --color-accent-bright: var(--ac);
+  --color-user-text: #ffffff;
+  --color-success: var(--st-green);
+  --color-success-soft: var(--st-green-soft);
+  --color-danger: var(--st-red);
+  --color-danger-soft: var(--st-red-soft);
+  /* systemOrange. Added here because the amber that eleven components were
+     spelling as a raw hex had no token to move to. */
+  --color-warning: var(--st-orange);
+  --color-warning-soft: var(--st-orange-soft);
+  --color-shereen: var(--st-pink);
+  --color-user-bubble: var(--ac);
+  --color-user-bubble-2: var(--ac-2);
+  --color-ai-bubble: var(--surface-card);
+  --color-glass: var(--sf-glass);
+  --color-glass-border: var(--ln-default);
+
+
+  /* ===== Tailwind's colour ramps, repointed at the system colours =====
+     This is where the app's status colour actually lives. 2,022 class sites
+     across src paint `emerald`, `amber`, `red`, `sky`, `rose` and friends --
+     a running dot, a failed badge, a warning banner, a chart series -- and
+     none of them is an arbitrary value, so the ESLint guard passes them and
+     the token ladder never saw them. Left alone they would have kept Tailwind
+     v4's OKLCH palette next to AppKit's: emerald-400 is a mint #34d399 beside
+     systemGreen's #32D74B, and sky-400 is a cyan #38bdf8 beside systemBlue.
+     Half the surfaces macOS-coloured and half not is the muddy result this
+     round was meant to avoid.
+
+     So each family is repointed at the AppKit colour it means, and only at
+     the six steps src actually uses (100..600). 400 is the system colour
+     itself; the lighter steps mix toward white and the darker ones toward
+     black, which is the direction Tailwind's own ramp runs, so the relative
+     lightness every call site was written against still holds. Families that
+     mean the same thing share a base -- rose with red, amber with orange,
+     emerald and lime with green, cyan with teal, sky with blue -- because
+     they were being used interchangeably already.
+
+     The bases are runtime variables, so a ramp is theme-aware for free: in
+     light mode they resolve to the accessible variants declared under .light.
+     The three light steps also take their mix percentage from a variable
+     rather than a literal, because the direction of a Tailwind ramp assumes a
+     dark UI: 401 of the 434 uses of 100/200/300 are `text-`, bright type meant
+     to sit on a dark fill, and mixing that far toward white puts them at
+     1.3:1 on a white page. Under .light the same three steps stay much closer
+     to the base, so a status word stays a status word in both themes.
+     The greys (slate/gray/zinc/neutral/stone, 11 sites between them) are left
+     alone: they are already neutral and have no AppKit counterpart to move
+     to. */
+  /* red -> systemRed */
+  --color-red-100: color-mix(in srgb, var(--st-red) var(--ramp-100), #ffffff);
+  --color-red-200: color-mix(in srgb, var(--st-red) var(--ramp-200), #ffffff);
+  --color-red-300: color-mix(in srgb, var(--st-red) var(--ramp-300), #ffffff);
+  --color-red-400: var(--st-red);
+  --color-red-500: color-mix(in srgb, var(--st-red) 88%, #000000);
+  --color-red-600: color-mix(in srgb, var(--st-red) 72%, #000000);
+  /* rose -> systemRed */
+  --color-rose-100: color-mix(in srgb, var(--st-red) var(--ramp-100), #ffffff);
+  --color-rose-200: color-mix(in srgb, var(--st-red) var(--ramp-200), #ffffff);
+  --color-rose-300: color-mix(in srgb, var(--st-red) var(--ramp-300), #ffffff);
+  --color-rose-400: var(--st-red);
+  --color-rose-500: color-mix(in srgb, var(--st-red) 88%, #000000);
+  --color-rose-600: color-mix(in srgb, var(--st-red) 72%, #000000);
+  /* orange -> systemOrange */
+  --color-orange-100: color-mix(in srgb, var(--st-orange) var(--ramp-100), #ffffff);
+  --color-orange-200: color-mix(in srgb, var(--st-orange) var(--ramp-200), #ffffff);
+  --color-orange-300: color-mix(in srgb, var(--st-orange) var(--ramp-300), #ffffff);
+  --color-orange-400: var(--st-orange);
+  --color-orange-500: color-mix(in srgb, var(--st-orange) 88%, #000000);
+  --color-orange-600: color-mix(in srgb, var(--st-orange) 72%, #000000);
+  /* amber -> systemOrange */
+  --color-amber-100: color-mix(in srgb, var(--st-orange) var(--ramp-100), #ffffff);
+  --color-amber-200: color-mix(in srgb, var(--st-orange) var(--ramp-200), #ffffff);
+  --color-amber-300: color-mix(in srgb, var(--st-orange) var(--ramp-300), #ffffff);
+  --color-amber-400: var(--st-orange);
+  --color-amber-500: color-mix(in srgb, var(--st-orange) 88%, #000000);
+  --color-amber-600: color-mix(in srgb, var(--st-orange) 72%, #000000);
+  /* yellow -> systemYellow */
+  --color-yellow-100: color-mix(in srgb, var(--st-yellow) var(--ramp-100), #ffffff);
+  --color-yellow-200: color-mix(in srgb, var(--st-yellow) var(--ramp-200), #ffffff);
+  --color-yellow-300: color-mix(in srgb, var(--st-yellow) var(--ramp-300), #ffffff);
+  --color-yellow-400: var(--st-yellow);
+  --color-yellow-500: color-mix(in srgb, var(--st-yellow) 88%, #000000);
+  --color-yellow-600: color-mix(in srgb, var(--st-yellow) 72%, #000000);
+  /* lime -> systemGreen */
+  --color-lime-100: color-mix(in srgb, var(--st-green) var(--ramp-100), #ffffff);
+  --color-lime-200: color-mix(in srgb, var(--st-green) var(--ramp-200), #ffffff);
+  --color-lime-300: color-mix(in srgb, var(--st-green) var(--ramp-300), #ffffff);
+  --color-lime-400: var(--st-green);
+  --color-lime-500: color-mix(in srgb, var(--st-green) 88%, #000000);
+  --color-lime-600: color-mix(in srgb, var(--st-green) 72%, #000000);
+  /* green -> systemGreen */
+  --color-green-100: color-mix(in srgb, var(--st-green) var(--ramp-100), #ffffff);
+  --color-green-200: color-mix(in srgb, var(--st-green) var(--ramp-200), #ffffff);
+  --color-green-300: color-mix(in srgb, var(--st-green) var(--ramp-300), #ffffff);
+  --color-green-400: var(--st-green);
+  --color-green-500: color-mix(in srgb, var(--st-green) 88%, #000000);
+  --color-green-600: color-mix(in srgb, var(--st-green) 72%, #000000);
+  /* emerald -> systemGreen */
+  --color-emerald-100: color-mix(in srgb, var(--st-green) var(--ramp-100), #ffffff);
+  --color-emerald-200: color-mix(in srgb, var(--st-green) var(--ramp-200), #ffffff);
+  --color-emerald-300: color-mix(in srgb, var(--st-green) var(--ramp-300), #ffffff);
+  --color-emerald-400: var(--st-green);
+  --color-emerald-500: color-mix(in srgb, var(--st-green) 88%, #000000);
+  --color-emerald-600: color-mix(in srgb, var(--st-green) 72%, #000000);
+  /* teal -> systemTeal */
+  --color-teal-100: color-mix(in srgb, var(--st-teal) var(--ramp-100), #ffffff);
+  --color-teal-200: color-mix(in srgb, var(--st-teal) var(--ramp-200), #ffffff);
+  --color-teal-300: color-mix(in srgb, var(--st-teal) var(--ramp-300), #ffffff);
+  --color-teal-400: var(--st-teal);
+  --color-teal-500: color-mix(in srgb, var(--st-teal) 88%, #000000);
+  --color-teal-600: color-mix(in srgb, var(--st-teal) 72%, #000000);
+  /* cyan -> systemTeal */
+  --color-cyan-100: color-mix(in srgb, var(--st-teal) var(--ramp-100), #ffffff);
+  --color-cyan-200: color-mix(in srgb, var(--st-teal) var(--ramp-200), #ffffff);
+  --color-cyan-300: color-mix(in srgb, var(--st-teal) var(--ramp-300), #ffffff);
+  --color-cyan-400: var(--st-teal);
+  --color-cyan-500: color-mix(in srgb, var(--st-teal) 88%, #000000);
+  --color-cyan-600: color-mix(in srgb, var(--st-teal) 72%, #000000);
+  /* sky -> systemBlue */
+  --color-sky-100: color-mix(in srgb, var(--ac) var(--ramp-100), #ffffff);
+  --color-sky-200: color-mix(in srgb, var(--ac) var(--ramp-200), #ffffff);
+  --color-sky-300: color-mix(in srgb, var(--ac) var(--ramp-300), #ffffff);
+  --color-sky-400: var(--ac);
+  --color-sky-500: color-mix(in srgb, var(--ac) 88%, #000000);
+  --color-sky-600: color-mix(in srgb, var(--ac) 72%, #000000);
+  /* blue -> systemBlue */
+  --color-blue-100: color-mix(in srgb, var(--ac) var(--ramp-100), #ffffff);
+  --color-blue-200: color-mix(in srgb, var(--ac) var(--ramp-200), #ffffff);
+  --color-blue-300: color-mix(in srgb, var(--ac) var(--ramp-300), #ffffff);
+  --color-blue-400: var(--ac);
+  --color-blue-500: color-mix(in srgb, var(--ac) 88%, #000000);
+  --color-blue-600: color-mix(in srgb, var(--ac) 72%, #000000);
+  /* indigo -> systemIndigo */
+  --color-indigo-100: color-mix(in srgb, var(--st-indigo) var(--ramp-100), #ffffff);
+  --color-indigo-200: color-mix(in srgb, var(--st-indigo) var(--ramp-200), #ffffff);
+  --color-indigo-300: color-mix(in srgb, var(--st-indigo) var(--ramp-300), #ffffff);
+  --color-indigo-400: var(--st-indigo);
+  --color-indigo-500: color-mix(in srgb, var(--st-indigo) 88%, #000000);
+  --color-indigo-600: color-mix(in srgb, var(--st-indigo) 72%, #000000);
+  /* violet -> systemPurple */
+  --color-violet-100: color-mix(in srgb, var(--st-purple) var(--ramp-100), #ffffff);
+  --color-violet-200: color-mix(in srgb, var(--st-purple) var(--ramp-200), #ffffff);
+  --color-violet-300: color-mix(in srgb, var(--st-purple) var(--ramp-300), #ffffff);
+  --color-violet-400: var(--st-purple);
+  --color-violet-500: color-mix(in srgb, var(--st-purple) 88%, #000000);
+  --color-violet-600: color-mix(in srgb, var(--st-purple) 72%, #000000);
+  /* purple -> systemPurple */
+  --color-purple-100: color-mix(in srgb, var(--st-purple) var(--ramp-100), #ffffff);
+  --color-purple-200: color-mix(in srgb, var(--st-purple) var(--ramp-200), #ffffff);
+  --color-purple-300: color-mix(in srgb, var(--st-purple) var(--ramp-300), #ffffff);
+  --color-purple-400: var(--st-purple);
+  --color-purple-500: color-mix(in srgb, var(--st-purple) 88%, #000000);
+  --color-purple-600: color-mix(in srgb, var(--st-purple) 72%, #000000);
+  /* fuchsia -> systemPurple */
+  --color-fuchsia-100: color-mix(in srgb, var(--st-purple) var(--ramp-100), #ffffff);
+  --color-fuchsia-200: color-mix(in srgb, var(--st-purple) var(--ramp-200), #ffffff);
+  --color-fuchsia-300: color-mix(in srgb, var(--st-purple) var(--ramp-300), #ffffff);
+  --color-fuchsia-400: var(--st-purple);
+  --color-fuchsia-500: color-mix(in srgb, var(--st-purple) 88%, #000000);
+  --color-fuchsia-600: color-mix(in srgb, var(--st-purple) 72%, #000000);
+  /* pink -> systemPink */
+  --color-pink-100: color-mix(in srgb, var(--st-pink) var(--ramp-100), #ffffff);
+  --color-pink-200: color-mix(in srgb, var(--st-pink) var(--ramp-200), #ffffff);
+  --color-pink-300: color-mix(in srgb, var(--st-pink) var(--ramp-300), #ffffff);
+  --color-pink-400: var(--st-pink);
+  --color-pink-500: color-mix(in srgb, var(--st-pink) 88%, #000000);
+  --color-pink-600: color-mix(in srgb, var(--st-pink) 72%, #000000);
+
+  /* ===== Motion =====
+     macOS animates in 150-200ms on a plain ease-out. Both keys hold the same
+     curve now: the names stay because 107 call sites ask for `ease-spring`
+     and one for `ease-out-expo`, but nothing on this platform overshoots, so
+     the spring's 1.56 control point (and the expo's 0.16/1) are gone. Renaming
+     the utilities would be a component-wide edit for no rendered difference. */
+  --ease-out-expo: cubic-bezier(0, 0, 0.58, 1);
+  --ease-spring: cubic-bezier(0, 0, 0.58, 1);
 }
 
 :root {
@@ -162,215 +352,241 @@
      not stop that; it only governs Tailwind's own rounded-* utilities. */
   --radius: 0.625rem;
 
-  /* ===== Single-Tint Theming ===== */
-  /* Change this one value to shift the entire palette hue */
-  --neutral-tint: #1e1e30;
-  /* Dark is the base theme; .light redefines exactly these eleven values. */
-  --sf-0: color-mix(in srgb, var(--neutral-tint) 40%, #000);
-  --sf-1: rgba(255,255,255,0.02);
-  --sf-2: rgba(255,255,255,0.05);
-  --sf-3: rgba(255,255,255,0.09);
-  --sf-4: rgba(255,255,255,0.16);
-  --ln-subtle: rgba(255,255,255,0.05);
-  --ln-default: rgba(255,255,255,0.09);
-  --ln-strong: rgba(255,255,255,0.16);
-  --background: color-mix(in srgb, var(--neutral-tint) 40%, #000);
-  --foreground: #e2e2ec;
-  --card: color-mix(in srgb, var(--neutral-tint) 50%, #000);
-  --card-foreground: #e2e2ec;
-  --popover: color-mix(in srgb, var(--neutral-tint) 50%, #000);
-  --popover-foreground: #e2e2ec;
-  --primary: #6366F1;
-  --primary-foreground: #ffffff;
-  --secondary: color-mix(in srgb, var(--neutral-tint) 65%, #000);
-  --secondary-foreground: #e2e2ec;
-  --muted: color-mix(in srgb, var(--neutral-tint) 65%, #000);
-  --muted-foreground: #a0a0ba;
-  --accent: #6366F1;
-  --accent-foreground: #ffffff;
-  --destructive: #F43F5E;
-  --border: rgba(255,255,255,0.04);
-  --input: rgba(255,255,255,0.04);
-  --ring: rgba(99,102,241,0.4);
-  --sidebar: color-mix(in srgb, var(--neutral-tint) 50%, #000);
-  --sidebar-foreground: #e2e2ec;
-  --sidebar-primary: #6366F1;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(99,102,241,0.08);
-  --sidebar-accent-foreground: #e2e2ec;
-  --sidebar-border: rgba(255,255,255,0.04);
-  --sidebar-ring: rgba(99,102,241,0.4);
+  /* ===== Theme hue =====
+     A shipped, user-facing knob: Settings > Theme writes this property onto
+     <html> (src/views/settings/section-theme.tsx, re-applied on load by
+     src/components/layout/dashboard-shell.tsx), so it has to keep meaning
+     something. It now defaults to macOS windowBackgroundColor and the five
+     opaque surfaces are mixed off it, with percentages chosen so the default
+     lands on AppKit's own numbers to within one or two steps of 255:
 
-  /* ===== Status Badge System ===== */
-  --status-idle-bg: rgba(255,255,255,0.04);
-  --status-idle-border: rgba(255,255,255,0.06);
-  --status-idle-fg: #a0a0ba;
-  --status-running-bg: rgba(52,211,153,0.08);
-  --status-running-border: rgba(52,211,153,0.15);
-  --status-running-fg: #34D399;
-  --status-error-bg: rgba(244,63,94,0.08);
-  --status-error-border: rgba(244,63,94,0.15);
-  --status-error-fg: #F43F5E;
-  --status-connecting-bg: rgba(251,191,36,0.08);
-  --status-connecting-border: rgba(251,191,36,0.15);
-  --status-connecting-fg: #FBBF24;
-  --status-connected-bg: rgba(56,189,248,0.08);
-  --status-connected-border: rgba(56,189,248,0.15);
-  --status-connected-fg: #38BDF8;
+       dark   window #1e1e1e (exact) - raised #272727 (#282828) -
+              card #292929 (#2a2a2a) - selected #393939 (#3a3a3c)
+       light  window #ededed (#ececec) - raised #f6f6f6 (#f5f5f5) -
+              card #ffffff (exact) - selected #dddddd (#dcdcdc)
+
+     Deriving rather than hardcoding is what keeps a chosen hue coherent: pick
+     Forest and the cards go green with the page instead of staying grey on a
+     green ground. Everything that is not a surface -- labels, separators,
+     accent, status -- stays neutral or system-coloured and does not take the
+     tint, which is why the result still reads as macOS rather than as a
+     tinted web app. */
+  --neutral-tint: #1e1e1e;
+
+  /* Opaque surface ladder. Dark is :root; .light redefines these five plus the
+     ladder, lines, labels, accent and status below, and nothing else. */
+  --surface-bg: var(--neutral-tint);
+  --surface-raised: color-mix(in srgb, var(--neutral-tint) 96%, #ffffff);
+  --surface-card: color-mix(in srgb, var(--neutral-tint) 95%, #ffffff);
+  --surface-selected: color-mix(in srgb, var(--neutral-tint) 88%, #ffffff);
+  --surface-elevated: color-mix(in srgb, var(--neutral-tint) 82%, #ffffff);
+
+  /* Translucent overlay ladder. sf-2 over the window ground composites to
+     controlBackgroundColor, which is the point of the ramp. */
+  --sf-0: var(--surface-bg);
+  --sf-1: rgba(255,255,255,0.03);
+  --sf-2: rgba(255,255,255,0.05);
+  --sf-3: rgba(255,255,255,0.10);
+  --sf-4: rgba(255,255,255,0.16);
+
+  /* separatorColor is the middle one; the other two are the hairline and the
+     stronger rule this UI needs for panel edges. */
+  --ln-subtle: rgba(255,255,255,0.06);
+  --ln-default: rgba(255,255,255,0.10);
+  --ln-strong: rgba(255,255,255,0.16);
+
+  /* label / secondaryLabel / tertiaryLabel */
+  --tx-1: rgba(255,255,255,0.85);
+  --tx-2: rgba(255,255,255,0.55);
+  --tx-3: rgba(255,255,255,0.25);
+
+  /* controlAccentColor (systemBlue) and its fills. */
+  --ac: #0A7AFF;
+  --ac-2: #409CFF;
+  --ac-soft: rgba(10,122,255,0.22);
+  --ac-glow: rgba(10,122,255,0.30);
+  --ac-ring: rgba(10,122,255,0.55);
+
+  /* systemGreen / systemRed / systemOrange / systemYellow / systemPink.
+     Separate from the accent on purpose: the accent is what the user's Mac
+     says it is, a status colour is what the status means. */
+  --st-green: #32D74B;
+  --st-green-soft: rgba(50,215,75,0.14);
+  --st-red: #FF453A;
+  --st-red-soft: rgba(255,69,58,0.14);
+  --st-orange: #FF9F0A;
+  --st-orange-soft: rgba(255,159,10,0.14);
+  --st-yellow: #FFD60A;
+  --st-yellow-soft: rgba(255,214,10,0.14);
+  --st-pink: #FF375F;
+  --st-purple: #BF5AF2;
+  --st-indigo: #5E5CE6;
+  --st-teal: #64D2FF;
+
+  /* How far the 100/200/300 steps of the repointed Tailwind ramps mix toward
+     white. Dark mode wants them genuinely pale -- that is bright type on a
+     dark fill. See .light for the other half. */
+  --ramp-100: 12%;
+  --ramp-200: 26%;
+  --ramp-300: 55%;
+
+  --sf-glass: rgba(30,30,30,0.72);
+
+  /* The code block's ground stays dark in both themes: highlight.js is loaded
+     with github-dark-dimmed at the top of this file, and its token colours are
+     unreadable on a light surface. */
+  --code-surface: #1c1c1e;
+
+  --background: var(--surface-bg);
+  --foreground: var(--tx-1);
+  --card: var(--surface-raised);
+  --card-foreground: var(--tx-1);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--tx-1);
+  --primary: var(--ac);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-card);
+  --secondary-foreground: var(--tx-1);
+  --muted: var(--surface-card);
+  --muted-foreground: var(--tx-2);
+  --accent: var(--ac);
+  --accent-foreground: #ffffff;
+  --destructive: var(--st-red);
+  --border: var(--ln-subtle);
+  --input: var(--ln-default);
+  --ring: var(--ac-ring);
+  /* The sidebar takes the window ground, not the card: on macOS the source
+     list recedes and the content area is what sits forward. */
+  --sidebar: var(--surface-bg);
+  --sidebar-foreground: var(--tx-1);
+  --sidebar-primary: var(--ac);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--ac-soft);
+  --sidebar-accent-foreground: var(--tx-1);
+  --sidebar-border: var(--ln-default);
+  --sidebar-ring: var(--ac-ring);
+
+  /* ===== Status Badge System =====
+     Built off the five system colours above so a badge cannot drift from the
+     dot, the chart series or the text that means the same thing. */
+  --status-idle-bg: var(--sf-2);
+  --status-idle-border: var(--ln-default);
+  --status-idle-fg: var(--tx-2);
+  --status-running-bg: var(--st-green-soft);
+  --status-running-border: rgba(50,215,75,0.28);
+  --status-running-fg: var(--st-green);
+  --status-error-bg: var(--st-red-soft);
+  --status-error-border: rgba(255,69,58,0.28);
+  --status-error-fg: var(--st-red);
+  --status-connecting-bg: var(--st-orange-soft);
+  --status-connecting-border: rgba(255,159,10,0.28);
+  --status-connecting-fg: var(--st-orange);
+  --status-connected-bg: var(--ac-soft);
+  --status-connected-border: rgba(10,122,255,0.32);
+  --status-connected-fg: var(--ac);
   --status-disconnected-bg: var(--status-idle-bg);
   --status-disconnected-border: var(--status-idle-border);
   --status-disconnected-fg: var(--status-idle-fg);
-  --status-approval-bg: rgba(251,146,60,0.08);
-  --status-approval-border: rgba(251,146,60,0.15);
-  --status-approval-fg: #FB923C;
+  /* systemYellow, so "waiting on you" is not the same colour as "connecting". */
+  --status-approval-bg: var(--st-yellow-soft);
+  --status-approval-border: rgba(255,214,10,0.28);
+  --status-approval-fg: var(--st-yellow);
 
   /* ===== Command Surface ===== */
-  --command-bg: #0a0a14;
-  --command-border: rgba(255,255,255,0.06);
-  --command-header: rgba(0,0,0,0.3);
+  --command-bg: var(--surface-raised);
+  --command-border: var(--ln-default);
+  --command-header: var(--sf-1);
 }
 
 .light {
-  /* The eleven values the dark theme sets in :root, and nothing else.
-     There is no !important layer under this any more: if a component looks
-     wrong in light mode, it is reading a raw colour instead of a token, and
-     the ESLint guard is what catches that.
+  /* Exactly the values :root sets, and nothing else. There is no !important
+     layer under this any more -- see the note below where one used to be. */
+  --surface-bg: color-mix(in srgb, var(--neutral-tint) 8%, #ffffff);
+  --surface-raised: color-mix(in srgb, var(--neutral-tint) 4%, #ffffff);
+  --surface-card: #ffffff;
+  --surface-selected: color-mix(in srgb, var(--neutral-tint) 15%, #ffffff);
+  --surface-elevated: color-mix(in srgb, var(--neutral-tint) 21%, #ffffff);
 
-     --neutral-tint stays dark here on purpose. Five hundred-odd `bg-surface`,
-     `bg-bg` and `bg-raised` utilities still derive their light-mode colour
-     from `color-mix(var(--neutral-tint), #fff)`, and a light tint collapses
-     every one of those to within two levels of white — white cards on a white
-     page, which is the failure this layer exists to prevent. It can go light
-     once those utilities are on the ladder too. */
-  --sf-0: #f7f7fa;
-  --sf-1: rgba(31,41,55,0.025);
-  --sf-2: rgba(31,41,55,0.055);
-  --sf-3: rgba(31,41,55,0.10);
-  --sf-4: rgba(31,41,55,0.17);
-  --ln-subtle: rgba(31,41,55,0.08);
-  --ln-default: rgba(31,41,55,0.13);
-  --ln-strong: rgba(31,41,55,0.22);
+  --sf-0: var(--surface-bg);
+  --sf-1: rgba(0,0,0,0.03);
+  --sf-2: rgba(0,0,0,0.05);
+  --sf-3: rgba(0,0,0,0.10);
+  --sf-4: rgba(0,0,0,0.16);
 
-  --background: color-mix(in srgb, var(--neutral-tint) 10%, #fff);
-  --foreground: #1f2937;
-  --card: color-mix(in srgb, var(--neutral-tint) 8%, #fff);
-  --card-foreground: #1f2937;
-  --popover: color-mix(in srgb, var(--neutral-tint) 8%, #fff);
-  --popover-foreground: #1f2937;
-  --primary: #4f46e5;
-  --primary-foreground: #ffffff;
-  --secondary: color-mix(in srgb, var(--neutral-tint) 12%, #fff);
-  --secondary-foreground: #253047;
-  --muted: color-mix(in srgb, var(--neutral-tint) 10%, #fff);
-  --muted-foreground: #5f6b85;
-  --accent: #4f46e5;
-  --accent-foreground: #ffffff;
-  --destructive: #dc2626;
-  --border: rgba(31,41,55,0.12);
-  --input: rgba(31,41,55,0.10);
-  --ring: rgba(79,70,229,0.38);
-  --sidebar: color-mix(in srgb, var(--neutral-tint) 9%, #fff);
-  --sidebar-foreground: #1f2937;
-  --sidebar-primary: #4f46e5;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(79,70,229,0.09);
-  --sidebar-accent-foreground: #253047;
-  --sidebar-border: rgba(31,41,55,0.11);
-  --sidebar-ring: rgba(79,70,229,0.35);
+  --ln-subtle: rgba(0,0,0,0.06);
+  --ln-default: rgba(0,0,0,0.10);
+  --ln-strong: rgba(0,0,0,0.16);
 
-  --color-bg: color-mix(in srgb, var(--neutral-tint) 10%, #fff);
-  --color-raised: color-mix(in srgb, var(--neutral-tint) 8%, #fff);
-  --color-surface: color-mix(in srgb, var(--neutral-tint) 14%, #fff);
-  --color-surface-2: color-mix(in srgb, var(--neutral-tint) 20%, #fff);
-  --color-surface-3: color-mix(in srgb, var(--neutral-tint) 24%, #fff);
-  --color-border-hi: rgba(31,41,55,0.12);
-  --color-border-focus: rgba(79,70,229,0.45);
-  --color-text: #1f2937;
-  --color-text-2: #4b5568;
-  --color-text-3: #6b7280;
-  --color-accent-soft: rgba(79,70,229,0.09);
-  --color-accent-glow: rgba(79,70,229,0.16);
-  --color-accent-bright: #4f46e5;
-  --color-user-text: #fff;
-  --color-success: #059669;
-  --color-success-soft: rgba(5,150,105,0.10);
-  --color-danger: #dc2626;
-  --color-danger-soft: rgba(220,38,38,0.10);
-  --color-shereen: #db2777;
-  --color-user-bubble: #4f46e5;
-  --color-user-bubble-2: #6366f1;
-  --color-ai-bubble: #f4f6fb;
-  --color-glass: rgba(255,255,255,0.82);
-  --color-glass-border: rgba(31,41,55,0.10);
+  --tx-1: rgba(0,0,0,0.85);
+  --tx-2: rgba(0,0,0,0.55);
+  --tx-3: rgba(0,0,0,0.25);
 
-  --status-idle-bg: rgba(31,41,55,0.05);
-  --status-idle-border: rgba(31,41,55,0.10);
-  --status-idle-fg: #5f6b85;
-  --status-running-bg: rgba(5,150,105,0.10);
-  --status-running-border: rgba(5,150,105,0.18);
-  --status-running-fg: #047857;
-  --status-error-bg: rgba(220,38,38,0.10);
-  --status-error-border: rgba(220,38,38,0.18);
-  --status-error-fg: #dc2626;
-  --status-connecting-bg: rgba(217,119,6,0.10);
-  --status-connecting-border: rgba(217,119,6,0.18);
-  --status-connecting-fg: #b45309;
-  --status-connected-bg: rgba(2,132,199,0.10);
-  --status-connected-border: rgba(2,132,199,0.18);
-  --status-connected-fg: #0369a1;
-  --status-approval-bg: rgba(234,88,12,0.10);
-  --status-approval-border: rgba(234,88,12,0.18);
-  --status-approval-fg: #c2410c;
+  --ac: #007AFF;
+  --ac-2: #3395FF;
+  --ac-soft: rgba(0,122,255,0.16);
+  --ac-glow: rgba(0,122,255,0.24);
+  --ac-ring: rgba(0,122,255,0.45);
 
-  --command-bg: #ffffff;
-  --command-border: rgba(31,41,55,0.12);
-  --command-header: rgba(31,41,55,0.04);
+  /* The system colours split in light mode, and this is the one place in the
+     palette where the light value is not simply the light variant of the dark
+     one. macOS's standard light systemGreen is #28CD41: correct for a fill, a
+     dot or a control, and 1.6:1 against white as text -- the "no blockers"
+     banner rendered as pale green on pale green and could not be read at all.
+     So the -soft fills below keep the standard light variants, and the
+     foreground colours take Apple's own accessible (increased-contrast)
+     variants of the same five system colours. Both halves are AppKit's; this
+     is the pairing AppKit itself uses when Increase Contrast is on. Dark mode
+     needs no such split -- #32D74B on #1e1e1e is 9:1 -- so :root above holds
+     one value per colour. */
+  --st-green: #248A3D;
+  --st-green-soft: rgba(40,205,65,0.16);
+  --st-red: #D70015;
+  --st-red-soft: rgba(255,59,48,0.14);
+  --st-orange: #C93400;
+  --st-orange-soft: rgba(255,149,0,0.16);
+  --st-yellow: #B25000;
+  --st-yellow-soft: rgba(255,204,0,0.22);
+  --st-pink: #D30F45;
+  --st-purple: #8944AB;
+  --st-indigo: #3634A3;
+  --st-teal: #0071A4;
+
+  --ramp-100: 62%;
+  --ramp-200: 74%;
+  --ramp-300: 88%;
+
+  --sf-glass: rgba(246,246,246,0.72);
+
+  --status-running-border: rgba(40,205,65,0.34);
+  --status-error-border: rgba(255,59,48,0.32);
+  --status-connecting-border: rgba(255,149,0,0.34);
+  --status-connected-border: rgba(0,122,255,0.30);
+  --status-approval-border: rgba(255,204,0,0.40);
 }
 
 /* The last two literal white-alpha utilities in the app: the codemod refuses
    both as over-ceiling for the ladder (a 0.45 dot, a 0.4 drag-target border),
-   so they still need a light-mode value of their own. Everything else on this
-   layer is gone — the tokens above are the theme now. */
-.light .bg-white\/\[0\.45\] { background-color: rgba(31,41,55,0.45) !important; }
-.light .hover\:border-white\/\[0\.4\]:hover { border-color: rgba(31,41,55,0.42) !important; }
+   so they still need a light-mode value of their own. */
+.light .bg-white\/\[0\.45\] { background-color: rgba(0,0,0,0.45) !important; }
+.light .hover\:border-white\/\[0\.4\]:hover { border-color: rgba(0,0,0,0.42) !important; }
+
+/* Where the `html.light` alias layer used to be, and why it is not here.
+   It existed for one reason: `@theme inline` bakes a key's literal value into
+   the utility, so `--color-text: #e2e2ec` compiled to `.text-text { color:
+   #e2e2ec }` and redefining --color-text under .light could not reach it. The
+   fix was twenty-odd `html.light .text-text { ... !important }` rules plus one
+   per opacity modifier the app happened to use. It never covered the app: the
+   six `text-text-3/NN` steps it listed are six of the eighteen in src, so the
+   other twelve simply stayed dark-mode-coloured in light mode.
+   Routing every colour key through a runtime variable (see the @theme block)
+   makes the utilities resolve per theme on their own, so all eighteen work and
+   the layer has nothing left to do. If a component looks wrong in light mode
+   now, it is reading a raw colour instead of a token, and the ESLint guard is
+   what catches that. */
 
 html.light,
 html.light body {
   color-scheme: light;
-}
-
-html.light body {
-  background: color-mix(in srgb, var(--neutral-tint) 8%, #fff);
-  color: #1f2937;
-}
-
-html.light .bg-bg { background-color: color-mix(in srgb, var(--neutral-tint) 8%, #fff) !important; }
-html.light .bg-raised { background-color: color-mix(in srgb, var(--neutral-tint) 10%, #fff) !important; }
-html.light .bg-surface { background-color: color-mix(in srgb, var(--neutral-tint) 14%, #fff) !important; }
-html.light .bg-surface-2 { background-color: color-mix(in srgb, var(--neutral-tint) 18%, #fff) !important; }
-html.light .bg-glass { background-color: rgba(255,255,255,0.88) !important; }
-html.light .text-text { color: #1f2937 !important; }
-html.light .text-text-2 { color: #4b5568 !important; }
-html.light .text-text-3 { color: #6b7280 !important; }
-html.light .text-text-3\/40 { color: rgba(107,114,128,0.40) !important; }
-html.light .text-text-3\/45 { color: rgba(107,114,128,0.45) !important; }
-html.light .text-text-3\/50 { color: rgba(107,114,128,0.50) !important; }
-html.light .text-text-3\/60 { color: rgba(107,114,128,0.60) !important; }
-html.light .text-text-3\/70 { color: rgba(107,114,128,0.70) !important; }
-html.light .text-text-3\/75 { color: rgba(107,114,128,0.75) !important; }
-html.light .text-accent-bright { color: #4f46e5 !important; }
-html.light .bg-accent-soft { background-color: rgba(79,70,229,0.09) !important; }
-html.light .placeholder\:text-text-3\/40::placeholder { color: rgba(107,114,128,0.40) !important; }
-
-html.light .bg-\[\#0a0a14\],
-html.light .bg-\[\#0c0c13\],
-html.light .bg-\[\#12121e\],
-html.light .bg-\[\#13131e\],
-html.light .bg-\[\#16162a\],
-html.light .bg-\[\#171a2b\],
-html.light .bg-\[\#1a1a2e\],
-html.light .bg-\[\#1e1e38\] {
-  background-color: color-mix(in srgb, var(--neutral-tint) 14%, #fff) !important;
 }
 
 @layer base {
@@ -378,7 +594,14 @@ html.light .bg-\[\#1e1e38\] {
 }
 
 body {
-  font-family: var(--font-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family: var(--font-sans);
+  /* 13px is the macOS control size and the size AppKit draws almost every
+     label at. It is the inherited default only: this UI sets an explicit size
+     at roughly 3,600 call sites (text-[10px] .. text-[18px]), so this governs
+     what is left -- prose, markdown bodies, anything sized in em -- rather
+     than rescaling the app. 1.45 is the matching leading. */
+  font-size: 13px;
+  line-height: 1.45;
   background: var(--color-bg);
   color: var(--color-text);
   height: 100vh;
@@ -386,7 +609,30 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
-  letter-spacing: -0.01em;
+  /* SF Pro is optically sized and needs no tracking correction; the -0.01em
+     this carried was compensating for DM Sans. */
+  letter-spacing: normal;
+}
+
+/* ===== Hairlines =====
+   A 1px CSS border is two device pixels on a retina display, and next to
+   AppKit's separators it reads as a drawn line rather than an edge. Halving it
+   is a value change, not a class change: `border` and its side forms keep
+   their names and their token colours and simply stop being twice as heavy as
+   the ones macOS draws. Unlayered on purpose -- Tailwind emits its utilities
+   inside @layer utilities, and an unlayered rule outwins every layered one
+   regardless of source order, so this cannot be reordered out of effect.
+   Only the width-less forms are listed: `border-2` (40 sites) and `border-b-2`
+   (4) are asking for a deliberately heavy rule and never co-occur with the
+   plain class. */
+@media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
+  .border { border-width: 0.5px; }
+  .border-x { border-inline-width: 0.5px; }
+  .border-y { border-block-width: 0.5px; }
+  .border-t { border-top-width: 0.5px; }
+  .border-r { border-right-width: 0.5px; }
+  .border-b { border-bottom-width: 0.5px; }
+  .border-l { border-left-width: 0.5px; }
 }
 
 button:not(:disabled),
@@ -410,7 +656,7 @@ textarea:disabled,
 * { scrollbar-width: thin; scrollbar-color: var(--color-layer-3) transparent; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-layer-3); border-radius: 6px; }
+::-webkit-scrollbar-thumb { background: var(--color-layer-3); border-radius: var(--radius-full); }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-layer-4); }
 textarea { scrollbar-width: none; }
 textarea::-webkit-scrollbar { width: 0; }
@@ -424,7 +670,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 }
 
 /* Selection */
-::selection { background: rgba(99,102,241,0.3); }
+::selection { background: rgba(10,122,255,0.35); }
 
 /* ===== Animations ===== */
 @keyframes msg-in {
@@ -446,9 +692,9 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   40% { transform: translateY(-6px); opacity: 1; }
 }
 @keyframes mic-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(244,63,94,0.3); }
-  70% { box-shadow: 0 0 0 14px rgba(244,63,94,0); }
-  100% { box-shadow: 0 0 0 0 rgba(244,63,94,0); }
+  0% { box-shadow: 0 0 0 0 rgba(255,69,58,0.30); }
+  70% { box-shadow: 0 0 0 14px rgba(255,69,58,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,69,58,0); }
 }
 @keyframes sheet-up {
   from { transform: translateY(100%) scale(0.97); opacity: 0; }
@@ -506,9 +752,10 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+/* Named for the curve it used to have. macOS does not overshoot, so the
+   70% keyframe that carried the bounce is gone and this is a plain settle. */
 @keyframes spring-in {
-  0% { transform: scale(0.9) translateY(10px); opacity: 0; }
-  70% { transform: scale(1.02) translateY(-2px); opacity: 1; }
+  0% { transform: scale(0.97) translateY(6px); opacity: 0; }
   100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 @keyframes pulse-subtle {
@@ -620,7 +867,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 
 /* AI avatar mood animations */
 @keyframes ai-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
-@keyframes ai-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); } 50% { box-shadow: 0 0 12px 4px rgba(99,102,241,0.35); } }
+@keyframes ai-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(10,122,255,0); } 50% { box-shadow: 0 0 12px 4px rgba(10,122,255,0.35); } }
 @keyframes ai-shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-3px); } 40% { transform: translateX(3px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(2px); } }
 @keyframes ai-bounce { 0%,100% { transform: scale(1); } 40% { transform: scale(1.25); } 60% { transform: scale(0.95); } }
 
@@ -631,40 +878,40 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 
 /* ===== Markdown content ===== */
 .msg-content pre {
-  background: #0a0a12 !important;
+  background: var(--code-surface) !important;
   padding: 0 !important;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   margin: 12px 0;
-  border: 1px solid rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .msg-content pre code {
   display: block;
   padding: 14px 16px;
   overflow-x: auto;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   -webkit-overflow-scrolling: touch;
   background: transparent !important;
 }
 
 .msg-content code {
-  font-family: var(--font-mono), 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 12.5px;
+  font-family: var(--font-mono);
+  font-size: 12px;
   font-feature-settings: 'liga' on, 'calt' on;
 }
 
 .msg-content :not(pre) > code {
-  background: rgba(99,102,241,0.08);
-  padding: 2px 7px;
-  border-radius: 5px;
+  background: var(--color-layer-2);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
   font-size: 0.87em;
   color: var(--color-accent-bright);
 }
 
 .msg-content h2, .msg-content h3, .msg-content h4 {
-  font-family: var(--font-display), 'Sora', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 14px;
   font-weight: 600;
   margin: 16px 0 6px;
@@ -688,12 +935,12 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 .msg-content a {
   color: var(--color-accent-bright);
   text-decoration: none;
-  border-bottom: 1px solid rgba(99,102,241,0.3);
+  border-bottom: 1px solid var(--color-accent-glow);
   transition: border-color 0.15s;
 }
 .msg-content a:hover { border-color: var(--color-accent-bright); }
 
-.msg-content table { border-collapse: collapse; margin: 10px 0; font-size: 12.5px; width: 100%; }
+.msg-content table { border-collapse: collapse; margin: 10px 0; font-size: 12px; width: 100%; }
 .msg-content th, .msg-content td { border: 1px solid var(--color-border-hi); padding: 8px 12px; text-align: left; }
 .msg-content th { background: var(--color-surface); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-2); }
 
@@ -706,7 +953,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 
 .msg-content hr { border: none; height: 1px; background: var(--color-border-hi); margin: 16px 0; }
 
-.msg-content img { max-width: 100%; border-radius: 12px; margin: 8px 0; border: 1px solid var(--color-line-default); }
+.msg-content img { max-width: 100%; border-radius: var(--radius-lg); margin: 8px 0; border: 1px solid var(--color-line-default); }
 
 /* Streaming cursor */
 .streaming-cursor::after {
@@ -723,9 +970,10 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 }
 
 /* Focus glow */
+/* The macOS focus ring: a 3px accent halo just outside the control's edge. */
 .focus-glow:focus-within {
   border-color: var(--color-border-focus) !important;
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.06);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
 }
 
 /* Glass effect */
@@ -737,10 +985,11 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 }
 
 /* Icon rail button */
+/* 28px is the macOS toolbar/source-list control height. */
 .rail-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   color: var(--color-text-3);
@@ -748,7 +997,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.15s var(--ease-out-expo);
 }
 .rail-btn:hover { background: var(--color-layer-2); color: var(--color-text-2); }
 .rail-btn.active { background: var(--color-accent-soft); color: var(--color-accent-bright); }
@@ -756,47 +1005,47 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 /* Message bubble styles */
 .bubble-user {
   background: linear-gradient(135deg, var(--color-user-bubble) 0%, var(--color-user-bubble-2) 100%);
-  border-radius: 20px 20px 6px 20px;
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-xs) var(--radius-lg);
   color: white;
-  box-shadow: 0 2px 16px rgba(99,102,241,0.15);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
 }
 
 .bubble-ai {
   background: var(--color-ai-bubble);
   border: 1px solid var(--color-line-default);
-  border-radius: 20px 20px 20px 6px;
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) var(--radius-xs);
 }
 
 /* Suggestion card */
 .suggestion-card {
   position: relative;
   overflow: hidden;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.18s var(--ease-out-expo);
 }
 .suggestion-card::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(129,140,248,0.02));
+  background: linear-gradient(135deg, rgba(10,122,255,0.08), rgba(10,122,255,0.02));
   opacity: 0;
-  transition: opacity 0.25s;
+  transition: opacity 0.18s;
 }
 .suggestion-card:hover::before { opacity: 1; }
+/* No lift and no drop shadow: a macOS row highlights, it does not levitate. */
 .suggestion-card:hover {
-  border-color: rgba(99,102,241,0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  border-color: var(--color-line-strong);
+  background: var(--color-layer-1);
 }
 
 /* Display font utility */
 .font-display {
-  font-family: var(--font-display), 'Sora', system-ui, sans-serif;
+  font-family: var(--font-display);
 }
 
 /* Monospace micro-label utility */
 .label-mono {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -808,9 +1057,9 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 .status-badge-connecting, .status-badge-connected, .status-badge-disconnected,
 .status-badge-approval {
   display: inline-flex; align-items: center; gap: 0.375rem;
-  padding: 0.125rem 0.5rem; border-radius: 6px;
-  font-size: 10px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.05em; border: 1px solid;
+  padding: 0.0625rem 0.4375rem; border-radius: var(--radius-sm);
+  font-size: 11px; font-weight: 590; text-transform: uppercase;
+  letter-spacing: 0.04em; border: 1px solid;
 }
 .status-badge-idle { background: var(--status-idle-bg); border-color: var(--status-idle-border); color: var(--status-idle-fg); }
 .status-badge-running { background: var(--status-running-bg); border-color: var(--status-running-border); color: var(--status-running-fg); }
@@ -830,26 +1079,26 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   left: 0; top: 0.7rem; bottom: 0.7rem;
   width: 4px;
   border-radius: 0 9999px 9999px 0;
-  background: linear-gradient(180deg, #818CF8 0%, #6366F1 50%, #4F46E5 100%);
+  background: var(--color-accent-bright);
 }
 
 /* ===== Command Surface ===== */
 .command-surface {
   background: var(--command-bg);
   border: 1px solid var(--command-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
 /* Mini chat bubble markdown */
 .mini-chat-md p { margin: 0 0 0.3em; }
 .mini-chat-md p:last-child { margin-bottom: 0; }
-.mini-chat-md code { font-size: 0.9em; background: var(--color-layer-2); padding: 1px 4px; border-radius: 3px; }
-.mini-chat-md pre { font-size: 0.85em; background: var(--color-layer-2); padding: 6px 8px; border-radius: 6px; overflow-x: auto; margin: 4px 0; }
+.mini-chat-md code { font-size: 0.9em; background: var(--color-layer-2); padding: 1px 4px; border-radius: var(--radius-xs); }
+.mini-chat-md pre { font-size: 0.85em; background: var(--color-layer-2); padding: 6px 8px; border-radius: var(--radius-sm); overflow-x: auto; margin: 4px 0; }
 .mini-chat-md pre code { background: none; padding: 0; }
 .mini-chat-md ul, .mini-chat-md ol { margin: 2px 0; padding-left: 1.2em; }
 .mini-chat-md li { margin: 1px 0; }
-.mini-chat-md a { color: var(--accent-bright, #6366f1); text-decoration: underline; }
+.mini-chat-md a { color: var(--color-accent-bright); text-decoration: underline; }
 .mini-chat-md h1, .mini-chat-md h2, .mini-chat-md h3 { font-size: 1em; font-weight: 600; margin: 4px 0 2px; }
 .mini-chat-md blockquote { border-left: 2px solid var(--color-line-default); padding-left: 8px; margin: 4px 0; opacity: 0.8; }
 .mini-chat-md table { font-size: 0.9em; border-collapse: collapse; margin: 4px 0; }

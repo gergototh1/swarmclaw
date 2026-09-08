@@ -69,7 +69,7 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
   return (
     <div
       data-edge-popover
-      className="absolute z-50 rounded-md border border-line-default bg-[#12121e] shadow-2xl shadow-black/60 overflow-hidden"
+      className="absolute z-50 rounded-md border border-line-default bg-raised shadow-2xl shadow-black/60 overflow-hidden"
       style={{ left: x, top: y, width: 320, maxHeight: 360, transform: 'translate(-50%, -50%)' }}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}

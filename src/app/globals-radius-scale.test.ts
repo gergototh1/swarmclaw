@@ -56,12 +56,22 @@ function emittedRadius(css: string, className: string): string | null {
   return null
 }
 
-/** The five steps globals.css declares, and nothing else. */
+/**
+ * The five steps globals.css declares, and nothing else.
+ *
+ * These are macOS control metrics, which is why sm and md now hold the same
+ * number: AppKit does not round a text field and a list row differently. The
+ * two names still exist because 220-odd components were written against the
+ * semantic split, not because the pixels differ -- so the pair below is the
+ * one place in this file that cannot discriminate between two live steps, and
+ * the xs/lg/full assertions plus the whole second and third test are what keep
+ * the file from passing on a scale that has quietly gone flat.
+ */
 const INTENDED_SCALE: ReadonlyArray<readonly [string, string]> = [
-  ['rounded-xs', '6px'],
-  ['rounded-sm', '8px'],
-  ['rounded-md', '12px'],
-  ['rounded-lg', '16px'],
+  ['rounded-xs', '4px'],
+  ['rounded-sm', '6px'],
+  ['rounded-md', '6px'],
+  ['rounded-lg', '10px'],
   ['rounded-full', '9999px'],
 ]
 
@@ -78,6 +88,19 @@ const ALL_CANDIDATES = ['rounded', ...INTENDED_SCALE.map(([c]) => c), ...FORBIDD
 const CANARY = 'the emittedRadius parser no longer finds a rule it is known to emit, so every ' +
   'null assertion in this file has stopped meaning anything -- Tailwind changed its output format'
 
+test('no two adjacent steps of the scale have collapsed into one value', async () => {
+  // sm and md are deliberately equal, so the scale can only be proven alive by
+  // the steps that are meant to differ. Without this, a stylesheet that set
+  // every step to the same number would satisfy nothing above except by
+  // accident of the literal values, and the "macOS metrics" claim would have
+  // no test behind it at all.
+  const css = await compileCandidates(ALL_CANDIDATES)
+  const distinct = new Set(
+    ['rounded-xs', 'rounded-md', 'rounded-lg', 'rounded-full'].map((c) => emittedRadius(css, c)),
+  )
+  assert.equal(distinct.size, 4, `xs, md, lg and full must be four different values, got ${[...distinct].join(', ')}`)
+})
+
 test('the five named radius steps compile to their intended pixel values', async () => {
   const css = await compileCandidates(ALL_CANDIDATES)
   for (const [className, expected] of INTENDED_SCALE) {
@@ -91,7 +114,7 @@ test('the five named radius steps compile to their intended pixel values', async
 
 test('the radius steps outside the scale compile to nothing at all', async () => {
   const css = await compileCandidates(ALL_CANDIDATES)
-  assert.equal(emittedRadius(css, 'rounded-md'), '12px', CANARY)
+  assert.equal(emittedRadius(css, 'rounded-md'), '6px', CANARY)
   for (const className of FORBIDDEN_STEPS) {
     assert.equal(
       emittedRadius(css, className),
@@ -108,7 +131,7 @@ test('the step-less radius utility does not exist on this scale', async () => {
   // a sixth radius should not exist. If this ever emits a rule again, the
   // reset has been weakened or --radius re-declared.
   const css = await compileCandidates(ALL_CANDIDATES)
-  assert.equal(emittedRadius(css, 'rounded-md'), '12px', CANARY)
+  assert.equal(emittedRadius(css, 'rounded-md'), '6px', CANARY)
   assert.equal(emittedRadius(css, 'rounded'), null)
 })
 
