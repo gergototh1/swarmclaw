@@ -100,7 +100,7 @@ function StatTile({ label, value, hint, tone = 'default' }: {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-line-default bg-surface px-4 py-6">
+    <div className="rounded-lg border border-dashed border-line-subtle bg-surface px-4 py-6">
       <div className="text-[13px] font-700 text-text">{title}</div>
       <p className="mt-1 text-[12px] leading-relaxed text-text-3">{description}</p>
     </div>
@@ -187,7 +187,7 @@ function ReleaseReadinessPanel({
       </div>
 
       {!report ? (
-        <div className="mt-4 rounded-lg border border-dashed border-line-default bg-surface px-4 py-5 text-[12px] text-text-3">
+        <div className="mt-4 rounded-lg border border-dashed border-line-subtle bg-surface px-4 py-5 text-[12px] text-text-3">
           {loading ? 'Building release readiness report...' : 'No release readiness report is available yet.'}
         </div>
       ) : (
@@ -299,7 +299,7 @@ function ArchitectureHealthPanel({
       </div>
 
       {!report ? (
-        <div className="mt-4 rounded-lg border border-dashed border-line-default bg-surface px-4 py-5 text-[12px] text-text-3">
+        <div className="mt-4 rounded-lg border border-dashed border-line-subtle bg-surface px-4 py-5 text-[12px] text-text-3">
           {loading ? 'Building architecture health report...' : 'No architecture health report is available yet.'}
         </div>
       ) : (

@@ -342,7 +342,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
   /* ── Uncontrolled mode: full standalone card (legacy) ─── */
   return (
     <div className="max-w-[85%] md:max-w-[72%] mb-2" data-testid="tool-activity">
-      <div className="rounded-lg border border-line-default bg-surface/80 backdrop-blur-sm overflow-hidden">
+      <div className="rounded-lg border border-line-subtle bg-surface/80 backdrop-blur-sm overflow-hidden">
         {/* Compact header — always visible */}
         <button
           type="button"

@@ -84,7 +84,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
           </div>
         </div>
         {projectAgents.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-line-default px-5 py-6 text-center">
+          <div className="rounded-lg border border-dashed border-line-subtle px-5 py-6 text-center">
             <p className="text-[12px] text-text-3">No agents assigned yet.</p>
           </div>
         ) : (
@@ -226,7 +226,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
           </button>
         </div>
         {projectSchedules.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-line-default px-5 py-6 text-center">
+          <div className="rounded-lg border border-dashed border-line-subtle px-5 py-6 text-center">
             <p className="text-[12px] text-text-3">No schedules yet.</p>
           </div>
         ) : (

@@ -125,7 +125,7 @@ export function SecretsSection({ appSettings, inputClass }: SettingsSectionProps
           </div>
         </div>
       ) : (
-        <button onClick={() => setAddingSecret(true)} className="w-full py-3 rounded-lg border border-dashed border-line-default bg-transparent text-text-3 text-[13px] font-600 cursor-pointer hover:border-accent-bright/30 hover:text-accent-bright hover:bg-accent-soft transition-all duration-200" style={{ fontFamily: 'inherit' }}>+ Add Service Credential</button>
+        <button onClick={() => setAddingSecret(true)} className="w-full py-3 rounded-lg border border-dashed border-line-subtle bg-transparent text-text-3 text-[13px] font-600 cursor-pointer hover:border-accent-bright/30 hover:text-accent-bright hover:bg-accent-soft transition-all duration-200" style={{ fontFamily: 'inherit' }}>+ Add Service Credential</button>
       )}
     </div>
   )

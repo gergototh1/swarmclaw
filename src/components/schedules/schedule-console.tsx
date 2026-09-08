@@ -538,7 +538,7 @@ export function ScheduleConsole() {
           ))}
         </div>
 
-        <div className="rounded-lg border border-line-subtle bg-raised overflow-hidden">
+        <div className="rounded-lg border border-line-subtle bg-surface overflow-hidden">
           <div className="px-5 pt-5 pb-4 border-b border-line-subtle">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>

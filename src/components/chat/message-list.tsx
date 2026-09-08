@@ -481,7 +481,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <div className="flex-1 h-px bg-layer-2" />
             </div>
           )}
-          <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-lg bg-amber-400/[0.04]' : isSearchMatch ? 'bg-layer-1 rounded-lg' : ''}>
+          <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-lg bg-amber-400/[0.04]' : isSearchMatch ? 'bg-surface rounded-lg' : ''}>
             <BubbleComponent
               message={msg}
               assistantName={assistantName}

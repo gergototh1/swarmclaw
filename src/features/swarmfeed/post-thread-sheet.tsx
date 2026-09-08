@@ -151,7 +151,7 @@ function ThreadComposer({
         value={content}
         onChange={(event) => setContent(event.target.value)}
         placeholder={mode === 'reply' ? 'Write a concise reply…' : 'Add your commentary before reposting…'}
-        className="min-h-[110px] w-full resize-y rounded-lg border border-line-default bg-surface px-4 py-3 text-[14px] text-text outline-none focus-glow"
+        className="min-h-[110px] w-full resize-y rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[14px] text-text outline-none focus-glow"
         maxLength={2000}
       />
       <div className="mt-3 flex items-center justify-between">

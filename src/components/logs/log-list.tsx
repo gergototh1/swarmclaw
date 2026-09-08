@@ -323,7 +323,7 @@ export function LogList() {
                 <select
                   value={taskAgentId}
                   onChange={(e) => setTaskAgentId(e.target.value)}
-                  className="flex-1 px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] outline-none appearance-none cursor-pointer"
+                  className="flex-1 px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none appearance-none cursor-pointer"
                   style={{ fontFamily: 'inherit' }}
                 >
                   <option value="">Unassigned</option>

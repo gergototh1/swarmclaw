@@ -77,7 +77,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
                 {(p.requiresApiKey || p.optionalApiKey) && providerCreds.length > 0 && (
                   <div className="mt-5 space-y-2.5">
                     {providerCreds.map((cred) => (
-                      <div key={cred.id} className="flex items-center gap-3 py-3 px-4 rounded-lg bg-bg border border-line-subtle">
+                      <div key={cred.id} className="flex items-center gap-3 py-3 px-4 rounded-lg bg-surface border border-line-subtle">
                         <span className="text-[14px] font-600 flex-1 truncate">{cred.name}</span>
                         {deleting === cred.id ? (
                           <div className="flex gap-2">

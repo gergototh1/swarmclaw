@@ -880,7 +880,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
 function SourceChip({ label, tone }: { label: string; tone: 'publisher' | 'catalog' }) {
   return (
     <span className={tone === 'publisher'
-      ? 'text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-sky-500/10 text-sky-300'
+      ? 'text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-layer-2 text-text-2'
       : 'text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-layer-2 text-text-3/75'}>
       {label}
     </span>

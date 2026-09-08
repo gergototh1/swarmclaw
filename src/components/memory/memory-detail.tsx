@@ -146,7 +146,7 @@ export function MemoryDetail() {
   if (!entry) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-text-3 p-8 text-center">
-        <div className="w-14 h-14 rounded-lg bg-layer-1 flex items-center justify-center mb-2">
+        <div className="w-14 h-14 rounded-lg bg-surface flex items-center justify-center mb-2">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3">
             <ellipse cx="12" cy="5" rx="9" ry="3" />
             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />

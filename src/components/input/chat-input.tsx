@@ -439,7 +439,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
         </ComposerShell>
 
         {extrasOpen && (
-          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-default bg-raised/80 p-2 backdrop-blur-xl">
+          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-subtle bg-surface/80 p-2 backdrop-blur-xl">
             <button
               type="button"
               onClick={() => {

@@ -111,7 +111,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what this agent specializes in..."
-              className="w-full min-h-[80px] px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow resize-y"
+              className="w-full min-h-[80px] px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow resize-y"
               style={{ fontFamily: 'inherit' }}
               maxLength={500}
             />
@@ -164,7 +164,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
               <select
                 value={walletId || ''}
                 onChange={(e) => setWalletId(e.target.value || null)}
-                className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] outline-none cursor-pointer"
+                className="w-full px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 <option value="">No wallet selected</option>
@@ -255,7 +255,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                       value={marketplace.maxBudgetUsdc}
                       onChange={(e) => setMarketplace((m) => ({ ...m, maxBudgetUsdc: e.target.value.replace(/[^0-9]/g, '') }))}
                       placeholder="5000000"
-                      className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow"
+                      className="w-full px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow"
                       style={{ fontFamily: 'inherit' }}
                     />
                     <p className="mt-1 text-[11px] text-text-3">
@@ -272,7 +272,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                         value={marketplace.autoBidMaxPrice}
                         onChange={(e) => setMarketplace((m) => ({ ...m, autoBidMaxPrice: e.target.value.replace(/[^0-9]/g, '') }))}
                         placeholder="1000000"
-                        className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow"
+                        className="w-full px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow"
                         style={{ fontFamily: 'inherit' }}
                       />
                       <p className="mt-1 text-[11px] text-text-3">

@@ -429,7 +429,7 @@ function IdentityCard({ agent }: { agent: Agent }) {
             System prompt
           </button>
           {promptExpanded && (
-            <p className="mt-2 text-[12px] text-text-3 bg-layer-2 rounded-lg p-3 border border-line-subtle max-h-[220px] overflow-y-auto whitespace-pre-wrap font-mono leading-relaxed">
+            <p className="mt-2 text-[12px] text-text-3 bg-surface rounded-lg p-3 border border-line-subtle max-h-[220px] overflow-y-auto whitespace-pre-wrap font-mono leading-relaxed">
               {agent.systemPrompt}
             </p>
           )}

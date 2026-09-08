@@ -49,7 +49,7 @@ function SidebarSkillList() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden px-3 pb-4">
-      <div className="rounded-lg border border-line-default bg-surface p-3">
+      <div className="rounded-lg border border-line-subtle bg-surface p-3">
         <label className="relative block">
           <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <circle cx="11" cy="11" r="8" />
@@ -85,7 +85,7 @@ function SidebarSkillList() {
             Loading skills...
           </div>
         ) : skillList.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-line-default px-4 py-8 text-center">
+          <div className="rounded-lg border border-dashed border-line-subtle px-4 py-8 text-center">
             <div className="text-[13px] font-600 text-text">{query.trim() ? 'No matching skills' : 'No local skills yet'}</div>
             <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
               {query.trim()

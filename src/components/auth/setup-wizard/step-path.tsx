@@ -62,7 +62,7 @@ export function StepPath({
       </div>
 
       {onboardingPath === 'intent' && (
-        <div className="mb-6 rounded-lg border border-line-default bg-surface px-5 py-4 text-left">
+        <div className="mb-6 rounded-lg border border-line-subtle bg-surface px-5 py-4 text-left">
           <label className="block text-[12px] font-700 tracking-[0.03em] text-text-3 mb-2">
             What Are You Setting Up SwarmClaw To Do?
           </label>
@@ -71,7 +71,7 @@ export function StepPath({
             onChange={(event) => onIntentTextChange(event.target.value)}
             rows={3}
             placeholder="e.g. Help me run product research every week, summarize findings, and turn them into follow-up tasks."
-            className="w-full rounded-lg border border-line-default bg-bg px-4 py-3 text-[14px] text-text outline-none transition-all duration-200 resize-none placeholder:text-text-3 focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
+            className="w-full rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[14px] text-text outline-none transition-all duration-200 resize-none placeholder:text-text-3 focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
           />
           <p className="mt-2 text-[12px] leading-relaxed text-text-3">
             This is used only to seed the starter prompts. It does not auto-classify your workflow.
@@ -79,7 +79,7 @@ export function StepPath({
         </div>
       )}
 
-      <div className="rounded-lg border border-line-default bg-surface p-5 text-left">
+      <div className="rounded-lg border border-line-subtle bg-surface p-5 text-left">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Starting Shape</div>

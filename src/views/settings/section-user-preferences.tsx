@@ -138,7 +138,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
             ))}
           </div>
         ) : (
-          <div className="mb-3 rounded-lg border border-dashed border-line-default bg-surface px-3 py-3 text-[11px] text-text-3">
+          <div className="mb-3 rounded-lg border border-dashed border-line-subtle bg-surface px-3 py-3 text-[11px] text-text-3">
             No globally approved WhatsApp users yet.
           </div>
         )}

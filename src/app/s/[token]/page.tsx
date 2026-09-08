@@ -78,7 +78,7 @@ function formatDuration(ms: number): string {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-lg border border-line-subtle bg-layer-2 px-4 py-3">
+    <div className="rounded-lg border border-line-subtle bg-surface px-4 py-3">
       <div className="text-[10px] font-700 tracking-[0.03em] text-white/45">{label}</div>
       <div className="mt-2 font-display text-[22px] font-700 tracking-normal text-white">{value}</div>
       {hint ? <div className="mt-1 text-[11px] leading-relaxed text-white/45">{hint}</div> : null}
@@ -179,7 +179,7 @@ function renderBody(payload: SharedPayload) {
             <div className="text-[11px] font-700 tracking-[0.03em] text-emerald-200/80">Latest report</div>
             <div className="mt-1 text-[15px] font-700 text-white">{payload.latestReport.title}</div>
             <div className="mt-1 text-[11px] text-white/45">{formatTime(payload.latestReport.at)} - {payload.latestReport.format}</div>
-            <div className="mt-4 rounded-lg border border-line-subtle bg-layer-2 px-4 py-3">
+            <div className="mt-4 rounded-lg border border-line-subtle bg-surface px-4 py-3">
               <ReportMarkdown content={payload.latestReport.content} />
             </div>
           </article>
@@ -232,7 +232,7 @@ function renderBody(payload: SharedPayload) {
           </div>
         ) : null}
         <p className="mt-4 text-[13px] leading-relaxed text-white/65">{payload.description}</p>
-        <pre className="mt-6 whitespace-pre-wrap rounded-lg border border-line-subtle bg-layer-2 p-4 text-sm text-white/70">
+        <pre className="mt-6 whitespace-pre-wrap rounded-lg border border-line-subtle bg-surface p-4 text-sm text-white/70">
           {payload.content}
         </pre>
       </section>

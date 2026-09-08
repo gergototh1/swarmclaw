@@ -492,7 +492,7 @@ export default function AutonomyPage() {
           </div>
 
           {orchestrators.length === 0 ? (
-            <div className="flex min-h-[120px] items-center justify-center rounded-lg border border-dashed border-line-default bg-surface p-6 text-center">
+            <div className="flex min-h-[120px] items-center justify-center rounded-lg border border-dashed border-line-subtle bg-surface p-6 text-center">
               <div className="max-w-[320px]">
                 <h3 className="font-display text-[14px] font-700 tracking-[-0.02em] text-text">No orchestrators configured</h3>
                 <p className="mt-2 text-[12px] leading-[1.7] text-text-3">
@@ -677,7 +677,7 @@ export default function AutonomyPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-line-default bg-surface p-4">
+              <div className="rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="rounded-full bg-layer-2 px-2.5 py-1 text-[10px] font-700 tracking-[0.03em] text-text-3">
                     Recovery
@@ -784,7 +784,7 @@ export default function AutonomyPage() {
             </div>
 
             {filteredIncidents.length === 0 ? (
-              <div className="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed border-line-default bg-surface p-8 text-center">
+              <div className="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed border-line-subtle bg-surface p-8 text-center">
                 <div className="max-w-[320px]">
                   <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-line-default bg-layer-1 text-text-3">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">

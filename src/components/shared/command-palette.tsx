@@ -277,7 +277,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh]">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setOpen(false)} />
       <div
-        className="relative w-full max-w-[520px] mx-4 bg-raised rounded-lg border border-line-default overflow-hidden"
+        className="relative w-full max-w-[520px] mx-4 bg-surface rounded-lg border border-line-subtle overflow-hidden"
         style={{ animation: 'modal-in 0.3s var(--ease-spring)' }}
       >
         {/* Breathing glow effect */}

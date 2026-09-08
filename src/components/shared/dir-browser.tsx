@@ -125,7 +125,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
         </div>
         <button
           onClick={onClear}
-          className="shrink-0 px-3 py-3 rounded-lg border border-line-default bg-surface text-text-3 text-[13px] cursor-pointer hover:bg-surface-2 transition-colors"
+          className="shrink-0 px-3 py-3 rounded-lg border border-line-subtle bg-surface text-text-3 text-[13px] cursor-pointer hover:bg-surface-2 transition-colors"
           style={{ fontFamily: 'inherit' }}
         >
           Clear
@@ -143,7 +143,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
             <button
               onClick={() => handlePick('folder')}
               disabled={picking !== null}
-              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg border border-line-default bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-strong transition-all disabled:opacity-40"
+              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg border border-line-subtle bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-strong transition-all disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}
             >
               {picking === 'folder' ? (
@@ -160,7 +160,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
             <button
               onClick={() => handlePick('file')}
               disabled={picking !== null}
-              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg border border-line-default bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-strong transition-all disabled:opacity-40"
+              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg border border-line-subtle bg-surface text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 hover:border-line-strong transition-all disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}
             >
               {picking === 'file' ? (
@@ -192,7 +192,7 @@ export function DirBrowser({ value, file, onChange, onClear }: DirBrowserProps) 
             onChange={(e) => setPathInput(e.target.value)}
             onKeyDown={handlePathSubmit}
             placeholder="Type a path and press Enter..."
-            className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] font-mono outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
+            className="w-full px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] font-mono outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
           />
 
           {/* Breadcrumb bar */}

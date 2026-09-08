@@ -821,7 +821,7 @@ export function ChatroomView() {
           onChange={(event) => setInjectContext(event.target.value)}
           rows={5}
           placeholder="Add a correction, tighter constraint, or something the session should focus on next."
-          className="w-full rounded-lg border border-line-subtle bg-layer-2 px-4 py-3 text-[14px] leading-relaxed text-text outline-none placeholder:text-text-3"
+          className="w-full rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[14px] leading-relaxed text-text outline-none placeholder:text-text-3"
         />
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           <button

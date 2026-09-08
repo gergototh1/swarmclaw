@@ -345,7 +345,7 @@ export function SkillsWorkspace() {
   return (
     <>
       <div className="flex-1 overflow-y-auto px-5 pb-8 md:px-6">
-        <section className="relative overflow-hidden rounded-lg border border-line-default bg-[radial-gradient(circle_at_top_left,rgba(120,180,255,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.14),transparent_34%),rgba(255,255,255,0.02)] px-5 py-5 md:px-7 md:py-6">
+        <section className="relative overflow-hidden rounded-lg border border-line-subtle bg-[radial-gradient(circle_at_top_left,rgba(120,180,255,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.14),transparent_34%),rgba(255,255,255,0.02)] px-5 py-5 md:px-7 md:py-6">
           <div className="absolute inset-0 bg-layer-1" />
           <div className="relative z-10">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -434,7 +434,7 @@ export function SkillsWorkspace() {
 
         {activeTab === 'skills' && !selectedSkillId && (
           <div className="space-y-6 pt-5">
-            <div className="rounded-lg border border-line-default bg-surface p-4 md:p-5">
+            <div className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Library</div>
@@ -548,7 +548,7 @@ export function SkillsWorkspace() {
 
         {activeTab === 'clawhub' && !selectedHubSkill && (
           <div className="space-y-6 pt-5">
-            <section className="rounded-lg border border-line-default bg-surface p-4 md:p-5">
+            <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
               <div>
                 <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">ClawHub</div>
                 <p className="mt-1 max-w-2xl text-[13px] leading-[1.7] text-text-3">
@@ -706,7 +706,7 @@ function SkillDetailView({
     <div className="space-y-6 pt-5">
       <BackButton label="Back to library" onClick={onBack} />
 
-      <section className="rounded-lg border border-line-default bg-surface p-5 md:p-6">
+      <section className="rounded-lg border border-line-subtle bg-surface p-5 md:p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
             <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">
@@ -763,7 +763,7 @@ function SkillDetailView({
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
-        <section className="rounded-lg border border-line-default bg-surface p-4 md:p-5">
+        <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
           <SectionHeading
             title="Markdown Preview"
             subtitle="Read the actual reusable instructions instead of guessing from a one-line description."
@@ -772,7 +772,7 @@ function SkillDetailView({
         </section>
 
         <div className="space-y-4">
-          <section className="rounded-lg border border-line-default bg-surface p-4 md:p-5">
+          <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
             <SectionHeading
               title="Declared Metadata"
               subtitle="Metadata parsed from the skill file or preserved during import."
@@ -780,7 +780,7 @@ function SkillDetailView({
             <MetadataGrid skill={skill} />
           </section>
 
-          <section className="rounded-lg border border-line-default bg-surface p-4 md:p-5">
+          <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
             <SectionHeading
               title="Setup + Safety"
               subtitle="Dependencies, environment variables, and security notes."
@@ -789,7 +789,7 @@ function SkillDetailView({
           </section>
 
           {(skill.scope || 'global') === 'agent' ? (
-            <section className="rounded-lg border border-line-default bg-surface p-4 md:p-5">
+            <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
               <SectionHeading
                 title="Assigned Agents"
                 subtitle="The agents currently allowed to use this skill."
@@ -852,7 +852,7 @@ function HubSkillDetailView({
     <div className="space-y-6 pt-5">
       <BackButton label="Back to marketplace" onClick={onBack} />
 
-      <section className="rounded-lg border border-line-default bg-surface p-5 md:p-6">
+      <section className="rounded-lg border border-line-subtle bg-surface p-5 md:p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
             <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">
@@ -897,13 +897,13 @@ function HubSkillDetailView({
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
-        <section className="rounded-lg border border-line-default bg-surface p-4 md:p-5">
+        <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
           <SectionHeading
             title="Skill Preview"
             subtitle="Parsed from the actual remote skill file, not just the marketplace summary."
           />
           {previewLoading ? (
-            <div className="flex items-center gap-3 rounded-lg border border-line-subtle bg-bg px-4 py-4 text-[13px] text-text-3">
+            <div className="flex items-center gap-3 rounded-lg border border-line-subtle bg-surface px-4 py-4 text-[13px] text-text-3">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-line-default border-t-accent-bright" />
               Loading the skill file preview...
             </div>
@@ -917,7 +917,7 @@ function HubSkillDetailView({
         </section>
 
         <div className="space-y-4">
-          <section className="rounded-lg border border-line-default bg-surface p-4 md:p-5">
+          <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
             <SectionHeading
               title="Detail Snapshot"
               subtitle="Summary fields preserved directly from ClawHub search."
@@ -932,7 +932,7 @@ function HubSkillDetailView({
             </div>
           </section>
 
-          <section className="rounded-lg border border-line-default bg-surface p-4 md:p-5">
+          <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
             <SectionHeading
               title="Setup + Safety"
               subtitle="Derived from the parsed skill file whenever preview data is available."
@@ -961,7 +961,7 @@ function SuggestionsPanel({
   const drafts = suggestions.filter((entry) => entry.status === 'draft').slice(0, 3)
 
   return (
-    <section className="rounded-lg border border-line-default bg-surface p-4 md:p-5">
+    <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Draft Suggestions</div>
@@ -973,7 +973,7 @@ function SuggestionsPanel({
       </div>
 
       {loading ? (
-        <div className="mt-4 flex items-center gap-3 rounded-lg border border-line-subtle bg-bg px-4 py-4 text-[13px] text-text-3">
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-line-subtle bg-surface px-4 py-4 text-[13px] text-text-3">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-line-default border-t-accent-bright" />
           Loading suggestion drafts...
         </div>
@@ -986,7 +986,7 @@ function SuggestionsPanel({
           {drafts.map((suggestion) => {
             const busy = busyId === suggestion.id
             return (
-              <div key={suggestion.id} className="rounded-lg border border-line-subtle bg-bg p-3.5">
+              <div key={suggestion.id} className="rounded-lg border border-line-subtle bg-surface p-3.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="truncate text-[13px] font-600 text-text">{suggestion.name}</div>
@@ -1207,7 +1207,7 @@ function SetupOverview({ skill }: { skill: Partial<Skill> }) {
         />
       ) : null}
       {security ? (
-        <div className="rounded-lg border border-line-subtle bg-bg p-3">
+        <div className="rounded-lg border border-line-subtle bg-surface p-3">
           <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">
             Security
           </div>
@@ -1235,7 +1235,7 @@ function MarkdownPreview({ content }: { content: string }) {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-line-subtle bg-bg p-4">
+      <div className="rounded-lg border border-line-subtle bg-surface p-4">
         <div className="msg-content text-[14px] leading-[1.7] text-text">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -1330,7 +1330,7 @@ function SearchField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-line-default bg-bg py-3 pl-10 pr-4 text-[13px] text-text outline-none transition-colors placeholder:text-text-3 focus:border-accent-bright/40"
+        className="w-full rounded-lg border border-line-subtle bg-surface py-3 pl-10 pr-4 text-[13px] text-text outline-none transition-colors placeholder:text-text-3 focus:border-accent-bright/40"
         style={{ fontFamily: 'inherit' }}
       />
     </label>
@@ -1427,7 +1427,7 @@ function ActionAnchor({
 
 function DetailCard({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-lg border border-line-default bg-bg p-4">
+    <div className="rounded-lg border border-line-subtle bg-surface p-4">
       <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">{title}</div>
       <p className="mt-2 whitespace-pre-line text-[13px] leading-[1.7] text-text-2">{body}</p>
     </div>
@@ -1498,7 +1498,7 @@ function EmptyState({
   onSecondaryAction?: () => void
 }) {
   return (
-    <div className="rounded-lg border border-dashed border-line-default bg-surface px-6 py-12 text-center">
+    <div className="rounded-lg border border-dashed border-line-subtle bg-surface px-6 py-12 text-center">
       <div className="mx-auto max-w-xl">
         <h3 className="font-display text-[22px] font-700 tracking-[-0.03em] text-text">{title}</h3>
         <p className="mt-2 text-[13px] leading-[1.7] text-text-3">{body}</p>

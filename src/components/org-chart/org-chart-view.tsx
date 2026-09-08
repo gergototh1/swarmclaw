@@ -949,7 +949,7 @@ export function OrgChartView() {
       {isEmpty && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center max-w-sm">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-lg bg-layer-2 border border-line-subtle flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-lg bg-surface border border-line-subtle flex items-center justify-center">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3">
                 <rect x="9" y="2" width="6" height="4" rx="1" />
                 <rect x="2" y="18" width="6" height="4" rx="1" />

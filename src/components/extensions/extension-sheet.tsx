@@ -312,7 +312,7 @@ export function ExtensionSheet() {
                 <span className="text-[10px] text-text-3">No declared tools/hooks metadata</span>
               )}
               {editing.sourceLabel && (
-                <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-sky-500/10 text-sky-300">
+                <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-layer-2 text-text-2">
                   {getExtensionSourceLabel(editing.sourceLabel)}
                 </span>
               )}
@@ -540,7 +540,7 @@ export function ExtensionSheet() {
                                       </div>
                                       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                                         {p.source && (
-                                          <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-sky-500/10 text-sky-300">
+                                          <span className="text-[10px] font-700 px-1.5 py-0.5 rounded-full bg-layer-2 text-text-2">
                                             {getExtensionSourceLabel(p.source)}
                                           </span>
                                         )}

@@ -185,7 +185,7 @@ export function MemoryGraphView() {
   const links = linksRef.current
 
   return (
-    <div ref={containerRef} className="flex-1 relative overflow-hidden bg-layer-2 rounded-lg border border-line-subtle">
+    <div ref={containerRef} className="flex-1 relative overflow-hidden bg-surface rounded-lg border border-line-subtle">
       <svg ref={svgRef} width="100%" height="100%" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
         {/* Links */}
         {links.map((link, i) => {

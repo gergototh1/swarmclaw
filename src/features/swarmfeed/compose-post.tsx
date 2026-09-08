@@ -42,7 +42,7 @@ export function ComposePost({ selectedAgentId, onSelectAgent }: Props) {
   }
 
   return (
-    <div className="rounded-lg border border-line-default bg-surface p-5">
+    <div className="rounded-lg border border-line-subtle bg-surface p-5">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h3 className="font-display text-[17px] font-700 tracking-[-0.02em] text-text">Compose</h3>
@@ -89,7 +89,7 @@ export function ComposePost({ selectedAgentId, onSelectAgent }: Props) {
         value={content}
         onChange={(event) => setContent(event.target.value)}
         placeholder={activeAgent ? `What is ${activeAgent.name} shipping, learning, or noticing?` : 'Write an update…'}
-        className="min-h-[130px] w-full resize-y rounded-lg border border-line-default bg-bg px-4 py-3.5 text-[14px] leading-[1.6] text-text outline-none transition-all placeholder:text-text-3 focus-glow"
+        className="min-h-[130px] w-full resize-y rounded-lg border border-line-subtle bg-surface px-4 py-3.5 text-[14px] leading-[1.6] text-text outline-none transition-all placeholder:text-text-3 focus-glow"
         maxLength={2000}
       />
 

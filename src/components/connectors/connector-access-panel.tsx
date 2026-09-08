@@ -92,7 +92,7 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
   const senderHasAddressingOverride = senderStatus?.dmAddressingOverride !== null && senderStatus?.dmAddressingOverride !== undefined
 
   return (
-    <div className="rounded-lg border border-line-default bg-surface overflow-hidden">
+    <div className="rounded-lg border border-line-subtle bg-surface overflow-hidden">
       <div className="border-b border-line-subtle px-4 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -128,7 +128,7 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
         ) : (
           <>
             {hasSelectedSender && (
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-4 py-4">
+              <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-[12px] tracking-[0.03em] text-text-3">Selected Sender</div>
@@ -221,26 +221,26 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
             )}
 
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-3 py-3">
+              <div className="rounded-lg border border-line-subtle bg-surface px-3 py-3">
                 <div className="text-[10px] tracking-[0.03em] text-text-3">Configured Allow</div>
                 <div className="mt-2 text-[22px] font-display font-700 tracking-[-0.04em] text-text">{snapshot.allowFrom.length}</div>
               </div>
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-3 py-3">
+              <div className="rounded-lg border border-line-subtle bg-surface px-3 py-3">
                 <div className="text-[10px] tracking-[0.03em] text-text-3">Stored Pairings</div>
                 <div className="mt-2 text-[22px] font-display font-700 tracking-[-0.04em] text-text">{snapshot.storedAllowedSenderIds.length}</div>
               </div>
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-3 py-3">
+              <div className="rounded-lg border border-line-subtle bg-surface px-3 py-3">
                 <div className="text-[10px] tracking-[0.03em] text-text-3">Pending</div>
                 <div className="mt-2 text-[22px] font-display font-700 tracking-[-0.04em] text-text">{snapshot.pendingPairingRequests.length}</div>
               </div>
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-3 py-3">
+              <div className="rounded-lg border border-line-subtle bg-surface px-3 py-3">
                 <div className="text-[10px] tracking-[0.03em] text-text-3">Blocked</div>
                 <div className="mt-2 text-[22px] font-display font-700 tracking-[-0.04em] text-text">{snapshot.denyFrom.length}</div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-4 py-4">
+              <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-[12px] font-700 text-text">DM Addressing Default</div>
                   <div className="flex flex-wrap gap-2">
@@ -263,7 +263,7 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-4 py-4">
+              <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-[12px] font-700 text-text">Owner Override</div>
                   {snapshot.ownerSenderId && (
@@ -279,14 +279,14 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-4 py-4">
+              <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4">
                 <div className="text-[12px] font-700 text-text">Configured Allowlist</div>
                 <div className="mt-3">
                   <ListPills items={snapshot.allowFrom} emptyLabel="No connector-specific allowlist entries." />
                 </div>
               </div>
 
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-4 py-4">
+              <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4">
                 <div className="text-[12px] font-700 text-text">Paired Senders</div>
                 <div className="mt-3 space-y-2">
                   {snapshot.storedAllowedSenderIds.length === 0 ? (
@@ -312,14 +312,14 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-4 py-4">
+              <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4">
                 <div className="text-[12px] font-700 text-text">Blocked Senders</div>
                 <div className="mt-3">
                   <ListPills items={snapshot.denyFrom} emptyLabel="No blocked senders on this connector." />
                 </div>
               </div>
 
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-4 py-4">
+              <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4">
                 <div className="text-[12px] font-700 text-text">DM Addressing Overrides</div>
                 <div className="mt-3 space-y-2">
                   {snapshot.senderAddressingOverrides.length === 0 ? (
@@ -354,7 +354,7 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-line-subtle bg-layer-2 px-4 py-4 xl:col-span-2">
+              <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4 xl:col-span-2">
                 <div className="text-[12px] font-700 text-text">Pending Pairing Requests</div>
                 <div className="mt-3 space-y-2">
                   {snapshot.pendingPairingRequests.length === 0 ? (
@@ -394,7 +394,7 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
               </div>
 
               {snapshot.platform === 'whatsapp' && (
-                <div className="rounded-lg border border-line-subtle bg-layer-2 px-4 py-4 xl:col-span-2">
+                <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4 xl:col-span-2">
                   <div className="text-[12px] font-700 text-text">Global WhatsApp Approved Contacts</div>
                   <div className="mt-1 text-[11px] text-text-3">
                     Read-only here. Edit these in Settings.

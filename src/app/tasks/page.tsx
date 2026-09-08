@@ -768,7 +768,7 @@ export default function TasksPage() {
               ))}
             </div>
           ) : filteredTasks.length === 0 ? (
-            <div className="max-w-3xl mx-auto rounded-lg border border-dashed border-line-default px-6 py-14 text-center">
+            <div className="max-w-3xl mx-auto rounded-lg border border-dashed border-line-subtle px-6 py-14 text-center">
               <p className="text-[14px] font-600 text-text-2 mb-1">No tasks match this view</p>
               <p className="text-[12px] text-text-3">Try clearing one of the active filters or switching back to all tasks.</p>
             </div>
@@ -909,7 +909,7 @@ export default function TasksPage() {
           )}
 
           {githubImportResult && (
-            <div className="mt-5 rounded-lg border border-line-default bg-surface p-4">
+            <div className="mt-5 rounded-lg border border-line-subtle bg-surface p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[14px] font-700 text-text">{githubImportResult.repo}</span>
                 <span className="rounded-full bg-layer-2 px-2 py-1 text-[11px] font-600 text-text-3">
@@ -1006,7 +1006,7 @@ export default function TasksPage() {
 
       {/* Bulk action bar */}
       {selectionMode && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-3 rounded-lg bg-surface/80 backdrop-blur-xl border border-line-default z-50">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-3 rounded-lg bg-surface/80 backdrop-blur-xl border border-line-subtle z-50">
           <span className="text-[13px] font-600 text-text mr-2">
             {selectedIds.size} selected
           </span>

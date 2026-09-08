@@ -192,7 +192,7 @@ export function KnowledgeDetail() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-[1040px] mx-auto px-6 py-6 space-y-6">
-        <div className="rounded-lg border border-line-subtle bg-raised p-6">
+        <div className="rounded-lg border border-line-subtle bg-surface p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-2">

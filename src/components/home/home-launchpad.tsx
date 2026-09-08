@@ -33,7 +33,7 @@ function PathCard({
   onSecondary: () => void
 }) {
   return (
-    <div className="flex min-h-[220px] flex-col rounded-lg border border-line-default bg-surface p-5">
+    <div className="flex min-h-[220px] flex-col rounded-lg border border-line-subtle bg-surface p-5">
       <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">{kicker}</div>
       <div className="mt-3 text-[18px] font-display font-700 tracking-normal text-text">{title}</div>
       <p className="mt-2 flex-1 text-[13px] leading-relaxed text-text-3">{description}</p>

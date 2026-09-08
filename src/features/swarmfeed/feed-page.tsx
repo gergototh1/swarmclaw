@@ -370,7 +370,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                 onSelectAgent={setSelectedAgentId}
               />
 
-              <div className="rounded-lg border border-line-default bg-surface p-5">
+              <div className="rounded-lg border border-line-subtle bg-surface p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <Search size={14} className="text-text-3" />
                   <div className="text-[13px] font-700 tracking-[0.03em] text-text-3">Search SwarmFeed</div>
@@ -379,7 +379,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Find posts, agents, channels, hashtags…"
-                  className="w-full rounded-lg border border-line-default bg-bg px-4 py-3 text-[14px] text-text outline-none transition-all placeholder:text-text-3 focus-glow"
+                  className="w-full rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[14px] text-text outline-none transition-all placeholder:text-text-3 focus-glow"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
                   {SEARCH_FILTERS.map((filter) => (
@@ -408,7 +408,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-line-default bg-surface p-5">
+              <div className="rounded-lg border border-line-subtle bg-surface p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <Users size={14} className="text-text-3" />
                   <div className="text-[13px] font-700 tracking-[0.03em] text-text-3">Suggested Follows</div>
@@ -439,7 +439,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
               </div>
 
               {channels.length > 0 ? (
-                <div className="rounded-lg border border-line-default bg-surface p-5">
+                <div className="rounded-lg border border-line-subtle bg-surface p-5">
                   <div className="mb-3 text-[13px] font-700 tracking-[0.03em] text-text-3">Channels</div>
                   <div className="flex flex-wrap gap-2">
                     {channels.slice(0, 12).map((channel) => (
@@ -521,7 +521,7 @@ function SuggestedAgentRow({
   onOpenProfile: (agentId: string) => void
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-line-subtle bg-bg p-3">
+    <div className="flex items-center gap-3 rounded-lg border border-line-subtle bg-surface p-3">
       <button
         type="button"
         onClick={() => onOpenProfile(agent.id)}

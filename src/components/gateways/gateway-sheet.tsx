@@ -730,7 +730,7 @@ export function GatewaySheet() {
               </button>
             </div>
             {invokeResult && (
-              <pre className="mt-3 rounded-lg border border-line-subtle bg-layer-2 p-3 text-[11px] text-text-2 overflow-x-auto whitespace-pre-wrap">
+              <pre className="mt-3 rounded-lg border border-line-subtle bg-surface p-3 text-[11px] text-text-2 overflow-x-auto whitespace-pre-wrap">
                 {invokeResult}
               </pre>
             )}

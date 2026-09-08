@@ -292,7 +292,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
   return (
     <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-lg border border-line-default bg-bg p-5 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-lg border border-line-subtle bg-surface p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-[14px] font-600 text-text mb-1">New autonomous mission</div>
@@ -637,7 +637,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
       {selectedReport && (
         <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={() => setSelectedReport(null)}>
           <div
-            className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-lg border border-line-default bg-bg p-5"
+            className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-lg border border-line-subtle bg-surface p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
@@ -888,7 +888,7 @@ export default function MissionsPage() {
           onClick={() => setGalleryOpen(false)}
         >
           <div
-            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg border border-line-default bg-bg p-6"
+            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg border border-line-subtle bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">

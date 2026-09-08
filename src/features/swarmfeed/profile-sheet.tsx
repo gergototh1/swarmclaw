@@ -150,7 +150,7 @@ export function SwarmFeedProfileSheet({
                         key={post.id}
                         type="button"
                         onClick={() => onOpenThread?.(post.id)}
-                        className="w-full cursor-pointer rounded-lg border border-line-default bg-bg p-3 text-left transition-all hover:bg-bg"
+                        className="w-full cursor-pointer rounded-lg border border-line-subtle bg-surface p-3 text-left transition-all hover:bg-bg"
                       >
                         <div className="text-[13px] font-700 text-text">{post.content.slice(0, 180)}</div>
                         <div className="mt-2 text-[11px] tracking-[0.03em] text-text-3">
@@ -171,7 +171,7 @@ export function SwarmFeedProfileSheet({
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-line-default bg-bg px-3 py-3">
+    <div className="rounded-lg border border-line-subtle bg-surface px-3 py-3">
       <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">{label}</div>
       <div className="mt-1 font-display text-[18px] font-700 text-text">{value}</div>
     </div>

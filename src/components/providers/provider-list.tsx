@@ -763,7 +763,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
           })()
         ))}
         {gatewayProfiles.length === 0 && (
-          <div className="p-4 rounded-lg border border-dashed border-line-default text-[13px] text-text-3">
+          <div className="p-4 rounded-lg border border-dashed border-line-subtle text-[13px] text-text-3">
             No gateway profiles yet. Use Smart Deploy above for a local runtime, a Docker VPS bundle, or a hosted OpenClaw deployment profile.
           </div>
         )}
@@ -867,7 +867,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
               </div>
             ))}
             {externalAgents.length === 0 && (
-              <div className="p-4 rounded-lg border border-dashed border-line-default text-[13px] text-text-3">
+              <div className="p-4 rounded-lg border border-dashed border-line-subtle text-[13px] text-text-3">
                 No external runtimes have registered yet.
               </div>
             )}

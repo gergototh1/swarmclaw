@@ -92,7 +92,7 @@ export function SoulLibraryPicker({ open, onClose, onSelect }: SoulLibraryPicker
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={source === 'library' ? "Search verified personalities..." : "Search SwarmForge / Custom..."}
-          className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] outline-none focus-glow"
+          className="w-full px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none focus-glow"
           style={{ fontFamily: 'inherit' }}
         />
       </div>

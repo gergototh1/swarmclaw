@@ -325,7 +325,7 @@ export function StepAgents({
       </p>
 
       {draftAgents.length === 0 ? (
-        <div className="mb-6 p-6 rounded-lg border border-line-default bg-surface text-left">
+        <div className="mb-6 p-6 rounded-lg border border-line-subtle bg-surface text-left">
           <div className="text-[16px] font-display font-700 text-text mb-2">No agents yet</div>
           <p className="text-[13px] text-text-3 leading-relaxed">
             Add an agent below to get started, or finish setup and create agents later from inside the app.
@@ -336,7 +336,7 @@ export function StepAgents({
           {draftAgents.map((draft) => {
             const matchedProvider = configuredProviders.find((cp) => cp.id === draft.providerConfigId) || null
             return (
-              <div key={draft.id} className="rounded-lg border border-line-default bg-surface p-4">
+              <div key={draft.id} className="rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between gap-4 mb-4">
                   <div>
                     <div className="text-[15px] font-display font-700 text-text">{draft.name}</div>
@@ -458,7 +458,7 @@ export function StepAgents({
                   {matchedProvider?.setupProvider === 'openclaw' ? (
                     <div className="md:col-span-2">
                       <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">Model</label>
-                      <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-line-default bg-bg">
+                      <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-line-subtle bg-surface">
                         <span className="text-[13px] text-text-3">Configured on the OpenClaw gateway.</span>
                         {matchedProvider.dashboardUrl && (
                           <a
@@ -496,7 +496,7 @@ export function StepAgents({
                     )}
                   </div>
                   <div className="md:col-span-2">
-                    <div className="flex items-center justify-between rounded-lg border border-line-default bg-bg px-4 py-3">
+                    <div className="flex items-center justify-between rounded-lg border border-line-subtle bg-surface px-4 py-3">
                       <div>
                         <div className="text-[12px] font-600 text-text">Conversation Skill Drafting</div>
                         <div className="mt-1 text-[11px] text-text-3">
@@ -513,7 +513,7 @@ export function StepAgents({
                   </div>
                   {matchedProvider && isOrchestratorProviderEligible(matchedProvider.provider) && (
                     <div className="md:col-span-2">
-                      <div className="flex items-center justify-between rounded-lg border border-line-default bg-bg px-4 py-3">
+                      <div className="flex items-center justify-between rounded-lg border border-line-subtle bg-surface px-4 py-3">
                         <div>
                           <div className="text-[12px] font-600 text-text">Enable Orchestrator</div>
                           <div className="mt-1 text-[11px] text-text-3">
@@ -547,7 +547,7 @@ export function StepAgents({
                   )}
                 </div>
 
-                <details className="mt-4 rounded-lg border border-line-default bg-bg px-4 py-3">
+                <details className="mt-4 rounded-lg border border-line-subtle bg-surface px-4 py-3">
                   <summary className="cursor-pointer text-[13px] text-text-2 font-600">
                     Prompt and tools
                   </summary>

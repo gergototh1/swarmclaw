@@ -184,7 +184,7 @@ export function SkillSheet() {
         <div className="mb-8">
           <label
             onClick={() => fileRef.current?.click()}
-            className="flex items-center justify-center gap-2.5 w-full py-4 rounded-lg border border-dashed border-line-default bg-transparent text-text-3 text-[14px] font-600 cursor-pointer hover:border-accent-bright/30 hover:text-accent-bright hover:bg-accent-soft transition-all duration-200"
+            className="flex items-center justify-center gap-2.5 w-full py-4 rounded-lg border border-dashed border-line-subtle bg-transparent text-text-3 text-[14px] font-600 cursor-pointer hover:border-accent-bright/30 hover:text-accent-bright hover:bg-accent-soft transition-all duration-200"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -198,7 +198,7 @@ export function SkillSheet() {
       )}
 
       {!editing && (
-        <div className="mb-8 p-4 rounded-lg border border-line-default bg-surface">
+        <div className="mb-8 p-4 rounded-lg border border-line-subtle bg-surface">
           <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Import from URL</label>
           <div className="flex gap-2">
             <input
@@ -224,7 +224,7 @@ export function SkillSheet() {
       )}
 
       {metadataPreview && (
-        <div className="mb-8 rounded-lg border border-line-default bg-surface p-4">
+        <div className="mb-8 rounded-lg border border-line-subtle bg-surface p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Skill Metadata</div>

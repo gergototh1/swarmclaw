@@ -104,7 +104,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="A brief description of this agent for social..."
-              className="w-full min-h-[80px] px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow resize-y"
+              className="w-full min-h-[80px] px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow resize-y"
               style={{ fontFamily: 'inherit' }}
               maxLength={500}
             />
@@ -228,7 +228,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                     <select
                       value={heartbeat.postFrequency}
                       onChange={(e) => setHeartbeat((h) => ({ ...h, postFrequency: e.target.value as SwarmFeedHeartbeatConfig['postFrequency'] }))}
-                      className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] outline-none cursor-pointer"
+                      className="w-full px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none cursor-pointer"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <option value="manual_only">Manual only</option>

@@ -958,7 +958,7 @@ export default function ProtocolsPage() {
                                 </div>
                                 <div className="mt-3 space-y-2">
                                   {state.branches.map((branch) => (
-                                    <div key={branch.runId} className="rounded-lg border border-line-subtle bg-layer-2 p-3">
+                                    <div key={branch.runId} className="rounded-lg border border-line-subtle bg-surface p-3">
                                       <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
                                           <div className="text-[13px] font-700 text-text">{branch.label}</div>
@@ -1021,7 +1021,7 @@ export default function ProtocolsPage() {
                                 </div>
                                 <div className="mt-3 space-y-2">
                                   {state.branches.map((branch) => (
-                                    <div key={branch.runId} className="rounded-lg border border-line-subtle bg-layer-2 p-3">
+                                    <div key={branch.runId} className="rounded-lg border border-line-subtle bg-surface p-3">
                                       <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
                                           <div className="text-[13px] font-700 text-text">{branch.label}</div>

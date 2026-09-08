@@ -628,7 +628,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
       {/* Tool events expanded card (controlled by pill toggle) */}
       {hasToolEvents && effectiveToolSectionOpen && (
         <div className="max-w-[85%] md:max-w-[72%] mb-2" data-testid="tool-activity">
-          <div className="rounded-lg border border-line-default bg-surface/80 backdrop-blur-sm overflow-hidden">
+          <div className="rounded-lg border border-line-subtle bg-surface/80 backdrop-blur-sm overflow-hidden">
             <ToolEventsSection toolEvents={displayToolEvents} controlled />
           </div>
         </div>
@@ -758,7 +758,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
             <button
               type="button"
               onClick={() => setHeartbeatExpanded((v) => !v)}
-              className="w-full rounded-lg px-3.5 py-3 border border-line-default bg-surface text-left hover:bg-layer-2 transition-colors cursor-pointer"
+              className="w-full rounded-lg px-3.5 py-3 border border-line-subtle bg-surface text-left hover:bg-layer-2 transition-colors cursor-pointer"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -1059,7 +1059,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
           <textarea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="w-full min-h-[80px] p-3 rounded-lg bg-surface border border-line-default text-text text-[14px] resize-y outline-none focus:border-accent-bright/30"
+            className="w-full min-h-[80px] p-3 rounded-lg bg-surface border border-line-subtle text-text text-[14px] resize-y outline-none focus:border-accent-bright/30"
             style={{ fontFamily: 'inherit' }}
           />
           <div className="flex gap-2 mt-2 justify-end">
