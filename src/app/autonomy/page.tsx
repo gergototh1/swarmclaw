@@ -375,7 +375,7 @@ export default function AutonomyPage() {
   return (
     <div className="flex-1 overflow-y-auto px-6 py-6">
       <div className="mx-auto max-w-6xl space-y-5">
-        <section className="relative overflow-hidden rounded-lg border border-line-subtle bg-surface">
+        <section className="section-band relative overflow-hidden -line-subtle">
           <div className="relative grid gap-6 p-6 md:p-7 xl:grid-cols-[minmax(0,1.4fr)_320px]">
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[10px] font-700 tracking-[0.03em] text-text-3">
@@ -478,7 +478,7 @@ export default function AutonomyPage() {
           </div>
         )}
 
-        <section className="rounded-lg border border-line-subtle bg-surface p-5">
+        <section className="section-band -line-subtle">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Orchestrators</h2>
@@ -579,7 +579,7 @@ export default function AutonomyPage() {
         </section>
 
         <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <section className="rounded-lg border border-line-subtle bg-surface p-5">
+          <section className="section-band -line-subtle">
             <div className="mb-4 flex items-start gap-3">
               <div className="flex-1">
                 <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Operator Actions</h2>
@@ -756,7 +756,7 @@ export default function AutonomyPage() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-line-subtle bg-surface p-5">
+          <section className="section-band -line-subtle">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
               <div className="flex-1">
                 <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">Recent Incidents</h2>

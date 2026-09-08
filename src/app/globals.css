@@ -171,6 +171,7 @@
      In light, bg and surface are the pair that has to separate -- #F0F2F5
      against #FFFFFF -- and raised holds the same white as surface. */
   --color-bg: var(--surface-bg);
+  --color-band: var(--surface-band);
   --color-raised: var(--surface-raised);
   --color-surface: var(--surface-card);
   --color-surface-2: var(--surface-selected);
@@ -520,6 +521,7 @@
   --ramp-200: 26%;
   --ramp-300: 55%;
 
+  --surface-band: #242426;
   --sf-glass: rgba(28,28,30,0.72);
 
   /* The only shadow in the design. See the namespace reset at the top. */
@@ -629,11 +631,27 @@
      Theme still recolours the whole app in dark mode; in light mode it now
      does nothing, and pretending otherwise with a 2% mix would be the
      appearance of a feature rather than the feature. */
-  --surface-bg: #EAEDF2;
+  /* White is the dominant canvas, and that is the correction. The ground sat
+     at #EAEDF2 so a white card would separate from it by fill -- which worked,
+     and produced a field of rounded white boxes on grey. That is not what this
+     language does. Its own specification says white is "the dominant canvas:
+     content, utility cards, store tiles, configurator grids", and reserves the
+     parchment for alternating full-bleed bands and the footer.
+
+     So a card no longer separates by fill at all. It is white on white and its
+     hairline is the only thing that draws it, which is exactly how the store
+     grid works, and it is much quieter than a box floating on grey. --ln-subtle
+     goes up to carry that on its own. */
+  --surface-bg: #FFFFFF;
   --surface-raised: #FFFFFF;
   --surface-card: #FFFFFF;
-  --surface-selected: #DDDDE2;
-  --surface-elevated: #CFCFD4;
+  --surface-selected: #EDEDF0;
+  --surface-elevated: #E1E1E6;
+
+  /* Parchment. The alternating band, the footer, and the chrome column beside
+     the rail -- the three places this language uses an off-white rather than
+     white. It is not a step on the card ladder and no card should sit on it. */
+  --surface-band: #F5F5F7;
 
   /* The ground stays #EAEDF2 and does not move to Apple's #F5F5F7, which is
      the one value in this redesign that was not taken. #F5F5F7 is 1.06:1 from
@@ -676,9 +694,13 @@
      because it is what most card borders in this app ask for and the soft
      divider alone would not hold an edge. Raised across the board for the same
      reason as the dark set: this design draws no shadows. */
-  --ln-subtle: rgba(16,24,40,0.13);
-  --ln-default: rgba(16,24,40,0.19);
-  --ln-strong: rgba(16,24,40,0.28);
+  /* The hairline now does the whole job of separating a card from the page,
+     so it is drawn at the weight this language actually specifies: 0.17 over
+     white composites to #D6D7DB, against Apple's own #D2D2D7. At 0.13 it was
+     tuned to sit beside a fill difference that no longer exists. */
+  --ln-subtle: rgba(16,24,40,0.17);
+  --ln-default: rgba(16,24,40,0.24);
+  --ln-strong: rgba(16,24,40,0.32);
 
   /* Solid, like :root's, and all three now clear WCAG AA for normal text on
      both the ground and a white card:
@@ -1291,6 +1313,32 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 .status-badge-connected { background: var(--status-connected-bg); border-color: var(--status-connected-border); color: var(--status-connected-fg); }
 .status-badge-disconnected { background: var(--status-disconnected-bg); border-color: var(--status-disconnected-border); color: var(--status-disconnected-fg); }
 .status-badge-approval { background: var(--status-approval-bg); border-color: var(--status-approval-border); color: var(--status-approval-fg); }
+
+/* ===== Apple grammar: a section is a band, not a box =====
+   The loudest thing wrong with these pages was that every page-level section
+   was drawn as a card: a rounded, hairlined, filled box, with more rounded
+   hairlined boxes inside it. A field of nested white rectangles on a ground
+   is a dashboard idiom, and this language does the opposite -- its sections
+   are full-bleed, unrounded and unbordered, and "the colour change IS the
+   divider".
+
+   An application cannot go fully full-bleed inside a max-width column, so the
+   practical translation is: no radius, no border, no fill, real vertical
+   rhythm, and a hairline between one section and the next. The cards inside
+   keep their radius and their rule, which is where this language actually
+   spends them -- on a grid of repeated items, never on the container.
+
+   Applied by element rather than by hand: a <section> that was dressed as a
+   card is a section. That distinction was already in the markup, and 35 of
+   them across nine files were carrying a card's clothes. */
+.section-band {
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  padding-block: 28px;
+}
+.section-band + .section-band { border-top: 1px solid var(--color-line-subtle); }
 
 /* ===== Apple grammar: one overlay =====
    Five modal implementations had five different chromes: scrims at 72% and

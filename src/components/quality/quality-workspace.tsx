@@ -167,7 +167,7 @@ function ReleaseReadinessPanel({
   onOpenHref: (href: string) => void
 }) {
   return (
-    <section className="rounded-lg border border-line-subtle bg-surface p-4">
+    <section className="section-band -line-subtle">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-[11px] font-700 tracking-[0.03em] text-accent-bright/70">Release Readiness</div>
@@ -279,7 +279,7 @@ function ArchitectureHealthPanel({
   onOpenHref: (href: string) => void
 }) {
   return (
-    <section className="rounded-lg border border-line-subtle bg-surface p-4">
+    <section className="section-band -line-subtle">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-[11px] font-700 tracking-[0.03em] text-accent-bright/70">Architecture Health</div>
@@ -973,7 +973,7 @@ export function QualityWorkspace() {
               </div>
 
               <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-                <section className="rounded-lg border border-line-subtle bg-surface p-4">
+                <section className="section-band -line-subtle">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h2 className="font-display text-[15px] font-700 text-text">Needs Attention</h2>
@@ -1016,7 +1016,7 @@ export function QualityWorkspace() {
                   )}
                 </section>
 
-                <section className="rounded-lg border border-line-subtle bg-surface p-4">
+                <section className="section-band -line-subtle">
                   <h2 className="font-display text-[15px] font-700 text-text">Latest Eval Scores</h2>
                   <p className="mt-1 text-[12px] text-text-3">Most recent scored evidence across agents.</p>
                   <div className="mt-4 flex flex-col gap-2">
@@ -1048,7 +1048,7 @@ export function QualityWorkspace() {
 
           {activeTab === 'evals' && (
             <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
-              <section className="rounded-lg border border-line-subtle bg-surface p-4">
+              <section className="section-band -line-subtle">
                 <h2 className="font-display text-[15px] font-700 text-text">Eval Lab</h2>
                 <p className="mt-1 text-[12px] leading-relaxed text-text-3">Run focused scenarios or complete suites against one agent.</p>
                 <div className="mt-4 flex flex-col gap-3">
@@ -1124,7 +1124,7 @@ export function QualityWorkspace() {
               </section>
 
               <div className="flex flex-col gap-5">
-                <section className="rounded-lg border border-line-subtle bg-surface p-4">
+                <section className="section-band -line-subtle">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <h2 className="font-display text-[15px] font-700 text-text">Suites</h2>
@@ -1170,7 +1170,7 @@ export function QualityWorkspace() {
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-line-subtle bg-surface p-4">
+                <section className="section-band -line-subtle">
                   <h2 className="font-display text-[15px] font-700 text-text">Score History</h2>
                   <div className="mt-4 grid gap-3 lg:grid-cols-2">
                     {evalRuns.length === 0 ? (
@@ -1217,7 +1217,7 @@ export function QualityWorkspace() {
           )}
 
           {activeTab === 'approvals' && (
-            <section className="rounded-lg border border-line-subtle bg-surface p-4">
+            <section className="section-band -line-subtle">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="font-display text-[15px] font-700 text-text">Approval Desk</h2>

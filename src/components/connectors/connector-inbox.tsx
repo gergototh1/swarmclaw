@@ -502,7 +502,7 @@ export function ConnectorInbox() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[300px_360px_minmax(0,1fr)] gap-4 flex-1 min-h-0">
-        <section className="rounded-lg border border-line-subtle bg-surface overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
+        <section className="section-band -line-subtle overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
           <div className="px-4 py-4 border-b border-line-subtle space-y-3 shrink-0">
             <SearchInput
               size="sm"
@@ -592,7 +592,7 @@ export function ConnectorInbox() {
           )}
         </section>
 
-        <section className="rounded-lg border border-line-subtle bg-surface overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
+        <section className="section-band -line-subtle overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
           <div className="px-4 py-4 border-b border-line-subtle shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: activePlatformMeta.color }}>
@@ -711,7 +711,7 @@ export function ConnectorInbox() {
           )}
         </section>
 
-        <section className="rounded-lg border border-line-subtle bg-surface overflow-hidden min-h-[380px] xl:min-h-0 flex flex-col">
+        <section className="section-band -line-subtle overflow-hidden min-h-[380px] xl:min-h-0 flex flex-col">
           {selectedSession ? (
             <>
               <div className="px-5 py-4 border-b border-line-subtle">

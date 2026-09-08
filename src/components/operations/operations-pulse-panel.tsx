@@ -88,7 +88,7 @@ export function OperationsPulsePanel({
   }, [pulse])
 
   return (
-    <section className={cn('rounded-lg border border-line-subtle bg-surface p-4', className)}>
+    <section className={cn('section-band -line-subtle', className)}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-[10px] font-700 tracking-[0.03em] text-accent-bright/70">Operations Pulse</div>

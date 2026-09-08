@@ -220,7 +220,7 @@ function renderBody(payload: SharedPayload) {
 
   if (payload.kind === 'skill') {
     return (
-      <section className="rounded-lg border border-line-subtle bg-surface p-5">
+      <section className="section-band -line-subtle">
         <h2 className="font-display text-[22px] font-700 text-white">{payload.name}</h2>
         {payload.tags.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-2">
@@ -240,7 +240,7 @@ function renderBody(payload: SharedPayload) {
   }
 
   return (
-    <section className="rounded-lg border border-line-subtle bg-surface p-5">
+    <section className="section-band -line-subtle">
       <h2 className="font-display text-[22px] font-700 text-white">{payload.name}</h2>
       {payload.agentName ? (
         <div className="mt-1 text-sm text-white/50">Agent: {payload.agentName}</div>

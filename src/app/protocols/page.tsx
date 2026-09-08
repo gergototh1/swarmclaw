@@ -358,7 +358,7 @@ export default function ProtocolsPage() {
     <MainContent>
       <div className="flex-1 min-h-0 overflow-y-auto bg-bg px-4 py-5 md:px-6 md:py-6">
         <div className="mx-auto max-w-[1680px] space-y-5">
-          <section className="rounded-lg border border-line-subtle bg-surface p-5 md:p-6">
+          <section className="section-band -line-subtle md:">
             <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
               <div className="max-w-[780px]">
                 <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 tracking-[0.03em] text-text-3">
@@ -736,7 +736,7 @@ export default function ProtocolsPage() {
           </section>
 
           <div className="grid min-h-0 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-            <section className="min-h-0 rounded-lg border border-line-subtle bg-surface p-4">
+            <section className="section-band min-h-0 -line-subtle">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-[16px] font-700 text-text">Runs</h2>
@@ -811,7 +811,7 @@ export default function ProtocolsPage() {
               </div>
             </section>
 
-            <section className="min-h-0 rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
+            <section className="section-band min-h-0 -line-subtle md:">
               {detailLoading ? (
                 <div className="text-[13px] text-text-3">Loading structured session detail…</div>
               ) : !detail ? (

@@ -345,7 +345,7 @@ export function SkillsWorkspace() {
   return (
     <>
       <div className="flex-1 overflow-y-auto px-5 pb-8 md:px-6">
-        <section className="relative overflow-hidden rounded-lg border border-line-subtle bg-[radial-gradient(circle_at_top_left,rgba(120,180,255,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.14),transparent_34%),rgba(255,255,255,0.02)] px-5 py-5 md:px-7 md:py-6">
+        <section className="section-band relative overflow-hidden -line-subtle bg-[radial-gradient(circle_at_top_left,rgba(120,180,255,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.14),transparent_34%),rgba(255,255,255,0.02)] px-5 py-5 md:px-7 md:py-6">
           <div className="absolute inset-0 bg-layer-1" />
           <div className="relative z-10">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -548,7 +548,7 @@ export function SkillsWorkspace() {
 
         {activeTab === 'clawhub' && !selectedHubSkill && (
           <div className="space-y-6 pt-5">
-            <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
+            <section className="section-band -line-subtle md:">
               <div>
                 <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">ClawHub</div>
                 <p className="mt-1 max-w-2xl text-[13px] leading-[1.7] text-text-3">
@@ -706,7 +706,7 @@ function SkillDetailView({
     <div className="space-y-6 pt-5">
       <BackButton label="Back to library" onClick={onBack} />
 
-      <section className="rounded-lg border border-line-subtle bg-surface p-5 md:p-6">
+      <section className="section-band -line-subtle md:">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
             <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">
@@ -763,7 +763,7 @@ function SkillDetailView({
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
-        <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
+        <section className="section-band -line-subtle md:">
           <SectionHeading
             title="Markdown Preview"
             subtitle="Read the actual reusable instructions instead of guessing from a one-line description."
@@ -772,7 +772,7 @@ function SkillDetailView({
         </section>
 
         <div className="space-y-4">
-          <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
+          <section className="section-band -line-subtle md:">
             <SectionHeading
               title="Declared Metadata"
               subtitle="Metadata parsed from the skill file or preserved during import."
@@ -780,7 +780,7 @@ function SkillDetailView({
             <MetadataGrid skill={skill} />
           </section>
 
-          <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
+          <section className="section-band -line-subtle md:">
             <SectionHeading
               title="Setup + Safety"
               subtitle="Dependencies, environment variables, and security notes."
@@ -789,7 +789,7 @@ function SkillDetailView({
           </section>
 
           {(skill.scope || 'global') === 'agent' ? (
-            <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
+            <section className="section-band -line-subtle md:">
               <SectionHeading
                 title="Assigned Agents"
                 subtitle="The agents currently allowed to use this skill."
@@ -852,7 +852,7 @@ function HubSkillDetailView({
     <div className="space-y-6 pt-5">
       <BackButton label="Back to marketplace" onClick={onBack} />
 
-      <section className="rounded-lg border border-line-subtle bg-surface p-5 md:p-6">
+      <section className="section-band -line-subtle md:">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
             <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">
@@ -897,7 +897,7 @@ function HubSkillDetailView({
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
-        <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
+        <section className="section-band -line-subtle md:">
           <SectionHeading
             title="Skill Preview"
             subtitle="Parsed from the actual remote skill file, not just the marketplace summary."
@@ -917,7 +917,7 @@ function HubSkillDetailView({
         </section>
 
         <div className="space-y-4">
-          <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
+          <section className="section-band -line-subtle md:">
             <SectionHeading
               title="Detail Snapshot"
               subtitle="Summary fields preserved directly from ClawHub search."
@@ -932,7 +932,7 @@ function HubSkillDetailView({
             </div>
           </section>
 
-          <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
+          <section className="section-band -line-subtle md:">
             <SectionHeading
               title="Setup + Safety"
               subtitle="Derived from the parsed skill file whenever preview data is available."
@@ -961,7 +961,7 @@ function SuggestionsPanel({
   const drafts = suggestions.filter((entry) => entry.status === 'draft').slice(0, 3)
 
   return (
-    <section className="rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
+    <section className="section-band -line-subtle md:">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Draft Suggestions</div>

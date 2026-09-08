@@ -13,7 +13,7 @@ interface Props {
 
 export function AdvancedSettingsSection({ open, onToggle, summary, badges = [], children }: Props) {
   return (
-    <section className="mb-8 rounded-lg border border-line-subtle bg-surface">
+    <section className="section-band mb-8 -line-subtle">
       <button
         type="button"
         onClick={onToggle}
