@@ -241,10 +241,18 @@ export const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { ic
   },
 }
 
+/*
+ * Disjoint from PANEL_SIDEBAR_VIEWS, and it was not: eight views --
+ * schedules, providers, skills, connectors, webhooks, mcp_servers, knowledge
+ * and extensions -- were listed in both. Nothing misbehaved, because the rail
+ * tests isPanelSidebarView first and that branch won every time, so the
+ * entries here were dead weight. They were also a trap: reordering those two
+ * branches, which reads like a pure refactor, would have silently taken the
+ * panel away from all eight.
+ */
 export const FULL_WIDTH_VIEWS = new Set<AppView>([
-  'home', 'org_chart', 'inbox', 'chatrooms', 'protocols', 'schedules', 'vault', 'providers', 'skills',
-  'connectors', 'webhooks', 'mcp_servers', 'knowledge', 'extensions',
-  'usage', 'stream', 'quality', 'autonomy', 'settings', 'projects', 'swarmfeed', 'marketplace', 'missions',
+  'home', 'org_chart', 'inbox', 'protocols', 'vault',
+  'usage', 'stream', 'quality', 'autonomy', 'settings', 'swarmfeed', 'marketplace',
 ])
 
 // `stream` and `vault` are deliberately absent: the route layouts that used to
@@ -253,13 +261,30 @@ export const FULL_WIDTH_VIEWS = new Set<AppView>([
 // /vault. Keeping either merged view here would set `sidebarOpen` true with no
 // panel behind it, and that flag would then leak into the next panel-backed
 // view the user opens.
+/*
+ * `chatrooms`, `missions` and `projects` moved here out of FULL_WIDTH_VIEWS,
+ * and the move is a correction rather than a feature. All three have always
+ * had a panel; they rendered a private one that ignored `sidebarOpen`, so the
+ * classification was simply wrong and nothing made it hurt. The moment they
+ * were put on SidebarPanelShell, which honours the flag, navigating to any of
+ * them set the flag false and the panel vanished -- taking the only way to
+ * create a chatroom with it.
+ *
+ * The lesson is in the comment below about `stream` and `vault`: this table
+ * and what a route actually renders are two separate claims, and nothing
+ * checks that they agree. A view listed here with no panel leaks a true flag
+ * into the next view; a view with a panel listed as full-width loses it.
+ */
 export const PANEL_SIDEBAR_VIEWS = new Set<AppView>([
   'agents',
+  'chatrooms',
   'connectors',
   'extensions',
   'knowledge',
   'mcp_servers',
   'memory',
+  'missions',
+  'projects',
   'providers',
   'schedules',
   'skills',
