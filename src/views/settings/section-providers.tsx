@@ -48,7 +48,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
     <>
       {/* Providers */}
       <div className="mb-8">
-        <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-5">
+        <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-5">
           Providers
         </h3>
         <div className="space-y-4">
@@ -136,7 +136,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
       {/* Add key form */}
       {addProvider && (
         <div className="mb-8 p-6 rounded-lg bg-surface border border-line-subtle">
-          <div className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-4">
+          <div className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-4">
             New {providers.find((p) => p.id === addProvider)?.name} API Key
           </div>
           <div className="space-y-4">

@@ -78,7 +78,7 @@ function BuiltInTemplatePanel({
             className="w-full rounded-md border bg-background px-3 py-2 text-left"
             title={step.kind.replace(/_/g, ' ')}
           >
-            <div className="text-[10px] font-semibold uppercase tracking-[0.03em] text-muted-foreground">
+            <div className="text-[10px] font-semibold tracking-[0.03em] text-muted-foreground">
               Step {index + 1}
             </div>
             <div className="mt-1 text-sm font-medium text-foreground">{step.label}</div>

@@ -8,7 +8,7 @@ export function RailTooltip({ label, description, children }: { label: string; d
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent side="right" sideOffset={8}
-        className="bg-raised border border-line-default text-text shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-sm px-3.5 py-2.5 max-w-[200px]">
+        className="bg-raised border border-line-default text-text rounded-sm px-3.5 py-2.5 max-w-[200px]">
         <div className="font-display text-[13px] font-600 mb-0.5">{label}</div>
         <div className="text-[11px] text-text-3 leading-[1.4]">{description}</div>
       </TooltipContent>

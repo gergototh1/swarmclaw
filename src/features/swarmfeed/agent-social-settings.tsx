@@ -97,7 +97,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
         <>
           {/* Bio */}
           <div>
-            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
               Bio <HintTip text="A short bio shown on the agent's social profile" />
             </label>
             <textarea
@@ -131,7 +131,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
           {/* Auto-post channels */}
           {autoPost && channels.length > 0 && (
             <div>
-              <label className="block text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+              <label className="block text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
                 Auto-post Channels
               </label>
               <div className="flex flex-wrap gap-2">
@@ -240,7 +240,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
 
                   {channels.length > 0 && (
                     <div>
-                      <label className="block text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+                      <label className="block text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
                         Channels to Monitor
                       </label>
                       <div className="flex flex-wrap gap-2">

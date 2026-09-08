@@ -123,10 +123,10 @@ export function DreamHistory({ agentId }: Props) {
               className="rounded-md border border-line-subtle bg-layer-1 px-3.5 py-3"
             >
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.03em] ${statusColors[cycle.status] || 'bg-layer-2 text-text-3/75'}`}>
+                <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-700 tracking-[0.03em] ${statusColors[cycle.status] || 'bg-layer-2 text-text-3/75'}`}>
                   {cycle.status}
                 </span>
-                <span className="px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.03em] bg-layer-2 text-text-3">
+                <span className="px-1.5 py-0.5 rounded-xs text-[9px] font-700 tracking-[0.03em] bg-layer-2 text-text-3">
                   {cycle.trigger}
                 </span>
                 {cycle.status === 'completed' && cycle.startedAt && cycle.completedAt && (

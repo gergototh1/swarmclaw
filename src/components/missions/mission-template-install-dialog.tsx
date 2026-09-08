@@ -159,7 +159,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
   return (
     <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-xl rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-xl rounded-md border border-line-default bg-bg p-5 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3 mb-4">
@@ -275,7 +275,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
               </div>
 
               <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
-                <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-1.5">Periodic reports</div>
+                <div className="text-[11px] font-600 text-text-3 tracking-wide mb-1.5">Periodic reports</div>
                 <label className="flex items-center gap-2 flex-wrap">
                   <input type="checkbox" checked={reportsEnabled} onChange={(e) => setReportsEnabled(e.target.checked)} />
                   <span className="text-[11px] text-text-3">Send a markdown progress report every</span>

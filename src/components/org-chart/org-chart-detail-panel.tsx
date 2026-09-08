@@ -318,7 +318,7 @@ export function OrgChartDetailPanel({
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[10px] font-600 uppercase tracking-[0.03em] text-text-3 mb-1.5">{label}</div>
+      <div className="text-[10px] font-600 tracking-[0.03em] text-text-3 mb-1.5">{label}</div>
       {children}
     </div>
   )

@@ -102,7 +102,7 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
             </div>
           </div>
           {snapshot && (
-            <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.03em] text-text-3">
+            <div className="flex flex-wrap items-center gap-2 text-[10px] tracking-[0.03em] text-text-3">
               <span className="rounded-full bg-layer-2 px-2.5 py-1">DM {snapshot.dmPolicy}</span>
               <span className="rounded-full bg-layer-2 px-2.5 py-1">
                 {snapshot.dmAddressingMode === 'addressed' ? 'Name required' : 'Any DM'}
@@ -131,18 +131,18 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
               <div className="rounded-md border border-line-subtle bg-black/20 px-4 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="text-[12px] uppercase tracking-[0.03em] text-text-3">Selected Sender</div>
+                    <div className="text-[12px] tracking-[0.03em] text-text-3">Selected Sender</div>
                     <div className="mt-1 text-[16px] font-700 text-text">{effectiveSenderLabel}</div>
                     {senderId && senderId !== effectiveSenderLabel && (
                       <div className="mt-1 text-[11px] text-text-3">{senderId}</div>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {senderStatus?.isOwnerOverride && <span className="rounded-full bg-sky-500/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] text-sky-200">Owner</span>}
-                    {senderStatus?.isBlocked && <span className="rounded-full bg-red-500/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] text-red-200">Blocked</span>}
-                    {senderStatus?.isApproved && !senderStatus.isBlocked && <span className="rounded-full bg-emerald-500/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] text-emerald-200">Approved</span>}
-                    {senderStatus?.isPending && !senderStatus.isApproved && !senderStatus.isBlocked && <span className="rounded-full bg-amber-500/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] text-amber-200">Pending</span>}
-                    {senderUsesDirectAddress && <span className="rounded-full bg-orange-500/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] text-orange-200">Name required</span>}
+                    {senderStatus?.isOwnerOverride && <span className="rounded-full bg-sky-500/12 px-2.5 py-1 text-[10px] tracking-[0.03em] text-sky-200">Owner</span>}
+                    {senderStatus?.isBlocked && <span className="rounded-full bg-red-500/12 px-2.5 py-1 text-[10px] tracking-[0.03em] text-red-200">Blocked</span>}
+                    {senderStatus?.isApproved && !senderStatus.isBlocked && <span className="rounded-full bg-emerald-500/12 px-2.5 py-1 text-[10px] tracking-[0.03em] text-emerald-200">Approved</span>}
+                    {senderStatus?.isPending && !senderStatus.isApproved && !senderStatus.isBlocked && <span className="rounded-full bg-amber-500/12 px-2.5 py-1 text-[10px] tracking-[0.03em] text-amber-200">Pending</span>}
+                    {senderUsesDirectAddress && <span className="rounded-full bg-orange-500/12 px-2.5 py-1 text-[10px] tracking-[0.03em] text-orange-200">Name required</span>}
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -222,19 +222,19 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
 
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               <div className="rounded-md border border-line-subtle bg-black/20 px-3 py-3">
-                <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Configured Allow</div>
+                <div className="text-[10px] tracking-[0.03em] text-text-3">Configured Allow</div>
                 <div className="mt-2 text-[22px] font-display font-700 tracking-[-0.04em] text-text">{snapshot.allowFrom.length}</div>
               </div>
               <div className="rounded-md border border-line-subtle bg-black/20 px-3 py-3">
-                <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Stored Pairings</div>
+                <div className="text-[10px] tracking-[0.03em] text-text-3">Stored Pairings</div>
                 <div className="mt-2 text-[22px] font-display font-700 tracking-[-0.04em] text-text">{snapshot.storedAllowedSenderIds.length}</div>
               </div>
               <div className="rounded-md border border-line-subtle bg-black/20 px-3 py-3">
-                <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Pending</div>
+                <div className="text-[10px] tracking-[0.03em] text-text-3">Pending</div>
                 <div className="mt-2 text-[22px] font-display font-700 tracking-[-0.04em] text-text">{snapshot.pendingPairingRequests.length}</div>
               </div>
               <div className="rounded-md border border-line-subtle bg-black/20 px-3 py-3">
-                <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Blocked</div>
+                <div className="text-[10px] tracking-[0.03em] text-text-3">Blocked</div>
                 <div className="mt-2 text-[22px] font-display font-700 tracking-[-0.04em] text-text">{snapshot.denyFrom.length}</div>
               </div>
             </div>

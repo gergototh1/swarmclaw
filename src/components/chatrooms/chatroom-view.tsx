@@ -325,7 +325,7 @@ export function ChatroomView() {
     const targetAgent = agents[targetAgentId]
     if (!msg || !targetAgent) return
     const truncated = msg.text.length > 120 ? msg.text.slice(0, 120) + '...' : msg.text
-    sendMessage(`@${targetAgent.name.replace(/\s+/g, '')} [Transferred from @${msg.senderName.replace(/\s+/g, '')}]: "${truncated}"`)
+    sendMessage(`@${targetAgent.name.replace(/\s+/g, '')} [Transferred from @${msg.senderName.replace(/\s+/g, '')}]:"${truncated}"`)
   }
 
   const handleInjectContext = async () => {
@@ -388,22 +388,22 @@ export function ChatroomView() {
                   : `${memberAgents.length} agent${memberAgents.length !== 1 ? 's' : ''}${chatroom.description ? ` · ${chatroom.description}` : ''}`}
               </p>
               {isStructuredSessionRoom && linkedRun && (
-                <span className="px-1.5 py-0.5 rounded-xs bg-sky-500/10 text-[10px] font-700 uppercase tracking-[0.03em] text-sky-300">
+                <span className="px-1.5 py-0.5 rounded-xs bg-sky-500/10 text-[10px] font-700 tracking-[0.03em] text-sky-300">
                   {linkedRun.status}
                 </span>
               )}
-              <span className="px-1.5 py-0.5 rounded-xs bg-layer-2 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
+              <span className="px-1.5 py-0.5 rounded-xs bg-layer-2 text-[10px] font-700 tracking-[0.03em] text-text-3">
                 {isStructuredSessionRoom ? 'Structured Session' : chatroom.chatMode === 'parallel' ? 'Parallel' : 'Sequential'}
               </span>
               {!isStructuredSessionRoom && (
-                <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-700 uppercase tracking-[0.03em] ${
+                <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-700 tracking-[0.03em] ${
                   chatroom.autoAddress ? 'bg-emerald-500/10 text-emerald-400' : 'bg-layer-2 text-text-3/70'
                 }`}>
                   Auto-address {chatroom.autoAddress ? 'on' : 'off'}
                 </span>
               )}
               {streamingAgents.size > 0 && (
-                <span className="px-1.5 py-0.5 rounded-xs bg-sky-500/10 text-[10px] font-700 uppercase tracking-[0.03em] text-sky-400">
+                <span className="px-1.5 py-0.5 rounded-xs bg-sky-500/10 text-[10px] font-700 tracking-[0.03em] text-sky-400">
                   {streamingAgents.size} active now
                 </span>
               )}
@@ -613,7 +613,7 @@ export function ChatroomView() {
                     {showDaySep && (
                       <div className="flex items-center gap-3 px-4 py-3">
                         <div className="flex-1 h-px bg-layer-2" />
-                        <span className="text-[10px] font-600 text-text-3 uppercase tracking-[0.03em]">{dayLabel(msg.time, now)}</span>
+                        <span className="text-[10px] font-600 text-text-3 tracking-[0.03em]">{dayLabel(msg.time, now)}</span>
                         <div className="flex-1 h-px bg-layer-2" />
                       </div>
                     )}
@@ -645,7 +645,7 @@ export function ChatroomView() {
           {(!isNearBottom || unreadCount > 0) && (
             <button
               onClick={() => scrollToLatest('smooth')}
-              className="absolute bottom-4 right-4 px-3.5 py-2 rounded-sm bg-surface-2/95 backdrop-blur-xl border border-line-default text-[12px] font-700 text-text shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:bg-layer-3 transition-all cursor-pointer"
+              className="absolute bottom-4 right-4 px-3.5 py-2 rounded-sm bg-surface-2/95 backdrop-blur-xl border border-line-default text-[12px] font-700 text-text hover:bg-layer-3 transition-all cursor-pointer"
               style={{ fontFamily: 'inherit' }}
             >
               Jump to latest{unreadCount > 0 ? ` · ${unreadCount} new` : ''}
@@ -726,29 +726,29 @@ export function ChatroomView() {
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
                 <div className="text-[16px] font-display font-700 text-text">{inspectedMessages.length}</div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-[0.03em] text-text-3">Messages</div>
+                <div className="mt-0.5 text-[10px] tracking-[0.03em] text-text-3">Messages</div>
               </div>
               <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
                 <div className="text-[16px] font-display font-700 text-sky-300">{inspectedExecLogs.length}</div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-[0.03em] text-text-3">Events</div>
+                <div className="mt-0.5 text-[10px] tracking-[0.03em] text-text-3">Events</div>
               </div>
               <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
                 <div className="text-[12px] font-mono text-text-2 truncate" title={inspectedSessionId || undefined}>
                   {inspectedSessionId || '—'}
                 </div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-[0.03em] text-text-3">Session ID</div>
+                <div className="mt-0.5 text-[10px] tracking-[0.03em] text-text-3">Session ID</div>
               </div>
             </div>
 
             <section>
-              <h4 className="mb-2 text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Recent Messages</h4>
+              <h4 className="mb-2 text-[12px] font-700 tracking-[0.03em] text-text-3">Recent Messages</h4>
               <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-md border border-line-subtle bg-layer-1 p-3">
                 {inspectedMessages.length === 0 ? (
                   <p className="text-[12px] text-text-3">No messages yet for this session.</p>
                 ) : (
                   inspectedMessages.slice(-12).map((message, index) => (
                     <div key={`${message.time}-${message.role}-${index}`} className="rounded-sm border border-line-subtle bg-black/20 px-3 py-2">
-                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.03em] text-text-3">
+                      <div className="flex items-center gap-2 text-[10px] tracking-[0.03em] text-text-3">
                         <span>{message.role}</span>
                         <span>·</span>
                         <span>{new Date(message.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -763,7 +763,7 @@ export function ChatroomView() {
             </section>
 
             <section>
-              <h4 className="mb-2 text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Execution Log</h4>
+              <h4 className="mb-2 text-[12px] font-700 tracking-[0.03em] text-text-3">Execution Log</h4>
               <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-md border border-line-subtle bg-layer-1 p-3">
                 {inspectedExecLogs.length === 0 ? (
                   <p className="text-[12px] text-text-3">No execution log entries yet.</p>
@@ -773,7 +773,7 @@ export function ChatroomView() {
                     .sort((a, b) => b.ts - a.ts)
                     .map((entry) => (
                       <div key={entry.id} className="rounded-sm border border-line-subtle bg-black/20 px-3 py-2">
-                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.03em] text-text-3">
+                        <div className="flex items-center gap-2 text-[10px] tracking-[0.03em] text-text-3">
                           <span>{entry.category}</span>
                           <span>·</span>
                           <span>{new Date(entry.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -873,7 +873,7 @@ function RoomDetailsPanel({
   return (
     <div className={`flex flex-col ${compact ? 'gap-5' : 'h-full'}`}>
       <div className={compact ? '' : 'border-b border-line-subtle px-4 py-4'}>
-        <h3 className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Room Status</h3>
+        <h3 className="text-[12px] font-700 tracking-[0.03em] text-text-3">Room Status</h3>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {[
             { label: 'Members', value: String(memberAgents.length), tone: 'text-text' },
@@ -883,7 +883,7 @@ function RoomDetailsPanel({
           ].map((item) => (
             <div key={item.label} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
               <div className={`text-[18px] font-display font-700 tracking-[-0.02em] ${item.tone}`}>{item.value}</div>
-              <div className="mt-0.5 text-[10px] uppercase tracking-[0.03em] text-text-3">{item.label}</div>
+              <div className="mt-0.5 text-[10px] tracking-[0.03em] text-text-3">{item.label}</div>
             </div>
           ))}
         </div>
@@ -897,7 +897,7 @@ function RoomDetailsPanel({
       <div className={compact ? 'space-y-4' : 'flex-1 overflow-y-auto px-4 py-4 space-y-4'}>
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h4 className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Members</h4>
+            <h4 className="text-[12px] font-700 tracking-[0.03em] text-text-3">Members</h4>
             <span className="text-[11px] text-text-3">{memberAgents.length}</span>
           </div>
           <div className="space-y-2">
@@ -922,16 +922,16 @@ function RoomDetailsPanel({
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[12px] font-600 text-text">{agent.name}</div>
                       <div className="mt-1 flex flex-wrap gap-1.5">
-                        <span className="rounded-xs bg-layer-2 px-1.5 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
+                        <span className="rounded-xs bg-layer-2 px-1.5 py-0.5 text-[10px] font-700 tracking-[0.03em] text-text-3">
                           {role}
                         </span>
                         {muted && (
-                          <span className="rounded-xs bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-rose-400">
+                          <span className="rounded-xs bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-700 tracking-[0.03em] text-rose-400">
                             Muted
                           </span>
                         )}
                         {streamingAgents.has(agent.id) && (
-                          <span className="rounded-xs bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-sky-400">
+                          <span className="rounded-xs bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-700 tracking-[0.03em] text-sky-400">
                             Active
                           </span>
                         )}
@@ -947,7 +947,7 @@ function RoomDetailsPanel({
         {pinnedMessages.length > 0 && (
           <section>
             <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Pinned</h4>
+              <h4 className="text-[12px] font-700 tracking-[0.03em] text-text-3">Pinned</h4>
               <span className="text-[11px] text-text-3">{pinnedMessages.length}</span>
             </div>
             <div className="space-y-2">

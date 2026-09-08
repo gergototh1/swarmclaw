@@ -286,7 +286,7 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
             onClick={(e) => { void handleReconcile(e, null) }}
             disabled={reconciling !== null}
             title="Create or update the agents and routines every installed extension declares"
-            className="h-8 px-3 rounded-sm bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.03em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-8 px-3 rounded-sm bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 tracking-[0.03em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {reconciling === ALL_EXTENSIONS ? 'Reconciling...' : 'Reconcile all'}
           </button>
@@ -446,7 +446,7 @@ function extensionCapabilityBadges(ext: ExtensionMeta): string[] {
 function ContractConsumptions({ consumed }: { consumed: ExtensionContractConsumedMeta[] }) {
   return (
     <div className="mt-2.5 pt-2.5 border-t border-line-subtle">
-      <p className="text-[10px] font-600 uppercase tracking-wide text-text-3 mb-1">Data access</p>
+      <p className="text-[10px] font-600 tracking-wide text-text-3 mb-1">Data access</p>
       <ul className="space-y-1">
         {consumed.map((entry) => (
           <li key={`${entry.extension}:${entry.contract}`} className="text-[11px] leading-relaxed">
@@ -676,7 +676,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
             title={ext.enabled
               ? 'Create or update the agents and routines this extension declares'
               : 'Switch the extension on first: a disabled extension is not loaded, so the host has no declarations to reconcile'}
-            className="shrink-0 h-6 px-2 rounded-sm bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.03em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 h-6 px-2 rounded-sm bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 tracking-[0.03em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {reconciling ? 'Reconciling...' : 'Reconcile'}
           </button>

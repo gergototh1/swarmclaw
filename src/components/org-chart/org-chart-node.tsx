@@ -145,9 +145,9 @@ export function OrgChartNode({
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
               lastError
-                ? 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]'
+                ? 'bg-red-400 '
                 : isRunning
-                  ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]'
+                  ? 'bg-emerald-400 '
                   : disabled
                     ? 'bg-red-400/60'
                     : 'bg-layer-3'
@@ -166,11 +166,11 @@ export function OrgChartNode({
 
         {/* Row 3: Badges — role, team, children */}
         <div className="flex items-center gap-1 flex-wrap">
-          <span className={`text-[9px] font-600 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs leading-none ${badge.cls}`}>
+          <span className={`text-[9px] font-600 tracking-[0.03em] px-1.5 py-0.5 rounded-xs leading-none ${badge.cls}`}>
             {badge.label}
           </span>
           {agent.orchestratorEnabled && (
-            <span className="text-[9px] font-600 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs leading-none text-amber-400 bg-amber-400/15">
+            <span className="text-[9px] font-600 tracking-[0.03em] px-1.5 py-0.5 rounded-xs leading-none text-amber-400 bg-amber-400/15">
               Orchestrator
             </span>
           )}

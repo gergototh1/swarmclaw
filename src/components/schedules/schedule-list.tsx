@@ -70,7 +70,7 @@ export function ScheduleList({ inSidebar }: Props) {
               + New Schedule
             </Button>
             <div className="mt-6 w-full max-w-lg">
-              <p className="text-[12px] text-text-3 uppercase tracking-[0.03em] font-600 mb-3">Quick start</p>
+              <p className="text-[12px] text-text-3 tracking-[0.03em] font-600 mb-3">Quick start</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {featuredTemplates.map((tpl) => {
                   const IconComp = FEATURED_ICONS[tpl.icon] || FileText

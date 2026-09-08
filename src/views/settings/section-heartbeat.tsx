@@ -44,7 +44,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Heartbeat Defaults
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
@@ -53,7 +53,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
       <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Default Prompt</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Default Prompt</label>
             <input
               type="text"
               value={appSettings.heartbeatPrompt || ''}
@@ -64,7 +64,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             />
           </div>
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Ack Threshold (chars)</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Ack Threshold (chars)</label>
             <input
               type="number"
               min={0}
@@ -82,7 +82,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Show OK Messages</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Show OK Messages</label>
             <button
               onClick={() => patchSettings({ heartbeatShowOk: !(appSettings.heartbeatShowOk ?? DEFAULT_HEARTBEAT_SHOW_OK) })}
               className={`px-3 py-2 rounded-sm border text-[12px] font-600 transition-colors cursor-pointer ${
@@ -96,7 +96,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             </button>
           </div>
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Show Alert Messages</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Show Alert Messages</label>
             <button
               onClick={() => patchSettings({ heartbeatShowAlerts: !(appSettings.heartbeatShowAlerts ?? DEFAULT_HEARTBEAT_SHOW_ALERTS) })}
               className={`px-3 py-2 rounded-sm border text-[12px] font-600 transition-colors cursor-pointer ${
@@ -110,7 +110,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             </button>
           </div>
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Delivery Target</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Delivery Target</label>
             <input
               type="text"
               value={appSettings.heartbeatTarget || ''}
@@ -123,7 +123,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
         </div>
 
         <div className="border-t border-line-subtle pt-5 mt-5">
-          <h4 className="font-display text-[11px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+          <h4 className="font-display text-[11px] font-600 text-text-2 tracking-[0.03em] mb-2">
             Session Reset Defaults
           </h4>
           <p className="text-[11px] text-text-3 mb-4">
@@ -131,7 +131,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Reset Mode</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Reset Mode</label>
               <select
                 value={appSettings.sessionResetMode || ''}
                 onChange={(e) => patchSettings({ sessionResetMode: parseResetMode(e.target.value) })}
@@ -144,7 +144,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
               </select>
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Idle Timeout (sec)</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Idle Timeout (sec)</label>
               <input
                 type="number"
                 min={0}
@@ -158,7 +158,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Max Age (sec)</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Max Age (sec)</label>
               <input
                 type="number"
                 min={0}
@@ -170,7 +170,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
               />
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Daily Reset Time</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Daily Reset Time</label>
               <input
                 type="text"
                 value={appSettings.sessionDailyResetAt || ''}
@@ -181,7 +181,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
               />
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Reset Timezone</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Reset Timezone</label>
               <input
                 type="text"
                 value={appSettings.sessionResetTimezone || ''}

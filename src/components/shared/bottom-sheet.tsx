@@ -21,7 +21,7 @@ export function BottomSheet({ open, onClose, children, wide, title, description 
           className="overlay-scrim z-overlay-sheet data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
         />
         <DialogPrimitive.Content
-          className={`fixed inset-x-0 bottom-0 z-overlay-sheet mx-auto flex max-h-[92vh] w-full flex-col bg-raised shadow-[0_24px_80px_rgba(0,0,0,0.6),0_0_1px_rgba(255,255,255,0.05)] outline-none
+          className={`fixed inset-x-0 bottom-0 z-overlay-sheet mx-auto flex max-h-[92vh] w-full flex-col bg-raised outline-none
             rounded-t-lg border border-line-subtle
             data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom
             sm:inset-x-auto sm:top-[50%] sm:bottom-auto sm:left-[50%] sm:w-[calc(100%-2rem)] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg

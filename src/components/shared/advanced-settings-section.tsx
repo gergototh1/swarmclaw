@@ -24,7 +24,7 @@ export function AdvancedSettingsSection({ open, onToggle, summary, badges = [], 
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-display text-[17px] font-700 tracking-[-0.02em] text-text">Advanced Settings</h3>
             {summary && (
-              <span className="rounded-full border border-line-default bg-layer-1 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
+              <span className="rounded-full border border-line-default bg-layer-1 px-2.5 py-1 text-[10px] font-700 tracking-[0.03em] text-text-3">
                 {summary}
               </span>
             )}

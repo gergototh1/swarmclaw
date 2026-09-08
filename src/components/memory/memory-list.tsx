@@ -129,7 +129,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
           <div className="flex gap-1 flex-wrap">
             <button
               onClick={() => setCategoryFilter('')}
-              className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all uppercase tracking-[0.03em]
+              className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all tracking-[0.03em]
                 ${!categoryFilter ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'}`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -139,7 +139,7 @@ export function MemoryList({ inSidebar: _inSidebar, onSelect }: Props) {
               <button
                 key={c}
                 onClick={() => setCategoryFilter(categoryFilter === c ? '' : c)}
-                className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all uppercase tracking-[0.03em]
+                className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all tracking-[0.03em]
                   ${categoryFilter === c ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'}`}
                 style={{ fontFamily: 'inherit' }}
               >

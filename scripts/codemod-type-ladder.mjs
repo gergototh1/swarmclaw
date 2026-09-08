@@ -29,6 +29,20 @@
  * uppercase legible, far too little to read as the deliberate wide-tracked
  * treatment it currently is.
  *
+ * RULE 3, uppercase micro-labels. 686 class lists set `uppercase`, and 659 of
+ * them sit on text of 13px or smaller. Together with rule 2 this is the whole
+ * console idiom -- a wide-tracked, capitalised, 10px label -- and the design
+ * language has no such thing anywhere: its smallest tokens are sentence-case
+ * captions at 12 and 14px.
+ *
+ * This is safe to remove only because the strings underneath are already
+ * written in sentence case -- "Repository", "GitHub token", "Success criteria"
+ * -- so dropping the transform reveals correct casing rather than lowercase
+ * mush. It was checked before the rule was written, and it is why the rule is
+ * scoped to class lists that also carry a small explicit size: a bare
+ * `uppercase` with no size beside it is more likely to be on interpolated
+ * content whose casing this script cannot see.
+ *
  * Same shape as codemod-radius.mjs, codemod-surfaces.mjs and
  * codemod-text-dim.mjs: pure exported mapping functions, and refuse-and-report
  * rather than guess.
@@ -84,6 +98,16 @@ const TRACKING_MAP = new Map([
  * refusal list is what put them in front of a person.
  */
 
+/**
+ * A class list that carries BOTH `uppercase` and a small explicit size. The
+ * two lookaheads let the pair appear in either order, which matters because
+ * roughly half the sites write the size first and half the transform.
+ *
+ * 14px and up is left alone: at that size a capitalised label is a heading
+ * treatment rather than the micro-label idiom, and there are only seven.
+ */
+const UPPER_SMALL_RE = /className=(?:"|\{`)(?=[^"`]*\buppercase\b)(?=[^"`]*text-\[(?:8|9|10|11|12|13)px\])[^"`]*(?:"|`\})/g
+
 const WEIGHT_RE = /(?:[a-z0-9-]+:)*font-(\d00)\b/g
 /*
  * The \b sits inside the bare-name branch, not after the alternation. A word
@@ -137,6 +161,17 @@ export function mapTrackingClass(cls) {
  * codemod-radius.mjs: a class the maps decline has to reach the refusal list
  * rather than be filtered out here and vanish.
  */
+/**
+ * Strip `uppercase` from one class list, collapsing the gap it leaves.
+ *
+ * Returns the input unchanged when the token is not there, so the caller can
+ * compare and count rather than being told twice.
+ */
+export function stripUppercase(classText) {
+  if (!/\buppercase\b/.test(classText)) return classText
+  return classText.replace(/\buppercase\b/g, '').replace(/(\S) {2,}(\S)/g, '$1 $2').replace(/ +("|`\})/g, '$1')
+}
+
 export function findTypeClasses(source) {
   return [...(source.match(WEIGHT_RE) ?? []), ...(source.match(TRACKING_RE) ?? [])]
 }
@@ -156,6 +191,7 @@ function main() {
   let changedFiles = 0
   let weights = 0
   let trackings = 0
+  let uppercases = 0
 
   for (const file of walk(join(REPO_ROOT, 'src'))) {
     const before = readFileSync(file, 'utf8')
@@ -177,13 +213,20 @@ function main() {
       trackings += 1
       return mapped
     })
+    let uppers = 0
+    after = after.replace(UPPER_SMALL_RE, (classList) => {
+      const stripped = stripUppercase(classList)
+      if (stripped !== classList) uppers += 1
+      return stripped
+    })
+    uppercases += uppers
     if (after !== before) {
       writeFileSync(file, after)
       changedFiles += 1
     }
   }
 
-  console.log(`rewrote ${weights} weights and ${trackings} trackings across ${changedFiles} files`)
+  console.log(`rewrote ${weights} weights, ${trackings} trackings and removed ${uppercases} uppercase transforms across ${changedFiles} files`)
   if (untouched.size > 0) {
     console.log('\nleft alone -- already on the ladder, or not a step this script knows:')
     for (const [cls, n] of [...untouched].sort((a, b) => b[1] - a[1])) {

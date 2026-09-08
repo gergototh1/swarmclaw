@@ -171,7 +171,7 @@ export function RunList() {
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => setStatusFilter(null)}
-            className={`px-2 py-1 rounded-xs text-[10px] font-700 uppercase tracking-[0.03em] cursor-pointer transition-all border-none ${
+            className={`px-2 py-1 rounded-xs text-[10px] font-700 tracking-[0.03em] cursor-pointer transition-all border-none ${
               !statusFilter ? 'bg-accent-soft text-accent-bright' : 'bg-layer-1 text-text-3/70'
             }`}
           >
@@ -211,7 +211,7 @@ export function RunList() {
               className="w-full rounded-sm border border-line-subtle bg-layer-1 py-1.5 pl-8 pr-3 text-[12px] text-text outline-none transition-colors placeholder:text-text-3 focus:border-accent-bright/35"
             />
           </div>
-          <label className="flex items-center gap-2 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
+          <label className="flex items-center gap-2 text-[10px] font-700 tracking-[0.03em] text-text-3">
             Source
             <select
               value={sourceFilter}
@@ -251,7 +251,7 @@ export function RunList() {
                 }}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-[9px] font-700 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs ${STATUS_COLORS[run.status].bg} ${STATUS_COLORS[run.status].text}`}>
+                  <span className={`text-[9px] font-700 tracking-[0.03em] px-1.5 py-0.5 rounded-xs ${STATUS_COLORS[run.status].bg} ${STATUS_COLORS[run.status].text}`}>
                     {run.status}
                   </span>
                   <span className="text-[11px] text-text-3 font-mono">{run.source}</span>
@@ -276,7 +276,7 @@ export function RunList() {
             <div className="mb-6">
               <div className="mb-3 flex flex-wrap items-center gap-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className={`text-[11px] font-700 uppercase tracking-[0.03em] px-2.5 py-1 rounded-xs ${STATUS_COLORS[selected.status].bg} ${STATUS_COLORS[selected.status].text}`}>
+                  <span className={`text-[11px] font-700 tracking-[0.03em] px-2.5 py-1 rounded-xs ${STATUS_COLORS[selected.status].bg} ${STATUS_COLORS[selected.status].text}`}>
                     {selected.status}
                   </span>
                   <span className="text-[12px] font-mono text-text-3">{selected.source}</span>
@@ -300,7 +300,7 @@ export function RunList() {
 
             {/* Brief */}
             <div className="mb-6">
-              <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Brief</label>
+              <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">Brief</label>
               {briefLoading ? (
                 <div className="rounded-md border border-line-subtle bg-layer-1 p-4 text-[11px] text-text-3">
                   Loading brief...
@@ -311,11 +311,11 @@ export function RunList() {
                   <p className="mt-1 text-[12px] leading-relaxed text-text-3">{selectedBrief.objective}</p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                      <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Owner</div>
+                      <div className="text-[10px] tracking-[0.03em] text-text-3">Owner</div>
                       <div className="mt-1 text-[11px] text-text-2">{selectedBrief.owner ? `${selectedBrief.owner.type}:${selectedBrief.owner.id}` : selectedBrief.source}</div>
                     </div>
                     <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                      <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Usage</div>
+                      <div className="text-[10px] tracking-[0.03em] text-text-3">Usage</div>
                       <div className="mt-1 text-[11px] text-text-2">
                         {selectedBrief.usage.inputTokens ?? 0} in / {selectedBrief.usage.outputTokens ?? 0} out
                         {selectedBrief.usage.estimatedCost != null ? ` - $${selectedBrief.usage.estimatedCost.toFixed(4)}` : ''}
@@ -355,7 +355,7 @@ export function RunList() {
 
             {/* Timing */}
             <div className="mb-6 space-y-2">
-              <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em]">Timing</label>
+              <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em]">Timing</label>
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2.5 rounded-sm bg-layer-1 border border-line-subtle">
                   <div className="text-[10px] text-text-3 mb-0.5">Queued</div>
@@ -383,7 +383,7 @@ export function RunList() {
             {/* Message */}
             {selected.messagePreview && (
               <div className="mb-6">
-                <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Message</label>
+                <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">Message</label>
                 <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-md p-4 max-h-[200px] overflow-auto border border-line-subtle">
                   {selected.messagePreview}
                 </pre>
@@ -393,7 +393,7 @@ export function RunList() {
             {/* Error */}
             {selected.error && (
               <div className="mb-6">
-                <label className="block font-display text-[12px] font-600 text-red-400 uppercase tracking-[0.03em] mb-2">Error</label>
+                <label className="block font-display text-[12px] font-600 text-red-400 tracking-[0.03em] mb-2">Error</label>
                 <pre className="text-[11px] text-red-300/80 font-mono whitespace-pre-wrap break-all bg-red-500/[0.05] rounded-md p-4 max-h-[200px] overflow-auto border border-red-500/[0.1]">
                   {selected.error}
                 </pre>
@@ -403,7 +403,7 @@ export function RunList() {
             {/* Result */}
             {selected.resultPreview && (
               <div className="mb-6">
-                <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Result</label>
+                <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">Result</label>
                 <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-md p-4 max-h-[200px] overflow-auto border border-line-subtle">
                   {selected.resultPreview}
                 </pre>
@@ -429,7 +429,7 @@ export function RunList() {
             </div>
 
             <div className="mb-2">
-              <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Replay</label>
+              <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">Replay</label>
               <div className="rounded-md border border-line-subtle bg-layer-1 max-h-[260px] overflow-auto">
                 {eventsLoading ? (
                   <div className="p-4 text-[11px] text-text-3">Loading events...</div>
@@ -441,7 +441,7 @@ export function RunList() {
                       <div key={event.id} className="px-4 py-3">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] text-text-3 font-mono">{new Date(event.timestamp).toLocaleTimeString()}</span>
-                          <span className="text-[10px] uppercase tracking-[0.03em] text-text-3">{event.phase}</span>
+                          <span className="text-[10px] tracking-[0.03em] text-text-3">{event.phase}</span>
                           {event.status && <span className="text-[10px] text-text-3">{event.status}</span>}
                         </div>
                         <div className="text-[11px] text-text-2 whitespace-pre-wrap break-words">

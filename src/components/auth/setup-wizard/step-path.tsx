@@ -47,7 +47,7 @@ export function StepPath({
               <div className="flex items-start justify-between gap-3">
                 <div className="text-[15px] font-display font-700 text-text">{path.title}</div>
                 {path.badge ? (
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-700 uppercase tracking-[0.03em] ${
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-700 tracking-[0.03em] ${
                     active ? 'bg-accent-bright text-accent-fg' : 'bg-layer-2 text-text-3/80'
                   }`}>
                     {path.badge}
@@ -63,7 +63,7 @@ export function StepPath({
 
       {onboardingPath === 'intent' && (
         <div className="mb-6 rounded-lg border border-line-default bg-surface px-5 py-4 text-left">
-          <label className="block text-[12px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">
+          <label className="block text-[12px] font-700 tracking-[0.03em] text-text-3 mb-2">
             What Are You Setting Up SwarmClaw To Do?
           </label>
           <textarea
@@ -82,12 +82,12 @@ export function StepPath({
       <div className="rounded-lg border border-line-default bg-surface p-5 text-left">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Starting Shape</div>
+            <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Starting Shape</div>
             <div className="mt-1 text-[13px] text-text-3">
               Start from a broad team shape instead of a niche preset. You can still edit every agent before setup finishes.
             </div>
           </div>
-          <div className="rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">
+          <div className="rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 tracking-[0.03em] text-text-3">
             {visibleStarterKits.length} options
           </div>
         </div>
@@ -108,7 +108,7 @@ export function StepPath({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="text-[15px] font-display font-700 text-text">{kit.name}</div>
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-700 uppercase tracking-[0.03em] ${
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-700 tracking-[0.03em] ${
                     active ? 'bg-accent-bright text-accent-fg' : 'bg-layer-2 text-text-3/80'
                   }`}>
                     {kit.badge || formatAgentCount(kit.agents.length)}

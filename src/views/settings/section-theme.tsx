@@ -37,7 +37,7 @@ export function ThemeSection({ appSettings, patchSettings, inputClass }: Setting
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Theme
       </h3>
       <p className="text-[12px] text-text-3 mb-5">

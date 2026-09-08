@@ -277,7 +277,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh]">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setOpen(false)} />
       <div
-        className="relative w-full max-w-[520px] mx-4 bg-raised rounded-lg border border-line-default shadow-[0_24px_80px_rgba(0,0,0,0.6)] overflow-hidden"
+        className="relative w-full max-w-[520px] mx-4 bg-raised rounded-lg border border-line-default overflow-hidden"
         style={{ animation: 'modal-in 0.3s var(--ease-spring)' }}
       >
         {/* Breathing glow effect */}
@@ -310,7 +310,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
           ) : (
             Array.from(grouped.entries()).map(([category, groupItems]) => (
               <div key={category}>
-                <div className="px-4 py-1.5 text-[11px] font-600 text-text-3 uppercase tracking-[0.03em]">
+                <div className="px-4 py-1.5 text-[11px] font-600 text-text-3 tracking-[0.03em]">
                   {categoryLabel[category as keyof typeof categoryLabel]}
                 </div>
                 {groupItems.map((item) => {

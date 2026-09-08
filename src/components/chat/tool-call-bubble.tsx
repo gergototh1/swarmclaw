@@ -529,7 +529,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
               </span>
             )}
             <span
-              className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.03em] ${
+              className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-600 tracking-[0.03em] ${
                 isRunning
                   ? 'border-current/20 bg-layer-2 text-text-3'
                   : isError

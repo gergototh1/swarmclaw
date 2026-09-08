@@ -35,14 +35,14 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Supervisor &amp; Reflection
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Let SwarmClaw recover from bad loops automatically and write reflection memory after meaningful runs.
       </p>
       <div className="p-6 rounded-lg bg-surface border border-line-subtle">
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Automatic Recovery</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Automatic Recovery</label>
         <div className="flex items-center gap-3 mb-5">
           <button
             onClick={() => patchSettings({ supervisorEnabled: !supervisorEnabled })}
@@ -75,7 +75,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">No-Progress Limit</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">No-Progress Limit</label>
             <input
               type="number"
               min={SUPERVISOR_NO_PROGRESS_LIMIT_MIN}
@@ -95,7 +95,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
             <p className="text-[11px] text-text-3 mt-2">How many autonomous follow-ups can stall before the supervisor forces a recovery step.</p>
           </div>
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Repeated Tool Limit</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Repeated Tool Limit</label>
             <input
               type="number"
               min={SUPERVISOR_REPEATED_TOOL_LIMIT_MIN}
@@ -116,7 +116,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
           </div>
         </div>
 
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Automatic Learning</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Automatic Learning</label>
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => patchSettings({ reflectionEnabled: !reflectionEnabled })}

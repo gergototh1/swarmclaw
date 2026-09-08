@@ -275,12 +275,12 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
 
                     {/* Content */}
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <span className="text-[11px] font-700 uppercase tracking-[0.03em]" style={{ color }}>
+                      <span className="text-[11px] font-700 tracking-[0.03em]" style={{ color }}>
                         {event.label}
                       </span>
                       <span className="text-[10px] text-text-3 font-mono">{fmtTime(event.time)}</span>
                       {event.source === 'execlog' && (
-                        <span className="text-[9px] text-text-3 font-mono uppercase tracking-[0.03em]">exec</span>
+                        <span className="text-[9px] text-text-3 font-mono tracking-[0.03em]">exec</span>
                       )}
                     </div>
 

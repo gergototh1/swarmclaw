@@ -55,7 +55,7 @@ export function OrgChartContextMenu({ agent, teamNames, x, y, onClose, onAction 
       style={{ left: x, top: y }}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div className="px-3 py-1.5 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3 truncate">
+      <div className="px-3 py-1.5 text-[10px] font-700 tracking-[0.03em] text-text-3 truncate">
         {agent.name}
       </div>
       <div className="h-px bg-layer-2 my-0.5" />

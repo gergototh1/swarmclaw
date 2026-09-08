@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mapWeightClass, mapTrackingClass, findTypeClasses } from './codemod-type-ladder.mjs'
+import { mapWeightClass, mapTrackingClass, findTypeClasses, stripUppercase } from './codemod-type-ladder.mjs'
 
 /**
  * Each assertion below is paired with the mutation that breaks it, because a
@@ -80,6 +80,30 @@ test('the finder sees everything, including what the maps decline', () => {
   assert.deepEqual(found.sort(), ['font-400', 'font-500', 'tracking-[0.2em]', 'tracking-tight'].sort())
 })
 
+test('uppercase is stripped and the gap it leaves is closed', () => {
+  assert.equal(
+    stripUppercase('className="text-[10px] uppercase text-text-3"'),
+    'className="text-[10px] text-text-3"',
+  )
+  // Trailing position: the space before the closing quote must go too, or
+  // every one of 647 diffs carries a stray character.
+  assert.equal(stripUppercase('className="text-[10px] uppercase"'), 'className="text-[10px]"')
+})
+
+test('a class list without the transform is returned unchanged', () => {
+  // Not "returns a copy" -- returns the identical string, so the caller can
+  // compare and count rather than rewriting a file for a no-op.
+  const input = 'className="text-[10px] text-text-3"'
+  assert.equal(stripUppercase(input), input)
+})
+
+test('a word merely containing "uppercase" is not the token', () => {
+  // \b on both sides. Without it this would corrupt any class or prop whose
+  // name embeds the word.
+  const input = 'className="text-[10px]" data-case="notuppercased"'
+  assert.equal(stripUppercase(input), input)
+})
+
 /**
  * Discrimination proofs. Each mutation was applied to a temp copy of
  * codemod-type-ladder.mjs and the named test was confirmed to fail:
@@ -88,6 +112,8 @@ test('the finder sees everything, including what the maps decline', () => {
  *   2. add '−0.02em' to TRACKING_MAP      breaks "negative tracking survives"
  *   3. drop the `m[0] !== cls` guard       breaks "a partial match is not a match"
  *   4. narrow TRACKING_RE to `\[[^\]]+\]`  breaks "the finder sees everything"
+ *   5. drop the \b around uppercase        breaks "a word merely containing"
+ *   6. drop the trailing-space collapse     breaks "uppercase is stripped"
  *
  * Without (2) in particular the suite would pass on a codemod that flattened
  * every display headline in the app.

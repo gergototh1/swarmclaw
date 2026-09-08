@@ -1033,7 +1033,7 @@ export function AgentSheet() {
     })
   }
 
-  const inputClass = "w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
+  const inputClass ="w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
   const configVersionSummaries = configVersions.map((version) => buildAgentConfigVersionSummary(version))
 
   return (
@@ -1045,7 +1045,7 @@ export function AgentSheet() {
             <h2 className="font-display text-[28px] font-700 tracking-[-0.03em]">
               {editing ? 'Edit Agent' : 'New Agent'}
             </h2>
-            <span className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em] ${
+            <span className={`rounded-full px-2.5 py-1 text-[10px] font-700 tracking-[0.03em] ${
               disabled
                 ? 'border border-amber-400/20 bg-amber-400/[0.08] text-amber-300'
                 : 'border border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-300'
@@ -1226,7 +1226,7 @@ export function AgentSheet() {
           onClick={handleTestAndSave}
           disabled={!name.trim() || providerNeedsKey || testStatus === 'testing' || saving || (!openclawEnabled && testStatus === 'pass')}
           className={`flex-1 py-3.5 rounded-md border-none text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-60 transition-all hover:brightness-110
-            ${testStatus === 'pass' ? 'bg-emerald-600 shadow-[0_4px_20px_rgba(16,185,129,0.25)]' : 'bg-accent-bright'}`}
+            ${testStatus === 'pass' ? 'bg-emerald-600 ' : 'bg-accent-bright'}`}
           style={{ fontFamily: 'inherit' }}
         >
           {openclawEnabled

@@ -184,7 +184,7 @@ export function ProjectList() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-display text-[14px] font-600 text-text truncate">{project.name}</h3>
                         {isActive && (
-                          <span className="shrink-0 text-[9px] font-700 uppercase tracking-[0.03em] text-accent-bright bg-accent-soft px-1.5 py-0.5 rounded-xs" style={{ animation: 'spring-in 0.3s var(--ease-spring)' }}>
+                          <span className="shrink-0 text-[9px] font-700 tracking-[0.03em] text-accent-bright bg-accent-soft px-1.5 py-0.5 rounded-xs" style={{ animation: 'spring-in 0.3s var(--ease-spring)' }}>
                             active filter
                           </span>
                         )}

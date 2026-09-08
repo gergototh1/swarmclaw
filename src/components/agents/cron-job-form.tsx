@@ -53,13 +53,13 @@ export function CronJobForm({ agentId, onSaved, onCancel }: Props) {
   return (
     <div className="flex flex-col gap-3 p-4 border border-line-subtle rounded-md bg-layer-1">
       <div>
-        <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-1">Name</label>
+        <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3 mb-1">Name</label>
         <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Job name" className={inputClass} />
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-1">Schedule Type</label>
+          <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3 mb-1">Schedule Type</label>
           <select value={scheduleKind} onChange={(e) => setScheduleKind(e.target.value as typeof scheduleKind)} className={inputClass}>
             <option value="every">Every (interval)</option>
             <option value="at">At (specific time)</option>
@@ -67,7 +67,7 @@ export function CronJobForm({ agentId, onSaved, onCancel }: Props) {
           </select>
         </div>
         <div>
-          <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-1">Value</label>
+          <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3 mb-1">Value</label>
           <input
             type="text"
             value={scheduleValue}
@@ -80,21 +80,21 @@ export function CronJobForm({ agentId, onSaved, onCancel }: Props) {
 
       {scheduleKind !== 'every' && (
         <div>
-          <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-1">Timezone</label>
+          <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3 mb-1">Timezone</label>
           <input type="text" value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="America/New_York" className={inputClass} />
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-1">Payload</label>
+          <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3 mb-1">Payload</label>
           <select value={payloadKind} onChange={(e) => setPayloadKind(e.target.value as typeof payloadKind)} className={inputClass}>
             <option value="agentTurn">Agent Turn</option>
             <option value="systemEvent">System Event</option>
           </select>
         </div>
         <div>
-          <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-1">Chat Target</label>
+          <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3 mb-1">Chat Target</label>
           <select value={sessionTarget} onChange={(e) => setSessionTarget(e.target.value as typeof sessionTarget)} className={inputClass}>
             <option value="main">Main chat</option>
             <option value="isolated">Isolated chat</option>
@@ -103,7 +103,7 @@ export function CronJobForm({ agentId, onSaved, onCancel }: Props) {
       </div>
 
       <div>
-        <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-1">Message / Text</label>
+        <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3 mb-1">Message / Text</label>
         <textarea
           value={payloadText}
           onChange={(e) => setPayloadText(e.target.value)}

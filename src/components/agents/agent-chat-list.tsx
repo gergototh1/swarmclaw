@@ -306,7 +306,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
 
           return (
             <div className="mb-2 px-2">
-              <div className="px-2 pb-1 text-[10px] font-700 uppercase tracking-[0.03em] text-accent-bright/65">
+              <div className="px-2 pb-1 text-[10px] font-700 tracking-[0.03em] text-accent-bright/65">
                 Default Agent
               </div>
               <div
@@ -343,7 +343,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                   <div className="relative shrink-0">
                     <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={38} />
                     <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-bg ${
-                      isWorking ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]' : 'bg-text-3/30'
+                      isWorking ? 'bg-emerald-400 ' : 'bg-text-3/30'
                     }`} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -352,11 +352,11 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                         {defaultAgent.name}
                       </span>
                       {isDisabled && (
-                        <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 uppercase tracking-[0.03em]">
+                        <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 tracking-[0.03em]">
                           Disabled
                         </span>
                       )}
-                      <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/12 text-accent-bright text-[9px] font-700 uppercase tracking-[0.03em]">
+                      <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/12 text-accent-bright text-[9px] font-700 tracking-[0.03em]">
                         Shortcut
                       </span>
                     </div>
@@ -448,7 +448,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                 <div className="relative shrink-0">
                   <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={36} />
                   <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-bg ${
-                    isWorking ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]' : 'bg-text-3/30'
+                    isWorking ? 'bg-emerald-400 ' : 'bg-text-3/30'
                   }`} />
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
@@ -457,12 +457,12 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                       {agent.name}
                     </span>
                     {isDisabled && (
-                      <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 uppercase tracking-[0.03em] shrink-0">
+                      <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 tracking-[0.03em] shrink-0">
                         Disabled
                       </span>
                     )}
                     {appSettings.defaultAgentId === agent.id && (
-                      <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/10 text-accent-bright text-[9px] font-700 uppercase tracking-[0.03em] shrink-0">
+                      <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/10 text-accent-bright text-[9px] font-700 tracking-[0.03em] shrink-0">
                         Default
                       </span>
                     )}

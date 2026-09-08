@@ -91,7 +91,7 @@ function StatTile({ label, value, hint, tone = 'default' }: {
   }[tone]
   return (
     <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
-      <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">{label}</div>
+      <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">{label}</div>
       <div className={cn('mt-2 font-display text-[26px] font-700 tracking-[-0.03em]', toneClass)}>{value}</div>
       <div className="mt-1 text-[12px] leading-relaxed text-text-3">{hint}</div>
     </div>
@@ -170,7 +170,7 @@ function ReleaseReadinessPanel({
     <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-accent-bright/70">Release Readiness</div>
+          <div className="text-[11px] font-700 tracking-[0.03em] text-accent-bright/70">Release Readiness</div>
           <h2 className="mt-1 font-display text-[17px] font-700 text-text">Ship gate report</h2>
           <p className="mt-1 max-w-[680px] text-[12px] leading-relaxed text-text-3">
             Combines eval regression gates, operations pulse blockers, pending approvals, active runs, budgets, connectors, and gateway readiness.
@@ -200,11 +200,11 @@ function ReleaseReadinessPanel({
             <div className="mt-1 text-[12px] text-text-3">readiness score</div>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <div className="rounded-sm bg-layer-2 px-3 py-2">
-                <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Blockers</div>
+                <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Blockers</div>
                 <div className="mt-1 text-[18px] font-700 text-text">{report.blockerCount}</div>
               </div>
               <div className="rounded-sm bg-layer-2 px-3 py-2">
-                <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Warnings</div>
+                <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Warnings</div>
                 <div className="mt-1 text-[18px] font-700 text-text">{report.warningCount}</div>
               </div>
             </div>
@@ -225,7 +225,7 @@ function ReleaseReadinessPanel({
                       check.href ? 'hover:bg-layer-3' : '',
                     )}
                   >
-                    <div className="text-[11px] font-700 uppercase tracking-[0.03em]">{check.status}</div>
+                    <div className="text-[11px] font-700 tracking-[0.03em]">{check.status}</div>
                     <div className="mt-1 text-[12px] font-700 text-text">{check.title}</div>
                     <div className="mt-0.5 text-[11px] leading-relaxed text-text-3">{check.summary}</div>
                   </button>
@@ -282,7 +282,7 @@ function ArchitectureHealthPanel({
     <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-accent-bright/70">Architecture Health</div>
+          <div className="text-[11px] font-700 tracking-[0.03em] text-accent-bright/70">Architecture Health</div>
           <h2 className="mt-1 font-display text-[17px] font-700 text-text">Runtime ownership map</h2>
           <p className="mt-1 max-w-[680px] text-[12px] leading-relaxed text-text-3">
             Inventories dispatch, memory, startup, and quality surfaces with owners, guardrails, and test evidence.
@@ -312,11 +312,11 @@ function ArchitectureHealthPanel({
             <div className="mt-1 text-[12px] text-text-3">health score</div>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <div className="rounded-sm bg-layer-2 px-3 py-2">
-                <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Surfaces</div>
+                <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Surfaces</div>
                 <div className="mt-1 text-[18px] font-700 text-text">{report.surfaceCount}</div>
               </div>
               <div className="rounded-sm bg-layer-2 px-3 py-2">
-                <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Guardrails</div>
+                <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Guardrails</div>
                 <div className="mt-1 text-[18px] font-700 text-text">{report.guardrailCount}</div>
               </div>
             </div>
@@ -351,7 +351,7 @@ function ArchitectureHealthPanel({
                       onClick={() => check.href && onOpenHref(check.href)}
                       className="rounded-sm border border-emerald-500/20 bg-emerald-500/[0.05] px-3 py-2 text-left text-emerald-200 transition-colors hover:bg-emerald-500/[0.08]"
                     >
-                      <div className="text-[11px] font-700 uppercase tracking-[0.03em]">{check.status}</div>
+                      <div className="text-[11px] font-700 tracking-[0.03em]">{check.status}</div>
                       <div className="mt-1 text-[12px] font-700 text-text">{check.title}</div>
                       <div className="mt-0.5 text-[11px] leading-relaxed text-text-3">{check.summary}</div>
                     </button>
@@ -364,7 +364,7 @@ function ArchitectureHealthPanel({
                       onClick={() => onOpenHref(action.href)}
                       className={cn('rounded-sm border px-3 py-2 text-left transition-colors hover:bg-layer-3', architectureStatusClass(action.severity))}
                     >
-                      <div className="text-[11px] font-700 uppercase tracking-[0.03em]">{action.severity}</div>
+                      <div className="text-[11px] font-700 tracking-[0.03em]">{action.severity}</div>
                       <div className="mt-1 text-[12px] font-700 text-text">{action.title}</div>
                       <div className="mt-0.5 text-[11px] leading-relaxed text-text-3">{action.summary}</div>
                     </button>
@@ -527,15 +527,15 @@ function EvalGatePanel({
 
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-sm border border-line-subtle bg-layer-1 px-2 py-2">
-              <div className="text-[9px] font-700 uppercase tracking-[0.03em] text-text-3">Current</div>
+              <div className="text-[9px] font-700 tracking-[0.03em] text-text-3">Current</div>
               <div className="mt-1 text-[14px] font-700 text-text">{formatPercent(gate.currentPercent)}</div>
             </div>
             <div className="rounded-sm border border-line-subtle bg-layer-1 px-2 py-2">
-              <div className="text-[9px] font-700 uppercase tracking-[0.03em] text-text-3">Baseline</div>
+              <div className="text-[9px] font-700 tracking-[0.03em] text-text-3">Baseline</div>
               <div className="mt-1 text-[14px] font-700 text-text">{gate.baseline ? `${gate.baseline.baselinePercent}%` : 'none'}</div>
             </div>
             <div className="rounded-sm border border-line-subtle bg-layer-1 px-2 py-2">
-              <div className="text-[9px] font-700 uppercase tracking-[0.03em] text-text-3">Regression</div>
+              <div className="text-[9px] font-700 tracking-[0.03em] text-text-3">Regression</div>
               <div className="mt-1 text-[14px] font-700 text-text">{gate.regressionPoints == null ? 'n/a' : `${gate.regressionPoints}pt`}</div>
             </div>
           </div>
@@ -880,7 +880,7 @@ export function QualityWorkspace() {
         <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-accent-bright/75">Operator Quality Center</div>
+              <div className="text-[10px] font-700 tracking-[0.03em] text-accent-bright/75">Operator Quality Center</div>
               <h1 className="mt-2 font-display text-[28px] font-700 tracking-[-0.03em] text-text">Quality</h1>
               <p className="mt-2 max-w-[720px] text-[13px] leading-relaxed text-text-3">
                 Evals, approvals, run evidence, and release readiness in one operator workspace.
@@ -996,7 +996,7 @@ export function QualityWorkspace() {
                           onClick={() => selectTab('runs')}
                           className="rounded-md border border-rose-500/20 bg-rose-500/[0.04] px-3 py-3 text-left transition-colors hover:bg-rose-500/[0.07]"
                         >
-                          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-rose-300">Failed Run</div>
+                          <div className="text-[11px] font-700 tracking-[0.03em] text-rose-300">Failed Run</div>
                           <div className="mt-1 truncate text-[13px] font-600 text-text">{run.messagePreview || run.id}</div>
                           <div className="mt-1 text-[11px] text-text-3">{run.source} - {formatTimestamp(run.endedAt ?? run.queuedAt)}</div>
                         </button>
@@ -1007,7 +1007,7 @@ export function QualityWorkspace() {
                           onClick={() => selectTab('approvals')}
                           className="rounded-md border border-amber-500/20 bg-amber-500/[0.04] px-3 py-3 text-left transition-colors hover:bg-amber-500/[0.07]"
                         >
-                          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-amber-300">Approval</div>
+                          <div className="text-[11px] font-700 tracking-[0.03em] text-amber-300">Approval</div>
                           <div className="mt-1 text-[13px] font-600 text-text">{group.count} pending {group.category.replaceAll('_', ' ')}</div>
                           <div className="mt-1 text-[11px] text-text-3">{group.approvals[0]?.title || 'Review request'}</div>
                         </button>
@@ -1053,7 +1053,7 @@ export function QualityWorkspace() {
                 <p className="mt-1 text-[12px] leading-relaxed text-text-3">Run focused scenarios or complete suites against one agent.</p>
                 <div className="mt-4 flex flex-col gap-3">
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Agent</span>
+                    <span className="text-[10px] font-700 tracking-[0.03em] text-text-3">Agent</span>
                     <select
                       value={selectedAgentId}
                       onChange={(event) => setSelectedAgentId(event.target.value)}
@@ -1066,7 +1066,7 @@ export function QualityWorkspace() {
                     </select>
                   </label>
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Scenario</span>
+                    <span className="text-[10px] font-700 tracking-[0.03em] text-text-3">Scenario</span>
                     <select
                       value={selectedScenarioId}
                       onChange={(event) => setSelectedScenarioId(event.target.value)}
@@ -1234,7 +1234,7 @@ export function QualityWorkspace() {
                   approvalGroups.categories.map((group) => (
                     <div key={group.category} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                       <div className="mb-3 flex items-center justify-between gap-3">
-                        <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-2">{group.category.replaceAll('_', ' ')}</div>
+                        <div className="text-[12px] font-700 tracking-[0.03em] text-text-2">{group.category.replaceAll('_', ' ')}</div>
                         <div className="text-[11px] font-700 text-text-3">{group.count} request{group.count === 1 ? '' : 's'}</div>
                       </div>
                       <div className="grid gap-2 lg:grid-cols-2">

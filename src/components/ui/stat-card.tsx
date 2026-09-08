@@ -23,7 +23,7 @@ export function StatCard({ label, value, accent, hint, trend, index = 0, classNa
         animationDelay: `${0.1 + index * 0.05}s`,
       }}
     >
-      <p className="text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-1 flex items-center gap-1.5">
+      <p className="text-[11px] font-600 text-text-3 tracking-[0.03em] mb-1 flex items-center gap-1.5">
         {label}
         {hint && <HintTip text={hint} />}
       </p>

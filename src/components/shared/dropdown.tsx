@@ -26,7 +26,7 @@ export function Dropdown({ open, onClose, children }: Props) {
     <div
       ref={ref}
       className="fixed top-12 right-3 bg-raised border border-line-subtle rounded-md
-        p-1.5 z-90 min-w-[200px] shadow-[0_16px_64px_rgba(0,0,0,0.6)]
+        p-1.5 z-90 min-w-[200px] 
         backdrop-blur-xl"
       style={{ animation: 'fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)' }}
     >

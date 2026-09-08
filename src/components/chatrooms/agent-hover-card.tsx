@@ -64,7 +64,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
         {/* Tools toggles */}
         <div className="mt-2">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-600 text-text-3 uppercase tracking-[0.03em]">Tools</span>
+            <span className="text-[10px] font-600 text-text-3 tracking-[0.03em]">Tools</span>
             <button
               onClick={() => setShowAll(!showAll)}
               className="text-[10px] text-accent-bright/70 hover:text-accent-bright font-600 bg-transparent border-none cursor-pointer"

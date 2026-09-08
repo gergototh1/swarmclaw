@@ -214,7 +214,7 @@ export function SearchDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-[520px] p-0 bg-surface/95 backdrop-blur-xl border-line-default shadow-[0_24px_80px_rgba(0,0,0,0.6)] rounded-lg overflow-hidden gap-0"
+        className="sm:max-w-[520px] p-0 bg-surface/95 backdrop-blur-xl border-line-default rounded-lg overflow-hidden gap-0"
         onKeyDown={handleKeyDown}
       >
         <DialogTitle className="sr-only">Search</DialogTitle>
@@ -287,7 +287,7 @@ export function SearchDialog() {
                 )}
               </div>
               {/* Type label */}
-              <span className="text-[10px] text-text-3 uppercase tracking-[0.03em] shrink-0">
+              <span className="text-[10px] text-text-3 tracking-[0.03em] shrink-0">
                 {TYPE_LABELS[result.type]}
               </span>
             </button>

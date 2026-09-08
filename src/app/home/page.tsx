@@ -440,7 +440,7 @@ export default function HomePage() {
           {/* Cost trend sparkline */}
           {costTrend.length > 1 && (
             <div className="mb-10 px-1" style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
-              <p className="text-[10px] text-text-3 uppercase tracking-[0.03em] mb-1 flex items-center gap-1.5">
+              <p className="text-[10px] text-text-3 tracking-[0.03em] mb-1 flex items-center gap-1.5">
                 7-day cost trend <HintTip text="Daily API spend over the past week — hover for details" />
               </p>
               <ResponsiveContainer width="100%" height={60}>
@@ -528,7 +528,7 @@ export default function HomePage() {
                     className="flex items-center gap-2 px-3 py-2 rounded-sm bg-layer-1 border border-line-subtle"
                   >
                     <div className={`w-2 h-2 rounded-full ${
-                      c.status === 'running' ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]'
+                      c.status === 'running' ? 'bg-emerald-400 '
                         : c.status === 'error' ? 'bg-red-400' : 'bg-text-3/30'
                     }`} />
                     <span className="text-[12px] font-600 text-text">{c.name}</span>
@@ -633,7 +633,7 @@ export default function HomePage() {
                         <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={36} />
                         <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface ${
                           isTyping ? 'bg-accent-bright animate-pulse'
-                            : isOnline ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]'
+                            : isOnline ? 'bg-emerald-400 '
                             : 'bg-text-3/30'
                         }`} />
                       </div>

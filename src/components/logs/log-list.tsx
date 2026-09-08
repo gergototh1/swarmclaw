@@ -265,7 +265,7 @@ export function LogList() {
                 <span className="text-[10px] text-text-3 font-mono shrink-0 mt-[1px] w-[58px]">
                   {formatTime(entry.time)}
                 </span>
-                <span className={`text-[9px] font-700 uppercase tracking-[0.03em] shrink-0 mt-[2px] w-[36px] ${LEVEL_COLORS[entry.level] || 'text-text-3'}`}>
+                <span className={`text-[9px] font-700 tracking-[0.03em] shrink-0 mt-[2px] w-[36px] ${LEVEL_COLORS[entry.level] || 'text-text-3'}`}>
                   {entry.level}
                 </span>
                 <span className="text-[10px] font-600 text-accent/60 shrink-0 mt-[1px]">
@@ -290,7 +290,7 @@ export function LogList() {
           <>
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-3">
-                <span className={`text-[11px] font-700 uppercase tracking-[0.03em] px-2.5 py-1 rounded-xs ${LEVEL_BG[selected.level]} ${LEVEL_COLORS[selected.level]}`}>
+                <span className={`text-[11px] font-700 tracking-[0.03em] px-2.5 py-1 rounded-xs ${LEVEL_BG[selected.level]} ${LEVEL_COLORS[selected.level]}`}>
                   {selected.level}
                 </span>
                 <span className="text-[12px] font-600 text-accent/80 font-mono">{selected.tag}</span>
@@ -304,7 +304,7 @@ export function LogList() {
             {/* Data payload */}
             {selected.data && (
               <div className="mb-8">
-                <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Details</label>
+                <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Details</label>
                 <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-md p-4 max-h-[300px] overflow-auto border border-line-subtle">
                   {selected.data}
                 </pre>
@@ -313,7 +313,7 @@ export function LogList() {
 
             {/* Create as Task */}
             <div className="pt-4 border-t border-line-subtle">
-              <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">
+              <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">
                 Create as Task
               </label>
               <p className="text-[12px] text-text-3 mb-3">

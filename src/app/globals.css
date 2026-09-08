@@ -1068,12 +1068,13 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 
 /* AI avatar mood animations */
 @keyframes ai-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
-@keyframes ai-glow { 0%,100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 12px 4px var(--color-accent-glow); } }
+/* ai-glow removed: a pulsing accent halo is a light source, and this design
+   has none. A streaming bubble is marked by its caret. */
 @keyframes ai-shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-3px); } 40% { transform: translateX(3px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(2px); } }
 @keyframes ai-bounce { 0%,100% { transform: scale(1); } 40% { transform: scale(1.25); } 60% { transform: scale(0.95); } }
 
 .ai-mood-pulse { animation: ai-pulse 2s ease-in-out infinite; }
-.ai-mood-glow { animation: ai-glow 1.8s ease-in-out infinite; }
+.ai-mood-glow { /* was: animation: ai-glow. See the note above the removed keyframe. */ }
 .ai-mood-shake { animation: ai-shake 0.5s ease-in-out; }
 .ai-mood-bounce { animation: ai-bounce 0.6s ease-out; }
 
@@ -1167,7 +1168,6 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   vertical-align: text-bottom;
   animation: blink 0.8s step-end infinite;
   border-radius: 1px;
-  box-shadow: 0 0 12px var(--color-accent-glow);
 }
 
 /* Focus glow */
@@ -1205,10 +1205,14 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 
 /* Message bubble styles */
 .bubble-user {
-  background: linear-gradient(135deg, var(--color-user-bubble) 0%, var(--color-user-bubble-2) 100%);
+  /* Flat, and no lift. The gradient here ran between --ac and --ac-2, which
+     are now a fill colour and the step that reads as text on the same ground
+     -- so it was blending two values that were never a ramp. The design
+     forbids decorative gradients outright, and the 1px drop was the last
+     shadow on a non-overlay surface in the whole app. */
+  background: var(--color-user-bubble);
   border-radius: var(--radius-lg) var(--radius-lg) var(--radius-xs) var(--radius-lg);
   color: var(--color-user-text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
 }
 
 .bubble-ai {
@@ -1255,8 +1259,11 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 .status-badge-approval {
   display: inline-flex; align-items: center; gap: 0.375rem;
   padding: 0.125rem 0.5rem; border-radius: var(--radius-full);
-  font-size: 11px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.03em; border: 1px solid;
+  /* Sentence case, like every other label in the app now. The uppercase
+     transform here was the same idiom the 647 class-list ones were, and it
+     survived them because it lives in CSS where no codemod was looking. */
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.01em; border: 1px solid;
 }
 /* The COLOURED fill is dropped; a neutral one takes its place. This design
    carries status in the word and the badge's edge, never in a coloured

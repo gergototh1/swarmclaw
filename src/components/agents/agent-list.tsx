@@ -251,7 +251,7 @@ export function AgentList({ inSidebar }: Props) {
         <div className="mx-4 mb-3 rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h3 className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Fleet Roles</h3>
+              <h3 className="text-[12px] font-700 tracking-[0.03em] text-text-3">Fleet Roles</h3>
               <p className="text-[12px] text-text-3 mt-1">
                 Delegating agents can hand work to other agents. Solo agents stay on their own thread and tools.
               </p>

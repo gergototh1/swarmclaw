@@ -198,7 +198,7 @@ export function StructuredSessionLauncher({
       description={launcherDescription}
     >
       <div className="mb-8">
-        <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">
+        <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 tracking-[0.03em] text-text-3">
           Structured Sessions
         </div>
         <h2 className="mt-4 font-display text-[28px] font-700 tracking-[-0.03em] text-text">{launcherTitle}</h2>
@@ -209,7 +209,7 @@ export function StructuredSessionLauncher({
 
       {linkedContext.length > 0 && (
         <div className="mb-6 rounded-lg border border-line-subtle bg-layer-1 p-4">
-          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Starting From</div>
+          <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Starting From</div>
           <div className="mt-3 flex flex-wrap gap-2">
             {linkedContext.map((entry) => (
               <span key={`${entry.label}-${entry.value}`} className="rounded-full border border-line-default bg-layer-1 px-3 py-1.5 text-[12px] text-text-2">
@@ -230,7 +230,7 @@ export function StructuredSessionLauncher({
       <div className="space-y-6">
         <div className="grid gap-3 md:grid-cols-2">
           <div className="md:col-span-2">
-            <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Title</div>
+            <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Title</div>
             <input
               value={form.title}
               onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
@@ -242,7 +242,7 @@ export function StructuredSessionLauncher({
           {!breakoutMode && (
             <>
               <div>
-                <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Template</div>
+                <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Template</div>
                 <select
                   value={form.templateId}
                   onChange={(event) => setForm((current) => ({ ...current, templateId: event.target.value }))}
@@ -255,7 +255,7 @@ export function StructuredSessionLauncher({
               </div>
 
               <div>
-                <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Facilitator</div>
+                <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Facilitator</div>
                 <select
                   value={form.facilitatorAgentId}
                   onChange={(event) => setForm((current) => ({ ...current, facilitatorAgentId: event.target.value }))}
@@ -271,7 +271,7 @@ export function StructuredSessionLauncher({
           )}
 
           <div className="md:col-span-2">
-            <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Goal</div>
+            <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Goal</div>
             <input
               value={form.goal}
               onChange={(event) => setForm((current) => ({ ...current, goal: event.target.value }))}
@@ -281,7 +281,7 @@ export function StructuredSessionLauncher({
           </div>
 
           <div className="md:col-span-2">
-            <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Kickoff Context</div>
+            <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Kickoff Context</div>
             <textarea
               value={form.kickoffMessage}
               onChange={(event) => setForm((current) => ({ ...current, kickoffMessage: event.target.value }))}
@@ -294,7 +294,7 @@ export function StructuredSessionLauncher({
 
         {breakoutMode ? (
           <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
-            <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Room Participants</div>
+            <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Room Participants</div>
             <div className="mt-3 flex flex-wrap gap-2">
               {loading ? (
                 <div className="text-[13px] text-text-3">Loading room members…</div>
@@ -312,7 +312,7 @@ export function StructuredSessionLauncher({
           </div>
         ) : (
           <div>
-            <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Participants</div>
+            <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Participants</div>
             <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-md border border-line-subtle bg-layer-1 p-3">
               {loading ? (
                 <div className="text-[13px] text-text-3">Loading options…</div>
@@ -346,7 +346,7 @@ export function StructuredSessionLauncher({
           <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="text-[14px] font-700 text-text">{selectedTemplate.name}</div>
-              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] ${
+              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] ${
                 selectedTemplate.builtIn
                   ? 'border-line-default bg-layer-2 text-text-3/75'
                   : 'border-sky-500/20 bg-sky-500/10 text-sky-200'
@@ -373,7 +373,7 @@ export function StructuredSessionLauncher({
             onToggle={(event) => setAdvancedOpen((event.currentTarget as HTMLDetailsElement).open)}
             className="rounded-lg border border-line-subtle bg-layer-1 p-4"
           >
-            <summary className="cursor-pointer list-none text-[12px] font-700 uppercase tracking-[0.03em] text-text-2">
+            <summary className="cursor-pointer list-none text-[12px] font-700 tracking-[0.03em] text-text-2">
               Advanced
             </summary>
             <div className="mt-4 grid gap-3 md:grid-cols-2">

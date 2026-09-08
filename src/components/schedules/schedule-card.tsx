@@ -90,7 +90,7 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
               />
             </div>
           )}
-          <span className={`text-[10px] font-600 uppercase tracking-[0.03em] px-2 py-0.5 rounded-xs ${statusClass}`}>
+          <span className={`text-[10px] font-600 tracking-[0.03em] px-2 py-0.5 rounded-xs ${statusClass}`}>
             {schedule.status}
           </span>
           {!inSidebar && (

@@ -52,7 +52,7 @@ export function ComposePost({ selectedAgentId, onSelectAgent }: Props) {
       </div>
 
       <div className="mb-4">
-        <label className="mb-2 block text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">
+        <label className="mb-2 block text-[11px] font-700 tracking-[0.03em] text-text-3">
           Acting As
         </label>
         {feedAgents.length === 0 ? (

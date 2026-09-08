@@ -171,7 +171,7 @@ export function KnowledgeList() {
           <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Hygiene</div>
+                <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Hygiene</div>
                 <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-text-2">
                   <span>stale {hygiene.counts.stale}</span>
                   <span>duplicates {hygiene.counts.duplicate}</span>
@@ -194,7 +194,7 @@ export function KnowledgeList() {
               </div>
               <button
                 onClick={() => setIncludeArchived((current) => !current)}
-                className={`rounded-sm px-2 py-1 text-[10px] font-700 uppercase tracking-[0.03em] cursor-pointer ${
+                className={`rounded-sm px-2 py-1 text-[10px] font-700 tracking-[0.03em] cursor-pointer ${
                   includeArchived ? 'bg-amber-500/12 text-amber-200' : 'bg-layer-2 text-text-3/75'
                 }`}
               >
@@ -210,7 +210,7 @@ export function KnowledgeList() {
           <div className="flex gap-1 flex-wrap">
             <button
               onClick={() => setActiveTag(null)}
-              className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all uppercase tracking-[0.03em] ${
+              className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all tracking-[0.03em] ${
                 !activeTag ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'
               }`}
               style={{ fontFamily: 'inherit' }}
@@ -221,7 +221,7 @@ export function KnowledgeList() {
               <button
                 key={tag}
                 onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all uppercase tracking-[0.03em] ${
+                className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all tracking-[0.03em] ${
                   activeTag === tag ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'
                 }`}
                 style={{ fontFamily: 'inherit' }}
@@ -257,7 +257,7 @@ export function KnowledgeList() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
                           <span className="font-display text-[13px] font-600 text-text truncate">{hit.sourceTitle}</span>
-                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase">{hit.sourceKind}</Badge>
+                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{hit.sourceKind}</Badge>
                         </div>
                         <p className="text-[10px] text-text-3">
                           Chunk {hit.chunkIndex + 1} of {hit.chunkCount}
@@ -333,11 +333,11 @@ export function KnowledgeList() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
                           <span className="font-display text-[13px] font-600 text-text truncate">{source.title}</span>
-                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase">{source.kind}</Badge>
+                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{source.kind}</Badge>
                           {source.archivedAt ? (
-                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase text-amber-200">archived</Badge>
+                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 text-amber-200">archived</Badge>
                           ) : source.supersededBySourceId ? (
-                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase text-text-3">superseded</Badge>
+                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 text-text-3">superseded</Badge>
                           ) : null}
                         </div>
                         <p className="text-[10px] text-text-3">

@@ -360,7 +360,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
       )}
 
       {visibleQueuedMessages.length > 0 && (
-        <div className="mb-2 overflow-hidden rounded-md border border-amber-500/18 bg-[linear-gradient(180deg,rgba(245,158,11,0.08)_0%,rgba(245,158,11,0.03)_100%)] shadow-[0_10px_32px_rgba(245,158,11,0.06)]">
+        <div className="mb-2 overflow-hidden rounded-md border border-amber-500/18 bg-[linear-gradient(180deg,rgba(245,158,11,0.08)_0%,rgba(245,158,11,0.03)_100%)]">
           <div className="flex items-start justify-between gap-3 border-b border-amber-500/10 px-3.5 py-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -372,7 +372,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                 <span className="rounded-full border border-amber-400/15 bg-amber-400/10 px-2 py-0.5 text-[10px] font-600 text-amber-200">
                   {visibleQueuedMessages.length}
                 </span>
-                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] ${
+                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] ${
                   streaming
                     ? 'border-amber-300/20 bg-amber-300/10 text-amber-100'
                     : 'border-line-default bg-layer-2 text-text-3'
@@ -416,7 +416,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     {index === 0 && (
-                      <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-amber-100">
+                      <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] text-amber-100">
                         Next
                       </span>
                     )}

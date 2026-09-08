@@ -643,7 +643,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-purple-400/60 shrink-0 transition-transform group-open:rotate-90">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
-              <span className="text-[11px] font-600 text-purple-400/70 uppercase tracking-[0.03em]">Thinking</span>
+              <span className="text-[11px] font-600 text-purple-400/70 tracking-[0.03em]">Thinking</span>
               {!liveStreamActive && (
                 <span className="text-[10px] text-text-3 font-mono">{Math.ceil(effectiveThinking.length / 4)} tokens</span>
               )}
@@ -686,7 +686,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
         /* Message bubble */
         <div className={`${isStructured ? 'max-w-[92%] md:max-w-[85%]' : 'max-w-[85%] md:max-w-[72%]'} ${isUser ? 'bubble-user px-5 py-3.5' : isHeartbeat ? 'bubble-ai px-4 py-3' : 'bubble-ai px-5 py-3.5'}`}>
           {installRequest ? (
-          <div className="flex flex-col gap-3 p-4 rounded-lg bg-emerald-500/[0.03] border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
+          <div className="flex flex-col gap-3 p-4 rounded-lg bg-emerald-500/[0.03] border border-emerald-500/20">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -695,28 +695,28 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
               </div>
-              <span className="text-[11px] font-700 uppercase tracking-[0.03em] text-emerald-400/80">Extension Installed</span>
+              <span className="text-[11px] font-700 tracking-[0.03em] text-emerald-400/80">Extension Installed</span>
             </div>
             <p className="text-[13px] text-text-2 leading-relaxed">{installRequest.message}</p>
             {/* bg-black/40 is a fixed dark inset, not a ladder surface, so its
                 hairline stays white-alpha: border-line-subtle would turn dark
                 against a dark inset under .light. */}
             <div className="p-3 rounded-md bg-black/40 border border-white/5 flex flex-col gap-1">
-              <div className="text-[11px] text-text-3 font-600 uppercase tracking-tight">Extension</div>
+              <div className="text-[11px] text-text-3 font-600 tracking-tight">Extension</div>
               <div className="text-[12px] font-mono text-emerald-200/70">{installRequest.filename || installRequest.extensionId || 'extension'}</div>
-              <div className="text-[11px] text-text-3 font-600 uppercase tracking-tight mt-2">Source URL</div>
+              <div className="text-[11px] text-text-3 font-600 tracking-tight mt-2">Source URL</div>
               <div className="text-[12px] font-mono text-emerald-200/70 truncate">{installRequest.url}</div>
             </div>
           </div>
         ) : scaffoldRequest ? (
-          <div className="flex flex-col gap-3 p-4 rounded-lg bg-amber-500/[0.03] border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.05)]">
+          <div className="flex flex-col gap-3 p-4 rounded-lg bg-amber-500/[0.03] border border-amber-500/20">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                 </svg>
               </div>
-              <span className="text-[11px] font-700 uppercase tracking-[0.03em] text-amber-400/80">Extension Created</span>
+              <span className="text-[11px] font-700 tracking-[0.03em] text-amber-400/80">Extension Created</span>
             </div>
             <p className="text-[13px] text-text-2 leading-relaxed">{scaffoldRequest.message}</p>
             <div className="p-3 rounded-md bg-black/40 border border-white/5">
@@ -729,14 +729,14 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
             </div>
           </div>
         ) : isExtensionUI ? (
-          <div className="flex flex-col gap-2 p-4 rounded-lg bg-emerald-500/[0.03] border border-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
+          <div className="flex flex-col gap-2 p-4 rounded-lg bg-emerald-500/[0.03] border border-emerald-500/10">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                 </svg>
               </div>
-              <span className="text-[11px] font-700 uppercase tracking-[0.03em] text-emerald-400/80">Extension UI Extension</span>
+              <span className="text-[11px] font-700 tracking-[0.03em] text-emerald-400/80">Extension UI Extension</span>
             </div>
             <div className="text-[14px] text-text-2 leading-relaxed">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
@@ -767,7 +767,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                     const statusColor = meta?.status ? (STATUS_COLORS[meta.status] || '#6B7280') : '#22C55E'
                     return <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />
                   })()}
-                  <span className="text-[11px] uppercase tracking-[0.03em] text-text-2 font-600">Heartbeat</span>
+                  <span className="text-[11px] tracking-[0.03em] text-text-2 font-600">Heartbeat</span>
                   {(() => {
                     const meta = parseHeartbeatMeta(message.text)
                     if (!meta?.status) return null
@@ -784,13 +784,13 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                     <div className="mt-2 flex flex-col gap-1">
                       {meta.goal && (
                         <div className="flex items-baseline gap-1.5">
-                          <span className="text-[10px] uppercase tracking-[0.03em] text-text-3 font-600 shrink-0">Goal</span>
+                          <span className="text-[10px] tracking-[0.03em] text-text-3 font-600 shrink-0">Goal</span>
                           <span className="text-[12px] text-text-2 truncate">{meta.goal}</span>
                         </div>
                       )}
                       {meta.next_action && (
                         <div className="flex items-baseline gap-1.5">
-                          <span className="text-[10px] uppercase tracking-[0.03em] text-text-3 font-600 shrink-0">Next</span>
+                          <span className="text-[10px] tracking-[0.03em] text-text-3 font-600 shrink-0">Next</span>
                           <span className="text-[12px] text-text-2 truncate">{meta.next_action}</span>
                         </div>
                       )}
@@ -824,7 +824,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
         ) : hasDisplayText ? (
           <div className={`msg-content text-[15px] md:text-[14px] break-words ${liveStreamActive ? 'streaming-cursor' : ''} ${isUser ? 'leading-[1.6] text-white/95' : 'leading-[1.7] text-text'}`}>
             {!isUser && message.kind === 'connector-delivery' && connectorDeliveryTranscript && (
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.03em] text-emerald-200/85">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-700 tracking-[0.03em] text-emerald-200/85">
                 <span>Delivered via connector</span>
                 {message.source?.deliveryMode === 'voice_note' && (
                   <span className="text-emerald-100/70">voice note</span>

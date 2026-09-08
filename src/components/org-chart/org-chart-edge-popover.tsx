@@ -109,7 +109,7 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
             <div key={job.id} className="rounded-sm border border-line-subtle bg-layer-1 p-2.5">
               {/* Status + time */}
               <div className="flex items-center gap-1.5 mb-1">
-                <span className={`text-[8px] font-600 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs leading-none ${badge.cls}`}>
+                <span className={`text-[8px] font-600 tracking-[0.03em] px-1.5 py-0.5 rounded-xs leading-none ${badge.cls}`}>
                   {badge.label}
                 </span>
                 <span className="text-[9px] text-text-3 ml-auto">{timeAgo(job.updatedAt || job.createdAt)}</span>

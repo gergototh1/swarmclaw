@@ -848,7 +848,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
         <div className="mt-4 space-y-4">
           <div className="grid gap-3 md:grid-cols-[120px_1fr]">
             <div>
-              <label className="block text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">Port</label>
+              <label className="block text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">Port</label>
               <input
                 type="number"
                 min={1024}
@@ -859,7 +859,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               />
             </div>
             <div>
-              <label className="block text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">Gateway token</label>
+              <label className="block text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">Gateway token</label>
               <input
                 type="text"
                 value={deployToken}
@@ -878,7 +878,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   One-click bring-up on the same machine running SwarmClaw. Good for quickstarts and non-technical local installs.
                 </div>
               </div>
-              <div className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em] ${
+              <div className={`rounded-full px-2.5 py-1 text-[10px] font-700 tracking-[0.03em] ${
                 localStatus?.running
                   ? 'bg-emerald-500/10 text-emerald-300'
                   : 'bg-layer-2 text-text-3'
@@ -955,18 +955,18 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
             {localStatus && (
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Endpoint</div>
+                  <div className="text-[10px] tracking-[0.03em] text-text-3">Endpoint</div>
                   <div className="mt-1 text-[12px] text-text-2 font-mono break-all">{localStatus.endpoint}</div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Persistent install</div>
+                  <div className="text-[10px] tracking-[0.03em] text-text-3">Persistent install</div>
                   <div className="mt-1 text-[12px] text-text-3 leading-relaxed">
                     For a durable OS service, use the generated install command after the quick deploy works.
                   </div>
                 </div>
                 {verifySummary && (
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 md:col-span-2">
-                    <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Verification</div>
+                    <div className="text-[10px] tracking-[0.03em] text-text-3">Verification</div>
                     <div className="mt-1 text-[12px] text-text-2 leading-relaxed">{verifySummary}</div>
                   </div>
                 )}
@@ -981,7 +981,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
 
             {visibleLocalStatuses.length > 0 && (
               <div className="mt-3 space-y-2">
-                <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Managed instances</div>
+                <div className="text-[10px] tracking-[0.03em] text-text-3">Managed instances</div>
                 {visibleLocalStatuses.map((status) => (
                   <div key={status.id} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -994,7 +994,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                           {status.endpoint}
                         </div>
                       </div>
-                      <div className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em] ${
+                      <div className={`rounded-full px-2.5 py-1 text-[10px] font-700 tracking-[0.03em] ${
                         status.running
                           ? 'bg-emerald-500/10 text-emerald-300'
                           : 'bg-layer-2 text-text-3'
@@ -1055,7 +1055,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
         <div className="mt-4 space-y-4">
           <div className="grid gap-3 md:grid-cols-[1fr_120px]">
             <div>
-              <label className="block text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">Public host or URL</label>
+              <label className="block text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">Public host or URL</label>
               <input
                 type="text"
                 value={remoteTarget}
@@ -1065,7 +1065,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               />
             </div>
             <div>
-              <label className="block text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">Scheme</label>
+              <label className="block text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">Scheme</label>
               <select
                 value={remoteScheme}
                 onChange={(e) => setRemoteScheme(e.target.value === 'http' ? 'http' : 'https')}
@@ -1078,7 +1078,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
           </div>
 
           <div>
-            <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">Deploy target</div>
+            <div className="text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">Deploy target</div>
             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               {TEMPLATE_OPTIONS.map((option) => (
                 <button
@@ -1096,7 +1096,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
 
           {remoteTemplate === 'docker' && (
             <div className="space-y-4">
-              <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">VPS provider</div>
+              <div className="text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">VPS provider</div>
               <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-5">
                 {PROVIDER_OPTIONS.map((option) => (
                   <button
@@ -1115,7 +1115,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               </p>
 
               <div>
-                <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">Use case preset</div>
+                <div className="text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">Use case preset</div>
                 <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
                   {USE_CASE_OPTIONS.map((option) => (
                     <button
@@ -1132,7 +1132,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               </div>
 
               <div>
-                <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">Safe exposure preset</div>
+                <div className="text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">Safe exposure preset</div>
                 <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
                   {EXPOSURE_OPTIONS.map((option) => (
                     <button
@@ -1152,7 +1152,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               </div>
 
               <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
-                <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-3">In-House SSH Deploy</div>
+                <div className="text-[11px] font-700 tracking-[0.03em] text-text-3 mb-3">In-House SSH Deploy</div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <input
                     type="text"
@@ -1316,7 +1316,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               )}
               {visibleRemoteStatuses.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Managed remote deployments</div>
+                  <div className="text-[10px] tracking-[0.03em] text-text-3">Managed remote deployments</div>
                   {visibleRemoteStatuses.map((status) => (
                     <div key={status.id} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1330,7 +1330,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em] ${
+                          <div className={`rounded-full px-2.5 py-1 text-[10px] font-700 tracking-[0.03em] ${
                             status.active
                               ? 'bg-emerald-500/10 text-emerald-300'
                               : 'bg-layer-2 text-text-3'
@@ -1353,15 +1353,15 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               {remoteStatus && (
                 <div className="mt-3 grid gap-3 md:grid-cols-3">
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Remote action</div>
+                    <div className="text-[10px] tracking-[0.03em] text-text-3">Remote action</div>
                     <div className="mt-1 text-[12px] text-text-2">{remoteStatus.action || remoteStatus.lastSummary || 'Idle'}</div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Target</div>
+                    <div className="text-[10px] tracking-[0.03em] text-text-3">Target</div>
                     <div className="mt-1 text-[12px] text-text-2 font-mono break-all">{remoteStatus.target || sshHost || 'n/a'}</div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Status</div>
+                    <div className="text-[10px] tracking-[0.03em] text-text-3">Status</div>
                     <div className="mt-1 text-[12px] text-text-2">{remoteStatus.status}</div>
                   </div>
                 </div>
@@ -1393,11 +1393,11 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 </div>
                 <div className="grid gap-2 md:grid-cols-2">
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Endpoint</div>
+                    <div className="text-[10px] tracking-[0.03em] text-text-3">Endpoint</div>
                     <div className="mt-1 text-[11px] font-mono text-text-2 break-all">{bundle.endpoint}</div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Host path</div>
+                    <div className="text-[10px] tracking-[0.03em] text-text-3">Host path</div>
                     <div className="mt-1 text-[11px] text-text-2">{bundle.providerLabel}</div>
                   </div>
                 </div>

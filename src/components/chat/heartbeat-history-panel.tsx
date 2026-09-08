@@ -221,7 +221,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
                       style={{ backgroundColor: color }}
                       title={entry.status}
                     />
-                    <span className="text-[10px] font-600 uppercase tracking-[0.03em]" style={{ color }}>
+                    <span className="text-[10px] font-600 tracking-[0.03em]" style={{ color }}>
                       {entry.status}
                     </span>
                     <span className="text-[10px] text-text-3 ml-auto tabular-nums">

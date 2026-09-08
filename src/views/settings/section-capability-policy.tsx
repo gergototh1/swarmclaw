@@ -5,14 +5,14 @@ import type { SettingsSectionProps } from './types'
 export function CapabilityPolicySection({ appSettings, patchSettings, inputClass }: SettingsSectionProps) {
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Capability Policy
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Centralized guardrails for agent tool families and platform features. SwarmClaw now relies on direct capability policy and explicit feature gates rather than a workflow approval queue.
       </p>
       <div className="p-6 rounded-lg bg-surface border border-line-subtle">
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Policy Mode</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Policy Mode</label>
         <div className="grid grid-cols-3 gap-2 mb-5">
           {([
             { id: 'permissive', name: 'Permissive' },
@@ -87,13 +87,13 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
                 }`}
                 aria-label="Toggle outbound connector confirmation"
               >
-                <span className="h-4 w-4 rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.35)]" />
+                <span className="h-4 w-4 rounded-full bg-white" />
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Blocked Categories</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Blocked Categories</label>
             <input
               type="text"
               value={(appSettings.capabilityBlockedCategories || []).join(', ')}
@@ -111,7 +111,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
           </div>
 
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Blocked Tools</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Blocked Tools</label>
             <input
               type="text"
               value={(appSettings.capabilityBlockedTools || []).join(', ')}
@@ -128,7 +128,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
           </div>
 
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Allowed Tools (Override)</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Allowed Tools (Override)</label>
             <input
               type="text"
               value={(appSettings.capabilityAllowedTools || []).join(', ')}

@@ -29,7 +29,7 @@ export function StatusDot({ status, size = 'md', pulse, glow, className }: Statu
         SIZE_CLASSES[size],
         STATUS_COLORS[status],
         pulse && 'animate-pulse',
-        glow && status === 'online' && 'shadow-[0_0_6px_rgba(52,211,153,0.4)]',
+        glow && status === 'online' && '',
         className,
       )}
     />

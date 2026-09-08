@@ -26,7 +26,7 @@ function Tip({ label, children, side = 'bottom' }: { label: string; children: Re
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent side={side} sideOffset={6}
-        className="bg-raised border border-line-default text-text shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-sm px-2.5 py-1.5 text-[11px] z-[100]">
+        className="bg-raised border border-line-default text-text rounded-sm px-2.5 py-1.5 text-[11px] z-[100]">
         {label}
       </TooltipContent>
     </Tooltip>
@@ -428,7 +428,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
             )}
             {connector && connectorMeta && (
               <span
-                className="inline-flex min-w-0 items-center gap-1 px-2 py-1 rounded-sm border text-[10px] font-700 uppercase tracking-[0.03em] shrink-0"
+                className="inline-flex min-w-0 items-center gap-1 px-2 py-1 rounded-sm border text-[10px] font-700 tracking-[0.03em] shrink-0"
                 style={{
                   color: connectorMeta.color,
                   backgroundColor: `${connectorMeta.color}12`,
@@ -508,7 +508,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
 
         <div className={`flex items-center gap-2 shrink-0 ${mobile ? 'w-full justify-between pt-1' : 'ml-auto'}`}>
           {/* Action buttons */}
-          <div className="flex items-center shrink-0 rounded-md border border-line-subtle bg-layer-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] p-1">
+          <div className="flex items-center shrink-0 rounded-md border border-line-subtle bg-layer-1 p-1">
           {streaming && (
             <>
               <IconButton onClick={onStop} variant="danger" tooltip="Stop" aria-label="Stop generation" size="sm">

@@ -386,7 +386,7 @@ export function StepConnect({
 
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-md border border-line-subtle bg-bg px-4 py-3">
-                <div className="text-[12px] uppercase tracking-[0.03em] text-text-3 mb-2">Remote gateway</div>
+                <div className="text-[12px] tracking-[0.03em] text-text-3 mb-2">Remote gateway</div>
                 <p className="text-[13px] text-text-2 leading-relaxed">
                   Recommended when your OpenClaw node runs on another machine or VPS. Use a URL reachable from the machine running SwarmClaw.
                 </p>
@@ -401,7 +401,7 @@ export function StepConnect({
                 </p>
               </div>
               <div className="rounded-md border border-line-subtle bg-bg px-4 py-3">
-                <div className="text-[12px] uppercase tracking-[0.03em] text-text-3 mb-2">Safe defaults</div>
+                <div className="text-[12px] tracking-[0.03em] text-text-3 mb-2">Safe defaults</div>
                 <p className="text-[13px] text-text-2 leading-relaxed">
                   Smart Deploy generates a gateway token for you, defaults to the standard OpenClaw ports, and prefills this setup form automatically.
                 </p>
@@ -415,7 +415,7 @@ export function StepConnect({
             </div>
 
             <div className="rounded-md border border-line-subtle bg-bg px-4 py-3">
-              <div className="text-[12px] uppercase tracking-[0.03em] text-text-3 mb-2">Connection mental model</div>
+              <div className="text-[12px] tracking-[0.03em] text-text-3 mb-2">Connection mental model</div>
               <p className="text-[12px] text-text-3 leading-relaxed">
                 SwarmClaw talks to this endpoint from its own host. If SwarmClaw is on a server, <code className="text-text-2">localhost</code> means that server, not your laptop.
               </p>

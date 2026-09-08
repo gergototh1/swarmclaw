@@ -35,11 +35,11 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
         <div className="absolute left-0 top-3 bottom-3 w-[2.5px] rounded-full bg-accent-bright" />
       )}
       <div className="flex items-center gap-2">
-        <span className="shrink-0 text-[9px] font-700 uppercase tracking-[0.03em] text-accent-bright/70 bg-accent-soft px-1.5 py-0.5 rounded-xs">
+        <span className="shrink-0 text-[9px] font-700 tracking-[0.03em] text-accent-bright/70 bg-accent-soft px-1.5 py-0.5 rounded-xs">
           {entry.category || 'note'}
         </span>
         {isDreamOrigin && (
-          <span className="shrink-0 text-[9px] font-700 uppercase tracking-[0.03em] text-violet-300/70 bg-violet-400/10 px-1.5 py-0.5 rounded-xs">
+          <span className="shrink-0 text-[9px] font-700 tracking-[0.03em] text-violet-300/70 bg-violet-400/10 px-1.5 py-0.5 rounded-xs">
             dream
           </span>
         )}
@@ -57,10 +57,10 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
         {entry.content || '(empty)'}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.03em] bg-layer-2 text-text-3">
+        <span className="px-1.5 py-0.5 rounded-xs text-[9px] font-700 tracking-[0.03em] bg-layer-2 text-text-3">
           {getMemoryScopeLabel(scope)}
         </span>
-        <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.03em] ${
+        <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-700 tracking-[0.03em] ${
           tier === 'working'
             ? 'bg-amber-400/10 text-amber-300'
             : tier === 'archive'

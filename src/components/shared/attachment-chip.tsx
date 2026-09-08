@@ -179,7 +179,7 @@ export function AttachmentChip({
         </div>
         <div className="flex flex-col flex-1 min-w-0">
           <span className={`text-[13px] font-600 truncate ${isUserMsg ? 'text-white' : 'text-text'}`}>{filename}</span>
-          <span className={`text-[11px] uppercase tracking-wide ${isUserMsg ? 'text-white/50' : 'text-text-3/70'}`}>{ext || 'file'}</span>
+          <span className={`text-[11px] tracking-wide ${isUserMsg ? 'text-white/50' : 'text-text-3/70'}`}>{ext || 'file'}</span>
         </div>
         {isCode && (
           <button

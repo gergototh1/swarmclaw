@@ -80,7 +80,7 @@ export function StepProviders({
       <div className="flex flex-col gap-3 max-h-[42vh] overflow-y-auto pr-1">
         {providerGroups.map((group) => (
           <div key={group.id} className="space-y-2">
-            <div className="px-1 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
+            <div className="px-1 text-[10px] font-700 tracking-[0.03em] text-text-3">
               {group.label}
             </div>
             {group.items.map((candidate) => {
@@ -107,11 +107,11 @@ export function StepProviders({
                     <div className="text-[15px] font-display font-600 text-text mb-1">
                       {candidate.name}
                       {isConfigured ? (
-                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 text-[10px] uppercase tracking-[0.03em] font-600">
+                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 text-[10px] tracking-[0.03em] font-600">
                           Connected · Edit
                         </span>
                       ) : candidate.badge ? (
-                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-bright/15 text-accent-bright text-[10px] uppercase tracking-[0.03em] font-600">
+                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-bright/15 text-accent-bright text-[10px] tracking-[0.03em] font-600">
                           {candidate.badge}
                         </span>
                       ) : null}

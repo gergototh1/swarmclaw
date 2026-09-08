@@ -79,7 +79,7 @@ export function TabNetwork({
       >
       {Object.keys(projects).length > 0 && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Project</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">Project</label>
           <select value={projectId || ''} onChange={(e) => patch({ projectId: e.target.value || undefined })} className={inputClass} style={{ fontFamily: 'inherit' }}>
             <option value="">No project</option>
             {Object.values(projects).map((project) => (
@@ -90,7 +90,7 @@ export function TabNetwork({
       )}
       {openclawEnabled && (
         <div className="mb-8">
-          <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+          <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
             Gateway Preferences <HintTip text="When multiple OpenClaw gateways are available, prefer matching tags or deployment templates before falling back to the default route." />
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -116,7 +116,7 @@ export function TabNetwork({
         </div>
       )}
       <div className="mb-8">
-        <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+        <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
           Model Routing <HintTip text="Route this agent through a provider/model pool instead of a single fixed model. The base provider remains the default when no route matches." />
         </label>
         <div className="flex items-center gap-3 mb-3">
@@ -255,7 +255,7 @@ export function TabNetwork({
         )}
       </div>
       <div>
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Filesystem Access</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">Filesystem Access</label>
         <select
           value={filesystemScope}
           onChange={(e) => patch({ filesystemScope: e.target.value as 'workspace' | 'machine' })}

@@ -146,11 +146,11 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
       {open && (
         <div
           ref={panelRef}
-          className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-md border border-line-default bg-raised/95 p-3 shadow-[0_16px_64px_rgba(0,0,0,0.6)] backdrop-blur-xl"
+          className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-md border border-line-default bg-raised/95 p-3 backdrop-blur-xl"
           style={{ animation: 'fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)' }}
         >
           <div className="flex items-baseline justify-between">
-            <span className="text-[11px] font-600 uppercase tracking-[0.03em] text-text-3">Context window</span>
+            <span className="text-[11px] font-600 tracking-[0.03em] text-text-3">Context window</span>
             <span className={`text-[11px] font-600 ${colors.text}`}>{percent}%</span>
           </div>
           <div className="mt-2 h-1.5 w-full rounded-full bg-layer-2 overflow-hidden">

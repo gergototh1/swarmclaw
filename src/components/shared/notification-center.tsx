@@ -148,7 +148,7 @@ export function NotificationCenter({
   const panelNode = open ? (
     <div
       ref={panelRef}
-      className="fixed w-[340px] max-h-[460px] bg-raised border border-line-subtle rounded-md shadow-[0_16px_64px_rgba(0,0,0,0.6)] backdrop-blur-xl z-[1200] flex flex-col overflow-hidden"
+      className="fixed w-[340px] max-h-[460px] bg-raised border border-line-subtle rounded-md backdrop-blur-xl z-[1200] flex flex-col overflow-hidden"
       style={{
         ...panelStyle,
         animation: 'fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)',

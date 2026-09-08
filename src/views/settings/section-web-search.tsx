@@ -10,7 +10,7 @@ export function WebSearchSection({ appSettings, patchSettings, inputClass }: Set
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Web Search
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
@@ -18,7 +18,7 @@ export function WebSearchSection({ appSettings, patchSettings, inputClass }: Set
       </p>
       <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         <div className="mb-5">
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Search Provider</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Search Provider</label>
           <select
             value={provider}
             onChange={(e) => patchSettings({ webSearchProvider: e.target.value as typeof provider })}
@@ -37,7 +37,7 @@ export function WebSearchSection({ appSettings, patchSettings, inputClass }: Set
 
         {provider === 'searxng' && (
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">SearXNG URL</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">SearXNG URL</label>
             <input
               type="text"
               value={appSettings.searxngUrl || ''}
@@ -51,7 +51,7 @@ export function WebSearchSection({ appSettings, patchSettings, inputClass }: Set
 
         {provider === 'tavily' && (
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Tavily API Key</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Tavily API Key</label>
             <input
               type="password"
               value={appSettings.tavilyApiKey || ''}
@@ -69,7 +69,7 @@ export function WebSearchSection({ appSettings, patchSettings, inputClass }: Set
 
         {provider === 'brave' && (
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Brave Search API Key</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Brave Search API Key</label>
             <input
               type="password"
               value={appSettings.braveApiKey || ''}
@@ -87,7 +87,7 @@ export function WebSearchSection({ appSettings, patchSettings, inputClass }: Set
 
         {provider === 'exa' && (
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Exa API Key</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Exa API Key</label>
             <input
               type="password"
               value={appSettings.exaApiKey || ''}

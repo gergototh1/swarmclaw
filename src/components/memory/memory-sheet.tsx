@@ -85,7 +85,7 @@ export function MemorySheet() {
 
       {/* Agent selector */}
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Visibility</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Visibility</label>
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setAgentId(null)}
@@ -132,7 +132,7 @@ export function MemorySheet() {
       {/* Share with (only when assigned to an agent) */}
       {agentId && agentList.filter((a) => a.id !== agentId).length > 0 && (
         <div className="mb-6">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Share with</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Share with</label>
           <div className="flex gap-2 flex-wrap">
             {agentList
               .filter((a) => a.id !== agentId)
@@ -164,13 +164,13 @@ export function MemorySheet() {
 
       {/* Title */}
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Title</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Title</label>
         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Memory title" className={inputClass} style={{ fontFamily: 'inherit' }} />
       </div>
 
       {/* Category */}
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Category</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Category</label>
         <div className="flex gap-1.5 flex-wrap">
           {CATEGORIES.map((c) => (
             <button
@@ -192,7 +192,7 @@ export function MemorySheet() {
       </div>
 
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Tier</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Tier</label>
         <select
           value={tier}
           onChange={(e) => setTier(e.target.value as typeof tier)}
@@ -210,7 +210,7 @@ export function MemorySheet() {
 
       {/* Content */}
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Content</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Content</label>
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}

@@ -300,7 +300,7 @@ export default function UsagePage() {
                   className="bg-surface-2 rounded-md p-4 border border-line-subtle hover:bg-surface transition-all"
                   style={{ animation: 'spring-in 0.6s var(--ease-spring) both', animationDelay: `${0.12 + index * 0.04}s` }}
                 >
-                  <p className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">{card.label}</p>
+                  <p className="text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">{card.label}</p>
                   <p className={`text-[15px] font-700 leading-tight ${card.tone}`}>{card.value}</p>
                   <p className="text-[11px] text-text-3 mt-2 leading-relaxed">{card.hint}</p>
                 </div>

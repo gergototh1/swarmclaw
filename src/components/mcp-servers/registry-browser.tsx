@@ -190,7 +190,7 @@ export function RegistryBrowser({
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-[14px] font-600 group-hover:text-accent-bright">{server.name}</span>
-                      <span className="rounded-full bg-layer-2 px-2 py-0.5 text-[10px] font-mono uppercase text-text-3">
+                      <span className="rounded-full bg-layer-2 px-2 py-0.5 text-[10px] font-mono text-text-3">
                         {server.transport}
                       </span>
                       {server.paidTier ? (

@@ -195,13 +195,13 @@ export function MemoryDetail() {
       <div className="shrink-0 px-6 py-4 border-b border-line-subtle flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5">
-            <span className="shrink-0 text-[10px] font-700 uppercase tracking-[0.03em] text-accent-bright/70 bg-accent-soft px-2 py-0.5 rounded-xs">
+            <span className="shrink-0 text-[10px] font-700 tracking-[0.03em] text-accent-bright/70 bg-accent-soft px-2 py-0.5 rounded-xs">
               {entry.category || 'note'}
             </span>
-            <span className="shrink-0 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3 bg-layer-2 px-2 py-0.5 rounded-xs">
+            <span className="shrink-0 text-[10px] font-700 tracking-[0.03em] text-text-3 bg-layer-2 px-2 py-0.5 rounded-xs">
               {getMemoryScopeLabel(scope)}
             </span>
-            <span className={`shrink-0 text-[10px] font-700 uppercase tracking-[0.03em] px-2 py-0.5 rounded-xs ${
+            <span className={`shrink-0 text-[10px] font-700 tracking-[0.03em] px-2 py-0.5 rounded-xs ${
               tier === 'working'
                 ? 'bg-amber-400/10 text-amber-300'
                 : tier === 'archive'
@@ -310,7 +310,7 @@ export function MemoryDetail() {
             <>
               {/* Title input */}
               <div>
-                <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Title</label>
+                <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Title</label>
                 <input
                   type="text"
                   value={title}
@@ -323,7 +323,7 @@ export function MemoryDetail() {
 
               {/* Category picker */}
               <div>
-                <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Category</label>
+                <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Category</label>
                 <div className="flex gap-1.5 flex-wrap">
                   {CATEGORIES.map((c) => (
                     <button
@@ -342,7 +342,7 @@ export function MemoryDetail() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Tier</label>
+                <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Tier</label>
                 <select
                   value={editTier}
                   onChange={(e) => setEditTier(e.target.value as typeof editTier)}
@@ -357,7 +357,7 @@ export function MemoryDetail() {
 
               {/* Agent assignment */}
               <div>
-                <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Visibility</label>
+                <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Visibility</label>
                 <div className="flex gap-1.5 flex-wrap">
                   <button
                     onClick={() => setEditAgentId(null)}
@@ -393,7 +393,7 @@ export function MemoryDetail() {
               {/* Shared with */}
               {editAgentId && (
                 <div>
-                  <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Share with</label>
+                  <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Share with</label>
                   <div className="flex gap-1.5 flex-wrap">
                     {Object.values(agents)
                       .filter((a) => a.id !== editAgentId)
@@ -428,7 +428,7 @@ export function MemoryDetail() {
 
               {/* Content textarea */}
               <div>
-                <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Content</label>
+                <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Content</label>
                 <textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
@@ -453,7 +453,7 @@ export function MemoryDetail() {
 
               {knowledgeSourceId && (
                 <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
-                  <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Source</label>
+                  <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Source</label>
                   <div className="space-y-1.5">
                     <p className="text-[13px] text-text-2">
                       {knowledgeSourceTitle || entry.title}
@@ -481,7 +481,7 @@ export function MemoryDetail() {
               {/* Shared with (read mode) */}
               {entry.sharedWith && entry.sharedWith.length > 0 && (
                 <div>
-                  <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Shared with</label>
+                  <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Shared with</label>
                   <div className="flex gap-1.5 flex-wrap">
                     {entry.sharedWith.map((aid) => {
                       const a = agents[aid]
@@ -501,7 +501,7 @@ export function MemoryDetail() {
           {/* Image (both modes) */}
           {imageUrl && (
             <div>
-              {editing && <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Image</label>}
+              {editing && <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Image</label>}
               <a href={imageUrl} target="_blank" rel="noreferrer" className="inline-block rounded-md overflow-hidden border border-line-default">
                 <img src={imageUrl} alt={entry.title} className="max-w-[600px] w-full max-h-[400px] object-cover block" />
               </a>
@@ -511,7 +511,7 @@ export function MemoryDetail() {
           {/* Linked Memories */}
           {entry.linkedMemoryIds?.length ? (
             <div>
-              <label className="block text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Linked Memories</label>
+              <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Linked Memories</label>
               <div className="flex flex-col gap-1.5">
                 {entry.linkedMemoryIds.map((id) => (
                   <button
@@ -537,7 +537,7 @@ export function MemoryDetail() {
             <div>
               <button
                 onClick={() => setRefsExpanded(!refsExpanded)}
-                className="flex items-center gap-1.5 text-[11px] font-600 text-text-3/60 uppercase tracking-[0.03em] mb-2 bg-transparent border-none cursor-pointer p-0 hover:text-text-3 transition-colors"
+                className="flex items-center gap-1.5 text-[11px] font-600 text-text-3/60 tracking-[0.03em] mb-2 bg-transparent border-none cursor-pointer p-0 hover:text-text-3 transition-colors"
                 style={{ fontFamily: 'inherit' }}
               >
                 <svg
@@ -553,7 +553,7 @@ export function MemoryDetail() {
                   {refs.map((ref, idx) => (
                     <div key={`${ref.type}-${ref.path || ref.title || idx}`} className="text-[12px] rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                       <div className="text-text-2">
-                        <span className="uppercase text-[10px] tracking-[0.03em] mr-1">{ref.type}</span>
+                        <span className=" text-[10px] tracking-[0.03em] mr-1">{ref.type}</span>
                         {ref.path || ref.title || '(no path)'}
                       </div>
                       {(ref.projectName || ref.projectRoot || ref.note || typeof ref.exists === 'boolean') && (
@@ -575,7 +575,7 @@ export function MemoryDetail() {
           <div className="pt-2">
             <button
               onClick={() => setMetaExpanded(!metaExpanded)}
-              className="flex items-center gap-1.5 text-[11px] font-600 text-text-3/60 uppercase tracking-[0.03em] bg-transparent border-none cursor-pointer p-0 hover:text-text-3 transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-600 text-text-3/60 tracking-[0.03em] bg-transparent border-none cursor-pointer p-0 hover:text-text-3 transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               <svg

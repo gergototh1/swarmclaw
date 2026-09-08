@@ -20,14 +20,14 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Runtime &amp; Loop Controls
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Control how far agents can run on their own and set safety guards for delegation and tool execution.
       </p>
       <div className="p-6 rounded-lg bg-surface border border-line-subtle">
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Background Daemon</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Background Daemon</label>
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => patchSettings({ daemonAutostartEnabled: !(appSettings.daemonAutostartEnabled ?? true) })}
@@ -41,7 +41,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </div>
         </div>
 
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Estop Resume Approval</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Estop Resume Approval</label>
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => patchSettings({ autonomyResumeApprovalsEnabled: !(appSettings.autonomyResumeApprovalsEnabled ?? false) })}
@@ -55,7 +55,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </div>
         </div>
 
-        <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Loop Mode <HintTip text="Bounded = fixed max steps. Ongoing = runs until the task completes (with a safety cap)" /></label>
+        <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Loop Mode <HintTip text="Bounded = fixed max steps. Ongoing = runs until the task completes (with a safety cap)" /></label>
         <div className="grid grid-cols-2 gap-2 mb-5">
           {([
             { id: 'bounded' as const, name: 'Bounded' },
@@ -78,7 +78,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
         {loopMode === 'bounded' ? (
           <div className="grid grid-cols-1 md:grid-cols-1 gap-3 mb-5">
             <div>
-              <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Agent Steps <HintTip text="Maximum actions an agent can take before stopping — prevents infinite loops" /></label>
+              <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Agent Steps <HintTip text="Maximum actions an agent can take before stopping — prevents infinite loops" /></label>
               <input
                 type="number"
                 min={1}
@@ -96,7 +96,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Max Steps (Safety Cap)</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Max Steps (Safety Cap)</label>
               <input
                 type="number"
                 min={10}
@@ -111,7 +111,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
               />
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Max Runtime (Minutes)</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Max Runtime (Minutes)</label>
               <input
                 type="number"
                 min={0}
@@ -131,7 +131,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
           <div>
-            <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Delegation Depth <HintTip text="Maximum delegation chain depth for delegate_to_agent and spawn_subagent to prevent runaway fan-out" /></label>
+            <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Delegation Depth <HintTip text="Maximum delegation chain depth for delegate_to_agent and spawn_subagent to prevent runaway fan-out" /></label>
             <input
               type="number"
               min={1}
@@ -147,7 +147,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </div>
         </div>
 
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Execution Timeouts (Seconds)</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Execution Timeouts (Seconds)</label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block text-[11px] text-text-3 mb-2">Shell</label>
@@ -196,7 +196,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </div>
         </div>
 
-        <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mt-5 mb-3">Stream &amp; Kickoff Timeouts (Seconds) <HintTip text="Controls how long to wait for model output and required tool usage before aborting a turn" /></label>
+        <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mt-5 mb-3">Stream &amp; Kickoff Timeouts (Seconds) <HintTip text="Controls how long to wait for model output and required tool usage before aborting a turn" /></label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-[11px] text-text-3 mb-2">Idle Stall Timeout</label>
@@ -232,7 +232,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </div>
         </div>
 
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mt-6 mb-3">LLM Response Cache</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mt-6 mb-3">LLM Response Cache</label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
           <div className="md:col-span-3 flex items-center gap-3">
             <button
@@ -275,7 +275,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </div>
         </div>
 
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Task Quality Gate Defaults</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Task Quality Gate Defaults</label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
           <div className="md:col-span-3 flex items-center gap-3">
             <button
@@ -347,7 +347,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </div>
         </div>
 
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Integrity Monitor</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Integrity Monitor</label>
         <div className="flex items-center gap-3">
           <button
             onClick={() => patchSettings({ integrityMonitorEnabled: !(appSettings.integrityMonitorEnabled ?? true) })}

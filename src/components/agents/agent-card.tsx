@@ -223,17 +223,17 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
           />
           <span className="font-display text-[14px] font-600 truncate flex-1 tracking-[-0.01em]">{agent.name}</span>
           {pendingApprovalCount > 0 && (
-            <span className="shrink-0 text-[9px] font-600 uppercase tracking-[0.03em] px-2 py-0.5 rounded-xs text-amber-400 bg-amber-400/[0.08] border border-amber-400/15">
+            <span className="shrink-0 text-[9px] font-600 tracking-[0.03em] px-2 py-0.5 rounded-xs text-amber-400 bg-amber-400/[0.08] border border-amber-400/15">
               {pendingApprovalCount} {pendingApprovalCount === 1 ? 'approval' : 'approvals'}
             </span>
           )}
           {agentDisabled && (
-            <span className="shrink-0 text-[10px] font-600 uppercase tracking-[0.03em] text-amber-300 bg-amber-400/[0.08] border border-amber-400/15 px-2 py-0.5 rounded-xs">
+            <span className="shrink-0 text-[10px] font-600 tracking-[0.03em] text-amber-300 bg-amber-400/[0.08] border border-amber-400/15 px-2 py-0.5 rounded-xs">
               disabled
             </span>
           )}
           {isDefault && (
-            <span className="shrink-0 text-[10px] font-600 uppercase tracking-[0.03em] text-accent-bright bg-accent-soft px-2 py-0.5 rounded-xs">
+            <span className="shrink-0 text-[10px] font-600 tracking-[0.03em] text-accent-bright bg-accent-soft px-2 py-0.5 rounded-xs">
               default
             </span>
           )}
@@ -241,7 +241,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
             <button
               onClick={handleRunClick}
               disabled={running || agentDisabled}
-              className="shrink-0 text-[10px] font-600 uppercase tracking-[0.03em] px-2.5 py-1 rounded-xs cursor-pointer
+              className="shrink-0 text-[10px] font-600 tracking-[0.03em] px-2.5 py-1 rounded-xs cursor-pointer
                 transition-all border-none bg-accent-bright/20 text-accent-bright hover:bg-accent-bright/30 disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}
             >
@@ -249,7 +249,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
             </button>
           )}
           {canDelegateToAgents && (
-            <span className="shrink-0 text-[10px] font-600 uppercase tracking-[0.03em] text-amber-400/80 bg-amber-400/[0.08] px-2 py-0.5 rounded-xs flex items-center gap-1">
+            <span className="shrink-0 text-[10px] font-600 tracking-[0.03em] text-amber-400/80 bg-amber-400/[0.08] px-2 py-0.5 rounded-xs flex items-center gap-1">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M16 3h5v5"/><path d="M21 3l-7 7"/><path d="M8 21H3v-5"/><path d="M3 21l7-7"/></svg>
               delegates
             </span>
@@ -259,7 +259,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
         <div className="flex items-center gap-2 mt-1.5">
           <span className="text-[11px] text-text-3 font-mono">{agent.model || agent.provider}</span>
           {getEnabledToolIds(agent).includes('browser') && (
-            <span className="text-[10px] font-600 uppercase tracking-[0.03em] text-sky-400/70 bg-sky-400/[0.08] px-1.5 py-0.5 rounded-xs">
+            <span className="text-[10px] font-600 tracking-[0.03em] text-sky-400/70 bg-sky-400/[0.08] px-1.5 py-0.5 rounded-xs">
               browser
             </span>
           )}

@@ -197,7 +197,7 @@ export function TaskCard({
 
       {task.objective && (
         <div className="mb-3 rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
-          <span className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Objective</span>
+          <span className="text-[10px] font-700 tracking-[0.03em] text-text-3">Objective</span>
           <div className="text-[12px] font-600 text-text line-clamp-2 mt-1">{task.objective}</div>
         </div>
       )}

@@ -92,8 +92,8 @@ const FIELD_HINTS: Record<string, string> = {
   archiveDir: 'Processed inbound JSON commands are moved here after routing.',
   errorDir: 'Malformed or failed inbound JSON commands are moved here with an error sidecar.',
   pollIntervalMs: 'How often SwarmClaw checks the inbox folder. Minimum 250 ms.',
-  channelIds: "Find these in your platform's developer settings. Leave empty to allow all channels",
-  chatIds: "Find these in your platform's developer settings. Leave empty to allow all chats",
+  channelIds:"Find these in your platform's developer settings. Leave empty to allow all channels",
+  chatIds:"Find these in your platform's developer settings. Leave empty to allow all chats",
   roomIds: 'Leave empty to allow all rooms visible to the bot',
   spaceIds: 'Leave empty to allow all configured spaces',
   allowedJids: 'Phone numbers in international format, or WhatsApp JIDs. Leave empty to allow all',
@@ -177,10 +177,10 @@ const PLATFORMS: {
     color: '#5865F2',
     setupSteps: [
       'Go to https://discord.com/developers/applications and create a new app',
-      'Under "Bot", click "Reset Token" and copy it',
-      'Enable MESSAGE CONTENT intent under "Privileged Gateway Intents"',
-      'Under "OAuth2 > URL Generator", check the "bot" scope — a Bot Permissions panel will appear below',
-      'In Bot Permissions, check "Send Messages" and "Read Message History"',
+      'Under"Bot", click"Reset Token" and copy it',
+      'Enable MESSAGE CONTENT intent under"Privileged Gateway Intents"',
+      'Under"OAuth2 > URL Generator", check the"bot" scope — a Bot Permissions panel will appear below',
+      'In Bot Permissions, check"Send Messages" and"Read Message History"',
       'Copy the generated URL at the bottom and open it to invite the bot to your server',
     ],
     tokenLabel: 'Bot Token',
@@ -209,11 +209,11 @@ const PLATFORMS: {
     label: 'Slack',
     color: '#4A154B',
     setupSteps: [
-      'Go to https://api.slack.com/apps and create a new app "From scratch"',
-      'Under "Socket Mode", enable it. Then go to "Basic Information > App-Level Tokens", generate a token with connections:write scope, and copy the xapp-... token',
-      'Under "OAuth & Permissions", add bot scopes: chat:write, channels:history, channels:read, im:history, im:read, users:read, app_mentions:read',
-      'Under "Event Subscriptions", enable events and subscribe to: message.channels, message.im, app_mention',
-      'Under "App Home", enable the Messages Tab and check "Allow users to send Slash commands and messages from the messages tab"',
+      'Go to https://api.slack.com/apps and create a new app"From scratch"',
+      'Under"Socket Mode", enable it. Then go to"Basic Information > App-Level Tokens", generate a token with connections:write scope, and copy the xapp-... token',
+      'Under"OAuth & Permissions", add bot scopes: chat:write, channels:history, channels:read, im:history, im:read, users:read, app_mentions:read',
+      'Under"Event Subscriptions", enable events and subscribe to: message.channels, message.im, app_mention',
+      'Under"App Home", enable the Messages Tab and check"Allow users to send Slash commands and messages from the messages tab"',
       'Install the app to your workspace and copy the Bot Token (xoxb-...) from OAuth & Permissions',
     ],
     tokenLabel: 'Bot Token (xoxb-...)',
@@ -237,7 +237,7 @@ const PLATFORMS: {
     tokenHelp: '',
     configFields: [
       { key: 'allowedJids', label: 'Allowed Numbers/Groups', placeholder: '1234567890,MyGroup', help: 'Leave empty to respond to all messages', type: 'tags', section: 'advanced' },
-      { key: 'outboundJid', label: 'Default Outbound Recipient', placeholder: '15551234567 or 15551234567@s.whatsapp.net', help: 'Used by connector_message_tool when the agent sends proactive WhatsApp updates without an explicit "to" value', section: 'advanced' },
+      { key: 'outboundJid', label: 'Default Outbound Recipient', placeholder: '15551234567 or 15551234567@s.whatsapp.net', help: 'Used by connector_message_tool when the agent sends proactive WhatsApp updates without an explicit"to" value', section: 'advanced' },
     ],
   },
   {
@@ -276,7 +276,7 @@ const PLATFORMS: {
     configFields: [
       { key: 'serverUrl', label: 'Server URL', placeholder: 'http://127.0.0.1:1234', help: 'BlueBubbles server URL (no trailing /api path needed)', section: 'basic' },
       { key: 'chatIds', label: 'Allowed Chat IDs', placeholder: 'iMessage;-;+15551234567', help: 'Optional comma-separated chat IDs/guid fragments. Leave empty for all chats.', type: 'tags', section: 'advanced' },
-      { key: 'outboundTarget', label: 'Default Outbound Target', placeholder: 'iMessage;-;+15551234567', help: 'Used when proactive sends omit "to".', section: 'advanced' },
+      { key: 'outboundTarget', label: 'Default Outbound Target', placeholder: 'iMessage;-;+15551234567', help: 'Used when proactive sends omit"to".', section: 'advanced' },
       { key: 'webhookSecret', label: 'Webhook Secret', placeholder: 'optional-shared-secret', help: 'Optional secret required by /api/connectors/{id}/webhook (header: x-connector-secret or ?secret=...)', section: 'advanced' },
       { key: 'timeoutMs', label: 'Request Timeout (ms)', placeholder: '10000', help: 'Optional BlueBubbles API timeout in milliseconds.', section: 'advanced' },
     ],
@@ -901,7 +901,7 @@ export function ConnectorSheet() {
   }, [advancedAccessFields, advancedPlatformFields, config, doctorWarnings.length])
   const advancedSummary = configuredAdvancedCount > 0 ? `${configuredAdvancedCount} configured` : 'Defaults only'
 
-  const inputClass = "w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus:border-line-strong"
+  const inputClass ="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus:border-line-strong"
 
   const updateConfigValue = useCallback((key: string, value: string) => {
     setConfig((prev) => {
@@ -918,7 +918,7 @@ export function ConnectorSheet() {
       const tags = (config[field.key] || '').split(',').map((s) => s.trim()).filter(Boolean)
       return (
         <div key={field.key} className="mb-6">
-          <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+          <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
             {field.label} <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
             {FIELD_HINTS[field.key] && <HintTip text={FIELD_HINTS[field.key]} />}
           </label>
@@ -981,7 +981,7 @@ export function ConnectorSheet() {
     if (field.type === 'select' && field.options?.length) {
       return (
         <div key={field.key} className="mb-6">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
             {field.label} <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
           </label>
           {field.help && <p className="text-[12px] text-text-3 mb-2">{field.help}</p>}
@@ -1002,7 +1002,7 @@ export function ConnectorSheet() {
 
     return (
       <div key={field.key} className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
           {field.label} <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
         </label>
         {field.help && <p className="text-[12px] text-text-3 mb-2">{field.help}</p>}
@@ -1037,7 +1037,7 @@ export function ConnectorSheet() {
                 onClick={() => { setPlatform(p.id as ConnectorPlatform); setShowSetup(false) }}
                 className={`flex items-center gap-3 p-4 rounded-md cursor-pointer transition-all duration-200 border text-left
                   ${platform === p.id
-                    ? 'bg-layer-2 border-line-strong shadow-[0_0_20px_rgba(255,255,255,0.02)]'
+                    ? 'bg-layer-2 border-line-strong '
                     : 'bg-transparent border-line-subtle hover:border-line-default hover:bg-layer-1'}`}
                 style={{ fontFamily: 'inherit' }}
               >
@@ -1062,7 +1062,7 @@ export function ConnectorSheet() {
             <div className="text-[14px] font-600 text-text">{platformConfig.label}</div>
             <div className="flex items-center gap-2 mt-0.5">
               <span className={`w-2 h-2 rounded-full ${
-                runtimeConnector?.status === 'running' ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]' :
+                runtimeConnector?.status === 'running' ? 'bg-green-400 ' :
                 runtimeConnector?.status === 'error' ? 'bg-red-400' : 'bg-layer-4'
               }`} />
               <span className="text-[12px] text-text-3 capitalize">{runtimeConnector?.status || editing.status}</span>
@@ -1101,7 +1101,7 @@ export function ConnectorSheet() {
 
       {/* Name */}
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Name</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">Name</label>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -1113,7 +1113,7 @@ export function ConnectorSheet() {
 
       {/* Route mode toggle + target selector */}
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Route Messages To</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">Route Messages To</label>
         <div className="flex gap-1 mb-3 p-1 rounded-sm bg-layer-2 border border-line-subtle">
           <button
             type="button"
@@ -1161,7 +1161,7 @@ export function ConnectorSheet() {
       {/* Bot token credential */}
       {showCredentialSection && (
         <div className="mb-6">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">{platformConfig.tokenLabel}</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">{platformConfig.tokenLabel}</label>
           <p className="text-[12px] text-text-3 mb-2">{platformConfig.tokenHelp}</p>
           <div className="flex gap-2">
             <select
@@ -1297,7 +1297,7 @@ export function ConnectorSheet() {
               <div className="text-[13px] font-600 text-text-2">Connection</div>
               <div className="text-[12px] text-text-3 mt-0.5 flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full inline-block ${
-                  effectiveRunning ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]' :
+                  effectiveRunning ? 'bg-green-400 ' :
                   runtimeConnector?.status === 'error' ? 'bg-red-400' : 'bg-layer-4'
                 }`} />
                 {effectiveRunning ? (waAuthenticated ? 'Connected and listening' : 'Connecting...') :
@@ -1541,7 +1541,7 @@ export function ConnectorSheet() {
       <ConfirmDialog
         open={confirmDelete}
         title="Delete Connector?"
-        message={editing ? `Delete "${editing.name}"? This will stop the connector and remove its configuration from the app.` : 'Delete this connector?'}
+        message={editing ? `Delete"${editing.name}"? This will stop the connector and remove its configuration from the app.` : 'Delete this connector?'}
         confirmLabel={deleting ? 'Deleting...' : 'Delete'}
         confirmDisabled={deleting}
         cancelDisabled={deleting}

@@ -22,7 +22,7 @@ export function HintTip({ text, side = 'top' }: Props) {
       <TooltipContent
         side={side}
         sideOffset={6}
-        className="bg-raised border border-line-default text-text shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-sm px-2.5 py-1.5 text-[11px] max-w-[240px]"
+        className="bg-raised border border-line-default text-text rounded-sm px-2.5 py-1.5 text-[11px] max-w-[240px]"
       >
         {text}
       </TooltipContent>

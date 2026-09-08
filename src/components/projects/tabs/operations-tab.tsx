@@ -60,7 +60,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
       {/* Section 1: Agents */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">
+          <h3 className="text-[12px] font-700 tracking-[0.03em] text-text-3">
             Agents ({projectAgents.length})
           </h3>
           <div className="relative">
@@ -127,7 +127,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
       {/* Section 2: Operating Context */}
       {(priorities.length > 0 || openObjectives.length > 0 || capabilityHints.length > 0 || successMetrics.length > 0) && (
         <div>
-          <h3 className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3 mb-3">Operating Context</h3>
+          <h3 className="text-[12px] font-700 tracking-[0.03em] text-text-3 mb-3">Operating Context</h3>
           <div className="space-y-4">
             {priorities.length > 0 && (
               <div>
@@ -181,7 +181,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
 
       {/* Section 3: Credentials & Secrets */}
       <div>
-        <h3 className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3 mb-3">Credentials & Secrets</h3>
+        <h3 className="text-[12px] font-700 tracking-[0.03em] text-text-3 mb-3">Credentials & Secrets</h3>
         <div className="space-y-3">
           {credentialRequirements.length > 0 && (
             <div>
@@ -210,7 +210,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
       {/* Section 4: Schedules */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">
+          <h3 className="text-[12px] font-700 tracking-[0.03em] text-text-3">
             Schedules ({projectSchedules.length})
           </h3>
           <button
@@ -245,7 +245,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
                   <span className="text-[13px] text-text truncate flex-1">{schedule.name}</span>
-                  <span className={`shrink-0 px-2 py-0.5 rounded-xs text-[10px] font-600 uppercase tracking-[0.03em] ${
+                  <span className={`shrink-0 px-2 py-0.5 rounded-xs text-[10px] font-600 tracking-[0.03em] ${
                     schedule.status === 'active' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-layer-2 text-text-3'
                   }`}>
                     {schedule.status}
@@ -267,7 +267,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
         {/* Heartbeat config */}
         {(project.heartbeatPrompt || project.heartbeatIntervalSec) && (
           <div className="mt-4 rounded-md border border-line-subtle bg-surface/60 px-4 py-3">
-            <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-sky-400">
+            <div className="text-[11px] font-700 tracking-[0.03em] text-sky-400">
               Heartbeat &middot; Every {formatHeartbeatInterval(project.heartbeatIntervalSec)}
             </div>
             <p className="mt-1 text-[12px] text-text-2 leading-relaxed">

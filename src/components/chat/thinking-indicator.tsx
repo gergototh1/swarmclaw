@@ -67,7 +67,7 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
       <div className="flex items-center gap-2.5 mb-2 px-1">
         <span className="text-[12px] font-600 text-text-3">{assistantName || 'Claude'}</span>
         {agentStatus?.status && (
-          <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.03em] ${
+          <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-700 tracking-[0.03em] ${
             agentStatus.status === 'progress' ? 'bg-blue-500/10 text-blue-400' :
             agentStatus.status === 'ok' ? 'bg-emerald-500/10 text-emerald-400' :
             agentStatus.status === 'blocked' ? 'bg-red-500/10 text-red-400' :
@@ -81,14 +81,14 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
       {hasMission && (
         <div className="mb-2 w-full max-w-[85%] md:max-w-[72%] p-3 rounded-md border border-accent-bright/10 bg-accent-bright/[0.02]"
           style={{ animation: 'fade-up 0.4s var(--ease-spring)' }}>
-          <div className="text-[10px] font-700 text-accent-bright/60 uppercase tracking-[0.03em] mb-1.5 flex items-center gap-2">
+          <div className="text-[10px] font-700 text-accent-bright/60 tracking-[0.03em] mb-1.5 flex items-center gap-2">
             <span className="w-1 h-1 rounded-full bg-accent-bright/40" />
             Active Mission
           </div>
           <p className="text-[13px] font-600 text-text-2 leading-snug">{agentStatus.goal}</p>
           {agentStatus.nextAction && (
             <div className="mt-2 pt-2 border-t border-line-subtle">
-              <span className="text-[10px] font-600 text-text-3 uppercase block mb-0.5">Next Action</span>
+              <span className="text-[10px] font-600 text-text-3 block mb-0.5">Next Action</span>
               <p className="text-[11px] text-text-3 italic">&ldquo;{agentStatus.nextAction}&rdquo;</p>
             </div>
           )}
@@ -103,9 +103,9 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
             
             <div className="flex items-center gap-3 relative z-10">
               <div className="flex gap-2">
-                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite' }} />
-                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.15s' }} />
-                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.3s' }} />
+                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite' }} />
+                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.15s' }} />
+                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.3s' }} />
               </div>
               <span className={`text-[12px] font-mono ${isQueued ? 'text-amber-300/70' : 'text-text-3/60'}`}>{statusText}</span>
               <ElapsedTimer startTime={thinkingStartTime} />
@@ -133,9 +133,9 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
           
           <div className="flex items-center gap-3 relative z-10">
             <div className="flex gap-2">
-              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite' }} />
-              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.15s' }} />
-              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.3s' }} />
+              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite' }} />
+              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.15s' }} />
+              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.3s' }} />
             </div>
             <span className={`text-[12px] font-mono ${isQueued ? 'text-amber-300/70' : 'text-text-3/60'}`}>{statusText}</span>
             <ElapsedTimer startTime={thinkingStartTime} />

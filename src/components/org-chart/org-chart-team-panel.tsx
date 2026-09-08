@@ -163,7 +163,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="px-3 py-2 border-b border-line-subtle flex items-center justify-between">
-        <span className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Teams</span>
+        <span className="text-[11px] font-700 tracking-[0.03em] text-text-3">Teams</span>
         <button
           onClick={onClose}
           className="w-5 h-5 rounded-xs flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"

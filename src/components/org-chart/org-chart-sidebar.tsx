@@ -179,7 +179,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
       <div className="flex border-b border-line-subtle">
         <button
           onClick={() => setTab('agents')}
-          className={`flex-1 text-[10px] font-600 uppercase tracking-[0.03em] py-2.5 transition-colors cursor-pointer bg-transparent border-none ${
+          className={`flex-1 text-[10px] font-600 tracking-[0.03em] py-2.5 transition-colors cursor-pointer bg-transparent border-none ${
             tab === 'agents' ? 'text-text border-b-2 border-accent-bright' : 'text-text-3/60 hover:text-text-3'
           }`}
         >
@@ -187,7 +187,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
         </button>
         <button
           onClick={() => setTab('teams')}
-          className={`flex-1 text-[10px] font-600 uppercase tracking-[0.03em] py-2.5 transition-colors cursor-pointer bg-transparent border-none ${
+          className={`flex-1 text-[10px] font-600 tracking-[0.03em] py-2.5 transition-colors cursor-pointer bg-transparent border-none ${
             tab === 'teams' ? 'text-text border-b-2 border-accent-bright' : 'text-text-3/60 hover:text-text-3'
           }`}
         >

@@ -110,12 +110,12 @@ export function FilePathChip({ filePath, cwd }: { filePath: string; cwd?: string
       {canServe && serverState.running && (
         <>
           {frameworkLabel && (
-            <span className="px-1.5 py-0.5 rounded-xs bg-indigo-500/15 text-indigo-300 text-[9px] font-700 uppercase tracking-[0.03em]">
+            <span className="px-1.5 py-0.5 rounded-xs bg-indigo-500/15 text-indigo-300 text-[9px] font-700 tracking-[0.03em]">
               {frameworkLabel}
             </span>
           )}
           {serverState.type === 'npm' && (
-            <span className="px-1.5 py-0.5 rounded-xs bg-amber-500/15 text-amber-300 text-[9px] font-700 uppercase tracking-[0.03em]">
+            <span className="px-1.5 py-0.5 rounded-xs bg-amber-500/15 text-amber-300 text-[9px] font-700 tracking-[0.03em]">
               npm
             </span>
           )}

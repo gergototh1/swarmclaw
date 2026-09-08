@@ -398,13 +398,13 @@ export function GatewaySheet() {
       </div>
 
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Name</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Name</label>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Local Mac Mini" className={inputClass} />
       </div>
 
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em]">Gateway Endpoint</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em]">Gateway Endpoint</label>
           <button
             type="button"
             onClick={handleDiscover}
@@ -431,7 +431,7 @@ export function GatewaySheet() {
 
       {deployment && (
         <div className="mb-6 rounded-lg border border-line-subtle bg-layer-1 p-4">
-          <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">Deploy metadata</div>
+          <div className="text-[12px] font-700 tracking-[0.03em] text-text-3 mb-2">Deploy metadata</div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[12px] text-text-3">
             <div className="rounded-md border border-line-subtle bg-surface px-3 py-3">
               <div className="uppercase tracking-[0.03em] text-text-3">Method</div>
@@ -481,7 +481,7 @@ export function GatewaySheet() {
       )}
 
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Gateway Token</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Gateway Token</label>
         <select value={credentialId || ''} onChange={(e) => setCredentialId(e.target.value || null)} className={inputClass}>
           <option value="">No token</option>
           {openClawCredentials.map((item) => (
@@ -504,7 +504,7 @@ export function GatewaySheet() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Tags</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Tags</label>
           <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="remote, prod, mac-mini" className={inputClass} />
         </div>
         <div>
@@ -516,7 +516,7 @@ export function GatewaySheet() {
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Notes</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Notes</label>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Remote tailnet gateway for background coding agents." className={`${inputClass} resize-y min-h-[100px]`} />
       </div>
 
@@ -546,15 +546,15 @@ export function GatewaySheet() {
 
           <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
             <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
-              <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Nodes</div>
+              <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Nodes</div>
               <div className="mt-1 font-display text-[18px] font-700 text-text">{nodes.filter((node) => node.connected).length}/{nodes.length}</div>
             </div>
             <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
-              <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Pairings</div>
+              <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Pairings</div>
               <div className="mt-1 font-display text-[18px] font-700 text-amber-300">{nodePairings.length + devicePairings.length}</div>
             </div>
             <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
-              <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Sessions</div>
+              <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Sessions</div>
               <div className="mt-1 font-display text-[18px] font-700 text-text">{gatewaySessions.length}</div>
             </div>
             <div className={`rounded-md border px-3 py-2 ${
@@ -562,7 +562,7 @@ export function GatewaySheet() {
                 ? 'border-rose-400/20 bg-rose-400/[0.06]'
                 : 'border-line-subtle bg-layer-1'
             }`}>
-              <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Presence</div>
+              <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Presence</div>
               <div className={gatewayTopologyErrors.length > 0 ? 'mt-1 font-display text-[18px] font-700 text-rose-200' : 'mt-1 font-display text-[18px] font-700 text-text'}>
                 {gatewayPresence.length}
               </div>
@@ -579,7 +579,7 @@ export function GatewaySheet() {
             <div className="space-y-4">
               <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Pending Node Pairings</div>
+                  <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Pending Node Pairings</div>
                   <div className="text-[11px] text-text-3">{nodePairings.length}</div>
                 </div>
                 {nodePairings.length > 0 ? (
@@ -602,7 +602,7 @@ export function GatewaySheet() {
 
               <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Pending Device Pairings</div>
+                  <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Pending Device Pairings</div>
                   <div className="text-[11px] text-text-3">{devicePairings.length}</div>
                 </div>
                 {devicePairings.length > 0 ? (
@@ -627,7 +627,7 @@ export function GatewaySheet() {
             <div className="space-y-4">
               <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Connected / Paired Nodes</div>
+                  <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Connected / Paired Nodes</div>
                   <div className="text-[11px] text-text-3">{nodes.length}</div>
                 </div>
                 {nodes.length > 0 ? (
@@ -643,7 +643,7 @@ export function GatewaySheet() {
                               {node.deviceFamily ? ` · ${node.deviceFamily}` : ''}
                             </div>
                           </div>
-                          <div className={`text-[10px] font-700 uppercase tracking-[0.03em] px-2 py-0.5 rounded-xs ${
+                          <div className={`text-[10px] font-700 tracking-[0.03em] px-2 py-0.5 rounded-xs ${
                             node.connected
                               ? 'bg-emerald-400/10 text-emerald-300'
                               : 'bg-layer-2 text-text-3/70'
@@ -679,7 +679,7 @@ export function GatewaySheet() {
 
               <div className="rounded-md border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Paired Devices</div>
+                  <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Paired Devices</div>
                   <div className="text-[11px] text-text-3">{pairedDevices.length}</div>
                 </div>
                 {pairedDevices.length > 0 ? (
@@ -704,7 +704,7 @@ export function GatewaySheet() {
           </div>
 
           <div className="mt-4 rounded-md border border-line-subtle bg-surface p-4">
-            <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3 mb-3">Invoke Node Command</div>
+            <div className="text-[12px] font-700 tracking-[0.03em] text-text-3 mb-3">Invoke Node Command</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <select value={invokeNodeId} onChange={(e) => setInvokeNodeId(e.target.value)} className={inputClass}>
                 <option value="">Select node</option>

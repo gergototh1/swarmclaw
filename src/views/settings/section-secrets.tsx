@@ -58,7 +58,7 @@ export function SecretsSection({ appSettings, inputClass }: SettingsSectionProps
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Service Credentials
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
@@ -97,13 +97,13 @@ export function SecretsSection({ appSettings, inputClass }: SettingsSectionProps
 
       {addingSecret ? (
         <div className="p-6 rounded-lg bg-surface border border-line-subtle space-y-4">
-          <div className="font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em]">New Secret</div>
+          <div className="font-display text-[11px] font-600 text-text-3 tracking-[0.03em]">New Secret</div>
           <input type="text" value={secretName} onChange={(e) => setSecretName(e.target.value)} placeholder="Name (e.g. My Gmail)" className={inputClass} style={{ fontFamily: 'inherit' }} />
           <input type="text" value={secretService} onChange={(e) => setSecretService(e.target.value)} placeholder="Service (e.g. gmail, ahrefs, custom)" className={inputClass} style={{ fontFamily: 'inherit' }} />
           <input type="password" value={secretValue} onChange={(e) => setSecretValue(e.target.value)} placeholder="Value (API key, password, token...)" className={inputClass} style={{ fontFamily: 'inherit' }} />
 
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Scope</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Scope</label>
             <div className="flex p-1 rounded-md bg-bg border border-line-subtle">
               {(['global', 'agent'] as const).map((s) => (
                 <button key={s} onClick={() => setSecretScope(s)} className={`flex-1 py-2.5 rounded-sm text-center cursor-pointer transition-all text-[13px] font-600 capitalize ${secretScope === s ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`} style={{ fontFamily: 'inherit' }}>{s === 'global' ? 'All Eligible Agents' : 'Specific Agents'}</button>

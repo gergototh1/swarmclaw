@@ -228,7 +228,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
         )}
 
         {visibleQueuedMessages.length > 0 && (
-          <div className="mb-2 overflow-hidden rounded-lg border border-amber-500/18 bg-[linear-gradient(180deg,rgba(245,158,11,0.08)_0%,rgba(245,158,11,0.03)_100%)] shadow-[0_10px_32px_rgba(245,158,11,0.06)]">
+          <div className="mb-2 overflow-hidden rounded-lg border border-amber-500/18 bg-[linear-gradient(180deg,rgba(245,158,11,0.08)_0%,rgba(245,158,11,0.03)_100%)]">
             <div className="flex items-start justify-between gap-3 border-b border-amber-500/10 px-3.5 py-3">
               <div className="min-w-0 overflow-hidden">
                 <div className="flex flex-wrap items-center gap-2">
@@ -253,7 +253,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                       {sendingQueuedMessages.length} sending
                     </span>
                   )}
-                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] ${
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] ${
                     busy
                       ? 'border-amber-300/20 bg-amber-300/10 text-amber-100'
                       : 'border-line-default bg-layer-2 text-text-3'
@@ -272,7 +272,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                     onClick={onStop}
                     aria-label="Stop response"
                     data-testid="chat-stop"
-                    className="rounded-full border border-danger/20 bg-danger/[0.06] px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em] text-danger transition-all hover:bg-danger/[0.1] hover:border-danger/30 cursor-pointer"
+                    className="rounded-full border border-danger/20 bg-danger/[0.06] px-2.5 py-1 text-[10px] font-700 tracking-[0.03em] text-danger transition-all hover:bg-danger/[0.1] hover:border-danger/30 cursor-pointer"
                   >
                     Stop
                   </button>
@@ -313,11 +313,11 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       {item.sending ? (
-                        <span className="rounded-full border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-sky-200 animate-pulse">
+                        <span className="rounded-full border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] text-sky-200 animate-pulse">
                           Sending
                         </span>
                       ) : item.runId === nextPendingRunId && (
-                        <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-amber-100">
+                        <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] text-amber-100">
                           Next
                         </span>
                       )}
@@ -439,7 +439,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
         </ComposerShell>
 
         {extrasOpen && (
-          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-default bg-raised/95 p-2 shadow-[0_18px_64px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-default bg-raised/95 p-2 backdrop-blur-xl">
             <button
               type="button"
               onClick={() => {
@@ -510,7 +510,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
             {extensionChatActions.length > 0 && (
               <>
                 <div className="mx-2 my-1 h-px bg-layer-2" />
-                <div className="px-3 pb-1 pt-1 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
+                <div className="px-3 pb-1 pt-1 text-[10px] font-700 tracking-[0.03em] text-text-3">
                   Quick actions
                 </div>
                 {extensionChatActions.map((action) => (

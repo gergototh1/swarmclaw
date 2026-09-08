@@ -940,7 +940,7 @@ export function TaskSheet() {
           const labelTone = retryPending ? 'text-amber-400' : 'text-red-400'
           return (
             <div className="mb-8">
-              <label className={`block font-display text-[12px] font-600 uppercase tracking-[0.03em] mb-3 ${labelTone}`}>{label}</label>
+              <label className={`block font-display text-[12px] font-600 tracking-[0.03em] mb-3 ${labelTone}`}>{label}</label>
               <div className={`p-4 rounded-md border text-[13px] whitespace-pre-wrap ${tone}`}>
                 {editing.error}
               </div>
@@ -1387,7 +1387,7 @@ export function TaskSheet() {
         )}
         {editing && Array.isArray(editing.blocks) && editing.blocks.length > 0 && (
           <div className="mt-3">
-            <span className="text-[11px] font-600 text-text-3 uppercase tracking-[0.03em]">Blocks:</span>
+            <span className="text-[11px] font-600 text-text-3 tracking-[0.03em]">Blocks:</span>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {editing.blocks.map((bid) => {
                 const bt = tasks[bid]
@@ -1620,7 +1620,7 @@ export function TaskSheet() {
 
       {editing?.error && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-red-400 uppercase tracking-[0.03em] mb-3">Error</label>
+          <label className="block font-display text-[12px] font-600 text-red-400 tracking-[0.03em] mb-3">Error</label>
           <div className="p-4 rounded-md border border-red-500/10 bg-red-500/[0.03] text-[13px] text-red-400/80 whitespace-pre-wrap">
             {editing.error}
           </div>

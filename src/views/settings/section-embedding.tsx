@@ -20,14 +20,14 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Embeddings
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Enable semantic search for agent memory. Requires an embedding model provider.
       </p>
       <div className="p-6 rounded-lg bg-surface border border-line-subtle">
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Provider</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Provider</label>
         <div className="grid grid-cols-4 gap-2 mb-5">
           {[
             { id: null, name: 'Off' },
@@ -58,7 +58,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
         {appSettings.embeddingProvider === 'openai' && (
           <>
             <div className="mb-5">
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Model</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Model</label>
               <select
                 value={appSettings.embeddingModel || 'text-embedding-3-small'}
                 onChange={(e) => patchSettings({ embeddingModel: e.target.value })}
@@ -70,7 +70,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
               </select>
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">API Key</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">API Key</label>
               {credList.filter((c) => c.provider === 'openai').length > 0 && !addingKey ? (
                 <div className="flex gap-2 items-center">
                   <select
@@ -118,7 +118,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
         {appSettings.embeddingProvider === 'ollama' && (
           <div className="space-y-5">
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Model</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Model</label>
               <input
                 type="text"
                 value={appSettings.embeddingModel || 'nomic-embed-text'}
@@ -129,7 +129,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
               />
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Endpoint Override</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Endpoint Override</label>
               <input
                 type="text"
                 value={appSettings.embeddingEndpoint || ''}

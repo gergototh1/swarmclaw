@@ -60,7 +60,7 @@ export function CodeBlock({ children, className }: Props) {
   return (
     <div className="relative group/code command-surface">
       <div className="flex items-center justify-between px-4 py-2 bg-black/30 border-b border-line-subtle">
-        <span className="text-[10px] font-600 uppercase tracking-[0.03em] text-text-3 font-mono">{language}</span>
+        <span className="text-[10px] font-600 tracking-[0.03em] text-text-3 font-mono">{language}</span>
         <div className="flex items-center gap-1">
           {canPreview && (
             <>

@@ -216,7 +216,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
             }`}
             style={{ fontFamily: 'inherit' }}
           >
-            <div className={`text-[11px] font-700 uppercase tracking-[0.03em] ${meta.tone}`}>{meta.label}</div>
+            <div className={`text-[11px] font-700 tracking-[0.03em] ${meta.tone}`}>{meta.label}</div>
             <div className={`mt-2 text-[24px] font-display font-700 tracking-[-0.03em] ${meta.tone}`}>{groupedConnectors[group].length}</div>
             <p className="text-[11px] text-text-3 mt-1 leading-relaxed">{meta.description}</p>
           </button>
@@ -250,7 +250,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
               <section key={group}>
                 <div className="flex items-end justify-between gap-3 mb-3">
                   <div>
-                    <h2 className={`text-[12px] font-700 uppercase tracking-[0.03em] ${meta.tone}`}>{meta.label}</h2>
+                    <h2 className={`text-[12px] font-700 tracking-[0.03em] ${meta.tone}`}>{meta.label}</h2>
                     <p className="text-[12px] text-text-3 mt-1">{meta.description}</p>
                   </div>
                   <span className="text-[11px] text-text-3">{connectorsForGroup.length} connector{connectorsForGroup.length === 1 ? '' : 's'}</span>
@@ -311,7 +311,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                               />
                             </div>
                             <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                              <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-700 uppercase tracking-[0.03em] ${meta.tone} bg-layer-2`}>
+                              <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-700 tracking-[0.03em] ${meta.tone} bg-layer-2`}>
                                 {meta.label}
                               </span>
                               <span className="text-[11px] text-text-3">
@@ -364,7 +364,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                         )}
 
                         <div className="mb-3 rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                          <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Readiness</div>
+                          <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Readiness</div>
                           <div className="mt-1 text-[11px] text-text-2">{readiness.summary}</div>
                           <div className="mt-2 flex flex-col gap-1">
                             {readiness.checks.slice(0, 3).map((check) => (

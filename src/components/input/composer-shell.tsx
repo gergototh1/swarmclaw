@@ -26,7 +26,7 @@ export function ComposerShell({
     <div className={className}>
       <div
         className={cn(
-          'glass rounded-lg overflow-hidden shadow-[0_4px_32px_rgba(0,0,0,0.3)] focus-within:border-border-focus focus-within:shadow-[0_0_0_3px_var(--color-accent-glow)] transition-all duration-300',
+          'glass rounded-lg overflow-hidden focus-within:border-border-focus focus-within:shadow-[0_0_0_3px_var(--color-accent-glow)] transition-all duration-300',
           shellClassName,
         )}
       >

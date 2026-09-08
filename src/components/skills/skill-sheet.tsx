@@ -199,7 +199,7 @@ export function SkillSheet() {
 
       {!editing && (
         <div className="mb-8 p-4 rounded-md border border-line-default bg-surface">
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Import from URL</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Import from URL</label>
           <div className="flex gap-2">
             <input
               type="url"
@@ -227,7 +227,7 @@ export function SkillSheet() {
         <div className="mb-8 rounded-md border border-line-default bg-layer-1 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Skill Metadata</div>
+              <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Skill Metadata</div>
               <p className="mt-1 text-[13px] text-text-2">
                 {metadataPreview.version ? `v${metadataPreview.version}` : 'Unversioned'}
                 {metadataPreview.sourceFormat ? ` · ${metadataPreview.sourceFormat}` : ''}
@@ -235,7 +235,7 @@ export function SkillSheet() {
               </p>
             </div>
             {previewSecurity && (
-              <span className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em] ${
+              <span className={`rounded-full px-2.5 py-1 text-[10px] font-700 tracking-[0.03em] ${
                 previewSecurity.level === 'high'
                   ? 'bg-red-500/10 text-red-300 border border-red-500/20'
                   : previewSecurity.level === 'medium'
@@ -268,19 +268,19 @@ export function SkillSheet() {
       )}
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Name</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Name</label>
         <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Frontend Design" className={inputClass} style={{ fontFamily: 'inherit' }} />
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">
           Description <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
         </label>
         <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Short summary of what this skill does" className={inputClass} style={{ fontFamily: 'inherit' }} />
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Content</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Content</label>
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -293,7 +293,7 @@ export function SkillSheet() {
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Scope</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Scope</label>
         <div className="flex p-1 rounded-md bg-bg border border-line-subtle">
           {(['global', 'agent'] as const).map((s) => (
             <button
@@ -313,7 +313,7 @@ export function SkillSheet() {
 
       {scope === 'agent' && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Agents</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Agents</label>
           <div className="max-h-[240px] overflow-y-auto rounded-md border border-line-subtle bg-layer-1">
             {agentList.length === 0 ? (
               <p className="p-3 text-[12px] text-text-3">No agents available</p>

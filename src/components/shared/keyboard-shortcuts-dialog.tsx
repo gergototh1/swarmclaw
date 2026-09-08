@@ -77,7 +77,7 @@ export function KeyboardShortcutsDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-[420px] p-0 bg-surface/95 backdrop-blur-xl border-line-default shadow-[0_24px_80px_rgba(0,0,0,0.6)] rounded-lg overflow-hidden gap-0"
+        className="sm:max-w-[420px] p-0 bg-surface/95 backdrop-blur-xl border-line-default rounded-lg overflow-hidden gap-0"
       >
         <DialogTitle className="sr-only">Keyboard shortcuts</DialogTitle>
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-line-subtle">
@@ -89,7 +89,7 @@ export function KeyboardShortcutsDialog() {
         <div className="py-2 max-h-[400px] overflow-y-auto">
           {GROUPS.map((group) => (
             <div key={group.title} className="px-5 py-2">
-              <h3 className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">
+              <h3 className="text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">
                 {group.title}
               </h3>
               <div className="flex flex-col gap-1.5">

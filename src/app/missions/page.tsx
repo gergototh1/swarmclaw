@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { api } from '@/lib/app/api-client'
 import { MainContent } from '@/components/layout/main-content'
+import { SidebarPanelShell } from '@/components/layout/sidebar-panel-shell'
 import { EvidenceShelf } from '@/components/evidence/evidence-shelf'
 import { HintTip } from '@/components/shared/hint-tip'
 import { inputClass } from '@/components/shared/form-styles'
@@ -113,7 +114,7 @@ function MissionCard({ mission, isSelected, onSelect }: MissionCardProps) {
           <div className="text-[13px] font-600 text-text truncate">{mission.title}</div>
           <div className="text-[11px] text-text-3 mt-0.5 line-clamp-2">{mission.goal}</div>
         </div>
-        <span className={`text-[10px] font-600 uppercase tracking-wide px-1.5 py-0.5 rounded-xs ${badge.cls} shrink-0`}>
+        <span className={`text-[10px] font-600 tracking-wide px-1.5 py-0.5 rounded-xs ${badge.cls} shrink-0`}>
           {badge.label}
         </span>
       </div>
@@ -291,7 +292,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
   return (
     <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-md border border-line-default bg-bg p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-[14px] font-600 text-text mb-1">New autonomous mission</div>
@@ -363,7 +364,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
           </div>
 
           <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
-            <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-1.5">Periodic reports</div>
+            <div className="text-[11px] font-600 text-text-3 tracking-wide mb-1.5">Periodic reports</div>
             <label className="flex items-center gap-2 flex-wrap">
               <input type="checkbox" checked={reportsEnabled} onChange={(e) => setReportsEnabled(e.target.checked)} />
               <span className="text-[11px] text-text-3">Send a markdown progress report every</span>
@@ -499,7 +500,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
     <div className="flex flex-col gap-4 p-4">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <span className={`text-[10px] font-600 uppercase tracking-wide px-1.5 py-0.5 rounded-xs ${STATUS_BADGE[mission.status].cls}`}>
+          <span className={`text-[10px] font-600 tracking-wide px-1.5 py-0.5 rounded-xs ${STATUS_BADGE[mission.status].cls}`}>
             {STATUS_BADGE[mission.status].label}
           </span>
           <span className="text-[10px] text-text-3">Created {formatTimestamp(mission.createdAt)}</span>
@@ -511,7 +512,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
       </div>
 
       <div className="rounded-sm border border-line-subtle p-4 flex flex-col gap-3">
-        <div className="text-[11px] font-600 uppercase tracking-wide text-text-3">Budget</div>
+        <div className="text-[11px] font-600 tracking-wide text-text-3">Budget</div>
         <BudgetBar label="USD" used={mission.usage.usdSpent} cap={mission.budget.maxUsd} format={formatUsd} />
         <BudgetBar label="Tokens" used={mission.usage.tokensUsed} cap={mission.budget.maxTokens} format={(n) => `${Math.round(n).toLocaleString()}`} />
         <BudgetBar label="Turns" used={mission.usage.turnsRun} cap={mission.budget.maxTurns} format={(n) => String(Math.round(n))} />
@@ -519,14 +520,14 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
       </div>
 
       <div>
-        <div className="text-[11px] font-600 uppercase tracking-wide text-text-3 mb-2">Controls</div>
+        <div className="text-[11px] font-600 tracking-wide text-text-3 mb-2">Controls</div>
         <MissionControls mission={mission} onAction={onAction} onForceReport={onForceReport} onEdit={onEdit} busy={busy} />
       </div>
 
       <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="text-[11px] font-600 uppercase tracking-wide text-text-3">Public share</div>
+            <div className="text-[11px] font-600 tracking-wide text-text-3">Public share</div>
             <p className="mt-1 max-w-[620px] text-[12px] leading-relaxed text-text-3">
               Publish a revocable mission artifact with status, budgets, milestones, and generated reports. Secrets, credentials, private files, and hidden runtime metadata stay out of the payload.
             </p>
@@ -579,7 +580,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
 
       {mission.successCriteria.length > 0 && (
         <div>
-          <div className="text-[11px] font-600 uppercase tracking-wide text-text-3 mb-2">Success criteria</div>
+          <div className="text-[11px] font-600 tracking-wide text-text-3 mb-2">Success criteria</div>
           <ul className="flex flex-col gap-1">
             {mission.successCriteria.map((c, i) => (
               <li key={i} className="text-[12px] text-text flex items-start gap-2">
@@ -592,7 +593,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
       )}
 
       <div>
-        <div className="text-[11px] font-600 uppercase tracking-wide text-text-3 mb-2">Timeline</div>
+        <div className="text-[11px] font-600 tracking-wide text-text-3 mb-2">Timeline</div>
         {mission.milestones.length === 0 ? (
           <div className="text-[11px] text-text-3">No milestones yet.</div>
         ) : (
@@ -613,7 +614,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-[11px] font-600 uppercase tracking-wide text-text-3">Reports ({reports.length})</div>
+          <div className="text-[11px] font-600 tracking-wide text-text-3">Reports ({reports.length})</div>
         </div>
         {reports.length === 0 ? (
           <div className="text-[11px] text-text-3">No reports yet. Click &quot;Generate report now&quot; to produce one.</div>
@@ -636,7 +637,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
       {selectedReport && (
         <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={() => setSelectedReport(null)}>
           <div
-            className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5"
+            className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-md border border-line-default bg-bg p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
@@ -771,7 +772,7 @@ export default function MissionsPage() {
     const created = await api<Mission>('POST', '/missions', input)
     await refreshList()
     setSelectedId(created.id)
-    toast.success(`Mission "${created.title}" created`)
+    toast.success(`Mission"${created.title}" created`)
   }, [refreshList])
 
   const handleMissionSaved = useCallback((updated: Mission) => {
@@ -788,42 +789,37 @@ export default function MissionsPage() {
     await refreshList()
     setSelectedId(result.mission.id)
     setGalleryOpen(false)
-    toast.success(`Mission "${result.mission.title}" installed`)
+    toast.success(`Mission"${result.mission.title}" installed`)
   }, [refreshList])
 
   return (
     <MainContent>
       <div className="flex-1 flex min-h-0">
-        <div className="w-[340px] shrink-0 border-r border-line-subtle flex flex-col min-h-0">
-          <div className="p-3 border-b border-line-subtle">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <div className="text-[13px] font-600">Missions</div>
-                <div className="text-[10px] text-text-3">Autonomous goal-driven runs</div>
+        <SidebarPanelShell
+          title="Missions"
+          subtitle="Autonomous goal-driven runs"
+          createLabel="Mission"
+          onNew={() => {
+            const template = templates.find((item) => item.id === RELEASE_QA_TEMPLATE_ID)
+            if (template) {
+              setInstallTemplate(template)
+              return
+            }
+            setCreateOpen(true)
+          }}
+          headerContent={
+            templates.length > 0 ? (
+              <div className="px-5 pb-3">
+                <button
+                  onClick={() => setGalleryOpen(true)}
+                  className="w-full text-left text-[11px] font-600 px-3 py-1.5 rounded-full border border-line-default bg-layer-1 text-text-3 hover:border-line-strong hover:text-text"
+                >
+                  Browse {templates.length} starter templates →
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  const template = templates.find((item) => item.id === RELEASE_QA_TEMPLATE_ID)
-                  if (template) {
-                    setInstallTemplate(template)
-                    return
-                  }
-                  setCreateOpen(true)
-                }}
-                className="text-[11px] font-600 px-2.5 py-1 rounded-xs border border-accent-bright/30 bg-accent-bright/10 text-accent-bright hover:bg-accent-bright/15"
-              >
-                + Mission
-              </button>
-            </div>
-            {templates.length > 0 && (
-              <button
-                onClick={() => setGalleryOpen(true)}
-                className="w-full text-left text-[11px] font-600 px-2.5 py-1.5 rounded-xs border border-line-default bg-layer-1 text-text-3 hover:border-line-strong hover:text-text"
-              >
-                Browse {templates.length} starter templates →
-              </button>
-            )}
-          </div>
+            ) : undefined
+          }
+        >
           <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5">
             {!loaded ? (
               <div className="text-[11px] text-text-3 p-3">Loading...</div>
@@ -835,7 +831,7 @@ export default function MissionsPage() {
                 {templates.length > 0 && (
                   <button
                     onClick={() => setGalleryOpen(true)}
-                    className="text-[11px] font-600 px-2.5 py-1 rounded-xs border border-accent-bright/30 bg-accent-bright/10 text-accent-bright hover:bg-accent-bright/15 self-start"
+                    className="text-[11px] font-600 px-3 py-1 rounded-full border border-accent-bright/30 bg-accent-bright/10 text-accent-bright hover:bg-accent-bright/15 self-start"
                   >
                     Open template gallery
                   </button>
@@ -852,7 +848,7 @@ export default function MissionsPage() {
               ))
             )}
           </div>
-        </div>
+        </SidebarPanelShell>
         <div className="flex-1 overflow-y-auto min-h-0">
           {selected ? (
             <MissionDetail
@@ -892,7 +888,7 @@ export default function MissionsPage() {
           onClick={() => setGalleryOpen(false)}
         >
           <div
-            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-6"
+            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-md border border-line-default bg-bg p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">

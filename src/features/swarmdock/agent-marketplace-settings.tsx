@@ -104,7 +104,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
         <>
           {/* Description */}
           <div>
-            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
               Marketplace Description <HintTip text="A short description shown on the agent's marketplace profile" />
             </label>
             <textarea
@@ -119,7 +119,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
 
           {/* Skills */}
           <div>
-            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
               Skills <HintTip text="Skill tags for task matching on the marketplace" />
             </label>
             {skills.length > 0 && (
@@ -157,7 +157,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
 
           {/* Wallet picker */}
           <div>
-            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
+            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
               Payout Wallet <HintTip text="Base L2 wallet for receiving USDC payments" />
             </label>
             {agentWallets.length > 0 ? (

@@ -180,7 +180,7 @@ function SidebarBadge({
       : 'border-line-default bg-layer-2 text-text-3/70'
 
   return (
-    <span className={`rounded-full border px-2 py-1 text-[10px] font-700 uppercase tracking-[0.03em] ${className}`}>
+    <span className={`rounded-full border px-2 py-1 text-[10px] font-700 tracking-[0.03em] ${className}`}>
       {children}
     </span>
   )

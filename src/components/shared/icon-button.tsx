@@ -31,7 +31,7 @@ export function IconButton({ children, variant = 'default', active, size = 'md',
     <Tooltip>
       <TooltipTrigger asChild>{btn}</TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={6}
-        className="bg-raised border border-line-default text-text shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-sm px-2.5 py-1.5 text-[11px]">
+        className="bg-raised border border-line-default text-text rounded-sm px-2.5 py-1.5 text-[11px]">
         {tooltip}
       </TooltipContent>
     </Tooltip>

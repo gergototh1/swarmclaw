@@ -132,7 +132,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
       {/* Skill groups */}
       {grouped.map(({ source, items }) => (
         <div key={source}>
-          <h4 className="text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-2 px-1">
+          <h4 className="text-[11px] font-600 tracking-[0.03em] text-text-3 mb-2 px-1">
             {source}
           </h4>
           <div className="flex flex-col gap-1">
@@ -159,7 +159,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-[13px] font-600 text-text truncate">{skill.name}</span>
-                    <span className={`shrink-0 text-[9px] font-600 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs
+                    <span className={`shrink-0 text-[9px] font-600 tracking-[0.03em] px-1.5 py-0.5 rounded-xs
                       ${skill.eligible
                         ? 'text-emerald-400 bg-emerald-400/[0.08]'
                         : skill.missing?.length

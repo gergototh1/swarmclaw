@@ -277,7 +277,7 @@ export function ExtensionSheet() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
               <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
-                <div className="text-[10px] uppercase tracking-[0.03em] text-text-3 mb-0.5">Type</div>
+                <div className="text-[10px] tracking-[0.03em] text-text-3 mb-0.5">Type</div>
                 <div className="text-[11px] text-text-2">
                   {editing.isBuiltin
                     ? 'Core Platform'
@@ -289,11 +289,11 @@ export function ExtensionSheet() {
                 </div>
               </div>
               <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
-                <div className="text-[10px] uppercase tracking-[0.03em] text-text-3 mb-0.5">Publisher</div>
+                <div className="text-[10px] tracking-[0.03em] text-text-3 mb-0.5">Publisher</div>
                 <div className="text-[11px] text-text-2">{getExtensionSourceLabel(editing.sourceLabel)}</div>
               </div>
               <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
-                <div className="text-[10px] uppercase tracking-[0.03em] text-text-3 mb-0.5">Installed Via</div>
+                <div className="text-[10px] tracking-[0.03em] text-text-3 mb-0.5">Installed Via</div>
                 <div className="text-[11px] text-text-2">{getExtensionSourceLabel(editing.installSource || editing.sourceLabel)}</div>
               </div>
             </div>
@@ -357,11 +357,11 @@ export function ExtensionSheet() {
 
               <div className="grid grid-cols-2 gap-2 mt-3">
                 <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
-                  <div className="text-[10px] uppercase tracking-[0.03em] text-text-3 mb-0.5">Runtime deps</div>
+                  <div className="text-[10px] tracking-[0.03em] text-text-3 mb-0.5">Runtime deps</div>
                   <div className="text-[11px] text-text-2">{editing.dependencyCount ?? 0}</div>
                 </div>
                 <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
-                  <div className="text-[10px] uppercase tracking-[0.03em] text-text-3 mb-0.5">Status</div>
+                  <div className="text-[10px] tracking-[0.03em] text-text-3 mb-0.5">Status</div>
                   <div className="text-[11px] text-text-2">{editing.dependencyInstallStatus || 'none'}</div>
                 </div>
               </div>
@@ -594,7 +594,7 @@ export function ExtensionSheet() {
           {tab === 'url' && (
             <div className="p-5 rounded-md bg-surface border border-line-subtle">
               <div className="mb-4">
-                <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Extension URL</label>
+                <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Extension URL</label>
                 <input
                   type="url"
                   value={urlInput}
@@ -605,7 +605,7 @@ export function ExtensionSheet() {
                 />
               </div>
               <div className="mb-4">
-                <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Save as filename</label>
+                <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Save as filename</label>
                 <input
                   type="text"
                   value={urlFilename}

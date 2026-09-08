@@ -225,7 +225,7 @@ export function WebhookSheet() {
                 {history.map((entry) => (
                   <div key={entry.id} className="p-3 rounded-sm border border-line-subtle bg-layer-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] font-700 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs ${
+                      <span className={`text-[10px] font-700 tracking-[0.03em] px-1.5 py-0.5 rounded-xs ${
                         entry.status === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
                       }`}>
                         {entry.status}
@@ -256,7 +256,7 @@ export function WebhookSheet() {
 
         {tab === 'config' && editing && (
           <div className="p-4 rounded-md bg-layer-1 border border-line-subtle">
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Endpoint URL</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Endpoint URL</label>
             <div className="flex gap-2">
               <input
                 readOnly
@@ -279,7 +279,7 @@ export function WebhookSheet() {
 
         {tab === 'config' && <>
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Name</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Name</label>
           <input
             type="text"
             value={name}
@@ -291,7 +291,7 @@ export function WebhookSheet() {
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Source</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Source</label>
           <input
             type="text"
             value={source}
@@ -303,7 +303,7 @@ export function WebhookSheet() {
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Route to Agent</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Route to Agent</label>
           <select
             value={agentId}
             onChange={(e) => setAgentId(e.target.value)}
@@ -318,7 +318,7 @@ export function WebhookSheet() {
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">
             Events <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
           </label>
           <textarea
@@ -333,7 +333,7 @@ export function WebhookSheet() {
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">
             Secret <span className="normal-case tracking-normal font-normal text-text-3">(optional but recommended)</span>
           </label>
           <div className="flex gap-2">
@@ -364,7 +364,7 @@ export function WebhookSheet() {
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Status</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Status</label>
           <div className="flex p-1 rounded-md bg-bg border border-line-subtle">
             <button
               onClick={() => setIsEnabled(true)}

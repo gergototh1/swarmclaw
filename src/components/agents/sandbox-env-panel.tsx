@@ -51,7 +51,7 @@ export function SandboxEnvPanel() {
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3">OpenClaw Sandbox Env Allowlist</label>
+      <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3">OpenClaw Sandbox Env Allowlist</label>
       <p className="text-[12px] text-text-3">
         Applies to OpenClaw gateway Docker sandboxes only. SwarmClaw local agents use the per-agent sandbox settings in the inspector.
       </p>
