@@ -62,6 +62,15 @@ console.log('[build-electron] compiling electron main process…')
 run('npx', ['--no-install', 'tsc', '-p', 'electron/tsconfig.json'])
 
 if (!skipNext) {
+  /* Clear .next first, so a packaged artifact contains this build and nothing
+     else. Turbopack leaves the previous build's output in .next/static and
+     this script copies that whole directory into the bundle, so without the
+     wipe a release can ship chunks no manifest references -- dead weight in a
+     1.8GB artifact, and a misleading thing to grep when diagnosing what a
+     packaged app is actually serving. */
+  console.log('[build-electron] clearing .next so only this build ships…')
+  fs.rmSync(path.join(repoRoot, '.next'), { recursive: true, force: true })
+
   console.log('[build-electron] running next build…')
   run('npm', ['run', 'build'])
 }
