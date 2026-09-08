@@ -115,27 +115,14 @@ export function ProjectList() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       {/* Header with search and new button */}
-      <div className="px-5 pt-5 pb-3 shrink-0" style={{ animation: 'fade-up 0.4s var(--ease-spring)' }}>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="font-display text-[20px] font-700 text-text tracking-[-0.02em]">Projects</h2>
-            <p className="text-[12px] text-text-3 mt-0.5">
-              {totalProjects} project{totalProjects !== 1 ? 's' : ''}
-              {totalTasks > 0 && <> &middot; {totalCompleted}/{totalTasks} tasks done</>}
-            </p>
-          </div>
-          <button
-            onClick={() => { setEditingProjectId(null); setProjectSheetOpen(true) }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-600 text-accent-fg bg-accent-bright rounded-sm hover:brightness-110 transition-all cursor-pointer border-none"
-            style={{ fontFamily: 'inherit' }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            New
-          </button>
-        </div>
+      <div className="px-5 pb-3 shrink-0" style={{ animation: 'fade-up 0.4s var(--ease-spring)' }}>
+        {/* The title and the create button live in SidebarPanelShell now, like
+            every other panel's. What is left here is the count, which the
+            shell cannot know. */}
+        <p className="text-[12px] text-text-3 mb-4">
+          {totalProjects} project{totalProjects !== 1 ? 's' : ''}
+          {totalTasks > 0 && <> &middot; {totalCompleted}/{totalTasks} tasks done</>}
+        </p>
 
         {/* Search */}
         <div className="relative">
