@@ -342,7 +342,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
         under it, and a 20px blur with a 1.4 saturate was compositing an
         opaque background against nothing every frame. */}
     <header
-      className="relative z-20 border-b border-line-subtle shrink-0 bg-raised"
+      className="relative z-20 shrink-0 bg-raised"
       style={mobile ? { paddingTop: 'max(12px, env(safe-area-inset-top))' } : undefined}
     >
       {/* Main row */}

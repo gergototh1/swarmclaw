@@ -679,7 +679,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
 
   return (
     <div className="relative flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden isolate" data-testid="message-list">
-      <div className="shrink-0 px-4 md:px-12 lg:px-16 pt-3">
+      <div className="shrink-0 border-b border-line-subtle bg-raised px-4 pb-2 md:px-12 lg:px-16">
         <div className="flex flex-wrap items-center gap-1">
           <button
             type="button"

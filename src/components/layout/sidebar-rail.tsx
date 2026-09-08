@@ -8,6 +8,7 @@ import { useAppStore } from '@/stores/use-app-store'
 import { Avatar } from '@/components/shared/avatar'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { DaemonIndicator } from '@/components/layout/daemon-indicator'
+import { NetworkBanner } from '@/components/layout/network-banner'
 import { NotificationCenter } from '@/components/shared/notification-center'
 import { RailTooltip } from '@/components/layout/nav-item'
 import { ThemeModeRailButton } from '@/components/shared/theme-mode-control'
@@ -464,6 +465,7 @@ export function SidebarRail({
         {/* Bottom: Daemon + Notifications + Settings + Theme + User */}
         <div className={`flex flex-col gap-1 ${railExpanded ? 'px-3' : 'items-center'}`}>
           {railExpanded && <DaemonIndicator />}
+          {railExpanded && <NetworkBanner />}
           {railExpanded ? (
             <NotificationCenter variant="row" align="left" direction="up" />
           ) : (
