@@ -201,7 +201,7 @@ export function AgentList({ inSidebar }: Props) {
         </div>
       )}
       {/* Fleet filter: All / Running / Approvals */}
-      <div className="flex gap-1 px-4 pb-1 items-center">
+      <div className="flex flex-wrap gap-1 px-4 pb-2 items-center">
         {(['all', 'running', 'approvals'] as const).map((f) => {
           const count = f === 'running' ? runningAgentIds.size
             : f === 'approvals' ? Object.keys(approvalsByAgent).length
@@ -218,8 +218,7 @@ export function AgentList({ inSidebar }: Props) {
             </button>
           )
         })}
-      </div>
-      <div className="flex gap-1 px-4 pb-2 items-center">
+        <span className="mx-1 h-3.5 w-px bg-line-subtle" aria-hidden="true" />
         {([
           ['all', `all (${delegatingCount + soloCount})`],
           ['delegating', `delegating (${delegatingCount})`],

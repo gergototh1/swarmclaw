@@ -514,6 +514,27 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
                   <rect x="6" y="6" width="12" height="12" rx="2" />
                 </svg>
               </IconButton>
+          {hasContextPack && (
+          <IconButton
+          onClick={handleCopyContextPack}
+          disabled={contextPackLoading}
+          tooltip={contextPackLoading ? 'Packing' : contextPackCopied ? 'Copied' : 'Copy context pack'}
+          aria-label="Copy session context pack"
+          >
+          <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={2.2} />
+          </IconButton>
+          )}
+          {hasMemoryLink && (
+          <IconButton
+          tooltip="Agent memories"
+          aria-label="Agent memories"
+          onClick={() => { setMemoryAgentFilter(session.agentId!); navigateTo('memory'); setSidebarOpen(true) }}
+          >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+          </svg>
+          </IconButton>
+          )}
               <div className="w-px h-3.5 bg-layer-2 mx-0.5" />
             </>
           )}
@@ -548,33 +569,6 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
       {hasContextBar && (
         <div className="border-t border-line-subtle bg-layer-1 px-4 py-2">
         <div className="flex items-center gap-1.5 flex-wrap">
-          {hasContextPack && (
-            <Tip label="Copy session context pack">
-            <button
-              type="button"
-              onClick={handleCopyContextPack}
-              disabled={contextPackLoading}
-              aria-label="Copy session context pack"
-              className="flex min-w-[122px] items-center justify-center gap-1 px-2.5 py-1 rounded-sm bg-layer-1 hover:bg-layer-2 disabled:opacity-70 disabled:cursor-wait transition-colors cursor-pointer text-[10px] font-600 text-text-3 hover:text-text-2 shrink-0"
-            >
-              <ClipboardList className="h-3 w-3 shrink-0" aria-hidden="true" strokeWidth={2.2} />
-              <span>{contextPackLoading ? 'Packing' : contextPackCopied ? 'Copied' : 'Context pack'}</span>
-            </button>
-            </Tip>
-          )}
-          {hasMemoryLink && (
-            <Tip label="View agent memories">
-            <button
-              onClick={() => { setMemoryAgentFilter(session.agentId!); navigateTo('memory'); setSidebarOpen(true) }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-sm bg-accent-soft/40 hover:bg-accent-soft/70 transition-colors cursor-pointer text-[10px] font-600 text-accent-bright/55 hover:text-accent-bright/80 shrink-0"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-              </svg>
-              Memories
-            </button>
-            </Tip>
-          )}
           {hasSourceFilter && onConnectorFilterChange && connectorSources && (
             <div className="relative shrink-0" ref={sourceDropdownRef}>
               <Tip label="Filter messages by source connector">

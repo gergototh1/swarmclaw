@@ -152,12 +152,15 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
     <>
       <div
         onClick={handleClick}
-        className={`group relative py-3.5 px-4 cursor-pointer rounded-md
-          transition-all duration-200 active:scale-[0.98]
+        /* A list row is separated by a rule, not by a box of its own. At rest
+           these carried `border border-transparent` on all four sides, so
+           sixty-four four-line entries ran together with nothing but
+           whitespace between them and the list could not be scanned. The
+           bottom hairline is the separator; the fill is the hover. */
+        className={`group relative border-b border-line-subtle py-3.5 px-4 cursor-pointer
+          transition-colors duration-200 active:scale-[0.98]
           ${agentDisabled ? 'opacity-70' : ''}
-          ${isSelected
-            ? 'bg-layer-2 border border-line-default'
-            : 'bg-transparent border border-transparent hover:bg-layer-2 hover:border-line-default'}`}
+          ${isSelected ? 'bg-layer-2' : 'bg-transparent hover:bg-layer-2'}`}
       >
         {isSelected && <div className="card-select-indicator" />}
         {/* Pin/star button */}
