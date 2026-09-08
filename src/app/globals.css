@@ -144,9 +144,12 @@
   --color-line-strong: var(--ln-strong);
 
   /* The opaque surface ladder, by emphasis rather than by lightness: in dark
-     more emphasis is lighter, in light it is darker, which is what selection
-     actually does on macOS. bg is the window ground, surface is the card
-     (360 call sites, the workhorse), surface-2 is a selected/pressed fill. */
+     more emphasis is lighter, in light a selected or pressed step is darker,
+     which is what selection actually does on macOS. bg is the window ground,
+     surface is the card (360 call sites, the workhorse), surface-2 is a
+     selected/pressed fill, surface-3 the step past it (a switch's off track).
+     In light, bg and surface are the pair that has to separate -- #F0F2F5
+     against #FFFFFF -- and raised holds the same white as surface. */
   --color-bg: var(--surface-bg);
   --color-raised: var(--surface-raised);
   --color-surface: var(--surface-card);
@@ -557,8 +560,29 @@
   /* Exactly the keys :root sets, and nothing else. There is no !important
      layer under this any more -- see the note below where one used to be.
 
+     Designed for a light ground, not mirrored off the dark one. The first
+     light pass took the dark values and inverted the ink: a 7% white line on
+     a near-black ground reads as an edge, so a 6% near-black line on white
+     was assumed to read as one too. It does not -- rgba(16,24,40,0.06) over
+     white composites to #F1F1F2, 1.13:1, which is nothing -- and the ground
+     sat at #F7F8FA, 1.06:1 from a white card, so a card had no fill
+     difference to sit on either. The ground dropped to #EAEDF2 (1.17:1 from
+     white), the cards came up to #FFFFFF, and the three rules went to
+     0.09 / 0.14 / 0.22, which composite to 1.20 / 1.33 / 1.61 on white.
+
+     #EAEDF2 is one step below the #F0F2F5 the redesign started from. At
+     #F0F2F5 the card/ground delta was 1.12:1, which separates a card but only
+     just, and two places gave it away: the feed's search input is white on a
+     white panel and had nothing but its rule to sit on, and the connector
+     inbox's "All connector types" select read *darker* than the card holding
+     it, which inverts the ladder. The deeper ground fixes the first by giving
+     a white field a page to sit on, and the second by putting the select's
+     own fill above the page rather than below the card. It stops there: the
+     ladder still lives above 208, so the page reads as a light UI rather than
+     as grey chrome.
+
      These five are literals, and :root's four are not. That is not an
-     oversight, it is arithmetic: the light ladder lives between 216 and 255,
+     oversight, it is arithmetic: the light ladder lives between 214 and 255,
      and mixing a dark hue into a value that high either overshoots the gamut
      or has to be dosed so weakly (2% at the ground, 7% at the selected step)
      that a hue change moves the result by one or two parts in 255. So
@@ -566,11 +590,19 @@
      Theme still recolours the whole app in dark mode; in light mode it now
      does nothing, and pretending otherwise with a 2% mix would be the
      appearance of a feature rather than the feature. */
-  --surface-bg: #F7F8FA;
+  --surface-bg: #EAEDF2;
   --surface-raised: #FFFFFF;
-  --surface-card: #F2F4F7;
-  --surface-selected: #E4E7EC;
-  --surface-elevated: #D8DCE3;
+  --surface-card: #FFFFFF;
+  --surface-selected: #DCE1E9;
+  --surface-elevated: #D0D6E0;
+
+  /* raised and card hold the same value on purpose. In dark they are two
+     steps of one ramp; in light both mean "forward of the page" and white is
+     the only value that means it, so the separation between a panel and a
+     card nested in it is drawn by --ln-subtle rather than by a fill. The
+     secondary surface that used to be --surface-card (#F2F4F7, which sat
+     *below* the old ground and so read as a dent rather than a lift) is now
+     the --sf-1 overlay: 3% ink over white composites to #F8F8F9. */
 
   /* The ink is (16,24,40), not black: a neutral-black wash over a cool ground
      greys it, and these alphas are what draw every hover and every rule. */
@@ -580,24 +612,36 @@
   --sf-3: rgba(16,24,40,0.10);
   --sf-4: rgba(16,24,40,0.16);
 
-  --ln-subtle: rgba(16,24,40,0.06);
-  --ln-default: rgba(16,24,40,0.11);
-  --ln-strong: rgba(16,24,40,0.18);
+  --ln-subtle: rgba(16,24,40,0.09);
+  --ln-default: rgba(16,24,40,0.14);
+  --ln-strong: rgba(16,24,40,0.22);
 
-  /* Solid, like :root's. --tx-3 is decorative-weight here and the report says
-     so out loud: #98A2B3 is 2.42:1 on the light ground unmodified, so it is
-     readable as a hint or a separator label and not as body copy. That is the
-     chosen value; the stacked-modifier codemod is what would make it matter. */
-  --tx-1: #101828;
-  --tx-2: #475467;
-  --tx-3: #98A2B3;
+  /* Solid, like :root's, and all three now clear WCAG AA for normal text on
+     both the ground and a white card:
+
+       --tx-1  #0F172A  15.21:1 on #EAEDF2   17.85:1 on #FFFFFF
+       --tx-2  #44506A   6.88:1              8.07:1
+       --tx-3  #626C7B   4.53:1              5.32:1
+
+     --tx-3 was #98A2B3, 2.42:1 on the old ground -- decorative weight, and
+     the file said so. The value alone does not finish the job: 1,393 call
+     sites still stack a Tailwind opacity modifier on text-text-3, and a /40
+     cannot reach 4.5:1 at any token value. Stripping those is the codemod. */
+  --tx-1: #0F172A;
+  --tx-2: #44506A;
+  --tx-3: #626C7B;
 
   /* Orchid, four steps down. See the :root note for why it cannot be the same
-     value: #A78BFA measures 2.56:1 on --surface-bg here. */
+     value: #A78BFA measures 2.32:1 on --surface-bg here, 2.72:1 on a white
+     card. #7C3AED is 4.86:1 on the ground and 5.70:1 on white, and the white
+     label on top of it is 5.70:1. --ac-soft went 0.10 -> 0.14 because the
+     ground moved down and the cards moved up: a 10% violet wash on #FFFFFF
+     is 1.16:1, which reads as a rendering artefact rather than a fill. At
+     0.14 it is #EDE3FC, 1.24:1, and reads as a fill. */
   --ac: #7C3AED;
   --ac-2: #8B5CF6;
   --ac-fg: #ffffff;
-  --ac-soft: rgba(124,58,237,0.10);
+  --ac-soft: rgba(124,58,237,0.14);
   --ac-glow: rgba(124,58,237,0.24);
   --ac-ring: rgba(124,58,237,0.45);
   --ac-select: rgba(124,58,237,0.24);
