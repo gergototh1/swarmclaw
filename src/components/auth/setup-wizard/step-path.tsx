@@ -128,7 +128,7 @@ export function StepPath({
                     ))}
                   </div>
                 ) : (
-                  <div className="mt-4 rounded-lg border border-dashed border-line-subtle bg-layer-1 px-3 py-2 text-[11px] text-text-3">
+                  <div className="mt-4 rounded-lg border border-dashed border-line-subtle bg-surface px-3 py-2 text-[11px] text-text-3">
                     Finish setup without starter agents.
                   </div>
                 )}

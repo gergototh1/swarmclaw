@@ -165,11 +165,11 @@ function renderBody(payload: SharedPayload) {
           </div>
         </div>
         {payload.successCriteria.length > 0 ? (
-          <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+          <div className="rounded-lg border border-line-subtle bg-surface p-4">
             <h3 className="text-[12px] font-700 tracking-[0.03em] text-white/55">Success criteria</h3>
             <ul className="mt-3 grid gap-2 text-[13px] text-white/70 md:grid-cols-2">
               {payload.successCriteria.map((c, i) => (
-                <li key={i} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">{c}</li>
+                <li key={i} className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">{c}</li>
               ))}
             </ul>
           </div>
@@ -185,11 +185,11 @@ function renderBody(payload: SharedPayload) {
           </article>
         ) : null}
         {payload.milestones.length > 0 ? (
-          <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+          <div className="rounded-lg border border-line-subtle bg-surface p-4">
             <h3 className="text-[12px] font-700 tracking-[0.03em] text-white/55">Milestones</h3>
             <ol className="mt-3 space-y-2">
               {payload.milestones.map((m, i) => (
-                <li key={i} className="flex gap-3 rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px]">
+                <li key={i} className="flex gap-3 rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px]">
                   <span className="shrink-0 text-white/40">{formatTime(m.at)}</span>
                   <span className="shrink-0 font-700 text-white/55">{m.kind}</span>
                   <span className="text-white/75">{m.summary}</span>
@@ -199,11 +199,11 @@ function renderBody(payload: SharedPayload) {
           </div>
         ) : null}
         {payload.reports.length > 1 ? (
-          <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+          <div className="rounded-lg border border-line-subtle bg-surface p-4">
             <h3 className="text-[12px] font-700 tracking-[0.03em] text-white/55">Earlier reports</h3>
             <div className="mt-3 grid gap-3">
               {payload.reports.slice(1).map((r) => (
-                <article key={r.id} className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                <article key={r.id} className="rounded-lg border border-line-subtle bg-surface p-4">
                   <div className="text-[13px] font-700 text-white">{r.title}</div>
                   <div className="mt-1 text-[11px] text-white/45">{formatTime(r.at)} - {r.format}</div>
                   <div className="mt-3">
@@ -220,7 +220,7 @@ function renderBody(payload: SharedPayload) {
 
   if (payload.kind === 'skill') {
     return (
-      <section className="rounded-lg border border-line-subtle bg-layer-1 p-5">
+      <section className="rounded-lg border border-line-subtle bg-surface p-5">
         <h2 className="font-display text-[22px] font-700 text-white">{payload.name}</h2>
         {payload.tags.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-2">
@@ -240,7 +240,7 @@ function renderBody(payload: SharedPayload) {
   }
 
   return (
-    <section className="rounded-lg border border-line-subtle bg-layer-1 p-5">
+    <section className="rounded-lg border border-line-subtle bg-surface p-5">
       <h2 className="font-display text-[22px] font-700 text-white">{payload.name}</h2>
       {payload.agentName ? (
         <div className="mt-1 text-sm text-white/50">Agent: {payload.agentName}</div>
@@ -249,7 +249,7 @@ function renderBody(payload: SharedPayload) {
         {payload.messages.map((m, i) => (
           <article
             key={i}
-            className="rounded-lg border border-line-subtle bg-layer-1 p-4"
+            className="rounded-lg border border-line-subtle bg-surface p-4"
           >
             <div className="mb-1 flex items-center justify-between text-xs text-white/45">
               <span className="">{m.role}</span>

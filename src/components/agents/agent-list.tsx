@@ -248,7 +248,7 @@ export function AgentList({ inSidebar }: Props) {
         </button>
       </div>
       {!inSidebar && (
-        <div className="mx-4 mb-3 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
+        <div className="mx-4 mb-3 rounded-lg border border-line-subtle bg-surface px-4 py-3">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h3 className="text-[12px] font-700 tracking-[0.03em] text-text-3">Fleet Roles</h3>

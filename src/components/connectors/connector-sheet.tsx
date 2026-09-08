@@ -1193,7 +1193,7 @@ export function ConnectorSheet() {
                   setNewCredName(`${platformConfig.label} Bot Token`)
                   setNewCredValue('')
                 }}
-                className="shrink-0 px-3 py-2.5 rounded-sm bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
+                className="shrink-0 px-3 py-2.5 rounded-md bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
               >
                 + New
               </button>
@@ -1280,7 +1280,7 @@ export function ConnectorSheet() {
           </p>
           {basicAccessFields.map((field) => renderConfigField(field))}
           {platform === 'whatsapp' && (
-            <div className="mb-6 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
+            <div className="mb-6 rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[12px] text-text-3">
               Global WhatsApp approved contacts still live in Settings. Use advanced settings for per-connector allow and block lists.
             </div>
           )}
@@ -1419,7 +1419,7 @@ export function ConnectorSheet() {
             </p>
             {advancedAccessFields.map((field) => renderConfigField(field))}
             {platform === 'whatsapp' && (
-              <div className="mb-6 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
+              <div className="mb-6 rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[12px] text-text-3">
                 Global WhatsApp approved contacts: {globalWhatsAppAllowlistCount}. They remain managed in Settings.
               </div>
             )}
@@ -1467,29 +1467,29 @@ export function ConnectorSheet() {
           </div>
           {doctorPolicy && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
-              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
+              <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                 Scope: <span className="text-text-2">{doctorPolicy.scope || 'channel-peer'}</span>{' '}
                 · Reply: <span className="text-text-2">{doctorPolicy.replyMode || 'first'}</span>{' '}
                 · Thread: <span className="text-text-2">{doctorPolicy.threadBinding || 'prefer'}</span>
               </div>
-              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
+              <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                 DMs: <span className="text-text-2">{config.dmPolicy || 'open'}</span>{' '}
                 · Group: <span className="text-text-2">{doctorPolicy.groupPolicy || 'reply-or-mention'}</span>{' '}
                 · Debounce: <span className="text-text-2">{doctorPolicy.inboundDebounceMs ?? 700}ms</span>
               </div>
-              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
+              <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                 Allowlist: <span className="text-text-2">{localAllowlistCount + globalWhatsAppAllowlistCount}</span>{' '}
                 · Blocked: <span className="text-text-2">{localBlocklistCount}</span>{' '}
                 · Reactions: <span className="text-text-2">{doctorPolicy.statusReactions === false ? 'off' : 'on'}</span>{' '}
                 · Typing: <span className="text-text-2">{doctorPolicy.typingIndicators === false ? 'off' : 'on'}</span>
               </div>
-              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
+              <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                 Reset: <span className="text-text-2">{doctorPolicy.resetMode || 'idle'}</span>{' '}
                 {doctorPolicy.resetMode === 'daily'
                   ? `at ${doctorPolicy.dailyResetAt || 'unset'} (${doctorPolicy.resetTimezone || 'server timezone'})`
                   : `idle ${doctorPolicy.idleTimeoutSec ?? 0}s / max ${doctorPolicy.maxAgeSec ?? 0}s`}
               </div>
-              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
+              <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                 Runtime: <span className="text-text-2">{doctorPolicy.thinkingLevel || 'inherit'}</span>{' '}
                 · Provider: <span className="text-text-2">{doctorPolicy.providerOverride || 'agent default'}</span>{' '}
                 · Model: <span className="text-text-2">{doctorPolicy.modelOverride || 'agent default'}</span>
@@ -1499,7 +1499,7 @@ export function ConnectorSheet() {
           {doctorWarnings.length > 0 ? (
             <div className="space-y-2">
               {doctorWarnings.map((warning, index) => (
-                <div key={`${index}:${warning}`} className="rounded-sm border border-amber-400/15 bg-amber-500/8 px-3 py-2 text-[12px] text-amber-200/85 leading-[1.5]">
+                <div key={`${index}:${warning}`} className="rounded-md border border-amber-400/15 bg-amber-500/8 px-3 py-2 text-[12px] text-amber-200/85 leading-[1.5]">
                   {warning}
                 </div>
               ))}

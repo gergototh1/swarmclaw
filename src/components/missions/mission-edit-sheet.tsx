@@ -182,7 +182,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
             />
           </label>
 
-          <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
+          <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5">
             <div className="text-[11px] font-600 text-text-3 tracking-wide mb-2">
               Budget <HintTip text="Leave any field blank to remove that cap." />
             </div>
@@ -240,7 +240,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
             </div>
           </div>
 
-          <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
+          <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5">
             <div className="text-[11px] font-600 text-text-3 tracking-wide mb-2">Periodic reports</div>
             <label className="flex items-center gap-2 flex-wrap mb-2">
               <input

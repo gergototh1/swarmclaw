@@ -261,14 +261,14 @@ export function KnowledgeDetail() {
               <button
                 onClick={() => { void handleSync() }}
                 disabled={syncing}
-                className="px-3 py-2 rounded-sm border border-line-default bg-layer-1 text-[12px] font-600 text-text-2 hover:bg-layer-2 disabled:opacity-50 transition-all cursor-pointer"
+                className="px-3 py-2 rounded-md border border-line-default bg-layer-1 text-[12px] font-600 text-text-2 hover:bg-layer-2 disabled:opacity-50 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 {syncing ? 'Syncing...' : 'Sync'}
               </button>
               <button
                 onClick={openEdit}
-                className="px-3 py-2 rounded-sm border border-line-default bg-layer-1 text-[12px] font-600 text-text-2 hover:bg-layer-2 transition-all cursor-pointer"
+                className="px-3 py-2 rounded-md border border-line-default bg-layer-1 text-[12px] font-600 text-text-2 hover:bg-layer-2 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 Edit
@@ -277,7 +277,7 @@ export function KnowledgeDetail() {
                 <button
                   onClick={() => { void handleRestore() }}
                   disabled={restoring}
-                  className="px-3 py-2 rounded-sm border border-emerald-500/15 bg-emerald-500/[0.06] text-[12px] font-600 text-emerald-100 hover:bg-emerald-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
+                  className="px-3 py-2 rounded-md border border-emerald-500/15 bg-emerald-500/[0.06] text-[12px] font-600 text-emerald-100 hover:bg-emerald-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {restoring ? 'Restoring...' : 'Restore'}
@@ -286,7 +286,7 @@ export function KnowledgeDetail() {
                 <button
                   onClick={() => { void handleArchive() }}
                   disabled={archiving}
-                  className="px-3 py-2 rounded-sm border border-amber-500/15 bg-amber-500/[0.06] text-[12px] font-600 text-amber-100 hover:bg-amber-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
+                  className="px-3 py-2 rounded-md border border-amber-500/15 bg-amber-500/[0.06] text-[12px] font-600 text-amber-100 hover:bg-amber-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {archiving ? 'Archiving...' : 'Archive'}
@@ -295,7 +295,7 @@ export function KnowledgeDetail() {
               <button
                 onClick={() => { void handleDelete() }}
                 disabled={deleting}
-                className="px-3 py-2 rounded-sm border border-red-500/15 bg-red-500/[0.06] text-[12px] font-600 text-red-200 hover:bg-red-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
+                className="px-3 py-2 rounded-md border border-red-500/15 bg-red-500/[0.06] text-[12px] font-600 text-red-200 hover:bg-red-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 {deleting ? 'Deleting...' : 'Delete'}
@@ -343,12 +343,12 @@ export function KnowledgeDetail() {
                 value={supersedeTargetId}
                 onChange={(event) => setSupersedeTargetId(event.target.value)}
                 placeholder="Replacement source id"
-                className="w-full rounded-sm border border-line-default bg-surface px-3 py-2 text-[13px] text-text outline-none"
+                className="w-full rounded-md border border-line-default bg-surface px-3 py-2 text-[13px] text-text outline-none"
               />
               <button
                 onClick={() => { void handleSupersede() }}
                 disabled={!supersedeTargetId.trim()}
-                className="rounded-sm border border-line-default bg-layer-1 px-3 py-2 text-[12px] font-600 text-text-2 transition-all cursor-pointer disabled:opacity-50"
+                className="rounded-md border border-line-default bg-layer-1 px-3 py-2 text-[12px] font-600 text-text-2 transition-all cursor-pointer disabled:opacity-50"
                 style={{ fontFamily: 'inherit' }}
               >
                 Mark superseded

@@ -419,7 +419,7 @@ export function TabTools({
               patch((d) => ({ capabilities: [...d.capabilities, next] }))
               setCapInput('')
             }}
-            className="shrink-0 px-3 py-2.5 rounded-sm bg-accent-soft/50 text-accent-bright text-[12px] font-700 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
+            className="shrink-0 px-3 py-2.5 rounded-md bg-accent-soft/50 text-accent-bright text-[12px] font-700 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
           >
             Add
           </button>

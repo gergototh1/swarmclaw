@@ -92,7 +92,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
             {projectAgents.map((agent) => (
               <div
                 key={agent.id}
-                className="group/agent flex items-center gap-3 px-4 py-3 rounded-lg border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all"
+                className="group/agent flex items-center gap-3 px-4 py-3 rounded-lg border border-line-subtle bg-surface hover:bg-layer-2 hover:border-line-default transition-all"
               >
                 <button
                   onClick={() => navigateTo('agents', agent.id)}
@@ -199,7 +199,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
           <p className="text-[11px] text-text-3">{projectSecrets.length} linked secret{projectSecrets.length === 1 ? '' : 's'}</p>
           <button
             onClick={() => { setEditingSecretId(null); setSecretSheetOpen(true) }}
-            className="px-3 py-2 rounded-sm bg-accent-soft text-[12px] font-600 text-accent-bright hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
+            className="px-3 py-2 rounded-md bg-accent-soft text-[12px] font-600 text-accent-bright hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
             style={{ fontFamily: 'inherit' }}
           >
             Add project secret
@@ -237,7 +237,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
                 <button
                   key={schedule.id}
                   onClick={() => { setEditingScheduleId(schedule.id); setScheduleSheetOpen(true) }}
-                  className="flex items-center gap-3 px-4 py-3 rounded-sm border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer text-left w-full"
+                  className="flex items-center gap-3 px-4 py-3 rounded-md border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer text-left w-full"
                   style={{ fontFamily: 'inherit' }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-amber-400/60 shrink-0">

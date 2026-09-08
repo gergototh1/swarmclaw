@@ -347,7 +347,7 @@ export function ExtensionSheet() {
                   <button
                     onClick={() => { void installDependencies() }}
                     disabled={dependencyInstalling}
-                    className="px-3 py-2 rounded-sm bg-accent-soft text-[11px] font-700 text-accent-bright hover:bg-accent-bright/15 transition-all cursor-pointer border-none disabled:opacity-50"
+                    className="px-3 py-2 rounded-md bg-accent-soft text-[11px] font-700 text-accent-bright hover:bg-accent-bright/15 transition-all cursor-pointer border-none disabled:opacity-50"
                     style={{ fontFamily: 'inherit' }}
                   >
                     {dependencyInstalling ? 'Installing…' : 'Install / Refresh'}
@@ -485,7 +485,7 @@ export function ExtensionSheet() {
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
                           placeholder="Search extensions..."
-                          className="w-full px-3 py-2.5 rounded-sm bg-bg border border-line-subtle text-[12px] text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30"
+                          className="w-full px-3 py-2.5 rounded-md bg-bg border border-line-subtle text-[12px] text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30"
                           style={{ fontFamily: 'inherit' }}
                         />
 
@@ -600,7 +600,7 @@ export function ExtensionSheet() {
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   placeholder="https://example.com/my-extension.js"
-                  className="w-full py-2.5 px-3 rounded-sm text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30"
+                  className="w-full py-2.5 px-3 rounded-md text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30"
                   style={{ fontFamily: 'inherit' }}
                 />
               </div>
@@ -611,7 +611,7 @@ export function ExtensionSheet() {
                   value={urlFilename}
                   onChange={(e) => setUrlFilename(e.target.value)}
                   placeholder="my-extension.js"
-                  className="w-full py-2.5 px-3 rounded-sm text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30"
+                  className="w-full py-2.5 px-3 rounded-md text-[13px] bg-bg border border-line-subtle text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30"
                   style={{ fontFamily: 'inherit' }}
                 />
               </div>
@@ -664,7 +664,7 @@ function ExtensionSettingRow({
   configured: boolean
   onChange: (v: unknown) => void
 }) {
-  const inputCls = 'w-full py-2 px-3 rounded-sm text-[12px] bg-bg border border-line-subtle text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30'
+  const inputCls = 'w-full py-2 px-3 rounded-md text-[12px] bg-bg border border-line-subtle text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30'
 
   return (
     <div>

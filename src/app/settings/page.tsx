@@ -341,7 +341,7 @@ export default function SettingsRoute() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border-none text-left
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-600 cursor-pointer transition-all border-none text-left
                   ${dimmed ? 'opacity-30' : ''}
                   ${activeTab === tab.id
                     ? 'bg-accent-soft text-accent-bright'
@@ -397,7 +397,7 @@ export default function SettingsRoute() {
                       <button
                         key={section.id}
                         onClick={() => focusSection(section.id, section.tabId)}
-                        className="px-3 py-2 rounded-sm border border-line-subtle bg-transparent text-left hover:bg-layer-2 transition-colors cursor-pointer"
+                        className="px-3 py-2 rounded-md border border-line-subtle bg-transparent text-left hover:bg-layer-2 transition-colors cursor-pointer"
                         style={{ fontFamily: 'inherit' }}
                       >
                         <div className="text-[12px] font-600 text-text">{section.title}</div>

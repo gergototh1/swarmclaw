@@ -313,7 +313,7 @@ export function StructuredSessionLauncher({
         ) : (
           <div>
             <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Participants</div>
-            <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-lg border border-line-subtle bg-layer-1 p-3">
+            <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-lg border border-line-subtle bg-surface p-3">
               {loading ? (
                 <div className="text-[13px] text-text-3">Loading options…</div>
               ) : agentOptions.map((agent) => {

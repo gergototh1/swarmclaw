@@ -53,13 +53,13 @@ export function GroundingPanel(props: {
 
       <div className="space-y-2 px-3.5 pb-3 pt-1">
         {props.retrievalTrace?.query && (
-          <div className="rounded-sm border border-line-subtle bg-layer-2 px-3 py-2 text-[11px] text-text-3">
+          <div className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2 text-[11px] text-text-3">
             Query: <span className="text-text-2">{props.retrievalTrace.query}</span>
           </div>
         )}
 
         {items.map((citation) => (
-          <div key={`${citation.sourceId}:${citation.chunkId}`} className="rounded-sm border border-line-subtle bg-layer-2 px-3 py-2.5">
+          <div key={`${citation.sourceId}:${citation.chunkId}`} className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[12px] font-600 text-text-2">{citation.sourceTitle}</div>

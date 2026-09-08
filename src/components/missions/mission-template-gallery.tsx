@@ -81,7 +81,7 @@ function TemplateCard({ template, onInstall }: { template: MissionTemplate; onIn
     <button
       type="button"
       onClick={onInstall}
-      className="text-left group flex flex-col gap-3 rounded-lg border border-line-subtle bg-layer-1 px-4 py-4 transition-all hover:border-line-strong hover:bg-layer-2"
+      className="text-left group flex flex-col gap-3 rounded-lg border border-line-subtle bg-surface px-4 py-4 transition-all hover:border-line-strong hover:bg-layer-2"
     >
       <div className="flex items-start gap-3">
         <span className="text-[22px] leading-none" aria-hidden>{template.icon}</span>

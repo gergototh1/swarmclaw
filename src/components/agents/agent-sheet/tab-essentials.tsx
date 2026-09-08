@@ -229,7 +229,7 @@ export function TabEssentials({
             <button
               type="button"
               onClick={() => { patch({ avatarSeed: Math.random().toString(36).slice(2, 10) }); patch({ avatarUrl: null }) }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2 hover:text-text-2 active:scale-95 shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2 hover:text-text-2 active:scale-95 shrink-0"
               style={{ fontFamily: 'inherit' }}
               title="Shuffle avatar"
             >
@@ -255,7 +255,7 @@ export function TabEssentials({
         description="Choose how this agent connects to a model, then verify the setup before saving."
       >
       <div className="mb-8">
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-line-subtle bg-surface px-4 py-3">
           <div>
             <p className="text-[12px] font-700 tracking-[0.03em] text-text-3">Runtime</p>
             <p className="mt-1 text-[14px] font-600 text-text">{openclawEnabled ? 'OpenClaw gateway' : 'Direct provider connection'}</p>
@@ -346,7 +346,7 @@ export function TabEssentials({
                   <button
                     type="button"
                     onClick={() => { setAddingKey(true); setNewKeyName(''); setNewKeyValue('') }}
-                    className="shrink-0 px-3 py-2.5 rounded-sm bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
+                    className="shrink-0 px-3 py-2.5 rounded-md bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
                   >
                     + New
                   </button>
@@ -405,7 +405,7 @@ export function TabEssentials({
             const isRemote = url && !/localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]/i.test(url)
             const isSecure = /^(https|wss):\/\//i.test(url)
             if (isRemote && !isSecure) return (
-              <div className="px-3 py-2.5 rounded-sm bg-warning/[0.06] border border-warning/20">
+              <div className="px-3 py-2.5 rounded-md bg-warning/[0.06] border border-warning/20">
                 <p className="text-[13px] text-warning leading-[1.5]">
                   Unencrypted connection. Use HTTPS or an SSH tunnel for production.
                 </p>
@@ -611,7 +611,7 @@ export function TabEssentials({
               <button
                 type="button"
                 onClick={() => { setAddingKey(true); setNewKeyName(''); setNewKeyValue('') }}
-                className="shrink-0 px-3 py-2.5 rounded-sm bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
+                className="shrink-0 px-3 py-2.5 rounded-md bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
               >
                 + New
               </button>
@@ -792,7 +792,7 @@ export function TabEssentials({
             />
           </div>
         ) : (
-          <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-4 text-[13px] leading-[1.6] text-text-3">
+          <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4 text-[13px] leading-[1.6] text-text-3">
             OpenClaw agents rely on the gateway runtime for tool execution and node routing. Expand advanced settings if you need continuity, voice, or heartbeat overrides.
           </div>
         )}

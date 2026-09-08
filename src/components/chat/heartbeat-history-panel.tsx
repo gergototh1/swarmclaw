@@ -211,7 +211,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
                 <button
                   key={`${entry.msg.time}-${i}`}
                   onClick={() => setExpandedIdx(isExpanded ? null : i)}
-                  className="w-full text-left px-3 py-2.5 rounded-sm bg-layer-1 border border-line-subtle hover:bg-layer-2 transition-colors cursor-pointer group"
+                  className="w-full text-left px-3 py-2.5 rounded-md bg-layer-1 border border-line-subtle hover:bg-layer-2 transition-colors cursor-pointer group"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {/* Top row: status dot + time */}

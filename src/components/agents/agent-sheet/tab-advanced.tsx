@@ -47,7 +47,7 @@ export function TabAdvanced({
               type="button"
               onClick={() => void loadAgentConfigVersions(editing.id)}
               disabled={configVersionsLoading}
-              className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all disabled:opacity-50"
+              className="px-3 py-2 rounded-md border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all disabled:opacity-50"
               style={{ fontFamily: 'inherit' }}
             >
               {configVersionsLoading ? 'Refreshing' : 'Refresh'}
@@ -59,11 +59,11 @@ export function TabAdvanced({
               {configVersionsError}
             </div>
           ) : configVersionsLoading && configVersionSummaries.length === 0 ? (
-            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
+            <div className="rounded-lg border border-line-subtle bg-surface p-3 text-[13px] text-text-3">
               Loading saved versions...
             </div>
           ) : configVersionSummaries.length === 0 ? (
-            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
+            <div className="rounded-lg border border-line-subtle bg-surface p-3 text-[13px] text-text-3">
               No saved versions yet.
             </div>
           ) : (
@@ -71,7 +71,7 @@ export function TabAdvanced({
               {configVersionSummaries.slice(0, 8).map((summary) => (
                 <div
                   key={summary.id}
-                  className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-layer-1 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-[14px] font-700 text-text">{summary.title}</div>
@@ -82,7 +82,7 @@ export function TabAdvanced({
                     type="button"
                     onClick={() => void handleRestoreConfigVersion(summary.id)}
                     disabled={Boolean(restoringConfigVersionId)}
-                    className="shrink-0 rounded-sm border border-accent-bright/20 bg-accent-soft/30 px-3 py-2 text-[12px] font-700 text-accent-bright transition-all hover:bg-accent-soft disabled:opacity-50"
+                    className="shrink-0 rounded-md border border-accent-bright/20 bg-accent-soft/30 px-3 py-2 text-[12px] font-700 text-accent-bright transition-all hover:bg-accent-soft disabled:opacity-50"
                     style={{ fontFamily: 'inherit' }}
                   >
                     {restoringConfigVersionId === summary.id ? 'Restoring' : 'Restore'}

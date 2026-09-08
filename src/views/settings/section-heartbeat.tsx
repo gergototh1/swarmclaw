@@ -199,7 +199,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             <button
               onClick={handleDisableAllHeartbeats}
               disabled={disablingHeartbeats}
-              className="px-3.5 py-2 rounded-sm border border-rose-400/25 bg-rose-500/10 text-rose-300 hover:bg-rose-500/16 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-[12px] font-600"
+              className="px-3.5 py-2 rounded-md border border-rose-400/25 bg-rose-500/10 text-rose-300 hover:bg-rose-500/16 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-[12px] font-600"
               style={{ fontFamily: 'inherit' }}
             >
               {disablingHeartbeats ? 'Stopping\u2026' : 'Stop All Heartbeats'}

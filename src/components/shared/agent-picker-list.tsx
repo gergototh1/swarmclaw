@@ -42,7 +42,7 @@ export function AgentPickerList({
       {noneOption && (
         <button
           onClick={noneOption.onSelect}
-          className={`relative flex items-center gap-3 px-3 py-2.5 rounded-sm cursor-pointer transition-all w-full text-left border-none
+          className={`relative flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-all w-full text-left border-none
             ${noneSelected ? 'bg-accent-soft' : 'bg-transparent hover:bg-layer-1'}`}
           style={{ fontFamily: 'inherit' }}
         >
@@ -65,7 +65,7 @@ export function AgentPickerList({
           <button
             key={a.id}
             onClick={() => onSelect(a.id)}
-            className={`relative flex items-center gap-3 px-3 py-2.5 rounded-sm cursor-pointer transition-all w-full text-left border-none
+            className={`relative flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-all w-full text-left border-none
               ${active ? 'bg-accent-soft' : 'bg-transparent hover:bg-layer-1'}`}
             style={{ fontFamily: 'inherit' }}
           >

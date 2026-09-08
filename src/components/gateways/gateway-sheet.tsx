@@ -382,14 +382,14 @@ export function GatewaySheet() {
             <button
               type="button"
               onClick={() => importFileRef.current?.click()}
-              className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
+              className="px-3 py-2 rounded-md border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
             >
               Import JSON
             </button>
             <button
               type="button"
               onClick={handleExportGateway}
-              className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
+              className="px-3 py-2 rounded-md border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
             >
               Export JSON
             </button>
@@ -469,7 +469,7 @@ export function GatewaySheet() {
                     setEndpoint(detectedEndpoint)
                     if (!name.trim()) setName(`Gateway ${item.host}:${item.port}`)
                   }}
-                  className="px-3 py-2 rounded-sm border border-line-default bg-layer-1 text-text-2 text-[12px] font-600 hover:bg-layer-2 cursor-pointer transition-all"
+                  className="px-3 py-2 rounded-md border border-line-default bg-layer-1 text-text-2 text-[12px] font-600 hover:bg-layer-2 cursor-pointer transition-all"
                 >
                   {item.host}:{item.port}
                   {item.models?.length ? ` · ${item.models[0]}` : ''}
@@ -532,7 +532,7 @@ export function GatewaySheet() {
             <button
               type="button"
               onClick={() => void loadNodesAndDevices(editing.id)}
-              className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
+              className="px-3 py-2 rounded-md border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer"
             >
               {nodesLoading ? 'Refreshing…' : 'Refresh'}
             </button>
@@ -560,7 +560,7 @@ export function GatewaySheet() {
             <div className={`rounded-lg border px-3 py-2 ${
               gatewayTopologyErrors.length > 0
                 ? 'border-rose-400/20 bg-rose-400/[0.06]'
-                : 'border-line-subtle bg-layer-1'
+                : 'border-line-subtle bg-surface'
             }`}>
               <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Presence</div>
               <div className={gatewayTopologyErrors.length > 0 ? 'mt-1 font-display text-[18px] font-700 text-rose-200' : 'mt-1 font-display text-[18px] font-700 text-text'}>
@@ -585,7 +585,7 @@ export function GatewaySheet() {
                 {nodePairings.length > 0 ? (
                   <div className="space-y-2">
                     {nodePairings.map((request) => (
-                      <div key={request.requestId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                      <div key={request.requestId} className="rounded-lg border border-line-subtle bg-surface p-3">
                         <div className="text-[13px] font-600 text-text-2">{request.displayName || request.nodeId || request.requestId}</div>
                         <div className="text-[11px] text-text-3 mt-1">{request.platform || 'Unknown platform'}{request.remoteIp ? ` · ${request.remoteIp}` : ''}</div>
                         <div className="mt-3 flex gap-2">
@@ -608,7 +608,7 @@ export function GatewaySheet() {
                 {devicePairings.length > 0 ? (
                   <div className="space-y-2">
                     {devicePairings.map((request) => (
-                      <div key={request.requestId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                      <div key={request.requestId} className="rounded-lg border border-line-subtle bg-surface p-3">
                         <div className="text-[13px] font-600 text-text-2">{request.displayName || request.deviceId || request.requestId}</div>
                         <div className="text-[11px] text-text-3 mt-1">{request.role || 'device'}{request.platform ? ` · ${request.platform}` : ''}{request.remoteIp ? ` · ${request.remoteIp}` : ''}</div>
                         <div className="mt-3 flex gap-2">
@@ -633,7 +633,7 @@ export function GatewaySheet() {
                 {nodes.length > 0 ? (
                   <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
                     {nodes.map((node) => (
-                      <div key={node.nodeId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                      <div key={node.nodeId} className="rounded-lg border border-line-subtle bg-surface p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-[13px] font-600 text-text-2 truncate">{node.displayName || node.nodeId}</div>
@@ -685,7 +685,7 @@ export function GatewaySheet() {
                 {pairedDevices.length > 0 ? (
                   <div className="space-y-2">
                     {pairedDevices.map((device) => (
-                      <div key={device.deviceId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                      <div key={device.deviceId} className="rounded-lg border border-line-subtle bg-surface p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-[13px] font-600 text-text-2 truncate">{device.displayName || device.deviceId}</div>
@@ -725,7 +725,7 @@ export function GatewaySheet() {
               <p className="text-[11px] text-text-3">
                 Use commands exposed by the selected node, such as file, shell, or notification actions that gateway policy allows.
               </p>
-              <button type="button" onClick={handleInvoke} disabled={invoking || !invokeNodeId || !invokeCommand.trim()} className="px-3 py-2 rounded-sm bg-accent-bright text-accent-fg text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">
+              <button type="button" onClick={handleInvoke} disabled={invoking || !invokeNodeId || !invokeCommand.trim()} className="px-3 py-2 rounded-md bg-accent-bright text-accent-fg text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">
                 {invoking ? 'Sending…' : 'Invoke'}
               </button>
             </div>
@@ -743,7 +743,7 @@ export function GatewaySheet() {
           {checkMessage || 'Run a health check before saving if you want to verify endpoint + token.'}
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={handleCheck} className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer">
+          <button type="button" onClick={handleCheck} className="px-3 py-2 rounded-md border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer">
             {checking ? 'Checking…' : 'Health Check'}
           </button>
           <button type="button" onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-sm bg-accent-bright text-accent-fg text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">

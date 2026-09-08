@@ -13,7 +13,7 @@ export function FilePreview({ file, onRemove }: { file: PendingFile; onRemove: (
           className="h-16 rounded-sm object-cover border border-line-subtle"
         />
       ) : (
-        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm border border-line-subtle bg-layer-1">
+        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-md border border-line-subtle bg-layer-1">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3 shrink-0">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />

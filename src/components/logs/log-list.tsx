@@ -150,7 +150,7 @@ export function LogList() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search logs..."
-          className="w-full px-3 py-2 rounded-sm bg-layer-2 border border-line-subtle text-[12px] text-text placeholder:text-text-3 outline-none focus:border-accent/30"
+          className="w-full px-3 py-2 rounded-md bg-layer-2 border border-line-subtle text-[12px] text-text placeholder:text-text-3 outline-none focus:border-accent/30"
         />
         {/* Saved filters */}
         {savedFilters.length > 0 && (

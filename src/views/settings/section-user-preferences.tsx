@@ -138,7 +138,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
             ))}
           </div>
         ) : (
-          <div className="mb-3 rounded-lg border border-dashed border-line-default bg-layer-1 px-3 py-3 text-[11px] text-text-3">
+          <div className="mb-3 rounded-lg border border-dashed border-line-default bg-surface px-3 py-3 text-[11px] text-text-3">
             No globally approved WhatsApp users yet.
           </div>
         )}
@@ -176,7 +176,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
             type="button"
             onClick={addWhatsAppContact}
             disabled={!nextWhatsAppPhone.trim()}
-            className="px-3 py-2 rounded-sm text-[12px] font-600 border border-line-subtle bg-layer-2 text-text transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer hover:bg-layer-3"
+            className="px-3 py-2 rounded-md text-[12px] font-600 border border-line-subtle bg-layer-2 text-text transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer hover:bg-layer-3"
             style={{ fontFamily: 'inherit' }}
           >
             Add User

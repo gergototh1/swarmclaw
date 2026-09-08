@@ -139,7 +139,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
             {items.map((skill) => (
               <div
                 key={skill.name}
-                className="flex items-center gap-3 py-2 px-3 rounded-sm bg-layer-1 border border-line-subtle"
+                className="flex items-center gap-3 py-2 px-3 rounded-md bg-layer-1 border border-line-subtle"
               >
                 {mode === 'selected' && (
                   <button

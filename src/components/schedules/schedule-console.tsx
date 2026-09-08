@@ -751,7 +751,7 @@ export function ScheduleConsole() {
                         {changes.length > 0 && (
                           <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
                             {changes.map((change) => (
-                              <div key={`${entry.id}:${change.field}`} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                              <div key={`${entry.id}:${change.field}`} className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                                 <div className="text-[10px] tracking-[0.03em] text-text-3 font-700">{change.label}</div>
                                 <div className="mt-1 text-[12px] text-text-2 break-words">
                                   <span className="text-text-3">{formatHistoryValue(change.before)}</span>
@@ -761,7 +761,7 @@ export function ScheduleConsole() {
                               </div>
                             ))}
                             {remainingChanges > 0 && (
-                              <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
+                              <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                                 {remainingChanges} more change{remainingChanges === 1 ? '' : 's'}
                               </div>
                             )}

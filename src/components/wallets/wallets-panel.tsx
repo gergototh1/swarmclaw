@@ -98,7 +98,7 @@ export function WalletsPanel() {
       </div>
 
       {error && (
-        <div className="mx-6 mb-2 px-3 py-2 rounded-sm bg-red-500/10 border border-red-500/20 text-[12px] text-red-400 font-600">
+        <div className="mx-6 mb-2 px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-[12px] text-red-400 font-600">
           {error}
         </div>
       )}

@@ -46,7 +46,7 @@ export function AssignAgentPicker({ projectId, onClose }: { projectId: string; o
             <button
               key={a.id}
               onClick={() => handleAssign(a.id)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-left hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
               style={{ fontFamily: 'inherit' }}
             >
               <AgentAvatar seed={a.avatarSeed} avatarUrl={a.avatarUrl} name={a.name} size={22} />

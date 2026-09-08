@@ -364,7 +364,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
         {/* Result body */}
         {info.resultBody && (
           <div className="mt-0.5">
-            <div className="rounded-sm bg-layer-1 border border-line-subtle px-3 py-2.5 max-h-[260px] overflow-y-auto">
+            <div className="rounded-md bg-layer-1 border border-line-subtle px-3 py-2.5 max-h-[260px] overflow-y-auto">
               <div className="text-[12px] leading-[1.6] text-text-3 break-words">
                 <ReactMarkdown
                   components={{

@@ -392,7 +392,7 @@ export default function HomePage() {
 
                 if (items.length === 0) {
                   return (
-                    <div className="rounded-lg border border-dashed border-line-subtle bg-layer-1 px-4 py-5">
+                    <div className="rounded-lg border border-dashed border-line-subtle bg-surface px-4 py-5">
                       <p className="text-[13px] font-600 text-text">Everything looks stable.</p>
                       <p className="text-[12px] text-text-3 mt-1">
                         No failed tasks, no blocked tasks, and no connector issues right now.
@@ -459,7 +459,7 @@ export default function HomePage() {
                         ? new Date(d.bucket + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
                         : ''
                       return (
-                        <div className="rounded-sm bg-surface border border-line-default px-3 py-2 shadow-lg">
+                        <div className="rounded-md bg-surface border border-line-default px-3 py-2 shadow-lg">
                           <p className="text-[11px] text-text-3 m-0">{label}</p>
                           <p className="text-[14px] font-600 text-text m-0 mt-0.5">${d.cost.toFixed(4)}</p>
                         </div>
@@ -525,7 +525,7 @@ export default function HomePage() {
                 {allConnectors.map((c) => (
                   <div
                     key={c.id}
-                    className="flex items-center gap-2 px-3 py-2 rounded-sm bg-layer-1 border border-line-subtle"
+                    className="flex items-center gap-2 px-3 py-2 rounded-md bg-layer-1 border border-line-subtle"
                   >
                     <div className={`w-2 h-2 rounded-full ${
                       c.status === 'running' ? 'bg-emerald-400 '
@@ -554,7 +554,7 @@ export default function HomePage() {
                       <button
                         key={task.id}
                         onClick={() => handleTaskClick(task)}
-                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm bg-transparent border-none
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-md bg-transparent border-none
                           hover:bg-layer-2 transition-colors cursor-pointer w-full text-left"
                         style={{ fontFamily: 'inherit' }}
                       >
@@ -625,7 +625,7 @@ export default function HomePage() {
                     <button
                       key={agent.id}
                       onClick={() => handleAgentClick(agent)}
-                      className="flex flex-col items-center gap-1.5 px-4 py-3.5 rounded-lg bg-layer-1 border border-line-subtle
+                      className="flex flex-col items-center gap-1.5 px-4 py-3.5 rounded-lg bg-surface border border-line-subtle
                         hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer min-w-[130px] shrink-0"
                       style={{ fontFamily: 'inherit' }}
                     >
@@ -664,7 +664,7 @@ export default function HomePage() {
                 })}
               </div>
             ) : (
-              <div className="py-6 px-4 rounded-lg bg-layer-1 border border-dashed border-line-subtle text-center">
+              <div className="py-6 px-4 rounded-lg bg-surface border border-dashed border-line-subtle text-center">
                 <p className="text-[13px] text-text-3">
                   Star agents from the chat list for quick access
                 </p>
@@ -763,7 +763,7 @@ function StatusPill({ label, tone }: { label: string; tone: 'neutral' | 'warning
 
 function EmptySection({ text }: { text: string }) {
   return (
-    <div className="py-6 px-4 rounded-lg bg-layer-1 border border-dashed border-line-subtle text-center">
+    <div className="py-6 px-4 rounded-lg bg-surface border border-dashed border-line-subtle text-center">
       <p className="text-[13px] text-text-3">{text}</p>
     </div>
   )

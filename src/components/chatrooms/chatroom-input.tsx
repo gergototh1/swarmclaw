@@ -403,7 +403,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                 className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 ${
                   index === 0
                     ? 'border-amber-300/20 bg-amber-300/[0.07]'
-                    : 'border-line-subtle bg-layer-1'
+                    : 'border-line-subtle bg-surface'
                 }`}
               >
                 <div className={`mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-sm px-2 text-[10px] font-700 ${
@@ -454,7 +454,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
       )}
 
       {visibleQueuedMessages.length === 0 && !disabled && (
-        <div className="mb-2 flex items-center justify-between gap-2 rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+        <div className="mb-2 flex items-center justify-between gap-2 rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
           <span className="text-[11px] text-text-3">
             {streaming
               ? 'Current round is still running. Press send to queue the next message.'
@@ -502,7 +502,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-sm border-none bg-transparent text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all duration-200 disabled:opacity-30"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md border-none bg-transparent text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all duration-200 disabled:opacity-30"
               title="Attach file"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -514,7 +514,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
               type="button"
               onClick={() => imageInputRef.current?.click()}
               disabled={disabled}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-sm border-none bg-transparent text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all duration-200 disabled:opacity-30"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md border-none bg-transparent text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all duration-200 disabled:opacity-30"
               title="Attach image"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

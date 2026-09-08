@@ -377,7 +377,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                     <select
                       value={selectedTool}
                       onChange={(e) => handleToolChange(e.target.value)}
-                      className="px-3 py-2 rounded-sm border border-line-default bg-bg text-text text-[12px]"
+                      className="px-3 py-2 rounded-md border border-line-default bg-bg text-text text-[12px]"
                       style={{ fontFamily: 'inherit' }}
                     >
                       {activeTools.length === 0 && <option value="">No tools available</option>}
@@ -388,7 +388,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                     <textarea
                       value={argsJson}
                       onChange={(e) => setArgsJson(e.target.value)}
-                      className="min-h-[96px] px-3 py-2 rounded-sm border border-line-default bg-bg text-text text-[12px] font-mono"
+                      className="min-h-[96px] px-3 py-2 rounded-md border border-line-default bg-bg text-text text-[12px] font-mono"
                     />
                   </div>
 

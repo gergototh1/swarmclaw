@@ -505,7 +505,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
         )}
       </div>
       {!inSidebar && gatewayFleetTopology && (
-        <div className="mb-4 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
+        <div className="mb-4 rounded-lg border border-line-subtle bg-surface px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[12px] font-700 text-text">Gateway fleet topology</div>
@@ -557,7 +557,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   type="button"
                   onClick={() => void handleSavePreparedGateway()}
                   disabled={savingDeploy}
-                  className="rounded-sm bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-accent-fg border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
+                  className="rounded-md bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-accent-fg border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
                 >
                   {savingDeploy ? 'Saving…' : 'Save Prepared Gateway'}
                 </button>
@@ -627,39 +627,39 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             </div>
             {!inSidebar && (
               <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-text-3">
-                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="tracking-[0.03em] text-text-3">Deploy</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.method || 'manual'}
                     {deployment?.provider ? ` · ${deployment.provider}` : ''}
                   </div>
                 </div>
-                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="tracking-[0.03em] text-text-3">Route hints</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.useCase || 'general'}
                     {deployment?.exposure ? ` · ${deployment.exposure}` : ''}
                   </div>
                 </div>
-                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="tracking-[0.03em] text-text-3">Nodes / devices</div>
                   <div className="mt-1 text-text-2">
                     {stats?.connectedNodeCount ?? 0}/{stats?.nodeCount ?? 0} nodes · {stats?.pairedDeviceCount ?? 0} devices
                   </div>
                 </div>
-                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="tracking-[0.03em] text-text-3">Environments</div>
                   <div className="mt-1 text-text-2">
                     {stats?.availableEnvironmentCount ?? 0}/{stats?.environmentCount ?? 0} available
                   </div>
                 </div>
-                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="tracking-[0.03em] text-text-3">Sessions</div>
                   <div className="mt-1 text-text-2">
                     {stats?.sessionCount ?? 0} sessions · {stats?.presenceCount ?? 0} presence
                   </div>
                 </div>
-                <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                   <div className="tracking-[0.03em] text-text-3">Runtimes</div>
                   <div className="mt-1 text-text-2">
                     {runtimeStats.active}/{runtimeStats.total} active
@@ -775,7 +775,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">External Agent Runtimes</div>
             <div className="text-[11px] text-text-3">Direct registration + heartbeat</div>
           </div>
-          <div className="mb-3 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
+          <div className="mb-3 rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[12px] text-text-3">
             External workers can register themselves at <code className="text-text-2">/api/external-agents/register</code> and then send heartbeats to
             {' '}
             <code className="text-text-2">/api/external-agents/&lt;id&gt;/heartbeat</code>.
@@ -813,24 +813,24 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-text-3">
-                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="tracking-[0.03em] text-text-3">Provider</div>
                     <div className="mt-1 text-text-2">
                       {runtime.provider || 'No provider'}
                       {runtime.model ? ` · ${runtime.model}` : ''}
                     </div>
                   </div>
-                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="tracking-[0.03em] text-text-3">Gateway</div>
                     <div className="mt-1 text-text-2">
                       {runtime.gatewayProfileId ? (gatewayNameById.get(runtime.gatewayProfileId) || runtime.gatewayProfileId) : 'Standalone'}
                     </div>
                   </div>
-                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="tracking-[0.03em] text-text-3">Template</div>
                     <div className="mt-1 text-text-2">{runtime.gatewayUseCase || 'general'}</div>
                   </div>
-                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="tracking-[0.03em] text-text-3">Last seen</div>
                     <div className="mt-1 text-text-2">{formatRuntimeTimestamp(runtime.lastSeenAt || runtime.lastHeartbeatAt)}</div>
                   </div>

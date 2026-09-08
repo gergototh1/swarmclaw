@@ -882,7 +882,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                       setSearchIdx(0)
                       setBookmarkFilter(false)
                     }}
-                    className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
+                    className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
                   >
                     Clear thread filters
                   </button>

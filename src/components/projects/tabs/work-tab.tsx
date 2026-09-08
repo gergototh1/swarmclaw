@@ -147,7 +147,7 @@ export function WorkTab() {
               <button
                 key={task.id}
                 onClick={() => { setEditingTaskId(task.id); setTaskSheetOpen(true) }}
-                className="flex items-center gap-3 px-4 py-3 rounded-sm border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer text-left w-full"
+                className="flex items-center gap-3 px-4 py-3 rounded-md border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer text-left w-full"
                 style={{ fontFamily: 'inherit' }}
               >
                 <span className={`shrink-0 px-2 py-0.5 rounded-xs text-[10px] font-600 tracking-[0.03em] ${STATUS_STYLES[task.status] || STATUS_STYLES.backlog}`}>

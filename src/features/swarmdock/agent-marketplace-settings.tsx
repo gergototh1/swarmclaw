@@ -80,7 +80,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
   return (
     <div className="space-y-5">
       {/* Enable/Disable toggle */}
-      <div className="flex items-center justify-between gap-4 rounded-lg border border-line-subtle bg-layer-1 px-4 py-4">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-line-subtle bg-surface px-4 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-[14px] font-600 text-text">SwarmDock</p>

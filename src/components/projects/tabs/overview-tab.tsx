@@ -106,7 +106,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
 
       {/* Section 3: Progress */}
       {totalTasks > 0 && (
-        <div className="rounded-lg border border-line-subtle bg-layer-1 px-5 py-4">
+        <div className="rounded-lg border border-line-subtle bg-surface px-5 py-4">
           <div className="flex items-center justify-between mb-2.5">
             <span className="text-[12px] font-600 text-text-2">Overall Progress</span>
             <span className={`text-[13px] font-mono font-700 ${progressPct === 100 ? 'text-emerald-400' : 'text-text-2'}`}>

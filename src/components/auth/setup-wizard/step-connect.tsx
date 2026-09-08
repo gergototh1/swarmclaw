@@ -557,7 +557,7 @@ export function StepConnect({
               href={openClawDashboardUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-1.5 rounded-sm border border-line-default bg-layer-1 px-3 py-2 text-[12px] text-text hover:bg-layer-2 transition-all duration-200"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-line-default bg-layer-1 px-3 py-2 text-[12px] text-text hover:bg-layer-2 transition-all duration-200"
             >
               Open gateway dashboard
             </a>
@@ -591,7 +591,7 @@ export function StepConnect({
           <button
             onClick={runConnectionCheck}
             disabled={checkState === 'checking' || saving}
-            className="px-6 py-3.5 rounded-lg border border-line-default bg-layer-1 text-text text-[14px]
+            className="px-6 py-3.5 rounded-lg border border-line-default bg-surface text-text text-[14px]
               font-display font-600 cursor-pointer hover:bg-layer-2 transition-all duration-200 disabled:opacity-40"
           >
             {checkState === 'checking' ? 'Checking...' : 'Check Connection'}

@@ -77,14 +77,14 @@ export function EvidenceShelf({
                 href={href}
                 target={href.startsWith('/api/') || href.startsWith('http') ? '_blank' : undefined}
                 rel={href.startsWith('http') ? 'noreferrer' : undefined}
-                className="flex items-start gap-2 rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5 transition-colors hover:bg-layer-2"
+                className="flex items-start gap-2 rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5 transition-colors hover:bg-layer-2"
               >
                 {content}
               </a>
             ) : (
               <div
                 key={`${artifact.kind}:${artifact.id}`}
-                className="flex items-start gap-2 rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5"
+                className="flex items-start gap-2 rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5"
               >
                 {content}
               </div>

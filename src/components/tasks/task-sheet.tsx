@@ -486,7 +486,7 @@ export function TaskSheet() {
         <button
           onClick={handleCopyHandoff}
           disabled={handoffCopying}
-          className="inline-flex items-center gap-2 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3 disabled:opacity-50"
           style={{ fontFamily: 'inherit' }}
         >
           <ClipboardCopy size={13} />
@@ -496,7 +496,7 @@ export function TaskSheet() {
           href={handoffUrl}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3"
+          className="inline-flex items-center gap-2 rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3"
         >
           <FileText size={13} />
           Open Packet
@@ -504,7 +504,7 @@ export function TaskSheet() {
         <button
           onClick={handleSaveHandoff}
           disabled={handoffSaving}
-          className="inline-flex items-center gap-2 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-3 disabled:opacity-50"
           style={{ fontFamily: 'inherit' }}
         >
           <Save size={13} />
@@ -580,7 +580,7 @@ export function TaskSheet() {
         {taskProject && (
           <div className="mb-8">
             <SectionLabel>Project</SectionLabel>
-            <span className="inline-flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface text-[13px] font-600 text-text-2">
+            <span className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-line-subtle bg-surface text-[13px] font-600 text-text-2">
               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: taskProject.color || '#6366F1' }} />
               {taskProject.name}
             </span>
@@ -631,13 +631,13 @@ export function TaskSheet() {
             {(editing.executionWorkspace?.contextPath || editing.executionWorkspace?.envPath) && (
               <div className="grid grid-cols-1 gap-2 text-[11px] text-text-3">
                 {editing.executionWorkspace.contextPath && (
-                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="tracking-[0.03em] text-text-3">Context</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.contextPath}</code>
                   </div>
                 )}
                 {editing.executionWorkspace.envPath && (
-                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="tracking-[0.03em] text-text-3">Env</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.envPath}</code>
                   </div>
@@ -674,7 +674,7 @@ export function TaskSheet() {
               <button
                 onClick={handlePrepareWorkspace}
                 disabled={workspacePreparing}
-                className="inline-flex items-center gap-2 rounded-sm border border-accent-bright/20 bg-accent-bright/10 px-3 py-2 text-[12px] font-600 text-accent-bright hover:bg-accent-bright/14 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-md border border-accent-bright/20 bg-accent-bright/10 px-3 py-2 text-[12px] font-600 text-accent-bright hover:bg-accent-bright/14 disabled:opacity-50"
                 style={{ fontFamily: 'inherit' }}
               >
                 <FolderOpen size={13} />
@@ -787,7 +787,7 @@ export function TaskSheet() {
                 {editing.executionPolicy.stages.map((stage) => {
                   const stageState = editing.executionPolicyState?.stages.find((item) => item.id === stage.id)
                   return (
-                    <div key={stage.id} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                    <div key={stage.id} className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-[12px] font-700 text-text">{stage.title}</div>
                         <span className="text-[11px] text-text-3">{(stageState?.status || 'pending').replace(/_/g, ' ')}</span>
@@ -811,7 +811,7 @@ export function TaskSheet() {
                     <button
                       onClick={() => void handlePolicyDecision('approve')}
                       disabled={policyDecisionMutation.isPending}
-                      className="inline-flex items-center gap-2 rounded-sm border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-[12px] font-700 text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-[12px] font-700 text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-50"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <CheckCircle2 size={13} />
@@ -820,7 +820,7 @@ export function TaskSheet() {
                     <button
                       onClick={() => void handlePolicyDecision('request_changes')}
                       disabled={policyDecisionMutation.isPending}
-                      className="inline-flex items-center gap-2 rounded-sm border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-300 hover:bg-red-500/15 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-300 hover:bg-red-500/15 disabled:opacity-50"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <XCircle size={13} />
@@ -829,7 +829,7 @@ export function TaskSheet() {
                     <button
                       onClick={() => void handlePolicyDecision('reset')}
                       disabled={policyDecisionMutation.isPending}
-                      className="inline-flex items-center gap-2 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 hover:bg-layer-3 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 hover:bg-layer-3 disabled:opacity-50"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <RotateCcw size={13} />
@@ -894,31 +894,31 @@ export function TaskSheet() {
             <SectionLabel>CLI Sessions</SectionLabel>
             <div className="flex flex-wrap gap-2">
               {editing.claudeResumeId && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-subtle bg-surface">
                   <span className="text-[11px] font-600 text-amber-400">Claude</span>
                   <code className="text-[11px] text-text-3 font-mono">{editing.claudeResumeId}</code>
                 </div>
               )}
               {editing.codexResumeId && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-subtle bg-surface">
                   <span className="text-[11px] font-600 text-emerald-400">Codex</span>
                   <code className="text-[11px] text-text-3 font-mono">{editing.codexResumeId}</code>
                 </div>
               )}
               {editing.opencodeResumeId && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-subtle bg-surface">
                   <span className="text-[11px] font-600 text-sky-400">OpenCode</span>
                   <code className="text-[11px] text-text-3 font-mono">{editing.opencodeResumeId}</code>
                 </div>
               )}
               {editing.geminiResumeId && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-subtle bg-surface">
                   <span className="text-[11px] font-600 text-fuchsia-400">Gemini</span>
                   <code className="text-[11px] text-text-3 font-mono">{editing.geminiResumeId}</code>
                 </div>
               )}
               {!(editing.claudeResumeId || editing.codexResumeId || editing.opencodeResumeId || editing.geminiResumeId) && editing.cliResumeId && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-subtle bg-surface">
                   <span className="text-[11px] font-600 text-text-2">{editing.cliProvider || 'CLI'}</span>
                   <code className="text-[11px] text-text-3 font-mono">{editing.cliResumeId}</code>
                 </div>
@@ -1213,13 +1213,13 @@ export function TaskSheet() {
             {(editing.executionWorkspace?.contextPath || editing.executionWorkspace?.envPath) && (
               <div className="grid grid-cols-1 gap-2 text-[11px] text-text-3">
                 {editing.executionWorkspace.contextPath && (
-                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="tracking-[0.03em] text-text-3">Context</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.contextPath}</code>
                   </div>
                 )}
                 {editing.executionWorkspace.envPath && (
-                  <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="tracking-[0.03em] text-text-3">Env</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.envPath}</code>
                   </div>
@@ -1255,7 +1255,7 @@ export function TaskSheet() {
             <button
               onClick={handlePrepareWorkspace}
               disabled={workspacePreparing}
-              className="inline-flex items-center gap-2 rounded-sm border border-accent-bright/20 bg-accent-bright/10 px-3 py-2 text-[12px] font-600 text-accent-bright hover:bg-accent-bright/14 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-md border border-accent-bright/20 bg-accent-bright/10 px-3 py-2 text-[12px] font-600 text-accent-bright hover:bg-accent-bright/14 disabled:opacity-50"
               style={{ fontFamily: 'inherit' }}
             >
               <FolderOpen size={13} />
@@ -1525,7 +1525,7 @@ export function TaskSheet() {
                 Verification
               </label>
               {editing?.executionPolicyState && (
-                <div className="md:col-span-3 rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
+                <div className="md:col-span-3 rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] text-text-3">
                   Current state: {executionPolicyStatus.replace(/_/g, ' ')}
                   {currentPolicyStage ? ` at ${currentPolicyStage.title}` : ''}
                 </div>
@@ -1585,31 +1585,31 @@ export function TaskSheet() {
           <SectionLabel>CLI Sessions</SectionLabel>
           <div className="flex flex-wrap gap-2">
             {editing.claudeResumeId && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-subtle bg-surface">
                 <span className="text-[11px] font-600 text-amber-400">Claude</span>
                 <code className="text-[11px] text-text-3 font-mono">{editing.claudeResumeId}</code>
               </div>
             )}
             {editing.codexResumeId && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-subtle bg-surface">
                 <span className="text-[11px] font-600 text-emerald-400">Codex</span>
                 <code className="text-[11px] text-text-3 font-mono">{editing.codexResumeId}</code>
               </div>
             )}
             {editing.opencodeResumeId && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-subtle bg-surface">
                 <span className="text-[11px] font-600 text-sky-400">OpenCode</span>
                 <code className="text-[11px] text-text-3 font-mono">{editing.opencodeResumeId}</code>
               </div>
             )}
             {editing.geminiResumeId && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-subtle bg-surface">
                 <span className="text-[11px] font-600 text-fuchsia-400">Gemini</span>
                 <code className="text-[11px] text-text-3 font-mono">{editing.geminiResumeId}</code>
               </div>
             )}
             {!(editing.claudeResumeId || editing.codexResumeId || editing.opencodeResumeId || editing.geminiResumeId) && editing.cliResumeId && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-subtle bg-surface">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-subtle bg-surface">
                 <span className="text-[11px] font-600 text-text-2">{editing.cliProvider || 'CLI'}</span>
                 <code className="text-[11px] text-text-3 font-mono">{editing.cliResumeId}</code>
               </div>

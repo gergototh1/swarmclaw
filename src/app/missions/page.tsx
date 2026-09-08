@@ -106,7 +106,7 @@ function MissionCard({ mission, isSelected, onSelect }: MissionCardProps) {
   return (
     <button
       onClick={onSelect}
-      className={`text-left w-full rounded-sm border transition-all px-4 py-3
+      className={`text-left w-full rounded-md border transition-all px-4 py-3
         ${isSelected ? 'border-line-strong bg-raised' : 'border-line-subtle hover:border-line-default hover:bg-layer-1'}`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -363,7 +363,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
             </label>
           </div>
 
-          <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
+          <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5">
             <div className="text-[11px] font-600 text-text-3 tracking-wide mb-1.5">Periodic reports</div>
             <label className="flex items-center gap-2 flex-wrap">
               <input type="checkbox" checked={reportsEnabled} onChange={(e) => setReportsEnabled(e.target.checked)} />
@@ -564,7 +564,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
           </div>
         </div>
         {activeShare && (
-          <div className="mt-3 rounded-sm border border-line-subtle bg-layer-2 px-3 py-2 text-[11px] text-text-3">
+          <div className="mt-3 rounded-md border border-line-subtle bg-layer-2 px-3 py-2 text-[11px] text-text-3">
             <span className="font-mono text-text">{shareUrl}</span>
             <span className="ml-2 text-text-3">Created {formatTimestamp(activeShare.createdAt)}</span>
           </div>

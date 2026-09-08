@@ -158,7 +158,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
     return (
       <div className="flex-1 overflow-y-auto pb-20">
         {error && (
-          <div className="mx-4 mt-2 mb-1 px-3 py-2 rounded-sm bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] leading-snug">
+          <div className="mx-4 mt-2 mb-1 px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] leading-snug">
             {error}
           </div>
         )}
@@ -200,7 +200,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
   return (
     <div className="flex-1 overflow-y-auto pb-20 px-5 pt-2">
       {error && (
-        <div className="mb-3 px-3 py-2 rounded-sm bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] leading-snug">
+        <div className="mb-3 px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] leading-snug">
           {error}
         </div>
       )}
@@ -212,7 +212,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
             className={`rounded-lg border px-4 py-3 text-left transition-all cursor-pointer ${
               groupFilter === group
                 ? 'border-line-default bg-layer-2'
-                : 'border-line-subtle bg-layer-1 hover:bg-layer-2'
+                : 'border-line-subtle bg-surface hover:bg-layer-2'
             }`}
             style={{ fontFamily: 'inherit' }}
           >
@@ -363,7 +363,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                           </div>
                         )}
 
-                        <div className="mb-3 rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                        <div className="mb-3 rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                           <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Readiness</div>
                           <div className="mt-1 text-[11px] text-text-2">{readiness.summary}</div>
                           <div className="mt-2 flex flex-col gap-1">

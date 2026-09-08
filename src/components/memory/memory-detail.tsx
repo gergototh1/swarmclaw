@@ -260,7 +260,7 @@ export function MemoryDetail() {
                   setEditSharedWith(entry.sharedWith || [])
                   setEditing(false)
                 }}
-                className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+                className="px-3 py-2 rounded-md border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
                 style={{ fontFamily: 'inherit' }}
               >
                 Cancel
@@ -279,7 +279,7 @@ export function MemoryDetail() {
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-2 transition-all flex items-center gap-1.5"
+              className="px-3 py-2 rounded-md border border-line-default bg-transparent text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-2 transition-all flex items-center gap-1.5"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -452,7 +452,7 @@ export function MemoryDetail() {
               </div>
 
               {knowledgeSourceId && (
-                <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
+                <div className="rounded-lg border border-line-subtle bg-surface px-4 py-3">
                   <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Source</label>
                   <div className="space-y-1.5">
                     <p className="text-[13px] text-text-2">
@@ -517,7 +517,7 @@ export function MemoryDetail() {
                   <button
                     key={id}
                     onClick={() => setSelectedId(id)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-sm bg-layer-1 border border-line-subtle hover:bg-layer-2 cursor-pointer transition-colors text-left w-full"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-md bg-layer-1 border border-line-subtle hover:bg-layer-2 cursor-pointer transition-colors text-left w-full"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-accent-bright/60 shrink-0">
                       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -551,7 +551,7 @@ export function MemoryDetail() {
               {(refsExpanded || !showRefsCollapse) && (
                 <div className="space-y-2">
                   {refs.map((ref, idx) => (
-                    <div key={`${ref.type}-${ref.path || ref.title || idx}`} className="text-[12px] rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                    <div key={`${ref.type}-${ref.path || ref.title || idx}`} className="text-[12px] rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                       <div className="text-text-2">
                         <span className="text-[10px] tracking-[0.03em] mr-1">{ref.type}</span>
                         {ref.path || ref.title || '(no path)'}

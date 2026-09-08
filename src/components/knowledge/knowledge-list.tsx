@@ -168,7 +168,7 @@ export function KnowledgeList() {
 
       {hygiene && (
         <div className="px-5 pb-2 shrink-0">
-          <div className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+          <div className="rounded-lg border border-line-subtle bg-surface p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Hygiene</div>

@@ -591,7 +591,7 @@ export default function AutonomyPage() {
                 type="button"
                 onClick={() => void refresh()}
                 disabled={pendingAction === 'refresh'}
-                className="rounded-sm border border-line-default bg-layer-1 px-3 py-2 text-[11px] font-700 tracking-[0.03em] text-text-2 transition-all hover:bg-layer-2 cursor-pointer disabled:cursor-default disabled:opacity-45"
+                className="rounded-md border border-line-default bg-layer-1 px-3 py-2 text-[11px] font-700 tracking-[0.03em] text-text-2 transition-all hover:bg-layer-2 cursor-pointer disabled:cursor-default disabled:opacity-45"
               >
                 {pendingAction === 'refresh' ? 'Refreshing' : 'Refresh'}
               </button>
@@ -860,7 +860,7 @@ export default function AutonomyPage() {
                               <div className={`mt-3 rounded-lg border px-3 py-2.5 ${
                                 isHtmlPayload
                                   ? 'border-red-500/16 bg-red-500/[0.05]'
-                                  : 'border-line-default bg-layer-1'
+                                  : 'border-line-default bg-surface'
                               }`}>
                                 <div className="text-[12px] leading-[1.7] text-text-2 whitespace-pre-wrap break-words">
                                   {detailsPreview}

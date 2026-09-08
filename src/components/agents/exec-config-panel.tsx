@@ -73,7 +73,7 @@ export function ExecConfigPanel({ agentId }: Props) {
           value={config.security}
           onChange={(e) => save({ security: e.target.value as ExecApprovalConfig['security'] })}
           disabled={saving}
-          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-layer-2 text-[13px] text-text outline-none"
+          className="w-full px-3 py-2 rounded-md border border-line-subtle bg-layer-2 text-[13px] text-text outline-none"
         >
           <option value="deny">Deny (block all)</option>
           <option value="allowlist">Allowlist (matched patterns only)</option>
@@ -88,7 +88,7 @@ export function ExecConfigPanel({ agentId }: Props) {
           value={config.askMode}
           onChange={(e) => save({ askMode: e.target.value as ExecApprovalConfig['askMode'] })}
           disabled={saving}
-          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-layer-2 text-[13px] text-text outline-none"
+          className="w-full px-3 py-2 rounded-md border border-line-subtle bg-layer-2 text-[13px] text-text outline-none"
         >
           <option value="off">Off</option>
           <option value="on-miss">On miss (ask when no pattern matches)</option>

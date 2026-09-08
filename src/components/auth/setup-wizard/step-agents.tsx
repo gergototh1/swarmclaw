@@ -381,7 +381,7 @@ export function StepAgents({
                     <button
                       type="button"
                       onClick={() => onUpdateDraft(draft.id, { avatarSeed: Math.random().toString(36).slice(2, 10), avatarUrl: null })}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2 hover:text-text-2 active:scale-95 shrink-0"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2 hover:text-text-2 active:scale-95 shrink-0"
                       title="Shuffle avatar"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

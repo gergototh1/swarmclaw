@@ -56,7 +56,7 @@ export function CheckpointTimeline({ sessionId }: Props) {
         {checkpoints.map((cp, i) => (
           <div 
             key={cp.checkpointId}
-            className="group relative flex flex-col gap-2 p-3 rounded-lg border border-line-subtle bg-layer-1 hover:bg-layer-2 transition-all"
+            className="group relative flex flex-col gap-2 p-3 rounded-lg border border-line-subtle bg-surface hover:bg-layer-2 transition-all"
           >
             <div className="flex flex-col">
               <span className="text-[11px] font-700 text-accent-bright tracking-[0.03em]">

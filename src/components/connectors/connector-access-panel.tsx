@@ -360,7 +360,7 @@ export function ConnectorAccessPanel(props: ConnectorAccessPanelProps) {
                   {snapshot.pendingPairingRequests.length === 0 ? (
                     <div className="text-[12px] text-text-3">No pending pairing requests.</div>
                   ) : snapshot.pendingPairingRequests.map((entry) => (
-                    <div key={entry.code} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line-subtle bg-layer-1 px-3 py-3">
+                    <div key={entry.code} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line-subtle bg-surface px-3 py-3">
                       <div className="min-w-0">
                         <div className="text-[12px] font-600 text-text">
                           {entry.senderName ? `${entry.senderName} (${entry.senderId})` : entry.senderId}

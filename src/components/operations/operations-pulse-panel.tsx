@@ -123,7 +123,7 @@ export function OperationsPulsePanel({
       </div>
 
       {loading ? (
-        <div className="mt-4 rounded-lg border border-line-subtle bg-layer-1 px-3 py-4 text-[12px] text-text-3">
+        <div className="mt-4 rounded-lg border border-line-subtle bg-surface px-3 py-4 text-[12px] text-text-3">
           Loading pulse...
         </div>
       ) : !pulse ? (

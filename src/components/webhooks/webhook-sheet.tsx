@@ -265,7 +265,7 @@ export function WebhookSheet() {
               />
               <button
                 onClick={() => copyText('endpoint', `${window.location.origin}${endpoint}`)}
-                className="px-3.5 py-2 rounded-sm border border-accent-bright/20 bg-accent-soft/40 text-accent-bright text-[12px] font-600 cursor-pointer hover:bg-accent-soft transition-colors"
+                className="px-3.5 py-2 rounded-md border border-accent-bright/20 bg-accent-soft/40 text-accent-bright text-[12px] font-600 cursor-pointer hover:bg-accent-soft transition-colors"
                 style={{ fontFamily: 'inherit' }}
               >
                 {copied === 'endpoint' ? 'Copied' : 'Copy'}
@@ -348,14 +348,14 @@ export function WebhookSheet() {
             <button
               onClick={() => copyText('secret', secret)}
               disabled={!secret.trim()}
-              className="px-3.5 py-2 rounded-sm border border-line-default bg-layer-2 text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-3 transition-colors disabled:opacity-40"
+              className="px-3.5 py-2 rounded-md border border-line-default bg-layer-2 text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-3 transition-colors disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}
             >
               {copied === 'secret' ? 'Copied' : 'Copy'}
             </button>
             <button
               onClick={() => setSecret(makeSecret())}
-              className="px-3.5 py-2 rounded-sm border border-accent-bright/20 bg-accent-soft/40 text-accent-bright text-[12px] font-600 cursor-pointer hover:bg-accent-soft transition-colors"
+              className="px-3.5 py-2 rounded-md border border-accent-bright/20 bg-accent-soft/40 text-accent-bright text-[12px] font-600 cursor-pointer hover:bg-accent-soft transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               Regenerate

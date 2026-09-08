@@ -121,7 +121,7 @@ export function ChatroomSheet() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Research Team"
-              className="w-full px-3 py-2 rounded-sm bg-layer-2 border border-line-default text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
+              className="w-full px-3 py-2 rounded-md bg-layer-2 border border-line-default text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
             />
           </div>
 
@@ -132,7 +132,7 @@ export function ChatroomSheet() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
-              className="w-full px-3 py-2 rounded-sm bg-layer-2 border border-line-default text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
+              className="w-full px-3 py-2 rounded-md bg-layer-2 border border-line-default text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
             />
           </div>
 
@@ -165,7 +165,7 @@ export function ChatroomSheet() {
             <button
               type="button"
               onClick={() => setAutoAddress((value) => !value)}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-sm border border-line-default bg-layer-1 cursor-pointer transition-all hover:bg-layer-2"
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md border border-line-default bg-layer-1 cursor-pointer transition-all hover:bg-layer-2"
             >
               <div className={`w-8 h-[18px] rounded-full transition-all relative ${autoAddress ? 'bg-accent-bright' : 'bg-layer-3'}`}>
                 <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-all ${autoAddress ? 'left-[16px]' : 'left-[2px]'}`} />
@@ -229,7 +229,7 @@ export function ChatroomSheet() {
               onChange={(e) => setRoutingGuidance(e.target.value)}
               placeholder={'Examples:\nRoute deployment issues to Ops.\nPrefer Maya for design reviews and UI polish.\nSend pricing or market-analysis requests to Research.'}
               rows={6}
-              className="w-full px-3 py-2 rounded-sm bg-layer-2 border border-line-default text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40 resize-y min-h-[132px]"
+              className="w-full px-3 py-2 rounded-md bg-layer-2 border border-line-default text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40 resize-y min-h-[132px]"
             />
           </div>
         </div>

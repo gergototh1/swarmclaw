@@ -146,7 +146,7 @@ const ToolSummaryRow = memo(function ToolSummaryRow({ event, caption }: { event:
         ? 'border-amber-500/20 bg-amber-500/[0.06]'
         : isError
           ? 'border-rose-500/18 bg-rose-500/[0.05]'
-          : 'border-line-subtle bg-layer-1'
+          : 'border-line-subtle bg-surface'
     }`}
       data-testid="tool-call-row"
       data-tool-name={event.name}
@@ -313,7 +313,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
             </div>
           ))}
           {collapsedMedia.files.map((file, i) => (
-            <a key={`cf-${i}`} href={file.url} download className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-default bg-surface text-[13px] text-text-2 no-underline">
+            <a key={`cf-${i}`} href={file.url} download className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-default bg-surface text-[13px] text-text-2 no-underline">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />

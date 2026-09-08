@@ -90,7 +90,7 @@ function StatTile({ label, value, hint, tone = 'default' }: {
     danger: 'text-rose-300',
   }[tone]
   return (
-    <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
+    <div className="rounded-lg border border-line-subtle bg-surface px-4 py-3">
       <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">{label}</div>
       <div className={cn('mt-2 font-display text-[26px] font-700 tracking-[-0.03em]', toneClass)}>{value}</div>
       <div className="mt-1 text-[12px] leading-relaxed text-text-3">{hint}</div>
@@ -100,7 +100,7 @@ function StatTile({ label, value, hint, tone = 'default' }: {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-line-default bg-layer-1 px-4 py-6">
+    <div className="rounded-lg border border-dashed border-line-default bg-surface px-4 py-6">
       <div className="text-[13px] font-700 text-text">{title}</div>
       <p className="mt-1 text-[12px] leading-relaxed text-text-3">{description}</p>
     </div>
@@ -180,14 +180,14 @@ function ReleaseReadinessPanel({
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="shrink-0 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-colors hover:bg-layer-3 disabled:opacity-40"
+          className="shrink-0 rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-colors hover:bg-layer-3 disabled:opacity-40"
         >
           {loading ? 'Checking' : 'Refresh gate'}
         </button>
       </div>
 
       {!report ? (
-        <div className="mt-4 rounded-lg border border-dashed border-line-default bg-layer-1 px-4 py-5 text-[12px] text-text-3">
+        <div className="mt-4 rounded-lg border border-dashed border-line-default bg-surface px-4 py-5 text-[12px] text-text-3">
           {loading ? 'Building release readiness report...' : 'No release readiness report is available yet.'}
         </div>
       ) : (
@@ -211,7 +211,7 @@ function ReleaseReadinessPanel({
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+            <div className="rounded-lg border border-line-subtle bg-surface p-3">
               <div className="text-[12px] font-700 text-text">Checks</div>
               <div className="mt-3 flex flex-col gap-2">
                 {report.checks.slice(0, 6).map((check) => (
@@ -220,7 +220,7 @@ function ReleaseReadinessPanel({
                     type="button"
                     onClick={() => check.href && onOpenHref(check.href)}
                     className={cn(
-                      'rounded-sm border px-3 py-2 text-left transition-colors',
+                      'rounded-md border px-3 py-2 text-left transition-colors',
                       readinessStatusClass(check.status),
                       check.href ? 'hover:bg-layer-3' : '',
                     )}
@@ -233,7 +233,7 @@ function ReleaseReadinessPanel({
               </div>
             </div>
 
-            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+            <div className="rounded-lg border border-line-subtle bg-surface p-3">
               <div className="text-[12px] font-700 text-text">Next actions</div>
               <div className="mt-3 flex flex-col gap-2">
                 {report.nextActions.length === 0 ? (
@@ -246,7 +246,7 @@ function ReleaseReadinessPanel({
                       key={action.id}
                       type="button"
                       onClick={() => onOpenHref(action.href)}
-                      className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-left transition-colors hover:bg-layer-2"
+                      className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-left transition-colors hover:bg-layer-2"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-[12px] font-700 text-text">{action.title}</div>
@@ -292,14 +292,14 @@ function ArchitectureHealthPanel({
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="shrink-0 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-colors hover:bg-layer-3 disabled:opacity-40"
+          className="shrink-0 rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-colors hover:bg-layer-3 disabled:opacity-40"
         >
           {loading ? 'Checking' : 'Refresh map'}
         </button>
       </div>
 
       {!report ? (
-        <div className="mt-4 rounded-lg border border-dashed border-line-default bg-layer-1 px-4 py-5 text-[12px] text-text-3">
+        <div className="mt-4 rounded-lg border border-dashed border-line-default bg-surface px-4 py-5 text-[12px] text-text-3">
           {loading ? 'Building architecture health report...' : 'No architecture health report is available yet.'}
         </div>
       ) : (
@@ -323,11 +323,11 @@ function ArchitectureHealthPanel({
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+            <div className="rounded-lg border border-line-subtle bg-surface p-3">
               <div className="text-[12px] font-700 text-text">Domains</div>
               <div className="mt-3 grid gap-2">
                 {report.domains.map((domain) => (
-                  <div key={domain.id} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div key={domain.id} className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="text-[12px] font-700 text-text">{domain.title}</div>
                       <span className={cn('rounded-full border px-2 py-0.5 text-[9px] font-700 tracking-[0.03em]', architectureStatusClass(domain.status))}>
@@ -340,7 +340,7 @@ function ArchitectureHealthPanel({
               </div>
             </div>
 
-            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+            <div className="rounded-lg border border-line-subtle bg-surface p-3">
               <div className="text-[12px] font-700 text-text">Checks</div>
               <div className="mt-3 flex flex-col gap-2">
                 {report.nextActions.length === 0 ? (
@@ -349,7 +349,7 @@ function ArchitectureHealthPanel({
                       key={check.code}
                       type="button"
                       onClick={() => check.href && onOpenHref(check.href)}
-                      className="rounded-sm border border-emerald-500/20 bg-emerald-500/[0.05] px-3 py-2 text-left text-emerald-200 transition-colors hover:bg-emerald-500/[0.08]"
+                      className="rounded-md border border-emerald-500/20 bg-emerald-500/[0.05] px-3 py-2 text-left text-emerald-200 transition-colors hover:bg-emerald-500/[0.08]"
                     >
                       <div className="text-[11px] font-700 tracking-[0.03em]">{check.status}</div>
                       <div className="mt-1 text-[12px] font-700 text-text">{check.title}</div>
@@ -362,7 +362,7 @@ function ArchitectureHealthPanel({
                       key={action.id}
                       type="button"
                       onClick={() => onOpenHref(action.href)}
-                      className={cn('rounded-sm border px-3 py-2 text-left transition-colors hover:bg-layer-3', architectureStatusClass(action.severity))}
+                      className={cn('rounded-md border px-3 py-2 text-left transition-colors hover:bg-layer-3', architectureStatusClass(action.severity))}
                     >
                       <div className="text-[11px] font-700 tracking-[0.03em]">{action.severity}</div>
                       <div className="mt-1 text-[12px] font-700 text-text">{action.title}</div>
@@ -385,7 +385,7 @@ function EvalEnvironmentPanel({ plan, loading, onRefresh }: {
   onRefresh: () => void
 }) {
   return (
-    <div className="rounded-lg border border-line-subtle bg-layer-1 px-3 py-3">
+    <div className="rounded-lg border border-line-subtle bg-surface px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[13px] font-700 text-text">Validation environment</div>
@@ -423,7 +423,7 @@ function EvalEnvironmentPanel({ plan, loading, onRefresh }: {
             </span>
           </div>
           {plan.target?.environmentLabel && (
-            <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-[11px] text-text-3">
+            <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[11px] text-text-3">
               Environment: <span className="font-700 text-text-2">{plan.target.environmentLabel}</span>
               {plan.target.environmentStatus ? ` (${plan.target.environmentStatus})` : ''}
             </div>
@@ -475,7 +475,7 @@ function EvalGatePanel({
   onSetBaseline: () => void
 }) {
   return (
-    <div className="rounded-lg border border-line-subtle bg-layer-1 px-3 py-3">
+    <div className="rounded-lg border border-line-subtle bg-surface px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[13px] font-700 text-text">Regression gate</div>
@@ -556,7 +556,7 @@ function EvalGatePanel({
             type="button"
             onClick={onSetBaseline}
             disabled={busy || gate.latestRuns.length === 0 || gate.checks.some((check) => check.code === 'missing_scope_runs')}
-            className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[11px] font-700 text-text-2 transition-colors hover:bg-layer-3 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[11px] font-700 text-text-2 transition-colors hover:bg-layer-3 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy ? 'Saving baseline' : gate.baseline ? 'Update baseline' : 'Set baseline'}
           </button>
@@ -895,7 +895,7 @@ export function QualityWorkspace() {
                   void loadArchitectureHealth()
                   void loadReleaseReadiness()
                 }}
-                className="inline-flex items-center gap-2 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-colors hover:bg-layer-3"
+                className="inline-flex items-center gap-2 rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-colors hover:bg-layer-3"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M21 12a9 9 0 0 1-15.5 6.2" /><path d="M3 12A9 9 0 0 1 18.5 5.8" /><path d="M3 19v-5h5" /><path d="M21 5v5h-5" />
@@ -1026,7 +1026,7 @@ export function QualityWorkspace() {
                       evalRuns.slice(0, 5).map((run) => {
                         const percent = scorePercent(run.score, run.maxScore)
                         return (
-                          <div key={run.id} className="rounded-lg border border-line-subtle bg-layer-1 px-3 py-3">
+                          <div key={run.id} className="rounded-lg border border-line-subtle bg-surface px-3 py-3">
                             <div className="flex items-center justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="truncate text-[13px] font-700 text-text">{scenarioById.get(run.scenarioId)?.name || run.scenarioId}</div>
@@ -1057,7 +1057,7 @@ export function QualityWorkspace() {
                     <select
                       value={selectedAgentId}
                       onChange={(event) => setSelectedAgentId(event.target.value)}
-                      className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] text-text outline-none"
+                      className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] text-text outline-none"
                     >
                       {agentOptions.length === 0 && <option value="">No agents available</option>}
                       {agentOptions.map((agent) => (
@@ -1070,7 +1070,7 @@ export function QualityWorkspace() {
                     <select
                       value={selectedScenarioId}
                       onChange={(event) => setSelectedScenarioId(event.target.value)}
-                      className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] text-text outline-none"
+                      className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] text-text outline-none"
                     >
                       {scenarios.map((scenario) => (
                         <option key={scenario.id} value={scenario.id}>{scenario.name}</option>
@@ -1078,7 +1078,7 @@ export function QualityWorkspace() {
                     </select>
                   </label>
                   {selectedScenarioId && scenarioById.get(selectedScenarioId) && (
-                    <div className="rounded-lg border border-line-subtle bg-layer-1 px-3 py-3">
+                    <div className="rounded-lg border border-line-subtle bg-surface px-3 py-3">
                       <div className="text-[13px] font-700 text-text">{scenarioById.get(selectedScenarioId)!.name}</div>
                       <p className="mt-1 text-[12px] leading-relaxed text-text-3">{scenarioById.get(selectedScenarioId)!.description}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -1105,7 +1105,7 @@ export function QualityWorkspace() {
                   <button
                     type="button"
                     onClick={() => openMissionTemplate('release-candidate-qa')}
-                    className="mt-3 w-full rounded-sm border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[12px] font-700 text-emerald-200 transition-colors hover:bg-emerald-500/15"
+                    className="mt-3 w-full rounded-md border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[12px] font-700 text-emerald-200 transition-colors hover:bg-emerald-500/15"
                   >
                     Start Release QA Mission
                   </button>
@@ -1133,7 +1133,7 @@ export function QualityWorkspace() {
                     <select
                       value={selectedSuite}
                       onChange={(event) => setSelectedSuite(event.target.value)}
-                      className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] text-text outline-none"
+                      className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] text-text outline-none"
                     >
                       {suites.map((suite) => (
                         <option key={suite.name} value={suite.name}>{suite.name}</option>
@@ -1142,7 +1142,7 @@ export function QualityWorkspace() {
                   </div>
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {suites.map((suite) => (
-                      <div key={suite.name} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                      <div key={suite.name} className="rounded-lg border border-line-subtle bg-surface p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="text-[13px] font-700 text-text">{suite.name}</div>
@@ -1180,7 +1180,7 @@ export function QualityWorkspace() {
                         const percent = scorePercent(run.score, run.maxScore)
                         const scenario = scenarioById.get(run.scenarioId)
                         return (
-                          <div key={run.id} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                          <div key={run.id} className="rounded-lg border border-line-subtle bg-surface p-3">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="truncate text-[13px] font-700 text-text">{scenario?.name || run.scenarioId}</div>
@@ -1232,7 +1232,7 @@ export function QualityWorkspace() {
                   <EmptyState title="No pending approvals" description="The approval queue is clear." />
                 ) : (
                   approvalGroups.categories.map((group) => (
-                    <div key={group.category} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                    <div key={group.category} className="rounded-lg border border-line-subtle bg-surface p-3">
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <div className="text-[12px] font-700 tracking-[0.03em] text-text-2">{group.category.replaceAll('_', ' ')}</div>
                         <div className="text-[11px] font-700 text-text-3">{group.count} request{group.count === 1 ? '' : 's'}</div>

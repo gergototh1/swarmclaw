@@ -72,7 +72,7 @@ export function TabBehavior({
       >
         {/* --- Role subsection --- */}
         {!WORKER_ONLY_PROVIDER_IDS.has(provider) && (
-          <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-4 mb-4">
+          <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4 mb-4">
             <div className="flex items-center gap-2 mb-3">
               <SectionLabel>Role</SectionLabel>
               <HintTip text="Coordinators automatically receive a list of available agents and can decompose complex goals, delegate to specialists, and synthesize results." />
@@ -145,7 +145,7 @@ export function TabBehavior({
 
         {/* --- Orchestrator subsection --- */}
         {isOrchestratorProviderEligible(provider) && (
-          <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-4">
+          <div className="rounded-lg border border-line-subtle bg-surface px-4 py-4">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-[14px] font-600 text-text">Orchestrator Mode</p>
@@ -235,7 +235,7 @@ export function TabBehavior({
         title="Behavior"
         description="Keep the core autonomy switch visible. Expert heartbeat controls stay in advanced settings."
       >
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-line-subtle bg-layer-1 px-4 py-4">
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-line-subtle bg-surface px-4 py-4">
           <div className="min-w-0">
             <p className="text-[14px] font-600 text-text">Heartbeat</p>
             <p className="mt-1 text-[12px] leading-[1.6] text-text-3">
@@ -251,7 +251,7 @@ export function TabBehavior({
             <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${heartbeatEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
         </div>
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-line-subtle bg-layer-1 px-4 py-4 mt-3">
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-line-subtle bg-surface px-4 py-4 mt-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <p className="text-[14px] font-600 text-text">Dreaming</p>
@@ -271,7 +271,7 @@ export function TabBehavior({
           </button>
         </div>
         {dreamEnabled && (
-          <div className="mt-3 rounded-lg border border-line-subtle bg-layer-1 px-4 py-4 space-y-3">
+          <div className="mt-3 rounded-lg border border-line-subtle bg-surface px-4 py-4 space-y-3">
             <div>
               <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 mb-1.5">
                 Cooldown (minutes) <HintTip text="Minimum minutes between dream cycles" />
@@ -326,7 +326,7 @@ export function TabBehavior({
               <button
                 type="button"
                 onClick={() => patch({ voiceId: '' })}
-                className="px-3 py-2.5 rounded-sm border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all cursor-pointer"
+                className="px-3 py-2.5 rounded-md border border-line-default bg-transparent text-[12px] font-600 text-text-3 hover:bg-layer-2 hover:text-text-2 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 Use global default

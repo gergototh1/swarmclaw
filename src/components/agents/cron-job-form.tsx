@@ -48,7 +48,7 @@ export function CronJobForm({ agentId, onSaved, onCancel }: Props) {
     }
   }
 
-  const inputClass = 'w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text outline-none placeholder:text-text-3 focus:border-line-default transition-colors'
+  const inputClass = 'w-full px-3 py-2 rounded-md border border-line-subtle bg-black/20 text-[13px] text-text outline-none placeholder:text-text-3 focus:border-line-default transition-colors'
 
   return (
     <div className="flex flex-col gap-3 p-4 border border-line-subtle rounded-lg bg-surface">

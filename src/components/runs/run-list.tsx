@@ -244,7 +244,7 @@ export function RunList() {
               <button
                 key={run.id}
                 onClick={() => openSelected(run)}
-                className="w-full text-left p-3 rounded-sm border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer block active:scale-[0.99]"
+                className="w-full text-left p-3 rounded-md border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer block active:scale-[0.99]"
                 style={{
                   animation: 'fade-up 0.4s var(--ease-spring) both',
                   animationDelay: `${0.1 + idx * 0.02}s`
@@ -310,11 +310,11 @@ export function RunList() {
                   <div className="text-[13px] font-700 text-text">{selectedBrief.title}</div>
                   <p className="mt-1 text-[12px] leading-relaxed text-text-3">{selectedBrief.objective}</p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                    <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                       <div className="text-[10px] tracking-[0.03em] text-text-3">Owner</div>
                       <div className="mt-1 text-[11px] text-text-2">{selectedBrief.owner ? `${selectedBrief.owner.type}:${selectedBrief.owner.id}` : selectedBrief.source}</div>
                     </div>
-                    <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
+                    <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
                       <div className="text-[10px] tracking-[0.03em] text-text-3">Usage</div>
                       <div className="mt-1 text-[11px] text-text-2">
                         {selectedBrief.usage.inputTokens ?? 0} in / {selectedBrief.usage.outputTokens ?? 0} out
@@ -325,7 +325,7 @@ export function RunList() {
                   {selectedBrief.warnings.length > 0 && (
                     <div className="mt-3 flex flex-col gap-1.5">
                       {selectedBrief.warnings.map((warning) => (
-                        <div key={warning} className="rounded-sm border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2 text-[11px] text-amber-200">
+                        <div key={warning} className="rounded-md border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2 text-[11px] text-amber-200">
                           {warning}
                         </div>
                       ))}

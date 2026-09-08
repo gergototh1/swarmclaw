@@ -264,7 +264,7 @@ export function KnowledgeSheet() {
               className={`py-3 rounded-lg text-[13px] font-600 border transition-all cursor-pointer ${
                 kind === sourceKind
                   ? 'border-accent-bright/25 bg-accent-soft text-accent-bright'
-                  : 'border-line-default bg-layer-1 text-text-3 hover:text-text-2'
+                  : 'border-line-default bg-surface text-text-3 hover:text-text-2'
               }`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -318,7 +318,7 @@ export function KnowledgeSheet() {
               className={`flex flex-col items-center gap-3 px-6 py-8 rounded-lg border-2 border-dashed cursor-pointer transition-all duration-200 ${
                 isDragging
                   ? 'border-accent-bright/50 bg-accent-soft/20'
-                  : 'border-line-default bg-layer-1 hover:border-line-strong hover:bg-layer-2'
+                  : 'border-line-default bg-surface hover:border-line-strong hover:bg-layer-2'
               } ${uploading ? 'opacity-60 pointer-events-none' : ''}`}
             >
               {uploading ? (

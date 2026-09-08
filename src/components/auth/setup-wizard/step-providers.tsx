@@ -140,7 +140,7 @@ export function StepProviders({
         <button
           onClick={runSetupDoctor}
           disabled={doctorState === 'checking'}
-          className="w-full px-4 py-3 rounded-lg border border-line-default bg-layer-1 text-[13px] text-text-2
+          className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-[13px] text-text-2
             cursor-pointer hover:bg-layer-2 transition-all duration-200 disabled:opacity-40"
         >
           {doctorState === 'checking' ? 'Running System Check...' : 'Run System Check'}

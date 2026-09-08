@@ -297,7 +297,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                       ? 'border-sky-300/15 bg-sky-300/[0.06]'
                       : item.runId === nextPendingRunId
                         ? 'border-amber-300/20 bg-amber-300/[0.07]'
-                        : 'border-line-subtle bg-layer-1'
+                        : 'border-line-subtle bg-surface'
                   }`}
                 >
                   <div className={`mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-sm px-2 text-[10px] font-700 ${

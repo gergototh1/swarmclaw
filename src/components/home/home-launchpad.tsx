@@ -7,7 +7,7 @@ import type { Agent } from '@/types'
 
 function SnapshotItem({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
-    <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
+    <div className="rounded-lg border border-line-subtle bg-surface px-4 py-3">
       <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">{label}</div>
       <div className="mt-2 text-[24px] font-display font-700 tracking-[-0.03em] text-text">{value}</div>
       <div className="mt-1 text-[12px] leading-relaxed text-text-3">{hint}</div>
@@ -48,7 +48,7 @@ function PathCard({
         <button
           type="button"
           onClick={onSecondary}
-          className="rounded-sm border border-line-default bg-layer-2 px-3.5 py-2 text-[12px] font-display font-700 text-text-2 transition-colors hover:bg-layer-3"
+          className="rounded-md border border-line-default bg-layer-2 px-3.5 py-2 text-[12px] font-display font-700 text-text-2 transition-colors hover:bg-layer-3"
         >
           {secondaryLabel}
         </button>
@@ -187,28 +187,28 @@ export function HomeLaunchpad({
             <button
               type="button"
               onClick={onStartReleaseQaMission}
-              className="rounded-sm border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[12px] font-display font-700 text-emerald-200 hover:bg-emerald-500/15"
+              className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[12px] font-display font-700 text-emerald-200 hover:bg-emerald-500/15"
             >
               Release QA
             </button>
             <button
               type="button"
               onClick={onStartLaunchSprintMission}
-              className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-display font-700 text-text-2 hover:bg-layer-3"
+              className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-display font-700 text-text-2 hover:bg-layer-3"
             >
               Launch Sprint
             </button>
             <button
               type="button"
               onClick={onStartCostAuditMission}
-              className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-display font-700 text-text-2 hover:bg-layer-3"
+              className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-display font-700 text-text-2 hover:bg-layer-3"
             >
               Cost Audit
             </button>
             <button
               type="button"
               onClick={onStartConnectorSmokeMission}
-              className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-display font-700 text-text-2 hover:bg-layer-3"
+              className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-display font-700 text-text-2 hover:bg-layer-3"
             >
               Connector Smoke
             </button>

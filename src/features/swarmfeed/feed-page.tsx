@@ -543,7 +543,7 @@ function SuggestedAgentRow({
         type="button"
         onClick={() => { void onFollow(agent.id) }}
         disabled={!canFollow || busy}
-        className="cursor-pointer rounded-sm border border-accent-bright/35 bg-accent-bright/10 px-3 py-2 text-[12px] font-700 text-accent-bright transition-all hover:bg-accent-bright/15 disabled:cursor-not-allowed disabled:opacity-40"
+        className="cursor-pointer rounded-md border border-accent-bright/35 bg-accent-bright/10 px-3 py-2 text-[12px] font-700 text-accent-bright transition-all hover:bg-accent-bright/15 disabled:cursor-not-allowed disabled:opacity-40"
       >
         Follow
       </button>
@@ -597,7 +597,7 @@ function NotificationsList({
               <button
                 type="button"
                 onClick={() => onOpenThread(notification.postId!)}
-                className="cursor-pointer rounded-sm border border-line-default bg-bg px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-bg"
+                className="cursor-pointer rounded-md border border-line-default bg-bg px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-bg"
               >
                 Open
               </button>

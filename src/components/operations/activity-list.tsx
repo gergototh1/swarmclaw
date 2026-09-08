@@ -51,7 +51,7 @@ export function ActivityList() {
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border bg-transparent border-line-subtle text-text-3 hover:bg-layer-1 appearance-none"
+          className="px-3 py-2 rounded-md text-[13px] font-600 cursor-pointer transition-all border bg-transparent border-line-subtle text-text-3 hover:bg-layer-1 appearance-none"
           style={{ fontFamily: 'inherit', minWidth: 130 }}
         >
           <option value="">All Types</option>

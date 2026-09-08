@@ -388,14 +388,14 @@ export default function ProtocolsPage() {
                     <button
                       type="button"
                       onClick={() => openTemplateEditor()}
-                      className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
+                      className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
                     >
                       New template
                     </button>
                     <button
                       type="button"
                       onClick={() => router.push(DEFAULT_BUILDER_ROUTE)}
-                      className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
+                      className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-layer-3 cursor-pointer"
                     >
                       Open visual builder
                     </button>
@@ -528,7 +528,7 @@ export default function ProtocolsPage() {
 
                     <div>
                       <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Participants</div>
-                      <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-lg border border-line-subtle bg-layer-1 p-3">
+                      <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-lg border border-line-subtle bg-surface p-3">
                         {Object.values(agents).map((agent) => {
                           const active = form.participantAgentIds.includes(agent.id)
                           return (
@@ -555,7 +555,7 @@ export default function ProtocolsPage() {
                     </div>
 
                     {selectedTemplate && (
-                      <div className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                      <div className="rounded-lg border border-line-subtle bg-surface p-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="text-[12px] font-700 text-text">{selectedTemplate.name}</div>
                           <div className="flex items-center gap-2">
@@ -692,14 +692,14 @@ export default function ProtocolsPage() {
                           <button
                             type="button"
                             onClick={() => router.push(`/protocols/builder/${editingTemplateId}`)}
-                            className="rounded-sm border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-[12px] font-700 text-blue-200 transition-all hover:bg-blue-500/14 cursor-pointer"
+                            className="rounded-md border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-[12px] font-700 text-blue-200 transition-all hover:bg-blue-500/14 cursor-pointer"
                           >
                             Visual Builder
                           </button>
                           <button
                             type="button"
                             onClick={() => void handleDeleteTemplate(editingTemplateId)}
-                            className="rounded-sm border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-200 transition-all hover:bg-red-500/14 cursor-pointer"
+                            className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-200 transition-all hover:bg-red-500/14 cursor-pointer"
                           >
                             {templatePending === `delete:${editingTemplateId}` ? 'Deleting…' : 'Delete template'}
                           </button>
@@ -710,7 +710,7 @@ export default function ProtocolsPage() {
                 )}
 
                 {customTemplates.length > 0 && (
-                  <div className="mt-4 rounded-lg border border-line-subtle bg-layer-1 p-3">
+                  <div className="mt-4 rounded-lg border border-line-subtle bg-surface p-3">
                     <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Custom Templates</div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {customTemplates.map((template) => (
@@ -848,7 +848,7 @@ export default function ProtocolsPage() {
                         <button
                           type="button"
                           onClick={() => router.push(`/chatrooms/${encodeURIComponent(detail.transcript?.id || '')}`)}
-                          className="rounded-sm border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-[12px] font-700 text-sky-100 cursor-pointer"
+                          className="rounded-md border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-[12px] font-700 text-sky-100 cursor-pointer"
                         >
                           {detail.run.status === 'running' || detail.run.status === 'waiting' || detail.run.status === 'paused'
                             ? 'Watch Live Room'
@@ -866,27 +866,27 @@ export default function ProtocolsPage() {
                         </button>
                       )}
                       {detail.run.status !== 'completed' && detail.run.status !== 'cancelled' && detail.run.status !== 'archived' && detail.run.status !== 'paused' && (
-                        <button type="button" onClick={() => void handleAction({ action: 'pause' })} className="rounded-sm border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-[12px] font-700 text-indigo-200 cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'pause' })} className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-[12px] font-700 text-indigo-200 cursor-pointer">
                           {actionPending === 'pause' ? 'Pausing…' : 'Pause'}
                         </button>
                       )}
                       {detail.run.status !== 'completed' && detail.run.status !== 'cancelled' && detail.run.status !== 'archived' && (
-                        <button type="button" onClick={() => void handleAction({ action: 'retry_phase' })} className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'retry_phase' })} className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
                           {actionPending === 'retry_phase' ? 'Retrying…' : 'Retry step'}
                         </button>
                       )}
                       {detail.run.status !== 'completed' && detail.run.status !== 'cancelled' && detail.run.status !== 'archived' && !!currentStepDefinition(detail.run) && (
-                        <button type="button" onClick={() => void handleAction({ action: 'skip_phase' })} className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'skip_phase' })} className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
                           {actionPending === 'skip_phase' ? 'Skipping…' : 'Skip step'}
                         </button>
                       )}
                       {detail.run.status !== 'completed' && detail.run.status !== 'cancelled' && detail.run.status !== 'archived' && (
-                        <button type="button" onClick={() => void handleAction({ action: 'cancel' })} className="rounded-sm border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-200 cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'cancel' })} className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] font-700 text-red-200 cursor-pointer">
                           {actionPending === 'cancel' ? 'Cancelling…' : 'Cancel'}
                         </button>
                       )}
                       {(detail.run.status === 'completed' || detail.run.status === 'cancelled' || detail.run.status === 'failed') && (
-                        <button type="button" onClick={() => void handleAction({ action: 'archive' })} className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'archive' })} className="rounded-md border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer">
                           {actionPending === 'archive' ? 'Archiving…' : 'Archive'}
                         </button>
                       )}
@@ -924,7 +924,7 @@ export default function ProtocolsPage() {
                           type="button"
                           onClick={() => void handleAction({ action: 'inject_context', context: contextDraft })}
                           disabled={!contextDraft.trim()}
-                          className="rounded-sm border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-[12px] font-700 text-sky-100 transition-all enabled:hover:bg-sky-500/16 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                          className="rounded-md border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-[12px] font-700 text-sky-100 transition-all enabled:hover:bg-sky-500/16 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
                         >
                           {actionPending === 'inject_context' ? 'Injecting…' : 'Inject context'}
                         </button>
@@ -1107,7 +1107,7 @@ export default function ProtocolsPage() {
                                 </div>
                                 <div className="mt-3 space-y-1">
                                   {state.claims.map((claim) => (
-                                    <div key={claim.id} className="flex items-center justify-between rounded-sm border border-line-subtle bg-layer-2 px-3 py-2">
+                                    <div key={claim.id} className="flex items-center justify-between rounded-md border border-line-subtle bg-layer-2 px-3 py-2">
                                       <div className="text-[12px] text-text">{claim.workItemLabel}</div>
                                       <div className="flex items-center gap-2">
                                         <span className="text-[11px] text-text-3">{agents[claim.agentId]?.name || claim.agentId}</span>
@@ -1248,7 +1248,7 @@ export default function ProtocolsPage() {
                         </div>
                         <div className="mt-3 max-h-[360px] space-y-3 overflow-y-auto pr-1">
                           {detail.transcript?.messages?.length ? detail.transcript.messages.slice(-8).map((message) => (
-                            <div key={message.id} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                            <div key={message.id} className="rounded-lg border border-line-subtle bg-surface p-3">
                               <div className="flex items-center gap-2 text-[11px] text-text-3">
                                 <span>{message.senderName}</span>
                                 <span>•</span>
@@ -1268,7 +1268,7 @@ export default function ProtocolsPage() {
                           {detail.events.length === 0 ? (
                             <div className="text-[13px] text-text-3">No run events yet.</div>
                           ) : detail.events.map((event) => (
-                            <div key={event.id} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                            <div key={event.id} className="rounded-lg border border-line-subtle bg-surface p-3">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">{event.type.replace(/_/g, ' ')}</div>
                                 <div className="text-[11px] text-text-3">{timeAgo(event.createdAt)}</div>

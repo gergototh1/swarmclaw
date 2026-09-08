@@ -947,7 +947,7 @@ function SessionsSection({ agent }: { agent: Agent }) {
                   }
                 }).catch(() => {})
               }}
-              className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-sm border-none cursor-pointer transition-colors text-left
+              className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-md border-none cursor-pointer transition-colors text-left
                 ${isSelected
                   ? 'bg-accent-soft/70 ring-1 ring-accent-bright/25'
                   : 'bg-transparent hover:bg-layer-2'}`}
@@ -1024,7 +1024,7 @@ function StickyFooter({ agent, isMainChat, onEditAgent, onDuplicateAgent, onClea
         {onEditAgent && (
           <button
             onClick={onEditAgent}
-            className="flex-1 px-3 py-2 rounded-sm text-[12px] font-700 text-accent-bright bg-accent-soft/50 border border-accent-bright/10 cursor-pointer transition-all hover:bg-accent-soft text-center"
+            className="flex-1 px-3 py-2 rounded-md text-[12px] font-700 text-accent-bright bg-accent-soft/50 border border-accent-bright/10 cursor-pointer transition-all hover:bg-accent-soft text-center"
             style={{ fontFamily: 'inherit' }}
           >
             Edit Agent
@@ -1033,7 +1033,7 @@ function StickyFooter({ agent, isMainChat, onEditAgent, onDuplicateAgent, onClea
         {onDuplicateAgent && (
           <button
             onClick={onDuplicateAgent}
-            className="flex-1 px-3 py-2 rounded-sm text-[12px] font-700 text-sky-300 bg-sky-400/[0.06] border border-sky-400/[0.1] cursor-pointer transition-all hover:bg-sky-400/[0.1] text-center"
+            className="flex-1 px-3 py-2 rounded-md text-[12px] font-700 text-sky-300 bg-sky-400/[0.06] border border-sky-400/[0.1] cursor-pointer transition-all hover:bg-sky-400/[0.1] text-center"
             style={{ fontFamily: 'inherit' }}
           >
             Duplicate
@@ -1233,7 +1233,7 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
       <SectionLabel>Automations</SectionLabel>
       <div className="flex flex-col gap-3">
         {schedules.map((s) => (
-          <div key={s.id} className="rounded-sm border border-line-subtle bg-layer-1 py-2 px-3">
+          <div key={s.id} className="rounded-md border border-line-subtle bg-layer-1 py-2 px-3">
             <div className="flex items-center gap-2">
               <span className="text-[12px] font-600 text-text truncate flex-1">{s.name}</span>
               <span className={`text-[10px] font-600 tracking-[0.03em] px-1.5 py-0.5 rounded-xs
@@ -1251,7 +1251,7 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
           <>
             {cronLoading && <div className="text-[12px] text-text-3">Loading gateway crons...</div>}
             {gatewayCrons.map((c) => (
-              <div key={c.id} className="rounded-sm border border-line-subtle bg-layer-1 py-2 px-3">
+              <div key={c.id} className="rounded-md border border-line-subtle bg-layer-1 py-2 px-3">
                 <div className="flex items-center gap-2">
                   <span className="text-[12px] font-600 text-text truncate flex-1">{c.name}</span>
                   <span className={`text-[10px] font-600 tracking-[0.03em] px-1.5 py-0.5 rounded-xs

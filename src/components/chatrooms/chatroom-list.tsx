@@ -132,7 +132,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
           </div>
 
           {filtered.length === 0 ? (
-            <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-8 text-center">
+            <div className="rounded-lg border border-line-subtle bg-surface px-4 py-8 text-center">
               <div className="text-[13px] font-600 text-text-2">No {viewMode === 'sessions' ? 'sessions' : 'rooms'} match this view</div>
               <div className="mt-1 text-[12px] text-text-3">
                 Clear the search or switch filters to see more {viewMode === 'sessions' ? 'sessions' : 'chatrooms'}.
