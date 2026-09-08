@@ -422,7 +422,7 @@ export default function TasksPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 p-1 rounded-md bg-surface-2 border border-line-subtle">
+          <div className="flex items-center gap-1 p-1 rounded-full bg-surface-2 border border-line-subtle">
             {([
               ['board', 'Board'],
               ['list', 'List'],
@@ -430,7 +430,7 @@ export default function TasksPage() {
               <button
                 key={value}
                 onClick={() => setViewMode(value)}
-                className={`px-3 py-1.5 rounded-sm text-[12px] font-700 transition-all cursor-pointer border-none ${
+                className={`px-3 py-1.5 rounded-full text-[12px] font-700 transition-all cursor-pointer border-none ${
                   viewMode === value
                     ? 'bg-accent-soft text-accent-bright'
                     : 'text-text-3 hover:text-text-2'
@@ -592,7 +592,7 @@ export default function TasksPage() {
           )}
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className={`px-4 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
+            className={`px-4 py-2 rounded-full text-[13px] font-600 cursor-pointer transition-all border
               ${showArchived
                 ? 'bg-layer-2 border-line-default text-text-2'
                 : 'bg-transparent border-line-subtle text-text-3 hover:bg-layer-1'}`}
@@ -605,7 +605,7 @@ export default function TasksPage() {
               resetGitHubImportState()
               setGitHubImportOpen(true)
             }}
-            className="px-4 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border border-line-default bg-layer-2 text-text-2 hover:bg-layer-3"
+            className="px-4 py-2 rounded-full text-[13px] font-600 cursor-pointer transition-all border border-line-default bg-layer-2 text-text-2 hover:bg-layer-3"
             style={{ fontFamily: 'inherit' }}
           >
             Import GitHub
@@ -657,7 +657,7 @@ export default function TasksPage() {
           <button
             key={value}
             onClick={() => setAttentionFilter(value)}
-            className={`px-3 py-1.5 rounded-sm text-[11px] font-600 transition-all cursor-pointer border-none ${
+            className={`px-3 py-1.5 rounded-full text-[11px] font-600 transition-all cursor-pointer border-none ${
               attentionFilter === value
                 ? 'bg-accent-soft text-accent-bright'
                 : 'bg-layer-2 text-text-3 hover:bg-layer-3 hover:text-text-2'
@@ -672,10 +672,10 @@ export default function TasksPage() {
       {(activeProjectFilter && projects[activeProjectFilter]) || activeAttentionLabel || taskScopeFilter !== 'all' ? (
         <div className="flex flex-wrap items-center gap-2 px-8 pb-3">
           {taskScopeFilter !== 'all' && (
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[12px] font-600 ${
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-600 ${
               taskScopeFilter === 'agent'
                 ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
-                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                : 'bg-layer-2 border-line-default text-text-2'
             }`}>
               {taskScopeFilter === 'agent' && filterAgentId && agents[filterAgentId] ? (
                 <>
@@ -697,7 +697,7 @@ export default function TasksPage() {
             </span>
           )}
           {activeProjectFilter && projects[activeProjectFilter] && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-layer-2 border border-line-subtle text-[12px] font-600 text-text-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-layer-2 border border-line-subtle text-[12px] font-600 text-text-2">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: projects[activeProjectFilter].color || '#6366F1' }} />
             {projects[activeProjectFilter].name}
             <button
@@ -709,7 +709,7 @@ export default function TasksPage() {
           </span>
           )}
           {activeAttentionLabel && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-amber-500/10 border border-amber-500/20 text-[12px] font-600 text-amber-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[12px] font-600 text-amber-400">
               {activeAttentionLabel}
               <button
                 onClick={() => setAttentionFilter('all')}
