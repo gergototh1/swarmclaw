@@ -340,7 +340,7 @@ export function SidebarRail({
   // 618px, and the pre-redesign flat rail cost 460px.
   return (
     <div
-      className={`bg-raised border-r border-line-subtle flex flex-col py-4 h-full min-h-0 overflow-visible
+      className={`bg-bg border-r border-line-subtle flex flex-col py-4 h-full min-h-0 overflow-visible
         ${mobile ? 'max-w-[calc(100vw-40px)]' : 'shrink-0'}
         transition-[width] duration-200 ${railExpanded ? 'w-[212px]' : 'w-[52px]'}`}
       style={{ transitionTimingFunction: 'var(--ease-spring)' }}

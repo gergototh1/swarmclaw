@@ -8,20 +8,20 @@ import { SidebarPanelShell } from '@/components/layout/sidebar-panel-shell'
 
 export default function ProjectsPage() {
   return (
-    <MainContent>
-      <div className="flex-1 flex h-full min-w-0">
-        <SidebarPanelShell
-          title="Projects"
-          createLabel="Project"
-          onNew={() => {
-            useAppStore.getState().setEditingProjectId(null)
-            useAppStore.getState().setProjectSheetOpen(true)
-          }}
-        >
-          <ProjectList />
-        </SidebarPanelShell>
+    <>
+      <SidebarPanelShell
+        title="Projects"
+        createLabel="Project"
+        onNew={() => {
+          useAppStore.getState().setEditingProjectId(null)
+          useAppStore.getState().setProjectSheetOpen(true)
+        }}
+      >
+        <ProjectList />
+      </SidebarPanelShell>
+      <MainContent>
         <ProjectDetail />
-      </div>
-    </MainContent>
+      </MainContent>
+    </>
   )
 }
