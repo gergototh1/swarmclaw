@@ -3,7 +3,7 @@ import test from 'node:test'
 
 import { runWithTempDataDir } from '@/lib/server/test-utils/run-with-temp-data-dir'
 
-test('settings route persists valid theme mode and normalizes invalid values to dark', () => {
+test('settings route persists valid theme mode and normalizes invalid values to system', () => {
   const output = runWithTempDataDir<{
     lightMode: string | null
     invalidMode: string | null
@@ -34,5 +34,8 @@ test('settings route persists valid theme mode and normalizes invalid values to 
   `, { prefix: 'swarmclaw-settings-theme-mode-' })
 
   assert.equal(output.lightMode, 'light')
-  assert.equal(output.invalidMode, 'dark')
+  // 'system' rather than 'dark': an unrecognised or absent stored mode has to
+  // mean "follow the OS", or the provider's defaultTheme never gets a chance --
+  // GET always returns whatever this normalises to, and the shell replays it.
+  assert.equal(output.invalidMode, 'system')
 })

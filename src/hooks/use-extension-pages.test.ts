@@ -1,40 +1,46 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { splitPagesByPosition } from './use-extension-pages'
-import { EXTENSION_NAV_ANCHORS } from '@/lib/extension-page-nav'
+import { pagesForSection } from './use-extension-pages'
+import { NAV_SECTION_IDS } from '@/lib/app/nav-sections'
 
 const pages = [
-  { extensionId: 'a.mjs', id: 'a', label: 'A', path: '/x/a', entry: 'dist/index.js', position: 'after:tasks' },
-  { extensionId: 'b.mjs', id: 'b', label: 'B', path: '/x/b', entry: 'dist/index.js', position: 'end' },
-  { extensionId: 'c.mjs', id: 'c', label: 'C', path: '/x/c', entry: 'dist/index.js' },
+  { extensionId: 'aisignal.mjs', id: 'aisignal', label: 'AI Signal', path: '/x/aisignal', entry: 'dist/index.js', position: 'after:tasks' },
+  { extensionId: 'crm.mjs', id: 'crm', label: 'CRM', path: '/x/crm', entry: 'dist/index.js', position: 'end' },
+  { extensionId: 'docs.mjs', id: 'docs', label: 'Doksik', path: '/x/docs', entry: 'dist/index.js', position: 'after:tasks' },
+  { extensionId: 'video.mjs', id: 'video', label: 'Videó', path: '/x/video', entry: 'dist/index.js', position: 'after:tasks' },
 ]
 
-test('splitPagesByPosition picks after:<view> pages for a view and the rest for the end slot', () => {
-  assert.deepEqual(splitPagesByPosition(pages, 'tasks').map((p) => p.id), ['a'])
-  assert.deepEqual(splitPagesByPosition(pages, 'memory').map((p) => p.id), [])
-  assert.deepEqual(splitPagesByPosition(pages, null).map((p) => p.id), ['b', 'c'])
+test('every installed page lands in Work without being edited', () => {
+  assert.deepEqual(pagesForSection(pages, 'work').map((p) => p.id).sort(), ['aisignal', 'crm', 'docs', 'video'])
 })
 
-test('the end slot takes pages anchored at a view the rail does not mount', () => {
-  const unmounted = [
-    { extensionId: 'd.mjs', id: 'typo', label: 'Typo', path: '/x/d', entry: 'dist/index.js', position: 'after:taks' },
-    { extensionId: 'e.mjs', id: 'renamed', label: 'Renamed', path: '/x/e', entry: 'dist/index.js', position: 'after:removed_view' },
-    { extensionId: 'f.mjs', id: 'memory', label: 'Memory', path: '/x/f', entry: 'dist/index.js', position: 'after:memory' },
+test('a section nobody declared is empty, not a fallback dumping ground', () => {
+  assert.deepEqual(pagesForSection(pages, 'knowledge'), [])
+  assert.deepEqual(pagesForSection(pages, 'operations'), [])
+})
+
+test('order decides, and label breaks ties', () => {
+  const ordered = [
+    { extensionId: 'c.mjs', id: 'c', label: 'Zulu', path: '/x/c', entry: 'dist/index.js', section: 'work', order: 10 },
+    { extensionId: 'a.mjs', id: 'a', label: 'Alfa', path: '/x/a', entry: 'dist/index.js', section: 'work', order: 30 },
+    { extensionId: 'b.mjs', id: 'b', label: 'Bravo', path: '/x/b', entry: 'dist/index.js', section: 'work', order: 30 },
   ]
-  assert.deepEqual(splitPagesByPosition(unmounted, null).map((p) => p.id), ['typo', 'renamed', 'memory'])
+  assert.deepEqual(pagesForSection(ordered, 'work').map((p) => p.id), ['c', 'a', 'b'])
 })
 
-test('every page lands in exactly one mounted slot', () => {
-  const all = [...pages, { extensionId: 'g.mjs', id: 'stray', label: 'Stray', path: '/x/g', entry: 'dist/index.js', position: 'after:nowhere' }]
-  const rendered = [
-    ...EXTENSION_NAV_ANCHORS.flatMap((view) => splitPagesByPosition(all, view)),
-    ...splitPagesByPosition(all, null),
-  ].map((p) => p.id)
+test('an explicit section moves a page out of Work', () => {
+  const moved = [{ extensionId: 'k.mjs', id: 'k', label: 'K', path: '/x/k', entry: 'dist/index.js', section: 'knowledge' }]
+  assert.deepEqual(pagesForSection(moved, 'knowledge').map((p) => p.id), ['k'])
+  assert.deepEqual(pagesForSection(moved, 'work'), [])
+})
+
+test('every page lands in exactly one section', () => {
+  const all = [...pages, { extensionId: 'x.mjs', id: 'stray', label: 'Stray', path: '/x/x', entry: 'dist/index.js', section: 'nowhere' }]
+  const rendered = NAV_SECTION_IDS.flatMap((s) => pagesForSection(all, s)).map((p) => p.id)
   assert.deepEqual([...rendered].sort(), all.map((p) => p.id).sort())
   assert.equal(new Set(rendered).size, rendered.length)
 })
 
-test('splitPagesByPosition returns an empty slot for an empty page list', () => {
-  assert.deepEqual(splitPagesByPosition([], null), [])
-  assert.deepEqual(splitPagesByPosition([], 'tasks'), [])
+test('an empty page list yields an empty section', () => {
+  assert.deepEqual(pagesForSection([], 'work'), [])
 })

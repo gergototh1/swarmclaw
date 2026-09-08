@@ -5,16 +5,16 @@ import type { SettingsSectionProps } from './types'
 export function MemorySection({ appSettings, patchSettings, inputClass }: SettingsSectionProps) {
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Memory Retrieval
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Guardrails for memory graph traversal and lookup fan-out. These limits are enforced server-side.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">
               Reference Depth
             </label>
             <input
@@ -30,10 +30,10 @@ export function MemorySection({ appSettings, patchSettings, inputClass }: Settin
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">How far linked memory traversal can go.</p>
+            <p className="text-[11px] text-text-3 mt-2">How far linked memory traversal can go.</p>
           </div>
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">
               Max Per Lookup
             </label>
             <input
@@ -49,10 +49,10 @@ export function MemorySection({ appSettings, patchSettings, inputClass }: Settin
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Total memories returned in one retrieval call.</p>
+            <p className="text-[11px] text-text-3 mt-2">Total memories returned in one retrieval call.</p>
           </div>
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">
               Max Linked Expansion
             </label>
             <input
@@ -68,7 +68,7 @@ export function MemorySection({ appSettings, patchSettings, inputClass }: Settin
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Caps how many linked nodes can be expanded per lookup.</p>
+            <p className="text-[11px] text-text-3 mt-2">Caps how many linked nodes can be expanded per lookup.</p>
           </div>
         </div>
       </div>

@@ -169,17 +169,17 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
   }
 
   return (
-    <div className="absolute top-4 left-4 z-20 max-h-[calc(100%-32px)] flex flex-col bg-raised/90 backdrop-blur-sm border border-white/[0.06] rounded-[12px] shadow-lg overflow-hidden select-none" style={{ width }} onWheel={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+    <div className="absolute top-4 left-4 z-20 max-h-[calc(100%-32px)] flex flex-col bg-raised/80 backdrop-blur-sm border border-line-subtle rounded-md shadow-lg overflow-hidden select-none" style={{ width }} onWheel={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
       {/* Resize handle */}
       <div
         className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize z-10 hover:bg-accent-bright/10 active:bg-accent-bright/20 transition-colors"
         onPointerDown={onResizePointerDown}
       />
       {/* Tab switcher */}
-      <div className="flex border-b border-white/[0.06]">
+      <div className="flex border-b border-line-subtle">
         <button
           onClick={() => setTab('agents')}
-          className={`flex-1 text-[10px] font-600 uppercase tracking-wider py-2.5 transition-colors cursor-pointer bg-transparent border-none ${
+          className={`flex-1 text-[10px] font-600 tracking-[0.03em] py-2.5 transition-colors cursor-pointer bg-transparent border-none ${
             tab === 'agents' ? 'text-text border-b-2 border-accent-bright' : 'text-text-3/60 hover:text-text-3'
           }`}
         >
@@ -187,7 +187,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
         </button>
         <button
           onClick={() => setTab('teams')}
-          className={`flex-1 text-[10px] font-600 uppercase tracking-wider py-2.5 transition-colors cursor-pointer bg-transparent border-none ${
+          className={`flex-1 text-[10px] font-600 tracking-[0.03em] py-2.5 transition-colors cursor-pointer bg-transparent border-none ${
             tab === 'teams' ? 'text-text border-b-2 border-accent-bright' : 'text-text-3/60 hover:text-text-3'
           }`}
         >
@@ -202,7 +202,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search agents..."
-              className="w-full px-2 py-1 text-[11px] bg-white/[0.04] border border-white/[0.08] rounded-[6px] text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40"
+              className="w-full px-2 py-1 text-[11px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3"
             />
           </div>
           <div className="px-2 pt-1.5 pb-1 flex gap-1">
@@ -210,10 +210,10 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
               <button
                 key={key}
                 onClick={() => setRoleFilter(key as RoleFilter)}
-                className={`text-[9px] font-500 px-1.5 py-0.5 rounded-[4px] border transition-colors cursor-pointer bg-transparent ${
+                className={`text-[9px] font-600 px-1.5 py-0.5 rounded-xs border transition-colors cursor-pointer bg-transparent ${
                   roleFilter === key
                     ? 'border-accent-bright/30 text-accent-bright bg-accent-bright/10'
-                    : 'border-white/[0.06] text-text-3/60 hover:text-text-3'
+                    : 'border-line-subtle text-text-3/60 hover:text-text-3'
                 }`}
               >
                 {label} ({count})
@@ -224,15 +224,15 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
             {filtered.map((agent) => (
               <div
                 key={agent.id}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-[8px] hover:bg-white/[0.04] cursor-grab active:cursor-grabbing transition-colors touch-none"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-layer-2 cursor-grab active:cursor-grabbing transition-colors touch-none"
                 onPointerDown={(e) => onDragStart?.(e, agent.id)}
               >
                 <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={20} />
-                <span className="text-[11px] font-500 text-text-2 truncate">{agent.name}</span>
+                <span className="text-[11px] font-600 text-text-2 truncate">{agent.name}</span>
               </div>
             ))}
             {filtered.length === 0 && (
-              <div className="text-[10px] text-text-3/40 text-center py-2">No matches</div>
+              <div className="text-[10px] text-text-3 text-center py-2">No matches</div>
             )}
           </div>
         </>
@@ -241,15 +241,15 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
       {tab === 'teams' && (
         <div className="flex-1 overflow-y-auto overscroll-contain p-2 flex flex-col gap-1">
           {teams.length === 0 && !showNewTeam && (
-            <div className="text-[10px] text-text-3/40 text-center py-4">No teams yet</div>
+            <div className="text-[10px] text-text-3 text-center py-4">No teams yet</div>
           )}
           {teams.map((team) => {
             const isExpanded = expandedTeam === team.label
             const unplacedCount = team.agentIds.filter((id) => allAgents[id]?.orgChart?.x == null).length
             return (
-              <div key={team.label} className="rounded-[8px]">
+              <div key={team.label} className="rounded-sm">
                 {/* Team row */}
-                <div className="flex items-center gap-1.5 px-1 py-1.5 rounded-[8px] hover:bg-white/[0.04] transition-colors group">
+                <div className="flex items-center gap-1.5 px-1 py-1.5 rounded-sm hover:bg-layer-2 transition-colors group">
                   {/* Drag grip */}
                   <div
                     className="shrink-0 w-3.5 h-5 flex flex-col items-center justify-center gap-[2px] cursor-grab active:cursor-grabbing text-text-3/25 hover:text-text-3/50 touch-none"
@@ -266,7 +266,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                   {/* Expand */}
                   <button
                     onClick={() => setExpandedTeam(isExpanded ? null : team.label)}
-                    className="w-3.5 h-3.5 flex items-center justify-center text-text-3/40 hover:text-text-2 bg-transparent border-none cursor-pointer shrink-0"
+                    className="w-3.5 h-3.5 flex items-center justify-center text-text-3 hover:text-text-2 bg-transparent border-none cursor-pointer shrink-0"
                   >
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
                       style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}
@@ -277,17 +277,17 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                   {/* Color dot — click to pick */}
                   <div className="relative">
                     <button
-                      className="w-3 h-3 rounded-full border border-white/[0.1] cursor-pointer hover:scale-110 transition-transform shrink-0"
+                      className="w-3 h-3 rounded-full border border-line-default cursor-pointer hover:scale-110 transition-transform shrink-0"
                       style={{ background: team.color || '#6366F1' }}
                       title="Change color"
                       onClick={() => setColorPickerOpen(colorPickerOpen === team.label ? null : team.label)}
                     />
                     {colorPickerOpen === team.label && (
-                      <div className="absolute top-5 left-0 z-50 bg-raised border border-white/[0.08] rounded-[8px] p-1.5 flex flex-wrap gap-1 shadow-lg w-[76px]">
+                      <div className="absolute top-5 left-0 z-50 bg-raised border border-line-default rounded-sm p-1.5 flex flex-wrap gap-1 shadow-lg w-[76px]">
                         {TEAM_COLORS.map((c) => (
                           <button
                             key={c}
-                            className="w-4 h-4 rounded-full border border-white/[0.1] cursor-pointer hover:scale-110 transition-transform"
+                            className="w-4 h-4 rounded-full border border-line-default cursor-pointer hover:scale-110 transition-transform"
                             style={{ background: c }}
                             onClick={() => { changeTeamColor(team.label, c); setColorPickerOpen(null) }}
                           />
@@ -303,22 +303,22 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                       onChange={(e) => setEditValue(e.target.value)}
                       onBlur={() => renameTeam(team.label, editValue)}
                       onKeyDown={(e) => { if (e.key === 'Enter') renameTeam(team.label, editValue) }}
-                      className="flex-1 px-1 py-0.5 text-[10px] bg-white/[0.04] border border-white/[0.08] rounded-[4px] text-text outline-none focus:border-accent-bright/30 min-w-0"
+                      className="flex-1 px-1 py-0.5 text-[10px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 min-w-0"
                     />
                   ) : (
                     <span
-                      className="flex-1 text-[11px] font-500 text-text-2 truncate cursor-text"
+                      className="flex-1 text-[11px] font-600 text-text-2 truncate cursor-text"
                       onClick={() => { setEditingLabel(team.label); setEditValue(team.label) }}
                     >
                       {team.label}
                     </span>
                   )}
-                  <span className="text-[9px] text-text-3/40 tabular-nums">{team.agentIds.length}</span>
+                  <span className="text-[9px] text-text-3 tabular-nums">{team.agentIds.length}</span>
                   {/* Place */}
                   {unplacedCount > 0 && (
                     <button
                       onClick={() => onPlaceTeam?.(team)}
-                      className="hidden group-hover:block text-[8px] font-500 px-1 py-0.5 rounded-[3px] border border-accent-bright/20 text-accent-bright bg-accent-bright/5 hover:bg-accent-bright/15 cursor-pointer transition-colors"
+                      className="hidden group-hover:block text-[8px] font-600 px-1 py-0.5 rounded-xs border border-accent-bright/20 text-accent-bright bg-accent-bright/5 hover:bg-accent-bright/15 cursor-pointer transition-colors"
                       title="Place on chart"
                     >
                       Place
@@ -333,7 +333,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                   ) : (
                     <button
                       onClick={() => setConfirmDelete(team.label)}
-                      className="hidden group-hover:flex w-3.5 h-3.5 rounded-[3px] items-center justify-center text-text-3/40 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
+                      className="hidden group-hover:flex w-3.5 h-3.5 rounded-xs items-center justify-center text-text-3 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
                     >
                       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                         <path d="M3 6h18" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
@@ -352,10 +352,10 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                       return (
                         <div
                           key={id}
-                          className={`flex items-center gap-2 px-2 py-1 rounded-[6px] group/member transition-colors ${
+                          className={`flex items-center gap-2 px-2 py-1 rounded-xs group/member transition-colors ${
                             onChart
-                              ? 'hover:bg-white/[0.03]'
-                              : 'hover:bg-white/[0.04] cursor-grab active:cursor-grabbing touch-none'
+                              ? 'hover:bg-layer-1'
+                              : 'hover:bg-layer-2 cursor-grab active:cursor-grabbing touch-none'
                           }`}
                           onPointerDown={onChart ? undefined : (e) => onDragStart?.(e, id)}
                         >
@@ -363,7 +363,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                           <span className="flex-1 text-[10px] text-text-2 truncate">{a.name}</span>
                           <button
                             onClick={(e) => { e.stopPropagation(); removeFromTeam(id) }}
-                            className="hidden group-hover/member:flex w-3.5 h-3.5 rounded-[3px] items-center justify-center text-text-3/30 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
+                            className="hidden group-hover/member:flex w-3.5 h-3.5 rounded-xs items-center justify-center text-text-3 hover:text-red-400 bg-transparent border-none cursor-pointer transition-colors"
                             title="Remove from team"
                           >
                             <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -385,7 +385,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                     ) : (
                       <button
                         onClick={() => { setShowAddAgent(team.label); setAddAgentSearch('') }}
-                        className="flex items-center gap-1 px-2 py-1 text-[9px] text-text-3/40 hover:text-text-2 bg-transparent border-none cursor-pointer transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 text-[9px] text-text-3 hover:text-text-2 bg-transparent border-none cursor-pointer transition-colors"
                       >
                         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                           <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -401,7 +401,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
 
           {/* New team */}
           {showNewTeam ? (
-            <div className="px-1 py-1.5 flex flex-col gap-1.5 rounded-[8px] border border-white/[0.06] bg-white/[0.02]">
+            <div className="px-1 py-1.5 flex flex-col gap-1.5 rounded-sm border border-line-subtle bg-layer-1">
               {!newTeamConfirmed ? (
                 <>
                   {/* Name + color in one step */}
@@ -415,18 +415,18 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                         if (e.key === 'Escape') { setShowNewTeam(false); setNewTeamName(''); setNewTeamConfirmed(false); setNewTeamColor(TEAM_COLORS[0]) }
                       }}
                       placeholder="Team name..."
-                      className="flex-1 min-w-0 px-2 py-1.5 text-[10px] bg-white/[0.04] border border-white/[0.08] rounded-[5px] text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40"
+                      className="flex-1 min-w-0 px-2 py-1.5 text-[10px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3"
                     />
                     <button
                       onClick={() => { if (newTeamName.trim()) setNewTeamConfirmed(true) }}
                       disabled={!newTeamName.trim()}
-                      className="shrink-0 text-[9px] font-500 px-2 py-1.5 rounded-[5px] border-none cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-default bg-accent-bright/15 text-accent-bright hover:bg-accent-bright/25"
+                      className="shrink-0 text-[9px] font-600 px-2 py-1.5 rounded-xs border-none cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-default bg-accent-bright/15 text-accent-bright hover:bg-accent-bright/25"
                     >
                       Next
                     </button>
                   </div>
                   <div className="flex items-center gap-1 px-0.5">
-                    <span className="text-[8px] text-text-3/40 mr-0.5">Color</span>
+                    <span className="text-[8px] text-text-3 mr-0.5">Color</span>
                     {TEAM_COLORS.map((c) => (
                       <button
                         key={c}
@@ -447,7 +447,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
                     <span className="text-[10px] font-600 text-text-2 truncate flex-1">{newTeamName.trim()}</span>
                     <button onClick={() => setNewTeamConfirmed(false)} className="text-[8px] text-text-3 hover:text-text-2 bg-transparent border-none cursor-pointer">edit</button>
                   </div>
-                  <div className="text-[8px] text-text-3/40 px-1">Pick first agent:</div>
+                  <div className="text-[8px] text-text-3 px-1">Pick first agent:</div>
                   <AgentPicker
                     agents={unassignedAgents}
                     search={addAgentSearch}
@@ -479,7 +479,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
               )}
               <button
                 onClick={() => { setShowNewTeam(false); setNewTeamName(''); setNewTeamColor(TEAM_COLORS[0]); setNewTeamConfirmed(false); setAddAgentSearch('') }}
-                className="text-[8px] text-text-3/40 hover:text-text-2 bg-transparent border-none cursor-pointer self-center py-0.5"
+                className="text-[8px] text-text-3 hover:text-text-2 bg-transparent border-none cursor-pointer self-center py-0.5"
               >
                 Cancel
               </button>
@@ -487,7 +487,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
           ) : (
             <button
               onClick={() => setShowNewTeam(true)}
-              className="flex items-center justify-center gap-1 w-full py-1.5 mt-0.5 rounded-[6px] border border-dashed border-white/[0.08] text-[9px] font-500 text-text-3 hover:text-text-2 hover:bg-white/[0.03] bg-transparent cursor-pointer transition-colors"
+              className="flex items-center justify-center gap-1 w-full py-1.5 mt-0.5 rounded-xs border border-dashed border-line-default text-[9px] font-600 text-text-3 hover:text-text-2 hover:bg-layer-1 bg-transparent cursor-pointer transition-colors"
             >
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -519,7 +519,7 @@ function AgentPicker({
     : agents
 
   return (
-    <div className="mt-0.5 flex flex-col gap-0.5 rounded-[6px] border border-white/[0.06] bg-white/[0.02] p-1">
+    <div className="mt-0.5 flex flex-col gap-0.5 rounded-xs border border-line-subtle bg-layer-1 p-1">
       {agents.length > 3 && (
         <input
           autoFocus
@@ -527,20 +527,20 @@ function AgentPicker({
           onChange={(e) => onSearchChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
           placeholder="Search..."
-          className="w-full px-1.5 py-1 text-[9px] bg-white/[0.04] border border-white/[0.08] rounded-[4px] text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3/40 mb-0.5"
+          className="w-full px-1.5 py-1 text-[9px] bg-layer-2 border border-line-default rounded-xs text-text outline-none focus:border-accent-bright/30 placeholder:text-text-3 mb-0.5"
         />
       )}
       <div className="max-h-[100px] overflow-y-auto flex flex-col gap-0.5">
         {agents.length === 0 ? (
-          <div className="text-[9px] text-text-3/40 text-center py-1.5">All agents assigned</div>
+          <div className="text-[9px] text-text-3 text-center py-1.5">All agents assigned</div>
         ) : filtered.length === 0 ? (
-          <div className="text-[9px] text-text-3/40 text-center py-1.5">No matches</div>
+          <div className="text-[9px] text-text-3 text-center py-1.5">No matches</div>
         ) : (
           filtered.map((a) => (
             <button
               key={a.id}
               onClick={() => onSelect(a.id)}
-              className="flex items-center gap-2 px-1.5 py-1 rounded-[5px] hover:bg-white/[0.04] bg-transparent border-none cursor-pointer text-left w-full transition-colors"
+              className="flex items-center gap-2 px-1.5 py-1 rounded-xs hover:bg-layer-2 bg-transparent border-none cursor-pointer text-left w-full transition-colors"
             >
               <AgentAvatar seed={a.avatarSeed || null} avatarUrl={a.avatarUrl} name={a.name} size={14} />
               <span className="text-[9px] text-text-3 truncate">{a.name}</span>

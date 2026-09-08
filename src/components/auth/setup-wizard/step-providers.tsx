@@ -56,7 +56,7 @@ export function StepProviders({
 
   return (
     <StepShell>
-      <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+      <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
         Connect a Provider
       </h1>
       <p className="text-[15px] text-text-2 mb-2">
@@ -73,14 +73,14 @@ export function StepProviders({
         value={providerSearch}
         onChange={(e) => setProviderSearch(e.target.value)}
         placeholder="Search providers, CLIs, or runtimes..."
-        className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-surface text-text text-[13px]
-          outline-none transition-all duration-200 placeholder:text-text-3/50 focus:border-accent-bright/30 mb-4"
+        className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[13px]
+          outline-none transition-all duration-200 placeholder:text-text-3 focus:border-accent-bright/30 mb-4"
       />
 
       <div className="flex flex-col gap-3 max-h-[42vh] overflow-y-auto pr-1">
         {providerGroups.map((group) => (
           <div key={group.id} className="space-y-2">
-            <div className="px-1 text-[10px] font-700 uppercase tracking-[0.1em] text-text-3/70">
+            <div className="px-1 text-[10px] font-700 tracking-[0.03em] text-text-3">
               {group.label}
             </div>
             {group.items.map((candidate) => {
@@ -89,15 +89,15 @@ export function StepProviders({
                 <button
                   key={candidate.id}
                   onClick={() => onSelectProvider(candidate.id)}
-                  className={`w-full px-5 py-4 rounded-[14px] border bg-surface text-left
+                  className={`w-full px-5 py-4 rounded-lg border bg-surface text-left
                     transition-all duration-200 flex items-start gap-4 cursor-pointer
                     ${isConfigured
                       ? 'border-emerald-500/25 hover:border-emerald-500/40 hover:bg-surface-hover'
-                      : 'border-white/[0.08] hover:border-accent-bright/30 hover:bg-surface-hover'
+                      : 'border-line-default hover:border-accent-bright/30 hover:bg-surface-hover'
                     }`}
                 >
-                  <div className={`w-10 h-10 rounded-[10px] border flex items-center justify-center shrink-0 mt-0.5 ${
-                    isConfigured ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white/[0.04] border-white/[0.06]'
+                  <div className={`w-10 h-10 rounded-sm border flex items-center justify-center shrink-0 mt-0.5 ${
+                    isConfigured ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-layer-2 border-line-subtle'
                   }`}>
                     <span className={`text-[16px] font-display font-700 ${isConfigured ? 'text-emerald-400' : 'text-accent-bright'}`}>
                       {candidate.icon}
@@ -107,18 +107,18 @@ export function StepProviders({
                     <div className="text-[15px] font-display font-600 text-text mb-1">
                       {candidate.name}
                       {isConfigured ? (
-                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 text-[10px] uppercase tracking-[0.08em] font-600">
+                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 text-[10px] tracking-[0.03em] font-600">
                           Connected · Edit
                         </span>
                       ) : candidate.badge ? (
-                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-bright/15 text-accent-bright text-[10px] uppercase tracking-[0.08em] font-600">
+                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-bright/15 text-accent-bright text-[10px] tracking-[0.03em] font-600">
                           {candidate.badge}
                         </span>
                       ) : null}
                     </div>
                     <div className="text-[13px] text-text-3 leading-relaxed">{candidate.description}</div>
                     {!candidate.requiresKey && !isConfigured && (
-                      <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[11px] font-500">
+                      <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[11px] font-600">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                         No API key required
                       </div>
@@ -130,7 +130,7 @@ export function StepProviders({
           </div>
         ))}
         {providerGroups.length === 0 && (
-          <div className="px-5 py-6 rounded-[14px] border border-white/[0.08] bg-surface text-center text-[13px] text-text-3">
+          <div className="px-5 py-6 rounded-lg border border-line-subtle bg-surface text-center text-[13px] text-text-3">
             No providers match that search.
           </div>
         )}
@@ -140,8 +140,8 @@ export function StepProviders({
         <button
           onClick={runSetupDoctor}
           disabled={doctorState === 'checking'}
-          className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-white/[0.02] text-[13px] text-text-2
-            cursor-pointer hover:bg-white/[0.05] transition-all duration-200 disabled:opacity-40"
+          className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-[13px] text-text-2
+            cursor-pointer hover:bg-layer-2 transition-all duration-200 disabled:opacity-40"
         >
           {doctorState === 'checking' ? 'Running System Check...' : 'Run System Check'}
         </button>
@@ -151,7 +151,7 @@ export function StepProviders({
         )}
 
         {doctorReport && doctorState === 'done' && (
-          <div className="mt-3 p-3 rounded-[12px] border border-white/[0.08] bg-surface">
+          <div className="mt-3 p-3 rounded-lg border border-line-subtle bg-surface">
             <div className={`text-[12px] font-600 ${doctorReport.ok ? 'text-emerald-300' : 'text-amber-300'}`}>
               {doctorReport.summary}
             </div>
@@ -161,7 +161,7 @@ export function StepProviders({
               </div>
             ))}
             {!!doctorReport.actions?.length && (
-              <div className="mt-2 text-[11px] text-text-3/80">
+              <div className="mt-2 text-[11px] text-text-3">
                 Next: {doctorReport.actions.slice(0, 2).join(' ')}
               </div>
             )}
@@ -175,24 +175,24 @@ export function StepProviders({
         <button
           type="button"
           onClick={onBack}
-          className="px-6 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[14px]
-            font-display font-500 cursor-pointer hover:bg-white/[0.03] transition-all duration-200"
+          className="px-6 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[14px]
+            font-display font-600 cursor-pointer hover:bg-layer-1 transition-all duration-200"
         >
           Back
         </button>
         <button
           onClick={onSkip}
-          className="px-6 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[14px]
-            font-display font-500 cursor-pointer hover:bg-white/[0.03] transition-all duration-200"
+          className="px-6 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[14px]
+            font-display font-600 cursor-pointer hover:bg-layer-1 transition-all duration-200"
         >
           Skip for now
         </button>
         <button
           onClick={onContinue}
           disabled={!canContinue}
-          className="px-8 py-3.5 rounded-[14px] border-none bg-accent-bright text-white text-[15px] font-display font-600
+          className="px-8 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-display font-600
             cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-            shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
+            disabled:opacity-30"
         >
           {configuredProviders.length > 0 ? 'Set Up Agents' : 'Continue'}
         </button>

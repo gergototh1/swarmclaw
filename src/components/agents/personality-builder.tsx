@@ -15,8 +15,8 @@ interface Props {
   onSave: (content: string) => void
 }
 
-const inputClass = 'w-full px-3 py-2 rounded-[10px] border border-white/[0.06] bg-black/20 text-[13px] text-text outline-none placeholder:text-text-3/40 focus:border-white/[0.12] transition-colors'
-const labelClass = 'block text-[11px] font-600 uppercase tracking-wider text-text-3/50 mb-1'
+const inputClass = 'w-full px-3 py-2 rounded-md border border-line-subtle bg-black/20 text-[13px] text-text outline-none placeholder:text-text-3 focus:border-line-default transition-colors'
+const labelClass = 'block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-1'
 
 export function PersonalityBuilder({ fileType, content, onSave }: Props) {
   const [draft, setDraft] = useState<Record<string, string>>({})
@@ -122,7 +122,7 @@ export function PersonalityBuilder({ fileType, content, onSave }: Props) {
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
-          className="self-start px-4 py-1.5 rounded-[8px] border-none bg-accent-bright text-white text-[12px] font-600 cursor-pointer transition-all hover:brightness-110 focus-visible:ring-1 focus-visible:ring-accent-bright/50"
+          className="self-start px-4 py-1.5 rounded-sm border-none bg-accent-bright text-accent-fg text-[12px] font-600 cursor-pointer transition-all hover:brightness-110 focus-visible:ring-1 focus-visible:ring-accent-bright/50"
           style={{ fontFamily: 'inherit' }}
         >
           Apply to Raw Editor

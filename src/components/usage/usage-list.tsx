@@ -55,29 +55,29 @@ export function UsageList() {
     <div className="flex-1 overflow-y-auto px-5 pb-8">
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 mt-1">
-        <div className="p-3 rounded-[12px] bg-white/[0.03] border border-white/[0.06]">
-          <div className="text-[10px] font-600 text-text-3 uppercase tracking-wider mb-1">Total Cost</div>
+        <div className="p-3 rounded-lg bg-surface border border-line-subtle">
+          <div className="text-[10px] font-600 text-text-3 tracking-[0.03em] mb-1">Total Cost</div>
           <div className="text-[18px] font-700 text-text tracking-tight">{formatCost(data.totalCost)}</div>
         </div>
-        <div className="p-3 rounded-[12px] bg-white/[0.03] border border-white/[0.06]">
-          <div className="text-[10px] font-600 text-text-3 uppercase tracking-wider mb-1">Total Tokens</div>
+        <div className="p-3 rounded-lg bg-surface border border-line-subtle">
+          <div className="text-[10px] font-600 text-text-3 tracking-[0.03em] mb-1">Total Tokens</div>
           <div className="text-[18px] font-700 text-text tracking-tight">{formatTokens(data.totalTokens)}</div>
         </div>
-        <div className="p-3 rounded-[12px] bg-white/[0.03] border border-white/[0.06]">
-          <div className="text-[10px] font-600 text-text-3 uppercase tracking-wider mb-1">Total Requests</div>
+        <div className="p-3 rounded-lg bg-surface border border-line-subtle">
+          <div className="text-[10px] font-600 text-text-3 tracking-[0.03em] mb-1">Total Requests</div>
           <div className="text-[18px] font-700 text-text tracking-tight">{providers.reduce((sum, [, s]) => sum + s.requests, 0)}</div>
         </div>
-        <div className="p-3 rounded-[12px] bg-white/[0.03] border border-white/[0.06]">
-          <div className="text-[10px] font-600 text-text-3 uppercase tracking-wider mb-1">Providers</div>
+        <div className="p-3 rounded-lg bg-surface border border-line-subtle">
+          <div className="text-[10px] font-600 text-text-3 tracking-[0.03em] mb-1">Providers</div>
           <div className="text-[18px] font-700 text-text tracking-tight">{providers.length}</div>
         </div>
       </div>
 
       {/* Provider breakdown */}
       <div className="mb-2">
-        <h3 className="text-[11px] font-600 text-text-3 uppercase tracking-wider mb-2">By Provider</h3>
+        <h3 className="text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">By Provider</h3>
         {providers.length === 0 ? (
-          <div className="text-center py-6 text-[12px] text-text-3/60">No usage data yet</div>
+          <div className="text-center py-6 text-[12px] text-text-3">No usage data yet</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {providers.map(([provider, stats]) => {
@@ -85,7 +85,7 @@ export function UsageList() {
               return (
                 <div
                   key={provider}
-                  className="p-3 rounded-[10px] bg-surface border border-white/[0.06] hover:bg-surface-2 transition-colors"
+                  className="p-3 rounded-sm bg-surface border border-line-subtle hover:bg-surface-2 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[13px] font-600 text-text capitalize">{provider}</span>
@@ -96,7 +96,7 @@ export function UsageList() {
                     <span>{stats.requests} requests</span>
                     <span className="ml-auto">{pct.toFixed(1)}%</span>
                   </div>
-                  <div className="mt-2 h-1 rounded-full bg-white/[0.04] overflow-hidden">
+                  <div className="mt-2 h-1 rounded-full bg-layer-2 overflow-hidden">
                     <div
                       className="h-full rounded-full bg-accent-bright/60"
                       style={{ width: `${Math.max(pct, 1)}%` }}

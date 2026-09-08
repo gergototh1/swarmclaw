@@ -340,12 +340,12 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
   return (
     <div className={`flex-1 overflow-y-auto ${inSidebar ? 'px-3 pb-4' : 'px-5 pb-6'}`}>
       <div className="mb-4 flex items-center justify-between">
-        <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Model Providers</div>
+        <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Model Providers</div>
         {!inSidebar && (
           <button
             type="button"
             onClick={() => handleEditGateway(null)}
-            className="px-3 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] font-700 text-text-2 hover:bg-white/[0.04] transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 transition-all cursor-pointer"
           >
             + Gateway
           </button>
@@ -364,8 +364,8 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 handleEdit(item.id)
               }
             }}
-            className="w-full text-left p-4 rounded-[14px] border transition-all duration-200
-              cursor-pointer hover:bg-white/[0.02] bg-surface border-white/[0.06] hover:border-white/[0.12] hover:scale-[1.01]"
+            className="w-full text-left p-4 rounded-lg border transition-all duration-200
+              cursor-pointer hover:bg-layer-1 bg-surface border-line-subtle hover:border-line-default"
             style={{
               animation: 'spring-in 0.5s var(--ease-spring) both',
               animationDelay: `${idx * 0.05}s`
@@ -374,8 +374,8 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             <div className="flex items-center justify-between mb-1.5">
               <span className="font-display text-[14px] font-600 text-text truncate">{item.name}</span>
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-[10px] font-600 px-2 py-0.5 rounded-[5px] uppercase tracking-wider
-                  ${item.type === 'builtin' ? 'bg-white/[0.04] text-text-3' : 'bg-accent-bright/10 text-[#6366F1]'}`}>
+                <span className={`text-[10px] font-600 px-2 py-0.5 rounded-xs tracking-[0.03em]
+                  ${item.type === 'builtin' ? 'bg-layer-2 text-text-3' : 'bg-accent-bright/10 text-accent-bright'}`}>
                   {item.type === 'builtin' ? 'Built-in' : 'Custom'}
                 </span>
                 {!inSidebar && (
@@ -383,7 +383,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     <div
                       onClick={(e) => handleToggle(e, item.id, item.isEnabled)}
                       className={`w-9 h-5 rounded-full transition-all relative cursor-pointer shrink-0
-                        ${item.isEnabled ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                        ${item.isEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
                     >
                       <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all
                         ${item.isEnabled ? 'left-[18px]' : 'left-0.5'}`}
@@ -393,7 +393,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     {item.type === 'custom' && (
                       <button
                         onClick={(e) => handleDelete(e, item.id)}
-                        className="text-text-3/40 hover:text-red-400 transition-colors p-0.5"
+                        className="text-text-3 hover:text-red-400 transition-colors p-0.5"
                         title="Delete provider"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -409,7 +409,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 />
               </div>
             </div>
-            <div className="text-[12px] text-text-3/60 font-mono truncate">
+            <div className="text-[12px] text-text-3 font-mono truncate">
               {!inSidebar ? item.models.join(', ') : (
                 <>
                   {item.models.slice(0, 3).join(', ')}
@@ -423,7 +423,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
       {!inSidebar && disabledItems.length > 0 && (
         <>
           <div className="mt-8 mb-4 flex items-center justify-between">
-            <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Disabled Providers</div>
+            <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Disabled Providers</div>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {disabledItems.map((item, idx) => (
@@ -438,8 +438,8 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     handleEdit(item.id)
                   }
                 }}
-                className="w-full text-left p-4 rounded-[14px] border transition-all duration-200
-                  cursor-pointer bg-surface/60 border-white/[0.06] hover:bg-white/[0.02] hover:border-white/[0.12]"
+                className="w-full text-left p-4 rounded-lg border transition-all duration-200
+                  cursor-pointer bg-surface border-line-subtle hover:bg-layer-1 hover:border-line-default"
                 style={{
                   animation: 'spring-in 0.5s var(--ease-spring) both',
                   animationDelay: `${(enabledItems.length + idx) * 0.05}s`
@@ -448,20 +448,20 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="font-display text-[14px] font-600 text-text truncate">{item.name}</span>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-[10px] font-600 px-2 py-0.5 rounded-[5px] uppercase tracking-wider
-                      ${item.type === 'builtin' ? 'bg-white/[0.04] text-text-3' : 'bg-accent-bright/10 text-[#6366F1]'}`}>
+                    <span className={`text-[10px] font-600 px-2 py-0.5 rounded-xs tracking-[0.03em]
+                      ${item.type === 'builtin' ? 'bg-layer-2 text-text-3' : 'bg-accent-bright/10 text-accent-bright'}`}>
                       {item.type === 'builtin' ? 'Built-in' : 'Custom'}
                     </span>
                     <div
                       onClick={(e) => handleToggle(e, item.id, item.isEnabled)}
-                      className="w-9 h-5 rounded-full transition-all relative cursor-pointer shrink-0 bg-white/[0.08]"
+                      className="w-9 h-5 rounded-full transition-all relative cursor-pointer shrink-0 bg-layer-3"
                     >
                       <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-all" />
                     </div>
                     {item.type === 'custom' && (
                       <button
                         onClick={(e) => handleDelete(e, item.id)}
-                        className="text-text-3/40 hover:text-red-400 transition-colors p-0.5"
+                        className="text-text-3 hover:text-red-400 transition-colors p-0.5"
                         title="Delete provider"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -472,7 +472,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     <StatusDot status="idle" pulse={false} />
                   </div>
                 </div>
-                <div className="text-[12px] text-text-3/60 font-mono truncate">
+                <div className="text-[12px] text-text-3 font-mono truncate">
                   {item.models.slice(0, 3).join(', ')}
                   {item.models.length > 3 && ` +${item.models.length - 3}`}
                 </div>
@@ -483,21 +483,21 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
       )}
 
       <div className="mt-8 mb-4 flex items-center justify-between">
-        <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">OpenClaw Gateways</div>
+        <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">OpenClaw Gateways</div>
         {!inSidebar && (
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => void handleRefreshFleetTopology()}
               disabled={gatewayFleetTopologyQuery.isFetching}
-              className="px-3 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] font-700 text-text-2 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-40"
+              className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 transition-all cursor-pointer disabled:opacity-40"
             >
               {gatewayFleetTopologyQuery.isFetching ? 'Refreshing…' : 'Refresh Fleet'}
             </button>
             <button
               type="button"
               onClick={() => handleEditGateway(null)}
-              className="px-3 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] font-700 text-text-2 hover:bg-white/[0.04] transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 transition-all cursor-pointer"
             >
               + New Gateway
             </button>
@@ -505,30 +505,30 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
         )}
       </div>
       {!inSidebar && gatewayFleetTopology && (
-        <div className="mb-4 rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+        <div className="mb-4 rounded-lg border border-line-subtle bg-surface px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-[12px] font-800 text-text">Gateway fleet topology</div>
-              <div className="mt-1 text-[11px] text-text-3/70">
+              <div className="text-[12px] font-700 text-text">Gateway fleet topology</div>
+              <div className="mt-1 text-[11px] text-text-3">
                 {gatewayFleetTopology.totals.connectedGatewayCount}/{gatewayFleetTopology.totals.gatewayCount} gateways connected ·{' '}
                 {gatewayFleetTopology.totals.connectedNodeCount}/{gatewayFleetTopology.totals.nodeCount} nodes connected ·{' '}
                 {gatewayFleetTopology.totals.availableEnvironmentCount || 0}/{gatewayFleetTopology.totals.environmentCount || 0} environments available
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 text-[11px] text-text-3/70">
-              <span className="rounded-full border border-white/[0.06] bg-white/[0.03] px-2.5 py-1">
+            <div className="flex flex-wrap gap-2 text-[11px] text-text-3">
+              <span className="rounded-full border border-line-subtle bg-layer-1 px-2.5 py-1">
                 {gatewayFleetTopology.totals.environmentCount || 0} environments
               </span>
-              <span className="rounded-full border border-white/[0.06] bg-white/[0.03] px-2.5 py-1">
+              <span className="rounded-full border border-line-subtle bg-layer-1 px-2.5 py-1">
                 {gatewayFleetTopology.totals.sessionCount || 0} sessions
               </span>
-              <span className="rounded-full border border-white/[0.06] bg-white/[0.03] px-2.5 py-1">
+              <span className="rounded-full border border-line-subtle bg-layer-1 px-2.5 py-1">
                 {gatewayFleetTopology.totals.presenceCount || 0} presence
               </span>
               <span className={`rounded-full border px-2.5 py-1 ${
                 gatewayFleetTopology.totals.pendingPairingCount > 0
                   ? 'border-amber-400/20 bg-amber-400/[0.06] text-amber-300'
-                  : 'border-white/[0.06] bg-white/[0.03]'
+                  : 'border-line-subtle bg-layer-1'
               }`}>
                 {gatewayFleetTopology.totals.pendingPairingCount || 0} pending pairings
               </span>
@@ -537,7 +537,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
         </div>
       )}
       {!inSidebar && (
-        <div className="mb-4 rounded-[16px] border border-white/[0.06] bg-white/[0.02] p-4">
+        <div className="mb-4 rounded-lg border border-line-subtle bg-surface p-4">
           <OpenClawDeployPanel
             compact
             title="Deploy OpenClaw Control Planes"
@@ -545,7 +545,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             onApply={handleDeployApply}
           />
           {deployDraft?.endpoint && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-emerald-500/20 bg-emerald-500/[0.05] px-4 py-3">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.05] px-4 py-3">
               <div>
                 <div className="text-[13px] font-700 text-emerald-300">Prepared gateway profile</div>
                 <div className="mt-1 text-[12px] text-text-3">
@@ -557,7 +557,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   type="button"
                   onClick={() => void handleSavePreparedGateway()}
                   disabled={savingDeploy}
-                  className="rounded-[10px] bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-white border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
+                  className="rounded-md bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-accent-fg border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
                 >
                   {savingDeploy ? 'Saving…' : 'Save Prepared Gateway'}
                 </button>
@@ -590,8 +590,8 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 handleEditGateway(gateway.id)
               }
             }}
-            className="w-full text-left p-4 rounded-[14px] border transition-all duration-200
-              cursor-pointer hover:bg-white/[0.02] bg-surface border-white/[0.06] hover:border-white/[0.12] hover:scale-[1.01]"
+            className="w-full text-left p-4 rounded-lg border transition-all duration-200
+              cursor-pointer hover:bg-layer-1 bg-surface border-line-subtle hover:border-line-default"
             style={{
               animation: 'spring-in 0.5s var(--ease-spring) both',
               animationDelay: `${(allItems.length + idx) * 0.04}s`,
@@ -600,13 +600,13 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             <div className="flex items-center justify-between mb-2">
               <div className="min-w-0">
                 <div className="font-display text-[14px] font-600 text-text truncate">{gateway.name}</div>
-                <div className="text-[11px] text-text-3/60 font-mono truncate">{gateway.endpoint}</div>
+                <div className="text-[11px] text-text-3 font-mono truncate">{gateway.endpoint}</div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {gateway.isDefault && (
-                  <span className="text-[10px] font-700 px-2 py-0.5 rounded-[5px] bg-accent-bright/10 text-accent-bright uppercase tracking-wider">Default</span>
+                  <span className="text-[10px] font-700 px-2 py-0.5 rounded-xs bg-accent-bright/10 text-accent-bright tracking-[0.03em]">Default</span>
                 )}
-                <span className={`text-[10px] font-700 px-2 py-0.5 rounded-[5px] border uppercase tracking-wider ${gatewayLifecycleBadgeClass(lifecycleState)}`}>
+                <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs border tracking-[0.03em] ${gatewayLifecycleBadgeClass(lifecycleState)}`}>
                   {gatewayLifecycleLabel(lifecycleState)}
                 </span>
                 <StatusDot
@@ -622,45 +622,45 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 />
               </div>
             </div>
-            <div className="text-[12px] text-text-3/70">
+            <div className="text-[12px] text-text-3">
               {gateway.tags?.length ? gateway.tags.join(', ') : (gateway.notes || 'Dedicated OpenClaw control plane')}
             </div>
             {!inSidebar && (
-              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-text-3/65">
-                <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Deploy</div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-text-3">
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="tracking-[0.03em] text-text-3">Deploy</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.method || 'manual'}
                     {deployment?.provider ? ` · ${deployment.provider}` : ''}
                   </div>
                 </div>
-                <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Route hints</div>
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="tracking-[0.03em] text-text-3">Route hints</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.useCase || 'general'}
                     {deployment?.exposure ? ` · ${deployment.exposure}` : ''}
                   </div>
                 </div>
-                <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Nodes / devices</div>
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="tracking-[0.03em] text-text-3">Nodes / devices</div>
                   <div className="mt-1 text-text-2">
                     {stats?.connectedNodeCount ?? 0}/{stats?.nodeCount ?? 0} nodes · {stats?.pairedDeviceCount ?? 0} devices
                   </div>
                 </div>
-                <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Environments</div>
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="tracking-[0.03em] text-text-3">Environments</div>
                   <div className="mt-1 text-text-2">
                     {stats?.availableEnvironmentCount ?? 0}/{stats?.environmentCount ?? 0} available
                   </div>
                 </div>
-                <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Sessions</div>
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="tracking-[0.03em] text-text-3">Sessions</div>
                   <div className="mt-1 text-text-2">
                     {stats?.sessionCount ?? 0} sessions · {stats?.presenceCount ?? 0} presence
                   </div>
                 </div>
-                <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3/50">Runtimes</div>
+                <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
+                  <div className="tracking-[0.03em] text-text-3">Runtimes</div>
                   <div className="mt-1 text-text-2">
                     {runtimeStats.active}/{runtimeStats.total} active
                   </div>
@@ -672,10 +672,10 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 {environments.slice(0, 4).map((environment) => (
                   <span
                     key={`${gateway.id}-${environment.id}`}
-                    className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] ${
+                    className={`rounded-full border px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] ${
                       environment.status === 'available'
                         ? 'border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-300'
-                        : 'border-white/[0.06] bg-white/[0.03] text-text-3/70'
+                        : 'border-line-subtle bg-layer-1 text-text-3/70'
                     }`}
                     title={environment.capabilities?.join(', ') || environment.id}
                   >
@@ -683,14 +683,14 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   </span>
                 ))}
                 {environments.length > 4 && (
-                  <span className="rounded-full border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+                  <span className="rounded-full border border-line-subtle bg-layer-1 px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] text-text-3">
                     +{environments.length - 4}
                   </span>
                 )}
               </div>
             )}
             {!inSidebar && (pendingPairings > 0 || topologyErrorCount > 0) && (
-              <div className={`mt-3 rounded-[10px] border px-3 py-2 text-[11px] leading-relaxed ${
+              <div className={`mt-3 rounded-sm border px-3 py-2 text-[11px] leading-relaxed ${
                 topologyErrorCount > 0
                   ? 'border-rose-400/20 bg-rose-400/[0.06] text-rose-200'
                   : 'border-amber-400/20 bg-amber-400/[0.06] text-amber-200'
@@ -701,7 +701,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
               </div>
             )}
             {!inSidebar && deployment?.lastVerifiedMessage && (
-              <div className="mt-3 text-[11px] text-text-3/60">
+              <div className="mt-3 text-[11px] text-text-3">
                 {deployment.lastVerifiedMessage}
               </div>
             )}
@@ -711,7 +711,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   <button
                     onClick={(e) => void handleGatewayControl(e, gateway.id, 'activate')}
                     disabled={gatewayControlMutation.isPending}
-                    className="px-2.5 py-1.5 rounded-[8px] border border-emerald-400/20 bg-emerald-400/[0.06] text-[11px] font-700 text-emerald-200 hover:bg-emerald-400/[0.1] cursor-pointer transition-all disabled:opacity-40"
+                    className="px-2.5 py-1.5 rounded-sm border border-emerald-400/20 bg-emerald-400/[0.06] text-[11px] font-700 text-emerald-200 hover:bg-emerald-400/[0.1] cursor-pointer transition-all disabled:opacity-40"
                   >
                     Activate
                   </button>
@@ -720,14 +720,14 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     <button
                       onClick={(e) => void handleGatewayControl(e, gateway.id, 'drain')}
                       disabled={gatewayControlMutation.isPending}
-                      className="px-2.5 py-1.5 rounded-[8px] border border-amber-400/20 bg-amber-400/[0.06] text-[11px] font-700 text-amber-200 hover:bg-amber-400/[0.1] cursor-pointer transition-all disabled:opacity-40"
+                      className="px-2.5 py-1.5 rounded-sm border border-amber-400/20 bg-amber-400/[0.06] text-[11px] font-700 text-amber-200 hover:bg-amber-400/[0.1] cursor-pointer transition-all disabled:opacity-40"
                     >
                       Drain
                     </button>
                     <button
                       onClick={(e) => void handleGatewayControl(e, gateway.id, 'cordon')}
                       disabled={gatewayControlMutation.isPending}
-                      className="px-2.5 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] font-700 text-text-2 hover:bg-white/[0.04] cursor-pointer transition-all disabled:opacity-40"
+                      className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all disabled:opacity-40"
                     >
                       Cordon
                     </button>
@@ -736,24 +736,24 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 <button
                   onClick={(e) => void handleGatewayControl(e, gateway.id, 'restart')}
                   disabled={gatewayControlMutation.isPending}
-                  className="px-2.5 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] font-700 text-text-2 hover:bg-white/[0.04] cursor-pointer transition-all disabled:opacity-40"
+                  className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all disabled:opacity-40"
                 >
                   Restart
                 </button>
-                <button onClick={(e) => void handleHealthCheckGateway(e, gateway.id)} className="px-2.5 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] font-700 text-text-2 hover:bg-white/[0.04] cursor-pointer transition-all">
+                <button onClick={(e) => void handleHealthCheckGateway(e, gateway.id)} className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
                   Health
                 </button>
                 <button
                   onClick={(e) => void handleRefreshGatewayTopology(e, gateway.id)}
                   disabled={refreshGatewayTopologyMutation.isPending}
-                  className="px-2.5 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] font-700 text-text-2 hover:bg-white/[0.04] cursor-pointer transition-all disabled:opacity-40"
+                  className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all disabled:opacity-40"
                 >
                   Topology
                 </button>
-                <button onClick={(e) => void handleCloneGateway(e, gateway)} className="px-2.5 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] font-700 text-text-2 hover:bg-white/[0.04] cursor-pointer transition-all">
+                <button onClick={(e) => void handleCloneGateway(e, gateway)} className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
                   Clone
                 </button>
-                <button onClick={(e) => handleDeleteGateway(e, gateway.id)} className="px-2.5 py-1.5 rounded-[8px] border border-red-400/20 bg-red-400/[0.06] text-[11px] font-700 text-red-300 hover:bg-red-400/[0.1] cursor-pointer transition-all">
+                <button onClick={(e) => handleDeleteGateway(e, gateway.id)} className="px-2.5 py-1.5 rounded-sm border border-red-400/20 bg-red-400/[0.06] text-[11px] font-700 text-red-300 hover:bg-red-400/[0.1] cursor-pointer transition-all">
                   Delete
                 </button>
               </div>
@@ -763,7 +763,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
           })()
         ))}
         {gatewayProfiles.length === 0 && (
-          <div className="p-4 rounded-[14px] border border-dashed border-white/[0.08] text-[13px] text-text-3/70">
+          <div className="p-4 rounded-lg border border-dashed border-line-subtle text-[13px] text-text-3">
             No gateway profiles yet. Use Smart Deploy above for a local runtime, a Docker VPS bundle, or a hosted OpenClaw deployment profile.
           </div>
         )}
@@ -772,27 +772,27 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
       {!inSidebar && (
         <>
           <div className="mt-8 mb-4 flex items-center justify-between">
-            <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">External Agent Runtimes</div>
-            <div className="text-[11px] text-text-3/60">Direct registration + heartbeat</div>
+            <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">External Agent Runtimes</div>
+            <div className="text-[11px] text-text-3">Direct registration + heartbeat</div>
           </div>
-          <div className="mb-3 rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-[12px] text-text-3/70">
+          <div className="mb-3 rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[12px] text-text-3">
             External workers can register themselves at <code className="text-text-2">/api/external-agents/register</code> and then send heartbeats to
             {' '}
             <code className="text-text-2">/api/external-agents/&lt;id&gt;/heartbeat</code>.
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {externalAgents.map((runtime) => (
-              <div key={runtime.id} className="p-4 rounded-[14px] bg-surface border border-white/[0.06]">
+              <div key={runtime.id} className="p-4 rounded-lg bg-surface border border-line-subtle">
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <div className="min-w-0">
                     <div className="font-display text-[14px] font-600 text-text truncate">{runtime.name}</div>
-                    <div className="text-[11px] text-text-3/60 truncate">
+                    <div className="text-[11px] text-text-3 truncate">
                       {runtime.sourceType} · {runtime.transport || 'custom'}
                       {runtime.version ? ` · ${runtime.version}` : ''}
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
-                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-[5px] uppercase tracking-wider ${
+                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs tracking-[0.03em] ${
                       runtime.lifecycleState === 'cordoned'
                         ? 'bg-red-400/10 text-red-300'
                         : runtime.lifecycleState === 'draining'
@@ -801,73 +801,73 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     }`}>
                       {runtime.lifecycleState || 'active'}
                     </span>
-                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-[5px] uppercase tracking-wider ${
+                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs tracking-[0.03em] ${
                       runtime.status === 'online'
                         ? 'bg-emerald-400/10 text-emerald-300'
                         : runtime.status === 'stale'
                           ? 'bg-amber-400/10 text-amber-300'
-                          : 'bg-white/[0.04] text-text-3'
+                          : 'bg-layer-2 text-text-3'
                     }`}>
                       {runtime.status}
                     </span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-text-3/65">
-                  <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Provider</div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-text-3">
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
+                    <div className="tracking-[0.03em] text-text-3">Provider</div>
                     <div className="mt-1 text-text-2">
                       {runtime.provider || 'No provider'}
                       {runtime.model ? ` · ${runtime.model}` : ''}
                     </div>
                   </div>
-                  <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Gateway</div>
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
+                    <div className="tracking-[0.03em] text-text-3">Gateway</div>
                     <div className="mt-1 text-text-2">
                       {runtime.gatewayProfileId ? (gatewayNameById.get(runtime.gatewayProfileId) || runtime.gatewayProfileId) : 'Standalone'}
                     </div>
                   </div>
-                  <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Template</div>
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
+                    <div className="tracking-[0.03em] text-text-3">Template</div>
                     <div className="mt-1 text-text-2">{runtime.gatewayUseCase || 'general'}</div>
                   </div>
-                  <div className="rounded-[10px] border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3/50">Last seen</div>
+                  <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
+                    <div className="tracking-[0.03em] text-text-3">Last seen</div>
                     <div className="mt-1 text-text-2">{formatRuntimeTimestamp(runtime.lastSeenAt || runtime.lastHeartbeatAt)}</div>
                   </div>
                 </div>
-                <div className="text-[11px] text-text-3/55 mt-3 font-mono truncate">{runtime.endpoint || runtime.workspace || runtime.id}</div>
+                <div className="text-[11px] text-text-3 mt-3 font-mono truncate">{runtime.endpoint || runtime.workspace || runtime.id}</div>
                 {runtime.gatewayTags?.length ? (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {runtime.gatewayTags.slice(0, 6).map((tag) => (
-                      <span key={`${runtime.id}-${tag}`} className="rounded-full border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+                      <span key={`${runtime.id}-${tag}`} className="rounded-full border border-line-subtle bg-layer-1 px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] text-text-3">
                         {tag}
                       </span>
                     ))}
                   </div>
                 ) : null}
                 {runtime.lastHealthNote && (
-                  <div className="mt-3 text-[11px] text-text-3/65 leading-relaxed">
+                  <div className="mt-3 text-[11px] text-text-3 leading-relaxed">
                     {runtime.lastHealthNote}
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'activate')} className="px-2.5 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] font-700 text-text-2 hover:bg-white/[0.04] cursor-pointer transition-all">
+                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'activate')} className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
                     Activate
                   </button>
-                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'drain')} className="px-2.5 py-1.5 rounded-[8px] border border-amber-400/20 bg-amber-400/[0.06] text-[11px] font-700 text-amber-300 hover:bg-amber-400/[0.1] cursor-pointer transition-all">
+                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'drain')} className="px-2.5 py-1.5 rounded-sm border border-amber-400/20 bg-amber-400/[0.06] text-[11px] font-700 text-amber-300 hover:bg-amber-400/[0.1] cursor-pointer transition-all">
                     Drain
                   </button>
-                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'cordon')} className="px-2.5 py-1.5 rounded-[8px] border border-red-400/20 bg-red-400/[0.06] text-[11px] font-700 text-red-300 hover:bg-red-400/[0.1] cursor-pointer transition-all">
+                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'cordon')} className="px-2.5 py-1.5 rounded-sm border border-red-400/20 bg-red-400/[0.06] text-[11px] font-700 text-red-300 hover:bg-red-400/[0.1] cursor-pointer transition-all">
                     Cordon
                   </button>
-                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'restart')} className="px-2.5 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[11px] font-700 text-text-2 hover:bg-white/[0.04] cursor-pointer transition-all">
+                  <button onClick={(e) => void handleRuntimeAction(e, runtime.id, 'restart')} className="px-2.5 py-1.5 rounded-sm border border-line-default bg-transparent text-[11px] font-700 text-text-2 hover:bg-layer-2 cursor-pointer transition-all">
                     Restart
                   </button>
                 </div>
               </div>
             ))}
             {externalAgents.length === 0 && (
-              <div className="p-4 rounded-[14px] border border-dashed border-white/[0.08] text-[13px] text-text-3/70">
+              <div className="p-4 rounded-lg border border-dashed border-line-subtle text-[13px] text-text-3">
                 No external runtimes have registered yet.
               </div>
             )}

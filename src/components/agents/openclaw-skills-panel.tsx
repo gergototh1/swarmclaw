@@ -86,7 +86,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
     .filter((g) => g.items.length > 0)
 
   if (loading) {
-    return <div className="flex items-center justify-center gap-2 h-32 text-[13px] text-text-3/50"><span className="w-3 h-3 rounded-full border-2 border-text-3/20 border-t-accent-bright animate-spin" />Loading skills...</div>
+    return <div className="flex items-center justify-center gap-2 h-32 text-[13px] text-text-3"><span className="w-3 h-3 rounded-full border-2 border-text-3/20 border-t-accent-bright animate-spin" />Loading skills...</div>
   }
 
   if (error) {
@@ -101,7 +101,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
           <button
             key={m}
             onClick={() => handleModeChange(m)}
-            className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 capitalize cursor-pointer transition-all focus-visible:ring-1 focus-visible:ring-accent-bright/50
+            className={`px-3 py-1.5 rounded-sm text-[11px] font-600 capitalize cursor-pointer transition-all focus-visible:ring-1 focus-visible:ring-accent-bright/50
               ${mode === m ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
@@ -120,7 +120,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
           <button
             key={f.key}
             onClick={() => setReadinessFilter(f.key)}
-            className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all focus-visible:ring-1 focus-visible:ring-accent-bright/50
+            className={`px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all focus-visible:ring-1 focus-visible:ring-accent-bright/50
               ${readinessFilter === f.key ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
@@ -132,22 +132,22 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
       {/* Skill groups */}
       {grouped.map(({ source, items }) => (
         <div key={source}>
-          <h4 className="text-[11px] font-600 uppercase tracking-wider text-text-3/50 mb-2 px-1">
+          <h4 className="text-[11px] font-600 tracking-[0.03em] text-text-3 mb-2 px-1">
             {source}
           </h4>
           <div className="flex flex-col gap-1">
             {items.map((skill) => (
               <div
                 key={skill.name}
-                className="flex items-center gap-3 py-2 px-3 rounded-[10px] bg-white/[0.02] border border-white/[0.04]"
+                className="flex items-center gap-3 py-2 px-3 rounded-md bg-layer-1 border border-line-subtle"
               >
                 {mode === 'selected' && (
                   <button
                     onClick={() => toggleSkill(skill.name)}
-                    className={`w-5 h-5 rounded-[5px] border-2 flex items-center justify-center shrink-0 cursor-pointer transition-all
+                    className={`w-5 h-5 rounded-xs border-2 flex items-center justify-center shrink-0 cursor-pointer transition-all
                       ${allowed.has(skill.name)
                         ? 'bg-accent-bright border-accent-bright'
-                        : 'bg-transparent border-white/[0.15] hover:border-white/[0.25]'}`}
+                        : 'bg-transparent border-line-default hover:border-line-strong'}`}
                   >
                     {allowed.has(skill.name) && (
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
@@ -159,7 +159,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-[13px] font-600 text-text truncate">{skill.name}</span>
-                    <span className={`shrink-0 text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-[4px]
+                    <span className={`shrink-0 text-[9px] font-600 tracking-[0.03em] px-1.5 py-0.5 rounded-xs
                       ${skill.eligible
                         ? 'text-emerald-400 bg-emerald-400/[0.08]'
                         : skill.missing?.length
@@ -169,7 +169,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
                     </span>
                   </div>
                   {skill.description && (
-                    <p className="text-[11px] text-text-3/60 mt-0.5 truncate">{skill.description}</p>
+                    <p className="text-[11px] text-text-3 mt-0.5 truncate">{skill.description}</p>
                   )}
                   {skill.missing && skill.missing.length > 0 && (
                     <p className="text-[10px] text-amber-400/60 mt-0.5">
@@ -214,14 +214,14 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
       ))}
 
       {skills.length === 0 && (
-        <div className="text-[13px] text-text-3/50 text-center py-4">No skills discovered</div>
+        <div className="text-[13px] text-text-3 text-center py-4">No skills discovered</div>
       )}
 
       {/* Save button */}
       <button
         onClick={handleSave}
         disabled={saving}
-        className="px-4 py-1.5 rounded-[8px] border-none bg-accent-bright text-white text-[12px] font-600
+        className="px-4 py-1.5 rounded-sm border-none bg-accent-bright text-accent-fg text-[12px] font-600
           cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:brightness-110 self-start"
         style={{ fontFamily: 'inherit' }}
       >

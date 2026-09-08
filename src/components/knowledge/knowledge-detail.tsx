@@ -192,13 +192,13 @@ export function KnowledgeDetail() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-[1040px] mx-auto px-6 py-6 space-y-6">
-        <div className="rounded-[20px] border border-white/[0.06] bg-raised/60 p-6">
+        <div className="rounded-lg border border-line-subtle bg-surface p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-2">
                 <h1 className="font-display text-[24px] font-700 tracking-[-0.03em] text-text truncate">{source.title}</h1>
-                <Badge variant="secondary" className="uppercase text-[10px] px-2 py-0.5">{source.kind}</Badge>
-                <span className={`text-[11px] font-700 uppercase tracking-[0.08em] ${
+                <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{source.kind}</Badge>
+                <span className={`text-[11px] font-700 tracking-[0.03em] ${
                   source.syncStatus === 'error'
                     ? 'text-red-300'
                     : source.stale
@@ -208,22 +208,22 @@ export function KnowledgeDetail() {
                 >
                   {source.syncStatus === 'error' ? 'Sync error' : source.stale ? 'Stale' : 'Ready'}
                 </span>
-                {source.archivedAt ? <Badge variant="secondary" className="uppercase text-[10px] px-2 py-0.5 text-amber-200">archived</Badge> : null}
-                {source.supersededBySourceId ? <Badge variant="secondary" className="uppercase text-[10px] px-2 py-0.5 text-text-3">superseded</Badge> : null}
+                {source.archivedAt ? <Badge variant="secondary" className="text-[10px] px-2 py-0.5 text-amber-200">archived</Badge> : null}
+                {source.supersededBySourceId ? <Badge variant="secondary" className="text-[10px] px-2 py-0.5 text-text-3">superseded</Badge> : null}
               </div>
 
               {source.topSnippet && (
-                <p className="text-[14px] text-text-3/75 max-w-[720px] leading-relaxed">{source.topSnippet}</p>
+                <p className="text-[14px] text-text-3 max-w-[720px] leading-relaxed">{source.topSnippet}</p>
               )}
 
               <div className="flex items-center gap-2 mt-3 flex-wrap">
                 <span className={`text-[11px] font-600 ${source.scope === 'global' ? 'text-emerald-400' : 'text-amber-400'}`}>
                   {source.scope === 'global' ? 'Global access' : `${source.agentIds.length} agent(s)`}
                 </span>
-                <span className="text-[11px] text-text-3/55">
+                <span className="text-[11px] text-text-3">
                   {source.chunkCount} chunk{source.chunkCount === 1 ? '' : 's'}
                 </span>
-                <span className="text-[11px] text-text-3/55">
+                <span className="text-[11px] text-text-3">
                   {source.contentLength.toLocaleString()} chars
                 </span>
               </div>
@@ -250,7 +250,7 @@ export function KnowledgeDetail() {
                       />
                     ))}
                   </div>
-                  <span className="text-[11px] text-text-3/60">
+                  <span className="text-[11px] text-text-3">
                     {scopedAgents.map((agent) => agent.name).join(', ')}
                   </span>
                 </div>
@@ -261,14 +261,14 @@ export function KnowledgeDetail() {
               <button
                 onClick={() => { void handleSync() }}
                 disabled={syncing}
-                className="px-3 py-2 rounded-[10px] border border-white/[0.08] bg-white/[0.03] text-[12px] font-600 text-text-2 hover:bg-white/[0.05] disabled:opacity-50 transition-all cursor-pointer"
+                className="px-3 py-2 rounded-md border border-line-default bg-layer-1 text-[12px] font-600 text-text-2 hover:bg-layer-2 disabled:opacity-50 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 {syncing ? 'Syncing...' : 'Sync'}
               </button>
               <button
                 onClick={openEdit}
-                className="px-3 py-2 rounded-[10px] border border-white/[0.08] bg-white/[0.03] text-[12px] font-600 text-text-2 hover:bg-white/[0.05] transition-all cursor-pointer"
+                className="px-3 py-2 rounded-md border border-line-default bg-layer-1 text-[12px] font-600 text-text-2 hover:bg-layer-2 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 Edit
@@ -277,7 +277,7 @@ export function KnowledgeDetail() {
                 <button
                   onClick={() => { void handleRestore() }}
                   disabled={restoring}
-                  className="px-3 py-2 rounded-[10px] border border-emerald-500/15 bg-emerald-500/[0.06] text-[12px] font-600 text-emerald-100 hover:bg-emerald-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
+                  className="px-3 py-2 rounded-md border border-emerald-500/15 bg-emerald-500/[0.06] text-[12px] font-600 text-emerald-100 hover:bg-emerald-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {restoring ? 'Restoring...' : 'Restore'}
@@ -286,7 +286,7 @@ export function KnowledgeDetail() {
                 <button
                   onClick={() => { void handleArchive() }}
                   disabled={archiving}
-                  className="px-3 py-2 rounded-[10px] border border-amber-500/15 bg-amber-500/[0.06] text-[12px] font-600 text-amber-100 hover:bg-amber-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
+                  className="px-3 py-2 rounded-md border border-amber-500/15 bg-amber-500/[0.06] text-[12px] font-600 text-amber-100 hover:bg-amber-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {archiving ? 'Archiving...' : 'Archive'}
@@ -295,7 +295,7 @@ export function KnowledgeDetail() {
               <button
                 onClick={() => { void handleDelete() }}
                 disabled={deleting}
-                className="px-3 py-2 rounded-[10px] border border-red-500/15 bg-red-500/[0.06] text-[12px] font-600 text-red-200 hover:bg-red-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
+                className="px-3 py-2 rounded-md border border-red-500/15 bg-red-500/[0.06] text-[12px] font-600 text-red-200 hover:bg-red-500/[0.1] disabled:opacity-50 transition-all cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 {deleting ? 'Deleting...' : 'Delete'}
@@ -304,8 +304,8 @@ export function KnowledgeDetail() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-            <div className="rounded-[14px] border border-white/[0.05] bg-white/[0.02] p-4">
-              <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55 mb-1">Source</p>
+            <div className="rounded-lg border border-line-subtle bg-surface p-4">
+              <p className="text-[10px] font-700 tracking-[0.03em] text-text-3 mb-1">Source</p>
               <p className="text-[13px] text-text-2">{source.sourceLabel || 'Manual note'}</p>
               {source.sourceUrl && (
                 <a href={source.sourceUrl} target="_blank" rel="noreferrer" className="text-[12px] text-accent-bright hover:underline break-all">
@@ -313,22 +313,22 @@ export function KnowledgeDetail() {
                 </a>
               )}
               {source.sourcePath && (
-                <p className="text-[12px] text-text-3/65 break-all mt-1">{source.sourcePath}</p>
+                <p className="text-[12px] text-text-3 break-all mt-1">{source.sourcePath}</p>
               )}
             </div>
 
-            <div className="rounded-[14px] border border-white/[0.05] bg-white/[0.02] p-4">
-              <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55 mb-1">Indexing</p>
+            <div className="rounded-lg border border-line-subtle bg-surface p-4">
+              <p className="text-[10px] font-700 tracking-[0.03em] text-text-3 mb-1">Indexing</p>
               <p className="text-[12px] text-text-2">Last indexed: {formatDateTime(source.lastIndexedAt)}</p>
-              <p className="text-[12px] text-text-3/70 mt-1">Last sync: {formatDateTime(source.lastSyncedAt)}</p>
+              <p className="text-[12px] text-text-3 mt-1">Last sync: {formatDateTime(source.lastSyncedAt)}</p>
               {source.maintenanceUpdatedAt ? (
-                <p className="text-[12px] text-text-3/70 mt-1">Last maintenance: {formatDateTime(source.maintenanceUpdatedAt)}</p>
+                <p className="text-[12px] text-text-3 mt-1">Last maintenance: {formatDateTime(source.maintenanceUpdatedAt)}</p>
               ) : null}
               {source.maintenanceNotes ? (
-                <p className="text-[12px] text-text-3/70 mt-1">{source.maintenanceNotes}</p>
+                <p className="text-[12px] text-text-3 mt-1">{source.maintenanceNotes}</p>
               ) : null}
               {source.archivedReason ? (
-                <p className="text-[12px] text-text-3/70 mt-1">Archive reason: {source.archivedReason}</p>
+                <p className="text-[12px] text-text-3 mt-1">Archive reason: {source.archivedReason}</p>
               ) : null}
               {source.lastError && (
                 <p className="text-[12px] text-red-200 mt-2">{source.lastError}</p>
@@ -336,26 +336,26 @@ export function KnowledgeDetail() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-[14px] border border-white/[0.05] bg-white/[0.02] p-4">
-            <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/55 mb-2">Supersede Source</p>
+          <div className="mt-4 rounded-lg border border-line-subtle bg-surface p-4">
+            <p className="text-[10px] font-700 tracking-[0.03em] text-text-3 mb-2">Supersede Source</p>
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <input
                 value={supersedeTargetId}
                 onChange={(event) => setSupersedeTargetId(event.target.value)}
                 placeholder="Replacement source id"
-                className="w-full rounded-[10px] border border-white/[0.08] bg-surface px-3 py-2 text-[13px] text-text outline-none"
+                className="w-full rounded-md border border-line-default bg-surface px-3 py-2 text-[13px] text-text outline-none"
               />
               <button
                 onClick={() => { void handleSupersede() }}
                 disabled={!supersedeTargetId.trim()}
-                className="rounded-[10px] border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[12px] font-600 text-text-2 transition-all cursor-pointer disabled:opacity-50"
+                className="rounded-md border border-line-default bg-layer-1 px-3 py-2 text-[12px] font-600 text-text-2 transition-all cursor-pointer disabled:opacity-50"
                 style={{ fontFamily: 'inherit' }}
               >
                 Mark superseded
               </button>
             </div>
             {source.supersededBySourceId && (
-              <p className="mt-2 text-[12px] text-text-3/70">Superseded by {source.supersededBySourceId}</p>
+              <p className="mt-2 text-[12px] text-text-3">Superseded by {source.supersededBySourceId}</p>
             )}
           </div>
         </div>
@@ -363,7 +363,7 @@ export function KnowledgeDetail() {
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-display text-[16px] font-600 text-text-2 tracking-[-0.02em]">Indexed Chunks</h2>
-            <span className="text-[11px] text-text-3/55">{chunks.length} result{chunks.length === 1 ? '' : 's'}</span>
+            <span className="text-[11px] text-text-3">{chunks.length} result{chunks.length === 1 ? '' : 's'}</span>
           </div>
 
           {chunks.map((chunk) => {
@@ -377,21 +377,21 @@ export function KnowledgeDetail() {
             const charEnd = typeof metadata.charEnd === 'number' ? metadata.charEnd : chunk.content.length
 
             return (
-              <div key={chunk.id} className="rounded-[16px] border border-white/[0.06] bg-white/[0.02] p-4">
+              <div key={chunk.id} className="rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div>
-                    <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3/55">
+                    <p className="text-[11px] font-700 tracking-[0.03em] text-text-3">
                       Chunk {chunkIndex + 1} of {chunkCount}
                     </p>
                     <h3 className="font-display text-[15px] font-600 text-text-2 mt-1">
                       {sectionLabel || chunk.title || source.title}
                     </h3>
                   </div>
-                  <span className="text-[11px] text-text-3/55 font-mono">
+                  <span className="text-[11px] text-text-3 font-mono">
                     {charStart.toLocaleString()}-{charEnd.toLocaleString()}
                   </span>
                 </div>
-                <p className="text-[13px] text-text-2/85 whitespace-pre-wrap break-words leading-relaxed">{chunk.content}</p>
+                <p className="text-[13px] text-text-2 whitespace-pre-wrap break-words leading-relaxed">{chunk.content}</p>
               </div>
             )
           })}

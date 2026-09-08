@@ -230,10 +230,19 @@ export interface ExtensionPageDefinition {
   /** Optional stylesheet, same rule as `entry`: workspace-relative under `dist/`, e.g. 'dist/index.css'. */
   css?: string
   /**
-   * 'end' (default), or 'after:<view>' naming one of the rail entries in
-   * `EXTENSION_NAV_ANCHORS` (`src/lib/extension-page-nav.ts`), e.g. 'after:tasks'.
-   * Any other value, including an anchor the rail does not mount a slot for, puts
-   * the page in the trailing "Extension Pages" group instead of dropping it.
+   * The rail section this page appears in: one of NAV_SECTION_IDS
+   * (`src/lib/app/nav-sections.ts`). Defaults to 'work', and an unknown value
+   * falls back to 'work' rather than dropping the page.
+   */
+  section?: string
+  /**
+   * Sort key among the extension pages of the same section. Lower comes first;
+   * ties break on label. Defaults to 100.
+   */
+  order?: number
+  /**
+   * @deprecated Superseded by `section`. Old values ('end', 'after:<view>') are
+   * accepted and resolve to 'work'; nothing reads this field for placement.
    */
   position?: string
 }

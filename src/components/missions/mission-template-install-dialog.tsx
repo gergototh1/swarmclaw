@@ -157,9 +157,9 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+    <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-xl rounded-[14px] border border-white/[0.08] bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-xl rounded-lg border border-line-subtle bg-surface p-5 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3 mb-4">
@@ -172,7 +172,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
                 {badges.map((badge) => (
                   <span
                     key={badge}
-                    className="text-[10px] font-600 px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.02] text-text-3"
+                    className="text-[10px] font-600 px-1.5 py-0.5 rounded-xs border border-line-default bg-layer-1 text-text-3"
                   >
                     {badge}
                   </span>
@@ -183,7 +183,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
         </div>
 
         {template.setupNote && (
-          <div className="mb-4 text-[11px] text-amber-200/90 bg-amber-500/10 border border-amber-500/20 rounded-[10px] px-3 py-2 leading-[1.5]">
+          <div className="mb-4 text-[11px] text-amber-200/90 bg-amber-500/10 border border-amber-500/20 rounded-md px-3 py-2 leading-[1.5]">
             <span className="font-700">Setup: </span>
             {template.setupNote}
           </div>
@@ -224,7 +224,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
                 type="button"
                 onClick={() => void createDriverSession()}
                 disabled={busy}
-                className="mt-2 self-start rounded-[10px] border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[12px] font-700 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40"
+                className="mt-2 self-start rounded-md border border-accent-bright/30 bg-accent-bright/10 px-3 py-2 text-[12px] font-700 text-accent-bright hover:bg-accent-bright/15 disabled:opacity-40"
               >
                 Create mission driver chat
               </button>
@@ -274,8 +274,8 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
                 </label>
               </div>
 
-              <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
-                <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-1.5">Periodic reports</div>
+              <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5">
+                <div className="text-[11px] font-600 text-text-3 tracking-wide mb-1.5">Periodic reports</div>
                 <label className="flex items-center gap-2 flex-wrap">
                   <input type="checkbox" checked={reportsEnabled} onChange={(e) => setReportsEnabled(e.target.checked)} />
                   <span className="text-[11px] text-text-3">Send a markdown progress report every</span>
@@ -296,7 +296,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="text-[12px] px-3 py-1.5 rounded border border-white/[0.08] hover:bg-white/[0.04]"
+            className="text-[12px] px-3 py-1.5 rounded-xs border border-line-default hover:bg-layer-2"
             disabled={busy}
           >
             Cancel
@@ -304,7 +304,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
           <button
             onClick={submit}
             disabled={busy}
-            className="text-[12px] font-600 px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40"
+            className="text-[12px] font-600 px-3 py-1.5 rounded-xs bg-accent-bright/20 text-accent-bright border border-accent-bright/30 hover:bg-accent-bright/25 disabled:opacity-40"
           >
             {busy ? 'Installing…' : 'Install mission'}
           </button>

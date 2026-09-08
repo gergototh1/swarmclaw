@@ -20,14 +20,14 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Embeddings
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Enable semantic search for agent memory. Requires an embedding model provider.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Provider</label>
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Provider</label>
         <div className="grid grid-cols-4 gap-2 mb-5">
           {[
             { id: null, name: 'Off' },
@@ -38,10 +38,10 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
             <button
               key={String(p.id)}
               onClick={() => patchSettings({ embeddingProvider: p.id, embeddingModel: null, embeddingCredentialId: null, embeddingEndpoint: null })}
-              className={`py-3 px-3 rounded-[12px] text-center cursor-pointer transition-all text-[13px] font-600 border
+              className={`py-3 px-3 rounded-lg text-center cursor-pointer transition-all text-[13px] font-600 border
                 ${(appSettings.embeddingProvider || null) === p.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                  : 'bg-bg border-white/[0.06] text-text-2 hover:bg-surface-2'}`}
+                  : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
               {p.name}
@@ -50,7 +50,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
         </div>
 
         {appSettings.embeddingProvider === 'local' && (
-          <p className="text-[12px] text-text-3/80 mb-5">
+          <p className="text-[12px] text-text-3 mb-5">
             Runs <span className="text-text-2 font-600">all-MiniLM-L6-v2</span> locally in Node.js — no API key, no cost, works offline. Model downloads once (~23MB).
           </p>
         )}
@@ -58,7 +58,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
         {appSettings.embeddingProvider === 'openai' && (
           <>
             <div className="mb-5">
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Model</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Model</label>
               <select
                 value={appSettings.embeddingModel || 'text-embedding-3-small'}
                 onChange={(e) => patchSettings({ embeddingModel: e.target.value })}
@@ -70,7 +70,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
               </select>
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">API Key</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">API Key</label>
               {credList.filter((c) => c.provider === 'openai').length > 0 && !addingKey ? (
                 <div className="flex gap-2 items-center">
                   <select
@@ -102,11 +102,11 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
                         setNewKeyValue('')
                       } catch (err: unknown) { toast.error(`Failed to save: ${errorMessage(err)}`) }
                       finally { setSavingKey(false) }
-                    }} className="px-4 py-1.5 rounded-[8px] bg-accent-bright text-white text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40" style={{ fontFamily: 'inherit' }}>
+                    }} className="px-4 py-1.5 rounded-sm bg-accent-bright text-accent-fg text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40" style={{ fontFamily: 'inherit' }}>
                       {savingKey ? 'Saving...' : 'Save Key'}
                     </button>
                     {credList.filter(c => c.provider === 'openai').length > 0 && (
-                      <button type="button" onClick={() => { setAddingKey(false); setNewKeyName(''); setNewKeyValue('') }} className="px-4 py-1.5 rounded-[8px] bg-surface-2 text-text-2 text-[12px] font-600 cursor-pointer border-none hover:bg-surface-3 transition-all" style={{ fontFamily: 'inherit' }}>Cancel</button>
+                      <button type="button" onClick={() => { setAddingKey(false); setNewKeyName(''); setNewKeyValue('') }} className="px-4 py-1.5 rounded-sm bg-surface text-text-2 text-[12px] font-600 cursor-pointer border-none hover:bg-surface-2-3 transition-all" style={{ fontFamily: 'inherit' }}>Cancel</button>
                     )}
                   </div>
                 </div>
@@ -118,7 +118,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
         {appSettings.embeddingProvider === 'ollama' && (
           <div className="space-y-5">
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Model</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Model</label>
               <input
                 type="text"
                 value={appSettings.embeddingModel || 'nomic-embed-text'}
@@ -129,7 +129,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
               />
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Endpoint Override</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Endpoint Override</label>
               <input
                 type="text"
                 value={appSettings.embeddingEndpoint || ''}
@@ -138,7 +138,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
                 className={inputClass}
                 style={{ fontFamily: 'inherit' }}
               />
-              <p className="text-[11px] text-text-3/60 mt-2">Leave empty to use the local Ollama default.</p>
+              <p className="text-[11px] text-text-3 mt-2">Leave empty to use the local Ollama default.</p>
             </div>
           </div>
         )}

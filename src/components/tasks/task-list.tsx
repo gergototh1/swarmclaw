@@ -9,13 +9,13 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { SearchInput } from '@/components/ui/search-input'
 
 const STATUS_DOT: Record<BoardTaskStatus, string> = {
-  backlog: 'bg-white/20',
+  backlog: 'bg-layer-4',
   queued: 'bg-amber-400',
   running: 'bg-blue-400 animate-pulse',
   completed: 'bg-emerald-400',
   failed: 'bg-red-400',
-  cancelled: 'bg-white/20',
-  archived: 'bg-white/10',
+  cancelled: 'bg-layer-4',
+  archived: 'bg-layer-3',
   deferred: 'bg-orange-400',
 }
 
@@ -77,7 +77,7 @@ export function TaskList({ inSidebar }: { inSidebar?: boolean }) {
             <button
               onClick={() => { void handleClearDone() }}
               disabled={clearing}
-              className="w-full py-1.5 rounded-[8px] border border-white/[0.06] bg-transparent text-text-3 text-[11px] font-600 cursor-pointer hover:text-red-400 hover:border-red-400/20 hover:bg-red-400/[0.04] disabled:opacity-40 transition-all"
+              className="w-full py-1.5 rounded-sm border border-line-subtle bg-transparent text-text-3 text-[11px] font-600 cursor-pointer hover:text-red-400 hover:border-red-400/20 hover:bg-red-400/[0.04] disabled:opacity-40 transition-all"
               style={{ fontFamily: 'inherit' }}
             >
               {clearing ? 'Clearing...' : `Clear ${doneCount} finished`}
@@ -107,7 +107,7 @@ export function TaskList({ inSidebar }: { inSidebar?: boolean }) {
               setEditingTaskId(task.id)
               setTaskSheetOpen(true)
             }}
-            className="w-full text-left py-3.5 px-4 rounded-[14px] border border-transparent bg-transparent cursor-pointer hover:bg-white/[0.03] transition-all"
+            className="w-full text-left py-3.5 px-4 rounded-md border border-transparent bg-transparent cursor-pointer hover:bg-layer-1 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             <div className="flex items-center gap-2.5">

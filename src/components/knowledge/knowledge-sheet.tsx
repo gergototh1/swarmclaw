@@ -230,7 +230,7 @@ export function KnowledgeSheet() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  const inputClass = 'w-full px-4 py-3.5 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow'
+  const inputClass = 'w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow'
   const scopeHelperText = scope === 'global'
     ? 'This source will be searchable across the whole fleet'
     : agentIds.length === 0
@@ -255,16 +255,16 @@ export function KnowledgeSheet() {
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Source Type</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Source Type</label>
         <div className="grid grid-cols-3 gap-2">
           {(['manual', 'file', 'url'] as const).map((sourceKind) => (
             <button
               key={sourceKind}
               onClick={() => setKind(sourceKind)}
-              className={`py-3 rounded-[14px] text-[13px] font-600 border transition-all cursor-pointer ${
+              className={`py-3 rounded-lg text-[13px] font-600 border transition-all cursor-pointer ${
                 kind === sourceKind
                   ? 'border-accent-bright/25 bg-accent-soft text-accent-bright'
-                  : 'border-white/[0.08] bg-white/[0.02] text-text-3 hover:text-text-2'
+                  : 'border-line-default bg-surface text-text-3 hover:text-text-2'
               }`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -276,18 +276,18 @@ export function KnowledgeSheet() {
 
       {kind === 'file' && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Upload Document</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Upload Document</label>
 
           {uploadedFile ? (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-[14px] border border-emerald-500/20 bg-emerald-500/[0.04]">
+            <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.04]">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-emerald-400 shrink-0">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
                 <polyline points="9 15 12 12 15 15" />
               </svg>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] text-text font-500 truncate">{uploadedFile.name}</p>
-                <p className="text-[11px] text-text-3/60">
+                <p className="text-[13px] text-text font-600 truncate">{uploadedFile.name}</p>
+                <p className="text-[11px] text-text-3">
                   {formatSize(uploadedFile.size) ? `${formatSize(uploadedFile.size)} • ` : ''}content extracted
                 </p>
               </div>
@@ -299,7 +299,7 @@ export function KnowledgeSheet() {
                   setSourceLabel('')
                   setContent('')
                 }}
-                className="p-1.5 rounded-[8px] text-text-3 hover:text-red-400 hover:bg-red-400/10 border-none bg-transparent cursor-pointer transition-colors"
+                className="p-1.5 rounded-sm text-text-3 hover:text-red-400 hover:bg-red-400/10 border-none bg-transparent cursor-pointer transition-colors"
                 aria-label="Remove uploaded file"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -315,10 +315,10 @@ export function KnowledgeSheet() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`flex flex-col items-center gap-3 px-6 py-8 rounded-[14px] border-2 border-dashed cursor-pointer transition-all duration-200 ${
+              className={`flex flex-col items-center gap-3 px-6 py-8 rounded-lg border-2 border-dashed cursor-pointer transition-all duration-200 ${
                 isDragging
                   ? 'border-accent-bright/50 bg-accent-soft/20'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.03]'
+                  : 'border-line-default bg-surface hover:border-line-strong hover:bg-layer-2'
               } ${uploading ? 'opacity-60 pointer-events-none' : ''}`}
             >
               {uploading ? (
@@ -328,16 +328,16 @@ export function KnowledgeSheet() {
                 </>
               ) : (
                 <>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/50">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
                     <line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
                   <div className="text-center">
-                    <p className="text-[14px] text-text-2 font-500">
+                    <p className="text-[14px] text-text-2 font-600">
                       {isDragging ? 'Drop document here' : 'Drop a document or click to browse'}
                     </p>
-                    <p className="text-[11px] text-text-3/50 mt-1">
+                    <p className="text-[11px] text-text-3 mt-1">
                       Supports text, code, structured files, and PDFs
                     </p>
                   </div>
@@ -358,7 +358,7 @@ export function KnowledgeSheet() {
 
       {kind === 'url' && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Source URL</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Source URL</label>
           <input
             type="url"
             value={sourceUrl}
@@ -367,14 +367,14 @@ export function KnowledgeSheet() {
             className={inputClass}
             style={{ fontFamily: 'inherit' }}
           />
-          <p className="text-[11px] text-text-3/55 mt-1.5 pl-1">
+          <p className="text-[11px] text-text-3 mt-1.5 pl-1">
             Save to fetch, clean, and index the page. You can also edit the extracted text below before saving again.
           </p>
         </div>
       )}
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Title</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Title</label>
         <input
           type="text"
           value={title}
@@ -386,10 +386,10 @@ export function KnowledgeSheet() {
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">
           Indexed Content
           {content.length > 0 && (
-            <span className="ml-2 text-text-3/40 font-mono text-[10px] normal-case tracking-normal">
+            <span className="ml-2 text-text-3 font-mono text-[10px] normal-case tracking-normal">
               {content.length.toLocaleString()} chars
             </span>
           )}
@@ -405,7 +405,7 @@ export function KnowledgeSheet() {
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Tags</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Tags</label>
         <input
           type="text"
           value={tags}
@@ -417,13 +417,13 @@ export function KnowledgeSheet() {
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Scope</label>
-        <div className="flex p-1 rounded-[12px] bg-bg border border-white/[0.06]">
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Scope</label>
+        <div className="flex p-1 rounded-md bg-bg border border-line-subtle">
           {(['global', 'agent'] as const).map((nextScope) => (
             <button
               key={nextScope}
               onClick={() => setScope(nextScope)}
-              className={`flex-1 py-2.5 rounded-[10px] text-center cursor-pointer transition-all text-[13px] font-600 border-none ${
+              className={`flex-1 py-2.5 rounded-sm text-center cursor-pointer transition-all text-[13px] font-600 border-none ${
                 scope === nextScope ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'
               }`}
               style={{ fontFamily: 'inherit' }}
@@ -432,13 +432,13 @@ export function KnowledgeSheet() {
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-text-3/60 mt-1.5 pl-1">{scopeHelperText}</p>
+        <p className="text-[11px] text-text-3 mt-1.5 pl-1">{scopeHelperText}</p>
       </div>
 
       {scope === 'agent' && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Agents</label>
-          <div className="max-h-[240px] overflow-y-auto rounded-[12px] border border-white/[0.06] bg-white/[0.03]">
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Agents</label>
+          <div className="max-h-[240px] overflow-y-auto rounded-md border border-line-subtle bg-layer-1">
             {agentList.length === 0 ? (
               <p className="p-3 text-[12px] text-text-3">No agents available</p>
             ) : (
@@ -449,7 +449,7 @@ export function KnowledgeSheet() {
                     key={agent.id}
                     onClick={() => toggleAgent(agent.id)}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-all cursor-pointer ${
-                      selected ? 'bg-accent-soft/40' : 'hover:bg-white/[0.04]'
+                      selected ? 'bg-accent-soft/40' : 'hover:bg-layer-2'
                     }`}
                     style={{ fontFamily: 'inherit' }}
                   >
@@ -468,10 +468,10 @@ export function KnowledgeSheet() {
         </div>
       )}
 
-      <div className="flex gap-3 pt-2 border-t border-white/[0.04]">
+      <div className="flex gap-3 pt-2 border-t border-line-subtle">
         <button
           onClick={onClose}
-          className="flex-1 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+          className="flex-1 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
           style={{ fontFamily: 'inherit' }}
         >
           Cancel
@@ -479,7 +479,7 @@ export function KnowledgeSheet() {
         <button
           onClick={() => { void handleSave() }}
           disabled={!canSave || saving}
-          className="flex-1 py-3.5 rounded-[14px] border-none bg-accent-bright text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
+          className="flex-1 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all hover:brightness-110"
           style={{ fontFamily: 'inherit' }}
         >
           {saving ? 'Saving...' : 'Save'}

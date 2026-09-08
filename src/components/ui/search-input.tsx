@@ -4,8 +4,8 @@ import { forwardRef, type InputHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
 const SIZE_CLASSES = {
-  sm: 'px-4 py-2.5 rounded-[12px] text-[13px] border-white/[0.04]',
-  md: 'px-4 py-3.5 rounded-[14px] text-[15px] border-white/[0.08]',
+  sm: 'px-4 py-2.5 rounded-md text-[13px] border-line-subtle',
+  md: 'px-4 py-3.5 rounded-md text-[15px] border-line-default',
 } as const
 
 interface SearchInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
@@ -24,7 +24,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           type="text"
           value={value}
           className={cn(
-            'w-full border bg-surface text-text outline-none transition-all duration-200 placeholder:text-text-3/70 focus-glow',
+            'w-full border bg-surface text-text outline-none transition-all duration-200 placeholder:text-text-3 focus-glow',
             SIZE_CLASSES[size],
           )}
           style={{ fontFamily: 'inherit' }}

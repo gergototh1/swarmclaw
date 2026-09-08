@@ -1,5 +1,7 @@
 'use client'
 
+import { createPortal } from 'react-dom'
+
 import { DEFAULT_HEARTBEAT_SHOW_ALERTS, DEFAULT_HEARTBEAT_SHOW_OK } from '@/lib/runtime/heartbeat-defaults'
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -230,6 +232,15 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
   const prevMsgCountRef = useRef(messages.length)
 
   // Bookmark filter
+  /* ChatHeader renders the element this portals into, so it does not exist on
+     the first render. The effect runs after mount, when it does. */
+  const [threadControlsSlot, setThreadControlsSlot] = useState<HTMLElement | null>(null)
+  const [threadFactsSlot, setThreadFactsSlot] = useState<HTMLElement | null>(null)
+  useEffect(() => {
+    setThreadControlsSlot(document.getElementById('chat-thread-controls'))
+    setThreadFactsSlot(document.getElementById('chat-thread-facts'))
+  }, [sessionId])
+
   const [bookmarkFilter, setBookmarkFilter] = useState(false)
 
   // Connector filtering is handled via connectorFilter prop from chat-area
@@ -420,7 +431,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
         return (
           <div key={`ctx-clear-${msg.time}-${i}`} className="group/ctx flex items-center gap-4 py-3">
             <div className="flex-1 h-px bg-amber-400/20" />
-            <span className="flex items-center gap-1.5 text-[10px] font-600 text-amber-400/60 uppercase tracking-[0.1em]">
+            <span className="flex items-center gap-1.5 text-[10px] font-600 text-amber-400/60 tracking-[0.03em]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0">
                 <line x1="2" y1="12" x2="22" y2="12" />
                 <polyline points="8 8 4 12 8 16" />
@@ -433,7 +444,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <button
                 type="button"
                 onClick={() => void handleDeleteMessage(originalIndex)}
-                className="opacity-0 group-hover/ctx:opacity-100 text-[10px] font-600 text-amber-400/60 hover:text-amber-400 bg-transparent border-none cursor-pointer transition-all px-1.5 py-0.5 rounded-[4px] hover:bg-amber-400/10"
+                className="opacity-0 group-hover/ctx:opacity-100 text-[10px] font-600 text-amber-400/60 hover:text-amber-400 bg-transparent border-none cursor-pointer transition-all px-1.5 py-0.5 rounded-xs hover:bg-amber-400/10"
                 title="Undo — restore full context"
               >
                 Undo
@@ -470,18 +481,25 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
         <div
           key={msg.clientRenderId ? `${sessionId}-${msg.clientRenderId}-${i}` : `${sessionId}-${msg.role}-${originalIndex >= 0 ? originalIndex : i}`}
           data-message-index={i}
+          /* `group` is what MessageActions has always been written against --
+             it hides itself with `md:opacity-0 md:group-hover:opacity-100`.
+             This wrapper carried no className at all, so there was no group to
+             hover and the rule could never fire. Copy / Bookmark / Edit sat
+             under every message permanently, which is a row of noise on every
+             turn of every thread. */
+          className="group"
           style={animStyle}
         >
           {showDateSep && (
             <div className="flex items-center gap-4 py-2 mb-2">
-              <div className="flex-1 h-px bg-white/[0.06]" />
-              <span className="text-[10px] font-600 text-text-3/50 uppercase tracking-[0.1em]">
+              <div className="flex-1 h-px bg-layer-2" />
+              <span className="text-[10px] font-600 text-text-3 tracking-[0.03em]">
                 {dateSeparator(msg.time)}
               </span>
-              <div className="flex-1 h-px bg-white/[0.06]" />
+              <div className="flex-1 h-px bg-layer-2" />
             </div>
           )}
-          <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-[16px] bg-amber-400/[0.04]' : isSearchMatch ? 'bg-white/[0.02] rounded-[16px]' : ''}>
+          <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-lg bg-amber-400/[0.04]' : isSearchMatch ? 'bg-surface rounded-lg' : ''}>
             <BubbleComponent
               message={msg}
               assistantName={assistantName}
@@ -672,10 +690,30 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
 
   return (
     <div className="relative flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden isolate" data-testid="message-list">
-      <div className="shrink-0 px-4 md:px-12 lg:px-16 pt-3">
-        <div className="flex flex-wrap items-center gap-2 rounded-[14px] border border-white/[0.06] bg-surface/55 px-3 py-2 backdrop-blur-sm">
-          <button
+      {threadFactsSlot && createPortal(
+        <div className="flex items-center gap-2 text-[11px] text-text-3">
+            {searchQuery ? (
+              <span className="tabular-nums">
+                {searchMatches.length > 0 ? `${searchIdx + 1}/${searchMatches.length}` : '0 results'}
+              </span>
+            ) : (
+              <span>{filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'}</span>
+            )}
+            {loading && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-layer-2 px-2 py-1 text-text-3">
+                <span className="w-2 h-2 rounded-full bg-accent-bright animate-pulse" />
+                Loading thread
+              </span>
+            )}
+          </div>,
+        threadFactsSlot,
+      )}
+      {threadControlsSlot && createPortal(
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
+                    <button
             type="button"
+            title="Find in thread  (Cmd/Ctrl+F)"
+            aria-label="Find in thread"
             onClick={() => {
               if (searchOpen) {
                 setSearchOpen(false)
@@ -685,32 +723,31 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                 openSearch()
               }
             }}
-            className={`inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1.5 text-[11px] font-600 transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-600 transition-colors cursor-pointer ${
               searchOpen
                 ? 'border-accent-bright/25 bg-accent-soft/60 text-accent-bright'
-                : 'border-white/[0.06] bg-white/[0.03] text-text-3 hover:text-text-2 hover:bg-white/[0.06]'
+                : 'text-text-3 hover:text-text hover:bg-layer-2'
             }`}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            Find
-            <span className="hidden sm:inline text-text-3/50">Cmd/Ctrl+F</span>
           </button>
           <button
             type="button"
+            title={bookmarkFilter ? 'Showing bookmarked only' : 'Show bookmarked only'}
+            aria-label="Filter to bookmarked messages"
             onClick={() => setBookmarkFilter((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1.5 text-[11px] font-600 transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-600 transition-colors cursor-pointer ${
               bookmarkFilter
-                ? 'border-amber-400/25 bg-amber-500/10 text-amber-300'
-                : 'border-white/[0.06] bg-white/[0.03] text-text-3 hover:text-text-2 hover:bg-white/[0.06]'
+                ? 'bg-layer-2 text-text'
+                : 'text-text-3 hover:text-text hover:bg-layer-2'
             }`}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill={bookmarkFilter ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
             </svg>
-            {bookmarkFilter ? 'Bookmarked' : 'Bookmarks'}
           </button>
           {(searchQuery || bookmarkFilter) && (
             <button
@@ -721,32 +758,18 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                 setSearchIdx(0)
                 setBookmarkFilter(false)
               }}
-              className="inline-flex items-center gap-1.5 rounded-[9px] border border-white/[0.06] bg-transparent px-2.5 py-1.5 text-[11px] font-600 text-text-3 hover:text-text-2 hover:bg-white/[0.04] cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-600 text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
             >
               Reset filters
             </button>
           )}
-          <div className="ml-auto flex items-center gap-2 text-[11px] text-text-3/60">
-            {searchQuery ? (
-              <span className="tabular-nums">
-                {searchMatches.length > 0 ? `${searchIdx + 1}/${searchMatches.length}` : '0 results'}
-              </span>
-            ) : (
-              <span>{filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'}</span>
-            )}
-            {loading && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] px-2 py-1 text-text-3/70">
-                <span className="w-2 h-2 rounded-full bg-accent-bright animate-pulse" />
-                Loading thread
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+        </div>,
+        threadControlsSlot,
+      )}
 
       {/* In-thread search bar */}
       {searchOpen && (
-        <div className="shrink-0 z-20 flex items-center gap-2 px-4 md:px-12 lg:px-16 py-2 bg-surface/95 backdrop-blur-sm border-b border-white/[0.06]">
+        <div className="shrink-0 z-20 flex items-center gap-2 px-4 md:px-12 lg:px-16 py-2 bg-surface/80 backdrop-blur-sm border-b border-line-subtle">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -758,7 +781,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             onChange={(e) => { setSearchQuery(e.target.value); setSearchIdx(0) }}
             placeholder="Search in conversation..."
             aria-label="Search messages"
-            className="flex-1 bg-transparent text-text text-[13px] outline-none placeholder:text-text-3/50"
+            className="flex-1 bg-transparent text-text text-[13px] outline-none placeholder:text-text-3"
             style={{ fontFamily: 'inherit' }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -777,7 +800,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             onClick={() => setSearchIdx((v) => Math.max(0, v - 1))}
             disabled={!searchMatches.length}
             aria-label="Previous match"
-            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-white/[0.04] disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
+            className="p-1 rounded-xs text-text-3 hover:text-text-2 hover:bg-layer-2 disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m18 15-6-6-6 6" /></svg>
           </button>
@@ -785,14 +808,14 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
             onClick={() => setSearchIdx((v) => Math.min(searchMatches.length - 1, v + 1))}
             disabled={!searchMatches.length}
             aria-label="Next match"
-            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-white/[0.04] disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
+            className="p-1 rounded-xs text-text-3 hover:text-text-2 hover:bg-layer-2 disabled:opacity-30 cursor-pointer border-none bg-transparent transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
           </button>
           <button
             onClick={() => setBookmarkFilter((v) => !v)}
             aria-label={bookmarkFilter ? 'Show all messages' : 'Show bookmarked only'}
-            className={`p-1 rounded-[6px] hover:bg-white/[0.04] cursor-pointer border-none bg-transparent transition-colors ${bookmarkFilter ? 'text-amber-500' : 'text-text-3 hover:text-text-2'}`}
+            className={`p-1 rounded-xs hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors ${bookmarkFilter ? 'text-amber-500' : 'text-text-3 hover:text-text-2'}`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarkFilter ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
@@ -801,7 +824,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
           <button
             onClick={() => { setSearchOpen(false); setSearchQuery(''); setSearchIdx(0) }}
             aria-label="Close search"
-            className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-white/[0.04] cursor-pointer border-none bg-transparent transition-colors"
+            className="p-1 rounded-xs text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
@@ -818,7 +841,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
       >
         <div className="flex flex-col gap-6 relative">
           {/* Chat spine — vertical line for assistant messages */}
-          <div className="absolute left-[15px] top-0 bottom-0 w-px bg-white/[0.06] pointer-events-none" />
+          <div className="absolute left-[15px] top-0 bottom-0 w-px bg-layer-2 pointer-events-none" />
           {hasMoreMessages && (
             <div className="flex justify-center py-3">
               <button
@@ -834,7 +857,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                   }
                 }}
                 disabled={loadingMore}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/[0.08] bg-surface/80 text-text-3 text-[12px] font-600 hover:bg-surface-2 hover:text-text-2 transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-line-default bg-surface text-text-3 text-[12px] font-600 hover:bg-surface-2 hover:text-text-2 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {loadingMore ? (
                   <>
@@ -848,7 +871,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                       <path d="m5 12 7-7 7 7" />
                     </svg>
                     Load earlier messages
-                    <span className="text-text-3/50">({totalMessages - messages.length} more)</span>
+                    <span className="text-text-3">({totalMessages - messages.length} more)</span>
                   </>
                 )}
               </button>
@@ -857,8 +880,8 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
           {filteredMessages.length === 0 && !streaming && (
             searchQuery.trim() || bookmarkFilter || connectorFilter ? (
               <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-                <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-text-3/70">
+                <div className="w-12 h-12 rounded-full bg-layer-2 border border-line-subtle flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-text-3">
                     <circle cx="11" cy="11" r="8" />
                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
                   </svg>
@@ -866,7 +889,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                 <span className="font-display text-[16px] font-600 text-text-2">
                   {bookmarkFilter ? 'No bookmarked messages here' : 'No messages match these filters'}
                 </span>
-                <span className="text-[13px] text-text-3/60 max-w-[360px]">
+                <span className="text-[13px] text-text-3 max-w-[360px]">
                   {searchQuery.trim()
                     ? `Nothing in this thread matches "${searchQuery.trim()}".`
                     : connectorFilter
@@ -882,7 +905,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                       setSearchIdx(0)
                       setBookmarkFilter(false)
                     }}
-                    className="rounded-[10px] border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-white/[0.06] cursor-pointer transition-colors"
+                    className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
                   >
                     Clear thread filters
                   </button>
@@ -892,7 +915,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <div className="flex flex-col items-center justify-center gap-3 py-20 text-center" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both' }}>
                 <AgentAvatar seed={agent?.avatarSeed || null} avatarUrl={agent?.avatarUrl} name={agent?.name || 'Agent'} size={48} />
                 <span className="font-display text-[16px] font-600 text-text-2">{agent?.name || 'Assistant'}</span>
-                <span className="text-[14px] text-text-3/60">
+                <span className="text-[14px] text-text-3">
                   {INTRO_GREETINGS[stableHash(agent?.id || session?.id || '') % INTRO_GREETINGS.length]}
                 </span>
               </div>
@@ -916,7 +939,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
       {showScrollToBottom && (
         <button
           onClick={handleScrollToBottom}
-          className="absolute right-6 md:right-12 lg:right-16 bottom-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.08] bg-[#171a2b]/95 text-text-2 text-[12px] font-600 hover:bg-[#1e2238] transition-colors shadow-lg cursor-pointer"
+          className="absolute right-6 md:right-12 lg:right-16 bottom-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-line-default bg-surface text-text-2 text-[12px] font-600 hover:bg-surface-2 transition-colors shadow-lg cursor-pointer"
           title="Scroll to latest messages"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -925,7 +948,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
           </svg>
           Latest
           {unreadCount > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent-bright text-white text-[10px] font-700">
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent-bright text-accent-fg text-[10px] font-700">
               {unreadCount}
             </span>
           )}

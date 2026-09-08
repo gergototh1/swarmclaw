@@ -13,6 +13,11 @@ interface HealthResponse {
 const EVENT_CONFIG: Record<ConnectorHealthEventType, { color: string; label: string }> = {
   started: { color: 'bg-green-400', label: 'Started' },
   reconnected: { color: 'bg-green-400', label: 'Reconnected' },
+  // 0.30 sits above the surface ladder's top step (layer-4 is 0.16);
+  // scripts/codemod-surfaces.mjs refuses anything past 0.25 as a scrim rather
+  // than a surface, and this timeline dot is one. Consequently it is hard to
+  // see in the light theme, which is a design decision, not something to
+  // guess at here.
   stopped: { color: 'bg-white/30', label: 'Stopped' },
   error: { color: 'bg-red-400', label: 'Error' },
   disconnected: { color: 'bg-amber-400', label: 'Disconnected' },
@@ -63,7 +68,7 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
 
   if (loading) {
     return (
-      <div className="p-4 rounded-[14px] border border-white/[0.06] bg-white/[0.01]">
+      <div className="p-4 rounded-lg border border-line-subtle bg-surface">
         <div className="text-[13px] text-text-3 animate-pulse">Loading health data...</div>
       </div>
     )
@@ -71,7 +76,7 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
 
   if (!data || data.events.length === 0) {
     return (
-      <div className="p-4 rounded-[14px] border border-white/[0.06] bg-white/[0.01]">
+      <div className="p-4 rounded-lg border border-line-subtle bg-surface">
         <div className="text-[13px] text-text-3">No health events recorded yet.</div>
       </div>
     )
@@ -81,11 +86,11 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
   const recentEvents = [...data.events].reverse().slice(0, 50)
 
   return (
-    <div className="p-4 rounded-[14px] border border-white/[0.06] bg-white/[0.01] space-y-4">
+    <div className="p-4 rounded-lg border border-line-subtle bg-surface space-y-4">
       {/* Uptime badge */}
       <div className="flex items-center justify-between">
         <div className="text-[13px] font-600 text-text-2">Health Timeline</div>
-        <span className={`px-3 py-1 rounded-[8px] text-[12px] font-600 border ${uptimeBadgeColor(data.uptimePercent)}`}>
+        <span className={`px-3 py-1 rounded-sm text-[12px] font-600 border ${uptimeBadgeColor(data.uptimePercent)}`}>
           {data.uptimePercent}% uptime
         </span>
       </div>
@@ -93,10 +98,13 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
       {/* Timeline */}
       <div className="relative pl-5">
         {/* Vertical line */}
-        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-white/[0.08]" />
+        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-layer-3" />
 
         <div className="max-h-[320px] overflow-y-auto pr-2 space-y-3 sm:max-h-[38vh]">
           {recentEvents.map((ev) => {
+            // Same 0.30-above-ceiling, hard-to-see-in-light-theme tradeoff as
+            // the `stopped` entry above -- this is the fallback for an event
+            // type EVENT_CONFIG doesn't name.
             const cfg = EVENT_CONFIG[ev.event] ?? { color: 'bg-white/30', label: ev.event }
             return (
               <div key={ev.id} className="relative flex items-start gap-3">
@@ -109,7 +117,7 @@ export function ConnectorHealth({ connectorId }: { connectorId: string }) {
                     <span className="text-[11px] text-text-3">{formatTimestamp(ev.timestamp, now)}</span>
                   </div>
                   {ev.message && (
-                    <p className="text-[12px] text-text-3/70 mt-0.5 leading-[1.4] break-words">{ev.message}</p>
+                    <p className="text-[12px] text-text-3 mt-0.5 leading-[1.4] break-words">{ev.message}</p>
                   )}
                 </div>
               </div>

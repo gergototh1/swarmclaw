@@ -20,7 +20,7 @@ export function ErrorFallback({
   return (
     <div className="flex min-h-[50vh] flex-1 flex-col items-center justify-center bg-bg px-8">
       <div className="max-w-[420px] text-center">
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-[16px] border border-red-500/20 bg-red-500/10">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-red-400">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
@@ -36,7 +36,7 @@ export function ErrorFallback({
         <div className="flex flex-wrap items-center justify-center gap-3">
           <button
             onClick={onPrimaryAction}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-[12px] border-none bg-accent-bright px-6 py-3 text-[14px] font-600 text-white shadow-[0_4px_16px_rgba(99,102,241,0.2)] transition-all hover:brightness-110 active:scale-[0.97]"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-md border-none bg-accent-bright px-6 py-3 text-[14px] font-600 text-accent-fg transition-all hover:brightness-110 active:scale-[0.97]"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -48,7 +48,7 @@ export function ErrorFallback({
           {secondaryLabel && onSecondaryAction ? (
             <button
               onClick={onSecondaryAction}
-              className="inline-flex cursor-pointer items-center rounded-[12px] border border-border bg-transparent px-5 py-3 text-[14px] font-600 text-text transition-colors hover:bg-panel/60"
+              className="inline-flex cursor-pointer items-center rounded-md border border-border bg-transparent px-5 py-3 text-[14px] font-600 text-text transition-colors hover:bg-panel/60"
               style={{ fontFamily: 'inherit' }}
             >
               {secondaryLabel}

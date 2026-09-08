@@ -148,20 +148,20 @@ export function NotificationCenter({
   const panelNode = open ? (
     <div
       ref={panelRef}
-      className="fixed w-[340px] max-h-[460px] bg-raised border border-white/[0.06] rounded-[14px] shadow-[0_16px_64px_rgba(0,0,0,0.6)] backdrop-blur-xl z-[1200] flex flex-col overflow-hidden"
+      className="fixed w-[340px] max-h-[460px] bg-raised border border-line-subtle rounded-md backdrop-blur-xl z-[1200] flex flex-col overflow-hidden"
       style={{
         ...panelStyle,
         animation: 'fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-line-subtle shrink-0">
         <span className="text-[13px] font-600 text-text">Notifications</span>
         <div className="flex items-center gap-2">
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="text-[11px] font-500 text-text-3 hover:text-text cursor-pointer bg-transparent border-none transition-colors"
+              className="text-[11px] font-600 text-text-3 hover:text-text cursor-pointer bg-transparent border-none transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               Mark all read
@@ -170,7 +170,7 @@ export function NotificationCenter({
           {notifications.some((n) => n.read) && (
             <button
               onClick={clearRead}
-              className="text-[11px] font-500 text-text-3 hover:text-text cursor-pointer bg-transparent border-none transition-colors"
+              className="text-[11px] font-600 text-text-3 hover:text-text cursor-pointer bg-transparent border-none transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               Clear read
@@ -182,7 +182,7 @@ export function NotificationCenter({
       {/* List */}
       <div className="flex-1 overflow-y-auto">
         {notifications.length === 0 ? (
-          <div className="flex items-center justify-center py-10 text-[13px] text-text-3/50">
+          <div className="flex items-center justify-center py-10 text-[13px] text-text-3">
             No notifications
           </div>
         ) : (
@@ -190,8 +190,8 @@ export function NotificationCenter({
             <button
               key={n.id}
               onClick={() => handleNotificationClick(n)}
-              className={`w-full text-left px-4 py-3 border-l-[3px] border-b border-b-white/[0.03] bg-transparent
-                hover:bg-white/[0.03] transition-colors cursor-pointer border-t-0 border-r-0
+              className={`w-full text-left px-4 py-3 border-l-[3px] border-b border-b-line-subtle bg-transparent
+                hover:bg-layer-1 transition-colors cursor-pointer border-t-0 border-r-0
                 ${TYPE_COLORS[n.type]}
                 ${n.read ? 'opacity-50' : ''}`}
               style={{ fontFamily: 'inherit' }}
@@ -204,11 +204,11 @@ export function NotificationCenter({
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] font-600 text-text truncate flex-1">{n.title}</span>
                     {getNotificationOccurrenceCount(n) > 1 && (
-                      <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-600 text-text-3/80">
+                      <span className="shrink-0 rounded-full border border-line-default bg-layer-2 px-1.5 py-0.5 text-[9px] font-600 text-text-3">
                         x{getNotificationOccurrenceCount(n)}
                       </span>
                     )}
-                    <span className="text-[10px] text-text-3/50 shrink-0">{timeAgo(getNotificationActivityAt(n), now)}</span>
+                    <span className="text-[10px] text-text-3 shrink-0">{timeAgo(getNotificationActivityAt(n), now)}</span>
                   </div>
                   {n.message && (
                     <p className="text-[11px] text-text-3 mt-0.5 leading-relaxed line-clamp-2 m-0">
@@ -221,7 +221,7 @@ export function NotificationCenter({
                     </span>
                   )}
                   {n.entityType && (
-                    <span className="inline-block mt-1 text-[10px] text-text-3/40 font-mono">
+                    <span className="inline-block mt-1 text-[10px] text-text-3 font-mono">
                       {n.entityType}{n.entityId ? `:${n.entityId.slice(0, 8)}` : ''}
                     </span>
                   )}
@@ -244,8 +244,8 @@ export function NotificationCenter({
         onClick={() => setOpen((v) => !v)}
         className={
           isRow
-            ? 'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all bg-transparent text-text-3 hover:text-text hover:bg-white/[0.04] border-none'
-            : 'relative flex items-center justify-center w-8 h-8 rounded-[8px] bg-transparent hover:bg-white/[0.05] transition-colors cursor-pointer border-none'
+            ? 'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-600 cursor-pointer transition-all bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none'
+            : 'relative flex items-center justify-center w-8 h-8 rounded-sm bg-transparent hover:bg-layer-2 transition-colors cursor-pointer border-none'
         }
         aria-label="Notifications"
         title={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
@@ -255,7 +255,7 @@ export function NotificationCenter({
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
-        {isRow && <span className="text-[13px] font-500">Notifications</span>}
+        {isRow && <span className="text-[13px] font-600">Notifications</span>}
         {/* Badge */}
         {unreadCount > 0 && (
           <span className={isRow

@@ -1,6 +1,6 @@
 'use client'
 
-import { useDeferredValue, useState } from 'react'
+import { useDeferredValue, useState, type ReactNode } from 'react'
 import { Bell, Hash, Search, Sparkles, TrendingUp, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
@@ -63,7 +63,14 @@ function formatTimestamp(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
-export function FeedPage() {
+/**
+ * `topBar` lets the caller slot in navigation (the Home/Feed RouteTabs) above
+ * the feed body without FeedPage itself depending on an app-route tab table.
+ * It renders inside FeedPage's own MainContent, after the MobileHeader,
+ * NetworkBanner and UpdateBanner that MainContent supplies, so a caller can't
+ * accidentally push those below it.
+ */
+export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
   const agents = useAppStore((s) => s.agents)
   const feedAgents = Object.values(agents).filter(
     (agent: Agent) => agent.swarmfeedEnabled && !agent.disabled && !agent.trashedAt,
@@ -182,8 +189,8 @@ export function FeedPage() {
       const result = searchResultsQuery.data
       return (
         <div className="space-y-5">
-          <div className="rounded-[18px] border border-white/[0.06] bg-surface/70 p-4">
-            <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/60">Search Results</div>
+          <div className="rounded-lg border border-line-subtle bg-surface p-4">
+            <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Search Results</div>
             <div className="mt-2 text-[14px] text-text">
               {result?.total || 0} result{result?.total === 1 ? '' : 's'} for <span className="font-700 text-accent-bright">{deferredSearchQuery}</span>
             </div>
@@ -205,17 +212,17 @@ export function FeedPage() {
                     key={agent.id}
                     type="button"
                     onClick={() => setProfileAgentId(agent.id)}
-                    className="cursor-pointer rounded-[18px] border border-white/[0.06] bg-surface/75 p-4 text-left transition-all hover:bg-surface/90"
+                    className="cursor-pointer rounded-lg border border-line-subtle bg-surface p-4 text-left transition-all hover:bg-surface"
                   >
                     <div className="flex items-start gap-3">
                       <AgentAvatar seed={agent.id} avatarUrl={agent.avatar || null} name={agent.name} size={36} />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-700 text-text">{agent.name}</div>
-                        <div className="mt-1 text-[11px] uppercase tracking-[0.1em] text-text-3/55">
+                        <div className="mt-1 text-[11px] tracking-[0.03em] text-text-3">
                           {agent.framework || 'unknown'}
                         </div>
                         {agent.bio && (
-                          <p className="mt-2 line-clamp-3 text-[12px] leading-[1.6] text-text-3/75">{agent.bio}</p>
+                          <p className="mt-2 line-clamp-3 text-[12px] leading-[1.6] text-text-3">{agent.bio}</p>
                         )}
                       </div>
                     </div>
@@ -232,7 +239,7 @@ export function FeedPage() {
                 {result.channels.map((channel) => (
                   <div
                     key={channel.id}
-                    className="rounded-[999px] border border-white/[0.08] bg-surface/75 px-3 py-2 text-[12px] font-700 text-text-2"
+                    className="rounded-full border border-line-default bg-surface px-3 py-2 text-[12px] font-700 text-text-2"
                   >
                     #{channel.handle} · {channel.displayName}
                   </div>
@@ -248,7 +255,7 @@ export function FeedPage() {
                 {result.hashtags.map((tag) => (
                   <div
                     key={tag.tag}
-                    className="rounded-[999px] border border-white/[0.08] bg-surface/75 px-3 py-2 text-[12px] font-700 text-text-2"
+                    className="rounded-full border border-line-default bg-surface px-3 py-2 text-[12px] font-700 text-text-2"
                   >
                     #{tag.tag} · {tag.postCount} posts
                   </div>
@@ -323,17 +330,18 @@ export function FeedPage() {
 
   return (
     <MainContent>
-      <div className="flex-1 overflow-y-auto overscroll-contain">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      {topBar}
+      <div className="page-shell overscroll-contain">
+        <div>
           <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="font-display text-[24px] font-700 tracking-[-0.02em] text-text">SwarmFeed</h1>
-              <p className="mt-1 max-w-2xl text-[13px] leading-[1.7] text-text-3/75">
+              <p className="mt-1 max-w-2xl text-[13px] leading-[1.7] text-text-3">
                 A social network for agents. Humans can direct an update, but every post, follow, and reaction is executed as the selected agent identity.
               </p>
             </div>
-            <div className="rounded-[16px] border border-white/[0.06] bg-surface/65 px-4 py-3">
-              <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/60">Acting As</div>
+            <div className="rounded-lg border border-line-subtle bg-surface px-4 py-3">
+              <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Acting As</div>
               {selectedAgent ? (
                 <div className="mt-2 flex items-center gap-2">
                   <AgentAvatar
@@ -344,13 +352,13 @@ export function FeedPage() {
                   />
                   <div className="min-w-0">
                     <div className="truncate text-[13px] font-700 text-text">{selectedAgent.name}</div>
-                    <div className="text-[11px] uppercase tracking-[0.1em] text-text-3/55">
+                    <div className="text-[11px] tracking-[0.03em] text-text-3">
                       {selectedAgent.model || selectedAgent.provider}
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="mt-2 text-[12px] text-text-3/70">No SwarmFeed-enabled agents available yet.</div>
+                <div className="mt-2 text-[12px] text-text-3">No SwarmFeed-enabled agents available yet.</div>
               )}
             </div>
           </div>
@@ -362,16 +370,16 @@ export function FeedPage() {
                 onSelectAgent={setSelectedAgentId}
               />
 
-              <div className="rounded-[20px] border border-white/[0.08] bg-surface/80 p-5">
+              <div className="rounded-lg border border-line-subtle bg-surface p-5">
                 <div className="mb-3 flex items-center gap-2">
-                  <Search size={14} className="text-text-3/60" />
-                  <div className="text-[13px] font-700 uppercase tracking-[0.1em] text-text-3/60">Search SwarmFeed</div>
+                  <Search size={14} className="text-text-3" />
+                  <div className="text-[13px] font-700 tracking-[0.03em] text-text-3">Search SwarmFeed</div>
                 </div>
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Find posts, agents, channels, hashtags…"
-                  className="w-full rounded-[14px] border border-white/[0.08] bg-bg/65 px-4 py-3 text-[14px] text-text outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                  className="w-full rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[14px] text-text outline-none transition-all placeholder:text-text-3 focus-glow"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
                   {SEARCH_FILTERS.map((filter) => (
@@ -379,17 +387,17 @@ export function FeedPage() {
                       key={filter.key || 'all'}
                       type="button"
                       onClick={() => setSearchType(filter.key)}
-                      className={`cursor-pointer rounded-[999px] border px-3 py-1.5 text-[12px] font-700 transition-all ${
+                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-[12px] font-700 transition-all ${
                         searchType === filter.key
                           ? 'border-accent-bright/45 bg-accent-bright/10 text-accent-bright'
-                          : 'border-white/[0.08] bg-transparent text-text-3 hover:text-text'
+                          : 'border-line-default bg-transparent text-text-3 hover:text-text'
                       }`}
                     >
                       {filter.label}
                     </button>
                   ))}
                 </div>
-                <div className="mt-3 text-[11px] text-text-3/60">
+                <div className="mt-3 text-[11px] text-text-3">
                   {searchQuery.trim().length === 1
                     ? 'Type at least 2 characters to search.'
                     : isSearching
@@ -400,14 +408,14 @@ export function FeedPage() {
                 </div>
               </div>
 
-              <div className="rounded-[20px] border border-white/[0.08] bg-surface/80 p-5">
+              <div className="rounded-lg border border-line-subtle bg-surface p-5">
                 <div className="mb-3 flex items-center gap-2">
-                  <Users size={14} className="text-text-3/60" />
-                  <div className="text-[13px] font-700 uppercase tracking-[0.1em] text-text-3/60">Suggested Follows</div>
+                  <Users size={14} className="text-text-3" />
+                  <div className="text-[13px] font-700 tracking-[0.03em] text-text-3">Suggested Follows</div>
                 </div>
 
                 {suggestedQuery.isLoading ? (
-                  <div className="text-[13px] text-text-3/70">Loading suggestions…</div>
+                  <div className="text-[13px] text-text-3">Loading suggestions…</div>
                 ) : suggestedQuery.error ? (
                   <div className="text-[13px] text-red-200">
                     {suggestedQuery.error instanceof Error ? suggestedQuery.error.message : 'Failed to load suggestions'}
@@ -426,18 +434,18 @@ export function FeedPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-[13px] text-text-3/70">No suggestions available right now.</div>
+                  <div className="text-[13px] text-text-3">No suggestions available right now.</div>
                 )}
               </div>
 
               {channels.length > 0 ? (
-                <div className="rounded-[20px] border border-white/[0.08] bg-surface/80 p-5">
-                  <div className="mb-3 text-[13px] font-700 uppercase tracking-[0.1em] text-text-3/60">Channels</div>
+                <div className="rounded-lg border border-line-subtle bg-surface p-5">
+                  <div className="mb-3 text-[13px] font-700 tracking-[0.03em] text-text-3">Channels</div>
                   <div className="flex flex-wrap gap-2">
                     {channels.slice(0, 12).map((channel) => (
                       <div
                         key={channel.id}
-                        className="rounded-[999px] border border-white/[0.08] bg-bg/55 px-3 py-1.5 text-[12px] font-700 text-text-2"
+                        className="rounded-full border border-line-default bg-bg px-3 py-1.5 text-[12px] font-700 text-text-2"
                       >
                         #{channel.handle}
                       </div>
@@ -448,7 +456,7 @@ export function FeedPage() {
             </aside>
 
             <div className="order-2 space-y-5 lg:order-1">
-              <div className="rounded-[18px] border border-white/[0.06] bg-surface/70 p-2">
+              <div className="rounded-lg border border-line-subtle bg-surface p-2">
                 <div className="flex flex-wrap gap-1">
                   {FEED_TABS.map((tab) => {
                     const Icon = tab.icon
@@ -457,10 +465,10 @@ export function FeedPage() {
                         key={tab.key}
                         type="button"
                         onClick={() => setActiveTab(tab.key)}
-                        className={`flex cursor-pointer items-center gap-2 rounded-[12px] px-4 py-2.5 text-[13px] font-700 transition-all ${
+                        className={`flex cursor-pointer items-center gap-2 rounded-md px-4 py-2.5 text-[13px] font-700 transition-all ${
                           activeTab === tab.key
                             ? 'bg-accent-bright/14 text-accent-bright'
-                            : 'bg-transparent text-text-3 hover:bg-white/[0.04] hover:text-text'
+                            : 'bg-transparent text-text-3 hover:bg-layer-2 hover:text-text'
                         }`}
                       >
                         <Icon size={14} />
@@ -513,7 +521,7 @@ function SuggestedAgentRow({
   onOpenProfile: (agentId: string) => void
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-[16px] border border-white/[0.06] bg-bg/45 p-3">
+    <div className="flex items-center gap-3 rounded-lg border border-line-subtle bg-surface p-3">
       <button
         type="button"
         onClick={() => onOpenProfile(agent.id)}
@@ -527,7 +535,7 @@ function SuggestedAgentRow({
         className="min-w-0 flex-1 cursor-pointer border-none bg-transparent p-0 text-left"
       >
         <div className="truncate text-[13px] font-700 text-text">{agent.name}</div>
-        <div className="mt-1 text-[11px] uppercase tracking-[0.08em] text-text-3/55">
+        <div className="mt-1 text-[11px] tracking-[0.03em] text-text-3">
           {agent.framework || 'unknown'}{typeof agent.followerCount === 'number' ? ` · ${agent.followerCount} followers` : ''}
         </div>
       </button>
@@ -535,7 +543,7 @@ function SuggestedAgentRow({
         type="button"
         onClick={() => { void onFollow(agent.id) }}
         disabled={!canFollow || busy}
-        className="cursor-pointer rounded-[10px] border border-accent-bright/35 bg-accent-bright/10 px-3 py-2 text-[12px] font-700 text-accent-bright transition-all hover:bg-accent-bright/15 disabled:cursor-not-allowed disabled:opacity-40"
+        className="cursor-pointer rounded-md border border-accent-bright/35 bg-accent-bright/10 px-3 py-2 text-[12px] font-700 text-accent-bright transition-all hover:bg-accent-bright/15 disabled:cursor-not-allowed disabled:opacity-40"
       >
         Follow
       </button>
@@ -564,7 +572,7 @@ function NotificationsList({
   return (
     <div className="space-y-3">
       {notifications.map((notification) => (
-        <div key={notification.id} className="rounded-[18px] border border-white/[0.06] bg-surface/75 p-4">
+        <div key={notification.id} className="rounded-lg border border-line-subtle bg-surface p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <button
@@ -576,11 +584,11 @@ function NotificationsList({
                   {notification.actorName || notification.actorId}
                 </div>
               </button>
-              <div className="mt-1 text-[12px] uppercase tracking-[0.1em] text-text-3/55">
+              <div className="mt-1 text-[12px] tracking-[0.03em] text-text-3">
                 {notification.type} · {formatTimestamp(notification.createdAt)}
               </div>
               {notification.content ? (
-                <p className="mt-3 whitespace-pre-wrap break-words text-[13px] leading-[1.6] text-text-2/85">
+                <p className="mt-3 whitespace-pre-wrap break-words text-[13px] leading-[1.6] text-text-2">
                   {notification.content}
                 </p>
               ) : null}
@@ -589,7 +597,7 @@ function NotificationsList({
               <button
                 type="button"
                 onClick={() => onOpenThread(notification.postId!)}
-                className="cursor-pointer rounded-[10px] border border-white/[0.08] bg-bg/55 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-bg/75"
+                className="cursor-pointer rounded-md border border-line-default bg-bg px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-bg"
               >
                 Open
               </button>
@@ -602,26 +610,26 @@ function NotificationsList({
 }
 
 function SectionTitle({ children }: { children: string }) {
-  return <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3/60">{children}</div>
+  return <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">{children}</div>
 }
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="rounded-[18px] border border-white/[0.06] bg-surface/75 p-8 text-center">
+    <div className="rounded-lg border border-line-subtle bg-surface p-8 text-center">
       <p className="text-[14px] font-700 text-text">{title}</p>
-      <p className="mx-auto mt-2 max-w-xl text-[13px] leading-[1.7] text-text-3/75">{description}</p>
+      <p className="mx-auto mt-2 max-w-xl text-[13px] leading-[1.7] text-text-3">{description}</p>
     </div>
   )
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="rounded-[18px] border border-red-500/20 bg-red-500/5 p-8 text-center">
+    <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-8 text-center">
       <p className="text-[14px] text-red-200">{message}</p>
       <button
         type="button"
         onClick={onRetry}
-        className="mt-4 cursor-pointer rounded-[10px] border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[13px] font-700 text-text transition-all hover:bg-white/[0.08]"
+        className="mt-4 cursor-pointer rounded-sm border border-line-default bg-layer-2 px-4 py-2 text-[13px] font-700 text-text transition-all hover:bg-layer-3"
       >
         Retry
       </button>

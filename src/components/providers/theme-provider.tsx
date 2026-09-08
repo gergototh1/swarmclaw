@@ -14,7 +14,7 @@ export function ThemeProvider({ children, nonce }: { children: React.ReactNode; 
   return (
     <NextThemeProvider
       attribute="class"
-      defaultTheme="dark"
+      defaultTheme="system"
       enableSystem
       disableTransitionOnChange
       nonce={nonce}

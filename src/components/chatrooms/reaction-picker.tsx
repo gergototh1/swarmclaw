@@ -196,7 +196,7 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
   return (
     <div
       ref={ref}
-      className="absolute right-0 bottom-8 z-50 bg-[#13131e] border border-white/[0.1] rounded-[12px] shadow-[0_8px_40px_rgba(0,0,0,0.6)] w-[320px] flex flex-col overflow-hidden"
+      className="absolute right-0 bottom-8 z-50 bg-raised border border-line-default rounded-md w-[320px] flex flex-col overflow-hidden"
       style={{ animation: 'msg-in 0.15s ease-out both' }}
     >
       {/* Search */}
@@ -207,10 +207,10 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Filter by category or paste emoji..."
-          className="w-full px-2.5 py-1.5 rounded-[8px] bg-white/[0.06] border border-white/[0.08] text-[12px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
+          className="w-full px-2.5 py-1.5 rounded-sm bg-layer-2 border border-line-default text-[12px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/40"
         />
         {search.trim() && (
-          <p className="mt-1 px-0.5 text-[10px] text-text-3/55">
+          <p className="mt-1 px-0.5 text-[10px] text-text-3">
             This picker filters category labels rather than emoji names.
           </p>
         )}
@@ -224,8 +224,8 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               title={cat.label}
-              className={`flex-1 py-1 flex items-center justify-center rounded-[6px] text-[14px] cursor-pointer transition-all ${
-                activeCategory === cat.id ? 'bg-white/[0.08]' : 'hover:bg-white/[0.04]'
+              className={`flex-1 py-1 flex items-center justify-center rounded-xs text-[14px] cursor-pointer transition-all ${
+                activeCategory === cat.id ? 'bg-layer-3' : 'hover:bg-layer-2'
               }`}
             >
               {cat.icon}
@@ -243,27 +243,27 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
                 <button
                   key={`${emoji}-${i}`}
                   onClick={() => onSelect(emoji)}
-                  className="w-[34px] h-[34px] flex items-center justify-center rounded-[6px] hover:bg-white/[0.08] transition-all cursor-pointer text-[18px]"
+                  className="w-[34px] h-[34px] flex items-center justify-center rounded-xs hover:bg-layer-3 transition-all cursor-pointer text-[18px]"
                 >
                   {emoji}
                 </button>
               ))}
             </div>
           ) : (
-            <div className="px-2 py-6 text-center text-[11px] text-text-3/60">
+            <div className="px-2 py-6 text-center text-[11px] text-text-3">
               No category matches. Try terms like <span className="text-text-3">food</span>, <span className="text-text-3">travel</span>, or paste an emoji.
             </div>
           )
         ) : (
           CATEGORIES.filter((c) => c.id === activeCategory).map((cat) => (
             <div key={cat.id}>
-              <div className="text-[10px] font-600 text-text-3 uppercase tracking-wider px-1 py-1.5">{cat.label}</div>
+              <div className="text-[10px] font-600 text-text-3 tracking-[0.03em] px-1 py-1.5">{cat.label}</div>
               <div className="grid grid-cols-8 gap-0.5">
                 {cat.emojis.map((emoji, i) => (
                   <button
                     key={`${emoji}-${i}`}
                     onClick={() => onSelect(emoji)}
-                    className="w-[34px] h-[34px] flex items-center justify-center rounded-[6px] hover:bg-white/[0.08] transition-all cursor-pointer text-[18px]"
+                    className="w-[34px] h-[34px] flex items-center justify-center rounded-xs hover:bg-layer-3 transition-all cursor-pointer text-[18px]"
                   >
                     {emoji}
                   </button>

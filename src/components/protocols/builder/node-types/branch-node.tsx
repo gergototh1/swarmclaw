@@ -6,7 +6,7 @@ export function BranchNode({ data, selected }: NodeProps<Node<BuilderNodeData>>)
   const cases = data.branchCases || []
 
   return (
-    <div className={cn('relative', selected && 'ring-2 ring-blue-500 rounded')}>
+    <div className={cn('relative', selected && 'ring-2 ring-blue-500 rounded-xs')}>
       <Handle type="target" position={Position.Top} />
       <svg width="120" height="100" viewBox="0 0 120 100">
         <polygon

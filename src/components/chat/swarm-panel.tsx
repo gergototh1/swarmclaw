@@ -266,7 +266,7 @@ function SwarmAgentCard({ agent }: { agent: SwarmAgent }) {
 
   return (
     <div
-      className="rounded-[10px] overflow-hidden transition-all duration-200"
+      className="rounded-sm overflow-hidden transition-all duration-200"
       style={{
         background: cfg.bg,
         border: `1px solid ${cfg.border}`,
@@ -284,32 +284,32 @@ function SwarmAgentCard({ agent }: { agent: SwarmAgent }) {
           {agent.agentName}
         </span>
         {agent.durationMs != null && agent.durationMs > 0 && (
-          <span className="text-[10px] text-text-3/50 font-mono shrink-0">
+          <span className="text-[10px] text-text-3 font-mono shrink-0">
             {formatDurationMs(agent.durationMs)}
           </span>
         )}
-        <span className="text-[10px] font-500 shrink-0" style={{ color: cfg.color }}>
+        <span className="text-[10px] font-600 shrink-0" style={{ color: cfg.color }}>
           {cfg.label}
         </span>
         {hasDetail && (
           <svg
             width="10" height="10" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-            className={`shrink-0 text-text-3/50 transition-transform duration-150 ${expanded ? 'rotate-180' : ''}`}
+            className={`shrink-0 text-text-3 transition-transform duration-150 ${expanded ? 'rotate-180' : ''}`}
           >
             <polyline points="6 9 12 15 18 9" />
           </svg>
         )}
       </button>
       {expanded && hasDetail && (
-        <div className="px-3 pb-2.5 border-t border-white/[0.04]">
+        <div className="px-3 pb-2.5 border-t border-line-subtle">
           {agent.error && (
             <pre className="text-[11px] text-rose-400/80 font-mono whitespace-pre-wrap break-all mt-1.5 max-h-[120px] overflow-y-auto">
               {agent.error}
             </pre>
           )}
           {agent.response && (
-            <pre className="text-[11px] text-text-3/70 font-mono whitespace-pre-wrap break-all mt-1.5 max-h-[200px] overflow-y-auto">
+            <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all mt-1.5 max-h-[200px] overflow-y-auto">
               {agent.response.length > 1500 ? `${agent.response.slice(0, 1500)}...` : agent.response}
             </pre>
           )}
@@ -341,7 +341,7 @@ export function SwarmPanel({ data }: { data: SwarmPanelData }) {
 
   return (
     <div
-      className="rounded-[14px] overflow-hidden"
+      className="rounded-md overflow-hidden"
       style={{
         background: overallCfg.bg,
         border: `1px solid ${overallCfg.border}`,
@@ -370,7 +370,7 @@ export function SwarmPanel({ data }: { data: SwarmPanelData }) {
             {data.kind === 'batch' ? 'Swarm' : 'Subagent'} — {agentCount} agent{agentCount !== 1 ? 's' : ''}
           </span>
           {summaryParts.length > 0 && (
-            <span className="text-[10px] text-text-3/60">
+            <span className="text-[10px] text-text-3">
               {summaryParts.join(' · ')}
               {data.totalDurationMs ? ` · ${formatDurationMs(data.totalDurationMs)}` : ''}
             </span>
@@ -394,7 +394,7 @@ export function SwarmPanel({ data }: { data: SwarmPanelData }) {
           <button
             type="button"
             onClick={() => setShowAll(true)}
-            className="self-start px-2.5 py-1 rounded-[7px] bg-white/[0.04] hover:bg-white/[0.07] text-[11px] text-text-3 border border-white/[0.06] cursor-pointer transition-colors"
+            className="self-start px-2.5 py-1 rounded-xs bg-layer-2 hover:bg-layer-3 text-[11px] text-text-3 border border-line-subtle cursor-pointer transition-colors"
             style={{ fontFamily: 'inherit' }}
           >
             Show {hiddenCount} more agent{hiddenCount !== 1 ? 's' : ''}

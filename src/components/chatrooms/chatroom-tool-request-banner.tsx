@@ -93,7 +93,7 @@ export function ChatroomToolRequestBanner({ agentId, agentName, text, toolOutput
         return (
           <div
             key={toolId}
-            className="flex items-center gap-3 px-4 py-3 rounded-[12px] border border-amber-500/20 bg-amber-500/[0.06]"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg border border-amber-500/20 bg-amber-500/[0.06]"
             style={{ animation: 'fade-in 0.2s ease' }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-amber-400 shrink-0">
@@ -103,8 +103,8 @@ export function ChatroomToolRequestBanner({ agentId, agentName, text, toolOutput
               <p className="text-[12px] text-text-2 font-600">
                 <span className="text-accent-bright">{agentName}</span> requesting <span className="text-amber-400">{label}</span>
               </p>
-              {reason && <p className="text-[11px] text-text-3/60 mt-0.5 truncate">{reason}</p>}
-              <p className="text-[10px] text-text-3/45 mt-1">
+              {reason && <p className="text-[11px] text-text-3 mt-0.5 truncate">{reason}</p>}
+              <p className="text-[10px] text-text-3 mt-1">
                 Approving updates this agent&apos;s tool access and posts a follow-up continue message in the room.
               </p>
             </div>
@@ -116,14 +116,14 @@ export function ChatroomToolRequestBanner({ agentId, agentName, text, toolOutput
               <div className="flex gap-1.5 shrink-0">
                 <button
                   onClick={() => handleGrant(toolId)}
-                  className="px-3 py-1.5 rounded-[8px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-600 border-none cursor-pointer transition-colors"
+                  className="px-3 py-1.5 rounded-sm bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-600 border-none cursor-pointer transition-colors"
                   style={{ fontFamily: 'inherit' }}
                 >
                   Grant & Continue
                 </button>
                 <button
                   onClick={() => handleDeny(toolId)}
-                  className="px-3 py-1.5 rounded-[8px] bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[11px] font-600 border-none cursor-pointer transition-colors"
+                  className="px-3 py-1.5 rounded-sm bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[11px] font-600 border-none cursor-pointer transition-colors"
                   style={{ fontFamily: 'inherit' }}
                 >
                   Deny & Reply

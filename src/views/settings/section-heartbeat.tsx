@@ -44,16 +44,16 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Heartbeat Defaults
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Global defaults inherited by agents. Enable heartbeat and set interval/model per-agent in the agent editor.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Default Prompt</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Default Prompt</label>
             <input
               type="text"
               value={appSettings.heartbeatPrompt || ''}
@@ -64,7 +64,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             />
           </div>
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Ack Threshold (chars)</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Ack Threshold (chars)</label>
             <input
               type="number"
               min={0}
@@ -76,19 +76,19 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Responses under this length are suppressed as HEARTBEAT_OK.</p>
+            <p className="text-[11px] text-text-3 mt-2">Responses under this length are suppressed as HEARTBEAT_OK.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Show OK Messages</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Show OK Messages</label>
             <button
               onClick={() => patchSettings({ heartbeatShowOk: !(appSettings.heartbeatShowOk ?? DEFAULT_HEARTBEAT_SHOW_OK) })}
-              className={`px-3 py-2 rounded-[10px] border text-[12px] font-600 transition-colors cursor-pointer ${
+              className={`px-3 py-2 rounded-sm border text-[12px] font-600 transition-colors cursor-pointer ${
                 appSettings.heartbeatShowOk
                   ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300'
-                  : 'border-white/[0.08] bg-white/[0.03] text-text-3'
+                  : 'border-line-default bg-layer-1 text-text-3'
               }`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -96,13 +96,13 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             </button>
           </div>
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Show Alert Messages</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Show Alert Messages</label>
             <button
               onClick={() => patchSettings({ heartbeatShowAlerts: !(appSettings.heartbeatShowAlerts ?? DEFAULT_HEARTBEAT_SHOW_ALERTS) })}
-              className={`px-3 py-2 rounded-[10px] border text-[12px] font-600 transition-colors cursor-pointer ${
+              className={`px-3 py-2 rounded-sm border text-[12px] font-600 transition-colors cursor-pointer ${
                 (appSettings.heartbeatShowAlerts ?? DEFAULT_HEARTBEAT_SHOW_ALERTS)
                   ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300'
-                  : 'border-white/[0.08] bg-white/[0.03] text-text-3'
+                  : 'border-line-default bg-layer-1 text-text-3'
               }`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -110,7 +110,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             </button>
           </div>
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Delivery Target</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Delivery Target</label>
             <input
               type="text"
               value={appSettings.heartbeatTarget || ''}
@@ -122,16 +122,16 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
           </div>
         </div>
 
-        <div className="border-t border-white/[0.06] pt-5 mt-5">
-          <h4 className="font-display text-[11px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+        <div className="border-t border-line-subtle pt-5 mt-5">
+          <h4 className="font-display text-[11px] font-600 text-text-2 tracking-[0.03em] mb-2">
             Session Reset Defaults
           </h4>
-          <p className="text-[11px] text-text-3/60 mb-4">
+          <p className="text-[11px] text-text-3 mb-4">
             Freshness policy inherited by new sessions unless overridden on the agent or session itself.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Reset Mode</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Reset Mode</label>
               <select
                 value={appSettings.sessionResetMode || ''}
                 onChange={(e) => patchSettings({ sessionResetMode: parseResetMode(e.target.value) })}
@@ -144,7 +144,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
               </select>
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Idle Timeout (sec)</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Idle Timeout (sec)</label>
               <input
                 type="number"
                 min={0}
@@ -158,7 +158,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Max Age (sec)</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Max Age (sec)</label>
               <input
                 type="number"
                 min={0}
@@ -170,7 +170,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
               />
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Daily Reset Time</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Daily Reset Time</label>
               <input
                 type="text"
                 value={appSettings.sessionDailyResetAt || ''}
@@ -181,7 +181,7 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
               />
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Reset Timezone</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Reset Timezone</label>
               <input
                 type="text"
                 value={appSettings.sessionResetTimezone || ''}
@@ -199,17 +199,17 @@ export function HeartbeatSection({ appSettings, patchSettings, inputClass }: Set
             <button
               onClick={handleDisableAllHeartbeats}
               disabled={disablingHeartbeats}
-              className="px-3.5 py-2 rounded-[10px] border border-rose-400/25 bg-rose-500/10 text-rose-300 hover:bg-rose-500/16 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-[12px] font-600"
+              className="px-3.5 py-2 rounded-md border border-rose-400/25 bg-rose-500/10 text-rose-300 hover:bg-rose-500/16 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-[12px] font-600"
               style={{ fontFamily: 'inherit' }}
             >
               {disablingHeartbeats ? 'Stopping\u2026' : 'Stop All Heartbeats'}
             </button>
-            <span className="text-[11px] text-text-3/70">
+            <span className="text-[11px] text-text-3">
               Disables heartbeat on every agent and cancels queued runs.
             </span>
           </div>
           {heartbeatBulkNotice && (
-            <p className="text-[11px] text-text-3/70 mt-2">{heartbeatBulkNotice}</p>
+            <p className="text-[11px] text-text-3 mt-2">{heartbeatBulkNotice}</p>
           )}
         </div>
       </div>

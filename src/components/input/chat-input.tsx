@@ -202,11 +202,11 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
     : 'Queued messages will send automatically when the current turn finishes.'
 
   return (
-    <div className="shrink-0 px-4 md:px-12 lg:px-16 pb-4 pt-2 fixed bottom-0 left-0 right-0 z-20 bg-bg/95 backdrop-blur-md md:relative md:z-auto md:bg-transparent md:backdrop-blur-none"
+    <div className="shrink-0 px-4 md:px-12 lg:px-16 pb-4 pt-2 fixed bottom-0 left-0 right-0 z-20 bg-bg/80 backdrop-blur-md md:relative md:z-auto md:bg-transparent md:backdrop-blur-none"
       style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="relative" ref={extrasRef}>
         {busy && visibleQueuedMessages.length === 0 && (
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-[14px] border border-amber-500/15 bg-amber-500/[0.06] px-3.5 py-2">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/15 bg-amber-500/[0.06] px-3.5 py-2">
             <div className="min-w-0">
               <div className="text-[12px] font-600 text-amber-300">Reply in progress</div>
               <div className="text-[11px] text-amber-200/70">
@@ -217,7 +217,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
               onClick={onStop}
               aria-label="Stop response"
               data-testid="chat-stop"
-              className="px-4 py-2 rounded-pill border border-danger/20 bg-danger/[0.06]
+              className="px-4 py-2 rounded-full border border-danger/20 bg-danger/[0.06]
                 text-danger text-[12px] font-600 cursor-pointer transition-all duration-200
                 active:scale-95 hover:bg-danger/[0.1] hover:border-danger/30 shrink-0"
               style={{ fontFamily: 'inherit' }}
@@ -228,29 +228,35 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
         )}
 
         {visibleQueuedMessages.length > 0 && (
-          <div className="mb-2 overflow-hidden rounded-[16px] border border-amber-500/18 bg-[linear-gradient(180deg,rgba(245,158,11,0.08)_0%,rgba(245,158,11,0.03)_100%)] shadow-[0_10px_32px_rgba(245,158,11,0.06)]">
+          <div className="mb-2 overflow-hidden rounded-lg border border-amber-500/18 bg-warning-soft">
             <div className="flex items-start justify-between gap-3 border-b border-amber-500/10 px-3.5 py-3">
               <div className="min-w-0 overflow-hidden">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="relative flex h-2.5 w-2.5 shrink-0">
                     {busy && <span className="absolute inline-flex h-2.5 w-2.5 rounded-full bg-amber-400/30 animate-ping" />}
-                    <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${busy ? 'bg-amber-300' : 'bg-white/[0.45]'}`} />
+                    {/* 0.45 sits above the surface ladder's top step (layer-4 is
+                        0.16); scripts/codemod-surfaces.mjs refuses anything past
+                        0.25 as a scrim rather than a surface, and this idle dot
+                        is one. Consequently it is hard to see in the light
+                        theme, which is a design decision, not something to
+                        guess at here. */}
+                    <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${busy ? 'bg-amber-300' : 'bg-layer-4'}`} />
                   </span>
                   <span className="label-mono text-amber-300/80">Message queue</span>
                   {pendingQueuedMessages.length > 0 && (
-                    <span className="rounded-pill border border-amber-400/15 bg-amber-400/10 px-2 py-0.5 text-[10px] font-600 text-amber-200">
+                    <span className="rounded-full border border-amber-400/15 bg-amber-400/10 px-2 py-0.5 text-[10px] font-600 text-amber-200">
                       {pendingQueuedMessages.length}
                     </span>
                   )}
                   {sendingQueuedMessages.length > 0 && (
-                    <span className="rounded-pill border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-600 text-sky-200">
+                    <span className="rounded-full border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-600 text-sky-200">
                       {sendingQueuedMessages.length} sending
                     </span>
                   )}
-                  <span className={`rounded-pill border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] ${
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] ${
                     busy
                       ? 'border-amber-300/20 bg-amber-300/10 text-amber-100'
-                      : 'border-white/[0.08] bg-white/[0.05] text-text-3'
+                      : 'border-line-default bg-layer-2 text-text-3'
                   }`}>
                     {queueStatusLabel}
                   </span>
@@ -266,7 +272,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                     onClick={onStop}
                     aria-label="Stop response"
                     data-testid="chat-stop"
-                    className="rounded-pill border border-danger/20 bg-danger/[0.06] px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.12em] text-danger transition-all hover:bg-danger/[0.1] hover:border-danger/30 cursor-pointer"
+                    className="rounded-full border border-danger/20 bg-danger/[0.06] px-2.5 py-1 text-[10px] font-700 tracking-[0.03em] text-danger transition-all hover:bg-danger/[0.1] hover:border-danger/30 cursor-pointer"
                   >
                     Stop
                   </button>
@@ -275,7 +281,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   <button
                     type="button"
                     onClick={() => { void clearQueuedMessagesForSession(sessionId) }}
-                    className="rounded-pill border border-amber-400/15 bg-transparent px-3 py-1.5 text-[11px] font-600 text-amber-200/80 transition-all hover:border-amber-300/30 hover:bg-amber-300/[0.08] hover:text-amber-100 cursor-pointer"
+                    className="rounded-full border border-amber-400/15 bg-transparent px-3 py-1.5 text-[11px] font-600 text-amber-200/80 transition-all hover:border-amber-300/30 hover:bg-amber-300/[0.08] hover:text-amber-100 cursor-pointer"
                   >
                     Clear
                   </button>
@@ -286,20 +292,20 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
               {displayedQueuedMessages.map((item, index) => (
                 <div
                   key={item.runId}
-                  className={`group flex items-start gap-3 rounded-[12px] border px-3 py-2.5 transition-all ${
+                  className={`group flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-all ${
                     item.sending
                       ? 'border-sky-300/15 bg-sky-300/[0.06]'
                       : item.runId === nextPendingRunId
                         ? 'border-amber-300/20 bg-amber-300/[0.07]'
-                        : 'border-white/[0.05] bg-white/[0.02]'
+                        : 'border-line-subtle bg-surface'
                   }`}
                 >
-                  <div className={`mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-[8px] px-2 text-[10px] font-700 ${
+                  <div className={`mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-sm px-2 text-[10px] font-700 ${
                     item.sending
                       ? 'bg-sky-300/15 text-sky-100'
                       : item.runId === nextPendingRunId
                         ? 'bg-amber-300/15 text-amber-100'
-                      : 'border-white/[0.05] bg-white/[0.02]'
+                      : 'border-line-subtle bg-layer-1'
                   }`}
                 >
                     {item.sending ? '>' : pendingQueuedMessages.findIndex((candidate) => candidate.runId === item.runId) + 1}
@@ -307,25 +313,25 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       {item.sending ? (
-                        <span className="rounded-pill border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-sky-200 animate-pulse">
+                        <span className="rounded-full border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] text-sky-200 animate-pulse">
                           Sending
                         </span>
                       ) : item.runId === nextPendingRunId && (
-                        <span className="rounded-pill border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-amber-100">
+                        <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] text-amber-100">
                           Next
                         </span>
                       )}
                       {item.replyToId && (
-                        <span className="rounded-pill border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-text-3">
+                        <span className="rounded-full border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
                           Reply
                         </span>
                       )}
                       {item.attachedFiles?.length ? (
-                        <span className="rounded-pill border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-text-3">
+                        <span className="rounded-full border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
                           +{item.attachedFiles.length} files
                         </span>
                       ) : item.imagePath || item.imageUrl ? (
-                        <span className="rounded-pill border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-text-3">
+                        <span className="rounded-full border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] text-text-3">
                           1 attachment
                         </span>
                       ) : null}
@@ -338,7 +344,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                     <button
                       type="button"
                       onClick={() => { if (sessionId) void removeQueuedMessage(sessionId, item.runId) }}
-                      className="shrink-0 rounded-[8px] border border-transparent bg-transparent p-1.5 text-amber-300/60 transition-all hover:border-amber-300/20 hover:bg-amber-300/[0.08] hover:text-amber-100 cursor-pointer"
+                      className="shrink-0 rounded-sm border border-transparent bg-transparent p-1.5 text-amber-300/60 transition-all hover:border-amber-300/20 hover:bg-amber-300/[0.08] hover:text-amber-100 cursor-pointer"
                       aria-label={`Remove queued message ${index + 1}`}
                       title="Remove from queue"
                     >
@@ -369,8 +375,8 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 onClick={() => setExtrasOpen((open) => !open)}
                 aria-label="Add attachment"
                 data-testid="chat-add"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] border-none bg-transparent
-                  text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-white/[0.05] transition-all duration-200"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-sm border-none bg-transparent
+                  text-text-3 text-[13px] cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all duration-200"
                 style={{ fontFamily: 'inherit' }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -382,7 +388,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
 
               <div className="flex-1" />
 
-              <span className="text-[11px] text-text-3/60 tabular-nums mr-2 font-mono">
+              <span className="text-[11px] text-text-3 tabular-nums mr-2 font-mono">
                 {value.length > 0 && value.length}
               </span>
 
@@ -391,13 +397,13 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 disabled={!hasContent}
                 aria-label={shouldQueue ? 'Queue message' : 'Send message'}
                 data-testid="chat-send"
-                className={`w-9 h-9 rounded-[11px] border-none flex items-center justify-center
+                className={`w-9 h-9 rounded-lg border-none flex items-center justify-center
                   shrink-0 cursor-pointer transition-all duration-250
                   ${hasContent
                     ? shouldQueue
                       ? 'bg-amber-500/20 text-amber-400 active:scale-90 border border-amber-500/30'
-                      : 'bg-accent-bright text-white active:scale-90 shadow-[0_4px_16px_rgba(99,102,241,0.3)]'
-                    : 'bg-white/[0.04] text-text-3 pointer-events-none'}`}
+                      : 'bg-accent-bright text-accent-fg active:scale-90'
+                    : 'bg-layer-2 text-text-3 pointer-events-none'}`}
                 title={shouldQueue ? 'Queue message' : 'Send message'}
               >
                 {shouldQueue && hasContent ? (
@@ -427,20 +433,20 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
             data-testid="chat-input"
             rows={1}
             className="w-full px-5 pt-4 pb-2 bg-transparent text-text text-[15px] outline-none resize-none
-              max-h-[140px] leading-[1.55] placeholder:text-text-3/70 border-none"
+              max-h-[140px] leading-[1.55] placeholder:text-text-3 border-none"
             style={{ fontFamily: 'inherit' }}
           />
         </ComposerShell>
 
         {extrasOpen && (
-          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-[16px] border border-white/[0.08] bg-raised/95 p-2 shadow-[0_18px_64px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-subtle bg-surface/80 p-2 backdrop-blur-xl">
             <button
               type="button"
               onClick={() => {
                 setExtrasOpen(false)
                 fileInputRef.current?.click()
               }}
-              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-white/[0.05] cursor-pointer transition-colors"
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -454,7 +460,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 setExtrasOpen(false)
                 imageInputRef.current?.click()
               }}
-              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-white/[0.05] cursor-pointer transition-colors"
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -471,8 +477,8 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   setExtrasOpen(false)
                   toggleRecording()
                 }}
-                className={`flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] cursor-pointer transition-colors ${
-                  recording ? 'text-danger bg-danger/[0.06]' : 'text-text-2 hover:bg-white/[0.05]'
+                className={`flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-[13px] cursor-pointer transition-colors ${
+                  recording ? 'text-danger bg-danger/[0.06]' : 'text-text-2 hover:bg-layer-2'
                 }`}
                 style={recording ? { animation: 'mic-pulse 1.5s ease-out infinite', fontFamily: 'inherit' } : { fontFamily: 'inherit' }}
               >
@@ -491,7 +497,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 void useChatStore.getState().clearContext()
               }}
               disabled={streaming}
-              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-text-2 hover:bg-white/[0.05] cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-[13px] text-text-2 hover:bg-layer-2 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -503,8 +509,8 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
             </button>
             {extensionChatActions.length > 0 && (
               <>
-                <div className="mx-2 my-1 h-px bg-white/[0.06]" />
-                <div className="px-3 pb-1 pt-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/50">
+                <div className="mx-2 my-1 h-px bg-layer-2" />
+                <div className="px-3 pb-1 pt-1 text-[10px] font-700 tracking-[0.03em] text-text-3">
                   Quick actions
                 </div>
                 {extensionChatActions.map((action) => (
@@ -525,7 +531,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                           }
                           else if (action.action === 'link') window.open(action.value, '_blank')
                         }}
-                        className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] text-emerald-300 hover:bg-emerald-500/[0.08] cursor-pointer transition-colors"
+                        className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-[13px] text-emerald-300 hover:bg-emerald-500/[0.08] cursor-pointer transition-colors"
                         style={{ fontFamily: 'inherit' }}
                       >
                         {action.label}

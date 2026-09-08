@@ -83,7 +83,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
   if (checking) return (
     <div className="h-full flex items-center justify-center bg-bg">
       <div
-        className="h-6 w-6 rounded-full border-2 border-white/[0.08] border-t-accent-bright"
+        className="h-6 w-6 rounded-full border-2 border-line-default border-t-accent-bright"
         style={{ animation: 'spin 0.8s linear infinite' }}
       />
     </div>
@@ -132,7 +132,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
             {firstTimeStep === 'show-key' && (
               <>
                 <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.1s both' }}>
-                  <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+                  <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
                     First-Time Setup
                   </h1>
                   <p className="text-[14px] text-text-2 mb-6">
@@ -143,7 +143,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                 {generatedKey ? (
                   <div className="flex flex-col items-center gap-4">
                     <div
-                      className="w-full max-w-[380px] px-5 py-4 rounded-[16px] border border-white/[0.08] bg-surface
+                      className="w-full max-w-[380px] px-5 py-4 rounded-lg border border-line-default bg-surface
                         flex items-center justify-between gap-3"
                       style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.2s both' }}
                     >
@@ -155,8 +155,8 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                           setKeyCopied(true)
                           setTimeout(() => setKeyCopied(false), 2000)
                         }}
-                        className="shrink-0 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] text-[12px] text-text-2
-                          cursor-pointer hover:bg-white/[0.08] transition-all duration-200"
+                        className="shrink-0 px-3 py-1.5 rounded-lg border border-line-default bg-layer-2 text-[12px] text-text-2
+                          cursor-pointer hover:bg-layer-3 transition-all duration-200"
                       >
                         {keyCopied ? 'Copied' : 'Copy'}
                       </button>
@@ -174,9 +174,8 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                       <button
                         type="button"
                         onClick={() => setFirstTimeStep('confirm')}
-                        className="px-12 py-4 rounded-[16px] border-none bg-accent-bright text-white text-[16px] font-display font-600
-                          cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-                          shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
+                        className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
+                          cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200"
                       >
                         Continue
                       </button>
@@ -226,16 +225,16 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                             placeholder="Enter custom access key"
                             autoFocus
                             autoComplete="off"
-                            className="w-full max-w-[320px] px-6 py-4 rounded-[16px] border border-white/[0.08] bg-surface
+                            className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                               text-text text-[16px] text-center font-mono outline-none
-                              transition-all duration-200 placeholder:text-text-3/70
-                              focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                              transition-all duration-200 placeholder:text-text-3
+                              focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                           />
                           <button
                             type="submit"
                             disabled={loading || !key.trim()}
-                            className="px-8 py-3 rounded-[12px] border border-white/[0.08] bg-white/[0.04] text-text text-[14px] font-display font-600
-                              cursor-pointer hover:bg-white/[0.08] transition-all duration-200 disabled:opacity-30"
+                            className="px-8 py-3 rounded-lg border border-line-default bg-layer-2 text-text text-[14px] font-display font-600
+                              cursor-pointer hover:bg-layer-3 transition-all duration-200 disabled:opacity-30"
                           >
                             {loading ? 'Saving...' : 'Use this key instead'}
                           </button>
@@ -254,10 +253,10 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                         placeholder="Enter access key from terminal"
                         autoFocus
                         autoComplete="off"
-                        className="w-full max-w-[320px] px-6 py-4 rounded-[16px] border border-white/[0.08] bg-surface
+                        className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                           text-text text-[16px] text-center font-mono outline-none
-                          transition-all duration-200 placeholder:text-text-3/70
-                          focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                          transition-all duration-200 placeholder:text-text-3
+                          focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                       />
                     </div>
 
@@ -273,9 +272,9 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                       <button
                         type="submit"
                         disabled={loading || !key.trim()}
-                        className="px-12 py-4 rounded-[16px] border-none bg-accent-bright text-white text-[16px] font-display font-600
+                        className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                           cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-                          shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
+                          disabled:opacity-30"
                       >
                         {loading ? 'Connecting...' : 'Connect'}
                       </button>
@@ -288,7 +287,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
             {firstTimeStep === 'confirm' && (
               <div className="flex flex-col items-center gap-4">
                 <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.1s both' }}>
-                  <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+                  <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
                     Save Your Access Key
                   </h1>
                   <p className="text-[14px] text-text-2 mb-6 max-w-[380px]">
@@ -301,17 +300,16 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                   <button
                     type="button"
                     onClick={() => setFirstTimeStep('show-key')}
-                    className="px-8 py-4 rounded-[16px] border border-white/[0.08] bg-white/[0.04] text-text text-[16px] font-display font-600
-                      cursor-pointer hover:bg-white/[0.08] transition-all duration-200"
+                    className="px-8 py-4 rounded-lg border border-line-default bg-layer-2 text-text text-[16px] font-display font-600
+                      cursor-pointer hover:bg-layer-3 transition-all duration-200"
                   >
                     Go Back
                   </button>
                   <button
                     type="button"
                     onClick={() => { setKey(''); setError(''); setFirstTimeStep('paste-key') }}
-                    className="px-8 py-4 rounded-[16px] border-none bg-accent-bright text-white text-[16px] font-display font-600
-                      cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-                      shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
+                    className="px-8 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
+                      cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200"
                   >
                     I&apos;ve Saved It
                   </button>
@@ -322,7 +320,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
             {firstTimeStep === 'paste-key' && (
               <div className="flex flex-col items-center gap-4">
                 <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.1s both' }}>
-                  <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+                  <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
                     Enter Your Access Key
                   </h1>
                   <p className="text-[14px] text-text-2 mb-6">
@@ -339,10 +337,10 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                       placeholder="Paste access key"
                       autoFocus
                       autoComplete="off"
-                      className="w-full max-w-[320px] px-6 py-4 rounded-[16px] border border-white/[0.08] bg-surface
+                      className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                         text-text text-[16px] text-center font-mono outline-none
-                        transition-all duration-200 placeholder:text-text-3/70
-                        focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                        transition-all duration-200 placeholder:text-text-3
+                        focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                     />
                   </div>
 
@@ -354,9 +352,9 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                     <button
                       type="submit"
                       disabled={!key.trim() || loading}
-                      className="px-12 py-4 rounded-[16px] border-none bg-accent-bright text-white text-[16px] font-display font-600
+                      className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                         cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-                        shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
+                        disabled:opacity-30"
                     >
                       {loading ? 'Connecting...' : 'Connect'}
                     </button>
@@ -376,7 +374,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
           /* ── Returning user: enter key ── */
           <>
             <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.1s both' }}>
-              <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+              <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
                 Connect
               </h1>
               <p className="text-[14px] text-text-2 mb-2">
@@ -396,10 +394,10 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                   placeholder="Access key"
                   autoFocus
                   autoComplete="off"
-                  className="w-full max-w-[320px] px-6 py-4 rounded-[16px] border border-white/[0.08] bg-surface
+                  className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                     text-text text-[16px] text-center font-mono outline-none
-                    transition-all duration-200 placeholder:text-text-3/70
-                    focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                    transition-all duration-200 placeholder:text-text-3
+                    focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                 />
               </div>
 
@@ -411,9 +409,9 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                 <button
                   type="submit"
                   disabled={!key.trim() || loading}
-                  className="px-12 py-4 rounded-[16px] border-none bg-accent-bright text-white text-[16px] font-display font-600
+                  className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                     cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-                    shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
+                    disabled:opacity-30"
                 >
                   {loading ? 'Connecting...' : 'Connect'}
                 </button>

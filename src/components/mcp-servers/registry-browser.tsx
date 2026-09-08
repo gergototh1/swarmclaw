@@ -135,12 +135,12 @@ export function RegistryBrowser({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+    <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-[20px] border border-white/[0.08] bg-surface"
+        className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-line-subtle bg-surface"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
+        <div className="flex items-center justify-between border-b border-line-subtle px-6 py-4">
           <div>
             <h3 className="font-display text-[18px] font-700 tracking-[-0.02em]">Browse SwarmDock MCP Registry</h3>
             <p className="mt-0.5 text-[12px] text-text-3">
@@ -165,7 +165,7 @@ export function RegistryBrowser({
             placeholder="Search — e.g. postgres, pdf, github"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-[12px] border border-white/[0.08] bg-surface-2 px-4 py-2.5 text-[14px] outline-none focus-glow"
+            className="w-full rounded-md border border-line-default bg-surface px-4 py-2.5 text-[14px] outline-none focus-glow"
             style={{ fontFamily: 'inherit' }}
             autoFocus
           />
@@ -186,11 +186,11 @@ export function RegistryBrowser({
                     type="button"
                     onClick={() => handleSelect(server.slug)}
                     disabled={selecting !== null}
-                    className="group flex w-full flex-col gap-1 rounded-[12px] border border-transparent px-3 py-2.5 text-left transition-all hover:border-white/[0.08] hover:bg-surface-2 disabled:opacity-60"
+                    className="group flex w-full flex-col gap-1 rounded-md border border-transparent px-3 py-2.5 text-left transition-all hover:border-line-default hover:bg-surface-2 disabled:opacity-60"
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-[14px] font-600 group-hover:text-accent-bright">{server.name}</span>
-                      <span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] font-mono uppercase text-text-3">
+                      <span className="rounded-full bg-layer-2 px-2 py-0.5 text-[10px] font-mono text-text-3">
                         {server.transport}
                       </span>
                       {server.paidTier ? (

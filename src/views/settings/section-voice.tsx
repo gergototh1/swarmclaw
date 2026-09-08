@@ -10,18 +10,18 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Voice
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Configure voice playback (TTS), the default ElevenLabs voice, and speech-to-text input.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         {/* ElevenLabs toggle */}
         <div className="flex items-center justify-between mb-5">
           <div>
-            <label className="font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em]">ElevenLabs TTS</label>
-            <p className="text-[11px] text-text-3/60 mt-0.5">Enable text-to-speech for agent responses</p>
+            <label className="font-display text-[11px] font-600 text-text-3 tracking-[0.03em]">ElevenLabs TTS</label>
+            <p className="text-[11px] text-text-3 mt-0.5">Enable text-to-speech for agent responses</p>
           </div>
           <button
             type="button"
@@ -35,7 +35,7 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
         {showVoiceConfig && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">API Key</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">API Key</label>
               <input
                 type="password"
                 value={appSettings.elevenLabsApiKey || ''}
@@ -49,7 +49,7 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
               )}
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Default Voice ID</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Default Voice ID</label>
               <input
                 type="text"
                 value={appSettings.elevenLabsVoiceId || ''}
@@ -58,19 +58,19 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
                 className={inputClass}
                 style={{ fontFamily: 'inherit' }}
               />
-              <p className="text-[11px] text-text-3/60 mt-1.5">Fallback voice when an agent has no override set. Agents can override this in their own create/edit sheet.</p>
+              <p className="text-[11px] text-text-3 mt-1.5">Fallback voice when an agent has no override set. Agents can override this in their own create/edit sheet.</p>
             </div>
           </div>
         )}
 
         {showVoiceConfig && !enabled && (
-          <p className="mb-5 rounded-[12px] border border-white/[0.06] bg-white/[0.03] px-3 py-2.5 text-[11px] text-text-3/70">
+          <p className="mb-5 rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5 text-[11px] text-text-3">
             ElevenLabs credentials and default voice can be prepared here even while playback is turned off.
           </p>
         )}
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Speech Recognition Language</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Speech Recognition Language</label>
           <input
             type="text"
             value={appSettings.speechRecognitionLang || ''}

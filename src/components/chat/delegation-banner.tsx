@@ -76,7 +76,7 @@ export function DelegationBanner({ agentName, agentAvatarSeed, agentAvatarUrl, t
 
   return (
     <div
-      className="rounded-[12px] px-3.5 py-2.5 flex items-center gap-2.5"
+      className="rounded-md px-3.5 py-2.5 flex items-center gap-2.5"
       style={{
         background: cfg.bg,
         border: `1px solid ${cfg.border}`,
@@ -99,7 +99,7 @@ export function DelegationBanner({ agentName, agentAvatarSeed, agentAvatarUrl, t
         <button
           type="button"
           onClick={handleTaskClick}
-          className="shrink-0 text-[10px] font-600 px-2 py-1 rounded-[6px] cursor-pointer border-none transition-colors"
+          className="shrink-0 text-[10px] font-600 px-2 py-1 rounded-xs cursor-pointer border-none transition-colors"
           style={{
             color: cfg.color,
             background: `${cfg.color}15`,
@@ -204,7 +204,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
 
   return (
     <div
-      className="rounded-[14px] overflow-hidden"
+      className="rounded-md overflow-hidden"
       style={{
         background: isSuccess ? 'rgba(52,211,153,0.04)' : 'rgba(244,63,94,0.04)',
         border: `1px solid ${isSuccess ? 'rgba(52,211,153,0.15)' : 'rgba(244,63,94,0.15)'}`,
@@ -246,7 +246,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
           <button
             type="button"
             onClick={handleTaskClick}
-            className="shrink-0 text-[10px] font-600 px-2.5 py-1 rounded-[6px] cursor-pointer border-none transition-colors"
+            className="shrink-0 text-[10px] font-600 px-2.5 py-1 rounded-xs cursor-pointer border-none transition-colors"
             style={{
               color: isSuccess ? '#34D399' : '#F43F5E',
               background: isSuccess ? 'rgba(52,211,153,0.1)' : 'rgba(244,63,94,0.1)',
@@ -261,7 +261,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
       <div className="px-4 py-3 flex flex-col gap-2.5">
         {/* Task title */}
         <div className="flex items-start gap-2">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-0.5 text-text-3/50">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-0.5 text-text-3">
             <path d="M9 11l3 3L22 4" />
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
@@ -281,7 +281,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
         {/* Working directory */}
         {info.workingDir && (
           <div className="flex items-center gap-2">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3/40">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
             <button
@@ -298,17 +298,17 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
         {/* Resume info */}
         {info.resumeInfo && (
           <div className="flex items-center gap-2">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3/40">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3">
               <polyline points="4 17 10 11 4 5" />
               <line x1="12" y1="19" x2="20" y2="19" />
             </svg>
-            <span className="text-[11px] text-text-3/60 font-mono truncate">{info.resumeInfo}</span>
+            <span className="text-[11px] text-text-3 font-mono truncate">{info.resumeInfo}</span>
           </div>
         )}
 
         {info.outputFiles.length > 0 && (
           <div className="flex flex-col gap-1">
-            <span className="text-[11px] text-text-3/55">Output files</span>
+            <span className="text-[11px] text-text-3">Output files</span>
             <div className="flex flex-wrap gap-1.5">
               {info.outputFiles.map((fileRef) => {
                 const openPath = info.workingDir && !fileRef.startsWith('/') && !fileRef.startsWith('~/')
@@ -319,7 +319,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
                     key={fileRef}
                     type="button"
                     onClick={() => { api('POST', '/files/open', { path: openPath }).catch(() => {}) }}
-                    className="px-2 py-1 rounded-[7px] text-[10px] font-mono bg-white/[0.03] border border-white/[0.08] text-text-3/70 hover:text-text-3 cursor-pointer max-w-full truncate"
+                    className="px-2 py-1 rounded-xs text-[10px] font-mono bg-layer-1 border border-line-default text-text-3/70 hover:text-text-3 cursor-pointer max-w-full truncate"
                     title={`Open ${openPath}`}
                   >
                     {fileRef}
@@ -332,7 +332,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
 
         {info.reportPath && (
           <div className="flex items-center gap-2">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3/40">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-text-3">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
             </svg>
@@ -355,7 +355,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
               src={info.imageUrl}
               alt="Task result"
               loading="lazy"
-              className="max-w-full rounded-[10px] border border-white/[0.06]"
+              className="max-w-full rounded-sm border border-line-subtle"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           </div>
@@ -364,8 +364,8 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
         {/* Result body */}
         {info.resultBody && (
           <div className="mt-0.5">
-            <div className="rounded-[10px] bg-white/[0.02] border border-white/[0.04] px-3 py-2.5 max-h-[260px] overflow-y-auto">
-              <div className="text-[12px] leading-[1.6] text-text-3/80 break-words">
+            <div className="rounded-md bg-layer-1 border border-line-subtle px-3 py-2.5 max-h-[260px] overflow-y-auto">
+              <div className="text-[12px] leading-[1.6] text-text-3 break-words">
                 <ReactMarkdown
                   components={{
                     a: ({ href, children }) => (
@@ -384,7 +384,7 @@ export function TaskCompletionCard({ info }: { info: TaskCompletionInfo }) {
                         src={src || ''}
                         alt={alt || 'Task artifact'}
                         loading="lazy"
-                        className="max-w-full rounded-[8px] border border-white/[0.08] my-2"
+                        className="max-w-full rounded-sm border border-line-default my-2"
                       />
                     ),
                     p: ({ children }) => <p className="m-0 mb-2">{children}</p>,
@@ -425,7 +425,7 @@ export function DelegationSourceBanner({ delegatorName, delegatorAvatarSeed, del
 
   return (
     <div
-      className="rounded-[12px] px-3.5 py-2.5 flex items-start gap-2.5 bg-indigo-500/[0.05] border border-indigo-500/[0.12]"
+      className="rounded-md px-3.5 py-2.5 flex items-start gap-2.5 bg-indigo-500/[0.05] border border-indigo-500/[0.12]"
       style={{ animation: 'delegation-handoff-in 0.45s cubic-bezier(0.16, 1, 0.3, 1)' }}
     >
       <div className="shrink-0 mt-0.5" style={{ animation: 'delegation-handoff-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both' }}>

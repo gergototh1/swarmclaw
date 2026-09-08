@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useState, useRef, useMemo } from 'react'
 import { useAppStore } from '@/stores/use-app-store'
+import { CountTile } from '@/components/shared/count-tile'
 import { useAgentsQuery } from '@/features/agents/queries'
 import { useProjectsQuery } from '@/features/projects/queries'
 import {
@@ -392,12 +393,12 @@ export default function TasksPage() {
     <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
       <div className="flex items-center justify-between px-8 pt-6 pb-4 shrink-0">
         <div>
-          <h1 className="font-display text-[28px] font-800 tracking-[-0.03em]">Task Board</h1>
+          <h1 className="font-display text-[28px] font-700 tracking-[-0.03em]">Task Board</h1>
           <div className="flex items-center gap-3 mt-1">
             <p className="text-[13px] text-text-3">
               {stats.total} task{stats.total !== 1 ? 's' : ''}
             </p>
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] px-2 py-1 text-[11px] font-600 text-text-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-layer-2 px-2 py-1 text-[11px] font-600 text-text-2">
               {taskScopeFilter === 'agent' && filterAgentId && agents[filterAgentId] ? (
                 <>
                   <AgentAvatar seed={agents[filterAgentId].avatarSeed || null} avatarUrl={agents[filterAgentId].avatarUrl} name={agents[filterAgentId].name} size={14} />
@@ -421,7 +422,7 @@ export default function TasksPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 p-1 rounded-[11px] bg-surface-2 border border-white/[0.06]">
+          <div className="flex items-center gap-1 p-1 rounded-full bg-surface-2 border border-line-subtle">
             {([
               ['board', 'Board'],
               ['list', 'List'],
@@ -429,7 +430,7 @@ export default function TasksPage() {
               <button
                 key={value}
                 onClick={() => setViewMode(value)}
-                className={`px-3 py-1.5 rounded-[8px] text-[12px] font-700 transition-all cursor-pointer border-none ${
+                className={`px-3 py-1.5 rounded-full text-[12px] font-700 transition-all cursor-pointer border-none ${
                   viewMode === value
                     ? 'bg-accent-soft text-accent-bright'
                     : 'text-text-3 hover:text-text-2'
@@ -443,10 +444,10 @@ export default function TasksPage() {
           <div className="relative" ref={agentDropdownRef}>
             <button
               onClick={() => setAgentDropdownOpen(!agentDropdownOpen)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+              className={`flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                 ${taskScopeFilter !== 'user-facing'
-                  ? 'bg-white/[0.06] border-white/[0.1] text-text-2'
-                  : 'bg-transparent border-white/[0.06] text-text-3 hover:bg-white/[0.03]'}`}
+                  ? 'bg-layer-2 border-line-default text-text-2'
+                  : 'bg-transparent border-line-subtle text-text-3 hover:bg-layer-1'}`}
               style={{ fontFamily: 'inherit', minWidth: 130 }}
             >
               {taskScopeFilter === 'agent' && filterAgentId && agents[filterAgentId] ? (
@@ -460,7 +461,7 @@ export default function TasksPage() {
               </svg>
             </button>
             {agentDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1 min-w-[240px] py-1 rounded-[12px] border border-white/[0.08] bg-surface-2 shadow-lg z-50">
+              <div className="absolute top-full right-0 mt-1 min-w-[240px] py-1 rounded-md border border-line-default bg-surface shadow-lg z-50">
                 <button
                   onClick={() => {
                     setTaskScopeFilter('user-facing')
@@ -468,15 +469,15 @@ export default function TasksPage() {
                     setAgentDropdownOpen(false)
                   }}
                   className={`w-full flex items-start gap-2.5 px-3 py-2.5 text-[13px] font-600 cursor-pointer border-none text-left transition-colors
-                    ${taskScopeFilter === 'user-facing' ? 'bg-white/[0.06] text-text' : 'bg-transparent text-text-3 hover:bg-white/[0.04]'}`}
+                    ${taskScopeFilter === 'user-facing' ? 'bg-layer-2 text-text' : 'bg-transparent text-text-3 hover:bg-layer-2'}`}
                   style={{ fontFamily: 'inherit' }}
                 >
-                  <span className="mt-0.5 inline-flex h-5 items-center rounded-full bg-emerald-500/12 px-1.5 text-[10px] font-700 uppercase tracking-[0.08em] text-emerald-400">
+                  <span className="mt-0.5 inline-flex h-5 items-center rounded-full bg-emerald-500/12 px-1.5 text-[10px] font-700 tracking-[0.03em] text-emerald-400">
                     Default
                   </span>
                   <span className="min-w-0">
                     <span className="block">User-facing tasks</span>
-                    <span className="mt-0.5 block text-[11px] font-500 text-text-3/60">
+                    <span className="mt-0.5 block text-[11px] font-600 text-text-3">
                       Hide scheduled, delegated, and agent-created internal work.
                     </span>
                   </span>
@@ -488,20 +489,20 @@ export default function TasksPage() {
                     setAgentDropdownOpen(false)
                   }}
                   className={`w-full flex items-start gap-2.5 px-3 py-2.5 text-[13px] font-600 cursor-pointer border-none text-left transition-colors
-                    ${taskScopeFilter === 'all' ? 'bg-white/[0.06] text-text' : 'bg-transparent text-text-3 hover:bg-white/[0.04]'}`}
+                    ${taskScopeFilter === 'all' ? 'bg-layer-2 text-text' : 'bg-transparent text-text-3 hover:bg-layer-2'}`}
                   style={{ fontFamily: 'inherit' }}
                 >
-                  <span className="mt-0.5 inline-flex h-5 items-center rounded-full bg-white/[0.06] px-1.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
+                  <span className="mt-0.5 inline-flex h-5 items-center rounded-full bg-layer-2 px-1.5 text-[10px] font-700 tracking-[0.03em] text-text-3">
                     All
                   </span>
                   <span className="min-w-0">
                     <span className="block">All tasks</span>
-                    <span className="mt-0.5 block text-[11px] font-500 text-text-3/60">
+                    <span className="mt-0.5 block text-[11px] font-600 text-text-3">
                       Include internal agent execution, schedules, and delegations.
                     </span>
                   </span>
                 </button>
-                <div className="my-1 border-t border-white/[0.06]" />
+                <div className="my-1 border-t border-line-subtle" />
                 {Object.values(agents).sort((a, b) => a.name.localeCompare(b.name)).map((a) => (
                   <button
                     key={a.id}
@@ -511,13 +512,13 @@ export default function TasksPage() {
                       setAgentDropdownOpen(false)
                     }}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-600 cursor-pointer border-none text-left transition-colors
-                      ${taskScopeFilter === 'agent' && filterAgentId === a.id ? 'bg-white/[0.06] text-text' : 'bg-transparent text-text-3 hover:bg-white/[0.04]'}`}
+                      ${taskScopeFilter === 'agent' && filterAgentId === a.id ? 'bg-layer-2 text-text' : 'bg-transparent text-text-3 hover:bg-layer-2'}`}
                     style={{ fontFamily: 'inherit' }}
                   >
                     <AgentAvatar seed={a.avatarSeed || null} avatarUrl={a.avatarUrl} name={a.name} size={20} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate">{a.name}</span>
-                      <span className="mt-0.5 block text-[11px] font-500 text-text-3/60">
+                      <span className="mt-0.5 block text-[11px] font-600 text-text-3">
                         Assigned, created, or delegated by this agent
                       </span>
                     </span>
@@ -530,10 +531,10 @@ export default function TasksPage() {
             <div className="relative" ref={projectDropdownRef}>
               <button
                 onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+                className={`flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                   ${activeProjectFilter
-                    ? 'bg-white/[0.06] border-white/[0.1] text-text-2'
-                    : 'bg-transparent border-white/[0.06] text-text-3 hover:bg-white/[0.03]'}`}
+                    ? 'bg-layer-2 border-line-default text-text-2'
+                    : 'bg-transparent border-line-subtle text-text-3 hover:bg-layer-1'}`}
                 style={{ fontFamily: 'inherit', minWidth: 130 }}
               >
                 {activeProjectFilter && projects[activeProjectFilter] ? (
@@ -547,11 +548,11 @@ export default function TasksPage() {
                 </svg>
               </button>
               {projectDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 min-w-[180px] py-1 rounded-[12px] border border-white/[0.08] bg-surface-2 shadow-lg z-50">
+                <div className="absolute top-full right-0 mt-1 min-w-[180px] py-1 rounded-md border border-line-default bg-surface shadow-lg z-50">
                   <button
                     onClick={() => { setActiveProjectFilter(null); setProjectDropdownOpen(false) }}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-[13px] font-600 cursor-pointer border-none text-left transition-colors
-                      ${!activeProjectFilter ? 'bg-white/[0.06] text-text' : 'bg-transparent text-text-3 hover:bg-white/[0.04]'}`}
+                      ${!activeProjectFilter ? 'bg-layer-2 text-text' : 'bg-transparent text-text-3 hover:bg-layer-2'}`}
                     style={{ fontFamily: 'inherit' }}
                   >
                     All Projects
@@ -561,13 +562,13 @@ export default function TasksPage() {
                       key={p.id}
                       onClick={() => { setActiveProjectFilter(p.id); setProjectDropdownOpen(false) }}
                       className={`w-full flex items-center gap-2 px-3 py-2 text-[13px] font-600 cursor-pointer border-none text-left transition-colors
-                        ${activeProjectFilter === p.id ? 'bg-white/[0.06] text-text' : 'bg-transparent text-text-3 hover:bg-white/[0.04]'}`}
+                        ${activeProjectFilter === p.id ? 'bg-layer-2 text-text' : 'bg-transparent text-text-3 hover:bg-layer-2'}`}
                       style={{ fontFamily: 'inherit' }}
                     >
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color || '#6366F1' }} />
                       {p.name}
                       {(projectTaskCounts[p.id] ?? 0) > 0 && (
-                        <span className="ml-auto text-[11px] text-text-3/60">{projectTaskCounts[p.id]}</span>
+                        <span className="ml-auto text-[11px] text-text-3">{projectTaskCounts[p.id]}</span>
                       )}
                     </button>
                   ))}
@@ -579,8 +580,8 @@ export default function TasksPage() {
             <select
               value={filterTag}
               onChange={(e) => setFilterTag(e.target.value)}
-              className="px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
-                bg-transparent border-white/[0.06] text-text-3 hover:bg-white/[0.03] appearance-none"
+              className="px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
+                bg-transparent border-line-subtle text-text-3 hover:bg-layer-1 appearance-none"
               style={{ fontFamily: 'inherit', minWidth: 110 }}
             >
               <option value="">All Tags</option>
@@ -591,10 +592,10 @@ export default function TasksPage() {
           )}
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className={`px-4 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+            className={`px-4 py-2 rounded-full text-[13px] font-600 cursor-pointer transition-all border
               ${showArchived
-                ? 'bg-white/[0.06] border-white/[0.1] text-text-2'
-                : 'bg-transparent border-white/[0.06] text-text-3 hover:bg-white/[0.03]'}`}
+                ? 'bg-layer-2 border-line-default text-text-2'
+                : 'bg-transparent border-line-subtle text-text-3 hover:bg-layer-1'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {showArchived ? 'Hide' : 'Show'} Archived{!showArchived && archivedCount > 0 ? ` (${archivedCount})` : ''}
@@ -604,7 +605,7 @@ export default function TasksPage() {
               resetGitHubImportState()
               setGitHubImportOpen(true)
             }}
-            className="px-4 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border border-white/[0.08] bg-white/[0.04] text-text-2 hover:bg-white/[0.08]"
+            className="px-4 py-2 rounded-full text-[13px] font-600 cursor-pointer transition-all border border-line-default bg-layer-2 text-text-2 hover:bg-layer-3"
             style={{ fontFamily: 'inherit' }}
           >
             Import GitHub
@@ -614,8 +615,8 @@ export default function TasksPage() {
               setEditingTaskId(null)
               setTaskSheetOpen(true)
             }}
-            className="px-5 py-2.5 rounded-[12px] border-none bg-accent-bright text-white text-[14px] font-600 cursor-pointer
-              hover:brightness-110 active:scale-[0.97] transition-all shadow-[0_2px_12px_rgba(99,102,241,0.2)]"
+            className="px-5 py-2.5 rounded-md border-none bg-accent-bright text-accent-fg text-[14px] font-600 cursor-pointer
+              hover:brightness-110 active:scale-[0.97] transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             + New Task
@@ -625,31 +626,23 @@ export default function TasksPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-8 pb-4">
         {[
-          { key: 'needs-attention', label: 'Needs Attention', value: stats.attention, tone: 'text-red-300', accent: 'bg-red-500/10' },
-          { key: 'blocked', label: 'Blocked', value: stats.blocked, tone: 'text-rose-400', accent: 'bg-rose-500/10' },
-          { key: 'overdue', label: 'Overdue', value: stats.overdue, tone: 'text-red-400', accent: 'bg-red-500/10' },
-          { key: 'failed', label: 'Failed', value: stats.failed, tone: 'text-orange-400', accent: 'bg-orange-500/10' },
+          // Only `failed` carries a tone. The other three were painted from
+          // the red family too, so four buckets that mean different things
+          // arrived as one wash of alarm.
+          { key: 'needs-attention', label: 'Needs attention', value: stats.attention },
+          { key: 'blocked', label: 'Blocked', value: stats.blocked },
+          { key: 'overdue', label: 'Overdue', value: stats.overdue },
+          { key: 'failed', label: 'Failed', value: stats.failed, tone: 'danger' as const },
         ].map((item) => (
-          <button
+          <CountTile
             key={item.key}
+            label={item.label}
+            value={item.value}
+            tone={item.value > 0 ? item.tone : undefined}
+            caption={item.value === 0 ? 'Nothing waiting here' : 'Click to focus this queue'}
+            selected={attentionFilter === item.key}
             onClick={() => setAttentionFilter((current) => (current === item.key ? 'all' : item.key as AttentionFilter))}
-            className={`rounded-[14px] border px-4 py-3 text-left transition-all cursor-pointer ${
-              attentionFilter === item.key
-                ? 'border-white/[0.12] bg-white/[0.05]'
-                : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]'
-            }`}
-            style={{ fontFamily: 'inherit' }}
-          >
-            <div className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-700 uppercase tracking-[0.08em] ${item.accent} ${item.tone}`}>
-              {item.label}
-            </div>
-            <div className={`mt-3 text-[24px] font-display font-700 tracking-[-0.03em] ${item.tone}`}>
-              {item.value}
-            </div>
-            <p className="mt-1 text-[11px] text-text-3/60">
-              {item.value === 0 ? 'Nothing waiting here' : 'Click to focus this queue'}
-            </p>
-          </button>
+          />
         ))}
       </div>
 
@@ -664,10 +657,10 @@ export default function TasksPage() {
           <button
             key={value}
             onClick={() => setAttentionFilter(value)}
-            className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 transition-all cursor-pointer border-none ${
+            className={`px-3 py-1.5 rounded-full text-[11px] font-600 transition-all cursor-pointer border-none ${
               attentionFilter === value
                 ? 'bg-accent-soft text-accent-bright'
-                : 'bg-white/[0.04] text-text-3 hover:bg-white/[0.08] hover:text-text-2'
+                : 'bg-layer-2 text-text-3 hover:bg-layer-3 hover:text-text-2'
             }`}
             style={{ fontFamily: 'inherit' }}
           >
@@ -679,10 +672,10 @@ export default function TasksPage() {
       {(activeProjectFilter && projects[activeProjectFilter]) || activeAttentionLabel || taskScopeFilter !== 'all' ? (
         <div className="flex flex-wrap items-center gap-2 px-8 pb-3">
           {taskScopeFilter !== 'all' && (
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border text-[12px] font-600 ${
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-600 ${
               taskScopeFilter === 'agent'
                 ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
-                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                : 'bg-layer-2 border-line-default text-text-2'
             }`}>
               {taskScopeFilter === 'agent' && filterAgentId && agents[filterAgentId] ? (
                 <>
@@ -704,7 +697,7 @@ export default function TasksPage() {
             </span>
           )}
           {activeProjectFilter && projects[activeProjectFilter] && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-white/[0.04] border border-white/[0.06] text-[12px] font-600 text-text-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-layer-2 border border-line-subtle text-[12px] font-600 text-text-2">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: projects[activeProjectFilter].color || '#6366F1' }} />
             {projects[activeProjectFilter].name}
             <button
@@ -716,7 +709,7 @@ export default function TasksPage() {
           </span>
           )}
           {activeAttentionLabel && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-amber-500/10 border border-amber-500/20 text-[12px] font-600 text-amber-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[12px] font-600 text-amber-400">
               {activeAttentionLabel}
               <button
                 onClick={() => setAttentionFilter('all')}
@@ -734,9 +727,9 @@ export default function TasksPage() {
           {!loaded ? (
           ACTIVE_COLUMNS.map((status) => (
             <div key={status} className="flex flex-col gap-3 min-w-[260px] flex-1">
-              <Skeleton className="rounded-[10px]" width="100%" height={32} />
+              <Skeleton className="rounded-sm" width="100%" height={32} />
               {Array.from({ length: 2 }).map((_, i) => (
-                <Skeleton key={i} className="rounded-[12px]" width="100%" height={80} />
+                <Skeleton key={i} className="rounded-md" width="100%" height={80} />
               ))}
             </div>
           ))
@@ -771,13 +764,13 @@ export default function TasksPage() {
           {!loaded ? (
             <div className="max-w-4xl mx-auto flex flex-col gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="rounded-[14px]" width="100%" height={112} />
+                <Skeleton key={i} className="rounded-md" width="100%" height={112} />
               ))}
             </div>
           ) : filteredTasks.length === 0 ? (
-            <div className="max-w-3xl mx-auto rounded-[16px] border border-dashed border-white/[0.08] px-6 py-14 text-center">
+            <div className="max-w-3xl mx-auto rounded-lg border border-dashed border-line-subtle px-6 py-14 text-center">
               <p className="text-[14px] font-600 text-text-2 mb-1">No tasks match this view</p>
-              <p className="text-[12px] text-text-3/60">Try clearing one of the active filters or switching back to all tasks.</p>
+              <p className="text-[12px] text-text-3">Try clearing one of the active filters or switching back to all tasks.</p>
             </div>
           ) : (
             <div className="max-w-4xl mx-auto">
@@ -786,13 +779,13 @@ export default function TasksPage() {
                   <h2 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">
                     {attentionFilter === 'all' ? 'Task List' : activeAttentionLabel || 'Task List'}
                   </h2>
-                  <p className="text-[12px] text-text-3/60">
+                  <p className="text-[12px] text-text-3">
                     {attentionFilter === 'all'
                       ? 'All visible tasks, sorted by urgency and freshness.'
                       : 'Sorted by failures, blockers, and due dates.'}
                   </p>
                 </div>
-                <div className="text-[12px] text-text-3/60">
+                <div className="text-[12px] text-text-3">
                   {filteredTasks.length} visible task{filteredTasks.length !== 1 ? 's' : ''}
                 </div>
               </div>
@@ -828,7 +821,7 @@ export default function TasksPage() {
       >
         <div className="mx-auto w-full max-w-2xl">
           <div className="mb-6">
-            <h2 className="font-display text-[24px] font-800 tracking-[-0.03em] text-text">Import GitHub Issues</h2>
+            <h2 className="font-display text-[24px] font-700 tracking-[-0.03em] text-text">Import GitHub Issues</h2>
             <p className="mt-2 text-[14px] text-text-3">
               Pull issues from a GitHub repository into the task board as backlog items.
             </p>
@@ -836,7 +829,7 @@ export default function TasksPage() {
 
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
             <label className="block">
-              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">Repository</span>
+              <span className="mb-2 block text-[12px] font-700 tracking-[0.03em] text-text-3">Repository</span>
               <input
                 value={githubRepo}
                 onChange={(e) => setGitHubRepo(e.target.value)}
@@ -846,7 +839,7 @@ export default function TasksPage() {
               />
             </label>
             <label className="block">
-              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">State</span>
+              <span className="mb-2 block text-[12px] font-700 tracking-[0.03em] text-text-3">State</span>
               <select
                 value={githubState}
                 onChange={(e) => setGitHubState(e.target.value as 'open' | 'closed' | 'all')}
@@ -862,7 +855,7 @@ export default function TasksPage() {
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">Limit</span>
+              <span className="mb-2 block text-[12px] font-700 tracking-[0.03em] text-text-3">Limit</span>
               <input
                 type="number"
                 min={1}
@@ -874,7 +867,7 @@ export default function TasksPage() {
               />
             </label>
             <label className="block">
-              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">Labels</span>
+              <span className="mb-2 block text-[12px] font-700 tracking-[0.03em] text-text-3">Labels</span>
               <input
                 value={githubLabels}
                 onChange={(e) => setGitHubLabels(e.target.value)}
@@ -886,7 +879,7 @@ export default function TasksPage() {
           </div>
 
           <label className="mt-4 block">
-            <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/70">GitHub token</span>
+            <span className="mb-2 block text-[12px] font-700 tracking-[0.03em] text-text-3">GitHub token</span>
             <input
               type="password"
               value={githubToken}
@@ -898,7 +891,7 @@ export default function TasksPage() {
           </label>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center rounded-full bg-white/[0.05] px-3 py-1 text-[12px] font-600 text-text-2">
+            <span className="inline-flex items-center rounded-full bg-layer-2 px-3 py-1 text-[12px] font-600 text-text-2">
               Imported tasks land in backlog
             </span>
             {activeProjectFilter && projects[activeProjectFilter] && (
@@ -910,16 +903,16 @@ export default function TasksPage() {
           </div>
 
           {githubImportError && (
-            <div className="mt-4 rounded-[14px] border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
+            <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
               {githubImportError}
             </div>
           )}
 
           {githubImportResult && (
-            <div className="mt-5 rounded-[18px] border border-white/[0.08] bg-white/[0.03] p-4">
+            <div className="mt-5 rounded-lg border border-line-subtle bg-surface p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[14px] font-700 text-text">{githubImportResult.repo}</span>
-                <span className="rounded-full bg-white/[0.05] px-2 py-1 text-[11px] font-600 text-text-3">
+                <span className="rounded-full bg-layer-2 px-2 py-1 text-[11px] font-600 text-text-3">
                   {githubImportResult.fetched} fetched
                 </span>
                 <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] font-600 text-emerald-300">
@@ -932,7 +925,7 @@ export default function TasksPage() {
 
               {githubImportResult.created.length > 0 && (
                 <div className="mt-4">
-                  <p className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Created</p>
+                  <p className="text-[12px] font-700 tracking-[0.03em] text-text-3">Created</p>
                   <div className="mt-2 flex flex-col gap-2">
                     {githubImportResult.created.slice(0, 8).map((item) => (
                       item.url ? (
@@ -941,14 +934,14 @@ export default function TasksPage() {
                           href={item.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[13px] text-text-2 no-underline transition-colors hover:bg-white/[0.05]"
+                          className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[13px] text-text-2 no-underline transition-colors hover:bg-layer-2"
                         >
                           #{item.number} {item.title}
                         </a>
                       ) : (
                         <div
                           key={`created-${item.taskId || item.number}`}
-                          className="rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[13px] text-text-2"
+                          className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[13px] text-text-2"
                         >
                           #{item.number} {item.title}
                         </div>
@@ -960,7 +953,7 @@ export default function TasksPage() {
 
               {githubImportResult.skipped.length > 0 && (
                 <div className="mt-4">
-                  <p className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Skipped existing</p>
+                  <p className="text-[12px] font-700 tracking-[0.03em] text-text-3">Skipped existing</p>
                   <div className="mt-2 flex flex-col gap-2">
                     {githubImportResult.skipped.slice(0, 8).map((item) => (
                       item.url ? (
@@ -969,14 +962,14 @@ export default function TasksPage() {
                           href={item.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[13px] text-text-3 no-underline transition-colors hover:bg-white/[0.05] hover:text-text-2"
+                          className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[13px] text-text-3 no-underline transition-colors hover:bg-layer-2 hover:text-text-2"
                         >
                           #{item.number} {item.title}
                         </a>
                       ) : (
                         <div
                           key={`skipped-${item.taskId || item.number}`}
-                          className="rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[13px] text-text-3"
+                          className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[13px] text-text-3"
                         >
                           #{item.number} {item.title}
                         </div>
@@ -994,7 +987,7 @@ export default function TasksPage() {
                 setGitHubImportOpen(false)
                 setGitHubImportError(null)
               }}
-              className="px-4 py-2 rounded-[10px] border border-white/[0.08] bg-transparent text-[13px] font-600 text-text-3 transition-colors hover:bg-white/[0.04] hover:text-text-2"
+              className="px-4 py-2 rounded-sm border border-line-default bg-transparent text-[13px] font-600 text-text-3 transition-colors hover:bg-layer-2 hover:text-text-2"
               style={{ fontFamily: 'inherit' }}
             >
               Close
@@ -1002,7 +995,7 @@ export default function TasksPage() {
             <button
               onClick={handleGitHubImport}
               disabled={githubImporting}
-              className="px-5 py-2.5 rounded-[12px] border-none bg-accent-bright text-white text-[14px] font-700 transition-all disabled:cursor-not-allowed disabled:opacity-60"
+              className="px-5 py-2.5 rounded-md border-none bg-accent-bright text-accent-fg text-[14px] font-700 transition-all disabled:cursor-not-allowed disabled:opacity-60"
               style={{ fontFamily: 'inherit' }}
             >
               {githubImporting ? 'Importing...' : 'Import issues'}
@@ -1013,30 +1006,30 @@ export default function TasksPage() {
 
       {/* Bulk action bar */}
       {selectionMode && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-3 rounded-[16px] bg-surface-2/95 backdrop-blur-xl border border-white/[0.1] shadow-[0_8px_40px_rgba(0,0,0,0.5)] z-50">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-3 rounded-lg bg-surface/80 backdrop-blur-xl border border-line-subtle z-50">
           <span className="text-[13px] font-600 text-text mr-2">
             {selectedIds.size} selected
           </span>
-          <div className="w-px h-5 bg-white/[0.08]" />
+          <div className="w-px h-5 bg-layer-3" />
 
           {/* Move to status */}
           <div className="relative" ref={bulkStatusRef}>
             <button
               onClick={() => { setBulkStatusOpen(!bulkStatusOpen); setBulkAgentOpen(false); setBulkProjectOpen(false) }}
               disabled={bulkActing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-600 text-text-2 bg-white/[0.06] border-none cursor-pointer hover:bg-white/[0.1] transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[12px] font-600 text-text-2 bg-layer-2 border-none cursor-pointer hover:bg-layer-3 transition-colors disabled:opacity-50"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
               Move
             </button>
             {bulkStatusOpen && (
-              <div className="absolute bottom-full left-0 mb-1 min-w-[140px] py-1 rounded-[10px] border border-white/[0.08] bg-surface-2 shadow-lg">
+              <div className="absolute bottom-full left-0 mb-1 min-w-[140px] py-1 rounded-sm border border-line-default bg-surface-2 shadow-lg">
                 {ACTIVE_COLUMNS.map((s) => (
                   <button
                     key={s}
                     onClick={() => { handleBulkStatus(s); setBulkStatusOpen(false) }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-600 cursor-pointer border-none text-left bg-transparent text-text-3 hover:bg-white/[0.06] hover:text-text transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-600 cursor-pointer border-none text-left bg-transparent text-text-3 hover:bg-layer-2 hover:text-text transition-colors"
                     style={{ fontFamily: 'inherit' }}
                   >
                     {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -1051,19 +1044,19 @@ export default function TasksPage() {
             <button
               onClick={() => { setBulkAgentOpen(!bulkAgentOpen); setBulkStatusOpen(false); setBulkProjectOpen(false) }}
               disabled={bulkActing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-600 text-text-2 bg-white/[0.06] border-none cursor-pointer hover:bg-white/[0.1] transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[12px] font-600 text-text-2 bg-layer-2 border-none cursor-pointer hover:bg-layer-3 transition-colors disabled:opacity-50"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
               Agent
             </button>
             {bulkAgentOpen && (
-              <div className="absolute bottom-full left-0 mb-1 min-w-[180px] max-h-[200px] overflow-y-auto py-1 rounded-[10px] border border-white/[0.08] bg-surface-2 shadow-lg">
+              <div className="absolute bottom-full left-0 mb-1 min-w-[180px] max-h-[200px] overflow-y-auto py-1 rounded-sm border border-line-default bg-surface-2 shadow-lg">
                 {Object.values(agents).sort((a, b) => a.name.localeCompare(b.name)).map((a) => (
                   <button
                     key={a.id}
                     onClick={() => { handleBulkAgent(a.id); setBulkAgentOpen(false) }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-600 cursor-pointer border-none text-left bg-transparent text-text-3 hover:bg-white/[0.06] hover:text-text transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-600 cursor-pointer border-none text-left bg-transparent text-text-3 hover:bg-layer-2 hover:text-text transition-colors"
                     style={{ fontFamily: 'inherit' }}
                   >
                     <AgentAvatar seed={a.avatarSeed || null} avatarUrl={a.avatarUrl} name={a.name} size={16} />
@@ -1080,17 +1073,17 @@ export default function TasksPage() {
               <button
                 onClick={() => { setBulkProjectOpen(!bulkProjectOpen); setBulkStatusOpen(false); setBulkAgentOpen(false) }}
                 disabled={bulkActing}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-600 text-text-2 bg-white/[0.06] border-none cursor-pointer hover:bg-white/[0.1] transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[12px] font-600 text-text-2 bg-layer-2 border-none cursor-pointer hover:bg-layer-3 transition-colors disabled:opacity-50"
                 style={{ fontFamily: 'inherit' }}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7-7H4a2 2 0 0 0-2 2v17Z" /><path d="M14 2v7h7" /></svg>
                 Project
               </button>
               {bulkProjectOpen && (
-                <div className="absolute bottom-full left-0 mb-1 min-w-[160px] max-h-[200px] overflow-y-auto py-1 rounded-[10px] border border-white/[0.08] bg-surface-2 shadow-lg">
+                <div className="absolute bottom-full left-0 mb-1 min-w-[160px] max-h-[200px] overflow-y-auto py-1 rounded-sm border border-line-default bg-surface-2 shadow-lg">
                   <button
                     onClick={() => { handleBulkProject(null); setBulkProjectOpen(false) }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-600 cursor-pointer border-none text-left bg-transparent text-text-3 hover:bg-white/[0.06] hover:text-text transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-600 cursor-pointer border-none text-left bg-transparent text-text-3 hover:bg-layer-2 hover:text-text transition-colors"
                     style={{ fontFamily: 'inherit' }}
                   >
                     No project
@@ -1099,7 +1092,7 @@ export default function TasksPage() {
                     <button
                       key={p.id}
                       onClick={() => { handleBulkProject(p.id); setBulkProjectOpen(false) }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-600 cursor-pointer border-none text-left bg-transparent text-text-3 hover:bg-white/[0.06] hover:text-text transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-600 cursor-pointer border-none text-left bg-transparent text-text-3 hover:bg-layer-2 hover:text-text transition-colors"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color || '#6366F1' }} />
@@ -1111,13 +1104,13 @@ export default function TasksPage() {
             </div>
           )}
 
-          <div className="w-px h-5 bg-white/[0.08]" />
+          <div className="w-px h-5 bg-layer-3" />
 
           {/* Archive selected */}
           <button
             onClick={() => handleBulkStatus('archived')}
             disabled={bulkActing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-600 text-amber-400 bg-amber-500/10 border-none cursor-pointer hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[12px] font-600 text-amber-400 bg-amber-500/10 border-none cursor-pointer hover:bg-amber-500/20 transition-colors disabled:opacity-50"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" /></svg>
@@ -1127,7 +1120,7 @@ export default function TasksPage() {
           {/* Clear selection */}
           <button
             onClick={clearSelection}
-            className="p-1.5 rounded-[8px] text-text-3 hover:text-text hover:bg-white/[0.06] border-none bg-transparent cursor-pointer transition-colors"
+            className="p-1.5 rounded-sm text-text-3 hover:text-text hover:bg-layer-2 border-none bg-transparent cursor-pointer transition-colors"
             title="Clear selection (Esc)"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>

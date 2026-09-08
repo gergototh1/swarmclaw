@@ -216,19 +216,19 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
   if (!sortedAgents.length && !search) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-text-3 p-8 text-center">
-        <div className="w-12 h-12 rounded-[14px] bg-accent-soft flex items-center justify-center mb-1">
+        <div className="w-12 h-12 rounded-md bg-accent-soft flex items-center justify-center mb-1">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-accent-bright">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
         </div>
         <p className="font-display text-[15px] font-600 text-text-2">No agents yet</p>
-        <p className="text-[13px] text-text-3/50">Create agents to start chatting</p>
+        <p className="text-[13px] text-text-3">Create agents to start chatting</p>
         {!inSidebar && (
           <Button
             variant="accent"
             onClick={() => setAgentSheetOpen(true)}
-            className="mt-3 px-8 py-3 rounded-[14px] text-[14px] cursor-pointer active:scale-95 shadow-[0_4px_16px_rgba(99,102,241,0.2)]"
+            className="mt-3 px-8 py-3 rounded-md text-[14px] cursor-pointer active:scale-95"
           >
             + New Agent
           </Button>
@@ -239,46 +239,6 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
 
   return (
     <div className="flex-1 overflow-y-auto" data-testid="agent-chat-list">
-      {/* Filter control + bulk mode toggle */}
-      {sortedAgents.length > 2 && (
-        <div className="flex items-center gap-1 px-4 pt-2.5 pb-1">
-          {(['all', 'active', 'recent'] as const).map((f) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => setChatFilter(f)}
-              data-active={chatFilter === f || undefined}
-              className="label-mono px-2.5 py-1 rounded-[6px] border-none cursor-pointer transition-colors
-                data-[active]:bg-accent-soft data-[active]:text-accent-bright
-                bg-transparent text-text-3 hover:text-text-2 hover:bg-white/[0.04]"
-            >
-              {f}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()) }}
-            aria-label={bulkMode ? 'Exit selection mode' : 'Select chats'}
-            className={`ml-auto label-mono px-2.5 py-1 rounded-[6px] border-none cursor-pointer transition-colors
-              ${bulkMode ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2 hover:bg-white/[0.04]'}`}
-          >
-            {bulkMode ? 'Cancel' : 'Select'}
-          </button>
-        </div>
-      )}
-      {/* Bulk action bar */}
-      {bulkMode && selectedIds.size > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-white/[0.02] border-b border-white/[0.04]">
-          <span className="text-[12px] text-text-2 font-500 flex-1">{selectedIds.size} selected</span>
-          <button
-            onClick={() => setConfirmBulkDelete(true)}
-            className="px-3 py-1.5 rounded-[8px] border-none bg-red-500/10 text-red-400 text-[12px] font-600 cursor-pointer hover:bg-red-500/20 transition-colors"
-            style={{ fontFamily: 'inherit' }}
-          >
-            Delete
-          </button>
-        </div>
-      )}
       {(sortedAgents.length > 5 || search) && (
         <div className="px-4 py-2.5">
           <SearchInput
@@ -292,7 +252,46 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
           />
         </div>
       )}
-      <div className="flex flex-col gap-0.5 px-2 pb-4">
+      {/* Filter control + bulk mode toggle */}
+      {sortedAgents.length > 2 && (
+        <div className="flex items-center gap-1 px-4 pt-2.5 pb-1">
+          {(['all', 'active', 'recent'] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setChatFilter(f)}
+              data-active={chatFilter === f || undefined}
+              className="px-2.5 py-1 text-[11px] font-600 rounded-full border-none cursor-pointer transition-colors
+                data-[active]:bg-accent-soft data-[active]:text-accent-bright
+                bg-transparent text-text-3 hover:text-text-2 hover:bg-layer-2"
+            >
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()) }}
+            aria-label={bulkMode ? 'Exit selection mode' : 'Select chats'}
+            className={`ml-auto px-2.5 py-1 text-[11px] font-600 rounded-full border-none cursor-pointer transition-colors
+              ${bulkMode ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
+          >
+            {bulkMode ? 'Cancel' : 'Select'}
+          </button>
+        </div>
+      )}
+      {/* Bulk action bar */}
+      {bulkMode && selectedIds.size > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-layer-1 border-b border-line-subtle">
+          <span className="text-[12px] text-text-2 font-600 flex-1">{selectedIds.size} selected</span>
+          <button
+            onClick={() => setConfirmBulkDelete(true)}
+            className="px-3 py-1.5 rounded-sm border-none bg-red-500/10 text-red-400 text-[12px] font-600 cursor-pointer hover:bg-red-500/20 transition-colors"
+            style={{ fontFamily: 'inherit' }}
+          >
+            Delete
+          </button>
+        </div>
+      )}      <div className="flex flex-col gap-0.5 px-2 pb-4">
         {defaultAgentVisible && defaultAgent && (() => {
           const threadSession = defaultAgent.threadSessionId ? sessions[defaultAgent.threadSessionId] as unknown as Session | undefined : undefined
           const lastMsg = threadSession?.messages?.at(-1)
@@ -306,11 +305,11 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
 
           return (
             <div className="mb-2 px-2">
-              <div className="px-2 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-accent-bright/65">
+              <div className="px-2 pb-1 text-[10px] font-700 tracking-[0.03em] text-accent-bright/65">
                 Default Agent
               </div>
               <div
-                className={`group/row relative w-full text-left py-3.5 px-4 rounded-[14px] cursor-pointer transition-all duration-150 border
+                className={`group/row relative w-full text-left py-3.5 px-4 rounded-lg cursor-pointer transition-all duration-150 border
                   ${isActive
                     ? 'bg-accent-soft border-accent-bright/25'
                     : 'bg-accent-soft/40 border-accent-bright/15 hover:bg-accent-soft/55'}`}
@@ -331,8 +330,8 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
               >
                 <div className="flex items-center gap-3">
                   {bulkMode && (
-                    <div className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center shrink-0 transition-colors
-                      ${selectedIds.has(defaultAgent.id) ? 'bg-accent-bright border-accent-bright' : 'border-white/20 bg-transparent'}`}>
+                    <div className={`w-5 h-5 rounded-xs border-2 flex items-center justify-center shrink-0 transition-colors
+                      ${selectedIds.has(defaultAgent.id) ? 'bg-accent-bright border-accent-bright' : 'border-line-strong bg-transparent'}`}>
                       {selectedIds.has(defaultAgent.id) && (
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
@@ -343,7 +342,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                   <div className="relative shrink-0">
                     <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={38} />
                     <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-bg ${
-                      isWorking ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]' : 'bg-text-3/30'
+                      isWorking ? 'bg-emerald-400 ' : 'bg-text-3/30'
                     }`} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -352,11 +351,11 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                         {defaultAgent.name}
                       </span>
                       {isDisabled && (
-                        <span className="px-1.5 py-0.5 rounded-[6px] bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 uppercase tracking-[0.08em]">
+                        <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 tracking-[0.03em]">
                           Disabled
                         </span>
                       )}
-                      <span className="px-1.5 py-0.5 rounded-[6px] bg-accent-bright/12 text-accent-bright text-[9px] font-700 uppercase tracking-[0.08em]">
+                      <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/12 text-accent-bright text-[9px] font-700 tracking-[0.03em]">
                         Shortcut
                       </span>
                     </div>
@@ -374,7 +373,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                           : 'Thinking...'}
                       </div>
                     ) : (
-                      <div className="text-[12px] text-text-3/70 mt-1 truncate">
+                      <div className="text-[12px] text-text-3 mt-1 truncate">
                         {preview}
                       </div>
                     )}
@@ -387,7 +386,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                     }}
                     aria-label="Remove as default agent"
                     title="Default agent — click to clear"
-                    className="shrink-0 p-1 rounded-[6px] transition-all bg-transparent border-none cursor-pointer hover:bg-white/[0.06] text-accent-bright"
+                    className="shrink-0 p-1 rounded-xs transition-all bg-transparent border-none cursor-pointer hover:bg-layer-2 text-accent-bright"
                     style={{ fontFamily: 'inherit' }}
                   >
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -415,10 +414,10 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
             <div
               key={agent.id}
               ref={(el) => setRowRef(agent.id, el)}
-              className={`group/row relative w-full text-left py-3 px-4 rounded-[12px] cursor-pointer transition-all duration-150 border-none
+              className={`group/row relative w-full text-left py-3 px-4 rounded-md cursor-pointer transition-all duration-150 border-none
                 ${isActive
                   ? 'bg-accent-soft/80 border border-accent-bright/20'
-                  : 'bg-transparent hover:bg-white/[0.02]'}`}
+                  : 'bg-transparent hover:bg-layer-1'}`}
               role="button"
               tabIndex={0}
               data-testid="agent-row"
@@ -436,8 +435,8 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
             >
               <div className="flex items-center gap-2.5">
                 {bulkMode && (
-                  <div className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center shrink-0 transition-colors
-                    ${selectedIds.has(agent.id) ? 'bg-accent-bright border-accent-bright' : 'border-white/20 bg-transparent'}`}>
+                  <div className={`w-5 h-5 rounded-xs border-2 flex items-center justify-center shrink-0 transition-colors
+                    ${selectedIds.has(agent.id) ? 'bg-accent-bright border-accent-bright' : 'border-line-strong bg-transparent'}`}>
                     {selectedIds.has(agent.id) && (
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
@@ -448,7 +447,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                 <div className="relative shrink-0">
                   <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={36} />
                   <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-bg ${
-                    isWorking ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]' : 'bg-text-3/30'
+                    isWorking ? 'bg-emerald-400 ' : 'bg-text-3/30'
                   }`} />
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
@@ -457,20 +456,16 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                       {agent.name}
                     </span>
                     {isDisabled && (
-                      <span className="px-1.5 py-0.5 rounded-[6px] bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 uppercase tracking-[0.08em] shrink-0">
+                      <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 tracking-[0.03em] shrink-0">
                         Disabled
                       </span>
                     )}
                     {appSettings.defaultAgentId === agent.id && (
-                      <span className="px-1.5 py-0.5 rounded-[6px] bg-accent-bright/10 text-accent-bright text-[9px] font-700 uppercase tracking-[0.08em] shrink-0">
+                      <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/10 text-accent-bright text-[9px] font-700 tracking-[0.03em] shrink-0">
                         Default
                       </span>
                     )}
-                    <span className="text-[10px] text-text-3/60 font-mono shrink-0 max-w-[30%] truncate">
-                      {(threadSession?.model || agent.model)
-                        ? (threadSession?.model || agent.model)!.split('/').pop()?.split(':')[0]
-                        : agent.provider}
-                    </span>
+
                     {/* Set as default agent */}
                     {(() => {
                       const isDefault = appSettings.defaultAgentId === agent.id
@@ -488,7 +483,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                           }}
                           aria-label={isDefault ? 'Remove as default' : 'Set as default agent'}
                           title={isDefault ? 'Default agent — click to clear' : 'Set as default agent'}
-                          className={`shrink-0 p-1 rounded-[6px] transition-all bg-transparent border-none cursor-pointer hover:bg-white/[0.06]
+                          className={`shrink-0 p-1 rounded-xs transition-all bg-transparent border-none cursor-pointer hover:bg-layer-2
                             ${isDefault ? 'opacity-100 text-accent-bright' : 'opacity-0 group-hover/row:opacity-60 hover:!opacity-100 text-text-3'}`}
                           style={{ fontFamily: 'inherit' }}
                         >
@@ -507,7 +502,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                         toast.success(agent.pinned ? 'Agent unpinned' : 'Agent pinned')
                       }}
                       aria-label={agent.pinned ? 'Unpin agent' : 'Pin agent'}
-                      className={`shrink-0 p-1 rounded-[6px] transition-all bg-transparent border-none cursor-pointer hover:bg-white/[0.06]
+                      className={`shrink-0 p-1 rounded-xs transition-all bg-transparent border-none cursor-pointer hover:bg-layer-2
                         ${agent.pinned ? 'opacity-100 text-amber-400' : 'opacity-0 group-hover/row:opacity-60 hover:!opacity-100 text-text-3'}`}
                       style={{ fontFamily: 'inherit' }}
                     >
@@ -516,6 +511,11 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                       </svg>
                     </button>
                   </div>
+                  <span className="mt-0.5 block truncate text-[10px] text-text-3">
+                    {(threadSession?.model || agent.model)
+                      ? (threadSession?.model || agent.model)!.split('/').pop()?.split(':')[0]
+                      : agent.provider}
+                  </span>
                   {isTyping ? (
                     <div className={`text-[12px] mt-0.5 flex items-center gap-1.5 ${streamPhase === 'queued' ? 'text-amber-300/70' : 'text-accent-bright/70'}`}>
                       <span className="flex gap-0.5">
@@ -530,7 +530,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                         : 'Thinking...'}
                     </div>
                   ) : preview ? (
-                    <div className="text-[12px] text-text-3/70 mt-0.5 truncate">
+                    <div className="text-[12px] text-text-3 mt-0.5 truncate">
                       {preview}
                     </div>
                   ) : null}

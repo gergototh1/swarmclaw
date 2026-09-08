@@ -120,10 +120,10 @@ function ExtraDetail({ data }: { data: Record<string, unknown> }) {
   const entries = Object.entries(data).filter(([, v]) => v !== null && v !== undefined)
   if (entries.length === 0) return null
   return (
-    <div className="mt-2 rounded-[8px] bg-black/30 border border-white/[0.06] p-3 text-[11px] font-mono space-y-1">
+    <div className="mt-2 rounded-sm bg-layer-3 border border-line-subtle p-3 text-[11px] font-mono space-y-1">
       {entries.map(([k, v]) => (
         <div key={k} className="flex gap-2 flex-wrap">
-          <span className="text-text-3/70 shrink-0">{k}:</span>
+          <span className="text-text-3 shrink-0">{k}:</span>
           <span className="text-text-2 break-all">
             {Array.isArray(v)
               ? v.map(String).join(', ') || '(empty)'
@@ -190,9 +190,9 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
   ]
 
   return (
-    <div className="absolute inset-0 z-30 bg-bg/95 backdrop-blur-xl flex flex-col">
+    <div className="absolute inset-0 z-30 bg-bg/80 backdrop-blur-xl flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-white/[0.06] shrink-0">
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-line-subtle shrink-0">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2" strokeLinecap="round">
           <path d="M12 20V10" />
           <path d="M18 20V4" />
@@ -200,16 +200,16 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
         </svg>
         <span className="font-display text-[16px] font-600 tracking-[-0.02em] flex-1">Session X-Ray</span>
 
-        <div className="flex bg-white/[0.04] p-0.5 rounded-[8px] mr-2">
+        <div className="flex bg-layer-2 p-0.5 rounded-sm mr-2">
           <button
             onClick={() => setTab('log')}
-            className={`px-3 py-1 rounded-[6px] text-[11px] font-600 transition-all ${tab === 'log' ? 'bg-white/[0.08] text-text shadow-sm' : 'text-text-3 hover:text-text-2'}`}
+            className={`px-3 py-1 rounded-xs text-[11px] font-600 transition-all ${tab === 'log' ? 'bg-layer-3 text-text shadow-sm' : 'text-text-3 hover:text-text-2'}`}
           >
             Event Log
           </button>
           <button
             onClick={() => setTab('checkpoints')}
-            className={`px-3 py-1 rounded-[6px] text-[11px] font-600 transition-all ${tab === 'checkpoints' ? 'bg-accent-soft text-accent-bright' : 'text-text-3 hover:text-text-2'}`}
+            className={`px-3 py-1 rounded-xs text-[11px] font-600 transition-all ${tab === 'checkpoints' ? 'bg-accent-soft text-accent-bright' : 'text-text-3 hover:text-text-2'}`}
           >
             Checkpoints
           </button>
@@ -226,15 +226,15 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
       {tab === 'log' ? (
         <>
           {/* Filters */}
-          <div className="flex gap-2 px-5 py-3 border-b border-white/[0.04] overflow-x-auto shrink-0">
+          <div className="flex gap-2 px-5 py-3 border-b border-line-subtle overflow-x-auto shrink-0">
             {filters.map((f) => (
               <button
                 key={f.id}
                 onClick={() => setFilter(f.id)}
-                className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border whitespace-nowrap
+                className={`px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all border whitespace-nowrap
                   ${filter === f.id
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                    : 'bg-surface border-white/[0.06] text-text-3 hover:text-text-2'}`}
+                    : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
                 style={{ fontFamily: 'inherit' }}
               >
                 {f.label}
@@ -244,7 +244,7 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
               <button
                 onClick={() => void fetchExecLogs(currentSessionId)}
                 disabled={loadingExec}
-                className="ml-auto px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border bg-surface border-white/[0.06] text-text-3 hover:text-text-2 disabled:opacity-40 whitespace-nowrap"
+                className="ml-auto px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all border bg-surface border-line-subtle text-text-3 hover:text-text-2 disabled:opacity-40 whitespace-nowrap"
                 style={{ fontFamily: 'inherit' }}
               >
                 {loadingExec ? 'Refreshing…' : '↺ Refresh'}
@@ -256,7 +256,7 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
           <div className="flex-1 overflow-y-auto px-5 py-4">
             <div className="relative">
               {/* Timeline line */}
-              <div className="absolute left-[15px] top-0 bottom-0 w-px bg-white/[0.06]" />
+              <div className="absolute left-[15px] top-0 bottom-0 w-px bg-layer-2" />
 
               {filtered.map((event, i) => {
                 const color = TYPE_COLORS[event.type]
@@ -275,12 +275,12 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
 
                     {/* Content */}
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <span className="text-[11px] font-700 uppercase tracking-wider" style={{ color }}>
+                      <span className="text-[11px] font-700 tracking-[0.03em]" style={{ color }}>
                         {event.label}
                       </span>
-                      <span className="text-[10px] text-text-3/70 font-mono">{fmtTime(event.time)}</span>
+                      <span className="text-[10px] text-text-3 font-mono">{fmtTime(event.time)}</span>
                       {event.source === 'execlog' && (
-                        <span className="text-[9px] text-text-3/40 font-mono uppercase tracking-wider">exec</span>
+                        <span className="text-[9px] text-text-3 font-mono tracking-[0.03em]">exec</span>
                       )}
                     </div>
 
@@ -312,7 +312,7 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
           </div>
 
           {/* Stats bar */}
-          <div className="flex items-center gap-4 px-5 py-3 border-t border-white/[0.06] shrink-0">
+          <div className="flex items-center gap-4 px-5 py-3 border-t border-line-subtle shrink-0">
             {(['delegation', 'agent_result', 'error'] as EventType[]).map((type) => {
               const count = events.filter((e) => e.type === type).length
               if (!count) return null
@@ -323,7 +323,7 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
                 </span>
               )
             })}
-            <span className="ml-auto text-[10px] text-text-3/40 font-mono">{execLogs.length} exec log entries</span>
+            <span className="ml-auto text-[10px] text-text-3 font-mono">{execLogs.length} exec log entries</span>
           </div>
         </>
       ) : (

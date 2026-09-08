@@ -5,15 +5,24 @@ import { TaskCard } from './task-card'
 import { useCreateTaskMutation } from '@/features/tasks/queries'
 import type { Agent, BoardTask, BoardTaskStatus, Project } from '@/types'
 
+/**
+ * The dot carries the status; the label does not.
+ *
+ * Every column title used to take the status colour, so a board read as a row
+ * of differently-coloured headings -- blue "Running" beside green "Completed"
+ * beside amber "Queued" -- and the colour said the same thing the dot next to
+ * it already said. One signal per fact: the dot is the signal, and the label
+ * is a label.
+ */
 const COLUMN_CONFIG: Record<BoardTaskStatus, { label: string; color: string; dot: string }> = {
-  backlog: { label: 'Backlog', color: 'text-text-3', dot: 'bg-white/20' },
-  queued: { label: 'Queued', color: 'text-amber-400', dot: 'bg-amber-400' },
-  running: { label: 'Running', color: 'text-blue-400', dot: 'bg-blue-400' },
-  completed: { label: 'Completed', color: 'text-emerald-400', dot: 'bg-emerald-400' },
-  failed: { label: 'Failed', color: 'text-red-400', dot: 'bg-red-400' },
-  cancelled: { label: 'Cancelled', color: 'text-text-3', dot: 'bg-white/20' },
-  archived: { label: 'Archived', color: 'text-text-3/50', dot: 'bg-white/10' },
-  deferred: { label: 'Deferred', color: 'text-orange-400', dot: 'bg-orange-400' },
+  backlog: { label: 'Backlog', color: 'text-text-2', dot: 'bg-layer-4' },
+  queued: { label: 'Queued', color: 'text-text-2', dot: 'bg-amber-400' },
+  running: { label: 'Running', color: 'text-text-2', dot: 'bg-blue-400' },
+  completed: { label: 'Completed', color: 'text-text-2', dot: 'bg-emerald-400' },
+  failed: { label: 'Failed', color: 'text-text-2', dot: 'bg-red-400' },
+  cancelled: { label: 'Cancelled', color: 'text-text-3', dot: 'bg-layer-4' },
+  archived: { label: 'Archived', color: 'text-text-3', dot: 'bg-layer-3' },
+  deferred: { label: 'Deferred', color: 'text-text-2', dot: 'bg-orange-400' },
 }
 
 interface Props {
@@ -82,7 +91,7 @@ export function TaskColumn({
 
   return (
     <div
-      className={`flex-1 min-w-[240px] max-w-[320px] min-h-0 flex flex-col rounded-[16px] transition-colors duration-150 ${
+      className={`flex-1 min-w-[240px] max-w-[320px] min-h-0 flex flex-col rounded-lg transition-colors duration-150 ${
         dragOver ? 'bg-accent-bright/[0.04] ring-1 ring-accent-bright/20' : ''
       }`}
       onDragOver={handleDragOver}
@@ -96,10 +105,10 @@ export function TaskColumn({
         {selectionMode && tasks.length > 0 && (
           <button
             onClick={onSelectAll}
-            className={`text-[10px] font-600 px-1.5 py-0.5 rounded-[5px] cursor-pointer border-none transition-colors
+            className={`text-[10px] font-600 px-1.5 py-0.5 rounded-xs cursor-pointer border-none transition-colors
               ${selectedCount === tasks.length && selectedCount > 0
                 ? 'bg-accent-bright/20 text-accent-bright'
-                : 'bg-white/[0.04] text-text-3 hover:bg-white/[0.08]'}`}
+                : 'bg-layer-2 text-text-3 hover:bg-layer-3'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {selectedCount === tasks.length && selectedCount > 0 ? 'All' : 'Select all'}
@@ -116,7 +125,7 @@ export function TaskColumn({
             onChange={(e) => setQuickAddValue(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd() }}
             placeholder={`+ Add to ${config.label.toLowerCase()}...`}
-            className="w-full px-3 py-2 rounded-[10px] bg-white/[0.02] border border-dashed border-white/[0.08] text-[12px] text-text placeholder:text-text-3/30 outline-none focus:border-white/[0.15] focus:bg-white/[0.03] transition-colors"
+            className="w-full px-3 py-2 rounded-md bg-layer-1 border border-dashed border-line-default text-[12px] text-text placeholder:text-text-3 outline-none focus:border-line-strong focus:bg-layer-2 transition-colors"
             style={{ fontFamily: 'inherit' }}
             disabled={adding}
           />
@@ -138,7 +147,7 @@ export function TaskColumn({
           />
         ))}
         {tasks.length === 0 && (
-          <div className={`text-[12px] text-text-3/50 text-center py-8 rounded-[12px] border border-dashed transition-colors ${
+          <div className={`text-[12px] text-text-3 text-center py-8 rounded-lg border border-dashed transition-colors ${
             dragOver ? 'border-accent-bright/30 text-accent-bright/50' : 'border-transparent'
           }`}>
             {dragOver ? 'Drop here' : 'No tasks'}

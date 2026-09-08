@@ -40,7 +40,7 @@ export function AgentAvatar({ seed, avatarUrl, name, size = 32, className = '', 
   const dotSize = Math.max(6, Math.round(size * 0.28))
   const dot = status && status !== 'idle' ? (
     <span
-      className={`absolute -bottom-0.5 -right-0.5 rounded-full ${STATUS_COLORS[status]} ring-2 ring-[#0f0f1a]`}
+      className={`absolute -bottom-0.5 -right-0.5 rounded-full ${STATUS_COLORS[status]} ring-2 ring-bg`}
       style={{
         width: dotSize,
         height: dotSize,

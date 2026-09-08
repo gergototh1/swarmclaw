@@ -20,42 +20,42 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Runtime &amp; Loop Controls
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Control how far agents can run on their own and set safety guards for delegation and tool execution.
       </p>
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Background Daemon</label>
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Background Daemon</label>
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => patchSettings({ daemonAutostartEnabled: !(appSettings.daemonAutostartEnabled ?? true) })}
-            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.daemonAutostartEnabled ?? true) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.daemonAutostartEnabled ?? true) ? 'bg-accent' : 'bg-layer-3'}`}
           >
             <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.daemonAutostartEnabled ?? true) ? 'translate-x-[18px]' : ''}`} />
           </button>
           <div>
             <div className="text-[12px] text-text-2">Start the daemon automatically when the app boots</div>
-            <div className="text-[11px] text-text-3/60 mt-1">Enabled by default. This controls scheduler, queue processing, connector recovery, and other background runtime work.</div>
+            <div className="text-[11px] text-text-3 mt-1">Enabled by default. This controls scheduler, queue processing, connector recovery, and other background runtime work.</div>
           </div>
         </div>
 
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Estop Resume Approval</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Estop Resume Approval</label>
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => patchSettings({ autonomyResumeApprovalsEnabled: !(appSettings.autonomyResumeApprovalsEnabled ?? false) })}
-            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.autonomyResumeApprovalsEnabled ?? false) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.autonomyResumeApprovalsEnabled ?? false) ? 'bg-accent' : 'bg-layer-3'}`}
           >
             <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.autonomyResumeApprovalsEnabled ?? false) ? 'translate-x-[18px]' : ''}`} />
           </button>
           <div>
             <div className="text-[12px] text-text-2">Require human approval before clearing an autonomy or full estop</div>
-            <div className="text-[11px] text-text-3/60 mt-1">Disabled by default while the autonomy safety desk is still being validated. Turn it on if you want an approval gate before resumes.</div>
+            <div className="text-[11px] text-text-3 mt-1">Disabled by default while the autonomy safety desk is still being validated. Turn it on if you want an approval gate before resumes.</div>
           </div>
         </div>
 
-        <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Loop Mode <HintTip text="Bounded = fixed max steps. Ongoing = runs until the task completes (with a safety cap)" /></label>
+        <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Loop Mode <HintTip text="Bounded = fixed max steps. Ongoing = runs until the task completes (with a safety cap)" /></label>
         <div className="grid grid-cols-2 gap-2 mb-5">
           {([
             { id: 'bounded' as const, name: 'Bounded' },
@@ -64,10 +64,10 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
             <button
               key={mode.id}
               onClick={() => patchSettings({ loopMode: mode.id })}
-              className={`py-3 px-3 rounded-[12px] text-center cursor-pointer transition-all text-[13px] font-600 border
+              className={`py-3 px-3 rounded-lg text-center cursor-pointer transition-all text-[13px] font-600 border
                 ${loopMode === mode.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                  : 'bg-bg border-white/[0.06] text-text-2 hover:bg-surface-2'}`}
+                  : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
               {mode.name}
@@ -78,7 +78,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
         {loopMode === 'bounded' ? (
           <div className="grid grid-cols-1 md:grid-cols-1 gap-3 mb-5">
             <div>
-              <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Agent Steps <HintTip text="Maximum actions an agent can take before stopping — prevents infinite loops" /></label>
+              <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Agent Steps <HintTip text="Maximum actions an agent can take before stopping — prevents infinite loops" /></label>
               <input
                 type="number"
                 min={1}
@@ -96,7 +96,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Max Steps (Safety Cap)</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Max Steps (Safety Cap)</label>
               <input
                 type="number"
                 min={10}
@@ -111,7 +111,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
               />
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Max Runtime (Minutes)</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Max Runtime (Minutes)</label>
               <input
                 type="number"
                 min={0}
@@ -124,14 +124,14 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
                 className={inputClass}
                 style={{ fontFamily: 'inherit' }}
               />
-              <p className="text-[11px] text-text-3/60 mt-2">Set to 0 to disable the runtime guard.</p>
+              <p className="text-[11px] text-text-3 mt-2">Set to 0 to disable the runtime guard.</p>
             </div>
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
           <div>
-            <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Delegation Depth <HintTip text="Maximum delegation chain depth for delegate_to_agent and spawn_subagent to prevent runaway fan-out" /></label>
+            <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Delegation Depth <HintTip text="Maximum delegation chain depth for delegate_to_agent and spawn_subagent to prevent runaway fan-out" /></label>
             <input
               type="number"
               min={1}
@@ -147,7 +147,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </div>
         </div>
 
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Execution Timeouts (Seconds)</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Execution Timeouts (Seconds)</label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block text-[11px] text-text-3 mb-2">Shell</label>
@@ -196,7 +196,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </div>
         </div>
 
-        <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mt-5 mb-3">Stream &amp; Kickoff Timeouts (Seconds) <HintTip text="Controls how long to wait for model output and required tool usage before aborting a turn" /></label>
+        <label className="flex items-center gap-1.5 font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mt-5 mb-3">Stream &amp; Kickoff Timeouts (Seconds) <HintTip text="Controls how long to wait for model output and required tool usage before aborting a turn" /></label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-[11px] text-text-3 mb-2">Idle Stall Timeout</label>
@@ -212,7 +212,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Aborts a turn if no tokens arrive for this long. Raise for slow local models.</p>
+            <p className="text-[11px] text-text-3 mt-2">Aborts a turn if no tokens arrive for this long. Raise for slow local models.</p>
           </div>
           <div>
             <label className="block text-[11px] text-text-3 mb-2">Required Tool Kickoff</label>
@@ -228,16 +228,16 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
               className={inputClass}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/60 mt-2">Max wait for a required tool call before forcing a continuation.</p>
+            <p className="text-[11px] text-text-3 mt-2">Max wait for a required tool call before forcing a continuation.</p>
           </div>
         </div>
 
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mt-6 mb-3">LLM Response Cache</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mt-6 mb-3">LLM Response Cache</label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
           <div className="md:col-span-3 flex items-center gap-3">
             <button
               onClick={() => patchSettings({ responseCacheEnabled: !(appSettings.responseCacheEnabled ?? true) })}
-              className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.responseCacheEnabled ?? true) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+              className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.responseCacheEnabled ?? true) ? 'bg-accent' : 'bg-layer-3'}`}
             >
               <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.responseCacheEnabled ?? true) ? 'translate-x-[18px]' : ''}`} />
             </button>
@@ -275,12 +275,12 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
           </div>
         </div>
 
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Task Quality Gate Defaults</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Task Quality Gate Defaults</label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
           <div className="md:col-span-3 flex items-center gap-3">
             <button
               onClick={() => patchSettings({ taskQualityGateEnabled: !(appSettings.taskQualityGateEnabled ?? true) })}
-              className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.taskQualityGateEnabled ?? true) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+              className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.taskQualityGateEnabled ?? true) ? 'bg-accent' : 'bg-layer-3'}`}
             >
               <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.taskQualityGateEnabled ?? true) ? 'translate-x-[18px]' : ''}`} />
             </button>
@@ -322,7 +322,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
                 type="checkbox"
                 checked={appSettings.taskQualityGateRequireVerification ?? false}
                 onChange={(e) => patchSettings({ taskQualityGateRequireVerification: e.target.checked })}
-                className="h-4 w-4 rounded border-white/20 accent-accent"
+                className="h-4 w-4 rounded-xs border-line-strong accent-accent"
               />
               Require verification evidence
             </label>
@@ -331,7 +331,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
                 type="checkbox"
                 checked={appSettings.taskQualityGateRequireArtifact ?? false}
                 onChange={(e) => patchSettings({ taskQualityGateRequireArtifact: e.target.checked })}
-                className="h-4 w-4 rounded border-white/20 accent-accent"
+                className="h-4 w-4 rounded-xs border-line-strong accent-accent"
               />
               Require artifact evidence
             </label>
@@ -340,18 +340,18 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
                 type="checkbox"
                 checked={appSettings.taskQualityGateRequireReport ?? false}
                 onChange={(e) => patchSettings({ taskQualityGateRequireReport: e.target.checked })}
-                className="h-4 w-4 rounded border-white/20 accent-accent"
+                className="h-4 w-4 rounded-xs border-line-strong accent-accent"
               />
               Require task report
             </label>
           </div>
         </div>
 
-        <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Integrity Monitor</label>
+        <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Integrity Monitor</label>
         <div className="flex items-center gap-3">
           <button
             onClick={() => patchSettings({ integrityMonitorEnabled: !(appSettings.integrityMonitorEnabled ?? true) })}
-            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.integrityMonitorEnabled ?? true) ? 'bg-accent' : 'bg-white/[0.12]'}`}
+            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${(appSettings.integrityMonitorEnabled ?? true) ? 'bg-accent' : 'bg-layer-3'}`}
           >
             <span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white transition-transform duration-200 ${(appSettings.integrityMonitorEnabled ?? true) ? 'translate-x-[18px]' : ''}`} />
           </button>

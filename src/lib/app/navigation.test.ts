@@ -55,7 +55,47 @@ describe('pathToView', () => {
     assert.equal(mod.pathToView('/agent'), null)
   })
 
+  it('resolves the merged /stream route to its AppView', () => {
+    // /stream absorbed /runs, /activity and /logs and is now the AppView for
+    // all three. This only pins pathToView's own behavior — it says nothing
+    // about what the sidebar rail renders; see resolveSidebarActiveView below
+    // for the test that actually covers the rail.
+    assert.equal(mod.pathToView('/stream'), 'stream')
+  })
+
   it('returns null for empty string', () => {
     assert.equal(mod.pathToView(''), null)
+  })
+})
+
+describe('resolveSidebarActiveView', () => {
+  it('resolves known views so the happy path stays pinned', () => {
+    assert.equal(mod.resolveSidebarActiveView('/agents'), 'agents')
+    assert.equal(mod.resolveSidebarActiveView('/agents/abc-123'), 'agents')
+    assert.equal(mod.resolveSidebarActiveView('/settings'), 'settings')
+  })
+
+  it('resolves /stream to the stream AppView so it highlights in the rail', () => {
+    // /stream absorbed /runs, /activity and /logs and now names its own
+    // AppView. This is the exact case the sidebar rail regressed on before
+    // 'stream' existed: a `?? 'home'` fallback here would have lit up the
+    // Home nav entry on every visit to /stream.
+    assert.equal(mod.resolveSidebarActiveView('/stream'), 'stream')
+  })
+
+  it('returns null, not "home", for an in-app path the view table does not know', () => {
+    // A route that genuinely has no AppView yet (an extension page, or any
+    // future in-app route not in VIEW_TO_PATH) must resolve to null. A
+    // `?? 'home'` fallback here would light up the Home nav entry on every
+    // visit to such a route.
+    assert.equal(mod.resolveSidebarActiveView('/some-future-route'), null)
+  })
+
+  it('returns null for an extension page path', () => {
+    assert.equal(mod.resolveSidebarActiveView('/x/some-extension'), null)
+  })
+
+  it('returns null for a genuinely unknown path', () => {
+    assert.equal(mod.resolveSidebarActiveView('/totally-made-up'), null)
   })
 })

@@ -62,18 +62,18 @@ export function ExecConfigPanel({ agentId }: Props) {
     save({ patterns: config.patterns.filter((_, i) => i !== idx) })
   }
 
-  if (loading) return <div className="p-4 text-[13px] text-text-3/50">Loading exec config...</div>
+  if (loading) return <div className="p-4 text-[13px] text-text-3">Loading exec config...</div>
 
   return (
     <div className="flex flex-col gap-4">
       {/* Security Level */}
       <div>
-        <label className="block text-[11px] font-600 uppercase tracking-wider text-text-3/50 mb-2">Security Level</label>
+        <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3 mb-2">Security Level</label>
         <select
           value={config.security}
           onChange={(e) => save({ security: e.target.value as ExecApprovalConfig['security'] })}
           disabled={saving}
-          className="w-full px-3 py-2 rounded-[10px] border border-white/[0.06] bg-black/20 text-[13px] text-text outline-none"
+          className="w-full px-3 py-2 rounded-md border border-line-subtle bg-layer-2 text-[13px] text-text outline-none"
         >
           <option value="deny">Deny (block all)</option>
           <option value="allowlist">Allowlist (matched patterns only)</option>
@@ -83,12 +83,12 @@ export function ExecConfigPanel({ agentId }: Props) {
 
       {/* Ask Mode */}
       <div>
-        <label className="block text-[11px] font-600 uppercase tracking-wider text-text-3/50 mb-2">Ask Mode</label>
+        <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3 mb-2">Ask Mode</label>
         <select
           value={config.askMode}
           onChange={(e) => save({ askMode: e.target.value as ExecApprovalConfig['askMode'] })}
           disabled={saving}
-          className="w-full px-3 py-2 rounded-[10px] border border-white/[0.06] bg-black/20 text-[13px] text-text outline-none"
+          className="w-full px-3 py-2 rounded-md border border-line-subtle bg-layer-2 text-[13px] text-text outline-none"
         >
           <option value="off">Off</option>
           <option value="on-miss">On miss (ask when no pattern matches)</option>
@@ -99,12 +99,12 @@ export function ExecConfigPanel({ agentId }: Props) {
       {/* Patterns */}
       {config.security === 'allowlist' && (
         <div>
-          <label className="block text-[11px] font-600 uppercase tracking-wider text-text-3/50 mb-2">
+          <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3 mb-2">
             Allowed Patterns
           </label>
           <div className="flex flex-col gap-1 mb-2">
             {config.patterns.map((p, i) => (
-              <div key={i} className="flex items-center gap-2 py-1 px-2 rounded-[8px] bg-white/[0.02] border border-white/[0.04]">
+              <div key={i} className="flex items-center gap-2 py-1 px-2 rounded-sm bg-layer-1 border border-line-subtle">
                 <span className="text-[12px] text-text font-mono truncate flex-1">{p}</span>
                 <button
                   onClick={() => removePattern(i)}
@@ -116,7 +116,7 @@ export function ExecConfigPanel({ agentId }: Props) {
               </div>
             ))}
             {!config.patterns.length && (
-              <span className="text-[12px] text-text-3/40">No patterns configured</span>
+              <span className="text-[12px] text-text-3">No patterns configured</span>
             )}
           </div>
           <div className="flex gap-2">
@@ -126,12 +126,12 @@ export function ExecConfigPanel({ agentId }: Props) {
               onChange={(e) => setNewPattern(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addPattern()}
               placeholder="e.g. npm run *"
-              className="flex-1 px-3 py-1.5 rounded-[8px] border border-white/[0.06] bg-black/20 text-[12px] text-text font-mono outline-none placeholder:text-text-3/40"
+              className="flex-1 px-3 py-1.5 rounded-sm border border-line-subtle bg-layer-2 text-[12px] text-text font-mono outline-none placeholder:text-text-3"
             />
             <button
               onClick={addPattern}
               disabled={saving || !newPattern.trim()}
-              className="px-3 py-1.5 rounded-[8px] border-none bg-accent-bright text-white text-[11px] font-600 cursor-pointer disabled:opacity-30 transition-all"
+              className="px-3 py-1.5 rounded-sm border-none bg-accent-bright text-accent-fg text-[11px] font-600 cursor-pointer disabled:opacity-30 transition-all"
               style={{ fontFamily: 'inherit' }}
             >
               Add
@@ -141,7 +141,7 @@ export function ExecConfigPanel({ agentId }: Props) {
       )}
 
       {error && <p className="text-[12px] text-red-400">{error}</p>}
-      {saving && <p className="text-[11px] text-text-3/50">Saving...</p>}
+      {saving && <p className="text-[11px] text-text-3">Saving...</p>}
     </div>
   )
 }

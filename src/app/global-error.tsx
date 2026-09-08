@@ -21,6 +21,11 @@ export default function GlobalError({
   }, [error])
 
   return (
+    // This root replaces the document rather than nesting inside RootLayout,
+    // so it carries its own class list. It no longer has to carry font
+    // variables: globals.css names the macOS system faces literally, so
+    // --font-sans resolves the same on every root. See
+    // src/app/globals-font-family.test.ts, which is what keeps that true.
     <html lang="en" className="dark">
       <body className="antialiased">
         <ErrorFallback

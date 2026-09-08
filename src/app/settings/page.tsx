@@ -317,11 +317,11 @@ export default function SettingsRoute() {
   return (
     <MainContent>
       <div className="flex-1 flex h-full min-w-0">
-        <div className="w-[200px] shrink-0 border-r border-white/[0.04] py-6 px-3 flex flex-col gap-1">
+        <div className="w-[200px] shrink-0 border-r border-line-subtle py-6 px-3 flex flex-col gap-1">
           <h2 className="font-display text-[14px] font-700 text-text px-3 mb-3 tracking-[-0.01em]">Settings</h2>
           <div className="px-2 mb-3">
             <div className="relative">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3/50">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
@@ -330,7 +330,7 @@ export default function SettingsRoute() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search settings or jump to a section..."
-                className="w-full pl-8 pr-2 py-1.5 text-[12px] bg-white/[0.04] rounded-[8px] border border-white/[0.06] text-text placeholder:text-text-3/40 outline-none focus:border-white/[0.12] transition-colors"
+                className="w-full pl-8 pr-2 py-1.5 text-[12px] bg-layer-2 rounded-sm border border-line-subtle text-text placeholder:text-text-3 outline-none focus:border-line-default transition-colors"
                 style={{ fontFamily: 'inherit' }}
               />
             </div>
@@ -341,11 +341,11 @@ export default function SettingsRoute() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-500 cursor-pointer transition-all border-none text-left
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-600 cursor-pointer transition-all border-none text-left
                   ${dimmed ? 'opacity-30' : ''}
                   ${activeTab === tab.id
                     ? 'bg-accent-soft text-accent-bright'
-                    : 'bg-transparent text-text-3 hover:text-text hover:bg-white/[0.04]'}`}
+                    : 'bg-transparent text-text-3 hover:text-text hover:bg-layer-2'}`}
                 style={{ fontFamily: 'inherit' }}
               >
                 <span className="shrink-0">{tab.icon}</span>
@@ -371,20 +371,20 @@ export default function SettingsRoute() {
             </div>
 
             {searchQuery && (
-              <div className="mb-8 rounded-[16px] border border-white/[0.06] bg-white/[0.02] p-4">
+              <div className="mb-8 rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <p className="text-[12px] font-600 text-text-2">
                       {matchingSections.length > 0 ? `${matchingSections.length} matching section${matchingSections.length === 1 ? '' : 's'}` : 'No direct section matches'}
                     </p>
-                    <p className="text-[11px] text-text-3/60">
+                    <p className="text-[11px] text-text-3">
                       Search now lands on individual settings sections instead of only tab names.
                     </p>
                   </div>
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="px-2.5 py-1.5 rounded-[8px] bg-white/[0.04] text-[11px] text-text-3 hover:text-text hover:bg-white/[0.08] transition-colors border-none cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-sm bg-layer-2 text-[11px] text-text-3 hover:text-text hover:bg-layer-3 transition-colors border-none cursor-pointer"
                       style={{ fontFamily: 'inherit' }}
                     >
                       Clear
@@ -397,11 +397,11 @@ export default function SettingsRoute() {
                       <button
                         key={section.id}
                         onClick={() => focusSection(section.id, section.tabId)}
-                        className="px-3 py-2 rounded-[10px] border border-white/[0.06] bg-transparent text-left hover:bg-white/[0.04] transition-colors cursor-pointer"
+                        className="px-3 py-2 rounded-md border border-line-subtle bg-transparent text-left hover:bg-layer-2 transition-colors cursor-pointer"
                         style={{ fontFamily: 'inherit' }}
                       >
                         <div className="text-[12px] font-600 text-text">{section.title}</div>
-                        <div className="text-[10px] text-text-3/60">{TABS.find((tab) => tab.id === section.tabId)?.label}</div>
+                        <div className="text-[10px] text-text-3">{TABS.find((tab) => tab.id === section.tabId)?.label}</div>
                       </button>
                     ))}
                   </div>
@@ -416,7 +416,7 @@ export default function SettingsRoute() {
                 className="mb-10 scroll-mt-6 last:mb-0"
               >
                 <div className="mb-4">
-                  <div className="text-[11px] uppercase tracking-[0.08em] text-text-3/45 mb-1">
+                  <div className="text-[11px] tracking-[0.03em] text-text-3 mb-1">
                     {TABS.find((tab) => tab.id === section.tabId)?.label}
                   </div>
                   <h4 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">

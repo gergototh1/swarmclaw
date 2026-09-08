@@ -250,7 +250,7 @@ export default function UsagePage() {
 
   return (
     <MainContent>
-      <div className="flex-1 flex flex-col h-full overflow-y-auto">
+      <div className="page-shell flex flex-col">
         <div className="px-8 pt-6 pb-4 shrink-0" style={{ animation: 'fade-up 0.5s var(--ease-spring)' }}>
           <h1 className="font-display text-[28px] font-700 tracking-[-0.03em]">Usage</h1>
           <p className="text-[13px] text-text-3 mt-1">Token usage, cost tracking &amp; agent performance</p>
@@ -258,12 +258,12 @@ export default function UsagePage() {
 
         {/* Range tabs */}
         <div className="px-8 pb-4 shrink-0" style={{ animation: 'fade-up 0.5s var(--ease-spring) 0.05s both' }}>
-          <div className="flex gap-1 bg-surface-2 rounded-[10px] p-1 w-fit">
+          <div className="flex gap-1 bg-surface-2 rounded-sm p-1 w-fit">
             {RANGES.map((r) => (
               <button
                 key={r}
                 onClick={() => setRange(r)}
-                className={`px-3.5 py-1.5 rounded-[8px] text-[12px] font-600 transition-all cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-sm text-[12px] font-600 transition-all cursor-pointer ${
                   range === r
                     ? 'bg-accent-soft text-accent-bright'
                     : 'text-text-3 hover:text-text-2'
@@ -287,22 +287,22 @@ export default function UsagePage() {
           <div className="px-8 pb-8 space-y-6">
             {/* Stats cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard label="Total Tokens" value={formatTokens(data?.totalTokens ?? 0)} index={0} className="bg-surface-2 border-white/[0.04]" />
-              <StatCard label="Total Cost" value={formatCost(data?.totalCost ?? 0)} index={1} className="bg-surface-2 border-white/[0.04]" />
-              <StatCard label="Requests" value={String(data?.records.length ?? 0)} index={2} className="bg-surface-2 border-white/[0.04]" />
-              <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="bg-surface-2 border-white/[0.04]" />
+              <StatCard label="Total Tokens" value={formatTokens(data?.totalTokens ?? 0)} index={0} className="border-line-subtle" />
+              <StatCard label="Total Cost" value={formatCost(data?.totalCost ?? 0)} index={1} className="border-line-subtle" />
+              <StatCard label="Requests" value={String(data?.records.length ?? 0)} index={2} className="border-line-subtle" />
+              <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="border-line-subtle" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
               {insightCards.map((card, index) => (
                 <div
                   key={card.label}
-                  className="bg-surface-2 rounded-[12px] p-4 border border-white/[0.04] hover:bg-surface transition-all"
+                  className="bg-surface rounded-lg p-4 border border-line-subtle hover:bg-surface-2 transition-all"
                   style={{ animation: 'spring-in 0.6s var(--ease-spring) both', animationDelay: `${0.12 + index * 0.04}s` }}
                 >
-                  <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3/60 mb-2">{card.label}</p>
+                  <p className="text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">{card.label}</p>
                   <p className={`text-[15px] font-700 leading-tight ${card.tone}`}>{card.value}</p>
-                  <p className="text-[11px] text-text-3/55 mt-2 leading-relaxed">{card.hint}</p>
+                  <p className="text-[11px] text-text-3 mt-2 leading-relaxed">{card.hint}</p>
                 </div>
               ))}
             </div>
@@ -405,7 +405,7 @@ export default function UsagePage() {
                   {extensionData.filter((p) => p.invocations > 0).map((p, idx) => (
                     <div
                       key={p.name}
-                      className="bg-surface-2 rounded-[10px] p-3 border border-white/[0.04] hover:bg-surface transition-all"
+                      className="bg-surface rounded-sm p-3 border border-line-subtle hover:bg-surface-2 transition-all"
                       style={{ animation: 'spring-in 0.5s var(--ease-spring) both', animationDelay: `${0.3 + idx * 0.03}s` }}
                     >
                       <p className="text-[12px] font-600 text-text truncate">{p.name}</p>
@@ -427,10 +427,10 @@ export default function UsagePage() {
               <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
                 <h3 className="font-display text-[16px] font-700 text-text mt-2">Task Performance</h3>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                  <StatCard label="Tasks Completed" value={String(taskMetrics.completedCount)} index={0} className="bg-surface-2 border-white/[0.04]" />
-                  <StatCard label="Avg Cycle Time" value={formatDurationMs(taskMetrics.avgCycleMs)} index={1} className="bg-surface-2 border-white/[0.04]" />
-                  <StatCard label="WIP" value={String(taskMetrics.wip)} index={2} className="bg-surface-2 border-white/[0.04]" />
-                  <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="bg-surface-2 border-white/[0.04]" />
+                  <StatCard label="Tasks Completed" value={String(taskMetrics.completedCount)} index={0} className="border-line-subtle" />
+                  <StatCard label="Avg Cycle Time" value={formatDurationMs(taskMetrics.avgCycleMs)} index={1} className="border-line-subtle" />
+                  <StatCard label="WIP" value={String(taskMetrics.wip)} index={2} className="border-line-subtle" />
+                  <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="border-line-subtle" />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -512,7 +512,7 @@ export default function UsagePage() {
                     .map(([name, h], idx) => (
                       <div
                         key={name}
-                        className="bg-surface-2 rounded-[12px] p-4 border border-white/[0.04] flex flex-col gap-3 hover:bg-surface transition-all hover:scale-[1.02]"
+                        className="bg-surface rounded-lg p-4 border border-line-subtle flex flex-col gap-3 hover:bg-surface-2 transition-all"
                         style={{ animation: 'spring-in 0.5s var(--ease-spring) both', animationDelay: `${0.45 + idx * 0.03}s` }}
                       >
                         <div className="flex items-center justify-between">
@@ -521,15 +521,15 @@ export default function UsagePage() {
                         </div>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
                           <span className="text-text-3">Requests</span>
-                          <span className="text-text font-500 text-right">{h.totalRequests}</span>
+                          <span className="text-text font-600 text-right">{h.totalRequests}</span>
                           <span className="text-text-3 flex items-center gap-1">Error Rate <HintTip text="Percentage of API calls that failed" /></span>
-                          <span className={`font-500 text-right ${errorRateColor(h.errorRate)}`}>
+                          <span className={`font-600 text-right ${errorRateColor(h.errorRate)}`}>
                             {(h.errorRate * 100).toFixed(1)}%
                           </span>
                           {h.avgLatencyMs > 0 && (
                             <>
                               <span className="text-text-3 flex items-center gap-1">Avg Latency <HintTip text="Average response time from the provider" /></span>
-                              <span className="text-text font-500 text-right">{Math.round(h.avgLatencyMs)}ms</span>
+                              <span className="text-text font-600 text-right">{Math.round(h.avgLatencyMs)}ms</span>
                             </>
                           )}
                         </div>
@@ -538,7 +538,7 @@ export default function UsagePage() {
                             {h.models.map((m) => (
                               <span
                                 key={m}
-                                className="px-2 py-0.5 rounded-[6px] bg-white/[0.06] text-[11px] text-text-3 font-500"
+                                className="px-2 py-0.5 rounded-xs bg-layer-2 text-[11px] text-text-3 font-600"
                               >
                                 {m}
                               </span>

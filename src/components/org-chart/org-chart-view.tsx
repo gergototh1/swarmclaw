@@ -403,7 +403,7 @@ export function OrgChartView() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden bg-[#0a0a14] select-none"
+      className="relative w-full h-full overflow-hidden bg-bg select-none"
       style={{ touchAction: 'none' }}
       {...panHandlers}
       onPointerMove={(e) => {
@@ -775,7 +775,7 @@ export function OrgChartView() {
                 transform: 'translateX(-50%)',
               }}
             >
-              <span className="text-[9px] font-500 px-2 py-0.5 rounded-full bg-accent-bright/15 text-accent-bright border border-accent-bright/20 whitespace-nowrap animate-pulse overflow-hidden text-ellipsis" style={{ maxWidth: 200, display: 'inline-block' }}>
+              <span className="text-[9px] font-600 px-2 py-0.5 rounded-full bg-accent-bright/15 text-accent-bright border border-accent-bright/20 whitespace-nowrap animate-pulse overflow-hidden text-ellipsis" style={{ maxWidth: 200, display: 'inline-block' }}>
                 {toolIndicator.text}
               </span>
             </div>
@@ -807,7 +807,7 @@ export function OrgChartView() {
 
       {/* Linking mode banner */}
       {linkingState && agents[linkingState.agentId] && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-accent-bright/20 border border-accent-bright/30 rounded-[10px] backdrop-blur-sm text-[12px] text-text flex items-center gap-3">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-accent-bright/20 border border-accent-bright/30 rounded-sm backdrop-blur-sm text-[12px] text-text flex items-center gap-3">
           <span>
             {linkingState.direction === 'child'
               ? <>Click a node to add as child of <strong>{agents[linkingState.agentId].name}</strong></>
@@ -815,7 +815,7 @@ export function OrgChartView() {
           </span>
           <button
             onClick={() => setLinkingState(null)}
-            className="text-[11px] text-text-3 hover:text-text px-2 py-0.5 rounded-[6px] border border-white/[0.08] bg-white/[0.04] cursor-pointer"
+            className="text-[11px] text-text-3 hover:text-text px-2 py-0.5 rounded-xs border border-line-default bg-layer-2 cursor-pointer"
           >
             Cancel
           </button>
@@ -949,7 +949,7 @@ export function OrgChartView() {
       {isEmpty && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center max-w-sm">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-lg bg-surface border border-line-subtle flex items-center justify-center">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3">
                 <rect x="9" y="2" width="6" height="4" rx="1" />
                 <rect x="2" y="18" width="6" height="4" rx="1" />
@@ -961,7 +961,7 @@ export function OrgChartView() {
             </div>
             <h3 className="text-[15px] font-600 text-text mb-1.5">No hierarchy yet</h3>
             <p className="text-[13px] text-text-3 leading-relaxed">
-              Create agents and set their roles to <span className="text-accent-bright font-500">Coordinator</span> or <span className="text-text-2 font-500">Worker</span> to build your org chart. Drag workers under coordinators to wire up delegation.
+              Create agents and set their roles to <span className="text-accent-bright font-600">Coordinator</span> or <span className="text-text-2 font-600">Worker</span> to build your org chart. Drag workers under coordinators to wire up delegation.
             </p>
           </div>
         </div>

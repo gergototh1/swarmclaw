@@ -637,7 +637,11 @@ test('a .crm-accts fuggoleges lista, a .crm-pill valodi chip', () => {
 
   const pill = blokkok.find((b) => b.szelektorok.includes('.crm-pill'))
   assert.ok(pill, 'a .crm-pill szabalynak leteznie kell')
-  assert.match(pill.torzs, /border-radius:\s*999px/, 'a pill teljesen kerekitett chip')
+  assert.match(
+    pill.torzs,
+    /border-radius:\s*(?:999px|var\(--radius-full)/,
+    'a pill teljesen kerekitett chip -- literalisan vagy a hoszt --radius-full lepcsojen keresztul',
+  )
   assert.match(pill.torzs, /white-space:\s*nowrap/, 'a rovid statusz-cimke nem torik ket sorba')
   assert.match(pill.torzs, /border:\s*1px solid/, 'a pill sajat kerettel valik el a hatteretol')
 })

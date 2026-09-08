@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import { validateExtensionPages } from './extension-pages'
-import { EXTENSION_NAV_ANCHORS, EXTENSION_PAGE_ICON_NAMES, EXTENSION_PAGE_PATH_PREFIX } from '@/lib/extension-page-nav'
+import { EXTENSION_PAGE_ICON_NAMES, EXTENSION_PAGE_PATH_PREFIX } from '@/lib/extension-page-nav'
 import { runWithTempDataDir } from '@/lib/server/test-utils/run-with-temp-data-dir'
 
 const good = { id: 'aisignal', label: 'AI Signal', path: '/x/aisignal', entry: 'dist/index.js' }
@@ -78,6 +78,22 @@ describe('validateExtensionPages', () => {
     assert.equal(r.ok, true)
     if (r.ok) assert.equal(r.pages[0].css, undefined)
   })
+  it('passes section and order through to the stored page', () => {
+    const r = validateExtensionPages([{ ...good, section: 'knowledge', order: 5 }], new Set())
+    assert.equal(r.ok, true)
+    if (r.ok) {
+      assert.equal(r.pages[0].section, 'knowledge')
+      assert.equal(r.pages[0].order, 5)
+    }
+  })
+  it('drops a non-string section and a non-finite order rather than storing garbage', () => {
+    const r = validateExtensionPages([{ ...good, section: 42, order: Number.NaN }], new Set())
+    assert.equal(r.ok, true)
+    if (r.ok) {
+      assert.equal(r.pages[0].section, undefined)
+      assert.equal(r.pages[0].order, undefined)
+    }
+  })
 })
 
 describe('manager.getPages', () => {
@@ -98,11 +114,10 @@ describe('manager.getPages', () => {
 })
 
 describe('extension page nav contract', () => {
-  it('exposes the icon key set and the mounted rail anchors to server code', () => {
+  it('exposes the icon key set to server code', () => {
     assert.ok(EXTENSION_PAGE_ICON_NAMES.length > 0)
     assert.ok(EXTENSION_PAGE_ICON_NAMES.includes('Puzzle'))
     assert.equal(new Set(EXTENSION_PAGE_ICON_NAMES).size, EXTENSION_PAGE_ICON_NAMES.length)
-    assert.ok(EXTENSION_NAV_ANCHORS.length > 0)
     assert.equal(EXTENSION_PAGE_PATH_PREFIX, '/x/')
   })
 

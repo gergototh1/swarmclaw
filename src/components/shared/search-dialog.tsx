@@ -214,12 +214,12 @@ export function SearchDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-[520px] p-0 bg-surface/95 backdrop-blur-xl border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.6)] rounded-[16px] overflow-hidden gap-0"
+        className="sm:max-w-[520px] p-0 bg-surface/80 backdrop-blur-xl border-line-subtle rounded-lg overflow-hidden gap-0"
         onKeyDown={handleKeyDown}
       >
         <DialogTitle className="sr-only">Search</DialogTitle>
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-line-subtle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -229,10 +229,10 @@ export function SearchDialog() {
             onChange={(e) => handleQueryChange(e.target.value)}
             placeholder="Search agents, tasks, schedules..."
             aria-label="Search"
-            className="flex-1 bg-transparent border-none outline-none text-[14px] text-text placeholder:text-text-3/60 font-[inherit]"
+            className="flex-1 bg-transparent border-none outline-none text-[14px] text-text placeholder:text-text-3 font-[inherit]"
             autoFocus
           />
-          <kbd className="px-1.5 py-0.5 rounded-[5px] bg-white/[0.06] border border-white/[0.08] text-[10px] font-mono text-text-3 shrink-0">
+          <kbd className="px-1.5 py-0.5 rounded-xs bg-layer-2 border border-line-default text-[10px] font-mono text-text-3 shrink-0">
             ESC
           </kbd>
         </div>
@@ -250,7 +250,7 @@ export function SearchDialog() {
             </div>
           )}
           {!loading && query.length < 2 && (
-            <div className="px-4 py-8 text-center text-[13px] text-text-3/60">
+            <div className="px-4 py-8 text-center text-[13px] text-text-3">
               Type at least 2 characters to search
             </div>
           )}
@@ -260,12 +260,12 @@ export function SearchDialog() {
               onClick={() => goToResult(result)}
               onMouseEnter={() => setSelectedIdx(idx)}
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-left cursor-pointer transition-colors border-none bg-transparent focus-visible:ring-1 focus-visible:ring-accent-bright/50 focus-visible:ring-inset
-                ${idx === selectedIdx ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04]'}`}
+                ${idx === selectedIdx ? 'bg-layer-2' : 'hover:bg-layer-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
               {/* Type icon */}
-              <div className={`w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0
-                ${idx === selectedIdx ? 'bg-accent-bright/20' : 'bg-white/[0.04]'}`}>
+              <div className={`w-8 h-8 rounded-sm flex items-center justify-center shrink-0
+                ${idx === selectedIdx ? 'bg-accent-bright/20' : 'bg-layer-2'}`}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                   className={idx === selectedIdx ? 'text-accent-bright' : 'text-text-3'}>
                   <path d={TYPE_ICONS[result.type]} />
@@ -275,9 +275,9 @@ export function SearchDialog() {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-500 text-text truncate">{result.title}</span>
+                  <span className="text-[13px] font-600 text-text truncate">{result.title}</span>
                   {result.status && (
-                    <InfoChip size="sm" tone="muted" className="font-500">
+                    <InfoChip size="sm" tone="muted" className="font-600">
                       {result.status}
                     </InfoChip>
                   )}
@@ -287,7 +287,7 @@ export function SearchDialog() {
                 )}
               </div>
               {/* Type label */}
-              <span className="text-[10px] text-text-3/60 uppercase tracking-wider shrink-0">
+              <span className="text-[10px] text-text-3 tracking-[0.03em] shrink-0">
                 {TYPE_LABELS[result.type]}
               </span>
             </button>
@@ -296,17 +296,17 @@ export function SearchDialog() {
 
         {/* Footer hint */}
         {results.length > 0 && (
-          <div className="flex items-center gap-3 px-4 py-2 border-t border-white/[0.06] text-[11px] text-text-3/50">
+          <div className="flex items-center gap-3 px-4 py-2 border-t border-line-subtle text-[11px] text-text-3">
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-[10px] font-mono">↑↓</kbd>
+              <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px] font-mono">↑↓</kbd>
               navigate
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-[10px] font-mono">↵</kbd>
+              <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px] font-mono">↵</kbd>
               open
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-[10px] font-mono">esc</kbd>
+              <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px] font-mono">esc</kbd>
               close
             </span>
           </div>

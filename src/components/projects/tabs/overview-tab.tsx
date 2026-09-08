@@ -69,14 +69,14 @@ export function OverviewTab({ project }: OverviewTabProps) {
         <div className="space-y-3">
           {project.objective && (
             <div>
-              <div className="text-[11px] font-600 text-text-3/50 mb-1">Objective</div>
+              <div className="text-[11px] font-600 text-text-3 mb-1">Objective</div>
               <p className="text-[13px] text-text leading-relaxed">{project.objective}</p>
             </div>
           )}
           {project.audience && (
             <div>
-              <div className="text-[11px] font-600 text-text-3/50 mb-1">Audience</div>
-              <p className="text-[13px] text-text-2/80 leading-relaxed">{project.audience}</p>
+              <div className="text-[11px] font-600 text-text-3 mb-1">Audience</div>
+              <p className="text-[13px] text-text-2 leading-relaxed">{project.audience}</p>
             </div>
           )}
         </div>
@@ -84,20 +84,20 @@ export function OverviewTab({ project }: OverviewTabProps) {
 
       {/* Section 2: Health Grid */}
       <div>
-        <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60 mb-3">Health</h3>
+        <h3 className="text-[12px] font-700 tracking-[0.03em] text-text-3 mb-3">Health</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {healthCards.map((card) => {
             const isZero = card.value === 0
             return (
               <div
                 key={card.label}
-                className={`rounded-[12px] border border-white/[0.06] px-4 py-3 transition-opacity ${isZero ? 'opacity-40' : 'bg-surface/60'}`}
+                className={`rounded-lg border border-line-subtle px-4 py-3 transition-opacity ${isZero ? 'opacity-40' : 'bg-surface'}`}
               >
                 <div className={`text-[22px] font-display font-700 tracking-[-0.02em] ${isZero ? 'text-text-3/50' : card.tone}`}>
                   {card.value}
                 </div>
                 <div className="text-[11px] font-600 text-text-2 mt-0.5">{card.label}</div>
-                <p className="text-[10px] text-text-3/45 mt-1 leading-relaxed">{card.hint}</p>
+                <p className="text-[10px] text-text-3 mt-1 leading-relaxed">{card.hint}</p>
               </div>
             )
           })}
@@ -106,14 +106,14 @@ export function OverviewTab({ project }: OverviewTabProps) {
 
       {/* Section 3: Progress */}
       {totalTasks > 0 && (
-        <div className="rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-5 py-4">
+        <div className="rounded-lg border border-line-subtle bg-surface px-5 py-4">
           <div className="flex items-center justify-between mb-2.5">
             <span className="text-[12px] font-600 text-text-2">Overall Progress</span>
             <span className={`text-[13px] font-mono font-700 ${progressPct === 100 ? 'text-emerald-400' : 'text-text-2'}`}>
               {progressPct}%
             </span>
           </div>
-          <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+          <div className="h-2 rounded-full bg-layer-2 overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{
@@ -122,7 +122,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
               }}
             />
           </div>
-          <div className="flex items-center gap-4 mt-3 text-[10px] text-text-3/40">
+          <div className="flex items-center gap-4 mt-3 text-[10px] text-text-3">
             {Object.entries(tasksByStatus).map(([status, count]) => (
               <span key={status} className="flex items-center gap-1">
                 <span className={`w-1.5 h-1.5 rounded-full ${
@@ -130,7 +130,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
                   : status === 'running' ? 'bg-sky-400'
                   : status === 'queued' ? 'bg-amber-400'
                   : status === 'failed' ? 'bg-red-400'
-                  : 'bg-white/[0.2]'
+                  : 'bg-layer-4'
                 }`} />
                 {count} {status}
               </span>

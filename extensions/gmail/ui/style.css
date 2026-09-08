@@ -32,7 +32,7 @@
 .gm-error {
   color: var(--color-danger, #dc2626);
   border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 35%, transparent);
-  border-radius: 10px;
+  border-radius: var(--radius-md, 11px);
   padding: 10px 14px;
   margin: 0 0 16px;
   white-space: pre-wrap;
@@ -40,7 +40,7 @@
 }
 .gm-notice {
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
-  border-radius: 10px;
+  border-radius: var(--radius-md, 11px);
   padding: 8px 14px;
   margin: 8px 0;
   overflow-wrap: anywhere;
@@ -51,7 +51,7 @@
 /* status bar */
 .gm-status {
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin-bottom: 16px;
   font-size: 13px;
@@ -70,8 +70,8 @@
   min-width: 0;
 }
 .gm-status-toggle:hover strong { text-decoration: underline; }
-.gm-status-toggle:focus-visible { outline: 2px solid var(--color-focus, #2563eb); outline-offset: 2px; border-radius: 3px; }
-.gm-caret { display: inline-block; width: 1em; color: var(--color-text-muted, #6b7280); }
+.gm-status-toggle:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; border-radius: var(--radius-xs, 5px); }
+.gm-caret { display: inline-block; width: 1em; color: var(--color-text-3); }
 .gm-health-item { margin: 8px 0; padding-left: 10px; border-left: 3px solid var(--border, rgba(127, 127, 127, 0.3)); }
 .gm-connect { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
 
@@ -95,7 +95,7 @@
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
   background: var(--card, transparent);
   color: inherit;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   padding: 8px 14px;
   font: inherit;
   cursor: pointer;
@@ -113,7 +113,7 @@
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
   background: var(--card, transparent);
   color: inherit;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   padding: 6px 10px;
   font: inherit;
   margin-top: 4px;
@@ -121,12 +121,12 @@
 .gm-root label { display: block; margin: 8px 0; }
 .gm-checkbox { display: block; margin: 10px 0; overflow-wrap: anywhere; }
 .gm-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
-.gm-form { border: 1px solid var(--border, rgba(127, 127, 127, 0.2)); border-radius: 12px; padding: 10px 14px; margin: 10px 0; }
+.gm-form { border: 1px solid var(--border, rgba(127, 127, 127, 0.2)); border-radius: var(--radius-lg, 18px); padding: 10px 14px; margin: 10px 0; }
 
 /* outbound rows */
 .gm-sor {
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin: 10px 0;
   overflow-wrap: anywhere;
@@ -139,12 +139,12 @@
  */
 .gm-sor-bizonytalan { border-color: var(--color-danger, #dc2626); border-left-width: 4px; }
 .gm-sor-fej { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin-bottom: 6px; font-size: 12px; }
-.gm-badge { border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; font-size: 11px; }
+.gm-badge { border: 1px solid currentColor; border-radius: var(--radius-full, 999px); padding: 0 8px; font-size: 11px; }
 .gm-badge-bad { color: var(--color-danger, #dc2626); font-weight: 700; }
 .gm-cim {
   display: inline-block;
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
-  border-radius: 999px;
+  border-radius: var(--radius-full, 999px);
   padding: 0 8px;
   margin: 2px 6px 2px 0;
   font-size: 12px;
@@ -165,7 +165,7 @@
   font-size: 12px;
   background: var(--card, transparent);
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   padding: 8px 10px;
   margin: 0;
   max-height: 320px;
@@ -177,7 +177,7 @@
 /* the release panel */
 .gm-kiadas-panel {
   border: 2px solid var(--color-danger, #dc2626);
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin: 12px 0 4px;
   overflow-wrap: anywhere;
@@ -197,7 +197,7 @@
 /* attempts */
 .gm-kiserlet {
   border: 1px solid var(--color-warning, #d97706);
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin: 10px 0;
   overflow-wrap: anywhere;

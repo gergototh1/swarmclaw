@@ -399,6 +399,13 @@ const COMMAND_GROUPS = [
     ],
   },
   {
+    name: 'platform-mcp',
+    description: "SwarmClaw's own tool bridge for CLI-provider agents",
+    commands: [
+      cmd('call', 'POST', '/platform-mcp', 'Send a JSON-RPC request to the platform MCP bridge', { expectsJsonBody: true }),
+    ],
+  },
+  {
     name: 'mcp-servers',
     description: 'Manage MCP server configurations',
     commands: [

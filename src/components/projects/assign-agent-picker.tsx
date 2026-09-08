@@ -25,20 +25,20 @@ export function AssignAgentPicker({ projectId, onClose }: { projectId: string; o
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute left-0 top-full mt-2 z-50 w-[260px] rounded-[12px] bg-surface/95 backdrop-blur-xl border border-white/[0.1] shadow-[0_12px_40px_rgba(0,0,0,0.5)] overflow-hidden">
-        <div className="p-2.5 border-b border-white/[0.06]">
+      <div className="absolute left-0 top-full mt-2 z-50 w-[260px] rounded-md bg-surface/80 backdrop-blur-xl border border-line-default overflow-hidden">
+        <div className="p-2.5 border-b border-line-subtle">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search agents..."
             autoFocus
-            className="w-full px-2.5 py-1.5 text-[12px] bg-white/[0.06] rounded-[8px] border border-white/[0.08] text-text placeholder:text-text-3/50 outline-none"
+            className="w-full px-2.5 py-1.5 text-[12px] bg-layer-2 rounded-sm border border-line-default text-text placeholder:text-text-3 outline-none"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
         <div className="max-h-[240px] overflow-y-auto p-1">
           {unassigned.length === 0 && (
-            <div className="px-3 py-4 text-[11px] text-text-3/50 text-center">
+            <div className="px-3 py-4 text-[11px] text-text-3 text-center">
               {query ? 'No matching agents' : 'All agents are already assigned'}
             </div>
           )}
@@ -46,15 +46,15 @@ export function AssignAgentPicker({ projectId, onClose }: { projectId: string; o
             <button
               key={a.id}
               onClick={() => handleAssign(a.id)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[8px] text-left hover:bg-white/[0.06] transition-colors cursor-pointer bg-transparent border-none"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
               style={{ fontFamily: 'inherit' }}
             >
               <AgentAvatar seed={a.avatarSeed} avatarUrl={a.avatarUrl} name={a.name} size={22} />
               <div className="min-w-0 flex-1">
                 <div className="text-[12px] text-text truncate">{a.name}</div>
-                <div className="text-[10px] text-text-3/40 truncate">{a.model || a.provider}</div>
+                <div className="text-[10px] text-text-3 truncate">{a.model || a.provider}</div>
               </div>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/30 shrink-0">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>

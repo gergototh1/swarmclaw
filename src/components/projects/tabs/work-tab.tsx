@@ -66,7 +66,7 @@ export function WorkTab() {
           <select
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
-            className="text-[11px] bg-white/[0.04] border border-white/[0.06] rounded-[8px] px-2 py-1.5 text-text-2 outline-none"
+            className="text-[11px] bg-layer-2 border border-line-subtle rounded-sm px-2 py-1.5 text-text-2 outline-none"
             style={{ fontFamily: 'inherit' }}
           >
             <option value="status">Sort: Status</option>
@@ -78,7 +78,7 @@ export function WorkTab() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="text-[11px] bg-white/[0.04] border border-white/[0.06] rounded-[8px] px-2 py-1.5 text-text-2 outline-none"
+            className="text-[11px] bg-layer-2 border border-line-subtle rounded-sm px-2 py-1.5 text-text-2 outline-none"
             style={{ fontFamily: 'inherit' }}
           >
             <option value="all">All statuses</option>
@@ -94,7 +94,7 @@ export function WorkTab() {
             <select
               value={agentFilter || ''}
               onChange={(e) => setAgentFilter(e.target.value || null)}
-              className="text-[11px] bg-white/[0.04] border border-white/[0.06] rounded-[8px] px-2 py-1.5 text-text-2 outline-none"
+              className="text-[11px] bg-layer-2 border border-line-subtle rounded-sm px-2 py-1.5 text-text-2 outline-none"
               style={{ fontFamily: 'inherit' }}
             >
               <option value="">All agents</option>
@@ -118,7 +118,7 @@ export function WorkTab() {
 
         <button
           onClick={() => { setEditingTaskId(null); setTaskSheetOpen(true) }}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer border-none"
           style={{ fontFamily: 'inherit' }}
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -131,12 +131,12 @@ export function WorkTab() {
 
       {/* Task list */}
       {sortedTasks.length === 0 ? (
-        <div className="rounded-[12px] border border-dashed border-white/[0.08] px-5 py-8 text-center">
-          <p className="text-[12px] text-text-3/40">
+        <div className="rounded-lg border border-dashed border-line-subtle px-5 py-8 text-center">
+          <p className="text-[12px] text-text-3">
             {projectTasks.length === 0 ? 'No tasks yet.' : 'No tasks match the current filters.'}
           </p>
           {projectTasks.length === 0 && (
-            <p className="text-[11px] text-text-3/30 mt-1">Create a task to get started.</p>
+            <p className="text-[11px] text-text-3 mt-1">Create a task to get started.</p>
           )}
         </div>
       ) : (
@@ -147,25 +147,25 @@ export function WorkTab() {
               <button
                 key={task.id}
                 onClick={() => { setEditingTaskId(task.id); setTaskSheetOpen(true) }}
-                className="flex items-center gap-3 px-4 py-3 rounded-[10px] border border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.04] hover:border-white/[0.08] transition-all cursor-pointer text-left w-full"
+                className="flex items-center gap-3 px-4 py-3 rounded-md border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer text-left w-full"
                 style={{ fontFamily: 'inherit' }}
               >
-                <span className={`shrink-0 px-2 py-0.5 rounded-[5px] text-[10px] font-600 uppercase tracking-wider ${STATUS_STYLES[task.status] || STATUS_STYLES.backlog}`}>
+                <span className={`shrink-0 px-2 py-0.5 rounded-xs text-[10px] font-600 tracking-[0.03em] ${STATUS_STYLES[task.status] || STATUS_STYLES.backlog}`}>
                   {task.status}
                 </span>
                 <div className="flex-1 min-w-0">
                   <span className="text-[13px] text-text truncate block">{task.title}</span>
                   {task.objective && (
-                    <span className="text-[10px] text-text-3/40 truncate block mt-0.5">{task.objective}</span>
+                    <span className="text-[10px] text-text-3 truncate block mt-0.5">{task.objective}</span>
                   )}
                 </div>
                 {agent && (
-                  <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-text-3/40">
+                  <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-text-3">
                     <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={16} />
                     {agent.name}
                   </span>
                 )}
-                <span className="text-[10px] text-text-3/30 shrink-0">{relativeDate(task.updatedAt)}</span>
+                <span className="text-[10px] text-text-3 shrink-0">{relativeDate(task.updatedAt)}</span>
               </button>
             )
           })}

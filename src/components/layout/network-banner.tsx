@@ -7,9 +7,9 @@ export function NetworkBanner() {
   if (!info) return null
 
   return (
-    <div className="px-4 py-1.5 border-b border-white/[0.04] text-[10px] text-text-3 flex items-center gap-2 shrink-0">
+    <div className="flex items-center gap-2 px-3 pt-1.5 text-[10px] text-text-3">
       <span className="w-[5px] h-[5px] rounded-full bg-success shrink-0" />
-      <code className="font-mono text-[10px] text-text-3/70 select-all">
+      <code className="font-mono text-[10px] text-text-3 select-all">
         {info.ip}:{info.port}
       </code>
     </div>

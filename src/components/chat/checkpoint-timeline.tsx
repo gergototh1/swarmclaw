@@ -45,7 +45,7 @@ export function CheckpointTimeline({ sessionId }: Props) {
     return (
       <div className="p-8 text-center">
         <p className="text-text-3 text-[13px]">No checkpoints found for this chat.</p>
-        <p className="text-[11px] text-text-3/50 mt-1">Checkpoint history is only available when a backend created checkpoints for this chat.</p>
+        <p className="text-[11px] text-text-3 mt-1">Checkpoint history is only available when a backend created checkpoints for this chat.</p>
       </div>
     )
   }
@@ -56,10 +56,10 @@ export function CheckpointTimeline({ sessionId }: Props) {
         {checkpoints.map((cp, i) => (
           <div 
             key={cp.checkpointId}
-            className="group relative flex flex-col gap-2 p-3 rounded-[12px] border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] transition-all"
+            className="group relative flex flex-col gap-2 p-3 rounded-lg border border-line-subtle bg-surface hover:bg-layer-2 transition-all"
           >
             <div className="flex flex-col">
-              <span className="text-[11px] font-700 text-accent-bright uppercase tracking-wider">
+              <span className="text-[11px] font-700 text-accent-bright tracking-[0.03em]">
                 {i === 0 ? 'Current State' : `Point ${checkpoints.length - i}`}
               </span>
               <span className="text-[10px] text-text-3 font-mono">
@@ -68,7 +68,7 @@ export function CheckpointTimeline({ sessionId }: Props) {
             </div>
             
             {cp.values && Array.isArray(cp.values.messages) && cp.values.messages.length > 0 && (
-              <div className="mt-1 p-2 rounded-[8px] bg-black/20 text-[11px] text-text-3 line-clamp-2 italic">
+              <div className="mt-1 p-2 rounded-sm bg-layer-2 text-[11px] text-text-3 line-clamp-2 italic">
                 Last message: {String((cp.values.messages[cp.values.messages.length - 1] as Record<string, unknown>)?.content ?? 'Empty state')}
               </div>
             )}

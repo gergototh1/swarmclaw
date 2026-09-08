@@ -80,20 +80,20 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
   return (
     <div className="space-y-5">
       {/* Enable/Disable toggle */}
-      <div className="flex items-center justify-between gap-4 rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-4">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-line-subtle bg-surface px-4 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-[14px] font-600 text-text">SwarmDock</p>
             <HintTip text="Enable this agent to list on the SwarmDock AI marketplace" />
           </div>
-          <p className="mt-1 text-[12px] leading-[1.6] text-text-3/75">
+          <p className="mt-1 text-[12px] leading-[1.6] text-text-3">
             List this agent on the marketplace to accept tasks and earn USDC.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setEnabled((c) => !c)}
-          className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${enabled ? 'bg-accent-bright' : 'bg-white/[0.12]'}`}
+          className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${enabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
           aria-pressed={enabled}
         >
           <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${enabled ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -104,14 +104,14 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
         <>
           {/* Description */}
           <div>
-            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
               Marketplace Description <HintTip text="A short description shown on the agent's marketplace profile" />
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what this agent specializes in..."
-              className="w-full min-h-[80px] px-4 py-3 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow resize-y"
+              className="w-full min-h-[80px] px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow resize-y"
               style={{ fontFamily: 'inherit' }}
               maxLength={500}
             />
@@ -119,7 +119,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
 
           {/* Skills */}
           <div>
-            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
               Skills <HintTip text="Skill tags for task matching on the marketplace" />
             </label>
             {skills.length > 0 && (
@@ -128,7 +128,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                   <button
                     key={skill}
                     onClick={() => removeSkill(skill)}
-                    className="px-3 py-1.5 rounded-[10px] border border-accent-bright/40 bg-accent-bright/10 text-accent-bright text-[12px] font-500 transition-all cursor-pointer bg-transparent hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400"
+                    className="px-3 py-1.5 rounded-sm border border-accent-bright/40 bg-accent-bright/10 text-accent-bright text-[12px] font-600 transition-all cursor-pointer bg-transparent hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400"
                   >
                     {skill} &times;
                   </button>
@@ -141,14 +141,14 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                 onChange={(e) => setSkillInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }}
                 placeholder="e.g. data-analysis, web-design"
-                className="flex-1 px-4 py-2.5 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                className="flex-1 px-4 py-2.5 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow"
                 style={{ fontFamily: 'inherit' }}
               />
               <button
                 type="button"
                 onClick={addSkill}
                 disabled={!skillInput.trim()}
-                className="px-4 py-2.5 rounded-[12px] border border-white/[0.08] bg-white/[0.04] text-text-2 text-[13px] font-500 transition-all hover:bg-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                className="px-4 py-2.5 rounded-md border border-line-default bg-layer-2 text-text-2 text-[13px] font-600 transition-all hover:bg-layer-3 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
                 Add
               </button>
@@ -157,14 +157,14 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
 
           {/* Wallet picker */}
           <div>
-            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
               Payout Wallet <HintTip text="Base L2 wallet for receiving USDC payments" />
             </label>
             {agentWallets.length > 0 ? (
               <select
                 value={walletId || ''}
                 onChange={(e) => setWalletId(e.target.value || null)}
-                className="w-full px-4 py-3 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[14px] outline-none cursor-pointer"
+                className="w-full px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none cursor-pointer"
                 style={{ fontFamily: 'inherit' }}
               >
                 <option value="">No wallet selected</option>
@@ -175,7 +175,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                 ))}
               </select>
             ) : (
-              <p className="text-[13px] text-text-3/75">
+              <p className="text-[13px] text-text-3">
                 No wallets linked to this agent. Add a wallet in the Wallets section first.
               </p>
             )}
@@ -202,7 +202,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                 <button
                   type="button"
                   onClick={() => setMarketplace((m) => ({ ...m, enabled: !m.enabled }))}
-                  className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${marketplace.enabled ? 'bg-accent-bright' : 'bg-white/[0.12]'}`}
+                  className={`relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-200 ${marketplace.enabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
                   aria-pressed={marketplace.enabled}
                 >
                   <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${marketplace.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -214,7 +214,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                   <label className="flex items-center gap-3 cursor-pointer">
                     <div
                       onClick={() => setMarketplace((m) => ({ ...m, autoDiscover: !m.autoDiscover }))}
-                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${marketplace.autoDiscover ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${marketplace.autoDiscover ? 'bg-accent-bright' : 'bg-layer-3'}`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${marketplace.autoDiscover ? 'left-[22px]' : 'left-0.5'}`} />
                     </div>
@@ -226,7 +226,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                   <label className="flex items-center gap-3 cursor-pointer">
                     <div
                       onClick={() => setMarketplace((m) => ({ ...m, autoBid: !m.autoBid }))}
-                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${marketplace.autoBid ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${marketplace.autoBid ? 'bg-accent-bright' : 'bg-layer-3'}`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${marketplace.autoBid ? 'left-[22px]' : 'left-0.5'}`} />
                     </div>
@@ -238,7 +238,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                   <label className="flex items-center gap-3 cursor-pointer">
                     <div
                       onClick={() => setMarketplace((m) => ({ ...m, taskNotifications: !m.taskNotifications }))}
-                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${marketplace.taskNotifications ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                      className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer shrink-0 ${marketplace.taskNotifications ? 'bg-accent-bright' : 'bg-layer-3'}`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${marketplace.taskNotifications ? 'left-[22px]' : 'left-0.5'}`} />
                     </div>
@@ -255,10 +255,10 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                       value={marketplace.maxBudgetUsdc}
                       onChange={(e) => setMarketplace((m) => ({ ...m, maxBudgetUsdc: e.target.value.replace(/[^0-9]/g, '') }))}
                       placeholder="5000000"
-                      className="w-full px-4 py-3 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                      className="w-full px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow"
                       style={{ fontFamily: 'inherit' }}
                     />
-                    <p className="mt-1 text-[11px] text-text-3/60">
+                    <p className="mt-1 text-[11px] text-text-3">
                       = ${(parseInt(marketplace.maxBudgetUsdc || '0', 10) / 1_000_000).toFixed(2)} USDC
                     </p>
                   </div>
@@ -272,10 +272,10 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                         value={marketplace.autoBidMaxPrice}
                         onChange={(e) => setMarketplace((m) => ({ ...m, autoBidMaxPrice: e.target.value.replace(/[^0-9]/g, '') }))}
                         placeholder="1000000"
-                        className="w-full px-4 py-3 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus-glow"
+                        className="w-full px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow"
                         style={{ fontFamily: 'inherit' }}
                       />
-                      <p className="mt-1 text-[11px] text-text-3/60">
+                      <p className="mt-1 text-[11px] text-text-3">
                         = ${(parseInt(marketplace.autoBidMaxPrice || '0', 10) / 1_000_000).toFixed(2)} USDC
                       </p>
                     </div>
@@ -292,7 +292,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-2.5 rounded-[12px] bg-accent-bright text-white text-[14px] font-600 transition-all
+          className="px-6 py-2.5 rounded-md bg-accent-bright text-accent-fg text-[14px] font-600 transition-all
             hover:bg-accent-bright/90 disabled:opacity-40 disabled:cursor-not-allowed border-none cursor-pointer"
         >
           {saving ? 'Saving...' : 'Save Marketplace Settings'}

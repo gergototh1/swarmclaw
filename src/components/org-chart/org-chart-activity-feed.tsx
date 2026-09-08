@@ -72,16 +72,16 @@ export function OrgChartActivityFeed({ agents, onSelectAgent, onClose }: Props) 
   }
 
   return (
-    <div className="absolute top-0 right-0 z-30 w-[320px] h-full bg-raised/95 backdrop-blur-sm border-l border-white/[0.06] shadow-xl shadow-black/30 flex flex-col overflow-hidden" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="absolute top-0 right-0 z-30 w-[320px] h-full bg-raised/80 backdrop-blur-sm border-l border-line-subtle shadow-xl shadow-black/30 flex flex-col overflow-hidden" onPointerDown={(e) => e.stopPropagation()}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-line-subtle">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
           <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
         </svg>
         <div className="flex-1 text-[13px] font-600 text-text">Activity</div>
         <button
           onClick={onClose}
-          className="w-6 h-6 rounded-[6px] flex items-center justify-center text-text-3 hover:text-text hover:bg-white/[0.06] transition-colors cursor-pointer bg-transparent border-none"
+          className="w-6 h-6 rounded-xs flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M18 6L6 18" /><path d="M6 6l12 12" />
@@ -93,11 +93,11 @@ export function OrgChartActivityFeed({ agents, onSelectAgent, onClose }: Props) 
       <div className="flex-1 overflow-y-auto overscroll-contain" onWheel={(e) => e.stopPropagation()}>
         {loading && entries.length === 0 ? (
           <div className="flex items-center justify-center py-12">
-            <span className="text-[11px] text-text-3/50">Loading...</span>
+            <span className="text-[11px] text-text-3">Loading...</span>
           </div>
         ) : entries.length === 0 ? (
           <div className="flex items-center justify-center py-12">
-            <span className="text-[11px] text-text-3/50">No activity yet</span>
+            <span className="text-[11px] text-text-3">No activity yet</span>
           </div>
         ) : (
           <div className="flex flex-col">
@@ -110,8 +110,8 @@ export function OrgChartActivityFeed({ agents, onSelectAgent, onClose }: Props) 
               return (
                 <div
                   key={entry.id}
-                  className={`flex items-start gap-2.5 px-4 py-2.5 border-b border-white/[0.03] ${
-                    isClickable ? 'cursor-pointer hover:bg-white/[0.02]' : ''
+                  className={`flex items-start gap-2.5 px-4 py-2.5 border-b border-line-subtle ${
+                    isClickable ? 'cursor-pointer hover:bg-layer-1' : ''
                   }`}
                   onClick={isClickable ? () => onSelectAgent(agent.id) : undefined}
                 >
@@ -125,8 +125,8 @@ export function OrgChartActivityFeed({ agents, onSelectAgent, onClose }: Props) 
                     {agent ? (
                       <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={20} />
                     ) : (
-                      <div className="w-5 h-5 rounded-full bg-white/[0.06] flex items-center justify-center">
-                        <span className="text-[8px] text-text-3/50">{entry.entityType.charAt(0).toUpperCase()}</span>
+                      <div className="w-5 h-5 rounded-full bg-layer-2 flex items-center justify-center">
+                        <span className="text-[8px] text-text-3">{entry.entityType.charAt(0).toUpperCase()}</span>
                       </div>
                     )}
                   </div>
@@ -137,10 +137,10 @@ export function OrgChartActivityFeed({ agents, onSelectAgent, onClose }: Props) 
                       {entry.summary}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={`text-[9px] font-500 uppercase tracking-wider ${actionColor}`}>
+                      <span className={`text-[9px] font-600 tracking-[0.03em] ${actionColor}`}>
                         {entry.action}
                       </span>
-                      <span className="text-[9px] text-text-3/30">
+                      <span className="text-[9px] text-text-3">
                         {timeAgo(entry.timestamp)}
                       </span>
                     </div>

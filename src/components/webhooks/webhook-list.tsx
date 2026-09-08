@@ -48,19 +48,19 @@ export function WebhookList({ inSidebar }: { inSidebar?: boolean }) {
   if (!list.length) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-text-3 p-8 text-center" style={{ animation: 'fade-up 0.5s var(--ease-spring)' }}>
-        <div className="w-12 h-12 rounded-[14px] bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-1">
+        <div className="w-12 h-12 rounded-md bg-layer-1 border border-line-subtle flex items-center justify-center mb-1">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3">
             <path d="M22 12h-4l-3 7L9 5l-3 7H2" />
           </svg>
         </div>
         <p className="text-[13px] text-text-3 mb-1 font-600">No webhooks yet</p>
-        <p className="text-[12px] text-text-3/60">Create inbound endpoints to trigger agent runs</p>
+        <p className="text-[12px] text-text-3">Create inbound endpoints to trigger agent runs</p>
         <button
           onClick={() => {
             setEditingWebhookId(null)
             setWebhookSheetOpen(true)
           }}
-          className="mt-3 px-4 py-2 rounded-[10px] bg-transparent text-accent-bright text-[13px] font-600 cursor-pointer border border-accent-bright/20 hover:bg-accent-soft transition-all"
+          className="mt-3 px-4 py-2 rounded-sm bg-transparent text-accent-bright text-[13px] font-600 cursor-pointer border border-accent-bright/20 hover:bg-accent-soft transition-all"
           style={{ fontFamily: 'inherit' }}
         >
           + Add Webhook
@@ -81,7 +81,7 @@ export function WebhookList({ inSidebar }: { inSidebar?: boolean }) {
         return (
           <div
             key={hook.id}
-            className="w-full flex items-center gap-2.5 px-5 py-3 hover:bg-white/[0.02] transition-colors group"
+            className="w-full flex items-center gap-2.5 px-5 py-3 hover:bg-layer-1 transition-colors group"
             style={{
               animation: 'fade-up 0.4s var(--ease-spring) both',
               animationDelay: `${idx * 0.02}s`
@@ -94,10 +94,10 @@ export function WebhookList({ inSidebar }: { inSidebar?: boolean }) {
               }}
               className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer bg-transparent border-none text-left p-0"
             >
-              <div className={`shrink-0 w-9 h-9 rounded-[10px] border flex items-center justify-center transition-all ${
+              <div className={`shrink-0 w-9 h-9 rounded-sm border flex items-center justify-center transition-all ${
                 hook.isEnabled
                   ? 'bg-emerald-500/12 border-emerald-500/20 text-emerald-300'
-                  : 'bg-white/[0.03] border-white/[0.08] text-text-3'
+                  : 'bg-layer-1 border-line-default text-text-3'
               }`}
               style={hook.isEnabled ? { animation: 'spring-in 0.4s var(--ease-spring)' } : undefined}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -108,7 +108,7 @@ export function WebhookList({ inSidebar }: { inSidebar?: boolean }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-600 text-text truncate">{hook.name || 'Unnamed Webhook'}</span>
-                  <span className={`shrink-0 w-2 h-2 rounded-full ${hook.isEnabled ? 'bg-emerald-400' : 'bg-white/20'}`}
+                  <span className={`shrink-0 w-2 h-2 rounded-full ${hook.isEnabled ? 'bg-emerald-400' : 'bg-layer-4'}`}
                     style={hook.isEnabled ? { animation: 'pulse-subtle 2s infinite' } : undefined} />
                 </div>
                 <div className="text-[11px] text-text-3 truncate">
@@ -123,11 +123,11 @@ export function WebhookList({ inSidebar }: { inSidebar?: boolean }) {
                 copyText(`endpoint:${hook.id}`, `${window.location.origin}${endpoint}`)
               }}
               title={copiedEndpoint ? 'Copied endpoint' : 'Copy endpoint URL'}
-              className={`shrink-0 w-8 h-8 rounded-[8px] flex items-center justify-center transition-all cursor-pointer border-none ${
+              className={`shrink-0 w-8 h-8 rounded-sm flex items-center justify-center transition-all cursor-pointer border-none ${
                 copiedEndpoint
                   ? 'opacity-100 bg-emerald-500/15 text-emerald-300'
                   : 'opacity-0 group-hover:opacity-100 focus:opacity-100 bg-accent-soft/40 text-accent-bright hover:bg-accent-soft'
-              } hover:scale-[1.1] active:scale-[0.9]`}
+              } active:scale-[0.9]`}
             >
               {copiedEndpoint ? (
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spring-in 0.3s var(--ease-spring)' }}>
@@ -148,11 +148,11 @@ export function WebhookList({ inSidebar }: { inSidebar?: boolean }) {
                   copyText(`secret:${hook.id}`, hook.secret!.trim())
                 }}
                 title={copiedSecret ? 'Copied secret' : 'Copy secret'}
-                className={`shrink-0 w-8 h-8 rounded-[8px] flex items-center justify-center transition-all cursor-pointer border-none ${
+                className={`shrink-0 w-8 h-8 rounded-sm flex items-center justify-center transition-all cursor-pointer border-none ${
                   copiedSecret
                     ? 'opacity-100 bg-emerald-500/15 text-emerald-300'
-                    : 'opacity-0 group-hover:opacity-100 focus:opacity-100 bg-white/[0.04] text-text-2 hover:bg-white/[0.08]'
-                } hover:scale-[1.1] active:scale-[0.9]`}
+                    : 'opacity-0 group-hover:opacity-100 focus:opacity-100 bg-layer-2 text-text-2 hover:bg-layer-3'
+                } active:scale-[0.9]`}
               >
                 {copiedSecret ? (
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spring-in 0.3s var(--ease-spring)' }}>

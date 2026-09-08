@@ -281,19 +281,19 @@ export function ScheduleSheet() {
   const previewOk = timingPreview && timingPreview.ok ? timingPreview : null
 
   const timingPreviewPanel = (
-    <div className="p-4 rounded-[14px] bg-surface border border-white/[0.06]">
+    <div className="p-4 rounded-lg bg-surface border border-line-subtle">
       <div className="flex flex-wrap items-center gap-2 mb-2">
         <div className="text-[14px] text-text-2 font-600">
           {scheduleType === 'cron' ? cronHuman : previewOk?.cadence || (scheduleType === 'once' ? 'Run once' : `Every ${Math.round(intervalMs / 60000)} minutes`)}
         </div>
         {previewOk?.timezone && (
-          <span className="rounded-[999px] bg-white/[0.05] px-2 py-0.5 text-[11px] font-600 text-text-3">
+          <span className="rounded-full bg-layer-2 px-2 py-0.5 text-[11px] font-600 text-text-3">
             {previewOk.timezone}
           </span>
         )}
       </div>
       {scheduleType === 'cron' && cron && (
-        <div className="font-mono text-[12px] text-text-3/50 mb-3">{cron}</div>
+        <div className="font-mono text-[12px] text-text-3 mb-3">{cron}</div>
       )}
       {timingPreviewLoading && (
         <div className="text-[12px] text-text-3">Checking schedule...</div>
@@ -305,7 +305,7 @@ export function ScheduleSheet() {
         <>
           {previewOk.nextRuns.length > 0 ? (
             <div className="space-y-1.5">
-              <div className="text-[11px] text-text-3/60 uppercase tracking-wider font-600">Next runs</div>
+              <div className="text-[11px] text-text-3 tracking-[0.03em] font-600">Next runs</div>
               {previewOk.nextRuns.map((run) => (
                 <div key={run.iso} className="text-[12px] text-text-3 font-mono">{run.label}</div>
               ))}
@@ -338,7 +338,7 @@ export function ScheduleSheet() {
       <div className="flex items-center gap-2 mb-10">
         {steps.map((label, i) => (
           <div key={label} className="flex items-center gap-2">
-            {i > 0 && <div className={`w-8 h-px ${i <= step ? 'bg-accent-bright/40' : 'bg-white/[0.06]'}`} />}
+            {i > 0 && <div className={`w-8 h-px ${i <= step ? 'bg-accent-bright/40' : 'bg-layer-2'}`} />}
             <button
               onClick={() => {
                 if (i < step) setStep(i as Step)
@@ -348,20 +348,20 @@ export function ScheduleSheet() {
                   else if (step === templateStep) setStep(i as Step)
                 }
               }}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] text-[12px] font-600 cursor-pointer transition-all border-none
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm text-[12px] font-600 cursor-pointer transition-all border-none
                 ${i === step
                   ? 'bg-accent-soft text-accent-bright'
                   : i < step
-                    ? 'bg-white/[0.04] text-text-2'
+                    ? 'bg-layer-2 text-text-2'
                     : 'bg-transparent text-text-3/50'}`}
               style={{ fontFamily: 'inherit' }}
             >
               <span className={`w-5 h-5 rounded-full text-[10px] font-700 flex items-center justify-center
                 ${i === step
-                  ? 'bg-accent-bright text-white'
+                  ? 'bg-accent-bright text-accent-fg'
                   : i < step
                     ? 'bg-emerald-400/20 text-emerald-400'
-                    : 'bg-white/[0.06] text-text-3/50'}`}>
+                    : 'bg-layer-2 text-text-3/50'}`}>
                 {i < step ? (
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                 ) : (
@@ -388,18 +388,18 @@ export function ScheduleSheet() {
                     applyTemplate(tpl, setters)
                     setStep(whatStep as Step)
                   }}
-                  className="flex items-start gap-3.5 p-4 rounded-[14px] border border-white/[0.06] bg-surface
-                    text-left cursor-pointer transition-all duration-200 hover:bg-surface-2 hover:border-white/[0.1]
+                  className="flex items-start gap-3.5 p-4 rounded-lg border border-line-subtle bg-surface
+                    text-left cursor-pointer transition-all duration-200 hover:bg-surface-2 hover:border-line-default
                     active:scale-[0.98]"
                   style={{ fontFamily: 'inherit' }}
                 >
-                  <div className="w-9 h-9 rounded-[10px] bg-accent-soft flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-9 h-9 rounded-sm bg-accent-soft flex items-center justify-center shrink-0 mt-0.5">
                     <IconComp size={16} className="text-accent-bright" />
                   </div>
                   <div className="min-w-0">
                     <div className="text-[14px] font-600 text-text mb-0.5">{tpl.name}</div>
-                    <div className="text-[12px] text-text-3/70 leading-[1.4]">{tpl.description}</div>
-                    <div className="mt-1.5 text-[11px] text-text-3/40 capitalize">{tpl.category}</div>
+                    <div className="text-[12px] text-text-3 leading-[1.4]">{tpl.description}</div>
+                    <div className="mt-1.5 text-[11px] text-text-3 capitalize">{tpl.category}</div>
                   </div>
                 </button>
               )
@@ -407,8 +407,8 @@ export function ScheduleSheet() {
           </div>
           <button
             onClick={() => setStep(whatStep as Step)}
-            className="w-full py-3.5 rounded-[14px] border border-dashed border-white/[0.08] bg-transparent
-              text-text-3 text-[14px] font-600 cursor-pointer transition-all hover:bg-surface hover:text-text-2 hover:border-white/[0.12]"
+            className="w-full py-3.5 rounded-lg border border-dashed border-line-default bg-transparent
+              text-text-3 text-[14px] font-600 cursor-pointer transition-all hover:bg-surface hover:text-text-2 hover:border-line-strong"
             style={{ fontFamily: 'inherit' }}
           >
             Start from scratch
@@ -442,33 +442,33 @@ export function ScheduleSheet() {
             <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={() => setTaskMode('task')}
-                className={`py-3 px-4 rounded-[14px] text-center cursor-pointer transition-all duration-200
+                className={`py-3 px-4 rounded-lg text-center cursor-pointer transition-all duration-200
                   active:scale-[0.97] text-[14px] font-600 border
                   ${taskMode === 'task'
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                    : 'bg-surface border-white/[0.06] text-text-2 hover:bg-surface-2'}`}
+                    : 'bg-surface border-line-subtle text-text-2 hover:bg-surface-2'}`}
                 style={{ fontFamily: 'inherit' }}
               >
                 Create task
               </button>
               <button
                 onClick={() => setTaskMode('wake_only')}
-                className={`py-3 px-4 rounded-[14px] text-center cursor-pointer transition-all duration-200
+                className={`py-3 px-4 rounded-lg text-center cursor-pointer transition-all duration-200
                   active:scale-[0.97] text-[14px] font-600 border
                   ${taskMode === 'wake_only'
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                    : 'bg-surface border-white/[0.06] text-text-2 hover:bg-surface-2'}`}
+                    : 'bg-surface border-line-subtle text-text-2 hover:bg-surface-2'}`}
                 style={{ fontFamily: 'inherit' }}
               >
                 Wake agent only
               </button>
               <button
                 onClick={() => setTaskMode('protocol')}
-                className={`py-3 px-4 rounded-[14px] text-center cursor-pointer transition-all duration-200
+                className={`py-3 px-4 rounded-lg text-center cursor-pointer transition-all duration-200
                   active:scale-[0.97] text-[14px] font-600 border
                   ${taskMode === 'protocol'
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                    : 'bg-surface border-white/[0.06] text-text-2 hover:bg-surface-2'}`}
+                    : 'bg-surface border-line-subtle text-text-2 hover:bg-surface-2'}`}
                 style={{ fontFamily: 'inherit' }}
               >
                 Structured session
@@ -542,11 +542,11 @@ export function ScheduleSheet() {
                 <button
                   key={t}
                   onClick={() => setScheduleType(t)}
-                  className={`py-3.5 px-4 rounded-[14px] text-center cursor-pointer transition-all duration-200
+                  className={`py-3.5 px-4 rounded-lg text-center cursor-pointer transition-all duration-200
                     active:scale-[0.97] text-[14px] font-600 capitalize border
                     ${scheduleType === t
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                      : 'bg-surface border-white/[0.06] text-text-2 hover:bg-surface-2'}`}
+                      : 'bg-surface border-line-subtle text-text-2 hover:bg-surface-2'}`}
                   style={{ fontFamily: 'inherit' }}
                 >
                   {t}
@@ -568,10 +568,10 @@ export function ScheduleSheet() {
                   <button
                     key={p.cron}
                     onClick={() => { setCron(p.cron); setCustomCron(false) }}
-                    className={`px-3.5 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+                    className={`px-3.5 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                       ${cron === p.cron && !customCron
                         ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                        : 'bg-surface border-white/[0.06] text-text-3 hover:text-text-2'}`}
+                        : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
                     style={{ fontFamily: 'inherit' }}
                   >
                     {p.label}
@@ -579,10 +579,10 @@ export function ScheduleSheet() {
                 ))}
                 <button
                   onClick={() => setCustomCron(true)}
-                  className={`px-3.5 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+                  className={`px-3.5 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                     ${customCron
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                      : 'bg-surface border-white/[0.06] text-text-3 hover:text-text-2'}`}
+                      : 'bg-surface border-line-subtle text-text-3 hover:text-text-2'}`}
                   style={{ fontFamily: 'inherit' }}
                 >
                   Custom
@@ -672,10 +672,10 @@ export function ScheduleSheet() {
                   <button
                     key={s}
                     onClick={() => setStatus(s)}
-                    className={`px-4 py-2 rounded-[10px] text-[13px] font-600 capitalize cursor-pointer transition-all border
+                    className={`px-4 py-2 rounded-sm text-[13px] font-600 capitalize cursor-pointer transition-all border
                       ${status === s
                         ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
-                        : 'bg-surface border-white/[0.06] text-text-3'}`}
+                        : 'bg-surface border-line-subtle text-text-3'}`}
                     style={{ fontFamily: 'inherit' }}
                   >
                     {s}
@@ -690,20 +690,20 @@ export function ScheduleSheet() {
       {/* Step: Review */}
       {step === reviewStep && (
         <div className="mb-8">
-          <div className="p-5 rounded-[16px] bg-surface border border-white/[0.06] space-y-4">
+          <div className="p-5 rounded-lg bg-surface border border-line-subtle space-y-4">
             <div>
-              <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Name</span>
+              <span className="text-[11px] text-text-3 tracking-[0.03em] font-600">Name</span>
               <div className="text-[14px] text-text font-600 mt-0.5">{name}</div>
             </div>
             <div>
-              <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Agent</span>
+              <span className="text-[11px] text-text-3 tracking-[0.03em] font-600">Agent</span>
               <div className="text-[14px] text-text font-600 mt-0.5">{selectedAgent?.name || agentId}</div>
             </div>
             {editing && (
               <div>
-                <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Created By</span>
+                <span className="text-[11px] text-text-3 tracking-[0.03em] font-600">Created By</span>
                 {creatorAgent ? (
-                  <div className="mt-1 inline-flex items-center gap-2 rounded-[10px] bg-white/[0.04] px-3 py-2 text-[13px] text-text-2">
+                  <div className="mt-1 inline-flex items-center gap-2 rounded-sm bg-layer-2 px-3 py-2 text-[13px] text-text-2">
                     <AgentAvatar
                       seed={creatorAgent.avatarSeed}
                       avatarUrl={creatorAgent.avatarUrl}
@@ -720,28 +720,28 @@ export function ScheduleSheet() {
               </div>
             )}
             <div>
-              <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Mode</span>
+              <span className="text-[11px] text-text-3 tracking-[0.03em] font-600">Mode</span>
               <div className="text-[14px] text-text font-600 mt-0.5">{taskMode === 'wake_only' ? 'Wake agent only' : taskMode === 'protocol' ? 'Structured session' : 'Create task'}</div>
             </div>
             <div>
-              <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">{taskMode === 'wake_only' ? 'Wake Message' : taskMode === 'protocol' ? 'Session Goal' : 'Task'}</span>
+              <span className="text-[11px] text-text-3 tracking-[0.03em] font-600">{taskMode === 'wake_only' ? 'Wake Message' : taskMode === 'protocol' ? 'Session Goal' : 'Task'}</span>
               <div className="text-[13px] text-text-2 mt-0.5 whitespace-pre-wrap">{taskMode === 'wake_only' ? message : taskPrompt}</div>
             </div>
             {taskMode === 'protocol' && message.trim() && (
               <div>
-                <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Kickoff Context</span>
+                <span className="text-[11px] text-text-3 tracking-[0.03em] font-600">Kickoff Context</span>
                 <div className="text-[13px] text-text-2 mt-0.5 whitespace-pre-wrap">{message}</div>
               </div>
             )}
             {taskMode === 'protocol' && (
               <div>
-                <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Template</span>
+                <span className="text-[11px] text-text-3 tracking-[0.03em] font-600">Template</span>
                 <div className="text-[13px] text-text-2 mt-0.5">Single-agent structured run</div>
               </div>
             )}
-            <div className="h-px bg-white/[0.06]" />
+            <div className="h-px bg-layer-2" />
             <div>
-              <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Schedule</span>
+              <span className="text-[11px] text-text-3 tracking-[0.03em] font-600">Schedule</span>
               <div className="text-[14px] text-text font-600 mt-0.5 capitalize">{scheduleType}</div>
               {scheduleType === 'cron' && (
                 <div className="text-[12px] text-text-3 font-mono mt-0.5">{cronHuman} ({cron})</div>
@@ -764,7 +764,7 @@ export function ScheduleSheet() {
             </div>
             {editing && (
               <div>
-                <span className="text-[11px] text-text-3/50 uppercase tracking-wider font-600">Status</span>
+                <span className="text-[11px] text-text-3 tracking-[0.03em] font-600">Status</span>
                 <div className="text-[14px] text-text font-600 mt-0.5 capitalize">{status}</div>
               </div>
             )}
@@ -773,16 +773,16 @@ export function ScheduleSheet() {
       )}
 
       {/* Footer */}
-      <div className="flex gap-3 pt-2 border-t border-white/[0.04]">
+      <div className="flex gap-3 pt-2 border-t border-line-subtle">
         {editing && step === 0 && (
-          <button onClick={() => setConfirmDelete(true)} className="py-3.5 px-6 rounded-[14px] border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
+          <button onClick={() => setConfirmDelete(true)} className="py-3.5 px-6 rounded-lg border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Archive
           </button>
         )}
         {step > (isCreating ? templateStep : 0) && step !== templateStep && (
           <button
             onClick={() => setStep((step - 1) as Step)}
-            className="py-3.5 px-6 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+            className="py-3.5 px-6 rounded-md border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             Back
@@ -792,7 +792,7 @@ export function ScheduleSheet() {
         {step !== templateStep && (
           <button
             onClick={onClose}
-            className="py-3.5 px-6 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+            className="py-3.5 px-6 rounded-md border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             Cancel
@@ -801,7 +801,7 @@ export function ScheduleSheet() {
         {step === templateStep && isCreating ? (
           <button
             onClick={onClose}
-            className="py-3.5 px-6 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+            className="py-3.5 px-6 rounded-md border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             Cancel
@@ -810,7 +810,7 @@ export function ScheduleSheet() {
           <button
             onClick={() => setStep((step + 1) as Step)}
             disabled={step === whatStep ? !step0Valid : !step1Valid}
-            className="py-3.5 px-8 rounded-[14px] border-none bg-accent-bright text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
+            className="py-3.5 px-8 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             Next
@@ -818,7 +818,7 @@ export function ScheduleSheet() {
         ) : (
           <button
             onClick={handleSave}
-            className="py-3.5 px-8 rounded-[14px] border-none bg-accent-bright text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
+            className="py-3.5 px-8 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             {editing ? 'Save' : 'Create'}

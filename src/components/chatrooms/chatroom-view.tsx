@@ -325,7 +325,7 @@ export function ChatroomView() {
     const targetAgent = agents[targetAgentId]
     if (!msg || !targetAgent) return
     const truncated = msg.text.length > 120 ? msg.text.slice(0, 120) + '...' : msg.text
-    sendMessage(`@${targetAgent.name.replace(/\s+/g, '')} [Transferred from @${msg.senderName.replace(/\s+/g, '')}]: "${truncated}"`)
+    sendMessage(`@${targetAgent.name.replace(/\s+/g, '')} [Transferred from @${msg.senderName.replace(/\s+/g, '')}]:"${truncated}"`)
   }
 
   const handleInjectContext = async () => {
@@ -373,7 +373,7 @@ export function ChatroomView() {
   return (
     <div className="flex-1 flex min-h-0 min-w-0">
       <div className="min-w-0 flex-1 flex flex-col h-full">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-line-subtle shrink-0">
           <div className="w-8 h-8 rounded-full bg-accent-soft flex items-center justify-center shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-bright">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -388,22 +388,22 @@ export function ChatroomView() {
                   : `${memberAgents.length} agent${memberAgents.length !== 1 ? 's' : ''}${chatroom.description ? ` · ${chatroom.description}` : ''}`}
               </p>
               {isStructuredSessionRoom && linkedRun && (
-                <span className="px-1.5 py-0.5 rounded-[5px] bg-sky-500/10 text-[10px] font-700 uppercase tracking-[0.08em] text-sky-300">
+                <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/10 text-[10px] font-700 tracking-[0.03em] text-accent-bright">
                   {linkedRun.status}
                 </span>
               )}
-              <span className="px-1.5 py-0.5 rounded-[5px] bg-white/[0.04] text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+              <span className="px-1.5 py-0.5 rounded-xs bg-layer-2 text-[10px] font-700 tracking-[0.03em] text-text-3">
                 {isStructuredSessionRoom ? 'Structured Session' : chatroom.chatMode === 'parallel' ? 'Parallel' : 'Sequential'}
               </span>
               {!isStructuredSessionRoom && (
-                <span className={`px-1.5 py-0.5 rounded-[5px] text-[10px] font-700 uppercase tracking-[0.08em] ${
-                  chatroom.autoAddress ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/[0.04] text-text-3/70'
+                <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-700 tracking-[0.03em] ${
+                  chatroom.autoAddress ? 'bg-emerald-500/10 text-emerald-400' : 'bg-layer-2 text-text-3/70'
                 }`}>
                   Auto-address {chatroom.autoAddress ? 'on' : 'off'}
                 </span>
               )}
               {streamingAgents.size > 0 && (
-                <span className="px-1.5 py-0.5 rounded-[5px] bg-sky-500/10 text-[10px] font-700 uppercase tracking-[0.08em] text-sky-400">
+                <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/10 text-[10px] font-700 tracking-[0.03em] text-accent-bright">
                   {streamingAgents.size} active now
                 </span>
               )}
@@ -430,7 +430,7 @@ export function ChatroomView() {
                     >
                       <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={22} status={streamingAgents.has(agent.id) ? 'busy' : 'online'} />
                       {badge && (
-                        <span className={`absolute -bottom-1 -right-1 text-[7px] font-700 px-0.5 rounded border ${badge.className}`}>
+                        <span className={`absolute -bottom-1 -right-1 text-[7px] font-700 px-0.5 rounded-xs border ${badge.className}`}>
                           {badge.label[0]}
                         </span>
                       )}
@@ -439,8 +439,8 @@ export function ChatroomView() {
                   <TooltipContent side="bottom" sideOffset={6}>
                     <div className="flex items-center gap-1.5">
                       <span>{agent.name}</span>
-                      {streamingAgents.has(agent.id) && <span className="text-[9px] text-sky-300">Click to inspect</span>}
-                      {badge && <span className={`text-[9px] font-600 px-1 py-0.5 rounded border ${badge.className}`}>{badge.label}</span>}
+                      {streamingAgents.has(agent.id) && <span className="text-[9px] text-accent-bright">Click to inspect</span>}
+                      {badge && <span className={`text-[9px] font-600 px-1 py-0.5 rounded-xs border ${badge.className}`}>{badge.label}</span>}
                       {muted && <span className="text-[9px] text-red-400">Muted</span>}
                     </div>
                   </TooltipContent>
@@ -448,7 +448,7 @@ export function ChatroomView() {
               )
             })}
             {memberAgents.length > 5 && (
-              <div className="w-[22px] h-[22px] rounded-full bg-white/[0.08] flex items-center justify-center text-[9px] text-text-3">
+              <div className="w-[22px] h-[22px] rounded-full bg-layer-3 flex items-center justify-center text-[9px] text-text-3">
                 +{memberAgents.length - 5}
               </div>
             )}
@@ -460,7 +460,7 @@ export function ChatroomView() {
                 <button
                   type="button"
                   onClick={() => router.push(`/protocols?runId=${encodeURIComponent(chatroom.protocolRunId || '')}`)}
-                  className="shrink-0 rounded-[9px] border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-[11px] font-600 text-text-2 hover:bg-white/[0.06] cursor-pointer transition-colors"
+                  className="shrink-0 rounded-sm border border-line-default bg-layer-1 px-2.5 py-1.5 text-[11px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
                 >
                   Back to Session
                 </button>
@@ -468,7 +468,7 @@ export function ChatroomView() {
               <button
                 type="button"
                 onClick={() => setInjectContextOpen(true)}
-                className="shrink-0 rounded-[9px] border border-sky-500/20 bg-sky-500/10 px-2.5 py-1.5 text-[11px] font-600 text-sky-100 hover:bg-sky-500/16 cursor-pointer transition-colors"
+                className="shrink-0 rounded-sm border border-accent-bright/20 bg-accent-bright/10 px-2.5 py-1.5 text-[11px] font-600 text-accent-bright hover:bg-accent-bright/16 cursor-pointer transition-colors"
               >
                 Inject Context
               </button>
@@ -479,7 +479,7 @@ export function ChatroomView() {
                 <button
                   type="button"
                   onClick={() => router.push(`/protocols?runId=${encodeURIComponent(activeParentRun.id)}`)}
-                  className="shrink-0 rounded-[9px] border border-sky-500/20 bg-sky-500/10 px-2.5 py-1.5 text-[11px] font-600 text-sky-100 hover:bg-sky-500/16 cursor-pointer transition-colors"
+                  className="shrink-0 rounded-sm border border-accent-bright/20 bg-accent-bright/10 px-2.5 py-1.5 text-[11px] font-600 text-accent-bright hover:bg-accent-bright/16 cursor-pointer transition-colors"
                 >
                   Watch Session
                 </button>
@@ -491,7 +491,7 @@ export function ChatroomView() {
                   setStructuredSessionContext(defaultStructuredSessionContext)
                   setStructuredSessionOpen(true)
                 }}
-                className="shrink-0 rounded-[9px] border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-[11px] font-600 text-text-2 hover:bg-white/[0.06] cursor-pointer transition-colors"
+                className="shrink-0 rounded-sm border border-line-default bg-layer-1 px-2.5 py-1.5 text-[11px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
               >
                 Start Session
               </button>
@@ -501,7 +501,7 @@ export function ChatroomView() {
           <button
             type="button"
             onClick={() => setDetailsOpen(true)}
-            className="xl:hidden shrink-0 rounded-[9px] border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-[11px] font-600 text-text-2 hover:bg-white/[0.06] cursor-pointer transition-colors"
+            className="xl:hidden shrink-0 rounded-sm border border-line-default bg-layer-1 px-2.5 py-1.5 text-[11px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
           >
             Details
           </button>
@@ -512,7 +512,7 @@ export function ChatroomView() {
                 setEditingChatroomId(chatroom.id)
                 setChatroomSheetOpen(true)
               }}
-              className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/[0.08] transition-all cursor-pointer"
+              className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center hover:bg-layer-3 transition-all cursor-pointer"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3">
                 <circle cx="12" cy="12" r="3" />
@@ -523,29 +523,29 @@ export function ChatroomView() {
         </div>
 
         {isStructuredSessionRoom && (
-          <div className="border-b border-white/[0.06] bg-sky-500/[0.04] px-4 py-3">
-            <div className="flex flex-wrap items-center gap-2 text-[12px] text-sky-100">
-              <span className="font-700 uppercase tracking-[0.08em] text-sky-200/72">Watching Live Room</span>
+          <div className="border-b border-line-subtle bg-accent-bright/[0.04] px-4 py-3">
+            <div className="flex flex-wrap items-center gap-2 text-[12px] text-accent-bright">
+              <span className="font-700 tracking-[0.03em] text-accent-bright/72">Watching Live Room</span>
               {linkedRun?.title && <span className="text-text-2">· {linkedRun.title}</span>}
             </div>
-            <div className="mt-1 text-[12px] text-text-3/72">
+            <div className="mt-1 text-[12px] text-text-3">
               This temporary room mirrors the active structured session. Use Inject Context to steer the run without turning this room into a normal free-form chat.
             </div>
           </div>
         )}
 
         {pinnedMessages.length > 0 && (
-          <div className="border-b border-white/[0.06] shrink-0">
+          <div className="border-b border-line-subtle shrink-0">
             <button
               onClick={() => setPinsExpanded(!pinsExpanded)}
-              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-white/[0.02] transition-colors cursor-pointer bg-transparent border-none text-left"
+              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-layer-1 transition-colors cursor-pointer bg-transparent border-none text-left"
               style={{ fontFamily: 'inherit' }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400 shrink-0">
                 <path d="M12 17v5" />
                 <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16h14v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 2-2H6a2 2 0 0 0 2 2 1 1 0 0 1 1 1z" />
               </svg>
-              <span className="text-[12px] font-500 text-text-2">{pinnedMessages.length} pinned</span>
+              <span className="text-[12px] font-600 text-text-2">{pinnedMessages.length} pinned</span>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-text-3 transition-transform ${pinsExpanded ? 'rotate-180' : ''}`}>
                 <polyline points="6 9 12 15 18 9" />
               </svg>
@@ -556,7 +556,7 @@ export function ChatroomView() {
                   <button
                     key={message.id}
                     onClick={() => focusMessage(message.id)}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-[8px] hover:bg-white/[0.04] transition-colors cursor-pointer bg-transparent border-none text-left w-full"
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none text-left w-full"
                     style={{ fontFamily: 'inherit' }}
                   >
                     <span className="text-[11px] font-600 text-accent-bright shrink-0">{message.senderName}</span>
@@ -576,7 +576,7 @@ export function ChatroomView() {
               <div className="flex items-center justify-center h-full px-6">
                 <div className="text-center">
                   <p className="text-[13px] text-text-3 mb-1">No messages yet</p>
-                  <p className="text-[12px] text-text-3/60">Use @AgentName to mention specific agents, or @all for everyone</p>
+                  <p className="text-[12px] text-text-3">Use @AgentName to mention specific agents, or @all for everyone</p>
                 </div>
               </div>
             ) : (
@@ -612,9 +612,9 @@ export function ChatroomView() {
                   <div key={msg.id}>
                     {showDaySep && (
                       <div className="flex items-center gap-3 px-4 py-3">
-                        <div className="flex-1 h-px bg-white/[0.06]" />
-                        <span className="text-[10px] font-600 text-text-3 uppercase tracking-wider">{dayLabel(msg.time, now)}</span>
-                        <div className="flex-1 h-px bg-white/[0.06]" />
+                        <div className="flex-1 h-px bg-layer-2" />
+                        <span className="text-[10px] font-600 text-text-3 tracking-[0.03em]">{dayLabel(msg.time, now)}</span>
+                        <div className="flex-1 h-px bg-layer-2" />
                       </div>
                     )}
                     <ChatroomMessageBubble
@@ -645,7 +645,7 @@ export function ChatroomView() {
           {(!isNearBottom || unreadCount > 0) && (
             <button
               onClick={() => scrollToLatest('smooth')}
-              className="absolute bottom-4 right-4 px-3.5 py-2 rounded-[10px] bg-surface-2/95 backdrop-blur-xl border border-white/[0.1] text-[12px] font-700 text-text shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:bg-white/[0.08] transition-all cursor-pointer"
+              className="absolute bottom-4 right-4 px-3.5 py-2 rounded-md bg-surface-2/80 backdrop-blur-xl border border-line-default text-[12px] font-700 text-text hover:bg-layer-3 transition-all cursor-pointer"
               style={{ fontFamily: 'inherit' }}
             >
               Jump to latest{unreadCount > 0 ? ` · ${unreadCount} new` : ''}
@@ -654,7 +654,7 @@ export function ChatroomView() {
         </div>
 
         {isStructuredSessionRoom && (
-          <div className="border-t border-white/[0.06] bg-white/[0.02] px-4 py-2.5 text-[12px] text-text-3/68">
+          <div className="border-t border-line-subtle bg-layer-1 px-4 py-2.5 text-[12px] text-text-3">
             Live rooms are watch-first. To steer the session, use <span className="font-700 text-text-2">Inject Context</span> instead of sending a normal room message.
           </div>
         )}
@@ -671,7 +671,7 @@ export function ChatroomView() {
         />
       </div>
 
-      <aside className="hidden xl:flex xl:w-[300px] xl:flex-col xl:border-l xl:border-white/[0.06] bg-surface/30">
+      <aside className="hidden xl:flex xl:w-[300px] xl:flex-col xl:border-l xl:border-line-subtle bg-surface">
         <RoomDetailsPanel
           chatroom={chatroom}
           memberAgents={memberAgents}
@@ -714,41 +714,41 @@ export function ChatroomView() {
         description={inspectedSessionId ? `Inspecting ${inspectedSessionId}` : 'Inspecting active chatroom member session'}
       >
         {inspectLoading ? (
-          <div className="rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-4 py-6 text-[13px] text-text-3">
+          <div className="rounded-lg border border-line-subtle bg-surface px-4 py-6 text-[13px] text-text-3">
             Loading session activity…
           </div>
         ) : inspectError ? (
-          <div className="rounded-[12px] border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
+          <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
             {inspectError}
           </div>
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+              <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5">
                 <div className="text-[16px] font-display font-700 text-text">{inspectedMessages.length}</div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3/50">Messages</div>
+                <div className="mt-0.5 text-[10px] tracking-[0.03em] text-text-3">Messages</div>
               </div>
-              <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
-                <div className="text-[16px] font-display font-700 text-sky-300">{inspectedExecLogs.length}</div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3/50">Events</div>
+              <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5">
+                <div className="text-[16px] font-display font-700 text-accent-bright">{inspectedExecLogs.length}</div>
+                <div className="mt-0.5 text-[10px] tracking-[0.03em] text-text-3">Events</div>
               </div>
-              <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+              <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5">
                 <div className="text-[12px] font-mono text-text-2 truncate" title={inspectedSessionId || undefined}>
                   {inspectedSessionId || '—'}
                 </div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3/50">Session ID</div>
+                <div className="mt-0.5 text-[10px] tracking-[0.03em] text-text-3">Session ID</div>
               </div>
             </div>
 
             <section>
-              <h4 className="mb-2 text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Recent Messages</h4>
-              <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-3">
+              <h4 className="mb-2 text-[12px] font-700 tracking-[0.03em] text-text-3">Recent Messages</h4>
+              <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-lg border border-line-subtle bg-surface p-3">
                 {inspectedMessages.length === 0 ? (
                   <p className="text-[12px] text-text-3">No messages yet for this session.</p>
                 ) : (
                   inspectedMessages.slice(-12).map((message, index) => (
-                    <div key={`${message.time}-${message.role}-${index}`} className="rounded-[10px] border border-white/[0.05] bg-black/20 px-3 py-2">
-                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.08em] text-text-3/60">
+                    <div key={`${message.time}-${message.role}-${index}`} className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2">
+                      <div className="flex items-center gap-2 text-[10px] tracking-[0.03em] text-text-3">
                         <span>{message.role}</span>
                         <span>·</span>
                         <span>{new Date(message.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -763,8 +763,8 @@ export function ChatroomView() {
             </section>
 
             <section>
-              <h4 className="mb-2 text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Execution Log</h4>
-              <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-3">
+              <h4 className="mb-2 text-[12px] font-700 tracking-[0.03em] text-text-3">Execution Log</h4>
+              <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-lg border border-line-subtle bg-surface p-3">
                 {inspectedExecLogs.length === 0 ? (
                   <p className="text-[12px] text-text-3">No execution log entries yet.</p>
                 ) : (
@@ -772,8 +772,8 @@ export function ChatroomView() {
                     .slice()
                     .sort((a, b) => b.ts - a.ts)
                     .map((entry) => (
-                      <div key={entry.id} className="rounded-[10px] border border-white/[0.05] bg-black/20 px-3 py-2">
-                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.08em] text-text-3/60">
+                      <div key={entry.id} className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2">
+                        <div className="flex items-center gap-2 text-[10px] tracking-[0.03em] text-text-3">
                           <span>{entry.category}</span>
                           <span>·</span>
                           <span>{new Date(entry.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -812,7 +812,7 @@ export function ChatroomView() {
         description="Add steering guidance to the active structured session without sending a normal room message."
       >
         {injectError && (
-          <div className="mb-4 rounded-[12px] border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
+          <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
             {injectError}
           </div>
         )}
@@ -821,13 +821,13 @@ export function ChatroomView() {
           onChange={(event) => setInjectContext(event.target.value)}
           rows={5}
           placeholder="Add a correction, tighter constraint, or something the session should focus on next."
-          className="w-full rounded-[14px] border border-white/[0.06] bg-white/[0.04] px-4 py-3 text-[14px] leading-relaxed text-text outline-none placeholder:text-text-3/35"
+          className="w-full rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[14px] leading-relaxed text-text outline-none placeholder:text-text-3"
         />
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           <button
             type="button"
             onClick={() => setInjectContextOpen(false)}
-            className="rounded-[10px] border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer"
+            className="rounded-md border border-line-default bg-layer-1 px-3 py-2 text-[12px] font-700 text-text-2 cursor-pointer"
           >
             Close
           </button>
@@ -835,7 +835,7 @@ export function ChatroomView() {
             type="button"
             onClick={() => void handleInjectContext()}
             disabled={!injectContext.trim() || injectPending}
-            className="rounded-[10px] bg-accent-bright px-3 py-2 text-[12px] font-700 text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-accent-fg transition-opacity disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
           >
             {injectPending ? 'Injecting…' : 'Inject Context'}
           </button>
@@ -872,22 +872,22 @@ function RoomDetailsPanel({
 }) {
   return (
     <div className={`flex flex-col ${compact ? 'gap-5' : 'h-full'}`}>
-      <div className={compact ? '' : 'border-b border-white/[0.06] px-4 py-4'}>
-        <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Room Status</h3>
+      <div className={compact ? '' : 'border-b border-line-subtle px-4 py-4'}>
+        <h3 className="text-[12px] font-700 tracking-[0.03em] text-text-3">Room Status</h3>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {[
             { label: 'Members', value: String(memberAgents.length), tone: 'text-text' },
-            { label: 'Active', value: String(streamingAgents.size), tone: 'text-sky-400' },
+            { label: 'Active', value: String(streamingAgents.size), tone: 'text-accent-bright' },
             { label: 'Pinned', value: String(pinnedMessages.length), tone: 'text-amber-400' },
             { label: 'Muted', value: String(mutedCount), tone: 'text-rose-400' },
           ].map((item) => (
-            <div key={item.label} className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+            <div key={item.label} className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5">
               <div className={`text-[18px] font-display font-700 tracking-[-0.02em] ${item.tone}`}>{item.value}</div>
-              <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3/50">{item.label}</div>
+              <div className="mt-0.5 text-[10px] tracking-[0.03em] text-text-3">{item.label}</div>
             </div>
           ))}
         </div>
-        <div className="mt-3 space-y-1 text-[11px] text-text-3/65">
+        <div className="mt-3 space-y-1 text-[11px] text-text-3">
           <div>Mode: {chatroom.chatMode === 'parallel' ? 'Parallel replies' : 'Sequential replies'}</div>
           <div>Auto-address: {chatroom.autoAddress ? 'Enabled' : 'Off'}</div>
           <div>Admins: {adminCount}</div>
@@ -897,8 +897,8 @@ function RoomDetailsPanel({
       <div className={compact ? 'space-y-4' : 'flex-1 overflow-y-auto px-4 py-4 space-y-4'}>
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h4 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Members</h4>
-            <span className="text-[11px] text-text-3/40">{memberAgents.length}</span>
+            <h4 className="text-[12px] font-700 tracking-[0.03em] text-text-3">Members</h4>
+            <span className="text-[11px] text-text-3">{memberAgents.length}</span>
           </div>
           <div className="space-y-2">
             {memberAgents.map((agent) => {
@@ -914,7 +914,7 @@ function RoomDetailsPanel({
                     }
                     onNavigateToAgent(agent.id)
                   }}
-                  className="w-full rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-left hover:bg-white/[0.05] transition-all cursor-pointer"
+                  className="w-full rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5 text-left hover:bg-layer-2 transition-all cursor-pointer"
                   style={{ fontFamily: 'inherit' }}
                 >
                   <div className="flex items-center gap-3">
@@ -922,16 +922,16 @@ function RoomDetailsPanel({
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[12px] font-600 text-text">{agent.name}</div>
                       <div className="mt-1 flex flex-wrap gap-1.5">
-                        <span className="rounded-[5px] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3/70">
+                        <span className="rounded-xs bg-layer-2 px-1.5 py-0.5 text-[10px] font-700 tracking-[0.03em] text-text-3">
                           {role}
                         </span>
                         {muted && (
-                          <span className="rounded-[5px] bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-rose-400">
+                          <span className="rounded-xs bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-700 tracking-[0.03em] text-rose-400">
                             Muted
                           </span>
                         )}
                         {streamingAgents.has(agent.id) && (
-                          <span className="rounded-[5px] bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-sky-400">
+                          <span className="rounded-xs bg-accent-bright/10 px-1.5 py-0.5 text-[10px] font-700 tracking-[0.03em] text-accent-bright">
                             Active
                           </span>
                         )}
@@ -947,15 +947,15 @@ function RoomDetailsPanel({
         {pinnedMessages.length > 0 && (
           <section>
             <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Pinned</h4>
-              <span className="text-[11px] text-text-3/40">{pinnedMessages.length}</span>
+              <h4 className="text-[12px] font-700 tracking-[0.03em] text-text-3">Pinned</h4>
+              <span className="text-[11px] text-text-3">{pinnedMessages.length}</span>
             </div>
             <div className="space-y-2">
               {pinnedMessages.slice(0, compact ? pinnedMessages.length : 4).map((message) => (
                 <button
                   key={message.id}
                   onClick={() => onFocusMessage(message.id)}
-                  className="w-full rounded-[12px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-left hover:bg-white/[0.05] transition-all cursor-pointer"
+                  className="w-full rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5 text-left hover:bg-layer-2 transition-all cursor-pointer"
                   style={{ fontFamily: 'inherit' }}
                 >
                   <div className="text-[11px] font-700 text-accent-bright">{message.senderName}</div>

@@ -15,7 +15,7 @@ export function StatCard({ label, value, accent, hint, trend, index = 0, classNa
   return (
     <div
       className={cn(
-        'px-4 py-3 rounded-[12px] bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all hover:scale-[1.02] active:scale-[0.98] cursor-default',
+        'px-4 py-4 rounded-lg bg-surface border border-line-subtle hover:bg-surface-2 transition-all active:scale-[0.98] cursor-default',
         className,
       )}
       style={{
@@ -23,7 +23,7 @@ export function StatCard({ label, value, accent, hint, trend, index = 0, classNa
         animationDelay: `${0.1 + index * 0.05}s`,
       }}
     >
-      <p className="text-[11px] font-600 text-text-3/60 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+      <p className="text-[11px] font-600 text-text-3 tracking-[0.03em] mb-1 flex items-center gap-1.5">
         {label}
         {hint && <HintTip text={hint} />}
       </p>

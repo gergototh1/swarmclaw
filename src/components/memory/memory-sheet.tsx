@@ -85,14 +85,14 @@ export function MemorySheet() {
 
       {/* Agent selector */}
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Visibility</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Visibility</label>
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setAgentId(null)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+            className={`flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
               ${!agentId
                 ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
-                : 'bg-white/[0.02] border-white/[0.06] text-text-3 hover:text-text-2 hover:bg-white/[0.04]'}`}
+                : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={!agentId ? 'text-accent-bright' : 'text-text-3/60'}>
@@ -106,10 +106,10 @@ export function MemorySheet() {
             <button
               key={agent.id}
               onClick={() => setAgentId(agent.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+              className={`flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                 ${agentId === agent.id
                   ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
-                  : 'bg-white/[0.02] border-white/[0.06] text-text-3 hover:text-text-2 hover:bg-white/[0.04]'}`}
+                  : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
               <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={20} />
@@ -118,12 +118,12 @@ export function MemorySheet() {
           ))}
         </div>
         {selectedAgent && (
-          <p className="text-[11px] text-text-3/50 mt-2">
+          <p className="text-[11px] text-text-3 mt-2">
             Owned by <span className="text-text-2">{selectedAgent.name}</span>. Add collaborators below if other agents should be able to recall it too.
           </p>
         )}
         {!agentId && (
-          <p className="text-[11px] text-text-3/50 mt-2">
+          <p className="text-[11px] text-text-3 mt-2">
             Global memories are accessible to every agent in the workspace.
           </p>
         )}
@@ -132,7 +132,7 @@ export function MemorySheet() {
       {/* Share with (only when assigned to an agent) */}
       {agentId && agentList.filter((a) => a.id !== agentId).length > 0 && (
         <div className="mb-6">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Share with</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Share with</label>
           <div className="flex gap-2 flex-wrap">
             {agentList
               .filter((a) => a.id !== agentId)
@@ -142,10 +142,10 @@ export function MemorySheet() {
                   <button
                     key={agent.id}
                     onClick={() => setSharedWith(isShared ? sharedWith.filter((id) => id !== agent.id) : [...sharedWith, agent.id])}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13px] font-600 cursor-pointer transition-all border
+                    className={`flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border
                       ${isShared
                         ? 'bg-accent-soft border-accent-bright/20 text-accent-bright'
-                        : 'bg-white/[0.02] border-white/[0.06] text-text-3 hover:text-text-2 hover:bg-white/[0.04]'}`}
+                        : 'bg-layer-1 border-line-subtle text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
                     style={{ fontFamily: 'inherit' }}
                   >
                     <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={20} />
@@ -155,7 +155,7 @@ export function MemorySheet() {
               })}
           </div>
           {sharedWith.length > 0 && (
-            <p className="text-[11px] text-text-3/50 mt-2">
+            <p className="text-[11px] text-text-3 mt-2">
               Shared with {sharedWith.length} agent{sharedWith.length === 1 ? '' : 's'} in addition to the owner
             </p>
           )}
@@ -164,13 +164,13 @@ export function MemorySheet() {
 
       {/* Title */}
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Title</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Title</label>
         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Memory title" className={inputClass} style={{ fontFamily: 'inherit' }} />
       </div>
 
       {/* Category */}
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Category</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Category</label>
         <div className="flex gap-1.5 flex-wrap">
           {CATEGORIES.map((c) => (
             <button
@@ -179,10 +179,10 @@ export function MemorySheet() {
                 setCategory(c)
                 setTier(getMemoryTierForCategory(c))
               }}
-              className={`px-3 py-1.5 rounded-[8px] text-[12px] font-600 capitalize cursor-pointer transition-all border-none
+              className={`px-3 py-1.5 rounded-sm text-[12px] font-600 capitalize cursor-pointer transition-all border-none
                 ${category === c
                   ? 'bg-accent-soft text-accent-bright'
-                  : 'bg-white/[0.03] text-text-3 hover:text-text-2 hover:bg-white/[0.05]'}`}
+                  : 'bg-layer-1 text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
               {c}
@@ -192,7 +192,7 @@ export function MemorySheet() {
       </div>
 
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Tier</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Tier</label>
         <select
           value={tier}
           onChange={(e) => setTier(e.target.value as typeof tier)}
@@ -203,14 +203,14 @@ export function MemorySheet() {
           <option value="durable">Durable: keep this around as reusable knowledge</option>
           <option value="archive">Archive: preserve, but keep less salient</option>
         </select>
-        <p className="text-[11px] text-text-3/50 mt-2">
+        <p className="text-[11px] text-text-3 mt-2">
           Tier controls how aggressively this memory should stay in active recall.
         </p>
       </div>
 
       {/* Content */}
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Content</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Content</label>
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}

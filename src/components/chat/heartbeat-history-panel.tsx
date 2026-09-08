@@ -143,19 +143,19 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
   }, [onClose])
 
   return (
-    <div className="w-[400px] shrink-0 border-l border-white/[0.06] bg-bg flex flex-col h-full overflow-hidden fade-up-delay">
+    <div className="w-[400px] shrink-0 border-l border-line-subtle bg-bg flex flex-col h-full overflow-hidden fade-up-delay">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-line-subtle shrink-0">
         <div className="flex items-center gap-2">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-rose-400/70 shrink-0">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
           </svg>
           <h3 className="font-display text-[14px] font-600 text-text">Heartbeat History</h3>
-          <span className="text-[11px] text-text-3/50 tabular-nums">{entries.length}</span>
+          <span className="text-[11px] text-text-3 tabular-nums">{entries.length}</span>
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded-[6px] text-text-3/50 hover:text-text-3 bg-transparent border-none cursor-pointer transition-all hover:bg-white/[0.04]"
+          className="p-1 rounded-xs text-text-3/50 hover:text-text-3 bg-transparent border-none cursor-pointer transition-all hover:bg-layer-2"
           aria-label="Close heartbeat history"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -173,7 +173,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
             role="tab"
             onClick={() => { setFilter(tab.id); setExpandedIdx(null) }}
             aria-selected={filter === tab.id}
-            className={`px-2.5 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all whitespace-nowrap focus-visible:ring-1 focus-visible:ring-accent-bright/50
+            className={`px-2.5 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all whitespace-nowrap focus-visible:ring-1 focus-visible:ring-accent-bright/50
               ${filter === tab.id
                 ? 'bg-accent-soft text-accent-bright'
                 : 'bg-transparent text-text-3 hover:text-text-2'}`}
@@ -193,10 +193,10 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" className="text-text-3/30">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" className="text-text-3">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
             </svg>
-            <span className="text-[13px] text-text-3/50">No heartbeat activity yet</span>
+            <span className="text-[13px] text-text-3">No heartbeat activity yet</span>
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
@@ -211,7 +211,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
                 <button
                   key={`${entry.msg.time}-${i}`}
                   onClick={() => setExpandedIdx(isExpanded ? null : i)}
-                  className="w-full text-left px-3 py-2.5 rounded-[10px] bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors cursor-pointer group"
+                  className="w-full text-left px-3 py-2.5 rounded-md bg-layer-1 border border-line-subtle hover:bg-layer-2 transition-colors cursor-pointer group"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {/* Top row: status dot + time */}
@@ -221,10 +221,10 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
                       style={{ backgroundColor: color }}
                       title={entry.status}
                     />
-                    <span className="text-[10px] font-600 uppercase tracking-wider" style={{ color }}>
+                    <span className="text-[10px] font-600 tracking-[0.03em]" style={{ color }}>
                       {entry.status}
                     </span>
-                    <span className="text-[10px] text-text-3/40 ml-auto tabular-nums">
+                    <span className="text-[10px] text-text-3 ml-auto tabular-nums">
                       {relativeTime(entry.msg.time)}
                     </span>
                   </div>
@@ -238,7 +238,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
 
                   {/* Next action */}
                   {entry.meta?.next_action && (
-                    <div className="text-[11px] text-text-3/70 mb-1 leading-snug">
+                    <div className="text-[11px] text-text-3 mb-1 leading-snug">
                       Next: {entry.meta.next_action}
                     </div>
                   )}
@@ -256,7 +256,7 @@ export function HeartbeatHistoryPanel({ messages, agentHeartbeatGoal, onClose }:
 
                   {/* Expanded summary */}
                   {isExpanded && entry.summary && (
-                    <div className="mt-2 pt-2 border-t border-white/[0.06] text-[12px] text-text-3 leading-relaxed whitespace-pre-wrap">
+                    <div className="mt-2 pt-2 border-t border-line-subtle text-[12px] text-text-3 leading-relaxed whitespace-pre-wrap">
                       {entry.summary}
                     </div>
                   )}

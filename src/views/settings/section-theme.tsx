@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Monitor, Moon, Sun } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
-import { normalizeThemeMode, type ThemeMode } from '@/lib/theme-mode'
+import { ThemeModeSegmented } from '@/components/shared/theme-mode-control'
 import type { SettingsSectionProps } from './types'
 
 const PRESETS = [
-  { label: 'Default', color: '#1e1e30' },
+  // Must equal --neutral-tint in globals.css: this is both the swatch the user
+  // sees and, through PRESETS[0].color below, the value themeHue falls back to.
+  { label: 'Default', color: '#1C1C1E' },
   { label: 'Midnight', color: '#1a1a3a' },
   { label: 'Forest', color: '#1a2e1e' },
   { label: 'Warm', color: '#2e1e1a' },
@@ -16,25 +16,11 @@ const PRESETS = [
   { label: 'Rose', color: '#2e1a24' },
 ]
 
-const THEME_MODES: Array<{ id: ThemeMode; label: string; Icon: typeof Sun }> = [
-  { id: 'light', label: 'Light', Icon: Sun },
-  { id: 'dark', label: 'Dark', Icon: Moon },
-  { id: 'system', label: 'System', Icon: Monitor },
-]
-
 export function ThemeSection({ appSettings, patchSettings, inputClass }: SettingsSectionProps) {
-  const { setTheme } = useTheme()
   const currentHue = appSettings.themeHue || PRESETS[0].color
-  const currentMode = normalizeThemeMode(appSettings.themeMode)
   const [customHex, setCustomHex] = useState(
     PRESETS.some((p) => p.color === currentHue) ? '' : currentHue,
   )
-
-  const applyMode = (mode: ThemeMode) => {
-    setTheme(mode)
-    patchSettings({ themeMode: mode })
-    toast.success('Theme updated')
-  }
 
   const applyHue = (color: string) => {
     patchSettings({ themeHue: color })
@@ -51,34 +37,17 @@ export function ThemeSection({ appSettings, patchSettings, inputClass }: Setting
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Theme
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Choose a color scheme and shift the UI palette with a preset or custom hex color.
+        The hue applies to dark mode; light mode keeps its own neutral surfaces.
       </p>
 
-      <div className="inline-grid grid-cols-3 rounded-[8px] border border-white/[0.08] bg-white/[0.03] p-1 mb-5">
-        {THEME_MODES.map(({ id, label, Icon }) => {
-          const isActive = currentMode === id
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => applyMode(id)}
-              aria-pressed={isActive}
-              className={`h-9 px-3 rounded-[6px] flex items-center justify-center gap-2 text-[12px] font-600 transition-colors ${
-                isActive
-                  ? 'bg-accent text-white'
-                  : 'text-text-3 hover:text-text hover:bg-white/[0.05]'
-              }`}
-              title={label}
-            >
-              <Icon className="w-4 h-4" aria-hidden="true" />
-              <span>{label}</span>
-            </button>
-          )
-        })}
+      {/* The same control the rail's footer carries, so the two cannot drift. */}
+      <div className="mb-5">
+        <ThemeModeSegmented />
       </div>
 
       {/* Preset swatches */}
@@ -100,7 +69,7 @@ export function ThemeSection({ appSettings, patchSettings, inputClass }: Setting
                 }`}
                 style={{ backgroundColor: preset.color }}
               />
-              <span className={`text-[10px] font-500 ${isActive ? 'text-text' : 'text-text-3'}`}>
+              <span className={`text-[10px] font-600 ${isActive ? 'text-text' : 'text-text-3'}`}>
                 {preset.label}
               </span>
             </button>
@@ -116,7 +85,7 @@ export function ThemeSection({ appSettings, patchSettings, inputClass }: Setting
             type="color"
             value={customHex || currentHue}
             onChange={(e) => handleCustomChange(e.target.value)}
-            className="w-9 h-9 rounded-full cursor-pointer border-2 border-white/[0.1] bg-transparent appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-none"
+            className="w-9 h-9 rounded-full cursor-pointer border-2 border-line-default bg-transparent appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-none"
             title="Pick a custom color"
           />
         </div>

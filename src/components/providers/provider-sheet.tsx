@@ -284,7 +284,7 @@ export function ProviderSheet() {
     && (editingBuiltin?.requiresApiKey ? credentialId : (showApiKey || editingBuiltin?.requiresEndpoint || editingBuiltin?.optionalEndpoint)),
   )
 
-  const inputClass = "w-full px-4 py-3.5 rounded-[14px] border border-white/[0.08] bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3/50 focus-glow"
+  const inputClass ="w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
 
   return (
     <BottomSheet open={open} onClose={onClose} wide>
@@ -299,7 +299,7 @@ export function ProviderSheet() {
 
       {/* Name */}
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Name</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Name</label>
         <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. OpenRouter"
           disabled={isBuiltin} className={`${inputClass} ${isBuiltin ? 'opacity-50' : ''}`} style={{ fontFamily: 'inherit' }} />
       </div>
@@ -307,13 +307,13 @@ export function ProviderSheet() {
       {/* Base URL — for custom providers and built-ins with endpoints (Ollama, OpenClaw) */}
       {(!isBuiltin || editingBuiltin?.requiresEndpoint || editingBuiltin?.optionalEndpoint) && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">
             {isBuiltin ? 'Endpoint' : 'Base URL'}
           </label>
           <input type="text" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)}
             placeholder={editingBuiltin?.defaultEndpoint || 'https://openrouter.ai/api/v1'}
             className={`${inputClass} font-mono text-[14px]`} />
-          <p className="text-[11px] text-text-3/70 mt-2">
+          <p className="text-[11px] text-text-3 mt-2">
             {isBuiltin ? `Default: ${editingBuiltin?.defaultEndpoint || 'none'}` : 'OpenAI-compatible API endpoint (without /chat/completions)'}
           </p>
         </div>
@@ -322,7 +322,7 @@ export function ProviderSheet() {
       {/* Models — chip editor for built-in, textarea for custom */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em]">Models</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em]">Models</label>
           <div className="flex items-center gap-3">
             {canDiscoverModels && (
               <button
@@ -345,7 +345,7 @@ export function ProviderSheet() {
         </div>
 
         {(liveMessage || liveCached) && (
-          <p className="text-[11px] text-text-3/70 mb-3">
+          <p className="text-[11px] text-text-3 mb-3">
             {liveMessage}
             {liveCached ? ' Cached.' : ''}
           </p>
@@ -357,11 +357,11 @@ export function ProviderSheet() {
               {modelList.map((model, i) => {
                 const isLive = liveModels.includes(model)
                 return (
-                  <div key={`${model}-${i}`} className={`group/model flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] border
-                    ${isLive ? 'bg-emerald-500/[0.08] border-emerald-500/20' : 'bg-white/[0.04] border-white/[0.06]'}`}>
+                  <div key={`${model}-${i}`} className={`group/model flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm border
+                    ${isLive ? 'bg-emerald-500/[0.08] border-emerald-500/20' : 'bg-layer-2 border-line-subtle'}`}>
                     <span className="text-[12px] text-text-2 font-mono">{model}</span>
                     {isLive && (
-                      <span className="text-[9px] font-600 px-1.5 py-0.5 rounded-[4px] bg-emerald-500/15 text-emerald-400 uppercase tracking-wider">live</span>
+                      <span className="text-[9px] font-600 px-1.5 py-0.5 rounded-xs bg-emerald-500/15 text-emerald-400 tracking-[0.03em]">live</span>
                     )}
                     <button
                       onClick={() => handleRemoveModel(i)}
@@ -389,7 +389,7 @@ export function ProviderSheet() {
               <button
                 onClick={handleAddModel}
                 disabled={!newModel.trim()}
-                className="px-4 py-3 rounded-[14px] border-none bg-accent-soft text-accent-bright text-[13px] font-600
+                className="px-4 py-3 rounded-md border-none bg-accent-soft text-accent-bright text-[13px] font-600
                   cursor-pointer disabled:opacity-30 hover:brightness-110 transition-all shrink-0"
                 style={{ fontFamily: 'inherit' }}
               >
@@ -407,7 +407,7 @@ export function ProviderSheet() {
               className={`${inputClass} resize-y min-h-[80px] font-mono text-[14px]`}
               style={{ fontFamily: 'inherit' }}
             />
-            <p className="text-[11px] text-text-3/70 mt-2">Comma-separated model IDs. Custom providers are saved as-is, so add the models you want manually.</p>
+            <p className="text-[11px] text-text-3 mt-2">Comma-separated model IDs. Custom providers are saved as-is, so add the models you want manually.</p>
           </>
         )}
       </div>
@@ -419,7 +419,7 @@ export function ProviderSheet() {
             <div
               onClick={() => setRequiresApiKey(!requiresApiKey)}
               className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer
-                ${requiresApiKey ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                ${requiresApiKey ? 'bg-accent-bright' : 'bg-layer-3'}`}
             >
               <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
                 ${requiresApiKey ? 'left-[22px]' : 'left-0.5'}`} />
@@ -432,7 +432,7 @@ export function ProviderSheet() {
       {/* API Key section */}
       {showApiKey && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">
             {isBuiltin ? 'API Key' : 'Linked API Key'}
             {isBuiltin && editingBuiltin?.optionalApiKey && !editingBuiltin?.requiresApiKey && (
               <span className="normal-case tracking-normal font-normal text-text-3 ml-1">(optional)</span>
@@ -458,13 +458,13 @@ export function ProviderSheet() {
               <button
                 type="button"
                 onClick={() => { setAddingKey(true); setNewKeyName(''); setNewKeyValue('') }}
-                className="shrink-0 px-3 py-2.5 rounded-[10px] bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
+                className="shrink-0 px-3 py-2.5 rounded-md bg-accent-soft/50 text-accent-bright text-[12px] font-600 hover:bg-accent-soft transition-colors cursor-pointer border border-accent-bright/20"
               >
                 + New
               </button>
             </div>
           ) : (
-            <div className="space-y-3 p-4 rounded-[12px] border border-accent-bright/15 bg-accent-soft/20">
+            <div className="space-y-3 p-4 rounded-lg border border-accent-bright/15 bg-accent-soft/20">
               <input
                 type="text"
                 value={newKeyName}
@@ -498,7 +498,7 @@ export function ProviderSheet() {
                       setSavingKey(false)
                     }
                   }}
-                  className="px-4 py-1.5 rounded-[8px] bg-accent-bright text-white text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40"
+                  className="px-4 py-1.5 rounded-sm bg-accent-bright text-accent-fg text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {savingKey ? 'Saving...' : 'Save Key'}
@@ -516,7 +516,7 @@ export function ProviderSheet() {
             <div
               onClick={() => setIsEnabled(!isEnabled)}
               className={`w-11 h-6 rounded-full transition-all duration-200 relative cursor-pointer
-                ${isEnabled ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                ${isEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
             >
               <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
                 ${isEnabled ? 'left-[22px]' : 'left-0.5'}`} />
@@ -532,7 +532,7 @@ export function ProviderSheet() {
       {/* Test model selector */}
       {showTestButton && (
         <div className="mb-4">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">
+          <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">
             Test Model
             <span className="normal-case tracking-normal font-normal text-text-3 ml-1">(optional)</span>
           </label>
@@ -552,32 +552,32 @@ export function ProviderSheet() {
 
       {/* Test connection result */}
       {isBuiltin && testStatus === 'fail' && (
-        <div className="mb-4 p-3 rounded-[12px] bg-red-500/[0.08] border border-red-500/20">
+        <div className="mb-4 p-3 rounded-lg bg-red-500/[0.08] border border-red-500/20">
           <p className="text-[13px] text-red-400">{testMessage || 'Connection test failed'}</p>
           <ProviderDiagnosticsList diagnostics={testDiagnostics} />
         </div>
       )}
       {isBuiltin && testStatus === 'pass' && (
-        <div className="mb-4 p-3 rounded-[12px] bg-emerald-500/[0.08] border border-emerald-500/20">
+        <div className="mb-4 p-3 rounded-lg bg-emerald-500/[0.08] border border-emerald-500/20">
           <p className="text-[13px] text-emerald-400">{testMessage || 'Connected successfully'}</p>
           <ProviderDiagnosticsList diagnostics={testDiagnostics} />
         </div>
       )}
 
-      <div className="flex gap-3 pt-2 border-t border-white/[0.04]">
+      <div className="flex gap-3 pt-2 border-t border-line-subtle">
         {editingCustom && (
-          <button onClick={() => setConfirmDelete(true)} className="py-3.5 px-6 rounded-[14px] border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
+          <button onClick={() => setConfirmDelete(true)} className="py-3.5 px-6 rounded-lg border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Delete
           </button>
         )}
-        <button onClick={onClose} className="flex-1 py-3.5 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
+        <button onClick={onClose} className="flex-1 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
           Cancel
         </button>
         {showTestButton && (
           <button
             onClick={handleTestConnection}
             disabled={testStatus === 'testing'}
-            className="py-3.5 px-6 rounded-[14px] border-none bg-emerald-600 text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)] hover:brightness-110"
+            className="py-3.5 px-6 rounded-md border-none bg-emerald-600 text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             {testStatus === 'testing' ? 'Testing...' : testStatus === 'fail' ? 'Retry Connection' : 'Test Connection'}
@@ -586,7 +586,7 @@ export function ProviderSheet() {
         <button
           onClick={handleSave}
           disabled={isBuiltin ? false : (!name.trim() || !baseUrl.trim())}
-          className="flex-1 py-3.5 rounded-[14px] border-none bg-accent-bright text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
+          className="flex-1 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all hover:brightness-110"
           style={{ fontFamily: 'inherit' }}
         >
           {editing ? 'Save' : 'Create'}
@@ -595,7 +595,7 @@ export function ProviderSheet() {
       <ConfirmDialog
         open={confirmDelete}
         title="Delete Provider?"
-        message={editingCustom ? `Delete custom provider "${editingCustom.name}"?` : 'Delete this provider?'}
+        message={editingCustom ? `Delete custom provider"${editingCustom.name}"?` : 'Delete this provider?'}
         confirmLabel={deleting ? 'Deleting...' : 'Delete'}
         confirmDisabled={deleting}
         cancelDisabled={deleting}

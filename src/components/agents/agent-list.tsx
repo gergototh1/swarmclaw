@@ -137,7 +137,7 @@ export function AgentList({ inSidebar }: Props) {
         <div className="px-4 py-2.5 flex items-center gap-2">
           <button
             onClick={() => setShowTrash(false)}
-            className="px-3 py-1.5 rounded-[8px] text-[12px] font-600 text-text-3 bg-transparent border-none cursor-pointer hover:text-text-2 transition-all flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-sm text-[12px] font-600 text-text-3 bg-transparent border-none cursor-pointer hover:text-text-2 transition-all flex items-center gap-1.5"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -158,13 +158,13 @@ export function AgentList({ inSidebar }: Props) {
       return (
         <div className="flex-1 flex flex-col gap-1 px-2 pt-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="py-3.5 px-4 rounded-[14px] border border-transparent">
+            <div key={i} className="py-3.5 px-4 rounded-md border border-transparent">
               <div className="flex items-center gap-2.5">
                 <Skeleton className="rounded-full" width={28} height={28} />
-                <Skeleton className="rounded-[6px]" width={120} height={14} />
+                <Skeleton className="rounded-xs" width={120} height={14} />
               </div>
-              <Skeleton className="rounded-[6px] mt-2" width="80%" height={12} />
-              <Skeleton className="rounded-[6px] mt-1.5" width={80} height={11} />
+              <Skeleton className="rounded-xs mt-2" width="80%" height={12} />
+              <Skeleton className="rounded-xs mt-1.5" width={80} height={11} />
             </div>
           ))}
         </div>
@@ -194,14 +194,14 @@ export function AgentList({ inSidebar }: Props) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search agents..."
-            className="w-full px-4 py-2.5 rounded-[12px] border border-white/[0.04] bg-surface text-text
-              text-[13px] outline-none transition-all duration-200 placeholder:text-text-3/70 focus-glow"
+            className="w-full px-4 py-2.5 rounded-md border border-line-subtle bg-surface text-text
+              text-[13px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
       )}
       {/* Fleet filter: All / Running / Approvals */}
-      <div className="flex gap-1 px-4 pb-1 items-center">
+      <div className="flex flex-wrap gap-1 px-4 pb-2 items-center">
         {(['all', 'running', 'approvals'] as const).map((f) => {
           const count = f === 'running' ? runningAgentIds.size
             : f === 'approvals' ? Object.keys(approvalsByAgent).length
@@ -210,7 +210,7 @@ export function AgentList({ inSidebar }: Props) {
             <button
               key={f}
               onClick={() => setFleetFilter(f)}
-              className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 capitalize cursor-pointer transition-all
+              className={`px-2.5 py-1 rounded-full text-[11px] font-600 capitalize cursor-pointer transition-all
                 ${fleetFilter === f ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -218,28 +218,26 @@ export function AgentList({ inSidebar }: Props) {
             </button>
           )
         })}
-      </div>
-      <div className="flex gap-1 px-4 pb-2 items-center">
+        <span className="mx-1 h-3.5 w-px bg-line-subtle" aria-hidden="true" />
         {([
-          ['all', `all (${delegatingCount + soloCount})`],
+          ['all', `all roles (${delegatingCount + soloCount})`],
           ['delegating', `delegating (${delegatingCount})`],
           ['solo', `solo (${soloCount})`],
         ] as const).map(([value, label]) => (
           <button
             key={value}
             onClick={() => setFilter(value)}
-            className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 capitalize cursor-pointer transition-all
+            className={`px-2.5 py-1 rounded-full text-[11px] font-600 capitalize cursor-pointer transition-all
               ${filter === value ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {label}
           </button>
         ))}
-        <div className="flex-1" />
         <button
           onClick={() => setShowTrash(true)}
           aria-label="View trash"
-          className="p-1.5 rounded-[6px] text-text-3/50 hover:text-text-3 bg-transparent border-none cursor-pointer transition-all hover:bg-white/[0.04]"
+          className="p-1.5 rounded-xs text-text-3/50 hover:text-text-3 bg-transparent border-none cursor-pointer transition-all hover:bg-layer-2"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="3 6 5 6 21 6" />
@@ -248,22 +246,22 @@ export function AgentList({ inSidebar }: Props) {
         </button>
       </div>
       {!inSidebar && (
-        <div className="mx-4 mb-3 rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+        <div className="mx-4 mb-3 rounded-lg border border-line-subtle bg-surface px-4 py-3">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3/60">Fleet Roles</h3>
-              <p className="text-[12px] text-text-3/65 mt-1">
+              <h3 className="text-[12px] font-700 tracking-[0.03em] text-text-3">Fleet Roles</h3>
+              <p className="text-[12px] text-text-3 mt-1">
                 Delegating agents can hand work to other agents. Solo agents stay on their own thread and tools.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="px-2.5 py-1 rounded-[8px] bg-white/[0.04] text-[11px] font-600 text-text-2">
+              <span className="px-2.5 py-1 rounded-sm bg-layer-2 text-[11px] font-600 text-text-2">
                 Default: {agents[defaultAgentId]?.name || 'Unset'}
               </span>
-              <span className="px-2.5 py-1 rounded-[8px] bg-sky-500/10 text-[11px] font-600 text-sky-400">
+              <span className="px-2.5 py-1 rounded-sm bg-sky-500/10 text-[11px] font-600 text-sky-400">
                 {delegatingCount} delegating
               </span>
-              <span className="px-2.5 py-1 rounded-[8px] bg-white/[0.04] text-[11px] font-600 text-text-2">
+              <span className="px-2.5 py-1 rounded-sm bg-layer-2 text-[11px] font-600 text-text-2">
                 {soloCount} solo
               </span>
             </div>

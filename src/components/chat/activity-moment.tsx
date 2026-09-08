@@ -116,7 +116,7 @@ export function ActivityMoment({ toolName, toolInput, onDismiss }: Props) {
       }}
     >
       <div
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] shadow-lg whitespace-nowrap"
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm shadow-lg whitespace-nowrap"
         style={{
           background: 'var(--card)',
           border: `1px solid ${config.color}40`,
@@ -127,7 +127,7 @@ export function ActivityMoment({ toolName, toolInput, onDismiss }: Props) {
           {config.label}
         </span>
         {snippet && (
-          <span className="text-[10px] text-text-3/60 max-w-[120px] truncate">
+          <span className="text-[10px] text-text-3 max-w-[120px] truncate">
             {snippet}
           </span>
         )}
@@ -165,7 +165,7 @@ export function HeartbeatMoment({ onDismiss }: { onDismiss: () => void }) {
       }}
     >
       <div
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] shadow-lg whitespace-nowrap"
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm shadow-lg whitespace-nowrap"
         style={{
           background: 'var(--card)',
           border: '1px solid rgba(34,197,94,0.3)',

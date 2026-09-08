@@ -57,8 +57,8 @@ export function FilePathChip({ filePath, cwd }: { filePath: string; cwd?: string
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-[8px] bg-white/[0.06] border border-white/[0.08] font-mono text-[13px]">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3/50 shrink-0">
+    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm bg-layer-2 border border-line-default font-mono text-[13px]">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-text-3 shrink-0">
         {isDir ? (
           <><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></>
         ) : (
@@ -68,7 +68,7 @@ export function FilePathChip({ filePath, cwd }: { filePath: string; cwd?: string
       <span className="text-sky-400">{filePath}</span>
       <button
         onClick={handleReveal}
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-white/[0.06] hover:bg-white/[0.10] text-[10px] font-600 text-text-3 hover:text-text-2 border-none transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-layer-2 hover:bg-layer-3 text-[10px] font-600 text-text-3 hover:text-text-2 border-none transition-colors cursor-pointer"
         title={isDir ? 'Open folder' : 'Reveal in file manager'}
       >
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -83,7 +83,7 @@ export function FilePathChip({ filePath, cwd }: { filePath: string; cwd?: string
           href={serveUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-white/[0.06] hover:bg-white/[0.10] text-[10px] font-600 text-text-3 hover:text-text-2 no-underline transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-layer-2 hover:bg-layer-3 text-[10px] font-600 text-text-3 hover:text-text-2 no-underline transition-colors cursor-pointer"
           title="Open file"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -98,7 +98,7 @@ export function FilePathChip({ filePath, cwd }: { filePath: string; cwd?: string
         <button
           onClick={handleStartServer}
           disabled={serverState.loading}
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-[10px] font-600 border-none cursor-pointer transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-[10px] font-600 border-none cursor-pointer transition-colors disabled:opacity-50"
           title="Start preview server — auto-detects npm projects (React, Next, Vite, etc.) and runs the dev command"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
@@ -110,12 +110,12 @@ export function FilePathChip({ filePath, cwd }: { filePath: string; cwd?: string
       {canServe && serverState.running && (
         <>
           {frameworkLabel && (
-            <span className="px-1.5 py-0.5 rounded-[4px] bg-indigo-500/15 text-indigo-300 text-[9px] font-700 uppercase tracking-wider">
+            <span className="px-1.5 py-0.5 rounded-xs bg-indigo-500/15 text-indigo-300 text-[9px] font-700 tracking-[0.03em]">
               {frameworkLabel}
             </span>
           )}
           {serverState.type === 'npm' && (
-            <span className="px-1.5 py-0.5 rounded-[4px] bg-amber-500/15 text-amber-300 text-[9px] font-700 uppercase tracking-wider">
+            <span className="px-1.5 py-0.5 rounded-xs bg-amber-500/15 text-amber-300 text-[9px] font-700 tracking-[0.03em]">
               npm
             </span>
           )}
@@ -123,7 +123,7 @@ export function FilePathChip({ filePath, cwd }: { filePath: string; cwd?: string
             href={serverState.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-[10px] font-600 no-underline transition-colors"
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-[10px] font-600 no-underline transition-colors"
             title="Open preview server"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ animation: 'pulse 2s ease infinite' }} />
@@ -132,7 +132,7 @@ export function FilePathChip({ filePath, cwd }: { filePath: string; cwd?: string
           <button
             onClick={handleStopServer}
             disabled={serverState.loading}
-            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[10px] font-600 border-none cursor-pointer transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[10px] font-600 border-none cursor-pointer transition-colors disabled:opacity-50"
             title="Stop preview server"
           >
             <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">

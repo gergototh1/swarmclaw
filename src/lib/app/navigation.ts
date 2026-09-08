@@ -17,22 +17,19 @@ const VIEW_TO_PATH: Record<AppView, string> = {
   tasks: '/tasks',
   quality: '/quality',
   missions: '/missions',
-  secrets: '/secrets',
-  wallets: '/wallets',
+  vault: '/vault',
   providers: '/providers',
   skills: '/skills',
   connectors: '/connectors',
   webhooks: '/webhooks',
   mcp_servers: '/mcp-servers',
   knowledge: '/knowledge',
-  logs: '/logs',
   extensions: '/extensions',
   usage: '/usage',
-  runs: '/runs',
+  stream: '/stream',
   autonomy: '/autonomy',
   settings: '/settings',
   projects: '/projects',
-  activity: '/activity',
   swarmfeed: '/swarmfeed',
   marketplace: '/marketplace',
 }
@@ -54,6 +51,20 @@ export function pathToView(pathname: string): AppView | null {
     }
   }
   return null
+}
+
+/**
+ * Resolve which `AppView`, if any, the sidebar rail should render as active
+ * for a given pathname. Returns `null` for any path that isn't a registered
+ * `AppView` — an extension page under `/x/`, for instance.
+ *
+ * Nothing highlighted is the correct behavior for those paths. Falling back to
+ * `'home'` would light up the wrong rail entry for every unrecognized route,
+ * present or future — that regression is exactly what this function, and its
+ * test, exist to keep from coming back.
+ */
+export function resolveSidebarActiveView(pathname: string): AppView | null {
+  return pathToView(pathname)
 }
 
 /** Hook for navigating between views using Next.js router. */

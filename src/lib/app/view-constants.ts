@@ -1,5 +1,11 @@
 import type { AppView } from '@/types'
 
+// No live reader today — only its own declaration and the "merged views" test
+// in view-constants.test.ts touch this map. It is kept as the exhaustiveness
+// anchor over `AppView`: `Record<AppView, string>` forces every view (added or
+// retired) to be reflected here, which is exactly the compiler pressure that
+// drove this migration's cascade of fixes. Do not delete it, and do not treat
+// it as live UI copy.
 export const VIEW_LABELS: Record<AppView, string> = {
   home: 'Home',
   agents: 'Agents',
@@ -13,32 +19,35 @@ export const VIEW_LABELS: Record<AppView, string> = {
   tasks: 'Tasks',
   quality: 'Quality',
   missions: 'Missions',
-  secrets: 'Secrets',
-  wallets: 'Wallets',
+  vault: 'Vault',
   providers: 'Providers',
   skills: 'Skills',
   connectors: 'Connectors',
   webhooks: 'Webhooks',
   mcp_servers: 'MCP Servers',
   knowledge: 'Knowledge',
-  logs: 'Logs',
   extensions: 'Extensions',
   usage: 'Usage',
-  runs: 'Runs',
+  stream: 'Stream',
   autonomy: 'Autonomy',
   settings: 'Settings',
   projects: 'Projects',
-  activity: 'Activity',
   swarmfeed: 'Feed',
   marketplace: 'Marketplace',
 }
 
+// No live reader today — referenced only by its own declaration. Kept as an
+// exhaustiveness anchor alongside VIEW_LABELS and VIEW_EMPTY_STATES so the
+// next task can lean on the same type pressure rather than rebuilding it.
+// Note: `vault` = 'Secret' is correct for the Secrets tab only. /vault is a
+// two-tab page (Secrets, Wallets); a future live consumer will need this
+// entry to be tab-aware rather than a single label for the merged view.
 export const CREATE_LABELS: Partial<Record<AppView, string>> = {
   agents: 'Agent',
   schedules: 'Schedule',
   tasks: 'Task',
   missions: 'Mission',
-  secrets: 'Secret',
+  vault: 'Secret',
   providers: 'Provider',
   skills: 'Skill',
   connectors: 'Connector',
@@ -62,26 +71,28 @@ export const VIEW_DESCRIPTIONS: Record<AppView, string> = {
   tasks: 'Task board for agent work and queued runs',
   quality: 'Operator quality center for evals, approvals, run review, and release readiness',
   missions: 'Autonomous goal-driven agent runs with budgets and morning reports',
-  secrets: 'API keys, tokens, and encrypted credentials',
-  wallets: 'Crypto wallets for agent-initiated on-chain transactions',
+  vault: 'API keys, tokens, and the wallets agents sign with',
   providers: 'LLM providers & custom endpoints',
   skills: 'Reusable instruction sets for agents',
   connectors: 'Chat platform bridges (Discord, Slack, etc.)',
   webhooks: 'Inbound HTTP triggers for event-driven workflows',
   mcp_servers: 'Connect agents to external MCP tool servers',
   knowledge: 'Shared knowledge base accessible by all agents',
-  logs: 'Application logs & error tracking',
   extensions: 'Manage external extensions and marketplace installs',
   usage: 'Usage metrics, cost tracking & agent performance',
-  runs: 'Live run monitoring & history',
+  stream: 'Run history, entity audit trail, and application logs',
   autonomy: 'Estops, incidents, and runtime autonomy controls',
   settings: 'Manage defaults, providers, secrets, and automation settings',
   projects: 'Group agents, tasks & schedules into projects',
-  activity: 'Audit trail of all entity mutations',
   swarmfeed: 'Social feed for AI agents to post, follow, and engage',
   marketplace: 'AI agent marketplace — browse tasks, agents, and skills on SwarmDock',
 }
 
+// No live reader today — referenced only by its own declaration. Kept as an
+// exhaustiveness anchor: `Record<Exclude<AppView, 'agents' | 'home'>, ...>`
+// forces every non-excluded view to carry an entry here, which is the same
+// compiler pressure VIEW_LABELS and CREATE_LABELS anchor. Do not delete it,
+// and do not treat it as live UI copy.
 export const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { icon: string; title: string; description: string; features: string[] }> = {
   org_chart: {
     icon: 'git-branch',
@@ -132,17 +143,11 @@ export const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { ic
     description: 'Hand your agent team a goal and let them run overnight. Budgets, periodic reports, and a full timeline you can review in the morning.',
     features: ['Set USD, token, turn, and wallclock caps enforced at the session level', 'Periodic markdown reports delivered as in-app notifications', 'Full milestone timeline with evidence and end reasons', 'Start, pause, resume, and cancel from the dashboard or CLI'],
   },
-  secrets: {
+  vault: {
     icon: 'lock',
-    title: 'Secrets',
-    description: 'Manage API keys and credentials that agents and integrations can access securely.',
-    features: ['Store keys for external services (Gmail, APIs, etc.)', 'Scope secrets globally or to specific agents', 'Encrypted at rest with AES-256-GCM', 'Agents retrieve secrets through configured tools'],
-  },
-  wallets: {
-    icon: 'wallet',
-    title: 'Wallets',
-    description: 'Manage crypto wallets that agents use for on-chain transactions and payments.',
-    features: ['Generate wallets with encrypted private keys', 'Assign wallets to specific agents', 'Set spending and daily USDC limits', 'Require human approval for transactions'],
+    title: 'Vault',
+    description: 'Manage API keys, encrypted secrets, and the crypto wallets agents sign transactions with.',
+    features: ['Store keys for external services (Gmail, APIs, etc.), encrypted at rest with AES-256-GCM', 'Generate wallets with encrypted private keys and daily USDC spending limits', 'Scope secrets and wallets globally or to specific agents', 'Require human approval for on-chain transactions'],
   },
   providers: {
     icon: 'zap',
@@ -186,12 +191,6 @@ export const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { ic
     description: 'A shared knowledge graph accessible by all agents for cross-workspace information sharing.',
     features: ['Create tagged knowledge entries', 'Agents can store and search knowledge via tools', 'Full-text and vector search', 'Provenance tracking per entry'],
   },
-  logs: {
-    icon: 'file-text',
-    title: 'Logs',
-    description: 'View application logs, errors, and debug information. Logs auto-refresh in real-time.',
-    features: ['Filter by level: ERROR, WARN, INFO, DEBUG', 'Search through log entries', 'Auto-refresh with live mode', 'Click entries to expand details'],
-  },
   extensions: {
     icon: 'puzzle',
     title: 'Extensions',
@@ -204,11 +203,11 @@ export const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { ic
     description: 'Track token usage and costs across all providers and agents.',
     features: ['Per-provider cost breakdown', 'Token usage over time', 'Per-agent cost tracking', 'Export usage data'],
   },
-  runs: {
+  stream: {
     icon: 'activity',
-    title: 'Runs',
-    description: 'View the run queue and execution history.',
-    features: ['Monitor queued and running tasks', 'View run results and errors', 'Cancel pending runs', 'Automatic retry tracking'],
+    title: 'Stream',
+    description: 'Run history, the entity audit trail, and application logs in one place.',
+    features: ['Monitor queued and running tasks, view run results and errors', 'Audit trail of all entity mutations, filterable by type and action', 'Application logs and errors with live auto-refresh', 'Cancel pending runs and track automatic retries'],
   },
   autonomy: {
     icon: 'shield',
@@ -228,12 +227,6 @@ export const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { ic
     description: 'Organize your work into projects. Group agents, tasks, and schedules under a common scope.',
     features: ['Create named projects with color badges', 'Assign agents and tasks to projects', 'Filter sidebar views by project', 'Global view when no filter is active'],
   },
-  activity: {
-    icon: 'clock',
-    title: 'Activity',
-    description: 'Audit trail of all entity mutations across the system.',
-    features: ['Track agent, task, and connector changes', 'Filter by entity type and action', 'Real-time updates via WebSocket', 'Relative timestamps'],
-  },
   swarmfeed: {
     icon: 'rss',
     title: 'Feed',
@@ -248,24 +241,52 @@ export const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { ic
   },
 }
 
+/*
+ * Disjoint from PANEL_SIDEBAR_VIEWS, and it was not: eight views --
+ * schedules, providers, skills, connectors, webhooks, mcp_servers, knowledge
+ * and extensions -- were listed in both. Nothing misbehaved, because the rail
+ * tests isPanelSidebarView first and that branch won every time, so the
+ * entries here were dead weight. They were also a trap: reordering those two
+ * branches, which reads like a pure refactor, would have silently taken the
+ * panel away from all eight.
+ */
 export const FULL_WIDTH_VIEWS = new Set<AppView>([
-  'home', 'org_chart', 'inbox', 'chatrooms', 'protocols', 'schedules', 'secrets', 'wallets', 'providers', 'skills',
-  'connectors', 'webhooks', 'mcp_servers', 'knowledge', 'extensions',
-  'usage', 'runs', 'quality', 'autonomy', 'logs', 'settings', 'activity', 'projects', 'swarmfeed', 'marketplace', 'missions',
+  'home', 'org_chart', 'inbox', 'protocols', 'vault',
+  'usage', 'stream', 'quality', 'autonomy', 'settings', 'swarmfeed', 'marketplace',
 ])
 
+// `stream` and `vault` are deliberately absent: the route layouts that used to
+// render a SidebarPanelShell next to `runs`, `logs`, `secrets` and `wallets`
+// were dropped when those routes became plain redirects into /stream and
+// /vault. Keeping either merged view here would set `sidebarOpen` true with no
+// panel behind it, and that flag would then leak into the next panel-backed
+// view the user opens.
+/*
+ * `chatrooms`, `missions` and `projects` moved here out of FULL_WIDTH_VIEWS,
+ * and the move is a correction rather than a feature. All three have always
+ * had a panel; they rendered a private one that ignored `sidebarOpen`, so the
+ * classification was simply wrong and nothing made it hurt. The moment they
+ * were put on SidebarPanelShell, which honours the flag, navigating to any of
+ * them set the flag false and the panel vanished -- taking the only way to
+ * create a chatroom with it.
+ *
+ * The lesson is in the comment below about `stream` and `vault`: this table
+ * and what a route actually renders are two separate claims, and nothing
+ * checks that they agree. A view listed here with no panel leaks a true flag
+ * into the next view; a view with a panel listed as full-width loses it.
+ */
 export const PANEL_SIDEBAR_VIEWS = new Set<AppView>([
   'agents',
+  'chatrooms',
   'connectors',
   'extensions',
   'knowledge',
-  'logs',
   'mcp_servers',
   'memory',
+  'missions',
+  'projects',
   'providers',
-  'runs',
   'schedules',
-  'secrets',
   'skills',
   'tasks',
   'webhooks',

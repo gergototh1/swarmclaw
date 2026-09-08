@@ -62,7 +62,7 @@ export const ToolActivityPill = memo(function ToolActivityPill({
     ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
     : mostlyFailed
       ? 'border-rose-500/20 bg-rose-500/10 text-rose-300'
-      : 'border-white/[0.08] bg-white/[0.04] text-text-3/70'
+      : 'border-line-default bg-layer-2 text-text-3/70'
 
   const dotClass = isRunning
     ? 'bg-amber-400'
@@ -117,7 +117,7 @@ function summarizeToolResult(event: ToolEvent): string | null {
 
 const ToolStatusPill = memo(function ToolStatusPill({ status }: { status: ToolEvent['status'] }) {
   const tone = status === 'running'
-    ? 'border-white/[0.08] bg-white/[0.05] text-text-3'
+    ? 'border-line-default bg-layer-2 text-text-3'
     : status === 'error'
       ? 'border-rose-500/25 bg-rose-500/10 text-rose-300'
       : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300'
@@ -125,7 +125,7 @@ const ToolStatusPill = memo(function ToolStatusPill({ status }: { status: ToolEv
   const label = status === 'running' ? 'Running' : status === 'error' ? 'Failed' : 'Done'
 
   return (
-    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.08em] ${tone}`}>
+    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-600 tracking-[0.03em] ${tone}`}>
       {label}
     </span>
   )
@@ -141,12 +141,12 @@ const ToolSummaryRow = memo(function ToolSummaryRow({ event, caption }: { event:
 
   return (
     <div
-      className={`rounded-[14px] border px-3.5 py-3 ${
+      className={`rounded-lg border px-3.5 py-3 ${
       isRunning
         ? 'border-amber-500/20 bg-amber-500/[0.06]'
         : isError
           ? 'border-rose-500/18 bg-rose-500/[0.05]'
-          : 'border-white/[0.06] bg-white/[0.03]'
+          : 'border-line-subtle bg-surface'
     }`}
       data-testid="tool-call-row"
       data-tool-name={event.name}
@@ -169,7 +169,7 @@ const ToolSummaryRow = memo(function ToolSummaryRow({ event, caption }: { event:
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-600 uppercase tracking-[0.08em] text-text-3/55">{caption}</span>
+            <span className="text-[10px] font-600 tracking-[0.03em] text-text-3">{caption}</span>
             <span className="text-[13px] font-600 text-text-2">{label}</span>
             <ToolStatusPill status={event.status} />
           </div>
@@ -277,7 +277,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
           type="button"
           onClick={() => setExpanded((value) => !value)}
           data-testid="tool-activity-toggle"
-          className="inline-flex items-center gap-2 rounded-[10px] border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] font-600 text-text-2 hover:bg-white/[0.06] cursor-pointer transition-colors"
+          className="inline-flex items-center gap-2 rounded-sm border border-line-default bg-layer-1 px-3 py-1.5 text-[11px] font-600 text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`transition-transform ${expanded ? 'rotate-180' : ''}`}>
             <polyline points="6 9 12 15 18 9" />
@@ -285,7 +285,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
           {expanded ? 'Hide call details' : `View ${summary.total === 1 ? 'call' : `${summary.total} calls`} details`}
         </button>
         {summary.running > 0 && (
-          <span className="text-[11px] text-text-3/55">
+          <span className="text-[11px] text-text-3">
             Updates stream here without reflowing the whole thread
           </span>
         )}
@@ -300,20 +300,20 @@ export const ToolEventsSection = memo(function ToolEventsSection({
               src={src}
               alt={`Screenshot ${i + 1}`}
               loading="lazy"
-              className="max-w-[400px] rounded-[10px] border border-white/10"
+              className="max-w-[400px] rounded-sm border border-line-default"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           ))}
           {collapsedMedia.videos.map((src, i) => (
-            <video key={`cv-${i}`} src={src} controls playsInline preload="none" className="max-w-full rounded-[10px] border border-white/10" />
+            <video key={`cv-${i}`} src={src} controls playsInline preload="none" className="max-w-full rounded-sm border border-line-default" />
           ))}
           {collapsedMedia.pdfs.map((file, i) => (
-            <div key={`cp-${i}`} className="rounded-[10px] border border-white/10 overflow-hidden">
+            <div key={`cp-${i}`} className="rounded-sm border border-line-default overflow-hidden">
               <iframe src={file.url} loading="lazy" className="w-full h-[400px] bg-white" title={file.name} />
             </div>
           ))}
           {collapsedMedia.files.map((file, i) => (
-            <a key={`cf-${i}`} href={file.url} download className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-white/10 bg-surface/60 text-[13px] text-text-2 no-underline">
+            <a key={`cf-${i}`} href={file.url} download className="flex items-center gap-2 px-3 py-2 rounded-md border border-line-default bg-surface text-[13px] text-text-2 no-underline">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
@@ -325,7 +325,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
       )}
 
       {expanded && (
-        <div className="mt-3 border-t border-white/[0.06] pt-3 flex flex-col gap-2">
+        <div className="mt-3 border-t border-line-subtle pt-3 flex flex-col gap-2">
           {toolEvents.map((event) => (
             <ToolCallBubble key={event.id} event={event} />
           ))}
@@ -342,12 +342,12 @@ export const ToolEventsSection = memo(function ToolEventsSection({
   /* ── Uncontrolled mode: full standalone card (legacy) ─── */
   return (
     <div className="max-w-[85%] md:max-w-[72%] mb-2" data-testid="tool-activity">
-      <div className="rounded-[16px] border border-white/[0.08] bg-surface/72 backdrop-blur-sm overflow-hidden">
+      <div className="rounded-lg border border-line-subtle bg-surface/80 backdrop-blur-sm overflow-hidden">
         {/* Compact header — always visible */}
         <button
           type="button"
           onClick={handleSectionToggle}
-          className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-white/[0.03] transition-colors cursor-pointer"
+          className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-layer-1 transition-colors cursor-pointer"
           data-testid="tool-activity-section-toggle"
         >
           <svg
@@ -358,29 +358,29 @@ export const ToolEventsSection = memo(function ToolEventsSection({
             stroke="currentColor"
             strokeWidth="2.5"
             strokeLinecap="round"
-            className={`shrink-0 text-text-3/55 transition-transform ${effectiveSectionOpen ? 'rotate-90' : ''}`}
+            className={`shrink-0 text-text-3 transition-transform ${effectiveSectionOpen ? 'rotate-90' : ''}`}
           >
             <polyline points="9 6 15 12 9 18" />
           </svg>
-          <span className="text-[11px] font-600 uppercase tracking-[0.08em] text-text-3/55">
+          <span className="text-[11px] font-600 tracking-[0.03em] text-text-3">
             Tool Activity
           </span>
-          <span className="text-[12px] text-text-3/50">
+          <span className="text-[12px] text-text-3">
             {summary.total} call{summary.total === 1 ? '' : 's'}
           </span>
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
             {summary.running > 0 && (
-              <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.08em] text-amber-300">
+              <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-600 tracking-[0.03em] text-amber-300">
                 {summary.running} running
               </span>
             )}
             {summary.done > 0 && (
-              <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.08em] text-emerald-300">
+              <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-600 tracking-[0.03em] text-emerald-300">
                 {summary.done} done
               </span>
             )}
             {summary.error > 0 && (
-              <span className="rounded-full border border-rose-500/25 bg-rose-500/10 px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.08em] text-rose-300">
+              <span className="rounded-full border border-rose-500/25 bg-rose-500/10 px-2 py-0.5 text-[10px] font-600 tracking-[0.03em] text-rose-300">
                 {summary.error} failed
               </span>
             )}
@@ -389,7 +389,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
 
         {/* Expanded body */}
         {effectiveSectionOpen && (
-          <div className="border-t border-white/[0.06]">
+          <div className="border-t border-line-subtle">
             {bodyContent}
           </div>
         )}

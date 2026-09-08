@@ -189,14 +189,14 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
 
   return (
     <div
-      className="flex flex-col rounded-[12px] border border-white/[0.08] bg-[#12121e] shadow-2xl shadow-black/50 overflow-hidden"
+      className="flex flex-col rounded-md border border-line-default bg-raised shadow-2xl shadow-black/50 overflow-hidden"
       style={{ width: BUBBLE_W, height: 400 }}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.06] bg-white/[0.02] shrink-0">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-line-subtle bg-layer-1 shrink-0">
         <AgentAvatar
           seed={agent.avatarSeed || null}
           avatarUrl={agent.avatarUrl}
@@ -206,7 +206,7 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
         <span className="text-[12px] font-600 text-text truncate flex-1">{agent.name}</span>
         <button
           onClick={onClose}
-          className="w-5 h-5 rounded-[4px] flex items-center justify-center text-text-3 hover:text-text hover:bg-white/[0.08] cursor-pointer border-none transition-colors"
+          className="w-5 h-5 rounded-xs flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-3 cursor-pointer border-none transition-colors"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <path d="M1 1l8 8M9 1l-8 8" />
@@ -217,7 +217,7 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-0">
         {loading && (
-          <div className="text-[11px] text-text-3/50 text-center py-8">Loading...</div>
+          <div className="text-[11px] text-text-3 text-center py-8">Loading...</div>
         )}
         {!loading && error && (
           <div className="text-center py-8 space-y-2">
@@ -231,7 +231,7 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
           </div>
         )}
         {!loading && !error && visibleMessages.length === 0 && !streaming && (
-          <div className="text-[11px] text-text-3/40 text-center py-8">
+          <div className="text-[11px] text-text-3 text-center py-8">
             Start a conversation with {agent.name}
           </div>
         )}
@@ -240,7 +240,7 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
         ))}
         {streaming && streamText && (
           <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-[8px] px-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06]">
+            <div className="max-w-[85%] rounded-sm px-2.5 py-1.5 bg-layer-2 border border-line-subtle">
               <div className="mini-chat-md text-[12px] text-text-2 leading-relaxed">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripAllInternalMetadata(streamText)}</ReactMarkdown>
               </div>
@@ -250,7 +250,7 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
         )}
         {streaming && !streamText && (
           <div className="flex justify-start">
-            <div className="rounded-[8px] px-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06]">
+            <div className="rounded-sm px-2.5 py-1.5 bg-layer-2 border border-line-subtle">
               <div className="flex gap-1 items-center">
                 <span className="w-1.5 h-1.5 rounded-full bg-text-3/40 animate-pulse" />
                 <span className="w-1.5 h-1.5 rounded-full bg-text-3/40 animate-pulse" style={{ animationDelay: '150ms' }} />
@@ -262,7 +262,7 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
       </div>
 
       {/* Input */}
-      <div className="flex items-center gap-1.5 px-2 py-2 border-t border-white/[0.06] shrink-0">
+      <div className="flex items-center gap-1.5 px-2 py-2 border-t border-line-subtle shrink-0">
         <input
           ref={inputRef}
           type="text"
@@ -271,12 +271,12 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
           placeholder="Type a message..."
           disabled={loading || !!error || !sessionId}
-          className="flex-1 text-[12px] bg-white/[0.04] border border-white/[0.06] rounded-[6px] px-2.5 py-1.5 text-text placeholder:text-text-3/30 outline-none focus:border-accent-bright/30 transition-colors disabled:opacity-40"
+          className="flex-1 text-[12px] bg-layer-2 border border-line-subtle rounded-xs px-2.5 py-1.5 text-text placeholder:text-text-3 outline-none focus:border-accent-bright/30 transition-colors disabled:opacity-40"
         />
         {streaming ? (
           <button
             onClick={stop}
-            className="w-7 h-7 rounded-[6px] flex items-center justify-center bg-red-500/20 text-red-400 hover:bg-red-500/30 cursor-pointer border-none transition-colors"
+            className="w-7 h-7 rounded-xs flex items-center justify-center bg-red-500/20 text-red-400 hover:bg-red-500/30 cursor-pointer border-none transition-colors"
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
               <rect x="1" y="1" width="8" height="8" rx="1" />
@@ -286,7 +286,7 @@ export function MiniChatBubble({ agent, onClose, onToolActivity }: Props) {
           <button
             onClick={send}
             disabled={!inputValue.trim() || loading || !sessionId}
-            className="w-7 h-7 rounded-[6px] flex items-center justify-center bg-accent-bright/20 text-accent-bright hover:bg-accent-bright/30 cursor-pointer border-none transition-colors disabled:opacity-30 disabled:cursor-default"
+            className="w-7 h-7 rounded-xs flex items-center justify-center bg-accent-bright/20 text-accent-bright hover:bg-accent-bright/30 cursor-pointer border-none transition-colors disabled:opacity-30 disabled:cursor-default"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
               <path d="M1 11L11 6L1 1v4l5 1-5 1z" />
@@ -315,10 +315,10 @@ function MessageRow({ message }: { message: Message }) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[85%] rounded-[8px] px-2.5 py-1.5 ${
+        className={`max-w-[85%] rounded-sm px-2.5 py-1.5 ${
           isUser
             ? 'bg-accent-bright/15 border border-accent-bright/20'
-            : 'bg-white/[0.04] border border-white/[0.06]'
+            : 'bg-layer-2 border border-line-subtle'
         }`}
       >
         {isUser ? (

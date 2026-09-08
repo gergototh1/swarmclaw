@@ -67,8 +67,8 @@ function FilterChip({ active, onClick, label }: { active: boolean; onClick: () =
       onClick={onClick}
       className={`text-[11px] font-600 px-2.5 py-1 rounded-full border transition-colors ${
         active
-          ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-200'
-          : 'border-white/[0.08] bg-white/[0.02] text-text-3 hover:border-white/[0.16] hover:text-text'
+          ? 'border-accent-bright/40 bg-accent-bright/15 text-accent-bright'
+          : 'border-line-default bg-layer-1 text-text-3 hover:border-line-strong hover:text-text'
       }`}
     >
       {label}
@@ -81,13 +81,13 @@ function TemplateCard({ template, onInstall }: { template: MissionTemplate; onIn
     <button
       type="button"
       onClick={onInstall}
-      className="text-left group flex flex-col gap-3 rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-4 transition-all hover:border-white/[0.16] hover:bg-white/[0.04]"
+      className="text-left group flex flex-col gap-3 rounded-lg border border-line-subtle bg-surface px-4 py-4 transition-all hover:border-line-strong hover:bg-layer-2"
     >
       <div className="flex items-start gap-3">
         <span className="text-[22px] leading-none" aria-hidden>{template.icon}</span>
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-700 text-text">{template.name}</div>
-          <div className="text-[10px] uppercase tracking-wide text-text-3/70 mt-0.5">
+          <div className="text-[10px] tracking-wide text-text-3 mt-0.5">
             {CATEGORY_LABELS[template.category]}
           </div>
         </div>
@@ -98,13 +98,13 @@ function TemplateCard({ template, onInstall }: { template: MissionTemplate; onIn
           {template.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="text-[10px] text-text-3/70 px-1.5 py-0.5 rounded border border-white/[0.06] bg-white/[0.02]"
+              className="text-[10px] text-text-3 px-1.5 py-0.5 rounded-xs border border-line-subtle bg-layer-1"
             >
               {tag}
             </span>
           ))}
         </div>
-        <span className="text-[11px] font-600 text-emerald-300 group-hover:text-emerald-200">
+        <span className="text-[11px] font-600 text-accent-bright group-hover:text-accent-bright">
           Install →
         </span>
       </div>

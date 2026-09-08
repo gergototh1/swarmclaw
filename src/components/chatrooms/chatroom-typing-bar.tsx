@@ -16,7 +16,7 @@ function renderWithMentions(text: string): ReactNode[] {
       parts.push(text.slice(lastIndex, match.index))
     }
     parts.push(
-      <span key={match.index} className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded">
+      <span key={match.index} className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded-xs">
         {match[0]}
       </span>
     )

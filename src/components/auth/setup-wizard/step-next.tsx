@@ -17,7 +17,7 @@ export function StepNext({
 
   return (
     <StepShell wide>
-      <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+      <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
         Launch Your Workspace
       </h1>
       <p className="text-[15px] text-text-2 mb-2">
@@ -74,7 +74,7 @@ export function StepNext({
       <button
         type="button"
         onClick={onContinueToDashboard}
-        className="px-10 py-3.5 rounded-[14px] border-none bg-accent-bright text-white text-[15px] font-display font-600 cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200 shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
+        className="px-10 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-display font-600 cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200"
       >
         Continue to Dashboard
       </button>

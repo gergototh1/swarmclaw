@@ -168,11 +168,11 @@ export function KnowledgeList() {
 
       {hygiene && (
         <div className="px-5 pb-2 shrink-0">
-          <div className="rounded-[12px] border border-white/[0.06] bg-white/[0.03] p-3">
+          <div className="rounded-lg border border-line-subtle bg-surface p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3/55">Hygiene</div>
-                <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-text-2/80">
+                <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">Hygiene</div>
+                <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-text-2">
                   <span>stale {hygiene.counts.stale}</span>
                   <span>duplicates {hygiene.counts.duplicate}</span>
                   <span>broken {hygiene.counts.broken}</span>
@@ -183,19 +183,19 @@ export function KnowledgeList() {
               <button
                 onClick={() => { void runMaintenance() }}
                 disabled={maintaining}
-                className="rounded-[9px] border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-600 text-text-2 transition-all cursor-pointer disabled:opacity-50"
+                className="rounded-sm border border-line-default bg-layer-2 px-2.5 py-1.5 text-[11px] font-600 text-text-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 {maintaining ? 'Running…' : 'Maintain'}
               </button>
             </div>
             <div className="mt-3 flex items-center justify-between gap-3">
-              <div className="text-[10px] text-text-3/55">
+              <div className="text-[10px] text-text-3">
                 Last scan {new Date(hygiene.scannedAt).toLocaleTimeString()}
               </div>
               <button
                 onClick={() => setIncludeArchived((current) => !current)}
-                className={`rounded-[8px] px-2 py-1 text-[10px] font-700 uppercase tracking-[0.08em] cursor-pointer ${
-                  includeArchived ? 'bg-amber-500/12 text-amber-200' : 'bg-white/[0.04] text-text-3/75'
+                className={`rounded-sm px-2 py-1 text-[10px] font-700 tracking-[0.03em] cursor-pointer ${
+                  includeArchived ? 'bg-amber-500/12 text-amber-200' : 'bg-layer-2 text-text-3/75'
                 }`}
               >
                 {includeArchived ? 'Showing archived' : 'Hide archived'}
@@ -210,8 +210,8 @@ export function KnowledgeList() {
           <div className="flex gap-1 flex-wrap">
             <button
               onClick={() => setActiveTag(null)}
-              className={`px-2 py-0.5 rounded-[6px] text-[9px] font-600 cursor-pointer transition-all uppercase tracking-wider ${
-                !activeTag ? 'bg-white/[0.06] text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'
+              className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all tracking-[0.03em] ${
+                !activeTag ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'
               }`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -221,8 +221,8 @@ export function KnowledgeList() {
               <button
                 key={tag}
                 onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                className={`px-2 py-0.5 rounded-[6px] text-[9px] font-600 cursor-pointer transition-all uppercase tracking-wider ${
-                  activeTag === tag ? 'bg-white/[0.06] text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'
+                className={`px-2 py-0.5 rounded-xs text-[9px] font-600 cursor-pointer transition-all tracking-[0.03em] ${
+                  activeTag === tag ? 'bg-layer-2 text-text-2' : 'bg-transparent text-text-3/70 hover:text-text-3'
                 }`}
                 style={{ fontFamily: 'inherit' }}
               >
@@ -243,10 +243,10 @@ export function KnowledgeList() {
                   <div
                     key={hit.id}
                     onClick={() => setSelectedKnowledgeSourceId(hit.sourceId)}
-                    className={`p-3 rounded-[12px] border transition-all relative group cursor-pointer ${
+                    className={`p-3 rounded-md border transition-all relative group cursor-pointer ${
                       active
                         ? 'border-accent-bright/25 bg-accent-soft/10'
-                        : 'border-white/[0.04] bg-transparent hover:bg-surface-2 hover:border-white/[0.1]'
+                        : 'border-line-subtle bg-transparent hover:bg-surface-2 hover:border-line-default'
                     }`}
                     style={{
                       animation: 'spring-in 0.5s var(--ease-spring) both',
@@ -257,9 +257,9 @@ export function KnowledgeList() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
                           <span className="font-display text-[13px] font-600 text-text truncate">{hit.sourceTitle}</span>
-                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase">{hit.sourceKind}</Badge>
+                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{hit.sourceKind}</Badge>
                         </div>
-                        <p className="text-[10px] text-text-3/55">
+                        <p className="text-[10px] text-text-3">
                           Chunk {hit.chunkIndex + 1} of {hit.chunkCount}
                           {hit.sectionLabel ? ` • ${hit.sectionLabel}` : ''}
                         </p>
@@ -272,7 +272,7 @@ export function KnowledgeList() {
                           event.stopPropagation()
                           openSheet(hit.sourceId)
                         }}
-                        className="text-text-3/40 hover:text-accent-bright transition-colors p-0.5 cursor-pointer"
+                        className="text-text-3 hover:text-accent-bright transition-colors p-0.5 cursor-pointer"
                         title="Edit"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -282,7 +282,7 @@ export function KnowledgeList() {
                       </button>
                     </div>
 
-                    <p className="text-[11px] text-text-2/80 line-clamp-4">{hit.snippet}</p>
+                    <p className="text-[11px] text-text-2 line-clamp-4">{hit.snippet}</p>
 
                     <div className="flex items-center gap-2 mt-2.5 flex-wrap">
                       {hit.tags.map((tag) => (
@@ -319,10 +319,10 @@ export function KnowledgeList() {
                   <div
                     key={source.id}
                     onClick={() => setSelectedKnowledgeSourceId(source.id)}
-                    className={`p-3 rounded-[12px] border transition-all relative group cursor-pointer ${
+                    className={`p-3 rounded-md border transition-all relative group cursor-pointer ${
                       active
                         ? 'border-accent-bright/25 bg-accent-soft/10'
-                        : 'border-white/[0.04] bg-transparent hover:bg-surface-2 hover:border-white/[0.1]'
+                        : 'border-line-subtle bg-transparent hover:bg-surface-2 hover:border-line-default'
                     }`}
                     style={{
                       animation: 'spring-in 0.5s var(--ease-spring) both',
@@ -333,14 +333,14 @@ export function KnowledgeList() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
                           <span className="font-display text-[13px] font-600 text-text truncate">{source.title}</span>
-                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase">{source.kind}</Badge>
+                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{source.kind}</Badge>
                           {source.archivedAt ? (
-                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase text-amber-200">archived</Badge>
+                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 text-amber-200">archived</Badge>
                           ) : source.supersededBySourceId ? (
-                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase text-text-3">superseded</Badge>
+                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 text-text-3">superseded</Badge>
                           ) : null}
                         </div>
-                        <p className="text-[10px] text-text-3/55">
+                        <p className="text-[10px] text-text-3">
                           {source.chunkCount} chunk{source.chunkCount === 1 ? '' : 's'}
                           {' • '}
                           {formatDate(source.lastIndexedAt)}
@@ -353,7 +353,7 @@ export function KnowledgeList() {
                             event.stopPropagation()
                             openSheet(source.id)
                           }}
-                          className="text-text-3/40 hover:text-accent-bright transition-colors p-0.5 cursor-pointer"
+                          className="text-text-3 hover:text-accent-bright transition-colors p-0.5 cursor-pointer"
                           title="Edit"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -366,7 +366,7 @@ export function KnowledgeList() {
                             event.stopPropagation()
                             void handleDelete(source.id)
                           }}
-                          className="text-text-3/40 hover:text-red-400 transition-colors p-0.5 cursor-pointer"
+                          className="text-text-3 hover:text-red-400 transition-colors p-0.5 cursor-pointer"
                           title="Delete"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -377,7 +377,7 @@ export function KnowledgeList() {
                     </div>
 
                     {source.topSnippet && (
-                      <p className="text-[11px] text-text-3/70 line-clamp-3 mb-2">{source.topSnippet}</p>
+                      <p className="text-[11px] text-text-3 line-clamp-3 mb-2">{source.topSnippet}</p>
                     )}
 
                     <div className="flex items-center gap-2 flex-wrap">
@@ -395,7 +395,7 @@ export function KnowledgeList() {
                         {source.scope === 'global' ? 'Global' : `${source.agentIds.length} agent(s)`}
                       </span>
                       {source.sourceLabel && (
-                        <span className="text-[10px] text-text-3/55 truncate">{source.sourceLabel}</span>
+                        <span className="text-[10px] text-text-3 truncate">{source.sourceLabel}</span>
                       )}
                     </div>
 
@@ -422,7 +422,7 @@ export function KnowledgeList() {
                           ))}
                         </div>
                         {scopedAgents.length > 5 && (
-                          <span className="text-[10px] font-600 text-text-3/60">+{scopedAgents.length - 5}</span>
+                          <span className="text-[10px] font-600 text-text-3">+{scopedAgents.length - 5}</span>
                         )}
                       </div>
                     )}
@@ -433,10 +433,10 @@ export function KnowledgeList() {
       ) : error ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-3 p-8 text-center" style={{ animation: 'fade-up 0.5s var(--ease-spring)' }}>
           <p className="font-display text-[14px] font-600 text-text-2">Couldn&apos;t load knowledge</p>
-          <p className="text-[12px] text-text-3/60">{error}</p>
+          <p className="text-[12px] text-text-3">{error}</p>
           <button
             onClick={() => { void load(search, activeTag) }}
-            className="px-3 py-1.5 rounded-[8px] bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer border-none"
+            className="px-3 py-1.5 rounded-sm bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer border-none"
             style={{ fontFamily: 'inherit' }}
           >
             Retry

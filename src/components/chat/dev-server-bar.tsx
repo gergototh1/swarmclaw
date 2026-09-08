@@ -11,7 +11,7 @@ export function DevServerBar({ status, onStop }: Props) {
   if (!status) return null
 
   return (
-    <div className="flex items-center gap-2.5 px-4 py-2 bg-success/[0.04] border-b border-white/[0.04] shrink-0">
+    <div className="flex items-center gap-2.5 px-4 py-2 bg-success/[0.04] border-b border-line-subtle shrink-0">
       <span className="w-[5px] h-[5px] rounded-full bg-success shrink-0"
         style={{ animation: 'pulse 2s ease infinite' }} />
       {status.url ? (
@@ -28,7 +28,7 @@ export function DevServerBar({ status, onStop }: Props) {
       )}
       <button
         onClick={onStop}
-        className="px-2.5 py-1 rounded-[8px] border border-danger/15 bg-transparent
+        className="px-2.5 py-1 rounded-sm border border-danger/15 bg-transparent
           text-danger text-[11px] font-600 cursor-pointer hover:bg-danger-soft transition-all duration-200"
         style={{ fontFamily: 'inherit' }}
       >

@@ -148,12 +148,12 @@ export function ChatList({ inSidebar, onSelect }: Props) {
       return (
         <div className="flex-1 flex flex-col gap-1 px-2 pt-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="py-3 px-4 rounded-[14px]">
+            <div key={i} className="py-3 px-4 rounded-md">
               <div className="flex items-center gap-2.5">
                 <Skeleton className="rounded-full" width={28} height={28} />
-                <Skeleton className="rounded-[6px]" width={140} height={14} />
+                <Skeleton className="rounded-xs" width={140} height={14} />
               </div>
-              <Skeleton className="rounded-[6px] mt-2" width="70%" height={12} />
+              <Skeleton className="rounded-xs mt-2" width="70%" height={12} />
             </div>
           ))}
         </div>
@@ -181,7 +181,7 @@ export function ChatList({ inSidebar, onSelect }: Props) {
           <button
             key={f}
             onClick={() => setTypeFilter(f)}
-            className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all
+            className={`px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all
               ${typeFilter === f ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
@@ -192,7 +192,7 @@ export function ChatList({ inSidebar, onSelect }: Props) {
           <div className="ml-auto relative">
             <button
               onClick={() => setBulkMenuOpen((open) => !open)}
-              className="p-1.5 rounded-[8px] text-text-3/70 hover:text-text-2 hover:bg-white/[0.04]
+              className="p-1.5 rounded-sm text-text-3 hover:text-text-2 hover:bg-layer-2
                 cursor-pointer transition-all bg-transparent border-none"
               title="More actions"
             >
@@ -231,7 +231,7 @@ export function ChatList({ inSidebar, onSelect }: Props) {
           value={sortMode}
           onChange={(e) => setSortMode(e.target.value as SortMode)}
           aria-label="Sort chats"
-          className="px-2 py-2 rounded-[12px] border border-white/[0.04] bg-surface text-text
+          className="px-2 py-2 rounded-md border border-line-subtle bg-surface text-text
             text-[11px] outline-none cursor-pointer"
           style={{ fontFamily: 'inherit' }}
         >
@@ -253,10 +253,10 @@ export function ChatList({ inSidebar, onSelect }: Props) {
               <button
                 onClick={(e) => { e.stopPropagation(); togglePinSession(s.id); toast.success(s.pinned ? 'Chat unpinned' : 'Chat pinned') }}
                 aria-label={s.pinned ? 'Unpin chat' : 'Pin chat'}
-                className={`absolute top-2 right-2 p-1 rounded-[6px] border-none cursor-pointer transition-all
+                className={`absolute top-2 right-2 p-1 rounded-xs border-none cursor-pointer transition-all
                   ${s.pinned
                     ? 'text-amber-400 bg-amber-400/10 opacity-100'
-                    : 'text-text-3/50 bg-transparent opacity-0 group-hover/pin:opacity-100 hover:text-text-2 hover:bg-white/[0.04]'}`}
+                    : 'text-text-3/50 bg-transparent opacity-0 group-hover/pin:opacity-100 hover:text-text-2 hover:bg-layer-2'}`}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill={s.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M12 17v5" />
@@ -268,7 +268,7 @@ export function ChatList({ inSidebar, onSelect }: Props) {
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-3 p-8 text-center">
-          <p className="text-[13px] text-text-3/50">
+          <p className="text-[13px] text-text-3">
             No {typeFilter === 'active' ? 'active' : typeFilter} chats{search ? ` matching "${search}"` : ''}
           </p>
         </div>

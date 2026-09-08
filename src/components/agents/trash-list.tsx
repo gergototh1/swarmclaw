@@ -32,13 +32,13 @@ export function TrashList() {
   if (!agents.length) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-3 p-8 text-center">
-        <div className="w-12 h-12 rounded-[14px] bg-white/[0.03] flex items-center justify-center">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/50">
+        <div className="w-12 h-12 rounded-md bg-layer-1 flex items-center justify-center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3">
             <polyline points="3 6 5 6 21 6" />
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           </svg>
         </div>
-        <p className="text-[13px] text-text-3/50">Trash is empty</p>
+        <p className="text-[13px] text-text-3">Trash is empty</p>
       </div>
     )
   }
@@ -49,23 +49,23 @@ export function TrashList() {
         {agents.map((agent) => (
           <div
             key={agent.id}
-            className="py-3 px-4 rounded-[14px] border border-white/[0.04] bg-white/[0.02]"
+            className="py-3 px-4 rounded-lg border border-line-subtle bg-surface"
           >
             <div className="flex items-center gap-2.5">
-              <span className="font-display text-[14px] font-600 truncate flex-1 tracking-[-0.01em] text-text-2/70">
+              <span className="font-display text-[14px] font-600 truncate flex-1 tracking-[-0.01em] text-text-2">
                 {agent.name}
               </span>
             </div>
-            <div className="text-[12px] text-text-3/50 mt-1 truncate">{agent.description}</div>
+            <div className="text-[12px] text-text-3 mt-1 truncate">{agent.description}</div>
             {agent.trashedAt && (
-              <div className="text-[11px] text-text-3/40 mt-1">
+              <div className="text-[11px] text-text-3 mt-1">
                 Trashed {formatRelative(agent.trashedAt)}
               </div>
             )}
             <div className="flex items-center gap-2 mt-2.5">
               <button
                 onClick={() => handleRestore(agent.id)}
-                className="px-3 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[12px] font-600
+                className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[12px] font-600
                   text-accent-bright cursor-pointer hover:bg-accent-soft transition-all"
                 style={{ fontFamily: 'inherit' }}
               >
@@ -73,7 +73,7 @@ export function TrashList() {
               </button>
               <button
                 onClick={() => setConfirmPermanent(agent)}
-                className="px-3 py-1.5 rounded-[8px] border border-white/[0.08] bg-transparent text-[12px] font-600
+                className="px-3 py-1.5 rounded-sm border border-line-default bg-transparent text-[12px] font-600
                   text-red-400 cursor-pointer hover:bg-red-400/10 transition-all"
                 style={{ fontFamily: 'inherit' }}
               >

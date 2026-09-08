@@ -21,10 +21,12 @@ import { timeAgo, timeUntil } from '@/lib/time-format'
 import type { Agent, Session, BoardTask, AppNotification, ActivityEntry } from '@/types'
 import { getEnabledCapabilityIds } from '@/lib/capability-selection'
 import { HintTip } from '@/components/shared/hint-tip'
+import { RouteTabs } from '@/components/shared/route-tabs'
 import { MainContent } from '@/components/layout/main-content'
 import { PageLoader } from '@/components/ui/page-loader'
 import { SectionHeader } from '@/components/ui/section-header'
 import { StatCard } from '@/components/ui/stat-card'
+import { HOME_TABS } from './home-tabs'
 
 const ACTIVITY_ICONS: Record<ActivityEntry['action'], string> = {
   created: 'M12 5v14m-7-7h14',
@@ -240,6 +242,7 @@ export default function HomePage() {
   if (!pageReady) {
     return (
       <MainContent>
+        <RouteTabs tabs={HOME_TABS} active="home" />
         <PageLoader label="Loading dashboard..." />
       </MainContent>
     )
@@ -274,6 +277,7 @@ export default function HomePage() {
   if (homeMode === 'launchpad') {
     return (
       <MainContent>
+        <RouteTabs tabs={HOME_TABS} active="home" />
         <div className="flex-1 overflow-y-auto">
           <HomeLaunchpad
             firstAgent={firstAgent}
@@ -303,6 +307,7 @@ export default function HomePage() {
 
   return (
     <MainContent>
+      <RouteTabs tabs={HOME_TABS} active="home" />
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-[800px] mx-auto px-6 py-10">
           {/* Header */}
@@ -323,7 +328,7 @@ export default function HomePage() {
               label="Needs Attention"
               action={activeTaskCount > 0 ? { label: 'Open Tasks', onClick: () => navigateTo('tasks') } : undefined}
             />
-            <div className="rounded-[18px] border border-white/[0.06] bg-white/[0.025] p-4">
+            <div className="rounded-lg border border-line-subtle bg-surface p-4">
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <StatusPill label={`${allTasks.filter((task) => task.status === 'failed').length} failed task${allTasks.filter((task) => task.status === 'failed').length === 1 ? '' : 's'}`} tone={allTasks.some((task) => task.status === 'failed') ? 'danger' : 'neutral'} />
                 <StatusPill label={`${allTasks.filter((task) => (task.blockedBy?.length || 0) > 0).length} blocked task${allTasks.filter((task) => (task.blockedBy?.length || 0) > 0).length === 1 ? '' : 's'}`} tone={allTasks.some((task) => (task.blockedBy?.length || 0) > 0) ? 'warning' : 'neutral'} />
@@ -387,9 +392,9 @@ export default function HomePage() {
 
                 if (items.length === 0) {
                   return (
-                    <div className="rounded-[14px] border border-dashed border-white/[0.06] bg-white/[0.02] px-4 py-5">
+                    <div className="rounded-lg border border-dashed border-line-subtle bg-surface px-4 py-5">
                       <p className="text-[13px] font-600 text-text">Everything looks stable.</p>
-                      <p className="text-[12px] text-text-3/60 mt-1">
+                      <p className="text-[12px] text-text-3 mt-1">
                         No failed tasks, no blocked tasks, and no connector issues right now.
                       </p>
                     </div>
@@ -402,7 +407,7 @@ export default function HomePage() {
                       <button
                         key={item.id}
                         onClick={item.onClick}
-                        className="flex items-start gap-3 rounded-[14px] border border-white/[0.06] bg-transparent px-4 py-3 text-left hover:bg-white/[0.04] transition-colors cursor-pointer"
+                        className="flex items-start gap-3 rounded-md border border-line-subtle bg-transparent px-4 py-3 text-left hover:bg-layer-2 transition-colors cursor-pointer"
                         style={{ fontFamily: 'inherit' }}
                       >
                         <div className={`mt-0.5 h-2.5 w-2.5 rounded-full shrink-0 ${
@@ -414,7 +419,7 @@ export default function HomePage() {
                         }`} />
                         <div className="min-w-0">
                           <div className="text-[13px] font-600 text-text truncate">{item.label}</div>
-                          <div className="text-[11px] text-text-3/65 mt-1">{item.meta}</div>
+                          <div className="text-[11px] text-text-3 mt-1">{item.meta}</div>
                         </div>
                       </button>
                     ))}
@@ -435,7 +440,7 @@ export default function HomePage() {
           {/* Cost trend sparkline */}
           {costTrend.length > 1 && (
             <div className="mb-10 px-1" style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
-              <p className="text-[10px] text-text-3/50 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <p className="text-[10px] text-text-3 tracking-[0.03em] mb-1 flex items-center gap-1.5">
                 7-day cost trend <HintTip text="Daily API spend over the past week — hover for details" />
               </p>
               <ResponsiveContainer width="100%" height={60}>
@@ -454,8 +459,8 @@ export default function HomePage() {
                         ? new Date(d.bucket + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
                         : ''
                       return (
-                        <div className="rounded-[8px] bg-surface border border-white/[0.1] px-3 py-2 shadow-lg">
-                          <p className="text-[11px] text-text-3/70 m-0">{label}</p>
+                        <div className="rounded-md bg-surface border border-line-default px-3 py-2 shadow-lg">
+                          <p className="text-[11px] text-text-3 m-0">{label}</p>
                           <p className="text-[14px] font-600 text-text m-0 mt-0.5">${d.cost.toFixed(4)}</p>
                         </div>
                       )
@@ -471,7 +476,7 @@ export default function HomePage() {
           {/* Notifications banner */}
           {unreadNotifications.length > 0 && (
             <section className="mb-8" style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.35s both' }}>
-              <div className="rounded-[14px] border border-amber-400/20 bg-amber-400/[0.04] overflow-hidden">
+              <div className="rounded-lg border border-amber-400/20 bg-amber-400/[0.04] overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-400/10">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-amber-400">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -487,23 +492,23 @@ export default function HomePage() {
                       key={n.id}
                       onClick={() => handleNotificationClick(n)}
                       className="flex items-start gap-3 px-4 py-2.5 text-left bg-transparent border-none cursor-pointer
-                        hover:bg-white/[0.03] transition-colors w-full"
+                        hover:bg-layer-1 transition-colors w-full"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
                         n.type === 'error' ? 'bg-red-400' : n.type === 'warning' ? 'bg-amber-400' : n.type === 'success' ? 'bg-emerald-400' : 'bg-sky-400'
                       }`} />
                       <div className="flex-1 min-w-0">
-                        <span className="text-[13px] font-500 text-text">{n.title}</span>
-                        {n.message && <p className="text-[11px] text-text-3/60 truncate mt-0.5 m-0">{n.message}</p>}
+                        <span className="text-[13px] font-600 text-text">{n.title}</span>
+                        {n.message && <p className="text-[11px] text-text-3 truncate mt-0.5 m-0">{n.message}</p>}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                         {getNotificationOccurrenceCount(n) > 1 && (
-                          <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-600 text-text-3/80">
+                          <span className="rounded-full border border-line-default bg-layer-2 px-1.5 py-0.5 text-[9px] font-600 text-text-3">
                             x{getNotificationOccurrenceCount(n)}
                           </span>
                         )}
-                        <span className="text-[10px] text-text-3/40">{timeAgo(getNotificationActivityAt(n), now)}</span>
+                        <span className="text-[10px] text-text-3">{timeAgo(getNotificationActivityAt(n), now)}</span>
                       </div>
                     </button>
                   ))}
@@ -520,14 +525,14 @@ export default function HomePage() {
                 {allConnectors.map((c) => (
                   <div
                     key={c.id}
-                    className="flex items-center gap-2 px-3 py-2 rounded-[10px] bg-white/[0.03] border border-white/[0.06]"
+                    className="flex items-center gap-2 px-3 py-2 rounded-md bg-layer-1 border border-line-subtle"
                   >
                     <div className={`w-2 h-2 rounded-full ${
-                      c.status === 'running' ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]'
+                      c.status === 'running' ? 'bg-emerald-400 '
                         : c.status === 'error' ? 'bg-red-400' : 'bg-text-3/30'
                     }`} />
-                    <span className="text-[12px] font-500 text-text">{c.name}</span>
-                    <span className="text-[10px] text-text-3/50">{PLATFORM_LABELS[c.platform] || c.platform}</span>
+                    <span className="text-[12px] font-600 text-text">{c.name}</span>
+                    <span className="text-[10px] text-text-3">{PLATFORM_LABELS[c.platform] || c.platform}</span>
                   </div>
                 ))}
               </div>
@@ -549,16 +554,16 @@ export default function HomePage() {
                       <button
                         key={task.id}
                         onClick={() => handleTaskClick(task)}
-                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] bg-transparent border-none
-                          hover:bg-white/[0.04] transition-colors cursor-pointer w-full text-left"
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-md bg-transparent border-none
+                          hover:bg-layer-2 transition-colors cursor-pointer w-full text-left"
                         style={{ fontFamily: 'inherit' }}
                       >
                         <div className={`w-2 h-2 rounded-full shrink-0 ${
                           task.status === 'running' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
                         }`} />
                         <div className="flex-1 min-w-0">
-                          <span className="text-[13px] font-500 text-text truncate block">{task.title}</span>
-                          <span className="text-[11px] text-text-3/50">
+                          <span className="text-[13px] font-600 text-text truncate block">{task.title}</span>
+                          <span className="text-[11px] text-text-3">
                             {agent?.name || 'Unassigned'} · {task.status === 'running' ? 'running' : 'queued'}{task.startedAt ? ` · ${timeAgo(task.startedAt, now)}` : ''}
                           </span>
                         </div>
@@ -567,7 +572,7 @@ export default function HomePage() {
                   })}
                 </div>
               ) : (
-                <div className="py-4 px-3 text-[12px] text-text-3/40">No tasks running</div>
+                <div className="py-4 px-3 text-[12px] text-text-3">No tasks running</div>
               )}
             </section>
 
@@ -581,14 +586,14 @@ export default function HomePage() {
                     return (
                       <div
                         key={sched.id}
-                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-[10px]"
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm"
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/50 shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
                           <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                         </svg>
                         <div className="flex-1 min-w-0">
-                          <span className="text-[13px] font-500 text-text truncate block">{sched.name}</span>
-                          <span className="text-[11px] text-text-3/50">
+                          <span className="text-[13px] font-600 text-text truncate block">{sched.name}</span>
+                          <span className="text-[11px] text-text-3">
                             {agent?.name || 'No agent'} · {sched.nextRunAt ? timeUntil(sched.nextRunAt, now) : '—'}
                           </span>
                         </div>
@@ -597,7 +602,7 @@ export default function HomePage() {
                   })}
                 </div>
               ) : (
-                <div className="py-4 px-3 text-[12px] text-text-3/40">No upcoming schedules</div>
+                <div className="py-4 px-3 text-[12px] text-text-3">No upcoming schedules</div>
               )}
             </section>
           </div>
@@ -620,15 +625,15 @@ export default function HomePage() {
                     <button
                       key={agent.id}
                       onClick={() => handleAgentClick(agent)}
-                      className="flex flex-col items-center gap-1.5 px-4 py-3.5 rounded-[14px] bg-white/[0.03] border border-white/[0.06]
-                        hover:bg-white/[0.06] hover:border-white/[0.1] transition-all cursor-pointer min-w-[130px] shrink-0"
+                      className="flex flex-col items-center gap-1.5 px-4 py-3.5 rounded-lg bg-surface border border-line-subtle
+                        hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer min-w-[130px] shrink-0"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <div className="relative">
                         <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={36} />
                         <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface ${
                           isTyping ? 'bg-accent-bright animate-pulse'
-                            : isOnline ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]'
+                            : isOnline ? 'bg-emerald-400 '
                             : 'bg-text-3/30'
                         }`} />
                       </div>
@@ -650,7 +655,7 @@ export default function HomePage() {
                         </span>
                       )}
                       {modelLabel && (
-                        <span className="text-[9px] text-text-3/40 font-mono truncate max-w-[110px]">
+                        <span className="text-[9px] text-text-3 font-mono truncate max-w-[110px]">
                           {modelLabel}
                         </span>
                       )}
@@ -659,8 +664,8 @@ export default function HomePage() {
                 })}
               </div>
             ) : (
-              <div className="py-6 px-4 rounded-[14px] bg-white/[0.02] border border-dashed border-white/[0.06] text-center">
-                <p className="text-[13px] text-text-3/60">
+              <div className="py-6 px-4 rounded-lg bg-surface border border-dashed border-line-subtle text-center">
+                <p className="text-[13px] text-text-3">
                   Star agents from the chat list for quick access
                 </p>
               </div>
@@ -680,8 +685,8 @@ export default function HomePage() {
                     <button
                       key={session.id}
                       onClick={() => handleChatClick(session)}
-                      className="flex items-center gap-3 px-4 py-3 rounded-[12px] bg-transparent border-none
-                        hover:bg-white/[0.04] transition-all cursor-pointer w-full text-left"
+                      className="flex items-center gap-3 px-4 py-3 rounded-md bg-transparent border-none
+                        hover:bg-layer-2 transition-all cursor-pointer w-full text-left"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <AgentAvatar
@@ -695,12 +700,12 @@ export default function HomePage() {
                           <span className="text-[13px] font-600 text-text truncate">
                             {displayName}
                           </span>
-                          <span className="text-[11px] text-text-3/50 shrink-0">
+                          <span className="text-[11px] text-text-3 shrink-0">
                             {timeAgo(session.lastActiveAt || session.createdAt, now)}
                           </span>
                         </div>
                         {lastMsg && (
-                          <p className="text-[12px] text-text-3/60 truncate mt-0.5 m-0">
+                          <p className="text-[12px] text-text-3 truncate mt-0.5 m-0">
                             {lastMsg.text.slice(0, 80)}
                           </p>
                         )}
@@ -720,13 +725,13 @@ export default function HomePage() {
               <SectionHeader label="Recent Activity" />
               <div className="flex flex-col gap-0.5">
                 {recentActivity.map((entry) => (
-                  <div key={entry.id} className="flex items-center gap-2.5 px-3 py-2 rounded-[10px]">
+                  <div key={entry.id} className="flex items-center gap-2.5 px-3 py-2 rounded-sm">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                       className={`shrink-0 ${ACTIVITY_COLORS[entry.action] || 'text-text-3'}`}>
                       <path d={ACTIVITY_ICONS[entry.action] || ACTIVITY_ICONS.updated} />
                     </svg>
-                    <span className="text-[12px] text-text-3/80 flex-1 truncate">{entry.summary}</span>
-                    <span className="text-[10px] text-text-3/40 shrink-0">{timeAgo(entry.timestamp, now)}</span>
+                    <span className="text-[12px] text-text-3 flex-1 truncate">{entry.summary}</span>
+                    <span className="text-[10px] text-text-3 shrink-0">{timeAgo(entry.timestamp, now)}</span>
                   </div>
                 ))}
               </div>
@@ -746,10 +751,10 @@ function StatusPill({ label, tone }: { label: string; tone: 'neutral' | 'warning
       ? 'border-amber-400/20 bg-amber-400/[0.05] text-amber-300/85'
       : tone === 'success'
         ? 'border-emerald-400/20 bg-emerald-400/[0.05] text-emerald-300/85'
-        : 'border-white/[0.06] bg-white/[0.03] text-text-3/75'
+        : 'border-line-subtle bg-layer-1 text-text-3/75'
 
   return (
-    <div className={`rounded-[999px] border px-3 py-1.5 text-[11px] font-600 ${toneClasses}`}>
+    <div className={`rounded-full border px-3 py-1.5 text-[11px] font-600 ${toneClasses}`}>
       {label}
     </div>
   )
@@ -758,8 +763,8 @@ function StatusPill({ label, tone }: { label: string; tone: 'neutral' | 'warning
 
 function EmptySection({ text }: { text: string }) {
   return (
-    <div className="py-6 px-4 rounded-[14px] bg-white/[0.02] border border-dashed border-white/[0.06] text-center">
-      <p className="text-[13px] text-text-3/60">{text}</p>
+    <div className="py-6 px-4 rounded-lg bg-surface border border-dashed border-line-subtle text-center">
+      <p className="text-[13px] text-text-3">{text}</p>
     </div>
   )
 }

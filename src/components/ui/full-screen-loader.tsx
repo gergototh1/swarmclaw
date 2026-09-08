@@ -19,7 +19,7 @@ export function FullScreenLoader(props: {
 
         {/* Orbital ring */}
         <div
-          className="absolute inset-0 rounded-full border border-white/[0.06]"
+          className="absolute inset-0 rounded-full border border-line-subtle"
           style={{ animation: 'sc-ring 3s linear infinite' }}
         />
 
@@ -39,7 +39,7 @@ export function FullScreenLoader(props: {
                 width: i === 0 ? 8 : 6,
                 height: i === 0 ? 8 : 6,
                 background: i === 0 ? '#818CF8' : `rgba(129, 140, 248, ${0.7 - i * 0.1})`,
-                boxShadow: i === 0 ? '0 0 12px rgba(99,102,241,0.5)' : 'none',
+                boxShadow: i === 0 ? '0 0 12px var(--color-accent-glow)' : 'none',
               }}
             />
           </div>
@@ -75,7 +75,7 @@ export function FullScreenLoader(props: {
 
       {/* Brand text */}
       <div
-        className="text-[15px] font-display font-700 tracking-[0.15em] uppercase"
+        className="text-[15px] font-display font-700 tracking-[0.03em]"
         style={{
           background: 'linear-gradient(135deg, rgba(255,255,255,0.6), rgba(129, 140, 248, 0.8))',
           WebkitBackgroundClip: 'text',
@@ -87,7 +87,7 @@ export function FullScreenLoader(props: {
       </div>
 
       {/* Loading bar */}
-      <div className="mt-4 w-[100px] h-[2px] rounded-full bg-white/[0.06] overflow-hidden" style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
+      <div className="mt-4 w-[100px] h-[2px] rounded-full bg-layer-2 overflow-hidden" style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
         <div
           className="h-full rounded-full bg-accent-bright/60"
           style={{ animation: 'sc-progress 1.5s ease-in-out infinite' }}
@@ -115,14 +115,14 @@ export function FullScreenLoader(props: {
             <button
               type="button"
               onClick={props.onReload}
-              className="px-4 py-2 rounded-[12px] border border-white/[0.08] bg-surface text-[12px] text-text-2 transition-colors hover:bg-surface-2"
+              className="px-4 py-2 rounded-md border border-line-default bg-surface text-[12px] text-text-2 transition-colors hover:bg-surface-2"
             >
               Reload
             </button>
             <button
               type="button"
               onClick={props.onReset}
-              className="px-4 py-2 rounded-[12px] border border-white/[0.08] bg-transparent text-[12px] text-text-3 transition-colors hover:bg-white/[0.04]"
+              className="px-4 py-2 rounded-md border border-line-default bg-transparent text-[12px] text-text-3 transition-colors hover:bg-layer-2"
             >
               Reset Local Session
             </button>

@@ -58,7 +58,7 @@ function BuiltInTemplatePanel({
   return (
     <div className="flex w-52 shrink-0 flex-col overflow-y-auto rounded-lg border bg-card p-3 shadow-sm">
       <div className="mb-3">
-        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="text-xs font-bold tracking-[0.03em] text-muted-foreground">
           Built-in template
         </div>
         <div className="mt-1 text-sm font-semibold text-foreground">{template?.name || 'Template'}</div>
@@ -78,7 +78,7 @@ function BuiltInTemplatePanel({
             className="w-full rounded-md border bg-background px-3 py-2 text-left"
             title={step.kind.replace(/_/g, ' ')}
           >
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="text-[10px] font-semibold tracking-[0.03em] text-muted-foreground">
               Step {index + 1}
             </div>
             <div className="mt-1 text-sm font-medium text-foreground">{step.label}</div>
@@ -223,7 +223,7 @@ export function ProtocolBuilderCanvas() {
       {readOnly ? <BuiltInTemplatePanel template={currentTemplate} onSelectStep={selectNode} /> : <NodePalette />}
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border">
         {isDirty && (
-          <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded bg-amber-500/10 px-2 py-1 text-xs text-amber-500">
+          <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-xs bg-amber-500/10 px-2 py-1 text-xs text-amber-500">
             Unsaved changes
           </div>
         )}

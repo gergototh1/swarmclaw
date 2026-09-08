@@ -97,17 +97,17 @@ export function StorageSection(
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         Storage
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Uploaded files from agent tools (screenshots, images, documents). Manage disk usage.
       </p>
 
-      <div className="p-6 rounded-[18px] bg-surface border border-white/[0.06]">
+      <div className="p-6 rounded-lg bg-surface border border-line-subtle">
         {/* Summary */}
         {loading ? (
-          <div className="text-[13px] text-text-3/60 animate-pulse">Loading storage info...</div>
+          <div className="text-[13px] text-text-3 animate-pulse">Loading storage info...</div>
         ) : (
           <>
             <div className="flex items-baseline gap-3 mb-4">
@@ -123,7 +123,7 @@ export function StorageSection(
             {Object.keys(breakdown).length > 0 && (
               <div className="flex flex-wrap gap-x-4 gap-y-1 mb-5">
                 {Object.entries(breakdown).map(([cat, info]) => (
-                  <span key={cat} className="text-[11px] text-text-3/70">
+                  <span key={cat} className="text-[11px] text-text-3">
                     {CATEGORY_LABELS[cat] || cat}: {info.count} ({formatBytes(info.size)})
                   </span>
                 ))}
@@ -135,7 +135,7 @@ export function StorageSection(
               <button
                 onClick={() => setBrowserOpen(true)}
                 disabled={!data?.count}
-                className="px-4 py-2.5 rounded-[12px] bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer
+                className="px-4 py-2.5 rounded-md bg-accent-soft text-accent-bright text-[12px] font-600 cursor-pointer
                   hover:brightness-110 active:scale-[0.97] transition-all border border-accent-bright/20
                   disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ fontFamily: 'inherit' }}
@@ -145,8 +145,8 @@ export function StorageSection(
               <button
                 onClick={() => setConfirmAction('clearOld')}
                 disabled={!data?.count}
-                className="px-4 py-2.5 rounded-[12px] bg-white/[0.04] text-text-2 text-[12px] font-600 cursor-pointer
-                  hover:bg-white/[0.06] active:scale-[0.97] transition-all border border-white/[0.06]
+                className="px-4 py-2.5 rounded-md bg-layer-2 text-text-2 text-[12px] font-600 cursor-pointer
+                  hover:bg-layer-3 active:scale-[0.97] transition-all border border-line-subtle
                   disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ fontFamily: 'inherit' }}
               >
@@ -155,7 +155,7 @@ export function StorageSection(
               <button
                 onClick={() => setConfirmAction('clearAll')}
                 disabled={!data?.count}
-                className="px-4 py-2.5 rounded-[12px] bg-danger/10 text-danger text-[12px] font-600 cursor-pointer
+                className="px-4 py-2.5 rounded-md bg-danger/10 text-danger text-[12px] font-600 cursor-pointer
                   hover:bg-danger/20 active:scale-[0.97] transition-all border border-danger/20
                   disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ fontFamily: 'inherit' }}

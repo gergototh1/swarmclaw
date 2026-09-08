@@ -8,7 +8,7 @@ import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { api } from '@/lib/app/api-client'
 import { toast } from 'sonner'
 
-const inputClass = 'w-full px-4 py-3 rounded-[14px] bg-bg border border-white/[0.06] text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3/70'
+const inputClass = 'w-full px-4 py-3 rounded-md bg-bg border border-line-subtle text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3'
 
 export function SecretSheet() {
   const open = useAppStore((s) => s.secretSheetOpen)
@@ -121,30 +121,30 @@ export function SecretSheet() {
       <div className="space-y-5">
         <h2 className="font-display text-[20px] font-700 tracking-[-0.02em]">{editing ? 'Edit Secret' : 'New Secret'}</h2>
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Name</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Name</label>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. My Gmail API Key" className={inputClass} style={{ fontFamily: 'inherit' }} />
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Service</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Service</label>
           <input type="text" value={service} onChange={(e) => setService(e.target.value)} placeholder="e.g. gmail, ahrefs, custom" className={inputClass} style={{ fontFamily: 'inherit' }} />
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">
             {editing ? 'Value (leave blank to keep current)' : 'Value'}
           </label>
           <input type="password" value={value} onChange={(e) => setValue(e.target.value)} placeholder="API key, password, token..." className={inputClass} style={{ fontFamily: 'inherit' }} />
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Scope</label>
-          <div className="flex p-1 rounded-[12px] bg-bg border border-white/[0.06]">
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Scope</label>
+          <div className="flex p-1 rounded-md bg-bg border border-line-subtle">
             {(['global', 'agent'] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setScope(s)}
-                className={`flex-1 py-2.5 rounded-[10px] text-center cursor-pointer transition-all text-[13px] font-600 border-none ${
+                className={`flex-1 py-2.5 rounded-sm text-center cursor-pointer transition-all text-[13px] font-600 border-none ${
                   scope === s ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'
                 }`}
                 style={{ fontFamily: 'inherit' }}
@@ -153,13 +153,13 @@ export function SecretSheet() {
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-text-3/60 mt-1.5 pl-1">{scopeHelperText}</p>
+          <p className="text-[11px] text-text-3 mt-1.5 pl-1">{scopeHelperText}</p>
         </div>
 
         {scope === 'agent' && (
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Agents</label>
-            <div className="max-h-[240px] overflow-y-auto rounded-[12px] border border-white/[0.06] bg-white/[0.03]">
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Agents</label>
+            <div className="max-h-[240px] overflow-y-auto rounded-md border border-line-subtle bg-layer-1">
               {agentList.length === 0 ? (
                 <p className="p-3 text-[12px] text-text-3">No agents available</p>
               ) : (
@@ -170,7 +170,7 @@ export function SecretSheet() {
                       key={agent.id}
                       onClick={() => toggleAgent(agent.id)}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-all cursor-pointer ${
-                        selected ? 'bg-accent-soft/40' : 'hover:bg-white/[0.04]'
+                        selected ? 'bg-accent-soft/40' : 'hover:bg-layer-2'
                       }`}
                       style={{ fontFamily: 'inherit' }}
                     >
@@ -193,18 +193,18 @@ export function SecretSheet() {
           {editing && (
             <button
               onClick={() => setConfirmDelete(true)}
-              className="px-5 py-3 rounded-[14px] border border-danger/30 bg-transparent text-danger text-[14px] font-600 cursor-pointer hover:bg-danger/10 transition-colors"
+              className="px-5 py-3 rounded-md border border-danger/30 bg-transparent text-danger text-[14px] font-600 cursor-pointer hover:bg-danger/10 transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               Delete
             </button>
           )}
           <div className="flex-1" />
-          <button onClick={handleClose} className="px-5 py-3 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-colors" style={{ fontFamily: 'inherit' }}>Cancel</button>
+          <button onClick={handleClose} className="px-5 py-3 rounded-md border border-line-default bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-colors" style={{ fontFamily: 'inherit' }}>Cancel</button>
           <button
             onClick={handleSave}
             disabled={saving || !name.trim() || (!editing && !value.trim())}
-            className="px-8 py-3 rounded-[14px] border-none bg-accent-bright text-white text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
+            className="px-8 py-3 rounded-md border-none bg-accent-bright text-accent-fg text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             {saving ? 'Saving...' : editing ? 'Update' : 'Save'}

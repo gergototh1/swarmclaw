@@ -26,7 +26,7 @@ export function ComposerShell({
     <div className={className}>
       <div
         className={cn(
-          'glass rounded-[20px] overflow-hidden shadow-[0_4px_32px_rgba(0,0,0,0.3)] focus-within:border-border-focus focus-within:shadow-[0_4px_32px_rgba(99,102,241,0.08)] transition-all duration-300',
+          'glass rounded-lg overflow-hidden focus-within:border-border-focus focus-within:shadow-[0_0_0_3px_var(--color-accent-glow)] transition-all duration-300',
           shellClassName,
         )}
       >
@@ -35,7 +35,7 @@ export function ComposerShell({
         {footer}
       </div>
       {hint ? (
-        <p className={cn('mt-1.5 px-1 text-[10px] text-text-3/40 select-none', hintClassName)}>
+        <p className={cn('mt-1.5 px-1 text-[10px] text-text-3 select-none', hintClassName)}>
           {hint}
         </p>
       ) : null}

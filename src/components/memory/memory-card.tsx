@@ -25,21 +25,21 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
   return (
     <div
       onClick={onClick}
-      className={`relative py-3 px-4 cursor-pointer rounded-[14px]
+      className={`relative py-3 px-4 cursor-pointer rounded-md
         transition-all duration-200 active:scale-[0.98]
         ${active
           ? 'bg-accent-soft border border-accent-bright/10'
-          : 'bg-transparent border border-transparent hover:bg-white/[0.02] hover:border-white/[0.03]'}`}
+          : 'bg-transparent border border-transparent hover:bg-layer-1 hover:border-line-subtle'}`}
     >
       {active && (
         <div className="absolute left-0 top-3 bottom-3 w-[2.5px] rounded-full bg-accent-bright" />
       )}
       <div className="flex items-center gap-2">
-        <span className="shrink-0 text-[9px] font-700 uppercase tracking-wider text-accent-bright/70 bg-accent-soft px-1.5 py-0.5 rounded-[5px]">
+        <span className="shrink-0 text-[9px] font-700 tracking-[0.03em] text-accent-bright/70 bg-accent-soft px-1.5 py-0.5 rounded-xs">
           {entry.category || 'note'}
         </span>
         {isDreamOrigin && (
-          <span className="shrink-0 text-[9px] font-700 uppercase tracking-wider text-violet-300/70 bg-violet-400/10 px-1.5 py-0.5 rounded-[5px]">
+          <span className="shrink-0 text-[9px] font-700 tracking-[0.03em] text-violet-300/70 bg-violet-400/10 px-1.5 py-0.5 rounded-xs">
             dream
           </span>
         )}
@@ -49,18 +49,18 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
           </svg>
         )}
         <span className="font-display text-[13px] font-600 truncate flex-1 tracking-[-0.01em]">{entry.title}</span>
-        <span className="text-[10px] text-text-3/60 shrink-0 tabular-nums font-mono">
+        <span className="text-[10px] text-text-3 shrink-0 tabular-nums font-mono">
           {timeAgoShort(entry.updatedAt || entry.createdAt, now)}
         </span>
       </div>
-      <div className="text-[12px] text-text-2/40 mt-1 line-clamp-3 leading-relaxed">
+      <div className="text-[12px] text-text-2 mt-1 line-clamp-3 leading-relaxed">
         {entry.content || '(empty)'}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="px-1.5 py-0.5 rounded-[5px] text-[9px] font-700 uppercase tracking-[0.08em] bg-white/[0.04] text-text-3/75">
+        <span className="px-1.5 py-0.5 rounded-xs text-[9px] font-700 tracking-[0.03em] bg-layer-2 text-text-3">
           {getMemoryScopeLabel(scope)}
         </span>
-        <span className={`px-1.5 py-0.5 rounded-[5px] text-[9px] font-700 uppercase tracking-[0.08em] ${
+        <span className={`px-1.5 py-0.5 rounded-xs text-[9px] font-700 tracking-[0.03em] ${
           tier === 'working'
             ? 'bg-amber-400/10 text-amber-300'
             : tier === 'archive'
@@ -71,7 +71,7 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
         </span>
       </div>
       {(entry.image?.path || entry.imagePath) && (
-        <div className="mt-2 w-10 h-10 rounded-[6px] overflow-hidden bg-white/[0.04] shrink-0">
+        <div className="mt-2 w-10 h-10 rounded-xs overflow-hidden bg-layer-2 shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={
@@ -85,7 +85,7 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
         </div>
       )}
       {(entry.references?.length || entry.linkedMemoryIds?.length || entry.image?.path || entry.imagePath) && (
-        <div className="flex items-center gap-2 mt-1.5 text-[10px] text-text-3/35">
+        <div className="flex items-center gap-2 mt-1.5 text-[10px] text-text-3">
           {entry.references?.length ? <span>{entry.references.length} ref{entry.references.length === 1 ? '' : 's'}</span> : null}
           {entry.linkedMemoryIds?.length ? <span>{entry.linkedMemoryIds.length} linked</span> : null}
           {(entry.image?.path || entry.imagePath) ? <span>image</span> : null}
@@ -94,15 +94,15 @@ export function MemoryCard({ entry, active, agentName, agentAvatarSeed, agentAva
       {agentName ? (
         <div className="flex items-center gap-1.5 mt-1.5">
           <AgentAvatar seed={agentAvatarSeed || null} avatarUrl={agentAvatarUrl} name={agentName} size={16} />
-          <span className="text-[10px] text-text-3/60 truncate">{agentName}</span>
+          <span className="text-[10px] text-text-3 truncate">{agentName}</span>
         </div>
       ) : !entry.agentId ? (
         <div className="flex items-center gap-1 mt-1.5">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3/50">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3">
             <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
           </svg>
-          <span className="text-[10px] text-text-3/50">Global</span>
+          <span className="text-[10px] text-text-3">Global</span>
         </div>
       ) : null}
     </div>

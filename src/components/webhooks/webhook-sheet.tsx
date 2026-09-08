@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 type WebhookApiResponse = Webhook | { error: string }
 type DeleteWebhookResponse = { ok: boolean } | { error: string }
 
-const inputClass = 'w-full px-4 py-3 rounded-[14px] bg-bg border border-white/[0.06] text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3/70'
+const inputClass = 'w-full px-4 py-3 rounded-md bg-bg border border-line-subtle text-text text-[14px] outline-none focus:border-accent-bright/40 transition-colors placeholder:text-text-3'
 
 function webhookPath(id: string): string {
   return `/api/webhooks/${id}`
@@ -198,12 +198,12 @@ export function WebhookSheet() {
         </div>
 
         {editing && (
-          <div className="flex gap-1 p-1 rounded-[12px] bg-bg border border-white/[0.06]">
+          <div className="flex gap-1 p-1 rounded-md bg-bg border border-line-subtle">
             {(['config', 'history'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`flex-1 py-2 rounded-[10px] text-center cursor-pointer transition-all text-[13px] font-600 border-none capitalize ${
+                className={`flex-1 py-2 rounded-sm text-center cursor-pointer transition-all text-[13px] font-600 border-none capitalize ${
                   tab === t ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'
                 }`}
                 style={{ fontFamily: 'inherit' }}
@@ -219,19 +219,19 @@ export function WebhookSheet() {
             {historyLoading ? (
               <div className="text-center py-8 text-[13px] text-text-3">Loading history...</div>
             ) : history.length === 0 ? (
-              <div className="text-center py-8 text-[13px] text-text-3/60">No webhook invocations yet</div>
+              <div className="text-center py-8 text-[13px] text-text-3">No webhook invocations yet</div>
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {history.map((entry) => (
-                  <div key={entry.id} className="p-3 rounded-[10px] border border-white/[0.06] bg-white/[0.02]">
+                  <div key={entry.id} className="p-3 rounded-sm border border-line-subtle bg-layer-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] font-700 uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] ${
+                      <span className={`text-[10px] font-700 tracking-[0.03em] px-1.5 py-0.5 rounded-xs ${
                         entry.status === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
                       }`}>
                         {entry.status}
                       </span>
-                      <span className="text-[11px] text-text-3/60 font-mono">{entry.event}</span>
-                      <span className="text-[10px] text-text-3/40 ml-auto">
+                      <span className="text-[11px] text-text-3 font-mono">{entry.event}</span>
+                      <span className="text-[10px] text-text-3 ml-auto">
                         {new Date(entry.timestamp).toLocaleString()}
                       </span>
                     </div>
@@ -239,7 +239,7 @@ export function WebhookSheet() {
                       <div className="text-[11px] text-red-300/80 mt-1">{entry.error}</div>
                     )}
                     {entry.sessionId && (
-                      <div className="text-[10px] text-text-3/50 mt-1 font-mono">Chat: {entry.sessionId}</div>
+                      <div className="text-[10px] text-text-3 mt-1 font-mono">Chat: {entry.sessionId}</div>
                     )}
                   </div>
                 ))}
@@ -249,14 +249,14 @@ export function WebhookSheet() {
         ) : null}
 
         {tab === 'config' && error && (
-          <div className="px-3.5 py-2.5 rounded-[12px] bg-red-500/10 border border-red-500/20 text-[12px] text-red-300">
+          <div className="px-3.5 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[12px] text-red-300">
             {error}
           </div>
         )}
 
         {tab === 'config' && editing && (
-          <div className="p-4 rounded-[14px] bg-white/[0.02] border border-white/[0.06]">
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Endpoint URL</label>
+          <div className="p-4 rounded-lg bg-surface border border-line-subtle">
+            <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Endpoint URL</label>
             <div className="flex gap-2">
               <input
                 readOnly
@@ -265,13 +265,13 @@ export function WebhookSheet() {
               />
               <button
                 onClick={() => copyText('endpoint', `${window.location.origin}${endpoint}`)}
-                className="px-3.5 py-2 rounded-[10px] border border-accent-bright/20 bg-accent-soft/40 text-accent-bright text-[12px] font-600 cursor-pointer hover:bg-accent-soft transition-colors"
+                className="px-3.5 py-2 rounded-md border border-accent-bright/20 bg-accent-soft/40 text-accent-bright text-[12px] font-600 cursor-pointer hover:bg-accent-soft transition-colors"
                 style={{ fontFamily: 'inherit' }}
               >
                 {copied === 'endpoint' ? 'Copied' : 'Copy'}
               </button>
             </div>
-            <p className="mt-2 text-[11px] text-text-3/70">
+            <p className="mt-2 text-[11px] text-text-3">
               POST JSON payloads to this URL. Include <code className="font-mono">x-webhook-secret</code> if a secret is set.
             </p>
           </div>
@@ -279,7 +279,7 @@ export function WebhookSheet() {
 
         {tab === 'config' && <>
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Name</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Name</label>
           <input
             type="text"
             value={name}
@@ -291,7 +291,7 @@ export function WebhookSheet() {
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Source</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Source</label>
           <input
             type="text"
             value={source}
@@ -303,7 +303,7 @@ export function WebhookSheet() {
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Route to Agent</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Route to Agent</label>
           <select
             value={agentId}
             onChange={(e) => setAgentId(e.target.value)}
@@ -318,8 +318,8 @@ export function WebhookSheet() {
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">
-            Events <span className="normal-case tracking-normal font-normal text-text-3/70">(optional)</span>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">
+            Events <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
           </label>
           <textarea
             value={eventsText}
@@ -329,12 +329,12 @@ export function WebhookSheet() {
             className={`${inputClass} resize-y min-h-[86px] font-mono text-[12px]`}
             style={{ fontFamily: 'inherit' }}
           />
-          <p className="mt-1.5 text-[11px] text-text-3/70">Leave blank for all events. Use commas or new lines. Use <code>*</code> to match all.</p>
+          <p className="mt-1.5 text-[11px] text-text-3">Leave blank for all events. Use commas or new lines. Use <code>*</code> to match all.</p>
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">
-            Secret <span className="normal-case tracking-normal font-normal text-text-3/70">(optional but recommended)</span>
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">
+            Secret <span className="normal-case tracking-normal font-normal text-text-3">(optional but recommended)</span>
           </label>
           <div className="flex gap-2">
             <input
@@ -348,14 +348,14 @@ export function WebhookSheet() {
             <button
               onClick={() => copyText('secret', secret)}
               disabled={!secret.trim()}
-              className="px-3.5 py-2 rounded-[10px] border border-white/[0.1] bg-white/[0.04] text-text-2 text-[12px] font-600 cursor-pointer hover:bg-white/[0.08] transition-colors disabled:opacity-40"
+              className="px-3.5 py-2 rounded-md border border-line-default bg-layer-2 text-text-2 text-[12px] font-600 cursor-pointer hover:bg-layer-3 transition-colors disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}
             >
               {copied === 'secret' ? 'Copied' : 'Copy'}
             </button>
             <button
               onClick={() => setSecret(makeSecret())}
-              className="px-3.5 py-2 rounded-[10px] border border-accent-bright/20 bg-accent-soft/40 text-accent-bright text-[12px] font-600 cursor-pointer hover:bg-accent-soft transition-colors"
+              className="px-3.5 py-2 rounded-md border border-accent-bright/20 bg-accent-soft/40 text-accent-bright text-[12px] font-600 cursor-pointer hover:bg-accent-soft transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               Regenerate
@@ -364,11 +364,11 @@ export function WebhookSheet() {
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Status</label>
-          <div className="flex p-1 rounded-[12px] bg-bg border border-white/[0.06]">
+          <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Status</label>
+          <div className="flex p-1 rounded-md bg-bg border border-line-subtle">
             <button
               onClick={() => setIsEnabled(true)}
-              className={`flex-1 py-2.5 rounded-[10px] text-center cursor-pointer transition-all text-[13px] font-600 border-none ${
+              className={`flex-1 py-2.5 rounded-sm text-center cursor-pointer transition-all text-[13px] font-600 border-none ${
                 isEnabled ? 'bg-emerald-500/15 text-emerald-300' : 'bg-transparent text-text-3 hover:text-text-2'
               }`}
               style={{ fontFamily: 'inherit' }}
@@ -377,8 +377,8 @@ export function WebhookSheet() {
             </button>
             <button
               onClick={() => setIsEnabled(false)}
-              className={`flex-1 py-2.5 rounded-[10px] text-center cursor-pointer transition-all text-[13px] font-600 border-none ${
-                !isEnabled ? 'bg-white/[0.08] text-text-2' : 'bg-transparent text-text-3 hover:text-text-2'
+              className={`flex-1 py-2.5 rounded-sm text-center cursor-pointer transition-all text-[13px] font-600 border-none ${
+                !isEnabled ? 'bg-layer-3 text-text-2' : 'bg-transparent text-text-3 hover:text-text-2'
               }`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -391,7 +391,7 @@ export function WebhookSheet() {
           {editing && (
             <button
               onClick={() => setConfirmDelete(true)}
-              className="px-5 py-3 rounded-[14px] border border-danger/30 bg-transparent text-danger text-[14px] font-600 cursor-pointer hover:bg-danger/10 transition-colors"
+              className="px-5 py-3 rounded-md border border-danger/30 bg-transparent text-danger text-[14px] font-600 cursor-pointer hover:bg-danger/10 transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               Delete
@@ -400,7 +400,7 @@ export function WebhookSheet() {
           <div className="flex-1" />
           <button
             onClick={handleClose}
-            className="px-5 py-3 rounded-[14px] border border-white/[0.08] bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-colors"
+            className="px-5 py-3 rounded-md border border-line-default bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-colors"
             style={{ fontFamily: 'inherit' }}
           >
             Cancel
@@ -408,7 +408,7 @@ export function WebhookSheet() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-8 py-3 rounded-[14px] border-none bg-accent-bright text-white text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
+            className="px-8 py-3 rounded-md border-none bg-accent-bright text-accent-fg text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             {saving ? 'Saving...' : editing ? 'Update' : 'Create'}

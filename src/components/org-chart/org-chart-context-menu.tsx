@@ -51,21 +51,21 @@ export function OrgChartContextMenu({ agent, teamNames, x, y, onClose, onAction 
   return (
     <div
       ref={ref}
-      className="fixed z-[100] min-w-[180px] bg-raised border border-white/[0.08] rounded-[10px] shadow-xl shadow-black/40 py-1 text-[12px]"
+      className="fixed z-[100] min-w-[180px] bg-raised border border-line-default rounded-sm shadow-xl shadow-black/40 py-1 text-[12px]"
       style={{ left: x, top: y }}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div className="px-3 py-1.5 text-[10px] font-700 uppercase tracking-wider text-text-3/50 truncate">
+      <div className="px-3 py-1.5 text-[10px] font-700 tracking-[0.03em] text-text-3 truncate">
         {agent.name}
       </div>
-      <div className="h-px bg-white/[0.06] my-0.5" />
+      <div className="h-px bg-layer-2 my-0.5" />
 
       {/* Quick-jump actions */}
       <MenuBtn onClick={() => { onAction({ type: 'open_agent' }); onClose() }}>
         Open in Agents
       </MenuBtn>
 
-      <div className="h-px bg-white/[0.06] my-0.5" />
+      <div className="h-px bg-layer-2 my-0.5" />
 
       {/* Hierarchy actions */}
       {!WORKER_ONLY_PROVIDER_IDS.has(agent.provider) && (
@@ -86,13 +86,13 @@ export function OrgChartContextMenu({ agent, teamNames, x, y, onClose, onAction 
         </MenuBtn>
       )}
 
-      <div className="h-px bg-white/[0.06] my-0.5" />
+      <div className="h-px bg-layer-2 my-0.5" />
 
       {/* Team assignment */}
       {showTeamPicker ? (
         <div className="px-2 py-1 flex flex-col gap-0.5">
           {teamNames.length === 0 ? (
-            <div className="text-[10px] text-text-3/40 text-center py-1.5">No teams yet</div>
+            <div className="text-[10px] text-text-3 text-center py-1.5">No teams yet</div>
           ) : (
             teamNames.map((t) => (
               <button
@@ -101,10 +101,10 @@ export function OrgChartContextMenu({ agent, teamNames, x, y, onClose, onAction 
                   onAction({ type: 'set_team_label', label: currentTeam === t ? '' : t })
                   onClose()
                 }}
-                className={`w-full text-left px-2 py-1 rounded-[5px] text-[11px] transition-colors cursor-pointer border-none ${
+                className={`w-full text-left px-2 py-1 rounded-xs text-[11px] transition-colors cursor-pointer border-none ${
                   currentTeam === t
-                    ? 'bg-accent-bright/10 text-accent-bright font-500'
-                    : 'bg-transparent text-text-2 hover:bg-white/[0.04]'
+                    ? 'bg-accent-bright/10 text-accent-bright font-600'
+                    : 'bg-transparent text-text-2 hover:bg-layer-2'
                 }`}
                 style={{ fontFamily: 'inherit' }}
               >
@@ -119,7 +119,7 @@ export function OrgChartContextMenu({ agent, teamNames, x, y, onClose, onAction 
         </MenuBtn>
       )}
 
-      <div className="h-px bg-white/[0.06] my-0.5" />
+      <div className="h-px bg-layer-2 my-0.5" />
 
       <MenuBtn className="text-red-400/80" onClick={() => { onAction({ type: 'remove_from_chart' }); onClose() }}>
         Remove from Chart
@@ -132,7 +132,7 @@ function MenuBtn({ children, onClick, className = '' }: { children: React.ReactN
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-3 py-1.5 hover:bg-white/[0.04] cursor-pointer transition-colors bg-transparent border-none text-text-2 ${className}`}
+      className={`w-full text-left px-3 py-1.5 hover:bg-layer-2 cursor-pointer transition-colors bg-transparent border-none text-text-2 ${className}`}
       style={{ fontFamily: 'inherit', fontSize: 'inherit' }}
     >
       {children}

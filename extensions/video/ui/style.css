@@ -26,7 +26,7 @@
 .vid-error {
   color: var(--color-danger, #dc2626);
   border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 35%, transparent);
-  border-radius: 10px;
+  border-radius: var(--radius-md, 11px);
   padding: 10px 14px;
   margin: 0 0 16px;
   white-space: pre-wrap;
@@ -34,7 +34,7 @@
 }
 .vid-notice {
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
-  border-radius: 10px;
+  border-radius: var(--radius-md, 11px);
   padding: 8px 14px;
   margin: 8px 0;
   overflow-wrap: anywhere;
@@ -55,7 +55,7 @@
 /* status bar */
 .vid-status {
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin-bottom: 16px;
   font-size: 13px;
@@ -77,8 +77,8 @@
   min-width: 0;
 }
 .vid-status-toggle:hover strong { text-decoration: underline; }
-.vid-status-toggle:focus-visible { outline: 2px solid var(--color-focus, #2563eb); outline-offset: 2px; border-radius: 3px; }
-.vid-caret { display: inline-block; width: 1em; color: var(--color-text-muted, #6b7280); }
+.vid-status-toggle:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; border-radius: var(--radius-xs, 5px); }
+.vid-caret { display: inline-block; width: 1em; color: var(--color-text-3); }
 .vid-line { margin: 3px 0; overflow-wrap: anywhere; }
 /*
  * The one sentence on this page that names a remedy. It is deliberately not
@@ -118,7 +118,7 @@
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
   background: var(--card, transparent);
   color: inherit;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   padding: 8px 14px;
   font: inherit;
   cursor: pointer;
@@ -135,7 +135,7 @@
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
   background: var(--card, transparent);
   color: inherit;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   padding: 6px 10px;
   font: inherit;
   margin-top: 4px;
@@ -145,14 +145,14 @@
 /* queue */
 .vid-columns { display: flex; gap: 14px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
 .vid-column { flex: 0 0 260px; min-width: 0; }
-.vid-column h3 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-3, #8282a0); }
+.vid-column h3 { font-size: 13px; margin: 0 0 8px; letter-spacing: .01em; color: var(--color-text-3, #8282a0); }
 .vid-card {
   display: block;
   width: 100%;
   text-align: left;
   background: var(--card, transparent);
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 10px 12px;
   margin-bottom: 8px;
   font: inherit;
@@ -178,7 +178,7 @@
   margin-bottom: 6px;
 }
 .vid-card-meta { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 12px; color: var(--color-text-3, #8282a0); }
-.vid-badge { border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; font-size: 11px; }
+.vid-badge { border: 1px solid currentColor; border-radius: var(--radius-full, 999px); padding: 0 8px; font-size: 11px; }
 .vid-badge-bad { color: var(--color-danger, #dc2626); font-weight: 700; }
 .vid-ures { margin-top: 12px; }
 .vid-sapkak { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 14px; font-size: 12px; color: var(--color-text-3, #8282a0); }
@@ -190,7 +190,7 @@
 */
 .vid-uj-video {
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin-bottom: 18px;
   max-width: 620px;
@@ -198,8 +198,7 @@
 .vid-uj-video h3 {
   margin: 0;
   font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: .01em;
   color: var(--color-text-3, #8282a0);
 }
 
@@ -245,7 +244,7 @@
 .vid-forras {
   display: block;
   border: 1px solid var(--color-warning, #d97706);
-  border-radius: 10px;
+  border-radius: var(--radius-md, 11px);
   padding: 10px 14px;
   margin: 0 0 12px;
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
@@ -264,7 +263,7 @@
   font-size: 12px;
   background: var(--card, transparent);
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   padding: 8px 10px;
   margin: 0 0 6px;
   max-height: 240px;
@@ -282,7 +281,7 @@
   text-align: left;
   overflow-wrap: anywhere;
 }
-.vid-feedback-form { border: 1px solid var(--border, rgba(127, 127, 127, 0.2)); border-radius: 12px; padding: 10px 14px; margin: 16px 0; }
+.vid-feedback-form { border: 1px solid var(--border, rgba(127, 127, 127, 0.2)); border-radius: var(--radius-lg, 18px); padding: 10px 14px; margin: 16px 0; }
 .vid-feedback-list { padding-left: 18px; }
 .vid-feedback-list li { margin: 4px 0; overflow-wrap: anywhere; }
 
@@ -304,7 +303,7 @@
   width: 100%;
   max-width: 300px;
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   background: #000;
 }
 
@@ -313,7 +312,7 @@
   position: relative;
   height: 46px;
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   background: var(--card, transparent);
   overflow: hidden;
   cursor: crosshair;
@@ -338,7 +337,7 @@
   top: 2px;
   width: 3px;
   height: 12px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs, 5px);
   background: var(--color-warning, #d97706);
   pointer-events: none;
 }
@@ -355,7 +354,7 @@
 /* proposals */
 .vid-proposal, .vid-lesson {
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin: 10px 0;
   overflow-wrap: anywhere;
@@ -397,7 +396,7 @@
   gap: 4px;
   text-align: left;
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   background: var(--card, transparent);
   color: inherit;
   font: inherit;
@@ -406,7 +405,7 @@
   overflow-wrap: anywhere;
 }
 .vid-sablon-kartya:hover { border-color: var(--accent, #6366f1); }
-.vid-sablon-kartya:focus-visible { outline: 2px solid var(--color-focus, #2563eb); outline-offset: 2px; }
+.vid-sablon-kartya:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
 .vid-sablon-kartya-nyitva { border-color: var(--accent, #6366f1); }
 /*
  * The frame keeps its 9:16 whether or not there is a picture in it, which is
@@ -420,17 +419,17 @@
   aspect-ratio: 9 / 16;
   width: 100%;
   border: 1px dashed var(--border, rgba(127, 127, 127, 0.4));
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   overflow: hidden;
 }
-.vid-sablon-kep { width: 100%; height: 100%; object-fit: contain; border-radius: 8px; }
+.vid-sablon-kep { width: 100%; height: 100%; object-fit: contain; border-radius: var(--radius-sm, 8px); }
 .vid-sablon-ures { font-size: 11px; text-align: center; padding: 4px; overflow-wrap: anywhere; }
 .vid-sablon-nev { font-weight: 600; }
 .vid-sablon-leiras { font-size: 12px; }
 .vid-sablon-szam, .vid-sablon-jel { font-size: 11px; }
 .vid-sablon-panel {
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin: 0 0 16px;
   overflow-wrap: anywhere;
@@ -462,7 +461,7 @@
 
 .vid-sec {
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 12px 14px 14px;
   min-width: 0;
 }
@@ -489,8 +488,7 @@
   margin: 0;
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: .01em;
   color: var(--color-text-2, #b6b6c8);
 }
 .vid-sec-is-ures .vid-sec-head { margin-bottom: 6px; }
@@ -501,7 +499,7 @@
   margin-left: auto;
   min-width: 20px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-full, 999px);
   background: var(--border, rgba(127, 127, 127, 0.16));
   font-size: 11px;
   line-height: 18px;
@@ -553,7 +551,7 @@
 */
 .vid-youtube {
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin-bottom: 18px;
   max-width: 620px;
@@ -561,8 +559,7 @@
 .vid-youtube h3 {
   margin: 0;
   font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: .01em;
   color: var(--color-text-3, #8282a0);
 }
 .vid-youtube-mit { margin: 6px 0 0; font-size: 12px; line-height: 1.45; }

@@ -152,12 +152,15 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
     <>
       <div
         onClick={handleClick}
-        className={`group relative py-3.5 px-4 cursor-pointer rounded-[14px]
-          transition-all duration-200 active:scale-[0.98]
+        /* A list row is separated by a rule, not by a box of its own. At rest
+           these carried `border border-transparent` on all four sides, so
+           sixty-four four-line entries ran together with nothing but
+           whitespace between them and the list could not be scanned. The
+           bottom hairline is the separator; the fill is the hover. */
+        className={`group relative border-b border-line-subtle py-3.5 px-4 cursor-pointer
+          transition-colors duration-200 active:scale-[0.98]
           ${agentDisabled ? 'opacity-70' : ''}
-          ${isSelected
-            ? 'bg-white/[0.04] border border-white/[0.08]'
-            : 'bg-transparent border border-transparent hover:bg-white/[0.05] hover:border-white/[0.08]'}`}
+          ${isSelected ? 'bg-layer-2' : 'bg-transparent hover:bg-layer-2'}`}
       >
         {isSelected && <div className="card-select-indicator" />}
         {/* Pin/star button */}
@@ -168,7 +171,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
             toast.success(agent.pinned ? 'Agent unpinned' : 'Agent pinned')
           }}
           aria-label={agent.pinned ? 'Unpin agent' : 'Pin agent'}
-          className={`absolute top-3 right-10 p-1 rounded-[6px] transition-all bg-transparent border-none cursor-pointer hover:bg-white/[0.06]
+          className={`absolute top-3 right-10 p-1 rounded-xs transition-all bg-transparent border-none cursor-pointer hover:bg-layer-2
             ${agent.pinned ? 'opacity-100 text-amber-400' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100 text-text-3'}`}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill={agent.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -181,8 +184,8 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
             <button
               onClick={(e) => e.stopPropagation()}
               aria-label="Agent options"
-              className="absolute top-3 right-3 p-0.5 rounded-[6px] opacity-0 group-hover:opacity-60 hover:!opacity-100
-                transition-opacity bg-transparent border-none cursor-pointer text-text-3 hover:bg-white/[0.06]"
+              className="absolute top-3 right-3 p-0.5 rounded-xs opacity-0 group-hover:opacity-60 hover:!opacity-100
+                transition-opacity bg-transparent border-none cursor-pointer text-text-3 hover:bg-layer-2"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="5" r="2" />
@@ -223,17 +226,17 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
           />
           <span className="font-display text-[14px] font-600 truncate flex-1 tracking-[-0.01em]">{agent.name}</span>
           {pendingApprovalCount > 0 && (
-            <span className="shrink-0 text-[9px] font-600 uppercase tracking-wider px-2 py-0.5 rounded-[6px] text-amber-400 bg-amber-400/[0.08] border border-amber-400/15">
+            <span className="shrink-0 text-[9px] font-600 tracking-[0.03em] px-2 py-0.5 rounded-xs text-amber-400 bg-amber-400/[0.08] border border-amber-400/15">
               {pendingApprovalCount} {pendingApprovalCount === 1 ? 'approval' : 'approvals'}
             </span>
           )}
           {agentDisabled && (
-            <span className="shrink-0 text-[10px] font-600 uppercase tracking-wider text-amber-300 bg-amber-400/[0.08] border border-amber-400/15 px-2 py-0.5 rounded-[6px]">
+            <span className="shrink-0 text-[10px] font-600 tracking-[0.03em] text-amber-300 bg-amber-400/[0.08] border border-amber-400/15 px-2 py-0.5 rounded-xs">
               disabled
             </span>
           )}
           {isDefault && (
-            <span className="shrink-0 text-[10px] font-600 uppercase tracking-wider text-accent-bright bg-accent-soft px-2 py-0.5 rounded-[6px]">
+            <span className="shrink-0 text-[10px] font-600 tracking-[0.03em] text-accent-bright bg-accent-soft px-2 py-0.5 rounded-xs">
               default
             </span>
           )}
@@ -241,7 +244,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
             <button
               onClick={handleRunClick}
               disabled={running || agentDisabled}
-              className="shrink-0 text-[10px] font-600 uppercase tracking-wider px-2.5 py-1 rounded-[6px] cursor-pointer
+              className="shrink-0 text-[10px] font-600 tracking-[0.03em] px-2.5 py-1 rounded-xs cursor-pointer
                 transition-all border-none bg-accent-bright/20 text-accent-bright hover:bg-accent-bright/30 disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}
             >
@@ -249,22 +252,22 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
             </button>
           )}
           {canDelegateToAgents && (
-            <span className="shrink-0 text-[10px] font-600 uppercase tracking-wider text-amber-400/80 bg-amber-400/[0.08] px-2 py-0.5 rounded-[6px] flex items-center gap-1">
+            <span className="shrink-0 text-[10px] font-600 tracking-[0.03em] text-amber-400/80 bg-amber-400/[0.08] px-2 py-0.5 rounded-xs flex items-center gap-1">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M16 3h5v5"/><path d="M21 3l-7 7"/><path d="M8 21H3v-5"/><path d="M3 21l7-7"/></svg>
               delegates
             </span>
           )}
         </div>
-        <div className="text-[12px] text-text-3/70 mt-1.5 truncate">{agent.description}</div>
+        <div className="text-[12px] text-text-3 mt-1.5 truncate">{agent.description}</div>
         <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-[11px] text-text-3/60 font-mono">{agent.model || agent.provider}</span>
+          <span className="text-[11px] text-text-3 font-mono">{agent.model || agent.provider}</span>
           {getEnabledToolIds(agent).includes('browser') && (
-            <span className="text-[10px] font-600 uppercase tracking-wider text-sky-400/70 bg-sky-400/[0.08] px-1.5 py-0.5 rounded-[5px]">
+            <span className="text-[10px] font-600 tracking-[0.03em] text-text-2 bg-layer-2 px-1.5 py-0.5 rounded-xs">
               browser
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-text-3/50">
+        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-text-3">
           {agent.lastUsedAt ? (
             <span>Last used: {(() => {
               const days = Math.floor((Date.now() - agent.lastUsedAt) / 86400000)
@@ -282,13 +285,13 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
         </div>
         {hasMonthlyBudget && (
           <div className="mt-2">
-            <div className="flex items-center justify-between text-[10px] text-text-3/60 mb-1">
+            <div className="flex items-center justify-between text-[10px] text-text-3 mb-1">
               <span>${(agent.monthlySpend ?? 0).toFixed(2)} / ${monthlyBudget.toFixed(2)}</span>
               <span className={`font-600 ${(agent.monthlySpend ?? 0) >= monthlyBudget ? 'text-red-400' : 'text-text-3/50'}`}>
                 {agent.budgetAction === 'block' ? 'hard cap' : 'soft cap'}
               </span>
             </div>
-            <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden relative">
+            <div className="h-1 rounded-full bg-layer-2 overflow-hidden relative">
               <div
                 className={`h-full rounded-full transition-all duration-300 relative ${
                   (agent.monthlySpend ?? 0) >= monthlyBudget
@@ -318,12 +321,12 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
               return (
                 <span
                   key={entry.key}
-                  className={`text-[10px] px-2 py-0.5 rounded-[6px] border ${
+                  className={`text-[10px] px-2 py-0.5 rounded-xs border ${
                     overCap
                       ? 'text-red-400 border-red-400/25 bg-red-400/[0.06]'
                       : nearCap
                         ? 'text-amber-400 border-amber-400/20 bg-amber-400/[0.06]'
-                        : 'text-text-3/70 border-white/[0.08] bg-white/[0.03]'
+                        : 'text-text-3/70 border-line-default bg-layer-1'
                   }`}
                 >
                   {entry.key}: ${entry.spend.toFixed(2)} / ${budget.toFixed(2)}
@@ -348,14 +351,14 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
               onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmRun() }}
               placeholder="Describe the task..."
               autoFocus
-              className="w-full px-4 py-3 rounded-[12px] border border-white/[0.08] bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3/50 focus:border-white/[0.15]"
+              className="w-full px-4 py-3 rounded-lg border border-line-subtle bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus:border-line-strong"
               style={{ fontFamily: 'inherit' }}
             />
           </div>
           <DialogFooter>
             <button
               onClick={() => setDialogOpen(false)}
-              className="px-4 py-2 rounded-[10px] border border-white/[0.08] bg-transparent text-text-2 text-[13px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
+              className="px-4 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[13px] font-600 cursor-pointer hover:bg-surface-2 transition-all"
               style={{ fontFamily: 'inherit' }}
             >
               Cancel
@@ -363,7 +366,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
             <button
               onClick={handleConfirmRun}
               disabled={!taskInput.trim()}
-              className="px-4 py-2 rounded-[10px] border-none bg-accent-bright text-white text-[13px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
+              className="px-4 py-2 rounded-sm border-none bg-accent-bright text-accent-fg text-[13px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
               style={{ fontFamily: 'inherit' }}
             >
               Run

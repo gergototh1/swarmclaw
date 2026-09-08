@@ -41,7 +41,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">
         User Preferences
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
@@ -60,14 +60,14 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
       <div className="mt-6 flex items-center justify-between">
         <div>
           <label className="text-[12px] font-600 text-text-2 block">Suggested Replies</label>
-          <p className="text-[11px] text-text-3/60 mt-0.5">
+          <p className="text-[11px] text-text-3 mt-0.5">
             Show follow-up suggestions after each agent response.
           </p>
         </div>
         <button
           type="button"
           onClick={() => patchSettings({ suggestionsEnabled: !appSettings.suggestionsEnabled })}
-          className={`relative w-9 h-5 rounded-full transition-colors ${appSettings.suggestionsEnabled ? 'bg-accent-bright' : 'bg-white/[0.10]'}`}
+          className={`relative w-9 h-5 rounded-full transition-colors ${appSettings.suggestionsEnabled ? 'bg-accent-bright' : 'bg-layer-3'}`}
           style={{ fontFamily: 'inherit' }}
         >
           <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${appSettings.suggestionsEnabled ? 'translate-x-4' : ''}`} />
@@ -77,17 +77,17 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
       {/* Default agent */}
       <div className="mt-6">
         <label className="text-[12px] font-600 text-text-2 block mb-1.5">Default Agent</label>
-        <p className="text-[11px] text-text-3/60 mb-2">
+        <p className="text-[11px] text-text-3 mb-2">
           The agent that opens automatically when you start the app or use the default-agent shortcut.
         </p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => patchSettings({ defaultAgentId: null })}
-            className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[12px] font-600 cursor-pointer transition-all border
+            className={`flex items-center gap-2 px-3 py-2 rounded-sm text-[12px] font-600 cursor-pointer transition-all border
               ${!appSettings.defaultAgentId
-                ? 'bg-white/[0.06] border-accent-bright/30 text-text'
-                : 'bg-transparent border-white/[0.06] text-text-3 hover:bg-white/[0.03]'}`}
+                ? 'bg-layer-2 border-accent-bright/30 text-text'
+                : 'bg-transparent border-line-subtle text-text-3 hover:bg-layer-1'}`}
             style={{ fontFamily: 'inherit' }}
           >
             Auto (first agent)
@@ -96,10 +96,10 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
             <button
               key={agent.id}
               onClick={() => patchSettings({ defaultAgentId: agent.id })}
-              className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-[12px] font-600 cursor-pointer transition-all border
+              className={`flex items-center gap-2 px-3 py-2 rounded-sm text-[12px] font-600 cursor-pointer transition-all border
                 ${appSettings.defaultAgentId === agent.id
-                  ? 'bg-white/[0.06] border-accent-bright/30 text-text'
-                  : 'bg-transparent border-white/[0.06] text-text-3 hover:bg-white/[0.03]'}`}
+                  ? 'bg-layer-2 border-accent-bright/30 text-text'
+                  : 'bg-transparent border-line-subtle text-text-3 hover:bg-layer-1'}`}
               style={{ fontFamily: 'inherit' }}
             >
               <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={18} />
@@ -111,7 +111,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
 
       <div className="mt-6">
         <label className="text-[12px] font-600 text-text-2 block mb-1.5">WhatsApp Approved Users</label>
-        <p className="text-[11px] text-text-3/60 mb-3">
+        <p className="text-[11px] text-text-3 mb-3">
           These numbers or JIDs are globally approved for WhatsApp DMs. They bypass per-connector pairing and are merged into WhatsApp allowlists.
         </p>
 
@@ -120,16 +120,16 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
             {whatsappApprovedContacts.map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-center justify-between gap-3 rounded-[12px] border border-white/[0.06] bg-white/[0.03] px-3 py-2"
+                className="flex items-center justify-between gap-3 rounded-md border border-line-subtle bg-layer-1 px-3 py-2"
               >
                 <div className="min-w-0">
                   <div className="text-[12px] font-600 text-text truncate">{entry.label}</div>
-                  <div className="text-[11px] text-text-3/70 truncate">{entry.phone}</div>
+                  <div className="text-[11px] text-text-3 truncate">{entry.phone}</div>
                 </div>
                 <button
                   type="button"
                   onClick={() => removeWhatsAppContact(entry.id)}
-                  className="shrink-0 px-2.5 py-1.5 rounded-[8px] bg-white/[0.04] text-[11px] text-text-3 hover:text-text hover:bg-white/[0.08] transition-colors border-none cursor-pointer"
+                  className="shrink-0 px-2.5 py-1.5 rounded-sm bg-layer-2 text-[11px] text-text-3 hover:text-text hover:bg-layer-3 transition-colors border-none cursor-pointer"
                   style={{ fontFamily: 'inherit' }}
                 >
                   Remove
@@ -138,7 +138,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
             ))}
           </div>
         ) : (
-          <div className="mb-3 rounded-[12px] border border-dashed border-white/[0.08] bg-white/[0.02] px-3 py-3 text-[11px] text-text-3/70">
+          <div className="mb-3 rounded-lg border border-dashed border-line-subtle bg-surface px-3 py-3 text-[11px] text-text-3">
             No globally approved WhatsApp users yet.
           </div>
         )}
@@ -176,7 +176,7 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
             type="button"
             onClick={addWhatsAppContact}
             disabled={!nextWhatsAppPhone.trim()}
-            className="px-3 py-2 rounded-[10px] text-[12px] font-600 border border-white/[0.06] bg-white/[0.04] text-text transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer hover:bg-white/[0.08]"
+            className="px-3 py-2 rounded-md text-[12px] font-600 border border-line-subtle bg-layer-2 text-text transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer hover:bg-layer-3"
             style={{ fontFamily: 'inherit' }}
           >
             Add User

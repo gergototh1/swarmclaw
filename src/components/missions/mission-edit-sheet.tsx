@@ -136,9 +136,9 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+    <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-[12px] border border-white/[0.08] bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-lg border border-line-subtle bg-surface p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-[14px] font-600 text-text mb-1">Edit mission</div>
@@ -147,7 +147,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
         </div>
 
         {!canEdit && (
-          <div className="mb-3 rounded border border-amber-500/30 bg-amber-500/10 text-amber-200 px-3 py-2 text-[11px]">
+          <div className="mb-3 rounded-xs border border-amber-500/30 bg-amber-500/10 text-amber-200 px-3 py-2 text-[11px]">
             This mission is {mission.status}. Only draft, running, or paused missions can be edited.
           </div>
         )}
@@ -182,8 +182,8 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
             />
           </label>
 
-          <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
-            <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-2">
+          <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5">
+            <div className="text-[11px] font-600 text-text-3 tracking-wide mb-2">
               Budget <HintTip text="Leave any field blank to remove that cap." />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -240,8 +240,8 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
             </div>
           </div>
 
-          <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
-            <div className="text-[11px] font-600 text-text-3 uppercase tracking-wide mb-2">Periodic reports</div>
+          <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2.5">
+            <div className="text-[11px] font-600 text-text-3 tracking-wide mb-2">Periodic reports</div>
             <label className="flex items-center gap-2 flex-wrap mb-2">
               <input
                 type="checkbox"
@@ -276,7 +276,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
                   Deliver via connectors <HintTip text="Reports post to the selected connector channels. Leave empty to keep reports in-app only." />
                 </div>
                 {connectors.length === 0 ? (
-                  <div className="text-[11px] text-text-3/60">No connectors configured.</div>
+                  <div className="text-[11px] text-text-3">No connectors configured.</div>
                 ) : (
                   <div className="flex flex-col gap-1 max-h-[160px] overflow-y-auto">
                     {connectors.map((c) => (
@@ -287,7 +287,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
                           onChange={() => toggleConnector(c.id)}
                         />
                         <span className="font-600">{c.name}</span>
-                        <span className="text-text-3/60">({c.platform})</span>
+                        <span className="text-text-3">({c.platform})</span>
                       </label>
                     ))}
                   </div>
@@ -300,7 +300,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="text-[12px] px-3 py-1.5 rounded border border-white/[0.08] hover:bg-white/[0.04]"
+            className="text-[12px] px-3 py-1.5 rounded-xs border border-line-default hover:bg-layer-2"
             disabled={busy}
           >
             Cancel
@@ -308,7 +308,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
           <button
             onClick={submit}
             disabled={busy || !canEdit}
-            className="text-[12px] font-600 px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40"
+            className="text-[12px] font-600 px-3 py-1.5 rounded-xs bg-accent-bright/20 text-accent-bright border border-accent-bright/30 hover:bg-accent-bright/25 disabled:opacity-40"
           >
             {busy ? 'Saving...' : 'Save changes'}
           </button>

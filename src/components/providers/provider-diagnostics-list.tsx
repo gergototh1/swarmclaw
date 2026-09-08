@@ -24,15 +24,15 @@ export function ProviderDiagnosticsList({
   if (!diagnostics?.length) return null
 
   return (
-    <div className={`mt-3 border-t border-white/[0.06] pt-3 ${className}`}>
-      <div className="mb-2 text-[11px] font-700 uppercase tracking-[0.1em] text-text-3/70">
+    <div className={`mt-3 border-t border-line-subtle pt-3 ${className}`}>
+      <div className="mb-2 text-[11px] font-700 tracking-[0.03em] text-text-3">
         Diagnostics
       </div>
       <ol className="space-y-2">
         {diagnostics.map((step) => (
           <li key={step.id} className="grid gap-1 text-left sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-3">
             <div>
-              <span className={`inline-flex min-w-[54px] items-center justify-center rounded-[999px] border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] ${STATUS_CLASSES[step.status]}`}>
+              <span className={`inline-flex min-w-[54px] items-center justify-center rounded-full border px-2 py-0.5 text-[10px] font-700 tracking-[0.03em] ${STATUS_CLASSES[step.status]}`}>
                 {STATUS_LABELS[step.status]}
               </span>
             </div>

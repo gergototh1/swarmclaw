@@ -37,7 +37,7 @@ export function DaemonIndicator() {
   return (
     <button
       onClick={toggle}
-      className="flex items-center gap-2 px-3 py-2 rounded-[10px] bg-surface border border-white/[0.06] hover:bg-surface-2 transition-colors cursor-pointer w-full"
+      className="flex items-center gap-2 px-3 py-2 rounded-md bg-surface border border-line-subtle hover:bg-surface-2 transition-colors cursor-pointer w-full"
       title={status.running ? 'Daemon running — click to pause' : 'Daemon paused — click to start'}
     >
       <StatusDot status={status.running ? 'online' : 'idle'} glow={status.running} />

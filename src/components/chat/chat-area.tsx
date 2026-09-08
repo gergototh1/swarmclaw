@@ -35,17 +35,17 @@ import { buildNewAgentSessionPayload, summarizeFirstMessageAsTitle } from '@/lib
 import { getEnabledCapabilityIds, getEnabledToolIds } from '@/lib/capability-selection'
 
 const DIRECT_PROMPT_SUGGESTIONS = [
-  { text: 'What can you help me with?', icon: 'book', gradient: 'from-[#6366F1]/10 to-[#818CF8]/5' },
-  { text: 'Help me choose the right agent for this', icon: 'bot', gradient: 'from-[#34D399]/10 to-[#6EE7B7]/5' },
-  { text: 'Help me set up a new connector', icon: 'link', gradient: 'from-[#EC4899]/10 to-[#F472B6]/5' },
-  { text: 'Summarize what needs attention in this workspace', icon: 'check', gradient: 'from-[#F59E0B]/10 to-[#FBBF24]/5' },
+  { text: 'What can you help me with?', icon: 'book', gradient: 'from-accent-bright/10 to-accent-bright/5' },
+  { text: 'Help me choose the right agent for this', icon: 'bot', gradient: 'from-success/10 to-success/5' },
+  { text: 'Help me set up a new connector', icon: 'link', gradient: 'from-shereen/10 to-shereen/5' },
+  { text: 'Summarize what needs attention in this workspace', icon: 'check', gradient: 'from-warning/10 to-warning/5' },
 ]
 
 const AGENT_PROMPT_SUGGESTIONS = [
-  { text: 'Give me a quick overview of what you can help with', icon: 'book', gradient: 'from-[#6366F1]/10 to-[#818CF8]/5' },
-  { text: 'Review what needs attention right now', icon: 'check', gradient: 'from-[#F59E0B]/10 to-[#FBBF24]/5' },
-  { text: 'Summarize our recent context before we continue', icon: 'link', gradient: 'from-[#EC4899]/10 to-[#F472B6]/5' },
-  { text: 'Help me map the next best step', icon: 'bot', gradient: 'from-[#34D399]/10 to-[#6EE7B7]/5' },
+  { text: 'Give me a quick overview of what you can help with', icon: 'book', gradient: 'from-accent-bright/10 to-accent-bright/5' },
+  { text: 'Review what needs attention right now', icon: 'check', gradient: 'from-warning/10 to-warning/5' },
+  { text: 'Summarize our recent context before we continue', icon: 'link', gradient: 'from-shereen/10 to-shereen/5' },
+  { text: 'Help me map the next best step', icon: 'bot', gradient: 'from-success/10 to-success/5' },
 ]
 
 export function ChatArea() {
@@ -642,24 +642,24 @@ export function ChatArea() {
         <div className="flex-1 flex flex-col gap-5 px-4 md:px-12 lg:px-16 py-8" style={{ animation: 'fade-in 0.2s ease' }}>
           {/* Skeleton message bubbles */}
           <div className="flex gap-3 max-w-[70%]">
-            <div className="w-8 h-8 rounded-full bg-white/[0.06] animate-pulse shrink-0" />
+            <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-24 rounded bg-white/[0.06] animate-pulse" />
-              <div className="h-16 rounded-[12px] bg-white/[0.04] animate-pulse" />
+              <div className="h-3 w-24 rounded-xs bg-layer-2 animate-pulse" />
+              <div className="h-16 rounded-md bg-layer-2 animate-pulse" />
             </div>
           </div>
           <div className="flex gap-3 max-w-[60%] self-end flex-row-reverse">
-            <div className="w-8 h-8 rounded-full bg-white/[0.06] animate-pulse shrink-0" />
+            <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-16 rounded bg-white/[0.06] animate-pulse ml-auto" />
-              <div className="h-10 rounded-[12px] bg-white/[0.04] animate-pulse" />
+              <div className="h-3 w-16 rounded-xs bg-layer-2 animate-pulse ml-auto" />
+              <div className="h-10 rounded-md bg-layer-2 animate-pulse" />
             </div>
           </div>
           <div className="flex gap-3 max-w-[65%]">
-            <div className="w-8 h-8 rounded-full bg-white/[0.06] animate-pulse shrink-0" />
+            <div className="w-8 h-8 rounded-full bg-layer-2 animate-pulse shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-20 rounded bg-white/[0.06] animate-pulse" />
-              <div className="h-24 rounded-[12px] bg-white/[0.04] animate-pulse" />
+              <div className="h-3 w-20 rounded-xs bg-layer-2 animate-pulse" />
+              <div className="h-24 rounded-md bg-layer-2 animate-pulse" />
             </div>
           </div>
         </div>
@@ -688,7 +688,7 @@ export function ChatArea() {
               </div>
             </div>
 
-            <h1 className="font-display text-[28px] md:text-[36px] font-800 leading-[1.1] tracking-[-0.04em] mb-3">
+            <h1 className="font-display text-[28px] md:text-[36px] font-700 leading-[1.1] tracking-[-0.04em] mb-3">
               Hi{currentUser ? ', ' : ' '}<span className="text-accent-bright">{currentUser || 'there'}</span>
               <br />
               <span className="text-text-2">
@@ -707,12 +707,12 @@ export function ChatArea() {
               <button
                 key={prompt.text}
                 onClick={() => handlePrompt(prompt.text)}
-                className={`suggestion-card p-4 rounded-[14px] border border-white/[0.04] bg-gradient-to-br ${prompt.gradient}
+                className={`suggestion-card p-4 rounded-lg border border-line-subtle 
                   text-left cursor-pointer flex flex-col gap-3 min-h-[110px] active:scale-[0.97]`}
                 style={{ fontFamily: 'inherit', animation: `fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.07 + 0.15}s both` }}
               >
                 <PromptIcon type={prompt.icon} />
-                <span className="text-[12px] text-text-2/80 leading-snug flex-1">{prompt.text}</span>
+                <span className="text-[12px] text-text-2 leading-snug flex-1">{prompt.text}</span>
               </button>
             ))}
           </div>
@@ -795,7 +795,7 @@ export function ChatArea() {
 
       {isDragging && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none">
-          <div className="px-8 py-6 rounded-[20px] border-2 border-dashed border-accent-bright/50 bg-surface/80 text-center">
+          <div className="px-8 py-6 rounded-lg border-2 border-dashed border-accent-bright/50 bg-surface text-center">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-accent-bright mx-auto mb-3">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />

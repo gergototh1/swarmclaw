@@ -20,7 +20,7 @@
 .ais-error {
   color: var(--color-danger, #dc2626);
   border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 35%, transparent);
-  border-radius: 10px;
+  border-radius: var(--radius-md, 11px);
   padding: 10px 14px;
   margin: 0 0 16px;
   white-space: pre-wrap;
@@ -48,10 +48,10 @@
   min-width: 0;
 }
 .ais-status-toggle:hover strong { text-decoration: underline; }
-.ais-status-toggle:focus-visible { outline: 2px solid var(--color-focus, #2563eb); outline-offset: 2px; border-radius: 3px; }
-.ais-caret { display: inline-block; width: 1em; color: var(--color-text-muted, #6b7280); }
+.ais-status-toggle:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; border-radius: var(--radius-xs, 5px); }
+.ais-caret { display: inline-block; width: 1em; color: var(--color-text-3); }
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin-bottom: 16px;
   display: flex;
@@ -91,7 +91,7 @@
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
   background: var(--card, transparent);
   color: inherit;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   padding: 8px 14px;
   font: inherit;
   cursor: pointer;
@@ -115,9 +115,8 @@
   position: relative;
   background: var(--card, #fff);
   border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
-  border-radius: 16px;
+  border-radius: var(--radius-lg, 18px);
   padding: 22px 24px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
   touch-action: none;
   user-select: none;
   cursor: grab;
@@ -143,11 +142,10 @@
   top: 18px;
   padding: 4px 12px;
   border: 3px solid currentColor;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   font-weight: 800;
   font-size: 22px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: .01em;
   pointer-events: none;
 }
 .ais-stamp-save { right: 18px; color: var(--color-success, #16a34a); transform: rotate(12deg); }
@@ -156,7 +154,7 @@
 .ais-toast {
   border: 1px solid var(--color-danger, #dc2626);
   color: var(--color-danger, #dc2626);
-  border-radius: 10px;
+  border-radius: var(--radius-md, 11px);
   padding: 8px 14px;
   margin-bottom: 12px;
   cursor: pointer;
@@ -170,7 +168,7 @@
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
   background: none;
   color: inherit;
-  border-radius: 999px;
+  border-radius: var(--radius-full, 999px);
   padding: 4px 12px;
   font: inherit;
   font-size: 13px;
@@ -183,7 +181,7 @@
   border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
   background: var(--card, transparent);
   color: inherit;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   padding: 6px 10px;
   font: inherit;
 }
@@ -197,7 +195,7 @@
 .ais-row .ais-actions { justify-content: flex-start; margin-top: 8px; }
 .ais-badge {
   border: 1px solid currentColor;
-  border-radius: 999px;
+  border-radius: var(--radius-full, 999px);
   padding: 0 8px;
   font-size: 11px;
 }

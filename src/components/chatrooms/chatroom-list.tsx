@@ -109,7 +109,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search rooms, members, or recent messages..."
-              className="w-full rounded-[12px] border border-white/[0.06] bg-surface px-3 py-2.5 text-[13px] text-text placeholder:text-text-3/70 focus:outline-none focus:border-accent-bright/35"
+              className="w-full rounded-md border border-line-subtle bg-surface px-3 py-2.5 text-[13px] text-text placeholder:text-text-3 focus:outline-none focus:border-accent-bright/35"
             />
             <div className="flex flex-wrap items-center gap-1">
               {(['all', 'active', 'recent', 'unread'] as const).map((value) => (
@@ -118,23 +118,23 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
                   type="button"
                   onClick={() => setFilter(value)}
                   data-active={filter === value || undefined}
-                  className="rounded-[8px] border-none px-3 py-1.5 text-[11px] font-600 capitalize cursor-pointer transition-all focus-visible:ring-1 focus-visible:ring-accent-bright/50
+                  className="rounded-sm border-none px-3 py-1.5 text-[11px] font-600 capitalize cursor-pointer transition-all focus-visible:ring-1 focus-visible:ring-accent-bright/50
                     data-[active]:bg-accent-soft data-[active]:text-accent-bright
-                    bg-transparent text-text-3 hover:text-text-2 hover:bg-white/[0.04]"
+                    bg-transparent text-text-3 hover:text-text-2 hover:bg-layer-2"
                 >
                   {value}
                 </button>
               ))}
-              <span className="ml-auto text-[11px] text-text-3/55">
+              <span className="ml-auto text-[11px] text-text-3">
                 {filtered.length} {viewMode === 'sessions' ? 'session' : 'room'}{filtered.length === 1 ? '' : 's'}
               </span>
             </div>
           </div>
 
           {filtered.length === 0 ? (
-            <div className="rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-4 py-8 text-center">
+            <div className="rounded-lg border border-line-subtle bg-surface px-4 py-8 text-center">
               <div className="text-[13px] font-600 text-text-2">No {viewMode === 'sessions' ? 'sessions' : 'rooms'} match this view</div>
-              <div className="mt-1 text-[12px] text-text-3/65">
+              <div className="mt-1 text-[12px] text-text-3">
                 Clear the search or switch filters to see more {viewMode === 'sessions' ? 'sessions' : 'chatrooms'}.
               </div>
             </div>
@@ -146,10 +146,10 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
                   <button
                     key={chatroom.id}
                     onClick={() => setCurrentChatroom(chatroom.id)}
-                    className={`relative w-full overflow-hidden rounded-[14px] border px-4 py-3.5 text-left transition-all cursor-pointer ${
+                    className={`relative w-full overflow-hidden rounded-lg border px-4 py-3.5 text-left transition-all cursor-pointer ${
                       isActive
                         ? 'border-accent-bright/20 bg-accent-soft/55'
-                        : 'border-transparent hover:bg-white/[0.04] hover:border-white/[0.05]'
+                        : 'border-transparent hover:bg-layer-2 hover:border-line-subtle'
                     }`}
                     style={{
                       animation: 'fade-up 0.4s var(--ease-spring) both',
@@ -171,30 +171,30 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
                             {chatroom.name}
                           </span>
                           {unreadCount > 0 && (
-                            <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-accent-bright px-1.5 py-0.5 text-[10px] font-700 text-white">
+                            <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-accent-bright px-1.5 py-0.5 text-[10px] font-700 text-accent-fg">
                               {unreadCount > 99 ? '99+' : unreadCount}
                             </span>
                           )}
-                          <span className="ml-auto shrink-0 text-[10px] font-mono text-text-3/55">
+                          <span className="ml-auto shrink-0 text-[10px] font-mono text-text-3">
                             {formatRoomTime(lastMsg?.time || chatroom.updatedAt, now)}
                           </span>
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-text-3">
                           <span>{chatroom.agentIds.length} agent{chatroom.agentIds.length === 1 ? '' : 's'}</span>
                           {chatroom.chatMode === 'parallel' && (
-                            <span className="rounded-[6px] bg-sky-500/10 px-1.5 py-0.5 text-sky-300">Parallel</span>
+                            <span className="rounded-xs bg-sky-500/10 px-1.5 py-0.5 text-sky-300">Parallel</span>
                           )}
                           {chatroom.autoAddress && (
-                            <span className="rounded-[6px] bg-emerald-500/10 px-1.5 py-0.5 text-emerald-300">Auto-address</span>
+                            <span className="rounded-xs bg-emerald-500/10 px-1.5 py-0.5 text-emerald-300">Auto-address</span>
                           )}
                         </div>
                         {memberNames.length > 0 && (
-                          <p className="mt-1 truncate text-[11px] text-text-3/80">
+                          <p className="mt-1 truncate text-[11px] text-text-3">
                             {memberNames.slice(0, 3).join(', ')}{memberNames.length > 3 ? ` +${memberNames.length - 3}` : ''}
                           </p>
                         )}
                         {lastMsg && (
-                          <p className="mt-1 truncate text-[11px] text-text-3/65">
+                          <p className="mt-1 truncate text-[11px] text-text-3">
                             {lastMsg.senderName}: {lastMsg.text.slice(0, 72)}
                           </p>
                         )}

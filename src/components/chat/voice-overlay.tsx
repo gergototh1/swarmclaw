@@ -20,7 +20,7 @@ export function VoiceOverlay({ state, interimText, transcript, onStop }: VoiceOv
   if (state === 'idle') return null
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-bg/90 backdrop-blur-sm">
+    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-bg/80 backdrop-blur-sm">
       {/* Animated indicator */}
       <div className="relative">
         <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
@@ -58,13 +58,13 @@ export function VoiceOverlay({ state, interimText, transcript, onStop }: VoiceOv
         </div>
       </div>
 
-      <div className="text-[14px] font-500 text-text-2">{STATE_LABELS[state]}</div>
+      <div className="text-[14px] font-600 text-text-2">{STATE_LABELS[state]}</div>
 
       {/* Transcript display */}
       {(transcript || interimText) && (
         <div className="max-w-md px-6 text-center">
           {transcript && <p className="text-[14px] text-text-1 mb-1">{transcript}</p>}
-          {interimText && <p className="text-[13px] text-text-3/60 italic">{interimText}</p>}
+          {interimText && <p className="text-[13px] text-text-3 italic">{interimText}</p>}
         </div>
       )}
 

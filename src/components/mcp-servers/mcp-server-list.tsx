@@ -327,10 +327,10 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
     <div className={`flex-1 overflow-y-auto ${inSidebar ? 'px-3 pb-4' : 'px-5 pb-6'}`}>
       {serverList.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-[13px] text-text-3/60">No MCP servers configured</p>
+          <p className="text-[13px] text-text-3">No MCP servers configured</p>
           <button
             onClick={() => { setEditingMcpServerId(null); setMcpServerSheetOpen(true) }}
-            className="mt-3 px-4 py-2 rounded-[10px] bg-transparent text-accent-bright text-[13px] font-600 cursor-pointer border border-accent-bright/20 hover:bg-accent-soft transition-all"
+            className="mt-3 px-4 py-2 rounded-sm bg-transparent text-accent-bright text-[13px] font-600 cursor-pointer border border-accent-bright/20 hover:bg-accent-soft transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             + Add MCP Server
@@ -339,45 +339,45 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
       ) : (
         <>
           {!inSidebar && inspectorServerId && (
-            <div className="mb-4 p-4 rounded-[14px] border border-white/[0.08] bg-surface-2">
+            <div className="mb-4 p-4 rounded-lg border border-line-subtle bg-surface">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="min-w-0">
                   <h3 className="font-display text-[14px] font-600 text-text truncate">
                     MCP Inspector: {activeInspectorServer?.name || inspectorServerId}
                   </h3>
-                  <p className="text-[12px] text-text-3/70">List tools and invoke them with structured JSON args.</p>
+                  <p className="text-[12px] text-text-3">List tools and invoke them with structured JSON args.</p>
                 </div>
                 <button
                   onClick={() => setInspectorServerId(null)}
-                  className="text-[11px] text-text-3/70 hover:text-text-2 transition-colors"
+                  className="text-[11px] text-text-3 hover:text-text-2 transition-colors"
                 >
                   Close
                 </button>
               </div>
 
               {inspectorLoading ? (
-                <p className="text-[12px] text-text-3/70">Loading tools...</p>
+                <p className="text-[12px] text-text-3">Loading tools...</p>
               ) : inspectorError ? (
                 <p className="text-[12px] text-red-300">{inspectorError}</p>
               ) : (
     <div className="space-y-3">
                   {activeConformance && (
-                    <div className={`rounded-[10px] border p-3 ${activeConformance.ok ? 'border-emerald-400/20 bg-emerald-500/[0.06]' : 'border-amber-400/20 bg-amber-500/[0.06]'}`}>
+                    <div className={`rounded-sm border p-3 ${activeConformance.ok ? 'border-emerald-400/20 bg-emerald-500/[0.06]' : 'border-amber-400/20 bg-amber-500/[0.06]'}`}>
                       <p className={`text-[12px] font-600 mb-1 ${activeConformance.ok ? 'text-emerald-300' : 'text-amber-300'}`}>
                         Conformance {activeConformance.ok ? 'passed' : 'issues found'}
                       </p>
-                      <p className="text-[11px] text-text-2/80">
+                      <p className="text-[11px] text-text-2">
                         tools={activeConformance.toolsCount}, smoke={activeConformance.smokeToolName || 'none'}, issues={activeConformance.issues.length}
                       </p>
                     </div>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <label className="text-[11px] text-text-3/70 uppercase tracking-[0.08em]">Tool</label>
-                    <label className="text-[11px] text-text-3/70 uppercase tracking-[0.08em]">Args (JSON)</label>
+                    <label className="text-[11px] text-text-3 tracking-[0.03em]">Tool</label>
+                    <label className="text-[11px] text-text-3 tracking-[0.03em]">Args (JSON)</label>
                     <select
                       value={selectedTool}
                       onChange={(e) => handleToolChange(e.target.value)}
-                      className="px-3 py-2 rounded-[10px] border border-white/[0.08] bg-bg text-text text-[12px]"
+                      className="px-3 py-2 rounded-md border border-line-default bg-bg text-text text-[12px]"
                       style={{ fontFamily: 'inherit' }}
                     >
                       {activeTools.length === 0 && <option value="">No tools available</option>}
@@ -388,31 +388,31 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                     <textarea
                       value={argsJson}
                       onChange={(e) => setArgsJson(e.target.value)}
-                      className="min-h-[96px] px-3 py-2 rounded-[10px] border border-white/[0.08] bg-bg text-text text-[12px] font-mono"
+                      className="min-h-[96px] px-3 py-2 rounded-md border border-line-default bg-bg text-text text-[12px] font-mono"
                     />
                   </div>
 
                   {activeToolMeta?.description && (
-                    <p className="text-[12px] text-text-3/80">{activeToolMeta.description}</p>
+                    <p className="text-[12px] text-text-3">{activeToolMeta.description}</p>
                   )}
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleInvoke}
                       disabled={!selectedTool || invokeLoading}
-                      className="px-3 py-1.5 rounded-[9px] bg-accent-soft text-accent-bright text-[12px] font-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 rounded-sm bg-accent-soft text-accent-bright text-[12px] font-600 disabled:opacity-60 disabled:cursor-not-allowed"
                       style={{ fontFamily: 'inherit' }}
                     >
                       {invokeLoading ? 'Running...' : 'Invoke Extension'}                    </button>
-                    <span className="text-[11px] text-text-3/60">Result is captured below with raw payload.</span>
+                    <span className="text-[11px] text-text-3">Result is captured below with raw payload.</span>
                   </div>
 
                   {invokeResult && (
-                    <div className={`rounded-[10px] border p-3 ${invokeResult.ok ? 'border-emerald-400/20 bg-emerald-500/[0.06]' : 'border-red-400/20 bg-red-500/[0.06]'}`}>
+                    <div className={`rounded-sm border p-3 ${invokeResult.ok ? 'border-emerald-400/20 bg-emerald-500/[0.06]' : 'border-red-400/20 bg-red-500/[0.06]'}`}>
                       <p className={`text-[12px] font-600 mb-2 ${invokeResult.ok ? 'text-emerald-300' : 'text-red-300'}`}>
                         {invokeResult.ok ? (invokeResult.isError ? 'Invocation returned MCP error' : 'Invocation succeeded') : 'Invocation failed'}
                       </p>
-                      <pre className="text-[11px] text-text-2/90 font-mono whitespace-pre-wrap break-words">
+                      <pre className="text-[11px] text-text-2 font-mono whitespace-pre-wrap break-words">
                         {invokeResult.ok
                           ? JSON.stringify({ text: invokeResult.text, isError: invokeResult.isError, result: invokeResult.result }, null, 2)
                           : (invokeResult.error || 'Unknown error')}
@@ -437,7 +437,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                     handleEdit(server.id)
                   }
                 }}
-                className="w-full text-left p-4 rounded-[14px] border border-white/[0.06] bg-surface hover:bg-surface-2 transition-all cursor-pointer"
+                className="w-full text-left p-4 rounded-lg border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2 min-w-0">
@@ -459,10 +459,10 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                       <>
                         <button
                           onClick={(e) => openInspector(e, server.id)}
-                          className={`text-[10px] font-600 px-2 py-0.5 rounded-[7px] transition-colors ${
+                          className={`text-[10px] font-600 px-2 py-0.5 rounded-xs transition-colors ${
                             inspectorServerId === server.id
                               ? 'bg-accent-soft text-accent-bright'
-                              : 'bg-white/[0.06] text-text-3 hover:text-text-2'
+                              : 'bg-layer-2 text-text-3 hover:text-text-2'
                           }`}
                           title="Open MCP inspector"
                         >
@@ -470,12 +470,12 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                         </button>
                         <button
                           onClick={(e) => handleConformance(e, server.id)}
-                          className={`text-[10px] font-600 px-2 py-0.5 rounded-[7px] transition-colors ${
+                          className={`text-[10px] font-600 px-2 py-0.5 rounded-xs transition-colors ${
                             conformanceByServer[server.id]?.ok
                               ? 'bg-emerald-500/10 text-emerald-300'
                               : conformanceByServer[server.id]
                                 ? 'bg-amber-500/10 text-amber-300'
-                                : 'bg-white/[0.06] text-text-3 hover:text-text-2'
+                                : 'bg-layer-2 text-text-3 hover:text-text-2'
                           }`}
                           title="Run MCP conformance checks"
                         >
@@ -483,7 +483,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                         </button>
                         <button
                           onClick={(e) => handleRetest(e, server.id)}
-                          className="text-text-3/40 hover:text-text-2 transition-colors p-0.5"
+                          className="text-text-3 hover:text-text-2 transition-colors p-0.5"
                           title="Re-test connection"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -492,12 +492,12 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                         </button>
                       </>
                     )}
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${transportColors[server.transport] || 'bg-white/10 text-text-3'}`}>
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${transportColors[server.transport] || 'bg-layer-3 text-text-3'}`}>
                       {server.transport}
                     </span>
                     <button
                       onClick={(e) => handleDelete(e, server.id)}
-                      className="text-text-3/40 hover:text-red-400 transition-colors p-0.5"
+                      className="text-text-3 hover:text-red-400 transition-colors p-0.5"
                       title="Delete server"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -506,7 +506,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                     </button>
                   </div>
                 </div>
-                <p className="text-[12px] text-text-3/60 font-mono truncate">
+                <p className="text-[12px] text-text-3 font-mono truncate">
                   {server.transport === 'stdio' ? server.command : server.url}
                 </p>
                 {(() => {
@@ -517,11 +517,11 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                     ? Math.round((1 - info.exposedTokens / info.totalTokens) * 100)
                     : 0
                   return (
-                    <p className="mt-1 text-[11px] font-mono text-text-3/75">
+                    <p className="mt-1 text-[11px] font-mono text-text-3">
                       <span className={info.exposedTokens < info.totalTokens ? 'text-emerald-400/80' : 'text-text-3'}>
                         {info.exposedTokens.toLocaleString()}
                       </span>
-                      <span className="text-text-3/50"> / {info.totalTokens.toLocaleString()} tokens exposed</span>
+                      <span className="text-text-3"> / {info.totalTokens.toLocaleString()} tokens exposed</span>
                       {savings > 0 && (
                         <span className="ml-2 text-emerald-400/80">({savings}% saved)</span>
                       )}

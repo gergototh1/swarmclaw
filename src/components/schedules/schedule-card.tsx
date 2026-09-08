@@ -12,7 +12,7 @@ import { isUserCreatedSchedule } from '@/lib/schedules/schedule-origin'
 const STATUS_COLORS: Record<string, string> = {
   active: 'text-emerald-400 bg-emerald-400/[0.08]',
   paused: 'text-amber-400 bg-amber-400/[0.08]',
-  completed: 'text-text-3 bg-white/[0.03]',
+  completed: 'text-text-3 bg-layer-1',
   failed: 'text-red-400 bg-red-400/[0.08]',
 }
 
@@ -67,9 +67,9 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
   return (
     <div
       onClick={handleClick}
-      className="relative py-3.5 px-4 cursor-pointer rounded-[14px]
+      className="relative py-3.5 px-4 cursor-pointer rounded-md
         transition-all duration-200 active:scale-[0.98]
-        bg-transparent border border-transparent hover:bg-white/[0.02] hover:border-white/[0.03] hover:scale-[1.01]"
+        bg-transparent border border-transparent hover:bg-layer-1 hover:border-line-subtle"
       style={{
         animation: 'spring-in 0.5s var(--ease-spring) both',
         animationDelay: `${Math.min(index * 0.05, 0.4)}s`
@@ -82,7 +82,7 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
             <div
               onClick={handleToggle}
               className={`w-9 h-5 rounded-full transition-all relative cursor-pointer shrink-0
-                ${schedule.status === 'active' ? 'bg-accent-bright' : 'bg-white/[0.08]'}`}
+                ${schedule.status === 'active' ? 'bg-accent-bright' : 'bg-layer-3'}`}
             >
               <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all
                 ${schedule.status === 'active' ? 'left-[18px]' : 'left-0.5'}`}
@@ -90,13 +90,13 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
               />
             </div>
           )}
-          <span className={`text-[10px] font-600 uppercase tracking-wider px-2 py-0.5 rounded-[6px] ${statusClass}`}>
+          <span className={`text-[10px] font-600 tracking-[0.03em] px-2 py-0.5 rounded-xs ${statusClass}`}>
             {schedule.status}
           </span>
           {!inSidebar && (
             <button
               onClick={handleDelete}
-              className="text-text-3/40 hover:text-red-400 transition-colors p-0.5"
+              className="text-text-3 hover:text-red-400 transition-colors p-0.5"
               title="Delete"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -106,13 +106,13 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
           )}
         </div>
       </div>
-      <div className="text-[12px] text-text-3/70 mt-1.5 truncate">
+      <div className="text-[12px] text-text-3 mt-1.5 truncate">
         Runs on {agent?.name || 'Unknown agent'} &middot; {schedule.scheduleType}
         {!inSidebar && schedule.scheduleType === 'cron' && schedule.cron && (
-          <span className="text-text-3/50 ml-1" title={schedule.cron}>({cronToHuman(schedule.cron)})</span>
+          <span className="text-text-3 ml-1" title={schedule.cron}>({cronToHuman(schedule.cron)})</span>
         )}
         {!inSidebar && schedule.scheduleType === 'interval' && schedule.intervalMs && (
-          <span className="text-text-3/50 ml-1">
+          <span className="text-text-3 ml-1">
             (every {schedule.intervalMs >= 3600000
               ? `${Math.round(schedule.intervalMs / 3600000)}h`
               : `${Math.round(schedule.intervalMs / 60000)}m`})
@@ -140,7 +140,7 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
           </InfoChip>
         )}
       </div>
-      <div className="text-[11px] text-text-3/60 mt-1">
+      <div className="text-[11px] text-text-3 mt-1">
         Next: {formatNext(schedule.nextRunAt, now)}
       </div>
     </div>

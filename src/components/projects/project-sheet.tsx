@@ -11,8 +11,8 @@ const PROJECT_COLORS = [
   '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280',
 ]
 
-const inputClass = 'w-full px-3 py-2.5 rounded-lg bg-white/[0.06] border border-white/[0.06] text-[13px] text-text-1 placeholder:text-text-3/40 focus:outline-none focus:border-accent/40 transition-colors'
-const sectionTitleClass = 'block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2'
+const inputClass = 'w-full px-3 py-2.5 rounded-lg bg-surface border border-line-subtle text-[13px] text-text-1 placeholder:text-text-3 focus:outline-none focus:border-accent/40 transition-colors'
+const sectionTitleClass = 'block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2'
 
 function listToText(values?: string[]) {
   return Array.isArray(values) ? values.join('\n') : ''
@@ -190,7 +190,7 @@ export function ProjectSheet() {
             style={{ fontFamily: 'inherit' }}
             rows={5}
           />
-          <p className="mt-2 text-[11px] text-text-3/45">One priority per line.</p>
+          <p className="mt-2 text-[11px] text-text-3">One priority per line.</p>
         </div>
         <div>
           <label className={sectionTitleClass}>Open Objectives</label>
@@ -202,7 +202,7 @@ export function ProjectSheet() {
             style={{ fontFamily: 'inherit' }}
             rows={5}
           />
-          <p className="mt-2 text-[11px] text-text-3/45">Use this for durable next outcomes, not one-off chat prompts.</p>
+          <p className="mt-2 text-[11px] text-text-3">Use this for durable next outcomes, not one-off chat prompts.</p>
         </div>
       </div>
 
@@ -289,7 +289,7 @@ export function ProjectSheet() {
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
-          className="flex-1 py-2.5 rounded-lg bg-accent text-white text-[13px] font-600 hover:bg-accent-bright transition-colors"
+          className="flex-1 py-2.5 rounded-lg bg-accent text-accent-fg text-[13px] font-600 hover:bg-accent-bright transition-colors"
         >
           {editing ? 'Update' : 'Create'} Project
         </button>

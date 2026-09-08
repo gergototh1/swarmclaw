@@ -46,7 +46,7 @@ export function ChatPreviewPanel({ content, onClose }: Props) {
 
   return (
     <div
-      className="relative flex flex-col border-l border-white/[0.06] bg-bg shrink-0"
+      className="relative flex flex-col border-l border-line-subtle bg-bg shrink-0"
       style={{ width, minWidth: 300, maxWidth: '50%', animation: 'fade-in 0.25s ease' }}
     >
       {/* Resize handle */}
@@ -56,13 +56,13 @@ export function ChatPreviewPanel({ content, onClose }: Props) {
       />
 
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06] shrink-0">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-line-subtle shrink-0">
         <span className="text-[12px] font-600 text-text-2 truncate flex-1">
           {content.title || 'Preview'}
         </span>
         <button
           onClick={onClose}
-          className="p-1 rounded-[6px] text-text-3 hover:text-text-2 hover:bg-white/[0.04] cursor-pointer border-none bg-transparent transition-colors"
+          className="p-1 rounded-xs text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors"
           aria-label="Close preview"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -95,7 +95,7 @@ export function ChatPreviewPanel({ content, onClose }: Props) {
             <img
               src={content.url}
               alt={content.title || 'Preview'}
-              className="max-w-full max-h-full rounded-[8px] object-contain"
+              className="max-w-full max-h-full rounded-sm object-contain"
             />
           </div>
         )}

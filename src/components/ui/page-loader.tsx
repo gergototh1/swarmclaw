@@ -25,7 +25,7 @@ export function PageLoader({ label }: { label?: string }) {
 
         {/* Ring */}
         <div
-          className="absolute inset-0 rounded-full border border-white/[0.05]"
+          className="absolute inset-0 rounded-full border border-line-subtle"
           style={{ animation: 'sc-ring 3s linear infinite' }}
         />
 
@@ -45,7 +45,7 @@ export function PageLoader({ label }: { label?: string }) {
                 width: i === 0 ? 6 : 5,
                 height: i === 0 ? 6 : 5,
                 background: i === 0 ? '#818CF8' : `rgba(129, 140, 248, ${0.6 - i * 0.15})`,
-                boxShadow: i === 0 ? '0 0 10px rgba(99,102,241,0.4)' : 'none',
+                boxShadow: i === 0 ? '0 0 10px var(--color-accent-glow)' : 'none',
               }}
             />
           </div>
@@ -53,7 +53,7 @@ export function PageLoader({ label }: { label?: string }) {
       </div>
 
       {/* Shimmer bar */}
-      <div className="w-[60px] h-[2px] rounded-full bg-white/[0.05] overflow-hidden">
+      <div className="w-[60px] h-[2px] rounded-full bg-layer-2 overflow-hidden">
         <div
           className="h-full rounded-full bg-accent-bright/50"
           style={{ animation: 'sc-progress 1.5s ease-in-out infinite' }}
@@ -62,7 +62,7 @@ export function PageLoader({ label }: { label?: string }) {
 
       {/* Optional label */}
       {label && (
-        <p className="mt-3 text-[12px] text-text-3/60">{label}</p>
+        <p className="mt-3 text-[12px] text-text-3">{label}</p>
       )}
     </div>
   )

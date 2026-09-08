@@ -90,12 +90,12 @@ export function AgentSwitchDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-[440px] p-0 bg-surface/95 backdrop-blur-xl border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.6)] rounded-[16px] overflow-hidden gap-0"
+        className="sm:max-w-[440px] p-0 bg-surface/80 backdrop-blur-xl border-line-subtle rounded-lg overflow-hidden gap-0"
         onKeyDown={handleKeyDown}
       >
         <DialogTitle className="sr-only">Switch Agent</DialogTitle>
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-line-subtle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
@@ -105,10 +105,10 @@ export function AgentSwitchDialog() {
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedIdx(0) }}
             placeholder="Switch agent..."
-            className="flex-1 bg-transparent border-none outline-none text-[14px] text-text placeholder:text-text-3/60 font-[inherit]"
+            className="flex-1 bg-transparent border-none outline-none text-[14px] text-text placeholder:text-text-3 font-[inherit]"
             autoFocus
           />
-          <kbd className="px-1.5 py-0.5 rounded-[5px] bg-white/[0.06] border border-white/[0.08] text-[10px] font-mono text-text-3 shrink-0">
+          <kbd className="px-1.5 py-0.5 rounded-xs bg-layer-2 border border-line-default text-[10px] font-mono text-text-3 shrink-0">
             ESC
           </kbd>
         </div>
@@ -116,7 +116,7 @@ export function AgentSwitchDialog() {
         {/* Agent list */}
         <div ref={listRef} className="max-h-[360px] overflow-y-auto py-1">
           {filtered.length === 0 && (
-            <div className="px-4 py-8 text-center text-[13px] text-text-3/60">
+            <div className="px-4 py-8 text-center text-[13px] text-text-3">
               No agents found
             </div>
           )}
@@ -126,20 +126,20 @@ export function AgentSwitchDialog() {
               onClick={() => handleSelect(agent.id)}
               onMouseEnter={() => setSelectedIdx(idx)}
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-left cursor-pointer transition-colors border-none bg-transparent
-                ${idx === selectedIdx ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04]'}`}
+                ${idx === selectedIdx ? 'bg-layer-2' : 'hover:bg-layer-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
               <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={28} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-500 text-text truncate">{agent.name}</span>
+                  <span className="text-[13px] font-600 text-text truncate">{agent.name}</span>
                   {agent.disabled === true && (
-                    <InfoChip size="sm" tone="warning" className="font-500">
+                    <InfoChip size="sm" tone="warning" className="font-600">
                       disabled
                     </InfoChip>
                   )}
                   {agent.id === currentAgentId && (
-                    <InfoChip size="sm" tone="accent" className="font-500">
+                    <InfoChip size="sm" tone="accent" className="font-600">
                       current
                     </InfoChip>
                   )}
@@ -154,17 +154,17 @@ export function AgentSwitchDialog() {
 
         {/* Footer hint */}
         {filtered.length > 0 && (
-          <div className="flex items-center gap-3 px-4 py-2 border-t border-white/[0.06] text-[11px] text-text-3/50">
+          <div className="flex items-center gap-3 px-4 py-2 border-t border-line-subtle text-[11px] text-text-3">
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-[10px] font-mono">↑↓</kbd>
+              <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px] font-mono">↑↓</kbd>
               navigate
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-[10px] font-mono">↵</kbd>
+              <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px] font-mono">↵</kbd>
               select
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-[10px] font-mono">esc</kbd>
+              <kbd className="px-1 py-0.5 rounded-xs bg-layer-2 text-[10px] font-mono">esc</kbd>
               close
             </span>
           </div>

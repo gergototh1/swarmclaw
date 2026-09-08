@@ -147,31 +147,31 @@ export function GatewayConnectionPanel() {
         <span className={`w-2 h-2 rounded-full ${dotColor}`} />
         <span className="text-[13px] font-600 text-text capitalize">{status}</span>
         {actionableIssues.length > 0 && (
-          <span className="ml-auto px-2 py-0.5 rounded-[6px] bg-amber-400/10 text-amber-400 text-[10px] font-700">
+          <span className="ml-auto px-2 py-0.5 rounded-xs bg-amber-400/10 text-amber-400 text-[10px] font-700">
             {actionableIssues.length} issue{actionableIssues.length !== 1 ? 's' : ''}
           </span>
         )}
       </div>
 
       <div className="flex flex-col gap-2" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.05s both' }}>
-        <label className="text-[11px] font-600 uppercase tracking-wider text-text-3/50">Gateway URL</label>
+        <label className="text-[11px] font-600 tracking-[0.03em] text-text-3">Gateway URL</label>
         <input
           type="text"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="ws://127.0.0.1:18789"
-          className="w-full px-3 py-2 rounded-[10px] border border-white/[0.06] bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-white/[0.12] transition-colors"
+          className="w-full px-3 py-2 rounded-md border border-line-subtle bg-layer-2 text-[13px] text-text font-mono outline-none placeholder:text-text-3 focus:border-line-default transition-colors"
         />
       </div>
 
       <div className="flex flex-col gap-2" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.1s both' }}>
-        <label className="text-[11px] font-600 uppercase tracking-wider text-text-3/50">Token (optional)</label>
+        <label className="text-[11px] font-600 tracking-[0.03em] text-text-3">Token (optional)</label>
         <input
           type="password"
           value={token}
           onChange={(e) => setToken(e.target.value)}
           placeholder="Access token"
-          className="w-full px-3 py-2 rounded-[10px] border border-white/[0.06] bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3/40 focus:border-white/[0.12] transition-colors"
+          className="w-full px-3 py-2 rounded-md border border-line-subtle bg-layer-2 text-[13px] text-text font-mono outline-none placeholder:text-text-3 focus:border-line-default transition-colors"
         />
       </div>
 
@@ -180,7 +180,7 @@ export function GatewayConnectionPanel() {
           <button
             onClick={handleConnect}
             disabled={status === 'connecting'}
-            className="px-4 py-2 rounded-[10px] border-none bg-accent-bright text-white text-[12px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
+            className="px-4 py-2 rounded-sm border-none bg-accent-bright text-accent-fg text-[12px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             {status === 'connecting' ? 'Connecting...' : 'Connect'}
@@ -188,7 +188,7 @@ export function GatewayConnectionPanel() {
         ) : (
           <button
             onClick={handleDisconnect}
-            className="px-4 py-2 rounded-[10px] border border-white/[0.08] bg-transparent text-red-400 text-[12px] font-600 cursor-pointer transition-all hover:bg-red-400/10"
+            className="px-4 py-2 rounded-sm border border-line-default bg-transparent text-red-400 text-[12px] font-600 cursor-pointer transition-all hover:bg-red-400/10"
             style={{ fontFamily: 'inherit' }}
           >
             Disconnect
@@ -196,7 +196,7 @@ export function GatewayConnectionPanel() {
         )}
         <button
           onClick={checkStatus}
-          className="px-4 py-2 rounded-[10px] border border-white/[0.08] bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-white/[0.04]"
+          className="px-4 py-2 rounded-sm border border-line-default bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-layer-2"
           style={{ fontFamily: 'inherit' }}
         >
           Refresh
@@ -209,18 +209,18 @@ export function GatewayConnectionPanel() {
 
       {/* Reload Mode Toggle (F21) */}
       {status === 'connected' && (
-        <div className="flex flex-col gap-2 pt-2 border-t border-white/[0.04]" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.2s both' }}>
-          <label className="text-[11px] font-600 uppercase tracking-wider text-text-3/50">Reload Mode</label>
+        <div className="flex flex-col gap-2 pt-2 border-t border-line-subtle" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.2s both' }}>
+          <label className="text-[11px] font-600 tracking-[0.03em] text-text-3">Reload Mode</label>
           <div className="flex gap-1">
             {reloadModes.map((rm) => (
               <button
                 key={rm.value}
                 onClick={() => handleReloadModeChange(rm.value)}
                 disabled={reloadSaving}
-                className={`px-3 py-1.5 rounded-[8px] text-[11px] font-600 cursor-pointer transition-all border
+                className={`px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all border
                   ${reloadMode === rm.value
                     ? 'bg-accent-soft text-accent-bright border-accent-bright/30'
-                    : 'bg-transparent text-text-3 border-white/[0.06] hover:border-white/[0.12]'
+                    : 'bg-transparent text-text-3 border-line-subtle hover:border-line-default'
                   }`}
                 style={{ fontFamily: 'inherit' }}
                 title={rm.desc}
@@ -229,7 +229,7 @@ export function GatewayConnectionPanel() {
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-text-3/40">
+          <p className="text-[10px] text-text-3">
             {reloadModes.find((r) => r.value === reloadMode)?.desc}
           </p>
         </div>
@@ -237,12 +237,12 @@ export function GatewayConnectionPanel() {
 
       {/* Config Issues (F19) */}
       {actionableIssues.length > 0 && (
-        <div className="flex flex-col gap-2 pt-2 border-t border-white/[0.04]" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.25s both' }}>
-          <label className="text-[11px] font-600 uppercase tracking-wider text-text-3/50">Config Issues</label>
+        <div className="flex flex-col gap-2 pt-2 border-t border-line-subtle" style={{ animation: 'fade-up 0.4s var(--ease-spring) 0.25s both' }}>
+          <label className="text-[11px] font-600 tracking-[0.03em] text-text-3">Config Issues</label>
           {actionableIssues.map((issue, idx) => (
             <div
               key={issue.id}
-              className={`flex items-start gap-3 p-3 rounded-[10px] border ${
+              className={`flex items-start gap-3 p-3 rounded-sm border ${
                 issue.severity === 'error'
                   ? 'bg-red-400/[0.04] border-red-400/20'
                   : 'bg-amber-400/[0.04] border-amber-400/20'
@@ -258,13 +258,13 @@ export function GatewayConnectionPanel() {
                 }`}>
                   {issue.title}
                 </p>
-                <p className="text-[11px] text-text-3/60 mt-0.5">{issue.description}</p>
+                <p className="text-[11px] text-text-3 mt-0.5">{issue.description}</p>
               </div>
               {issue.repairAction && (
                 <button
                   onClick={() => handleRepair(issue.repairAction!)}
                   disabled={repairingId === issue.repairAction}
-                  className="shrink-0 px-3 py-1 rounded-[7px] border-none bg-accent-bright text-white text-[10px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
+                  className="shrink-0 px-3 py-1 rounded-xs border-none bg-accent-bright text-accent-fg text-[10px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {repairingId === issue.repairAction ? 'Repairing...' : 'Repair'}
