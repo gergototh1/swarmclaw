@@ -328,14 +328,22 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
 
   return (
     <>
+    {/* The toolbar is `bg-raised`, the ladder step above the window ground the
+        thread scrolls on, which is what a macOS toolbar is in both themes.
+        It used to be an inline gradient built on `var(--rgb-bg, 15,15,26)`,
+        and --rgb-bg is defined nowhere in this repo -- the fallback always
+        won, so the header was a hardcoded near-black in both themes and no
+        gate could see it, being an inline style rather than a class. The two
+        decorative radials it carried (cyan at 8%, amber at 5%) went with it:
+        they are Midnight Glass leftovers, invisible on the dark ground this
+        palette replaced them with and a dirty cyan-amber cast on the light
+        one. The backdrop blur went too -- the header is a `shrink-0` sibling
+        in a flex column, so the thread stops at its edge rather than passing
+        under it, and a 20px blur with a 1.4 saturate was compositing an
+        opaque background against nothing every frame. */}
     <header
-      className="relative z-20 border-b border-line-subtle shrink-0"
-      style={{
-        background: 'radial-gradient(circle at top left, rgba(66, 211, 255, 0.08), transparent 32%), radial-gradient(circle at top right, rgba(255, 190, 92, 0.05), transparent 28%), linear-gradient(180deg, rgba(var(--rgb-bg, 15,15,26), 0.96) 0%, rgba(var(--rgb-bg, 15,15,26), 0.9) 100%)',
-        backdropFilter: 'blur(20px) saturate(1.4)',
-        WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
-        ...(mobile ? { paddingTop: 'max(12px, env(safe-area-inset-top))' } : {}),
-      }}
+      className="relative z-20 border-b border-line-subtle shrink-0 bg-raised"
+      style={mobile ? { paddingTop: 'max(12px, env(safe-area-inset-top))' } : undefined}
     >
       {/* Main row */}
       <div className="flex flex-wrap items-start gap-3 px-4 py-2.5 min-h-[64px]">
@@ -540,7 +548,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
 
       {/* Context bar: tools and links */}
       {hasContextBar && (
-        <div className="border-t border-line-subtle bg-black/[0.08] px-4 py-2">
+        <div className="border-t border-line-subtle bg-layer-1 px-4 py-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           {hasContextPack && (
             <Tip label="Copy session context pack">

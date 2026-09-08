@@ -386,8 +386,8 @@ export function SidebarRail({
             onClick={goToDefaultChat}
             className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-[12px] font-600 cursor-pointer transition-all text-left
               ${isDefaultChat
-                ? 'bg-accent-bright/15 border border-accent-bright/25 text-accent-bright'
-                : 'bg-accent-bright/10 border border-accent-bright/20 text-accent-bright hover:bg-accent-bright/15'}`}
+                ? 'bg-accent-bright/15 border border-accent-bright/25 text-text'
+                : 'bg-surface border border-line-default text-text hover:bg-surface-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {defaultAgent ? (
@@ -401,7 +401,7 @@ export function SidebarRail({
             )}
             <div className="min-w-0">
               <div className="truncate">{defaultAgent?.name || 'Choose Agent'}</div>
-              <div className="text-[10px] font-500 text-accent-bright/75 mt-0.5 truncate">
+              <div className="text-[10px] font-500 text-text-3 mt-0.5 truncate">
                 {defaultAgent ? 'Default shortcut' : 'Pick an agent'}
               </div>
             </div>

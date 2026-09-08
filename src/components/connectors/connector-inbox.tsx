@@ -521,7 +521,7 @@ export function ConnectorInbox() {
                   setSelectedConnectorId(null)
                   setSelectedSessionId(null)
                 }}
-                className="w-full rounded-md border border-line-default bg-black/20 px-3 py-2.5 text-[13px] text-text outline-none focus:border-accent-bright/35"
+                className="w-full rounded-md border border-line-default bg-bg px-3 py-2.5 text-[13px] text-text outline-none focus:border-accent-bright/35"
               >
                 <option value="all">All connector types</option>
                 {platformOptions.map((platform) => (
