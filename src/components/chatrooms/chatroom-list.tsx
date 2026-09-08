@@ -171,7 +171,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
                             {chatroom.name}
                           </span>
                           {unreadCount > 0 && (
-                            <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-accent-bright px-1.5 py-0.5 text-[10px] font-700 text-white">
+                            <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-accent-bright px-1.5 py-0.5 text-[10px] font-700 text-accent-fg">
                               {unreadCount > 99 ? '99+' : unreadCount}
                             </span>
                           )}

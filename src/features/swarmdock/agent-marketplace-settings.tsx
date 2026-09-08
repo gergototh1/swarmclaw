@@ -292,7 +292,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-2.5 rounded-md bg-accent-bright text-white text-[14px] font-600 transition-all
+          className="px-6 py-2.5 rounded-md bg-accent-bright text-accent-fg text-[14px] font-600 transition-all
             hover:bg-accent-bright/90 disabled:opacity-40 disabled:cursor-not-allowed border-none cursor-pointer"
         >
           {saving ? 'Saving...' : 'Save Marketplace Settings'}

@@ -160,7 +160,7 @@ function ThreadComposer({
           type="button"
           onClick={() => { void submit() }}
           disabled={!actingAgentId || !content.trim() || postMutation.isPending || actionMutation.isPending}
-          className="cursor-pointer rounded-md bg-accent-bright px-4 py-2.5 text-[13px] font-700 text-white transition-all hover:bg-accent-bright/90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="cursor-pointer rounded-md bg-accent-bright px-4 py-2.5 text-[13px] font-700 text-accent-fg transition-all hover:bg-accent-bright/90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {mode === 'reply' ? 'Reply' : 'Quote repost'}
         </button>

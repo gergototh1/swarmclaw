@@ -925,7 +925,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
           </svg>
           Latest
           {unreadCount > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent-bright text-white text-[10px] font-700">
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent-bright text-accent-fg text-[10px] font-700">
               {unreadCount}
             </span>
           )}

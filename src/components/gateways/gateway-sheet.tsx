@@ -725,7 +725,7 @@ export function GatewaySheet() {
               <p className="text-[11px] text-text-3/55">
                 Use commands exposed by the selected node, such as file, shell, or notification actions that gateway policy allows.
               </p>
-              <button type="button" onClick={handleInvoke} disabled={invoking || !invokeNodeId || !invokeCommand.trim()} className="px-3 py-2 rounded-sm bg-accent-bright text-white text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">
+              <button type="button" onClick={handleInvoke} disabled={invoking || !invokeNodeId || !invokeCommand.trim()} className="px-3 py-2 rounded-sm bg-accent-bright text-accent-fg text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">
                 {invoking ? 'Sending…' : 'Invoke'}
               </button>
             </div>
@@ -746,7 +746,7 @@ export function GatewaySheet() {
           <button type="button" onClick={handleCheck} className="px-3 py-2 rounded-sm border border-line-default bg-transparent text-text-2 text-[12px] font-600 hover:bg-layer-2 transition-all cursor-pointer">
             {checking ? 'Checking…' : 'Health Check'}
           </button>
-          <button type="button" onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-sm bg-accent-bright text-white text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">
+          <button type="button" onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-sm bg-accent-bright text-accent-fg text-[12px] font-700 border-none hover:brightness-110 transition-all cursor-pointer disabled:opacity-40">
             {saving ? 'Saving…' : (editing ? 'Save Gateway' : 'Create Gateway')}
           </button>
         </div>

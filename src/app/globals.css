@@ -165,7 +165,18 @@
   --color-accent-soft: var(--ac-soft);
   --color-accent-glow: var(--ac-glow);
   --color-accent-bright: var(--ac);
-  --color-user-text: #ffffff;
+  /* The foreground for text sitting ON a filled accent surface, and the one
+     token in this block that exists because Orchid is not systemBlue. A blue
+     accent is dark in both themes, so `text-white` on it was always right and
+     ~85 class lists say exactly that. Orchid is light in dark mode (#A78BFA)
+     and dark in light mode (#7C3AED), so a fixed white label measures 2.72:1
+     on the dark-mode button -- unreadable -- and 5.70:1 on the light-mode one.
+     --ac-fg flips with the theme instead: near-black on the light violet,
+     white on the dark violet, 7.19:1 and 5.70:1. --color-user-text is the same
+     value under its older name, because the user bubble is a filled accent
+     surface like any other and had the same bug. */
+  --color-accent-fg: var(--ac-fg);
+  --color-user-text: var(--ac-fg);
   --color-success: var(--st-green);
   --color-success-soft: var(--st-green-soft);
   --color-danger: var(--st-red);
@@ -283,20 +294,24 @@
   --color-cyan-400: var(--st-teal);
   --color-cyan-500: color-mix(in srgb, var(--st-teal) 88%, #000000);
   --color-cyan-600: color-mix(in srgb, var(--st-teal) 72%, #000000);
-  /* sky -> systemBlue */
-  --color-sky-100: color-mix(in srgb, var(--ac) var(--ramp-100), #ffffff);
-  --color-sky-200: color-mix(in srgb, var(--ac) var(--ramp-200), #ffffff);
-  --color-sky-300: color-mix(in srgb, var(--ac) var(--ramp-300), #ffffff);
-  --color-sky-400: var(--ac);
-  --color-sky-500: color-mix(in srgb, var(--ac) 88%, #000000);
-  --color-sky-600: color-mix(in srgb, var(--ac) 72%, #000000);
+  /* sky -> systemBlue. These two families used to point at --ac, because the
+     accent WAS systemBlue and the two could not disagree. The accent is Orchid
+     now, and a `text-blue-400` on a chart series or an info banner still means
+     blue, so the ramps point at --st-blue -- systemBlue kept as a status
+     colour -- and render exactly what they rendered before. */
+  --color-sky-100: color-mix(in srgb, var(--st-blue) var(--ramp-100), #ffffff);
+  --color-sky-200: color-mix(in srgb, var(--st-blue) var(--ramp-200), #ffffff);
+  --color-sky-300: color-mix(in srgb, var(--st-blue) var(--ramp-300), #ffffff);
+  --color-sky-400: var(--st-blue);
+  --color-sky-500: color-mix(in srgb, var(--st-blue) 88%, #000000);
+  --color-sky-600: color-mix(in srgb, var(--st-blue) 72%, #000000);
   /* blue -> systemBlue */
-  --color-blue-100: color-mix(in srgb, var(--ac) var(--ramp-100), #ffffff);
-  --color-blue-200: color-mix(in srgb, var(--ac) var(--ramp-200), #ffffff);
-  --color-blue-300: color-mix(in srgb, var(--ac) var(--ramp-300), #ffffff);
-  --color-blue-400: var(--ac);
-  --color-blue-500: color-mix(in srgb, var(--ac) 88%, #000000);
-  --color-blue-600: color-mix(in srgb, var(--ac) 72%, #000000);
+  --color-blue-100: color-mix(in srgb, var(--st-blue) var(--ramp-100), #ffffff);
+  --color-blue-200: color-mix(in srgb, var(--st-blue) var(--ramp-200), #ffffff);
+  --color-blue-300: color-mix(in srgb, var(--st-blue) var(--ramp-300), #ffffff);
+  --color-blue-400: var(--st-blue);
+  --color-blue-500: color-mix(in srgb, var(--st-blue) 88%, #000000);
+  --color-blue-600: color-mix(in srgb, var(--st-blue) 72%, #000000);
   /* indigo -> systemIndigo */
   --color-indigo-100: color-mix(in srgb, var(--st-indigo) var(--ramp-100), #ffffff);
   --color-indigo-200: color-mix(in srgb, var(--st-indigo) var(--ramp-200), #ffffff);
@@ -356,75 +371,90 @@
      A shipped, user-facing knob: Settings > Theme writes this property onto
      <html> (src/views/settings/section-theme.tsx, re-applied on load by
      src/components/layout/dashboard-shell.tsx), so it has to keep meaning
-     something. It now defaults to macOS windowBackgroundColor and the five
-     opaque surfaces are mixed off it, with percentages chosen so the default
-     lands on AppKit's own numbers to within one or two steps of 255:
+     something. It is the dark ground of the "cool deep" palette, and the four
+     surfaces above it are mixed off it toward --surface-lift.
 
-       dark   window #1e1e1e (exact) - raised #272727 (#282828) -
-              card #292929 (#2a2a2a) - selected #393939 (#3a3a3c)
-       light  window #ededed (#ececec) - raised #f6f6f6 (#f5f5f5) -
-              card #ffffff (exact) - selected #dddddd (#dcdcdc)
+     The lift is not white, and that is the whole difference between this
+     palette and the AppKit greys it replaces. Cool deep separates its layers
+     by getting *bluer* as it rises -- the blue-minus-red gap runs 3, 4, 6, 11
+     across the four steps -- and mixing any colour toward white can only
+     shrink that gap. #6F7C93 is the tint plus (100, 112, 133), the direction
+     that fits all four chosen steps at once, so mixing toward it opens the gap
+     instead of closing it. The percentages land the default within one step of
+     255 of the values that were chosen from the rendered candidates:
+
+       ground   #0B0C0E (exact)   rail/panels #121417 (#121316)
+       cards    #17191E (#17191D) selected    #20242A (#20242B)
 
      Deriving rather than hardcoding is what keeps a chosen hue coherent: pick
      Forest and the cards go green with the page instead of staying grey on a
      green ground. Everything that is not a surface -- labels, separators,
      accent, status -- stays neutral or system-coloured and does not take the
-     tint, which is why the result still reads as macOS rather than as a
-     tinted web app. */
-  --neutral-tint: #1e1e1e;
+     tint. The .light ladder does NOT derive: see the note there. */
+  --neutral-tint: #0B0C0E;
+  --surface-lift: #6F7C93;
 
   /* Opaque surface ladder. Dark is :root; .light redefines these five plus the
      ladder, lines, labels, accent and status below, and nothing else. */
   --surface-bg: var(--neutral-tint);
-  --surface-raised: color-mix(in srgb, var(--neutral-tint) 96%, #ffffff);
-  --surface-card: color-mix(in srgb, var(--neutral-tint) 95%, #ffffff);
-  --surface-selected: color-mix(in srgb, var(--neutral-tint) 88%, #ffffff);
-  --surface-elevated: color-mix(in srgb, var(--neutral-tint) 82%, #ffffff);
+  --surface-raised: color-mix(in srgb, var(--neutral-tint) 93%, var(--surface-lift));
+  --surface-card: color-mix(in srgb, var(--neutral-tint) 88%, var(--surface-lift));
+  --surface-selected: color-mix(in srgb, var(--neutral-tint) 79%, var(--surface-lift));
+  --surface-elevated: color-mix(in srgb, var(--neutral-tint) 72%, var(--surface-lift));
 
-  /* Translucent overlay ladder. sf-2 over the window ground composites to
-     controlBackgroundColor, which is the point of the ramp. */
+  /* Translucent overlay ladder. sf-2 over the window ground composites to the
+     rail/panel step, which is the point of the ramp. */
   --sf-0: var(--surface-bg);
   --sf-1: rgba(255,255,255,0.03);
   --sf-2: rgba(255,255,255,0.05);
   --sf-3: rgba(255,255,255,0.10);
   --sf-4: rgba(255,255,255,0.16);
 
-  /* separatorColor is the middle one; the other two are the hairline and the
-     stronger rule this UI needs for panel edges. */
-  --ln-subtle: rgba(255,255,255,0.06);
-  --ln-default: rgba(255,255,255,0.10);
-  --ln-strong: rgba(255,255,255,0.16);
+  /* hairline / separator / strong. Cool deep runs its rules brighter than
+     AppKit did, because the ground underneath them is much darker. */
+  --ln-subtle: rgba(255,255,255,0.07);
+  --ln-default: rgba(255,255,255,0.13);
+  --ln-strong: rgba(255,255,255,0.20);
 
-  /* label / secondaryLabel / tertiaryLabel.
+  /* label / secondary / tertiary. Solid near-whites now, not white alphas:
+     an alpha label changes colour with whatever surface it lands on, and this
+     palette separates its surfaces far enough that that started to show.
 
-     --tx-3 is 0.50, not AppKit's literal tertiaryLabelColor alpha (0.25).
-     Neat, unmodified tertiaryLabelColor is correct at 0.25 -- it is what
-     AppKit itself draws. But 1,393 of the 2,332 text-text-3 call sites in
-     src stack a further Tailwind opacity modifier on top of the token
-     (text-text-3/60 alone is 361 sites), which this app's previous literal
-     --tx-3 (#8282a0, effectively "neat" brightness already) never had to
-     survive. Doubling the alpha down to 0.25 and then a /40-/70 modifier on
-     top compounds into 0.10-0.18 effective alpha, which is unreadable on
-     the #1e1e1e window ground (~1.3-1.8:1, WCAG's floor for any text is
-     4.5:1). 0.50 is chosen, not derived: it sits between the effective
-     alpha AppKit's own systemGray family renders at on this ground in each
-     theme (dark #98989D ~0.55, light #8E8E93 ~0.39), so it reads as a real,
-     brighter macOS neutral rather than an invented value, while staying
-     visibly dimmer than --tx-2 so the two tiers do not collapse into one.
-     It does not clear 4.5:1 for every stacked site -- /40 sites cannot
-     reach it at any --tx-3 value, the modifier alone caps effective alpha
-     too low -- see the codemod note in tertiary-contrast-report.md for the
-     real fix, which is stripping the stacked modifiers, not this token. */
-  --tx-1: rgba(255,255,255,0.85);
-  --tx-2: rgba(255,255,255,0.55);
-  --tx-3: rgba(255,255,255,0.50);
+     --tx-3 is the one that used to be a stopgap. It was 0.50 white alpha,
+     picked to survive the Tailwind opacity modifiers that 1,393 of the 2,332
+     text-text-3 call sites stack on top of it. It is now the palette's own
+     tertiary, #6E7681, and it is honest about what that buys: 4.26:1 on the
+     ground unmodified -- a hair under WCAG's 4.5:1 for normal text -- and
+     every stacked modifier takes it below that. /40 sites cannot reach 4.5:1
+     at any --tx-3 value; the modifier alone caps the effective alpha too low.
+     The real fix is still stripping the stacked modifiers, which is a codemod
+     over ~1,390 call sites and deliberately not done in this pass. */
+  --tx-1: #F2F3F5;
+  --tx-2: #A8AEB8;
+  --tx-3: #6E7681;
 
-  /* controlAccentColor (systemBlue) and its fills. */
-  --ac: #0A7AFF;
-  --ac-2: #409CFF;
-  --ac-soft: rgba(10,122,255,0.22);
-  --ac-glow: rgba(10,122,255,0.30);
-  --ac-ring: rgba(10,122,255,0.55);
+  /* ===== Orchid =====
+     The accent, and the one colour in this file that is a product decision
+     rather than a system value. It is deliberately far from systemGreen,
+     systemOrange and systemRed, which mean running, queued and failed, so a
+     violet control can never be mistaken for a status.
+
+     The two themes do NOT share a value, and cannot. #A78BFA is 7.19:1 on the
+     dark ground and 2.56:1 on the light one -- it fails as text on a light
+     page by more than a factor of two. #7C3AED is the same family four steps
+     down: 5.36:1 on the light ground, and the white label on top of it is
+     5.70:1. --ac-fg is what carries that flip to every filled accent surface.
+
+     --st-blue is systemBlue, kept because the repointed sky/blue ramps and the
+     "connected" badge still mean blue and should not turn violet with the
+     accent. */
+  --ac: #A78BFA;
+  --ac-2: #C4B5FD;
+  --ac-fg: #0B0C0E;
+  --ac-soft: rgba(167,139,250,0.20);
+  --ac-glow: rgba(167,139,250,0.30);
+  --ac-ring: rgba(167,139,250,0.55);
+  --ac-select: rgba(167,139,250,0.32);
 
   /* systemGreen / systemRed / systemOrange / systemYellow / systemPink.
      Separate from the accent on purpose: the accent is what the user's Mac
@@ -441,6 +471,8 @@
   --st-purple: #BF5AF2;
   --st-indigo: #5E5CE6;
   --st-teal: #64D2FF;
+  --st-blue: #0A7AFF;
+  --st-blue-soft: rgba(10,122,255,0.16);
 
   /* How far the 100/200/300 steps of the repointed Tailwind ramps mix toward
      white. Dark mode wants them genuinely pale -- that is bright type on a
@@ -449,12 +481,14 @@
   --ramp-200: 26%;
   --ramp-300: 55%;
 
-  --sf-glass: rgba(30,30,30,0.72);
+  --sf-glass: rgba(11,12,14,0.72);
 
   /* The code block's ground stays dark in both themes: highlight.js is loaded
      with github-dark-dimmed at the top of this file, and its token colours are
-     unreadable on a light surface. */
-  --code-surface: #1c1c1e;
+     unreadable on a light surface. It moved off AppKit's warm #1c1c1e onto the
+     cool ladder so a code block does not read as a warm patch on a blue-black
+     page. */
+  --code-surface: #16181C;
 
   --background: var(--surface-bg);
   --foreground: var(--tx-1);
@@ -463,13 +497,13 @@
   --popover: var(--surface-raised);
   --popover-foreground: var(--tx-1);
   --primary: var(--ac);
-  --primary-foreground: #ffffff;
+  --primary-foreground: var(--ac-fg);
   --secondary: var(--surface-card);
   --secondary-foreground: var(--tx-1);
   --muted: var(--surface-card);
   --muted-foreground: var(--tx-2);
   --accent: var(--ac);
-  --accent-foreground: #ffffff;
+  --accent-foreground: var(--ac-fg);
   --destructive: var(--st-red);
   --border: var(--ln-subtle);
   --input: var(--ln-default);
@@ -479,7 +513,7 @@
   --sidebar: var(--surface-bg);
   --sidebar-foreground: var(--tx-1);
   --sidebar-primary: var(--ac);
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: var(--ac-fg);
   --sidebar-accent: var(--ac-soft);
   --sidebar-accent-foreground: var(--tx-1);
   --sidebar-border: var(--ln-default);
@@ -500,9 +534,11 @@
   --status-connecting-bg: var(--st-orange-soft);
   --status-connecting-border: rgba(255,159,10,0.28);
   --status-connecting-fg: var(--st-orange);
-  --status-connected-bg: var(--ac-soft);
+  /* "connected" is informational blue, not the accent, and stays blue now that
+     the accent is Orchid -- it renders exactly what it rendered before. */
+  --status-connected-bg: var(--st-blue-soft);
   --status-connected-border: rgba(10,122,255,0.32);
-  --status-connected-fg: var(--ac);
+  --status-connected-fg: var(--st-blue);
   --status-disconnected-bg: var(--status-idle-bg);
   --status-disconnected-border: var(--status-idle-border);
   --status-disconnected-fg: var(--status-idle-fg);
@@ -518,34 +554,53 @@
 }
 
 .light {
-  /* Exactly the values :root sets, and nothing else. There is no !important
-     layer under this any more -- see the note below where one used to be. */
-  --surface-bg: color-mix(in srgb, var(--neutral-tint) 8%, #ffffff);
-  --surface-raised: color-mix(in srgb, var(--neutral-tint) 4%, #ffffff);
-  --surface-card: #ffffff;
-  --surface-selected: color-mix(in srgb, var(--neutral-tint) 15%, #ffffff);
-  --surface-elevated: color-mix(in srgb, var(--neutral-tint) 21%, #ffffff);
+  /* Exactly the keys :root sets, and nothing else. There is no !important
+     layer under this any more -- see the note below where one used to be.
 
+     These five are literals, and :root's four are not. That is not an
+     oversight, it is arithmetic: the light ladder lives between 216 and 255,
+     and mixing a dark hue into a value that high either overshoots the gamut
+     or has to be dosed so weakly (2% at the ground, 7% at the selected step)
+     that a hue change moves the result by one or two parts in 255. So
+     --neutral-tint is read by the dark ladder only. The hue knob in Settings >
+     Theme still recolours the whole app in dark mode; in light mode it now
+     does nothing, and pretending otherwise with a 2% mix would be the
+     appearance of a feature rather than the feature. */
+  --surface-bg: #F7F8FA;
+  --surface-raised: #FFFFFF;
+  --surface-card: #F2F4F7;
+  --surface-selected: #E4E7EC;
+  --surface-elevated: #D8DCE3;
+
+  /* The ink is (16,24,40), not black: a neutral-black wash over a cool ground
+     greys it, and these alphas are what draw every hover and every rule. */
   --sf-0: var(--surface-bg);
-  --sf-1: rgba(0,0,0,0.03);
-  --sf-2: rgba(0,0,0,0.05);
-  --sf-3: rgba(0,0,0,0.10);
-  --sf-4: rgba(0,0,0,0.16);
+  --sf-1: rgba(16,24,40,0.03);
+  --sf-2: rgba(16,24,40,0.05);
+  --sf-3: rgba(16,24,40,0.10);
+  --sf-4: rgba(16,24,40,0.16);
 
-  --ln-subtle: rgba(0,0,0,0.06);
-  --ln-default: rgba(0,0,0,0.10);
-  --ln-strong: rgba(0,0,0,0.16);
+  --ln-subtle: rgba(16,24,40,0.06);
+  --ln-default: rgba(16,24,40,0.11);
+  --ln-strong: rgba(16,24,40,0.18);
 
-  /* See the :root --tx-3 comment. Same 0.25 -> 0.50 move, same reasoning. */
-  --tx-1: rgba(0,0,0,0.85);
-  --tx-2: rgba(0,0,0,0.55);
-  --tx-3: rgba(0,0,0,0.50);
+  /* Solid, like :root's. --tx-3 is decorative-weight here and the report says
+     so out loud: #98A2B3 is 2.42:1 on the light ground unmodified, so it is
+     readable as a hint or a separator label and not as body copy. That is the
+     chosen value; the stacked-modifier codemod is what would make it matter. */
+  --tx-1: #101828;
+  --tx-2: #475467;
+  --tx-3: #98A2B3;
 
-  --ac: #007AFF;
-  --ac-2: #3395FF;
-  --ac-soft: rgba(0,122,255,0.16);
-  --ac-glow: rgba(0,122,255,0.24);
-  --ac-ring: rgba(0,122,255,0.45);
+  /* Orchid, four steps down. See the :root note for why it cannot be the same
+     value: #A78BFA measures 2.56:1 on --surface-bg here. */
+  --ac: #7C3AED;
+  --ac-2: #8B5CF6;
+  --ac-fg: #ffffff;
+  --ac-soft: rgba(124,58,237,0.10);
+  --ac-glow: rgba(124,58,237,0.24);
+  --ac-ring: rgba(124,58,237,0.45);
+  --ac-select: rgba(124,58,237,0.24);
 
   /* The system colours split in light mode, and this is the one place in the
      palette where the light value is not simply the light variant of the dark
@@ -556,7 +611,7 @@
      foreground colours take Apple's own accessible (increased-contrast)
      variants of the same five system colours. Both halves are AppKit's; this
      is the pairing AppKit itself uses when Increase Contrast is on. Dark mode
-     needs no such split -- #32D74B on #1e1e1e is 9:1 -- so :root above holds
+     needs no such split -- #32D74B on #0B0C0E is 11.6:1 -- so :root above holds
      one value per colour. */
   --st-green: #248A3D;
   --st-green-soft: rgba(40,205,65,0.16);
@@ -570,12 +625,14 @@
   --st-purple: #8944AB;
   --st-indigo: #3634A3;
   --st-teal: #0071A4;
+  --st-blue: #007AFF;
+  --st-blue-soft: rgba(0,122,255,0.14);
 
   --ramp-100: 62%;
   --ramp-200: 74%;
   --ramp-300: 88%;
 
-  --sf-glass: rgba(246,246,246,0.72);
+  --sf-glass: rgba(255,255,255,0.72);
 
   --status-running-border: rgba(40,205,65,0.34);
   --status-error-border: rgba(255,59,48,0.32);
@@ -690,7 +747,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 }
 
 /* Selection */
-::selection { background: rgba(10,122,255,0.35); }
+::selection { background: var(--ac-select); }
 
 /* ===== Animations ===== */
 @keyframes msg-in {
@@ -887,7 +944,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 
 /* AI avatar mood animations */
 @keyframes ai-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
-@keyframes ai-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(10,122,255,0); } 50% { box-shadow: 0 0 12px 4px rgba(10,122,255,0.35); } }
+@keyframes ai-glow { 0%,100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 12px 4px var(--color-accent-glow); } }
 @keyframes ai-shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-3px); } 40% { transform: translateX(3px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(2px); } }
 @keyframes ai-bounce { 0%,100% { transform: scale(1); } 40% { transform: scale(1.25); } 60% { transform: scale(0.95); } }
 
@@ -1026,7 +1083,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 .bubble-user {
   background: linear-gradient(135deg, var(--color-user-bubble) 0%, var(--color-user-bubble-2) 100%);
   border-radius: var(--radius-lg) var(--radius-lg) var(--radius-xs) var(--radius-lg);
-  color: white;
+  color: var(--color-user-text);
   box-shadow: 0 1px 3px rgba(0,0,0,0.18);
 }
 
@@ -1046,7 +1103,9 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(10,122,255,0.08), rgba(10,122,255,0.02));
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-accent-bright) 8%, transparent),
+    color-mix(in srgb, var(--color-accent-bright) 2%, transparent));
   opacity: 0;
   transition: opacity 0.18s;
 }

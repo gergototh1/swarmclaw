@@ -238,7 +238,7 @@ export function ChatroomSheet() {
           <button
             onClick={handleSave}
             disabled={!name.trim() || saving || selectedAgentIds.length === 0}
-            className="flex-1 py-2.5 rounded-sm text-[13px] font-600 bg-accent-bright text-white hover:bg-accent-bright/90 transition-all disabled:opacity-50 cursor-pointer"
+            className="flex-1 py-2.5 rounded-sm text-[13px] font-600 bg-accent-bright text-accent-fg hover:bg-accent-bright/90 transition-all disabled:opacity-50 cursor-pointer"
           >
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Create Chatroom'}
           </button>

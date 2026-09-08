@@ -48,7 +48,7 @@ export function StepPath({
                 <div className="text-[15px] font-display font-700 text-text">{path.title}</div>
                 {path.badge ? (
                   <span className={`rounded-full px-2 py-1 text-[10px] font-700 uppercase tracking-[0.12em] ${
-                    active ? 'bg-accent-bright text-black' : 'bg-layer-2 text-text-3/80'
+                    active ? 'bg-accent-bright text-accent-fg' : 'bg-layer-2 text-text-3/80'
                   }`}>
                     {path.badge}
                   </span>
@@ -109,7 +109,7 @@ export function StepPath({
                 <div className="flex items-start justify-between gap-3">
                   <div className="text-[15px] font-display font-700 text-text">{kit.name}</div>
                   <span className={`rounded-full px-2 py-1 text-[10px] font-700 uppercase tracking-[0.12em] ${
-                    active ? 'bg-accent-bright text-black' : 'bg-layer-2 text-text-3/80'
+                    active ? 'bg-accent-bright text-accent-fg' : 'bg-layer-2 text-text-3/80'
                   }`}>
                     {kit.badge || formatAgentCount(kit.agents.length)}
                   </span>
@@ -147,7 +147,7 @@ export function StepPath({
         </button>
         <button
           onClick={onContinue}
-          className="px-8 py-3.5 rounded-md border-none bg-accent-bright text-white text-[15px] font-display font-600 cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200 shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
+          className="px-8 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-display font-600 cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200 shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
         >
           Continue to Providers
         </button>

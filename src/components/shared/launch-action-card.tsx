@@ -16,7 +16,7 @@ export function LaunchActionCard({ title, description, actionLabel, onClick, ton
         onClick={onClick}
         className={`mt-4 rounded-md px-4 py-2.5 text-[13px] font-display font-700 transition-all cursor-pointer ${
           tone === 'primary'
-            ? 'bg-accent-bright text-black hover:opacity-90'
+            ? 'bg-accent-bright text-accent-fg hover:opacity-90'
             : 'border border-line-default bg-layer-2 text-text-2 hover:bg-layer-3'
         }`}
       >

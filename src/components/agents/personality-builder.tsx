@@ -122,7 +122,7 @@ export function PersonalityBuilder({ fileType, content, onSave }: Props) {
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
-          className="self-start px-4 py-1.5 rounded-sm border-none bg-accent-bright text-white text-[12px] font-600 cursor-pointer transition-all hover:brightness-110 focus-visible:ring-1 focus-visible:ring-accent-bright/50"
+          className="self-start px-4 py-1.5 rounded-sm border-none bg-accent-bright text-accent-fg text-[12px] font-600 cursor-pointer transition-all hover:brightness-110 focus-visible:ring-1 focus-visible:ring-accent-bright/50"
           style={{ fontFamily: 'inherit' }}
         >
           Apply to Raw Editor

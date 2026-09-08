@@ -167,7 +167,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
               <button
                 onClick={handleAdd}
                 disabled={!newKey.trim()}
-                className="flex-1 py-3 rounded-md border-none bg-accent-bright text-white text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
+                className="flex-1 py-3 rounded-md border-none bg-accent-bright text-accent-fg text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
                 style={{ fontFamily: 'inherit' }}
               >
                 Save Key

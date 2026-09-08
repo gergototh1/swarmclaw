@@ -41,7 +41,7 @@ function PathCard({
         <button
           type="button"
           onClick={onPrimary}
-          className="rounded-sm bg-accent-bright px-3.5 py-2 text-[12px] font-display font-700 text-black transition-opacity hover:opacity-90"
+          className="rounded-sm bg-accent-bright px-3.5 py-2 text-[12px] font-display font-700 text-accent-fg transition-opacity hover:opacity-90"
         >
           {primaryLabel}
         </button>

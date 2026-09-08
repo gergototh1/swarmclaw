@@ -36,7 +36,7 @@ export function ErrorFallback({
         <div className="flex flex-wrap items-center justify-center gap-3">
           <button
             onClick={onPrimaryAction}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-md border-none bg-accent-bright px-6 py-3 text-[14px] font-600 text-white shadow-[0_4px_16px_rgba(99,102,241,0.2)] transition-all hover:brightness-110 active:scale-[0.97]"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-md border-none bg-accent-bright px-6 py-3 text-[14px] font-600 text-accent-fg shadow-[0_4px_16px_rgba(99,102,241,0.2)] transition-all hover:brightness-110 active:scale-[0.97]"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

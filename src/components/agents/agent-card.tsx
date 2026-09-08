@@ -363,7 +363,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
             <button
               onClick={handleConfirmRun}
               disabled={!taskInput.trim()}
-              className="px-4 py-2 rounded-sm border-none bg-accent-bright text-white text-[13px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
+              className="px-4 py-2 rounded-sm border-none bg-accent-bright text-accent-fg text-[13px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
               style={{ fontFamily: 'inherit' }}
             >
               Run

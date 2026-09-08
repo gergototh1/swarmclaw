@@ -289,7 +289,7 @@ export function ProjectSheet() {
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
-          className="flex-1 py-2.5 rounded-lg bg-accent text-white text-[13px] font-600 hover:bg-accent-bright transition-colors"
+          className="flex-1 py-2.5 rounded-lg bg-accent text-accent-fg text-[13px] font-600 hover:bg-accent-bright transition-colors"
         >
           {editing ? 'Update' : 'Create'} Project
         </button>

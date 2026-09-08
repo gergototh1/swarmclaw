@@ -1250,7 +1250,7 @@ export function ConnectorSheet() {
                       setSavingCred(false)
                     }
                   }}
-                  className="px-4 py-1.5 rounded-sm bg-accent-bright text-white text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40"
+                  className="px-4 py-1.5 rounded-sm bg-accent-bright text-accent-fg text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {savingCred ? 'Saving...' : 'Save Key'}

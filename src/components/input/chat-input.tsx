@@ -402,7 +402,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   ${hasContent
                     ? shouldQueue
                       ? 'bg-amber-500/20 text-amber-400 active:scale-90 border border-amber-500/30'
-                      : 'bg-accent-bright text-white active:scale-90 shadow-[0_4px_16px_rgba(99,102,241,0.3)]'
+                      : 'bg-accent-bright text-accent-fg active:scale-90 shadow-[0_4px_16px_rgba(99,102,241,0.3)]'
                     : 'bg-layer-2 text-text-3 pointer-events-none'}`}
                 title={shouldQueue ? 'Queue message' : 'Send message'}
               >

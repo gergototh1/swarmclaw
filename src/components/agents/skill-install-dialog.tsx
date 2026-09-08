@@ -90,7 +90,7 @@ export function SkillInstallDialog({ open, onClose, skillName, installOptions = 
           <button
             onClick={handleInstall}
             disabled={installing}
-            className="px-4 py-2 rounded-sm border-none bg-accent-bright text-white text-[13px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
+            className="px-4 py-2 rounded-sm border-none bg-accent-bright text-accent-fg text-[13px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             {installing ? 'Installing...' : 'Install'}

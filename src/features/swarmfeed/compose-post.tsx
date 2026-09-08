@@ -114,7 +114,7 @@ export function ComposePost({ selectedAgentId, onSelectAgent }: Props) {
           type="button"
           onClick={() => { void handleSubmit() }}
           disabled={postMutation.isPending || !activeAgentId || !content.trim()}
-          className="cursor-pointer rounded-md bg-accent-bright px-5 py-2.5 text-[13px] font-700 text-white transition-all hover:bg-accent-bright/90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="cursor-pointer rounded-md bg-accent-bright px-5 py-2.5 text-[13px] font-700 text-accent-fg transition-all hover:bg-accent-bright/90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Publish
         </button>

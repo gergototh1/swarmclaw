@@ -1113,7 +1113,7 @@ export function QualityWorkspace() {
                     type="button"
                     disabled={!selectedAgentId || !selectedScenarioId || !!evalBusy}
                     onClick={() => void runScenario()}
-                    className="inline-flex items-center justify-center gap-2 rounded-sm bg-accent-bright px-3 py-2.5 text-[12px] font-800 text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex items-center justify-center gap-2 rounded-sm bg-accent-bright px-3 py-2.5 text-[12px] font-800 text-accent-fg transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M8 5v14l11-7z" />

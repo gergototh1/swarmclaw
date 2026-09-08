@@ -479,7 +479,7 @@ export function KnowledgeSheet() {
         <button
           onClick={() => { void handleSave() }}
           disabled={!canSave || saving}
-          className="flex-1 py-3.5 rounded-md border-none bg-accent-bright text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
+          className="flex-1 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
           style={{ fontFamily: 'inherit' }}
         >
           {saving ? 'Saving...' : 'Save'}

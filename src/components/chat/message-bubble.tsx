@@ -1076,7 +1076,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                   setEditing(false)
                 }
               }}
-              className="px-3 py-1.5 rounded-sm text-[11px] font-600 text-white bg-accent-bright hover:bg-accent-bright/80 border-none cursor-pointer transition-colors"
+              className="px-3 py-1.5 rounded-sm text-[11px] font-600 text-accent-fg bg-accent-bright hover:bg-accent-bright/80 border-none cursor-pointer transition-colors"
             >
               Save & Resend
             </button>

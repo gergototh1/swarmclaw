@@ -81,7 +81,7 @@ export function GatewayDisconnectOverlay({ agentId = null }: GatewayDisconnectOv
             navigateTo('settings')
             setSidebarOpen(true)
           }}
-          className="px-5 py-2 rounded-sm border-none bg-accent-bright text-white text-[13px] font-600 cursor-pointer transition-all hover:brightness-110"
+          className="px-5 py-2 rounded-sm border-none bg-accent-bright text-accent-fg text-[13px] font-600 cursor-pointer transition-all hover:brightness-110"
           style={{ fontFamily: 'inherit' }}
         >
           {agentId ? 'Open Agent Settings' : 'Open Settings'}

@@ -835,7 +835,7 @@ export function ChatroomView() {
             type="button"
             onClick={() => void handleInjectContext()}
             disabled={!injectContext.trim() || injectPending}
-            className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-accent-fg transition-opacity disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
           >
             {injectPending ? 'Injecting…' : 'Inject Context'}
           </button>

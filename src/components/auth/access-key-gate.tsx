@@ -174,7 +174,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                       <button
                         type="button"
                         onClick={() => setFirstTimeStep('confirm')}
-                        className="px-12 py-4 rounded-lg border-none bg-accent-bright text-white text-[16px] font-display font-600
+                        className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                           cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
                           shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
                       >
@@ -273,7 +273,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                       <button
                         type="submit"
                         disabled={loading || !key.trim()}
-                        className="px-12 py-4 rounded-lg border-none bg-accent-bright text-white text-[16px] font-display font-600
+                        className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                           cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
                           shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
                       >
@@ -309,7 +309,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                   <button
                     type="button"
                     onClick={() => { setKey(''); setError(''); setFirstTimeStep('paste-key') }}
-                    className="px-8 py-4 rounded-lg border-none bg-accent-bright text-white text-[16px] font-display font-600
+                    className="px-8 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                       cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
                       shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
                   >
@@ -354,7 +354,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                     <button
                       type="submit"
                       disabled={!key.trim() || loading}
-                      className="px-12 py-4 rounded-lg border-none bg-accent-bright text-white text-[16px] font-display font-600
+                      className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                         cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
                         shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
                     >
@@ -411,7 +411,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                 <button
                   type="submit"
                   disabled={!key.trim() || loading}
-                  className="px-12 py-4 rounded-lg border-none bg-accent-bright text-white text-[16px] font-display font-600
+                  className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                     cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
                     shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
                 >

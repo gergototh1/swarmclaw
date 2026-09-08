@@ -131,7 +131,7 @@ export function ExecConfigPanel({ agentId }: Props) {
             <button
               onClick={addPattern}
               disabled={saving || !newPattern.trim()}
-              className="px-3 py-1.5 rounded-sm border-none bg-accent-bright text-white text-[11px] font-600 cursor-pointer disabled:opacity-30 transition-all"
+              className="px-3 py-1.5 rounded-sm border-none bg-accent-bright text-accent-fg text-[11px] font-600 cursor-pointer disabled:opacity-30 transition-all"
               style={{ fontFamily: 'inherit' }}
             >
               Add

@@ -622,7 +622,7 @@ export function StepAgents({
         <button
           onClick={onSaveAndContinue}
           disabled={saving}
-          className="px-8 py-3.5 rounded-md border-none bg-accent-bright text-white text-[15px] font-display font-600
+          className="px-8 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-display font-600
             cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
             shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
         >

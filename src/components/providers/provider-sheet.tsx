@@ -498,7 +498,7 @@ export function ProviderSheet() {
                       setSavingKey(false)
                     }
                   }}
-                  className="px-4 py-1.5 rounded-sm bg-accent-bright text-white text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40"
+                  className="px-4 py-1.5 rounded-sm bg-accent-bright text-accent-fg text-[12px] font-600 cursor-pointer border-none hover:brightness-110 transition-all disabled:opacity-40"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {savingKey ? 'Saving...' : 'Save Key'}
@@ -586,7 +586,7 @@ export function ProviderSheet() {
         <button
           onClick={handleSave}
           disabled={isBuiltin ? false : (!name.trim() || !baseUrl.trim())}
-          className="flex-1 py-3.5 rounded-md border-none bg-accent-bright text-white text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
+          className="flex-1 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
           style={{ fontFamily: 'inherit' }}
         >
           {editing ? 'Save' : 'Create'}

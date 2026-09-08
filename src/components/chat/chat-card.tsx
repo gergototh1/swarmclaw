@@ -157,7 +157,7 @@ export function ChatCard({ session, active, onClick }: Props) {
           const lastRead = lastReadTimestamps[session.id] || 0
           const unread = (getSessionLastAssistantAt(session) || 0) > lastRead ? 1 : 0
           return unread > 0 ? (
-            <span className="shrink-0 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-accent-bright text-white text-[10px] font-600 px-1">
+            <span className="shrink-0 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-accent-bright text-accent-fg text-[10px] font-600 px-1">
               {unread}
             </span>
           ) : null

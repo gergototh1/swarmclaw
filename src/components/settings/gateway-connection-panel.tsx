@@ -180,7 +180,7 @@ export function GatewayConnectionPanel() {
           <button
             onClick={handleConnect}
             disabled={status === 'connecting'}
-            className="px-4 py-2 rounded-sm border-none bg-accent-bright text-white text-[12px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
+            className="px-4 py-2 rounded-sm border-none bg-accent-bright text-accent-fg text-[12px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             {status === 'connecting' ? 'Connecting...' : 'Connect'}
@@ -264,7 +264,7 @@ export function GatewayConnectionPanel() {
                 <button
                   onClick={() => handleRepair(issue.repairAction!)}
                   disabled={repairingId === issue.repairAction}
-                  className="shrink-0 px-3 py-1 rounded-xs border-none bg-accent-bright text-white text-[10px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
+                  className="shrink-0 px-3 py-1 rounded-xs border-none bg-accent-bright text-accent-fg text-[10px] font-600 cursor-pointer disabled:opacity-40 transition-all hover:brightness-110"
                   style={{ fontFamily: 'inherit' }}
                 >
                   {repairingId === issue.repairAction ? 'Repairing...' : 'Repair'}

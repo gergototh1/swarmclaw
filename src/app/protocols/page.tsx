@@ -381,7 +381,7 @@ export default function ProtocolsPage() {
                     <button
                       type="button"
                       onClick={() => setLauncherOpen(true)}
-                      className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
+                      className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-accent-fg transition-all hover:opacity-90 cursor-pointer"
                     >
                       Start structured session
                     </button>
@@ -438,7 +438,7 @@ export default function ProtocolsPage() {
                     <button
                       type="button"
                       onClick={() => router.push(DEFAULT_BUILDER_ROUTE)}
-                      className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
+                      className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-accent-fg transition-all hover:opacity-90 cursor-pointer"
                     >
                       Open builder
                     </button>
@@ -600,7 +600,7 @@ export default function ProtocolsPage() {
                     <button
                       type="button"
                       onClick={() => void handleCreate()}
-                      className="inline-flex items-center justify-center rounded-md bg-accent-bright px-4 py-2.5 text-[13px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
+                      className="inline-flex items-center justify-center rounded-md bg-accent-bright px-4 py-2.5 text-[13px] font-700 text-accent-fg transition-all hover:opacity-90 cursor-pointer"
                     >
                       Create structured session
                     </button>
@@ -681,7 +681,7 @@ export default function ProtocolsPage() {
                       <button
                         type="button"
                         onClick={() => void handleSaveTemplate()}
-                        className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-black transition-all hover:opacity-90 cursor-pointer"
+                        className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-accent-fg transition-all hover:opacity-90 cursor-pointer"
                       >
                         {templatePending === 'save-new' || templatePending === 'save-edit'
                           ? 'Saving…'
@@ -856,12 +856,12 @@ export default function ProtocolsPage() {
                         </button>
                       )}
                       {detail.run.status === 'draft' && (
-                        <button type="button" onClick={() => void handleAction({ action: 'start' })} className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-black cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'start' })} className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-accent-fg cursor-pointer">
                           {actionPending === 'start' ? 'Starting…' : 'Start'}
                         </button>
                       )}
                       {(detail.run.status === 'waiting' || detail.run.status === 'paused') && (
-                        <button type="button" onClick={() => void handleAction({ action: 'resume' })} className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-black cursor-pointer">
+                        <button type="button" onClick={() => void handleAction({ action: 'resume' })} className="rounded-sm bg-accent-bright px-3 py-2 text-[12px] font-700 text-accent-fg cursor-pointer">
                           {actionPending === 'resume' ? 'Resuming…' : 'Resume'}
                         </button>
                       )}

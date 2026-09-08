@@ -88,7 +88,7 @@ export function TabBehavior({
                   }}
                   className={`px-4 py-1.5 rounded-sm text-[13px] font-display font-500 transition-all duration-200
                     ${role === r
-                      ? 'bg-accent-bright text-white'
+                      ? 'bg-accent-bright text-accent-fg'
                       : 'bg-layer-2 text-text-3 hover:bg-layer-3'}`}
                 >
                   {r === 'worker' ? 'Worker' : 'Coordinator'}

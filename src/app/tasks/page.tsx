@@ -614,7 +614,7 @@ export default function TasksPage() {
               setEditingTaskId(null)
               setTaskSheetOpen(true)
             }}
-            className="px-5 py-2.5 rounded-md border-none bg-accent-bright text-white text-[14px] font-600 cursor-pointer
+            className="px-5 py-2.5 rounded-md border-none bg-accent-bright text-accent-fg text-[14px] font-600 cursor-pointer
               hover:brightness-110 active:scale-[0.97] transition-all shadow-[0_2px_12px_rgba(99,102,241,0.2)]"
             style={{ fontFamily: 'inherit' }}
           >
@@ -1002,7 +1002,7 @@ export default function TasksPage() {
             <button
               onClick={handleGitHubImport}
               disabled={githubImporting}
-              className="px-5 py-2.5 rounded-md border-none bg-accent-bright text-white text-[14px] font-700 transition-all disabled:cursor-not-allowed disabled:opacity-60"
+              className="px-5 py-2.5 rounded-md border-none bg-accent-bright text-accent-fg text-[14px] font-700 transition-all disabled:cursor-not-allowed disabled:opacity-60"
               style={{ fontFamily: 'inherit' }}
             >
               {githubImporting ? 'Importing...' : 'Import issues'}

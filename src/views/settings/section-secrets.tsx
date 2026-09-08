@@ -121,7 +121,7 @@ export function SecretsSection({ appSettings, inputClass }: SettingsSectionProps
 
           <div className="flex gap-3 pt-2">
             <button onClick={() => setAddingSecret(false)} className="flex-1 py-3 rounded-md border border-line-default bg-transparent text-text-2 text-[14px] font-600 cursor-pointer hover:bg-surface-2 transition-colors" style={{ fontFamily: 'inherit' }}>Cancel</button>
-            <button onClick={handleAddSecret} disabled={!secretName.trim() || !secretValue.trim()} className="flex-1 py-3 rounded-md border-none bg-accent-bright text-white text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110" style={{ fontFamily: 'inherit' }}>Save Secret</button>
+            <button onClick={handleAddSecret} disabled={!secretName.trim() || !secretValue.trim()} className="flex-1 py-3 rounded-md border-none bg-accent-bright text-accent-fg text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110" style={{ fontFamily: 'inherit' }}>Save Secret</button>
           </div>
         </div>
       ) : (

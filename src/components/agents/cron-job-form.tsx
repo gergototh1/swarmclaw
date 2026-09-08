@@ -126,7 +126,7 @@ export function CronJobForm({ agentId, onSaved, onCancel }: Props) {
         <button
           onClick={handleSave}
           disabled={saving || !name.trim()}
-          className="px-4 py-1.5 rounded-sm border-none bg-accent-bright text-white text-[12px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
+          className="px-4 py-1.5 rounded-sm border-none bg-accent-bright text-accent-fg text-[12px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
           style={{ fontFamily: 'inherit' }}
         >
           {saving ? 'Creating...' : 'Create'}

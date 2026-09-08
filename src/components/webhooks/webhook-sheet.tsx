@@ -408,7 +408,7 @@ export function WebhookSheet() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-8 py-3 rounded-md border-none bg-accent-bright text-white text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
+            className="px-8 py-3 rounded-md border-none bg-accent-bright text-accent-fg text-[14px] font-600 cursor-pointer disabled:opacity-30 transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             {saving ? 'Saving...' : editing ? 'Update' : 'Create'}

@@ -892,7 +892,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 type="button"
                 onClick={handleStartLocal}
                 disabled={loading !== 'idle'}
-                className="rounded-sm bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-white border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
+                className="rounded-sm bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-accent-fg border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
               >
                 {loading === 'starting-local' ? 'Starting…' : 'Deploy on This Host'}
               </button>
@@ -1204,7 +1204,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               type="button"
               onClick={handleGenerateBundle}
               disabled={loading !== 'idle'}
-              className="rounded-sm bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-white border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
+              className="rounded-sm bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-accent-fg border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
             >
               {loading === 'generating-bundle' ? 'Generating…' : 'Generate Bundle'}
             </button>

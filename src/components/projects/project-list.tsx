@@ -99,7 +99,7 @@ export function ProjectList() {
         </p>
         <button
           onClick={() => { setEditingProjectId(null); setProjectSheetOpen(true) }}
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 text-[13px] font-600 text-white bg-accent-bright rounded-sm hover:brightness-110 transition-all cursor-pointer border-none"
+          className="inline-flex items-center gap-1.5 px-5 py-2.5 text-[13px] font-600 text-accent-fg bg-accent-bright rounded-sm hover:brightness-110 transition-all cursor-pointer border-none"
           style={{ fontFamily: 'inherit' }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -126,7 +126,7 @@ export function ProjectList() {
           </div>
           <button
             onClick={() => { setEditingProjectId(null); setProjectSheetOpen(true) }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-600 text-white bg-accent-bright rounded-sm hover:brightness-110 transition-all cursor-pointer border-none"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-600 text-accent-fg bg-accent-bright rounded-sm hover:brightness-110 transition-all cursor-pointer border-none"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

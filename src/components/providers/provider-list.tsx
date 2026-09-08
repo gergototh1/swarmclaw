@@ -557,7 +557,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   type="button"
                   onClick={() => void handleSavePreparedGateway()}
                   disabled={savingDeploy}
-                  className="rounded-sm bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-white border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
+                  className="rounded-sm bg-accent-bright px-3.5 py-2 text-[12px] font-700 text-accent-fg border-none cursor-pointer hover:brightness-110 transition-all disabled:opacity-40"
                 >
                   {savingDeploy ? 'Saving…' : 'Save Prepared Gateway'}
                 </button>

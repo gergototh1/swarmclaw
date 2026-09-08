@@ -172,7 +172,7 @@ export function UserPicker() {
               <button
                 type="submit"
                 disabled={!hasName}
-                className="px-12 py-4 rounded-lg border-none bg-accent-bright text-white text-[16px] font-display font-600
+                className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                   cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
                   shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
                 style={{ fontFamily: 'inherit' }}

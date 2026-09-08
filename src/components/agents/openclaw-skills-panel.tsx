@@ -221,7 +221,7 @@ export function OpenClawSkillsPanel({ agentId, initialMode = 'all', initialAllow
       <button
         onClick={handleSave}
         disabled={saving}
-        className="px-4 py-1.5 rounded-sm border-none bg-accent-bright text-white text-[12px] font-600
+        className="px-4 py-1.5 rounded-sm border-none bg-accent-bright text-accent-fg text-[12px] font-600
           cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:brightness-110 self-start"
         style={{ fontFamily: 'inherit' }}
       >
