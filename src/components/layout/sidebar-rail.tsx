@@ -10,6 +10,7 @@ import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { DaemonIndicator } from '@/components/layout/daemon-indicator'
 import { NotificationCenter } from '@/components/shared/notification-center'
 import { RailTooltip } from '@/components/layout/nav-item'
+import { ThemeModeRailButton } from '@/components/shared/theme-mode-control'
 import { ExtensionPagesForSection } from '@/components/layout/extension-nav-items'
 import { useExtensionPages } from '@/hooks/use-extension-pages'
 import { useWs } from '@/hooks/use-ws'
@@ -348,7 +349,7 @@ export function SidebarRail({
       <div className={`flex items-center mb-4 shrink-0 ${railExpanded ? 'px-3 gap-2' : 'justify-center'}`}>
         <div className="w-10 h-10 rounded-md bg-accent-bright flex items-center justify-center shrink-0
           shadow-[0_2px_12px_rgba(99,102,241,0.2)]">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-white">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-accent-fg">
             <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor" />
           </svg>
         </div>
@@ -461,7 +462,7 @@ export function SidebarRail({
 
         <div className="flex-1" />
 
-        {/* Bottom: Daemon + Notifications + Settings + User */}
+        {/* Bottom: Daemon + Notifications + Settings + Theme + User */}
         <div className={`flex flex-col gap-1 ${railExpanded ? 'px-3' : 'items-center'}`}>
           {railExpanded && <DaemonIndicator />}
           {railExpanded ? (
@@ -477,6 +478,12 @@ export function SidebarRail({
           <nav className={`flex flex-col gap-0.5 ${railExpanded ? '' : 'items-center'}`}>
             {NAV_SECTIONS.filter((s) => s.footer).map(renderSection)}
           </nav>
+
+          {/* Light / Dark / System without opening Settings. Collapsed it is one
+              28px button that advances through the three; expanded it names the
+              mode it is on, the way the profile row beneath it names the user.
+              See theme-mode-control.tsx for why it cycles rather than lists. */}
+          <ThemeModeRailButton expanded={railExpanded} />
 
           {railExpanded ? (
             <button

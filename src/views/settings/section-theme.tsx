@@ -1,10 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Monitor, Moon, Sun } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
-import { normalizeThemeMode, type ThemeMode } from '@/lib/theme-mode'
+import { ThemeModeSegmented } from '@/components/shared/theme-mode-control'
 import type { SettingsSectionProps } from './types'
 
 const PRESETS = [
@@ -16,25 +14,11 @@ const PRESETS = [
   { label: 'Rose', color: '#2e1a24' },
 ]
 
-const THEME_MODES: Array<{ id: ThemeMode; label: string; Icon: typeof Sun }> = [
-  { id: 'light', label: 'Light', Icon: Sun },
-  { id: 'dark', label: 'Dark', Icon: Moon },
-  { id: 'system', label: 'System', Icon: Monitor },
-]
-
 export function ThemeSection({ appSettings, patchSettings, inputClass }: SettingsSectionProps) {
-  const { setTheme } = useTheme()
   const currentHue = appSettings.themeHue || PRESETS[0].color
-  const currentMode = normalizeThemeMode(appSettings.themeMode)
   const [customHex, setCustomHex] = useState(
     PRESETS.some((p) => p.color === currentHue) ? '' : currentHue,
   )
-
-  const applyMode = (mode: ThemeMode) => {
-    setTheme(mode)
-    patchSettings({ themeMode: mode })
-    toast.success('Theme updated')
-  }
 
   const applyHue = (color: string) => {
     patchSettings({ themeHue: color })
@@ -56,29 +40,12 @@ export function ThemeSection({ appSettings, patchSettings, inputClass }: Setting
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
         Choose a color scheme and shift the UI palette with a preset or custom hex color.
+        The hue applies to dark mode; light mode keeps its own neutral surfaces.
       </p>
 
-      <div className="inline-grid grid-cols-3 rounded-sm border border-line-default bg-layer-1 p-1 mb-5">
-        {THEME_MODES.map(({ id, label, Icon }) => {
-          const isActive = currentMode === id
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => applyMode(id)}
-              aria-pressed={isActive}
-              className={`h-9 px-3 rounded-xs flex items-center justify-center gap-2 text-[12px] font-600 transition-colors ${
-                isActive
-                  ? 'bg-accent text-white'
-                  : 'text-text-3 hover:text-text hover:bg-layer-2'
-              }`}
-              title={label}
-            >
-              <Icon className="w-4 h-4" aria-hidden="true" />
-              <span>{label}</span>
-            </button>
-          )
-        })}
+      {/* The same control the rail's footer carries, so the two cannot drift. */}
+      <div className="mb-5">
+        <ThemeModeSegmented />
       </div>
 
       {/* Preset swatches */}
