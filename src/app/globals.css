@@ -609,8 +609,8 @@
   --surface-bg: #EAEDF2;
   --surface-raised: #FFFFFF;
   --surface-card: #FFFFFF;
-  --surface-selected: #E8E8ED;
-  --surface-elevated: #DCDCE1;
+  --surface-selected: #DDDDE2;
+  --surface-elevated: #CFCFD4;
 
   /* The ground stays #EAEDF2 and does not move to Apple's #F5F5F7, which is
      the one value in this redesign that was not taken. #F5F5F7 is 1.06:1 from
@@ -620,7 +620,16 @@
      carries a visible #D2D2D7 rule; a console has forty, and half of them are
      nested. The two selected steps below DID move onto Apple's neutrals, and
      the rules below carry Apple's hairline, so the difference that remains is
-     five parts in 255 on one value. */
+     five parts in 255 on one value.
+
+     The two selected steps are systemGray5/systemGray4 territory, and the
+     values matter more than the family: a selected step has to sit visibly
+     BELOW the #EAEDF2 ground, because that is what selection does on a light
+     UI. The first version of this pass took #E8E8ED and #DCDCE1 straight off
+     Apple's light chrome and flattened the ladder doing it -- #E8E8ED is two
+     parts below the ground where the value it replaced was fourteen, so a
+     selected row stopped being visible as one. #DDDDE2 is thirteen below and
+     #CFCFD4 is twenty-seven, which restores the separation the ladder had. */
 
   /* raised and card hold the same value on purpose. In dark they are two
      steps of one ramp; in light both mean "forward of the page" and white is
@@ -1225,18 +1234,25 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   font-size: 11px; font-weight: 600; text-transform: uppercase;
   letter-spacing: 0.03em; border: 1px solid;
 }
-/* The fill is dropped and the outline is what remains. This design carries
-   status in the word and the badge's edge, never in a coloured surface -- a
-   filled badge and a filled control are then the same object, and the accent
-   is warm enough now to be mistaken for one. Every --status-*-bg below is
-   overridden to transparent rather than deleted, because the tokens still
-   feed the chart and dot colours that mean the same thing.
+/* The COLOURED fill is dropped; a neutral one takes its place. This design
+   carries status in the word and the badge's edge, never in a coloured
+   surface -- a filled badge and a filled control are then the same object,
+   and the accent is warm enough now to be mistaken for one.
+
+   It does not go to transparent, which is what the first version did. A badge
+   with no fill at all stops being an object on a dense page, and this app puts
+   dozens of them in a list; the language's own chip has a surface underneath
+   it too, just a neutral one. --color-layer-1 is a 3% overlay, so the badge
+   reads as its own small surface over whatever it lands on and needs no
+   per-container value. The --status-*-bg tokens are overridden rather than
+   deleted, because they still feed the chart and dot colours that mean the
+   same thing.
 
    590 was an SF Pro variable-font weight and is not a step on the ladder;
    0.04em tracking matches what codemod-type-ladder left everywhere else. */
 .status-badge-idle, .status-badge-running, .status-badge-error,
 .status-badge-connecting, .status-badge-connected, .status-badge-disconnected,
-.status-badge-approval { background: transparent; }
+.status-badge-approval { background: var(--color-layer-1); }
 .status-badge-idle { background: var(--status-idle-bg); border-color: var(--status-idle-border); color: var(--status-idle-fg); }
 .status-badge-running { background: var(--status-running-bg); border-color: var(--status-running-border); color: var(--status-running-fg); }
 .status-badge-error { background: var(--status-error-bg); border-color: var(--status-error-border); color: var(--status-error-fg); }
@@ -1244,6 +1260,43 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 .status-badge-connected { background: var(--status-connected-bg); border-color: var(--status-connected-border); color: var(--status-connected-fg); }
 .status-badge-disconnected { background: var(--status-disconnected-bg); border-color: var(--status-disconnected-border); color: var(--status-disconnected-fg); }
 .status-badge-approval { background: var(--status-approval-bg); border-color: var(--status-approval-border); color: var(--status-approval-fg); }
+
+/* ===== Apple grammar: one overlay =====
+   Five modal implementations had five different chromes: scrims at 72% and
+   50% black, one with a backdrop blur and one without, stacking levels of
+   1400, 100 and 50, panels on the window ground in one place and on `raised`
+   in another, and a bespoke 80px drop shadow on exactly one dialog. Nothing
+   about that was a decision; it accumulated.
+
+   These two classes are the decision, and they are classes rather than a
+   shared component because thirteen more overlays in this app are hand-rolled
+   and can adopt the chrome without being rewritten first.
+
+   The scrim keeps the value the two most-used implementations already had
+   rather than a third new one -- consistency was the complaint, and changing
+   the number as well would have answered a different one.
+
+   Modals keep a shadow, unlike every other surface in this design. A card is
+   told apart from the page by its rule and its fill step, but a panel floating
+   over a dimmed copy of the whole app is doing something no ladder step can
+   express, and macOS shadows its own sheets and menus for the same reason. */
+.overlay-scrim {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.overlay-panel {
+  background: var(--color-raised);
+  border: 1px solid var(--color-line-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
+}
+
+/* A dialog sits above a sheet, and a sheet above the app. Three levels that
+   mean something, replacing 1400 / 100 / 50, which meant nothing. */
+.z-overlay-sheet { z-index: 1300; }
+.z-overlay-dialog { z-index: 1400; }
 
 /* ===== Apple grammar: the pill =====
    A primary action is a pill, and 293 class lists already name themselves by

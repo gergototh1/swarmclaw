@@ -136,7 +136,7 @@ export function MissionEditSheet({ mission, onClose, onSaved }: EditSheetProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+    <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={onClose}>
       <div
         className="w-full max-w-lg rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}

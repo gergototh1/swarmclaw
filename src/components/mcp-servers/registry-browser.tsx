@@ -135,7 +135,7 @@ export function RegistryBrowser({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+    <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={onClose}>
       <div
         className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-line-default bg-surface"
         onClick={(e) => e.stopPropagation()}

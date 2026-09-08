@@ -114,7 +114,7 @@ export function AttachmentChip({
         />
         {!onOpenImage && lightbox && (
           <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer"
+            className="overlay-scrim z-overlay-dialog flex items-center justify-center cursor-pointer"
             onClick={() => setLightbox(false)}
           >
             <img src={url} alt="Preview" className="max-w-[90vw] max-h-[90vh] rounded-md shadow-2xl" />

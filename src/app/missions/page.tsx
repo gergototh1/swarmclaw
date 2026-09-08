@@ -289,7 +289,7 @@ function CreateMissionDialog({ open, sessions, onClose, onCreate }: CreateDialog
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+    <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={onClose}>
       <div
         className="w-full max-w-lg rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -634,7 +634,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
       </div>
 
       {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedReport(null)}>
+        <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={() => setSelectedReport(null)}>
           <div
             className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-md border border-line-default bg-bg shadow-[0_24px_64px_rgba(0,0,0,0.6)] p-5"
             onClick={(e) => e.stopPropagation()}
@@ -888,7 +888,7 @@ export default function MissionsPage() {
 
       {galleryOpen && (
         <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4"
+          className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4"
           onClick={() => setGalleryOpen(false)}
         >
           <div
