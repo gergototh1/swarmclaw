@@ -1321,6 +1321,55 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 .status-badge-disconnected { background: var(--status-disconnected-bg); border-color: var(--status-disconnected-border); color: var(--status-disconnected-fg); }
 .status-badge-approval { background: var(--status-approval-bg); border-color: var(--status-approval-border); color: var(--status-approval-fg); }
 
+/* ===== One page shell =====
+   Seven pages of the same shape scrolled in seven different containers with
+   five different paddings and no shared width at all -- /stream ran edge to
+   edge at 1335px, /autonomy sat in a 6xl column, /protocols capped at 1680px,
+   and the rest were whatever their workspace component happened to declare.
+   Moving between them moved the text.
+
+   The gutter is expressed as a padding rather than as a max-width on an inner
+   wrapper, because the seven pages put different things directly inside their
+   scrollers -- a full-bleed band on one, a grid on another -- and an inner
+   wrapper would have to be threaded through each of them. This constrains the
+   column without caring what the children are: the gutter grows to absorb
+   whatever is past 1200px, and never falls below the edge margin.
+
+   1200px because the widest content here is a three-column grid of cards, and
+   at more than that a card gets wider than it is tall and the row stops
+   reading as a row. */
+.page-frame, .page-shell {
+  flex: 1 1 0%;
+  min-height: 0;
+  padding: 24px 16px 48px;
+}
+/* .page-shell scrolls; .page-frame is the same gutter and column for a page
+   that fills the height and scrolls inside its own columns instead -- the
+   connector inbox is three panes side by side and must not scroll as a whole. */
+.page-shell { overflow-y: auto; }
+@media (min-width: 768px) {
+  .page-frame, .page-shell { padding-inline: 32px; }
+}
+
+/* The column, set on the children rather than as a percentage padding on the
+   shell itself. A percentage padding resolves against the CONTAINING BLOCK,
+   not the element, and the shell is a flex item -- measured, /autonomy came
+   out at a 988px column against /quality's 1200 for exactly that reason. This
+   does not care what the shell is laid out by.
+
+   A child that genuinely wants the full width opts out with .page-bleed. */
+.page-frame > *:not(.page-bleed),
+.page-shell > *:not(.page-bleed) {
+  /* width:100% before the cap, because some of these shells are flex columns
+     and `margin-inline: auto` on a flex item shrinks it to its content --
+     measured, /usage came out at a 349px column, the width of its segmented
+     control. With an explicit width the auto margins centre a full-width box
+     instead of collapsing one. */
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+}
+
 /* ===== Apple grammar: a section is a band, not a box =====
    The loudest thing wrong with these pages was that every page-level section
    was drawn as a card: a rounded, hairlined, filled box, with more rounded

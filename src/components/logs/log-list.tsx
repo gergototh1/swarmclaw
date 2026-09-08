@@ -248,7 +248,7 @@ export function LogList() {
       </div>
 
       {/* Log entries */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-8">
+      <div ref={scrollRef} className="page-shell">
         {entries.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-text-3 text-[12px]">
             No log entries

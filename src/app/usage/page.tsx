@@ -250,7 +250,7 @@ export default function UsagePage() {
 
   return (
     <MainContent>
-      <div className="flex-1 flex flex-col h-full overflow-y-auto">
+      <div className="page-shell flex flex-col">
         <div className="px-8 pt-6 pb-4 shrink-0" style={{ animation: 'fade-up 0.5s var(--ease-spring)' }}>
           <h1 className="font-display text-[28px] font-700 tracking-[-0.03em]">Usage</h1>
           <p className="text-[13px] text-text-3 mt-1">Token usage, cost tracking &amp; agent performance</p>

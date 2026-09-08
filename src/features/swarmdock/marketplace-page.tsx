@@ -78,7 +78,7 @@ export function MarketplacePage() {
 
   return (
     <MainContent>
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+      <div className="page-shell overscroll-contain">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8">
           <div className="mb-6">
             <h1 className="font-display text-[22px] font-700 tracking-[-0.02em] text-text">Marketplace</h1>
