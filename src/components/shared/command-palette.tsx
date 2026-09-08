@@ -282,11 +282,10 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
       >
         {/* Breathing glow effect */}
         <div className="absolute inset-0 pointer-events-none opacity-20" style={{ animation: 'glow-pulse 4s ease-in-out infinite' }}>
-          <div className="absolute inset-0 bg-gradient-to-b from-accent-bright/20 to-transparent" />
         </div>
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-line-subtle relative overflow-hidden">
-          <div className="absolute bottom-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-accent-bright/40 to-transparent" style={{ animation: 'glow-line 3s linear infinite' }} />
+          <div className="absolute bottom-0 left-0 h-[1px] w-full bg-line-subtle" style={{ animation: 'glow-line 3s linear infinite' }} />
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0 relative z-10">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>

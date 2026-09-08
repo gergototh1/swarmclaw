@@ -129,7 +129,6 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
       ) : (
         <div className="bubble-ai px-6 py-5 relative overflow-hidden">
           {/* Thinking glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent-bright/5 to-transparent" style={{ animation: 'shimmer-bar 3s linear infinite' }} />
           
           <div className="flex items-center gap-3 relative z-10">
             <div className="flex gap-2">

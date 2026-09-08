@@ -155,7 +155,7 @@ export function ProjectList() {
                 className={`group relative rounded-md border transition-all duration-200 cursor-pointer overflow-hidden
                   ${isActive
                     ? 'bg-layer-2 border-accent-bright/30'
-                    : 'bg-layer-1 border-line-subtle hover:bg-layer-2 hover:border-line-default hover:scale-[1.01]'}`}
+                    : 'bg-layer-1 border-line-subtle hover:bg-layer-2 hover:border-line-default'}`}
                 onClick={() => setActiveProjectFilter(isActive ? null : project.id)}
                 style={{
                   animation: 'fade-up 0.4s var(--ease-spring) both',

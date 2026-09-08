@@ -286,7 +286,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
                             openConnector(c.id)
                           }
                         }}
-                        className={`group relative flex flex-col rounded-md border p-4 cursor-pointer transition-all hover:border-line-default hover:bg-layer-1 hover:scale-[1.01] text-left w-full ${
+                        className={`group relative flex flex-col rounded-lg border p-4 cursor-pointer transition-all hover:border-line-default hover:bg-layer-1 text-left w-full ${
                           group === 'healthy'
                             ? 'border-emerald-500/15 bg-emerald-500/[0.03]'
                             : group === 'attention'

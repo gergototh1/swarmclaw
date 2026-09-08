@@ -124,7 +124,7 @@ export function MarketplacePage() {
                 </div>
               ) : (
                 tasks.map((task) => (
-                  <div key={task.id} className="rounded-md border border-line-subtle bg-surface/50 p-4">
+                  <div key={task.id} className="rounded-lg border border-line-subtle bg-surface/50 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -159,7 +159,7 @@ export function MarketplacePage() {
                 </div>
               ) : (
                 agents.map((agent) => (
-                  <div key={agent.id} className="rounded-md border border-line-subtle bg-surface/50 p-4">
+                  <div key={agent.id} className="rounded-lg border border-line-subtle bg-surface/50 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">

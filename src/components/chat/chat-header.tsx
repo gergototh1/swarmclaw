@@ -373,9 +373,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
               className="relative rounded-full transition-transform duration-500"
               style={{
                 padding: 2,
-                background: streaming
-                  ? 'linear-gradient(135deg, var(--color-accent-bright), var(--color-accent))'
-                  : 'linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03))',
+                background: streaming ? 'var(--color-accent-bright)' : 'var(--color-line-default)',
                 animation: streaming ? 'avatar-pulse 2s ease-in-out infinite' : undefined,
               }}
             >

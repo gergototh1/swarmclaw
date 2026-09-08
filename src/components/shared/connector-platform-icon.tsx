@@ -161,7 +161,7 @@ export function ConnectorPlatformIcon({
       return (
         <span
           aria-hidden
-          className={cn('inline-flex items-center justify-center rounded-full font-700 uppercase', className)}
+          className={cn('inline-flex items-center justify-center rounded-full font-700', className)}
           style={{ width: size, height: size, fontSize: Math.max(8, Math.floor(size * 0.5)), lineHeight: 1 }}
         >
           {getConnectorPlatformLabel(platform).charAt(0)}

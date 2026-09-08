@@ -139,7 +139,7 @@ export function TabNetwork({
           {routingTargets.map((target, index) => {
             const targetCredentials = resolveAgentSelectableProviderCredentials(target.provider, credentials, providerConfigs)
             return (
-              <div key={target.id} className="p-4 rounded-md border border-line-default bg-layer-1 space-y-3">
+              <div key={target.id} className="p-4 rounded-lg border border-line-default bg-layer-1 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
                     value={target.label || ''}

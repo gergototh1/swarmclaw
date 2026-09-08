@@ -197,7 +197,7 @@ export function KnowledgeDetail() {
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-2">
                 <h1 className="font-display text-[24px] font-700 tracking-[-0.03em] text-text truncate">{source.title}</h1>
-                <Badge variant="secondary" className=" text-[10px] px-2 py-0.5">{source.kind}</Badge>
+                <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{source.kind}</Badge>
                 <span className={`text-[11px] font-700 tracking-[0.03em] ${
                   source.syncStatus === 'error'
                     ? 'text-red-300'
@@ -208,8 +208,8 @@ export function KnowledgeDetail() {
                 >
                   {source.syncStatus === 'error' ? 'Sync error' : source.stale ? 'Stale' : 'Ready'}
                 </span>
-                {source.archivedAt ? <Badge variant="secondary" className=" text-[10px] px-2 py-0.5 text-amber-200">archived</Badge> : null}
-                {source.supersededBySourceId ? <Badge variant="secondary" className=" text-[10px] px-2 py-0.5 text-text-3">superseded</Badge> : null}
+                {source.archivedAt ? <Badge variant="secondary" className="text-[10px] px-2 py-0.5 text-amber-200">archived</Badge> : null}
+                {source.supersededBySourceId ? <Badge variant="secondary" className="text-[10px] px-2 py-0.5 text-text-3">superseded</Badge> : null}
               </div>
 
               {source.topSnippet && (
@@ -304,7 +304,7 @@ export function KnowledgeDetail() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-            <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
+            <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
               <p className="text-[10px] font-700 tracking-[0.03em] text-text-3 mb-1">Source</p>
               <p className="text-[13px] text-text-2">{source.sourceLabel || 'Manual note'}</p>
               {source.sourceUrl && (
@@ -317,7 +317,7 @@ export function KnowledgeDetail() {
               )}
             </div>
 
-            <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
+            <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
               <p className="text-[10px] font-700 tracking-[0.03em] text-text-3 mb-1">Indexing</p>
               <p className="text-[12px] text-text-2">Last indexed: {formatDateTime(source.lastIndexedAt)}</p>
               <p className="text-[12px] text-text-3 mt-1">Last sync: {formatDateTime(source.lastSyncedAt)}</p>
@@ -336,7 +336,7 @@ export function KnowledgeDetail() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-md border border-line-subtle bg-layer-1 p-4">
+          <div className="mt-4 rounded-lg border border-line-subtle bg-layer-1 p-4">
             <p className="text-[10px] font-700 tracking-[0.03em] text-text-3 mb-2">Supersede Source</p>
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <input

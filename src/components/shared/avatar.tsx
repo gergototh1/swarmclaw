@@ -22,7 +22,10 @@ function userGradient(name: string): string {
     hash = name.charCodeAt(i) + ((hash << 5) - hash)
   }
   const hue = Math.abs(hash) % 360
-  return `linear-gradient(135deg, hsl(${hue}, 70%, 35%), hsl(${(hue + 30) % 360}, 75%, 50%))`
+  // Flat. This was a two-stop gradient per agent -- a decorative gradient on
+  // the most-repeated object in the app, one in every row of every list. The
+  // hue still identifies the agent; the ramp said nothing.
+  return `hsl(${hue}, 62%, 42%)`
 }
 
 const pixelSizes: Record<string, number> = { xs: 24, sm: 28, md: 36, lg: 72 }

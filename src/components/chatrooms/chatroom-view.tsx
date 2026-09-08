@@ -388,7 +388,7 @@ export function ChatroomView() {
                   : `${memberAgents.length} agent${memberAgents.length !== 1 ? 's' : ''}${chatroom.description ? ` · ${chatroom.description}` : ''}`}
               </p>
               {isStructuredSessionRoom && linkedRun && (
-                <span className="px-1.5 py-0.5 rounded-xs bg-sky-500/10 text-[10px] font-700 tracking-[0.03em] text-sky-300">
+                <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/10 text-[10px] font-700 tracking-[0.03em] text-accent-bright">
                   {linkedRun.status}
                 </span>
               )}
@@ -403,7 +403,7 @@ export function ChatroomView() {
                 </span>
               )}
               {streamingAgents.size > 0 && (
-                <span className="px-1.5 py-0.5 rounded-xs bg-sky-500/10 text-[10px] font-700 tracking-[0.03em] text-sky-400">
+                <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/10 text-[10px] font-700 tracking-[0.03em] text-accent-bright">
                   {streamingAgents.size} active now
                 </span>
               )}
@@ -439,7 +439,7 @@ export function ChatroomView() {
                   <TooltipContent side="bottom" sideOffset={6}>
                     <div className="flex items-center gap-1.5">
                       <span>{agent.name}</span>
-                      {streamingAgents.has(agent.id) && <span className="text-[9px] text-sky-300">Click to inspect</span>}
+                      {streamingAgents.has(agent.id) && <span className="text-[9px] text-accent-bright">Click to inspect</span>}
                       {badge && <span className={`text-[9px] font-600 px-1 py-0.5 rounded-xs border ${badge.className}`}>{badge.label}</span>}
                       {muted && <span className="text-[9px] text-red-400">Muted</span>}
                     </div>
@@ -468,7 +468,7 @@ export function ChatroomView() {
               <button
                 type="button"
                 onClick={() => setInjectContextOpen(true)}
-                className="shrink-0 rounded-sm border border-sky-500/20 bg-sky-500/10 px-2.5 py-1.5 text-[11px] font-600 text-sky-100 hover:bg-sky-500/16 cursor-pointer transition-colors"
+                className="shrink-0 rounded-sm border border-accent-bright/20 bg-accent-bright/10 px-2.5 py-1.5 text-[11px] font-600 text-accent-bright hover:bg-accent-bright/16 cursor-pointer transition-colors"
               >
                 Inject Context
               </button>
@@ -479,7 +479,7 @@ export function ChatroomView() {
                 <button
                   type="button"
                   onClick={() => router.push(`/protocols?runId=${encodeURIComponent(activeParentRun.id)}`)}
-                  className="shrink-0 rounded-sm border border-sky-500/20 bg-sky-500/10 px-2.5 py-1.5 text-[11px] font-600 text-sky-100 hover:bg-sky-500/16 cursor-pointer transition-colors"
+                  className="shrink-0 rounded-sm border border-accent-bright/20 bg-accent-bright/10 px-2.5 py-1.5 text-[11px] font-600 text-accent-bright hover:bg-accent-bright/16 cursor-pointer transition-colors"
                 >
                   Watch Session
                 </button>
@@ -523,9 +523,9 @@ export function ChatroomView() {
         </div>
 
         {isStructuredSessionRoom && (
-          <div className="border-b border-line-subtle bg-sky-500/[0.04] px-4 py-3">
-            <div className="flex flex-wrap items-center gap-2 text-[12px] text-sky-100">
-              <span className="font-700 uppercase tracking-[0.03em] text-sky-200/72">Watching Live Room</span>
+          <div className="border-b border-line-subtle bg-accent-bright/[0.04] px-4 py-3">
+            <div className="flex flex-wrap items-center gap-2 text-[12px] text-accent-bright">
+              <span className="font-700 tracking-[0.03em] text-accent-bright/72">Watching Live Room</span>
               {linkedRun?.title && <span className="text-text-2">· {linkedRun.title}</span>}
             </div>
             <div className="mt-1 text-[12px] text-text-3">
@@ -729,7 +729,7 @@ export function ChatroomView() {
                 <div className="mt-0.5 text-[10px] tracking-[0.03em] text-text-3">Messages</div>
               </div>
               <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
-                <div className="text-[16px] font-display font-700 text-sky-300">{inspectedExecLogs.length}</div>
+                <div className="text-[16px] font-display font-700 text-accent-bright">{inspectedExecLogs.length}</div>
                 <div className="mt-0.5 text-[10px] tracking-[0.03em] text-text-3">Events</div>
               </div>
               <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2.5">
@@ -877,7 +877,7 @@ function RoomDetailsPanel({
         <div className="mt-3 grid grid-cols-2 gap-2">
           {[
             { label: 'Members', value: String(memberAgents.length), tone: 'text-text' },
-            { label: 'Active', value: String(streamingAgents.size), tone: 'text-sky-400' },
+            { label: 'Active', value: String(streamingAgents.size), tone: 'text-accent-bright' },
             { label: 'Pinned', value: String(pinnedMessages.length), tone: 'text-amber-400' },
             { label: 'Muted', value: String(mutedCount), tone: 'text-rose-400' },
           ].map((item) => (
@@ -931,7 +931,7 @@ function RoomDetailsPanel({
                           </span>
                         )}
                         {streamingAgents.has(agent.id) && (
-                          <span className="rounded-xs bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-700 tracking-[0.03em] text-sky-400">
+                          <span className="rounded-xs bg-accent-bright/10 px-1.5 py-0.5 text-[10px] font-700 tracking-[0.03em] text-accent-bright">
                             Active
                           </span>
                         )}

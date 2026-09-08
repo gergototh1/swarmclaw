@@ -87,7 +87,7 @@ export function ScheduleList({ inSidebar }: Props) {
                         })
                         setScheduleSheetOpen(true)
                       }}
-                      className="flex flex-col items-center gap-2 p-4 rounded-md border border-line-subtle
+                      className="flex flex-col items-center gap-2 p-4 rounded-lg border border-line-subtle
                         bg-surface cursor-pointer transition-all duration-200 hover:bg-surface-2
                         hover:border-line-default active:scale-[0.97]"
                       style={{ fontFamily: 'inherit' }}

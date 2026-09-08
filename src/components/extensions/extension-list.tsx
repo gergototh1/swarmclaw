@@ -542,7 +542,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
       tabIndex={0}
       onClick={() => onEdit(ext.filename)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(ext.filename) } }}
-      className={`group relative text-left p-4 rounded-md border transition-all cursor-pointer
+      className={`group relative text-left p-4 rounded-lg border transition-all cursor-pointer
         ${ext.enabled
           ? 'border-line-subtle bg-surface hover:bg-surface-2 hover:border-line-default'
           : 'border-line-subtle bg-surface/50 hover:bg-surface hover:border-line-default opacity-70 hover:opacity-100'

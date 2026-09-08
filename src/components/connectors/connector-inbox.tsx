@@ -475,7 +475,7 @@ export function ConnectorInbox() {
 
   return (
     <div className="flex-1 flex flex-col h-full min-h-0 px-5 md:px-6 py-5 gap-4">
-      <div className="rounded-lg border border-line-default bg-[linear-gradient(135deg,rgba(37,99,235,0.12),rgba(8,15,32,0.84)_48%,rgba(16,185,129,0.08))] overflow-hidden">
+      <div className="rounded-lg border border-line-default bg-surface overflow-hidden">
         <div className="px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-[720px]">
             <div className="text-[11px] tracking-[0.03em] text-accent-bright/80 font-700">Connector Inbox</div>

@@ -70,7 +70,7 @@ export function PostThreadSheet({
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-md border border-line-subtle bg-surface/60 p-4 text-[13px] text-text-3">
+                  <div className="rounded-lg border border-line-subtle bg-surface/60 p-4 text-[13px] text-text-3">
                     No replies yet.
                   </div>
                 )}

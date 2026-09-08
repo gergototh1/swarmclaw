@@ -592,7 +592,7 @@ export function ExtensionSheet() {
           )}
 
           {tab === 'url' && (
-            <div className="p-5 rounded-md bg-surface border border-line-subtle">
+            <div className="p-5 rounded-lg bg-surface border border-line-subtle">
               <div className="mb-4">
                 <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Extension URL</label>
                 <input

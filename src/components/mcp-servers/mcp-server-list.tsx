@@ -339,7 +339,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
       ) : (
         <>
           {!inSidebar && inspectorServerId && (
-            <div className="mb-4 p-4 rounded-md border border-line-default bg-surface-2">
+            <div className="mb-4 p-4 rounded-lg border border-line-default bg-surface-2">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="min-w-0">
                   <h3 className="font-display text-[14px] font-600 text-text truncate">
@@ -437,7 +437,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                     handleEdit(server.id)
                   }
                 }}
-                className="w-full text-left p-4 rounded-md border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer"
+                className="w-full text-left p-4 rounded-lg border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2 min-w-0">

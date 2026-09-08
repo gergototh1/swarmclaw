@@ -244,7 +244,7 @@ export function RunList() {
               <button
                 key={run.id}
                 onClick={() => openSelected(run)}
-                className="w-full text-left p-3 rounded-sm border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer block hover:scale-[1.01] active:scale-[0.99]"
+                className="w-full text-left p-3 rounded-sm border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer block active:scale-[0.99]"
                 style={{
                   animation: 'fade-up 0.4s var(--ease-spring) both',
                   animationDelay: `${0.1 + idx * 0.02}s`
@@ -302,11 +302,11 @@ export function RunList() {
             <div className="mb-6">
               <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">Brief</label>
               {briefLoading ? (
-                <div className="rounded-md border border-line-subtle bg-layer-1 p-4 text-[11px] text-text-3">
+                <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 text-[11px] text-text-3">
                   Loading brief...
                 </div>
               ) : selectedBrief ? (
-                <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
+                <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                   <div className="text-[13px] font-700 text-text">{selectedBrief.title}</div>
                   <p className="mt-1 text-[12px] leading-relaxed text-text-3">{selectedBrief.objective}</p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -347,7 +347,7 @@ export function RunList() {
                   )}
                 </div>
               ) : (
-                <div className="rounded-md border border-line-subtle bg-layer-1 p-4 text-[11px] text-text-3">
+                <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 text-[11px] text-text-3">
                   No brief available for this run.
                 </div>
               )}
@@ -384,7 +384,7 @@ export function RunList() {
             {selected.messagePreview && (
               <div className="mb-6">
                 <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">Message</label>
-                <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-md p-4 max-h-[200px] overflow-auto border border-line-subtle">
+                <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-lg p-4 max-h-[200px] overflow-auto border border-line-subtle">
                   {selected.messagePreview}
                 </pre>
               </div>
@@ -404,7 +404,7 @@ export function RunList() {
             {selected.resultPreview && (
               <div className="mb-6">
                 <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-2">Result</label>
-                <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-md p-4 max-h-[200px] overflow-auto border border-line-subtle">
+                <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-lg p-4 max-h-[200px] overflow-auto border border-line-subtle">
                   {selected.resultPreview}
                 </pre>
                 {selectedResultGrounding && (

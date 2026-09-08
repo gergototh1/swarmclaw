@@ -192,8 +192,8 @@ function ReleaseReadinessPanel({
         </div>
       ) : (
         <div className="mt-4 grid gap-4 xl:grid-cols-[260px_1fr]">
-          <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
-            <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em]', readinessStatusClass(report.status))}>
+          <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+            <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-700 tracking-[0.03em]', readinessStatusClass(report.status))}>
               {report.status}
             </span>
             <div className={cn('mt-4 font-display text-[42px] font-700 tracking-[-0.04em]', readinessScoreTone(report.status))}>{report.score}</div>
@@ -250,7 +250,7 @@ function ReleaseReadinessPanel({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-[12px] font-700 text-text">{action.title}</div>
-                        <span className={cn('rounded-full border px-2 py-0.5 text-[9px] font-700 uppercase tracking-[0.03em]', action.severity === 'high' ? 'border-rose-500/25 text-rose-200' : action.severity === 'medium' ? 'border-amber-500/25 text-amber-200' : 'border-emerald-500/25 text-emerald-200')}>
+                        <span className={cn('rounded-full border px-2 py-0.5 text-[9px] font-700 tracking-[0.03em]', action.severity === 'high' ? 'border-rose-500/25 text-rose-200' : action.severity === 'medium' ? 'border-amber-500/25 text-amber-200' : 'border-emerald-500/25 text-emerald-200')}>
                           {action.severity}
                         </span>
                       </div>
@@ -304,8 +304,8 @@ function ArchitectureHealthPanel({
         </div>
       ) : (
         <div className="mt-4 grid gap-4 xl:grid-cols-[260px_1fr]">
-          <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
-            <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em]', architectureStatusClass(report.status))}>
+          <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+            <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-700 tracking-[0.03em]', architectureStatusClass(report.status))}>
               {report.status}
             </span>
             <div className={cn('mt-4 font-display text-[42px] font-700 tracking-[-0.04em]', architectureScoreTone(report.status))}>{report.score}</div>
@@ -330,7 +330,7 @@ function ArchitectureHealthPanel({
                   <div key={domain.id} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="text-[12px] font-700 text-text">{domain.title}</div>
-                      <span className={cn('rounded-full border px-2 py-0.5 text-[9px] font-700 uppercase tracking-[0.03em]', architectureStatusClass(domain.status))}>
+                      <span className={cn('rounded-full border px-2 py-0.5 text-[9px] font-700 tracking-[0.03em]', architectureStatusClass(domain.status))}>
                         {domain.status}
                       </span>
                     </div>
@@ -407,7 +407,7 @@ function EvalEnvironmentPanel({ plan, loading, onRefresh }: {
       ) : (
         <div className="mt-3 flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={cn('rounded-full border px-2 py-1 text-[10px] font-700 uppercase tracking-[0.03em]', environmentStatusClass(plan.status))}>
+            <span className={cn('rounded-full border px-2 py-1 text-[10px] font-700 tracking-[0.03em]', environmentStatusClass(plan.status))}>
               {plan.status}
             </span>
             {plan.target && (
@@ -431,7 +431,7 @@ function EvalEnvironmentPanel({ plan, loading, onRefresh }: {
           <div className="flex flex-col gap-1.5">
             {plan.checks.slice(0, 4).map((check) => (
               <div key={`${check.code}:${check.message}`} className={cn('rounded-sm border px-2.5 py-2 text-[11px] leading-relaxed', checkClass(check.level))}>
-                <span className="font-700 uppercase tracking-[0.03em]">{check.level}</span>
+                <span className="font-700 tracking-[0.03em]">{check.level}</span>
                 <span className="ml-2">{check.message}</span>
               </div>
             ))}
@@ -500,7 +500,7 @@ function EvalGatePanel({
             type="button"
             onClick={() => onScopeChange(item)}
             className={cn(
-              'flex-1 rounded-sm px-2 py-1.5 text-[10px] font-700 uppercase tracking-[0.03em] transition-colors',
+              'flex-1 rounded-sm px-2 py-1.5 text-[10px] font-700 tracking-[0.03em] transition-colors',
               scope === item ? 'bg-layer-3 text-text' : 'text-text-3 hover:bg-layer-2',
             )}
           >
@@ -514,7 +514,7 @@ function EvalGatePanel({
       ) : (
         <div className="mt-3 flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={cn('rounded-full border px-2 py-1 text-[10px] font-700 uppercase tracking-[0.03em]', gateStatusClass(gate.status))}>
+            <span className={cn('rounded-full border px-2 py-1 text-[10px] font-700 tracking-[0.03em]', gateStatusClass(gate.status))}>
               {gate.status}
             </span>
             <span className="rounded-full bg-layer-2 px-2 py-1 text-[10px] font-700 text-text-3">
@@ -543,7 +543,7 @@ function EvalGatePanel({
           <div className="flex flex-col gap-1.5">
             {gate.checks.slice(0, 4).map((check) => (
               <div key={`${check.code}:${check.message}`} className={cn('rounded-sm border px-2.5 py-2 text-[11px] leading-relaxed', gateCheckClass(check.status))}>
-                <span className="font-700 uppercase tracking-[0.03em]">{check.status}</span>
+                <span className="font-700 tracking-[0.03em]">{check.status}</span>
                 <span className="ml-2">{check.message}</span>
               </div>
             ))}

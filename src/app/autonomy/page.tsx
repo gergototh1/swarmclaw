@@ -376,8 +376,6 @@ export default function AutonomyPage() {
     <div className="flex-1 overflow-y-auto px-6 py-6">
       <div className="mx-auto max-w-6xl space-y-5">
         <section className="relative overflow-hidden rounded-lg border border-line-subtle bg-surface">
-          <div className={`absolute inset-0 bg-gradient-to-br ${tone.glow}`} />
-          <div className="absolute right-[-60px] top-[-80px] h-48 w-48 rounded-full bg-layer-2 blur-3xl" />
           <div className="relative grid gap-6 p-6 md:p-7 xl:grid-cols-[minmax(0,1.4fr)_320px]">
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[10px] font-700 tracking-[0.03em] text-text-3">

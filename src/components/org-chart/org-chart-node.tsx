@@ -91,8 +91,7 @@ export function OrgChartNode({
   return (
     <div className="group relative">
       <div
-        className={`
-          select-none
+        className={`select-none
           rounded-md border px-3 py-2.5 transition-all duration-150
           ${disabled ? 'opacity-40' : ''}
           ${isDimmed ? 'opacity-30 pointer-events-none' : ''}
@@ -101,8 +100,7 @@ export function OrgChartNode({
           ${isLinkTarget ? 'ring-2 ring-emerald-400/50 border-emerald-400/30 cursor-pointer' : ''}
           ${isSelected ? 'ring-2 ring-accent-bright/40 border-accent-bright/25' : ''}
           ${isTeamHighlighted && teamColor ? 'ring-1 ring-opacity-40' : ''}
-          ${role === 'coordinator' ? 'border-accent-bright/20 bg-raised' : 'border-line-subtle bg-raised'}
-        `}
+          ${role === 'coordinator' ? 'border-accent-bright/20 bg-raised' : 'border-line-subtle bg-raised'}`}
         style={{
           width: 200,
           minHeight: 100,

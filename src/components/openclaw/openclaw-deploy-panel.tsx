@@ -1151,7 +1151,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 </p>
               </div>
 
-              <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
+              <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                 <div className="text-[11px] font-700 tracking-[0.03em] text-text-3 mb-3">In-House SSH Deploy</div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <input

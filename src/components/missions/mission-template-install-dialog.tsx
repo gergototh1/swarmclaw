@@ -159,7 +159,7 @@ export function MissionTemplateInstallDialog({ template, sessions, onClose, onIn
   return (
     <div className="overlay-scrim z-overlay-dialog flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-xl rounded-md border border-line-default bg-bg p-5 max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-xl rounded-lg border border-line-default bg-bg p-5 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3 mb-4">

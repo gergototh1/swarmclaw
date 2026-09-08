@@ -130,7 +130,7 @@ function ModelSwitcherInline({ session, agent }: { session: Session; agent: Agen
   }
 
   return (
-    <div className="mt-2 rounded-sm border border-line-default bg-black/[0.12] p-2.5">
+    <div className="mt-2 rounded-sm border border-line-default bg-layer-1 p-2.5">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] font-700 tracking-[0.03em] text-text-3">Switch Model</span>
         <button
@@ -240,10 +240,9 @@ export function InspectorPanel({ agent, session, onEditAgent, onDuplicateAgent, 
   }, [setInspectorOpen])
 
   return (
-    <div className="w-[420px] shrink-0 border-l border-line-subtle bg-bg flex flex-col h-full overflow-hidden fade-up-delay"
-      style={{ background: 'radial-gradient(circle at top right, rgba(66, 211, 255, 0.06), transparent 30%), linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))' }}>
+    <div className="w-[420px] shrink-0 border-l border-line-subtle bg-bg flex flex-col h-full overflow-hidden fade-up-delay">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-line-subtle shrink-0 bg-black/[0.12]">
+      <div className="px-4 pt-4 pb-3 border-b border-line-subtle shrink-0 bg-layer-1">
         <div className="flex items-start gap-3">
           <AgentAvatar seed={agent.avatarSeed || null} avatarUrl={agent.avatarUrl} name={agent.name} size={40} />
           <div className="min-w-0 flex-1">
@@ -280,7 +279,7 @@ export function InspectorPanel({ agent, session, onEditAgent, onDuplicateAgent, 
 
       {/* Tab bar */}
       <div className="px-4 py-3 shrink-0">
-      <div className="flex gap-1 rounded-md border border-line-subtle bg-black/[0.12] p-1 overflow-x-auto" role="tablist">
+      <div className="flex gap-1 rounded-md border border-line-subtle bg-layer-1 p-1 overflow-x-auto" role="tablist">
         {visibleTabs.map((tab) => (
           <button
             key={tab.id}
@@ -383,7 +382,7 @@ function IdentityCard({ agent }: { agent: Agent }) {
   }
 
   return (
-    <div className={panelCardClass('p-4 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]')}>
+    <div className={panelCardClass('p-4 bg-layer-1')}>
       {editing ? (
         <div>
           <SectionLabel>Description</SectionLabel>

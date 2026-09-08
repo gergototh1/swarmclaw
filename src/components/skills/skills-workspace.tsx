@@ -346,7 +346,7 @@ export function SkillsWorkspace() {
     <>
       <div className="flex-1 overflow-y-auto px-5 pb-8 md:px-6">
         <section className="relative overflow-hidden rounded-lg border border-line-default bg-[radial-gradient(circle_at_top_left,rgba(120,180,255,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.14),transparent_34%),rgba(255,255,255,0.02)] px-5 py-5 md:px-7 md:py-6">
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),transparent_28%,transparent_72%,rgba(255,255,255,0.04))]" />
+          <div className="absolute inset-0 bg-layer-1" />
           <div className="relative z-10">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">

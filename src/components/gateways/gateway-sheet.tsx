@@ -434,15 +434,15 @@ export function GatewaySheet() {
           <div className="text-[12px] font-700 tracking-[0.03em] text-text-3 mb-2">Deploy metadata</div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[12px] text-text-3">
             <div className="rounded-md border border-line-subtle bg-surface px-3 py-3">
-              <div className="uppercase tracking-[0.03em] text-text-3">Method</div>
+              <div className="tracking-[0.03em] text-text-3">Method</div>
               <div className="mt-1 text-text-2">{deployment.method || 'manual'}</div>
             </div>
             <div className="rounded-md border border-line-subtle bg-surface px-3 py-3">
-              <div className="uppercase tracking-[0.03em] text-text-3">Use case</div>
+              <div className="tracking-[0.03em] text-text-3">Use case</div>
               <div className="mt-1 text-text-2">{deployment.useCase || 'general'}</div>
             </div>
             <div className="rounded-md border border-line-subtle bg-surface px-3 py-3">
-              <div className="uppercase tracking-[0.03em] text-text-3">Exposure</div>
+              <div className="tracking-[0.03em] text-text-3">Exposure</div>
               <div className="mt-1 text-text-2">{deployment.exposure || 'manual'}</div>
             </div>
           </div>
@@ -577,7 +577,7 @@ export function GatewaySheet() {
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <div className="space-y-4">
-              <div className="rounded-md border border-line-subtle bg-surface p-4">
+              <div className="rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Pending Node Pairings</div>
                   <div className="text-[11px] text-text-3">{nodePairings.length}</div>
@@ -600,7 +600,7 @@ export function GatewaySheet() {
                 )}
               </div>
 
-              <div className="rounded-md border border-line-subtle bg-surface p-4">
+              <div className="rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Pending Device Pairings</div>
                   <div className="text-[11px] text-text-3">{devicePairings.length}</div>
@@ -625,7 +625,7 @@ export function GatewaySheet() {
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-md border border-line-subtle bg-surface p-4">
+              <div className="rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Connected / Paired Nodes</div>
                   <div className="text-[11px] text-text-3">{nodes.length}</div>
@@ -677,7 +677,7 @@ export function GatewaySheet() {
                 )}
               </div>
 
-              <div className="rounded-md border border-line-subtle bg-surface p-4">
+              <div className="rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Paired Devices</div>
                   <div className="text-[11px] text-text-3">{pairedDevices.length}</div>
@@ -703,7 +703,7 @@ export function GatewaySheet() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-md border border-line-subtle bg-surface p-4">
+          <div className="mt-4 rounded-lg border border-line-subtle bg-surface p-4">
             <div className="text-[12px] font-700 tracking-[0.03em] text-text-3 mb-3">Invoke Node Command</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <select value={invokeNodeId} onChange={(e) => setInvokeNodeId(e.target.value)} className={inputClass}>

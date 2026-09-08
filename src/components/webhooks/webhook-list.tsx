@@ -127,7 +127,7 @@ export function WebhookList({ inSidebar }: { inSidebar?: boolean }) {
                 copiedEndpoint
                   ? 'opacity-100 bg-emerald-500/15 text-emerald-300'
                   : 'opacity-0 group-hover:opacity-100 focus:opacity-100 bg-accent-soft/40 text-accent-bright hover:bg-accent-soft'
-              } hover:scale-[1.1] active:scale-[0.9]`}
+              } active:scale-[0.9]`}
             >
               {copiedEndpoint ? (
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spring-in 0.3s var(--ease-spring)' }}>
@@ -152,7 +152,7 @@ export function WebhookList({ inSidebar }: { inSidebar?: boolean }) {
                   copiedSecret
                     ? 'opacity-100 bg-emerald-500/15 text-emerald-300'
                     : 'opacity-0 group-hover:opacity-100 focus:opacity-100 bg-layer-2 text-text-2 hover:bg-layer-3'
-                } hover:scale-[1.1] active:scale-[0.9]`}
+                } active:scale-[0.9]`}
               >
                 {copiedSecret ? (
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spring-in 0.3s var(--ease-spring)' }}>

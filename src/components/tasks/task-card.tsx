@@ -147,7 +147,7 @@ export function TaskCard({
       className={`py-3 px-4 rounded-md border border-l-[3px] ${borderColor} bg-surface hover:bg-surface-2 transition-all group
         ${selectionMode || !allowDrag ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'} touch-pan-y
         ${dragging ? 'opacity-40 scale-[0.97]' : ''}
-        ${selected ? 'border-accent-bright/40 bg-accent-bright/[0.04] ring-1 ring-accent-bright/20 shadow-lg' : 'border-line-subtle hover:border-line-default hover:scale-[1.01] hover:shadow-md'}`}
+        ${selected ? 'border-accent-bright/40 bg-accent-bright/[0.04] ring-1 ring-accent-bright/20 shadow-lg' : 'border-line-subtle hover:border-line-default hover:shadow-md'}`}
       style={{
         animation: 'spring-in 0.5s var(--ease-spring) both',
         animationDelay: `${Math.min(index * 0.05, 0.4)}s`

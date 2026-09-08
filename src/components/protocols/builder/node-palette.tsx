@@ -59,7 +59,7 @@ export function NodePalette() {
 
   return (
     <div className="flex w-52 flex-col overflow-y-auto rounded-lg border bg-card p-3 shadow-sm">
-      <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.03em] text-muted-foreground">
+      <h3 className="mb-3 text-xs font-bold tracking-[0.03em] text-muted-foreground">
         Drag to canvas
       </h3>
 

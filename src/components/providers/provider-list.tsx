@@ -364,8 +364,8 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 handleEdit(item.id)
               }
             }}
-            className="w-full text-left p-4 rounded-md border transition-all duration-200
-              cursor-pointer hover:bg-layer-1 bg-surface border-line-subtle hover:border-line-default hover:scale-[1.01]"
+            className="w-full text-left p-4 rounded-lg border transition-all duration-200
+              cursor-pointer hover:bg-layer-1 bg-surface border-line-subtle hover:border-line-default"
             style={{
               animation: 'spring-in 0.5s var(--ease-spring) both',
               animationDelay: `${idx * 0.05}s`
@@ -438,7 +438,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     handleEdit(item.id)
                   }
                 }}
-                className="w-full text-left p-4 rounded-md border transition-all duration-200
+                className="w-full text-left p-4 rounded-lg border transition-all duration-200
                   cursor-pointer bg-surface/60 border-line-subtle hover:bg-layer-1 hover:border-line-default"
                 style={{
                   animation: 'spring-in 0.5s var(--ease-spring) both',
@@ -590,8 +590,8 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 handleEditGateway(gateway.id)
               }
             }}
-            className="w-full text-left p-4 rounded-md border transition-all duration-200
-              cursor-pointer hover:bg-layer-1 bg-surface border-line-subtle hover:border-line-default hover:scale-[1.01]"
+            className="w-full text-left p-4 rounded-lg border transition-all duration-200
+              cursor-pointer hover:bg-layer-1 bg-surface border-line-subtle hover:border-line-default"
             style={{
               animation: 'spring-in 0.5s var(--ease-spring) both',
               animationDelay: `${(allItems.length + idx) * 0.04}s`,
@@ -628,39 +628,39 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             {!inSidebar && (
               <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-text-3">
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.03em] text-text-3">Deploy</div>
+                  <div className="tracking-[0.03em] text-text-3">Deploy</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.method || 'manual'}
                     {deployment?.provider ? ` · ${deployment.provider}` : ''}
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.03em] text-text-3">Route hints</div>
+                  <div className="tracking-[0.03em] text-text-3">Route hints</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.useCase || 'general'}
                     {deployment?.exposure ? ` · ${deployment.exposure}` : ''}
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.03em] text-text-3">Nodes / devices</div>
+                  <div className="tracking-[0.03em] text-text-3">Nodes / devices</div>
                   <div className="mt-1 text-text-2">
                     {stats?.connectedNodeCount ?? 0}/{stats?.nodeCount ?? 0} nodes · {stats?.pairedDeviceCount ?? 0} devices
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.03em] text-text-3">Environments</div>
+                  <div className="tracking-[0.03em] text-text-3">Environments</div>
                   <div className="mt-1 text-text-2">
                     {stats?.availableEnvironmentCount ?? 0}/{stats?.environmentCount ?? 0} available
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.03em] text-text-3">Sessions</div>
+                  <div className="tracking-[0.03em] text-text-3">Sessions</div>
                   <div className="mt-1 text-text-2">
                     {stats?.sessionCount ?? 0} sessions · {stats?.presenceCount ?? 0} presence
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.03em] text-text-3">Runtimes</div>
+                  <div className="tracking-[0.03em] text-text-3">Runtimes</div>
                   <div className="mt-1 text-text-2">
                     {runtimeStats.active}/{runtimeStats.total} active
                   </div>
@@ -763,7 +763,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
           })()
         ))}
         {gatewayProfiles.length === 0 && (
-          <div className="p-4 rounded-md border border-dashed border-line-default text-[13px] text-text-3">
+          <div className="p-4 rounded-lg border border-dashed border-line-default text-[13px] text-text-3">
             No gateway profiles yet. Use Smart Deploy above for a local runtime, a Docker VPS bundle, or a hosted OpenClaw deployment profile.
           </div>
         )}
@@ -782,7 +782,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {externalAgents.map((runtime) => (
-              <div key={runtime.id} className="p-4 rounded-md bg-surface border border-line-subtle">
+              <div key={runtime.id} className="p-4 rounded-lg bg-surface border border-line-subtle">
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <div className="min-w-0">
                     <div className="font-display text-[14px] font-600 text-text truncate">{runtime.name}</div>
@@ -814,24 +814,24 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-text-3">
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.03em] text-text-3">Provider</div>
+                    <div className="tracking-[0.03em] text-text-3">Provider</div>
                     <div className="mt-1 text-text-2">
                       {runtime.provider || 'No provider'}
                       {runtime.model ? ` · ${runtime.model}` : ''}
                     </div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.03em] text-text-3">Gateway</div>
+                    <div className="tracking-[0.03em] text-text-3">Gateway</div>
                     <div className="mt-1 text-text-2">
                       {runtime.gatewayProfileId ? (gatewayNameById.get(runtime.gatewayProfileId) || runtime.gatewayProfileId) : 'Standalone'}
                     </div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.03em] text-text-3">Template</div>
+                    <div className="tracking-[0.03em] text-text-3">Template</div>
                     <div className="mt-1 text-text-2">{runtime.gatewayUseCase || 'general'}</div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.03em] text-text-3">Last seen</div>
+                    <div className="tracking-[0.03em] text-text-3">Last seen</div>
                     <div className="mt-1 text-text-2">{formatRuntimeTimestamp(runtime.lastSeenAt || runtime.lastHeartbeatAt)}</div>
                   </div>
                 </div>
@@ -867,7 +867,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
               </div>
             ))}
             {externalAgents.length === 0 && (
-              <div className="p-4 rounded-md border border-dashed border-line-default text-[13px] text-text-3">
+              <div className="p-4 rounded-lg border border-dashed border-line-default text-[13px] text-text-3">
                 No external runtimes have registered yet.
               </div>
             )}

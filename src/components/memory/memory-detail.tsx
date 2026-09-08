@@ -553,7 +553,7 @@ export function MemoryDetail() {
                   {refs.map((ref, idx) => (
                     <div key={`${ref.type}-${ref.path || ref.title || idx}`} className="text-[12px] rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                       <div className="text-text-2">
-                        <span className=" text-[10px] tracking-[0.03em] mr-1">{ref.type}</span>
+                        <span className="text-[10px] tracking-[0.03em] mr-1">{ref.type}</span>
                         {ref.path || ref.title || '(no path)'}
                       </div>
                       {(ref.projectName || ref.projectRoot || ref.note || typeof ref.exists === 'boolean') && (

@@ -125,7 +125,7 @@ export function SoulLibraryPicker({ open, onClose, onSelect }: SoulLibraryPicker
           <button
             key={template.id}
             onClick={() => handleSelect(template)}
-            className={`text-left p-4 rounded-md border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer group 
+            className={`text-left p-4 rounded-lg border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer group 
               ${source === 'forge' ? 'hover:border-accent-bright/20' : 'hover:border-line-default'}`}
             style={{ fontFamily: 'inherit' }}
           >

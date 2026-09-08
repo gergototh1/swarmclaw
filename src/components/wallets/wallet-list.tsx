@@ -62,7 +62,7 @@ export function WalletList() {
           return (
             <div
               key={wallet.id}
-              className="w-full text-left p-4 rounded-md bg-surface border border-line-subtle
+              className="w-full text-left p-4 rounded-lg bg-surface border border-line-subtle
                 hover:border-line-default hover:bg-layer-1 transition-all group"
               style={{
                 fontFamily: 'inherit',

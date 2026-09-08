@@ -297,7 +297,7 @@ export default function UsagePage() {
               {insightCards.map((card, index) => (
                 <div
                   key={card.label}
-                  className="bg-surface-2 rounded-md p-4 border border-line-subtle hover:bg-surface transition-all"
+                  className="bg-surface rounded-lg p-4 border border-line-subtle hover:bg-surface-2 transition-all"
                   style={{ animation: 'spring-in 0.6s var(--ease-spring) both', animationDelay: `${0.12 + index * 0.04}s` }}
                 >
                   <p className="text-[11px] font-700 tracking-[0.03em] text-text-3 mb-2">{card.label}</p>
@@ -405,7 +405,7 @@ export default function UsagePage() {
                   {extensionData.filter((p) => p.invocations > 0).map((p, idx) => (
                     <div
                       key={p.name}
-                      className="bg-surface-2 rounded-sm p-3 border border-line-subtle hover:bg-surface transition-all"
+                      className="bg-surface rounded-sm p-3 border border-line-subtle hover:bg-surface-2 transition-all"
                       style={{ animation: 'spring-in 0.5s var(--ease-spring) both', animationDelay: `${0.3 + idx * 0.03}s` }}
                     >
                       <p className="text-[12px] font-600 text-text truncate">{p.name}</p>
@@ -512,7 +512,7 @@ export default function UsagePage() {
                     .map(([name, h], idx) => (
                       <div
                         key={name}
-                        className="bg-surface-2 rounded-md p-4 border border-line-subtle flex flex-col gap-3 hover:bg-surface transition-all hover:scale-[1.02]"
+                        className="bg-surface rounded-lg p-4 border border-line-subtle flex flex-col gap-3 hover:bg-surface-2 transition-all"
                         style={{ animation: 'spring-in 0.5s var(--ease-spring) both', animationDelay: `${0.45 + idx * 0.03}s` }}
                       >
                         <div className="flex items-center justify-between">

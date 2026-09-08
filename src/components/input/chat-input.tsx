@@ -228,7 +228,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
         )}
 
         {visibleQueuedMessages.length > 0 && (
-          <div className="mb-2 overflow-hidden rounded-lg border border-amber-500/18 bg-[linear-gradient(180deg,rgba(245,158,11,0.08)_0%,rgba(245,158,11,0.03)_100%)]">
+          <div className="mb-2 overflow-hidden rounded-lg border border-amber-500/18 bg-warning-soft">
             <div className="flex items-start justify-between gap-3 border-b border-amber-500/10 px-3.5 py-3">
               <div className="min-w-0 overflow-hidden">
                 <div className="flex flex-wrap items-center gap-2">

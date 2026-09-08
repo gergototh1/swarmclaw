@@ -281,7 +281,7 @@ export function ScheduleSheet() {
   const previewOk = timingPreview && timingPreview.ok ? timingPreview : null
 
   const timingPreviewPanel = (
-    <div className="p-4 rounded-md bg-surface border border-line-subtle">
+    <div className="p-4 rounded-lg bg-surface border border-line-subtle">
       <div className="flex flex-wrap items-center gap-2 mb-2">
         <div className="text-[14px] text-text-2 font-600">
           {scheduleType === 'cron' ? cronHuman : previewOk?.cadence || (scheduleType === 'once' ? 'Run once' : `Every ${Math.round(intervalMs / 60000)} minutes`)}
@@ -388,7 +388,7 @@ export function ScheduleSheet() {
                     applyTemplate(tpl, setters)
                     setStep(whatStep as Step)
                   }}
-                  className="flex items-start gap-3.5 p-4 rounded-md border border-line-subtle bg-surface
+                  className="flex items-start gap-3.5 p-4 rounded-lg border border-line-subtle bg-surface
                     text-left cursor-pointer transition-all duration-200 hover:bg-surface-2 hover:border-line-default
                     active:scale-[0.98]"
                   style={{ fontFamily: 'inherit' }}

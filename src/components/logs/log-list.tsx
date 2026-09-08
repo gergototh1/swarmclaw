@@ -305,7 +305,7 @@ export function LogList() {
             {selected.data && (
               <div className="mb-8">
                 <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Details</label>
-                <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-md p-4 max-h-[300px] overflow-auto border border-line-subtle">
+                <pre className="text-[11px] text-text-3 font-mono whitespace-pre-wrap break-all bg-layer-1 rounded-lg p-4 max-h-[300px] overflow-auto border border-line-subtle">
                   {selected.data}
                 </pre>
               </div>

@@ -195,7 +195,7 @@ export function TabTools({
 
       {/* Native capability provider note — not shown for OpenClaw (covered in connection status) */}
       {hasNativeCapabilities && !openclawEnabled && (
-        <div className="mb-8 p-4 rounded-md bg-layer-1 border border-line-subtle">
+        <div className="mb-8 p-4 rounded-lg bg-layer-1 border border-line-subtle">
           <p className="text-[13px] text-text-3">
             {provider === 'claude-cli'
               ? 'Claude CLI uses its own built-in capabilities — no additional local tool/platform configuration is needed.'

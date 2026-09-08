@@ -550,7 +550,7 @@ export function TaskSheet() {
         {editing.description && (
           <div className="mb-8">
             <SectionLabel>Description</SectionLabel>
-            <div className="msg-content text-[14px] leading-[1.7] text-text-2 break-words p-4 rounded-md border border-line-subtle bg-surface">
+            <div className="msg-content text-[14px] leading-[1.7] text-text-2 break-words p-4 rounded-lg border border-line-subtle bg-surface">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{editing.description}</ReactMarkdown>
             </div>
           </div>
@@ -599,7 +599,7 @@ export function TaskSheet() {
 
         <div className="mb-8">
           <SectionLabel>Execution</SectionLabel>
-          <div className="rounded-md border border-line-subtle bg-surface p-4 space-y-3">
+          <div className="rounded-lg border border-line-subtle bg-surface p-4 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               {editing.liveness && (
                 <InfoChip tone={livenessTone(editing.liveness.state)} title={editing.liveness.reason}>
@@ -632,13 +632,13 @@ export function TaskSheet() {
               <div className="grid grid-cols-1 gap-2 text-[11px] text-text-3">
                 {editing.executionWorkspace.contextPath && (
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.03em] text-text-3">Context</div>
+                    <div className="tracking-[0.03em] text-text-3">Context</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.contextPath}</code>
                   </div>
                 )}
                 {editing.executionWorkspace.envPath && (
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.03em] text-text-3">Env</div>
+                    <div className="tracking-[0.03em] text-text-3">Env</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.envPath}</code>
                   </div>
                 )}
@@ -759,7 +759,7 @@ export function TaskSheet() {
         {editing.qualityGate?.enabled && (
           <div className="mb-8">
             <SectionLabel>Quality Gate</SectionLabel>
-            <div className="p-4 rounded-md border border-line-subtle bg-surface space-y-1.5 text-[12px] text-text-2">
+            <div className="p-4 rounded-lg border border-line-subtle bg-surface space-y-1.5 text-[12px] text-text-2">
               <p>Min result chars: {editing.qualityGate.minResultChars ?? 80}</p>
               <p>Min evidence signals: {editing.qualityGate.minEvidenceItems ?? 2}</p>
               <p>Verification required: {(editing.qualityGate.requireVerification ?? false) ? 'Yes' : 'No'}</p>
@@ -772,7 +772,7 @@ export function TaskSheet() {
         {editing.executionPolicy?.enabled && (
           <div className="mb-8">
             <SectionLabel>Execution Policy</SectionLabel>
-            <div className="rounded-md border border-line-subtle bg-surface p-4 space-y-3">
+            <div className="rounded-lg border border-line-subtle bg-surface p-4 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <InfoChip tone={executionPolicyStatus === 'completed' ? 'success' : executionPolicyStatus === 'changes_requested' ? 'danger' : 'warning'}>
                   {executionPolicyStatus.replace(/_/g, ' ')}
@@ -862,7 +862,7 @@ export function TaskSheet() {
         {editing.result && (
           <div className="mb-8">
             <SectionLabel>Result</SectionLabel>
-            <div className="p-4 rounded-md border border-line-subtle bg-surface text-[13px] text-text-2 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+            <div className="p-4 rounded-lg border border-line-subtle bg-surface text-[13px] text-text-2 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
               {editing.result}
             </div>
           </div>
@@ -1187,7 +1187,7 @@ export function TaskSheet() {
       <div className="mb-8">
         <SectionLabel>Execution Workspace</SectionLabel>
         {editing ? (
-          <div className="rounded-md border border-line-subtle bg-surface p-4 space-y-3">
+          <div className="rounded-lg border border-line-subtle bg-surface p-4 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               {editing.liveness && (
                 <InfoChip tone={livenessTone(editing.liveness.state)} title={editing.liveness.reason}>
@@ -1214,13 +1214,13 @@ export function TaskSheet() {
               <div className="grid grid-cols-1 gap-2 text-[11px] text-text-3">
                 {editing.executionWorkspace.contextPath && (
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.03em] text-text-3">Context</div>
+                    <div className="tracking-[0.03em] text-text-3">Context</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.contextPath}</code>
                   </div>
                 )}
                 {editing.executionWorkspace.envPath && (
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.03em] text-text-3">Env</div>
+                    <div className="tracking-[0.03em] text-text-3">Env</div>
                     <code className="mt-1 block break-all text-text-2">{editing.executionWorkspace.envPath}</code>
                   </div>
                 )}
@@ -1417,7 +1417,7 @@ export function TaskSheet() {
         <p className="text-[12px] text-text-3 mb-3">
           Checks that must pass before this task can be marked completed.
         </p>
-        <div className="p-4 rounded-md border border-line-subtle bg-surface">
+        <div className="p-4 rounded-lg border border-line-subtle bg-surface">
           <button
             onClick={() => setQualityGateEnabled((prev) => !prev)}
             className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${qualityGateEnabled ? 'bg-accent' : 'bg-layer-3'}`}
@@ -1486,7 +1486,7 @@ export function TaskSheet() {
 
       <div className="mb-8">
         <SectionLabel>Execution Policy</SectionLabel>
-        <div className="p-4 rounded-md border border-line-subtle bg-surface">
+        <div className="p-4 rounded-lg border border-line-subtle bg-surface">
           <button
             onClick={() => setExecutionPolicyEnabled((prev) => !prev)}
             className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${executionPolicyEnabled ? 'bg-accent' : 'bg-layer-3'}`}
@@ -1574,7 +1574,7 @@ export function TaskSheet() {
       {editing?.result && (
         <div className="mb-8">
           <SectionLabel>Result</SectionLabel>
-          <div className="p-4 rounded-md border border-line-subtle bg-surface text-[13px] text-text-2 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+          <div className="p-4 rounded-lg border border-line-subtle bg-surface text-[13px] text-text-2 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
             {editing.result}
           </div>
         </div>

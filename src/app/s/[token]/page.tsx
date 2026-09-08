@@ -252,7 +252,7 @@ function renderBody(payload: SharedPayload) {
             className="rounded-md border border-white/10 bg-layer-1 p-4"
           >
             <div className="mb-1 flex items-center justify-between text-xs text-white/45">
-              <span className="uppercase">{m.role}</span>
+              <span className="">{m.role}</span>
               {m.at ? <span>{formatTime(m.at)}</span> : null}
             </div>
             <pre className="whitespace-pre-wrap text-sm text-white/70">{m.text}</pre>

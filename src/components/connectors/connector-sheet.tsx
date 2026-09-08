@@ -1035,7 +1035,7 @@ export function ConnectorSheet() {
               <button
                 key={p.id}
                 onClick={() => { setPlatform(p.id as ConnectorPlatform); setShowSetup(false) }}
-                className={`flex items-center gap-3 p-4 rounded-md cursor-pointer transition-all duration-200 border text-left
+                className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer transition-all duration-200 border text-left
                   ${platform === p.id
                     ? 'bg-layer-2 border-line-strong '
                     : 'bg-transparent border-line-subtle hover:border-line-default hover:bg-layer-1'}`}
@@ -1085,7 +1085,7 @@ export function ConnectorSheet() {
           {platformConfig.label} Setup Guide
         </button>
         {showSetup && (
-          <div className="mt-3 p-4 rounded-md border border-line-subtle bg-layer-1 space-y-2.5"
+          <div className="mt-3 p-4 rounded-lg border border-line-subtle bg-layer-1 space-y-2.5"
             style={{ animation: 'fade-in 0.2s ease-out' }}>
             {platformConfig.setupSteps.map((step, i) => (
               <div key={i} className="flex items-start gap-3">
@@ -1291,7 +1291,7 @@ export function ConnectorSheet() {
       {editing && (() => {
         const effectiveRunning = runtimeConnector?.status === 'running' || waConnecting
         return (
-        <div className="mb-6 p-4 rounded-md border border-line-subtle bg-layer-1">
+        <div className="mb-6 p-4 rounded-lg border border-line-subtle bg-layer-1">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[13px] font-600 text-text-2">Connection</div>
@@ -1330,7 +1330,7 @@ export function ConnectorSheet() {
 
       {/* WhatsApp QR code */}
       {editing && platform === 'whatsapp' && (runtimeConnector?.status === 'running' || waConnecting) && qrDataUrl && (
-        <div className="mb-6 p-5 rounded-md border border-line-subtle bg-layer-1 text-center"
+        <div className="mb-6 p-5 rounded-lg border border-line-subtle bg-layer-1 text-center"
           style={{ animation: 'fade-in 0.3s ease-out' }}>
           <div className="text-[13px] font-600 text-text-2 mb-1">Scan with WhatsApp</div>
           <p className="text-[11px] text-text-3 mb-4">
@@ -1346,7 +1346,7 @@ export function ConnectorSheet() {
 
       {/* WhatsApp connected (authenticated, no QR) */}
       {editing && platform === 'whatsapp' && (runtimeConnector?.status === 'running' || waConnecting) && !qrDataUrl && waAuthenticated && (
-        <div className="mb-6 p-5 rounded-md border border-line-subtle bg-layer-1 text-center">
+        <div className="mb-6 p-5 rounded-lg border border-line-subtle bg-layer-1 text-center">
           <div className="text-[13px] font-600 text-green-400 mb-1">Connected</div>
           <p className="text-[11px] text-text-3 mb-3">WhatsApp is paired and listening for messages</p>
           <button
@@ -1362,7 +1362,7 @@ export function ConnectorSheet() {
 
       {/* WhatsApp waiting for QR / reconnecting (not yet authenticated, no QR yet) */}
       {editing && platform === 'whatsapp' && (runtimeConnector?.status === 'running' || waConnecting) && !qrDataUrl && !waAuthenticated && (
-        <div className="mb-6 p-5 rounded-md border border-line-subtle bg-layer-1 text-center">
+        <div className="mb-6 p-5 rounded-lg border border-line-subtle bg-layer-1 text-center">
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="w-3 h-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
             <span className="text-[13px] font-600 text-blue-500">
@@ -1447,7 +1447,7 @@ export function ConnectorSheet() {
           {COMMON_CONFIG_FIELDS.map((field) => renderConfigField(field))}
         </div>
 
-        <div className="mb-8 p-4 rounded-md border border-line-subtle bg-layer-1">
+        <div className="mb-8 p-4 rounded-lg border border-line-subtle bg-layer-1">
           <div className="flex items-center justify-between gap-3 mb-2">
             <div>
               <div className="text-[13px] font-600 text-text-2">Connector Doctor</div>

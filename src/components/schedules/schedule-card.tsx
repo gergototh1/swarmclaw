@@ -69,7 +69,7 @@ export function ScheduleCard({ schedule, inSidebar, index = 0 }: Props) {
       onClick={handleClick}
       className="relative py-3.5 px-4 cursor-pointer rounded-md
         transition-all duration-200 active:scale-[0.98]
-        bg-transparent border border-transparent hover:bg-layer-1 hover:border-line-subtle hover:scale-[1.01]"
+        bg-transparent border border-transparent hover:bg-layer-1 hover:border-line-subtle"
       style={{
         animation: 'spring-in 0.5s var(--ease-spring) both',
         animationDelay: `${Math.min(index * 0.05, 0.4)}s`

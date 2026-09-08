@@ -707,7 +707,7 @@ export function ChatArea() {
               <button
                 key={prompt.text}
                 onClick={() => handlePrompt(prompt.text)}
-                className={`suggestion-card p-4 rounded-md border border-line-subtle bg-gradient-to-br ${prompt.gradient}
+                className={`suggestion-card p-4 rounded-lg border border-line-subtle 
                   text-left cursor-pointer flex flex-col gap-3 min-h-[110px] active:scale-[0.97]`}
                 style={{ fontFamily: 'inherit', animation: `fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.07 + 0.15}s both` }}
               >

@@ -1210,7 +1210,7 @@ export default function ProtocolsPage() {
                           {(detail.run.artifacts || []).length === 0 ? (
                             <div className="text-[13px] text-text-3">No artifacts yet.</div>
                           ) : detail.run.artifacts?.map((artifact) => (
-                            <div key={artifact.id} className="rounded-md border border-line-subtle bg-layer-1 p-4">
+                            <div key={artifact.id} className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="text-[13px] font-700 text-text">{artifact.title}</div>
                                 <span className="text-[11px] text-text-3">{artifact.kind.replace(/_/g, ' ')}</span>

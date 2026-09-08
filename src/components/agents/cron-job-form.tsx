@@ -51,7 +51,7 @@ export function CronJobForm({ agentId, onSaved, onCancel }: Props) {
   const inputClass = 'w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text outline-none placeholder:text-text-3 focus:border-line-default transition-colors'
 
   return (
-    <div className="flex flex-col gap-3 p-4 border border-line-subtle rounded-md bg-layer-1">
+    <div className="flex flex-col gap-3 p-4 border border-line-subtle rounded-lg bg-layer-1">
       <div>
         <label className="block text-[11px] font-600 tracking-[0.03em] text-text-3 mb-1">Name</label>
         <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Job name" className={inputClass} />

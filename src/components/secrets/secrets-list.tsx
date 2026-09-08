@@ -72,8 +72,8 @@ export function SecretsList() {
                   setSecretSheetOpen(true)
                 }
               }}
-              className="w-full text-left p-4 rounded-md bg-surface border border-line-subtle
-                hover:border-line-default hover:bg-layer-1 hover:scale-[1.01] cursor-pointer transition-all group"
+              className="w-full text-left p-4 rounded-lg bg-surface border border-line-subtle
+                hover:border-line-default hover:bg-layer-1 cursor-pointer transition-all group"
               style={{
                 fontFamily: 'inherit',
                 animation: 'spring-in 0.5s var(--ease-spring) both',

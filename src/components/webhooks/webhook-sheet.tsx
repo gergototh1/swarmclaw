@@ -255,7 +255,7 @@ export function WebhookSheet() {
         )}
 
         {tab === 'config' && editing && (
-          <div className="p-4 rounded-md bg-layer-1 border border-line-subtle">
+          <div className="p-4 rounded-lg bg-layer-1 border border-line-subtle">
             <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Endpoint URL</label>
             <div className="flex gap-2">
               <input

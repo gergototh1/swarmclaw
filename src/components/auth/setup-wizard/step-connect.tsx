@@ -373,7 +373,7 @@ export function StepConnect({
         )}
 
         {provider === 'openclaw' && (
-          <div className="rounded-md border border-line-default bg-surface p-4 space-y-4">
+          <div className="rounded-lg border border-line-default bg-surface p-4 space-y-4">
             <OpenClawDeployPanel
               compact
               endpoint={openClawEndpointValue}

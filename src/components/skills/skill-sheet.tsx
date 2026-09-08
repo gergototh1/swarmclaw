@@ -198,7 +198,7 @@ export function SkillSheet() {
       )}
 
       {!editing && (
-        <div className="mb-8 p-4 rounded-md border border-line-default bg-surface">
+        <div className="mb-8 p-4 rounded-lg border border-line-default bg-surface">
           <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-3">Import from URL</label>
           <div className="flex gap-2">
             <input
@@ -224,7 +224,7 @@ export function SkillSheet() {
       )}
 
       {metadataPreview && (
-        <div className="mb-8 rounded-md border border-line-default bg-layer-1 p-4">
+        <div className="mb-8 rounded-lg border border-line-default bg-layer-1 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Skill Metadata</div>
