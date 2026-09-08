@@ -128,7 +128,7 @@ function ModelCombobox({
         placeholder={loading ? 'Loading models...' : 'Type or select a model'}
         className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
           text-text text-[14px] font-mono outline-none transition-all duration-200
-          focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+          focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
       />
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
         {modelLibraryUrl && (
@@ -277,7 +277,7 @@ function SoulPicker({
         placeholder="e.g. You speak concisely and directly. You have a dry sense of humor."
         className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
           text-text text-[14px] outline-none transition-all duration-200 resize-none
-          focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+          focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
       />
       {showLibrary && (
         <div className="mt-2 max-h-[180px] overflow-y-auto rounded-md border border-line-default bg-surface">
@@ -403,7 +403,7 @@ export function StepAgents({
                       onChange={(e) => onUpdateDraft(draft.id, { name: e.target.value })}
                       className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
                         text-text text-[14px] outline-none transition-all duration-200
-                        focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                        focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                     />
                   </div>
                   <div>
@@ -414,7 +414,7 @@ export function StepAgents({
                         onChange={(e) => onUpdateDraftProvider(draft.id, e.target.value)}
                         className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
                           text-text text-[14px] outline-none transition-all duration-200
-                          focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                          focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                       >
                         <option value="">Choose provider</option>
                         {configuredProviders.map((cp) => (
@@ -440,7 +440,7 @@ export function StepAgents({
                       onChange={(e) => onUpdateDraft(draft.id, { description: e.target.value })}
                       className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
                         text-text text-[14px] outline-none transition-all duration-200
-                        focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                        focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -452,7 +452,7 @@ export function StepAgents({
                       placeholder={matchedProvider?.endpoint || 'Inherited from provider'}
                       className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
                         text-text text-[14px] font-mono outline-none transition-all duration-200
-                        focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                        focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                     />
                   </div>
                   {matchedProvider?.setupProvider === 'openclaw' ? (
@@ -539,7 +539,7 @@ export function StepAgents({
                             placeholder="e.g. Monitor system health and restart failing services"
                             className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
                               text-text text-[14px] outline-none transition-all duration-200 resize-none
-                              focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                              focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                           />
                         </div>
                       )}
@@ -560,7 +560,7 @@ export function StepAgents({
                         rows={5}
                         className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
                           text-text text-[14px] outline-none transition-all duration-200 resize-none
-                          focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                          focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                       />
                     </div>
                     <div>
@@ -624,7 +624,7 @@ export function StepAgents({
           disabled={saving}
           className="px-8 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-display font-600
             cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-            shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
+            disabled:opacity-30"
         >
           {saving ? 'Saving...' : 'Save & Continue'}
         </button>

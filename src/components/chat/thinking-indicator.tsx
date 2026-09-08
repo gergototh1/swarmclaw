@@ -103,9 +103,9 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
             
             <div className="flex items-center gap-3 relative z-10">
               <div className="flex gap-2">
-                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_rgba(129,140,248,0.4)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite' }} />
-                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_rgba(129,140,248,0.4)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.15s' }} />
-                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_rgba(129,140,248,0.4)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.3s' }} />
+                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite' }} />
+                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.15s' }} />
+                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.3s' }} />
               </div>
               <span className={`text-[12px] font-mono ${isQueued ? 'text-amber-300/70' : 'text-text-3/60'}`}>{statusText}</span>
               <ElapsedTimer startTime={thinkingStartTime} />
@@ -133,9 +133,9 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
           
           <div className="flex items-center gap-3 relative z-10">
             <div className="flex gap-2">
-              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_rgba(129,140,248,0.4)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite' }} />
-              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_rgba(129,140,248,0.4)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.15s' }} />
-              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_rgba(129,140,248,0.4)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.3s' }} />
+              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite' }} />
+              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.15s' }} />
+              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-accent-bright/60 shadow-[0_0_8px_var(--color-accent-glow)]'}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.3s' }} />
             </div>
             <span className={`text-[12px] font-mono ${isQueued ? 'text-amber-300/70' : 'text-text-3/60'}`}>{statusText}</span>
             <ElapsedTimer startTime={thinkingStartTime} />

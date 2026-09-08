@@ -40,7 +40,7 @@ export function StepPath({
               onClick={() => onPathChange(path.id)}
               className={`rounded-lg border px-5 py-4 text-left transition-all duration-200 cursor-pointer ${
                 active
-                  ? 'border-accent-bright/35 bg-accent-soft shadow-[0_0_24px_rgba(99,102,241,0.12)]'
+                  ? 'border-accent-bright/35 bg-accent-soft'
                   : 'border-line-default bg-surface hover:border-accent-bright/20 hover:bg-layer-2'
               }`}
             >
@@ -71,7 +71,7 @@ export function StepPath({
             onChange={(event) => onIntentTextChange(event.target.value)}
             rows={3}
             placeholder="e.g. Help me run product research every week, summarize findings, and turn them into follow-up tasks."
-            className="w-full rounded-md border border-line-default bg-bg px-4 py-3 text-[14px] text-text outline-none transition-all duration-200 resize-none placeholder:text-text-3 focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+            className="w-full rounded-md border border-line-default bg-bg px-4 py-3 text-[14px] text-text outline-none transition-all duration-200 resize-none placeholder:text-text-3 focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
           />
           <p className="mt-2 text-[12px] leading-relaxed text-text-3">
             This is used only to seed the starter prompts. It does not auto-classify your workflow.
@@ -102,7 +102,7 @@ export function StepPath({
                 onClick={() => onStarterKitChange(kit.id)}
                 className={`rounded-lg border px-4 py-4 text-left transition-all duration-200 cursor-pointer ${
                   active
-                    ? 'border-accent-bright/35 bg-accent-soft shadow-[0_0_24px_rgba(99,102,241,0.12)]'
+                    ? 'border-accent-bright/35 bg-accent-soft'
                     : 'border-line-default bg-layer-1 hover:border-accent-bright/20 hover:bg-layer-2'
                 }`}
               >
@@ -147,7 +147,7 @@ export function StepPath({
         </button>
         <button
           onClick={onContinue}
-          className="px-8 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-display font-600 cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200 shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
+          className="px-8 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-display font-600 cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200"
         >
           Continue to Providers
         </button>

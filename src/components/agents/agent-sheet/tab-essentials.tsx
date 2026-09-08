@@ -577,7 +577,7 @@ export function TabEssentials({
                 className={`flex-1 py-3 rounded-md text-center cursor-pointer transition-all duration-200
                   text-[14px] font-600 capitalize
                   ${ollamaMode === mode
-                    ? 'bg-accent-soft text-accent-bright shadow-[0_0_20px_rgba(99,102,241,0.1)]'
+                    ? 'bg-accent-soft text-accent-bright'
                     : 'bg-transparent text-text-3 hover:text-text-2'}`}
                 style={{ fontFamily: 'inherit' }}
               >

@@ -1226,7 +1226,7 @@ export function AgentSheet() {
           onClick={handleTestAndSave}
           disabled={!name.trim() || providerNeedsKey || testStatus === 'testing' || saving || (!openclawEnabled && testStatus === 'pass')}
           className={`flex-1 py-3.5 rounded-md border-none text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-60 transition-all hover:brightness-110
-            ${testStatus === 'pass' ? 'bg-emerald-600 shadow-[0_4px_20px_rgba(16,185,129,0.25)]' : 'bg-accent-bright shadow-[0_4px_20px_rgba(99,102,241,0.25)]'}`}
+            ${testStatus === 'pass' ? 'bg-emerald-600 shadow-[0_4px_20px_rgba(16,185,129,0.25)]' : 'bg-accent-bright'}`}
           style={{ fontFamily: 'inherit' }}
         >
           {openclawEnabled

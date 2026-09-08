@@ -810,7 +810,7 @@ export function ScheduleSheet() {
           <button
             onClick={() => setStep((step + 1) as Step)}
             disabled={step === whatStep ? !step0Valid : !step1Valid}
-            className="py-3.5 px-8 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
+            className="py-3.5 px-8 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-30 transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             Next
@@ -818,7 +818,7 @@ export function ScheduleSheet() {
         ) : (
           <button
             onClick={handleSave}
-            className="py-3.5 px-8 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] transition-all shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:brightness-110"
+            className="py-3.5 px-8 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] transition-all hover:brightness-110"
             style={{ fontFamily: 'inherit' }}
           >
             {editing ? 'Save' : 'Create'}

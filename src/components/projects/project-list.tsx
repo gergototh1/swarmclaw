@@ -167,7 +167,7 @@ export function ProjectList() {
                 key={project.id}
                 className={`group relative rounded-md border transition-all duration-200 cursor-pointer overflow-hidden
                   ${isActive
-                    ? 'bg-layer-2 border-accent-bright/30 shadow-[0_0_20px_rgba(99,102,241,0.08)]'
+                    ? 'bg-layer-2 border-accent-bright/30'
                     : 'bg-layer-1 border-line-subtle hover:bg-layer-2 hover:border-line-default hover:scale-[1.01]'}`}
                 onClick={() => setActiveProjectFilter(isActive ? null : project.id)}
                 style={{

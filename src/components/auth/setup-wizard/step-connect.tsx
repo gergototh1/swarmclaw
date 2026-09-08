@@ -272,7 +272,7 @@ export function StepConnect({
             placeholder={selectedProvider.name}
             className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
               text-text text-[14px] outline-none transition-all duration-200
-              focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+              focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
           />
           <p className="mt-1.5 text-[11px] text-text-3">
             Helpful for multiple OpenClaw gateways or distinct provider profiles.
@@ -291,7 +291,7 @@ export function StepConnect({
               placeholder={selectedProvider.defaultEndpoint || ''}
               className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
                 text-text text-[14px] font-mono outline-none transition-all duration-200
-                focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
             />
             {selectedProvider.cloudEndpoint && (
               <div className="mt-2 flex items-center gap-2">
@@ -364,7 +364,7 @@ export function StepConnect({
               placeholder="e.g. gpt-4o-mini"
               className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
                 text-text text-[14px] font-mono outline-none transition-all duration-200
-                focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
             />
             <p className="mt-1.5 text-[11px] text-text-3">
               Save the model ID you want starter agents to use with this provider. You can change it later per agent.
@@ -453,7 +453,7 @@ export function StepConnect({
                   }}
                   className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
                     text-text text-[14px] outline-none transition-all duration-200 appearance-none cursor-pointer
-                    focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                    focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                 >
                   <option value="">Select a saved key...</option>
                   {existingCredentials.map((c) => (
@@ -479,7 +479,7 @@ export function StepConnect({
                   placeholder={selectedProvider.keyPlaceholder || (provider === 'openclaw' ? 'Paste OpenClaw bearer token' : 'sk-...')}
                   className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
                     text-text text-[14px] font-mono outline-none transition-all duration-200
-                    focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                    focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                 />
                 {hasExistingCredentials && (
                   <button
@@ -602,7 +602,7 @@ export function StepConnect({
           disabled={(requiresKey && !hasKeyOrCredential) || (isCustom && !providerSuggestedModel.trim()) || saving}
           className="px-8 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-display font-600
             cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-            shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
+            disabled:opacity-30"
         >
           {saving ? 'Saving...' : editingProvider ? 'Update Provider' : 'Save Provider'}
         </button>

@@ -65,7 +65,7 @@ export function ScheduleList({ inSidebar }: Props) {
             <Button
               variant="accent"
               onClick={() => setScheduleSheetOpen(true)}
-              className="mt-3 px-8 py-3 rounded-md text-[14px] cursor-pointer active:scale-95 shadow-[0_4px_16px_rgba(99,102,241,0.2)]"
+              className="mt-3 px-8 py-3 rounded-md text-[14px] cursor-pointer active:scale-95"
             >
               + New Schedule
             </Button>

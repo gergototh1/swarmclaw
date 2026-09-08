@@ -175,8 +175,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                         type="button"
                         onClick={() => setFirstTimeStep('confirm')}
                         className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
-                          cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-                          shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
+                          cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200"
                       >
                         Continue
                       </button>
@@ -229,7 +228,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                             className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                               text-text text-[16px] text-center font-mono outline-none
                               transition-all duration-200 placeholder:text-text-3
-                              focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                              focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                           />
                           <button
                             type="submit"
@@ -257,7 +256,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                         className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                           text-text text-[16px] text-center font-mono outline-none
                           transition-all duration-200 placeholder:text-text-3
-                          focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                          focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                       />
                     </div>
 
@@ -275,7 +274,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                         disabled={loading || !key.trim()}
                         className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                           cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-                          shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
+                          disabled:opacity-30"
                       >
                         {loading ? 'Connecting...' : 'Connect'}
                       </button>
@@ -310,8 +309,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                     type="button"
                     onClick={() => { setKey(''); setError(''); setFirstTimeStep('paste-key') }}
                     className="px-8 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
-                      cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-                      shadow-[0_6px_28px_rgba(99,102,241,0.3)]"
+                      cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200"
                   >
                     I&apos;ve Saved It
                   </button>
@@ -342,7 +340,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                       className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                         text-text text-[16px] text-center font-mono outline-none
                         transition-all duration-200 placeholder:text-text-3
-                        focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                        focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                     />
                   </div>
 
@@ -356,7 +354,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                       disabled={!key.trim() || loading}
                       className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                         cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-                        shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
+                        disabled:opacity-30"
                     >
                       {loading ? 'Connecting...' : 'Connect'}
                     </button>
@@ -399,7 +397,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                   className="w-full max-w-[320px] px-6 py-4 rounded-lg border border-line-default bg-surface
                     text-text text-[16px] text-center font-mono outline-none
                     transition-all duration-200 placeholder:text-text-3
-                    focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+                    focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                 />
               </div>
 
@@ -413,7 +411,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                   disabled={!key.trim() || loading}
                   className="px-12 py-4 rounded-lg border-none bg-accent-bright text-accent-fg text-[16px] font-display font-600
                     cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-                    shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
+                    disabled:opacity-30"
                 >
                   {loading ? 'Connecting...' : 'Connect'}
                 </button>

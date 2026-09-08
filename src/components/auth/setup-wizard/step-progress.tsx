@@ -29,7 +29,7 @@ export function StepProgress({ current, total }: { current: number; total: numbe
                   completed
                     ? 'bg-accent-bright/20 text-accent-bright border border-accent-bright/40'
                     : active
-                      ? 'bg-accent-bright text-accent-fg border border-accent-bright shadow-[0_0_12px_rgba(99,102,241,0.4)]'
+                      ? 'bg-accent-bright text-accent-fg border border-accent-bright shadow-[0_0_12px_var(--color-accent-glow)]'
                       : 'bg-layer-2 text-text-3 border border-line-default'
                 }`}
               >

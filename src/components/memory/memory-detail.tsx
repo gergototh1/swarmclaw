@@ -270,7 +270,7 @@ export function MemoryDetail() {
                 disabled={saving}
                 className="px-4 py-2 rounded-sm bg-accent-bright text-accent-fg text-[12px] font-600
                   cursor-pointer border-none transition-all hover:brightness-110 active:scale-[0.97]
-                  disabled:opacity-50 shadow-[0_2px_10px_rgba(99,102,241,0.2)]"
+                  disabled:opacity-50"
                 style={{ fontFamily: 'inherit' }}
               >
                 {saving ? 'Saving...' : 'Save'}

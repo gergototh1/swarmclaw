@@ -45,7 +45,7 @@ export function PageLoader({ label }: { label?: string }) {
                 width: i === 0 ? 6 : 5,
                 height: i === 0 ? 6 : 5,
                 background: i === 0 ? '#818CF8' : `rgba(129, 140, 248, ${0.6 - i * 0.15})`,
-                boxShadow: i === 0 ? '0 0 10px rgba(99,102,241,0.4)' : 'none',
+                boxShadow: i === 0 ? '0 0 10px var(--color-accent-glow)' : 'none',
               }}
             />
           </div>

@@ -39,7 +39,7 @@ export function FullScreenLoader(props: {
                 width: i === 0 ? 8 : 6,
                 height: i === 0 ? 8 : 6,
                 background: i === 0 ? '#818CF8' : `rgba(129, 140, 248, ${0.7 - i * 0.1})`,
-                boxShadow: i === 0 ? '0 0 12px rgba(99,102,241,0.5)' : 'none',
+                boxShadow: i === 0 ? '0 0 12px var(--color-accent-glow)' : 'none',
               }}
             />
           </div>

@@ -615,7 +615,7 @@ export default function TasksPage() {
               setTaskSheetOpen(true)
             }}
             className="px-5 py-2.5 rounded-md border-none bg-accent-bright text-accent-fg text-[14px] font-600 cursor-pointer
-              hover:brightness-110 active:scale-[0.97] transition-all shadow-[0_2px_12px_rgba(99,102,241,0.2)]"
+              hover:brightness-110 active:scale-[0.97] transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             + New Task

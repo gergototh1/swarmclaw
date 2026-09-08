@@ -90,7 +90,7 @@ export function StepProfile({ onContinue, onSkip }: StepProfileProps) {
           className="w-full max-w-[300px] px-6 py-4 rounded-lg border border-line-default bg-surface
             text-text text-[18px] text-center font-display font-600 outline-none
             transition-all duration-200 placeholder:text-text-3
-            focus:border-accent-bright/30 focus:shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+            focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
         />
 
         {!seedOpen ? (
@@ -137,7 +137,7 @@ export function StepProfile({ onContinue, onSkip }: StepProfileProps) {
             disabled={!hasName}
             className="px-10 py-3.5 rounded-md border-none bg-accent-bright text-accent-fg text-[15px] font-display font-600
               cursor-pointer hover:brightness-110 active:scale-[0.97] transition-all duration-200
-              shadow-[0_6px_28px_rgba(99,102,241,0.3)] disabled:opacity-30"
+              disabled:opacity-30"
           >
             Continue
           </button>
