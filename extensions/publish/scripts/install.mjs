@@ -1,0 +1,222 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/**
+ * Installs this extension into a SwarmClaw data directory from the repo.
+ *
+ * Copied from `extensions/crm/scripts/install.mjs` -- read that file's own
+ * docblock for the full reasoning behind every path below, repeated here only
+ * where this module's install differs from it.
+ *
+ * The host normally writes an extension into a managed workspace itself
+ * (saveExtensionSource), generating the top-level shim as it goes. That path
+ * starts from source pasted into the UI; this one starts from the repo, so the
+ * same layout is produced by hand:
+ *
+ *   <DATA_DIR>/extensions/publish.mjs                 -- shim the loader requires
+ *   <DATA_DIR>/extensions/.workspaces/publish_mjs/     -- the actual module tree
+ *
+ * The workspace key is the extension filename with every character outside
+ * [a-zA-Z0-9_-] replaced by '_', which is what extensionWorkspaceKey computes
+ * for 'publish.mjs'. Get it wrong and the host builds a different workspace
+ * path, finds no index.js there, and loads the shim's target from nowhere.
+ *
+ * index.mjs lands in the workspace as index.js because that is the entry name
+ * the host looks for. It stays ESM: the copied package.json carries
+ * "type": "module", and its relative './src/...' imports resolve inside the
+ * workspace.
+ *
+ * Task 4 adds the two skills the managed agents name (`src/agents.mjs`) and
+ * a schedule (Task 3) that now resolves to a real agent. The skill-copy
+ * block below is ported from `extensions/video/scripts/install.mjs` -- read
+ * that file's own docblock for the full manifest/removal reasoning; it is
+ * repeated here only where this module's copy differs.
+ */
+
+const here = path.dirname(fileURLToPath(import.meta.url))
+const root = path.resolve(here, '..')
+
+// Where the desktop app keeps its home on this machine (electron/paths.ts:
+// userData + '/home'), when this is a machine that has one. Only the macOS
+// location is known here; on any other platform, or when the directory does
+// not exist, this is null and the host's own fallbacks below apply.
+function desktopHome() {
+  if (process.platform !== 'darwin') return null
+  const candidate = path.join(process.env.HOME || '', 'Library/Application Support/@swarmclawai/swarmclaw/home')
+  return fs.existsSync(candidate) ? candidate : null
+}
+
+// Follows the host's own resolution order (src/lib/server/data-dir.ts): an
+// explicit DATA_DIR wins, then SWARMCLAW_HOME/data, then the desktop app's
+// home when this machine has one, and otherwise <cwd>/data -- which is what
+// the host itself uses when started without either variable, in the container
+// (WORKDIR /app, so /app/data, the compose volume) as much as from a checkout.
+const explicitHome = process.env.SWARMCLAW_HOME || null
+const desktop = explicitHome ? null : desktopHome()
+const dataDir = process.env.DATA_DIR
+  || (explicitHome ? path.join(explicitHome, 'data') : null)
+  || (desktop ? path.join(desktop, 'data') : null)
+  || path.join(process.cwd(), 'data')
+// Where the host writes run/port.json, and so where the MCP entry printed below
+// points SWARMCLAW_PORT_FILE. This mirrors the host's own `resolveRunDir()`
+// (src/lib/server/data-dir.ts), which has exactly two branches:
+// `SWARMCLAW_HOME/run` when a home is set, otherwise `DATA_DIR/run`. There is
+// no `~/.swarmclaw` branch -- that path exists in `resolveBrowserProfilesDir`,
+// not here -- and a path that named `~/.swarmclaw` would mean the shim finds no
+// port file on every install that is neither the desktop app nor a
+// SWARMCLAW_HOME install (a checkout, the container). `mcp/server.mjs` has no
+// fallback for a missing file, so the shim would refuse every call with
+// `port_fajl_beallitatlan` / `port_fajl_hianyzik` -- silently, from an agent's
+// point of view.
+//
+// The desktop branch stands in for the host's `SWARMCLAW_HOME`: the desktop app
+// sets that variable itself before spawning the server (electron/main.ts), so a
+// host started that way resolves its run dir under the desktop home even though
+// this script sees no SWARMCLAW_HOME in its own env. `dataDir` above already
+// resolves the same three ways, so the third branch just reuses it.
+const runDir = explicitHome
+  ? path.join(explicitHome, 'run')
+  : (desktop ? path.join(desktop, 'run') : path.join(dataDir, 'run'))
+// Skills go to the layer discoverSkills() scans (skill-discovery.ts,
+// resolveWorkspaceSkillsDir): SWARMCLAW_HOME/skills, else ~/.swarmclaw/skills.
+// The desktop app sets SWARMCLAW_HOME to its home, so that home's skills
+// directory is the same layer when installing against the desktop app by hand.
+const home = explicitHome || desktop || path.join(process.env.HOME || '', '.swarmclaw')
+const extDir = path.join(dataDir, 'extensions')
+const wsDir = path.join(extDir, '.workspaces', 'publish_mjs')
+
+fs.mkdirSync(wsDir, { recursive: true })
+// `mcp/` is the MCP server's own tree, which the host does not load: the
+// operator points an MCP Servers entry at the copy in the workspace, and the
+// shim there runs from it. It is copied like source because it is source, and
+// it has to be here rather than in the repo checkout so that it survives a
+// rebuild of the tree the operator installed from.
+const copied = []
+for (const d of ['src', 'dist', 'mcp']) {
+  const src = path.join(root, d)
+  if (!fs.existsSync(src)) continue
+  // Replace rather than merge: cpSync leaves a file that was renamed or deleted
+  // in the repo sitting in the workspace, where it keeps being imported.
+  fs.rmSync(path.join(wsDir, d), { recursive: true, force: true })
+  fs.cpSync(src, path.join(wsDir, d), { recursive: true })
+  copied.push(d)
+}
+fs.copyFileSync(path.join(root, 'index.mjs'), path.join(wsDir, 'index.js'))
+fs.copyFileSync(path.join(root, 'package.json'), path.join(wsDir, 'package.json'))
+fs.writeFileSync(path.join(extDir, 'publish.mjs'), "export { default } from './.workspaces/publish_mjs/index.js'\n")
+
+// The skills the managed agents name (`src/agents.mjs`): copied into
+// <home>/skills, the workspace layer discoverSkills() scans -- an
+// extension's own directory is not a layer it looks in, so a skill left in
+// the repo tree is a skill the agent that names it never sees. A pin
+// matches on the SKILL.md's frontmatter `name`, not on the directory, so
+// the two have to agree.
+//
+// A copy alone is not an upgrade -- see
+// `extensions/video/scripts/install.mjs`'s own docblock for the full
+// reasoning -- so the directory names shipped by each install are written
+// to a manifest beside the workspace, and the next install removes from
+// `<home>/skills` every name the previous install shipped that the repo no
+// longer has. Only names from the manifest are touched.
+
+/** A manifest entry this script will put after `<home>/skills/` and delete recursively, or null -- same guard as `extensions/video/scripts/install.mjs`'s function of the same name, for the same reason: a manifest entry of `''` or `'..'` must never become a path this script deletes. */
+function plainDirectoryName(name) {
+  if (typeof name !== 'string') return null
+  if (name === '' || name === '.' || name === '..') return null
+  if (name !== path.basename(name)) return null
+  return name
+}
+
+const skillsRoot = path.join(root, 'skills')
+const shippedManifest = path.join(wsDir, 'shipped-skills.json')
+const shipped = fs.existsSync(skillsRoot) ? fs.readdirSync(skillsRoot) : []
+let previouslyShipped = []
+try {
+  const parsed = JSON.parse(fs.readFileSync(shippedManifest, 'utf8'))
+  for (const entry of Array.isArray(parsed) ? parsed : []) {
+    const name = plainDirectoryName(entry)
+    if (name === null) {
+      console.error(`figyelmen kívül hagyott manifest-bejegyzés (nem egyszerű könyvtárnév): ${JSON.stringify(entry)}`)
+      continue
+    }
+    previouslyShipped.push(name)
+  }
+} catch {
+  // No manifest, or not one this script wrote: nothing was shipped that this run knows about.
+}
+for (const stale of previouslyShipped.filter((name) => !shipped.includes(name))) {
+  fs.rmSync(path.join(home, 'skills', stale), { recursive: true, force: true })
+}
+for (const skill of shipped) {
+  fs.cpSync(path.join(skillsRoot, skill), path.join(home, 'skills', skill), { recursive: true })
+}
+fs.writeFileSync(shippedManifest, `${JSON.stringify(shipped, null, 2)}\n`)
+
+console.log(`publish installed: ${extDir}/publish.mjs, workspace ${wsDir}`)
+
+/**
+ * The one thing worth checking before calling this done: without a build, the
+ * module still loads and its contract still works, but the /x/publish page it
+ * declares (index.mjs's `ui.pages`) gets a 404 on BOTH of its assets and
+ * stays empty -- which from the host's side is indistinguishable from a
+ * broken install.
+ *
+ * THIS USED TO SAY THE OPPOSITE, AND IT WAS WRONG FROM THE COMMIT THAT
+ * SHIPPED THE PAGE. The earlier text told the operator that a missing `dist/`
+ * was "egyelőre várható" because this release did not carry `ui/main.tsx`
+ * yet. It does carry it, `dist/` is gitignored, and the root build does not
+ * build this module -- so a fresh checkout installed, served a page that
+ * 404'd twice, and was told that was fine. That is exactly the failure
+ * `buildTerv`'s own docblock (scripts/build.mjs) prevents one layer up, and
+ * the sibling module already had the right sentence:
+ * `extensions/crm/scripts/install.mjs`.
+ */
+const distIndex = path.join(root, 'dist/index.js')
+const distCss = path.join(root, 'dist/style.css')
+if (!fs.existsSync(distIndex) || !fs.existsSync(distCss)) {
+  console.log('FIGYELEM: nincs dist/ build. Futtasd előbb: npm run build')
+  console.log('Build nélkül a naptár-lap sosem regisztrál, és ez a hosztról nézve megkülönböztethetetlen egy törött telepítéstől.')
+} else {
+  console.log('A lap két bundle-fájlja (dist/index.js, dist/style.css) a workspace-ben megvan.')
+}
+
+console.log(`
+Ennek a modulnak nincs hitelesítési lépése ezen a telepítőn túl: a YouTube a
+host Google OAuth-ját használja (a naptár Fiókok lapján van hozzá gomb), a
+másik három platform fiókját ugyanott lehet összekötni.
+
+Ez a kiadás három ügynököt (Publikálás Író, Publikálás Lektor, Publikálás
+Kiküldő) és egy fix ütemű ütemezést (15 percenként) deklarál -- nyisd meg a
+Bővítmények lapon a Publikálás kártyát, és nyomd meg a Reconcile-t, különben
+egyik sem jön létre.
+`)
+
+// The host does not register MCP servers on an extension's behalf, so the
+// entry is the operator's to add. The JSON is printed here rather than left to
+// be worked out, because two of its four fields are machine-specific and a
+// wrong one fails silently: the shim must run from the WORKSPACE copy (a path
+// under the repo checkout stops working the moment the tree is rebuilt), and
+// SWARMCLAW_PORT_FILE is how it finds a host whose port changes every launch.
+//
+// SWARMCLAW_AGENT_ID and friends are deliberately absent: the host stamps those
+// into the env per turn, and a value pinned here would be an agent naming
+// itself. See addAssignedMcpServers in src/lib/providers/claude-cli.ts.
+if (copied.includes('mcp')) {
+  const entry = {
+    name: 'Publikálás MCP',
+    transport: 'stdio',
+    command: process.execPath,
+    args: [path.join(wsDir, 'mcp', 'server.mjs')],
+    env: { SWARMCLAW_PORT_FILE: path.join(runDir, 'port.json'), SWARMCLAW_ACCESS_KEY: '<a host .env.local ACCESS_KEY értéke>' },
+  }
+  console.log('\nMCP-bejegyzés (Settings → MCP Servers), majd rendeld hozzá az ügynökökhöz:')
+  console.log(JSON.stringify(entry, null, 2))
+  console.log(`
+A modul öt toolt ad vissza az mcpTools-on (publishOpen, publishQueue,
+publishDraft, publishVerdict, publishDue) -- egy CLI-provideres ügynök csak
+ezen az MCP-bejegyzésen át éri el őket, a beépített tool-rétegen nem
+(CLAUDE.md "A három képesség-réteg" szakasza).`)
+} else {
+  console.log('Ez a kiadás nem szállít MCP-szervert (nincs mcp/ könyvtár); MCP-bejegyzést nem kell felvenni.')
+}

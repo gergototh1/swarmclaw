@@ -151,20 +151,57 @@ describe('GET /api/oauth/google/start', () => {
     assert.doesNotMatch(out.location, /gmail\.settings/)
   })
 
-  it('keeps the aisignal purpose on gmail.readonly when gmail asks for more', () => {
-    // The two purposes key two separate credentials. Adding the wider grant
-    // must not widen the one the newsletter sweep already holds.
-    const out = runWithTempDataDir<{ aisignal: string; gmail: string }>(`
+  it('keeps every other purpose where it was when a new one is added', () => {
+    // Each purpose keys its own credential. Adding a purpose -- gmail's wider
+    // grant, or publish's YouTube one -- must not widen any of the others, so
+    // all three are read in one child process and compared against each other
+    // rather than each being pinned alone.
+    const out = runWithTempDataDir<{ aisignal: string; gmail: string; publish: string }>(`
       ${DESKTOP_ENV}
       ${LOAD_ROUTES}
       const scopeOf = async (purpose) => {
         const res = await start(new Request('http://127.0.0.1:4321/api/oauth/google/start?purpose=' + purpose))
         return new URL(res.headers.get('location')).searchParams.get('scope') || ''
       }
-      console.log(JSON.stringify({ aisignal: await scopeOf('aisignal'), gmail: await scopeOf('gmail') }))
+      console.log(JSON.stringify({ aisignal: await scopeOf('aisignal'), gmail: await scopeOf('gmail'), publish: await scopeOf('publish') }))
     `)
     assert.equal(out.aisignal, 'https://www.googleapis.com/auth/gmail.readonly')
     assert.equal(out.gmail, 'https://www.googleapis.com/auth/gmail.modify')
+    assert.equal(out.publish, 'https://www.googleapis.com/auth/youtube.upload')
+    // No purpose carries another's scope: the publish grant is not a Gmail
+    // grant and neither Gmail grant reaches YouTube.
+    assert.doesNotMatch(out.publish, /gmail/)
+    assert.doesNotMatch(out.aisignal, /youtube/)
+    assert.doesNotMatch(out.gmail, /youtube/)
+  })
+
+  it('asks for youtube.upload on the publish purpose, and for nothing wider', () => {
+    const out = runWithTempDataDir<{ status: number; location: string; scope: string }>(`
+      ${DESKTOP_ENV}
+      ${LOAD_ROUTES}
+      const res = await start(new Request('http://127.0.0.1:4321/api/oauth/google/start?purpose=publish'))
+      const location = res.headers.get('location') || ''
+      console.log(JSON.stringify({
+        status: res.status,
+        location,
+        scope: new URL(location).searchParams.get('scope') || '',
+      }))
+    `)
+    assert.equal(out.status, 302)
+    assert.equal(out.scope, 'https://www.googleapis.com/auth/youtube.upload')
+    // Neither of the two scopes that would let this app read or moderate the
+    // rest of the channel -- or edit or delete a video at all, which
+    // youtube.upload on its own cannot do -- is ever requested. Checked
+    // against the SPLIT scope list and not against the whole string: a bare
+    // `.../youtube` is a prefix of `.../youtube.upload`, so neither a
+    // substring match nor a `notEqual` on the joined value can tell
+    // 'youtube.upload' from 'youtube.upload youtube' apart, which is exactly
+    // the widening this test exists to catch.
+    const scopes = out.scope.split(' ')
+    assert.deepEqual(scopes, ['https://www.googleapis.com/auth/youtube.upload'])
+    assert.equal(scopes.includes('https://www.googleapis.com/auth/youtube'), false)
+    assert.equal(scopes.includes('https://www.googleapis.com/auth/youtube.force-ssl'), false)
+    assert.doesNotMatch(out.location, /force-ssl/)
   })
 })
 
@@ -217,6 +254,39 @@ describe('GET /api/oauth/google/callback', () => {
     // A separate row from google-oauth:aisignal, because the two carry
     // different grants and one must not silently widen the other.
     assert.deepEqual(out.ids, ['google-oauth:gmail'])
+  })
+
+  it('sends a connected publish purpose to the publish page, not to /home', () => {
+    // THE DOOR AND THE ROOM WERE BUILT BY DIFFERENT TASKS AND NOBODY JOINED
+    // THEM. `?purpose=publish` grants `youtube.upload` and stores
+    // `google-oauth:publish`, and `extensions/publish/ui/fiokok.tsx` is the
+    // page that sends the operator through it -- but `RETURN_PATH` had no
+    // `publish` entry, so consent completed and dropped them on `/home`,
+    // with no way back to the accounts screen they started from and no sign
+    // the connection had worked. The credential half was never the part that
+    // was broken, which is exactly why nothing failed loudly.
+    const out = runWithTempDataDir<{ status: number; location: string; ids: string[] }>(`
+      ${DESKTOP_ENV}
+      ${LOAD_ROUTES}
+      const repo = await import('@/lib/server/credentials/credential-repository')
+      const { loadCredentials } = repo.default || repo
+      globalThis.fetch = async () => new Response(JSON.stringify({ refresh_token: 'rt-3', access_token: 'at-0', expires_in: 3600 }), { status: 200 })
+
+      const started = await start(new Request('http://127.0.0.1:4321/api/oauth/google/start?purpose=publish'))
+      const state = new URL(started.headers.get('location')).searchParams.get('state')
+      const res = await callback(new Request('http://127.0.0.1:4321/api/oauth/google/callback?code=auth-code&state=' + encodeURIComponent(state)))
+      console.log(JSON.stringify({
+        status: res.status,
+        location: res.headers.get('location') || '',
+        ids: Object.keys(loadCredentials()),
+      }))
+    `)
+    assert.equal(out.status, 302)
+    assert.equal(out.location, 'http://127.0.0.1:4321/x/publish?connected=1')
+    assert.doesNotMatch(out.location, /\/home/, 'the fallback path is what this entry exists to stop')
+    // Its own credential row, the same way gmail and aisignal each have one:
+    // the publish grant is youtube.upload and must not widen either of them.
+    assert.deepEqual(out.ids, ['google-oauth:publish'])
   })
 
   it('reports a denied consent as a denial, not as a missing parameter', () => {

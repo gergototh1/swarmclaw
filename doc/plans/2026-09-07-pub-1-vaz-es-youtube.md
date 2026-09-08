@@ -147,8 +147,17 @@ spec 5. szakasza kimondja, melyik kombináció mit jelent.
 - Create: `extensions/publish/test/allapot.test.mjs`
 
 **Interfaces:**
-- `kiadasAllapot(agak)` → `'vazlat' | 'utemezve' | 'kesz' | 'reszben' | 'hiba' | 'nincs_hova'`
-  — tiszta függvény, nem olvas adatbázist, nem dob
+- `kiadasAllapot(agak)` → `'utemezve' | 'kesz' | 'reszben' | 'hiba' | 'nincs_hova' | 'ismeretlen'`
+  — tiszta függvény, nem olvas adatbázist, jól formált ág-listára nem dob
+
+  **A `vazlat`, `lektoralt` és `jovahagyva` NEM ennek a függvénynek a válaszai.**
+  Azok munkafolyamat-állapotok, és a tárolt `ext_publish_kiadasok.allapot`
+  oszlopból jönnek; ez a függvény a KIMENETELT számolja. Egy vázlat és egy
+  jóváhagyott kiadás azonos ág-alakot mutat (mind `var`), tehát a
+  megkülönböztetés szerkezetileg nem is lehetne itt. Az oszlop teljes,
+  nyolcszavas domainje a `db.mjs`-ben áll, az oszlop mellett.
+  Egy hívó soha nem írhatja vissza ennek a válaszát egy jóvá nem hagyott
+  kiadásra: az `esedekes()` az `utemezve`-re szűr, tehát az publikálna.
 
 - [ ] **2.1 Írd meg a bukó teszteket.**
 
