@@ -29,7 +29,7 @@ export function BottomSheet({ open, onClose, children, wide, title, description 
             ${wide ? 'sm:max-w-[760px]' : 'sm:max-w-[560px]'}`}
           style={{ animationDuration: '220ms' }}
         >
-          <div className="relative shrink-0 px-4 pt-4 pr-14 sm:px-5 sm:pt-6 sm:pr-16">
+          <div className="relative z-40 shrink-0 px-4 pt-4 pr-14 sm:px-5 sm:pt-6 sm:pr-16">
             <div className="mx-auto h-1 w-10 rounded-full bg-layer-3 sm:hidden" />
             <DialogPrimitive.Title className="sr-only">
               {title || 'Dialog'}

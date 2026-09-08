@@ -1057,7 +1057,7 @@ export function AgentSheet() {
         </div>
       </div>
 
-      <div className="sticky top-0 z-30 -mx-5 mb-6 flex items-center gap-1 border-b border-line-subtle bg-bg px-5 sm:-mx-8 sm:px-8">
+      <div className="sticky -top-3 z-30 -mx-5 mb-6 flex items-center gap-1 border-b border-line-subtle bg-bg px-5 pt-3 sm:-top-5 sm:-mx-8 sm:px-8 sm:pt-5">
         {AGENT_SHEET_TABS.map((entry) => (
           <button
             key={entry.key}
@@ -1213,7 +1213,7 @@ export function AgentSheet() {
       {/* Import file input (hidden) */}
       <input ref={importFileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
 
-      <div className="sticky bottom-0 z-30 -mx-5 mt-2 flex gap-3 border-t border-line-subtle bg-bg px-5 py-4 sm:-mx-8 sm:px-8">
+      <div className="sticky -bottom-5 z-30 -mx-5 mt-2 flex gap-3 border-t border-line-subtle bg-bg px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:-bottom-8 sm:-mx-8 sm:px-8 sm:pb-8">
         {editing && (
           <button onClick={handleDelete} className="py-3.5 px-6 rounded-full border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Delete

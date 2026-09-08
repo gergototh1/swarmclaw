@@ -156,9 +156,24 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     }
   }, [appSettings.themeHue])
 
-  // Theme mode
+  /* Theme mode -- replayed ONCE, when the stored setting first arrives.
+   *
+   * This used to re-run on every change of appSettings.themeMode, which made
+   * the store the authority over a click that had not round-tripped yet.
+   * Picking a mode writes two things: next-themes' own state, and the stored
+   * setting. The store then refreshes from the server, and until the write
+   * lands it hands back the OLD mode -- so this effect fired and set the theme
+   * back. Measured: one click on "System" produced six class mutations in
+   * 170ms, light -> dark -> light -> light -> light -> light, ending on the
+   * value the user had just moved away from.
+   *
+   * Its job is only to restore the stored mode at boot; after that, the
+   * control owns the mode and writes both halves itself. */
+  const themeReplayed = useRef(false)
   useEffect(() => {
+    if (themeReplayed.current) return
     if (!appSettings.themeMode) return
+    themeReplayed.current = true
     setTheme(normalizeThemeMode(appSettings.themeMode))
   }, [appSettings.themeMode, setTheme])
 
