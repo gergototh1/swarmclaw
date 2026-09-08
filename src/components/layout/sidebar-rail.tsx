@@ -16,7 +16,16 @@ import { useWs } from '@/hooks/use-ws'
 import { NAV_SECTIONS, type NavSection, type NavSectionId, type NavSectionIconName } from '@/lib/app/nav-sections'
 import { FULL_WIDTH_VIEWS, isPanelSidebarView, VIEW_DESCRIPTIONS, VIEW_LABELS } from '@/lib/app/view-constants'
 import { getViewPath, resolveSidebarActiveView, useNavigate } from '@/lib/app/navigation'
-import { RAIL_EXPANDED_KEY, railExpandedFromStorage, railSectionForPath, resolveOpenSection, type RailSectionPick } from '@/lib/app/rail-state'
+import {
+  PANEL_CLOSED_KEY,
+  RAIL_EXPANDED_KEY,
+  panelClosedFromStorage,
+  railExpandedFromStorage,
+  railSectionForPath,
+  resolveHighlightedSection,
+  resolveOpenSection,
+  type RailSectionPick,
+} from '@/lib/app/rail-state'
 import { safeStorageGet, safeStorageSet } from '@/lib/app/safe-storage'
 import type { AppView } from '@/types'
 
@@ -132,28 +141,38 @@ export function SidebarRail({
   //
   // Storing the click next to the route it was made against settles it in one
   // value: the pick holds while the route stays put, and the moment the route
-  // lands in a different section that section wins. A route that belongs to no
-  // section at all — a share link, say — resolves to null and closes the
-  // panel, which is what those pages want.
-  //
-  // `resolveOpenSection` (src/lib/app/rail-state.ts) does the combining, and
-  // that is also where the close-vs-route tension is written up and tested —
-  // an explicit close (`picked.section === null`) must survive its own
-  // render without the route-derived section snapping the panel back open,
-  // but must not outlive a route change that moves the reader into a
-  // different section.
+  // lands in a different section that section wins, UNLESS the reader has
+  // closed the panel — that preference is persisted (`sc_panel_closed`, the
+  // same pattern as `sc_rail_expanded`) so it survives the navigation that a
+  // bare `picked` state could not. See `resolveOpenSection` in
+  // src/lib/app/rail-state.ts for the full writeup of why the transient pick
+  // and the durable close are two different lifetimes, and
+  // `resolveHighlightedSection` for how the rail still shows the reader's
+  // current section, via its own icon highlight, while the panel stays shut.
   const extensionPages = useExtensionPages()
   const routeSection = railSectionForPath(pathname, activeView, extensionPages)
   const [picked, setPicked] = useState<RailSectionPick | null>(null)
-  const openSection = resolveOpenSection(routeSection, picked)
+  const [panelClosedStored, setPanelClosedStored] = useState(() => panelClosedFromStorage(safeStorageGet(PANEL_CLOSED_KEY)))
+  const openSection = resolveOpenSection(routeSection, picked, panelClosedStored)
+  // The section the rail highlights as "you are here." Kept separate from
+  // `openSection` so closing the panel (which can now persist indefinitely)
+  // never leaves every rail icon dark — see `resolveHighlightedSection`.
+  const highlightedSection = resolveHighlightedSection(routeSection, openSection)
   // Always opens (or switches to) a section — used by the "direct" rows
   // (Home, and any section that navigates straight to a view) whose icon
   // highlight should track the active view, not a togglable panel.
   const selectSection = (id: NavSectionId) => setPicked({ section: id, route: routeSection })
   // Used by the panel-opening rows: clicking the section that is already open
-  // closes its panel, clicking any other section switches to it.
-  const toggleSection = (id: NavSectionId) =>
-    setPicked({ section: openSection === id ? null : id, route: routeSection })
+  // closes its panel, clicking any other section switches to it (opening one
+  // always wins over a persisted close — otherwise the rail buttons would do
+  // nothing while closed). Either way the outcome is written back to storage
+  // so the preference — open or closed — survives past this render.
+  const toggleSection = (id: NavSectionId) => {
+    const closing = openSection === id
+    setPicked({ section: closing ? null : id, route: routeSection })
+    setPanelClosedStored(closing)
+    safeStorageSet(PANEL_CLOSED_KEY, String(closing))
+  }
 
   const panelSection = NAV_SECTIONS.find((s) => s.id === openSection && !s.direct) ?? null
 
@@ -201,7 +220,13 @@ export function SidebarRail({
 
   const renderSection = (section: NavSection) => {
     const Icon = SECTION_ICONS[section.icon] ?? Home
-    const on = openSection === section.id
+    // `highlighted` drives the visual "you are here" cue and stays lit on the
+    // current section even while its panel is closed. `expanded` is the
+    // truthful aria-expanded value — whether this section's panel is
+    // actually rendered right now — and the two intentionally diverge
+    // whenever the reader has closed the panel for the section they're on.
+    const highlighted = highlightedSection === section.id
+    const expanded = openSection === section.id
     const count = section.views.reduce((n, v) => n + (badges[v] ?? 0), 0)
 
     const inner = (
@@ -220,8 +245,8 @@ export function SidebarRail({
 
     const className = railExpanded
       ? `w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all border-none no-underline text-left
-          ${on ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text hover:bg-layer-2'}`
-      : `rail-btn ${on ? 'active' : ''} relative no-underline`
+          ${highlighted ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text hover:bg-layer-2'}`
+      : `rail-btn ${highlighted ? 'active' : ''} relative no-underline`
 
     // A section that goes straight to a view stays a real link, so it can still
     // be opened in a new tab; one that opens a panel is a button, because it
@@ -242,7 +267,7 @@ export function SidebarRail({
       <button
         key={section.id}
         onClick={() => toggleSection(section.id)}
-        aria-expanded={on}
+        aria-expanded={expanded}
         className={className}
         style={{ fontFamily: 'inherit' }}
       >

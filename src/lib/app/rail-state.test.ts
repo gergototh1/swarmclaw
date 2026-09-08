@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { railExpandedFromStorage, railSectionForPath, resolveOpenSection } from './rail-state'
+import {
+  panelClosedFromStorage,
+  railExpandedFromStorage,
+  railSectionForPath,
+  resolveHighlightedSection,
+  resolveOpenSection,
+} from './rail-state'
 
 describe('rail expanded state', () => {
   it('starts labelled when nothing is stored', () => {
@@ -71,22 +77,41 @@ describe('railSectionForPath', () => {
   })
 })
 
+describe('panel closed state', () => {
+  it('starts open when nothing is stored', () => {
+    assert.equal(panelClosedFromStorage(null), false)
+  })
+
+  it('honours a stored close', () => {
+    assert.equal(panelClosedFromStorage('true'), true)
+  })
+
+  it('honours a stored open', () => {
+    assert.equal(panelClosedFromStorage('false'), false)
+  })
+
+  it('treats a corrupted value as open rather than as a stuck-closed panel', () => {
+    assert.equal(panelClosedFromStorage(''), false)
+    assert.equal(panelClosedFromStorage('yes'), false)
+  })
+})
+
 describe('resolveOpenSection', () => {
-  it('follows the route when nothing has been picked yet', () => {
-    assert.equal(resolveOpenSection('work', null), 'work')
-    assert.equal(resolveOpenSection(null, null), null)
+  it('follows the route when nothing has been picked yet and nothing is persisted closed', () => {
+    assert.equal(resolveOpenSection('work', null, false), 'work')
+    assert.equal(resolveOpenSection(null, null, false), null)
   })
 
   it('opens the section a click named, overriding a route that implies a different one', () => {
     const pick = { section: 'operations', route: 'work' } as const
-    assert.equal(resolveOpenSection('work', pick), 'operations')
+    assert.equal(resolveOpenSection('work', pick, false), 'operations')
   })
 
   it('switches to a newly clicked section', () => {
     const pick = { section: 'operations', route: 'work' } as const
-    assert.equal(resolveOpenSection('work', pick), 'operations')
+    assert.equal(resolveOpenSection('work', pick, false), 'operations')
     const switched = { section: 'chat', route: 'work' } as const
-    assert.equal(resolveOpenSection('work', switched), 'chat')
+    assert.equal(resolveOpenSection('work', switched, false), 'chat')
   })
 
   it('closes the panel when the pick records an explicit close, and the close survives its own render', () => {
@@ -95,22 +120,56 @@ describe('resolveOpenSection', () => {
     // rather than snapping back to 'work' — this is the case that makes the
     // toggle look broken if it regresses.
     const closed = { section: null, route: 'work' } as const
-    assert.equal(resolveOpenSection('work', closed), null)
-    assert.equal(resolveOpenSection('work', closed), null)
+    assert.equal(resolveOpenSection('work', closed, false), null)
+    assert.equal(resolveOpenSection('work', closed, false), null)
   })
 
-  it('lets a route change override a stale close', () => {
-    // Work was closed while standing on a 'work' route. Navigating to a
-    // /missions link keeps the route at 'work' (still Work's own view), so
-    // the close correctly persists...
+  it('lets a route change override a same-render pick once the route has moved past it', () => {
+    // Work was closed via a fresh pick while standing on a 'work' route.
+    // Re-deriving against the same route keeps the pick's close...
     const closedOnWork = { section: null, route: 'work' } as const
-    assert.equal(resolveOpenSection('work', closedOnWork), null)
+    assert.equal(resolveOpenSection('work', closedOnWork, false), null)
 
-    // ...but once the route itself moves to a different section (a click
-    // into Chat, or a bookmark landing on an Operations extension page), the
-    // stale close no longer applies and the new route's section surfaces so
-    // the reader is never left with no panel and no cue where they landed.
-    assert.equal(resolveOpenSection('chat', closedOnWork), 'chat')
-    assert.equal(resolveOpenSection('operations', closedOnWork), 'operations')
+    // ...but once the route itself moves, the stale pick no longer applies
+    // (pick.route !== routeSection) and the decision falls through to the
+    // persisted `closed` flag rather than the pick. With nothing persisted
+    // (false), the new route's section surfaces exactly as it always did.
+    assert.equal(resolveOpenSection('chat', closedOnWork, false), 'chat')
+    assert.equal(resolveOpenSection('operations', closedOnWork, false), 'operations')
+  })
+
+  it('keeps a persisted close across a route change — this is the owner-requested behaviour', () => {
+    // The reader closed the panel at some earlier point; that session's
+    // transient pick is long gone (null), but `closed` is still true because
+    // it was written to storage. Landing on a brand new route by any means
+    // (a link, ⌘K, a redirect) must not spring the panel back open.
+    assert.equal(resolveOpenSection('chat', null, true), null)
+    assert.equal(resolveOpenSection('operations', null, true), null)
+    assert.equal(resolveOpenSection(null, null, true), null)
+  })
+
+  it('opening a section against a persisted close overrides it immediately', () => {
+    // Clicking a rail section while the panel is closed must open it — the
+    // fresh pick from that click applies on this render regardless of the
+    // persisted flag.
+    const opened = { section: 'knowledge', route: 'work' } as const
+    assert.equal(resolveOpenSection('work', opened, true), 'knowledge')
+  })
+})
+
+describe('resolveHighlightedSection', () => {
+  it('matches the open section when one is open', () => {
+    assert.equal(resolveHighlightedSection('work', 'work'), 'work')
+    // A section opened while standing on a different route (open Knowledge
+    // from /tasks) is a more specific answer than the plain route.
+    assert.equal(resolveHighlightedSection('work', 'knowledge'), 'knowledge')
+  })
+
+  it('falls back to the route section when nothing is open — this is what keeps the rail a valid orientation cue on its own once the panel can stay closed', () => {
+    assert.equal(resolveHighlightedSection('work', null), 'work')
+  })
+
+  it('shows no highlight when neither the route nor the open section names one', () => {
+    assert.equal(resolveHighlightedSection(null, null), null)
   })
 })
