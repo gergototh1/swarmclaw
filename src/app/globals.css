@@ -638,20 +638,24 @@
      content, utility cards, store tiles, configurator grids", and reserves the
      parchment for alternating full-bleed bands and the footer.
 
-     So a card no longer separates by fill at all. It is white on white and its
-     hairline is the only thing that draws it, which is exactly how the store
-     grid works, and it is much quieter than a box floating on grey. --ln-subtle
-     goes up to carry that on its own. */
-  --surface-bg: #FFFFFF;
+     So a card barely separates by fill at all -- #FFFFFF on #F5F5F7 is 1.03:1,
+     which is a tint rather than a step, and the hairline is what actually
+     draws it. That is how the store grid works, and it is much quieter than
+     the #EAEDF2 ground this started from, where a white card read as a box
+     floating on a grey field. --ln-subtle carries the separation now. */
+  --surface-bg: #F5F5F7;
   --surface-raised: #FFFFFF;
   --surface-card: #FFFFFF;
-  --surface-selected: #EDEDF0;
-  --surface-elevated: #E1E1E6;
+  --surface-selected: #E8E8ED;
+  --surface-elevated: #DCDCE1;
 
-  /* Parchment. The alternating band, the footer, and the chrome column beside
-     the rail -- the three places this language uses an off-white rather than
-     white. It is not a step on the card ladder and no card should sit on it. */
-  --surface-band: #F5F5F7;
+  /* The alternating band, and it is WHITE, because the page ground is the
+     parchment. That is the way round this language actually runs it: the
+     off-white is the canvas a store page sits on, and white is what lifts out
+     of it -- the utility card, the configurator chip, the band that breaks a
+     run of parchment. Pure white as the page was tried first and read as
+     bleached; the parchment is the tint that makes it feel like paper. */
+  --surface-band: #FFFFFF;
 
   /* The ground stays #EAEDF2 and does not move to Apple's #F5F5F7, which is
      the one value in this redesign that was not taken. #F5F5F7 is 1.06:1 from
@@ -1266,12 +1270,15 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 }
 
 /* Monospace micro-label utility */
+/* The last of the console idiom, and the one that survived two codemods
+   because it lives in CSS rather than in a class list: a monospaced,
+   wide-tracked, uppercased micro-label. Every one of those four properties is
+   the idiom. What remains is a small quiet label in the UI face -- the mono
+   face is for code and identifiers, not for the word "active". */
 .label-mono {
-  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
   color: var(--color-text-3);
 }
 

@@ -470,6 +470,13 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
         <div
           key={msg.clientRenderId ? `${sessionId}-${msg.clientRenderId}-${i}` : `${sessionId}-${msg.role}-${originalIndex >= 0 ? originalIndex : i}`}
           data-message-index={i}
+          /* `group` is what MessageActions has always been written against --
+             it hides itself with `md:opacity-0 md:group-hover:opacity-100`.
+             This wrapper carried no className at all, so there was no group to
+             hover and the rule could never fire. Copy / Bookmark / Edit sat
+             under every message permanently, which is a row of noise on every
+             turn of every thread. */
+          className="group"
           style={animStyle}
         >
           {showDateSep && (
@@ -673,7 +680,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
   return (
     <div className="relative flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden isolate" data-testid="message-list">
       <div className="shrink-0 px-4 md:px-12 lg:px-16 pt-3">
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-line-subtle bg-surface/80 px-3 py-2 backdrop-blur-sm">
+        <div className="flex flex-wrap items-center gap-1">
           <button
             type="button"
             onClick={() => {
@@ -685,10 +692,10 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                 openSearch()
               }
             }}
-            className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-600 transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-600 transition-colors cursor-pointer ${
               searchOpen
                 ? 'border-accent-bright/25 bg-accent-soft/60 text-accent-bright'
-                : 'border-line-subtle bg-layer-1 text-text-3 hover:text-text-2 hover:bg-layer-2'
+                : 'text-text-3 hover:text-text hover:bg-layer-2'
             }`}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -701,10 +708,10 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
           <button
             type="button"
             onClick={() => setBookmarkFilter((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-600 transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-600 transition-colors cursor-pointer ${
               bookmarkFilter
-                ? 'border-amber-400/25 bg-amber-500/10 text-amber-300'
-                : 'border-line-subtle bg-layer-1 text-text-3 hover:text-text-2 hover:bg-layer-2'
+                ? 'bg-layer-2 text-text'
+                : 'text-text-3 hover:text-text hover:bg-layer-2'
             }`}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill={bookmarkFilter ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -721,7 +728,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                 setSearchIdx(0)
                 setBookmarkFilter(false)
               }}
-              className="inline-flex items-center gap-1.5 rounded-sm border border-line-subtle bg-transparent px-2.5 py-1.5 text-[11px] font-600 text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-600 text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer transition-colors"
             >
               Reset filters
             </button>

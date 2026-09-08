@@ -252,7 +252,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                 data-[active]:bg-accent-soft data-[active]:text-accent-bright
                 bg-transparent text-text-3 hover:text-text-2 hover:bg-layer-2"
             >
-              {f}
+              {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
           <button
@@ -466,11 +466,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                         Default
                       </span>
                     )}
-                    <span className="text-[10px] text-text-3 font-mono shrink-0 max-w-[30%] truncate">
-                      {(threadSession?.model || agent.model)
-                        ? (threadSession?.model || agent.model)!.split('/').pop()?.split(':')[0]
-                        : agent.provider}
-                    </span>
+
                     {/* Set as default agent */}
                     {(() => {
                       const isDefault = appSettings.defaultAgentId === agent.id
@@ -516,6 +512,11 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                       </svg>
                     </button>
                   </div>
+                  <span className="mt-0.5 block truncate text-[10px] text-text-3">
+                    {(threadSession?.model || agent.model)
+                      ? (threadSession?.model || agent.model)!.split('/').pop()?.split(':')[0]
+                      : agent.provider}
+                  </span>
                   {isTyping ? (
                     <div className={`text-[12px] mt-0.5 flex items-center gap-1.5 ${streamPhase === 'queued' ? 'text-amber-300/70' : 'text-accent-bright/70'}`}>
                       <span className="flex gap-0.5">
