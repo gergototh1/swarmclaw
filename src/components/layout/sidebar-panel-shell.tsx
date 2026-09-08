@@ -47,7 +47,7 @@ export function SidebarPanelShell({ title, subtitle, createLabel, onNew, headerC
         {onNew && createLabel && (
           <button
             onClick={onNew}
-            className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer"
+            className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-600 text-accent-fg bg-accent-bright hover:brightness-110 transition-all cursor-pointer"
             style={{ fontFamily: 'inherit' }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

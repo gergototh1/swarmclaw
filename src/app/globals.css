@@ -1373,7 +1373,12 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   -webkit-backdrop-filter: blur(12px);
 }
 .overlay-panel {
-  background: var(--color-raised);
+  /* The page ground, not the card surface. A modal is a page in its own right
+     -- the agent editor puts six tabs and a dozen grouped cards inside one --
+     and painting it white made every white card inside it invisible. It gets
+     the same parchment the app sits on, and the cards inside lift out of it
+     exactly as they do on a page. */
+  background: var(--color-bg);
   border: 1px solid var(--color-line-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--overlay-shadow);

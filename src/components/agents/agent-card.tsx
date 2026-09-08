@@ -262,7 +262,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
         <div className="flex items-center gap-2 mt-1.5">
           <span className="text-[11px] text-text-3 font-mono">{agent.model || agent.provider}</span>
           {getEnabledToolIds(agent).includes('browser') && (
-            <span className="text-[10px] font-600 tracking-[0.03em] text-sky-400/70 bg-sky-400/[0.08] px-1.5 py-0.5 rounded-xs">
+            <span className="text-[10px] font-600 tracking-[0.03em] text-text-2 bg-layer-2 px-1.5 py-0.5 rounded-xs">
               browser
             </span>
           )}

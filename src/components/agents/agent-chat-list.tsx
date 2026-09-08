@@ -239,6 +239,19 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
 
   return (
     <div className="flex-1 overflow-y-auto" data-testid="agent-chat-list">
+      {(sortedAgents.length > 5 || search) && (
+        <div className="px-4 py-2.5">
+          <SearchInput
+            size="sm"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onClear={() => setSearch('')}
+            placeholder="Search agents..."
+            aria-label="Search agents"
+            data-testid="agent-search"
+          />
+        </div>
+      )}
       {/* Filter control + bulk mode toggle */}
       {sortedAgents.length > 2 && (
         <div className="flex items-center gap-1 px-4 pt-2.5 pb-1">
@@ -248,7 +261,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
               type="button"
               onClick={() => setChatFilter(f)}
               data-active={chatFilter === f || undefined}
-              className="label-mono px-2.5 py-1 rounded-xs border-none cursor-pointer transition-colors
+              className="px-2.5 py-1 text-[11px] font-600 rounded-full border-none cursor-pointer transition-colors
                 data-[active]:bg-accent-soft data-[active]:text-accent-bright
                 bg-transparent text-text-3 hover:text-text-2 hover:bg-layer-2"
             >
@@ -259,7 +272,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
             type="button"
             onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()) }}
             aria-label={bulkMode ? 'Exit selection mode' : 'Select chats'}
-            className={`ml-auto label-mono px-2.5 py-1 rounded-xs border-none cursor-pointer transition-colors
+            className={`ml-auto px-2.5 py-1 text-[11px] font-600 rounded-full border-none cursor-pointer transition-colors
               ${bulkMode ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2 hover:bg-layer-2'}`}
           >
             {bulkMode ? 'Cancel' : 'Select'}
@@ -278,21 +291,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
             Delete
           </button>
         </div>
-      )}
-      {(sortedAgents.length > 5 || search) && (
-        <div className="px-4 py-2.5">
-          <SearchInput
-            size="sm"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onClear={() => setSearch('')}
-            placeholder="Search agents..."
-            aria-label="Search agents"
-            data-testid="agent-search"
-          />
-        </div>
-      )}
-      <div className="flex flex-col gap-0.5 px-2 pb-4">
+      )}      <div className="flex flex-col gap-0.5 px-2 pb-4">
         {defaultAgentVisible && defaultAgent && (() => {
           const threadSession = defaultAgent.threadSessionId ? sessions[defaultAgent.threadSessionId] as unknown as Session | undefined : undefined
           const lastMsg = threadSession?.messages?.at(-1)

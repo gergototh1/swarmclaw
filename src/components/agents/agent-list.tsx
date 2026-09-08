@@ -210,7 +210,7 @@ export function AgentList({ inSidebar }: Props) {
             <button
               key={f}
               onClick={() => setFleetFilter(f)}
-              className={`px-3 py-1.5 rounded-sm text-[11px] font-600 capitalize cursor-pointer transition-all
+              className={`px-2.5 py-1 rounded-full text-[11px] font-600 capitalize cursor-pointer transition-all
                 ${fleetFilter === f ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`}
               style={{ fontFamily: 'inherit' }}
             >
@@ -220,21 +220,20 @@ export function AgentList({ inSidebar }: Props) {
         })}
         <span className="mx-1 h-3.5 w-px bg-line-subtle" aria-hidden="true" />
         {([
-          ['all', `all (${delegatingCount + soloCount})`],
+          ['all', `all roles (${delegatingCount + soloCount})`],
           ['delegating', `delegating (${delegatingCount})`],
           ['solo', `solo (${soloCount})`],
         ] as const).map(([value, label]) => (
           <button
             key={value}
             onClick={() => setFilter(value)}
-            className={`px-3 py-1.5 rounded-sm text-[11px] font-600 capitalize cursor-pointer transition-all
+            className={`px-2.5 py-1 rounded-full text-[11px] font-600 capitalize cursor-pointer transition-all
               ${filter === value ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`}
             style={{ fontFamily: 'inherit' }}
           >
             {label}
           </button>
         ))}
-        <div className="flex-1" />
         <button
           onClick={() => setShowTrash(true)}
           aria-label="View trash"
