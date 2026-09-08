@@ -6,6 +6,7 @@ import {
   railSectionForPath,
   resolveHighlightedSection,
   resolveOpenSection,
+  resolveSectionClick,
 } from './rail-state'
 
 describe('rail expanded state', () => {
@@ -43,8 +44,8 @@ describe('railSectionForPath', () => {
   // /swarmfeed is the Feed half of the Home surface (src/app/home/home-tabs.ts).
   // It used to be rail-exempt, which left the Home icon dark and no section
   // open for the whole time a reader stood on that tab; `home` claims the view
-  // now. Home is a `direct` section, so this lights its icon without opening a
-  // panel -- `panelSection` in sidebar-rail.tsx filters `!s.direct`.
+  // now. Home is a `direct` section, so this lights its icon without expanding
+  // a list -- `renderSection` in sidebar-rail.tsx returns a bare row for one.
   it('lights up Home on the Feed half of the Home surface', () => {
     assert.equal(railSectionForPath('/swarmfeed', 'swarmfeed', pages), 'home')
     assert.equal(railSectionForPath('/home', 'home', pages), 'home')
@@ -171,5 +172,31 @@ describe('resolveHighlightedSection', () => {
 
   it('shows no highlight when neither the route nor the open section names one', () => {
     assert.equal(resolveHighlightedSection(null, null), null)
+  })
+})
+
+describe('resolveSectionClick', () => {
+  it('toggles the open section shut on the labelled rail', () => {
+    assert.deepEqual(resolveSectionClick('work', true, 'work'), { expandRail: false, section: null })
+  })
+
+  it('switches between sections on the labelled rail', () => {
+    assert.deepEqual(resolveSectionClick('knowledge', true, 'work'), { expandRail: false, section: 'knowledge' })
+    assert.deepEqual(resolveSectionClick('knowledge', true, null), { expandRail: false, section: 'knowledge' })
+  })
+
+  // The whole reason this function exists. The section's entries are drawn
+  // inside the rail now, and at 52px there is nowhere to draw them — so a
+  // click there widens the rail rather than toggling a list nobody can see.
+  it('expands the icon rail rather than toggling an invisible list', () => {
+    assert.deepEqual(resolveSectionClick('work', false, null), { expandRail: true, section: 'work' })
+  })
+
+  // The failure this guards against is the one the brief called out by name:
+  // an icon rail where clicking a section appears to do nothing. If a click at
+  // 52px were treated as a toggle, clicking the section that happens to be the
+  // routed one would close it and leave the rail exactly as it was.
+  it('never closes a section from the icon rail, not even the one already open', () => {
+    assert.deepEqual(resolveSectionClick('work', false, 'work'), { expandRail: true, section: 'work' })
   })
 })

@@ -167,3 +167,36 @@ export function resolveHighlightedSection(
 ): NavSectionId | null {
   return openSection ?? routeSection
 }
+
+/**
+ * What a click on a section button means, given how wide the rail currently is.
+ *
+ * The section's contents are drawn inside the rail now, indented under the
+ * button, rather than in a sibling column — which leaves the 52px icon rail
+ * with nowhere to put them. So a click there means something different from a
+ * click on the labelled rail, and this is the whole of that difference:
+ *
+ * - Labelled rail: a toggle. Clicking the open section closes its list;
+ *   clicking any other section switches to it. One section open at a time is
+ *   what keeps this inside a single column.
+ * - Icon rail: never a close, always "expand and show me this one." At 52px
+ *   there is no list on screen to close, so a toggle would make the second
+ *   click on a section appear to do nothing at all. Expanding is the coherent
+ *   answer because the rail's own width is already a persisted, reversible
+ *   preference (`sc_rail_expanded`, restored by `railExpandedFromStorage`) with
+ *   a visible control — the collapse chevron — to put it back. The reader ends
+ *   up looking at exactly what they asked for, and undoing it is one click on a
+ *   control they can see. The alternatives were worse: a flyout would
+ *   reintroduce the second column this change exists to remove, and doing
+ *   nothing until the rail is expanded leaves seven dead buttons.
+ *
+ * Mobile never reaches the second case — the drawer forces the labelled rail.
+ */
+export function resolveSectionClick(
+  clicked: NavSectionId,
+  railExpanded: boolean,
+  openSection: NavSectionId | null,
+): { expandRail: boolean; section: NavSectionId | null } {
+  if (!railExpanded) return { expandRail: true, section: clicked }
+  return { expandRail: false, section: openSection === clicked ? null : clicked }
+}

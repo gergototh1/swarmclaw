@@ -20,11 +20,12 @@ export function RailTooltip({ label, description, children }: { label: string; d
  * Rail entry for a page contributed by an extension.
  *
  * Navigates to a raw `href` instead of an `AppView`, so extension paths never
- * have to be part of the `AppView` union. Only ever mounted inside a section
- * panel (`ExtensionPagesForSection`, called from `NavSectionPanel`), which is
- * always in its labelled, expanded form — there is no 52px collapsed panel —
- * so this renders one row, sized to match the built-in rows below it
- * (`NavSectionPanel`'s own `<Link>`) rather than the wider rail-button form.
+ * have to be part of the `AppView` union. Only ever mounted inside a section's
+ * indented list in the rail (`ExtensionPagesForSection`, called from
+ * `SectionSubList` in sidebar-rail.tsx), which the rail draws only when it is
+ * labelled — the 52px icon rail has no room for it — so this renders one row,
+ * sized to match the built-in rows below it (`SectionSubList`'s own `<Link>`)
+ * rather than the wider rail-button form.
  */
 export function ExtensionNavItem({ href, label, isActive, onClick, children }: {
   href: string
@@ -37,7 +38,7 @@ export function ExtensionNavItem({ href, label, isActive, onClick, children }: {
     <Link
       href={href}
       onClick={onClick}
-      className={`flex items-center gap-2 px-2 py-1.5 rounded-sm text-[11.5px] transition-colors no-underline
+      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-sm text-[12.5px] transition-colors no-underline
         ${isActive
           ? 'bg-accent-soft text-accent-bright font-600'
           : 'text-text-2 hover:text-text hover:bg-layer-2'}`}

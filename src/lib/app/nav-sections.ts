@@ -16,9 +16,9 @@ export interface NavSection {
   id: NavSectionId
   label: string
   icon: NavSectionIconName
-  /** Views listed in this section's panel, in panel order. */
+  /** Views listed under this section in the rail, in list order. */
   views: readonly AppView[]
-  /** A section that navigates straight to one view instead of opening a panel. */
+  /** A section that navigates straight to one view instead of expanding a list. */
   direct?: AppView
   /** Rendered below the rail's spacer rather than in the main run. */
   footer?: boolean
@@ -57,8 +57,9 @@ export const NAV_SECTION_IDS: readonly NavSectionId[] = NAV_SECTIONS.map((s) => 
  * derives its highlight from `sectionForView` too, so an exempt view left the
  * Home icon dark for the whole time a reader stood on the Feed tab -- half of
  * a two-tab surface with nothing lit. A view that a section owns belongs in
- * that section's `views` even when the panel never lists it; Home is `direct`,
- * so it renders no panel either way (see `panelSection` in sidebar-rail.tsx).
+ * that section's `views` even when the rail never lists it; Home is `direct`,
+ * so it renders no list either way (see `renderSection` in sidebar-rail.tsx,
+ * which returns a bare row for a `direct` section).
  * Exempt it only when no section owns it at all.
  */
 export const NAV_EXEMPT_VIEWS: Record<string, string> = {}

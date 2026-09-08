@@ -60,8 +60,8 @@ function ExtensionPageLinks({ pages, onNavigate }: {
 /**
  * The extension pages of one rail section, above that section's built-in entries.
  *
- * Renders nothing when the section has none, hairline included — an empty
- * section panel must not open with a rule across the top of it.
+ * Renders nothing when the section has none, hairline included — a section with
+ * no extension pages must not open with a rule across the top of its list.
  *
  * Placement comes entirely from `pagesForSection`, which asks
  * `resolvePageSection` where each page belongs. No anchor list, and no reader

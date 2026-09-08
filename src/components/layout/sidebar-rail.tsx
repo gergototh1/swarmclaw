@@ -10,7 +10,7 @@ import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { DaemonIndicator } from '@/components/layout/daemon-indicator'
 import { NotificationCenter } from '@/components/shared/notification-center'
 import { RailTooltip } from '@/components/layout/nav-item'
-import { NavSectionPanel } from '@/components/layout/nav-section-panel'
+import { ExtensionPagesForSection } from '@/components/layout/extension-nav-items'
 import { useExtensionPages } from '@/hooks/use-extension-pages'
 import { useWs } from '@/hooks/use-ws'
 import { NAV_SECTIONS, type NavSection, type NavSectionId, type NavSectionIconName } from '@/lib/app/nav-sections'
@@ -24,13 +24,11 @@ import {
   railSectionForPath,
   resolveHighlightedSection,
   resolveOpenSection,
+  resolveSectionClick,
   type RailSectionPick,
 } from '@/lib/app/rail-state'
 import { safeStorageGet, safeStorageSet } from '@/lib/app/safe-storage'
 import type { AppView } from '@/types'
-
-const GITHUB_REPO_URL = 'https://github.com/swarmclawai/swarmclaw'
-const DISCORD_URL = 'https://discord.gg/sbEavS8cPV'
 
 /**
  * The components behind the icon names in `NAV_SECTIONS`.
@@ -47,42 +45,68 @@ const SECTION_ICONS: Record<NavSectionIconName, React.ComponentType<{ size?: num
 }
 
 /**
- * One of the rail's off-app links (Docs, GitHub, Discord).
+ * A section's contents, indented beneath its own button inside the rail.
  *
- * The three differ only in href, label and glyph, and each needs a labelled row
- * and a 52px icon-with-tooltip form; those three two-form blocks were about
- * 78 of this file's 519 lines (roughly 2.5 KB of 31.6 KB) before this
- * component collapsed them into three short calls.
+ * This is where the 186px sibling column went. A section holds two to six
+ * entries, so a fixed second column sized for the longest one stood empty for
+ * most of them, and it read as a second copy of the rail rather than as part of
+ * one — same fill, same border, same title treatment. Drawn inside the rail
+ * under a hairline, the same list costs no column at all: the eleven views that
+ * carry their own 280px entity list (agents, tasks, skills, connectors, memory,
+ * providers, schedules, extensions, knowledge, mcp-servers, webhooks) drop from
+ * three navigation columns to two.
+ *
+ * Everything the old panel did survives here. `isViewEnabled` is not
+ * decoration — /webhooks is switched off with the `http` extension, and listing
+ * it would offer a link into a view that redirects straight back to /home.
+ * `onSelectView` is the rail's own click handling, which decides whether the
+ * route's 280px panel opens; a bare Link would leave `sidebarOpen` set from
+ * whatever the last view wanted. The badge still rides the entry it belongs to
+ * (skill drafts), and extension pages still come first, above a hairline,
+ * because on this install they are the surfaces the operator opens.
+ *
+ * Rows are 12.5px in 2.5/1.5 padding, against the 13px section button above
+ * them. The panel's old 11.5px was sized for a 186px column of its own and read
+ * as a second, unrelated scale once the two sat in one column; the hierarchy
+ * here is carried by the indent, the hairline and the section's icon rather
+ * than by a font-size gap. `ExtensionNavItem` (nav-item.tsx) carries the same
+ * three values — the two row kinds sit in one list and must not diverge.
  */
-function RailExternalLink({ href, label, description, expanded, children }: {
-  href: string
-  label: string
-  description: string
-  expanded: boolean
-  children: React.ReactNode
+function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtensionNavigate }: {
+  section: NavSection
+  isViewEnabled: (view: AppView) => boolean
+  badges: Partial<Record<AppView, number>>
+  onSelectView: (view: AppView) => void
+  onExtensionNavigate: () => void
 }) {
-  if (!expanded) {
-    return (
-      <RailTooltip label={label} description={description}>
-        <a href={href} target="_blank" rel="noopener noreferrer" className="rail-btn">{children}</a>
-      </RailTooltip>
-    )
-  }
+  const pathname = usePathname()
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
-        bg-transparent text-text-3 hover:text-text hover:bg-layer-2 no-underline"
-      style={{ fontFamily: 'inherit' }}
-    >
-      <span className="shrink-0 flex items-center">{children}</span>
-      <span className="truncate">{label}</span>
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="ml-auto opacity-40 shrink-0">
-        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-      </svg>
-    </a>
+    <div className="ml-5 pl-2 mt-0.5 mb-1 flex flex-col gap-0.5 border-l border-line-subtle">
+      <ExtensionPagesForSection section={section.id} onNavigate={onExtensionNavigate} />
+      {section.views.filter(isViewEnabled).map((view) => {
+        const href = getViewPath(view)
+        const on = pathname === href || pathname.startsWith(`${href}/`)
+        const badge = badges[view]
+        return (
+          <Link
+            key={view}
+            href={href}
+            onClick={() => onSelectView(view)}
+            aria-current={on ? 'page' : undefined}
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-sm text-[12.5px] transition-colors no-underline ${
+              on ? 'bg-accent-soft text-accent-bright font-600' : 'text-text-2 hover:bg-layer-2 hover:text-text'
+            }`}
+          >
+            <span className="truncate">{VIEW_LABELS[view]}</span>
+            {!!badge && (
+              <span className="ml-auto shrink-0 min-w-[16px] h-[16px] rounded-full bg-amber-500 text-black text-[9px] font-700 flex items-center justify-center px-1">
+                {badge}
+              </span>
+            )}
+          </Link>
+        )
+      })}
+    </div>
   )
 }
 
@@ -130,14 +154,18 @@ export function SidebarRail({
   // only signal that skill drafts are waiting.
   const badges: Partial<Record<AppView, number>> = { skills: skillDraftCount }
 
-  // Which section's panel is open.
+  // Which section is expanded — i.e. which one draws its contents inside the
+  // rail, indented under its own button. (The persisted key is still
+  // `sc_panel_closed`: the preference is the same one the reader set when this
+  // list lived in a sibling column, and renaming the key would silently discard
+  // it.)
   //
   // Derived from the route, with the operator's own click layered over it —
-  // deliberately not a useState the route writes into from an effect. The panel
+  // deliberately not a useState the route writes into from an effect. The list
   // has to follow the route (open /x/crm from a bookmark and Work must be
   // showing) and it has to obey a click that navigates nowhere (open Knowledge
   // while standing on /tasks), and an effect that pushed one into the other
-  // would run a render late, after the wrong panel had already painted.
+  // would run a render late, after the wrong section had already painted.
   //
   // Storing the click next to the route it was made against settles it in one
   // value: the pick holds while the route stays put, and the moment the route
@@ -162,25 +190,29 @@ export function SidebarRail({
   // (Home, and any section that navigates straight to a view) whose icon
   // highlight should track the active view, not a togglable panel.
   const selectSection = (id: NavSectionId) => setPicked({ section: id, route: routeSection })
-  // Used by the panel-opening rows: clicking the section that is already open
-  // closes its panel, clicking any other section switches to it (opening one
-  // always wins over a persisted close — otherwise the rail buttons would do
-  // nothing while closed). Either way the outcome is written back to storage
-  // so the preference — open or closed — survives past this render.
-  const toggleSection = (id: NavSectionId) => {
-    const closing = openSection === id
-    setPicked({ section: closing ? null : id, route: routeSection })
-    setPanelClosedStored(closing)
-    safeStorageSet(PANEL_CLOSED_KEY, String(closing))
+  const setRailExpanded = (next: boolean) => {
+    setRailExpandedStored(next)
+    safeStorageSet(RAIL_EXPANDED_KEY, String(next))
   }
 
-  const panelSection = NAV_SECTIONS.find((s) => s.id === openSection && !s.direct) ?? null
+  // Used by the list-opening rows. Clicking the open section closes its list,
+  // clicking any other section switches to it (opening one always wins over a
+  // persisted close — otherwise the rail buttons would do nothing while
+  // closed), and clicking one on the 52px icon rail widens the rail first
+  // because there is no room for the list at that width. `resolveSectionClick`
+  // holds that decision and the reasoning behind it. Either way the outcome is
+  // written back to storage so the preference survives past this render.
+  const clickSection = (id: NavSectionId) => {
+    const { expandRail, section } = resolveSectionClick(id, railExpanded, openSection)
+    if (expandRail) setRailExpanded(true)
+    setPicked({ section, route: routeSection })
+    setPanelClosedStored(section === null)
+    safeStorageSet(PANEL_CLOSED_KEY, String(section === null))
+  }
 
   const toggleRail = () => {
     if (mobile) return
-    const next = !railExpandedStored
-    setRailExpandedStored(next)
-    safeStorageSet(RAIL_EXPANDED_KEY, String(next))
+    setRailExpanded(!railExpandedStored)
   }
 
   const goToDefaultChat = () => {
@@ -211,9 +243,11 @@ export function SidebarRail({
   // navigating to one collapses the panel (and closes the drawer on mobile).
   const handleExtensionNavClick = () => setSidebarOpen(false)
 
-  // What the 52px rail says about a section it can only draw as an icon. A
-  // section that opens a panel lists what is in it; the one that navigates
-  // straight to a view borrows that view's description.
+  // What the 52px rail says about a section it can only draw as an icon —
+  // which at that width is the only thing standing in for the list, since the
+  // list itself needs the labelled rail. A section that expands lists what is
+  // in it; the one that navigates straight to a view borrows that view's
+  // description.
   const sectionHint = (section: NavSection) => section.direct
     ? VIEW_DESCRIPTIONS[section.direct]
     : section.views.filter(isViewEnabled).map((v) => VIEW_LABELS[v]).join(' · ')
@@ -221,12 +255,14 @@ export function SidebarRail({
   const renderSection = (section: NavSection) => {
     const Icon = SECTION_ICONS[section.icon] ?? Home
     // `highlighted` drives the visual "you are here" cue and stays lit on the
-    // current section even while its panel is closed. `expanded` is the
-    // truthful aria-expanded value — whether this section's panel is
-    // actually rendered right now — and the two intentionally diverge
-    // whenever the reader has closed the panel for the section they're on.
+    // current section even while its list is closed. `expanded` is the truthful
+    // aria-expanded value — whether this section's contents are actually
+    // rendered right now — and the two intentionally diverge whenever the
+    // reader has closed the list for the section they're on. The 52px rail
+    // draws no list at all, so nothing is expanded there whatever `openSection`
+    // says; a click at that width widens the rail first (`clickSection`).
     const highlighted = highlightedSection === section.id
-    const expanded = openSection === section.id
+    const expanded = railExpanded && openSection === section.id
     const count = section.views.reduce((n, v) => n + (badges[v] ?? 0), 0)
 
     const inner = (
@@ -249,7 +285,7 @@ export function SidebarRail({
       : `rail-btn ${highlighted ? 'active' : ''} relative no-underline`
 
     // A section that goes straight to a view stays a real link, so it can still
-    // be opened in a new tab; one that opens a panel is a button, because it
+    // be opened in a new tab; one that expands a list is a button, because it
     // navigates nowhere.
     const direct = section.direct
     const control = direct ? (
@@ -266,7 +302,7 @@ export function SidebarRail({
     ) : (
       <button
         key={section.id}
-        onClick={() => toggleSection(section.id)}
+        onClick={() => clickSection(section.id)}
         aria-expanded={expanded}
         className={className}
         style={{ fontFamily: 'inherit' }}
@@ -275,197 +311,192 @@ export function SidebarRail({
       </button>
     )
 
-    if (railExpanded) return control
-    return <RailTooltip key={section.id} label={section.label} description={sectionHint(section)}>{control}</RailTooltip>
-  }
-
-  return (
-    <div className={`flex h-full min-h-0 ${mobile ? 'max-w-[calc(100vw-40px)]' : 'shrink-0'}`}>
-      <div
-        className={`shrink-0 bg-raised border-r border-line-subtle flex flex-col py-4 min-h-0 overflow-visible
-          transition-[width] duration-200 ${railExpanded ? 'w-[152px]' : 'w-[52px]'}`}
-        style={{ transitionTimingFunction: 'var(--ease-spring)' }}
-      >
-        {/* Logo + collapse toggle */}
-        <div className={`flex items-center mb-4 shrink-0 ${railExpanded ? 'px-3 gap-2' : 'justify-center'}`}>
-          <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#4338CA] to-[#6366F1] flex items-center justify-center shrink-0
-            shadow-[0_2px_12px_rgba(99,102,241,0.2)]">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-white">
-              <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor" />
-            </svg>
-          </div>
-          {railExpanded && !mobile && (
-            <button
-              onClick={toggleRail}
-              className="ml-auto w-7 h-7 rounded-sm flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-all cursor-pointer bg-transparent border-none"
-              title="Collapse sidebar"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <polyline points="11 17 6 12 11 7" />
-                <polyline points="18 17 13 12 18 7" />
-              </svg>
-            </button>
-          )}
-        </div>
-
-        {/* Expand button when collapsed */}
-        {!railExpanded && !mobile && (
-          <div className="flex justify-center mb-2">
-            <button onClick={toggleRail} className="rail-btn" title="Expand sidebar">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <polyline points="13 17 18 12 13 7" />
-                <polyline points="6 17 11 12 6 7" />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {/* Default agent shortcut */}
-        {railExpanded ? (
-          <div className="px-3 mb-2.5">
-            <button
-              onClick={goToDefaultChat}
-              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-[12px] font-600 cursor-pointer transition-all text-left
-                ${isDefaultChat
-                  ? 'bg-accent-bright/15 border border-[#6366F1]/25 text-accent-bright'
-                  : 'bg-accent-bright/10 border border-[#6366F1]/20 text-accent-bright hover:bg-accent-bright/15'}`}
-              style={{ fontFamily: 'inherit' }}
-            >
-              {defaultAgent ? (
-                <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={24} />
-              ) : (
-                <div className="w-6 h-6 rounded-full bg-accent-bright/15 flex items-center justify-center shrink-0">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                </div>
-              )}
-              <div className="min-w-0">
-                <div className="truncate">{defaultAgent?.name || 'Choose Agent'}</div>
-                <div className="text-[10px] font-500 text-accent-bright/75 mt-0.5 truncate">
-                  {defaultAgent ? 'Default shortcut' : 'Pick an agent'}
-                </div>
-              </div>
-            </button>
-          </div>
-        ) : (
-          <RailTooltip
-            label={defaultAgent?.name || 'Choose Agent'}
-            description={defaultAgent ? 'Open your default agent shortcut chat' : 'Choose an agent thread'}
-          >
-            <button onClick={goToDefaultChat} className={`rail-btn self-center mb-2 ${isDefaultChat ? 'active' : ''}`}>
-              {defaultAgent ? (
-                <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={20} />
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              )}
-            </button>
-          </RailTooltip>
-        )}
-
-        {/* Search */}
-        {railExpanded ? (
-          <div className="px-3 mb-2">
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
-                bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none"
-              style={{ fontFamily: 'inherit' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
-                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              Search
-              <kbd className="ml-auto px-1 py-0.5 rounded-xs bg-layer-2 border border-line-default text-[10px] font-mono text-text-3">
-                ⌘K
-              </kbd>
-            </button>
-          </div>
-        ) : (
-          <RailTooltip label="Search" description="Search across all entities (⌘K)">
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
-              className="rail-btn self-center mb-2"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </button>
-          </RailTooltip>
-        )}
-
-        <div className="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-contain touch-pan-y">
-          <nav className={`flex flex-col gap-0.5 ${railExpanded ? 'px-3' : 'items-center'}`}>
-            {NAV_SECTIONS.filter((s) => !s.footer).map(renderSection)}
-          </nav>
-
-          <div className="flex-1" />
-
-          {/* Bottom: Docs + Daemon + Settings + User */}
-          <div className={`flex flex-col gap-1 ${railExpanded ? 'px-3' : 'items-center'}`}>
-            <RailExternalLink href="https://swarmclaw.ai/docs" label="Docs" description="Open documentation site" expanded={railExpanded}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-              </svg>
-            </RailExternalLink>
-            <RailExternalLink href={GITHUB_REPO_URL} label="Star on GitHub" description="Support SwarmClaw with a GitHub star" expanded={railExpanded}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-            </RailExternalLink>
-            <RailExternalLink href={DISCORD_URL} label="Join Discord" description="Open the SwarmClaw community" expanded={railExpanded}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                <path d="M8 10h.01M12 10h.01M16 10h.01" />
-              </svg>
-            </RailExternalLink>
-            {railExpanded && <DaemonIndicator />}
-            {railExpanded ? (
-              <NotificationCenter variant="row" align="left" direction="up" />
-            ) : (
-              <RailTooltip label="Notifications" description="View system notifications">
-                <div className="rail-btn flex items-center justify-center">
-                  <NotificationCenter align="left" direction="up" />
-                </div>
-              </RailTooltip>
-            )}
-
-            <nav className={`flex flex-col gap-0.5 ${railExpanded ? '' : 'items-center'}`}>
-              {NAV_SECTIONS.filter((s) => s.footer).map(renderSection)}
-            </nav>
-
-            {railExpanded ? (
-              <button
-                onClick={onSwitchUser}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm cursor-pointer transition-all
-                  bg-transparent hover:bg-layer-2 border-none"
-                style={{ fontFamily: 'inherit' }}
-              >
-                <Avatar user={currentUser!} size="sm" avatarSeed={appSettings.userAvatarSeed} />
-                <span className="text-[13px] font-500 text-text-2 capitalize truncate">{currentUser}</span>
-              </button>
-            ) : (
-              <RailTooltip label="Profile" description="Edit your profile">
-                <button onClick={onSwitchUser} className="mt-2 bg-transparent border-none cursor-pointer shrink-0">
-                  <Avatar user={currentUser!} size="sm" avatarSeed={appSettings.userAvatarSeed} />
-                </button>
-              </RailTooltip>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {panelSection && (
-        <NavSectionPanel
-          section={panelSection}
+    if (!railExpanded) {
+      return <RailTooltip key={section.id} label={section.label} description={sectionHint(section)}>{control}</RailTooltip>
+    }
+    // A `direct` section navigates straight to a view and never lists anything,
+    // so it stays a bare row — this is the job the deleted `panelSection`'s
+    // `!s.direct` filter did for the sibling column.
+    if (!expanded || section.direct) return control
+    return (
+      <div key={section.id}>
+        {control}
+        <SectionSubList
+          section={section}
           isViewEnabled={isViewEnabled}
           badges={badges}
           onSelectView={handleNavClick}
           onExtensionNavigate={handleExtensionNavClick}
         />
+      </div>
+    )
+  }
+
+  // One navigation column. 212px rather than the 152px it was: the section
+  // contents live inside it now, so it carries the entry labels the 186px
+  // sibling column used to. On the eleven views that bring their own 280px
+  // entity list that is 492px of chrome where the two-column arrangement cost
+  // 618px, and the pre-redesign flat rail cost 460px.
+  return (
+    <div
+      className={`bg-raised border-r border-line-subtle flex flex-col py-4 h-full min-h-0 overflow-visible
+        ${mobile ? 'max-w-[calc(100vw-40px)]' : 'shrink-0'}
+        transition-[width] duration-200 ${railExpanded ? 'w-[212px]' : 'w-[52px]'}`}
+      style={{ transitionTimingFunction: 'var(--ease-spring)' }}
+    >
+      {/* Logo + collapse toggle */}
+      <div className={`flex items-center mb-4 shrink-0 ${railExpanded ? 'px-3 gap-2' : 'justify-center'}`}>
+        <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#4338CA] to-[#6366F1] flex items-center justify-center shrink-0
+          shadow-[0_2px_12px_rgba(99,102,241,0.2)]">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-white">
+            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor" />
+          </svg>
+        </div>
+        {railExpanded && !mobile && (
+          <button
+            onClick={toggleRail}
+            className="ml-auto w-7 h-7 rounded-sm flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-all cursor-pointer bg-transparent border-none"
+            title="Collapse sidebar"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polyline points="11 17 6 12 11 7" />
+              <polyline points="18 17 13 12 18 7" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Expand button when collapsed */}
+      {!railExpanded && !mobile && (
+        <div className="flex justify-center mb-2">
+          <button onClick={toggleRail} className="rail-btn" title="Expand sidebar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polyline points="13 17 18 12 13 7" />
+              <polyline points="6 17 11 12 6 7" />
+            </svg>
+          </button>
+        </div>
       )}
+
+      {/* Default agent shortcut */}
+      {railExpanded ? (
+        <div className="px-3 mb-2.5">
+          <button
+            onClick={goToDefaultChat}
+            className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-[12px] font-600 cursor-pointer transition-all text-left
+              ${isDefaultChat
+                ? 'bg-accent-bright/15 border border-[#6366F1]/25 text-accent-bright'
+                : 'bg-accent-bright/10 border border-[#6366F1]/20 text-accent-bright hover:bg-accent-bright/15'}`}
+            style={{ fontFamily: 'inherit' }}
+          >
+            {defaultAgent ? (
+              <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={24} />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-accent-bright/15 flex items-center justify-center shrink-0">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="truncate">{defaultAgent?.name || 'Choose Agent'}</div>
+              <div className="text-[10px] font-500 text-accent-bright/75 mt-0.5 truncate">
+                {defaultAgent ? 'Default shortcut' : 'Pick an agent'}
+              </div>
+            </div>
+          </button>
+        </div>
+      ) : (
+        <RailTooltip
+          label={defaultAgent?.name || 'Choose Agent'}
+          description={defaultAgent ? 'Open your default agent shortcut chat' : 'Choose an agent thread'}
+        >
+          <button onClick={goToDefaultChat} className={`rail-btn self-center mb-2 ${isDefaultChat ? 'active' : ''}`}>
+            {defaultAgent ? (
+              <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={20} />
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            )}
+          </button>
+        </RailTooltip>
+      )}
+
+      {/* Search */}
+      {railExpanded ? (
+        <div className="px-3 mb-2">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
+              bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none"
+            style={{ fontFamily: 'inherit' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            Search
+            <kbd className="ml-auto px-1 py-0.5 rounded-xs bg-layer-2 border border-line-default text-[10px] font-mono text-text-3">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
+      ) : (
+        <RailTooltip label="Search" description="Search across all entities (⌘K)">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
+            className="rail-btn self-center mb-2"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </button>
+        </RailTooltip>
+      )}
+
+      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-contain touch-pan-y">
+        <nav className={`flex flex-col gap-0.5 ${railExpanded ? 'px-3' : 'items-center'}`}>
+          {NAV_SECTIONS.filter((s) => !s.footer).map(renderSection)}
+        </nav>
+
+        <div className="flex-1" />
+
+        {/* Bottom: Daemon + Notifications + Settings + User */}
+        <div className={`flex flex-col gap-1 ${railExpanded ? 'px-3' : 'items-center'}`}>
+          {railExpanded && <DaemonIndicator />}
+          {railExpanded ? (
+            <NotificationCenter variant="row" align="left" direction="up" />
+          ) : (
+            <RailTooltip label="Notifications" description="View system notifications">
+              <div className="rail-btn flex items-center justify-center">
+                <NotificationCenter align="left" direction="up" />
+              </div>
+            </RailTooltip>
+          )}
+
+          <nav className={`flex flex-col gap-0.5 ${railExpanded ? '' : 'items-center'}`}>
+            {NAV_SECTIONS.filter((s) => s.footer).map(renderSection)}
+          </nav>
+
+          {railExpanded ? (
+            <button
+              onClick={onSwitchUser}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm cursor-pointer transition-all
+                bg-transparent hover:bg-layer-2 border-none"
+              style={{ fontFamily: 'inherit' }}
+            >
+              <Avatar user={currentUser!} size="sm" avatarSeed={appSettings.userAvatarSeed} />
+              <span className="text-[13px] font-500 text-text-2 capitalize truncate">{currentUser}</span>
+            </button>
+          ) : (
+            <RailTooltip label="Profile" description="Edit your profile">
+              <button onClick={onSwitchUser} className="mt-2 bg-transparent border-none cursor-pointer shrink-0">
+                <Avatar user={currentUser!} size="sm" avatarSeed={appSettings.userAvatarSeed} />
+              </button>
+            </RailTooltip>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
