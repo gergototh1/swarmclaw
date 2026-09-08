@@ -39,7 +39,7 @@ export function DropdownItem({ children, danger, onClick }: { children: ReactNod
   return (
     <button
       onClick={onClick}
-      className={`block w-full px-3.5 py-2.5 border-none bg-transparent text-[13px] font-500
+      className={`block w-full px-3.5 py-2.5 border-none bg-transparent text-[13px] font-600
         text-left cursor-pointer rounded-sm transition-all duration-150
         hover:bg-layer-2 active:bg-layer-3
         ${danger ? 'text-danger' : 'text-text-2 hover:text-text'}`}

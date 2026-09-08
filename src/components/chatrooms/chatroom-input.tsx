@@ -372,7 +372,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                 <span className="rounded-full border border-amber-400/15 bg-amber-400/10 px-2 py-0.5 text-[10px] font-600 text-amber-200">
                   {visibleQueuedMessages.length}
                 </span>
-                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] ${
+                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] ${
                   streaming
                     ? 'border-amber-300/20 bg-amber-300/10 text-amber-100'
                     : 'border-line-default bg-layer-2 text-text-3'
@@ -416,7 +416,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     {index === 0 && (
-                      <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-amber-100">
+                      <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-amber-100">
                         Next
                       </span>
                     )}

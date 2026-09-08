@@ -275,9 +275,9 @@ export function SearchDialog() {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-500 text-text truncate">{result.title}</span>
+                  <span className="text-[13px] font-600 text-text truncate">{result.title}</span>
                   {result.status && (
-                    <InfoChip size="sm" tone="muted" className="font-500">
+                    <InfoChip size="sm" tone="muted" className="font-600">
                       {result.status}
                     </InfoChip>
                   )}
@@ -287,7 +287,7 @@ export function SearchDialog() {
                 )}
               </div>
               {/* Type label */}
-              <span className="text-[10px] text-text-3 uppercase tracking-wider shrink-0">
+              <span className="text-[10px] text-text-3 uppercase tracking-[0.03em] shrink-0">
                 {TYPE_LABELS[result.type]}
               </span>
             </button>

@@ -255,7 +255,7 @@ export function KnowledgeSheet() {
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Source Type</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Source Type</label>
         <div className="grid grid-cols-3 gap-2">
           {(['manual', 'file', 'url'] as const).map((sourceKind) => (
             <button
@@ -276,7 +276,7 @@ export function KnowledgeSheet() {
 
       {kind === 'file' && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Upload Document</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Upload Document</label>
 
           {uploadedFile ? (
             <div className="flex items-center gap-3 px-4 py-3 rounded-md border border-emerald-500/20 bg-emerald-500/[0.04]">
@@ -286,7 +286,7 @@ export function KnowledgeSheet() {
                 <polyline points="9 15 12 12 15 15" />
               </svg>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] text-text font-500 truncate">{uploadedFile.name}</p>
+                <p className="text-[13px] text-text font-600 truncate">{uploadedFile.name}</p>
                 <p className="text-[11px] text-text-3">
                   {formatSize(uploadedFile.size) ? `${formatSize(uploadedFile.size)} • ` : ''}content extracted
                 </p>
@@ -334,7 +334,7 @@ export function KnowledgeSheet() {
                     <line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
                   <div className="text-center">
-                    <p className="text-[14px] text-text-2 font-500">
+                    <p className="text-[14px] text-text-2 font-600">
                       {isDragging ? 'Drop document here' : 'Drop a document or click to browse'}
                     </p>
                     <p className="text-[11px] text-text-3 mt-1">
@@ -358,7 +358,7 @@ export function KnowledgeSheet() {
 
       {kind === 'url' && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Source URL</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Source URL</label>
           <input
             type="url"
             value={sourceUrl}
@@ -374,7 +374,7 @@ export function KnowledgeSheet() {
       )}
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Title</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Title</label>
         <input
           type="text"
           value={title}
@@ -386,7 +386,7 @@ export function KnowledgeSheet() {
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">
           Indexed Content
           {content.length > 0 && (
             <span className="ml-2 text-text-3 font-mono text-[10px] normal-case tracking-normal">
@@ -405,7 +405,7 @@ export function KnowledgeSheet() {
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Tags</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Tags</label>
         <input
           type="text"
           value={tags}
@@ -417,7 +417,7 @@ export function KnowledgeSheet() {
       </div>
 
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Scope</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Scope</label>
         <div className="flex p-1 rounded-md bg-bg border border-line-subtle">
           {(['global', 'agent'] as const).map((nextScope) => (
             <button
@@ -437,7 +437,7 @@ export function KnowledgeSheet() {
 
       {scope === 'agent' && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Agents</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Agents</label>
           <div className="max-h-[240px] overflow-y-auto rounded-md border border-line-subtle bg-layer-1">
             {agentList.length === 0 ? (
               <p className="p-3 text-[12px] text-text-3">No agents available</p>

@@ -350,7 +350,7 @@ export function SkillsWorkspace() {
           <div className="relative z-10">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">
-                <div className="text-[11px] font-700 uppercase tracking-[0.16em] text-text-3">
+                <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">
                   Skills + ClawHub
                 </div>
                 <h1 className="mt-2 font-display text-[28px] font-700 tracking-[-0.04em] text-text md:text-[34px]">
@@ -437,7 +437,7 @@ export function SkillsWorkspace() {
             <div className="rounded-lg border border-line-default bg-surface/70 p-4 md:p-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">Library</div>
+                  <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Library</div>
                   <p className="mt-1 text-[13px] text-text-3">
                     Search local skills and use the buttons on each card to open details or edit.
                   </p>
@@ -550,7 +550,7 @@ export function SkillsWorkspace() {
           <div className="space-y-6 pt-5">
             <section className="rounded-lg border border-line-default bg-surface/70 p-4 md:p-5">
               <div>
-                <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">ClawHub</div>
+                <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">ClawHub</div>
                 <p className="mt-1 max-w-2xl text-[13px] leading-[1.7] text-text-3">
                   Search the marketplace, use Details to learn what a tool does, or Open listing to visit the source page.
                 </p>
@@ -709,7 +709,7 @@ function SkillDetailView({
       <section className="rounded-lg border border-line-default bg-surface/70 p-5 md:p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">
+            <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">
               Local Skill
             </div>
             <h2 className="mt-2 font-display text-[28px] font-700 tracking-[-0.04em] text-text md:text-[34px]">
@@ -855,7 +855,7 @@ function HubSkillDetailView({
       <section className="rounded-lg border border-line-default bg-surface/70 p-5 md:p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">
+            <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">
               ClawHub Skill
             </div>
             <h2 className="mt-2 font-display text-[28px] font-700 tracking-[-0.04em] text-text md:text-[34px]">
@@ -964,7 +964,7 @@ function SuggestionsPanel({
     <section className="rounded-lg border border-line-default bg-surface/70 p-4 md:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">Draft Suggestions</div>
+          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Draft Suggestions</div>
           <p className="mt-1 text-[13px] text-text-3">
             Conversation-derived drafts you can review before they become part of the library.
           </p>
@@ -1002,7 +1002,7 @@ function SuggestionsPanel({
                 ) : null}
                 {suggestion.content ? (
                   <details className="mt-3 rounded-md border border-line-subtle bg-surface/60 px-3 py-2">
-                    <summary className="cursor-pointer list-none text-[11px] font-700 uppercase tracking-[0.12em] text-text-3 [&::-webkit-details-marker]:hidden">
+                    <summary className="cursor-pointer list-none text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 [&::-webkit-details-marker]:hidden">
                       Preview draft body
                     </summary>
                     <pre className="mt-2 whitespace-pre-wrap text-[11px] leading-[1.6] text-text-3">
@@ -1208,7 +1208,7 @@ function SetupOverview({ skill }: { skill: Partial<Skill> }) {
       ) : null}
       {security ? (
         <div className="rounded-md border border-line-subtle bg-bg/45 p-3">
-          <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">
+          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">
             Security
           </div>
           <div className="mt-2 flex items-center gap-2">
@@ -1354,7 +1354,7 @@ function FilterRow({
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">
-      <span className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">{label}</span>
+      <span className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">{label}</span>
       <button type="button" onClick={onClear} className={active ? activeChipClassName : chipClassName}>
         All
       </button>
@@ -1428,7 +1428,7 @@ function ActionAnchor({
 function DetailCard({ title, body }: { title: string; body: string }) {
   return (
     <div className="rounded-lg border border-line-default bg-bg/45 p-4">
-      <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">{title}</div>
+      <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">{title}</div>
       <p className="mt-2 whitespace-pre-line text-[13px] leading-[1.7] text-text-2">{body}</p>
     </div>
   )
@@ -1437,7 +1437,7 @@ function DetailCard({ title, body }: { title: string; body: string }) {
 function SectionHeading({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="mb-4">
-      <div className="text-[11px] font-700 uppercase tracking-[0.14em] text-text-3">{title}</div>
+      <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">{title}</div>
       <p className="mt-1 text-[13px] text-text-3">{subtitle}</p>
     </div>
   )
@@ -1446,7 +1446,7 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle: string }
 function MetadataRow({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <div className="rounded-md border border-line-subtle bg-bg/45 px-3 py-2.5">
-      <div className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3">{label}</div>
+      <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">{label}</div>
       {href ? (
         <a href={href} target="_blank" rel="noreferrer" className="mt-1 block cursor-pointer break-words text-[12px] leading-[1.6] text-accent-bright hover:underline">
           {value}
@@ -1476,7 +1476,7 @@ function MiniBadge({
           : 'border-line-default bg-layer-2 text-text-3/75'
 
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.08em] ${className}`}>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em] ${className}`}>
       {children}
     </span>
   )

@@ -298,7 +298,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
               placeholder="Search chats, agents, tasks, settings..."
               className="flex-1 bg-transparent border-none outline-none text-[14px] text-text-1 placeholder:text-text-3"
             />
-          <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-xs bg-layer-2 text-[11px] text-text-3 font-500">
+          <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-xs bg-layer-2 text-[11px] text-text-3 font-600">
             esc
           </kbd>
         </div>
@@ -310,7 +310,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
           ) : (
             Array.from(grouped.entries()).map(([category, groupItems]) => (
               <div key={category}>
-                <div className="px-4 py-1.5 text-[11px] font-600 text-text-3 uppercase tracking-wider">
+                <div className="px-4 py-1.5 text-[11px] font-600 text-text-3 uppercase tracking-[0.03em]">
                   {categoryLabel[category as keyof typeof categoryLabel]}
                 </div>
                 {groupItems.map((item) => {
@@ -328,7 +328,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
                       )}
                       <span className="shrink-0 text-text-3">{categoryIcon[item.category as keyof typeof categoryIcon]}</span>
                       <div className="min-w-0 flex-1">
-                        <div className="text-[13px] font-500 truncate">{item.label}</div>
+                        <div className="text-[13px] font-600 truncate">{item.label}</div>
                         {item.description && (
                           <div className={`text-[11px] truncate ${idx === selectedIndex ? 'text-accent-bright/75' : 'text-text-3/55'}`}>
                             {item.description}

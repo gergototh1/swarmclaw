@@ -163,7 +163,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="px-3 py-2 border-b border-line-subtle flex items-center justify-between">
-        <span className="text-[11px] font-700 uppercase tracking-wider text-text-3">Teams</span>
+        <span className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Teams</span>
         <button
           onClick={onClose}
           className="w-5 h-5 rounded-xs flex items-center justify-center text-text-3 hover:text-text hover:bg-layer-2 transition-colors cursor-pointer bg-transparent border-none"
@@ -231,7 +231,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
                   />
                 ) : (
                   <span
-                    className="flex-1 text-[11px] font-500 text-text-2 truncate cursor-text"
+                    className="flex-1 text-[11px] font-600 text-text-2 truncate cursor-text"
                     onClick={() => { setEditingLabel(team.label); setEditValue(team.label) }}
                   >
                     {team.label}
@@ -400,7 +400,7 @@ export function OrgChartTeamPanel({ teams, agents, onBatchPatch, onClose }: Prop
         ) : (
           <button
             onClick={() => setShowNewTeam(true)}
-            className="flex items-center justify-center gap-1.5 w-full py-2 mt-1 rounded-sm border border-dashed border-line-default text-[10px] font-500 text-text-3 hover:text-text-2 hover:bg-layer-1 bg-transparent cursor-pointer transition-colors"
+            className="flex items-center justify-center gap-1.5 w-full py-2 mt-1 rounded-sm border border-dashed border-line-default text-[10px] font-600 text-text-3 hover:text-text-2 hover:bg-layer-1 bg-transparent cursor-pointer transition-colors"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />

@@ -132,7 +132,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
             {firstTimeStep === 'show-key' && (
               <>
                 <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.1s both' }}>
-                  <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+                  <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
                     First-Time Setup
                   </h1>
                   <p className="text-[14px] text-text-2 mb-6">
@@ -287,7 +287,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
             {firstTimeStep === 'confirm' && (
               <div className="flex flex-col items-center gap-4">
                 <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.1s both' }}>
-                  <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+                  <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
                     Save Your Access Key
                   </h1>
                   <p className="text-[14px] text-text-2 mb-6 max-w-[380px]">
@@ -320,7 +320,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
             {firstTimeStep === 'paste-key' && (
               <div className="flex flex-col items-center gap-4">
                 <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.1s both' }}>
-                  <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+                  <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
                     Enter Your Access Key
                   </h1>
                   <p className="text-[14px] text-text-2 mb-6">
@@ -374,7 +374,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
           /* ── Returning user: enter key ── */
           <>
             <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.1s both' }}>
-              <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+              <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
                 Connect
               </h1>
               <p className="text-[14px] text-text-2 mb-2">

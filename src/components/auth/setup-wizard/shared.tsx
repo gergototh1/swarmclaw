@@ -61,7 +61,7 @@ export function ConfiguredProviderChips({
       {providers.map((cp) => (
         <span
           key={cp.id}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[12px] font-500"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[12px] font-600"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
           {cp.name}

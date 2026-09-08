@@ -231,7 +231,7 @@ function SoulPicker({
   return (
     <div>
       <div className="flex items-center gap-2 mb-1.5">
-        <label className="block text-[12px] text-text-3 font-500 ml-1">Soul / Personality</label>
+        <label className="block text-[12px] text-text-3 font-600 ml-1">Soul / Personality</label>
         <button
           type="button"
           onClick={() => onChange(randomSoul())}
@@ -288,7 +288,7 @@ function SoulPicker({
               onClick={() => { onChange(tpl.soul); setShowLibrary(false) }}
               className="w-full px-4 py-2.5 text-left border-none bg-transparent cursor-pointer hover:bg-layer-2 transition-colors"
             >
-              <div className="text-[13px] text-text font-500">{tpl.name}</div>
+              <div className="text-[13px] text-text font-600">{tpl.name}</div>
               <div className="text-[11px] text-text-3">{tpl.description}</div>
             </button>
           ))}
@@ -314,7 +314,7 @@ export function StepAgents({
 }: StepAgentsProps) {
   return (
     <StepShell wide>
-      <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+      <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
         Set Up Agents
       </h1>
       <p className="text-[15px] text-text-2 mb-2">
@@ -396,7 +396,7 @@ export function StepAgents({
 
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
-                    <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">Name</label>
+                    <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">Name</label>
                     <input
                       type="text"
                       value={draft.name}
@@ -407,7 +407,7 @@ export function StepAgents({
                     />
                   </div>
                   <div>
-                    <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">Provider</label>
+                    <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">Provider</label>
                     <div className="relative">
                       <select
                         value={draft.providerConfigId || ''}
@@ -433,7 +433,7 @@ export function StepAgents({
                     </div>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">Description</label>
+                    <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">Description</label>
                     <input
                       type="text"
                       value={draft.description}
@@ -444,7 +444,7 @@ export function StepAgents({
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">Endpoint</label>
+                    <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">Endpoint</label>
                     <input
                       type="text"
                       value={draft.apiEndpoint || ''}
@@ -457,7 +457,7 @@ export function StepAgents({
                   </div>
                   {matchedProvider?.setupProvider === 'openclaw' ? (
                     <div className="md:col-span-2">
-                      <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">Model</label>
+                      <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">Model</label>
                       <div className="flex items-center gap-3 px-4 py-3 rounded-md border border-line-default bg-bg">
                         <span className="text-[13px] text-text-3">Configured on the OpenClaw gateway.</span>
                         {matchedProvider.dashboardUrl && (
@@ -474,7 +474,7 @@ export function StepAgents({
                     </div>
                   ) : (
                     <div className="md:col-span-2">
-                      <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">Model</label>
+                      <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">Model</label>
                       <ModelCombobox
                         value={draft.model}
                         provider={matchedProvider}
@@ -531,7 +531,7 @@ export function StepAgents({
                       </div>
                       {draft.orchestratorEnabled && (
                         <div className="mt-2">
-                          <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">Mission (optional)</label>
+                          <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">Mission (optional)</label>
                           <textarea
                             value={draft.orchestratorMission}
                             onChange={(e) => onUpdateDraft(draft.id, { orchestratorMission: e.target.value })}
@@ -553,7 +553,7 @@ export function StepAgents({
                   </summary>
                   <div className="mt-3 space-y-3">
                     <div>
-                      <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">System Prompt</label>
+                      <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">System Prompt</label>
                       <textarea
                         value={draft.systemPrompt}
                         onChange={(e) => onUpdateDraft(draft.id, { systemPrompt: e.target.value })}
@@ -564,7 +564,7 @@ export function StepAgents({
                       />
                     </div>
                     <div>
-                      <div className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">Tools</div>
+                      <div className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">Tools</div>
                       <div className="space-y-2">
                         {AVAILABLE_TOOLS.map((t) => (
                           <label key={t.id} className="flex items-center gap-3 cursor-pointer">
@@ -576,14 +576,14 @@ export function StepAgents({
                               <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200
                                 ${draft.tools.includes(t.id) ? 'left-[18px]' : 'left-0.5'}`} />
                             </div>
-                            <span className="text-[13px] font-500 text-text-2">{t.label}</span>
+                            <span className="text-[13px] font-600 text-text-2">{t.label}</span>
                             <span className="text-[11px] text-text-3">{t.description}</span>
                           </label>
                         ))}
                       </div>
                     </div>
                     <div className="mt-3">
-                      <div className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">Platform Tools</div>
+                      <div className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">Platform Tools</div>
                       <div className="space-y-2">
                         {PLATFORM_TOOLS.map((t) => (
                           <label key={t.id} className="flex items-center gap-3 cursor-pointer">
@@ -595,7 +595,7 @@ export function StepAgents({
                               <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200
                                 ${draft.tools.includes(t.id) ? 'left-[18px]' : 'left-0.5'}`} />
                             </div>
-                            <span className="text-[13px] font-500 text-text-2">{t.label}</span>
+                            <span className="text-[13px] font-600 text-text-2">{t.label}</span>
                             <span className="text-[11px] text-text-3">{t.description}</span>
                           </label>
                         ))}
@@ -615,7 +615,7 @@ export function StepAgents({
         <button
           onClick={onBack}
           className="px-6 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[14px]
-            font-display font-500 cursor-pointer hover:bg-layer-1 transition-all duration-200"
+            font-display font-600 cursor-pointer hover:bg-layer-1 transition-all duration-200"
         >
           Back
         </button>

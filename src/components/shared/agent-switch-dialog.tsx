@@ -132,14 +132,14 @@ export function AgentSwitchDialog() {
               <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={28} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-500 text-text truncate">{agent.name}</span>
+                  <span className="text-[13px] font-600 text-text truncate">{agent.name}</span>
                   {agent.disabled === true && (
-                    <InfoChip size="sm" tone="warning" className="font-500">
+                    <InfoChip size="sm" tone="warning" className="font-600">
                       disabled
                     </InfoChip>
                   )}
                   {agent.id === currentAgentId && (
-                    <InfoChip size="sm" tone="accent" className="font-500">
+                    <InfoChip size="sm" tone="accent" className="font-600">
                       current
                     </InfoChip>
                   )}

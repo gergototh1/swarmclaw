@@ -248,7 +248,7 @@ export function StepConnect({
 
   return (
     <StepShell wide>
-      <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+      <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
         {editingProvider ? 'Edit' : 'Connect'} {selectedProvider.name}
       </h1>
       <p className="text-[15px] text-text-2 mb-2">
@@ -262,7 +262,7 @@ export function StepConnect({
 
       <div className="flex flex-col gap-3 text-left mb-4">
         <div>
-          <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">
+          <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">
             Connection name
           </label>
           <input
@@ -281,7 +281,7 @@ export function StepConnect({
 
         {supportsEndpoint && (
           <div>
-            <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">
+            <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">
               Endpoint
             </label>
             <input
@@ -304,7 +304,7 @@ export function StepConnect({
                     setCheckMessage('')
                     setCheckDiagnostics([])
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[12px] font-500 cursor-pointer transition-all duration-200 bg-transparent
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[12px] font-600 cursor-pointer transition-all duration-200 bg-transparent
                     border-line-default text-text-2 hover:bg-layer-2"
                 >
                   {endpoint.trim() === selectedProvider.cloudEndpoint ? (
@@ -354,7 +354,7 @@ export function StepConnect({
 
         {isCustom && (
           <div>
-            <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">
+            <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">
               Default model
             </label>
             <input
@@ -386,7 +386,7 @@ export function StepConnect({
 
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-md border border-line-subtle bg-bg px-4 py-3">
-                <div className="text-[12px] uppercase tracking-[0.08em] text-text-3 mb-2">Remote gateway</div>
+                <div className="text-[12px] uppercase tracking-[0.03em] text-text-3 mb-2">Remote gateway</div>
                 <p className="text-[13px] text-text-2 leading-relaxed">
                   Recommended when your OpenClaw node runs on another machine or VPS. Use a URL reachable from the machine running SwarmClaw.
                 </p>
@@ -401,7 +401,7 @@ export function StepConnect({
                 </p>
               </div>
               <div className="rounded-md border border-line-subtle bg-bg px-4 py-3">
-                <div className="text-[12px] uppercase tracking-[0.08em] text-text-3 mb-2">Safe defaults</div>
+                <div className="text-[12px] uppercase tracking-[0.03em] text-text-3 mb-2">Safe defaults</div>
                 <p className="text-[13px] text-text-2 leading-relaxed">
                   Smart Deploy generates a gateway token for you, defaults to the standard OpenClaw ports, and prefills this setup form automatically.
                 </p>
@@ -415,7 +415,7 @@ export function StepConnect({
             </div>
 
             <div className="rounded-md border border-line-subtle bg-bg px-4 py-3">
-              <div className="text-[12px] uppercase tracking-[0.08em] text-text-3 mb-2">Connection mental model</div>
+              <div className="text-[12px] uppercase tracking-[0.03em] text-text-3 mb-2">Connection mental model</div>
               <p className="text-[12px] text-text-3 leading-relaxed">
                 SwarmClaw talks to this endpoint from its own host. If SwarmClaw is on a server, <code className="text-text-2">localhost</code> means that server, not your laptop.
               </p>
@@ -431,7 +431,7 @@ export function StepConnect({
 
         {(requiresKey || keyIsOptional) && (
           <div>
-            <label className="block text-[12px] text-text-3 font-500 mb-1.5 ml-1">
+            <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">
               {keyIsOptional ? 'API key (optional)' : 'API key'}
             </label>
             {hasExistingCredentials && !addingNewKey ? (
@@ -464,7 +464,7 @@ export function StepConnect({
                 <button
                   type="button"
                   onClick={() => { setAddingNewKey(true); setCredentialId(null); setApiKey('') }}
-                  className="shrink-0 px-3 py-2.5 rounded-md border border-line-default bg-layer-1 text-text-2 text-[12px] font-500
+                  className="shrink-0 px-3 py-2.5 rounded-md border border-line-default bg-layer-1 text-text-2 text-[12px] font-600
                     cursor-pointer hover:bg-layer-2 transition-all duration-200"
                 >
                   + New
@@ -583,7 +583,7 @@ export function StepConnect({
         <button
           onClick={onBack}
           className="px-6 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[14px]
-            font-display font-500 cursor-pointer hover:bg-layer-1 transition-all duration-200"
+            font-display font-600 cursor-pointer hover:bg-layer-1 transition-all duration-200"
         >
           Back
         </button>

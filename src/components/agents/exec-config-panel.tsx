@@ -68,7 +68,7 @@ export function ExecConfigPanel({ agentId }: Props) {
     <div className="flex flex-col gap-4">
       {/* Security Level */}
       <div>
-        <label className="block text-[11px] font-600 uppercase tracking-wider text-text-3 mb-2">Security Level</label>
+        <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-2">Security Level</label>
         <select
           value={config.security}
           onChange={(e) => save({ security: e.target.value as ExecApprovalConfig['security'] })}
@@ -83,7 +83,7 @@ export function ExecConfigPanel({ agentId }: Props) {
 
       {/* Ask Mode */}
       <div>
-        <label className="block text-[11px] font-600 uppercase tracking-wider text-text-3 mb-2">Ask Mode</label>
+        <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-2">Ask Mode</label>
         <select
           value={config.askMode}
           onChange={(e) => save({ askMode: e.target.value as ExecApprovalConfig['askMode'] })}
@@ -99,7 +99,7 @@ export function ExecConfigPanel({ agentId }: Props) {
       {/* Patterns */}
       {config.security === 'allowlist' && (
         <div>
-          <label className="block text-[11px] font-600 uppercase tracking-wider text-text-3 mb-2">
+          <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-2">
             Allowed Patterns
           </label>
           <div className="flex flex-col gap-1 mb-2">

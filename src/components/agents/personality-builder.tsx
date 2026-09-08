@@ -16,7 +16,7 @@ interface Props {
 }
 
 const inputClass = 'w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text outline-none placeholder:text-text-3 focus:border-line-default transition-colors'
-const labelClass = 'block text-[11px] font-600 uppercase tracking-wider text-text-3 mb-1'
+const labelClass = 'block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3 mb-1'
 
 export function PersonalityBuilder({ fileType, content, onSave }: Props) {
   const [draft, setDraft] = useState<Record<string, string>>({})

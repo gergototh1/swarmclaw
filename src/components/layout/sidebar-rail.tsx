@@ -281,7 +281,7 @@ export function SidebarRail({
     )
 
     const className = railExpanded
-      ? `w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all border-none no-underline text-left
+      ? `w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border-none no-underline text-left
           ${highlighted ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text hover:bg-layer-2'}`
       : `rail-btn ${highlighted ? 'active' : ''} relative no-underline`
 
@@ -400,7 +400,7 @@ export function SidebarRail({
             )}
             <div className="min-w-0">
               <div className="truncate">{defaultAgent?.name || 'Choose Agent'}</div>
-              <div className="text-[10px] font-500 text-text-3 mt-0.5 truncate">
+              <div className="text-[10px] font-600 text-text-3 mt-0.5 truncate">
                 {defaultAgent ? 'Default shortcut' : 'Pick an agent'}
               </div>
             </div>
@@ -428,7 +428,7 @@ export function SidebarRail({
         <div className="px-3 mb-2">
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('swarmclaw:open-search'))}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all
               bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none"
             style={{ fontFamily: 'inherit' }}
           >
@@ -492,7 +492,7 @@ export function SidebarRail({
               style={{ fontFamily: 'inherit' }}
             >
               <Avatar user={currentUser!} size="sm" avatarSeed={appSettings.userAvatarSeed} />
-              <span className="text-[13px] font-500 text-text-2 capitalize truncate">{currentUser}</span>
+              <span className="text-[13px] font-600 text-text-2 capitalize truncate">{currentUser}</span>
             </button>
           ) : (
             <RailTooltip label="Profile" description="Edit your profile">

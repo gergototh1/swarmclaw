@@ -10,10 +10,10 @@ interface SectionHeaderProps {
 export function SectionHeader({ label, count, action, className }: SectionHeaderProps) {
   return (
     <div className={cn('flex items-center justify-between mb-3', className)}>
-      <h2 className="font-display text-[13px] font-600 text-text-2 uppercase tracking-[0.08em] flex items-center gap-2">
+      <h2 className="font-display text-[13px] font-600 text-text-2 uppercase tracking-[0.03em] flex items-center gap-2">
         {label}
         {count != null && (
-          <span className="text-[11px] font-500 text-text-3 normal-case tracking-normal">
+          <span className="text-[11px] font-600 text-text-3 normal-case tracking-normal">
             {count}
           </span>
         )}

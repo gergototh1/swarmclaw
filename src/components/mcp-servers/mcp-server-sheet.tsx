@@ -265,7 +265,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
   }
 
   const inputClass = "w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
-  const labelClass = "block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3"
+  const labelClass = "block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3"
 
   return (
     <>

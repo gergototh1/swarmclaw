@@ -132,7 +132,7 @@ function ModelSwitcherInline({ session, agent }: { session: Session; agent: Agen
   return (
     <div className="mt-2 rounded-sm border border-line-default bg-black/[0.12] p-2.5">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3">Switch Model</span>
+        <span className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Switch Model</span>
         <button
           type="button"
           onClick={() => setExpanded(false)}
@@ -198,7 +198,7 @@ function panelCardClass(className = '') {
 }
 
 function SectionLabel({ children }: { children: ReactNode }) {
-  return <label className="block text-[11px] font-700 uppercase tracking-[0.16em] text-text-3 mb-2">{children}</label>
+  return <label className="block text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">{children}</label>
 }
 
 function ToggleSwitch({ on, onChange, disabled }: { on: boolean; onChange: () => void; disabled?: boolean }) {
@@ -250,13 +250,13 @@ export function InspectorPanel({ agent, session, onEditAgent, onDuplicateAgent, 
             <div className="flex items-center gap-2 min-w-0">
               <h3 className="font-display text-[16px] font-700 text-text truncate tracking-[-0.02em]">{agent.name}</h3>
               {agent.disabled === true && (
-                <span className="inline-flex items-center gap-1 rounded-xs border border-amber-400/15 bg-amber-400/[0.1] px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-xs border border-amber-400/15 bg-amber-400/[0.1] px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-amber-300">
                   <StatusDot status="warning" size="sm" />
                   Disabled
                 </span>
               )}
               {agent.heartbeatEnabled && (
-                <span className="inline-flex items-center gap-1 rounded-xs border border-emerald-400/15 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-emerald-300">
+                <span className="inline-flex items-center gap-1 rounded-xs border border-emerald-400/15 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-emerald-300">
                   <StatusDot status="online" size="sm" />
                   Heartbeat
                 </span>
@@ -740,7 +740,7 @@ function MemorySection({ agentId }: { agentId: string }) {
         <div className="flex flex-col gap-1.5">
           {entries.map((entry) => (
             <div key={entry.id} className="flex items-start gap-2">
-              <span className={`shrink-0 px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-wider border ${tierColor(entry.category)}`}>
+              <span className={`shrink-0 px-1.5 py-0.5 rounded-xs text-[9px] font-700 uppercase tracking-[0.03em] border ${tierColor(entry.category)}`}>
                 {entry.category}
               </span>
               <span className="text-[11px] text-text-3 truncate flex-1">{entry.title || entry.content}</span>
@@ -962,7 +962,7 @@ function SessionsSection({ agent }: { agent: Agent }) {
               )}
               <span className="text-[12px] text-text-2 truncate flex-1">{s.name}</span>
               {isSelected && (
-                <span className="text-[9px] font-700 uppercase tracking-[0.08em] text-accent-bright bg-accent-bright/15 px-1.5 py-0.5 rounded-xs shrink-0">
+                <span className="text-[9px] font-700 uppercase tracking-[0.03em] text-accent-bright bg-accent-bright/15 px-1.5 py-0.5 rounded-xs shrink-0">
                   Selected
                 </span>
               )}
@@ -1184,7 +1184,7 @@ function CollapsibleSection({ title, open, onToggle, children }: { title: string
         onClick={onToggle}
         className="flex items-center justify-between w-full px-4 py-3 bg-transparent border-none cursor-pointer text-left"
       >
-        <span className="text-[11px] font-700 uppercase tracking-[0.16em] text-text-3">{title}</span>
+        <span className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">{title}</span>
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className={`text-text-3 transition-transform ${open ? 'rotate-180' : ''}`}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -1237,7 +1237,7 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
           <div key={s.id} className="rounded-sm border border-line-subtle bg-black/[0.08] py-2 px-3">
             <div className="flex items-center gap-2">
               <span className="text-[12px] font-600 text-text truncate flex-1">{s.name}</span>
-              <span className={`text-[10px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-xs
+              <span className={`text-[10px] font-600 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs
                 ${s.status === 'active' ? 'text-emerald-400 bg-emerald-400/[0.08]' : 'text-text-3/50 bg-layer-1'}`}>
                 {s.status}
               </span>
@@ -1255,7 +1255,7 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
               <div key={c.id} className="rounded-sm border border-line-subtle bg-black/[0.08] py-2 px-3">
                 <div className="flex items-center gap-2">
                   <span className="text-[12px] font-600 text-text truncate flex-1">{c.name}</span>
-                  <span className={`text-[10px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-xs
+                  <span className={`text-[10px] font-600 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs
                     ${c.enabled ? 'text-emerald-400 bg-emerald-400/[0.08]' : 'text-text-3/50 bg-layer-1'}`}>
                     {c.enabled ? 'active' : 'disabled'}
                   </span>

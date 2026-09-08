@@ -106,7 +106,7 @@ export function ThemeModeRailButton({ expanded }: { expanded: boolean }) {
         style={{ fontFamily: 'inherit' }}
       >
         <Icon size={16} aria-hidden="true" />
-        <span className="text-[13px] font-500 truncate">{label}</span>
+        <span className="text-[13px] font-600 truncate">{label}</span>
       </button>
     )
   }

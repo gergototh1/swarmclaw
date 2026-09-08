@@ -372,8 +372,8 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
                     </div>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <label className="text-[11px] text-text-3 uppercase tracking-[0.08em]">Tool</label>
-                    <label className="text-[11px] text-text-3 uppercase tracking-[0.08em]">Args (JSON)</label>
+                    <label className="text-[11px] text-text-3 uppercase tracking-[0.03em]">Tool</label>
+                    <label className="text-[11px] text-text-3 uppercase tracking-[0.03em]">Args (JSON)</label>
                     <select
                       value={selectedTool}
                       onChange={(e) => handleToolChange(e.target.value)}

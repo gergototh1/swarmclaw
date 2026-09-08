@@ -440,7 +440,7 @@ export default function HomePage() {
           {/* Cost trend sparkline */}
           {costTrend.length > 1 && (
             <div className="mb-10 px-1" style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
-              <p className="text-[10px] text-text-3 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <p className="text-[10px] text-text-3 uppercase tracking-[0.03em] mb-1 flex items-center gap-1.5">
                 7-day cost trend <HintTip text="Daily API spend over the past week — hover for details" />
               </p>
               <ResponsiveContainer width="100%" height={60}>
@@ -499,7 +499,7 @@ export default function HomePage() {
                         n.type === 'error' ? 'bg-red-400' : n.type === 'warning' ? 'bg-amber-400' : n.type === 'success' ? 'bg-emerald-400' : 'bg-sky-400'
                       }`} />
                       <div className="flex-1 min-w-0">
-                        <span className="text-[13px] font-500 text-text">{n.title}</span>
+                        <span className="text-[13px] font-600 text-text">{n.title}</span>
                         {n.message && <p className="text-[11px] text-text-3 truncate mt-0.5 m-0">{n.message}</p>}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
@@ -531,7 +531,7 @@ export default function HomePage() {
                       c.status === 'running' ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]'
                         : c.status === 'error' ? 'bg-red-400' : 'bg-text-3/30'
                     }`} />
-                    <span className="text-[12px] font-500 text-text">{c.name}</span>
+                    <span className="text-[12px] font-600 text-text">{c.name}</span>
                     <span className="text-[10px] text-text-3">{PLATFORM_LABELS[c.platform] || c.platform}</span>
                   </div>
                 ))}
@@ -562,7 +562,7 @@ export default function HomePage() {
                           task.status === 'running' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
                         }`} />
                         <div className="flex-1 min-w-0">
-                          <span className="text-[13px] font-500 text-text truncate block">{task.title}</span>
+                          <span className="text-[13px] font-600 text-text truncate block">{task.title}</span>
                           <span className="text-[11px] text-text-3">
                             {agent?.name || 'Unassigned'} · {task.status === 'running' ? 'running' : 'queued'}{task.startedAt ? ` · ${timeAgo(task.startedAt, now)}` : ''}
                           </span>
@@ -592,7 +592,7 @@ export default function HomePage() {
                           <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                         </svg>
                         <div className="flex-1 min-w-0">
-                          <span className="text-[13px] font-500 text-text truncate block">{sched.name}</span>
+                          <span className="text-[13px] font-600 text-text truncate block">{sched.name}</span>
                           <span className="text-[11px] text-text-3">
                             {agent?.name || 'No agent'} · {sched.nextRunAt ? timeUntil(sched.nextRunAt, now) : '—'}
                           </span>

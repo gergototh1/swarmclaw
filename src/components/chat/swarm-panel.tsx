@@ -288,7 +288,7 @@ function SwarmAgentCard({ agent }: { agent: SwarmAgent }) {
             {formatDurationMs(agent.durationMs)}
           </span>
         )}
-        <span className="text-[10px] font-500 shrink-0" style={{ color: cfg.color }}>
+        <span className="text-[10px] font-600 shrink-0" style={{ color: cfg.color }}>
           {cfg.label}
         </span>
         {hasDetail && (

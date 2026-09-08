@@ -478,7 +478,7 @@ export function ConnectorInbox() {
       <div className="rounded-lg border border-line-default bg-[linear-gradient(135deg,rgba(37,99,235,0.12),rgba(8,15,32,0.84)_48%,rgba(16,185,129,0.08))] overflow-hidden">
         <div className="px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-[720px]">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-accent-bright/80 font-700">Connector Inbox</div>
+            <div className="text-[11px] uppercase tracking-[0.03em] text-accent-bright/80 font-700">Connector Inbox</div>
             <h1 className="mt-2 font-display text-[28px] md:text-[34px] leading-[1.02] tracking-[-0.04em] text-text">
               External connector traffic stays here, separate from your main agent thread.
             </h1>
@@ -488,12 +488,12 @@ export function ConnectorInbox() {
           </div>
           <div className="grid grid-cols-2 gap-3 md:min-w-[300px]">
             <div className="rounded-lg border border-line-default bg-black/20 px-4 py-3">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-3">Connectors</div>
+              <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Connectors</div>
               <div className="mt-2 text-[26px] font-display font-700 tracking-[-0.04em] text-text">{connectorItems.length}</div>
               <div className="text-[11px] text-text-3">Bridges with active external conversations</div>
             </div>
             <div className="rounded-lg border border-line-default bg-black/20 px-4 py-3">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-3">Conversations</div>
+              <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">Conversations</div>
               <div className="mt-2 text-[26px] font-display font-700 tracking-[-0.04em] text-text">{inboxSessions.length}</div>
               <div className="text-[11px] text-text-3">Strictly isolated external sender sessions</div>
             </div>
@@ -513,7 +513,7 @@ export function ConnectorInbox() {
               aria-label="Search inbox conversations"
             />
             <div>
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-3 mb-2">Connector type</div>
+              <div className="text-[10px] uppercase tracking-[0.03em] text-text-3 mb-2">Connector type</div>
               <select
                 value={platformFilter}
                 onChange={(e) => {
@@ -538,7 +538,7 @@ export function ConnectorInbox() {
               <div className="text-[12px] font-700 text-text">Bridges</div>
               <div className="text-[11px] text-text-3">Switch between connector instances</div>
             </div>
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-3">
+            <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">
               {connectorItems.length} active
             </div>
           </div>
@@ -575,7 +575,7 @@ export function ConnectorInbox() {
                           {item.connector?.agentId && agents[item.connector.agentId]?.name ? ` · ${agents[item.connector.agentId]?.name}` : ''}
                         </div>
                         <div className="mt-2 flex items-center justify-between gap-3">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-layer-2 px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-text-3">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-layer-2 px-2 py-1 text-[10px] uppercase tracking-[0.03em] text-text-3">
                             <ConnectorPlatformIcon platform={item.platform} size={11} />
                             {meta.label}
                           </span>
@@ -609,17 +609,17 @@ export function ConnectorInbox() {
             </div>
             {activeConversationSnapshot && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] text-emerald-200">
+                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] text-emerald-200">
                   {conversationAccessSummary.counts.approved} approved
                 </span>
-                <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] text-amber-200">
+                <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] text-amber-200">
                   {conversationAccessSummary.counts.pending} pending
                 </span>
-                <span className="rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] text-red-200">
+                <span className="rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] text-red-200">
                   {conversationAccessSummary.counts.blocked} blocked
                 </span>
                 {conversationAccessSummary.counts.restricted > 0 && (
-                  <span className="rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] text-orange-200">
+                  <span className="rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] text-orange-200">
                     {conversationAccessSummary.counts.restricted} need review
                   </span>
                 )}
@@ -673,12 +673,12 @@ export function ConnectorInbox() {
                           </div>
                           <div className="mt-2 flex flex-wrap items-center gap-2">
                             {accessState && (
-                              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] ${accessClasses?.badge || ''}`}>
+                              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] ${accessClasses?.badge || ''}`}>
                                 {accessState.label}
                               </span>
                             )}
                             {agent ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-line-default bg-layer-1 px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-text-2">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-line-default bg-layer-1 px-2 py-1 text-[10px] uppercase tracking-[0.03em] text-text-2">
                                 <AgentAvatar
                                   seed={agent.avatarSeed || null}
                                   avatarUrl={agent.avatarUrl}
@@ -688,7 +688,7 @@ export function ConnectorInbox() {
                                 <span className="truncate">{agent.name}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center rounded-full border border-line-subtle bg-layer-1 px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-text-3">
+                              <span className="inline-flex items-center rounded-full border border-line-subtle bg-layer-1 px-2 py-1 text-[10px] uppercase tracking-[0.03em] text-text-3">
                                 Unassigned
                               </span>
                             )}
@@ -720,11 +720,11 @@ export function ConnectorInbox() {
                   <h2 className="font-display text-[22px] tracking-[-0.03em] text-text">
                     {selectedSession.connectorContext?.senderName || selectedSession.name}
                   </h2>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-layer-2 px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] text-text-3">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-layer-2 px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] text-text-3">
                     <ConnectorPlatformIcon platform={selectedConnector?.platform || selectedSession.connectorContext?.platform || 'connector'} size={11} />
                     {selectedConnector?.name || selectedSession.connectorContext?.platform || 'Connector'}
                   </span>
-                  <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] text-emerald-300">
+                  <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.03em] text-emerald-300">
                     Session-scoped memory
                   </span>
                   </div>
@@ -735,7 +735,7 @@ export function ConnectorInbox() {
                   >
                     <span>Access &amp; ownership</span>
                     {accessSnapshot && (
-                      <span className="rounded-full bg-layer-2 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-text-3">
+                      <span className="rounded-full bg-layer-2 px-2 py-0.5 text-[10px] uppercase tracking-[0.03em] text-text-3">
                         {accessSnapshot.pendingPairingRequests.length} pending · {accessSnapshot.denyFrom.length} blocked{accessSnapshot.dmAddressingMode === 'addressed' ? ' · name required' : ''}
                       </span>
                     )}
@@ -819,7 +819,7 @@ export function ConnectorInbox() {
                               }`}
                             >
                               <div className="flex items-center justify-between gap-3 mb-2">
-                                <div className="text-[10px] uppercase tracking-[0.08em] text-text-3">
+                                <div className="text-[10px] uppercase tracking-[0.03em] text-text-3">
                                   {speakerName}
                                 </div>
                                 <div className="text-[10px] text-text-3">{relativeTime(message.time)}</div>

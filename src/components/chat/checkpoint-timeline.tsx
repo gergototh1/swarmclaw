@@ -59,7 +59,7 @@ export function CheckpointTimeline({ sessionId }: Props) {
             className="group relative flex flex-col gap-2 p-3 rounded-md border border-line-subtle bg-layer-1 hover:bg-layer-2 transition-all"
           >
             <div className="flex flex-col">
-              <span className="text-[11px] font-700 text-accent-bright uppercase tracking-wider">
+              <span className="text-[11px] font-700 text-accent-bright uppercase tracking-[0.03em]">
                 {i === 0 ? 'Current State' : `Point ${checkpoints.length - i}`}
               </span>
               <span className="text-[10px] text-text-3 font-mono">

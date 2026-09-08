@@ -75,7 +75,7 @@ export function FullScreenLoader(props: {
 
       {/* Brand text */}
       <div
-        className="text-[15px] font-display font-700 tracking-[0.15em] uppercase"
+        className="text-[15px] font-display font-700 tracking-[0.03em] uppercase"
         style={{
           background: 'linear-gradient(135deg, rgba(255,255,255,0.6), rgba(129, 140, 248, 0.8))',
           WebkitBackgroundClip: 'text',

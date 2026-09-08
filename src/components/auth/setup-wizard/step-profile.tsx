@@ -73,7 +73,7 @@ export function StepProfile({ onContinue, onSkip }: StepProfileProps) {
         </div>
       </div>
 
-      <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-2">
+      <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-2">
         Welcome
       </h1>
       <p className="text-[15px] text-text-2 mb-8">
@@ -128,7 +128,7 @@ export function StepProfile({ onContinue, onSkip }: StepProfileProps) {
             type="button"
             onClick={onSkip}
             className="px-6 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[14px]
-              font-display font-500 cursor-pointer hover:bg-layer-1 transition-all duration-200"
+              font-display font-600 cursor-pointer hover:bg-layer-1 transition-all duration-200"
           >
             Skip for now
           </button>

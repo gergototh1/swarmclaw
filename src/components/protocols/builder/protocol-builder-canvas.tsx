@@ -58,7 +58,7 @@ function BuiltInTemplatePanel({
   return (
     <div className="flex w-52 shrink-0 flex-col overflow-y-auto rounded-lg border bg-card p-3 shadow-sm">
       <div className="mb-3">
-        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="text-xs font-bold uppercase tracking-[0.03em] text-muted-foreground">
           Built-in template
         </div>
         <div className="mt-1 text-sm font-semibold text-foreground">{template?.name || 'Template'}</div>
@@ -78,7 +78,7 @@ function BuiltInTemplatePanel({
             className="w-full rounded-md border bg-background px-3 py-2 text-left"
             title={step.kind.replace(/_/g, ' ')}
           >
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.03em] text-muted-foreground">
               Step {index + 1}
             </div>
             <div className="mt-1 text-sm font-medium text-foreground">{step.label}</div>

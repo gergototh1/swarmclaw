@@ -10,7 +10,7 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
         Voice
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
@@ -20,7 +20,7 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
         {/* ElevenLabs toggle */}
         <div className="flex items-center justify-between mb-5">
           <div>
-            <label className="font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em]">ElevenLabs TTS</label>
+            <label className="font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em]">ElevenLabs TTS</label>
             <p className="text-[11px] text-text-3 mt-0.5">Enable text-to-speech for agent responses</p>
           </div>
           <button
@@ -35,7 +35,7 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
         {showVoiceConfig && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">API Key</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">API Key</label>
               <input
                 type="password"
                 value={appSettings.elevenLabsApiKey || ''}
@@ -49,7 +49,7 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
               )}
             </div>
             <div>
-              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Default Voice ID</label>
+              <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Default Voice ID</label>
               <input
                 type="text"
                 value={appSettings.elevenLabsVoiceId || ''}
@@ -70,7 +70,7 @@ export function VoiceSection({ appSettings, patchSettings, inputClass }: Setting
         )}
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Speech Recognition Language</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Speech Recognition Language</label>
           <input
             type="text"
             value={appSettings.speechRecognitionLang || ''}

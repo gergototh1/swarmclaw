@@ -58,7 +58,7 @@ export function VoiceOverlay({ state, interimText, transcript, onStop }: VoiceOv
         </div>
       </div>
 
-      <div className="text-[14px] font-500 text-text-2">{STATE_LABELS[state]}</div>
+      <div className="text-[14px] font-600 text-text-2">{STATE_LABELS[state]}</div>
 
       {/* Transcript display */}
       {(transcript || interimText) && (

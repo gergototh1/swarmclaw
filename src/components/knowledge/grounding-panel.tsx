@@ -36,7 +36,7 @@ export function GroundingPanel(props: {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-sky-300/70 transition-transform group-open:rotate-90">
           <polyline points="9 18 15 12 9 6" />
         </svg>
-        <span className="text-[11px] font-600 uppercase tracking-[0.05em] text-sky-200/80">{title}</span>
+        <span className="text-[11px] font-600 uppercase tracking-[0.03em] text-sky-200/80">{title}</span>
         <span className="text-[10px] font-mono text-text-3">
           {selected ? `${explicit.length} citation${explicit.length === 1 ? '' : 's'}` : `${fallback.length} retrieved`}
         </span>

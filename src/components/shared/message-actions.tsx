@@ -92,7 +92,7 @@ export function ActionButton({
     <button
       onClick={onClick}
       aria-label={title}
-      className={`flex items-center gap-1.5 px-2.5 py-1.5 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-sm border-none bg-transparent text-[11px] font-500 text-text-3 cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all justify-center md:justify-start ${active ? activeClassName || '' : ''} ${className || ''}`.trim()}
+      className={`flex items-center gap-1.5 px-2.5 py-1.5 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded-sm border-none bg-transparent text-[11px] font-600 text-text-3 cursor-pointer hover:text-text-2 hover:bg-layer-2 transition-all justify-center md:justify-start ${active ? activeClassName || '' : ''} ${className || ''}`.trim()}
       style={{ fontFamily: 'inherit' }}
     >
       {icon}

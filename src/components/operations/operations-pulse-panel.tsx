@@ -30,7 +30,7 @@ function kpiTone(value: number, danger = false): string {
 function Kpi({ label, value, danger = false }: { label: string; value: number; danger?: boolean }) {
   return (
     <div className="min-w-[110px] rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
-      <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">{label}</div>
+      <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">{label}</div>
       <div className={cn('mt-1 font-display text-[22px] font-700 tracking-normal', kpiTone(value, danger))}>{value}</div>
     </div>
   )
@@ -91,7 +91,7 @@ export function OperationsPulsePanel({
     <section className={cn('rounded-lg border border-line-subtle bg-layer-1 p-4', className)}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-[10px] font-700 uppercase tracking-[0.16em] text-accent-bright/70">Operations Pulse</div>
+          <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-accent-bright/70">Operations Pulse</div>
           <h2 className="mt-1 font-display text-[16px] font-700 tracking-normal text-text">What needs operator attention next</h2>
           <p className="mt-1 max-w-[680px] text-[12px] leading-relaxed text-text-3">
             Missions, runs, approvals, connector readiness, OpenClaw gateways, and budget pressure rolled into one triage queue.
@@ -160,7 +160,7 @@ export function OperationsPulsePanel({
                       <span className="mt-0.5 shrink-0">{actionIcon(action)}</span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center justify-between gap-3">
-                          <span className="truncate text-[12px] font-800 text-text">{action.title}</span>
+                          <span className="truncate text-[12px] font-700 text-text">{action.title}</span>
                           <span className="shrink-0 text-[10px] text-text-3">{formatRelative(action.createdAt, pulse.generatedAt)}</span>
                         </span>
                         <span className="mt-1 line-clamp-2 block text-[12px] leading-relaxed text-text-3">{action.summary}</span>

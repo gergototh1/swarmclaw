@@ -688,7 +688,7 @@ export function ChatArea() {
               </div>
             </div>
 
-            <h1 className="font-display text-[28px] md:text-[36px] font-800 leading-[1.1] tracking-[-0.04em] mb-3">
+            <h1 className="font-display text-[28px] md:text-[36px] font-700 leading-[1.1] tracking-[-0.04em] mb-3">
               Hi{currentUser ? ', ' : ' '}<span className="text-accent-bright">{currentUser || 'there'}</span>
               <br />
               <span className="text-text-2">

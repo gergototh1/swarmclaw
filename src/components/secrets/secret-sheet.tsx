@@ -121,24 +121,24 @@ export function SecretSheet() {
       <div className="space-y-5">
         <h2 className="font-display text-[20px] font-700 tracking-[-0.02em]">{editing ? 'Edit Secret' : 'New Secret'}</h2>
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Name</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Name</label>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. My Gmail API Key" className={inputClass} style={{ fontFamily: 'inherit' }} />
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Service</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Service</label>
           <input type="text" value={service} onChange={(e) => setService(e.target.value)} placeholder="e.g. gmail, ahrefs, custom" className={inputClass} style={{ fontFamily: 'inherit' }} />
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">
+          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">
             {editing ? 'Value (leave blank to keep current)' : 'Value'}
           </label>
           <input type="password" value={value} onChange={(e) => setValue(e.target.value)} placeholder="API key, password, token..." className={inputClass} style={{ fontFamily: 'inherit' }} />
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Scope</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Scope</label>
           <div className="flex p-1 rounded-md bg-bg border border-line-subtle">
             {(['global', 'agent'] as const).map((s) => (
               <button
@@ -158,7 +158,7 @@ export function SecretSheet() {
 
         {scope === 'agent' && (
           <div>
-            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-2">Agents</label>
+            <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-2">Agents</label>
             <div className="max-h-[240px] overflow-y-auto rounded-md border border-line-subtle bg-layer-1">
               {agentList.length === 0 ? (
                 <p className="p-3 text-[12px] text-text-3">No agents available</p>

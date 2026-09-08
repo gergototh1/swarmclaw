@@ -55,7 +55,7 @@ export function OrgChartContextMenu({ agent, teamNames, x, y, onClose, onAction 
       style={{ left: x, top: y }}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div className="px-3 py-1.5 text-[10px] font-700 uppercase tracking-wider text-text-3 truncate">
+      <div className="px-3 py-1.5 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3 truncate">
         {agent.name}
       </div>
       <div className="h-px bg-layer-2 my-0.5" />
@@ -103,7 +103,7 @@ export function OrgChartContextMenu({ agent, teamNames, x, y, onClose, onAction 
                 }}
                 className={`w-full text-left px-2 py-1 rounded-xs text-[11px] transition-colors cursor-pointer border-none ${
                   currentTeam === t
-                    ? 'bg-accent-bright/10 text-accent-bright font-500'
+                    ? 'bg-accent-bright/10 text-accent-bright font-600'
                     : 'bg-transparent text-text-2 hover:bg-layer-2'
                 }`}
                 style={{ fontFamily: 'inherit' }}

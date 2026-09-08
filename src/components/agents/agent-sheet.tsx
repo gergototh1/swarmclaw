@@ -1045,7 +1045,7 @@ export function AgentSheet() {
             <h2 className="font-display text-[28px] font-700 tracking-[-0.03em]">
               {editing ? 'Edit Agent' : 'New Agent'}
             </h2>
-            <span className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.1em] ${
+            <span className={`rounded-full px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em] ${
               disabled
                 ? 'border border-amber-400/20 bg-amber-400/[0.08] text-amber-300'
                 : 'border border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-300'

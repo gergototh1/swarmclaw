@@ -86,7 +86,7 @@ export function TabBehavior({
                     patch({ role: r })
                     if (r === 'coordinator') patch({ delegationEnabled: true })
                   }}
-                  className={`px-4 py-1.5 rounded-sm text-[13px] font-display font-500 transition-all duration-200
+                  className={`px-4 py-1.5 rounded-sm text-[13px] font-display font-600 transition-all duration-200
                     ${role === r
                       ? 'bg-accent-bright text-accent-fg'
                       : 'bg-layer-2 text-text-3 hover:bg-layer-3'}`}
@@ -166,7 +166,7 @@ export function TabBehavior({
             {orchestratorEnabled && (
               <div className="mt-4 space-y-4">
                 <div>
-                  <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+                  <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
                     Mission
                   </label>
                   <textarea
@@ -181,7 +181,7 @@ export function TabBehavior({
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+                    <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
                       Wake Interval
                     </label>
                     <input
@@ -194,7 +194,7 @@ export function TabBehavior({
                     />
                   </div>
                   <div>
-                    <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+                    <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
                       Governance
                     </label>
                     <select
@@ -209,7 +209,7 @@ export function TabBehavior({
                     </select>
                   </div>
                   <div>
-                    <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+                    <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
                       Max Cycles/Day
                     </label>
                     <input
@@ -309,7 +309,7 @@ export function TabBehavior({
         className="mb-6 border-line-subtle bg-layer-1"
       >
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
           Voice &amp; Audio
         </label>
         {voiceControlsAvailable ? (
@@ -345,7 +345,7 @@ export function TabBehavior({
       </div>
 
       <div>
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
           Heartbeat Controls
         </label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">

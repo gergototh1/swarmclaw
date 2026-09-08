@@ -184,7 +184,7 @@ export default function MemoryPage() {
                 key={tier}
                 type="button"
                 onClick={() => setMemoryTierFilter(tier)}
-                className={`px-2.5 py-1 rounded-sm text-[10px] font-700 uppercase tracking-[0.08em] border transition-all ${
+                className={`px-2.5 py-1 rounded-sm text-[10px] font-700 uppercase tracking-[0.03em] border transition-all ${
                   memoryTierFilter === tier
                     ? 'bg-layer-3 text-text-2 border-line-default'
                     : 'bg-transparent text-text-3/70 border-line-subtle hover:text-text-2 hover:bg-layer-1'
@@ -196,7 +196,7 @@ export default function MemoryPage() {
             <button
               type="button"
               onClick={() => setDueOnly((current) => !current)}
-              className={`px-2.5 py-1 rounded-sm text-[10px] font-700 uppercase tracking-[0.08em] border transition-all ${
+              className={`px-2.5 py-1 rounded-sm text-[10px] font-700 uppercase tracking-[0.03em] border transition-all ${
                 dueOnly
                   ? 'bg-amber-500/12 text-amber-300 border-amber-500/20'
                   : 'bg-transparent text-text-3/70 border-line-subtle hover:text-text-2 hover:bg-layer-1'

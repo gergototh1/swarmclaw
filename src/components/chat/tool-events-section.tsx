@@ -125,7 +125,7 @@ const ToolStatusPill = memo(function ToolStatusPill({ status }: { status: ToolEv
   const label = status === 'running' ? 'Running' : status === 'error' ? 'Failed' : 'Done'
 
   return (
-    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.08em] ${tone}`}>
+    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.03em] ${tone}`}>
       {label}
     </span>
   )
@@ -169,7 +169,7 @@ const ToolSummaryRow = memo(function ToolSummaryRow({ event, caption }: { event:
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-600 uppercase tracking-[0.08em] text-text-3">{caption}</span>
+            <span className="text-[10px] font-600 uppercase tracking-[0.03em] text-text-3">{caption}</span>
             <span className="text-[13px] font-600 text-text-2">{label}</span>
             <ToolStatusPill status={event.status} />
           </div>
@@ -362,7 +362,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
           >
             <polyline points="9 6 15 12 9 18" />
           </svg>
-          <span className="text-[11px] font-600 uppercase tracking-[0.08em] text-text-3">
+          <span className="text-[11px] font-600 uppercase tracking-[0.03em] text-text-3">
             Tool Activity
           </span>
           <span className="text-[12px] text-text-3">
@@ -370,17 +370,17 @@ export const ToolEventsSection = memo(function ToolEventsSection({
           </span>
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
             {summary.running > 0 && (
-              <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.08em] text-amber-300">
+              <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.03em] text-amber-300">
                 {summary.running} running
               </span>
             )}
             {summary.done > 0 && (
-              <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.08em] text-emerald-300">
+              <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.03em] text-emerald-300">
                 {summary.done} done
               </span>
             )}
             {summary.error > 0 && (
-              <span className="rounded-full border border-rose-500/25 bg-rose-500/10 px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.08em] text-rose-300">
+              <span className="rounded-full border border-rose-500/25 bg-rose-500/10 px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.03em] text-rose-300">
                 {summary.error} failed
               </span>
             )}

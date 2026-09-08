@@ -91,7 +91,7 @@ function StatTile({ label, value, hint, tone = 'default' }: {
   }[tone]
   return (
     <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
-      <div className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3">{label}</div>
+      <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">{label}</div>
       <div className={cn('mt-2 font-display text-[26px] font-700 tracking-[-0.03em]', toneClass)}>{value}</div>
       <div className="mt-1 text-[12px] leading-relaxed text-text-3">{hint}</div>
     </div>
@@ -170,7 +170,7 @@ function ReleaseReadinessPanel({
     <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-accent-bright/70">Release Readiness</div>
+          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-accent-bright/70">Release Readiness</div>
           <h2 className="mt-1 font-display text-[17px] font-700 text-text">Ship gate report</h2>
           <p className="mt-1 max-w-[680px] text-[12px] leading-relaxed text-text-3">
             Combines eval regression gates, operations pulse blockers, pending approvals, active runs, budgets, connectors, and gateway readiness.
@@ -180,7 +180,7 @@ function ReleaseReadinessPanel({
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="shrink-0 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-800 text-text-2 transition-colors hover:bg-layer-3 disabled:opacity-40"
+          className="shrink-0 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-colors hover:bg-layer-3 disabled:opacity-40"
         >
           {loading ? 'Checking' : 'Refresh gate'}
         </button>
@@ -193,26 +193,26 @@ function ReleaseReadinessPanel({
       ) : (
         <div className="mt-4 grid gap-4 xl:grid-cols-[260px_1fr]">
           <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
-            <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-800 uppercase tracking-[0.1em]', readinessStatusClass(report.status))}>
+            <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em]', readinessStatusClass(report.status))}>
               {report.status}
             </span>
             <div className={cn('mt-4 font-display text-[42px] font-700 tracking-[-0.04em]', readinessScoreTone(report.status))}>{report.score}</div>
             <div className="mt-1 text-[12px] text-text-3">readiness score</div>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <div className="rounded-sm bg-layer-2 px-3 py-2">
-                <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">Blockers</div>
-                <div className="mt-1 text-[18px] font-800 text-text">{report.blockerCount}</div>
+                <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Blockers</div>
+                <div className="mt-1 text-[18px] font-700 text-text">{report.blockerCount}</div>
               </div>
               <div className="rounded-sm bg-layer-2 px-3 py-2">
-                <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">Warnings</div>
-                <div className="mt-1 text-[18px] font-800 text-text">{report.warningCount}</div>
+                <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Warnings</div>
+                <div className="mt-1 text-[18px] font-700 text-text">{report.warningCount}</div>
               </div>
             </div>
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
             <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
-              <div className="text-[12px] font-800 text-text">Checks</div>
+              <div className="text-[12px] font-700 text-text">Checks</div>
               <div className="mt-3 flex flex-col gap-2">
                 {report.checks.slice(0, 6).map((check) => (
                   <button
@@ -225,7 +225,7 @@ function ReleaseReadinessPanel({
                       check.href ? 'hover:bg-layer-3' : '',
                     )}
                   >
-                    <div className="text-[11px] font-800 uppercase tracking-[0.08em]">{check.status}</div>
+                    <div className="text-[11px] font-700 uppercase tracking-[0.03em]">{check.status}</div>
                     <div className="mt-1 text-[12px] font-700 text-text">{check.title}</div>
                     <div className="mt-0.5 text-[11px] leading-relaxed text-text-3">{check.summary}</div>
                   </button>
@@ -234,7 +234,7 @@ function ReleaseReadinessPanel({
             </div>
 
             <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
-              <div className="text-[12px] font-800 text-text">Next actions</div>
+              <div className="text-[12px] font-700 text-text">Next actions</div>
               <div className="mt-3 flex flex-col gap-2">
                 {report.nextActions.length === 0 ? (
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-4 text-[12px] text-text-3">
@@ -249,8 +249,8 @@ function ReleaseReadinessPanel({
                       className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2 text-left transition-colors hover:bg-layer-2"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-[12px] font-800 text-text">{action.title}</div>
-                        <span className={cn('rounded-full border px-2 py-0.5 text-[9px] font-800 uppercase tracking-[0.08em]', action.severity === 'high' ? 'border-rose-500/25 text-rose-200' : action.severity === 'medium' ? 'border-amber-500/25 text-amber-200' : 'border-emerald-500/25 text-emerald-200')}>
+                        <div className="text-[12px] font-700 text-text">{action.title}</div>
+                        <span className={cn('rounded-full border px-2 py-0.5 text-[9px] font-700 uppercase tracking-[0.03em]', action.severity === 'high' ? 'border-rose-500/25 text-rose-200' : action.severity === 'medium' ? 'border-amber-500/25 text-amber-200' : 'border-emerald-500/25 text-emerald-200')}>
                           {action.severity}
                         </span>
                       </div>
@@ -282,7 +282,7 @@ function ArchitectureHealthPanel({
     <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-accent-bright/70">Architecture Health</div>
+          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-accent-bright/70">Architecture Health</div>
           <h2 className="mt-1 font-display text-[17px] font-700 text-text">Runtime ownership map</h2>
           <p className="mt-1 max-w-[680px] text-[12px] leading-relaxed text-text-3">
             Inventories dispatch, memory, startup, and quality surfaces with owners, guardrails, and test evidence.
@@ -292,7 +292,7 @@ function ArchitectureHealthPanel({
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="shrink-0 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-800 text-text-2 transition-colors hover:bg-layer-3 disabled:opacity-40"
+          className="shrink-0 rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[12px] font-700 text-text-2 transition-colors hover:bg-layer-3 disabled:opacity-40"
         >
           {loading ? 'Checking' : 'Refresh map'}
         </button>
@@ -305,32 +305,32 @@ function ArchitectureHealthPanel({
       ) : (
         <div className="mt-4 grid gap-4 xl:grid-cols-[260px_1fr]">
           <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
-            <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-800 uppercase tracking-[0.1em]', architectureStatusClass(report.status))}>
+            <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em]', architectureStatusClass(report.status))}>
               {report.status}
             </span>
             <div className={cn('mt-4 font-display text-[42px] font-700 tracking-[-0.04em]', architectureScoreTone(report.status))}>{report.score}</div>
             <div className="mt-1 text-[12px] text-text-3">health score</div>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <div className="rounded-sm bg-layer-2 px-3 py-2">
-                <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">Surfaces</div>
-                <div className="mt-1 text-[18px] font-800 text-text">{report.surfaceCount}</div>
+                <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Surfaces</div>
+                <div className="mt-1 text-[18px] font-700 text-text">{report.surfaceCount}</div>
               </div>
               <div className="rounded-sm bg-layer-2 px-3 py-2">
-                <div className="text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">Guardrails</div>
-                <div className="mt-1 text-[18px] font-800 text-text">{report.guardrailCount}</div>
+                <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Guardrails</div>
+                <div className="mt-1 text-[18px] font-700 text-text">{report.guardrailCount}</div>
               </div>
             </div>
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
             <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
-              <div className="text-[12px] font-800 text-text">Domains</div>
+              <div className="text-[12px] font-700 text-text">Domains</div>
               <div className="mt-3 grid gap-2">
                 {report.domains.map((domain) => (
                   <div key={domain.id} className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-[12px] font-800 text-text">{domain.title}</div>
-                      <span className={cn('rounded-full border px-2 py-0.5 text-[9px] font-800 uppercase tracking-[0.08em]', architectureStatusClass(domain.status))}>
+                      <div className="text-[12px] font-700 text-text">{domain.title}</div>
+                      <span className={cn('rounded-full border px-2 py-0.5 text-[9px] font-700 uppercase tracking-[0.03em]', architectureStatusClass(domain.status))}>
                         {domain.status}
                       </span>
                     </div>
@@ -341,7 +341,7 @@ function ArchitectureHealthPanel({
             </div>
 
             <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
-              <div className="text-[12px] font-800 text-text">Checks</div>
+              <div className="text-[12px] font-700 text-text">Checks</div>
               <div className="mt-3 flex flex-col gap-2">
                 {report.nextActions.length === 0 ? (
                   report.checks.filter((check) => check.status === 'healthy').slice(0, 4).map((check) => (
@@ -351,7 +351,7 @@ function ArchitectureHealthPanel({
                       onClick={() => check.href && onOpenHref(check.href)}
                       className="rounded-sm border border-emerald-500/20 bg-emerald-500/[0.05] px-3 py-2 text-left text-emerald-200 transition-colors hover:bg-emerald-500/[0.08]"
                     >
-                      <div className="text-[11px] font-800 uppercase tracking-[0.08em]">{check.status}</div>
+                      <div className="text-[11px] font-700 uppercase tracking-[0.03em]">{check.status}</div>
                       <div className="mt-1 text-[12px] font-700 text-text">{check.title}</div>
                       <div className="mt-0.5 text-[11px] leading-relaxed text-text-3">{check.summary}</div>
                     </button>
@@ -364,7 +364,7 @@ function ArchitectureHealthPanel({
                       onClick={() => onOpenHref(action.href)}
                       className={cn('rounded-sm border px-3 py-2 text-left transition-colors hover:bg-layer-3', architectureStatusClass(action.severity))}
                     >
-                      <div className="text-[11px] font-800 uppercase tracking-[0.08em]">{action.severity}</div>
+                      <div className="text-[11px] font-700 uppercase tracking-[0.03em]">{action.severity}</div>
                       <div className="mt-1 text-[12px] font-700 text-text">{action.title}</div>
                       <div className="mt-0.5 text-[11px] leading-relaxed text-text-3">{action.summary}</div>
                     </button>
@@ -388,7 +388,7 @@ function EvalEnvironmentPanel({ plan, loading, onRefresh }: {
     <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[13px] font-800 text-text">Validation environment</div>
+          <div className="text-[13px] font-700 text-text">Validation environment</div>
           <p className="mt-1 text-[11px] leading-relaxed text-text-3">
             Preflight checks, workspace context, and generated files for the selected eval.
           </p>
@@ -397,7 +397,7 @@ function EvalEnvironmentPanel({ plan, loading, onRefresh }: {
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="shrink-0 rounded-sm border border-line-default px-2 py-1 text-[10px] font-800 text-text-2 transition-colors hover:bg-layer-2 disabled:opacity-40"
+          className="shrink-0 rounded-sm border border-line-default px-2 py-1 text-[10px] font-700 text-text-2 transition-colors hover:bg-layer-2 disabled:opacity-40"
         >
           {loading ? 'Checking' : 'Refresh'}
         </button>
@@ -407,7 +407,7 @@ function EvalEnvironmentPanel({ plan, loading, onRefresh }: {
       ) : (
         <div className="mt-3 flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={cn('rounded-full border px-2 py-1 text-[10px] font-800 uppercase tracking-[0.08em]', environmentStatusClass(plan.status))}>
+            <span className={cn('rounded-full border px-2 py-1 text-[10px] font-700 uppercase tracking-[0.03em]', environmentStatusClass(plan.status))}>
               {plan.status}
             </span>
             {plan.target && (
@@ -431,7 +431,7 @@ function EvalEnvironmentPanel({ plan, loading, onRefresh }: {
           <div className="flex flex-col gap-1.5">
             {plan.checks.slice(0, 4).map((check) => (
               <div key={`${check.code}:${check.message}`} className={cn('rounded-sm border px-2.5 py-2 text-[11px] leading-relaxed', checkClass(check.level))}>
-                <span className="font-800 uppercase tracking-[0.08em]">{check.level}</span>
+                <span className="font-700 uppercase tracking-[0.03em]">{check.level}</span>
                 <span className="ml-2">{check.message}</span>
               </div>
             ))}
@@ -478,7 +478,7 @@ function EvalGatePanel({
     <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[13px] font-800 text-text">Regression gate</div>
+          <div className="text-[13px] font-700 text-text">Regression gate</div>
           <p className="mt-1 text-[11px] leading-relaxed text-text-3">
             Compare latest eval evidence against thresholds and an approved baseline.
           </p>
@@ -487,7 +487,7 @@ function EvalGatePanel({
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="shrink-0 rounded-sm border border-line-default px-2 py-1 text-[10px] font-800 text-text-2 transition-colors hover:bg-layer-2 disabled:opacity-40"
+          className="shrink-0 rounded-sm border border-line-default px-2 py-1 text-[10px] font-700 text-text-2 transition-colors hover:bg-layer-2 disabled:opacity-40"
         >
           {loading ? 'Checking' : 'Refresh'}
         </button>
@@ -500,7 +500,7 @@ function EvalGatePanel({
             type="button"
             onClick={() => onScopeChange(item)}
             className={cn(
-              'flex-1 rounded-sm px-2 py-1.5 text-[10px] font-800 uppercase tracking-[0.08em] transition-colors',
+              'flex-1 rounded-sm px-2 py-1.5 text-[10px] font-700 uppercase tracking-[0.03em] transition-colors',
               scope === item ? 'bg-layer-3 text-text' : 'text-text-3 hover:bg-layer-2',
             )}
           >
@@ -514,7 +514,7 @@ function EvalGatePanel({
       ) : (
         <div className="mt-3 flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={cn('rounded-full border px-2 py-1 text-[10px] font-800 uppercase tracking-[0.08em]', gateStatusClass(gate.status))}>
+            <span className={cn('rounded-full border px-2 py-1 text-[10px] font-700 uppercase tracking-[0.03em]', gateStatusClass(gate.status))}>
               {gate.status}
             </span>
             <span className="rounded-full bg-layer-2 px-2 py-1 text-[10px] font-700 text-text-3">
@@ -527,23 +527,23 @@ function EvalGatePanel({
 
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-sm border border-line-subtle bg-layer-1 px-2 py-2">
-              <div className="text-[9px] font-800 uppercase tracking-[0.08em] text-text-3">Current</div>
-              <div className="mt-1 text-[14px] font-800 text-text">{formatPercent(gate.currentPercent)}</div>
+              <div className="text-[9px] font-700 uppercase tracking-[0.03em] text-text-3">Current</div>
+              <div className="mt-1 text-[14px] font-700 text-text">{formatPercent(gate.currentPercent)}</div>
             </div>
             <div className="rounded-sm border border-line-subtle bg-layer-1 px-2 py-2">
-              <div className="text-[9px] font-800 uppercase tracking-[0.08em] text-text-3">Baseline</div>
-              <div className="mt-1 text-[14px] font-800 text-text">{gate.baseline ? `${gate.baseline.baselinePercent}%` : 'none'}</div>
+              <div className="text-[9px] font-700 uppercase tracking-[0.03em] text-text-3">Baseline</div>
+              <div className="mt-1 text-[14px] font-700 text-text">{gate.baseline ? `${gate.baseline.baselinePercent}%` : 'none'}</div>
             </div>
             <div className="rounded-sm border border-line-subtle bg-layer-1 px-2 py-2">
-              <div className="text-[9px] font-800 uppercase tracking-[0.08em] text-text-3">Regression</div>
-              <div className="mt-1 text-[14px] font-800 text-text">{gate.regressionPoints == null ? 'n/a' : `${gate.regressionPoints}pt`}</div>
+              <div className="text-[9px] font-700 uppercase tracking-[0.03em] text-text-3">Regression</div>
+              <div className="mt-1 text-[14px] font-700 text-text">{gate.regressionPoints == null ? 'n/a' : `${gate.regressionPoints}pt`}</div>
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
             {gate.checks.slice(0, 4).map((check) => (
               <div key={`${check.code}:${check.message}`} className={cn('rounded-sm border px-2.5 py-2 text-[11px] leading-relaxed', gateCheckClass(check.status))}>
-                <span className="font-800 uppercase tracking-[0.08em]">{check.status}</span>
+                <span className="font-700 uppercase tracking-[0.03em]">{check.status}</span>
                 <span className="ml-2">{check.message}</span>
               </div>
             ))}
@@ -556,7 +556,7 @@ function EvalGatePanel({
             type="button"
             onClick={onSetBaseline}
             disabled={busy || gate.latestRuns.length === 0 || gate.checks.some((check) => check.code === 'missing_scope_runs')}
-            className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[11px] font-800 text-text-2 transition-colors hover:bg-layer-3 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-sm border border-line-default bg-layer-2 px-3 py-2 text-[11px] font-700 text-text-2 transition-colors hover:bg-layer-3 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy ? 'Saving baseline' : gate.baseline ? 'Update baseline' : 'Set baseline'}
           </button>
@@ -880,7 +880,7 @@ export function QualityWorkspace() {
         <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <div className="text-[10px] font-700 uppercase tracking-[0.16em] text-accent-bright/75">Operator Quality Center</div>
+              <div className="text-[10px] font-700 uppercase tracking-[0.03em] text-accent-bright/75">Operator Quality Center</div>
               <h1 className="mt-2 font-display text-[28px] font-700 tracking-[-0.03em] text-text">Quality</h1>
               <p className="mt-2 max-w-[720px] text-[13px] leading-relaxed text-text-3">
                 Evals, approvals, run evidence, and release readiness in one operator workspace.
@@ -996,7 +996,7 @@ export function QualityWorkspace() {
                           onClick={() => selectTab('runs')}
                           className="rounded-md border border-rose-500/20 bg-rose-500/[0.04] px-3 py-3 text-left transition-colors hover:bg-rose-500/[0.07]"
                         >
-                          <div className="text-[11px] font-700 uppercase tracking-[0.1em] text-rose-300">Failed Run</div>
+                          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-rose-300">Failed Run</div>
                           <div className="mt-1 truncate text-[13px] font-600 text-text">{run.messagePreview || run.id}</div>
                           <div className="mt-1 text-[11px] text-text-3">{run.source} - {formatTimestamp(run.endedAt ?? run.queuedAt)}</div>
                         </button>
@@ -1007,7 +1007,7 @@ export function QualityWorkspace() {
                           onClick={() => selectTab('approvals')}
                           className="rounded-md border border-amber-500/20 bg-amber-500/[0.04] px-3 py-3 text-left transition-colors hover:bg-amber-500/[0.07]"
                         >
-                          <div className="text-[11px] font-700 uppercase tracking-[0.1em] text-amber-300">Approval</div>
+                          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-amber-300">Approval</div>
                           <div className="mt-1 text-[13px] font-600 text-text">{group.count} pending {group.category.replaceAll('_', ' ')}</div>
                           <div className="mt-1 text-[11px] text-text-3">{group.approvals[0]?.title || 'Review request'}</div>
                         </button>
@@ -1053,7 +1053,7 @@ export function QualityWorkspace() {
                 <p className="mt-1 text-[12px] leading-relaxed text-text-3">Run focused scenarios or complete suites against one agent.</p>
                 <div className="mt-4 flex flex-col gap-3">
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3">Agent</span>
+                    <span className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Agent</span>
                     <select
                       value={selectedAgentId}
                       onChange={(event) => setSelectedAgentId(event.target.value)}
@@ -1066,7 +1066,7 @@ export function QualityWorkspace() {
                     </select>
                   </label>
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-700 uppercase tracking-[0.12em] text-text-3">Scenario</span>
+                    <span className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">Scenario</span>
                     <select
                       value={selectedScenarioId}
                       onChange={(event) => setSelectedScenarioId(event.target.value)}
@@ -1105,7 +1105,7 @@ export function QualityWorkspace() {
                   <button
                     type="button"
                     onClick={() => openMissionTemplate('release-candidate-qa')}
-                    className="mt-3 w-full rounded-sm border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[12px] font-800 text-emerald-200 transition-colors hover:bg-emerald-500/15"
+                    className="mt-3 w-full rounded-sm border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[12px] font-700 text-emerald-200 transition-colors hover:bg-emerald-500/15"
                   >
                     Start Release QA Mission
                   </button>
@@ -1113,7 +1113,7 @@ export function QualityWorkspace() {
                     type="button"
                     disabled={!selectedAgentId || !selectedScenarioId || !!evalBusy}
                     onClick={() => void runScenario()}
-                    className="inline-flex items-center justify-center gap-2 rounded-sm bg-accent-bright px-3 py-2.5 text-[12px] font-800 text-accent-fg transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex items-center justify-center gap-2 rounded-sm bg-accent-bright px-3 py-2.5 text-[12px] font-700 text-accent-fg transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M8 5v14l11-7z" />
@@ -1145,7 +1145,7 @@ export function QualityWorkspace() {
                       <div key={suite.name} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="text-[13px] font-800 text-text">{suite.name}</div>
+                            <div className="text-[13px] font-700 text-text">{suite.name}</div>
                             <div className="mt-1 text-[11px] text-text-3">{suite.count} scenarios - {suite.maxScore} max score</div>
                           </div>
                           <button
@@ -1183,11 +1183,11 @@ export function QualityWorkspace() {
                           <div key={run.id} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <div className="truncate text-[13px] font-800 text-text">{scenario?.name || run.scenarioId}</div>
+                                <div className="truncate text-[13px] font-700 text-text">{scenario?.name || run.scenarioId}</div>
                                 <div className="mt-1 text-[11px] text-text-3">{agentLabel(agents[run.agentId], run.agentId)}</div>
                                 <div className="mt-1 text-[10px] text-text-3">{formatTimestamp(run.endedAt ?? run.startedAt)}</div>
                               </div>
-                              <div className={cn('rounded-sm px-2 py-1 text-[13px] font-800', percent == null || percent >= 80 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300')}>
+                              <div className={cn('rounded-sm px-2 py-1 text-[13px] font-700', percent == null || percent >= 80 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300')}>
                                 {formatPercent(percent)}
                               </div>
                             </div>
@@ -1234,13 +1234,13 @@ export function QualityWorkspace() {
                   approvalGroups.categories.map((group) => (
                     <div key={group.category} className="rounded-md border border-line-subtle bg-layer-1 p-3">
                       <div className="mb-3 flex items-center justify-between gap-3">
-                        <div className="text-[12px] font-800 uppercase tracking-[0.1em] text-text-2">{group.category.replaceAll('_', ' ')}</div>
+                        <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-2">{group.category.replaceAll('_', ' ')}</div>
                         <div className="text-[11px] font-700 text-text-3">{group.count} request{group.count === 1 ? '' : 's'}</div>
                       </div>
                       <div className="grid gap-2 lg:grid-cols-2">
                         {group.approvals.map((approval) => (
                           <div key={approval.id} className="rounded-md border border-line-subtle bg-surface px-3 py-3">
-                            <div className="text-[13px] font-800 text-text">{approval.title}</div>
+                            <div className="text-[13px] font-700 text-text">{approval.title}</div>
                             {approval.description && <p className="mt-1 text-[12px] leading-relaxed text-text-3">{approval.description}</p>}
                             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-text-3">
                               <span>{formatTimestamp(approval.createdAt)}</span>
@@ -1252,7 +1252,7 @@ export function QualityWorkspace() {
                                 type="button"
                                 disabled={approvalBusy === approval.id}
                                 onClick={() => void actOnApproval(approval, true)}
-                                className="inline-flex items-center gap-1.5 rounded-sm bg-emerald-400 px-3 py-1.5 text-[11px] font-800 text-black transition-opacity hover:opacity-90 disabled:opacity-40"
+                                className="inline-flex items-center gap-1.5 rounded-sm bg-emerald-400 px-3 py-1.5 text-[11px] font-700 text-black transition-opacity hover:opacity-90 disabled:opacity-40"
                               >
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                                   <path d="M20 6L9 17l-5-5" />
@@ -1263,7 +1263,7 @@ export function QualityWorkspace() {
                                 type="button"
                                 disabled={approvalBusy === approval.id}
                                 onClick={() => void actOnApproval(approval, false)}
-                                className="inline-flex items-center gap-1.5 rounded-sm border border-rose-400/25 bg-rose-500/[0.06] px-3 py-1.5 text-[11px] font-800 text-rose-200 transition-colors hover:bg-rose-500/[0.1] disabled:opacity-40"
+                                className="inline-flex items-center gap-1.5 rounded-sm border border-rose-400/25 bg-rose-500/[0.06] px-3 py-1.5 text-[11px] font-700 text-rose-200 transition-colors hover:bg-rose-500/[0.1] disabled:opacity-40"
                               >
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                                   <path d="M18 6L6 18" /><path d="M6 6l12 12" />

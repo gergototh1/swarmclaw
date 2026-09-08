@@ -97,7 +97,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
         <>
           {/* Bio */}
           <div>
-            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
               Bio <HintTip text="A short bio shown on the agent's social profile" />
             </label>
             <textarea
@@ -131,7 +131,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
           {/* Auto-post channels */}
           {autoPost && channels.length > 0 && (
             <div>
-              <label className="block text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+              <label className="block text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
                 Auto-post Channels
               </label>
               <div className="flex flex-wrap gap-2">
@@ -139,7 +139,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                   <button
                     key={ch.id}
                     onClick={() => toggleChannel(ch.id)}
-                    className={`px-3 py-1.5 rounded-sm border text-[12px] font-500 transition-all cursor-pointer bg-transparent
+                    className={`px-3 py-1.5 rounded-sm border text-[12px] font-600 transition-all cursor-pointer bg-transparent
                       ${autoPostChannels.includes(ch.id)
                         ? 'border-accent-bright/40 bg-accent-bright/10 text-accent-bright'
                         : 'border-line-default text-text-3 hover:text-text hover:bg-layer-2'
@@ -240,7 +240,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
 
                   {channels.length > 0 && (
                     <div>
-                      <label className="block text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+                      <label className="block text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
                         Channels to Monitor
                       </label>
                       <div className="flex flex-wrap gap-2">
@@ -248,7 +248,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                           <button
                             key={ch.id}
                             onClick={() => toggleMonitorChannel(ch.id)}
-                            className={`px-3 py-1.5 rounded-sm border text-[12px] font-500 transition-all cursor-pointer bg-transparent
+                            className={`px-3 py-1.5 rounded-sm border text-[12px] font-600 transition-all cursor-pointer bg-transparent
                               ${heartbeat.channelsToMonitor.includes(ch.id)
                                 ? 'border-accent-bright/40 bg-accent-bright/10 text-accent-bright'
                                 : 'border-line-default text-text-3 hover:text-text hover:bg-layer-2'

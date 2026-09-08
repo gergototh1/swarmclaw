@@ -299,7 +299,7 @@ export function ProviderSheet() {
 
       {/* Name */}
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">Name</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">Name</label>
         <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. OpenRouter"
           disabled={isBuiltin} className={`${inputClass} ${isBuiltin ? 'opacity-50' : ''}`} style={{ fontFamily: 'inherit' }} />
       </div>
@@ -307,7 +307,7 @@ export function ProviderSheet() {
       {/* Base URL — for custom providers and built-ins with endpoints (Ollama, OpenClaw) */}
       {(!isBuiltin || editingBuiltin?.requiresEndpoint || editingBuiltin?.optionalEndpoint) && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">
             {isBuiltin ? 'Endpoint' : 'Base URL'}
           </label>
           <input type="text" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)}
@@ -322,7 +322,7 @@ export function ProviderSheet() {
       {/* Models — chip editor for built-in, textarea for custom */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em]">Models</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em]">Models</label>
           <div className="flex items-center gap-3">
             {canDiscoverModels && (
               <button
@@ -361,7 +361,7 @@ export function ProviderSheet() {
                     ${isLive ? 'bg-emerald-500/[0.08] border-emerald-500/20' : 'bg-layer-2 border-line-subtle'}`}>
                     <span className="text-[12px] text-text-2 font-mono">{model}</span>
                     {isLive && (
-                      <span className="text-[9px] font-600 px-1.5 py-0.5 rounded-xs bg-emerald-500/15 text-emerald-400 uppercase tracking-wider">live</span>
+                      <span className="text-[9px] font-600 px-1.5 py-0.5 rounded-xs bg-emerald-500/15 text-emerald-400 uppercase tracking-[0.03em]">live</span>
                     )}
                     <button
                       onClick={() => handleRemoveModel(i)}
@@ -432,7 +432,7 @@ export function ProviderSheet() {
       {/* API Key section */}
       {showApiKey && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">
             {isBuiltin ? 'API Key' : 'Linked API Key'}
             {isBuiltin && editingBuiltin?.optionalApiKey && !editingBuiltin?.requiresApiKey && (
               <span className="normal-case tracking-normal font-normal text-text-3 ml-1">(optional)</span>
@@ -532,7 +532,7 @@ export function ProviderSheet() {
       {/* Test model selector */}
       {showTestButton && (
         <div className="mb-4">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-3">
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-3">
             Test Model
             <span className="normal-case tracking-normal font-normal text-text-3 ml-1">(optional)</span>
           </label>

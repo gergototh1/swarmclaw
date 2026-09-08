@@ -428,7 +428,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
             )}
             {connector && connectorMeta && (
               <span
-                className="inline-flex min-w-0 items-center gap-1 px-2 py-1 rounded-sm border text-[10px] font-700 uppercase tracking-wider shrink-0"
+                className="inline-flex min-w-0 items-center gap-1 px-2 py-1 rounded-sm border text-[10px] font-700 uppercase tracking-[0.03em] shrink-0"
                 style={{
                   color: connectorMeta.color,
                   backgroundColor: `${connectorMeta.color}12`,

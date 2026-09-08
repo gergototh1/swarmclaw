@@ -104,7 +104,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
         <>
           {/* Description */}
           <div>
-            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
               Marketplace Description <HintTip text="A short description shown on the agent's marketplace profile" />
             </label>
             <textarea
@@ -119,7 +119,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
 
           {/* Skills */}
           <div>
-            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
               Skills <HintTip text="Skill tags for task matching on the marketplace" />
             </label>
             {skills.length > 0 && (
@@ -128,7 +128,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                   <button
                     key={skill}
                     onClick={() => removeSkill(skill)}
-                    className="px-3 py-1.5 rounded-sm border border-accent-bright/40 bg-accent-bright/10 text-accent-bright text-[12px] font-500 transition-all cursor-pointer bg-transparent hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400"
+                    className="px-3 py-1.5 rounded-sm border border-accent-bright/40 bg-accent-bright/10 text-accent-bright text-[12px] font-600 transition-all cursor-pointer bg-transparent hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400"
                   >
                     {skill} &times;
                   </button>
@@ -148,7 +148,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
                 type="button"
                 onClick={addSkill}
                 disabled={!skillInput.trim()}
-                className="px-4 py-2.5 rounded-md border border-line-default bg-layer-2 text-text-2 text-[13px] font-500 transition-all hover:bg-layer-3 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                className="px-4 py-2.5 rounded-md border border-line-default bg-layer-2 text-text-2 text-[13px] font-600 transition-all hover:bg-layer-3 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
                 Add
               </button>
@@ -157,7 +157,7 @@ export function AgentMarketplaceSettings({ agent, onUpdate }: {
 
           {/* Wallet picker */}
           <div>
-            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+            <label className="flex items-center gap-2 text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
               Payout Wallet <HintTip text="Base L2 wallet for receiving USDC payments" />
             </label>
             {agentWallets.length > 0 ? (

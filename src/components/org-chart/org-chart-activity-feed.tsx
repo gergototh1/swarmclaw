@@ -137,7 +137,7 @@ export function OrgChartActivityFeed({ agents, onSelectAgent, onClose }: Props) 
                       {entry.summary}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={`text-[9px] font-500 uppercase tracking-wider ${actionColor}`}>
+                      <span className={`text-[9px] font-600 uppercase tracking-[0.03em] ${actionColor}`}>
                         {entry.action}
                       </span>
                       <span className="text-[9px] text-text-3">

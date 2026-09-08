@@ -22,7 +22,7 @@ export function TemplateGallery({ templates: providedTemplates }: Props) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="text-[14px] font-display font-700 text-text">{template.name}</div>
-        <span className="rounded-full border border-line-default bg-layer-2 px-2 py-1 text-[10px] font-700 uppercase tracking-[0.12em] text-text-3">
+        <span className="rounded-full border border-line-default bg-layer-2 px-2 py-1 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
           {template.builtIn ? 'Built-in' : 'Custom'}
         </span>
       </div>
@@ -45,13 +45,13 @@ export function TemplateGallery({ templates: providedTemplates }: Props) {
     <div className="space-y-4">
       {builtInTemplates.length > 0 && (
         <div>
-          <h4 className="mb-2 text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Built-in</h4>
+          <h4 className="mb-2 text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Built-in</h4>
           <div className="grid gap-3 md:grid-cols-2">{builtInTemplates.map(renderCard)}</div>
         </div>
       )}
       {customTemplates.length > 0 && (
         <div>
-          <h4 className="mb-2 text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">Custom</h4>
+          <h4 className="mb-2 text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">Custom</h4>
           <div className="grid gap-3 md:grid-cols-2">{customTemplates.map(renderCard)}</div>
         </div>
       )}

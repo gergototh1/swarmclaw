@@ -253,7 +253,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                       {sendingQueuedMessages.length} sending
                     </span>
                   )}
-                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] ${
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] ${
                     busy
                       ? 'border-amber-300/20 bg-amber-300/10 text-amber-100'
                       : 'border-line-default bg-layer-2 text-text-3'
@@ -272,7 +272,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                     onClick={onStop}
                     aria-label="Stop response"
                     data-testid="chat-stop"
-                    className="rounded-full border border-danger/20 bg-danger/[0.06] px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.12em] text-danger transition-all hover:bg-danger/[0.1] hover:border-danger/30 cursor-pointer"
+                    className="rounded-full border border-danger/20 bg-danger/[0.06] px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.03em] text-danger transition-all hover:bg-danger/[0.1] hover:border-danger/30 cursor-pointer"
                   >
                     Stop
                   </button>
@@ -313,11 +313,11 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       {item.sending ? (
-                        <span className="rounded-full border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-sky-200 animate-pulse">
+                        <span className="rounded-full border border-sky-300/15 bg-sky-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-sky-200 animate-pulse">
                           Sending
                         </span>
                       ) : item.runId === nextPendingRunId && (
-                        <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-amber-100">
+                        <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-amber-100">
                           Next
                         </span>
                       )}
@@ -510,7 +510,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
             {extensionChatActions.length > 0 && (
               <>
                 <div className="mx-2 my-1 h-px bg-layer-2" />
-                <div className="px-3 pb-1 pt-1 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
+                <div className="px-3 pb-1 pt-1 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
                   Quick actions
                 </div>
                 {extensionChatActions.map((action) => (

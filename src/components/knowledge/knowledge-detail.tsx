@@ -198,7 +198,7 @@ export function KnowledgeDetail() {
               <div className="flex items-center gap-2 flex-wrap mb-2">
                 <h1 className="font-display text-[24px] font-700 tracking-[-0.03em] text-text truncate">{source.title}</h1>
                 <Badge variant="secondary" className="uppercase text-[10px] px-2 py-0.5">{source.kind}</Badge>
-                <span className={`text-[11px] font-700 uppercase tracking-[0.08em] ${
+                <span className={`text-[11px] font-700 uppercase tracking-[0.03em] ${
                   source.syncStatus === 'error'
                     ? 'text-red-300'
                     : source.stale
@@ -305,7 +305,7 @@ export function KnowledgeDetail() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
             <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
-              <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3 mb-1">Source</p>
+              <p className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3 mb-1">Source</p>
               <p className="text-[13px] text-text-2">{source.sourceLabel || 'Manual note'}</p>
               {source.sourceUrl && (
                 <a href={source.sourceUrl} target="_blank" rel="noreferrer" className="text-[12px] text-accent-bright hover:underline break-all">
@@ -318,7 +318,7 @@ export function KnowledgeDetail() {
             </div>
 
             <div className="rounded-md border border-line-subtle bg-layer-1 p-4">
-              <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3 mb-1">Indexing</p>
+              <p className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3 mb-1">Indexing</p>
               <p className="text-[12px] text-text-2">Last indexed: {formatDateTime(source.lastIndexedAt)}</p>
               <p className="text-[12px] text-text-3 mt-1">Last sync: {formatDateTime(source.lastSyncedAt)}</p>
               {source.maintenanceUpdatedAt ? (
@@ -337,7 +337,7 @@ export function KnowledgeDetail() {
           </div>
 
           <div className="mt-4 rounded-md border border-line-subtle bg-layer-1 p-4">
-            <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-text-3 mb-2">Supersede Source</p>
+            <p className="text-[10px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">Supersede Source</p>
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <input
                 value={supersedeTargetId}
@@ -380,7 +380,7 @@ export function KnowledgeDetail() {
               <div key={chunk.id} className="rounded-lg border border-line-subtle bg-layer-1 p-4">
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div>
-                    <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3">
+                    <p className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">
                       Chunk {chunkIndex + 1} of {chunkCount}
                     </p>
                     <h3 className="font-display text-[15px] font-600 text-text-2 mt-1">

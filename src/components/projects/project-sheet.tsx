@@ -12,7 +12,7 @@ const PROJECT_COLORS = [
 ]
 
 const inputClass = 'w-full px-3 py-2.5 rounded-lg bg-layer-2 border border-line-subtle text-[13px] text-text-1 placeholder:text-text-3 focus:outline-none focus:border-accent/40 transition-colors'
-const sectionTitleClass = 'block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2'
+const sectionTitleClass = 'block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2'
 
 function listToText(values?: string[]) {
   return Array.isArray(values) ? values.join('\n') : ''

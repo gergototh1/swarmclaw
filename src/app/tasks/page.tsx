@@ -392,7 +392,7 @@ export default function TasksPage() {
     <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
       <div className="flex items-center justify-between px-8 pt-6 pb-4 shrink-0">
         <div>
-          <h1 className="font-display text-[28px] font-800 tracking-[-0.03em]">Task Board</h1>
+          <h1 className="font-display text-[28px] font-700 tracking-[-0.03em]">Task Board</h1>
           <div className="flex items-center gap-3 mt-1">
             <p className="text-[13px] text-text-3">
               {stats.total} task{stats.total !== 1 ? 's' : ''}
@@ -471,12 +471,12 @@ export default function TasksPage() {
                     ${taskScopeFilter === 'user-facing' ? 'bg-layer-2 text-text' : 'bg-transparent text-text-3 hover:bg-layer-2'}`}
                   style={{ fontFamily: 'inherit' }}
                 >
-                  <span className="mt-0.5 inline-flex h-5 items-center rounded-full bg-emerald-500/12 px-1.5 text-[10px] font-700 uppercase tracking-[0.08em] text-emerald-400">
+                  <span className="mt-0.5 inline-flex h-5 items-center rounded-full bg-emerald-500/12 px-1.5 text-[10px] font-700 uppercase tracking-[0.03em] text-emerald-400">
                     Default
                   </span>
                   <span className="min-w-0">
                     <span className="block">User-facing tasks</span>
-                    <span className="mt-0.5 block text-[11px] font-500 text-text-3">
+                    <span className="mt-0.5 block text-[11px] font-600 text-text-3">
                       Hide scheduled, delegated, and agent-created internal work.
                     </span>
                   </span>
@@ -491,12 +491,12 @@ export default function TasksPage() {
                     ${taskScopeFilter === 'all' ? 'bg-layer-2 text-text' : 'bg-transparent text-text-3 hover:bg-layer-2'}`}
                   style={{ fontFamily: 'inherit' }}
                 >
-                  <span className="mt-0.5 inline-flex h-5 items-center rounded-full bg-layer-2 px-1.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
+                  <span className="mt-0.5 inline-flex h-5 items-center rounded-full bg-layer-2 px-1.5 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
                     All
                   </span>
                   <span className="min-w-0">
                     <span className="block">All tasks</span>
-                    <span className="mt-0.5 block text-[11px] font-500 text-text-3">
+                    <span className="mt-0.5 block text-[11px] font-600 text-text-3">
                       Include internal agent execution, schedules, and delegations.
                     </span>
                   </span>
@@ -517,7 +517,7 @@ export default function TasksPage() {
                     <AgentAvatar seed={a.avatarSeed || null} avatarUrl={a.avatarUrl} name={a.name} size={20} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate">{a.name}</span>
-                      <span className="mt-0.5 block text-[11px] font-500 text-text-3">
+                      <span className="mt-0.5 block text-[11px] font-600 text-text-3">
                         Assigned, created, or delegated by this agent
                       </span>
                     </span>
@@ -640,7 +640,7 @@ export default function TasksPage() {
             }`}
             style={{ fontFamily: 'inherit' }}
           >
-            <div className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-700 uppercase tracking-[0.08em] ${item.accent} ${item.tone}`}>
+            <div className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-700 uppercase tracking-[0.03em] ${item.accent} ${item.tone}`}>
               {item.label}
             </div>
             <div className={`mt-3 text-[24px] font-display font-700 tracking-[-0.03em] ${item.tone}`}>
@@ -828,7 +828,7 @@ export default function TasksPage() {
       >
         <div className="mx-auto w-full max-w-2xl">
           <div className="mb-6">
-            <h2 className="font-display text-[24px] font-800 tracking-[-0.03em] text-text">Import GitHub Issues</h2>
+            <h2 className="font-display text-[24px] font-700 tracking-[-0.03em] text-text">Import GitHub Issues</h2>
             <p className="mt-2 text-[14px] text-text-3">
               Pull issues from a GitHub repository into the task board as backlog items.
             </p>
@@ -836,7 +836,7 @@ export default function TasksPage() {
 
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
             <label className="block">
-              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Repository</span>
+              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Repository</span>
               <input
                 value={githubRepo}
                 onChange={(e) => setGitHubRepo(e.target.value)}
@@ -846,7 +846,7 @@ export default function TasksPage() {
               />
             </label>
             <label className="block">
-              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">State</span>
+              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">State</span>
               <select
                 value={githubState}
                 onChange={(e) => setGitHubState(e.target.value as 'open' | 'closed' | 'all')}
@@ -862,7 +862,7 @@ export default function TasksPage() {
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Limit</span>
+              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Limit</span>
               <input
                 type="number"
                 min={1}
@@ -874,7 +874,7 @@ export default function TasksPage() {
               />
             </label>
             <label className="block">
-              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Labels</span>
+              <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Labels</span>
               <input
                 value={githubLabels}
                 onChange={(e) => setGitHubLabels(e.target.value)}
@@ -886,7 +886,7 @@ export default function TasksPage() {
           </div>
 
           <label className="mt-4 block">
-            <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">GitHub token</span>
+            <span className="mb-2 block text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">GitHub token</span>
             <input
               type="password"
               value={githubToken}
@@ -932,7 +932,7 @@ export default function TasksPage() {
 
               {githubImportResult.created.length > 0 && (
                 <div className="mt-4">
-                  <p className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Created</p>
+                  <p className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Created</p>
                   <div className="mt-2 flex flex-col gap-2">
                     {githubImportResult.created.slice(0, 8).map((item) => (
                       item.url ? (
@@ -960,7 +960,7 @@ export default function TasksPage() {
 
               {githubImportResult.skipped.length > 0 && (
                 <div className="mt-4">
-                  <p className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Skipped existing</p>
+                  <p className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Skipped existing</p>
                   <div className="mt-2 flex flex-col gap-2">
                     {githubImportResult.skipped.slice(0, 8).map((item) => (
                       item.url ? (

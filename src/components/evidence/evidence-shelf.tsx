@@ -30,7 +30,7 @@ export function EvidenceShelf({
     <section className={cn('rounded-md border border-line-subtle bg-layer-1 p-4', className)}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <div className="text-[11px] font-700 uppercase tracking-[0.12em] text-text-3">{title}</div>
+          <div className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3">{title}</div>
           <div className="mt-1 text-[12px] text-text-3">{artifacts.length} linked artifact{artifacts.length === 1 ? '' : 's'}</div>
         </div>
       </div>
@@ -53,7 +53,7 @@ export function EvidenceShelf({
                   <span className="min-w-0">
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="truncate text-[12px] font-700 text-text">{artifact.title}</span>
-                      <span className="rounded-full bg-layer-2 px-2 py-0.5 text-[9px] font-800 uppercase tracking-[0.08em] text-text-3">
+                      <span className="rounded-full bg-layer-2 px-2 py-0.5 text-[9px] font-700 uppercase tracking-[0.03em] text-text-3">
                         {formatKind(artifact.kind)}
                       </span>
                     </span>

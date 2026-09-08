@@ -56,7 +56,7 @@ export function StepProviders({
 
   return (
     <StepShell>
-      <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+      <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
         Connect a Provider
       </h1>
       <p className="text-[15px] text-text-2 mb-2">
@@ -80,7 +80,7 @@ export function StepProviders({
       <div className="flex flex-col gap-3 max-h-[42vh] overflow-y-auto pr-1">
         {providerGroups.map((group) => (
           <div key={group.id} className="space-y-2">
-            <div className="px-1 text-[10px] font-700 uppercase tracking-[0.1em] text-text-3">
+            <div className="px-1 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
               {group.label}
             </div>
             {group.items.map((candidate) => {
@@ -107,18 +107,18 @@ export function StepProviders({
                     <div className="text-[15px] font-display font-600 text-text mb-1">
                       {candidate.name}
                       {isConfigured ? (
-                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 text-[10px] uppercase tracking-[0.08em] font-600">
+                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 text-[10px] uppercase tracking-[0.03em] font-600">
                           Connected · Edit
                         </span>
                       ) : candidate.badge ? (
-                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-bright/15 text-accent-bright text-[10px] uppercase tracking-[0.08em] font-600">
+                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-bright/15 text-accent-bright text-[10px] uppercase tracking-[0.03em] font-600">
                           {candidate.badge}
                         </span>
                       ) : null}
                     </div>
                     <div className="text-[13px] text-text-3 leading-relaxed">{candidate.description}</div>
                     {!candidate.requiresKey && !isConfigured && (
-                      <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[11px] font-500">
+                      <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[11px] font-600">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                         No API key required
                       </div>
@@ -176,14 +176,14 @@ export function StepProviders({
           type="button"
           onClick={onBack}
           className="px-6 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[14px]
-            font-display font-500 cursor-pointer hover:bg-layer-1 transition-all duration-200"
+            font-display font-600 cursor-pointer hover:bg-layer-1 transition-all duration-200"
         >
           Back
         </button>
         <button
           onClick={onSkip}
           className="px-6 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[14px]
-            font-display font-500 cursor-pointer hover:bg-layer-1 transition-all duration-200"
+            font-display font-600 cursor-pointer hover:bg-layer-1 transition-all duration-200"
         >
           Skip for now
         </button>

@@ -110,7 +110,7 @@ export function MarketplacePage() {
               <p className="text-[14px] text-text-3 mb-3">{error}</p>
               <button
                 onClick={() => loadData(tab)}
-                className="px-4 py-2 rounded-sm border border-line-default bg-layer-2 text-text-2 text-[13px] font-500 cursor-pointer hover:bg-layer-3 transition-all"
+                className="px-4 py-2 rounded-sm border border-line-default bg-layer-2 text-text-2 text-[13px] font-600 cursor-pointer hover:bg-layer-3 transition-all"
               >
                 Retry
               </button>
@@ -165,7 +165,7 @@ export function MarketplacePage() {
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-[14px] font-600 text-text">{agent.displayName}</h3>
                           {agent.framework && (
-                            <span className="px-2 py-0.5 rounded-full text-[11px] font-500 bg-layer-2 text-text-3">
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-600 bg-layer-2 text-text-3">
                               {agent.framework}
                             </span>
                           )}

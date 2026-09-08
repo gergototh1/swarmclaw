@@ -166,17 +166,17 @@ export function OrgChartNode({
 
         {/* Row 3: Badges — role, team, children */}
         <div className="flex items-center gap-1 flex-wrap">
-          <span className={`text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-xs leading-none ${badge.cls}`}>
+          <span className={`text-[9px] font-600 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs leading-none ${badge.cls}`}>
             {badge.label}
           </span>
           {agent.orchestratorEnabled && (
-            <span className="text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-xs leading-none text-amber-400 bg-amber-400/15">
+            <span className="text-[9px] font-600 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs leading-none text-amber-400 bg-amber-400/15">
               Orchestrator
             </span>
           )}
           {teamLabel && (
             <span
-              className="text-[9px] font-500 px-1.5 py-0.5 rounded-xs leading-none border"
+              className="text-[9px] font-600 px-1.5 py-0.5 rounded-xs leading-none border"
               style={{
                 color: teamColor || '#6366F1',
                 backgroundColor: (teamColor || '#6366F1') + '18',
@@ -187,7 +187,7 @@ export function OrgChartNode({
             </span>
           )}
           {childCount != null && childCount > 0 && (
-            <span className="text-[9px] font-500 text-text-3 px-1 py-0.5 rounded-xs bg-layer-2 leading-none">+{childCount}</span>
+            <span className="text-[9px] font-600 text-text-3 px-1 py-0.5 rounded-xs bg-layer-2 leading-none">+{childCount}</span>
           )}
           {providerLabel && (
             <span className="text-[9px] text-text-3 px-1 py-0.5 leading-none">{providerLabel}</span>

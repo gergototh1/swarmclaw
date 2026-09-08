@@ -64,10 +64,10 @@ export function AgentHoverCard({ agent, children, status }: Props) {
         {/* Tools toggles */}
         <div className="mt-2">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-600 text-text-3 uppercase tracking-wider">Tools</span>
+            <span className="text-[10px] font-600 text-text-3 uppercase tracking-[0.03em]">Tools</span>
             <button
               onClick={() => setShowAll(!showAll)}
-              className="text-[10px] text-accent-bright/70 hover:text-accent-bright font-500 bg-transparent border-none cursor-pointer"
+              className="text-[10px] text-accent-bright/70 hover:text-accent-bright font-600 bg-transparent border-none cursor-pointer"
             >
               {showAll ? 'Show enabled' : 'Show all'}
             </button>
@@ -106,7 +106,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
             onClick={() => {
               navigateTo('agents', agent.id)
             }}
-            className="flex-1 text-[12px] font-500 text-text-2 hover:text-text py-1 rounded-xs bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
+            className="flex-1 text-[12px] font-600 text-text-2 hover:text-text py-1 rounded-xs bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
           >
             Chat
           </button>
@@ -115,7 +115,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
               useAppStore.getState().setEditingAgentId(agent.id)
               useAppStore.getState().setAgentSheetOpen(true)
             }}
-            className="flex-1 text-[12px] font-500 text-text-2 hover:text-text py-1 rounded-xs bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
+            className="flex-1 text-[12px] font-600 text-text-2 hover:text-text py-1 rounded-xs bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
           >
             Edit
           </button>

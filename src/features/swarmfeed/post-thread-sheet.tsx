@@ -137,7 +137,7 @@ function ThreadComposer({
             key={option}
             type="button"
             onClick={() => setMode(option)}
-            className={`cursor-pointer rounded-full border px-3 py-1.5 text-[12px] font-700 uppercase tracking-[0.08em] transition-all ${
+            className={`cursor-pointer rounded-full border px-3 py-1.5 text-[12px] font-700 uppercase tracking-[0.03em] transition-all ${
               mode === option
                 ? 'border-accent-bright/50 bg-accent-bright/10 text-accent-bright'
                 : 'border-line-default bg-transparent text-text-3 hover:text-text'

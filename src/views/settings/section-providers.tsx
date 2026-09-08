@@ -48,7 +48,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
     <>
       {/* Providers */}
       <div className="mb-8">
-        <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-5">
+        <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-5">
           Providers
         </h3>
         <div className="space-y-4">
@@ -78,7 +78,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
                   <div className="mt-5 space-y-2.5">
                     {providerCreds.map((cred) => (
                       <div key={cred.id} className="flex items-center gap-3 py-3 px-4 rounded-md bg-bg border border-line-subtle">
-                        <span className="text-[14px] font-500 flex-1 truncate">{cred.name}</span>
+                        <span className="text-[14px] font-600 flex-1 truncate">{cred.name}</span>
                         {deleting === cred.id ? (
                           <div className="flex gap-2">
                             <button
@@ -99,7 +99,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
                         ) : (
                           <button
                             onClick={() => setDeleting(cred.id)}
-                            className="px-3 py-1.5 text-[13px] font-500 bg-transparent border-none text-text-3 cursor-pointer hover:text-danger transition-colors"
+                            className="px-3 py-1.5 text-[13px] font-600 bg-transparent border-none text-text-3 cursor-pointer hover:text-danger transition-colors"
                             style={{ fontFamily: 'inherit' }}
                           >
                             Remove
@@ -136,7 +136,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
       {/* Add key form */}
       {addProvider && (
         <div className="mb-8 p-6 rounded-lg bg-surface border border-line-subtle">
-          <div className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-4">
+          <div className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-4">
             New {providers.find((p) => p.id === addProvider)?.name} API Key
           </div>
           <div className="space-y-4">

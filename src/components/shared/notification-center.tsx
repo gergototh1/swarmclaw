@@ -161,7 +161,7 @@ export function NotificationCenter({
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="text-[11px] font-500 text-text-3 hover:text-text cursor-pointer bg-transparent border-none transition-colors"
+              className="text-[11px] font-600 text-text-3 hover:text-text cursor-pointer bg-transparent border-none transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               Mark all read
@@ -170,7 +170,7 @@ export function NotificationCenter({
           {notifications.some((n) => n.read) && (
             <button
               onClick={clearRead}
-              className="text-[11px] font-500 text-text-3 hover:text-text cursor-pointer bg-transparent border-none transition-colors"
+              className="text-[11px] font-600 text-text-3 hover:text-text cursor-pointer bg-transparent border-none transition-colors"
               style={{ fontFamily: 'inherit' }}
             >
               Clear read
@@ -244,7 +244,7 @@ export function NotificationCenter({
         onClick={() => setOpen((v) => !v)}
         className={
           isRow
-            ? 'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none'
+            ? 'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all bg-transparent text-text-3 hover:text-text hover:bg-layer-2 border-none'
             : 'relative flex items-center justify-center w-8 h-8 rounded-sm bg-transparent hover:bg-layer-2 transition-colors cursor-pointer border-none'
         }
         aria-label="Notifications"
@@ -255,7 +255,7 @@ export function NotificationCenter({
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
-        {isRow && <span className="text-[13px] font-500">Notifications</span>}
+        {isRow && <span className="text-[13px] font-600">Notifications</span>}
         {/* Badge */}
         {unreadCount > 0 && (
           <span className={isRow

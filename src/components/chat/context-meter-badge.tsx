@@ -139,7 +139,7 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
       >
         <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
         <span>{percent}%</span>
-        <span className="text-text-3 font-500">
+        <span className="text-text-3 font-600">
           {formatTokens(status.effectiveTokens)}
         </span>
       </button>
@@ -150,7 +150,7 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
           style={{ animation: 'fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)' }}
         >
           <div className="flex items-baseline justify-between">
-            <span className="text-[11px] font-600 uppercase tracking-wider text-text-3">Context window</span>
+            <span className="text-[11px] font-600 uppercase tracking-[0.03em] text-text-3">Context window</span>
             <span className={`text-[11px] font-600 ${colors.text}`}>{percent}%</span>
           </div>
           <div className="mt-2 h-1.5 w-full rounded-full bg-layer-2 overflow-hidden">

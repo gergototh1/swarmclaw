@@ -17,7 +17,7 @@ export function StepNext({
 
   return (
     <StepShell wide>
-      <h1 className="font-display text-[36px] font-800 leading-[1.05] tracking-[-0.04em] mb-3">
+      <h1 className="font-display text-[36px] font-700 leading-[1.05] tracking-[-0.04em] mb-3">
         Launch Your Workspace
       </h1>
       <p className="text-[15px] text-text-2 mb-2">

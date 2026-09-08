@@ -134,7 +134,7 @@ export function AttachmentChip({
               <polyline points="14 2 14 8 20 8" />
             </svg>
           </div>
-          <span className="text-[13px] font-500 truncate flex-1">{filename}</span>
+          <span className="text-[13px] font-600 truncate flex-1">{filename}</span>
           <a href={url} download={filename} className="text-[11px] font-600 text-text-3 hover:text-text-2 no-underline">Download</a>
         </div>
         <iframe src={url} loading="lazy" className="w-full h-[300px] border-t border-line-subtle" title={filename} />
@@ -178,7 +178,7 @@ export function AttachmentChip({
           </svg>
         </div>
         <div className="flex flex-col flex-1 min-w-0">
-          <span className={`text-[13px] font-500 truncate ${isUserMsg ? 'text-white' : 'text-text'}`}>{filename}</span>
+          <span className={`text-[13px] font-600 truncate ${isUserMsg ? 'text-white' : 'text-text'}`}>{filename}</span>
           <span className={`text-[11px] uppercase tracking-wide ${isUserMsg ? 'text-white/50' : 'text-text-3/70'}`}>{ext || 'file'}</span>
         </div>
         {isCode && (

@@ -340,7 +340,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
   return (
     <div className={`flex-1 overflow-y-auto ${inSidebar ? 'px-3 pb-4' : 'px-5 pb-6'}`}>
       <div className="mb-4 flex items-center justify-between">
-        <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Model Providers</div>
+        <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Model Providers</div>
         {!inSidebar && (
           <button
             type="button"
@@ -374,7 +374,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             <div className="flex items-center justify-between mb-1.5">
               <span className="font-display text-[14px] font-600 text-text truncate">{item.name}</span>
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-[10px] font-600 px-2 py-0.5 rounded-xs uppercase tracking-wider
+                <span className={`text-[10px] font-600 px-2 py-0.5 rounded-xs uppercase tracking-[0.03em]
                   ${item.type === 'builtin' ? 'bg-layer-2 text-text-3' : 'bg-accent-bright/10 text-accent-bright'}`}>
                   {item.type === 'builtin' ? 'Built-in' : 'Custom'}
                 </span>
@@ -423,7 +423,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
       {!inSidebar && disabledItems.length > 0 && (
         <>
           <div className="mt-8 mb-4 flex items-center justify-between">
-            <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Disabled Providers</div>
+            <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Disabled Providers</div>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {disabledItems.map((item, idx) => (
@@ -448,7 +448,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="font-display text-[14px] font-600 text-text truncate">{item.name}</span>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-[10px] font-600 px-2 py-0.5 rounded-xs uppercase tracking-wider
+                    <span className={`text-[10px] font-600 px-2 py-0.5 rounded-xs uppercase tracking-[0.03em]
                       ${item.type === 'builtin' ? 'bg-layer-2 text-text-3' : 'bg-accent-bright/10 text-accent-bright'}`}>
                       {item.type === 'builtin' ? 'Built-in' : 'Custom'}
                     </span>
@@ -483,7 +483,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
       )}
 
       <div className="mt-8 mb-4 flex items-center justify-between">
-        <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">OpenClaw Gateways</div>
+        <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">OpenClaw Gateways</div>
         {!inSidebar && (
           <div className="flex items-center gap-2">
             <button
@@ -508,7 +508,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
         <div className="mb-4 rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-[12px] font-800 text-text">Gateway fleet topology</div>
+              <div className="text-[12px] font-700 text-text">Gateway fleet topology</div>
               <div className="mt-1 text-[11px] text-text-3">
                 {gatewayFleetTopology.totals.connectedGatewayCount}/{gatewayFleetTopology.totals.gatewayCount} gateways connected ·{' '}
                 {gatewayFleetTopology.totals.connectedNodeCount}/{gatewayFleetTopology.totals.nodeCount} nodes connected ·{' '}
@@ -604,9 +604,9 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {gateway.isDefault && (
-                  <span className="text-[10px] font-700 px-2 py-0.5 rounded-xs bg-accent-bright/10 text-accent-bright uppercase tracking-wider">Default</span>
+                  <span className="text-[10px] font-700 px-2 py-0.5 rounded-xs bg-accent-bright/10 text-accent-bright uppercase tracking-[0.03em]">Default</span>
                 )}
-                <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs border uppercase tracking-wider ${gatewayLifecycleBadgeClass(lifecycleState)}`}>
+                <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs border uppercase tracking-[0.03em] ${gatewayLifecycleBadgeClass(lifecycleState)}`}>
                   {gatewayLifecycleLabel(lifecycleState)}
                 </span>
                 <StatusDot
@@ -628,39 +628,39 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             {!inSidebar && (
               <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-text-3">
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3">Deploy</div>
+                  <div className="uppercase tracking-[0.03em] text-text-3">Deploy</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.method || 'manual'}
                     {deployment?.provider ? ` · ${deployment.provider}` : ''}
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3">Route hints</div>
+                  <div className="uppercase tracking-[0.03em] text-text-3">Route hints</div>
                   <div className="mt-1 text-text-2">
                     {deployment?.useCase || 'general'}
                     {deployment?.exposure ? ` · ${deployment.exposure}` : ''}
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3">Nodes / devices</div>
+                  <div className="uppercase tracking-[0.03em] text-text-3">Nodes / devices</div>
                   <div className="mt-1 text-text-2">
                     {stats?.connectedNodeCount ?? 0}/{stats?.nodeCount ?? 0} nodes · {stats?.pairedDeviceCount ?? 0} devices
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3">Environments</div>
+                  <div className="uppercase tracking-[0.03em] text-text-3">Environments</div>
                   <div className="mt-1 text-text-2">
                     {stats?.availableEnvironmentCount ?? 0}/{stats?.environmentCount ?? 0} available
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3">Sessions</div>
+                  <div className="uppercase tracking-[0.03em] text-text-3">Sessions</div>
                   <div className="mt-1 text-text-2">
                     {stats?.sessionCount ?? 0} sessions · {stats?.presenceCount ?? 0} presence
                   </div>
                 </div>
                 <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                  <div className="uppercase tracking-[0.08em] text-text-3">Runtimes</div>
+                  <div className="uppercase tracking-[0.03em] text-text-3">Runtimes</div>
                   <div className="mt-1 text-text-2">
                     {runtimeStats.active}/{runtimeStats.total} active
                   </div>
@@ -672,7 +672,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 {environments.slice(0, 4).map((environment) => (
                   <span
                     key={`${gateway.id}-${environment.id}`}
-                    className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] ${
+                    className={`rounded-full border px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] ${
                       environment.status === 'available'
                         ? 'border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-300'
                         : 'border-line-subtle bg-layer-1 text-text-3/70'
@@ -683,7 +683,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   </span>
                 ))}
                 {environments.length > 4 && (
-                  <span className="rounded-full border border-line-subtle bg-layer-1 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
+                  <span className="rounded-full border border-line-subtle bg-layer-1 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
                     +{environments.length - 4}
                   </span>
                 )}
@@ -772,7 +772,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
       {!inSidebar && (
         <>
           <div className="mt-8 mb-4 flex items-center justify-between">
-            <div className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">External Agent Runtimes</div>
+            <div className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">External Agent Runtimes</div>
             <div className="text-[11px] text-text-3">Direct registration + heartbeat</div>
           </div>
           <div className="mb-3 rounded-md border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
@@ -792,7 +792,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
-                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs uppercase tracking-wider ${
+                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs uppercase tracking-[0.03em] ${
                       runtime.lifecycleState === 'cordoned'
                         ? 'bg-red-400/10 text-red-300'
                         : runtime.lifecycleState === 'draining'
@@ -801,7 +801,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                     }`}>
                       {runtime.lifecycleState || 'active'}
                     </span>
-                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs uppercase tracking-wider ${
+                    <span className={`text-[10px] font-700 px-2 py-0.5 rounded-xs uppercase tracking-[0.03em] ${
                       runtime.status === 'online'
                         ? 'bg-emerald-400/10 text-emerald-300'
                         : runtime.status === 'stale'
@@ -814,24 +814,24 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-text-3">
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3">Provider</div>
+                    <div className="uppercase tracking-[0.03em] text-text-3">Provider</div>
                     <div className="mt-1 text-text-2">
                       {runtime.provider || 'No provider'}
                       {runtime.model ? ` · ${runtime.model}` : ''}
                     </div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3">Gateway</div>
+                    <div className="uppercase tracking-[0.03em] text-text-3">Gateway</div>
                     <div className="mt-1 text-text-2">
                       {runtime.gatewayProfileId ? (gatewayNameById.get(runtime.gatewayProfileId) || runtime.gatewayProfileId) : 'Standalone'}
                     </div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3">Template</div>
+                    <div className="uppercase tracking-[0.03em] text-text-3">Template</div>
                     <div className="mt-1 text-text-2">{runtime.gatewayUseCase || 'general'}</div>
                   </div>
                   <div className="rounded-sm border border-line-subtle bg-layer-1 px-3 py-2">
-                    <div className="uppercase tracking-[0.08em] text-text-3">Last seen</div>
+                    <div className="uppercase tracking-[0.03em] text-text-3">Last seen</div>
                     <div className="mt-1 text-text-2">{formatRuntimeTimestamp(runtime.lastSeenAt || runtime.lastHeartbeatAt)}</div>
                   </div>
                 </div>
@@ -839,7 +839,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 {runtime.gatewayTags?.length ? (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {runtime.gatewayTags.slice(0, 6).map((tag) => (
-                      <span key={`${runtime.id}-${tag}`} className="rounded-full border border-line-subtle bg-layer-1 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.08em] text-text-3">
+                      <span key={`${runtime.id}-${tag}`} className="rounded-full border border-line-subtle bg-layer-1 px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.03em] text-text-3">
                         {tag}
                       </span>
                     ))}

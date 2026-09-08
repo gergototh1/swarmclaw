@@ -286,7 +286,7 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
             onClick={(e) => { void handleReconcile(e, null) }}
             disabled={reconciling !== null}
             title="Create or update the agents and routines every installed extension declares"
-            className="h-8 px-3 rounded-sm bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-8 px-3 rounded-sm bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.03em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {reconciling === ALL_EXTENSIONS ? 'Reconciling...' : 'Reconcile all'}
           </button>
@@ -378,7 +378,7 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
       <span className={`text-[18px] font-700 tabular-nums ${accent ? 'text-accent-bright' : 'text-text'}`}>
         {value}
       </span>
-      <span className="text-[11px] text-text-3 font-500">{label}</span>
+      <span className="text-[11px] text-text-3 font-600">{label}</span>
     </div>
   )
 }
@@ -676,7 +676,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
             title={ext.enabled
               ? 'Create or update the agents and routines this extension declares'
               : 'Switch the extension on first: a disabled extension is not loaded, so the host has no declarations to reconcile'}
-            className="shrink-0 h-6 px-2 rounded-sm bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.06em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 h-6 px-2 rounded-sm bg-layer-2 hover:bg-layer-3 text-text-2 text-[10px] font-700 uppercase tracking-[0.03em] border border-line-subtle cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {reconciling ? 'Reconciling...' : 'Reconcile'}
           </button>

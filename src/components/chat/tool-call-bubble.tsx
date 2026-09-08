@@ -413,7 +413,7 @@ function TimeoutQuickFix({ event }: { event: ToolEvent }) {
     const store = useAppStore.getState()
     const val = store.appSettings[match.settingKey] as number
     return (
-      <div className="flex items-center gap-2 mt-2 text-[12px] text-emerald-400 font-500">
+      <div className="flex items-center gap-2 mt-2 text-[12px] text-emerald-400 font-600">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
         {match.label} increased to {val}s
       </div>
@@ -529,7 +529,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
               </span>
             )}
             <span
-              className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.08em] ${
+              className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-600 uppercase tracking-[0.03em] ${
                 isRunning
                   ? 'border-current/20 bg-layer-2 text-text-3'
                   : isError
@@ -540,7 +540,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
               {statusLabel}
             </span>
             {hasMedia && (
-              <span className="text-[10px] text-text-3 font-500 shrink-0 group-open/tool:hidden">
+              <span className="text-[10px] text-text-3 font-600 shrink-0 group-open/tool:hidden">
                 {media.images.length > 0 && `${media.images.length} image${media.images.length > 1 ? 's' : ''}`}
                 {media.videos.length > 0 && `${(media.images.length > 0) ? ' · ' : ''}${media.videos.length} video${media.videos.length > 1 ? 's' : ''}`}
                 {media.pdfs.length > 0 && `${(media.images.length > 0 || media.videos.length > 0) ? ' · ' : ''}${media.pdfs.length} PDF${media.pdfs.length > 1 ? 's' : ''}`}

@@ -269,7 +269,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
       {/* Bulk action bar */}
       {bulkMode && selectedIds.size > 0 && (
         <div className="flex items-center gap-2 px-4 py-2 bg-layer-1 border-b border-line-subtle">
-          <span className="text-[12px] text-text-2 font-500 flex-1">{selectedIds.size} selected</span>
+          <span className="text-[12px] text-text-2 font-600 flex-1">{selectedIds.size} selected</span>
           <button
             onClick={() => setConfirmBulkDelete(true)}
             className="px-3 py-1.5 rounded-sm border-none bg-red-500/10 text-red-400 text-[12px] font-600 cursor-pointer hover:bg-red-500/20 transition-colors"
@@ -306,7 +306,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
 
           return (
             <div className="mb-2 px-2">
-              <div className="px-2 pb-1 text-[10px] font-700 uppercase tracking-[0.12em] text-accent-bright/65">
+              <div className="px-2 pb-1 text-[10px] font-700 uppercase tracking-[0.03em] text-accent-bright/65">
                 Default Agent
               </div>
               <div
@@ -352,11 +352,11 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                         {defaultAgent.name}
                       </span>
                       {isDisabled && (
-                        <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 uppercase tracking-[0.08em]">
+                        <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 uppercase tracking-[0.03em]">
                           Disabled
                         </span>
                       )}
-                      <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/12 text-accent-bright text-[9px] font-700 uppercase tracking-[0.08em]">
+                      <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/12 text-accent-bright text-[9px] font-700 uppercase tracking-[0.03em]">
                         Shortcut
                       </span>
                     </div>
@@ -457,12 +457,12 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                       {agent.name}
                     </span>
                     {isDisabled && (
-                      <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 uppercase tracking-[0.08em] shrink-0">
+                      <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/[0.08] text-amber-300 text-[9px] font-700 uppercase tracking-[0.03em] shrink-0">
                         Disabled
                       </span>
                     )}
                     {appSettings.defaultAgentId === agent.id && (
-                      <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/10 text-accent-bright text-[9px] font-700 uppercase tracking-[0.08em] shrink-0">
+                      <span className="px-1.5 py-0.5 rounded-xs bg-accent-bright/10 text-accent-bright text-[9px] font-700 uppercase tracking-[0.03em] shrink-0">
                         Default
                       </span>
                     )}

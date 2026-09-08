@@ -93,7 +93,7 @@ export function TabTools({
       {/* Tools — hidden for providers that manage capabilities outside LangGraph */}
       {!hasNativeCapabilities && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Tools</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Tools</label>
           <p className="text-[12px] text-text-3 mb-3">Enable built-in tool families for this agent.</p>
           <div className="space-y-3">
             {AVAILABLE_TOOLS
@@ -122,7 +122,7 @@ export function TabTools({
 
       {/* Filesystem Access */}
       <div className="mb-8">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Filesystem Access</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Filesystem Access</label>
         <select
           value={filesystemScope}
           onChange={(e) => patch({ filesystemScope: e.target.value as 'workspace' | 'machine' })}
@@ -139,7 +139,7 @@ export function TabTools({
       {/* Platform — hidden for providers that manage capabilities outside LangGraph */}
       {!hasNativeCapabilities && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Platform Tools</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Platform Tools</label>
           <p className="text-[12px] text-text-3 mb-3">Allow this agent to manage platform resources directly.</p>
           <div className="space-y-3">
             {PLATFORM_TOOLS
@@ -168,7 +168,7 @@ export function TabTools({
 
       {!hasNativeCapabilities && externalTools.length > 0 && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Extension Tools</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Extension Tools</label>
           <p className="text-[12px] text-text-3 mb-3">Attach enabled external extension tools to this agent.</p>
           <div className="space-y-3">
             {externalTools.map((t) => {
@@ -226,7 +226,7 @@ export function TabTools({
       {provider === 'claude-cli' && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em]">
+            <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em]">
               Pinned Claude Skills <span className="normal-case tracking-normal font-normal text-text-3">(from ~/.claude/skills/)</span>
             </label>
             <button
@@ -273,7 +273,7 @@ export function TabTools({
       {/* Dynamic Skills from Skills Manager */}
       {Object.keys(dynamicSkills).length > 0 && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
             Pinned Skills <span className="normal-case tracking-normal font-normal text-text-3">(from Skills manager)</span>
           </label>
           <p className="text-[12px] text-text-3 mb-3">All ready local skills are discoverable by default. Pin skills here only when they should stay in this agent&apos;s prompt as always-on guidance.</p>
@@ -302,7 +302,7 @@ export function TabTools({
       {/* MCP Servers */}
       {Object.keys(mcpServers).length > 0 && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
             MCP Servers
           </label>
           <p className="text-[12px] text-text-3 mb-3">Connect external tool servers to this agent via MCP.</p>
@@ -331,7 +331,7 @@ export function TabTools({
       {/* MCP Tools — per-tool enable/disable toggles */}
       {mcpServerIds.length > 0 && Object.keys(mcpTools).length > 0 && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
             MCP Tools
           </label>
           <p className="text-[12px] text-text-3 mb-3">
@@ -376,7 +376,7 @@ export function TabTools({
       )}
 
       <div className="mb-2">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Capabilities</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Capabilities</label>
         <p className="text-[12px] text-text-3 mb-3">Optional tags that describe what this agent is especially good at.</p>
         {capabilities.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">

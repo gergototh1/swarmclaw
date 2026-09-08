@@ -42,7 +42,7 @@ export function StepProgress({ current, total }: { current: number; total: numbe
                 )}
               </div>
               <span
-                className={`text-[10px] font-500 transition-colors duration-300 ${
+                className={`text-[10px] font-600 transition-colors duration-300 ${
                   active ? 'text-accent-bright' : completed ? 'text-text-2' : 'text-text-3'
                 }`}
               >

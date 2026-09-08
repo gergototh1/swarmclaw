@@ -109,7 +109,7 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
             <div key={job.id} className="rounded-sm border border-line-subtle bg-layer-1 p-2.5">
               {/* Status + time */}
               <div className="flex items-center gap-1.5 mb-1">
-                <span className={`text-[8px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-xs leading-none ${badge.cls}`}>
+                <span className={`text-[8px] font-600 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs leading-none ${badge.cls}`}>
                   {badge.label}
                 </span>
                 <span className="text-[9px] text-text-3 ml-auto">{timeAgo(job.updatedAt || job.createdAt)}</span>
@@ -117,14 +117,14 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
 
               {/* Task */}
               <div className="text-[11px] text-text-2 leading-snug mb-1">
-                <span className="text-text-3 font-500">Task: </span>
+                <span className="text-text-3 font-600">Task: </span>
                 {job.task.length > 120 ? job.task.slice(0, 120) + '...' : job.task}
               </div>
 
               {/* Result preview */}
               {job.resultPreview && (
                 <div className="text-[10px] text-emerald-400/70 leading-snug mt-1">
-                  <span className="text-text-3 font-500">Result: </span>
+                  <span className="text-text-3 font-600">Result: </span>
                   {job.resultPreview.length > 120 ? job.resultPreview.slice(0, 120) + '...' : job.resultPreview}
                 </div>
               )}
@@ -132,7 +132,7 @@ export function OrgChartEdgePopover({ parentAgent, childAgent, x, y, onClose }: 
               {/* Error */}
               {job.error && (
                 <div className="text-[10px] text-red-400/70 leading-snug mt-1">
-                  <span className="text-text-3 font-500">Error: </span>
+                  <span className="text-text-3 font-600">Error: </span>
                   {job.error.length > 120 ? job.error.slice(0, 120) + '...' : job.error}
                 </div>
               )}

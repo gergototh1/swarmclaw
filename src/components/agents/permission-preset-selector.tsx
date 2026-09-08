@@ -52,7 +52,7 @@ export function PermissionPresetSelector({ agentId, onPresetChanged }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="block text-[11px] font-600 uppercase tracking-wider text-text-3">Permission Preset</label>
+      <label className="block text-[11px] font-600 uppercase tracking-[0.03em] text-text-3">Permission Preset</label>
       <div className="flex gap-2">
         {PRESETS.map((p) => (
           <button

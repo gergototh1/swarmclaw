@@ -103,7 +103,7 @@ export function TabMemory({ draft, patch, inputClass }: Props) {
         className="mb-6 border-line-subtle bg-layer-1"
       >
       <div className="mb-8">
-        <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+        <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
           Identity Continuity <HintTip text="Seeds the agent's continuity state so session memory can preserve a stable persona and relationship context." />
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -124,7 +124,7 @@ export function TabMemory({ draft, patch, inputClass }: Props) {
       </div>
 
       <div>
-        <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+        <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
           Session Reset Policy <HintTip text="Controls when this agent's sessions are considered stale and should be refreshed." />
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">

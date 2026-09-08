@@ -257,11 +257,11 @@ export function TabEssentials({
       <div className="mb-8">
         <div className="flex items-center justify-between gap-3 rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
           <div>
-            <p className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3">Runtime</p>
+            <p className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3">Runtime</p>
             <p className="mt-1 text-[14px] font-600 text-text">{openclawEnabled ? 'OpenClaw gateway' : 'Direct provider connection'}</p>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-[11px] font-600 uppercase tracking-[0.08em] text-text-3">OpenClaw</label>
+            <label className="text-[11px] font-600 uppercase tracking-[0.03em] text-text-3">OpenClaw</label>
             <button
               type="button"
               onClick={() => {
@@ -296,7 +296,7 @@ export function TabEssentials({
         <div className="mb-8 space-y-5">
           {openclawGatewayProfiles.length > 0 && (
             <div>
-              <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Gateway Profile</label>
+              <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Gateway Profile</label>
               <select
                 value={gatewayProfileId || ''}
                 onChange={(e) => applyGatewayProfileSelection(e.target.value || null)}
@@ -314,7 +314,7 @@ export function TabEssentials({
           {/* Connection fields */}
           <div className="space-y-4">
             <div>
-              <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Gateway URL</label>
+              <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Gateway URL</label>
               <input
                 type="text"
                 value={apiEndpoint || ''}
@@ -325,7 +325,7 @@ export function TabEssentials({
               />
             </div>
             <div>
-              <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Gateway Token</label>
+              <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Gateway Token</label>
               {openclawCredentials.length > 0 && !addingKey ? (
                 <div className="flex gap-2">
                   <select value={credentialId || ''} onChange={(e) => {
@@ -438,26 +438,26 @@ export function TabEssentials({
                   <p className="text-[14px] text-success font-600">Awaiting Approval</p>
                 </div>
                 <p className="text-[13px] text-text-2 leading-[1.6]">
-                  This device is pending approval on your gateway. Go to <span className="text-text-2 font-500">Nodes</span>, approve the device{(testDeviceId || openclawDeviceId) ? <> (<code className="text-[12px] font-mono text-text-2">{(testDeviceId || openclawDeviceId)!.slice(0, 12)}...</code>)</> : null}, then click <span className="text-text-2 font-500">Retry Connection</span>.
+                  This device is pending approval on your gateway. Go to <span className="text-text-2 font-600">Nodes</span>, approve the device{(testDeviceId || openclawDeviceId) ? <> (<code className="text-[12px] font-mono text-text-2">{(testDeviceId || openclawDeviceId)!.slice(0, 12)}...</code>)</> : null}, then click <span className="text-text-2 font-600">Retry Connection</span>.
                 </p>
                 <a
                   href={(() => { const ep = (apiEndpoint || 'http://localhost:18789').replace(/\/+$/, ''); return /^https?:\/\//i.test(ep) ? ep : `http://${ep}` })()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-sm bg-layer-2 border border-line-default text-[13px] text-text-2 font-500 hover:bg-layer-3 transition-colors"
+                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-sm bg-layer-2 border border-line-default text-[13px] text-text-2 font-600 hover:bg-layer-3 transition-colors"
                 >
                   Approve in Dashboard →
                 </a>
               </>) : testErrorCode === 'DEVICE_AUTH_INVALID' ? (<>
                 <p className="text-[14px] text-accent-bright font-600">Device Not Paired</p>
                 <p className="text-[13px] text-text-2 leading-[1.6]">
-                  The gateway doesn&apos;t recognize this device. Go to <span className="text-text-2 font-500">Nodes</span>, and add or approve this device{(testDeviceId || openclawDeviceId) ? <> (<code className="text-[12px] font-mono text-text-2">{(testDeviceId || openclawDeviceId)!.slice(0, 12)}...</code>)</> : null}.
+                  The gateway doesn&apos;t recognize this device. Go to <span className="text-text-2 font-600">Nodes</span>, and add or approve this device{(testDeviceId || openclawDeviceId) ? <> (<code className="text-[12px] font-mono text-text-2">{(testDeviceId || openclawDeviceId)!.slice(0, 12)}...</code>)</> : null}.
                 </p>
                 <a
                   href={(() => { const ep = (apiEndpoint || 'http://localhost:18789').replace(/\/+$/, ''); return /^https?:\/\//i.test(ep) ? ep : `http://${ep}` })()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-sm bg-layer-2 border border-line-default text-[13px] text-text-2 font-500 hover:bg-layer-3 transition-colors"
+                  className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-sm bg-layer-2 border border-line-default text-[13px] text-text-2 font-600 hover:bg-layer-3 transition-colors"
                 >
                   Approve in Dashboard →
                 </a>
@@ -673,7 +673,7 @@ export function TabEssentials({
       {/* Fallback Credentials */}
       {!openclawEnabled && (currentProvider?.requiresApiKey || currentProvider?.optionalApiKey || (provider === 'ollama' && ollamaMode === 'cloud')) && providerCredentials.length > 1 && (
         <div className="mb-8">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
             Fallback Keys <span className="normal-case tracking-normal font-normal text-text-3">(for auto-failover)</span>
           </label>
           <p className="text-[12px] text-text-3 mb-3">If the primary key fails (rate limit, auth error), these keys will be tried in order.</p>
@@ -722,7 +722,7 @@ export function TabEssentials({
         description="Keep the agent's personality and core prompt visible and easy to edit."
       >
         <div className="mb-8">
-          <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+          <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
             Soul / Personality <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
             <HintTip text="The agent's voice and tone — how it talks, not what it knows" />
             {soul !== soulInitial && soulSaveState === 'idle' && (
@@ -778,7 +778,7 @@ export function TabEssentials({
         {provider !== 'openclaw' ? (
           <div className="mb-1">
             <div className="mb-3 flex items-center gap-2">
-              <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em]">System Prompt <HintTip text="Instructions that tell the agent what it can do, what tools to use, and how to behave" /></label>
+              <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em]">System Prompt <HintTip text="Instructions that tell the agent what it can do, what tools to use, and how to behave" /></label>
               <button onClick={() => promptFileRef.current?.click()} className="shrink-0 px-2 py-1 rounded-sm border border-line-default bg-surface text-[11px] text-text-3 hover:text-text-2 cursor-pointer transition-colors" style={{ fontFamily: 'inherit' }}>Upload .md</button>
               <input ref={promptFileRef} type="file" accept=".md,.txt,.markdown" onChange={handleFileUpload((value) => patch({ systemPrompt: value }))} className="hidden" />
             </div>

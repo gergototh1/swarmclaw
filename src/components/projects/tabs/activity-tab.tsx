@@ -69,11 +69,11 @@ export function ActivityTab() {
               }`} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-600 uppercase tracking-wider text-text-3">
+                  <span className="text-[10px] font-600 uppercase tracking-[0.03em] text-text-3">
                     {item.type}
                   </span>
                   {item.status && (
-                    <span className={`text-[9px] font-600 uppercase tracking-wider px-1.5 py-0.5 rounded-xs ${STATUS_STYLES[item.status] || 'bg-layer-2 text-text-3'}`}>
+                    <span className={`text-[9px] font-600 uppercase tracking-[0.03em] px-1.5 py-0.5 rounded-xs ${STATUS_STYLES[item.status] || 'bg-layer-2 text-text-3'}`}>
                       {item.status}
                     </span>
                   )}

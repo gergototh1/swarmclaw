@@ -300,7 +300,7 @@ export default function UsagePage() {
                   className="bg-surface-2 rounded-md p-4 border border-line-subtle hover:bg-surface transition-all"
                   style={{ animation: 'spring-in 0.6s var(--ease-spring) both', animationDelay: `${0.12 + index * 0.04}s` }}
                 >
-                  <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-text-3 mb-2">{card.label}</p>
+                  <p className="text-[11px] font-700 uppercase tracking-[0.03em] text-text-3 mb-2">{card.label}</p>
                   <p className={`text-[15px] font-700 leading-tight ${card.tone}`}>{card.value}</p>
                   <p className="text-[11px] text-text-3 mt-2 leading-relaxed">{card.hint}</p>
                 </div>
@@ -521,15 +521,15 @@ export default function UsagePage() {
                         </div>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
                           <span className="text-text-3">Requests</span>
-                          <span className="text-text font-500 text-right">{h.totalRequests}</span>
+                          <span className="text-text font-600 text-right">{h.totalRequests}</span>
                           <span className="text-text-3 flex items-center gap-1">Error Rate <HintTip text="Percentage of API calls that failed" /></span>
-                          <span className={`font-500 text-right ${errorRateColor(h.errorRate)}`}>
+                          <span className={`font-600 text-right ${errorRateColor(h.errorRate)}`}>
                             {(h.errorRate * 100).toFixed(1)}%
                           </span>
                           {h.avgLatencyMs > 0 && (
                             <>
                               <span className="text-text-3 flex items-center gap-1">Avg Latency <HintTip text="Average response time from the provider" /></span>
-                              <span className="text-text font-500 text-right">{Math.round(h.avgLatencyMs)}ms</span>
+                              <span className="text-text font-600 text-right">{Math.round(h.avgLatencyMs)}ms</span>
                             </>
                           )}
                         </div>
@@ -538,7 +538,7 @@ export default function UsagePage() {
                             {h.models.map((m) => (
                               <span
                                 key={m}
-                                className="px-2 py-0.5 rounded-xs bg-layer-2 text-[11px] text-text-3 font-500"
+                                className="px-2 py-0.5 rounded-xs bg-layer-2 text-[11px] text-text-3 font-600"
                               >
                                 {m}
                               </span>

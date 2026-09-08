@@ -775,7 +775,7 @@ export function OrgChartView() {
                 transform: 'translateX(-50%)',
               }}
             >
-              <span className="text-[9px] font-500 px-2 py-0.5 rounded-full bg-accent-bright/15 text-accent-bright border border-accent-bright/20 whitespace-nowrap animate-pulse overflow-hidden text-ellipsis" style={{ maxWidth: 200, display: 'inline-block' }}>
+              <span className="text-[9px] font-600 px-2 py-0.5 rounded-full bg-accent-bright/15 text-accent-bright border border-accent-bright/20 whitespace-nowrap animate-pulse overflow-hidden text-ellipsis" style={{ maxWidth: 200, display: 'inline-block' }}>
                 {toolIndicator.text}
               </span>
             </div>
@@ -961,7 +961,7 @@ export function OrgChartView() {
             </div>
             <h3 className="text-[15px] font-600 text-text mb-1.5">No hierarchy yet</h3>
             <p className="text-[13px] text-text-3 leading-relaxed">
-              Create agents and set their roles to <span className="text-accent-bright font-500">Coordinator</span> or <span className="text-text-2 font-500">Worker</span> to build your org chart. Drag workers under coordinators to wire up delegation.
+              Create agents and set their roles to <span className="text-accent-bright font-600">Coordinator</span> or <span className="text-text-2 font-600">Worker</span> to build your org chart. Drag workers under coordinators to wire up delegation.
             </p>
           </div>
         </div>

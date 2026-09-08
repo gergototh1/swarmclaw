@@ -643,7 +643,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-purple-400/60 shrink-0 transition-transform group-open:rotate-90">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
-              <span className="text-[11px] font-600 text-purple-400/70 uppercase tracking-[0.05em]">Thinking</span>
+              <span className="text-[11px] font-600 text-purple-400/70 uppercase tracking-[0.03em]">Thinking</span>
               {!liveStreamActive && (
                 <span className="text-[10px] text-text-3 font-mono">{Math.ceil(effectiveThinking.length / 4)} tokens</span>
               )}
@@ -695,7 +695,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
               </div>
-              <span className="text-[11px] font-700 uppercase tracking-wider text-emerald-400/80">Extension Installed</span>
+              <span className="text-[11px] font-700 uppercase tracking-[0.03em] text-emerald-400/80">Extension Installed</span>
             </div>
             <p className="text-[13px] text-text-2 leading-relaxed">{installRequest.message}</p>
             {/* bg-black/40 is a fixed dark inset, not a ladder surface, so its
@@ -716,7 +716,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                 </svg>
               </div>
-              <span className="text-[11px] font-700 uppercase tracking-wider text-amber-400/80">Extension Created</span>
+              <span className="text-[11px] font-700 uppercase tracking-[0.03em] text-amber-400/80">Extension Created</span>
             </div>
             <p className="text-[13px] text-text-2 leading-relaxed">{scaffoldRequest.message}</p>
             <div className="p-3 rounded-md bg-black/40 border border-white/5">
@@ -736,7 +736,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                 </svg>
               </div>
-              <span className="text-[11px] font-700 uppercase tracking-wider text-emerald-400/80">Extension UI Extension</span>
+              <span className="text-[11px] font-700 uppercase tracking-[0.03em] text-emerald-400/80">Extension UI Extension</span>
             </div>
             <div className="text-[14px] text-text-2 leading-relaxed">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
@@ -767,12 +767,12 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                     const statusColor = meta?.status ? (STATUS_COLORS[meta.status] || '#6B7280') : '#22C55E'
                     return <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />
                   })()}
-                  <span className="text-[11px] uppercase tracking-[0.08em] text-text-2 font-600">Heartbeat</span>
+                  <span className="text-[11px] uppercase tracking-[0.03em] text-text-2 font-600">Heartbeat</span>
                   {(() => {
                     const meta = parseHeartbeatMeta(message.text)
                     if (!meta?.status) return null
                     const color = STATUS_COLORS[meta.status] || '#6B7280'
-                    return <span className="text-[10px] font-500 px-1.5 py-0.5 rounded-xs" style={{ color, background: `${color}18` }}>{meta.status}</span>
+                    return <span className="text-[10px] font-600 px-1.5 py-0.5 rounded-xs" style={{ color, background: `${color}18` }}>{meta.status}</span>
                   })()}
                 </div>
                 <span className="text-[11px] text-text-3">{heartbeatExpanded ? 'Collapse' : 'Expand'}</span>
@@ -784,13 +784,13 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                     <div className="mt-2 flex flex-col gap-1">
                       {meta.goal && (
                         <div className="flex items-baseline gap-1.5">
-                          <span className="text-[10px] uppercase tracking-[0.06em] text-text-3 font-600 shrink-0">Goal</span>
+                          <span className="text-[10px] uppercase tracking-[0.03em] text-text-3 font-600 shrink-0">Goal</span>
                           <span className="text-[12px] text-text-2 truncate">{meta.goal}</span>
                         </div>
                       )}
                       {meta.next_action && (
                         <div className="flex items-baseline gap-1.5">
-                          <span className="text-[10px] uppercase tracking-[0.06em] text-text-3 font-600 shrink-0">Next</span>
+                          <span className="text-[10px] uppercase tracking-[0.03em] text-text-3 font-600 shrink-0">Next</span>
                           <span className="text-[12px] text-text-2 truncate">{meta.next_action}</span>
                         </div>
                       )}
@@ -824,7 +824,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
         ) : hasDisplayText ? (
           <div className={`msg-content text-[15px] md:text-[14px] break-words ${liveStreamActive ? 'streaming-cursor' : ''} ${isUser ? 'leading-[1.6] text-white/95' : 'leading-[1.7] text-text'}`}>
             {!isUser && message.kind === 'connector-delivery' && connectorDeliveryTranscript && (
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.12em] text-emerald-200/85">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.03em] text-emerald-200/85">
                 <span>Delivered via connector</span>
                 {message.source?.deliveryMode === 'voice_note' && (
                   <span className="text-emerald-100/70">voice note</span>

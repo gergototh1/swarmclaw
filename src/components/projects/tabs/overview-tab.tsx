@@ -84,7 +84,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
 
       {/* Section 2: Health Grid */}
       <div>
-        <h3 className="text-[12px] font-700 uppercase tracking-[0.08em] text-text-3 mb-3">Health</h3>
+        <h3 className="text-[12px] font-700 uppercase tracking-[0.03em] text-text-3 mb-3">Health</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {healthCards.map((card) => {
             const isZero = card.value === 0

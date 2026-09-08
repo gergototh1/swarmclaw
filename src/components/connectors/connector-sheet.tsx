@@ -918,7 +918,7 @@ export function ConnectorSheet() {
       const tags = (config[field.key] || '').split(',').map((s) => s.trim()).filter(Boolean)
       return (
         <div key={field.key} className="mb-6">
-          <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+          <label className="flex items-center gap-2 font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
             {field.label} <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
             {FIELD_HINTS[field.key] && <HintTip text={FIELD_HINTS[field.key]} />}
           </label>
@@ -981,7 +981,7 @@ export function ConnectorSheet() {
     if (field.type === 'select' && field.options?.length) {
       return (
         <div key={field.key} className="mb-6">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
             {field.label} <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
           </label>
           {field.help && <p className="text-[12px] text-text-3 mb-2">{field.help}</p>}
@@ -1002,7 +1002,7 @@ export function ConnectorSheet() {
 
     return (
       <div key={field.key} className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
           {field.label} <span className="normal-case tracking-normal font-normal text-text-3">(optional)</span>
         </label>
         {field.help && <p className="text-[12px] text-text-3 mb-2">{field.help}</p>}
@@ -1101,7 +1101,7 @@ export function ConnectorSheet() {
 
       {/* Name */}
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Name</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Name</label>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -1113,7 +1113,7 @@ export function ConnectorSheet() {
 
       {/* Route mode toggle + target selector */}
       <div className="mb-6">
-        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">Route Messages To</label>
+        <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">Route Messages To</label>
         <div className="flex gap-1 mb-3 p-1 rounded-sm bg-layer-2 border border-line-subtle">
           <button
             type="button"
@@ -1161,7 +1161,7 @@ export function ConnectorSheet() {
       {/* Bot token credential */}
       {showCredentialSection && (
         <div className="mb-6">
-          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">{platformConfig.tokenLabel}</label>
+          <label className="block font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">{platformConfig.tokenLabel}</label>
           <p className="text-[12px] text-text-3 mb-2">{platformConfig.tokenHelp}</p>
           <div className="flex gap-2">
             <select

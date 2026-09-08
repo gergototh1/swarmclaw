@@ -420,7 +420,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
         return (
           <div key={`ctx-clear-${msg.time}-${i}`} className="group/ctx flex items-center gap-4 py-3">
             <div className="flex-1 h-px bg-amber-400/20" />
-            <span className="flex items-center gap-1.5 text-[10px] font-600 text-amber-400/60 uppercase tracking-[0.1em]">
+            <span className="flex items-center gap-1.5 text-[10px] font-600 text-amber-400/60 uppercase tracking-[0.03em]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0">
                 <line x1="2" y1="12" x2="22" y2="12" />
                 <polyline points="8 8 4 12 8 16" />
@@ -475,7 +475,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
           {showDateSep && (
             <div className="flex items-center gap-4 py-2 mb-2">
               <div className="flex-1 h-px bg-layer-2" />
-              <span className="text-[10px] font-600 text-text-3 uppercase tracking-[0.1em]">
+              <span className="text-[10px] font-600 text-text-3 uppercase tracking-[0.03em]">
                 {dateSeparator(msg.time)}
               </span>
               <div className="flex-1 h-px bg-layer-2" />

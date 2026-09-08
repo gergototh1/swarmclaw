@@ -257,7 +257,7 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
         ) : (
           CATEGORIES.filter((c) => c.id === activeCategory).map((cat) => (
             <div key={cat.id}>
-              <div className="text-[10px] font-600 text-text-3 uppercase tracking-wider px-1 py-1.5">{cat.label}</div>
+              <div className="text-[10px] font-600 text-text-3 uppercase tracking-[0.03em] px-1 py-1.5">{cat.label}</div>
               <div className="grid grid-cols-8 gap-0.5">
                 {cat.emojis.map((emoji, i) => (
                   <button

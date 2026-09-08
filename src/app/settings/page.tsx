@@ -341,7 +341,7 @@ export default function SettingsRoute() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-500 cursor-pointer transition-all border-none text-left
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-600 cursor-pointer transition-all border-none text-left
                   ${dimmed ? 'opacity-30' : ''}
                   ${activeTab === tab.id
                     ? 'bg-accent-soft text-accent-bright'
@@ -416,7 +416,7 @@ export default function SettingsRoute() {
                 className="mb-10 scroll-mt-6 last:mb-0"
               >
                 <div className="mb-4">
-                  <div className="text-[11px] uppercase tracking-[0.08em] text-text-3 mb-1">
+                  <div className="text-[11px] uppercase tracking-[0.03em] text-text-3 mb-1">
                     {TABS.find((tab) => tab.id === section.tabId)?.label}
                   </div>
                   <h4 className="font-display text-[18px] font-700 tracking-[-0.02em] text-text">

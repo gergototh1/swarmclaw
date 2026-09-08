@@ -10,7 +10,7 @@ export function SkillsSection({ appSettings, patchSettings, inputClass }: Settin
 
   return (
     <div className="mb-10">
-      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.08em] mb-2">
+      <h3 className="font-display text-[12px] font-600 text-text-2 uppercase tracking-[0.03em] mb-2">
         Skills
       </h3>
       <p className="text-[12px] text-text-3 mb-5">
@@ -18,7 +18,7 @@ export function SkillsSection({ appSettings, patchSettings, inputClass }: Settin
       </p>
       <div className="p-6 rounded-lg bg-surface border border-line-subtle space-y-5">
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Recommendation Mode</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Recommendation Mode</label>
           <div className="grid grid-cols-2 gap-2">
             {[
               { id: 'keyword' as const, name: 'Keyword', detail: 'Fast lexical matching across skill names, tags, and capabilities.' },
@@ -42,7 +42,7 @@ export function SkillsSection({ appSettings, patchSettings, inputClass }: Settin
         </div>
 
         <div>
-          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.08em] mb-3">Default Top K</label>
+          <label className="block font-display text-[11px] font-600 text-text-3 uppercase tracking-[0.03em] mb-3">Default Top K</label>
           <input
             type="number"
             min={1}
