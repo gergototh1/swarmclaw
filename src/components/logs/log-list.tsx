@@ -144,7 +144,7 @@ export function LogList() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Controls */}
-      <div className="px-5 py-2 space-y-2 shrink-0">
+      <div className="page-gutter py-2 space-y-2 shrink-0">
         {/* Search */}
         <input
           value={search}

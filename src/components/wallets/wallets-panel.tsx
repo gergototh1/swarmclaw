@@ -44,7 +44,7 @@ export function WalletsPanel() {
 
   return (
     <div className="flex-1 flex flex-col h-full">
-      <div className="flex items-center justify-end px-6 pt-4 pb-2 shrink-0">
+      <div className="page-gutter flex items-center justify-end pt-4 pb-2 shrink-0">
         <div className="relative">
           <button
             onClick={() => {

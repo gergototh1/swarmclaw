@@ -47,7 +47,7 @@ export function SecretsList() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-5 pb-6">
+    <div className="page-shell">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {secretList.map((secret, idx) => {
           const scopeLabel = secret.scope === 'global'

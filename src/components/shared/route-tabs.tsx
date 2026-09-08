@@ -16,7 +16,7 @@ export interface RouteTab {
  */
 export function RouteTabs({ tabs, active }: { tabs: readonly RouteTab[]; active: string }) {
   return (
-    <div className="flex items-center gap-1 px-6 border-b border-line-subtle shrink-0">
+    <div className="page-gutter flex items-center gap-1 border-b border-line-subtle shrink-0">
       {tabs.map((tab) => {
         const on = tab.key === active
         return (

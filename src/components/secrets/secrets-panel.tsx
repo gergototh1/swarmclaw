@@ -6,7 +6,7 @@ import { SecretsList } from '@/components/secrets/secrets-list'
 export function SecretsPanel() {
   return (
     <div className="flex-1 flex flex-col h-full">
-      <div className="flex items-center justify-end px-6 pt-4 pb-2 shrink-0">
+      <div className="page-gutter flex items-center justify-end pt-4 pb-2 shrink-0">
         <button
           onClick={() => useAppStore.getState().setSecretSheetOpen(true)}
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[11px] font-600 text-accent-bright bg-accent-soft hover:bg-accent-bright/15 transition-all cursor-pointer"
