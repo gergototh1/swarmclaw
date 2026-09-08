@@ -461,7 +461,7 @@ export default function TasksPage() {
               </svg>
             </button>
             {agentDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1 min-w-[240px] py-1 rounded-md border border-line-default bg-surface-2 shadow-lg z-50">
+              <div className="absolute top-full right-0 mt-1 min-w-[240px] py-1 rounded-md border border-line-default bg-surface shadow-lg z-50">
                 <button
                   onClick={() => {
                     setTaskScopeFilter('user-facing')
@@ -548,7 +548,7 @@ export default function TasksPage() {
                 </svg>
               </button>
               {projectDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 min-w-[180px] py-1 rounded-md border border-line-default bg-surface-2 shadow-lg z-50">
+                <div className="absolute top-full right-0 mt-1 min-w-[180px] py-1 rounded-md border border-line-default bg-surface shadow-lg z-50">
                   <button
                     onClick={() => { setActiveProjectFilter(null); setProjectDropdownOpen(false) }}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-[13px] font-600 cursor-pointer border-none text-left transition-colors
@@ -903,13 +903,13 @@ export default function TasksPage() {
           </div>
 
           {githubImportError && (
-            <div className="mt-4 rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
+            <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
               {githubImportError}
             </div>
           )}
 
           {githubImportResult && (
-            <div className="mt-5 rounded-lg border border-line-default bg-layer-1 p-4">
+            <div className="mt-5 rounded-lg border border-line-default bg-surface p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[14px] font-700 text-text">{githubImportResult.repo}</span>
                 <span className="rounded-full bg-layer-2 px-2 py-1 text-[11px] font-600 text-text-3">
@@ -1006,7 +1006,7 @@ export default function TasksPage() {
 
       {/* Bulk action bar */}
       {selectionMode && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-3 rounded-lg bg-surface-2/95 backdrop-blur-xl border border-line-default z-50">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-3 rounded-lg bg-surface/80 backdrop-blur-xl border border-line-default z-50">
           <span className="text-[13px] font-600 text-text mr-2">
             {selectedIds.size} selected
           </span>

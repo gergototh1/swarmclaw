@@ -439,7 +439,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                   }
                 }}
                 className="w-full text-left p-4 rounded-lg border transition-all duration-200
-                  cursor-pointer bg-surface/60 border-line-subtle hover:bg-layer-1 hover:border-line-default"
+                  cursor-pointer bg-surface border-line-subtle hover:bg-layer-1 hover:border-line-default"
                 style={{
                   animation: 'spring-in 0.5s var(--ease-spring) both',
                   animationDelay: `${(enabledItems.length + idx) * 0.05}s`
@@ -505,7 +505,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
         )}
       </div>
       {!inSidebar && gatewayFleetTopology && (
-        <div className="mb-4 rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
+        <div className="mb-4 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[12px] font-700 text-text">Gateway fleet topology</div>
@@ -537,7 +537,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
         </div>
       )}
       {!inSidebar && (
-        <div className="mb-4 rounded-lg border border-line-subtle bg-layer-1 p-4">
+        <div className="mb-4 rounded-lg border border-line-subtle bg-surface p-4">
           <OpenClawDeployPanel
             compact
             title="Deploy OpenClaw Control Planes"
@@ -545,7 +545,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             onApply={handleDeployApply}
           />
           {deployDraft?.endpoint && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-emerald-500/20 bg-emerald-500/[0.05] px-4 py-3">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.05] px-4 py-3">
               <div>
                 <div className="text-[13px] font-700 text-emerald-300">Prepared gateway profile</div>
                 <div className="mt-1 text-[12px] text-text-3">
@@ -775,7 +775,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
             <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">External Agent Runtimes</div>
             <div className="text-[11px] text-text-3">Direct registration + heartbeat</div>
           </div>
-          <div className="mb-3 rounded-md border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
+          <div className="mb-3 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
             External workers can register themselves at <code className="text-text-2">/api/external-agents/register</code> and then send heartbeats to
             {' '}
             <code className="text-text-2">/api/external-agents/&lt;id&gt;/heartbeat</code>.

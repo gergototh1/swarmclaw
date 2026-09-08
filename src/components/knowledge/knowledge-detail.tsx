@@ -192,7 +192,7 @@ export function KnowledgeDetail() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-[1040px] mx-auto px-6 py-6 space-y-6">
-        <div className="rounded-lg border border-line-subtle bg-raised/60 p-6">
+        <div className="rounded-lg border border-line-subtle bg-raised p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -304,7 +304,7 @@ export function KnowledgeDetail() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-            <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+            <div className="rounded-lg border border-line-subtle bg-surface p-4">
               <p className="text-[10px] font-700 tracking-[0.03em] text-text-3 mb-1">Source</p>
               <p className="text-[13px] text-text-2">{source.sourceLabel || 'Manual note'}</p>
               {source.sourceUrl && (
@@ -317,7 +317,7 @@ export function KnowledgeDetail() {
               )}
             </div>
 
-            <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+            <div className="rounded-lg border border-line-subtle bg-surface p-4">
               <p className="text-[10px] font-700 tracking-[0.03em] text-text-3 mb-1">Indexing</p>
               <p className="text-[12px] text-text-2">Last indexed: {formatDateTime(source.lastIndexedAt)}</p>
               <p className="text-[12px] text-text-3 mt-1">Last sync: {formatDateTime(source.lastSyncedAt)}</p>
@@ -336,7 +336,7 @@ export function KnowledgeDetail() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-lg border border-line-subtle bg-layer-1 p-4">
+          <div className="mt-4 rounded-lg border border-line-subtle bg-surface p-4">
             <p className="text-[10px] font-700 tracking-[0.03em] text-text-3 mb-2">Supersede Source</p>
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <input
@@ -377,7 +377,7 @@ export function KnowledgeDetail() {
             const charEnd = typeof metadata.charEnd === 'number' ? metadata.charEnd : chunk.content.length
 
             return (
-              <div key={chunk.id} className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+              <div key={chunk.id} className="rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div>
                     <p className="text-[11px] font-700 tracking-[0.03em] text-text-3">

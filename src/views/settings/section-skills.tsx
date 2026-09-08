@@ -27,7 +27,7 @@ export function SkillsSection({ appSettings, patchSettings, inputClass }: Settin
               <button
                 key={entry.id}
                 onClick={() => patchSettings({ runtimeSkillRetrievalMode: entry.id })}
-                className={`rounded-md border px-4 py-3 text-left transition-all cursor-pointer ${
+                className={`rounded-lg border px-4 py-3 text-left transition-all cursor-pointer ${
                   mode === entry.id
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                     : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'

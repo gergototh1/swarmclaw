@@ -55,7 +55,7 @@ export function SwarmFeedProfileSheet({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-5">
           {profileQuery.isLoading ? (
-            <div className="rounded-lg border border-line-subtle bg-surface/70 p-6 text-[13px] text-text-3">
+            <div className="rounded-lg border border-line-subtle bg-surface p-6 text-[13px] text-text-3">
               Loading profile…
             </div>
           ) : profileQuery.error ? (
@@ -64,7 +64,7 @@ export function SwarmFeedProfileSheet({
             </div>
           ) : profile ? (
             <div className="space-y-5">
-              <div className="rounded-lg border border-line-subtle bg-surface/80 p-5">
+              <div className="rounded-lg border border-line-subtle bg-surface p-5">
                 <div className="flex items-start gap-4">
                   <AgentAvatar
                     seed={profile.id}
@@ -106,13 +106,13 @@ export function SwarmFeedProfileSheet({
               </div>
 
               {Array.isArray(profile.channelMemberships) && profile.channelMemberships.length > 0 && (
-                <div className="rounded-lg border border-line-subtle bg-surface/75 p-4">
+                <div className="rounded-lg border border-line-subtle bg-surface p-4">
                   <div className="mb-3 text-[11px] font-700 tracking-[0.03em] text-text-3">Channels</div>
                   <div className="flex flex-wrap gap-2">
                     {profile.channelMemberships.map((channelId) => (
                       <span
                         key={channelId}
-                        className="rounded-full border border-line-default bg-bg/60 px-3 py-1.5 text-[12px] font-700 text-text-2"
+                        className="rounded-full border border-line-default bg-bg px-3 py-1.5 text-[12px] font-700 text-text-2"
                       >
                         {channelLabels?.[channelId] || `#${channelId}`}
                       </span>
@@ -122,13 +122,13 @@ export function SwarmFeedProfileSheet({
               )}
 
               {Array.isArray(profile.badges) && profile.badges.length > 0 && (
-                <div className="rounded-lg border border-line-subtle bg-surface/75 p-4">
+                <div className="rounded-lg border border-line-subtle bg-surface p-4">
                   <div className="mb-3 text-[11px] font-700 tracking-[0.03em] text-text-3">Badges</div>
                   <div className="flex flex-wrap gap-2">
                     {profile.badges.map((badge) => (
                       <span
                         key={badge.id}
-                        className="rounded-full border border-line-default bg-bg/60 px-3 py-1.5 text-[12px] font-700 text-text-2"
+                        className="rounded-full border border-line-default bg-bg px-3 py-1.5 text-[12px] font-700 text-text-2"
                       >
                         {badge.emoji} {badge.displayName}
                       </span>
@@ -137,7 +137,7 @@ export function SwarmFeedProfileSheet({
                 </div>
               )}
 
-              <div className="rounded-lg border border-line-subtle bg-surface/75 p-4">
+              <div className="rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="mb-3 text-[11px] font-700 tracking-[0.03em] text-text-3">Recent Posts</div>
                 {postsQuery.isLoading ? (
                   <div className="text-[13px] text-text-3">Loading posts…</div>
@@ -150,7 +150,7 @@ export function SwarmFeedProfileSheet({
                         key={post.id}
                         type="button"
                         onClick={() => onOpenThread?.(post.id)}
-                        className="w-full cursor-pointer rounded-md border border-line-default bg-bg/55 p-3 text-left transition-all hover:bg-bg/75"
+                        className="w-full cursor-pointer rounded-lg border border-line-default bg-bg p-3 text-left transition-all hover:bg-bg"
                       >
                         <div className="text-[13px] font-700 text-text">{post.content.slice(0, 180)}</div>
                         <div className="mt-2 text-[11px] tracking-[0.03em] text-text-3">
@@ -171,7 +171,7 @@ export function SwarmFeedProfileSheet({
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-md border border-line-default bg-bg/55 px-3 py-3">
+    <div className="rounded-lg border border-line-default bg-bg px-3 py-3">
       <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">{label}</div>
       <div className="mt-1 font-display text-[18px] font-700 text-text">{value}</div>
     </div>

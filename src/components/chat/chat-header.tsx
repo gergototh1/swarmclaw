@@ -598,7 +598,7 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
               </button>
               </Tip>
               {sourceDropdownOpen && (
-                <div className="absolute top-full right-0 sm:left-0 sm:right-auto mt-1 py-1 rounded-sm border border-line-subtle bg-bg/95 backdrop-blur-md shadow-lg z-50 min-w-[160px] max-w-[calc(100vw-2rem)]">
+                <div className="absolute top-full right-0 sm:left-0 sm:right-auto mt-1 py-1 rounded-sm border border-line-subtle bg-bg/80 backdrop-blur-md shadow-lg z-50 min-w-[160px] max-w-[calc(100vw-2rem)]">
                   <button
                     onClick={() => { onConnectorFilterChange(null); setSourceDropdownOpen(false) }}
                     className={`w-full text-left px-3 py-1.5 text-[11px] font-600 transition-colors cursor-pointer border-none flex items-center gap-2 ${

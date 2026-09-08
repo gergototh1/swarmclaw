@@ -20,7 +20,7 @@ export function VoiceOverlay({ state, interimText, transcript, onStop }: VoiceOv
   if (state === 'idle') return null
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-bg/90 backdrop-blur-sm">
+    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-bg/80 backdrop-blur-sm">
       {/* Animated indicator */}
       <div className="relative">
         <div className={`w-20 h-20 rounded-full flex items-center justify-center ${

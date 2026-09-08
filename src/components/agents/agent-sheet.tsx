@@ -1189,7 +1189,7 @@ export function AgentSheet() {
 
       {/* Provider key warning */}
       {providerNeedsKey && (
-        <div className="mb-4 p-3 rounded-md bg-amber-500/[0.08] border border-amber-500/20">
+        <div className="mb-4 p-3 rounded-lg bg-amber-500/[0.08] border border-amber-500/20">
           <p className="text-[13px] text-amber-400">
             Add an API key for {currentProvider?.name || provider} on the Essentials tab before creating this agent.
           </p>
@@ -1198,13 +1198,13 @@ export function AgentSheet() {
 
       {/* Test connection result (hidden for OpenClaw — inline status block handles it) */}
       {!openclawEnabled && testStatus === 'fail' && (
-        <div className="mb-4 p-3 rounded-md bg-red-500/[0.08] border border-red-500/20">
+        <div className="mb-4 p-3 rounded-lg bg-red-500/[0.08] border border-red-500/20">
           <p className="text-[13px] text-red-400">{testMessage || 'Connection test failed'}</p>
           <ProviderDiagnosticsList diagnostics={testDiagnostics} />
         </div>
       )}
       {!openclawEnabled && testStatus === 'pass' && (
-        <div className="mb-4 p-3 rounded-md bg-emerald-500/[0.08] border border-emerald-500/20">
+        <div className="mb-4 p-3 rounded-lg bg-emerald-500/[0.08] border border-emerald-500/20">
           <p className="text-[13px] text-emerald-400">{testMessage || 'Connected successfully'}</p>
           <ProviderDiagnosticsList diagnostics={testDiagnostics} />
         </div>
@@ -1215,7 +1215,7 @@ export function AgentSheet() {
 
       <div className="flex gap-3 pt-2 border-t border-line-subtle">
         {editing && (
-          <button onClick={handleDelete} className="py-3.5 px-6 rounded-md border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
+          <button onClick={handleDelete} className="py-3.5 px-6 rounded-lg border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Delete
           </button>
         )}

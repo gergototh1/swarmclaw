@@ -255,7 +255,7 @@ export function TabEssentials({
         description="Choose how this agent connects to a model, then verify the setup before saving."
       >
       <div className="mb-8">
-        <div className="flex items-center justify-between gap-3 rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
           <div>
             <p className="text-[12px] font-700 tracking-[0.03em] text-text-3">Runtime</p>
             <p className="mt-1 text-[14px] font-600 text-text">{openclawEnabled ? 'OpenClaw gateway' : 'Direct provider connection'}</p>
@@ -352,7 +352,7 @@ export function TabEssentials({
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3 p-4 rounded-md border border-accent-bright/15 bg-accent-soft/10">
+                <div className="space-y-3 p-4 rounded-lg border border-accent-bright/15 bg-accent-soft/10">
                   <input
                     type="text"
                     value={newKeyName}
@@ -416,7 +416,7 @@ export function TabEssentials({
 
           {/* Status feedback — single unified block */}
           {testStatus === 'pass' && (
-            <div className="p-4 rounded-md bg-emerald-500/[0.06] border border-emerald-500/15 space-y-2">
+            <div className="p-4 rounded-lg bg-emerald-500/[0.06] border border-emerald-500/15 space-y-2">
               <div className="flex items-center gap-2">
                 <StatusDot status="online" />
                 <p className="text-[14px] text-emerald-400 font-600">Connected</p>
@@ -514,7 +514,7 @@ export function TabEssentials({
               <button
                 key={p.id}
                 onClick={() => applyDirectProviderSelection(p.id)}
-                className={`relative py-3.5 px-4 rounded-md text-center cursor-pointer transition-all duration-200
+                className={`relative py-3.5 px-4 rounded-lg text-center cursor-pointer transition-all duration-200
                   active:scale-[0.97] text-[14px] font-600 border
                   ${provider === p.id
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
@@ -617,7 +617,7 @@ export function TabEssentials({
               </button>
             </div>
           ) : (
-            <div className="space-y-3 p-4 rounded-md border border-accent-bright/15 bg-accent-soft/20">
+            <div className="space-y-3 p-4 rounded-lg border border-accent-bright/15 bg-accent-soft/20">
               <input
                 type="text"
                 value={newKeyName}
@@ -792,7 +792,7 @@ export function TabEssentials({
             />
           </div>
         ) : (
-          <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-4 text-[13px] leading-[1.6] text-text-3">
+          <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-4 text-[13px] leading-[1.6] text-text-3">
             OpenClaw agents rely on the gateway runtime for tool execution and node routing. Expand advanced settings if you need continuity, voice, or heartbeat overrides.
           </div>
         )}

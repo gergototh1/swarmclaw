@@ -90,7 +90,7 @@ function StatTile({ label, value, hint, tone = 'default' }: {
     danger: 'text-rose-300',
   }[tone]
   return (
-    <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
+    <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
       <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">{label}</div>
       <div className={cn('mt-2 font-display text-[26px] font-700 tracking-[-0.03em]', toneClass)}>{value}</div>
       <div className="mt-1 text-[12px] leading-relaxed text-text-3">{hint}</div>
@@ -100,7 +100,7 @@ function StatTile({ label, value, hint, tone = 'default' }: {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="rounded-md border border-dashed border-line-default bg-layer-1 px-4 py-6">
+    <div className="rounded-lg border border-dashed border-line-default bg-layer-1 px-4 py-6">
       <div className="text-[13px] font-700 text-text">{title}</div>
       <p className="mt-1 text-[12px] leading-relaxed text-text-3">{description}</p>
     </div>
@@ -167,7 +167,7 @@ function ReleaseReadinessPanel({
   onOpenHref: (href: string) => void
 }) {
   return (
-    <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+    <section className="rounded-lg border border-line-subtle bg-surface p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-[11px] font-700 tracking-[0.03em] text-accent-bright/70">Release Readiness</div>
@@ -187,12 +187,12 @@ function ReleaseReadinessPanel({
       </div>
 
       {!report ? (
-        <div className="mt-4 rounded-md border border-dashed border-line-default bg-layer-1 px-4 py-5 text-[12px] text-text-3">
+        <div className="mt-4 rounded-lg border border-dashed border-line-default bg-layer-1 px-4 py-5 text-[12px] text-text-3">
           {loading ? 'Building release readiness report...' : 'No release readiness report is available yet.'}
         </div>
       ) : (
         <div className="mt-4 grid gap-4 xl:grid-cols-[260px_1fr]">
-          <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+          <div className="rounded-lg border border-line-subtle bg-surface p-4">
             <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-700 tracking-[0.03em]', readinessStatusClass(report.status))}>
               {report.status}
             </span>
@@ -211,7 +211,7 @@ function ReleaseReadinessPanel({
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
+            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3">
               <div className="text-[12px] font-700 text-text">Checks</div>
               <div className="mt-3 flex flex-col gap-2">
                 {report.checks.slice(0, 6).map((check) => (
@@ -233,7 +233,7 @@ function ReleaseReadinessPanel({
               </div>
             </div>
 
-            <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
+            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3">
               <div className="text-[12px] font-700 text-text">Next actions</div>
               <div className="mt-3 flex flex-col gap-2">
                 {report.nextActions.length === 0 ? (
@@ -279,7 +279,7 @@ function ArchitectureHealthPanel({
   onOpenHref: (href: string) => void
 }) {
   return (
-    <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+    <section className="rounded-lg border border-line-subtle bg-surface p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-[11px] font-700 tracking-[0.03em] text-accent-bright/70">Architecture Health</div>
@@ -299,12 +299,12 @@ function ArchitectureHealthPanel({
       </div>
 
       {!report ? (
-        <div className="mt-4 rounded-md border border-dashed border-line-default bg-layer-1 px-4 py-5 text-[12px] text-text-3">
+        <div className="mt-4 rounded-lg border border-dashed border-line-default bg-layer-1 px-4 py-5 text-[12px] text-text-3">
           {loading ? 'Building architecture health report...' : 'No architecture health report is available yet.'}
         </div>
       ) : (
         <div className="mt-4 grid gap-4 xl:grid-cols-[260px_1fr]">
-          <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+          <div className="rounded-lg border border-line-subtle bg-surface p-4">
             <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-700 tracking-[0.03em]', architectureStatusClass(report.status))}>
               {report.status}
             </span>
@@ -323,7 +323,7 @@ function ArchitectureHealthPanel({
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
+            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3">
               <div className="text-[12px] font-700 text-text">Domains</div>
               <div className="mt-3 grid gap-2">
                 {report.domains.map((domain) => (
@@ -340,7 +340,7 @@ function ArchitectureHealthPanel({
               </div>
             </div>
 
-            <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
+            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3">
               <div className="text-[12px] font-700 text-text">Checks</div>
               <div className="mt-3 flex flex-col gap-2">
                 {report.nextActions.length === 0 ? (
@@ -385,7 +385,7 @@ function EvalEnvironmentPanel({ plan, loading, onRefresh }: {
   onRefresh: () => void
 }) {
   return (
-    <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-3">
+    <div className="rounded-lg border border-line-subtle bg-layer-1 px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[13px] font-700 text-text">Validation environment</div>
@@ -475,7 +475,7 @@ function EvalGatePanel({
   onSetBaseline: () => void
 }) {
   return (
-    <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-3">
+    <div className="rounded-lg border border-line-subtle bg-layer-1 px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[13px] font-700 text-text">Regression gate</div>
@@ -906,7 +906,7 @@ export function QualityWorkspace() {
           </div>
 
           {loadError && (
-            <div className="rounded-md border border-rose-500/25 bg-rose-500/[0.06] px-4 py-3 text-[12px] text-rose-200">
+            <div className="rounded-lg border border-rose-500/25 bg-rose-500/[0.06] px-4 py-3 text-[12px] text-rose-200">
               {loadError}
             </div>
           )}
@@ -973,7 +973,7 @@ export function QualityWorkspace() {
               </div>
 
               <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-                <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                <section className="rounded-lg border border-line-subtle bg-surface p-4">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h2 className="font-display text-[15px] font-700 text-text">Needs Attention</h2>
@@ -994,7 +994,7 @@ export function QualityWorkspace() {
                         <button
                           key={run.id}
                           onClick={() => selectTab('runs')}
-                          className="rounded-md border border-rose-500/20 bg-rose-500/[0.04] px-3 py-3 text-left transition-colors hover:bg-rose-500/[0.07]"
+                          className="rounded-lg border border-rose-500/20 bg-rose-500/[0.04] px-3 py-3 text-left transition-colors hover:bg-rose-500/[0.07]"
                         >
                           <div className="text-[11px] font-700 tracking-[0.03em] text-rose-300">Failed Run</div>
                           <div className="mt-1 truncate text-[13px] font-600 text-text">{run.messagePreview || run.id}</div>
@@ -1005,7 +1005,7 @@ export function QualityWorkspace() {
                         <button
                           key={group.category}
                           onClick={() => selectTab('approvals')}
-                          className="rounded-md border border-amber-500/20 bg-amber-500/[0.04] px-3 py-3 text-left transition-colors hover:bg-amber-500/[0.07]"
+                          className="rounded-lg border border-amber-500/20 bg-amber-500/[0.04] px-3 py-3 text-left transition-colors hover:bg-amber-500/[0.07]"
                         >
                           <div className="text-[11px] font-700 tracking-[0.03em] text-amber-300">Approval</div>
                           <div className="mt-1 text-[13px] font-600 text-text">{group.count} pending {group.category.replaceAll('_', ' ')}</div>
@@ -1016,7 +1016,7 @@ export function QualityWorkspace() {
                   )}
                 </section>
 
-                <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                <section className="rounded-lg border border-line-subtle bg-surface p-4">
                   <h2 className="font-display text-[15px] font-700 text-text">Latest Eval Scores</h2>
                   <p className="mt-1 text-[12px] text-text-3">Most recent scored evidence across agents.</p>
                   <div className="mt-4 flex flex-col gap-2">
@@ -1026,7 +1026,7 @@ export function QualityWorkspace() {
                       evalRuns.slice(0, 5).map((run) => {
                         const percent = scorePercent(run.score, run.maxScore)
                         return (
-                          <div key={run.id} className="rounded-md border border-line-subtle bg-layer-1 px-3 py-3">
+                          <div key={run.id} className="rounded-lg border border-line-subtle bg-layer-1 px-3 py-3">
                             <div className="flex items-center justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="truncate text-[13px] font-700 text-text">{scenarioById.get(run.scenarioId)?.name || run.scenarioId}</div>
@@ -1048,7 +1048,7 @@ export function QualityWorkspace() {
 
           {activeTab === 'evals' && (
             <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
-              <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+              <section className="rounded-lg border border-line-subtle bg-surface p-4">
                 <h2 className="font-display text-[15px] font-700 text-text">Eval Lab</h2>
                 <p className="mt-1 text-[12px] leading-relaxed text-text-3">Run focused scenarios or complete suites against one agent.</p>
                 <div className="mt-4 flex flex-col gap-3">
@@ -1078,7 +1078,7 @@ export function QualityWorkspace() {
                     </select>
                   </label>
                   {selectedScenarioId && scenarioById.get(selectedScenarioId) && (
-                    <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-3">
+                    <div className="rounded-lg border border-line-subtle bg-layer-1 px-3 py-3">
                       <div className="text-[13px] font-700 text-text">{scenarioById.get(selectedScenarioId)!.name}</div>
                       <p className="mt-1 text-[12px] leading-relaxed text-text-3">{scenarioById.get(selectedScenarioId)!.description}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -1124,7 +1124,7 @@ export function QualityWorkspace() {
               </section>
 
               <div className="flex flex-col gap-5">
-                <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                <section className="rounded-lg border border-line-subtle bg-surface p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <h2 className="font-display text-[15px] font-700 text-text">Suites</h2>
@@ -1142,7 +1142,7 @@ export function QualityWorkspace() {
                   </div>
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {suites.map((suite) => (
-                      <div key={suite.name} className="rounded-md border border-line-subtle bg-layer-1 p-3">
+                      <div key={suite.name} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="text-[13px] font-700 text-text">{suite.name}</div>
@@ -1170,7 +1170,7 @@ export function QualityWorkspace() {
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                <section className="rounded-lg border border-line-subtle bg-surface p-4">
                   <h2 className="font-display text-[15px] font-700 text-text">Score History</h2>
                   <div className="mt-4 grid gap-3 lg:grid-cols-2">
                     {evalRuns.length === 0 ? (
@@ -1180,7 +1180,7 @@ export function QualityWorkspace() {
                         const percent = scorePercent(run.score, run.maxScore)
                         const scenario = scenarioById.get(run.scenarioId)
                         return (
-                          <div key={run.id} className="rounded-md border border-line-subtle bg-layer-1 p-3">
+                          <div key={run.id} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="truncate text-[13px] font-700 text-text">{scenario?.name || run.scenarioId}</div>
@@ -1217,7 +1217,7 @@ export function QualityWorkspace() {
           )}
 
           {activeTab === 'approvals' && (
-            <section className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+            <section className="rounded-lg border border-line-subtle bg-surface p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="font-display text-[15px] font-700 text-text">Approval Desk</h2>
@@ -1232,14 +1232,14 @@ export function QualityWorkspace() {
                   <EmptyState title="No pending approvals" description="The approval queue is clear." />
                 ) : (
                   approvalGroups.categories.map((group) => (
-                    <div key={group.category} className="rounded-md border border-line-subtle bg-layer-1 p-3">
+                    <div key={group.category} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <div className="text-[12px] font-700 tracking-[0.03em] text-text-2">{group.category.replaceAll('_', ' ')}</div>
                         <div className="text-[11px] font-700 text-text-3">{group.count} request{group.count === 1 ? '' : 's'}</div>
                       </div>
                       <div className="grid gap-2 lg:grid-cols-2">
                         {group.approvals.map((approval) => (
-                          <div key={approval.id} className="rounded-md border border-line-subtle bg-surface px-3 py-3">
+                          <div key={approval.id} className="rounded-lg border border-line-subtle bg-surface px-3 py-3">
                             <div className="text-[13px] font-700 text-text">{approval.title}</div>
                             {approval.description && <p className="mt-1 text-[12px] leading-relaxed text-text-3">{approval.description}</p>}
                             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-text-3">
@@ -1282,7 +1282,7 @@ export function QualityWorkspace() {
           )}
 
           {activeTab === 'runs' && (
-            <div className="flex min-h-[680px] flex-col rounded-lg border border-line-subtle bg-layer-1">
+            <div className="flex min-h-[680px] flex-col rounded-lg border border-line-subtle bg-surface">
               <div className="border-b border-line-subtle px-5 py-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>

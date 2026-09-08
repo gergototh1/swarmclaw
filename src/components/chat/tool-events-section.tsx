@@ -141,7 +141,7 @@ const ToolSummaryRow = memo(function ToolSummaryRow({ event, caption }: { event:
 
   return (
     <div
-      className={`rounded-md border px-3.5 py-3 ${
+      className={`rounded-lg border px-3.5 py-3 ${
       isRunning
         ? 'border-amber-500/20 bg-amber-500/[0.06]'
         : isError
@@ -313,7 +313,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
             </div>
           ))}
           {collapsedMedia.files.map((file, i) => (
-            <a key={`cf-${i}`} href={file.url} download className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-default bg-surface/60 text-[13px] text-text-2 no-underline">
+            <a key={`cf-${i}`} href={file.url} download className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-default bg-surface text-[13px] text-text-2 no-underline">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
@@ -342,7 +342,7 @@ export const ToolEventsSection = memo(function ToolEventsSection({
   /* ── Uncontrolled mode: full standalone card (legacy) ─── */
   return (
     <div className="max-w-[85%] md:max-w-[72%] mb-2" data-testid="tool-activity">
-      <div className="rounded-lg border border-line-default bg-surface/72 backdrop-blur-sm overflow-hidden">
+      <div className="rounded-lg border border-line-default bg-surface/80 backdrop-blur-sm overflow-hidden">
         {/* Compact header — always visible */}
         <button
           type="button"

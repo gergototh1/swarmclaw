@@ -371,7 +371,7 @@ export default function SettingsRoute() {
             </div>
 
             {searchQuery && (
-              <div className="mb-8 rounded-lg border border-line-subtle bg-layer-1 p-4">
+              <div className="mb-8 rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <p className="text-[12px] font-600 text-text-2">

@@ -180,7 +180,7 @@ export function StorageBrowser({ files, onDelete }: Props) {
             <div
               key={file.name}
               onClick={() => toggleSelect(file.name)}
-              className={`relative p-3 rounded-md border cursor-pointer transition-all
+              className={`relative p-3 rounded-lg border cursor-pointer transition-all
                 ${selected.has(file.name)
                   ? 'border-accent-bright/40 bg-accent-soft/30'
                   : 'border-line-subtle bg-surface hover:border-line-default'}`}

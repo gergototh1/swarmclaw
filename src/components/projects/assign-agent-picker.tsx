@@ -25,7 +25,7 @@ export function AssignAgentPicker({ projectId, onClose }: { projectId: string; o
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute left-0 top-full mt-2 z-50 w-[260px] rounded-md bg-surface/95 backdrop-blur-xl border border-line-default overflow-hidden">
+      <div className="absolute left-0 top-full mt-2 z-50 w-[260px] rounded-md bg-surface/80 backdrop-blur-xl border border-line-default overflow-hidden">
         <div className="p-2.5 border-b border-line-subtle">
           <input
             value={query}

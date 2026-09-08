@@ -92,7 +92,7 @@ export function OrgChartNode({
     <div className="group relative">
       <div
         className={`select-none
-          rounded-md border px-3 py-2.5 transition-all duration-150
+          rounded-lg border px-3 py-2.5 transition-all duration-150
           ${disabled ? 'opacity-40' : ''}
           ${isDimmed ? 'opacity-30 pointer-events-none' : ''}
           ${isDragging ? 'opacity-80 scale-105 shadow-lg shadow-black/30 z-50' : ''}

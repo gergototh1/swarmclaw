@@ -407,7 +407,7 @@ export function ScheduleSheet() {
           </div>
           <button
             onClick={() => setStep(whatStep as Step)}
-            className="w-full py-3.5 rounded-md border border-dashed border-line-default bg-transparent
+            className="w-full py-3.5 rounded-lg border border-dashed border-line-default bg-transparent
               text-text-3 text-[14px] font-600 cursor-pointer transition-all hover:bg-surface hover:text-text-2 hover:border-line-strong"
             style={{ fontFamily: 'inherit' }}
           >
@@ -442,7 +442,7 @@ export function ScheduleSheet() {
             <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={() => setTaskMode('task')}
-                className={`py-3 px-4 rounded-md text-center cursor-pointer transition-all duration-200
+                className={`py-3 px-4 rounded-lg text-center cursor-pointer transition-all duration-200
                   active:scale-[0.97] text-[14px] font-600 border
                   ${taskMode === 'task'
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
@@ -453,7 +453,7 @@ export function ScheduleSheet() {
               </button>
               <button
                 onClick={() => setTaskMode('wake_only')}
-                className={`py-3 px-4 rounded-md text-center cursor-pointer transition-all duration-200
+                className={`py-3 px-4 rounded-lg text-center cursor-pointer transition-all duration-200
                   active:scale-[0.97] text-[14px] font-600 border
                   ${taskMode === 'wake_only'
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
@@ -464,7 +464,7 @@ export function ScheduleSheet() {
               </button>
               <button
                 onClick={() => setTaskMode('protocol')}
-                className={`py-3 px-4 rounded-md text-center cursor-pointer transition-all duration-200
+                className={`py-3 px-4 rounded-lg text-center cursor-pointer transition-all duration-200
                   active:scale-[0.97] text-[14px] font-600 border
                   ${taskMode === 'protocol'
                     ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
@@ -542,7 +542,7 @@ export function ScheduleSheet() {
                 <button
                   key={t}
                   onClick={() => setScheduleType(t)}
-                  className={`py-3.5 px-4 rounded-md text-center cursor-pointer transition-all duration-200
+                  className={`py-3.5 px-4 rounded-lg text-center cursor-pointer transition-all duration-200
                     active:scale-[0.97] text-[14px] font-600 capitalize border
                     ${scheduleType === t
                       ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
@@ -775,7 +775,7 @@ export function ScheduleSheet() {
       {/* Footer */}
       <div className="flex gap-3 pt-2 border-t border-line-subtle">
         {editing && step === 0 && (
-          <button onClick={() => setConfirmDelete(true)} className="py-3.5 px-6 rounded-md border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
+          <button onClick={() => setConfirmDelete(true)} className="py-3.5 px-6 rounded-lg border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Archive
           </button>
         )}

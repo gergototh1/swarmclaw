@@ -88,7 +88,7 @@ export function OperationsPulsePanel({
   }, [pulse])
 
   return (
-    <section className={cn('rounded-lg border border-line-subtle bg-layer-1 p-4', className)}>
+    <section className={cn('rounded-lg border border-line-subtle bg-surface p-4', className)}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-[10px] font-700 tracking-[0.03em] text-accent-bright/70">Operations Pulse</div>
@@ -123,11 +123,11 @@ export function OperationsPulsePanel({
       </div>
 
       {loading ? (
-        <div className="mt-4 rounded-md border border-line-subtle bg-layer-1 px-3 py-4 text-[12px] text-text-3">
+        <div className="mt-4 rounded-lg border border-line-subtle bg-layer-1 px-3 py-4 text-[12px] text-text-3">
           Loading pulse...
         </div>
       ) : !pulse ? (
-        <div className="mt-4 rounded-md border border-rose-500/20 bg-rose-500/[0.06] px-3 py-3 text-[12px] text-rose-200">
+        <div className="mt-4 rounded-lg border border-rose-500/20 bg-rose-500/[0.06] px-3 py-3 text-[12px] text-rose-200">
           Operations pulse is unavailable.
         </div>
       ) : (
@@ -144,7 +144,7 @@ export function OperationsPulsePanel({
 
           <div className="mt-4">
             {stable || actions.length === 0 ? (
-              <div className="rounded-md border border-emerald-500/15 bg-emerald-500/[0.05] px-3 py-3 text-[12px] text-emerald-200">
+              <div className="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.05] px-3 py-3 text-[12px] text-emerald-200">
                 No current blockers in the selected window.
               </div>
             ) : (
@@ -154,7 +154,7 @@ export function OperationsPulsePanel({
                     key={action.id}
                     type="button"
                     onClick={() => router.push(action.href)}
-                    className={cn('rounded-md border px-3 py-3 text-left transition-colors hover:bg-layer-2', SEVERITY_CLASS[action.severity])}
+                    className={cn('rounded-lg border px-3 py-3 text-left transition-colors hover:bg-layer-2', SEVERITY_CLASS[action.severity])}
                   >
                     <div className="flex items-start gap-2">
                       <span className="mt-0.5 shrink-0">{actionIcon(action)}</span>

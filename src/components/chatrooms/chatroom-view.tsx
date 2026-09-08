@@ -645,7 +645,7 @@ export function ChatroomView() {
           {(!isNearBottom || unreadCount > 0) && (
             <button
               onClick={() => scrollToLatest('smooth')}
-              className="absolute bottom-4 right-4 px-3.5 py-2 rounded-sm bg-surface-2/95 backdrop-blur-xl border border-line-default text-[12px] font-700 text-text hover:bg-layer-3 transition-all cursor-pointer"
+              className="absolute bottom-4 right-4 px-3.5 py-2 rounded-sm bg-surface-2/80 backdrop-blur-xl border border-line-default text-[12px] font-700 text-text hover:bg-layer-3 transition-all cursor-pointer"
               style={{ fontFamily: 'inherit' }}
             >
               Jump to latest{unreadCount > 0 ? ` · ${unreadCount} new` : ''}
@@ -671,7 +671,7 @@ export function ChatroomView() {
         />
       </div>
 
-      <aside className="hidden xl:flex xl:w-[300px] xl:flex-col xl:border-l xl:border-line-subtle bg-surface/30">
+      <aside className="hidden xl:flex xl:w-[300px] xl:flex-col xl:border-l xl:border-line-subtle bg-surface">
         <RoomDetailsPanel
           chatroom={chatroom}
           memberAgents={memberAgents}
@@ -714,11 +714,11 @@ export function ChatroomView() {
         description={inspectedSessionId ? `Inspecting ${inspectedSessionId}` : 'Inspecting active chatroom member session'}
       >
         {inspectLoading ? (
-          <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-6 text-[13px] text-text-3">
+          <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-6 text-[13px] text-text-3">
             Loading session activity…
           </div>
         ) : inspectError ? (
-          <div className="rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
+          <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
             {inspectError}
           </div>
         ) : (
@@ -742,12 +742,12 @@ export function ChatroomView() {
 
             <section>
               <h4 className="mb-2 text-[12px] font-700 tracking-[0.03em] text-text-3">Recent Messages</h4>
-              <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-md border border-line-subtle bg-layer-1 p-3">
+              <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-lg border border-line-subtle bg-layer-1 p-3">
                 {inspectedMessages.length === 0 ? (
                   <p className="text-[12px] text-text-3">No messages yet for this session.</p>
                 ) : (
                   inspectedMessages.slice(-12).map((message, index) => (
-                    <div key={`${message.time}-${message.role}-${index}`} className="rounded-sm border border-line-subtle bg-black/20 px-3 py-2">
+                    <div key={`${message.time}-${message.role}-${index}`} className="rounded-sm border border-line-subtle bg-layer-2 px-3 py-2">
                       <div className="flex items-center gap-2 text-[10px] tracking-[0.03em] text-text-3">
                         <span>{message.role}</span>
                         <span>·</span>
@@ -764,7 +764,7 @@ export function ChatroomView() {
 
             <section>
               <h4 className="mb-2 text-[12px] font-700 tracking-[0.03em] text-text-3">Execution Log</h4>
-              <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-md border border-line-subtle bg-layer-1 p-3">
+              <div className="max-h-[220px] space-y-2 overflow-y-auto rounded-lg border border-line-subtle bg-layer-1 p-3">
                 {inspectedExecLogs.length === 0 ? (
                   <p className="text-[12px] text-text-3">No execution log entries yet.</p>
                 ) : (
@@ -772,7 +772,7 @@ export function ChatroomView() {
                     .slice()
                     .sort((a, b) => b.ts - a.ts)
                     .map((entry) => (
-                      <div key={entry.id} className="rounded-sm border border-line-subtle bg-black/20 px-3 py-2">
+                      <div key={entry.id} className="rounded-sm border border-line-subtle bg-layer-2 px-3 py-2">
                         <div className="flex items-center gap-2 text-[10px] tracking-[0.03em] text-text-3">
                           <span>{entry.category}</span>
                           <span>·</span>
@@ -812,7 +812,7 @@ export function ChatroomView() {
         description="Add steering guidance to the active structured session without sending a normal room message."
       >
         {injectError && (
-          <div className="mb-4 rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
+          <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
             {injectError}
           </div>
         )}
@@ -821,7 +821,7 @@ export function ChatroomView() {
           onChange={(event) => setInjectContext(event.target.value)}
           rows={5}
           placeholder="Add a correction, tighter constraint, or something the session should focus on next."
-          className="w-full rounded-md border border-line-subtle bg-layer-2 px-4 py-3 text-[14px] leading-relaxed text-text outline-none placeholder:text-text-3"
+          className="w-full rounded-lg border border-line-subtle bg-layer-2 px-4 py-3 text-[14px] leading-relaxed text-text outline-none placeholder:text-text-3"
         />
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           <button

@@ -287,10 +287,10 @@ export default function UsagePage() {
           <div className="px-8 pb-8 space-y-6">
             {/* Stats cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard label="Total Tokens" value={formatTokens(data?.totalTokens ?? 0)} index={0} className="bg-surface-2 border-line-subtle" />
-              <StatCard label="Total Cost" value={formatCost(data?.totalCost ?? 0)} index={1} className="bg-surface-2 border-line-subtle" />
-              <StatCard label="Requests" value={String(data?.records.length ?? 0)} index={2} className="bg-surface-2 border-line-subtle" />
-              <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="bg-surface-2 border-line-subtle" />
+              <StatCard label="Total Tokens" value={formatTokens(data?.totalTokens ?? 0)} index={0} className="border-line-subtle" />
+              <StatCard label="Total Cost" value={formatCost(data?.totalCost ?? 0)} index={1} className="border-line-subtle" />
+              <StatCard label="Requests" value={String(data?.records.length ?? 0)} index={2} className="border-line-subtle" />
+              <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="border-line-subtle" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -427,10 +427,10 @@ export default function UsagePage() {
               <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
                 <h3 className="font-display text-[16px] font-700 text-text mt-2">Task Performance</h3>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                  <StatCard label="Tasks Completed" value={String(taskMetrics.completedCount)} index={0} className="bg-surface-2 border-line-subtle" />
-                  <StatCard label="Avg Cycle Time" value={formatDurationMs(taskMetrics.avgCycleMs)} index={1} className="bg-surface-2 border-line-subtle" />
-                  <StatCard label="WIP" value={String(taskMetrics.wip)} index={2} className="bg-surface-2 border-line-subtle" />
-                  <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="bg-surface-2 border-line-subtle" />
+                  <StatCard label="Tasks Completed" value={String(taskMetrics.completedCount)} index={0} className="border-line-subtle" />
+                  <StatCard label="Avg Cycle Time" value={formatDurationMs(taskMetrics.avgCycleMs)} index={1} className="border-line-subtle" />
+                  <StatCard label="WIP" value={String(taskMetrics.wip)} index={2} className="border-line-subtle" />
+                  <StatCard label="Completion Rate" value={`${completionRate}%`} index={3} className="border-line-subtle" />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">

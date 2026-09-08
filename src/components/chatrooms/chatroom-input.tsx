@@ -360,7 +360,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
       )}
 
       {visibleQueuedMessages.length > 0 && (
-        <div className="mb-2 overflow-hidden rounded-md border border-amber-500/18 bg-warning-soft">
+        <div className="mb-2 overflow-hidden rounded-lg border border-amber-500/18 bg-warning-soft">
           <div className="flex items-start justify-between gap-3 border-b border-amber-500/10 px-3.5 py-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -400,7 +400,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
             {visibleQueuedMessages.map((item, index) => (
               <div
                 key={item.id}
-                className={`flex items-start gap-3 rounded-md border px-3 py-2.5 ${
+                className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 ${
                   index === 0
                     ? 'border-amber-300/20 bg-amber-300/[0.07]'
                     : 'border-line-subtle bg-layer-1'
@@ -535,7 +535,7 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
               onClick={handleSendCurrent}
               disabled={(!text.trim() && !pendingFiles.length) || disabled}
               aria-label={streaming ? 'Queue message' : 'Send message'}
-              className={`w-9 h-9 rounded-md border-none flex items-center justify-center shrink-0 cursor-pointer transition-all duration-250 ${
+              className={`w-9 h-9 rounded-lg border-none flex items-center justify-center shrink-0 cursor-pointer transition-all duration-250 ${
                 (!text.trim() && !pendingFiles.length) || disabled
                   ? 'bg-layer-2 text-text-3 pointer-events-none'
                   : streaming

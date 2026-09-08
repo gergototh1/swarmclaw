@@ -559,14 +559,14 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
 
         <div className="px-3.5 pb-3 pt-1 space-y-2 border-t border-line-subtle mt-0" onClick={(e) => e.stopPropagation()}>
           <div className="label-mono">Input</div>
-          <pre className="text-[12px] text-text-2 font-mono whitespace-pre-wrap break-all bg-bg/50 rounded-sm px-3 py-2 max-h-[200px] overflow-y-auto">
+          <pre className="text-[12px] text-text-2 font-mono whitespace-pre-wrap break-all bg-bg rounded-sm px-3 py-2 max-h-[200px] overflow-y-auto">
             {formattedInput}
           </pre>
           {event.output && (
             <>
               <div className="label-mono mt-2">{isError ? 'Error' : 'Output'}</div>
               {formattedCleanOutput && (
-                <pre className="text-[12px] text-text-2 font-mono whitespace-pre-wrap break-all bg-bg/50 rounded-sm px-3 py-2 max-h-[300px] overflow-y-auto">
+                <pre className="text-[12px] text-text-2 font-mono whitespace-pre-wrap break-all bg-bg rounded-sm px-3 py-2 max-h-[300px] overflow-y-auto">
                   {formattedCleanOutput}
                 </pre>
               )}
@@ -642,7 +642,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
                 href={file.url}
                 download
                 onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-2 px-3 py-2 bg-surface/80 border-t border-line-default text-[12px] text-text-2 hover:text-text no-underline transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-surface border-t border-line-default text-[12px] text-text-2 hover:text-text no-underline transition-colors"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -665,7 +665,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
               href={file.url}
               download
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-default bg-surface/60 hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
+              className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-default bg-surface hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />

@@ -261,7 +261,7 @@ export function KnowledgeSheet() {
             <button
               key={sourceKind}
               onClick={() => setKind(sourceKind)}
-              className={`py-3 rounded-md text-[13px] font-600 border transition-all cursor-pointer ${
+              className={`py-3 rounded-lg text-[13px] font-600 border transition-all cursor-pointer ${
                 kind === sourceKind
                   ? 'border-accent-bright/25 bg-accent-soft text-accent-bright'
                   : 'border-line-default bg-layer-1 text-text-3 hover:text-text-2'
@@ -279,7 +279,7 @@ export function KnowledgeSheet() {
           <label className="block font-display text-[12px] font-600 text-text-2 tracking-[0.03em] mb-3">Upload Document</label>
 
           {uploadedFile ? (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-md border border-emerald-500/20 bg-emerald-500/[0.04]">
+            <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.04]">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-emerald-400 shrink-0">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
@@ -315,7 +315,7 @@ export function KnowledgeSheet() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`flex flex-col items-center gap-3 px-6 py-8 rounded-md border-2 border-dashed cursor-pointer transition-all duration-200 ${
+              className={`flex flex-col items-center gap-3 px-6 py-8 rounded-lg border-2 border-dashed cursor-pointer transition-all duration-200 ${
                 isDragging
                   ? 'border-accent-bright/50 bg-accent-soft/20'
                   : 'border-line-default bg-layer-1 hover:border-line-strong hover:bg-layer-2'

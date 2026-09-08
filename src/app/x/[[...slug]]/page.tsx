@@ -66,7 +66,7 @@ function PageMessage({ tone, title, detail, hint }: Failure & { tone: 'error' | 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-10">
       <div
-        className={`max-w-[720px] rounded-md border px-5 py-4 ${
+        className={`max-w-[720px] rounded-lg border px-5 py-4 ${
           error ? 'border-danger/20 bg-danger/[0.06]' : 'border-line-subtle bg-layer-1'
         }`}
       >

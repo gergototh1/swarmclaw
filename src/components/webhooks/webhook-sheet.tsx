@@ -249,13 +249,13 @@ export function WebhookSheet() {
         ) : null}
 
         {tab === 'config' && error && (
-          <div className="px-3.5 py-2.5 rounded-md bg-red-500/10 border border-red-500/20 text-[12px] text-red-300">
+          <div className="px-3.5 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[12px] text-red-300">
             {error}
           </div>
         )}
 
         {tab === 'config' && editing && (
-          <div className="p-4 rounded-lg bg-layer-1 border border-line-subtle">
+          <div className="p-4 rounded-lg bg-surface border border-line-subtle">
             <label className="block font-display text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Endpoint URL</label>
             <div className="flex gap-2">
               <input

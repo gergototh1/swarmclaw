@@ -73,7 +73,7 @@ export function ExecConfigPanel({ agentId }: Props) {
           value={config.security}
           onChange={(e) => save({ security: e.target.value as ExecApprovalConfig['security'] })}
           disabled={saving}
-          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text outline-none"
+          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-layer-2 text-[13px] text-text outline-none"
         >
           <option value="deny">Deny (block all)</option>
           <option value="allowlist">Allowlist (matched patterns only)</option>
@@ -88,7 +88,7 @@ export function ExecConfigPanel({ agentId }: Props) {
           value={config.askMode}
           onChange={(e) => save({ askMode: e.target.value as ExecApprovalConfig['askMode'] })}
           disabled={saving}
-          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text outline-none"
+          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-layer-2 text-[13px] text-text outline-none"
         >
           <option value="off">Off</option>
           <option value="on-miss">On miss (ask when no pattern matches)</option>
@@ -126,7 +126,7 @@ export function ExecConfigPanel({ agentId }: Props) {
               onChange={(e) => setNewPattern(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addPattern()}
               placeholder="e.g. npm run *"
-              className="flex-1 px-3 py-1.5 rounded-sm border border-line-subtle bg-black/20 text-[12px] text-text font-mono outline-none placeholder:text-text-3"
+              className="flex-1 px-3 py-1.5 rounded-sm border border-line-subtle bg-layer-2 text-[12px] text-text font-mono outline-none placeholder:text-text-3"
             />
             <button
               onClick={addPattern}

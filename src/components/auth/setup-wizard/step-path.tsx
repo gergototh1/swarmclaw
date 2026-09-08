@@ -71,7 +71,7 @@ export function StepPath({
             onChange={(event) => onIntentTextChange(event.target.value)}
             rows={3}
             placeholder="e.g. Help me run product research every week, summarize findings, and turn them into follow-up tasks."
-            className="w-full rounded-md border border-line-default bg-bg px-4 py-3 text-[14px] text-text outline-none transition-all duration-200 resize-none placeholder:text-text-3 focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
+            className="w-full rounded-lg border border-line-default bg-bg px-4 py-3 text-[14px] text-text outline-none transition-all duration-200 resize-none placeholder:text-text-3 focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
           />
           <p className="mt-2 text-[12px] leading-relaxed text-text-3">
             This is used only to seed the starter prompts. It does not auto-classify your workflow.
@@ -103,7 +103,7 @@ export function StepPath({
                 className={`rounded-lg border px-4 py-4 text-left transition-all duration-200 cursor-pointer ${
                   active
                     ? 'border-accent-bright/35 bg-accent-soft'
-                    : 'border-line-default bg-layer-1 hover:border-accent-bright/20 hover:bg-layer-2'
+                    : 'border-line-default bg-surface hover:border-accent-bright/20 hover:bg-layer-2'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -128,7 +128,7 @@ export function StepPath({
                     ))}
                   </div>
                 ) : (
-                  <div className="mt-4 rounded-md border border-dashed border-line-subtle bg-layer-1 px-3 py-2 text-[11px] text-text-3">
+                  <div className="mt-4 rounded-lg border border-dashed border-line-subtle bg-layer-1 px-3 py-2 text-[11px] text-text-3">
                     Finish setup without starter agents.
                   </div>
                 )}

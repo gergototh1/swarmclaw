@@ -18,7 +18,7 @@ export function TemplateGallery({ templates: providedTemplates }: Props) {
     <button
       key={template.id}
       onClick={() => router.push(`/protocols/builder/${template.id}`)}
-      className="rounded-lg border border-line-subtle bg-layer-1 p-4 text-left transition-all hover:border-accent-bright/20 hover:bg-layer-2 cursor-pointer"
+      className="rounded-lg border border-line-subtle bg-surface p-4 text-left transition-all hover:border-accent-bright/20 hover:bg-layer-2 cursor-pointer"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="text-[14px] font-display font-700 text-text">{template.name}</div>

@@ -144,7 +144,7 @@ export function TaskCard({
           setTaskSheetOpen(true)
         }
       }}
-      className={`py-3 px-4 rounded-md border border-l-[3px] ${borderColor} bg-surface hover:bg-surface-2 transition-all group
+      className={`py-3 px-4 rounded-lg border border-l-[3px] ${borderColor} bg-surface hover:bg-surface-2 transition-all group
         ${selectionMode || !allowDrag ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'} touch-pan-y
         ${dragging ? 'opacity-40 scale-[0.97]' : ''}
         ${selected ? 'border-accent-bright/40 bg-accent-bright/[0.04] ring-1 ring-accent-bright/20 shadow-lg' : 'border-line-subtle hover:border-line-default hover:shadow-md'}`}
@@ -164,7 +164,7 @@ export function TaskCard({
             className={`w-5 h-5 rounded-xs border-2 flex items-center justify-center shrink-0 mt-0.5 cursor-pointer transition-all
               ${selected
                 ? 'bg-accent-bright border-accent-bright'
-                : 'bg-transparent border-line-strong hover:border-white/[0.4]'}`}
+                : 'bg-transparent border-line-strong hover:border-line-strong'}`}
             style={{ padding: 0, fontFamily: 'inherit' }}
           >
             {selected && (

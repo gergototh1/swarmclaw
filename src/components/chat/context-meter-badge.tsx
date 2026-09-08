@@ -146,7 +146,7 @@ export function ContextMeterBadge({ sessionId, messageCount, onCompactComplete, 
       {open && (
         <div
           ref={panelRef}
-          className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-md border border-line-default bg-raised/95 p-3 backdrop-blur-xl"
+          className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-lg border border-line-default bg-raised/80 p-3 backdrop-blur-xl"
           style={{ animation: 'fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)' }}
         >
           <div className="flex items-baseline justify-between">

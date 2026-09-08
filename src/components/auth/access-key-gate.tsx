@@ -233,7 +233,7 @@ export function AccessKeyGate({ onAuthenticated }: AccessKeyGateProps) {
                           <button
                             type="submit"
                             disabled={loading || !key.trim()}
-                            className="px-8 py-3 rounded-md border border-line-default bg-layer-2 text-text text-[14px] font-display font-600
+                            className="px-8 py-3 rounded-lg border border-line-default bg-layer-2 text-text text-[14px] font-display font-600
                               cursor-pointer hover:bg-layer-3 transition-all duration-200 disabled:opacity-30"
                           >
                             {loading ? 'Saving...' : 'Use this key instead'}

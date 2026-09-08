@@ -214,7 +214,7 @@ export function SearchDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-[520px] p-0 bg-surface/95 backdrop-blur-xl border-line-default rounded-lg overflow-hidden gap-0"
+        className="sm:max-w-[520px] p-0 bg-surface/80 backdrop-blur-xl border-line-default rounded-lg overflow-hidden gap-0"
         onKeyDown={handleKeyDown}
       >
         <DialogTitle className="sr-only">Search</DialogTitle>

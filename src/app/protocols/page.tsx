@@ -358,7 +358,7 @@ export default function ProtocolsPage() {
     <MainContent>
       <div className="flex-1 min-h-0 overflow-y-auto bg-bg px-4 py-5 md:px-6 md:py-6">
         <div className="mx-auto max-w-[1680px] space-y-5">
-          <section className="rounded-lg border border-line-subtle bg-layer-1 p-5 md:p-6">
+          <section className="rounded-lg border border-line-subtle bg-surface p-5 md:p-6">
             <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
               <div className="max-w-[780px]">
                 <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 tracking-[0.03em] text-text-3">
@@ -369,7 +369,7 @@ export default function ProtocolsPage() {
                   Start structured sessions from chats, chatrooms, tasks, or schedules. Runs stay temporary and bounded, while templates remain reusable for the next time you need them.
                 </p>
               </div>
-              <div className="w-full max-w-[520px] rounded-lg border border-line-subtle bg-surface/70 p-4">
+              <div className="w-full max-w-[520px] rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Launch and Templates</div>
@@ -403,21 +403,21 @@ export default function ProtocolsPage() {
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
-                  <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                  <div className="rounded-lg border border-line-subtle bg-surface p-4">
                     <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Built-in Templates</div>
                     <div className="mt-2 text-[28px] font-700 tracking-[-0.03em] text-text">{builtInTemplates.length}</div>
                     <div className="mt-2 text-[12px] leading-relaxed text-text-3">
                       Use a neutral starter for review, discussion, decision rounds, or single-agent structured work.
                     </div>
                   </div>
-                  <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                  <div className="rounded-lg border border-line-subtle bg-surface p-4">
                     <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Custom Templates</div>
                     <div className="mt-2 text-[28px] font-700 tracking-[-0.03em] text-text">{customTemplates.length}</div>
                     <div className="mt-2 text-[12px] leading-relaxed text-text-3">
                       Keep reusable step graphs here without forcing every launch through advanced JSON authoring.
                     </div>
                   </div>
-                  <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                  <div className="rounded-lg border border-line-subtle bg-surface p-4">
                     <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Recent Runs</div>
                     <div className="mt-2 text-[28px] font-700 tracking-[-0.03em] text-text">{runs.length}</div>
                     <div className="mt-2 text-[12px] leading-relaxed text-text-3">
@@ -426,7 +426,7 @@ export default function ProtocolsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-lg border border-line-subtle bg-layer-1 p-4">
+                <div className="mt-4 rounded-lg border border-line-subtle bg-surface p-4">
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div className="max-w-[720px]">
                       <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Visual Workflow Templates</div>
@@ -448,7 +448,7 @@ export default function ProtocolsPage() {
                   </div>
                 </div>
 
-                <details className="mt-4 rounded-lg border border-line-subtle bg-layer-1 p-4">
+                <details className="mt-4 rounded-lg border border-line-subtle bg-surface p-4">
                   <summary className="cursor-pointer list-none text-[11px] font-700 tracking-[0.03em] text-text-3">
                     Advanced Manual Run Builder
                   </summary>
@@ -528,7 +528,7 @@ export default function ProtocolsPage() {
 
                     <div>
                       <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Participants</div>
-                      <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-md border border-line-subtle bg-layer-1 p-3">
+                      <div className="mt-2 flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-lg border border-line-subtle bg-layer-1 p-3">
                         {Object.values(agents).map((agent) => {
                           const active = form.participantAgentIds.includes(agent.id)
                           return (
@@ -555,7 +555,7 @@ export default function ProtocolsPage() {
                     </div>
 
                     {selectedTemplate && (
-                      <div className="rounded-md border border-line-subtle bg-layer-1 p-3">
+                      <div className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="text-[12px] font-700 text-text">{selectedTemplate.name}</div>
                           <div className="flex items-center gap-2">
@@ -635,9 +635,9 @@ export default function ProtocolsPage() {
                         value={templateDraft.name}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, name: event.target.value }))}
                         placeholder="Template name"
-                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
                       />
-                      <label className="flex items-center gap-2 rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[13px] text-text-2">
+                      <label className="flex items-center gap-2 rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[13px] text-text-2">
                         <input
                           type="checkbox"
                           checked={templateDraft.singleAgentAllowed}
@@ -650,31 +650,31 @@ export default function ProtocolsPage() {
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, description: event.target.value }))}
                         placeholder="Template description"
                         rows={3}
-                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3 md:col-span-2"
                       />
                       <input
                         value={templateDraft.tags}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, tags: event.target.value }))}
                         placeholder="Tags (comma separated)"
-                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
                       />
                       <input
                         value={templateDraft.recommendedOutputs}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, recommendedOutputs: event.target.value }))}
                         placeholder="Recommended outputs (comma separated)"
-                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3"
                       />
                       <input
                         value={templateDraft.entryStepId}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, entryStepId: event.target.value }))}
                         placeholder="Entry step id"
-                        className="rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3 md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[14px] text-text outline-none placeholder:text-text-3 md:col-span-2"
                       />
                       <textarea
                         value={templateDraft.stepsJson}
                         onChange={(event) => setTemplateDraft((current) => ({ ...current, stepsJson: event.target.value }))}
                         rows={10}
-                        className="rounded-md border border-line-subtle bg-black/35 px-3 py-2.5 font-mono text-[12px] leading-relaxed text-text outline-none md:col-span-2"
+                        className="rounded-md border border-line-subtle bg-layer-3 px-3 py-2.5 font-mono text-[12px] leading-relaxed text-text outline-none md:col-span-2"
                       />
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -710,7 +710,7 @@ export default function ProtocolsPage() {
                 )}
 
                 {customTemplates.length > 0 && (
-                  <div className="mt-4 rounded-md border border-line-subtle bg-layer-1 p-3">
+                  <div className="mt-4 rounded-lg border border-line-subtle bg-layer-1 p-3">
                     <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Custom Templates</div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {customTemplates.map((template) => (
@@ -729,14 +729,14 @@ export default function ProtocolsPage() {
               </div>
             </div>
             {resolvedError && (
-              <div className="mt-4 rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
+              <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
                 {resolvedError}
               </div>
             )}
           </section>
 
           <div className="grid min-h-0 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-            <section className="min-h-0 rounded-lg border border-line-subtle bg-layer-1 p-4">
+            <section className="min-h-0 rounded-lg border border-line-subtle bg-surface p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-[16px] font-700 text-text">Runs</h2>
@@ -778,7 +778,7 @@ export default function ProtocolsPage() {
                 {loading ? (
                   <div className="text-[13px] text-text-3">Loading structured sessions…</div>
                 ) : filteredRuns.length === 0 ? (
-                  <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 text-[13px] text-text-3">
+                  <div className="rounded-lg border border-line-subtle bg-surface p-4 text-[13px] text-text-3">
                     No structured sessions match the current filters.
                   </div>
                 ) : filteredRuns.map((run) => (
@@ -789,7 +789,7 @@ export default function ProtocolsPage() {
                     className={`w-full rounded-lg border px-4 py-3 text-left transition-all cursor-pointer ${
                       selectedRunId === run.id
                         ? 'border-accent-bright/20 bg-accent-soft/45'
-                        : 'border-line-subtle bg-layer-1 hover:bg-layer-2'
+                        : 'border-line-subtle bg-surface hover:bg-layer-2'
                     }`}
                   >
                     <div className="flex items-start gap-2">
@@ -811,16 +811,16 @@ export default function ProtocolsPage() {
               </div>
             </section>
 
-            <section className="min-h-0 rounded-lg border border-line-subtle bg-layer-1 p-4 md:p-5">
+            <section className="min-h-0 rounded-lg border border-line-subtle bg-surface p-4 md:p-5">
               {detailLoading ? (
                 <div className="text-[13px] text-text-3">Loading structured session detail…</div>
               ) : !detail ? (
-                <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 text-[13px] text-text-3">
+                <div className="rounded-lg border border-line-subtle bg-surface p-4 text-[13px] text-text-3">
                   Select a structured session to inspect its protocol state, transcript, and outputs.
                 </div>
               ) : (
                 <div className="flex min-h-0 flex-col gap-4">
-                  <div className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-layer-1 p-4">
+                  <div className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-surface p-4">
                     <div className="flex flex-wrap items-start gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Current Run</div>
@@ -892,12 +892,12 @@ export default function ProtocolsPage() {
                       )}
                     </div>
                     {detail.run.waitingReason && (
-                      <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-100">
+                      <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-100">
                         {detail.run.waitingReason}
                       </div>
                     )}
                     {detail.run.pauseReason && (
-                      <div className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-[13px] text-indigo-100">
+                      <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-[13px] text-indigo-100">
                         {detail.run.pauseReason}
                       </div>
                     )}
@@ -907,7 +907,7 @@ export default function ProtocolsPage() {
                         <div className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-text-2">{detail.run.summary}</div>
                       </div>
                     )}
-                    <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                    <div className="rounded-lg border border-line-subtle bg-surface p-4">
                       <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Operator Context</div>
                       <div className="mt-2 text-[12px] leading-relaxed text-text-3">
                         Inject steering context without becoming a normal protocol participant.
@@ -917,7 +917,7 @@ export default function ProtocolsPage() {
                         onChange={(event) => setContextDraft(event.target.value)}
                         rows={3}
                         placeholder="Add guidance, constraints, or a correction for the next step."
-                        className="mt-3 w-full rounded-md border border-line-subtle bg-black/20 px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-text-3"
+                        className="mt-3 w-full rounded-md border border-line-subtle bg-layer-2 px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-text-3"
                       />
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
@@ -940,11 +940,11 @@ export default function ProtocolsPage() {
                   <div className="grid min-h-0 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
                     <div className="min-h-0 space-y-4">
                       {!!Object.keys(detail.run.parallelState || {}).length && (
-                        <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                        <div className="rounded-lg border border-line-subtle bg-surface p-4">
                           <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Parallel Branches</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.parallelState || {}).map((state) => (
-                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-surface p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((step) => step.id === state.stepId)?.label || state.stepId}</div>
@@ -958,7 +958,7 @@ export default function ProtocolsPage() {
                                 </div>
                                 <div className="mt-3 space-y-2">
                                   {state.branches.map((branch) => (
-                                    <div key={branch.runId} className="rounded-md border border-line-subtle bg-black/15 p-3">
+                                    <div key={branch.runId} className="rounded-lg border border-line-subtle bg-layer-2 p-3">
                                       <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
                                           <div className="text-[13px] font-700 text-text">{branch.label}</div>
@@ -1003,11 +1003,11 @@ export default function ProtocolsPage() {
                       )}
 
                       {!!Object.keys(detail.run.forEachState || {}).length && (
-                        <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                        <div className="rounded-lg border border-line-subtle bg-surface p-4">
                           <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">For-Each Branches</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.forEachState || {}).map((state) => (
-                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-surface p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((s) => s.id === state.stepId)?.label || state.stepId}</div>
@@ -1021,7 +1021,7 @@ export default function ProtocolsPage() {
                                 </div>
                                 <div className="mt-3 space-y-2">
                                   {state.branches.map((branch) => (
-                                    <div key={branch.runId} className="rounded-md border border-line-subtle bg-black/15 p-3">
+                                    <div key={branch.runId} className="rounded-lg border border-line-subtle bg-layer-2 p-3">
                                       <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
                                           <div className="text-[13px] font-700 text-text">{branch.label}</div>
@@ -1054,11 +1054,11 @@ export default function ProtocolsPage() {
                       )}
 
                       {!!Object.keys(detail.run.subflowState || {}).length && (
-                        <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                        <div className="rounded-lg border border-line-subtle bg-surface p-4">
                           <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Subflows</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.subflowState || {}).map((state) => (
-                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-surface p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((s) => s.id === state.stepId)?.label || state.templateId}</div>
@@ -1086,11 +1086,11 @@ export default function ProtocolsPage() {
                       )}
 
                       {!!Object.keys(detail.run.swarmState || {}).length && (
-                        <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                        <div className="rounded-lg border border-line-subtle bg-surface p-4">
                           <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Swarm Claims</div>
                           <div className="mt-3 space-y-3">
                             {Object.values(detail.run.swarmState || {}).map((state) => (
-                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
+                              <div key={state.stepId} className="rounded-lg border border-line-subtle bg-surface p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                   <div>
                                     <div className="text-[13px] font-700 text-text">{stepsForRun(detail.run).find((s) => s.id === state.stepId)?.label || state.stepId}</div>
@@ -1107,7 +1107,7 @@ export default function ProtocolsPage() {
                                 </div>
                                 <div className="mt-3 space-y-1">
                                   {state.claims.map((claim) => (
-                                    <div key={claim.id} className="flex items-center justify-between rounded-sm border border-line-subtle bg-black/15 px-3 py-2">
+                                    <div key={claim.id} className="flex items-center justify-between rounded-sm border border-line-subtle bg-layer-2 px-3 py-2">
                                       <div className="text-[12px] text-text">{claim.workItemLabel}</div>
                                       <div className="flex items-center gap-2">
                                         <span className="text-[11px] text-text-3">{agents[claim.agentId]?.name || claim.agentId}</span>
@@ -1128,7 +1128,7 @@ export default function ProtocolsPage() {
                         </div>
                       )}
 
-                      <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                      <div className="rounded-lg border border-line-subtle bg-surface p-4">
                       <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Protocol</div>
                       <div className="mt-3 space-y-2">
                           {stepsForRun(detail.run).map((step, index) => {
@@ -1204,13 +1204,13 @@ export default function ProtocolsPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                      <div className="rounded-lg border border-line-subtle bg-surface p-4">
                         <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Artifacts</div>
                         <div className="mt-3 space-y-3">
                           {(detail.run.artifacts || []).length === 0 ? (
                             <div className="text-[13px] text-text-3">No artifacts yet.</div>
                           ) : detail.run.artifacts?.map((artifact) => (
-                            <div key={artifact.id} className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                            <div key={artifact.id} className="rounded-lg border border-line-subtle bg-surface p-4">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="text-[13px] font-700 text-text">{artifact.title}</div>
                                 <span className="text-[11px] text-text-3">{artifact.kind.replace(/_/g, ' ')}</span>
@@ -1228,7 +1228,7 @@ export default function ProtocolsPage() {
                     </div>
 
                     <div className="min-h-0 space-y-4">
-                      <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                      <div className="rounded-lg border border-line-subtle bg-surface p-4">
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Transcript Preview</div>
@@ -1248,7 +1248,7 @@ export default function ProtocolsPage() {
                         </div>
                         <div className="mt-3 max-h-[360px] space-y-3 overflow-y-auto pr-1">
                           {detail.transcript?.messages?.length ? detail.transcript.messages.slice(-8).map((message) => (
-                            <div key={message.id} className="rounded-md border border-line-subtle bg-layer-1 p-3">
+                            <div key={message.id} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                               <div className="flex items-center gap-2 text-[11px] text-text-3">
                                 <span>{message.senderName}</span>
                                 <span>•</span>
@@ -1262,13 +1262,13 @@ export default function ProtocolsPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+                      <div className="rounded-lg border border-line-subtle bg-surface p-4">
                         <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">Event Timeline</div>
                         <div className="mt-3 max-h-[360px] space-y-3 overflow-y-auto pr-1">
                           {detail.events.length === 0 ? (
                             <div className="text-[13px] text-text-3">No run events yet.</div>
                           ) : detail.events.map((event) => (
-                            <div key={event.id} className="rounded-md border border-line-subtle bg-layer-1 p-3">
+                            <div key={event.id} className="rounded-lg border border-line-subtle bg-layer-1 p-3">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="text-[12px] font-700 tracking-[0.03em] text-text-3">{event.type.replace(/_/g, ' ')}</div>
                                 <div className="text-[11px] text-text-3">{timeAgo(event.createdAt)}</div>

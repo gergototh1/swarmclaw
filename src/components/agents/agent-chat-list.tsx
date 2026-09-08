@@ -310,7 +310,7 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
                 Default Agent
               </div>
               <div
-                className={`group/row relative w-full text-left py-3.5 px-4 rounded-md cursor-pointer transition-all duration-150 border
+                className={`group/row relative w-full text-left py-3.5 px-4 rounded-lg cursor-pointer transition-all duration-150 border
                   ${isActive
                     ? 'bg-accent-soft border-accent-bright/25'
                     : 'bg-accent-soft/40 border-accent-bright/15 hover:bg-accent-soft/55'}`}

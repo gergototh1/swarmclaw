@@ -50,7 +50,7 @@ export function OrgChartDetailPanel({
   }, [agent.id, onPatch])
 
   return (
-    <div className="absolute top-0 right-0 z-30 w-[260px] h-full bg-raised/95 backdrop-blur-sm border-l border-line-subtle shadow-xl shadow-black/30 flex flex-col overflow-hidden" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="absolute top-0 right-0 z-30 w-[260px] h-full bg-raised/80 backdrop-blur-sm border-l border-line-subtle shadow-xl shadow-black/30 flex flex-col overflow-hidden" onPointerDown={(e) => e.stopPropagation()}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-line-subtle">
         <AgentAvatar
@@ -276,7 +276,7 @@ export function OrgChartDetailPanel({
                 <button
                   key={c}
                   className={`w-5 h-5 rounded-full border cursor-pointer hover:scale-110 transition-transform ${
-                    teamColor === c ? 'border-white/40 ring-1 ring-white/30' : 'border-line-default'
+                    teamColor === c ? 'border-line-strong ring-1 ring-white/30' : 'border-line-default'
                   }`}
                   style={{ background: c }}
                   onClick={() => {

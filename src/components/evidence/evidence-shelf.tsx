@@ -27,7 +27,7 @@ export function EvidenceShelf({
   className?: string
 }) {
   return (
-    <section className={cn('rounded-lg border border-line-subtle bg-layer-1 p-4', className)}>
+    <section className={cn('rounded-lg border border-line-subtle bg-surface p-4', className)}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">{title}</div>

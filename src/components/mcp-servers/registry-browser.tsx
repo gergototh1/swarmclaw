@@ -165,7 +165,7 @@ export function RegistryBrowser({
             placeholder="Search — e.g. postgres, pdf, github"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-md border border-line-default bg-surface-2 px-4 py-2.5 text-[14px] outline-none focus-glow"
+            className="w-full rounded-md border border-line-default bg-surface px-4 py-2.5 text-[14px] outline-none focus-glow"
             style={{ fontFamily: 'inherit' }}
             autoFocus
           />

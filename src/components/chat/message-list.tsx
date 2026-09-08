@@ -673,7 +673,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
   return (
     <div className="relative flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden isolate" data-testid="message-list">
       <div className="shrink-0 px-4 md:px-12 lg:px-16 pt-3">
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-line-subtle bg-surface/55 px-3 py-2 backdrop-blur-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-line-subtle bg-surface/80 px-3 py-2 backdrop-blur-sm">
           <button
             type="button"
             onClick={() => {
@@ -746,7 +746,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
 
       {/* In-thread search bar */}
       {searchOpen && (
-        <div className="shrink-0 z-20 flex items-center gap-2 px-4 md:px-12 lg:px-16 py-2 bg-surface/95 backdrop-blur-sm border-b border-line-subtle">
+        <div className="shrink-0 z-20 flex items-center gap-2 px-4 md:px-12 lg:px-16 py-2 bg-surface/80 backdrop-blur-sm border-b border-line-subtle">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -834,7 +834,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
                   }
                 }}
                 disabled={loadingMore}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-line-default bg-surface/80 text-text-3 text-[12px] font-600 hover:bg-surface-2 hover:text-text-2 transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-line-default bg-surface text-text-3 text-[12px] font-600 hover:bg-surface-2 hover:text-text-2 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {loadingMore ? (
                   <>
@@ -916,7 +916,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
       {showScrollToBottom && (
         <button
           onClick={handleScrollToBottom}
-          className="absolute right-6 md:right-12 lg:right-16 bottom-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-line-default bg-surface/95 text-text-2 text-[12px] font-600 hover:bg-surface-2 transition-colors shadow-lg cursor-pointer"
+          className="absolute right-6 md:right-12 lg:right-16 bottom-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-line-default bg-surface text-text-2 text-[12px] font-600 hover:bg-surface-2 transition-colors shadow-lg cursor-pointer"
           title="Scroll to latest messages"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">

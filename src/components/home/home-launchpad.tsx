@@ -7,7 +7,7 @@ import type { Agent } from '@/types'
 
 function SnapshotItem({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
-    <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
+    <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
       <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">{label}</div>
       <div className="mt-2 text-[24px] font-display font-700 tracking-[-0.03em] text-text">{value}</div>
       <div className="mt-1 text-[12px] leading-relaxed text-text-3">{hint}</div>
@@ -33,7 +33,7 @@ function PathCard({
   onSecondary: () => void
 }) {
   return (
-    <div className="flex min-h-[220px] flex-col rounded-lg border border-line-default bg-layer-1 p-5">
+    <div className="flex min-h-[220px] flex-col rounded-lg border border-line-default bg-surface p-5">
       <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">{kicker}</div>
       <div className="mt-3 text-[18px] font-display font-700 tracking-normal text-text">{title}</div>
       <p className="mt-2 flex-1 text-[13px] leading-relaxed text-text-3">{description}</p>
@@ -102,7 +102,7 @@ export function HomeLaunchpad({
 }: Props) {
   return (
     <div className="max-w-[980px] mx-auto px-6 py-10">
-      <div className="rounded-lg border border-line-subtle bg-layer-1 p-6">
+      <div className="rounded-lg border border-line-subtle bg-surface p-6">
         <div className="inline-flex rounded-full border border-line-default bg-layer-1 px-3 py-1 text-[11px] font-700 tracking-[0.03em] text-text-3">
           Mission Command
         </div>
@@ -115,7 +115,7 @@ export function HomeLaunchpad({
               Start with a local assistant, a reusable workflow, or a budgeted autonomous mission. The rest of the control plane stays one click away.
             </p>
           </div>
-          <div className="rounded-lg border border-line-subtle bg-layer-1 p-4 min-w-[240px]">
+          <div className="rounded-lg border border-line-subtle bg-surface p-4 min-w-[240px]">
             <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Workspace Anchor</div>
             <div className="mt-3 flex items-center gap-3">
               {firstAgent ? (
@@ -175,7 +175,7 @@ export function HomeLaunchpad({
         />
       </div>
 
-      <div className="mt-6 rounded-lg border border-line-subtle bg-layer-1 p-4">
+      <div className="mt-6 rounded-lg border border-line-subtle bg-surface p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Mission starters</div>

@@ -348,7 +348,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
               onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmRun() }}
               placeholder="Describe the task..."
               autoFocus
-              className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus:border-line-strong"
+              className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus:border-line-strong"
               style={{ fontFamily: 'inherit' }}
             />
           </div>

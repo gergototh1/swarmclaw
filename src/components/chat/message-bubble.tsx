@@ -264,7 +264,7 @@ function renderToolMediaEntry(
           href={media.url}
           download
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-2 px-3 py-2 bg-surface/80 border-t border-line-default text-[12px] text-text-2 hover:text-text no-underline transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-surface border-t border-line-default text-[12px] text-text-2 hover:text-text no-underline transition-colors"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -283,7 +283,7 @@ function renderToolMediaEntry(
       href={media.url}
       download
       onClick={(e) => e.stopPropagation()}
-      className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-default bg-surface/60 hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
+      className="flex items-center gap-2 px-3 py-2 rounded-sm border border-line-default bg-surface hover:bg-surface-2 transition-colors text-[13px] text-text-2 hover:text-text no-underline"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -628,7 +628,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
       {/* Tool events expanded card (controlled by pill toggle) */}
       {hasToolEvents && effectiveToolSectionOpen && (
         <div className="max-w-[85%] md:max-w-[72%] mb-2" data-testid="tool-activity">
-          <div className="rounded-lg border border-line-default bg-surface/72 backdrop-blur-sm overflow-hidden">
+          <div className="rounded-lg border border-line-default bg-surface/80 backdrop-blur-sm overflow-hidden">
             <ToolEventsSection toolEvents={displayToolEvents} controlled />
           </div>
         </div>
@@ -701,7 +701,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
             {/* bg-black/40 is a fixed dark inset, not a ladder surface, so its
                 hairline stays white-alpha: border-line-subtle would turn dark
                 against a dark inset under .light. */}
-            <div className="p-3 rounded-md bg-black/40 border border-white/5 flex flex-col gap-1">
+            <div className="p-3 rounded-lg bg-black/40 border border-line-subtle flex flex-col gap-1">
               <div className="text-[11px] text-text-3 font-600 tracking-tight">Extension</div>
               <div className="text-[12px] font-mono text-emerald-200/70">{installRequest.filename || installRequest.extensionId || 'extension'}</div>
               <div className="text-[11px] text-text-3 font-600 tracking-tight mt-2">Source URL</div>
@@ -719,8 +719,8 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               <span className="text-[11px] font-700 tracking-[0.03em] text-amber-400/80">Extension Created</span>
             </div>
             <p className="text-[13px] text-text-2 leading-relaxed">{scaffoldRequest.message}</p>
-            <div className="p-3 rounded-md bg-black/40 border border-white/5">
-              <div className="text-[11px] font-mono text-text-3 mb-2 border-b border-white/5 pb-1">filename: {scaffoldRequest.filename}</div>
+            <div className="p-3 rounded-lg bg-black/40 border border-line-subtle">
+              <div className="text-[11px] font-mono text-text-3 mb-2 border-b border-line-subtle pb-1">filename: {scaffoldRequest.filename}</div>
               {scaffoldRequest.filePath && (
                 <div className="text-[12px] font-mono text-amber-200/70 break-all">
                   {scaffoldRequest.filePath}
@@ -758,7 +758,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
             <button
               type="button"
               onClick={() => setHeartbeatExpanded((v) => !v)}
-              className="w-full rounded-md px-3.5 py-3 border border-line-default bg-layer-1 text-left hover:bg-layer-2 transition-colors cursor-pointer"
+              className="w-full rounded-lg px-3.5 py-3 border border-line-default bg-layer-1 text-left hover:bg-layer-2 transition-colors cursor-pointer"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -801,7 +801,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               })()}
             </button>
             {heartbeatExpanded && (
-              <div className="msg-content text-[14px] leading-[1.7] text-text break-words px-3 py-2 rounded-sm border border-line-default bg-black/20">
+              <div className="msg-content text-[14px] leading-[1.7] text-text break-words px-3 py-2 rounded-sm border border-line-default bg-layer-2">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}
@@ -1059,7 +1059,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
           <textarea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="w-full min-h-[80px] p-3 rounded-md bg-surface border border-line-default text-text text-[14px] resize-y outline-none focus:border-accent-bright/30"
+            className="w-full min-h-[80px] p-3 rounded-lg bg-surface border border-line-default text-text text-[14px] resize-y outline-none focus:border-accent-bright/30"
             style={{ fontFamily: 'inherit' }}
           />
           <div className="flex gap-2 mt-2 justify-end">

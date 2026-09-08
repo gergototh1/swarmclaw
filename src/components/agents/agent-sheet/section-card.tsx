@@ -14,7 +14,7 @@ export function SectionCard({
   className?: string
 }) {
   return (
-    <section className={`mb-8 rounded-lg border border-line-subtle bg-surface/70 p-5 sm:p-6 ${className}`}>
+    <section className={`mb-8 rounded-lg border border-line-subtle bg-surface p-5 sm:p-6 ${className}`}>
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <h3 className="font-display text-[17px] font-700 tracking-[-0.02em] text-text">{title}</h3>
@@ -39,7 +39,7 @@ export function SectionCard({
  */
 export function TabEmptyNote({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-line-subtle bg-layer-1 px-5 py-6 text-[13px] leading-[1.6] text-text-3">
+    <div className="rounded-lg border border-line-subtle bg-surface px-5 py-6 text-[13px] leading-[1.6] text-text-3">
       {children}
     </div>
   )

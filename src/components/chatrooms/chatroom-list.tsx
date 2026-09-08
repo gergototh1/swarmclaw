@@ -132,7 +132,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
           </div>
 
           {filtered.length === 0 ? (
-            <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-8 text-center">
+            <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-8 text-center">
               <div className="text-[13px] font-600 text-text-2">No {viewMode === 'sessions' ? 'sessions' : 'rooms'} match this view</div>
               <div className="mt-1 text-[12px] text-text-3">
                 Clear the search or switch filters to see more {viewMode === 'sessions' ? 'sessions' : 'chatrooms'}.
@@ -146,7 +146,7 @@ export function ChatroomList({ viewMode = 'chatrooms' }: { viewMode?: 'chatrooms
                   <button
                     key={chatroom.id}
                     onClick={() => setCurrentChatroom(chatroom.id)}
-                    className={`relative w-full overflow-hidden rounded-md border px-4 py-3.5 text-left transition-all cursor-pointer ${
+                    className={`relative w-full overflow-hidden rounded-lg border px-4 py-3.5 text-left transition-all cursor-pointer ${
                       isActive
                         ? 'border-accent-bright/20 bg-accent-soft/55'
                         : 'border-transparent hover:bg-layer-2 hover:border-line-subtle'

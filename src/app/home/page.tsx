@@ -328,7 +328,7 @@ export default function HomePage() {
               label="Needs Attention"
               action={activeTaskCount > 0 ? { label: 'Open Tasks', onClick: () => navigateTo('tasks') } : undefined}
             />
-            <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+            <div className="rounded-lg border border-line-subtle bg-surface p-4">
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <StatusPill label={`${allTasks.filter((task) => task.status === 'failed').length} failed task${allTasks.filter((task) => task.status === 'failed').length === 1 ? '' : 's'}`} tone={allTasks.some((task) => task.status === 'failed') ? 'danger' : 'neutral'} />
                 <StatusPill label={`${allTasks.filter((task) => (task.blockedBy?.length || 0) > 0).length} blocked task${allTasks.filter((task) => (task.blockedBy?.length || 0) > 0).length === 1 ? '' : 's'}`} tone={allTasks.some((task) => (task.blockedBy?.length || 0) > 0) ? 'warning' : 'neutral'} />
@@ -392,7 +392,7 @@ export default function HomePage() {
 
                 if (items.length === 0) {
                   return (
-                    <div className="rounded-md border border-dashed border-line-subtle bg-layer-1 px-4 py-5">
+                    <div className="rounded-lg border border-dashed border-line-subtle bg-layer-1 px-4 py-5">
                       <p className="text-[13px] font-600 text-text">Everything looks stable.</p>
                       <p className="text-[12px] text-text-3 mt-1">
                         No failed tasks, no blocked tasks, and no connector issues right now.
@@ -476,7 +476,7 @@ export default function HomePage() {
           {/* Notifications banner */}
           {unreadNotifications.length > 0 && (
             <section className="mb-8" style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.35s both' }}>
-              <div className="rounded-md border border-amber-400/20 bg-amber-400/[0.04] overflow-hidden">
+              <div className="rounded-lg border border-amber-400/20 bg-amber-400/[0.04] overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-400/10">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-amber-400">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -625,7 +625,7 @@ export default function HomePage() {
                     <button
                       key={agent.id}
                       onClick={() => handleAgentClick(agent)}
-                      className="flex flex-col items-center gap-1.5 px-4 py-3.5 rounded-md bg-layer-1 border border-line-subtle
+                      className="flex flex-col items-center gap-1.5 px-4 py-3.5 rounded-lg bg-layer-1 border border-line-subtle
                         hover:bg-layer-2 hover:border-line-default transition-all cursor-pointer min-w-[130px] shrink-0"
                       style={{ fontFamily: 'inherit' }}
                     >
@@ -664,7 +664,7 @@ export default function HomePage() {
                 })}
               </div>
             ) : (
-              <div className="py-6 px-4 rounded-md bg-layer-1 border border-dashed border-line-subtle text-center">
+              <div className="py-6 px-4 rounded-lg bg-layer-1 border border-dashed border-line-subtle text-center">
                 <p className="text-[13px] text-text-3">
                   Star agents from the chat list for quick access
                 </p>
@@ -763,7 +763,7 @@ function StatusPill({ label, tone }: { label: string; tone: 'neutral' | 'warning
 
 function EmptySection({ text }: { text: string }) {
   return (
-    <div className="py-6 px-4 rounded-md bg-layer-1 border border-dashed border-line-subtle text-center">
+    <div className="py-6 px-4 rounded-lg bg-layer-1 border border-dashed border-line-subtle text-center">
       <p className="text-[13px] text-text-3">{text}</p>
     </div>
   )

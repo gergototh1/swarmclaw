@@ -61,7 +61,7 @@ export function SupervisorReflectionSection({ appSettings, patchSettings, inputC
             <button
               key={option.id}
               onClick={() => patchSettings({ supervisorRuntimeScope: option.id })}
-              className={`rounded-md border px-3 py-3 text-left transition-colors ${
+              className={`rounded-lg border px-3 py-3 text-left transition-colors ${
                 runtimeScope === option.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                   : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'

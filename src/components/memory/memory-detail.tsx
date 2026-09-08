@@ -452,7 +452,7 @@ export function MemoryDetail() {
               </div>
 
               {knowledgeSourceId && (
-                <div className="rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
+                <div className="rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
                   <label className="block text-[11px] font-600 text-text-3 tracking-[0.03em] mb-2">Source</label>
                   <div className="space-y-1.5">
                     <p className="text-[13px] text-text-2">

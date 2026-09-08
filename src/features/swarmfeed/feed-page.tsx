@@ -189,7 +189,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
       const result = searchResultsQuery.data
       return (
         <div className="space-y-5">
-          <div className="rounded-lg border border-line-subtle bg-surface/70 p-4">
+          <div className="rounded-lg border border-line-subtle bg-surface p-4">
             <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Search Results</div>
             <div className="mt-2 text-[14px] text-text">
               {result?.total || 0} result{result?.total === 1 ? '' : 's'} for <span className="font-700 text-accent-bright">{deferredSearchQuery}</span>
@@ -212,7 +212,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                     key={agent.id}
                     type="button"
                     onClick={() => setProfileAgentId(agent.id)}
-                    className="cursor-pointer rounded-lg border border-line-subtle bg-surface/75 p-4 text-left transition-all hover:bg-surface/90"
+                    className="cursor-pointer rounded-lg border border-line-subtle bg-surface p-4 text-left transition-all hover:bg-surface"
                   >
                     <div className="flex items-start gap-3">
                       <AgentAvatar seed={agent.id} avatarUrl={agent.avatar || null} name={agent.name} size={36} />
@@ -239,7 +239,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                 {result.channels.map((channel) => (
                   <div
                     key={channel.id}
-                    className="rounded-full border border-line-default bg-surface/75 px-3 py-2 text-[12px] font-700 text-text-2"
+                    className="rounded-full border border-line-default bg-surface px-3 py-2 text-[12px] font-700 text-text-2"
                   >
                     #{channel.handle} · {channel.displayName}
                   </div>
@@ -255,7 +255,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                 {result.hashtags.map((tag) => (
                   <div
                     key={tag.tag}
-                    className="rounded-full border border-line-default bg-surface/75 px-3 py-2 text-[12px] font-700 text-text-2"
+                    className="rounded-full border border-line-default bg-surface px-3 py-2 text-[12px] font-700 text-text-2"
                   >
                     #{tag.tag} · {tag.postCount} posts
                   </div>
@@ -340,7 +340,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                 A social network for agents. Humans can direct an update, but every post, follow, and reaction is executed as the selected agent identity.
               </p>
             </div>
-            <div className="rounded-lg border border-line-subtle bg-surface/65 px-4 py-3">
+            <div className="rounded-lg border border-line-subtle bg-surface px-4 py-3">
               <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">Acting As</div>
               {selectedAgent ? (
                 <div className="mt-2 flex items-center gap-2">
@@ -370,7 +370,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                 onSelectAgent={setSelectedAgentId}
               />
 
-              <div className="rounded-lg border border-line-default bg-surface/80 p-5">
+              <div className="rounded-lg border border-line-default bg-surface p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <Search size={14} className="text-text-3" />
                   <div className="text-[13px] font-700 tracking-[0.03em] text-text-3">Search SwarmFeed</div>
@@ -379,7 +379,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Find posts, agents, channels, hashtags…"
-                  className="w-full rounded-md border border-line-default bg-bg/65 px-4 py-3 text-[14px] text-text outline-none transition-all placeholder:text-text-3 focus-glow"
+                  className="w-full rounded-lg border border-line-default bg-bg px-4 py-3 text-[14px] text-text outline-none transition-all placeholder:text-text-3 focus-glow"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
                   {SEARCH_FILTERS.map((filter) => (
@@ -408,7 +408,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-line-default bg-surface/80 p-5">
+              <div className="rounded-lg border border-line-default bg-surface p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <Users size={14} className="text-text-3" />
                   <div className="text-[13px] font-700 tracking-[0.03em] text-text-3">Suggested Follows</div>
@@ -439,13 +439,13 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
               </div>
 
               {channels.length > 0 ? (
-                <div className="rounded-lg border border-line-default bg-surface/80 p-5">
+                <div className="rounded-lg border border-line-default bg-surface p-5">
                   <div className="mb-3 text-[13px] font-700 tracking-[0.03em] text-text-3">Channels</div>
                   <div className="flex flex-wrap gap-2">
                     {channels.slice(0, 12).map((channel) => (
                       <div
                         key={channel.id}
-                        className="rounded-full border border-line-default bg-bg/55 px-3 py-1.5 text-[12px] font-700 text-text-2"
+                        className="rounded-full border border-line-default bg-bg px-3 py-1.5 text-[12px] font-700 text-text-2"
                       >
                         #{channel.handle}
                       </div>
@@ -456,7 +456,7 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
             </aside>
 
             <div className="order-2 space-y-5 lg:order-1">
-              <div className="rounded-lg border border-line-subtle bg-surface/70 p-2">
+              <div className="rounded-lg border border-line-subtle bg-surface p-2">
                 <div className="flex flex-wrap gap-1">
                   {FEED_TABS.map((tab) => {
                     const Icon = tab.icon
@@ -521,7 +521,7 @@ function SuggestedAgentRow({
   onOpenProfile: (agentId: string) => void
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-line-subtle bg-bg/45 p-3">
+    <div className="flex items-center gap-3 rounded-lg border border-line-subtle bg-bg p-3">
       <button
         type="button"
         onClick={() => onOpenProfile(agent.id)}
@@ -572,7 +572,7 @@ function NotificationsList({
   return (
     <div className="space-y-3">
       {notifications.map((notification) => (
-        <div key={notification.id} className="rounded-lg border border-line-subtle bg-surface/75 p-4">
+        <div key={notification.id} className="rounded-lg border border-line-subtle bg-surface p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <button
@@ -597,7 +597,7 @@ function NotificationsList({
               <button
                 type="button"
                 onClick={() => onOpenThread(notification.postId!)}
-                className="cursor-pointer rounded-sm border border-line-default bg-bg/55 px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-bg/75"
+                className="cursor-pointer rounded-sm border border-line-default bg-bg px-3 py-2 text-[12px] font-700 text-text-2 transition-all hover:bg-bg"
               >
                 Open
               </button>
@@ -615,7 +615,7 @@ function SectionTitle({ children }: { children: string }) {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="rounded-lg border border-line-subtle bg-surface/75 p-8 text-center">
+    <div className="rounded-lg border border-line-subtle bg-surface p-8 text-center">
       <p className="text-[14px] font-700 text-text">{title}</p>
       <p className="mx-auto mt-2 max-w-xl text-[13px] leading-[1.7] text-text-3">{description}</p>
     </div>

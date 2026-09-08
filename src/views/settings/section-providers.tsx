@@ -77,7 +77,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
                 {(p.requiresApiKey || p.optionalApiKey) && providerCreds.length > 0 && (
                   <div className="mt-5 space-y-2.5">
                     {providerCreds.map((cred) => (
-                      <div key={cred.id} className="flex items-center gap-3 py-3 px-4 rounded-md bg-bg border border-line-subtle">
+                      <div key={cred.id} className="flex items-center gap-3 py-3 px-4 rounded-lg bg-bg border border-line-subtle">
                         <span className="text-[14px] font-600 flex-1 truncate">{cred.name}</span>
                         {deleting === cred.id ? (
                           <div className="flex gap-2">
@@ -113,7 +113,7 @@ export function ProvidersSection({ inputClass }: SettingsSectionProps) {
                 {(p.requiresApiKey || p.optionalApiKey) && (
                   <button
                     onClick={() => setAddProvider(p.id)}
-                    className="mt-5 w-full py-3 rounded-md border border-dashed border-line-default
+                    className="mt-5 w-full py-3 rounded-lg border border-dashed border-line-default
                       bg-transparent text-text-3 text-[13px] font-600 cursor-pointer
                       hover:border-accent-bright/30 hover:text-accent-bright hover:bg-accent-soft transition-all duration-200"
                     style={{ fontFamily: 'inherit' }}

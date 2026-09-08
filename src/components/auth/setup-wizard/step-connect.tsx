@@ -270,7 +270,7 @@ export function StepConnect({
             value={providerLabel}
             onChange={(e) => setProviderLabel(e.target.value)}
             placeholder={selectedProvider.name}
-            className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
+            className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface
               text-text text-[14px] outline-none transition-all duration-200
               focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
           />
@@ -289,7 +289,7 @@ export function StepConnect({
               value={endpoint}
               onChange={(e) => { setEndpoint(e.target.value); setCheckState('idle'); setCheckMessage(''); setCheckDiagnostics([]) }}
               placeholder={selectedProvider.defaultEndpoint || ''}
-              className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
+              className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface
                 text-text text-[14px] font-mono outline-none transition-all duration-200
                 focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
             />
@@ -362,7 +362,7 @@ export function StepConnect({
               value={providerSuggestedModel}
               onChange={(e) => setProviderSuggestedModel(e.target.value)}
               placeholder="e.g. gpt-4o-mini"
-              className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
+              className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface
                 text-text text-[14px] font-mono outline-none transition-all duration-200
                 focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
             />
@@ -385,7 +385,7 @@ export function StepConnect({
             />
 
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-md border border-line-subtle bg-bg px-4 py-3">
+              <div className="rounded-lg border border-line-subtle bg-bg px-4 py-3">
                 <div className="text-[12px] tracking-[0.03em] text-text-3 mb-2">Remote gateway</div>
                 <p className="text-[13px] text-text-2 leading-relaxed">
                   Recommended when your OpenClaw node runs on another machine or VPS. Use a URL reachable from the machine running SwarmClaw.
@@ -400,7 +400,7 @@ export function StepConnect({
                   Safer remote defaults: use <code className="text-text-2">private-tailnet</code> with <code className="text-text-2">tailscale</code> or <code className="text-text-2">ssh-tunnel</code> unless you intentionally want public HTTPS ingress.
                 </p>
               </div>
-              <div className="rounded-md border border-line-subtle bg-bg px-4 py-3">
+              <div className="rounded-lg border border-line-subtle bg-bg px-4 py-3">
                 <div className="text-[12px] tracking-[0.03em] text-text-3 mb-2">Safe defaults</div>
                 <p className="text-[13px] text-text-2 leading-relaxed">
                   Smart Deploy generates a gateway token for you, defaults to the standard OpenClaw ports, and prefills this setup form automatically.
@@ -414,7 +414,7 @@ export function StepConnect({
               </div>
             </div>
 
-            <div className="rounded-md border border-line-subtle bg-bg px-4 py-3">
+            <div className="rounded-lg border border-line-subtle bg-bg px-4 py-3">
               <div className="text-[12px] tracking-[0.03em] text-text-3 mb-2">Connection mental model</div>
               <p className="text-[12px] text-text-3 leading-relaxed">
                 SwarmClaw talks to this endpoint from its own host. If SwarmClaw is on a server, <code className="text-text-2">localhost</code> means that server, not your laptop.
@@ -451,7 +451,7 @@ export function StepConnect({
                       setCheckDiagnostics([])
                     }
                   }}
-                  className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
+                  className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface
                     text-text text-[14px] outline-none transition-all duration-200 appearance-none cursor-pointer
                     focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                 >
@@ -477,7 +477,7 @@ export function StepConnect({
                   value={apiKey}
                   onChange={(e) => { setApiKey(e.target.value); setCredentialId(null); setCheckState('idle'); setCheckMessage(''); setCheckDiagnostics([]); setError('') }}
                   placeholder={selectedProvider.keyPlaceholder || (provider === 'openclaw' ? 'Paste OpenClaw bearer token' : 'sk-...')}
-                  className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
+                  className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface
                     text-text text-[14px] font-mono outline-none transition-all duration-200
                     focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                 />
@@ -544,7 +544,7 @@ export function StepConnect({
       )}
 
       {provider === 'openclaw' && checkState === 'error' && checkErrorCode === 'PAIRING_REQUIRED' && (
-        <div className="mb-4 rounded-md border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-left">
+        <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-left">
           <div className="text-[13px] font-600 text-emerald-300">Awaiting gateway approval</div>
           <p className="mt-1.5 text-[12px] text-text-3 leading-relaxed">
             This device is pending approval on that OpenClaw gateway. Approve it from Nodes, then run the connection check again.
@@ -566,7 +566,7 @@ export function StepConnect({
       )}
 
       {provider === 'openclaw' && checkState === 'error' && checkErrorCode === 'DEVICE_AUTH_INVALID' && (
-        <div className="mb-4 rounded-md border border-line-default bg-surface px-4 py-3 text-left">
+        <div className="mb-4 rounded-lg border border-line-default bg-surface px-4 py-3 text-left">
           <div className="text-[13px] font-600 text-text">Device not paired</div>
           <p className="mt-1.5 text-[12px] text-text-3 leading-relaxed">
             The gateway does not recognize this device yet. Add or approve it from Nodes, then retry.
@@ -591,7 +591,7 @@ export function StepConnect({
           <button
             onClick={runConnectionCheck}
             disabled={checkState === 'checking' || saving}
-            className="px-6 py-3.5 rounded-md border border-line-default bg-layer-1 text-text text-[14px]
+            className="px-6 py-3.5 rounded-lg border border-line-default bg-layer-1 text-text text-[14px]
               font-display font-600 cursor-pointer hover:bg-layer-2 transition-all duration-200 disabled:opacity-40"
           >
             {checkState === 'checking' ? 'Checking...' : 'Check Connection'}

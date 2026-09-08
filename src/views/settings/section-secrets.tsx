@@ -68,7 +68,7 @@ export function SecretsSection({ appSettings, inputClass }: SettingsSectionProps
       {secretList.length > 0 && (
         <div className="space-y-2.5 mb-4">
           {secretList.map((secret) => (
-            <div key={secret.rowId} className="flex items-center gap-3 py-3 px-4 rounded-md bg-surface border border-line-subtle">
+            <div key={secret.rowId} className="flex items-center gap-3 py-3 px-4 rounded-lg bg-surface border border-line-subtle">
               <div className="flex-1 min-w-0">
                 <div className="text-[14px] font-600 text-text truncate">{secret.name}</div>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -125,7 +125,7 @@ export function SecretsSection({ appSettings, inputClass }: SettingsSectionProps
           </div>
         </div>
       ) : (
-        <button onClick={() => setAddingSecret(true)} className="w-full py-3 rounded-md border border-dashed border-line-default bg-transparent text-text-3 text-[13px] font-600 cursor-pointer hover:border-accent-bright/30 hover:text-accent-bright hover:bg-accent-soft transition-all duration-200" style={{ fontFamily: 'inherit' }}>+ Add Service Credential</button>
+        <button onClick={() => setAddingSecret(true)} className="w-full py-3 rounded-lg border border-dashed border-line-default bg-transparent text-text-3 text-[13px] font-600 cursor-pointer hover:border-accent-bright/30 hover:text-accent-bright hover:bg-accent-soft transition-all duration-200" style={{ fontFamily: 'inherit' }}>+ Add Service Credential</button>
       )}
     </div>
   )

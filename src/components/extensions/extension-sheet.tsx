@@ -258,7 +258,7 @@ export function ExtensionSheet() {
     <BottomSheet open={open} onClose={handleClose}>
       {editing ? (
         <div className="space-y-5">
-          <div className="py-4 px-4 rounded-md bg-surface border border-line-subtle">
+          <div className="py-4 px-4 rounded-lg bg-surface border border-line-subtle">
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -276,7 +276,7 @@ export function ExtensionSheet() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
-              <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
+              <div className="rounded-sm bg-bg border border-line-subtle px-2.5 py-2">
                 <div className="text-[10px] tracking-[0.03em] text-text-3 mb-0.5">Type</div>
                 <div className="text-[11px] text-text-2">
                   {editing.isBuiltin
@@ -288,11 +288,11 @@ export function ExtensionSheet() {
                         : 'Local Extension'}
                 </div>
               </div>
-              <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
+              <div className="rounded-sm bg-bg border border-line-subtle px-2.5 py-2">
                 <div className="text-[10px] tracking-[0.03em] text-text-3 mb-0.5">Publisher</div>
                 <div className="text-[11px] text-text-2">{getExtensionSourceLabel(editing.sourceLabel)}</div>
               </div>
-              <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
+              <div className="rounded-sm bg-bg border border-line-subtle px-2.5 py-2">
                 <div className="text-[10px] tracking-[0.03em] text-text-3 mb-0.5">Installed Via</div>
                 <div className="text-[11px] text-text-2">{getExtensionSourceLabel(editing.installSource || editing.sourceLabel)}</div>
               </div>
@@ -333,7 +333,7 @@ export function ExtensionSheet() {
           </div>
 
           {(editing.hasDependencyManifest || !editing.isBuiltin) && (
-            <div className="py-4 px-4 rounded-md bg-surface border border-line-subtle">
+            <div className="py-4 px-4 rounded-lg bg-surface border border-line-subtle">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[13px] font-600 text-text">Dependencies</div>
@@ -356,11 +356,11 @@ export function ExtensionSheet() {
               </div>
 
               <div className="grid grid-cols-2 gap-2 mt-3">
-                <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
+                <div className="rounded-sm bg-bg border border-line-subtle px-2.5 py-2">
                   <div className="text-[10px] tracking-[0.03em] text-text-3 mb-0.5">Runtime deps</div>
                   <div className="text-[11px] text-text-2">{editing.dependencyCount ?? 0}</div>
                 </div>
-                <div className="rounded-sm bg-bg/50 border border-line-subtle px-2.5 py-2">
+                <div className="rounded-sm bg-bg border border-line-subtle px-2.5 py-2">
                   <div className="text-[10px] tracking-[0.03em] text-text-3 mb-0.5">Status</div>
                   <div className="text-[11px] text-text-2">{editing.dependencyInstallStatus || 'none'}</div>
                 </div>
@@ -387,7 +387,7 @@ export function ExtensionSheet() {
             </div>
           )}
 
-          <div className="flex items-center justify-between py-3 px-4 rounded-md bg-surface border border-line-subtle">
+          <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-surface border border-line-subtle">
             <div>
               <span className="text-[13px] font-600 text-text block">Enabled</span>
               <span className="text-[11px] text-text-3">Disable to keep the extension installed but inactive.</span>
@@ -403,7 +403,7 @@ export function ExtensionSheet() {
           </div>
 
           {editing.settingsFields && editing.settingsFields.length > 0 && (
-            <div className="py-4 px-4 rounded-md bg-surface border border-line-subtle space-y-3">
+            <div className="py-4 px-4 rounded-lg bg-surface border border-line-subtle space-y-3">
               <div className="text-[13px] font-600 text-text">Settings</div>
               {extensionSettingsLoading ? (
                 <p className="text-[11px] text-text-3">Loading...</p>
@@ -530,7 +530,7 @@ export function ExtensionSheet() {
                             {filtered.map((p) => {
                               const isInstalled = installedFilenames.has(`${p.id}.js`)
                               return (
-                                <div key={p.id} className="py-3.5 px-4 rounded-md bg-surface border border-line-subtle">
+                                <div key={p.id} className="py-3.5 px-4 rounded-lg bg-surface border border-line-subtle">
                                   <div className="flex items-start gap-3">
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2">

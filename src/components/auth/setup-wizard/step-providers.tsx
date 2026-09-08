@@ -73,7 +73,7 @@ export function StepProviders({
         value={providerSearch}
         onChange={(e) => setProviderSearch(e.target.value)}
         placeholder="Search providers, CLIs, or runtimes..."
-        className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[13px]
+        className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[13px]
           outline-none transition-all duration-200 placeholder:text-text-3 focus:border-accent-bright/30 mb-4"
       />
 
@@ -89,7 +89,7 @@ export function StepProviders({
                 <button
                   key={candidate.id}
                   onClick={() => onSelectProvider(candidate.id)}
-                  className={`w-full px-5 py-4 rounded-md border bg-surface text-left
+                  className={`w-full px-5 py-4 rounded-lg border bg-surface text-left
                     transition-all duration-200 flex items-start gap-4 cursor-pointer
                     ${isConfigured
                       ? 'border-emerald-500/25 hover:border-emerald-500/40 hover:bg-surface-hover'
@@ -130,7 +130,7 @@ export function StepProviders({
           </div>
         ))}
         {providerGroups.length === 0 && (
-          <div className="px-5 py-6 rounded-md border border-line-default bg-surface text-center text-[13px] text-text-3">
+          <div className="px-5 py-6 rounded-lg border border-line-default bg-surface text-center text-[13px] text-text-3">
             No providers match that search.
           </div>
         )}
@@ -140,7 +140,7 @@ export function StepProviders({
         <button
           onClick={runSetupDoctor}
           disabled={doctorState === 'checking'}
-          className="w-full px-4 py-3 rounded-md border border-line-default bg-layer-1 text-[13px] text-text-2
+          className="w-full px-4 py-3 rounded-lg border border-line-default bg-layer-1 text-[13px] text-text-2
             cursor-pointer hover:bg-layer-2 transition-all duration-200 disabled:opacity-40"
         >
           {doctorState === 'checking' ? 'Running System Check...' : 'Run System Check'}
@@ -151,7 +151,7 @@ export function StepProviders({
         )}
 
         {doctorReport && doctorState === 'done' && (
-          <div className="mt-3 p-3 rounded-md border border-line-default bg-surface">
+          <div className="mt-3 p-3 rounded-lg border border-line-default bg-surface">
             <div className={`text-[12px] font-600 ${doctorReport.ok ? 'text-emerald-300' : 'text-amber-300'}`}>
               {doctorReport.summary}
             </div>

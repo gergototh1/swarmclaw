@@ -202,11 +202,11 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
     : 'Queued messages will send automatically when the current turn finishes.'
 
   return (
-    <div className="shrink-0 px-4 md:px-12 lg:px-16 pb-4 pt-2 fixed bottom-0 left-0 right-0 z-20 bg-bg/95 backdrop-blur-md md:relative md:z-auto md:bg-transparent md:backdrop-blur-none"
+    <div className="shrink-0 px-4 md:px-12 lg:px-16 pb-4 pt-2 fixed bottom-0 left-0 right-0 z-20 bg-bg/80 backdrop-blur-md md:relative md:z-auto md:bg-transparent md:backdrop-blur-none"
       style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="relative" ref={extrasRef}>
         {busy && visibleQueuedMessages.length === 0 && (
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/15 bg-amber-500/[0.06] px-3.5 py-2">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/15 bg-amber-500/[0.06] px-3.5 py-2">
             <div className="min-w-0">
               <div className="text-[12px] font-600 text-amber-300">Reply in progress</div>
               <div className="text-[11px] text-amber-200/70">
@@ -240,7 +240,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                         is one. Consequently it is hard to see in the light
                         theme, which is a design decision, not something to
                         guess at here. */}
-                    <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${busy ? 'bg-amber-300' : 'bg-white/[0.45]'}`} />
+                    <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${busy ? 'bg-amber-300' : 'bg-layer-4'}`} />
                   </span>
                   <span className="label-mono text-amber-300/80">Message queue</span>
                   {pendingQueuedMessages.length > 0 && (
@@ -292,7 +292,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
               {displayedQueuedMessages.map((item, index) => (
                 <div
                   key={item.runId}
-                  className={`group flex items-start gap-3 rounded-md border px-3 py-2.5 transition-all ${
+                  className={`group flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-all ${
                     item.sending
                       ? 'border-sky-300/15 bg-sky-300/[0.06]'
                       : item.runId === nextPendingRunId
@@ -397,7 +397,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 disabled={!hasContent}
                 aria-label={shouldQueue ? 'Queue message' : 'Send message'}
                 data-testid="chat-send"
-                className={`w-9 h-9 rounded-md border-none flex items-center justify-center
+                className={`w-9 h-9 rounded-lg border-none flex items-center justify-center
                   shrink-0 cursor-pointer transition-all duration-250
                   ${hasContent
                     ? shouldQueue
@@ -439,7 +439,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
         </ComposerShell>
 
         {extrasOpen && (
-          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-default bg-raised/95 p-2 backdrop-blur-xl">
+          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-default bg-raised/80 p-2 backdrop-blur-xl">
             <button
               type="button"
               onClick={() => {

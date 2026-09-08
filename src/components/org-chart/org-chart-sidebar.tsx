@@ -169,7 +169,7 @@ export function OrgChartSidebar({ agents, allAgents, teams, onDragStart, onTeamD
   }
 
   return (
-    <div className="absolute top-4 left-4 z-20 max-h-[calc(100%-32px)] flex flex-col bg-raised/90 backdrop-blur-sm border border-line-subtle rounded-md shadow-lg overflow-hidden select-none" style={{ width }} onWheel={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+    <div className="absolute top-4 left-4 z-20 max-h-[calc(100%-32px)] flex flex-col bg-raised/80 backdrop-blur-sm border border-line-subtle rounded-md shadow-lg overflow-hidden select-none" style={{ width }} onWheel={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
       {/* Resize handle */}
       <div
         className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize z-10 hover:bg-accent-bright/10 active:bg-accent-bright/20 transition-colors"

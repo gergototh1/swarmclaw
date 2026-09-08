@@ -795,7 +795,7 @@ export function ChatArea() {
 
       {isDragging && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none">
-          <div className="px-8 py-6 rounded-lg border-2 border-dashed border-accent-bright/50 bg-surface/80 text-center">
+          <div className="px-8 py-6 rounded-lg border-2 border-dashed border-accent-bright/50 bg-surface text-center">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-accent-bright mx-auto mb-3">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />

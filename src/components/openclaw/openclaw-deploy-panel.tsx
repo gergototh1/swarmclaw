@@ -855,7 +855,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 max={65535}
                 value={localPort}
                 onChange={(e) => setLocalPort(Number.parseInt(e.target.value, 10) || 18789)}
-                className="w-full rounded-md border border-line-default bg-bg px-3 py-3 text-[13px] text-text outline-none focus:border-accent-bright/30"
+                className="w-full rounded-lg border border-line-default bg-bg px-3 py-3 text-[13px] text-text outline-none focus:border-accent-bright/30"
               />
             </div>
             <div>
@@ -865,12 +865,12 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 value={deployToken}
                 onChange={(e) => setDeployToken(e.target.value)}
                 placeholder="Leave blank to generate a secure token"
-                className="w-full rounded-md border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                className="w-full rounded-lg border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
               />
             </div>
           </div>
 
-          <div className="rounded-md border border-line-subtle bg-bg px-4 py-3">
+          <div className="rounded-lg border border-line-subtle bg-bg px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[13px] font-600 text-text">Managed local runtime</div>
@@ -974,7 +974,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
             )}
 
             {!!localStatus?.tail && (
-              <pre className="mt-3 overflow-x-auto rounded-sm border border-line-subtle bg-black/20 px-3 py-2 text-[11px] text-text-2 whitespace-pre-wrap">
+              <pre className="mt-3 overflow-x-auto rounded-sm border border-line-subtle bg-layer-2 px-3 py-2 text-[11px] text-text-2 whitespace-pre-wrap">
                 {localStatus.tail}
               </pre>
             )}
@@ -1061,7 +1061,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 value={remoteTarget}
                 onChange={(e) => setRemoteTarget(e.target.value)}
                 placeholder="openclaw.example.com or https://openclaw.example.com"
-                className="w-full rounded-md border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                className="w-full rounded-lg border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
               />
             </div>
             <div>
@@ -1069,7 +1069,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
               <select
                 value={remoteScheme}
                 onChange={(e) => setRemoteScheme(e.target.value === 'http' ? 'http' : 'https')}
-                className="w-full rounded-md border border-line-default bg-bg px-3 py-3 text-[13px] text-text outline-none focus:border-accent-bright/30"
+                className="w-full rounded-lg border border-line-default bg-bg px-3 py-3 text-[13px] text-text outline-none focus:border-accent-bright/30"
               >
                 <option value="https">https</option>
                 <option value="http">http</option>
@@ -1151,7 +1151,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 </p>
               </div>
 
-              <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+              <div className="rounded-lg border border-line-subtle bg-surface p-4">
                 <div className="text-[11px] font-700 tracking-[0.03em] text-text-3 mb-3">In-House SSH Deploy</div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <input
@@ -1159,14 +1159,14 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                     value={sshHost}
                     onChange={(e) => setSshHost(e.target.value)}
                     placeholder="gateway.your-vps.com"
-                    className="w-full rounded-md border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                    className="w-full rounded-lg border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                   />
                   <input
                     type="text"
                     value={sshUser}
                     onChange={(e) => setSshUser(e.target.value)}
                     placeholder="root"
-                    className="w-full rounded-md border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                    className="w-full rounded-lg border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                   />
                   <input
                     type="number"
@@ -1175,14 +1175,14 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                     value={sshPort}
                     onChange={(e) => setSshPort(Number.parseInt(e.target.value, 10) || 22)}
                     placeholder="22"
-                    className="w-full rounded-md border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                    className="w-full rounded-lg border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                   />
                   <input
                     type="text"
                     value={sshKeyPath}
                     onChange={(e) => setSshKeyPath(e.target.value)}
                     placeholder="~/.ssh/id_ed25519"
-                    className="w-full rounded-md border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                    className="w-full rounded-lg border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                   />
                 </div>
                 <input
@@ -1190,7 +1190,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   value={sshTargetDir}
                   onChange={(e) => setSshTargetDir(e.target.value)}
                   placeholder="/opt/openclaw"
-                  className="mt-3 w-full rounded-md border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                  className="mt-3 w-full rounded-lg border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                 />
                 <p className="mt-2 text-[12px] text-text-3 leading-relaxed">
                   SwarmClaw will push the generated official-image bundle to this host over SSH and run the bootstrap there. This stays inside your own infra and does not rely on outside OpenClaw deployers.
@@ -1295,7 +1295,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                   value={restoreBackupPath}
                   onChange={(e) => setRestoreBackupPath(e.target.value)}
                   placeholder="/opt/openclaw/backups/openclaw-backup-123456789.tgz"
-                  className="w-full rounded-md border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
+                  className="w-full rounded-lg border border-line-default bg-bg px-3 py-3 text-[13px] text-text font-mono outline-none focus:border-accent-bright/30"
                 />
                 <button
                   type="button"
@@ -1310,7 +1310,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
           )}
 
           {(verifySummary || commandPreview || remoteStatus || visibleRemoteStatuses.length > 0) && (
-            <div className="rounded-md border border-line-subtle bg-bg px-4 py-4">
+            <div className="rounded-lg border border-line-subtle bg-bg px-4 py-4">
               {verifySummary && (
                 <div className="text-[12px] text-text-2 leading-relaxed">{verifySummary}</div>
               )}
@@ -1367,12 +1367,12 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                 </div>
               )}
               {(commandPreview || remoteStatus?.lastCommandPreview) && (
-                <pre className="mt-3 overflow-x-auto rounded-sm border border-line-subtle bg-black/20 px-3 py-3 text-[11px] text-text-2 whitespace-pre-wrap">
+                <pre className="mt-3 overflow-x-auto rounded-sm border border-line-subtle bg-layer-2 px-3 py-3 text-[11px] text-text-2 whitespace-pre-wrap">
                   {commandPreview || remoteStatus?.lastCommandPreview}
                 </pre>
               )}
               {!!remoteStatus?.tail && (
-                <pre className="mt-3 overflow-x-auto rounded-sm border border-line-subtle bg-black/20 px-3 py-3 text-[11px] text-text-2 whitespace-pre-wrap">
+                <pre className="mt-3 overflow-x-auto rounded-sm border border-line-subtle bg-layer-2 px-3 py-3 text-[11px] text-text-2 whitespace-pre-wrap">
                   {remoteStatus.tail}
                 </pre>
               )}
@@ -1385,7 +1385,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
           )}
 
           {bundle && (
-            <div className="rounded-md border border-line-subtle bg-bg px-4 py-4">
+            <div className="rounded-lg border border-line-subtle bg-bg px-4 py-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="text-[14px] font-700 text-text">{bundle.title}</div>
@@ -1436,7 +1436,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
                       {copiedKey === `file:${selectedFile.name}` ? 'Copied' : 'Copy file'}
                     </button>
                   </div>
-                  <pre className="overflow-x-auto rounded-sm border border-line-subtle bg-black/20 px-3 py-3 text-[11px] text-text-2 whitespace-pre-wrap">
+                  <pre className="overflow-x-auto rounded-sm border border-line-subtle bg-layer-2 px-3 py-3 text-[11px] text-text-2 whitespace-pre-wrap">
                     {selectedFile.content}
                   </pre>
                 </div>
@@ -1447,7 +1447,7 @@ export function OpenClawDeployPanel(props: OpenClawDeployPanelProps) {
       )}
 
       {(message || error || localStatus?.lastError || remoteStatus?.lastError) && (
-        <div className={`mt-4 rounded-md border px-3 py-2 text-[12px] ${
+        <div className={`mt-4 rounded-lg border px-3 py-2 text-[12px] ${
           error || localStatus?.lastError || remoteStatus?.lastError
             ? 'border-red-400/20 bg-red-400/[0.06] text-red-200'
             : 'border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-200'

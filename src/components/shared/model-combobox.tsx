@@ -168,9 +168,9 @@ export function ModelCombobox({
       </div>
 
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-[240px] overflow-y-auto rounded-md border border-line-default bg-surface-2 shadow-xl">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-[240px] overflow-y-auto rounded-md border border-line-default bg-surface shadow-xl">
           {supportsDiscovery && (
-            <div className="sticky top-0 z-[1] flex items-center justify-between gap-3 border-b border-line-subtle bg-surface-2/95 px-3 py-2 backdrop-blur">
+            <div className="sticky top-0 z-[1] flex items-center justify-between gap-3 border-b border-line-subtle bg-surface-2/80 px-3 py-2 backdrop-blur">
               <div className={`min-w-0 text-[11px] ${discoveryState === 'notice' ? 'text-text-3/80' : 'text-text-3/60'}`}>
                 {discoveryState === 'loading'
                   ? 'Checking live model catalog...'

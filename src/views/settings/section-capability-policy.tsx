@@ -22,7 +22,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
             <button
               key={mode.id}
               onClick={() => patchSettings({ capabilityPolicyMode: mode.id })}
-              className={`py-3 px-3 rounded-md text-center cursor-pointer transition-all text-[13px] font-600 border
+              className={`py-3 px-3 rounded-lg text-center cursor-pointer transition-all text-[13px] font-600 border
                 ${(appSettings.capabilityPolicyMode || 'permissive') === mode.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                   : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'}`}
@@ -35,7 +35,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
 
         <div className="grid grid-cols-1 gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-md border border-line-subtle bg-bg px-4 py-4">
+            <div className="rounded-lg border border-line-subtle bg-bg px-4 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[12px] font-600 text-text-2">Task Management</div>
@@ -53,7 +53,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
               </div>
             </div>
 
-            <div className="rounded-md border border-line-subtle bg-bg px-4 py-4">
+            <div className="rounded-lg border border-line-subtle bg-bg px-4 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[12px] font-600 text-text-2">Project Management</div>
@@ -72,7 +72,7 @@ export function CapabilityPolicySection({ appSettings, patchSettings, inputClass
             </div>
           </div>
 
-          <div className="rounded-md border border-line-subtle bg-bg px-4 py-4">
+          <div className="rounded-lg border border-line-subtle bg-bg px-4 py-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-[12px] font-600 text-text-2">Outbound Connector Confirmation</div>

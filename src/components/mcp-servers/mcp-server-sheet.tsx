@@ -302,7 +302,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
             <button
               type="button"
               onClick={() => setRegistryBrowserOpen(true)}
-              className="py-2 px-4 rounded-md border border-dashed border-accent-bright/30 bg-transparent text-[13px] font-600 text-accent-bright cursor-pointer transition-all hover:bg-accent-bright/10"
+              className="py-2 px-4 rounded-lg border border-dashed border-accent-bright/30 bg-transparent text-[13px] font-600 text-accent-bright cursor-pointer transition-all hover:bg-accent-bright/10"
               style={{ fontFamily: 'inherit' }}
               title="Browse the public SwarmDock MCP Registry"
             >
@@ -428,7 +428,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
                 ['lazy', 'Lazy — expose none', 'No tools bound until the agent calls mcp_tool_search to discover them. Biggest token savings.'],
                 ['selected', 'Allow-list', 'Only pre-bind the tools you list below. Agent can still discover others via mcp_tool_search.'],
               ] as const).map(([value, label, hint]) => (
-                <label key={value} className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-all ${exposureMode === value ? 'border-accent-bright bg-accent-bright/5' : 'border-line-default hover:bg-surface-2'}`}>
+                <label key={value} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${exposureMode === value ? 'border-accent-bright bg-accent-bright/5' : 'border-line-default hover:bg-surface-2'}`}>
                   <input
                     type="radio"
                     name="exposureMode"
@@ -469,7 +469,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
                     .filter((t) => selected.has(t.name))
                     .reduce((n, t) => n + t.tokens, 0)
                   return (
-                    <div className="space-y-1 rounded-md border border-line-default bg-surface/50 p-2 max-h-[320px] overflow-auto">
+                    <div className="space-y-1 rounded-md border border-line-default bg-surface p-2 max-h-[320px] overflow-auto">
                       <div className="px-2 py-1 text-[11px] font-mono text-text-3">
                         {selectedTokens.toLocaleString()} / {totalTokens.toLocaleString()} tokens selected
                       </div>
@@ -546,7 +546,7 @@ function McpServerForm({ editing, onClose, loadMcpServers }: {
 
       <div className="flex gap-3 pt-2 border-t border-line-subtle">
         {editing && (
-          <button onClick={() => setConfirmDelete(true)} className="py-3.5 px-6 rounded-md border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
+          <button onClick={() => setConfirmDelete(true)} className="py-3.5 px-6 rounded-lg border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Delete
           </button>
         )}

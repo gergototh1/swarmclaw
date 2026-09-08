@@ -524,7 +524,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
         <MissionControls mission={mission} onAction={onAction} onForceReport={onForceReport} onEdit={onEdit} busy={busy} />
       </div>
 
-      <div className="rounded-lg border border-line-subtle bg-layer-1 p-4">
+      <div className="rounded-lg border border-line-subtle bg-surface p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="text-[11px] font-600 tracking-wide text-text-3">Public share</div>
@@ -564,7 +564,7 @@ function MissionDetail({ mission, reports, events, busy, onAction, onForceReport
           </div>
         </div>
         {activeShare && (
-          <div className="mt-3 rounded-sm border border-line-subtle bg-black/20 px-3 py-2 text-[11px] text-text-3">
+          <div className="mt-3 rounded-sm border border-line-subtle bg-layer-2 px-3 py-2 text-[11px] text-text-3">
             <span className="font-mono text-text">{shareUrl}</span>
             <span className="ml-2 text-text-3">Created {formatTimestamp(activeShare.createdAt)}</span>
           </div>

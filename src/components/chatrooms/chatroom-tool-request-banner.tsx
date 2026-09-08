@@ -93,7 +93,7 @@ export function ChatroomToolRequestBanner({ agentId, agentName, text, toolOutput
         return (
           <div
             key={toolId}
-            className="flex items-center gap-3 px-4 py-3 rounded-md border border-amber-500/20 bg-amber-500/[0.06]"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg border border-amber-500/20 bg-amber-500/[0.06]"
             style={{ animation: 'fade-in 0.2s ease' }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-amber-400 shrink-0">

@@ -126,7 +126,7 @@ function ModelCombobox({
           if (!open) setOpen(true)
         }}
         placeholder={loading ? 'Loading models...' : 'Type or select a model'}
-        className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
+        className="w-full px-4 py-3 rounded-lg border border-line-default bg-bg
           text-text text-[14px] font-mono outline-none transition-all duration-200
           focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
       />
@@ -275,7 +275,7 @@ function SoulPicker({
         onChange={(e) => onChange(e.target.value)}
         rows={2}
         placeholder="e.g. You speak concisely and directly. You have a dry sense of humor."
-        className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
+        className="w-full px-4 py-3 rounded-lg border border-line-default bg-bg
           text-text text-[14px] outline-none transition-all duration-200 resize-none
           focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
       />
@@ -401,7 +401,7 @@ export function StepAgents({
                       type="text"
                       value={draft.name}
                       onChange={(e) => onUpdateDraft(draft.id, { name: e.target.value })}
-                      className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
+                      className="w-full px-4 py-3 rounded-lg border border-line-default bg-bg
                         text-text text-[14px] outline-none transition-all duration-200
                         focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                     />
@@ -412,7 +412,7 @@ export function StepAgents({
                       <select
                         value={draft.providerConfigId || ''}
                         onChange={(e) => onUpdateDraftProvider(draft.id, e.target.value)}
-                        className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
+                        className="w-full px-4 py-3 rounded-lg border border-line-default bg-bg
                           text-text text-[14px] outline-none transition-all duration-200
                           focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                       >
@@ -438,7 +438,7 @@ export function StepAgents({
                       type="text"
                       value={draft.description}
                       onChange={(e) => onUpdateDraft(draft.id, { description: e.target.value })}
-                      className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
+                      className="w-full px-4 py-3 rounded-lg border border-line-default bg-bg
                         text-text text-[14px] outline-none transition-all duration-200
                         focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                     />
@@ -450,7 +450,7 @@ export function StepAgents({
                       value={draft.apiEndpoint || ''}
                       onChange={(e) => onUpdateDraft(draft.id, { apiEndpoint: e.target.value || null })}
                       placeholder={matchedProvider?.endpoint || 'Inherited from provider'}
-                      className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
+                      className="w-full px-4 py-3 rounded-lg border border-line-default bg-bg
                         text-text text-[14px] font-mono outline-none transition-all duration-200
                         focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                     />
@@ -458,7 +458,7 @@ export function StepAgents({
                   {matchedProvider?.setupProvider === 'openclaw' ? (
                     <div className="md:col-span-2">
                       <label className="block text-[12px] text-text-3 font-600 mb-1.5 ml-1">Model</label>
-                      <div className="flex items-center gap-3 px-4 py-3 rounded-md border border-line-default bg-bg">
+                      <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-line-default bg-bg">
                         <span className="text-[13px] text-text-3">Configured on the OpenClaw gateway.</span>
                         {matchedProvider.dashboardUrl && (
                           <a
@@ -496,7 +496,7 @@ export function StepAgents({
                     )}
                   </div>
                   <div className="md:col-span-2">
-                    <div className="flex items-center justify-between rounded-md border border-line-default bg-bg px-4 py-3">
+                    <div className="flex items-center justify-between rounded-lg border border-line-default bg-bg px-4 py-3">
                       <div>
                         <div className="text-[12px] font-600 text-text">Conversation Skill Drafting</div>
                         <div className="mt-1 text-[11px] text-text-3">
@@ -513,7 +513,7 @@ export function StepAgents({
                   </div>
                   {matchedProvider && isOrchestratorProviderEligible(matchedProvider.provider) && (
                     <div className="md:col-span-2">
-                      <div className="flex items-center justify-between rounded-md border border-line-default bg-bg px-4 py-3">
+                      <div className="flex items-center justify-between rounded-lg border border-line-default bg-bg px-4 py-3">
                         <div>
                           <div className="text-[12px] font-600 text-text">Enable Orchestrator</div>
                           <div className="mt-1 text-[11px] text-text-3">
@@ -537,7 +537,7 @@ export function StepAgents({
                             onChange={(e) => onUpdateDraft(draft.id, { orchestratorMission: e.target.value })}
                             rows={2}
                             placeholder="e.g. Monitor system health and restart failing services"
-                            className="w-full px-4 py-3 rounded-md border border-line-default bg-bg
+                            className="w-full px-4 py-3 rounded-lg border border-line-default bg-bg
                               text-text text-[14px] outline-none transition-all duration-200 resize-none
                               focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                           />
@@ -547,7 +547,7 @@ export function StepAgents({
                   )}
                 </div>
 
-                <details className="mt-4 rounded-md border border-line-default bg-bg px-4 py-3">
+                <details className="mt-4 rounded-lg border border-line-default bg-bg px-4 py-3">
                   <summary className="cursor-pointer text-[13px] text-text-2 font-600">
                     Prompt and tools
                   </summary>
@@ -558,7 +558,7 @@ export function StepAgents({
                         value={draft.systemPrompt}
                         onChange={(e) => onUpdateDraft(draft.id, { systemPrompt: e.target.value })}
                         rows={5}
-                        className="w-full px-4 py-3 rounded-md border border-line-default bg-surface
+                        className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface
                           text-text text-[14px] outline-none transition-all duration-200 resize-none
                           focus:border-accent-bright/30 focus:shadow-[0_0_0_3px_var(--color-accent-glow)]"
                       />

@@ -72,7 +72,7 @@ export function OrgChartActivityFeed({ agents, onSelectAgent, onClose }: Props) 
   }
 
   return (
-    <div className="absolute top-0 right-0 z-30 w-[320px] h-full bg-raised/95 backdrop-blur-sm border-l border-line-subtle shadow-xl shadow-black/30 flex flex-col overflow-hidden" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="absolute top-0 right-0 z-30 w-[320px] h-full bg-raised/80 backdrop-blur-sm border-l border-line-subtle shadow-xl shadow-black/30 flex flex-col overflow-hidden" onPointerDown={(e) => e.stopPropagation()}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-line-subtle">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0">

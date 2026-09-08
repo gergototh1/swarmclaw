@@ -30,7 +30,7 @@ export function TransferAgentPicker({ excludeIds, filterIds, onSelect, onClose }
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute left-0 bottom-full mb-2 z-50 w-[220px] rounded-sm bg-surface/95 backdrop-blur-xl border border-line-default overflow-hidden">
+      <div className="absolute left-0 bottom-full mb-2 z-50 w-[220px] rounded-sm bg-surface/80 backdrop-blur-xl border border-line-default overflow-hidden">
         <div className="p-2">
           <input
             value={query}

@@ -559,7 +559,7 @@ export function TaskSheet() {
         {editing.objective && (
           <div className="mb-8">
             <SectionLabel>Objective</SectionLabel>
-            <div className="rounded-md border border-line-subtle bg-surface px-4 py-3">
+            <div className="rounded-lg border border-line-subtle bg-surface px-4 py-3">
               <div className="text-[14px] font-600 text-text">{editing.objective}</div>
             </div>
           </div>
@@ -569,7 +569,7 @@ export function TaskSheet() {
         {taskAgent && (
           <div className="mb-8">
             <SectionLabel>Agent</SectionLabel>
-            <div className="flex items-center gap-2.5 px-4 py-3 rounded-md border border-line-subtle bg-surface">
+            <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg border border-line-subtle bg-surface">
               <AgentAvatar seed={taskAgent.avatarSeed || null} avatarUrl={taskAgent.avatarUrl} name={taskAgent.name} size={24} />
               <span className="text-[14px] font-600 text-text">{taskAgent.name}</span>
             </div>
@@ -591,7 +591,7 @@ export function TaskSheet() {
         {(editing.cwd || editing.file) && (
           <div className="mb-8">
             <SectionLabel>{editing.file ? 'File' : 'Directory'}</SectionLabel>
-            <code className="block px-4 py-3 rounded-md border border-line-subtle bg-surface text-[13px] text-text-2 font-mono break-all">
+            <code className="block px-4 py-3 rounded-lg border border-line-subtle bg-surface text-[13px] text-text-2 font-mono break-all">
               {editing.file || editing.cwd}
             </code>
           </div>
@@ -955,7 +955,7 @@ export function TaskSheet() {
           {editing.comments && editing.comments.length > 0 && (
             <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto">
               {editing.comments.map((c) => (
-                <div key={c.id} className="p-3.5 rounded-md border border-line-subtle bg-surface">
+                <div key={c.id} className="p-3.5 rounded-lg border border-line-subtle bg-surface">
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className={`text-[12px] font-600 ${c.agentId ? 'text-accent-bright' : 'text-text-2'}`}>
                       {c.author}
@@ -994,7 +994,7 @@ export function TaskSheet() {
           {activeStructuredRunId && (
             <button
               onClick={() => router.push(`/protocols?runId=${encodeURIComponent(activeStructuredRunId)}`)}
-              className="flex-1 py-3.5 rounded-md border border-sky-500/20 bg-sky-500/10 text-sky-100 text-[15px] font-600 cursor-pointer hover:bg-sky-500/14 transition-all"
+              className="flex-1 py-3.5 rounded-lg border border-sky-500/20 bg-sky-500/10 text-sky-100 text-[15px] font-600 cursor-pointer hover:bg-sky-500/14 transition-all"
               style={{ fontFamily: 'inherit' }}
             >
               Open Session
@@ -1002,7 +1002,7 @@ export function TaskSheet() {
           )}
           <button
             onClick={() => setStructuredSessionOpen(true)}
-            className="flex-1 py-3.5 rounded-md border border-accent-bright/20 bg-accent-bright/10 text-accent-bright text-[15px] font-600 cursor-pointer hover:bg-accent-bright/14 transition-all"
+            className="flex-1 py-3.5 rounded-lg border border-accent-bright/20 bg-accent-bright/10 text-accent-bright text-[15px] font-600 cursor-pointer hover:bg-accent-bright/14 transition-all"
             style={{ fontFamily: 'inherit' }}
           >
             {activeStructuredRunId ? 'Run Another Session' : 'Run Structured Session'}
@@ -1065,7 +1065,7 @@ export function TaskSheet() {
       {editing?.objective && (
         <div className="mb-8">
           <SectionLabel>Objective</SectionLabel>
-          <div className="rounded-md border border-line-subtle bg-surface px-4 py-3 text-[12px] leading-[1.7] text-text-3">
+          <div className="rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[12px] leading-[1.7] text-text-3">
             <div className="font-600 text-text">{editing.objective}</div>
           </div>
         </div>
@@ -1141,7 +1141,7 @@ export function TaskSheet() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setProjectId('')}
-            className={`px-4 py-3 rounded-md text-[14px] font-600 cursor-pointer transition-all border
+            className={`px-4 py-3 rounded-lg text-[14px] font-600 cursor-pointer transition-all border
               ${!projectId
                 ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                 : 'bg-surface border-line-subtle text-text-2 hover:bg-surface-2'}`}
@@ -1153,7 +1153,7 @@ export function TaskSheet() {
             <button
               key={p.id}
               onClick={() => setProjectId(p.id)}
-              className={`px-4 py-3 rounded-md text-[14px] font-600 cursor-pointer transition-all border flex items-center gap-2
+              className={`px-4 py-3 rounded-lg text-[14px] font-600 cursor-pointer transition-all border flex items-center gap-2
                 ${projectId === p.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                   : 'bg-surface border-line-subtle text-text-2 hover:bg-surface-2'}`}
@@ -1263,7 +1263,7 @@ export function TaskSheet() {
             </button>
           </div>
         ) : (
-          <label className="flex items-center gap-2 rounded-md border border-line-subtle bg-surface px-4 py-3 text-[13px] text-text-2">
+          <label className="flex items-center gap-2 rounded-lg border border-line-subtle bg-surface px-4 py-3 text-[13px] text-text-2">
             <input
               type="checkbox"
               checked={provisionWorkspace}
@@ -1621,7 +1621,7 @@ export function TaskSheet() {
       {editing?.error && (
         <div className="mb-8">
           <label className="block font-display text-[12px] font-600 text-red-400 tracking-[0.03em] mb-3">Error</label>
-          <div className="p-4 rounded-md border border-red-500/10 bg-red-500/[0.03] text-[13px] text-red-400/80 whitespace-pre-wrap">
+          <div className="p-4 rounded-lg border border-red-500/10 bg-red-500/[0.03] text-[13px] text-red-400/80 whitespace-pre-wrap">
             {editing.error}
           </div>
         </div>
@@ -1635,7 +1635,7 @@ export function TaskSheet() {
           {editing.comments && editing.comments.length > 0 && (
             <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto">
               {editing.comments.map((c) => (
-                <div key={c.id} className="p-3.5 rounded-md border border-line-subtle bg-surface">
+                <div key={c.id} className="p-3.5 rounded-lg border border-line-subtle bg-surface">
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className={`text-[12px] font-600 ${c.agentId ? 'text-accent-bright' : 'text-text-2'}`}>
                       {c.author}
@@ -1677,7 +1677,7 @@ export function TaskSheet() {
         saveDisabled={!title.trim() || !agentId}
         left={<>
           {editing && activeStructuredRunId && (
-            <button onClick={() => router.push(`/protocols?runId=${encodeURIComponent(activeStructuredRunId)}`)} className="py-3.5 px-6 rounded-md border border-sky-500/20 bg-transparent text-sky-100 text-[15px] font-600 cursor-pointer hover:bg-sky-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
+            <button onClick={() => router.push(`/protocols?runId=${encodeURIComponent(activeStructuredRunId)}`)} className="py-3.5 px-6 rounded-lg border border-sky-500/20 bg-transparent text-sky-100 text-[15px] font-600 cursor-pointer hover:bg-sky-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
               Open Session
             </button>
           )}
@@ -1697,7 +1697,7 @@ export function TaskSheet() {
             </button>
           )}
           {editing && editing.status === 'backlog' && (
-            <button onClick={handleQueue} className="py-3.5 px-6 rounded-md border border-amber-500/20 bg-transparent text-amber-400 text-[15px] font-600 cursor-pointer hover:bg-amber-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
+            <button onClick={handleQueue} className="py-3.5 px-6 rounded-lg border border-amber-500/20 bg-transparent text-amber-400 text-[15px] font-600 cursor-pointer hover:bg-amber-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
               Queue
             </button>
           )}

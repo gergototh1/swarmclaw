@@ -487,12 +487,12 @@ export function ConnectorInbox() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 md:min-w-[300px]">
-            <div className="rounded-lg border border-line-default bg-black/20 px-4 py-3">
+            <div className="rounded-lg border border-line-default bg-layer-2 px-4 py-3">
               <div className="text-[10px] tracking-[0.03em] text-text-3">Connectors</div>
               <div className="mt-2 text-[26px] font-display font-700 tracking-[-0.04em] text-text">{connectorItems.length}</div>
               <div className="text-[11px] text-text-3">Bridges with active external conversations</div>
             </div>
-            <div className="rounded-lg border border-line-default bg-black/20 px-4 py-3">
+            <div className="rounded-lg border border-line-default bg-layer-2 px-4 py-3">
               <div className="text-[10px] tracking-[0.03em] text-text-3">Conversations</div>
               <div className="mt-2 text-[26px] font-display font-700 tracking-[-0.04em] text-text">{inboxSessions.length}</div>
               <div className="text-[11px] text-text-3">Strictly isolated external sender sessions</div>
@@ -502,7 +502,7 @@ export function ConnectorInbox() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[300px_360px_minmax(0,1fr)] gap-4 flex-1 min-h-0">
-        <section className="rounded-lg border border-line-default bg-layer-1 overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
+        <section className="rounded-lg border border-line-default bg-surface overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
           <div className="px-4 py-4 border-b border-line-subtle space-y-3 shrink-0">
             <SearchInput
               size="sm"
@@ -592,7 +592,7 @@ export function ConnectorInbox() {
           )}
         </section>
 
-        <section className="rounded-lg border border-line-default bg-layer-1 overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
+        <section className="rounded-lg border border-line-default bg-surface overflow-hidden min-h-[260px] xl:min-h-0 flex flex-col">
           <div className="px-4 py-4 border-b border-line-subtle shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: activePlatformMeta.color }}>
@@ -711,7 +711,7 @@ export function ConnectorInbox() {
           )}
         </section>
 
-        <section className="rounded-lg border border-line-default bg-layer-1 overflow-hidden min-h-[380px] xl:min-h-0 flex flex-col">
+        <section className="rounded-lg border border-line-default bg-surface overflow-hidden min-h-[380px] xl:min-h-0 flex flex-col">
           {selectedSession ? (
             <>
               <div className="px-5 py-4 border-b border-line-subtle">
@@ -749,7 +749,7 @@ export function ConnectorInbox() {
               </div>
 
               <div className="flex-1 overflow-y-auto px-5 py-4">
-                <div className="rounded-lg border border-line-default bg-layer-1 overflow-hidden">
+                <div className="rounded-lg border border-line-default bg-surface overflow-hidden">
                   <div className="border-b border-line-subtle px-4 py-3">
                     <div className="text-[13px] font-700 text-text">Transcript</div>
                     <div className="mt-1 text-[12px] text-text-3">

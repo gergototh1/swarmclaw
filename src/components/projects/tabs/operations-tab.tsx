@@ -84,7 +84,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
           </div>
         </div>
         {projectAgents.length === 0 ? (
-          <div className="rounded-md border border-dashed border-line-default px-5 py-6 text-center">
+          <div className="rounded-lg border border-dashed border-line-default px-5 py-6 text-center">
             <p className="text-[12px] text-text-3">No agents assigned yet.</p>
           </div>
         ) : (
@@ -92,7 +92,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
             {projectAgents.map((agent) => (
               <div
                 key={agent.id}
-                className="group/agent flex items-center gap-3 px-4 py-3 rounded-md border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all"
+                className="group/agent flex items-center gap-3 px-4 py-3 rounded-lg border border-line-subtle bg-layer-1 hover:bg-layer-2 hover:border-line-default transition-all"
               >
                 <button
                   onClick={() => navigateTo('agents', agent.id)}
@@ -226,7 +226,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
           </button>
         </div>
         {projectSchedules.length === 0 ? (
-          <div className="rounded-md border border-dashed border-line-default px-5 py-6 text-center">
+          <div className="rounded-lg border border-dashed border-line-default px-5 py-6 text-center">
             <p className="text-[12px] text-text-3">No schedules yet.</p>
           </div>
         ) : (
@@ -266,7 +266,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
 
         {/* Heartbeat config */}
         {(project.heartbeatPrompt || project.heartbeatIntervalSec) && (
-          <div className="mt-4 rounded-md border border-line-subtle bg-surface/60 px-4 py-3">
+          <div className="mt-4 rounded-lg border border-line-subtle bg-surface px-4 py-3">
             <div className="text-[11px] font-700 tracking-[0.03em] text-sky-400">
               Heartbeat &middot; Every {formatHeartbeatInterval(project.heartbeatIntervalSec)}
             </div>

@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-07T20:14:26.610Z",
-  "totalIssues": 402,
-  "uniqueIssues": 128,
+  "generatedAt": "2026-09-08T10:03:42.326Z",
+  "totalIssues": 384,
+  "uniqueIssues": 126,
   "issues": [
     {
       "filePath": "bin/worker-cmd.js",
@@ -114,7 +114,7 @@
       "ruleId": "no-restricted-syntax",
       "severity": 1,
       "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-text/-2/-3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
-      "count": 38
+      "count": 25
     },
     {
       "filePath": "src/app/usage/page.tsx",
@@ -170,7 +170,7 @@
       "ruleId": "no-restricted-syntax",
       "severity": 1,
       "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-text/-2/-3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
-      "count": 4
+      "count": 1
     },
     {
       "filePath": "src/components/chat/swarm-panel.tsx",
@@ -192,13 +192,6 @@
       "severity": 1,
       "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-text/-2/-3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
       "count": 2
-    },
-    {
-      "filePath": "src/components/input/chat-input.tsx",
-      "ruleId": "no-restricted-syntax",
-      "severity": 1,
-      "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-text/-2/-3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
-      "count": 1
     },
     {
       "filePath": "src/components/memory/memory-detail.tsx",
@@ -352,13 +345,6 @@
       "ruleId": "@next/next/no-img-element",
       "severity": 1,
       "message": "Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element",
-      "count": 1
-    },
-    {
-      "filePath": "src/components/tasks/task-card.tsx",
-      "ruleId": "no-restricted-syntax",
-      "severity": 1,
-      "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-text/-2/-3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
       "count": 1
     },
     {

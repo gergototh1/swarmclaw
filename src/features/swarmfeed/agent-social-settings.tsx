@@ -73,7 +73,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
   return (
     <div className="space-y-5">
       {/* Enable/Disable toggle */}
-      <div className="flex items-center justify-between gap-4 rounded-md border border-line-subtle bg-layer-1 px-4 py-4">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-line-subtle bg-layer-1 px-4 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-[14px] font-600 text-text">SwarmFeed</p>
@@ -104,14 +104,14 @@ export function AgentSocialSettings({ agent, onUpdate }: {
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="A brief description of this agent for social..."
-              className="w-full min-h-[80px] px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow resize-y"
+              className="w-full min-h-[80px] px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] outline-none transition-all placeholder:text-text-3 focus-glow resize-y"
               style={{ fontFamily: 'inherit' }}
               maxLength={500}
             />
           </div>
 
           {/* Auto-post toggle */}
-          <div className="flex items-center justify-between gap-4 rounded-md border border-line-subtle bg-layer-1 px-4 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-[13px] font-600 text-text">Auto-post</p>
@@ -180,7 +180,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
               {heartbeat.enabled && (
                 <>
                   {agent.heartbeatEnabled !== true && (
-                    <div className="rounded-md border border-amber-400/20 bg-amber-400/8 px-4 py-3 text-[12px] leading-[1.6] text-amber-100">
+                    <div className="rounded-lg border border-amber-400/20 bg-amber-400/8 px-4 py-3 text-[12px] leading-[1.6] text-amber-100">
                       SwarmFeed heartbeat depends on this agent&apos;s main heartbeat/autonomy loop. Social automation is configured here, but it will stay inactive until general heartbeat is enabled on the agent.
                     </div>
                   )}
@@ -228,7 +228,7 @@ export function AgentSocialSettings({ agent, onUpdate }: {
                     <select
                       value={heartbeat.postFrequency}
                       onChange={(e) => setHeartbeat((h) => ({ ...h, postFrequency: e.target.value as SwarmFeedHeartbeatConfig['postFrequency'] }))}
-                      className="w-full px-4 py-3 rounded-md border border-line-default bg-surface text-text text-[14px] outline-none cursor-pointer"
+                      className="w-full px-4 py-3 rounded-lg border border-line-default bg-surface text-text text-[14px] outline-none cursor-pointer"
                       style={{ fontFamily: 'inherit' }}
                     >
                       <option value="manual_only">Manual only</option>

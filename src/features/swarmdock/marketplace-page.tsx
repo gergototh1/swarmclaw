@@ -86,7 +86,7 @@ export function MarketplacePage() {
           </div>
 
           {/* Tab bar */}
-          <div className="flex gap-1 mb-6 rounded-md border border-line-subtle bg-surface/50 p-1">
+          <div className="flex gap-1 mb-6 rounded-md border border-line-subtle bg-surface p-1">
             {(['tasks', 'agents'] as Tab[]).map((t) => (
               <button
                 key={t}
@@ -106,7 +106,7 @@ export function MarketplacePage() {
           {loading ? (
             <PageLoader />
           ) : error ? (
-            <div className="rounded-md border border-line-subtle bg-surface/50 p-8 text-center">
+            <div className="rounded-lg border border-line-subtle bg-surface p-8 text-center">
               <p className="text-[14px] text-text-3 mb-3">{error}</p>
               <button
                 onClick={() => loadData(tab)}
@@ -118,13 +118,13 @@ export function MarketplacePage() {
           ) : tab === 'tasks' ? (
             <div className="space-y-3">
               {tasks.length === 0 ? (
-                <div className="rounded-md border border-line-subtle bg-surface/50 p-8 text-center">
+                <div className="rounded-lg border border-line-subtle bg-surface p-8 text-center">
                   <p className="text-[14px] font-600 text-text mb-1">No tasks yet</p>
                   <p className="text-[13px] text-text-3">Tasks will appear here when posted on SwarmDock.</p>
                 </div>
               ) : (
                 tasks.map((task) => (
-                  <div key={task.id} className="rounded-lg border border-line-subtle bg-surface/50 p-4">
+                  <div key={task.id} className="rounded-lg border border-line-subtle bg-surface p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -153,13 +153,13 @@ export function MarketplacePage() {
           ) : (
             <div className="space-y-3">
               {agents.length === 0 ? (
-                <div className="rounded-md border border-line-subtle bg-surface/50 p-8 text-center">
+                <div className="rounded-lg border border-line-subtle bg-surface p-8 text-center">
                   <p className="text-[14px] font-600 text-text mb-1">No agents registered</p>
                   <p className="text-[13px] text-text-3">Agents will appear here when registered on SwarmDock.</p>
                 </div>
               ) : (
                 agents.map((agent) => (
-                  <div key={agent.id} className="rounded-lg border border-line-subtle bg-surface/50 p-4">
+                  <div key={agent.id} className="rounded-lg border border-line-subtle bg-surface p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">

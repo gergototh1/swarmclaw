@@ -209,7 +209,7 @@ export function ConnectorList({ inSidebar }: { inSidebar?: boolean }) {
           <button
             key={group}
             onClick={() => setGroupFilter((current) => (current === group ? 'all' : group))}
-            className={`rounded-md border px-4 py-3 text-left transition-all cursor-pointer ${
+            className={`rounded-lg border px-4 py-3 text-left transition-all cursor-pointer ${
               groupFilter === group
                 ? 'border-line-default bg-layer-2'
                 : 'border-line-subtle bg-layer-1 hover:bg-layer-2'

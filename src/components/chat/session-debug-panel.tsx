@@ -120,7 +120,7 @@ function ExtraDetail({ data }: { data: Record<string, unknown> }) {
   const entries = Object.entries(data).filter(([, v]) => v !== null && v !== undefined)
   if (entries.length === 0) return null
   return (
-    <div className="mt-2 rounded-sm bg-black/30 border border-line-subtle p-3 text-[11px] font-mono space-y-1">
+    <div className="mt-2 rounded-sm bg-layer-3 border border-line-subtle p-3 text-[11px] font-mono space-y-1">
       {entries.map(([k, v]) => (
         <div key={k} className="flex gap-2 flex-wrap">
           <span className="text-text-3 shrink-0">{k}:</span>
@@ -190,7 +190,7 @@ export function SessionDebugPanel({ messages, open, onClose }: Props) {
   ]
 
   return (
-    <div className="absolute inset-0 z-30 bg-bg/95 backdrop-blur-xl flex flex-col">
+    <div className="absolute inset-0 z-30 bg-bg/80 backdrop-blur-xl flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-3 border-b border-line-subtle shrink-0">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2" strokeLinecap="round">

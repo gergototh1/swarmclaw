@@ -545,7 +545,7 @@ function ExtensionCard({ ext, allowDelete, agents, reconciling, onEdit, onToggle
       className={`group relative text-left p-4 rounded-lg border transition-all cursor-pointer
         ${ext.enabled
           ? 'border-line-subtle bg-surface hover:bg-surface-2 hover:border-line-default'
-          : 'border-line-subtle bg-surface/50 hover:bg-surface hover:border-line-default opacity-70 hover:opacity-100'
+          : 'border-line-subtle bg-surface hover:bg-surface hover:border-line-default opacity-70 hover:opacity-100'
         }`}
     >
       {/* Top row: name + toggle */}
@@ -704,7 +704,7 @@ function SidebarExtensionCard({ ext, onEdit }: { ext: ExtensionMeta; onEdit: (fi
       tabIndex={0}
       onClick={() => onEdit(ext.filename)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(ext.filename) } }}
-      className="w-full text-left p-3 rounded-md border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer"
+      className="w-full text-left p-3 rounded-lg border border-line-subtle bg-surface hover:bg-surface-2 transition-all cursor-pointer"
     >
       <div className="flex items-center justify-between mb-0.5">
         <span className="font-display text-[13px] font-600 text-text truncate">{ext.name}</span>
@@ -823,7 +823,7 @@ function MarketplaceTab({ marketplace, loading, installing, installedFilenames, 
           {filtered.map((p) => {
             const isInstalled = installedFilenames.has(`${p.id}.js`)
             return (
-              <div key={p.id} className="py-3.5 px-4 rounded-md bg-surface border border-line-subtle">
+              <div key={p.id} className="py-3.5 px-4 rounded-lg bg-surface border border-line-subtle">
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

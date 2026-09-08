@@ -397,7 +397,7 @@ function IdentityCard({ agent }: { agent: Agent }) {
             }}
             disabled={saving}
             placeholder="Add a description..."
-            className="w-full min-h-[60px] rounded-sm border border-accent-bright/30 bg-black/[0.14] p-3 text-[13px] text-text-2 leading-relaxed outline-none resize-none font-sans"
+            className="w-full min-h-[60px] rounded-sm border border-accent-bright/30 bg-layer-2 p-3 text-[13px] text-text-2 leading-relaxed outline-none resize-none font-sans"
           />
         </div>
       ) : (
@@ -429,7 +429,7 @@ function IdentityCard({ agent }: { agent: Agent }) {
             System prompt
           </button>
           {promptExpanded && (
-            <p className="mt-2 text-[12px] text-text-3 bg-black/[0.14] rounded-md p-3 border border-line-subtle max-h-[220px] overflow-y-auto whitespace-pre-wrap font-mono leading-relaxed">
+            <p className="mt-2 text-[12px] text-text-3 bg-layer-2 rounded-lg p-3 border border-line-subtle max-h-[220px] overflow-y-auto whitespace-pre-wrap font-mono leading-relaxed">
               {agent.systemPrompt}
             </p>
           )}
@@ -558,7 +558,7 @@ function HeartbeatSection({ agent, session }: { agent: Agent; session: Session }
               </svg>
             </button>
             {hbDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 py-1 rounded-sm border border-line-subtle bg-bg/95 backdrop-blur-md shadow-lg z-50 min-w-[88px]">
+              <div className="absolute top-full left-0 mt-1 py-1 rounded-sm border border-line-subtle bg-bg/80 backdrop-blur-md shadow-lg z-50 min-w-[88px]">
                 {intervalOptions.map((sec) => (
                   <button
                     key={sec}
@@ -1019,7 +1019,7 @@ function StickyFooter({ agent, isMainChat, onEditAgent, onDuplicateAgent, onClea
   }
 
   return (
-    <div className="shrink-0 border-t border-line-subtle px-4 py-3 bg-black/[0.08]">
+    <div className="shrink-0 border-t border-line-subtle px-4 py-3 bg-layer-1">
       <div className="flex items-center gap-2">
         {onEditAgent && (
           <button
@@ -1050,7 +1050,7 @@ function StickyFooter({ agent, isMainChat, onEditAgent, onDuplicateAgent, onClea
             </svg>
           </button>
           {menuOpen && (
-            <div className="absolute bottom-full right-0 mb-1.5 py-1 rounded-sm border border-line-default bg-bg/95 backdrop-blur-md shadow-xl z-50 min-w-[160px]"
+            <div className="absolute bottom-full right-0 mb-1.5 py-1 rounded-sm border border-line-default bg-bg/80 backdrop-blur-md shadow-xl z-50 min-w-[160px]"
               style={{ animation: 'fade-in 0.15s ease' }}>
               <button
                 onClick={() => { setMenuOpen(false); void handleToggleAvailability() }}
@@ -1233,7 +1233,7 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
       <SectionLabel>Automations</SectionLabel>
       <div className="flex flex-col gap-3">
         {schedules.map((s) => (
-          <div key={s.id} className="rounded-sm border border-line-subtle bg-black/[0.08] py-2 px-3">
+          <div key={s.id} className="rounded-sm border border-line-subtle bg-layer-1 py-2 px-3">
             <div className="flex items-center gap-2">
               <span className="text-[12px] font-600 text-text truncate flex-1">{s.name}</span>
               <span className={`text-[10px] font-600 tracking-[0.03em] px-1.5 py-0.5 rounded-xs
@@ -1251,7 +1251,7 @@ function AutomationsSection({ schedules, agent }: { schedules: Array<{ id: strin
           <>
             {cronLoading && <div className="text-[12px] text-text-3">Loading gateway crons...</div>}
             {gatewayCrons.map((c) => (
-              <div key={c.id} className="rounded-sm border border-line-subtle bg-black/[0.08] py-2 px-3">
+              <div key={c.id} className="rounded-sm border border-line-subtle bg-layer-1 py-2 px-3">
                 <div className="flex items-center gap-2">
                   <span className="text-[12px] font-600 text-text truncate flex-1">{c.name}</span>
                   <span className={`text-[10px] font-600 tracking-[0.03em] px-1.5 py-0.5 rounded-xs
@@ -1330,7 +1330,7 @@ function ExecuteToolConfigSection({ agent }: { agent: Agent }) {
           value={config.backend || 'sandbox'}
           onChange={(e) => void update({ backend: e.target.value as 'sandbox' | 'host' })}
           disabled={saving}
-          className="w-full rounded-sm border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
+          className="w-full rounded-sm border border-line-subtle bg-layer-2 px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
         >
           <option value="sandbox">sandbox (just-bash)</option>
           <option value="host">host (real bash)</option>
@@ -1352,7 +1352,7 @@ function ExecuteToolConfigSection({ agent }: { agent: Agent }) {
           min={1}
           max={300}
           onBlur={(e) => void update({ timeout: Math.max(1, Math.min(300, Number(e.target.value) || 30)) })}
-          className="w-full rounded-sm border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text font-mono outline-none focus:border-accent-bright/30"
+          className="w-full rounded-sm border border-line-subtle bg-layer-2 px-2.5 py-1.5 text-[12px] text-text font-mono outline-none focus:border-accent-bright/30"
         />
       </div>
       <div className="text-[11px] text-text-3">
@@ -1433,7 +1433,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             <select
               defaultValue={config.scope || 'session'}
               onChange={(e) => void update({ scope: e.target.value as 'session' | 'agent' })}
-              className="w-full rounded-sm border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
+              className="w-full rounded-sm border border-line-subtle bg-layer-2 px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
             >
               <option value="session">session</option>
               <option value="agent">agent</option>
@@ -1444,7 +1444,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             <select
               defaultValue={config.mode === 'non-main' ? 'non-main' : 'all'}
               onChange={(e) => void update({ mode: e.target.value as 'all' | 'non-main' })}
-              className="w-full rounded-sm border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
+              className="w-full rounded-sm border border-line-subtle bg-layer-2 px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
             >
               <option value="all">all sessions</option>
               <option value="non-main">non-main sessions only</option>
@@ -1455,7 +1455,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             <select
               defaultValue={config.workspaceAccess || 'rw'}
               onChange={(e) => void update({ workspaceAccess: e.target.value as 'ro' | 'rw' })}
-              className="w-full rounded-sm border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
+              className="w-full rounded-sm border border-line-subtle bg-layer-2 px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
             >
               <option value="rw">read/write</option>
               <option value="ro">read-only</option>
@@ -1466,7 +1466,7 @@ function BrowserSandboxSection({ agent }: { agent: Agent }) {
             <select
               defaultValue={config.browser?.network || 'bridge'}
               onChange={(e) => void update({ browser: { ...(config.browser || {}), network: e.target.value as 'none' | 'bridge' } })}
-              className="w-full rounded-sm border border-line-subtle bg-black/[0.14] px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
+              className="w-full rounded-sm border border-line-subtle bg-layer-2 px-2.5 py-1.5 text-[12px] text-text outline-none cursor-pointer focus:border-accent-bright/30"
             >
               <option value="none">none (isolated)</option>
               <option value="bridge">bridge (internet access)</option>

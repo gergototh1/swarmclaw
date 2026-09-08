@@ -64,7 +64,7 @@ export function RuntimeLoopSection({ appSettings, patchSettings, inputClass }: S
             <button
               key={mode.id}
               onClick={() => patchSettings({ loopMode: mode.id })}
-              className={`py-3 px-3 rounded-md text-center cursor-pointer transition-all text-[13px] font-600 border
+              className={`py-3 px-3 rounded-lg text-center cursor-pointer transition-all text-[13px] font-600 border
                 ${loopMode === mode.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                   : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'}`}

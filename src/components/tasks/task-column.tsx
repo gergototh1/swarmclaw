@@ -147,7 +147,7 @@ export function TaskColumn({
           />
         ))}
         {tasks.length === 0 && (
-          <div className={`text-[12px] text-text-3 text-center py-8 rounded-md border border-dashed transition-colors ${
+          <div className={`text-[12px] text-text-3 text-center py-8 rounded-lg border border-dashed transition-colors ${
             dragOver ? 'border-accent-bright/30 text-accent-bright/50' : 'border-transparent'
           }`}>
             {dragOver ? 'Drop here' : 'No tasks'}

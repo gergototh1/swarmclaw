@@ -55,15 +55,15 @@ export function TabAdvanced({
           )}
         >
           {configVersionsError ? (
-            <div className="rounded-md border border-red-500/20 bg-red-500/[0.06] p-3 text-[13px] text-red-300">
+            <div className="rounded-lg border border-red-500/20 bg-red-500/[0.06] p-3 text-[13px] text-red-300">
               {configVersionsError}
             </div>
           ) : configVersionsLoading && configVersionSummaries.length === 0 ? (
-            <div className="rounded-md border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
+            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
               Loading saved versions...
             </div>
           ) : configVersionSummaries.length === 0 ? (
-            <div className="rounded-md border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
+            <div className="rounded-lg border border-line-subtle bg-layer-1 p-3 text-[13px] text-text-3">
               No saved versions yet.
             </div>
           ) : (
@@ -71,7 +71,7 @@ export function TabAdvanced({
               {configVersionSummaries.slice(0, 8).map((summary) => (
                 <div
                   key={summary.id}
-                  className="flex flex-col gap-3 rounded-md border border-line-subtle bg-layer-1 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-layer-1 p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-[14px] font-700 text-text">{summary.title}</div>

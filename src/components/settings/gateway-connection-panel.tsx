@@ -160,7 +160,7 @@ export function GatewayConnectionPanel() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="ws://127.0.0.1:18789"
-          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3 focus:border-line-default transition-colors"
+          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-layer-2 text-[13px] text-text font-mono outline-none placeholder:text-text-3 focus:border-line-default transition-colors"
         />
       </div>
 
@@ -171,7 +171,7 @@ export function GatewayConnectionPanel() {
           value={token}
           onChange={(e) => setToken(e.target.value)}
           placeholder="Access token"
-          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-black/20 text-[13px] text-text font-mono outline-none placeholder:text-text-3 focus:border-line-default transition-colors"
+          className="w-full px-3 py-2 rounded-sm border border-line-subtle bg-layer-2 text-[13px] text-text font-mono outline-none placeholder:text-text-3 focus:border-line-default transition-colors"
         />
       </div>
 

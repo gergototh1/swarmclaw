@@ -38,7 +38,7 @@ export function EmbeddingSection({ appSettings, patchSettings, inputClass, credL
             <button
               key={String(p.id)}
               onClick={() => patchSettings({ embeddingProvider: p.id, embeddingModel: null, embeddingCredentialId: null, embeddingEndpoint: null })}
-              className={`py-3 px-3 rounded-md text-center cursor-pointer transition-all text-[13px] font-600 border
+              className={`py-3 px-3 rounded-lg text-center cursor-pointer transition-all text-[13px] font-600 border
                 ${(appSettings.embeddingProvider || null) === p.id
                   ? 'bg-accent-soft border-accent-bright/25 text-accent-bright'
                   : 'bg-bg border-line-subtle text-text-2 hover:bg-surface-2'}`}

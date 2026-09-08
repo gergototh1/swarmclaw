@@ -1085,7 +1085,7 @@ export function ConnectorSheet() {
           {platformConfig.label} Setup Guide
         </button>
         {showSetup && (
-          <div className="mt-3 p-4 rounded-lg border border-line-subtle bg-layer-1 space-y-2.5"
+          <div className="mt-3 p-4 rounded-lg border border-line-subtle bg-surface space-y-2.5"
             style={{ animation: 'fade-in 0.2s ease-out' }}>
             {platformConfig.setupSteps.map((step, i) => (
               <div key={i} className="flex items-start gap-3">
@@ -1200,7 +1200,7 @@ export function ConnectorSheet() {
             )}
           </div>
           {showNewCred && (
-            <div className="mt-3 p-4 rounded-md border border-accent-bright/15 bg-accent-soft/20 space-y-3"
+            <div className="mt-3 p-4 rounded-lg border border-accent-bright/15 bg-accent-soft/20 space-y-3"
               style={{ animation: 'fade-in 0.2s ease-out' }}>
               <input
                 value={newCredName}
@@ -1280,7 +1280,7 @@ export function ConnectorSheet() {
           </p>
           {basicAccessFields.map((field) => renderConfigField(field))}
           {platform === 'whatsapp' && (
-            <div className="mb-6 rounded-md border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
+            <div className="mb-6 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
               Global WhatsApp approved contacts still live in Settings. Use advanced settings for per-connector allow and block lists.
             </div>
           )}
@@ -1291,7 +1291,7 @@ export function ConnectorSheet() {
       {editing && (() => {
         const effectiveRunning = runtimeConnector?.status === 'running' || waConnecting
         return (
-        <div className="mb-6 p-4 rounded-lg border border-line-subtle bg-layer-1">
+        <div className="mb-6 p-4 rounded-lg border border-line-subtle bg-surface">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[13px] font-600 text-text-2">Connection</div>
@@ -1330,7 +1330,7 @@ export function ConnectorSheet() {
 
       {/* WhatsApp QR code */}
       {editing && platform === 'whatsapp' && (runtimeConnector?.status === 'running' || waConnecting) && qrDataUrl && (
-        <div className="mb-6 p-5 rounded-lg border border-line-subtle bg-layer-1 text-center"
+        <div className="mb-6 p-5 rounded-lg border border-line-subtle bg-surface text-center"
           style={{ animation: 'fade-in 0.3s ease-out' }}>
           <div className="text-[13px] font-600 text-text-2 mb-1">Scan with WhatsApp</div>
           <p className="text-[11px] text-text-3 mb-4">
@@ -1346,7 +1346,7 @@ export function ConnectorSheet() {
 
       {/* WhatsApp connected (authenticated, no QR) */}
       {editing && platform === 'whatsapp' && (runtimeConnector?.status === 'running' || waConnecting) && !qrDataUrl && waAuthenticated && (
-        <div className="mb-6 p-5 rounded-lg border border-line-subtle bg-layer-1 text-center">
+        <div className="mb-6 p-5 rounded-lg border border-line-subtle bg-surface text-center">
           <div className="text-[13px] font-600 text-green-400 mb-1">Connected</div>
           <p className="text-[11px] text-text-3 mb-3">WhatsApp is paired and listening for messages</p>
           <button
@@ -1362,7 +1362,7 @@ export function ConnectorSheet() {
 
       {/* WhatsApp waiting for QR / reconnecting (not yet authenticated, no QR yet) */}
       {editing && platform === 'whatsapp' && (runtimeConnector?.status === 'running' || waConnecting) && !qrDataUrl && !waAuthenticated && (
-        <div className="mb-6 p-5 rounded-lg border border-line-subtle bg-layer-1 text-center">
+        <div className="mb-6 p-5 rounded-lg border border-line-subtle bg-surface text-center">
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="w-3 h-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
             <span className="text-[13px] font-600 text-blue-500">
@@ -1389,7 +1389,7 @@ export function ConnectorSheet() {
 
       {/* Error display */}
       {runtimeConnector?.lastError && (
-        <div className="mb-6 p-4 rounded-md bg-red-500/[0.06] border border-red-500/15">
+        <div className="mb-6 p-4 rounded-lg bg-red-500/[0.06] border border-red-500/15">
           <div className="text-[12px] font-600 text-red-400 mb-1">Error</div>
           <div className="text-[12px] text-red-400/70 leading-[1.5] font-mono">{runtimeConnector.lastError}</div>
         </div>
@@ -1419,7 +1419,7 @@ export function ConnectorSheet() {
             </p>
             {advancedAccessFields.map((field) => renderConfigField(field))}
             {platform === 'whatsapp' && (
-              <div className="mb-6 rounded-md border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
+              <div className="mb-6 rounded-lg border border-line-subtle bg-layer-1 px-4 py-3 text-[12px] text-text-3">
                 Global WhatsApp approved contacts: {globalWhatsAppAllowlistCount}. They remain managed in Settings.
               </div>
             )}
@@ -1447,7 +1447,7 @@ export function ConnectorSheet() {
           {COMMON_CONFIG_FIELDS.map((field) => renderConfigField(field))}
         </div>
 
-        <div className="mb-8 p-4 rounded-lg border border-line-subtle bg-layer-1">
+        <div className="mb-8 p-4 rounded-lg border border-line-subtle bg-surface">
           <div className="flex items-center justify-between gap-3 mb-2">
             <div>
               <div className="text-[13px] font-600 text-text-2">Connector Doctor</div>
@@ -1531,7 +1531,7 @@ export function ConnectorSheet() {
           <button
             onClick={() => setConfirmDelete(true)}
             disabled={deleting}
-            className="py-3.5 px-6 rounded-md border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all disabled:cursor-not-allowed disabled:opacity-60"
+            className="py-3.5 px-6 rounded-lg border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all disabled:cursor-not-allowed disabled:opacity-60"
             style={{ fontFamily: 'inherit' }}
           >
             Delete

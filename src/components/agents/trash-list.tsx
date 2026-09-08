@@ -49,7 +49,7 @@ export function TrashList() {
         {agents.map((agent) => (
           <div
             key={agent.id}
-            className="py-3 px-4 rounded-md border border-line-subtle bg-layer-1"
+            className="py-3 px-4 rounded-lg border border-line-subtle bg-layer-1"
           >
             <div className="flex items-center gap-2.5">
               <span className="font-display text-[14px] font-600 truncate flex-1 tracking-[-0.01em] text-text-2">

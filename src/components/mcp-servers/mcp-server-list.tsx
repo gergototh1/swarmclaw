@@ -339,7 +339,7 @@ export function McpServerList({ inSidebar }: { inSidebar?: boolean }) {
       ) : (
         <>
           {!inSidebar && inspectorServerId && (
-            <div className="mb-4 p-4 rounded-lg border border-line-default bg-surface-2">
+            <div className="mb-4 p-4 rounded-lg border border-line-default bg-surface">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="min-w-0">
                   <h3 className="font-display text-[14px] font-600 text-text truncate">
