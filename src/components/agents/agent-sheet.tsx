@@ -1057,7 +1057,7 @@ export function AgentSheet() {
         </div>
       </div>
 
-      <div className="sticky top-0 z-10 -mx-5 mb-6 flex items-center gap-1 border-b border-line-subtle bg-raised px-5 sm:-mx-8 sm:px-8">
+      <div className="sticky top-0 z-30 -mx-5 mb-6 flex items-center gap-1 border-b border-line-subtle bg-bg px-5 sm:-mx-8 sm:px-8">
         {AGENT_SHEET_TABS.map((entry) => (
           <button
             key={entry.key}
@@ -1213,19 +1213,19 @@ export function AgentSheet() {
       {/* Import file input (hidden) */}
       <input ref={importFileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
 
-      <div className="flex gap-3 pt-2 border-t border-line-subtle">
+      <div className="sticky bottom-0 z-30 -mx-5 mt-2 flex gap-3 border-t border-line-subtle bg-bg px-5 py-4 sm:-mx-8 sm:px-8">
         {editing && (
-          <button onClick={handleDelete} className="py-3.5 px-6 rounded-lg border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
+          <button onClick={handleDelete} className="py-3.5 px-6 rounded-full border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Delete
           </button>
         )}
-        <button onClick={onClose} className="flex-1 py-3.5 rounded-md border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
+        <button onClick={onClose} className="flex-1 py-3.5 rounded-full border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
           Cancel
         </button>
         <button
           onClick={handleTestAndSave}
           disabled={!name.trim() || providerNeedsKey || testStatus === 'testing' || saving || (!openclawEnabled && testStatus === 'pass')}
-          className={`flex-1 py-3.5 rounded-md border-none text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-60 transition-all hover:brightness-110
+          className={`flex-1 py-3.5 rounded-full border-none text-accent-fg text-[15px] font-600 cursor-pointer active:scale-[0.97] disabled:opacity-60 transition-all hover:brightness-110
             ${testStatus === 'pass' ? 'bg-emerald-600 ' : 'bg-accent-bright'}`}
           style={{ fontFamily: 'inherit' }}
         >
