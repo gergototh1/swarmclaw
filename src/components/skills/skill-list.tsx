@@ -133,22 +133,25 @@ function SidebarSkillList() {
                           <path d="m12 5 7 7-7 7" />
                         </svg>
                       </span>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          setEditingSkillId(skill.id)
-                          setSkillSheetOpen(true)
-                        }}
-                        className="cursor-pointer rounded-full border border-line-default px-2 py-1 text-[10px] font-700 text-text-3 transition-colors hover:border-line-strong hover:text-text"
-                      >
-                        Edit
-                      </button>
+                      {skill.readOnly ? null : (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            setEditingSkillId(skill.id)
+                            setSkillSheetOpen(true)
+                          }}
+                          className="cursor-pointer rounded-full border border-line-default px-2 py-1 text-[10px] font-700 text-text-3 transition-colors hover:border-line-strong hover:text-text"
+                        >
+                          Edit
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {skill.version ? <SidebarBadge>v{skill.version}</SidebarBadge> : null}
+                    {skill.readOnly ? <SidebarBadge>On disk</SidebarBadge> : null}
                     <SidebarBadge>{(skill.scope || 'global') === 'agent' ? 'Agent' : 'Global'}</SidebarBadge>
                     {skill.security ? (
                       <SidebarBadge tone={skill.security.level === 'high' ? 'danger' : skill.security.level === 'medium' ? 'warning' : 'neutral'}>

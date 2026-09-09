@@ -198,7 +198,12 @@ function scoreOverlap(a: string[], b: Set<string>): number {
   return total
 }
 
-function buildSkillKey(input: {
+/**
+ * The identity a skill is grouped under. Shared with the skills catalog so the
+ * UI dedupes stored records against discovered files exactly the way the
+ * runtime does.
+ */
+export function buildSkillKey(input: {
   skillKey?: string | null
   name: string
   filename?: string | null

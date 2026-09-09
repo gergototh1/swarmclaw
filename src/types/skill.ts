@@ -1,10 +1,22 @@
 // --- Skills ---
 
+/**
+ * Where a skill in the catalog came from. `stored` is an editable record in the
+ * skills table; the other three are SKILL.md files found on disk by
+ * `discoverSkills` and are read-only in the UI.
+ */
+export type SkillSource = 'stored' | 'bundled' | 'workspace' | 'project'
+
 export interface Skill {
   id: string
   name: string
   filename: string
   content: string
+  source?: SkillSource
+  /** Absolute path to the SKILL.md a discovered skill was read from. */
+  sourcePath?: string
+  /** True for discovered skills: they have no storage record to edit or delete. */
+  readOnly?: boolean
   projectId?: string
   description?: string
   sourceUrl?: string

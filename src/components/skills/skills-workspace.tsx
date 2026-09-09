@@ -701,6 +701,7 @@ function SkillDetailView({
  const scopeLabel = (skill.scope || 'global') === 'agent' ? `${scopedAgents.length} agent${scopedAgents.length === 1 ? '' : 's'}` : 'Global'
  const requirementTotal = countRequirements(skill)
  const plainPreview = skill.description || plainTextExcerpt(skill.content, 240)
+ const sourceLabel = skillSourceLabel(skill)
 
  return (
  <div className="space-y-6 pt-5">
@@ -710,7 +711,7 @@ function SkillDetailView({
  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
  <div className="max-w-3xl">
  <div className="text-[11px] font-700 tracking-[0.03em] text-text-3">
- Local Skill
+ {skill.readOnly ? 'Discovered Skill' : 'Local Skill'}
  </div>
  <h2 className="mt-2 font-display text-[28px] font-700 tracking-[-0.04em] text-text md:text-[34px]">
  {skill.name}
@@ -721,18 +722,19 @@ function SkillDetailView({
  </div>
 
  <div className="flex flex-wrap gap-2 xl:justify-end">
- <ActionButton label="Edit skill" tone="primary" onClick={onEdit} />
+ {skill.readOnly ? null : <ActionButton label="Edit skill" tone="primary" onClick={onEdit} />}
  {skill.homepage ? (
  <ActionAnchor label="Homepage" href={skill.homepage} tone="secondary" />
  ) : null}
  {skill.sourceUrl ? (
  <ActionAnchor label="Source file" href={skill.sourceUrl} tone="ghost" />
  ) : null}
- <ActionButton label="Delete" tone="danger" onClick={onDelete} />
+ {skill.readOnly ? null : <ActionButton label="Delete" tone="danger" onClick={onDelete} />}
  </div>
  </div>
 
  <div className="mt-5 flex flex-wrap gap-2">
+ {sourceLabel ? <MiniBadge>{sourceLabel}</MiniBadge> : null}
  <MiniBadge>{scopeLabel}</MiniBadge>
  <MiniBadge>{skill.sourceFormat === 'openclaw' ? 'OpenClaw format' : 'Plain markdown'}</MiniBadge>
  <MiniBadge>{skill.filename}</MiniBadge>
@@ -741,6 +743,16 @@ function SkillDetailView({
  {requirementTotal > 0 ? <MiniBadge>{requirementTotal} setup items</MiniBadge> : null}
  {skill.security ? <MiniBadge tone={securityTone(skill.security.level)}>{skill.security.level} risk</MiniBadge> : null}
  </div>
+
+ {skill.readOnly ? (
+ <p className="mt-4 rounded-lg border border-line-subtle bg-layer-2 px-4 py-3 text-[12px] leading-[1.7] text-text-3">
+ Agents already see this skill — it is read from a SKILL.md on disk, not from the skills table, so
+ there is nothing here to edit or delete. Change the file to change the skill.
+ {skill.sourcePath ? (
+ <span className="mt-1 block break-all font-mono text-[11px] text-text-2">{skill.sourcePath}</span>
+ ) : null}
+ </p>
+ ) : null}
 
  <div className="mt-6 grid gap-3 lg:grid-cols-3">
  <DetailCard
@@ -1042,6 +1054,7 @@ function SkillCard({
  const requirementTotal = countRequirements(skill)
  const description = skill.description || plainTextExcerpt(skill.content, 180)
  const scopeLabel = (skill.scope || 'global') === 'agent' ? `${scopedAgents.length || skill.agentIds?.length || 0} agent${(scopedAgents.length || skill.agentIds?.length || 0) === 1 ? '' : 's'}` : 'Global'
+ const sourceLabel = skillSourceLabel(skill)
 
  return (
  <div className="group rounded-lg border border-line-subtle bg-surface p-4 text-left transition-all hover:border-line-default hover:bg-surface-2">
@@ -1052,7 +1065,10 @@ function SkillCard({
  {skill.filename} | updated {formatTimestamp(skill.updatedAt || skill.createdAt)}
  </div>
  </div>
+ <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+ {sourceLabel ? <MiniBadge>{sourceLabel}</MiniBadge> : null}
  <MiniBadge>{scopeLabel}</MiniBadge>
+ </div>
  </div>
 
  <p className="mt-3 line-clamp-3 text-[13px] leading-[1.7] text-text-3">
@@ -1100,10 +1116,12 @@ function SkillCard({
  Details
  <ArrowRightIcon />
  </button>
+ {skill.readOnly ? null : (
  <button type="button" onClick={onEdit} className={ghostButtonClassName}>
  Edit
  <EditIcon />
  </button>
+ )}
  </div>
  </div>
  )
@@ -1580,6 +1598,17 @@ function buildSetupSummary(skill: Partial<Skill>) {
  if (skill.skillRequirements?.config?.length) parts.push(`${skill.skillRequirements.config.length} config entries`)
  if (skill.security) parts.push(`${skill.security.level} risk`)
  return parts.length ? parts.join(' | ') : 'No setup requirements declared.'
+}
+
+/**
+ * What a card says about where the skill came from. Stored records get no badge:
+ * they are the default the page was already built around.
+ */
+function skillSourceLabel(skill: Skill): string | null {
+ if (!skill.readOnly) return null
+ if (skill.source === 'bundled') return 'Bundled'
+ if (skill.source === 'project') return 'Project file'
+ return 'Workspace file'
 }
 
 function securityTone(level: Skill['security'] extends { level: infer L } ? L : string) {
