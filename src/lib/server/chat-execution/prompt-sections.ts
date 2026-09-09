@@ -489,6 +489,10 @@ export async function buildProactiveMemorySection(
     const memDb = getMemoryDb()
     const recalled = memDb.search(message, session.agentId, {
       scope: buildSessionMemoryScopeFilter(session, agent.memoryScopeMode || null, activeProjectRoot),
+      // OR, because the query here is the raw user message. Under AND the
+      // stored memory would have to contain the filler words too ("mit",
+      // "hogyan"), which it never does, so AND recalls nothing.
+      ftsMode: 'any',
     })
     const knowledgeTrace = await buildKnowledgeRetrievalTrace({
       query: message,

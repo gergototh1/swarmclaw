@@ -218,9 +218,167 @@ describe('memory-db', () => {
     it('returns a single-term FTS query for short (3-4 char) words', () => {
       // Single words like "cats", "blue", "dog" must produce a non-empty FTS
       // query so the memory lookup UI works for short meaningful terms.
-      assert.equal(memDb.buildFtsQuery('cats'), '"cats"')
-      assert.equal(memDb.buildFtsQuery('blue'), '"blue"')
-      assert.equal(memDb.buildFtsQuery('dog'), '"dog"')
+      assert.equal(memDb.buildFtsQuery('cats'), 'cats*')
+      assert.equal(memDb.buildFtsQuery('blue'), 'blue*')
+      assert.equal(memDb.buildFtsQuery('dog'), 'dog*')
+    })
+
+    // --- Accented (Hungarian) input ---
+    // The FTS5 unicode61 tokenizer folds diacritics on BOTH the index and the
+    // query side, so an accented word is findable. The bug was upstream of
+    // that: an ASCII-only token regex shredded the word before it ever
+    // reached FTS. "határidő" became "hat" AND "rid" — two garbage prefixes
+    // that match the wrong rows or nothing at all.
+
+    it('keeps accented Hungarian words whole', () => {
+      assert.equal(memDb.buildFtsQuery('határidő'), 'határidő*')
+      assert.equal(memDb.buildFtsQuery('működik'), 'működik*')
+      assert.equal(memDb.buildFtsQuery('ügyfél'), 'ügyfél*')
+      assert.equal(memDb.buildFtsQuery('stratégia'), 'stratégia*')
+    })
+
+    it('does not shred a short accented word into nothing', () => {
+      // Every fragment of "döntés" under the old ASCII regex was < 3 chars,
+      // so the whole query came out empty and search skipped FTS entirely.
+      assert.equal(memDb.buildFtsQuery('döntés'), 'döntés*')
+    })
+
+    it('keeps accents in a full sentence', () => {
+      const query = memDb.buildFtsQuery('Mit döntöttünk a stratégiáról?')
+      assert.ok(query.includes('döntöttünk*'), query)
+      assert.ok(query.includes('stratégiáról*'), query)
+      assert.ok(!query.includes('strat*'), query)
+    })
+
+    // --- Punctuation becomes a separator, never a fusion ---
+
+    it('splits on punctuation instead of deleting it', () => {
+      // Deleting the hyphen would fuse this into "rankcheck", a token the
+      // index cannot contain. unicode61 indexed it as two tokens.
+      const query = memDb.buildFtsQuery('rank-check')
+      assert.ok(query.includes('rank*'), query)
+      assert.ok(query.includes('check*'), query)
+      assert.ok(!query.includes('rankcheck'), query)
+    })
+
+    it('splits on underscores too', () => {
+      const query = memDb.buildFtsQuery('agent_identifier')
+      assert.ok(query.includes('agent*'), query)
+      assert.ok(query.includes('identifier*'), query)
+    })
+
+    // --- Prefix wildcard stands in for the stemmer we do not have ---
+
+    it('appends a prefix wildcard to every term', () => {
+      const query = memDb.buildFtsQuery('videó határidő')
+      for (const term of query.split(/\s+AND\s+/)) {
+        assert.ok(term.endsWith('*'), `term without wildcard: ${term}`)
+      }
+    })
+
+    // --- Match mode ---
+
+    it('joins with OR in "any" mode', () => {
+      // Automatic recall searches with the raw user message, which carries
+      // filler the stored memory will never contain. Under AND that recalls
+      // nothing; ranking sorts out the noise instead.
+      const query = memDb.buildFtsQuery('mit döntöttünk a stratégiáról', 'any')
+      assert.ok(query.includes(' OR '), query)
+      assert.ok(!query.includes(' AND '), query)
+    })
+
+    it('still joins with AND by default', () => {
+      const query = memDb.buildFtsQuery('alpha bravo')
+      assert.ok(query.includes(' AND '), query)
+    })
+  })
+
+  // --- Abstracts without a generation model ---
+
+  describe('abstract on insert', () => {
+    const longNote = 'A YouTube OAuth token lejárt és újra kell hitelesíteni. '
+      + 'A kliens-fájl a store könyvtárban van, a refresh token viszont érvénytelen lett. '
+      + 'Ez a harmadik eset ebben a hónapban, ezért érdemes lenne automatizálni az ellenőrzést.'
+
+    it('writes an abstract at insert time, without waiting for a model', () => {
+      const db = memDb.getMemoryDb()
+      const entry = db.add({
+        agentId: `abstract-${Date.now()}`,
+        category: 'operations/environment',
+        title: 'YouTube OAuth',
+        content: longNote,
+      })
+      // Read it back rather than trusting the returned object: the point is
+      // that the column is populated, not that the caller got a value.
+      const stored = db.get(entry.id)
+      assert.ok(stored?.abstract, 'abstract should be written synchronously')
+      assert.ok(stored!.abstract!.startsWith('A YouTube OAuth token lejárt'), stored!.abstract!)
+      assert.ok(!stored!.abstract!.includes('\n'), 'abstract should be one line')
+    })
+
+    it('keeps an abstract the writer supplied itself', () => {
+      const db = memDb.getMemoryDb()
+      const entry = db.add({
+        agentId: `abstract2-${Date.now()}`,
+        category: 'operations/environment',
+        title: 'YouTube OAuth',
+        content: longNote,
+        abstract: 'A YouTube feltöltés nem működik, újra-auth kell.',
+      })
+      assert.equal(db.get(entry.id)?.abstract, 'A YouTube feltöltés nem működik, újra-auth kell.')
+    })
+  })
+
+  // --- Fleet-wide sharing ---
+
+  describe('sharedWith "everyone" sentinel', () => {
+    it('treats a sharedWith of ["*"] as visible to any agent', () => {
+      const db = memDb.getMemoryDb()
+      const entry = db.add({
+        agentId: `author-${Date.now()}`,
+        category: 'knowledge/facts',
+        title: 'Fleet-wide fact',
+        content: 'Every agent should see this one.',
+        sharedWith: ['*'],
+      })
+      const seen = memDb.filterMemoriesByScope([entry], { mode: 'agent', agentId: 'some-other-agent' })
+      assert.equal(seen.length, 1)
+    })
+
+    it('still scopes a normal sharedWith list to its listed agents', () => {
+      const db = memDb.getMemoryDb()
+      const entry = db.add({
+        agentId: `author2-${Date.now()}`,
+        category: 'knowledge/facts',
+        title: 'Narrowly shared fact',
+        content: 'Only one other agent should see this.',
+        sharedWith: ['agent-alpha'],
+      })
+      assert.equal(memDb.filterMemoriesByScope([entry], { mode: 'agent', agentId: 'agent-alpha' }).length, 1)
+      assert.equal(memDb.filterMemoriesByScope([entry], { mode: 'agent', agentId: 'agent-beta' }).length, 0)
+    })
+
+    it('reads a legacy bare "global" marker as the everyone sentinel', async () => {
+      // A seed script wrote the literal string "global" into sharedWith,
+      // intending "share with the whole fleet". It is not JSON, so it parsed
+      // to nothing and 30 live rows silently lost their sharing. Read it as
+      // the sentinel rather than making the operator re-seed.
+      const db = memDb.getMemoryDb()
+      db.add({ agentId: 'warmup', category: 'note', title: 'warmup', content: 'warmup' })
+      const { default: Database } = await import('better-sqlite3')
+      const raw = new Database(path.join(tempDir, 'data', 'memory.db'))
+      const id = `legacy-shared-${Date.now()}`
+      const now = Date.now()
+      raw.prepare(
+        `INSERT INTO memories (id, agentId, sessionId, category, title, content, sharedWith, createdAt, updatedAt)
+         VALUES (?, ?, NULL, ?, ?, ?, 'global', ?, ?)`,
+      ).run(id, 'legacy-author', 'knowledge/facts', 'Legacy shared fact', 'Written by the old seed.', now, now)
+      raw.close()
+
+      const entry = db.get(id)
+      assert.ok(entry, 'legacy row should load')
+      assert.deepEqual(entry!.sharedWith, ['*'])
+      assert.equal(memDb.filterMemoriesByScope([entry!], { mode: 'agent', agentId: 'any-agent' }).length, 1)
     })
   })
 

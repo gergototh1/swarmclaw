@@ -18,7 +18,7 @@ import {
 } from '@/lib/server/memory/memory-graph'
 import { isWorkingMemoryCategory } from '@/lib/server/memory/memory-tiers'
 
-import { generateAbstract } from '@/lib/server/memory/memory-abstract'
+import { generateAbstract, summarizeWithoutModel } from '@/lib/server/memory/memory-abstract'
 import { DATA_DIR, MEMORY_IMAGES_DIR, WORKSPACE_DIR } from '@/lib/server/data-dir'
 import { safeJsonParse } from '@/lib/server/json-utils'
 import { tryResolvePathWithinBaseDir } from '@/lib/server/path-utils'
@@ -47,6 +47,8 @@ export const MEMORY_FTS_STOP_WORDS = new Set([
 
 export type MemoryScopeMode = 'auto' | 'all' | 'global' | 'agent' | 'session' | 'project'
 export type MemoryRerankMode = 'balanced' | 'semantic' | 'lexical'
+/** AND for an explicit search, OR for automatic recall on a raw user message. */
+export type FtsMatchMode = 'all' | 'any'
 
 export interface MemoryScopeFilter {
   mode: MemoryScopeMode
@@ -59,6 +61,8 @@ export interface MemorySearchOptions {
   scope?: MemoryScopeFilter
   rerankMode?: MemoryRerankMode
   vectorSimilarityThreshold?: number
+  /** AND (default) for an explicit search, OR for automatic recall on a raw user message. */
+  ftsMode?: FtsMatchMode
 }
 
 function normalizeScopeIdentifier(value: unknown): string | null {
@@ -133,10 +137,34 @@ function entryRootsForScope(entry: MemoryEntry): string[] {
   return [...roots]
 }
 
+/** `sharedWith` value meaning "every agent in the fleet". */
+export const SHARED_WITH_EVERYONE = '*'
+
+/**
+ * Read a stored `sharedWith` cell.
+ *
+ * The normal shape is a JSON array of agent ids. A seed script once wrote the
+ * bare string "global" instead, meaning "the whole fleet" — that is not JSON,
+ * so it parsed to nothing and those rows silently stopped being shared. Read
+ * the legacy markers as the sentinel rather than losing the intent.
+ */
+export function normalizeSharedWith(raw: unknown): string[] | undefined {
+  if (Array.isArray(raw)) return raw.length ? raw as string[] : undefined
+  if (typeof raw !== 'string') return undefined
+  const trimmed = raw.trim()
+  if (!trimmed) return undefined
+  if (trimmed === 'global' || trimmed === 'all' || trimmed === SHARED_WITH_EVERYONE) {
+    return [SHARED_WITH_EVERYONE]
+  }
+  const parsed = safeJsonParse<string[]>(trimmed, [])
+  return parsed.length ? parsed : undefined
+}
+
 function scopeAllowsAgentAccess(entry: MemoryEntry, agentId: string): boolean {
   if (entry.agentId === agentId) return true
-  if (Array.isArray(entry.sharedWith) && entry.sharedWith.includes(agentId)) return true
-  return false
+  if (!Array.isArray(entry.sharedWith)) return false
+  if (entry.sharedWith.includes(SHARED_WITH_EVERYONE)) return true
+  return entry.sharedWith.includes(agentId)
 }
 
 function metadataNumber(entry: MemoryEntry, key: string): number | null {
@@ -369,30 +397,55 @@ function canonicalText(value: unknown): string {
     .trim()
 }
 
-export function buildFtsQuery(input: string): string {
+/**
+ * Turn user text into an FTS5 MATCH expression.
+ *
+ * `all` (AND) is for an explicit search, where every term the user typed is a
+ * requirement. `any` (OR) is for automatic recall, where the query is a raw
+ * user message: under AND the stored memory would have to contain the filler
+ * words too ("mit", "hogyan"), so AND recalls nothing. Ranking sorts out the
+ * noise instead — common words carry almost no bm25 weight.
+ */
+export function buildFtsQuery(input: string, mode: FtsMatchMode = 'all'): string {
+  // Punctuation becomes a SPACE, not nothing. "rank-check" has to split into
+  // the two tokens unicode61 indexed; deleting the hyphen would fuse it into
+  // an unfindable "rankcheck". The underscore is listed explicitly because
+  // \p{L}/\p{N} would otherwise leave it joined.
+  //
+  // \p{L} with the u flag preserves accented letters. The previous ASCII
+  // class ([a-z0-9]) cut every Hungarian word apart at its first accent:
+  // "határidő" came out as "hat" + "rid", "döntés" as nothing at all.
   const tokens = String(input || '')
     .toLowerCase()
-    .match(/[a-z0-9][a-z0-9._:/-]*/g) || []
+    .replace(/[^\p{L}\p{N}\s]|_/gu, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
   if (!tokens.length) return ''
 
   const unique: string[] = []
   const seen = new Set<string>()
   for (const token of tokens) {
     const term = token.slice(0, MAX_FTS_TERM_LENGTH)
-    if (term.length < 3) continue
+    // Letters need three characters to be worth a prefix search — with the
+    // trailing wildcard, "no*" would match half the corpus. Digits do not:
+    // "70" out of "70/30" is specific, and unicode61 indexed it on its own.
+    if (term.length < 3 && !/^\d+$/.test(term)) continue
     if (MEMORY_FTS_STOP_WORDS.has(term)) continue
     if (seen.has(term)) continue
     seen.add(term)
     unique.push(term)
     if (unique.length >= MAX_FTS_QUERY_TERMS) break
   }
-
-  if (unique.length === 1) {
-    return `"${unique[0].replace(/"/g, '')}"`
-  }
+  if (!unique.length) return ''
 
   const selected = unique.slice(0, Math.min(4, MAX_FTS_QUERY_TERMS))
-  return selected.map((term) => `"${term.replace(/"/g, '')}"`).join(' AND ')
+  // The trailing * is the only stemming this index has. Hungarian is
+  // agglutinative, so "dontes*" must reach "dontesek", "dontesnel" and
+  // "donteshozatal". Tokens are letters and digits only by this point, so
+  // they need no quoting, and lowercasing already neutered FTS5's operators
+  // (AND/OR/NOT/NEAR are operators only in upper case).
+  const joiner = mode === 'any' ? ' OR ' : ' AND '
+  return selected.map((term) => `${term}*`).join(joiner)
 }
 
 function resolveExists(pathValue: string | undefined): boolean | undefined {
@@ -690,9 +743,9 @@ function initDb() {
     },
     listAll: db.prepare(`SELECT * FROM memories ORDER BY updatedAt DESC LIMIT ?`),
     listByAgent: db.prepare(`SELECT * FROM memories WHERE agentId=? ORDER BY updatedAt DESC LIMIT ?`),
-    listByAgentOrShared: db.prepare(`SELECT * FROM memories WHERE agentId=? OR sharedWith LIKE ? ORDER BY updatedAt DESC LIMIT ?`),
+    listByAgentOrShared: db.prepare(`SELECT * FROM memories WHERE agentId=? OR sharedWith LIKE ? OR sharedWith IN ('global','all','*') ORDER BY updatedAt DESC LIMIT ?`),
     listByCategoryAll: db.prepare(`SELECT * FROM memories WHERE category=? ORDER BY updatedAt DESC LIMIT ?`),
-    listByCategoryAgentOrShared: db.prepare(`SELECT * FROM memories WHERE category=? AND (agentId=? OR sharedWith LIKE ?) ORDER BY updatedAt DESC LIMIT ?`),
+    listByCategoryAgentOrShared: db.prepare(`SELECT * FROM memories WHERE category=? AND (agentId=? OR sharedWith LIKE ? OR sharedWith IN ('global','all','*')) ORDER BY updatedAt DESC LIMIT ?`),
     listKnowledgeSourceChunks: db.prepare(`
       SELECT * FROM memories
       WHERE category='knowledge' AND json_extract(metadata, '$.sourceId') = ?
@@ -715,7 +768,7 @@ function initDb() {
     searchByAgentOrShared: db.prepare(`
       SELECT m.* FROM memories m
       INNER JOIN memories_fts f ON m.rowid = f.rowid
-      WHERE memories_fts MATCH ? AND (m.agentId = ? OR m.sharedWith LIKE ?)
+      WHERE memories_fts MATCH ? AND (m.agentId = ? OR m.sharedWith LIKE ? OR m.sharedWith IN ('global','all','*'))
       LIMIT ${MAX_FTS_RESULT_ROWS}
     `),
     // Remove a linked ID from all memories that reference it (cleanup on delete)
@@ -779,7 +832,7 @@ function initDb() {
       imagePath: image?.path || undefined,
       linkedMemoryIds: linkedMemoryIds.length ? linkedMemoryIds : undefined,
       pinned: row.pinned === 1,
-      sharedWith: safeJsonParse<string[]>(row.sharedWith, []).length ? safeJsonParse<string[]>(row.sharedWith, []) : undefined,
+      sharedWith: normalizeSharedWith(row.sharedWith),
       accessCount: typeof row.accessCount === 'number' ? row.accessCount : 0,
       lastAccessedAt: typeof row.lastAccessedAt === 'number' ? row.lastAccessedAt : 0,
       contentHash: typeof row.contentHash === 'string' ? row.contentHash : undefined,
@@ -826,6 +879,16 @@ function initDb() {
       const content = data.content || ''
       const contentHash = computeContentHash(knowledgeChunkHashScope(category, data.metadata), content)
 
+      // Every agent in this install runs on a CLI provider, so there is no
+      // generation model to summarize with. The abstract is therefore written
+      // at insert time, from the writer's own words if it supplied one and
+      // otherwise from the content itself. The LLM pass below only ever
+      // upgrades it, and stays a no-op where no model is configured.
+      const suppliedAbstract = typeof data.abstract === 'string' && data.abstract.trim()
+        ? data.abstract.trim()
+        : null
+      const abstract = suppliedAbstract || (content ? summarizeWithoutModel(content) : null) || null
+
       // Content-hash dedup: if same content already exists for this agent, reinforce instead of duplicating
       const agentId = data.agentId || null
       const existingByHash = agentId
@@ -856,7 +919,7 @@ function initDb() {
         pinned,
         sharedWith,
         contentHash,
-        null, // abstract computed async
+        abstract,
         now, now,
       )
       // Compute embedding in background (fire-and-forget)
@@ -869,8 +932,10 @@ function initDb() {
         }
       }).catch((err: unknown) => { log.warn(TAG, `Embedding generation failed for memory ${id}:`, err instanceof Error ? err.message : String(err)) })
 
-      // Generate abstract for long content in background (fire-and-forget)
-      if (content.length > 200) {
+      // A configured model can still write a better abstract than the
+      // heuristic one; it overwrites, but only if it produces something.
+      // A writer that supplied its own abstract is not second-guessed.
+      if (!suppliedAbstract && content.length > 200) {
         generateAbstract(content, title).then((abstract) => {
           if (abstract) {
             db.prepare(`UPDATE memories SET abstract = ? WHERE id = ?`).run(abstract, id)
@@ -1094,7 +1159,7 @@ function initDb() {
           }
 
       // FTS keyword search (includes memories shared with this agent)
-      const ftsQuery = buildFtsQuery(query)
+      const ftsQuery = buildFtsQuery(query, options.ftsMode || 'all')
       const fastAgentOnlyScope = scopeMode === 'agent' && !!normalizedAgentId
       const ftsResults: MemoryEntry[] = ftsQuery
         ? (fastAgentOnlyScope
