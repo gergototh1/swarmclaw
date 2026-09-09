@@ -665,6 +665,7 @@ const COMMAND_GROUPS = [
         expectsJsonBody: true,
         defaultBody: { action: 'disable_all' },
       }),
+      cmd('read', 'POST', '/chats/:id/read', 'Mark a chat read up to now'),
       cmd('messages', 'GET', '/chats/:id/messages', 'Get chat messages'),
       cmd('messages-update', 'PUT', '/chats/:id/messages', 'Update chat message metadata (e.g. bookmark)', { expectsJsonBody: true }),
       cmd('messages-send', 'POST', '/chats/:id/messages', 'Append a user/system message to a chat', { expectsJsonBody: true }),
