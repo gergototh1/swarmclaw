@@ -166,6 +166,20 @@ export function createSweep(state) {
         ? q
         : String(settings.sopresLekerdezes || DEFAULT_QUERY)
 
+      // TÖBB CÍMKE ÉS-KAPCSOLAT, ÉS EZ EGYSZER MÁR ELESBEN FÁJT. A
+      // `users.messages.list` metszetet szűr, tehát `['INBOX','SENT']`
+      // garantáltan üres halmaz -- ettől nem húzott be a söprés egyetlen
+      // levelet sem, miközben minden teszt zöld volt. A hívó felülírását nem
+      // írjuk felül, de nevesítve naplózzuk, hogy a diagnózis ne az
+      // eseménytábla visszafejtésével kezdődjön.
+      if (explicitLabels.length > 1) {
+        state.log?.warn?.(
+          'crm sweep: tobb cimke egy listazasban ES-kapcsolat -- csak olyan level jon vissza, '
+          + 'amin MINDEGYIK cimke rajta van, es pl. az INBOX+SENT metszete mindig ures.',
+          { labelIds: explicitLabels },
+        )
+      }
+
       // A felülírt címkelistának saját kurzora van: egy szűkített menet
       // lapozása nem folytatható a teljes postafiók lapozásáról, és fordítva.
       const kulcs = explicitLabels.length ? `gmail:${explicitLabels.join('+')}` : SWEEP_KEY_ALL

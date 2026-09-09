@@ -134,7 +134,7 @@ test('egy hibazo uzenet nem allitja meg a lap tobbi levelenek behuzasat, es a ku
     repo.listEvents({ accountId: acc.id }).map((e) => e.source_id).sort(),
     ['ok1', 'ok2'],
   )
-  assert.equal(repo.getSweepState('gmail:INBOX').cursor, '', 'a kurzor akkor is frissult, ha volt hiba')
+  assert.equal(repo.getSweepState('gmail:all').cursor, '', 'a kurzor akkor is frissult, ha volt hiba')
 })
 
 // ---- C2: a listazas hatarolt, es a sajat kimeno level nem kerul be email_in-kent ----
@@ -170,7 +170,7 @@ test('a kimeno level, aminek se pontos cime, se szala, a besorolatlanba sem keru
   assert.equal(r.skippedOut, 1, 'a kimarado kimeno level szamolodik, nem tunik el nyomtalanul')
 })
 
-test('a listazas alapbol az INBOX es SENT cimkere es 90 napra hatarolt', async () => {
+test('a listazas alapbol CIMKE NELKUL, a teljes postafiokra megy, 90 napra hatarolva', async () => {
   const kapott = []
   const uzenetek = [LEVEL()]
   const mailbox = {
@@ -182,50 +182,41 @@ test('a listazas alapbol az INBOX es SENT cimkere es 90 napra hatarolt', async (
   }
   const { sweep } = sweepOf(uzenetek, { mailbox })
   await sweep.runSweep({})
-  // Cimkenkent EGY-EGY hivas, mindegyik EGYETLEN cimkevel: a Gmail
-  // `labelIds`-e ES-kapcsolat, es az INBOX+SENT metszete mindig ures.
-  assert.deepEqual(kapott.map((k) => k.labelIds), [['INBOX'], ['SENT']])
+  // EGY hivas, cimke NELKUL. A Gmailnek nincs `ALL_MAIL` cimkeje, tehat a
+  // teljes postafiok -- benne az archivalt levellel -- egyetlen modja az,
+  // hogy `labelIds` egyaltalan nem megy a hivasba.
+  assert.equal(kapott.length, 1, 'egy menet, nem cimkenkent egy-egy')
+  assert.equal(kapott[0].labelIds, undefined, 'nem megy cimkeszures a listazasba')
   assert.equal(kapott[0].q, 'newer_than:90d')
-  assert.equal(kapott[1].q, 'newer_than:90d')
 })
 
-test('a sopresCimkek vesszos listaja szetbontva megy a listazasba', async () => {
+test('a tarolt sopresCimkek beallitas NEM szukiti a listazast, es ezt naplozza', async () => {
+  // A CRM-2 alapertelmezese `'INBOX'` volt. Ha ezt a mezot az operator valaha
+  // elmentette, a tiszteletben tartasa pontosan azt a vaksagot allitana
+  // vissza, amit ez a sopres megszuntet: az archivalt level kimaradna.
   const kapott = []
+  const naplo = []
   const uzenetek = [LEVEL()]
   const mailbox = {
     list: async (args) => {
       kapott.push(args)
-      return { ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }
+      return { ids: [], nextCursor: '', complete: true, stoppedOn: '' }
     },
     get: async ({ id }) => uzenetek.find((u) => u.id === id),
   }
-  const { sweep } = sweepOf(uzenetek, {
+  const { sweep, state } = sweepOf(uzenetek, {
     mailbox,
-    settings: () => ({ sopresCimkek: ' Ugyfelek , SENT ,, ' }),
+    settings: () => ({ sopresCimkek: 'Ugyfelek, SENT', sopresCimke: 'INBOX' }),
   })
+  state.log = { warn: (msg, meta) => naplo.push({ msg, meta }), info: () => {}, error: () => {} }
   await sweep.runSweep({})
-  assert.deepEqual(kapott.map((k) => k.labelIds), [['Ugyfelek'], ['SENT']])
+  assert.equal(kapott[0].labelIds, undefined, 'a beallitas nem szurkiti a listazast')
+  const fig = naplo.find((n) => n.msg.includes('figyelmen kivul'))
+  assert.ok(fig, 'a figyelmen kivul hagyott beallitas nem tunhet el nemán')
+  assert.equal(fig.meta.sopresCimkek, 'Ugyfelek, SENT')
 })
 
-test('a sopresCimkek elsobbseget elvez a regi sopresCimke felett, ha mindketto be van allitva', async () => {
-  const kapott = []
-  const uzenetek = [LEVEL()]
-  const mailbox = {
-    list: async (args) => {
-      kapott.push(args)
-      return { ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }
-    },
-    get: async ({ id }) => uzenetek.find((u) => u.id === id),
-  }
-  const { sweep } = sweepOf(uzenetek, {
-    mailbox,
-    settings: () => ({ sopresCimkek: 'Uj', sopresCimke: 'Regi' }),
-  })
-  await sweep.runSweep({})
-  assert.deepEqual(kapott.map((k) => k.labelIds), [['Uj']])
-})
-
-test('a beallitott cimke es lekerdezes felulirja az alapertelmezettet', async () => {
+test('a beallitott lekerdezes felulirja az alapertelmezettet, a cimke nem szamit', async () => {
   const kapott = []
   const uzenetek = [LEVEL()]
   const mailbox = {
@@ -240,7 +231,7 @@ test('a beallitott cimke es lekerdezes felulirja az alapertelmezettet', async ()
     settings: () => ({ sopresCimke: 'Ugyfelek', sopresLekerdezes: 'newer_than:30d' }),
   })
   await sweep.runSweep({})
-  assert.deepEqual(kapott[0].labelIds, ['Ugyfelek'])
+  assert.equal(kapott[0].labelIds, undefined)
   assert.equal(kapott[0].q, 'newer_than:30d')
 })
 
@@ -273,15 +264,13 @@ test('a kimeno level akkor is a szalhoz kerul, ha a felado ismeretlen', async ()
 })
 
 /**
- * A TAROLT, ORDOGOLT `sopresCimke` NEMAN KIKAPCSOLJA A ZASZLOSHAJO-JELZEST.
+ * A HIVO CIMKEJE SZUKITES, ES SZUKITESKENT IS KELL VISELKEDNIE.
  *
- * A CRM-2 alapertelmezese pontosan `'INBOX'` volt, tehat barmelyik telepitesen,
- * ahol az operator ezt a mezot valaha elmentette, a tartalek-ag egy SENT nelkuli
- * cimkelistat ad. Ekkor egyetlen `email_out` esemeny sem keletkezik, es az
- * `unansweredThreads` -- ami PONTOSAN a kimeno esemeny hianyat keresi -- minden
- * bejovo levelet valasz nelkulinek mond. A sopres nem hasal el, a szamlalok
- * rendben nezenek ki, es semmi nem koti ossze a ket dolgot: ezert kell a
- * nevesitett naplobejegyzes.
+ * A sopres torzse nem olvas cimket a beallitasbol, de a hivo (rpc `sweepNow`)
+ * meg mindig adhat egyet -- ez a diagnozis-ajto. Amit at kell adnia a Gmail
+ * szemantikajabol: tobb cimke ES-kapcsolat, tehat `['INBOX','SENT']` garantalt
+ * ures halmaz. Ez a hiba egyszer mar elesben elfogyasztott egy sopres-kort
+ * ugy, hogy minden teszt zold volt; most legalabb nevesitve naplozzuk.
  */
 function naplozoSweep(uzenetek, settings) {
   const naplo = []
@@ -296,32 +285,24 @@ function naplozoSweep(uzenetek, settings) {
   return { sweep: createSweep(state), naplo }
 }
 
-test('a tarolt, SENT nelkuli sopresCimke nevesitett figyelmeztetest ir a logba', async () => {
-  const { sweep, naplo } = naplozoSweep([], () => ({ sopresCimke: 'INBOX' }))
-  await sweep.runSweep({})
-  const figyelmeztetes = naplo.find((n) => n.msg.includes('nincs SENT'))
-  assert.ok(figyelmeztetes, 'a SENT hianya nem jelent meg a logban')
-  assert.deepEqual(figyelmeztetes.meta.labelIds, ['INBOX'], 'a figyelmeztetes megnevezi a felbontott listat')
-  assert.match(figyelmeztetes.msg, /valasz nelkuli/i,
-    'a figyelmeztetesnek meg kell mondania, MI romlik el tole -- nem csak azt, hogy hianyzik egy cimke')
-})
-
-test('a SENT-et is tartalmazo beallitas NEM ir figyelmeztetest', async () => {
-  const { sweep, naplo } = naplozoSweep([], () => ({ sopresCimkek: 'INBOX, SENT' }))
-  await sweep.runSweep({})
-  assert.equal(naplo.some((n) => n.msg.includes('nincs SENT')), false)
-})
-
-test('beallitas nelkul (alapertelmezett cimkek) sincs figyelmeztetes -- a DEFAULT_LABELS viszi a SENT-et', async () => {
+test('a hivo tobb cimket adott listaja nevesitett figyelmeztetest kap (ES-kapcsolat)', async () => {
   const { sweep, naplo } = naplozoSweep([], () => ({}))
-  await sweep.runSweep({})
-  assert.equal(naplo.some((n) => n.msg.includes('nincs SENT')), false)
+  await sweep.runSweep({ labelIds: ['INBOX', 'SENT'] })
+  const fig = naplo.find((n) => n.msg.includes('ES-kapcsolat'))
+  assert.ok(fig, 'a metszet-szemantika nem jelent meg a logban')
+  assert.deepEqual(fig.meta.labelIds, ['INBOX', 'SENT'])
 })
 
-test('a hivo altal atadott, SENT nelkuli labelIds is figyelmeztetest kap', async () => {
+test('egyetlen cimke atadasa nem ir figyelmeztetest', async () => {
   const { sweep, naplo } = naplozoSweep([], () => ({}))
   await sweep.runSweep({ labelIds: ['INBOX'] })
-  assert.ok(naplo.some((n) => n.msg.includes('nincs SENT')))
+  assert.equal(naplo.some((n) => n.msg.includes('ES-kapcsolat')), false)
+})
+
+test('cimke nelkuli futas nem ir figyelmeztetest', async () => {
+  const { sweep, naplo } = naplozoSweep([], () => ({}))
+  await sweep.runSweep({})
+  assert.equal(naplo.length, 0)
 })
 
 /**
@@ -351,44 +332,83 @@ test('az alapertelmezett cimkelista mellett a bejovo ES a kimeno level is bekeru
   assert.equal(repo.listEvents({ accountId: acc.id }).length, 2)
 })
 
-test('a sopres cimkenkent kulon kurzort tart, nem egyetlen kozos kulcson', async () => {
+test('egy menet, egy kurzor: minden a gmail:all kulcson', async () => {
   const uzenetek = [LEVEL({ id: 'be_1', labelIds: ['INBOX'] })]
   const { sweep, repo } = sweepOf(uzenetek, { mailbox: gmailFakeMailbox(uzenetek) })
   await sweep.runSweep({})
-  assert.ok(repo.getSweepState('gmail:INBOX'), 'az INBOX menetnek sajat kurzorsora van')
-  assert.ok(repo.getSweepState('gmail:SENT'), 'a SENT menetnek sajat kurzorsora van')
-  assert.equal(repo.getSweepState('gmail'), null, 'a regi, kozos kulcs nem szuletik ujra')
+  assert.ok(repo.getSweepState('gmail:all'), 'a teljes postafiok menetenek egyetlen kurzorsora van')
+  assert.equal(repo.getSweepState('gmail:INBOX'), null, 'cimkenkenti kurzor mar nem szuletik')
+  assert.equal(repo.getSweepState('gmail:SENT'), null, 'cimkenkenti kurzor mar nem szuletik')
+  assert.equal(repo.getSweepState('gmail'), null, 'a regi, kozos kulcs sem szuletik ujra')
 })
 
-test('egy cimke el nem fogyott lapja nem mondja keszre a futast', async () => {
+test('el nem fogyott lap nem mondja keszre a futast, es a kurzort megtartja', async () => {
   const uzenetek = [LEVEL({ id: 'be_1', labelIds: ['INBOX'] })]
   const alap = gmailFakeMailbox(uzenetek)
   const mailbox = {
     ...alap,
-    list: async (args) => {
-      const lap = await alap.list(args)
-      if (args.labelIds[0] === 'INBOX') return { ...lap, nextCursor: 'kov', complete: false }
-      return lap
-    },
+    list: async (args) => ({ ...(await alap.list(args)), nextCursor: 'kov', complete: false }),
   }
   const { sweep, repo } = sweepOf(uzenetek, { mailbox })
   const r = await sweep.runSweep({})
-  assert.equal(r.complete, false, 'ha barmelyik cimke menete felben all, a futas nincs kesz')
-  assert.equal(r.cursors.INBOX, 'kov', 'az INBOX kurzora megmarad a kovetkezo futasnak')
-  assert.equal(r.cursors.SENT, '', 'a SENT menete lezarult')
-  assert.equal(repo.getSweepState('gmail:INBOX').cursor, 'kov')
+  assert.equal(r.complete, false, 'a felben allo lapozas nem kesz futas')
+  assert.equal(r.cursor, 'kov', 'a kurzor megmarad a kovetkezo futasnak')
+  assert.equal(repo.getSweepState('gmail:all').cursor, 'kov')
 })
 
-test('a max az egesz futas koltsegvetese, cimkek kozott elosztva', async () => {
+test('a max egeszben megy az egyetlen menetbe, nem elosztva', async () => {
   const kert = []
   const mailbox = {
     list: async ({ labelIds, max }) => {
-      kert.push({ label: labelIds[0], max })
+      kert.push({ labelIds, max })
       return { ids: [], nextCursor: '', complete: true, stoppedOn: '' }
     },
     get: async () => null,
   }
   const { sweep } = sweepOf([], { mailbox })
   await sweep.runSweep({ max: 50 })
-  assert.deepEqual(kert, [{ label: 'INBOX', max: 25 }, { label: 'SENT', max: 25 }])
+  assert.deepEqual(kert, [{ labelIds: undefined, max: 50 }])
+})
+
+// ---- Task: az archivalt level is latszik ----
+
+/**
+ * AZ ARCHIVALT LEVEL AZ IDOVONALRA VALO, A BESOROLATLANBA NEM.
+ *
+ * Geri munkamodszere az, hogy amit elintezett, azt kiarchivalja: a level
+ * INBOX-ot nem visel, csak `IMPORTANT` / `CATEGORY_PERSONAL` cimket. Az
+ * `['INBOX','SENT']` alapertelmezes ezert szerkezetileg vak volt pont arra a
+ * levelezesre, amibol egy idovonal all.
+ */
+test('archivalt level ISMERT kapcsolattartotol bekerul esemenykent', async () => {
+  const uzenetek = [LEVEL({ id: 'arch_1', labelIds: ['IMPORTANT', 'CATEGORY_PERSONAL'] })]
+  const { sweep, repo } = sweepOf(uzenetek, { mailbox: gmailFakeMailbox(uzenetek) })
+  const acc = repo.createAccount({ name: 'Denes Architects' })
+  const con = repo.createContact({ accountId: acc.id, name: 'Dorina' })
+  repo.attachEmail(con.id, 'dorina@morvai.hu')
+
+  const r = await sweep.runSweep({})
+  assert.equal(r.recorded, 1, 'az archivalt level az idovonalra kerult')
+  const ev = repo.listEvents({ accountId: acc.id })[0]
+  assert.equal(ev.kind, 'email_in')
+  assert.equal(ev.source_id, 'arch_1')
+})
+
+test('archivalt level ISMERETLEN feladotol nem kerul a besorolatlanba, de szamolt', async () => {
+  // A besorolatlan doboz TEENDO-lista, nem archivum: azt kerdezi, hogy "ki
+  // ez?", es ennek csak olyan levelnel van ertelme, amivel meg dolgunk van.
+  const uzenetek = [
+    LEVEL({ id: 'arch_hirlevel', labelIds: ['CATEGORY_PROMOTIONS'], fromEmail: 'noreply@mymedio.hu' }),
+    LEVEL({ id: 'inbox_ismeretlen', labelIds: ['INBOX'], fromEmail: 'valaki@ismeretlen.hu' }),
+  ]
+  const { sweep, repo } = sweepOf(uzenetek, { mailbox: gmailFakeMailbox(uzenetek) })
+
+  const r = await sweep.runSweep({})
+  assert.equal(r.scanned, 2)
+  assert.equal(r.unmatched, 1, 'csak az INBOX-ban levo ismeretlen level kerult be')
+  assert.equal(r.skippedUnmatchedArchived, 1, 'a kihagyas nem nema')
+  assert.deepEqual(
+    repo.listUnmatched({}).map((u) => u.source_id),
+    ['inbox_ismeretlen'],
+  )
 })
