@@ -6,7 +6,8 @@ import { DEFAULT_HEARTBEAT_INTERVAL_SEC } from '@/lib/runtime/heartbeat-defaults
 import type { Session } from '@/types'
 import { api } from '@/lib/app/api-client'
 import { useNow } from '@/hooks/use-now'
-import { getSessionLastAssistantAt, getSessionLastMessage } from '@/lib/chat/session-summary'
+import { getSessionLastMessage } from '@/lib/chat/session-summary'
+import { sessionUnreadState } from '@/lib/chat/session-unread'
 import { useAppStore } from '@/stores/use-app-store'
 import { useChatStore } from '@/stores/use-chat-store'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
@@ -44,7 +45,6 @@ export function ChatCard({ session, active, onClick }: Props) {
   const streamPhase = useChatStore((s) => s.streamPhase)
   const streamToolName = useChatStore((s) => s.streamToolName)
   const optimisticQueuedCount = useChatStore((s) => s.queuedMessages.filter((item) => item.sessionId === session.id).length)
-  const lastReadTimestamps = useAppStore((s) => s.lastReadTimestamps)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const isTyping = streamingSessionId === session.id
@@ -154,13 +154,18 @@ export function ChatCard({ session, active, onClick }: Props) {
           </span>
         )}
         {(() => {
-          const lastRead = lastReadTimestamps[session.id] || 0
-          const unread = (getSessionLastAssistantAt(session) || 0) > lastRead ? 1 : 0
-          return unread > 0 ? (
-            <span className="shrink-0 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-accent-bright text-accent-fg text-[10px] font-600 px-1">
-              {unread}
+          const { unread, isError } = sessionUnreadState(session)
+          if (!unread) return null
+          return (
+            <span
+              title={isError ? 'A legutobbi futas hibaval vegzodott' : 'Olvasatlan valasz'}
+              className={`shrink-0 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-600 px-1 ${
+                isError ? 'bg-red-500 text-white' : 'bg-accent-bright text-accent-fg'
+              }`}
+            >
+              {isError ? '!' : '1'}
             </span>
-          ) : null
+          )
         })()}
         <span className="text-[11px] text-text-3 shrink-0 tabular-nums font-mono">
           {timeAgoShort(session.lastActiveAt, now)}

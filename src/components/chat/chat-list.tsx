@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '@/stores/use-app-store'
 import { selectActiveSessionId } from '@/stores/slices/session-slice'
 import { ChatCard } from './chat-card'
-import { getSessionLastAssistantAt, getSessionLastMessage, getSessionMessageCount } from '@/lib/chat/session-summary'
+import { getSessionLastMessage, getSessionMessageCount } from '@/lib/chat/session-summary'
+import { sessionUnreadState } from '@/lib/chat/session-unread'
+import { useWindowFocused } from '@/hooks/use-window-focused'
+import { READ_GRACE_MS } from '@/stores/slices/data-slice'
 import { isLocalhostBrowser, isVisibleSessionForViewer } from '@/lib/observability/local-observability'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/shared/skeleton'
@@ -32,7 +35,6 @@ export function ChatList({ inSidebar, onSelect }: Props) {
   const clearSessions = useAppStore((s) => s.clearSessions)
   const togglePinSession = useAppStore((s) => s.togglePinSession)
   const markChatRead = useAppStore((s) => s.markChatRead)
-  const lastReadTimestamps = useAppStore((s) => s.lastReadTimestamps)
   const agents = useAppStore((s) => s.agents)
   const connectors = useAppStore((s) => s.connectors)
   const [search, setSearch] = useState('')
@@ -79,7 +81,7 @@ export function ChatList({ inSidebar, onSelect }: Props) {
   const filtered = useMemo(() => {
     return allUserSessions
       .filter((s) => {
-        const unreadCount = (getSessionLastAssistantAt(s) || 0) > (lastReadTimestamps[s.id] || 0) ? 1 : 0
+        const unreadCount = sessionUnreadState(s).unread ? 1 : 0
         if (search) {
           const agent = s.agentId ? agents[s.agentId] : null
           const connector = s.agentId ? connectorByAgentId.get(s.agentId) : undefined
@@ -114,7 +116,30 @@ export function ChatList({ inSidebar, onSelect }: Props) {
         if (sortMode === 'messages') return getSessionMessageCount(b) - getSessionMessageCount(a)
         return (b.lastActiveAt || 0) - (a.lastActiveAt || 0)
       })
-  }, [agents, allUserSessions, connectorByAgentId, lastReadTimestamps, search, sortMode, typeFilter])
+  }, [agents, allUserSessions, connectorByAgentId, search, sortMode, typeFilter])
+
+  const windowFocused = useWindowFocused()
+
+  // Az aktiv chat akkor lesz olvasott, ha az ablak is fokuszban van. Fokuszvesztes
+  // utan `READ_GRACE_MS`-ig meg olvasottnak szamit: enelkul minden ablakvaltas
+  // hamis olvasatlant szulne.
+  useEffect(() => {
+    if (!currentSessionId) return
+    if (!windowFocused) return
+    const timer = setTimeout(() => { void markChatRead(currentSessionId) }, 0)
+    return () => clearTimeout(timer)
+  }, [currentSessionId, windowFocused, markChatRead])
+
+  useEffect(() => {
+    if (!currentSessionId) return
+    if (windowFocused) return
+    // Fokuszvesztes: a turelmi ido leteltevel meg egyszer jelolunk, hogy a
+    // kozben megjott valasz ne maradjon olvasatlanul, ha rogton visszaterunk.
+    const timer = setTimeout(() => {
+      if (document.hasFocus()) void markChatRead(currentSessionId)
+    }, READ_GRACE_MS)
+    return () => clearTimeout(timer)
+  }, [currentSessionId, windowFocused, markChatRead])
 
   const handleSelect = async (id: string) => {
     const agentId = sessions[id]?.agentId

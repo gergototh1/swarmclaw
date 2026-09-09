@@ -35,3 +35,26 @@ test('mar olvasott hibas turn nem olvasatlan', () => {
 test('hianyzo lastReadAt nullakent szamit', () => {
   assert.equal(sessionUnreadState({ lastAssistantAt: 1 }).unread, true)
 })
+
+test('hibas turn es valasz azonos pillanatban -> hibakent szamit (M1: >= nem >)', () => {
+  // A hiba es a valasz egyszerre erkezik (azonos ezredmasodperc). Ez a hiba
+  // oldalan dontendo el: a turn hibaval vegzodott, tehat isError legyen igaz.
+  // Ha a `failed >= assistant` osszehasonlitas `failed > assistant`-ra
+  // mutalodik, ez a teszt megbukik (isError false lenne).
+  const s = sessionUnreadState({ lastAssistantAt: 200, lastFailedTurnAt: 200, lastReadAt: 100 })
+  assert.equal(s.unread, true)
+  assert.equal(s.isError, true)
+})
+
+test('nincs valodi hibas turn -> nem hibakent szamit, meg akkor sem, ha a keplet olvasatlant ad (M2: a "failed > 0" or dontő)', () => {
+  // Sem `lastAssistantAt`, sem `lastFailedTurnAt` nincs beallitva (mindketto
+  // 0-kent szamit), tehat nem tortent semmilyen esemeny. A `lastReadAt` itt
+  // szandekosan negativ, hogy `lastActivityAt (0) > lastReadAt` igaz legyen,
+  // es unread=true adodjon `failed=assistant=0` mellett is -- ez az egyetlen
+  // mod annak bizonyitasara, hogy az `&& failed > 0` felteles tenylegesen
+  // szamit: nelkule `failed >= assistant` (0 >= 0) magaban hibakent jelolne
+  // ezt, holott sosem volt hibas turn.
+  const s = sessionUnreadState({ lastReadAt: -100 })
+  assert.equal(s.unread, true)
+  assert.equal(s.isError, false)
+})
