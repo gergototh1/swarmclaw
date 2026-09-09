@@ -92,6 +92,10 @@ export interface Session {
   messageCount?: number
   lastMessageSummary?: Message | null
   lastAssistantAt?: number | null
+  /** Meddig olvasta a felhasznalo ezt a chatet. Lasd `session-unread.ts`. */
+  lastReadAt?: number | null
+  /** Az utolso hibaval vegzodott turn ideje. Lasd `session-unread.ts`. */
+  lastFailedTurnAt?: number | null
   createdAt: number
   updatedAt?: number | null
   lastActiveAt: number

@@ -817,6 +817,13 @@ function normalizeStoredRecordInner(
     return normalizeStoredRuntimeRunEventRecord(value)
   }
 
+  if (table === 'sessions') {
+    const session = value as StoredObject
+    if (typeof session.lastReadAt !== 'number') session.lastReadAt = null
+    if (typeof session.lastFailedTurnAt !== 'number') session.lastFailedTurnAt = null
+    return session
+  }
+
   if (table === 'schedules') {
     return normalizeStoredScheduleRecord(value, loadItem)
   }
