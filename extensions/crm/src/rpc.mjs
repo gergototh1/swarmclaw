@@ -516,9 +516,10 @@ export function createRpc(state) {
      * Gmail ÉS-szemantikájából eredő üres söprés diagnózisát.
      *
      * Az üres vagy értelmezhetetlen érték `undefined`-ra esik, NEM üres
-     * tömbre: egy `labelIds: []` a `runSweep`-ben a beállított, illetve az
-     * alapértelmezett címkékre esne vissza -- ide sosem juthat el egy olyan
-     * hívás, ami a teljes postafiókot kérné.
+     * tömbre -- de ez ma már csak takarékosság: a `runSweep` üres listára és
+     * `undefined`-ra egyaránt a teljes postafiókot söpri, mert az archivált
+     * levél (amiből az idővonal áll) egyik alapértelmezett címkét sem viseli.
+     * A címkelista innen SZŰKÍTÉS, és több címke a Gmailnél ÉS-kapcsolat.
      */
     async sweepNow({ max, labelIds, q } = {}) {
       const cimkek = normalizeLabelIds(labelIds)

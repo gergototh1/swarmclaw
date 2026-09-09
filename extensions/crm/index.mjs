@@ -146,13 +146,12 @@ const crm = {
         help: 'Ennyi nap után jelez egy elhangzott ígéretre, amiből nem lett feladat.' },
       { key: 'idegenIgeretNapok', label: 'Nekem ígért dolog küszöbe (nap)', type: 'number', defaultValue: 7,
         help: 'Lazább, mint a sajátod: egy tőled elvárt és egy neked ígért dolog nem egyforma sürgős.' },
-      // A söprés listázását határoló két mező (lásd src/sweep.mjs). Enélkül
-      // a Gmail-lista a SPAM és a TRASH kivételével MINDENT visszaad --
-      // a SENT és a DRAFT mappát is --, és egy első söprés a postafiók teljes
-      // előzményét végigjárná.
-      { key: 'sopresCimkek', label: 'Söprés Gmail-címkéi', type: 'text', defaultValue: 'INBOX,SENT',
-        placeholder: 'INBOX,SENT',
-        help: 'Vesszővel elválasztva. A SENT nélkül nem látszik, hogy válaszoltál-e -- a „válasz nélküli levél” jelzés ettől működik. Tágítani lehet, de minden címke annyi levelet jelent, amennyit tényleg be is húzunk.' },
+      // A söprés listázását HATÁROLÓ MEZŐ, EGY DARAB. Címke-mező nincs
+      // többé: a söprés a teljes postafiókot nézi, mert az elintézett és
+      // kiarchivált levél egyetlen Gmail-alapcímkét sem visel, és pont abból
+      // áll egy ügyfél idővonala (lásd src/sweep.mjs). Egy címke-mező itt
+      // csak arra volna jó, hogy az operátor véletlenül visszavakítsa a
+      // söprést. A futás terjedelmét a keresési szűrő és a `max` tartja.
       { key: 'sopresLekerdezes', label: 'Söprés Gmail-keresési szűrője', type: 'text', defaultValue: 'newer_than:90d',
         help: 'Ez korlátozza, meddig megy vissza egy söprés. Kiürítve a postafiók teljes előzményét végigsöpri, ami egy régi postafióknál sokáig tarthat, és a besorolatlan sort régi levelekkel töltheti meg.' },
     ],

@@ -340,22 +340,24 @@ test('a sweepNow a labelIds-t es a q-t is tovabbadja, nem csak a max-ot', async 
   assert.equal(kapott[0].q, 'newer_than:7d')
 })
 
-test('a sweepNow vesszos cimke-szoveget is elfogad', async () => {
+test('a sweepNow vesszos cimke-szoveget is elfogad, egyetlen listazasba', async () => {
   const kapott = []
   const mailbox = {
     list: async (args) => { kapott.push(args); return { ids: [], nextCursor: '', complete: true, stoppedOn: '' } },
     get: async () => null,
   }
   const { rpc } = rpcWithContracts({ get: () => mailbox })
-  // Az alapertelmezettol KULONBOZO cimkek, kulonben a teszt akkor is zold
-  // maradna, ha a vesszos szoveg elveszne es a default lepne a helyebe.
-  await rpc.sweepNow({ labelIds: ' Ugyfelek , SENT ,, ' })
-  assert.deepEqual(kapott.map((k) => k.labelIds), [['Ugyfelek'], ['SENT']])
+  await rpc.sweepNow({ labelIds: ' Ugyfelek , Fontos ,, ' })
+  // EGY menet: a cimkelista szukites, es a Gmailnel ES-kapcsolat -- aki
+  // ket, egy levelen soha nem egyutt allo cimket sorol fel, ures halmazt kap.
+  assert.deepEqual(kapott.map((k) => k.labelIds), [['Ugyfelek', 'Fontos']])
 })
 
-test('a sweepNow ures labelIds-re az alapertelmezett cimkekre esik, NEM a teljes postafiokra', async () => {
-  // Egy `labelIds: []` a `mailbox.list`-ben a teljes postafiokot sopornu --
-  // ezt a vedokorlatot egy HTTP-hivo sem oldhatja fel egy ures tombbel.
+test('a sweepNow ures labelIds-re a TELJES postafiokot sopri, cimke nelkul', async () => {
+  // Ez korabban vedokorlat volt: `labelIds: []` az alapertelmezett
+  // `['INBOX','SENT']`-re esett vissza. Most a teljes postafiok a cel, mert
+  // az archivalt level -- amibol az idovonal all -- egyik cimket sem viseli.
+  // Amit a korlat celzott, azt a `q`, a `max` es a kurzor vegzi el.
   const kapott = []
   const mailbox = {
     list: async (args) => { kapott.push(args); return { ids: [], nextCursor: '', complete: true, stoppedOn: '' } },
@@ -363,7 +365,8 @@ test('a sweepNow ures labelIds-re az alapertelmezett cimkekre esik, NEM a teljes
   }
   const { rpc } = rpcWithContracts({ get: () => mailbox })
   await rpc.sweepNow({ labelIds: [] })
-  assert.deepEqual(kapott.map((k) => k.labelIds), [['INBOX'], ['SENT']])
+  assert.equal(kapott.length, 1)
+  assert.equal(kapott[0].labelIds, undefined, 'cimkeszures nelkul megy a listazas')
 })
 
 test('a sweepNow szerzodes hianyaban nevesitett hibat ad', async () => {
