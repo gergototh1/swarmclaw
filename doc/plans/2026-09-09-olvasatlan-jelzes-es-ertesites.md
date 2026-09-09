@@ -1497,7 +1497,18 @@ export function ReplyNotifier() {
     if (!b) return
     const list = Object.values(sessions ?? {})
 
+    // AZ ALAPVONALAT CSAK NEM URES LISTABOL SZABAD FELVENNI.
+    //
+    // A `sessions` `{}`-kent indul, es csak kesobb, aszinkron tolt be. Ha az
+    // alapvonalat mar az elso, URES renderen felvennenk, a `seen` egy URES Map
+    // lenne -- nem `null` --, es amikor a valodi lista megerkezik, MINDEN
+    // olvasatlan chat ujdonsagnak latszana. Az eredmeny egy ertesites-zapor
+    // minden hideg inditasnal: pontosan az, ami ellen ez az agalom keszult.
+    //
+    // Ezert a `length > 0` feltetel: amig nincs mit alapvonalba venni, a `seen`
+    // marad `null`, es a ciklus sem fut le.
     if (seen.current === null) {
+      if (list.length === 0) return
       seen.current = new Map(list.map((s) => [s.id, sessionUnreadState(s).lastActivityAt]))
       return
     }
