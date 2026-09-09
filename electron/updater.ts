@@ -22,7 +22,7 @@ export function initAutoUpdater(): void {
           buttons: ['Open Downloads', 'Later'],
           defaultId: 0,
           cancelId: 1,
-          title: 'SwarmClaw update available',
+          title: 'SidekickOS update available',
           message: `Version ${info.version} is available.`,
           detail: 'Unsigned macOS builds cannot auto-update. Download the new version from swarmclaw.ai/downloads.',
         })

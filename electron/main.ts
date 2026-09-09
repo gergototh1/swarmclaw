@@ -14,6 +14,23 @@ let serverHandle: ServerHandle | null = null
 let serverLogFile: string | null = null
 let isQuitting = false
 
+/*
+ * A RENAME MUST NOT MOVE THE DATA.
+ *
+ * `app.getPath('userData')` is derived from the packaged app's name, and that
+ * is `productName` in electron-builder.yml -- which the SidekickOS rename
+ * changed. Left alone, the next packaged build would look for its home under a
+ * new directory and start with no agents, no sessions and no extensions, while
+ * the old ones sat untouched next to it. `paths.ts` builds every runtime
+ * directory from this one call, so pinning it here is enough.
+ *
+ * The literal is the directory this install already uses: `package.json`'s
+ * `name` is what Electron used before a productName existed. It is a path, not
+ * a brand, and it stays.
+ */
+const USER_DATA_DIR_NAME = '@swarmclawai/swarmclaw'
+app.setPath('userData', path.join(app.getPath('appData'), USER_DATA_DIR_NAME))
+
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
@@ -221,7 +238,7 @@ async function showServerCrashDialog(code: number | null, signal: NodeJS.Signals
     buttons,
     defaultId: quitButtonId,
     cancelId: quitButtonId,
-    title: 'SwarmClaw stopped',
+    title: 'SidekickOS stopped',
     message: 'The SwarmClaw server exited unexpectedly.',
     detail,
   })
@@ -240,7 +257,7 @@ async function showStartupFailureDialog(err: unknown, paths: RuntimePaths): Prom
     buttons,
     defaultId: quitButtonId,
     cancelId: quitButtonId,
-    title: 'SwarmClaw failed to start',
+    title: 'SidekickOS failed to start',
     message: 'The embedded server did not start.',
     detail,
   })

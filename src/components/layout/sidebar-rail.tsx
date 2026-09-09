@@ -31,6 +31,7 @@ import {
 } from '@/lib/app/rail-state'
 import { safeStorageGet, safeStorageSet } from '@/lib/app/safe-storage'
 import type { AppView } from '@/types'
+import { BrandMark, BrandWordmark } from './brand-logo'
 
 /**
  * The components behind the icon names in `NAV_SECTIONS`.
@@ -348,11 +349,8 @@ export function SidebarRail({
     >
       {/* Logo + collapse toggle */}
       <div className={`flex items-center mb-4 shrink-0 ${railExpanded ? 'px-3 gap-2' : 'justify-center'}`}>
-        <div className="w-10 h-10 rounded-md bg-accent-bright flex items-center justify-center shrink-0">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-accent-fg">
-            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor" />
-          </svg>
-        </div>
+        {/* Nyitva a teljes szóvédjegy fér el (212px), csukva csak a jel (52px). */}
+        {railExpanded ? <BrandWordmark size={19} /> : <BrandMark size={40} />}
         {railExpanded && !mobile && (
           <button
             onClick={toggleRail}

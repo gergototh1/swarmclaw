@@ -27,6 +27,7 @@ import { PageLoader } from '@/components/ui/page-loader'
 import { SectionHeader } from '@/components/ui/section-header'
 import { StatCard } from '@/components/ui/stat-card'
 import { HOME_TABS } from './home-tabs'
+import { BrandWordmark } from '@/components/layout/brand-logo'
 
 const ACTIVITY_ICONS: Record<ActivityEntry['action'], string> = {
   created: 'M12 5v14m-7-7h14',
@@ -312,8 +313,10 @@ export default function HomePage() {
         <div className="max-w-[800px] mx-auto px-6 py-10">
           {/* Header */}
           <div className="mb-10" style={{ animation: 'spring-in 0.6s var(--ease-spring)' }}>
-            <h1 className="font-display text-[28px] font-700 text-text tracking-[-0.03em]">
-              SwarmClaw
+            {/* A lap saját címe a szóvédjegy: egy márkanév ne két betűvel
+                jelenjen meg attól függően, hol áll. */}
+            <h1 className="tracking-[-0.01em]">
+              <BrandWordmark size={30} />
             </h1>
             <p className="text-[14px] text-text-3 mt-1">
               Workspace overview for your agent chats, tasks, and automations

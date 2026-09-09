@@ -8,7 +8,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "SwarmClaw",
+  title: "SidekickOS",
   description: "Self-hosted AI runtime for OpenClaw, agent swarms, runtime skills, and wallets.",
 }
 

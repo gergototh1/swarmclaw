@@ -13,7 +13,7 @@ export function MobileHeader() {
   const agents = useAppStore((s) => s.agents)
   const session = activeSessionId ? sessions[activeSessionId] : null
   const agent = session?.agentId ? agents[session.agentId] : null
-  const title = agent?.name || session?.name || 'SwarmClaw'
+  const title = agent?.name || session?.name || 'SidekickOS'
   const subtitle = agent
     ? 'Agent chat'
     : session
