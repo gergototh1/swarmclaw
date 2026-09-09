@@ -35,8 +35,18 @@ describe('nav section table', () => {
     }
   })
 
-  it('holds seven sections, in rail order', () => {
-    assert.deepEqual(NAV_SECTION_IDS, ['home', 'chat', 'work', 'knowledge', 'connect', 'operations', 'settings'])
+  it('holds eight sections, in rail order', () => {
+    assert.deepEqual(NAV_SECTION_IDS, ['home', 'conversations', 'chat', 'work', 'knowledge', 'connect', 'operations', 'settings'])
+  })
+
+  it('keeps Chat and Agents apart, and stops the section sharing a name with its first child', () => {
+    const conversations = NAV_SECTIONS.find((s) => s.id === 'conversations')
+    const agents = NAV_SECTIONS.find((s) => s.id === 'chat')
+    assert.equal(conversations?.label, 'Chat')
+    assert.equal(conversations?.direct, 'conversations', 'a Chat szekció egyetlen lapra visz, nem nyílik ki')
+    assert.equal(agents?.label, 'Agents')
+    // A szekció és az első gyereke azonos néven két egyforma sornak látszik.
+    assert.notEqual(VIEW_LABELS[agents?.views[0] ?? 'home'], agents?.label)
   })
 
   it('resolves a view back to its section', () => {

@@ -28,6 +28,9 @@ function buildStatements() {
     selectCount: db.prepare(
       'SELECT COUNT(*) as count FROM session_messages WHERE session_id = ?',
     ),
+    selectAllCounts: db.prepare(
+      'SELECT session_id as sessionId, COUNT(*) as count FROM session_messages GROUP BY session_id',
+    ),
     selectLast: db.prepare(
       'SELECT data FROM session_messages WHERE session_id = ? ORDER BY seq DESC LIMIT 1',
     ),
@@ -225,6 +228,22 @@ export function getMessageCount(sessionId: string): number {
     const session = loadSession(sessionId)
     return Array.isArray(session?.messages) ? session.messages.length : 0
   }, { sessionId })
+}
+
+/**
+ * Every session's message count, in one query.
+ *
+ * The list endpoint needs this for all sessions at once and is polled every
+ * fifteen seconds, so it asks once rather than forty-two times. A session with
+ * no rows is simply absent from the result -- callers read a missing key as 0.
+ */
+export function getMessageCounts(): Record<string, number> {
+  return perf.measureSync('message-repo', 'getMessageCounts', () => {
+    const rows = stmts().selectAllCounts.all() as Array<{ sessionId: string; count: number }>
+    const out: Record<string, number> = {}
+    for (const row of rows) out[row.sessionId] = row.count
+    return out
+  })
 }
 
 /** Return the last message (from table, with blob fallback). */

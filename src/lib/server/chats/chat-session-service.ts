@@ -35,6 +35,7 @@ import { normalizeProviderEndpoint } from '@/lib/openclaw/openclaw-endpoint'
 import { serviceFail, serviceOk } from '@/lib/server/service-result'
 import { WORKSPACE_DIR } from '@/lib/server/data-dir'
 import { buildSessionListSummary } from '@/lib/chat/session-summary'
+import { getMessageCount, getMessageCounts } from '@/lib/server/messages/message-repository'
 import type { Session } from '@/types'
 import type { ServiceResult } from '@/lib/server/service-result'
 import { notify } from '@/lib/server/ws-hub'
@@ -62,12 +63,22 @@ function emptyDelegateResumeIds() {
 
 export function listChatsForApi(): Record<string, ReturnType<typeof buildSessionListSummary>> {
   const sessions = listSessions()
+  /*
+   * `messageCount` on the stored record is denormalised and goes stale: in a
+   * real install it reads 0 for sessions holding dozens of rows, and only 11 of
+   * 42 carried any signal at all that they were not empty. Anything upstream
+   * asking "does this conversation have anything in it" got the wrong answer
+   * for half the store, so the count is read from the message table here --
+   * once for every session, not once per session.
+   */
+  const counts = getMessageCounts()
   for (const id of Object.keys(sessions)) {
     const run = getSessionRunState(id)
     const queue = getSessionQueueSnapshot(id)
     sessions[id].active = !!run.runningRunId
     sessions[id].queuedCount = queue.queueLength
     sessions[id].currentRunId = run.runningRunId || null
+    sessions[id].messageCount = counts[id] ?? 0
   }
   return Object.fromEntries(
     Object.entries(sessions).map(([id, session]) => [id, buildSessionListSummary(session)]),
@@ -82,6 +93,17 @@ export function getChatSessionForApi(sessionId: string): Session | null {
   session.active = !!run.runningRunId
   session.queuedCount = queue.queueLength
   session.currentRunId = run.runningRunId || null
+  /*
+   * The same real count the list endpoint reports.
+   *
+   * Both read paths have to agree, because the client merges their answers
+   * into one map: `POST /agents/:id/thread` returns a session through here and
+   * the store writes it over the entry the list produced. With the stale 0
+   * still on this path, opening an agent silently reset that session's count
+   * to zero in the client -- and a conversation the list had shown dropped out
+   * of it a moment later.
+   */
+  session.messageCount = getMessageCount(sessionId)
   return session
 }
 
@@ -208,6 +230,10 @@ export function updateChatSession(sessionId: string, updates: Record<string, unk
   const agentIdUpdateProvided = updates.agentId !== undefined
   let nextAgentId = session.agentId
   if (agentIdUpdateProvided) {
+    // Moving a conversation to another agent drops the provider handles with
+    // it. The messages stay -- the transcript is this app's, not the CLI's --
+    // but the runtime session behind them belonged to the agent being left.
+    if (updates.agentId !== session.agentId) clearProviderResumeIds(original)
     session.agentId = updates.agentId
     nextAgentId = updates.agentId
   }
@@ -385,11 +411,17 @@ export function cancelQueuedChatMessages(sessionId: string, runId?: string): Ser
   return serviceOk({ cancelled, snapshot: getSessionQueueSnapshot(sessionId) })
 }
 
-export function clearChatMessages(sessionId: string): boolean {
-  const session = getSession(sessionId)
-  if (!session) return false
-  clearMessages(sessionId)
-  session.messages = []
+/**
+ * Drop every provider-side handle this session holds.
+ *
+ * A CLI provider keeps the conversation in ITS OWN session and SwarmClaw only
+ * holds the resume id, so these are not a cache: while one is set, the next
+ * turn resumes that runtime session, and a resumed CLI never receives
+ * `--system-prompt` again (see claude-cli.ts). Carrying one across a change of
+ * agent would therefore run the new agent under the previous agent's persona,
+ * which looks like the switch silently failing.
+ */
+function clearProviderResumeIds(session: Session): void {
   session.claudeSessionId = null
   session.codexThreadId = null
   session.opencodeSessionId = null
@@ -401,6 +433,14 @@ export function clearChatMessages(sessionId: string): boolean {
   session.qwenSessionId = null
   session.acpSessionId = null
   session.delegateResumeIds = emptyDelegateResumeIds()
+}
+
+export function clearChatMessages(sessionId: string): boolean {
+  const session = getSession(sessionId)
+  if (!session) return false
+  clearMessages(sessionId)
+  session.messages = []
+  clearProviderResumeIds(session)
   saveSession(sessionId, session)
   notify('sessions')
   return true

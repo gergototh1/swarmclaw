@@ -8,7 +8,8 @@ import type { AppView } from '@/types'
 // it as live UI copy.
 export const VIEW_LABELS: Record<AppView, string> = {
   home: 'Home',
-  agents: 'Agents',
+  conversations: 'Chat',
+  agents: 'All Agents',
   org_chart: 'Org Chart',
   inbox: 'Inbox',
   chatrooms: 'Chatrooms',
@@ -60,6 +61,7 @@ export const CREATE_LABELS: Partial<Record<AppView, string>> = {
 
 export const VIEW_DESCRIPTIONS: Record<AppView, string> = {
   home: 'SwarmClaw overview',
+  conversations: 'Your conversations, newest first, whichever agent held them',
   agents: 'Chat with & configure your AI agents',
   org_chart: 'Visual agent hierarchy and delegation topology',
   inbox: 'Review external connector conversations by platform and bridge',
@@ -94,6 +96,12 @@ export const VIEW_DESCRIPTIONS: Record<AppView, string> = {
 // compiler pressure VIEW_LABELS and CREATE_LABELS anchor. Do not delete it,
 // and do not treat it as live UI copy.
 export const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { icon: string; title: string; description: string; features: string[] }> = {
+  conversations: {
+    icon: 'message-square',
+    title: 'Chat',
+    description: 'Every conversation you have had, newest first, listed by what it is about rather than by which agent held it.',
+    features: ['Open a past conversation and carry on', 'Search across every conversation', 'Switch which agent answers, from the composer', 'Scheduled runs stay on the Tasks board, not here'],
+  },
   org_chart: {
     icon: 'git-branch',
     title: 'Org Chart',

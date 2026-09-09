@@ -1,6 +1,6 @@
 import type { AppView } from '@/types'
 
-export type NavSectionId = 'home' | 'chat' | 'work' | 'knowledge' | 'connect' | 'operations' | 'settings'
+export type NavSectionId = 'home' | 'conversations' | 'chat' | 'work' | 'knowledge' | 'connect' | 'operations' | 'settings'
 
 /**
  * The lucide icon names sidebar-rail.tsx's `SECTION_ICONS` maps to a
@@ -10,7 +10,7 @@ export type NavSectionId = 'home' | 'chat' | 'work' | 'knowledge' | 'connect' | 
  * union is what turns a typo in a section's `icon` into a compile error
  * instead of a silent fallback to the Home icon.
  */
-export type NavSectionIconName = 'Home' | 'MessageSquare' | 'Briefcase' | 'BookOpen' | 'Link2' | 'Activity' | 'Settings'
+export type NavSectionIconName = 'Home' | 'MessageSquare' | 'Users' | 'Briefcase' | 'BookOpen' | 'Link2' | 'Activity' | 'Settings'
 
 export interface NavSection {
   id: NavSectionId
@@ -34,7 +34,18 @@ export interface NavSection {
  */
 export const NAV_SECTIONS: readonly NavSection[] = [
   { id: 'home', label: 'Home', icon: 'Home', views: ['swarmfeed'], direct: 'home' },
-  { id: 'chat', label: 'Chat', icon: 'MessageSquare', views: ['agents', 'org_chart', 'inbox', 'chatrooms', 'protocols'] },
+  /*
+   * Chat lists CONVERSATIONS; Agents lists AGENTS. They are the same surface
+   * -- a 280px list beside a transcript -- asking two different questions, and
+   * which one an operator wants depends on whether they remember who they were
+   * talking to or what they were talking about.
+   *
+   * The Agents section's own first entry reads "All Agents" rather than
+   * "Agents": a section and its first child sharing a name reads as a
+   * duplicated row rather than as a section that contains one.
+   */
+  { id: 'conversations', label: 'Chat', icon: 'MessageSquare', views: [], direct: 'conversations' },
+  { id: 'chat', label: 'Agents', icon: 'Users', views: ['agents', 'org_chart', 'inbox', 'chatrooms', 'protocols'] },
   { id: 'work', label: 'Work', icon: 'Briefcase', views: ['tasks', 'missions', 'schedules', 'projects'] },
   { id: 'knowledge', label: 'Knowledge', icon: 'BookOpen', views: ['memory', 'knowledge', 'skills'] },
   { id: 'connect', label: 'Connect', icon: 'Link2', views: ['connectors', 'mcp_servers', 'extensions', 'webhooks', 'providers', 'marketplace'] },

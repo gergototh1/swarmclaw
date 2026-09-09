@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Activity, BookOpen, Briefcase, Home, Link2, MessageSquare, Settings as SettingsIcon } from 'lucide-react'
+import { Activity, BookOpen, Briefcase, Home, Link2, MessageSquare, Users, Settings as SettingsIcon } from 'lucide-react'
 import { useAppStore } from '@/stores/use-app-store'
 import { Avatar } from '@/components/shared/avatar'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
@@ -43,7 +43,7 @@ import type { AppView } from '@/types'
  * silently renders the Home icon.
  */
 const SECTION_ICONS: Record<NavSectionIconName, React.ComponentType<{ size?: number }>> = {
-  Home, MessageSquare, Briefcase, BookOpen, Link2, Activity, Settings: SettingsIcon,
+  Home, MessageSquare, Users, Briefcase, BookOpen, Link2, Activity, Settings: SettingsIcon,
 }
 
 /**

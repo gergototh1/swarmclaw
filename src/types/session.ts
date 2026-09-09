@@ -233,4 +233,4 @@ export type SessionTool =
   | 'crawl'
 
 export type SessionType = 'human'
-export type AppView = 'home' | 'agents' | 'org_chart' | 'inbox' | 'chatrooms' | 'protocols' | 'schedules' | 'memory' | 'tasks' | 'quality' | 'vault' | 'providers' | 'skills' | 'connectors' | 'webhooks' | 'mcp_servers' | 'knowledge' | 'extensions' | 'usage' | 'stream' | 'autonomy' | 'settings' | 'projects' | 'swarmfeed' | 'marketplace' | 'missions'
+export type AppView = 'home' | 'conversations' | 'agents' | 'org_chart' | 'inbox' | 'chatrooms' | 'protocols' | 'schedules' | 'memory' | 'tasks' | 'quality' | 'vault' | 'providers' | 'skills' | 'connectors' | 'webhooks' | 'mcp_servers' | 'knowledge' | 'extensions' | 'usage' | 'stream' | 'autonomy' | 'settings' | 'projects' | 'swarmfeed' | 'marketplace' | 'missions'

@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { safeStorageGet, safeStorageRemove, safeStorageSet } from '@/lib/app/safe-storage'
 import { errorMessage } from '@/lib/shared-utils'
 import { splitPendingAttachments } from '@/lib/pending-attachments'
+import { ComposerAgentPicker } from './composer-agent-picker'
 
 interface Props {
   streaming: boolean
@@ -384,6 +385,10 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
                 </svg>
                 <span className="hidden sm:inline">Add</span>
               </button>
+
+              {/* Ki válaszol. A gépelés közben derül ki, hogy rossz ügynök áll
+                  a szálon, tehát itt kell tudni váltani, ne a lap fejlécében. */}
+              <ComposerAgentPicker sessionId={sessionId ?? null} />
 
               <div className="flex-1" />
 

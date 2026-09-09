@@ -6,6 +6,7 @@ import type { AppView } from '@/types'
 
 const VIEW_TO_PATH: Record<AppView, string> = {
   home: '/home',
+  conversations: '/chat',
   agents: '/agents',
   org_chart: '/org-chart',
   inbox: '/inbox',
@@ -37,7 +38,7 @@ const VIEW_TO_PATH: Record<AppView, string> = {
 /** Build a URL path for a given view, optionally with an entity ID. */
 export function getViewPath(view: AppView, id?: string | null): string {
   const base = VIEW_TO_PATH[view]
-  if (id && (view === 'agents' || view === 'chatrooms')) {
+  if (id && (view === 'agents' || view === 'chatrooms' || view === 'conversations')) {
     return `${base}/${encodeURIComponent(id)}`
   }
   return base

@@ -52,7 +52,18 @@ export function buildSessionListSummary(session: Session): Session {
   return {
     ...session,
     messages: [],
-    messageCount: Array.isArray(session.messages) ? session.messages.length : 0,
+    /*
+     * `getSessionMessageCount`, NOT `session.messages.length`.
+     *
+     * Messages moved to the `session_messages` table, so the array on a stored
+     * record is empty for every session that is not mid-migration -- and this
+     * counted that array. The list endpoint therefore reported 0 messages for
+     * all 42 sessions in a real install, including one holding 199, and
+     * anything asking "is this conversation empty" got yes for all of them.
+     * The helper directly above prefers the record's own count, which
+     * `listChatsForApi` fills from the table before calling this.
+     */
+    messageCount: getSessionMessageCount(session),
     lastAssistantAt: getSessionLastAssistantAt(session),
     lastMessageSummary: summarizeMessage(getSessionLastMessage(session)),
   }
