@@ -327,6 +327,12 @@ export function createOlvasas(state) {
 export const CIMKE_TILTOTT = Object.freeze(['TRASH', 'SPAM', 'SENT', 'DRAFT'])
 
 /**
+ * Gmail's own name for "not yet read". A constant in this file and never an
+ * argument, so `markRead` below has exactly one label it can touch.
+ */
+export const OLVASATLAN_CIMKE = 'UNREAD'
+
+/**
  * Finds the forbidden label a caller-supplied id names, or undefined.
  *
  * The comparison folds case, and the refusal names the member of
@@ -375,6 +381,47 @@ export function createCimkezes(state) {
       }
 
       const changed = await clientFor(state).modifyLabels(messageId, { addLabelIds, removeLabelIds })
+      return { id: changed.id, labelIds: changed.labelIds }
+    },
+
+    /**
+     * Takes `UNREAD` off one message. Nothing else, and nothing the caller can
+     * name.
+     *
+     * WHY THIS EXISTS BESIDE `label` RATHER THAN INSTEAD OF IT. `label` takes
+     * two label lists from its caller, and that is right for the operator's own
+     * page and for an agent on MCP, where a person picked the buckets. It is
+     * the wrong shape to publish on the contract: a handle is a bearer
+     * capability that the host mints once and never re-checks, so a consumer
+     * holding `label` could file mail into any bucket in the mailbox, pull a
+     * message out of the operator's INBOX, or strip the very label a sweep
+     * finds its work under -- and none of that is what any consumer asked for.
+     *
+     * `UNREAD` is written here, in this module's source, so the narrowing is
+     * structural rather than a rule somebody has to keep: no argument reaches
+     * either list, so there is no spelling of a second label. That is the
+     * smallest cut that still lets a consumer record progress in the mailbox
+     * itself, which is what a sweep over `is:unread` needs and what the
+     * operator sees when they open Gmail.
+     *
+     * `CIMKE_TILTOTT` is not consulted, and does not need to be: the only label
+     * this method can touch is not on it. A check against a constant list for a
+     * constant value would read as though the value could vary.
+     *
+     * Reading a message is not destructive and is not hidden: the message stays
+     * in every label it had, the operator can mark it unread again in one click
+     * in their own client, and nothing here can move mail to Trash. It is the
+     * only write on this contract that changes existing mail, which is why it
+     * is this narrow and why the version was bumped for it.
+     *
+     * As with `label`, WHAT COMES BACK IS THE OUTCOME: the labels Gmail says
+     * the message now carries. A message that came back still carrying `UNREAD`
+     * is a change that did not apply, and a caller told its own request back
+     * would never find that out.
+     */
+    async markRead({ id } = {}) {
+      const messageId = readString('id', id, { required: true, max: ID_MAX })
+      const changed = await clientFor(state).modifyLabels(messageId, { addLabelIds: [], removeLabelIds: [OLVASATLAN_CIMKE] })
       return { id: changed.id, labelIds: changed.labelIds }
     },
   }
