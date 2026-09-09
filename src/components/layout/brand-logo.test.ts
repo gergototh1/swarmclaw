@@ -15,10 +15,14 @@ const ROOT = path.resolve(HERE, '../../..')
 describe('SidekickOS wordmark', () => {
   it('ships the font file the @font-face points at', () => {
     const css = fs.readFileSync(path.join(ROOT, 'src/app/globals.css'), 'utf8')
-    const match = css.match(/@font-face\s*\{[^}]*src:\s*url\('([^']+)'\)/)
-    assert.ok(match, 'nincs @font-face a logó betűjéhez')
-    const url = match[1]
-    assert.ok(fs.existsSync(path.join(ROOT, 'public', url)), `hiányzik a fájl: public${url}`)
+    const urls = [...css.matchAll(/@font-face\s*\{[^}]*src:\s*url\('([^']+)'\)/g)].map((m) => m[1])
+    assert.ok(urls.length > 0, 'nincs @font-face a logó betűjéhez')
+    for (const url of urls) {
+      assert.ok(fs.existsSync(path.join(ROOT, 'public', url)), `hiányzik a fájl: public${url}`)
+    }
+    // Helyből szolgáljuk ki: egy futásidejű Google-kérés offline elejtené a
+    // márkanevet, és minden indításnál kifelé szólna.
+    assert.ok(!/@font-face[\s\S]{0,400}fonts\.gstatic\.com/.test(css), 'a logó betűje külső hosztról jön')
   })
 
   it('declares the font BEFORE any use, and after the imports', () => {
@@ -34,6 +38,22 @@ describe('SidekickOS wordmark', () => {
     assert.match(src, /text-text[^-][\s\S]*?Sidekick/, '"Sidekick" nem a szövegszínen áll')
     assert.match(src, /text-accent-bright[\s\S]*?OS/, '"OS" nem az accenten áll')
     assert.match(src, /var\(--font-logo\)/, 'nem a logó-tokent használja')
+  })
+
+  it('draws the mark, and does not fall back to a letter', () => {
+    // A jel egy rajz. Egy betű a helyén -- "S" a korall négyzetben -- pont
+    // annyira néz ki késznek, hogy senkinek ne tűnjön fel, hogy elveszett.
+    const src = fs.readFileSync(path.join(ROOT, 'src/components/layout/brand-logo.tsx'), 'utf8')
+    const mark = src.slice(src.indexOf('export function BrandGlyph'), src.indexOf('export function BrandMark'))
+    assert.match(mark, /<path\b/, 'a jel nem rajz')
+    // A lyukak a kitöltési szabályból jönnek, nem maszkból. Egy maszk `id`-t
+    // kérne, egy `id` pedig egy dokumentumban egyszer élhet -- a railen és a
+    // fejlécben egyszerre kirajzolt jel közül a második üresen maradna, és ez
+    // futásidőben derülne ki, nem itt.
+    assert.match(mark, /fillRule="evenodd"/, 'a jel nem evenodd-dal vágja ki a lyukakat')
+    assert.ok(!/\bid=/.test(mark), 'a jelben `id` van: több példány esetén elszáll')
+    assert.ok(mark.length > 800, 'a jel path-ja gyanúsan rövid -- kiürült?')
+    assert.match(src, /viewBox="0 0 24 24"/, 'a jel nem a 24-es rácson ül')
   })
 
   it('is what the rail draws, in both of its widths', () => {

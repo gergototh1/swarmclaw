@@ -4,18 +4,33 @@
 @import "highlight.js/styles/github-dark-dimmed.min.css";
 
 /*
- * A szóvédjegy betűje. Csak a logó használja, ezért `font-display: block`:
- * a márkanév inkább jelenjen meg egy pillanattal később a saját betűjével,
- * mint hogy előbb egy másikkal villanjon fel.
+ * A szóvédjegy betűje: Gabarito (SIL OFL), helyből kiszolgálva.
  *
- * Gang of Three (Vic Fieger, 2007). A fájl licencmezőt nem hordoz.
+ * NEM a Google stíluslapja, hanem a `public/fonts/` alatti fájlok. Ez az app
+ * self-hosted és offline is elindul: egy futásidejű kérés a fonts.gstatic.com
+ * felé vagy a márkanevet ejtené vissza egy másik betűre a hálózat nélkül, vagy
+ * elárulná minden indításnál, hogy fut. Két subset, mert a latin-ext hozza az
+ * ő/ű-t is arra az esetre, ha a token valaha a védjegyen túl kerül elő.
+ *
+ * `font-display: block`: a márkanév inkább jelenjen meg egy pillanattal
+ * később a saját betűjével, mint hogy előbb egy másikkal villanjon fel.
  */
 @font-face {
-  font-family: 'Gang of Three';
-  src: url('/fonts/gang-of-three.ttf') format('truetype');
-  font-weight: 400;
+  font-family: 'Gabarito';
+  src: url('/fonts/gabarito-latin.woff2') format('woff2');
+  font-weight: 400 900;
   font-style: normal;
   font-display: block;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Gabarito';
+  src: url('/fonts/gabarito-latin-ext.woff2') format('woff2');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -53,7 +68,7 @@
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
   --font-mono: 'SF Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-logo: 'Gang of Three', var(--font-display);
+  --font-logo: 'Gabarito', var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
