@@ -3,15 +3,15 @@ import test from 'node:test'
 
 import { MIGRATIONS, createRepo } from '../src/db.mjs'
 import { createSweep } from '../src/sweep.mjs'
-import { memStorage } from './helpers.mjs'
+import { gmailFakeMailbox, memStorage } from './helpers.mjs'
 
-/** A `mailbox` szerzodes kettose: ket metodus, memoriabol. */
-function fakeMailbox(uzenetek) {
-  return {
-    list: async () => ({ ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }),
-    get: async ({ id }) => uzenetek.find((u) => u.id === id),
-  }
-}
+/**
+ * A `mailbox` szerzodes kettose. A Gmail `labelIds` ES-szemantikajat utanzo
+ * kozos duplo, NEM egy cimkere kozombos sajat: egy duplo, ami minden levelet
+ * visszaad barmilyen cimkelistara, pontosan azt a hibat fedi el, amitol a
+ * sopres elesben semmit nem hozott. Lasd `helpers.mjs`.
+ */
+const fakeMailbox = gmailFakeMailbox
 
 function sweepOf(uzenetek, { settings = () => ({}), mailbox } = {}) {
   const S = memStorage()
@@ -113,7 +113,7 @@ test('egy hibazo uzenet nem allitja meg a lap tobbi levelenek behuzasat, es a ku
     LEVEL({ id: 'ok2', fromEmail: 'masik@morvai.hu' }),
   ]
   const mailbox = {
-    list: async () => ({ ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }),
+    ...gmailFakeMailbox(uzenetek),
     get: async ({ id }) => {
       if (id === 'bad') throw new Error('gmail_fetch_failed')
       return uzenetek.find((u) => u.id === id)
@@ -134,7 +134,7 @@ test('egy hibazo uzenet nem allitja meg a lap tobbi levelenek behuzasat, es a ku
     repo.listEvents({ accountId: acc.id }).map((e) => e.source_id).sort(),
     ['ok1', 'ok2'],
   )
-  assert.equal(repo.getSweepState('gmail').cursor, '', 'a kurzor akkor is frissult, ha volt hiba')
+  assert.equal(repo.getSweepState('gmail:INBOX').cursor, '', 'a kurzor akkor is frissult, ha volt hiba')
 })
 
 // ---- C2: a listazas hatarolt, es a sajat kimeno level nem kerul be email_in-kent ----
@@ -182,8 +182,11 @@ test('a listazas alapbol az INBOX es SENT cimkere es 90 napra hatarolt', async (
   }
   const { sweep } = sweepOf(uzenetek, { mailbox })
   await sweep.runSweep({})
-  assert.deepEqual(kapott[0].labelIds, ['INBOX', 'SENT'])
+  // Cimkenkent EGY-EGY hivas, mindegyik EGYETLEN cimkevel: a Gmail
+  // `labelIds`-e ES-kapcsolat, es az INBOX+SENT metszete mindig ures.
+  assert.deepEqual(kapott.map((k) => k.labelIds), [['INBOX'], ['SENT']])
   assert.equal(kapott[0].q, 'newer_than:90d')
+  assert.equal(kapott[1].q, 'newer_than:90d')
 })
 
 test('a sopresCimkek vesszos listaja szetbontva megy a listazasba', async () => {
@@ -201,7 +204,7 @@ test('a sopresCimkek vesszos listaja szetbontva megy a listazasba', async () => 
     settings: () => ({ sopresCimkek: ' Ugyfelek , SENT ,, ' }),
   })
   await sweep.runSweep({})
-  assert.deepEqual(kapott[0].labelIds, ['Ugyfelek', 'SENT'])
+  assert.deepEqual(kapott.map((k) => k.labelIds), [['Ugyfelek'], ['SENT']])
 })
 
 test('a sopresCimkek elsobbseget elvez a regi sopresCimke felett, ha mindketto be van allitva', async () => {
@@ -219,7 +222,7 @@ test('a sopresCimkek elsobbseget elvez a regi sopresCimke felett, ha mindketto b
     settings: () => ({ sopresCimkek: 'Uj', sopresCimke: 'Regi' }),
   })
   await sweep.runSweep({})
-  assert.deepEqual(kapott[0].labelIds, ['Uj'])
+  assert.deepEqual(kapott.map((k) => k.labelIds), [['Uj']])
 })
 
 test('a beallitott cimke es lekerdezes felulirja az alapertelmezettet', async () => {
@@ -319,4 +322,73 @@ test('a hivo altal atadott, SENT nelkuli labelIds is figyelmeztetest kap', async
   const { sweep, naplo } = naplozoSweep([], () => ({}))
   await sweep.runSweep({ labelIds: ['INBOX'] })
   assert.ok(naplo.some((n) => n.msg.includes('nincs SENT')))
+})
+
+/**
+ * A REGRESSZIO, AMI ELESBEN NEM SOPORT SEMMIT.
+ *
+ * A Gmail `users.messages.list` `labelIds` parametere ES-kapcsolat. A sopres
+ * alapertelmezese `['INBOX','SENT']` volt, egyetlen listazasban atadva, es
+ * mivel egy level sosem all egyszerre a beerkezettben ES az elkuldottben, a
+ * valodi Gmail uresen felelt: nulla level, nulla esemeny, nulla nyom.
+ * Ezek a tesztek a `gmailFakeMailbox`-szal futnak, ami ezt a szemantikat
+ * utanozza -- a cimkere kozombos dublovel mindegyik zold maradna.
+ */
+test('az alapertelmezett cimkelista mellett a bejovo ES a kimeno level is bekerul', async () => {
+  const uzenetek = [
+    LEVEL({ id: 'be_1', threadId: 'thr_1', labelIds: ['INBOX'] }),
+    LEVEL({ id: 'ki_1', threadId: 'thr_1', labelIds: ['SENT'], fromEmail: 'en@sajat.hu', sentAt: '2026-09-02T10:00:00.000Z' }),
+  ]
+  const { sweep, repo } = sweepOf(uzenetek, { mailbox: gmailFakeMailbox(uzenetek) })
+  const acc = repo.createAccount({ name: 'Morvai Kft.' })
+  const con = repo.createContact({ accountId: acc.id, name: 'Dorina' })
+  repo.attachEmail(con.id, 'dorina@morvai.hu')
+
+  const r = await sweep.runSweep({})
+  assert.equal(r.scanned, 2, 'mindket cimke menete lefutott')
+  assert.equal(r.recorded, 1, 'a bejovo level az idovonalra kerult')
+  assert.equal(r.recordedOut, 1, 'a kimeno level a szalon keresztul az idovonalra kerult')
+  assert.equal(repo.listEvents({ accountId: acc.id }).length, 2)
+})
+
+test('a sopres cimkenkent kulon kurzort tart, nem egyetlen kozos kulcson', async () => {
+  const uzenetek = [LEVEL({ id: 'be_1', labelIds: ['INBOX'] })]
+  const { sweep, repo } = sweepOf(uzenetek, { mailbox: gmailFakeMailbox(uzenetek) })
+  await sweep.runSweep({})
+  assert.ok(repo.getSweepState('gmail:INBOX'), 'az INBOX menetnek sajat kurzorsora van')
+  assert.ok(repo.getSweepState('gmail:SENT'), 'a SENT menetnek sajat kurzorsora van')
+  assert.equal(repo.getSweepState('gmail'), null, 'a regi, kozos kulcs nem szuletik ujra')
+})
+
+test('egy cimke el nem fogyott lapja nem mondja keszre a futast', async () => {
+  const uzenetek = [LEVEL({ id: 'be_1', labelIds: ['INBOX'] })]
+  const alap = gmailFakeMailbox(uzenetek)
+  const mailbox = {
+    ...alap,
+    list: async (args) => {
+      const lap = await alap.list(args)
+      if (args.labelIds[0] === 'INBOX') return { ...lap, nextCursor: 'kov', complete: false }
+      return lap
+    },
+  }
+  const { sweep, repo } = sweepOf(uzenetek, { mailbox })
+  const r = await sweep.runSweep({})
+  assert.equal(r.complete, false, 'ha barmelyik cimke menete felben all, a futas nincs kesz')
+  assert.equal(r.cursors.INBOX, 'kov', 'az INBOX kurzora megmarad a kovetkezo futasnak')
+  assert.equal(r.cursors.SENT, '', 'a SENT menete lezarult')
+  assert.equal(repo.getSweepState('gmail:INBOX').cursor, 'kov')
+})
+
+test('a max az egesz futas koltsegvetese, cimkek kozott elosztva', async () => {
+  const kert = []
+  const mailbox = {
+    list: async ({ labelIds, max }) => {
+      kert.push({ label: labelIds[0], max })
+      return { ids: [], nextCursor: '', complete: true, stoppedOn: '' }
+    },
+    get: async () => null,
+  }
+  const { sweep } = sweepOf([], { mailbox })
+  await sweep.runSweep({ max: 50 })
+  assert.deepEqual(kert, [{ label: 'INBOX', max: 25 }, { label: 'SENT', max: 25 }])
 })

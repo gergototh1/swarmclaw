@@ -142,6 +142,21 @@ CREATE INDEX IF NOT EXISTS ext_crm_event_account_occurred_id
   sql: `
 ALTER TABLE ext_crm_suggestion ADD COLUMN commitment_id TEXT;
 `,
+}, {
+  // A söprés kurzora címkénként külön sorba költözik (`gmail:INBOX`,
+  // `gmail:SENT`) -- lásd `sweepStateKey` a `sweep.mjs`-ben. A régi, közös
+  // `'gmail'` sor ezzel gazdátlan lesz, és NEM örökölhető: a benne álló
+  // kurzort a Gmail egy `labelIds: ['INBOX','SENT']` listázásra adta, ami az
+  // ÉS-szemantika miatt mindig üres halmaz volt, tehát egy olyan lapozás
+  // állapota, ami sosem látott levelet. Egyik címke menetére sem érvényes,
+  // ezért törlődik, nem migrálódik.
+  //
+  // Additív a 3-6-hoz hasonlóan abban az értelemben, hogy egyetlen létező
+  // séma-elemet sem ír át; a v1-v6 SQL-je byte-identikus marad.
+  version: 7,
+  sql: `
+DELETE FROM ext_crm_sweep_state WHERE key = 'gmail';
+`,
 }])
 
 const now = () => new Date().toISOString()

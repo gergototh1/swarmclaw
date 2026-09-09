@@ -3,7 +3,7 @@ import test from 'node:test'
 
 import { MIGRATIONS, createRepo } from '../src/db.mjs'
 import { createTools } from '../src/tools.mjs'
-import { memStorage } from './helpers.mjs'
+import { gmailFakeMailbox, memStorage } from './helpers.mjs'
 
 function toolsOf(contracts) {
   const S = memStorage()
@@ -478,12 +478,11 @@ test('a crm_timeline elfogadja és érvényesíti a beforeId-t egy egy másodper
 })
 
 /** A `mailbox` szerződés dublőre, ugyanaz az alak, mint a sweep sajét tesztjeiben. */
-function fakeMailbox(uzenetek) {
-  return {
-    list: async () => ({ ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }),
-    get: async ({ id }) => uzenetek.find((u) => u.id === id),
-  }
-}
+/**
+ * A `mailbox` szerződés dublőre, ugyanaz, mint a sweep saját tesztjeiben: a
+ * Gmail `labelIds` ÉS-szemantikáját utánozza. Lásd `helpers.mjs`.
+ */
+const fakeMailbox = gmailFakeMailbox
 
 const LEVEL = (over) => ({
   id: 'msg_1', threadId: 'thr_1', labelIds: ['INBOX'], subject: 'Ajanlat',

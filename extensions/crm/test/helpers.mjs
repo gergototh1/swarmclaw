@@ -36,3 +36,29 @@ export function memStorage() {
     raw: db,
   }
 }
+
+/**
+ * A `mailbox` szerződés kettőse, ami a GMAIL VALÓDI `labelIds`-SZEMANTIKÁJÁT
+ * utánozza: a `users.messages.list` `labelIds` paramétere ÉS-kapcsolat, tehát
+ * csak az a levél jön vissza, amelyiken MINDEN felsorolt címke rajta van.
+ *
+ * EZ NEM PEDANTÉRIA, HANEM PONTOSAN AZ A HIBA, AMIT EZ A DUPLA FOG. A söprés
+ * korábban egyetlen `list({ labelIds: ['INBOX','SENT'] })` hívást tett, és
+ * mivel egy levél vagy a beérkezettben van, vagy elküldött, sosem mindkettő,
+ * a valódi Gmail üres halmazt adott rá -- a söprés élesben EGYETLEN levelet
+ * sem húzott be, miközben egy címkére közömbös dublőr mellett minden teszt
+ * zöld maradt. A dublőr, ami nem nézi a `labelIds`-t, ezt a hibát elfedi.
+ *
+ * `q` és `cursor` szándékosan nincs modellezve: a hiba a címkékben volt, és
+ * egy féllábon álló keresés-utánzat csak új, hamis feltevéseket szülne.
+ */
+export function gmailFakeMailbox(uzenetek) {
+  return {
+    list: async ({ labelIds = [] } = {}) => {
+      const kert = labelIds.map((l) => String(l))
+      const talalat = uzenetek.filter((u) => kert.every((l) => (u.labelIds || []).includes(l)))
+      return { ids: talalat.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }
+    },
+    get: async ({ id }) => uzenetek.find((u) => u.id === id),
+  }
+}

@@ -759,6 +759,15 @@ export function createSweepTools(state) {
          */
         let listed
         try {
+          // EXACTLY ONE LABEL ID, AND THAT IS LOAD-BEARING. Gmail's
+          // `users.messages.list` treats `labelIds` as a conjunction: a
+          // message must carry EVERY id listed. A second id here would not
+          // widen the sweep, it would narrow it to the intersection, and for
+          // two ordinary labels that intersection is usually empty -- an
+          // empty sweep that reports success and looks exactly like a quiet
+          // mailbox. A run is about one source (`resolveSource`), so one id
+          // is also the only correct number; if this ever has to cover two
+          // labels, it must become two calls, not two ids.
           listed = await mb.list({ labelIds: [source.sourceId], q: listQuery(since), max: LIST_BUDGET })
           if (!Array.isArray(listed?.ids)) throw new MailboxError('gmail_unexpected', 'the mailbox contract returned a listing with no ids array')
         } catch (e) {

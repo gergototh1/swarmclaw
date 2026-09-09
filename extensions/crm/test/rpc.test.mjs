@@ -6,7 +6,7 @@ import test from 'node:test'
 
 import { MIGRATIONS, createRepo } from '../src/db.mjs'
 import { createRpc } from '../src/rpc.mjs'
-import { memStorage } from './helpers.mjs'
+import { gmailFakeMailbox, memStorage } from './helpers.mjs'
 
 function rpcOf() {
   const S = memStorage()
@@ -288,13 +288,11 @@ test('a mailboxHealth a gmail extension nevesitett hibajanak uzenetet is viszi, 
   assert.equal(h.message, 'google_oauth_client_missing')
 })
 
-/** A `mailbox` szerződés dublőre, ugyanaz az alak, mint a sweep sajét tesztjeiben. */
-function fakeMailbox(uzenetek) {
-  return {
-    list: async () => ({ ids: uzenetek.map((u) => u.id), nextCursor: '', complete: true, stoppedOn: '' }),
-    get: async ({ id }) => uzenetek.find((u) => u.id === id),
-  }
-}
+/**
+ * A `mailbox` szerződés dublőre, ugyanaz, mint a sweep saját tesztjeiben: a
+ * Gmail `labelIds` ÉS-szemantikáját utánozza. Lásd `helpers.mjs`.
+ */
+const fakeMailbox = gmailFakeMailbox
 
 const LEVEL = (over) => ({
   id: 'msg_1', threadId: 'thr_1', labelIds: ['INBOX'], subject: 'Ajanlat',
@@ -323,6 +321,49 @@ test('a sweepNow max nelkul is fut, 50-es alapertelmezettel', async () => {
   const r = await rpc.sweepNow({})
   assert.equal(r.scanned, 1)
   assert.equal(r.unmatched, 1)
+})
+
+test('a sweepNow a labelIds-t es a q-t is tovabbadja, nem csak a max-ot', async () => {
+  // A diagnozis-ajto. Amig ez az rpc csak a `max`-ot adta tovabb, addig egy
+  // ures sopres okat innen nem lehetett szukiteni: nem lehetett megkerdezni,
+  // hoz-e a puszta INBOX levelet. Pontosan ez tette hosszuva a Gmail
+  // ES-szemantikajabol eredo ures sopres diagnozisat.
+  const kapott = []
+  const uzenetek = [LEVEL()]
+  const mailbox = {
+    ...gmailFakeMailbox(uzenetek),
+    list: async (args) => { kapott.push(args); return { ids: [], nextCursor: '', complete: true, stoppedOn: '' } },
+  }
+  const { rpc } = rpcWithContracts({ get: () => mailbox })
+  await rpc.sweepNow({ max: 10, labelIds: ['INBOX'], q: 'newer_than:7d' })
+  assert.deepEqual(kapott.map((k) => k.labelIds), [['INBOX']])
+  assert.equal(kapott[0].q, 'newer_than:7d')
+})
+
+test('a sweepNow vesszos cimke-szoveget is elfogad', async () => {
+  const kapott = []
+  const mailbox = {
+    list: async (args) => { kapott.push(args); return { ids: [], nextCursor: '', complete: true, stoppedOn: '' } },
+    get: async () => null,
+  }
+  const { rpc } = rpcWithContracts({ get: () => mailbox })
+  // Az alapertelmezettol KULONBOZO cimkek, kulonben a teszt akkor is zold
+  // maradna, ha a vesszos szoveg elveszne es a default lepne a helyebe.
+  await rpc.sweepNow({ labelIds: ' Ugyfelek , SENT ,, ' })
+  assert.deepEqual(kapott.map((k) => k.labelIds), [['Ugyfelek'], ['SENT']])
+})
+
+test('a sweepNow ures labelIds-re az alapertelmezett cimkekre esik, NEM a teljes postafiokra', async () => {
+  // Egy `labelIds: []` a `mailbox.list`-ben a teljes postafiokot sopornu --
+  // ezt a vedokorlatot egy HTTP-hivo sem oldhatja fel egy ures tombbel.
+  const kapott = []
+  const mailbox = {
+    list: async (args) => { kapott.push(args); return { ids: [], nextCursor: '', complete: true, stoppedOn: '' } },
+    get: async () => null,
+  }
+  const { rpc } = rpcWithContracts({ get: () => mailbox })
+  await rpc.sweepNow({ labelIds: [] })
+  assert.deepEqual(kapott.map((k) => k.labelIds), [['INBOX'], ['SENT']])
 })
 
 test('a sweepNow szerzodes hianyaban nevesitett hibat ad', async () => {

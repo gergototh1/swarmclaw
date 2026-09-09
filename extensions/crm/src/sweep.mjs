@@ -15,6 +15,19 @@ import { matchMessage } from './matching.mjs'
  * automatikusan besorolna, a `noreply@`, a könyvelő és a külsős alvállalkozó
  * mind az ügyfél idővonalára kerülne, onnan az összefoglalójába.
  *
+ * CÍMKÉNKÉNT KÜLÖN MENET, MERT A GMAIL `labelIds`-E ÉS-KAPCSOLAT. A
+ * `users.messages.list` `labelIds` paramétere metszetet szűr: a levélnek
+ * MINDEN felsorolt címkével rendelkeznie kell. Egy levél vagy az INBOX-ban
+ * van, vagy a SENT-ben, sosem mindkettőben, tehát egyetlen
+ * `list({ labelIds: ['INBOX','SENT'] })` hívás GARANTÁLTAN üres halmazt ad --
+ * pontosan ez volt az a hiba, amitől a söprés élesben egyetlen levelet sem
+ * húzott be, miközben minden teszt zöld maradt. A söprés ezért címkénként
+ * külön `list` menetet fut, címkénként külön kurzorral
+ * (`ext_crm_sweep_state` kulcs: `gmail:<CIMKE>`). Ha valaha egyetlen menetre
+ * kellene visszatérni, az csak `q`-ban megfogalmazott `in:inbox OR in:sent`
+ * lehet -- de az feloldaná az „üres labelIds = teljes postafiók" védőkorlátot,
+ * ezért nem az az út.
+ *
  * EGY LAPON EGY ROSSZ LEVÉL NEM ÁLLÍTHATJA MEG A TÖBBIT. Minden üzenet saját
  * try/catch-ben fut: egy dobott hiba (lekérés, ismeretlen alak) a `failed`
  * számlálóba kerül és névvel a logba, a lap többi levele változatlanul
@@ -51,6 +64,19 @@ function parseLabelList(raw) {
     .map((s) => s.trim())
     .filter(Boolean)
   return parsed.length ? parsed : DEFAULT_LABELS
+}
+
+/**
+ * A söprés kurzorának kulcsa egy címkére.
+ *
+ * CÍMKÉNKÉNT KÜLÖN SOR, MERT CÍMKÉNKÉNT KÜLÖN LISTÁZÁS VAN. Egy közös kulcs
+ * (a régi `'gmail'`) egyetlen `nextCursor`-t tartott, miközben most több,
+ * egymástól független lapozás fut: a SENT kurzorával folytatott INBOX-menet
+ * levelek fölött ugrana át, és soha semmi nem mondaná meg, melyek fölött.
+ * A régi, közös sort a 7-es migráció törli.
+ */
+function sweepStateKey(label) {
+  return `gmail:${String(label)}`
 }
 
 export function createSweep(state) {
@@ -129,107 +155,140 @@ export function createSweep(state) {
         )
       }
 
-      const lap = await box.list({
-        labelIds: effectiveLabelIds,
-        q: effectiveQ,
-        max,
-        cursor: r.getSweepState('gmail')?.cursor || undefined,
-      })
+      // A `max` az EGÉSZ futás költségvetése, nem címkénkénti: a `crm_sweep`
+      // eszköz leírása és az operátor gombja is egy futásra értett darabszámot
+      // ígér, és címkénként külön `max` néma duplázás volna a Gmail-kvótán.
+      //
+      // AZ EGYENLŐ ELOSZTÁS SZÁNDÉKOS, NEM A KIHASZNÁLTSÁG A CÉL. Egy közös,
+      // fogyó keret mellett egy tele INBOX minden futásban elvinné az egészet,
+      // és a SENT sosem jutna szóhoz -- ez pedig pont a fenti figyelmeztetés
+      // esete: kimenő esemény nélkül az `unansweredThreads` MINDEN bejövő
+      // levelet válasz nélkülinek mond. A menet inkább keveset lát mindkét
+      // címkéből, mint sokat az egyikből.
+      const teljesMax = Math.max(1, Number(max) || 50)
+      const cimkenkentiMax = Math.max(1, Math.floor(teljesMax / effectiveLabelIds.length))
+
+      let scanned = 0
       let recorded = 0
       let recordedOut = 0
       let unmatched = 0
       let failed = 0
       let skippedOut = 0
+      let complete = true
+      const cursors = {}
 
-      for (const id of lap.ids) {
-        try {
-          const msg = await box.get({ id })
+      for (const label of effectiveLabelIds) {
+        const kulcs = sweepStateKey(label)
 
-          // A DRAFT-ot a `sentAt` sem tenné megbízhatóvá -- se az
-          // idővonalra, se a besorolatlanba nem kerül.
-          if ((msg.labelIds || []).some((l) => EXCLUDED_LABELS.has(l))) continue
+        // EGY CÍMKE EGY HÍVÁSBAN. Több címke egyetlen `labelIds`-ben metszetet
+        // kérne a Gmailtől (ÉS-kapcsolat, lásd a fájl tetején), és az INBOX+SENT
+        // metszete mindig üres.
+        const lap = await box.list({
+          labelIds: [label],
+          q: effectiveQ,
+          max: cimkenkentiMax,
+          cursor: r.getSweepState(kulcs)?.cursor || undefined,
+        })
+        scanned += lap.ids.length
 
-          // A szolgáltató a `sentAt`-ot deliberáltan `null`-ra hagyja, ha a
-          // Gmail `internalDate`-je nem használható -- nem tippel dátumot.
-          // Egy kitalált időpont csendben rossz adat volna az idővonalon
-          // (lásd a fájl tetején), ezért a levél kimarad, és a `failed`
-          // számlálóban látszik, nem egy dobott SQL-hibában.
-          if (!msg.sentAt) {
-            failed += 1
-            state.log?.warn?.('crm sweep: sentAt hianyzik, level kihagyva', { id })
-            continue
-          }
+        for (const id of lap.ids) {
+          try {
+            const msg = await box.get({ id })
 
-          // A SENT címke az egyetlen megbízható jel arra, hogy ez a levél tőlünk
-          // ment. A feladó címére nem építünk: az operátornak több címe lehet, és
-          // egy alias vagy egy megosztott postafiók ugyanúgy tőle jön.
-          const kimeno = Array.isArray(msg.labelIds) && msg.labelIds.includes('SENT')
-          const kind = kimeno ? 'email_out' : 'email_in'
+            // A DRAFT-ot a `sentAt` sem tenné megbízhatóvá -- se az
+            // idővonalra, se a besorolatlanba nem kerül.
+            if ((msg.labelIds || []).some((l) => EXCLUDED_LABELS.has(l))) continue
 
-          const talalat = matchMessage({ fromEmail: msg.fromEmail, threadId: msg.threadId }, lookups)
+            // A szolgáltató a `sentAt`-ot deliberáltan `null`-ra hagyja, ha a
+            // Gmail `internalDate`-je nem használható -- nem tippel dátumot.
+            // Egy kitalált időpont csendben rossz adat volna az idővonalon
+            // (lásd a fájl tetején), ezért a levél kimarad, és a `failed`
+            // számlálóban látszik, nem egy dobott SQL-hibában.
+            if (!msg.sentAt) {
+              failed += 1
+              state.log?.warn?.('crm sweep: sentAt hianyzik, level kihagyva', { id })
+              continue
+            }
 
-          // A kimenő levélnél az 1. lépés (pontos cím) szándékosan nem talál
-          // -- a feladó te vagy --, tehát a 2. lépés, a szál viszi. Ez helyes:
-          // egy kimenő levél oda tartozik, ahova a beszélgetés.
-          if (talalat.kind === 'exact' || talalat.kind === 'thread') {
-            const { created } = r.recordEvent({
-              accountId: talalat.accountId,
-              contactId: talalat.contactId || null,
-              kind,
-              occurredAt: msg.sentAt,
-              title: msg.subject || '',
-              excerpt: String(msg.text || '').slice(0, 200),
+            // A SENT címke az egyetlen megbízható jel arra, hogy ez a levél tőlünk
+            // ment. A feladó címére nem építünk: az operátornak több címe lehet, és
+            // egy alias vagy egy megosztott postafiók ugyanúgy tőle jön.
+            const kimeno = Array.isArray(msg.labelIds) && msg.labelIds.includes('SENT')
+            const kind = kimeno ? 'email_out' : 'email_in'
+
+            const talalat = matchMessage({ fromEmail: msg.fromEmail, threadId: msg.threadId }, lookups)
+
+            // A kimenő levélnél az 1. lépés (pontos cím) szándékosan nem talál
+            // -- a feladó te vagy --, tehát a 2. lépés, a szál viszi. Ez helyes:
+            // egy kimenő levél oda tartozik, ahova a beszélgetés.
+            if (talalat.kind === 'exact' || talalat.kind === 'thread') {
+              const { created } = r.recordEvent({
+                accountId: talalat.accountId,
+                contactId: talalat.contactId || null,
+                kind,
+                occurredAt: msg.sentAt,
+                title: msg.subject || '',
+                excerpt: String(msg.text || '').slice(0, 200),
+                sourceSystem: 'gmail',
+                sourceId: msg.id,
+                threadId: msg.threadId || '',
+                body: msg.text || '',
+              })
+              if (created) {
+                if (kimeno) recordedOut += 1
+                else recorded += 1
+              }
+              continue
+            }
+
+            // Egy kimenő levél, aminek se pontos címe, se szála nincs, a
+            // besorolatlanba SEM kerül: a `sender_address` ott a mi saját
+            // címünk volna, és az rpc `assignUnmatched` ezt tanulná meg egy
+            // ügyfél címeként (`attachEmail`) -- csendben elrontva a jövőbeli
+            // címillesztést. Inkább kimarad, mint egy rossz tanulás -- de a
+            // kimaradás nem lehet néma: a `skippedOut` számlálóban és a logban
+            // is látszik, különben egy sopres nyomtalanul dobhatna el kimenő
+            // levelet.
+            if (kimeno) {
+              skippedOut += 1
+              state.log?.warn?.('crm sweep: kimeno level ismeretlen szallal, kihagyva', { id })
+              continue
+            }
+
+            const { created } = r.recordUnmatched({
               sourceSystem: 'gmail',
               sourceId: msg.id,
+              senderAddress: msg.fromEmail || '',
+              senderName: msg.fromName || '',
+              subject: msg.subject || '',
+              excerpt: String(msg.text || '').slice(0, 200),
+              receivedAt: msg.sentAt,
+              guessAccountId: talalat.kind === 'guess' ? talalat.guessAccountId : null,
               threadId: msg.threadId || '',
-              body: msg.text || '',
             })
-            if (created) {
-              if (kimeno) recordedOut += 1
-              else recorded += 1
-            }
-            continue
+            if (created) unmatched += 1
+          } catch (err) {
+            failed += 1
+            state.log?.warn?.('crm sweep: level feldolgozasa sikertelen', {
+              id, message: err instanceof Error ? err.message : String(err),
+            })
           }
-
-          // Egy kimenő levél, aminek se pontos címe, se szála nincs, a
-          // besorolatlanba SEM kerül: a `sender_address` ott a mi saját
-          // címünk volna, és az rpc `assignUnmatched` ezt tanulná meg egy
-          // ügyfél címeként (`attachEmail`) -- csendben elrontva a jövőbeli
-          // címillesztést. Inkább kimarad, mint egy rossz tanulás -- de a
-          // kimaradás nem lehet néma: a `skippedOut` számlálóban és a logban
-          // is látszik, különben egy sopres nyomtalanul dobhatna el kimenő
-          // levelet.
-          if (kimeno) {
-            skippedOut += 1
-            state.log?.warn?.('crm sweep: kimeno level ismeretlen szallal, kihagyva', { id })
-            continue
-          }
-
-          const { created } = r.recordUnmatched({
-            sourceSystem: 'gmail',
-            sourceId: msg.id,
-            senderAddress: msg.fromEmail || '',
-            senderName: msg.fromName || '',
-            subject: msg.subject || '',
-            excerpt: String(msg.text || '').slice(0, 200),
-            receivedAt: msg.sentAt,
-            guessAccountId: talalat.kind === 'guess' ? talalat.guessAccountId : null,
-            threadId: msg.threadId || '',
-          })
-          if (created) unmatched += 1
-        } catch (err) {
-          failed += 1
-          state.log?.warn?.('crm sweep: level feldolgozasa sikertelen', {
-            id, message: err instanceof Error ? err.message : String(err),
-          })
         }
+
+        // A kurzor akkor is előrébb áll, ha a lapon volt hiba -- a hibás
+        // levelek elszámoltak a `failed`-ben, de nem tarthatják a kurzort
+        // örökre a lap elején.
+        const kovetkezo = lap.complete ? '' : (lap.nextCursor || '')
+        r.setSweepState(kulcs, { cursor: kovetkezo, lastSeenAt: new Date().toISOString() })
+        cursors[label] = kovetkezo
+        if (!lap.complete) complete = false
       }
 
-      // A kurzor akkor is előrébb áll, ha a lapon volt hiba -- a hibás
-      // levelek elszámoltak a `failed`-ben, de nem tarthatják a kurzort
-      // örökre a lap elején.
-      r.setSweepState('gmail', { cursor: lap.complete ? '' : (lap.nextCursor || ''), lastSeenAt: new Date().toISOString() })
-      return { scanned: lap.ids.length, recorded, recordedOut, unmatched, failed, skippedOut, complete: lap.complete, cursor: lap.nextCursor || '' }
+      // `cursors` a régi, egyetlen `cursor` mező helyén: címkénként külön
+      // lapozás mellett egyetlen string nem tudná megmondani, MELYIK menet áll
+      // hol, és egy „üres, tehát kész" olvasat hazudna, amint az egyik címke
+      // még lapoz.
+      return { scanned, recorded, recordedOut, unmatched, failed, skippedOut, complete, cursors }
     },
   }
 }
