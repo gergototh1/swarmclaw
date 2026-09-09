@@ -86,7 +86,7 @@ function fakeMailbox({ label = LABEL_ID, labelName = LABEL, mailbox = MAILBOX, i
     // Contract v2. Recorded rather than merely tolerated: which ids reach this
     // is the whole assertion of the marking tests, and a double that swallowed
     // the call would let a close that marked the wrong messages read pass.
-    markRead: async ({ id }) => {
+    mark_read: async ({ id }) => {
       calls.markRead.push(id)
       const fail = markReadFail?.(id)
       if (fail) throw fail
@@ -121,7 +121,7 @@ function multiLabelMailbox(idsByLabel) {
       calls.get.push(id)
       return { id, subject: `S ${id}`, fromName: 'F', fromEmail: 'f@x', sentAt: null, text: 'body', textInAttachment: false }
     },
-    markRead: async ({ id }) => {
+    mark_read: async ({ id }) => {
       calls.markRead.push(id)
       return { id, labelIds: [] }
     },
@@ -183,7 +183,7 @@ function liveMailbox(box) {
       calls.get.push(id)
       return { id, subject: `S ${id}`, fromName: 'F', fromEmail: 'f@x', sentAt: null, text: 'body', textInAttachment: false }
     },
-    markRead: async ({ id }) => {
+    mark_read: async ({ id }) => {
       calls.markRead.push(id)
       for (const label of Object.keys(box.messages)) {
         for (const m of box.messages[label]) if (m.id === id) m.read = true
@@ -1962,7 +1962,7 @@ test('the second sweep is offered the message that was left unread, and not the 
 })
 
 /**
- * The mailbox refusing one `markRead` does not undo a run that already did its
+ * The mailbox refusing one `mark_read` does not undo a run that already did its
  * work.
  *
  * The rows are committed and the frontier has moved by the time the marking
@@ -1971,7 +1971,7 @@ test('the second sweep is offered the message that was left unread, and not the 
  * where the dedup drops it -- but the shortfall is counted onto the row, so an
  * operator can see that the mailbox's own progress record fell behind.
  */
-test('a markRead that fails is counted onto the sweep row and does not fail the close', async () => {
+test('a mark_read that fails is counted onto the sweep row and does not fail the close', async () => {
   const gmail = fakeMailbox({
     ids: ['k1', 'k2'],
     markReadFail: (id) => (id === 'k2' ? new MailboxError('gmail_timeout', 'Gmail did not answer') : null),

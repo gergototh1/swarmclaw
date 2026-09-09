@@ -556,11 +556,11 @@ async function markRecordedRead(state, repo, sweepId) {
   let failed = 0
   for (const id of ids) {
     try {
-      await mb.markRead({ id })
+      await mb.mark_read({ id })
       marked += 1
     } catch (e) {
       failed += 1
-      state.log.warn(`aisignal: markRead failed for ${id}`, { code: codeOf(e) })
+      state.log.warn(`aisignal: mark_read failed for ${id}`, { code: codeOf(e) })
     }
   }
   return { marked, failed }

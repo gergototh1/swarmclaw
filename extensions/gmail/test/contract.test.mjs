@@ -30,16 +30,16 @@ import { memStorage } from './helpers.mjs'
  */
 
 /** The seven, in declaration order. Written out rather than derived: this list is the boundary. */
-const HET_METODUS = ['mailbox', 'labels', 'list', 'get', 'markRead', 'draft', 'outbox']
+const HET_METODUS = ['mailbox', 'labels', 'list', 'get', 'mark_read', 'draft', 'outbox']
 
 /**
  * Names that are on the rpc and must never be on the contract.
  *
- * `label` stays here now that `markRead` exists, and that is the point of
- * `markRead` being its own method: the general one takes two caller-supplied
+ * `label` stays here now that `mark_read` exists, and that is the point of
+ * `mark_read` being its own method: the general one takes two caller-supplied
  * label lists, so a consumer holding it can file mail into any bucket, take a
  * message out of the operator's own INBOX, or strip the very label the sweep
- * finds its work under. `markRead` names the one label it touches in this
+ * finds its work under. `mark_read` names the one label it touches in this
  * module's own source, and a consumer cannot spell a second one.
  */
 const TILTOTT_METODUSOK = ['releaseDraft', 'discardDraft', 'label', 'addRecipient', 'retireRecipient', 'health', 'mcpConfig', 'board', 'attempts', 'liveDraft', 'search', 'read']
@@ -317,7 +317,7 @@ test('markRead takes UNREAD off and asks for nothing else', async () => {
   const client = ketto()
   const { contract } = fresh({ client })
 
-  const valasz = await contract.methods.markRead({ id: 'm1' })
+  const valasz = await contract.methods.mark_read({ id: 'm1' })
 
   assert.deepEqual(client.hivasok.modifyLabels, [{
     id: 'm1',
@@ -333,7 +333,7 @@ test('markRead takes no label list from the caller, so the door cannot be widene
 
   // A consumer that tried to smuggle a second label through gets the one
   // change this method makes, and its extra arguments reach no request.
-  await contract.methods.markRead({
+  await contract.methods.mark_read({
     id: 'm1',
     hozzaad: ['TRASH'],
     elvesz: ['Label_8', 'INBOX'],
@@ -348,7 +348,7 @@ test('markRead refuses a missing id rather than modifying whatever Gmail resolve
   const client = ketto()
   const { contract } = fresh({ client })
 
-  const err = await dobas(contract.methods.markRead({}))
+  const err = await dobas(contract.methods.mark_read({}))
   assert.equal(err.code, 'gmail_argumentum_alak')
   assert.equal(client.hivasok.modifyLabels.length, 0)
 })
@@ -360,7 +360,7 @@ test('markRead reports the labels Gmail says the message now has, not the reques
   client.modifyLabels = async (id) => ({ id, labelIds: ['INBOX', 'UNREAD'] })
   const { contract } = fresh({ client })
 
-  const valasz = await contract.methods.markRead({ id: 'm1' })
+  const valasz = await contract.methods.mark_read({ id: 'm1' })
   assert.deepEqual(valasz.labelIds, ['INBOX', 'UNREAD'], 'a change Gmail did not apply must not read as applied')
 })
 
@@ -368,7 +368,7 @@ test('a markRead failure throws rather than answering a value, like every other 
   const client = ketto({ modifyHiba: new GmailError('gmail_cimkezes_sikertelen', 'a modify nem ment at') })
   const { contract } = fresh({ client })
 
-  const err = await dobas(contract.methods.markRead({ id: 'm1' }))
+  const err = await dobas(contract.methods.mark_read({ id: 'm1' }))
   assert.equal(err.code, 'gmail_cimkezes_sikertelen')
 })
 

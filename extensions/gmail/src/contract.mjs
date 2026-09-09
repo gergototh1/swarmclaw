@@ -17,7 +17,7 @@ import { createCimkezes, createOlvasas } from './olvasas.mjs'
  * work a mailbox is: which mailbox this is (`mailbox`), what the buckets are
  * called (`labels`), a listing with a real cursor and a `complete` field
  * (`list`), one message (`get`), a way to record that it has dealt with that
- * message (`markRead`), a letter written into the operator's Drafts (`draft`),
+ * message (`mark_read`), a letter written into the operator's Drafts (`draft`),
  * and the state of what it wrote (`outbox`). Everything else on the rpc map is
  * outside this contract deliberately:
  *
@@ -34,7 +34,7 @@ import { createCimkezes, createOlvasas } from './olvasas.mjs'
  *     rule above that means a consumer holding it could file mail into any
  *     bucket in the mailbox, lift a message out of the operator's own INBOX, or
  *     strip the very label a sweep finds its work under. The narrow half of it
- *     is published instead, as `markRead`: the one label that method touches is
+ *     is published instead, as `mark_read`: the one label that method touches is
  *     a constant in olvasas.mjs, so there is no argument through which a second
  *     one can be spelled. `label` itself stays on MCP, where an agent is acting
  *     for a person who picked the buckets.
@@ -299,8 +299,19 @@ export function createMailboxContract(state) {
        * It is not destructive and not hidden. The message keeps every other
        * label, nothing on this contract can move mail to Trash, and the
        * operator marks it unread again with one click in their own client.
+       *
+       * SNAKE_CASE BECAUSE THE HOST HOLDS CONTRACT METHOD NAMES TO
+       * `^[a-z][a-z0-9_]{0,63}$` (`validateExtensionContracts`,
+       * src/lib/server/extensions/extension-contracts.ts). A camelCase name
+       * here does not fail this method -- it fails the whole extension, at
+       * stage `load.contracts`, before any of it loads, and every consumer of
+       * the mailbox loses it at once. The other five methods are single lower
+       * case words and never met the rule; this is the first two-word name on
+       * the contract. `cimkezes.markRead` keeps its own spelling because it is
+       * an ordinary module export that crosses no boundary, and the seam is
+       * written out on this line rather than hidden by renaming both.
        */
-      markRead: async (args) => cimkezes.markRead(args),
+      mark_read: async (args) => cimkezes.markRead(args),
       /**
        * Writes one draft into the operator's Gmail and one row into the
        * outbound table, and answers `DRAFT_MEZOK`.
