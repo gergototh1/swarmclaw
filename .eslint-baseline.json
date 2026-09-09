@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-08T10:03:42.326Z",
-  "totalIssues": 384,
-  "uniqueIssues": 126,
+  "generatedAt": "2026-09-09T20:50:26.318Z",
+  "totalIssues": 387,
+  "uniqueIssues": 127,
   "issues": [
     {
       "filePath": "bin/worker-cmd.js",
@@ -142,13 +142,6 @@
       "ruleId": "no-restricted-syntax",
       "severity": 1,
       "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-text/-2/-3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
-      "count": 1
-    },
-    {
-      "filePath": "src/components/chat/chat-card.tsx",
-      "ruleId": "@typescript-eslint/no-unused-vars",
-      "severity": 1,
-      "message": "'router' is assigned a value but never used.",
       "count": 1
     },
     {
@@ -367,6 +360,20 @@
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "count": 4
+    },
+    {
+      "filePath": "src/hooks/use-window-focused.test.ts",
+      "ruleId": "@typescript-eslint/no-unused-vars",
+      "severity": 1,
+      "message": "'_cb' is defined but never used.",
+      "count": 2
+    },
+    {
+      "filePath": "src/hooks/use-window-focused.test.ts",
+      "ruleId": "@typescript-eslint/no-unused-vars",
+      "severity": 1,
+      "message": "'_event' is defined but never used.",
+      "count": 2
     },
     {
       "filePath": "src/lib/observability/local-observability.test.ts",
