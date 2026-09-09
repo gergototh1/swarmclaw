@@ -1,72 +1,307 @@
-.pub-app { display: flex; flex-direction: column; gap: 1rem; padding: 1rem; }
-.pub-nav { display: flex; gap: .5rem; }
-.pub-nav button[aria-pressed="true"] { font-weight: 600; text-decoration: underline; }
-.pub-fo { min-height: 12rem; }
+/*
+ * Publikálás lap.
+ *
+ * Minden osztály `pub-` prefixet visel: a hoszt ezt a lapot a saját
+ * dokumentumába injektálja, egy prefix nélküli szabály a shellt is
+ * átstílusozná.
+ *
+ * A LAP KORÁBBAN NEM VOLT BEKÖTVE A HOSZT DESIGN-JÁBA. Nem egy token
+ * hiányzott: egy sem volt benne. A keretek `currentColor`-t vittek (a szöveg
+ * színét, tehát majdnem feketét), a méretek `rem`-ben álltak a hoszt öt lépcsős
+ * radius-skálája helyett, a hiba `#b00020` volt, és a naptár szaggatott
+ * kerettel rajzolódott, amit a hoszt sehol nem használ. A modul emiatt
+ * vázlatnak látszott a mellette álló lapok mellett, nem pedig egy másik
+ * témának.
+ *
+ * A méretek a futó appból mértek, nem a Tailwind-osztálynevekből olvasottak:
+ * a `font-600` / `font-700` utility ebben a buildben NEM ad súlyt, tehát az
+ * osztálynevek átmásolása a szándékot reprodukálta volna, nem az eredményt.
+ * Ami a hoszt teljes szélességű lapjain (Task Board) tényleg megjelenik:
+ *
+ *   lap kerete   24px 32px 16px
+ *   H1           28px, ls -0.84px, 400-as súly
+ *   fül-sor      0 32px 12px, a fül maga 11px / 6px 12px / teljesen kerek
+ *   kártya       --color-surface, hajszálkeret, --radius-lg
+ *   alapszöveg   13px / 1.45
+ *
+ * A hoszt fél pixeles kerete (globals.css) a saját `.border` utility-jeit
+ * célozza, extension-stíluslapot nem ér el, ezért itt meg van ismételve.
+ */
 
-.pub-btn { cursor: pointer; }
-.pub-btn-small { font-size: .85rem; padding: .2rem .5rem; }
-
-.pub-halvany { opacity: .65; }
-.pub-hiba { color: #b00020; }
-.pub-uzenet { font-weight: 600; }
-.pub-ures { opacity: .6; font-style: italic; }
-
-.pub-naptar-fejlec, .pub-fiokok-fejlec, .pub-kiadas-fejlec {
-  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+.pub-app {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text, #1D1D1F);
 }
 
-.pub-hetirend { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; }
-@media (max-width: 1080px) { .pub-hetirend { grid-template-columns: repeat(2, 1fr); } }
-.pub-nap { border: 1px solid currentColor; border-radius: .3rem; padding: .5rem; opacity: .95; display: flex; flex-direction: column; gap: .35rem; }
-.pub-savok { font-size: .8rem; opacity: .7; margin: 0; }
-.pub-sav-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .2rem; }
-.pub-sav { display: flex; gap: .4rem; align-items: center; justify-content: space-between; font-size: .8rem; }
+/* --- Fülek --- */
+
+.pub-nav {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding: 24px 32px 12px;
+}
+
+.pub-nav button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-full, 9999px);
+  background: transparent;
+  color: var(--color-text-3, #8E8E93);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.pub-nav button:hover {
+  background: var(--color-layer-2, rgba(16,24,40,0.05));
+  color: var(--color-text-2, #424245);
+}
+
+/* A kiválasztott fül tintát kap, nem aláhúzást -- a hoszt sehol nem húz alá. */
+.pub-nav button[aria-pressed="true"],
+.pub-nav button[aria-pressed="true"]:hover {
+  background: var(--color-accent-soft, rgba(255,107,84,0.18));
+  color: var(--color-accent-bright, #FF6B54);
+}
+
+.pub-fo { min-height: 12rem; width: 100%; max-width: 1200px; margin-inline: auto; padding: 0 32px 32px; }
+
+/* --- Címek --- */
+
+.pub-naptar h2,
+.pub-fiokok h2,
+.pub-kiadas h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.84px;
+  line-height: 1.2;
+}
+
+.pub-naptar h3,
+.pub-fiokok h3,
+.pub-kiadas h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-2, #424245);
+}
+
+.pub-naptar-fejlec,
+.pub-fiokok-fejlec,
+.pub-kiadas-fejlec {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+/* --- Gombok --- */
+
+.pub-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text-2, #424245);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.pub-btn:hover {
+  background: var(--color-layer-2, rgba(16,24,40,0.05));
+  color: var(--color-text, #1D1D1F);
+}
+
+.pub-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.pub-btn-small { padding: 4px 10px; font-size: 11px; }
+
+.pub-app input,
+.pub-app select,
+.pub-app textarea {
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--color-text, #1D1D1F);
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  border-radius: var(--radius-md, 11px);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.pub-app input:focus,
+.pub-app select:focus,
+.pub-app textarea:focus {
+  border-color: var(--color-border-focus, rgba(255,107,84,0.50));
+  box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(255,107,84,0.28));
+}
+
+/* --- Szövegállapotok --- */
+
+.pub-halvany { color: var(--color-text-3, #8E8E93); }
+.pub-hiba { color: var(--color-danger, #b91c1c); }
+.pub-uzenet { font-weight: 600; }
+.pub-ures { color: var(--color-text-3, #8E8E93); font-style: italic; }
+.pub-het-cimke { font-size: 12px; color: var(--color-text-3, #8E8E93); }
+
+/* --- Naptár --- */
+
+.pub-hetirend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1080px) { .pub-hetirend { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.pub-nap {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 16px;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  border-radius: var(--radius-lg, 18px);
+}
+
+.pub-savok { margin: 0; font-size: 12px; }
+.pub-sav-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.pub-sav { display: flex; gap: 6px; align-items: center; justify-content: space-between; font-size: 12px; }
 .pub-sav-ido { font-variant-numeric: tabular-nums; font-weight: 600; }
-.pub-sav-urlap { display: flex; flex-wrap: wrap; gap: .35rem; align-items: flex-end; font-size: .8rem; }
-.pub-sav-urlap label { display: flex; flex-direction: column; gap: .1rem; }
-.pub-sav-urlap input { width: 4rem; }
+.pub-sav-urlap { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; font-size: 12px; }
+.pub-sav-urlap label { display: flex; flex-direction: column; gap: 3px; }
+.pub-sav-urlap input { width: 72px; }
 .pub-sav-hozzaad { align-self: flex-start; }
-.pub-ures-naptar { display: flex; flex-direction: column; gap: .35rem; align-items: flex-start; border: 1px dashed currentColor; border-radius: .3rem; padding: .6rem; }
+
+/*
+ * Az üres állapotok kerete tömör hajszálvonal. Szaggatott kerettel rajzoltak,
+ * ami a hoszt vizuális nyelvében nem szerepel: ott az üres doboz a lap
+ * alapszínén ül, keret nélkül vagy ugyanazzal a vonallal, mint minden más.
+ */
+.pub-ures-naptar,
+.pub-nincs-kiadas {
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--color-layer-1, rgba(16,24,40,0.03));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  border-radius: var(--radius-lg, 18px);
+}
+
+.pub-het-valaszto { display: flex; gap: 8px; align-items: center; }
+
+/* --- Kiadás-kártya a naptárban --- */
 
 .pub-bejegyzes {
   display: block; width: 100%; text-align: left; cursor: pointer;
-  border: 1px solid currentColor; border-radius: .3rem; padding: .4rem;
-  background: transparent; color: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  border-radius: var(--radius-md, 11px);
+  background: var(--color-surface, #FFFFFF);
+  color: inherit;
+  font: inherit;
+  transition: background-color 0.15s, border-color 0.15s;
 }
+
+.pub-bejegyzes:hover {
+  background: var(--color-layer-1, rgba(16,24,40,0.03));
+  border-color: var(--color-line-default, rgba(16,24,40,0.24));
+}
+
 .pub-allapot { display: block; font-weight: 600; }
-.pub-ido { display: block; font-size: .75rem; opacity: .75; }
-.pub-felulirva { display: block; font-size: .75rem; font-style: italic; }
-.pub-jelzok { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .3rem; }
-.pub-jelzo { font-size: .7rem; padding: .05rem .35rem; border: 1px solid currentColor; border-radius: .2rem; opacity: .85; }
-.pub-jelzo-kesz { font-weight: 600; }
-.pub-jelzo-hiba { text-decoration: underline; }
+.pub-ido { display: block; font-size: 11px; color: var(--color-text-3, #8E8E93); }
+.pub-felulirva { display: block; font-size: 11px; font-style: italic; color: var(--color-text-3, #8E8E93); }
 
-.pub-kiadas { display: flex; flex-direction: column; gap: .75rem; }
-.pub-forras { white-space: pre-wrap; margin: .25rem 0 0; }
-.pub-ag-lista { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-.pub-ag-sor { border: 1px solid currentColor; border-radius: .3rem; padding: .5rem; }
-.pub-ag-fejlec { display: flex; justify-content: space-between; gap: .5rem; }
-.pub-ag-szoveg { margin-top: .3rem; }
-.pub-ag-cim { font-weight: 600; margin: 0; }
-.pub-ag-leiras { white-space: pre-wrap; margin: .2rem 0 0; }
-.pub-ag-hiba { color: #b00020; margin: .2rem 0; }
-.pub-link { word-break: break-all; }
-.pub-jovahagyas { display: flex; align-items: center; gap: .5rem; }
-.pub-idopont { display: flex; flex-direction: column; gap: .2rem; }
-.pub-atutemezes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: flex-end; border-top: 1px dashed currentColor; padding-top: .5rem; }
-.pub-atutemezes label { display: flex; flex-direction: column; gap: .15rem; font-size: .85rem; }
+.pub-jelzok { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 
-.pub-fiok-lista { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
-.pub-fiok-sor { display: flex; gap: .5rem; align-items: center; }
-.pub-fiok-hianyzik { opacity: .65; font-style: italic; }
-.pub-google-connect { display: flex; flex-direction: column; gap: .35rem; align-items: flex-start; border-top: 1px dashed currentColor; padding-top: .5rem; }
-.pub-fiok-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; border-top: 1px dashed currentColor; padding-top: .5rem; }
+.pub-jelzo {
+  padding: 2px 8px;
+  font-size: 10px;
+  border: none;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-layer-2, rgba(16,24,40,0.05));
+  color: var(--color-text-2, #424245);
+}
 
-.pub-het-valaszto { display: flex; gap: .5rem; align-items: center; }
-.pub-het-cimke { font-size: .85rem; opacity: .8; }
-.pub-nincs-kiadas { border: 1px dashed currentColor; border-radius: .3rem; padding: .5rem; margin: 0; }
-.pub-ag-hibakod { font-family: ui-monospace, monospace; }
+.pub-jelzo-kesz {
+  background: var(--color-accent-soft, rgba(255,107,84,0.18));
+  color: var(--color-accent-bright, #FF6B54);
+  font-weight: 600;
+}
+
+/* A hibajelző szín és tint, nem aláhúzás. */
+.pub-jelzo-hiba {
+  background: var(--color-danger-soft);
+  color: var(--color-danger, #b91c1c);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* --- Kiadás részletei --- */
+
+.pub-kiadas { display: flex; flex-direction: column; gap: 16px; }
+.pub-forras { white-space: pre-wrap; margin: 4px 0 0; }
+.pub-ag-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.pub-ag-sor {
+  padding: 14px 16px;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  border-radius: var(--radius-lg, 18px);
+}
+
+.pub-ag-fejlec { display: flex; justify-content: space-between; gap: 8px; }
+.pub-ag-szoveg { margin-top: 6px; }
+.pub-ag-cim { margin: 0; font-weight: 600; }
+.pub-ag-leiras { white-space: pre-wrap; margin: 4px 0 0; }
+.pub-ag-hiba { color: var(--color-danger, #b91c1c); margin: 4px 0; }
+.pub-ag-hibakod { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; }
 .pub-ag-hibamondat { font-family: inherit; }
-.pub-ag-ujra { margin-top: .3rem; }
-.pub-ujraprobalas { display: flex; flex-direction: column; gap: .35rem; align-items: flex-start; border-top: 1px dashed currentColor; padding-top: .5rem; }
-.pub-azonosito-sugo { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .2rem; font-size: .85rem; flex-basis: 100%; }
+.pub-ag-ujra { margin-top: 6px; }
+.pub-link { word-break: break-all; color: var(--color-accent-bright, #FF6B54); }
+.pub-jovahagyas { display: flex; align-items: center; gap: 8px; }
+.pub-idopont { display: flex; flex-direction: column; gap: 4px; }
+
+.pub-atutemezes,
+.pub-google-connect,
+.pub-fiok-form,
+.pub-ujraprobalas {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+}
+
+.pub-atutemezes { align-items: flex-end; }
+.pub-google-connect, .pub-ujraprobalas { flex-direction: column; align-items: flex-start; }
+.pub-fiok-form { align-items: center; }
+.pub-atutemezes label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+
+/* --- Fiókok --- */
+
+.pub-fiok-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.pub-fiok-sor { display: flex; gap: 8px; align-items: center; }
+.pub-fiok-hianyzik { color: var(--color-text-3, #8E8E93); font-style: italic; }
+.pub-azonosito-sugo {
+  list-style: none; padding: 0; margin: 0; flex-basis: 100%;
+  display: flex; flex-direction: column; gap: 3px;
+  font-size: 12px; color: var(--color-text-3, #8E8E93);
+}
+
+@media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
+  .pub-btn,
+  .pub-app input,
+  .pub-app select,
+  .pub-app textarea,
+  .pub-nap,
+  .pub-ures-naptar,
+  .pub-nincs-kiadas,
+  .pub-bejegyzes,
+  .pub-ag-sor { border-width: 0.5px; }
+  .pub-atutemezes,
+  .pub-google-connect,
+  .pub-fiok-form,
+  .pub-ujraprobalas { border-top-width: 0.5px; }
+}

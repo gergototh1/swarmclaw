@@ -102,6 +102,9 @@ export function VideoPage({ extensionId, rpc }: { extensionId: string; rpc: Rpc 
 
   return (
     <div className="vid-root" data-extension={extensionId}>
+      {/* A lap neve a lapon van, nem csak a bal sávban -- a hoszt minden
+          teljes szélességű lapja így kezdődik. */}
+      <h1 className="vid-cim">Videó</h1>
       {error && (
         <p className="vid-error" role="alert">
           {board ? 'A frissítés nem sikerült, a lenti állapot a korábbi betöltésé: ' : 'Nem sikerült betölteni: '}{error}

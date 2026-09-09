@@ -63,16 +63,43 @@
 /* ---------- keret ---------- */
 .crm-app {
   font-family: var(--font-sans, system-ui, sans-serif);
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-text, #e2e2ec);
+  /* A hoszt 13px / 1.45-öt renderel; a 14 / 1.5 fél lépcsővel nagyobb volt
+     minden szomszédos lapnál. A `--color-text` fallbackje sötét témára írt,
+     majdnem fehér érték volt: ha a token valaha eltűnik, világos témában
+     olvashatatlan lapot adott volna. */
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text, #1D1D1F);
   /* Öröklődik minden leszármazottra -- lásd a fájl tetején. */
   overflow-wrap: anywhere;
 }
+
+/*
+ * A LAP KERETE A HOSZTÉ.
+ *
+ * A `.page-shell` (src/app/globals.css) 32px oldalközt ad, és a gyerekeit
+ * 1200px-en fogja meg, középre húzva -- ez az a hasáb, amiben a Task Board, az
+ * Autonomy és a többi teljes szélességű lap áll. Ez a modul egy saját, szűkebb
+ * hasábban ült más oldalközzel, tehát a lapok közti váltás elmozdította a
+ * szöveget. Az extension a hoszt osztályát nem tudja felvenni (a saját
+ * gyökerét maga rendereli), ezért az értékek itt meg vannak ismételve.
+ */
+.crm-app > * {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 32px;
+}
+/*
+ * A fülsor a hoszt lap-fejlécének helyén áll: 24px felül, 12px alul, az
+ * oldalközt a `.crm-app > *` szabály adja. Alsó keretet nem visel -- a hoszt
+ * fülsorai (Task Board, Autonomy) sem viselnek, és a korábbi vonal fallbackje
+ * `rgba(255,255,255,.07)` volt, egy sötét témára írt érték, ami világos
+ * témában láthatatlan.
+ */
 .crm-appbar {
   display: flex; align-items: center; gap: 14px;
-  padding: 13px 18px;
-  border-bottom: 1px solid var(--color-border, rgba(255,255,255,.07));
+  padding-block: 24px 12px;
 }
 .crm-tabs { display: flex; gap: 2px; }
 .crm-tab {
@@ -80,12 +107,12 @@
   background: transparent; border: 1px solid transparent;
   /* C2: `--color-text-3` a lap hátterén világos témában 3.97:1 -- a WCAG AA
      4.5:1 küszöbe alatt. `--color-text-2`: világos 6.16:1, sötét 7.64:1. */
-  color: var(--color-text-2, #a0a0ba);
+  color: var(--color-text-2, #424245);
   padding: 6px 13px; border-radius: var(--radius-sm, 8px); cursor: pointer;
 }
-.crm-tab:hover { color: var(--color-text, #e2e2ec); }
+.crm-tab:hover { color: var(--color-text, #1D1D1F); }
 .crm-tab[aria-selected="true"] {
-  color: var(--color-text, #e2e2ec);
+  color: var(--color-text, #1D1D1F);
   /* F2 3. réteg -- lásd a fájl tetején a rétegek magyarázatát.
      Kontraszt (--color-text a rétegen): sötét 9.74:1, világos 12.86:1. */
   background: color-mix(in srgb, var(--color-raised, #0f0f18) 85%, var(--color-accent-foreground, #fff));
@@ -105,10 +132,18 @@
  * képernyőolvasó fejezetkiosztásához), de vizuálisan halkabb a böngésző
  * alap h2-jénél, hogy illeszkedjen a `crm-sechead h3` tömör tipográfiájához.
  */
+/*
+ * A lap címe a hoszt lap-H1-e: 28px, -0.03em, 400-as súly. A `font-700`
+ * utility ebben a buildben nem ad súlyt, tehát a hoszt saját címe is regular
+ * -- egy félkövér cím itt nem illeszkedett volna, hanem kilógott volna.
+ */
 .crm-h2 {
   font-family: var(--font-display, system-ui, sans-serif);
-  font-size: 15px; font-weight: 600;
-  color: var(--color-text, #e2e2ec);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--color-text, #1D1D1F);
   margin: 0;
 }
 
@@ -118,7 +153,7 @@
 .crm-sechead h3 {
   font-family: var(--font-display, system-ui, sans-serif);
   font-size: 13px; font-weight: 600; letter-spacing: .01em;
-  color: var(--color-text-2, #a0a0ba); margin: 0;
+  color: var(--color-text-2, #424245); margin: 0;
 }
 .crm-count {
   font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px;
@@ -128,7 +163,7 @@
      nem ez a javítás rontotta el). --color-text-2-re váltva 7.47:1 (sötét)
      / 6.42:1 (világos) -- ugyanaz a minta, mint a `.crm-tltime`-nál és a
      `.crm-lanen`-nél lentebb. */
-  color: var(--color-text-2, #a0a0ba);
+  color: var(--color-text-2, #424245);
   background: var(--color-raised, #0f0f18);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
   padding: 1px 6px; border-radius: var(--radius-full, 999px);
@@ -150,7 +185,7 @@
   /* F2 2. réteg -- lásd a fájl tetején. Kontraszt (--color-text a rétegen):
      sötét 12.24:1, világos 12.71:1. */
   background: color-mix(in srgb, var(--color-raised, #0f0f18) 92%, var(--color-accent-foreground, #fff));
-  color: var(--color-text, #e2e2ec);
+  color: var(--color-text, #1D1D1F);
   border: 1px solid var(--color-border-hi, rgba(255,255,255,.13));
   padding: 6px 12px; border-radius: var(--radius-sm, 8px);
 }
@@ -165,9 +200,9 @@
 .crm-btn-quiet {
   background: transparent;
   border-color: var(--color-border, rgba(255,255,255,.07));
-  color: var(--color-text-2, #a0a0ba);
+  color: var(--color-text-2, #424245);
 }
-.crm-btn-quiet:hover { color: var(--color-text, #e2e2ec); background: transparent; }
+.crm-btn-quiet:hover { color: var(--color-text, #1D1D1F); background: transparent; }
 .crm-btn-sm { padding: 4px 9px; font-size: 12.5px; }
 
 /* ---------- pillek: a jelentés SOHA nem csak szín, mindig van szöveg is ---------- */
@@ -189,29 +224,29 @@
  *   .crm-pill-ok     5.35 / 9.85   (korábban 2.88 / 8.47)
  */
 .crm-pill-sajat {
-  color: color-mix(in srgb, var(--color-danger, #f43f5e) 70%, var(--color-text, #e2e2ec));
+  color: color-mix(in srgb, var(--color-danger, #f43f5e) 70%, var(--color-text, #1D1D1F));
   background: color-mix(in srgb, var(--color-danger, #f43f5e) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-danger, #f43f5e) 30%, transparent);
 }
 .crm-pill-valasz {
-  color: color-mix(in srgb, var(--color-warning, #fbbf24) 35%, var(--color-text, #e2e2ec));
+  color: color-mix(in srgb, var(--color-warning, #fbbf24) 35%, var(--color-text, #1D1D1F));
   background: color-mix(in srgb, var(--color-warning, #fbbf24) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-warning, #fbbf24) 30%, transparent);
 }
 .crm-pill-nema {
-  color: color-mix(in srgb, var(--color-accent, #6366f1) 70%, var(--color-text, #e2e2ec));
+  color: color-mix(in srgb, var(--color-accent, #6366f1) 70%, var(--color-text, #1D1D1F));
   background: color-mix(in srgb, var(--color-accent, #6366f1) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent, #6366f1) 30%, transparent);
 }
 .crm-pill-idegen, .crm-pill-plain {
   /* F2 3. réteg -- lásd a fájl tetején. Kontraszt (--color-text-2 a
      rétegen): sötét 4.91:1, világos 6.57:1. */
-  color: var(--color-text-2, #a0a0ba);
+  color: var(--color-text-2, #424245);
   background: color-mix(in srgb, var(--color-raised, #0f0f18) 85%, var(--color-accent-foreground, #fff));
   border-color: var(--color-border, rgba(255,255,255,.07));
 }
 .crm-pill-ok {
-  color: color-mix(in srgb, var(--color-success, #34d399) 55%, var(--color-text, #e2e2ec));
+  color: color-mix(in srgb, var(--color-success, #34d399) 55%, var(--color-text, #1D1D1F));
   background: color-mix(in srgb, var(--color-success, #34d399) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-success, #34d399) 30%, transparent);
 }
@@ -259,15 +294,15 @@
  */
 .crm-age {
   font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px;
-  color: var(--color-text-2, #a0a0ba); font-variant-numeric: tabular-nums;
+  color: var(--color-text-2, #424245); font-variant-numeric: tabular-nums;
 }
-.crm-halvany { color: var(--color-text-2, #a0a0ba); font-size: 13px; }
-.crm-empty { color: var(--color-text-2, #a0a0ba); font-size: 13px; padding: 3px 0; }
+.crm-halvany { color: var(--color-text-2, #424245); font-size: 13px; }
+.crm-empty { color: var(--color-text-2, #424245); font-size: 13px; padding: 3px 0; }
 /* C2: a tiszta `--color-danger` a saját 8%-os tintjén világos témában
    3.53:1 -- egy hibaüzenet a legkevésbé engedheti meg magának, hogy
    olvashatatlan legyen. A pillekkel azonos keverés: 5.32:1 / 6.40:1. */
 .crm-hiba {
-  color: color-mix(in srgb, var(--color-danger, #f43f5e) 70%, var(--color-text, #e2e2ec));
+  color: color-mix(in srgb, var(--color-danger, #f43f5e) 70%, var(--color-text, #1D1D1F));
   background: color-mix(in srgb, var(--color-danger, #f43f5e) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-danger, #f43f5e) 30%, transparent);
   border-radius: var(--radius-md, 11px);
@@ -278,7 +313,7 @@
    A `.crm-summary-stale` borostyán csíkja tiszta tokenszínt tart. */
 .crm-elavult {
   display: flex; align-items: center; gap: 8px; margin: 0;
-  color: color-mix(in srgb, var(--color-warning, #fbbf24) 35%, var(--color-text, #e2e2ec));
+  color: color-mix(in srgb, var(--color-warning, #fbbf24) 35%, var(--color-text, #1D1D1F));
   font-size: 12.5px; font-weight: 600;
 }
 .crm-torzs { white-space: pre-wrap; margin: .25rem 0 0; }
@@ -292,7 +327,7 @@
   font: inherit;
   /* F2 2. réteg -- lásd a fájl tetején. */
   background: color-mix(in srgb, var(--color-raised, #0f0f18) 92%, var(--color-accent-foreground, #fff));
-  color: var(--color-text, #e2e2ec);
+  color: var(--color-text, #1D1D1F);
   border: 1px solid var(--color-border-hi, rgba(255,255,255,.13));
   border-radius: var(--radius-sm, 8px);
   padding: 6px 9px; max-width: 100%;
@@ -302,7 +337,7 @@
    szigorúan az F2 lelet része volt, de ugyanaz a kontraszt-átszámolás
    hozta fel, és a --color-text-2-re váltás (6.17:1 / 6.50:1) itt is
    ártalmatlan, olvashatóbb. */
-.crm-app input::placeholder { color: var(--color-text-2, #a0a0ba); }
+.crm-app input::placeholder { color: var(--color-text-2, #424245); }
 
 @media (prefers-reduced-motion: reduce) {
   .crm-btn, .crm-tab, .crm-acct { transition: none; }
@@ -322,15 +357,15 @@
   overflow: hidden;
 }
 .crm-attrow:hover { border-color: var(--color-border-hi, rgba(255,255,255,.13)); }
-.crm-stripe { align-self: stretch; background: var(--color-text-3, #8282a0); }
+.crm-stripe { align-self: stretch; background: var(--color-text-3, #8E8E93); }
 .crm-k-sajat .crm-stripe { background: var(--color-danger, #f43f5e); }
 .crm-k-valasz .crm-stripe { background: var(--color-warning, #fbbf24); }
 .crm-k-nema .crm-stripe { background: var(--color-accent, #6366f1); }
-.crm-k-idegen .crm-stripe { background: var(--color-text-3, #8282a0); }
+.crm-k-idegen .crm-stripe { background: var(--color-text-3, #8E8E93); }
 .crm-attbody { padding: 11px 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .crm-attline { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .crm-atttitle { font-weight: 500; }
-.crm-attwhy { color: var(--color-text-2, #a0a0ba); font-size: 13px; margin: 0; }
+.crm-attwhy { color: var(--color-text-2, #424245); font-size: 13px; margin: 0; }
 .crm-attact { display: flex; gap: 6px; padding-right: 12px; }
 
 /* ---------- Ma: javaslatok ---------- */
@@ -441,7 +476,7 @@
   display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center;
   /* F2 1. réteg -- lásd a fájl tetején. */
   background: var(--color-raised, #0f0f18);
-  color: var(--color-text, #e2e2ec);
+  color: var(--color-text, #1D1D1F);
   border: 1px solid var(--color-border, rgba(255,255,255,.07));
   border-radius: var(--radius-md, 11px);
   padding: 11px 13px;
@@ -537,7 +572,7 @@
   border: 2px solid var(--color-accent, #6366f1);
 }
 .crm-tl-out .crm-tlnode { border-color: var(--color-success, #34d399); }
-.crm-tl-note .crm-tlnode { border-color: var(--color-text-3, #8282a0); }
+.crm-tl-note .crm-tlnode { border-color: var(--color-text-3, #8E8E93); }
 .crm-tlline { flex: 1; width: 1px; margin-top: 3px; background: var(--color-border-hi, rgba(255,255,255,.13)); }
 .crm-tlitem:last-child .crm-tlline { display: none; }
 .crm-tlbody { padding-bottom: 15px; display: flex; flex-direction: column; gap: 3px; min-width: 0; align-items: flex-start; }
@@ -550,7 +585,7 @@
  * pillekhez, pl. `.crm-pill-plain`), ami világosban 6.18:1-et ad, sötétben
  * pedig legalább annyira olvasható marad, mint a text-3 volt.
  */
-.crm-tltime { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px; color: var(--color-text-2, #a0a0ba); }
+.crm-tltime { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px; color: var(--color-text-2, #424245); }
 
 /* ---------- Ügyek: pipeline ---------- */
 .crm-pipe { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 11px; }
@@ -567,7 +602,7 @@
 .crm-lanehead h4 {
   font-family: var(--font-display, system-ui, sans-serif);
   font-size: 12px; font-weight: 600; letter-spacing: .01em;
-  color: var(--color-text-2, #a0a0ba); margin: 0;
+  color: var(--color-text-2, #424245); margin: 0;
 }
 .crm-lanebar { width: 3px; height: 14px; border-radius: var(--radius-xs, 5px); background: var(--color-accent, #6366f1); }
 /*
@@ -581,7 +616,7 @@
 .crm-lanen {
   margin-left: auto;
   font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px;
-  color: var(--color-text-2, #a0a0ba);
+  color: var(--color-text-2, #424245);
 }
 .crm-deal {
   display: flex; flex-direction: column; gap: 7px; min-width: 0;
@@ -599,9 +634,9 @@
  * egyszer javított a `.crm-tltime`-nál. `--color-text-2`-re váltva 6.50:1
  * (világos) / 6.17:1 (sötét).
  */
-.crm-deala { color: var(--color-text-2, #a0a0ba); font-size: 12.5px; }
+.crm-deala { color: var(--color-text-2, #424245); font-size: 12.5px; }
 .crm-dealv {
   font-family: var(--font-mono, ui-monospace, monospace); font-size: 12.5px;
-  font-variant-numeric: tabular-nums; color: var(--color-text-2, #a0a0ba);
+  font-variant-numeric: tabular-nums; color: var(--color-text-2, #424245);
 }
 .crm-deal .crm-attact { padding-right: 0; flex-wrap: wrap; }

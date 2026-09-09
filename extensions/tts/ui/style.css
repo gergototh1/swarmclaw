@@ -6,18 +6,34 @@
  * follows the host's light and dark themes and still reads when a token is
  * renamed. Paths, codes and the MCP entry are set in the host's mono face.
  */
+/*
+ * A LAP KERETE A HOSZTÉ.
+ *
+ * A `.page-shell` (src/app/globals.css) 32px oldalközt ad, és a gyerekeit
+ * 1200px-en fogja meg, középre húzva -- ez az a hasáb, amiben a Task Board, az
+ * Autonomy és a többi teljes szélességű lap áll. Ez a modul egy saját, szűkebb
+ * hasábban ült más oldalközzel, tehát a lapok közti váltás elmozdította a
+ * szöveget. Az extension a hoszt osztályát nem tudja felvenni (a saját
+ * gyökerét maga rendereli), ezért az értékek itt meg vannak ismételve.
+ */
 .tts-root {
-  padding: 20px 24px 40px;
-  max-width: 880px;
-  margin: 0 auto;
-  color: var(--card-foreground, inherit);
-  font-size: 14px;
-  line-height: 1.5;
+  padding: 24px 32px 32px;
+  max-width: 1200px;
+  margin-inline: auto;
+  color: var(--color-text, #1D1D1F);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.45;
 }
-.tts-root h1 { font-size: 20px; margin: 0 0 16px; }
+/*
+ * A lap címe a hoszt lap-H1-e: 28px, -0.03em, 400-as súly. A `font-700`
+ * utility ebben a buildben nem ad súlyt, tehát a hoszt saját címe is regular
+ * -- egy félkövér cím itt nem illeszkedett volna, hanem kilógott volna.
+ */
+.tts-root h1 { font-size: 28px; font-weight: 400; letter-spacing: -0.03em; line-height: 1.2; margin: 0 0 16px; }
 .tts-root h2 { font-size: 15px; margin: 0 0 10px; }
 .tts-mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; }
-.tts-muted { color: var(--color-text-3, #8282a0); }
+.tts-muted { color: var(--color-text-3, #8E8E93); }
 .tts-error {
   color: var(--color-danger, #dc2626);
   border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 35%, transparent);
@@ -30,35 +46,35 @@
 .tts-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .tts-head h1 { margin: 0; }
 .tts-btn {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
-  background: var(--card, transparent);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  background: var(--color-surface, #FFFFFF);
   color: inherit;
   border-radius: var(--radius-sm, 8px);
   padding: 8px 14px;
   font: inherit;
   cursor: pointer;
 }
-.tts-btn:hover:not(:disabled) { border-color: var(--accent, #6366f1); }
+.tts-btn:hover:not(:disabled) { border-color: var(--color-accent-bright, #FF6B54); }
 .tts-btn:disabled { opacity: 0.45; cursor: default; }
 
 /* sections */
 .tts-section {
-  background: var(--card, transparent);
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-lg, 18px);
   padding: 16px 18px;
   margin-bottom: 16px;
   overflow-wrap: anywhere;
 }
 .tts-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
-.tts-facts dt { color: var(--color-text-3, #8282a0); }
+.tts-facts dt { color: var(--color-text-3, #8E8E93); }
 .tts-facts dd { margin: 0; }
 .tts-yes { color: var(--color-success, #16a34a); font-weight: 600; }
 .tts-no { color: var(--color-danger, #dc2626); font-weight: 600; }
 .tts-pre {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 12px;
-  background: color-mix(in srgb, var(--border, rgba(127, 127, 127, 0.2)) 30%, transparent);
+  background: color-mix(in srgb, var(--color-line-subtle, rgba(16,24,40,0.17)) 30%, transparent);
   border-radius: var(--radius-sm, 8px);
   padding: 12px 14px;
   margin: 0;
@@ -71,12 +87,12 @@
 
 /* the request list */
 .tts-row {
-  border-top: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-top: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   padding: 10px 0;
   overflow-wrap: anywhere;
 }
 .tts-row p { margin: 0 0 4px; white-space: pre-wrap; }
-.tts-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--color-text-3, #8282a0); }
+.tts-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--color-text-3, #8E8E93); }
 .tts-badge {
   border: 1px solid currentColor;
   border-radius: var(--radius-full, 999px);

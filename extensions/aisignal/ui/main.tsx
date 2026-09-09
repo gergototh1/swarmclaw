@@ -50,6 +50,9 @@ export function AiSignalPage({ extensionId, rpc }: { extensionId: string; rpc: R
 
   return (
     <div className="ais-root" data-extension={extensionId}>
+      {/* A lap neve a lapon van, nem csak a bal sávban -- a hoszt minden
+          teljes szélességű lapja így kezdődik. */}
+      <h1 className="ais-cim">AI Signal</h1>
       {error && (
         <p className="ais-error" role="alert">
           {board ? 'A frissítés nem sikerült, a lenti állapot a korábbi betöltésé: ' : 'Nem sikerült betölteni: '}{error}

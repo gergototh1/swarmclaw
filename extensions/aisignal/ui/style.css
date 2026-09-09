@@ -6,16 +6,27 @@
  * follows the host's light and dark themes and still reads when a token is
  * renamed. Metadata is set in the host's mono face (`--font-mono`).
  */
+/*
+ * A LAP KERETE A HOSZTÉ.
+ *
+ * A `.page-shell` (src/app/globals.css) 32px oldalközt ad, és a gyerekeit
+ * 1200px-en fogja meg, középre húzva -- ez az a hasáb, amiben a Task Board, az
+ * Autonomy és a többi teljes szélességű lap áll. Ez a modul egy saját, szűkebb
+ * hasábban ült más oldalközzel, tehát a lapok közti váltás elmozdította a
+ * szöveget. Az extension a hoszt osztályát nem tudja felvenni (a saját
+ * gyökerét maga rendereli), ezért az értékek itt meg vannak ismételve.
+ */
 .ais-root {
-  padding: 20px 24px 40px;
-  max-width: 880px;
-  margin: 0 auto;
-  color: var(--card-foreground, inherit);
-  font-size: 14px;
-  line-height: 1.5;
+  padding: 24px 32px 32px;
+  max-width: 1200px;
+  margin-inline: auto;
+  color: var(--color-text, #1D1D1F);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.45;
 }
 .ais-mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; }
-.ais-muted { color: var(--color-text-3, #8282a0); }
+.ais-muted { color: var(--color-text-3, #8E8E93); }
 .ais-warn { color: var(--color-warning, #d97706); font-weight: 600; }
 .ais-error {
   color: var(--color-danger, #dc2626);
@@ -27,7 +38,7 @@
   overflow-wrap: anywhere;
 }
 .ais-link {
-  color: var(--accent, #6366f1);
+  color: var(--color-accent-bright, #FF6B54);
   text-decoration: underline;
   overflow-wrap: anywhere;
 }
@@ -50,7 +61,7 @@
 .ais-status-toggle:hover strong { text-decoration: underline; }
 .ais-status-toggle:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; border-radius: var(--radius-xs, 5px); }
 .ais-caret { display: inline-block; width: 1em; color: var(--color-text-3); }
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin-bottom: 16px;
@@ -67,38 +78,57 @@
   flex-wrap: wrap;
   overflow-wrap: anywhere;
 }
-.ais-sweeps summary { cursor: pointer; color: var(--color-text-3, #8282a0); font-size: 12px; }
+.ais-sweeps summary { cursor: pointer; color: var(--color-text-3, #8E8E93); font-size: 12px; }
 .ais-sweeps ul { margin: 6px 0 0; padding-left: 18px; font-size: 12px; }
 .ais-sweeps li { margin: 2px 0; overflow-wrap: anywhere; }
 
 /* tabs */
-.ais-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border, rgba(127, 127, 127, 0.2)); }
+.ais-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+/*
+ * A FÜL PIRULA, NEM ALÁHÚZÁS.
+ *
+ * A hoszt sehol nem jelöl kiválasztást aláhúzással: a Task Board, az ügynöklista
+ * és a beállítások mind ugyanazt a kerek, halvány-accent hátterű pirulát
+ * használják. Az aláhúzott sáv a lecserélt paletta maradéka volt, az indigó
+ * `#6366f1` fallbackkel együtt -- egy szín, amit ebben a designban semmi nem
+ * definiál. A méretek a futó appból mértek: 11px, 6px 12px, teljesen kerek.
+ */
 .ais-tab {
-  background: none;
+  padding: 6px 12px;
   border: none;
-  border-bottom: 2px solid transparent;
-  padding: 8px 14px;
-  margin-bottom: -1px;
-  cursor: pointer;
-  color: var(--color-text-3, #8282a0);
+  border-radius: var(--radius-full, 9999px);
+  background: transparent;
+  color: var(--color-text-3, #8E8E93);
   font: inherit;
-  font-weight: 600;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
 }
-.ais-tab-active { color: inherit; border-bottom-color: var(--accent, #6366f1); }
+
+.ais-tab:hover {
+  background: var(--color-layer-2, rgba(16,24,40,0.05));
+  color: var(--color-text-2, #424245);
+}
+
+.ais-tab-active,
+.ais-tab-active:hover {
+  background: var(--color-accent-soft, rgba(255,107,84,0.18));
+  color: var(--color-accent-bright, #FF6B54);
+}
 
 /* buttons */
 .ais-btn {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
-  background: var(--card, transparent);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  background: var(--color-surface, #FFFFFF);
   color: inherit;
   border-radius: var(--radius-sm, 8px);
   padding: 8px 14px;
   font: inherit;
   cursor: pointer;
 }
-.ais-btn:hover:not(:disabled) { border-color: var(--accent, #6366f1); }
+.ais-btn:hover:not(:disabled) { border-color: var(--color-accent-bright, #FF6B54); }
 .ais-btn:disabled { opacity: 0.45; cursor: default; }
-.ais-btn-primary { background: var(--accent, #6366f1); color: var(--accent-foreground, #fff); border-color: transparent; }
+.ais-btn-primary { background: var(--color-accent-bright, #FF6B54); color: var(--color-accent-fg, #FFFFFF); border-color: transparent; }
 .ais-btn-small { padding: 4px 10px; font-size: 12px; }
 .ais-actions { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
 
@@ -113,8 +143,8 @@
 .ais-card-stack { position: relative; width: 100%; max-width: 620px; }
 .ais-card {
   position: relative;
-  background: var(--card, #fff);
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-lg, 18px);
   padding: 22px 24px;
   touch-action: none;
@@ -131,12 +161,12 @@
 .ais-card h2 { font-size: 20px; line-height: 1.3; margin: 12px 0 8px; }
 .ais-card p { margin: 0 0 10px; }
 .ais-why {
-  border-left: 3px solid var(--accent, #6366f1);
+  border-left: 3px solid var(--color-accent-bright, #FF6B54);
   padding-left: 10px;
   color: var(--color-text-2, #6b7280);
   font-style: italic;
 }
-.ais-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--color-text-3, #8282a0); }
+.ais-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--color-text-3, #8E8E93); }
 .ais-stamp {
   position: absolute;
   top: 18px;
@@ -165,7 +195,7 @@
 /* list */
 .ais-chips { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 .ais-chip {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   background: none;
   color: inherit;
   border-radius: var(--radius-full, 999px);
@@ -174,19 +204,19 @@
   font-size: 13px;
   cursor: pointer;
 }
-.ais-chip-active { background: var(--accent, #6366f1); color: var(--accent-foreground, #fff); border-color: transparent; }
+.ais-chip-active { background: var(--color-accent-bright, #FF6B54); color: var(--color-accent-fg, #FFFFFF); border-color: transparent; }
 .ais-search {
   flex: 1 1 200px;
   min-width: 160px;
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
-  background: var(--card, transparent);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  background: var(--color-surface, #FFFFFF);
   color: inherit;
   border-radius: var(--radius-sm, 8px);
   padding: 6px 10px;
   font: inherit;
 }
 .ais-row {
-  border-top: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border-top: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   padding: 12px 0;
   overflow-wrap: anywhere;
 }
@@ -201,3 +231,14 @@
 }
 .ais-badge-bad { color: var(--color-danger, #dc2626); font-weight: 700; }
 .ais-capped { margin-top: 12px; }
+
+/* A lap címe: a hoszt lap-H1-e (28px, -0.03em, 400-as súly). */
+.ais-cim {
+  margin: 0 0 16px;
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--color-text, #1D1D1F);
+}

@@ -11,16 +11,27 @@
  * note -- was written by somebody else, and a single 4000-character word must
  * push nothing off the screen and cover nothing up.
  */
+/*
+ * A LAP KERETE A HOSZTÉ.
+ *
+ * A `.page-shell` (src/app/globals.css) 32px oldalközt ad, és a gyerekeit
+ * 1200px-en fogja meg, középre húzva -- ez az a hasáb, amiben a Task Board, az
+ * Autonomy és a többi teljes szélességű lap áll. Ez a modul egy saját, szűkebb
+ * hasábban ült más oldalközzel, tehát a lapok közti váltás elmozdította a
+ * szöveget. Az extension a hoszt osztályát nem tudja felvenni (a saját
+ * gyökerét maga rendereli), ezért az értékek itt meg vannak ismételve.
+ */
 .vid-root {
-  padding: 20px 24px 40px;
-  max-width: 1100px;
-  margin: 0 auto;
-  color: var(--card-foreground, inherit);
-  font-size: 14px;
-  line-height: 1.5;
+  padding: 24px 32px 32px;
+  max-width: 1200px;
+  margin-inline: auto;
+  color: var(--color-text, #1D1D1F);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.45;
 }
 .vid-mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; }
-.vid-muted { color: var(--color-text-3, #8282a0); }
+.vid-muted { color: var(--color-text-3, #8E8E93); }
 .vid-warn { color: var(--color-warning, #d97706); font-weight: 600; }
 .vid-bad { color: var(--color-danger, #dc2626); font-weight: 600; }
 .vid-error {
@@ -33,20 +44,20 @@
   overflow-wrap: anywhere;
 }
 .vid-notice {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-md, 11px);
   padding: 8px 14px;
   margin: 8px 0;
   overflow-wrap: anywhere;
 }
 .vid-notice .vid-btn { margin-left: 10px; }
-.vid-link { color: var(--accent, #6366f1); text-decoration: underline; overflow-wrap: anywhere; }
+.vid-link { color: var(--color-accent-bright, #FF6B54); text-decoration: underline; overflow-wrap: anywhere; }
 .vid-linklike {
   background: none;
   border: none;
   padding: 0;
   font: inherit;
-  color: var(--accent, #6366f1);
+  color: var(--color-accent-bright, #FF6B54);
   text-decoration: underline;
   cursor: pointer;
   overflow-wrap: anywhere;
@@ -54,7 +65,7 @@
 
 /* status bar */
 .vid-status {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin-bottom: 16px;
@@ -95,35 +106,54 @@
 .vid-fordulok { margin: 3px 0; padding-left: 18px; }
 .vid-fordulok li { overflow-wrap: anywhere; }
 .vid-uninstall { margin-top: 8px; }
-.vid-uninstall summary { cursor: pointer; color: var(--color-text-3, #8282a0); font-size: 12px; }
+.vid-uninstall summary { cursor: pointer; color: var(--color-text-3, #8E8E93); font-size: 12px; }
 .vid-uninstall ol { margin: 6px 0; padding-left: 20px; }
 
 /* tabs */
-.vid-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border, rgba(127, 127, 127, 0.2)); }
+.vid-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+/*
+ * A FÜL PIRULA, NEM ALÁHÚZÁS.
+ *
+ * A hoszt sehol nem jelöl kiválasztást aláhúzással: a Task Board, az ügynöklista
+ * és a beállítások mind ugyanazt a kerek, halvány-accent hátterű pirulát
+ * használják. Az aláhúzott sáv a lecserélt paletta maradéka volt, az indigó
+ * `#6366f1` fallbackkel együtt -- egy szín, amit ebben a designban semmi nem
+ * definiál. A méretek a futó appból mértek: 11px, 6px 12px, teljesen kerek.
+ */
 .vid-tab {
-  background: none;
+  padding: 6px 12px;
   border: none;
-  border-bottom: 2px solid transparent;
-  padding: 8px 14px;
-  margin-bottom: -1px;
-  cursor: pointer;
-  color: var(--color-text-3, #8282a0);
+  border-radius: var(--radius-full, 9999px);
+  background: transparent;
+  color: var(--color-text-3, #8E8E93);
   font: inherit;
-  font-weight: 600;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
 }
-.vid-tab-active { color: inherit; border-bottom-color: var(--accent, #6366f1); }
+
+.vid-tab:hover {
+  background: var(--color-layer-2, rgba(16,24,40,0.05));
+  color: var(--color-text-2, #424245);
+}
+
+.vid-tab-active,
+.vid-tab-active:hover {
+  background: var(--color-accent-soft, rgba(255,107,84,0.18));
+  color: var(--color-accent-bright, #FF6B54);
+}
 
 /* buttons and inputs */
 .vid-btn {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
-  background: var(--card, transparent);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  background: var(--color-surface, #FFFFFF);
   color: inherit;
   border-radius: var(--radius-sm, 8px);
   padding: 8px 14px;
   font: inherit;
   cursor: pointer;
 }
-.vid-btn:hover:not(:disabled) { border-color: var(--accent, #6366f1); }
+.vid-btn:hover:not(:disabled) { border-color: var(--color-accent-bright, #FF6B54); }
 .vid-btn:disabled { opacity: 0.45; cursor: default; }
 .vid-btn-small { padding: 4px 10px; font-size: 12px; }
 .vid-accept { border-color: var(--color-success, #16a34a); }
@@ -132,8 +162,8 @@
   display: block;
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
-  background: var(--card, transparent);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  background: var(--color-surface, #FFFFFF);
   color: inherit;
   border-radius: var(--radius-sm, 8px);
   padding: 6px 10px;
@@ -145,13 +175,13 @@
 /* queue */
 .vid-columns { display: flex; gap: 14px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
 .vid-column { flex: 0 0 260px; min-width: 0; }
-.vid-column h3 { font-size: 13px; margin: 0 0 8px; letter-spacing: .01em; color: var(--color-text-3, #8282a0); }
+.vid-column h3 { font-size: 13px; margin: 0 0 8px; letter-spacing: .01em; color: var(--color-text-3, #8E8E93); }
 .vid-card {
   display: block;
   width: 100%;
   text-align: left;
-  background: var(--card, transparent);
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-lg, 18px);
   padding: 10px 12px;
   margin-bottom: 8px;
@@ -160,7 +190,7 @@
   cursor: pointer;
   overflow-wrap: anywhere;
 }
-.vid-card:hover { border-color: var(--accent, #6366f1); }
+.vid-card:hover { border-color: var(--color-accent-bright, #FF6B54); }
 /*
  * Clamped, with the ellipsis the clamp draws. A title is a stranger's first
  * line and can be 200 characters of one unbroken word; left alone it makes a
@@ -177,11 +207,11 @@
   font-weight: 600;
   margin-bottom: 6px;
 }
-.vid-card-meta { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 12px; color: var(--color-text-3, #8282a0); }
+.vid-card-meta { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 12px; color: var(--color-text-3, #8E8E93); }
 .vid-badge { border: 1px solid currentColor; border-radius: var(--radius-full, 999px); padding: 0 8px; font-size: 11px; }
 .vid-badge-bad { color: var(--color-danger, #dc2626); font-weight: 700; }
 .vid-ures { margin-top: 12px; }
-.vid-sapkak { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 14px; font-size: 12px; color: var(--color-text-3, #8282a0); }
+.vid-sapkak { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 14px; font-size: 12px; color: var(--color-text-3, #8E8E93); }
 
 /*
   The manual open box, above the columns. Boxed like the feedback form,
@@ -189,7 +219,7 @@
   writes a row.
 */
 .vid-uj-video {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin-bottom: 18px;
@@ -199,7 +229,7 @@
   margin: 0;
   font-size: 13px;
   letter-spacing: .01em;
-  color: var(--color-text-3, #8282a0);
+  color: var(--color-text-3, #8E8E93);
 }
 
 /*
@@ -253,16 +283,16 @@
   overflow: auto;
 }
 .vid-path { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; }
-.vid-terv, .vid-render { border-top: 1px solid var(--border, rgba(127, 127, 127, 0.2)); padding-top: 10px; margin-top: 14px; }
-.vid-scene { border-left: 3px solid var(--border, rgba(127, 127, 127, 0.3)); padding-left: 10px; margin: 10px 0; }
+.vid-terv, .vid-render { border-top: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17)); padding-top: 10px; margin-top: 14px; }
+.vid-scene { border-left: 3px solid var(--color-line-subtle, rgba(16,24,40,0.17)); padding-left: 10px; margin: 10px 0; }
 .vid-scene h4 { margin: 0 0 6px; font-size: 13px; }
 .vid-props {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 12px;
-  background: var(--card, transparent);
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-sm, 8px);
   padding: 8px 10px;
   margin: 0 0 6px;
@@ -276,12 +306,12 @@
 .vid-tabla th, .vid-tabla td,
 .vid-qa-meresek th, .vid-qa-meresek td,
 .vid-qa-bukasok th, .vid-qa-bukasok td {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   padding: 4px 8px;
   text-align: left;
   overflow-wrap: anywhere;
 }
-.vid-feedback-form { border: 1px solid var(--border, rgba(127, 127, 127, 0.2)); border-radius: var(--radius-lg, 18px); padding: 10px 14px; margin: 16px 0; }
+.vid-feedback-form { border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17)); border-radius: var(--radius-lg, 18px); padding: 10px 14px; margin: 16px 0; }
 .vid-feedback-list { padding-left: 18px; }
 .vid-feedback-list li { margin: 4px 0; overflow-wrap: anywhere; }
 
@@ -302,7 +332,7 @@
   display: block;
   width: 100%;
   max-width: 300px;
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-sm, 8px);
   background: #000;
 }
@@ -311,9 +341,9 @@
 .vid-timeline {
   position: relative;
   height: 46px;
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-sm, 8px);
-  background: var(--card, transparent);
+  background: var(--color-surface, #FFFFFF);
   overflow: hidden;
   cursor: crosshair;
 }
@@ -322,16 +352,16 @@
   top: 0;
   bottom: 0;
   border: none;
-  border-right: 1px solid var(--border, rgba(127, 127, 127, 0.4));
-  background: color-mix(in srgb, var(--accent, #6366f1) 12%, transparent);
+  border-right: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
+  background: color-mix(in srgb, var(--color-accent-bright, #FF6B54) 12%, transparent);
   color: inherit;
   font: inherit;
   padding: 0;
   cursor: crosshair;
   overflow: hidden;
 }
-.vid-timeline-scene:focus-visible { outline: 2px solid var(--accent, #6366f1); outline-offset: -2px; }
-.vid-timeline-scene-no { font-size: 10px; color: var(--color-text-3, #8282a0); }
+.vid-timeline-scene:focus-visible { outline: 2px solid var(--color-accent-bright, #FF6B54); outline-offset: -2px; }
+.vid-timeline-scene-no { font-size: 10px; color: var(--color-text-3, #8E8E93); }
 .vid-timeline-mark {
   position: absolute;
   top: 2px;
@@ -353,7 +383,7 @@
 
 /* proposals */
 .vid-proposal, .vid-lesson {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin: 10px 0;
@@ -380,7 +410,7 @@
  */
 .vid-sablon-generalas { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 10px 0; }
 .vid-szuro-sor { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin: 12px 0 6px; }
-.vid-root .vid-szuro-mezo { display: flex; flex-direction: column; gap: 2px; margin: 0; font-size: 12px; color: var(--color-text-3, #8282a0); }
+.vid-root .vid-szuro-mezo { display: flex; flex-direction: column; gap: 2px; margin: 0; font-size: 12px; color: var(--color-text-3, #8E8E93); }
 .vid-szuro-mezo .vid-input { margin-top: 0; width: auto; min-width: 150px; color: var(--card-foreground, inherit); }
 .vid-szuro-mezo .vid-szuro-ok { max-width: 220px; line-height: 1.35; }
 .vid-sablon-szamlalo { margin: 4px 0 8px; }
@@ -395,18 +425,18 @@
   flex-direction: column;
   gap: 4px;
   text-align: left;
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-lg, 18px);
-  background: var(--card, transparent);
+  background: var(--color-surface, #FFFFFF);
   color: inherit;
   font: inherit;
   padding: 8px;
   cursor: pointer;
   overflow-wrap: anywhere;
 }
-.vid-sablon-kartya:hover { border-color: var(--accent, #6366f1); }
+.vid-sablon-kartya:hover { border-color: var(--color-accent-bright, #FF6B54); }
 .vid-sablon-kartya:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
-.vid-sablon-kartya-nyitva { border-color: var(--accent, #6366f1); }
+.vid-sablon-kartya-nyitva { border-color: var(--color-accent-bright, #FF6B54); }
 /*
  * The frame keeps its 9:16 whether or not there is a picture in it, which is
  * what makes an empty one READ as empty rather than as a card that lost its
@@ -418,7 +448,7 @@
   justify-content: center;
   aspect-ratio: 9 / 16;
   width: 100%;
-  border: 1px dashed var(--border, rgba(127, 127, 127, 0.4));
+  border: 1px dashed var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-sm, 8px);
   overflow: hidden;
 }
@@ -428,7 +458,7 @@
 .vid-sablon-leiras { font-size: 12px; }
 .vid-sablon-szam, .vid-sablon-jel { font-size: 11px; }
 .vid-sablon-panel {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin: 0 0 16px;
@@ -460,7 +490,7 @@
 .vid-video-col { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 
 .vid-sec {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-lg, 18px);
   padding: 12px 14px 14px;
   min-width: 0;
@@ -473,7 +503,7 @@
  */
 .vid-sec-is-ures {
   border-style: dashed;
-  border-color: var(--border, rgba(127, 127, 127, 0.14));
+  border-color: var(--color-line-subtle, rgba(16,24,40,0.17));
   padding-bottom: 10px;
 }
 
@@ -500,7 +530,7 @@
   min-width: 20px;
   padding: 0 6px;
   border-radius: var(--radius-full, 999px);
-  background: var(--border, rgba(127, 127, 127, 0.16));
+  background: var(--color-line-subtle, rgba(16,24,40,0.17));
   font-size: 11px;
   line-height: 18px;
   text-align: center;
@@ -509,7 +539,7 @@
 
 /* The source's warning label, on the header line rather than as its own
  * heading above the box. */
-.vid-sec-jelzo { font-size: 11px; color: var(--color-text-3, #8282a0); text-transform: none; letter-spacing: 0; }
+.vid-sec-jelzo { font-size: 11px; color: var(--color-text-3, #8E8E93); text-transform: none; letter-spacing: 0; }
 .vid-sec-jelzo-rossz { color: var(--color-warning, #d97706); }
 
 /* Absence, and the small print under a box. Both are things the eye should be
@@ -519,7 +549,7 @@
   margin: 0;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--color-text-3, #8282a0);
+  color: var(--color-text-3, #8E8E93);
 }
 .vid-sec-lab { margin-top: 6px; }
 
@@ -532,7 +562,7 @@
 /* An answered request is history: it keeps its text and the id of the render
  * that closed it, so the operator can go and watch the file, but it recedes so
  * the open list beside it reads as the one that still needs work. */
-.vid-lezart-keresek li { color: var(--color-text-3, #8282a0); }
+.vid-lezart-keresek li { color: var(--color-text-3, #8E8E93); }
 
 /* The source box was the tallest thing on the page and pushed the working
  * areas below the fold; it scrolls at eight lines instead. */
@@ -541,7 +571,7 @@
 /* Nested panels lose their own frame: the section is the frame now. */
 .vid-sec > .vid-terv,
 .vid-sec > .vid-render { border: none; padding: 0; margin: 0 0 14px; }
-.vid-sec > .vid-render + .vid-render { padding-top: 14px; border-top: 1px solid var(--border, rgba(127, 127, 127, 0.16)); }
+.vid-sec > .vid-render + .vid-render { padding-top: 14px; border-top: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17)); }
 .vid-sec > .vid-terv > h3 { font-size: 13px; margin-top: 0; }
 
 /*
@@ -550,7 +580,7 @@
   onto the board below it.
 */
 .vid-youtube {
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
   border-radius: var(--radius-lg, 18px);
   padding: 10px 14px;
   margin-bottom: 18px;
@@ -560,7 +590,7 @@
   margin: 0;
   font-size: 13px;
   letter-spacing: .01em;
-  color: var(--color-text-3, #8282a0);
+  color: var(--color-text-3, #8E8E93);
 }
 .vid-youtube-mit { margin: 6px 0 0; font-size: 12px; line-height: 1.45; }
 
@@ -576,3 +606,14 @@
   line-height: 1.5;
 }
 .vid-youtube-valasz li { overflow-wrap: anywhere; }
+
+/* A lap címe: a hoszt lap-H1-e (28px, -0.03em, 400-as súly). */
+.vid-cim {
+  margin: 0 0 16px;
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--color-text, #1D1D1F);
+}

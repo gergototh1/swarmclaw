@@ -185,10 +185,16 @@ test('the stylesheet only names pub- prefixed selectors, so it cannot restyle th
   const css = readFileSync(path.join(root, 'ui/style.css'), 'utf8')
   const bodyless = css.replace(/\/\*[\s\S]*?\*\//g, '')
   for (const match of bodyless.matchAll(/([^{}]+)\{/g)) {
-    for (const selector of match[1].split(',')) {
+    const prelude = match[1].trim()
+    // Egy at-szabály feltétele NEM szelektor. A `@media (min-resolution: 2dppx),
+    // (-webkit-min-device-pixel-ratio: 2)` vesszőre bontva olyan darabot ad,
+    // ami nem `@`-val kezdődik, és a korábbi olvasó ezt szelektornak vette --
+    // a hoszt fél pixeles keretszabályának megismétlése bukott el rajta,
+    // miközben az egy médiafeltétel, ami semmit nem tud átstílusozni.
+    if (prelude.startsWith('@')) continue
+    for (const selector of prelude.split(',')) {
       const trimmed = selector.trim()
       if (trimmed === '') continue
-      if (trimmed.startsWith('@')) continue
       assert.ok(trimmed.startsWith('.pub-'), `every selector starts inside the page: ${trimmed}`)
     }
   }
