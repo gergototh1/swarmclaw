@@ -290,9 +290,21 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
       // resumed transcript instead of replacing them. Write it through.
       if (typeof session.id === 'string' && session.id) {
         try {
-          patchSession(session.id, (current) => (
-            current ? { ...current, injectedMemoryIds: recall.injectedMemoryIds } : current
-          ))
+          let patched = false
+          patchSession(session.id, (current) => {
+            if (!current) return current
+            patched = true
+            return { ...current, injectedMemoryIds: recall.injectedMemoryIds }
+          })
+          // A patch that finds no stored session writes nothing and throws
+          // nothing, which is how the subagent case stayed invisible: the
+          // preamble logged six injected lines and the record kept none.
+          if (!patched) {
+            log.warn('claude-cli', 'Injected memories were not recorded: no stored session to patch', {
+              sessionId: session.id,
+              agentId: session.agentId,
+            })
+          }
         } catch (persistErr) {
           log.warn('claude-cli', `Could not persist injected memory ids: ${persistErr}`)
         }
