@@ -6,6 +6,8 @@ import { errorMessage } from '@/lib/shared-utils'
 import { handleMainLoopRunResult } from '@/lib/server/agents/main-agent-loop'
 import { buildRetrievalSummary } from '@/lib/server/runtime/run-ledger'
 import { getMissionIdForSession, recordTurnUsage } from '@/lib/server/missions/mission-service'
+import { recordFailedTurn } from './failed-turn'
+import { patchSession } from '@/lib/server/sessions/session-repository'
 
 import {
   clearDeferredDrain,
@@ -142,6 +144,7 @@ export async function drainExecution(
         error: next.run.error || null,
         durationMs: (next.run.endedAt || now()) - (next.run.startedAt || now()),
       })
+      recordFailedTurn(next.run.sessionId, next.run.status, { patch: patchSession })
       const finishedMissionId = getMissionIdForSession(next.run.sessionId)
       if (finishedMissionId && next.run.status === 'completed') {
         try {
