@@ -6,6 +6,7 @@ import { fetchChat, fetchChats } from '@/lib/chat/chats'
 import { invalidateFingerprint, setIfChanged } from '../set-if-changed'
 import { createLoader, createInflightDeduplicator } from '../store-utils'
 import { buildNewAgentSessionPayload } from '@/lib/chat/new-session'
+import { runChatReadMigrationOnce } from '../chat-read-migration'
 
 const sessionRefreshDedup = createInflightDeduplicator('sessionSlice_inflightRefreshes')
 
@@ -98,7 +99,10 @@ export const createSessionSlice: StateCreator<AppState, [], [], SessionSlice> = 
     set({ activeSessionIdOverride: next.id })
     return next
   },
-  loadSessions: createLoader<AppState>(set, 'sessions', () => fetchChats()),
+  loadSessions: async () => {
+    await createLoader<AppState>(set, 'sessions', () => fetchChats())()
+    await runChatReadMigrationOnce()
+  },
   refreshSession: async (id) => {
     if (!id) return
     await sessionRefreshDedup.dedup(id, async () => {
