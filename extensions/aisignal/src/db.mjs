@@ -1089,6 +1089,47 @@ export function createRepo(storage) {
      * message is already marked seen, so nothing ever brings it back.
      */
     sweepById(id) { return S.get('SELECT * FROM ext_aisignal_sweeps WHERE id = ?', [id]) || null },
+    /**
+     * The distinct message ids this sweep actually turned into a signal row.
+     *
+     * The same read `finishSweep` makes for its unfinished branch, published so
+     * the sweep layer can ask the one question that decides which messages are
+     * safe to mark read in the mailbox: not "which did we fetch", but "which
+     * did we finish recording". A message fetched and then skipped -- by the
+     * agent's judgement, or by the agent dying -- is absent from this list and
+     * therefore stays unread, which is the only reason the unread filter on the
+     * listing is safe.
+     *
+     * Ordering is not specified and no caller may rely on one: this answers a
+     * set membership question, and every use of it is a loop over all of them.
+     */
+    recordedMessageIds(sweepId) {
+      return S.all('SELECT DISTINCT message_id FROM ext_aisignal_items WHERE sweep_id = ?', [sweepId]).map((r) => r.message_id)
+    },
+    /**
+     * Add one segment to a sweep's note, leaving everything else on the row
+     * alone.
+     *
+     * For facts learned after the close -- today, how many of a sweep's
+     * messages could not be marked read. Those cannot be known before
+     * `finishSweep` runs (the marking has to follow the rows being committed;
+     * see MARKING READ IS THE SECOND HALF in sweep.mjs) and they are not worth
+     * a second transaction shape, so the note is appended to rather than the
+     * close being made to wait for them.
+     *
+     * `joinNote` is what appends, so this cannot drop what a close already
+     * wrote -- the same guarantee `failSweep` relies on. A blank addition, or
+     * an id no row answers to, writes nothing: this is a report about a run,
+     * and a report that invented a row would be worse than a missing segment.
+     */
+    appendSweepNote(sweepId, addition) {
+      const text = String(addition ?? '').trim()
+      if (!text) return { sweepId, appended: false }
+      const sweep = S.get('SELECT note FROM ext_aisignal_sweeps WHERE id = ?', [sweepId])
+      if (!sweep) return { sweepId, appended: false }
+      S.exec('UPDATE ext_aisignal_sweeps SET note = ? WHERE id = ?', [joinNote(sweep.note, text), sweepId])
+      return { sweepId, appended: true }
+    },
     /** Most recent sweep of one kind, finished or not. Always filtered by kind -- see the note on the `kind` column. */
     latestSweep(kind = MAIL_KIND) { return S.get(`SELECT * FROM ext_aisignal_sweeps WHERE kind = ? ORDER BY ${SWEEP_ORDER} LIMIT 1`, [kind]) || null },
     /**
