@@ -1,23 +1,25 @@
 import { createKiadas } from './kiadas.mjs'
 import { AJTOK, createPiszkozat } from './kimeno.mjs'
-import { createOlvasas } from './olvasas.mjs'
+import { createCimkezes, createOlvasas } from './olvasas.mjs'
 
 /**
  * What another extension may ask this one for: a paged read of one Gmail
- * mailbox, and a draft it cannot send.
+ * mailbox, one label taken off a message it has read, and a draft it cannot
+ * send.
  *
  * This is a `provides` declaration, the host-mediated way one extension reaches
  * another's data (`src/lib/server/extensions/extension-contracts.ts`). A
- * consumer reaches these six methods only after naming this extension, this
+ * consumer reaches these seven methods only after naming this extension, this
  * contract and this version in its own `consumes`, with a sentence the operator
  * reads before granting it.
  *
- * WHY THESE SIX AND NOT THE OTHERS, one at a time. What a consumer needs to
+ * WHY THESE SEVEN AND NOT THE OTHERS, one at a time. What a consumer needs to
  * work a mailbox is: which mailbox this is (`mailbox`), what the buckets are
  * called (`labels`), a listing with a real cursor and a `complete` field
- * (`list`), one message (`get`), a letter written into the operator's Drafts
- * (`draft`), and the state of what it wrote (`outbox`). Everything else on the
- * rpc map is outside this contract deliberately:
+ * (`list`), one message (`get`), a way to record that it has dealt with that
+ * message (`markRead`), a letter written into the operator's Drafts (`draft`),
+ * and the state of what it wrote (`outbox`). Everything else on the rpc map is
+ * outside this contract deliberately:
  *
  *   - `releaseDraft` -- design spec 5.4. It is the one method that actually
  *     sends, and a contract handle is a BEARER CAPABILITY: the host mints it
@@ -28,10 +30,14 @@ import { createOlvasas } from './olvasas.mjs'
  *     `discardDraft` is out for the same reason turned around: it deletes a
  *     letter out of the operator's own mailbox, and a consumer that could
  *     delete drafts could delete the evidence of what it wrote.
- *   - `label` -- no code consumer needs it today (AI Signal dedups on its own
- *     `ext_aisignal_seen` table, not on a Gmail label), and a contract method
- *     nobody calls is a surface nobody watches. It is on MCP, where an agent
- *     has a real use for it.
+ *   - `label` -- it takes two label lists FROM ITS CALLER, and by the bearer
+ *     rule above that means a consumer holding it could file mail into any
+ *     bucket in the mailbox, lift a message out of the operator's own INBOX, or
+ *     strip the very label a sweep finds its work under. The narrow half of it
+ *     is published instead, as `markRead`: the one label that method touches is
+ *     a constant in olvasas.mjs, so there is no argument through which a second
+ *     one can be spelled. `label` itself stays on MCP, where an agent is acting
+ *     for a person who picked the buckets.
  *   - `addRecipient` / `retireRecipient` -- design spec 3.3 and 5.2. The
  *     address book is the gate: a recipient cannot be derived from text, and
  *     every entry is typed by the operator on this module's own page. A
@@ -101,7 +107,7 @@ export const MAILBOX_CONTRACT = 'mailbox'
  * read wrongly. Adding a field to one of the lists below is the same kind of
  * decision in the other direction -- it cannot be taken back without a bump.
  */
-export const MAILBOX_CONTRACT_VERSION = 1
+export const MAILBOX_CONTRACT_VERSION = 2
 
 /**
  * The columns of an outbound row that cross this boundary, and the whole of
@@ -217,6 +223,7 @@ function projectKimeno(sor) {
  */
 export function createMailboxContract(state) {
   const olvasas = createOlvasas(state)
+  const cimkezes = createCimkezes(state)
   const piszkozat = createPiszkozat(state)
   const kiadas = createKiadas(state)
   return {
@@ -273,6 +280,27 @@ export function createMailboxContract(state) {
        * does not is written out field by field.
        */
       get: async (args) => olvasas.get(args),
+      /**
+       * Takes `UNREAD` off one message and answers the labels Gmail says it now
+       * carries: `{ id, labelIds }`.
+       *
+       * THE ONLY METHOD ON THIS CONTRACT THAT CHANGES MAIL THAT ALREADY EXISTS,
+       * which is why it is the narrowest one. It is here because a consumer
+       * sweeping `is:unread` has to be able to record that it dealt with a
+       * message, and the mailbox is the one place that record is visible to the
+       * operator too -- a frontier kept only in the consumer's own table says
+       * nothing to the person who opens Gmail.
+       *
+       * `OLVASATLAN_CIMKE` (olvasas.mjs) is the label, written in that module's
+       * source and reachable through no argument. That is the whole narrowing,
+       * and it is structural: `label`, which takes its lists from the caller,
+       * is deliberately not declared here -- see the header.
+       *
+       * It is not destructive and not hidden. The message keeps every other
+       * label, nothing on this contract can move mail to Trash, and the
+       * operator marks it unread again with one click in their own client.
+       */
+      markRead: async (args) => cimkezes.markRead(args),
       /**
        * Writes one draft into the operator's Gmail and one row into the
        * outbound table, and answers `DRAFT_MEZOK`.

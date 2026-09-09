@@ -85,7 +85,7 @@ const crm = {
   consumes: [{
     extension: 'gmail',
     contract: 'mailbox',
-    version: 1,
+    version: 2,
     reason: 'Behúzza a leveleket az ügyfelek idővonalára: listáz, egy levelet beolvas, és a szövegét saját eseményként tárolja. Küldeni nem küld.',
   }],
   managedResources: {

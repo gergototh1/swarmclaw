@@ -30,7 +30,7 @@ import { memStorage } from './helpers.mjs'
  */
 
 /** The seven, in declaration order. Written out rather than derived: this list is the boundary. */
-const HAT_METODUS = ['mailbox', 'labels', 'list', 'get', 'draft', 'outbox', 'markRead']
+const HET_METODUS = ['mailbox', 'labels', 'list', 'get', 'markRead', 'draft', 'outbox']
 
 /**
  * Names that are on the rpc and must never be on the contract.
@@ -119,11 +119,11 @@ async function dobas(promise) {
   throw new Error('expected a refusal, got a return')
 }
 
-test('the contract declares exactly the six methods of design spec 6.1', () => {
+test('the contract declares exactly the seven methods on the boundary', () => {
   const { contract } = fresh()
-  assert.deepEqual(Object.keys(contract.methods), HAT_METODUS)
+  assert.deepEqual(Object.keys(contract.methods), HET_METODUS)
   assert.equal(MAILBOX_CONTRACT, 'mailbox')
-  assert.equal(MAILBOX_CONTRACT_VERSION, 1)
+  assert.equal(MAILBOX_CONTRACT_VERSION, 2)
   assert.equal(contract.version, MAILBOX_CONTRACT_VERSION)
 })
 
