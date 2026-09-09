@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAppStore } from '@/stores/use-app-store'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
+import { HintTip } from '@/components/shared/hint-tip'
 import type { SettingsSectionProps } from './types'
 
 function buildWhatsAppContactId(): string {
@@ -72,6 +73,20 @@ export function UserPreferencesSection({ appSettings, patchSettings, inputClass 
         >
           <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${appSettings.suggestionsEnabled ? 'translate-x-4' : ''}`} />
         </button>
+      </div>
+
+      {/* Reply notifications toggle */}
+      <div className="mt-6">
+        <label className="flex items-center gap-2 text-[12px] text-text-2">
+          <input
+            type="checkbox"
+            checked={appSettings.agentReplyNotifications ?? true}
+            onChange={(e) => patchSettings({ agentReplyNotifications: e.target.checked })}
+            className="h-4 w-4 rounded-xs border-line-strong accent-accent"
+          />
+          Ertesites, ha egy ugynok valaszol
+          <HintTip text="Natv rendszer-ertesites, ha egy ugynok olyan chatben valaszol, amit epp nem nezel. A lista olvasatlan-jelzeset ez nem kapcsolja ki." />
+        </label>
       </div>
 
       {/* Default agent */}

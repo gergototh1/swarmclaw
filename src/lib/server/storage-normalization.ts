@@ -643,6 +643,9 @@ function normalizeStoredRecordInner(
     if (typeof agent.delegationEnabled !== 'boolean') {
       agent.delegationEnabled = legacyAssignScope === 'all'
     }
+    if (typeof agent.replyNotificationsMuted !== 'boolean') {
+      agent.replyNotificationsMuted = false
+    }
     if (agent.delegationTargetMode !== 'all' && agent.delegationTargetMode !== 'selected') {
       agent.delegationTargetMode = legacyTargetIds.length > 0 ? 'selected' : 'all'
     }

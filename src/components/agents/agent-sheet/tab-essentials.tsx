@@ -138,6 +138,7 @@ export function TabEssentials({
     openclawEnabled,
     avatarSeed,
     avatarUrl,
+    replyNotificationsMuted,
   } = draft
   const soulFileRef = useRef<HTMLInputElement>(null)
   const promptFileRef = useRef<HTMLInputElement>(null)
@@ -713,6 +714,19 @@ export function TabEssentials({
           )}
         </div>
       )}
+
+      <div className="mb-1">
+        <label className="flex items-center gap-2 text-[12px] text-text-2">
+          <input
+            type="checkbox"
+            checked={replyNotificationsMuted ?? false}
+            onChange={(e) => patch({ replyNotificationsMuted: e.target.checked })}
+            className="h-4 w-4 rounded-xs border-line-strong accent-accent"
+          />
+          Ne kuldjon ertesitest errol az ugynokrol
+          <HintTip text="A lista olvasatlan-jelzese megmarad, csak a natv rendszer-ertesites nem megy ki errol az ugynokrol." />
+        </label>
+      </div>
       </AdvancedSettingsSection>
 
       </SectionCard>

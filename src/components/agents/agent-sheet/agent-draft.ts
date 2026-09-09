@@ -67,6 +67,7 @@ export interface AgentDraft {
   disabled: boolean
   filesystemScope: 'workspace' | 'machine'
   voiceId: string
+  replyNotificationsMuted: boolean
   heartbeatEnabled: boolean
   /** '' = default (30m) */
   heartbeatIntervalSec: string
@@ -155,6 +156,7 @@ export function createEmptyAgentDraft(): AgentDraft {
     disabled: false,
     filesystemScope: 'workspace',
     voiceId: '',
+    replyNotificationsMuted: false,
     heartbeatEnabled: false,
     heartbeatIntervalSec: '',
     heartbeatModel: '',

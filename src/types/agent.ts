@@ -92,6 +92,8 @@ export interface Agent {
   capabilities?: string[]       // e.g. ['frontend', 'screenshots', 'research', 'devops']
   threadSessionId?: string | null  // persistent shortcut chat session for agent-centric UI
   heartbeatEnabled?: boolean
+  /** Ha igaz, errol az ugynokrol nem megy natv ertesites. A lista-jelzes marad. */
+  replyNotificationsMuted?: boolean
   heartbeatIntervalSec?: number | null
   heartbeatInterval?: string | number | null
   heartbeatPrompt?: string | null

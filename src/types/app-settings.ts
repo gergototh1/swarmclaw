@@ -125,6 +125,8 @@ export interface AppSettings {
   memoryMaxPerLookup?: number
   // Chat UX
   suggestionsEnabled?: boolean
+  /** Natv ertesites, ha egy ugynok valaszol. A lista-jelzest NEM kapcsolja ki. */
+  agentReplyNotifications?: boolean
   runtimeSkillRetrievalMode?: 'keyword' | 'embedding'
   runtimeSkillTopK?: number
   // Globally approved WhatsApp contacts for connector DMs
