@@ -31,7 +31,7 @@ import { api } from '@/lib/app/api-client'
 import { messagesDiffer } from '@/lib/chat/chat-streaming-state'
 import { createAssistantRenderId } from '@/lib/chat/assistant-render-id'
 import { getSessionLastMessage } from '@/lib/chat/session-summary'
-import { buildNewAgentSessionPayload, summarizeFirstMessageAsTitle } from '@/lib/chat/new-session'
+import { summarizeFirstMessageAsTitle } from '@/lib/chat/new-session'
 import { getEnabledCapabilityIds, getEnabledToolIds } from '@/lib/capability-selection'
 
 const DIRECT_PROMPT_SUGGESTIONS = [
@@ -59,7 +59,6 @@ export function ChatArea() {
   const removeSessionFromStore = useAppStore((s) => s.removeSession)
   const refreshSession = useAppStore((s) => s.refreshSession)
   const updateSessionInStore = useAppStore((s) => s.updateSessionInStore)
-  const setActiveSessionIdOverride = useAppStore((s) => s.setActiveSessionIdOverride)
   const appSettings = useAppStore((s) => s.appSettings)
   const messages = useChatStore((s) => s.messages)
   const messageStartIndex = useChatStore((s) => s.messageStartIndex)
@@ -503,20 +502,16 @@ export function ChatArea() {
   }, [])
 
   const handleStartNewSession = useCallback(async () => {
-    if (!session) return
     try {
-      const nextSession = await api<typeof session>('POST', '/chats', {
-        ...buildNewAgentSessionPayload(session),
-        name: currentAgent?.name || session.name,
-      })
+      // A közös store-akció: ugyanezt hívja a Chat lap lista-fejléce is.
+      const nextSession = await useAppStore.getState().startNewChatSession()
+      if (!nextSession) return
       freshSessionIdRef.current = nextSession.id
-      updateSessionInStore(nextSession)
-      setActiveSessionIdOverride(nextSession.id)
       toast.success('Started a new chat session.')
     } catch (err) {
       toast.error(`Could not start a new chat session: ${errorMessage(err)}`)
     }
-  }, [currentAgent?.name, session, setActiveSessionIdOverride, updateSessionInStore])
+  }, [])
 
   const handleSend = useCallback(async (text: string) => {
     if (!sessionId) return

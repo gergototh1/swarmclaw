@@ -20,6 +20,7 @@ import { useNavigate } from '@/lib/app/navigation'
 import { getEnabledToolIds } from '@/lib/capability-selection'
 import { getNewSessionButtonTitle, hasResettableSessionRuntime } from '@/lib/chat/new-session'
 import { ContextMeterBadge } from './context-meter-badge'
+import { usePathname } from 'next/navigation'
 
 function Tip({ label, children, side = 'bottom' }: { label: string; children: ReactNode; side?: 'top' | 'bottom' | 'left' | 'right' }) {
   return (
@@ -99,7 +100,11 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   const refreshSession = useAppStore((s) => s.refreshSession)
   const loadAgents = useAppStore((s) => s.loadAgents)
+  const pathname = usePathname()
+  const onConversationsPage = (pathname || '').startsWith('/chat')
   const inspectorOpen = useAppStore((s) => s.inspectorOpen)
+  const inspectorTab = useAppStore((s) => s.inspectorTab)
+  const setInspectorTab = useAppStore((s) => s.setInspectorTab)
   const setInspectorOpen = useAppStore((s) => s.setInspectorOpen)
   const connectors = useAppStore((s) => s.connectors)
   const loadConnectors = useAppStore((s) => s.loadConnectors)
@@ -558,6 +563,22 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
             </svg>
           </IconButton>
           {agent && (
+            /* A beszélgetés fájljai: ugyanabban az inspector-panelben nyílnak,
+               amit a fogaskerék is nyit, csak a Files fülre állítva. Külön
+               felugró ablak egy második alakot hozott volna ugyanarra. */
+            <IconButton
+              onClick={() => { setInspectorTab('files'); setInspectorOpen(true) }}
+              active={inspectorOpen && inspectorTab === 'files'}
+              tooltip="Fájlok ebben a beszélgetésben"
+              aria-label="Fájlok ebben a beszélgetésben"
+              size="sm"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+            </IconButton>
+          )}
+          {agent && (
             <IconButton onClick={() => setInspectorOpen(!inspectorOpen)} active={inspectorOpen} tooltip="Settings" aria-label="Toggle inspector" size="sm">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -565,7 +586,9 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
               </svg>
             </IconButton>
           )}
-          {canStartNewSession && (
+          {/* A Chat lapon ez a gomb a beszélgetéslista fejlécében áll, ott, ahol
+              az Agents lapon a "+ Agent" -- itt tehát nem kell másodszor is. */}
+          {canStartNewSession && !onConversationsPage && (
             <Tip label={newSessionTitle}>
               <button
                 type="button"

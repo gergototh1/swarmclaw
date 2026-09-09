@@ -5,6 +5,7 @@ import { api } from '@/lib/app/api-client'
 import { fetchChat, fetchChats } from '@/lib/chat/chats'
 import { invalidateFingerprint, setIfChanged } from '../set-if-changed'
 import { createLoader, createInflightDeduplicator } from '../store-utils'
+import { buildNewAgentSessionPayload } from '@/lib/chat/new-session'
 
 const sessionRefreshDedup = createInflightDeduplicator('sessionSlice_inflightRefreshes')
 
@@ -68,12 +69,35 @@ export interface SessionSlice {
   clearSessions: (ids: string[]) => Promise<void>
   togglePinSession: (id: string) => Promise<void>
   updateSessionInStore: (session: Session) => void
+  /**
+   * Open another conversation with the agent of the current one.
+   *
+   * Lifted out of ChatArea because the Chat page's list header needs it too,
+   * and that header renders in the route layout, outside ChatArea's closure.
+   * Two copies of "clone this session's routing and start again" would be two
+   * chances to drift apart.
+   */
+  startNewChatSession: () => Promise<Session | null>
 }
 
 export const createSessionSlice: StateCreator<AppState, [], [], SessionSlice> = (set, get) => ({
   sessions: {},
   activeSessionIdOverride: null,
   setActiveSessionIdOverride: (id) => set({ activeSessionIdOverride: id }),
+  startNewChatSession: async () => {
+    const state = get()
+    const sessionId = selectActiveSessionId(state)
+    const session = sessionId ? state.sessions[sessionId] : null
+    if (!session) return null
+    const agentName = session.agentId ? state.agents[session.agentId]?.name : null
+    const next = await api<Session>('POST', '/chats', {
+      ...buildNewAgentSessionPayload(session),
+      name: agentName || session.name,
+    })
+    get().updateSessionInStore(next)
+    set({ activeSessionIdOverride: next.id })
+    return next
+  },
   loadSessions: createLoader<AppState>(set, 'sessions', () => fetchChats()),
   refreshSession: async (id) => {
     if (!id) return

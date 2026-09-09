@@ -9,6 +9,7 @@ import { useChatStore } from '@/stores/use-chat-store'
 import { api } from '@/lib/app/api-client'
 import { AgentAvatar } from './agent-avatar'
 import { AgentFilesEditor } from './agent-files-editor'
+import { ConversationFilesPanel } from '@/components/chat/conversation-files-panel'
 import { OpenClawSkillsPanel } from './openclaw-skills-panel'
 import { PermissionPresetSelector } from './permission-preset-selector'
 import { ExecConfigPanel } from './exec-config-panel'
@@ -45,7 +46,9 @@ type InspectorTab = 'dashboard' | 'config' | 'files'
 const TABS: { id: InspectorTab; label: string; openclawOnly?: boolean }[] = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'config', label: 'Config' },
-  { id: 'files', label: 'Files', openclawOnly: true },
+  // A Files fül MINDIG látszik: a beszélgetés fájljai minden ügynöknél
+  // léteznek. Az OpenClaw munkaterület-szerkesztő ugyanezen a fülön, alatta.
+  { id: 'files', label: 'Files' },
 ]
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -306,8 +309,15 @@ export function InspectorPanel({ agent, session, onEditAgent, onDuplicateAgent, 
         {inspectorTab === 'config' && (
           <ConfigTab agent={agent} />
         )}
-        {inspectorTab === 'files' && isOpenClaw && (
-          <AgentFilesEditor agentId={agent.id} />
+        {inspectorTab === 'files' && (
+          <>
+            <ConversationFilesPanel />
+            {isOpenClaw && (
+              <div className="border-t border-line-subtle mt-2 pt-2">
+                <AgentFilesEditor agentId={agent.id} />
+              </div>
+            )}
+          </>
         )}
       </div>
 
