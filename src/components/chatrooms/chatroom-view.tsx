@@ -113,7 +113,7 @@ export function ChatroomView() {
   const setMemberRole = useChatroomStore((s) => s.setMemberRole)
   const agents = useAppStore((s) => s.agents) as Record<string, Agent>
   const lastReadTimestamps = useAppStore((s) => s.lastReadTimestamps)
-  const markChatRead = useAppStore((s) => s.markChatRead)
+  const markChatroomRead = useAppStore((s) => s.markChatroomRead)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [pinsExpanded, setPinsExpanded] = useState(false)
   const [isNearBottom, setIsNearBottom] = useState(true)
@@ -232,13 +232,13 @@ export function ChatroomView() {
     const node = scrollRef.current
     if (!node || !chatroom) return
     node.scrollTo({ top: node.scrollHeight, behavior })
-    markChatRead(chatroom.id)
-  }, [chatroom, markChatRead])
+    markChatroomRead(chatroom.id)
+  }, [chatroom, markChatroomRead])
 
   useEffect(() => {
     if (!chatroomId) return
-    markChatRead(chatroomId)
-  }, [chatroomId, markChatRead])
+    markChatroomRead(chatroomId)
+  }, [chatroomId, markChatroomRead])
 
   useEffect(() => {
     setDetailsOpen(false)
@@ -292,12 +292,12 @@ export function ChatroomView() {
     const handleScroll = () => {
       const nearBottom = node.scrollHeight - node.scrollTop - node.clientHeight < 120
       setIsNearBottom(nearBottom)
-      if (nearBottom) markChatRead(chatroomId)
+      if (nearBottom) markChatroomRead(chatroomId)
     }
     handleScroll()
     node.addEventListener('scroll', handleScroll)
     return () => node.removeEventListener('scroll', handleScroll)
-  }, [chatroomId, markChatRead])
+  }, [chatroomId, markChatroomRead])
 
   useEffect(() => {
     if (chatroom && isNearBottom) {

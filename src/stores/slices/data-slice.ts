@@ -47,7 +47,8 @@ export interface DataSlice {
   activityEntries: ActivityEntry[]
   loadActivity: (filters?: { entityType?: string; limit?: number }) => Promise<void>
   lastReadTimestamps: Record<string, number>
-  markChatRead: (id: string) => void
+  markChatroomRead: (id: string) => void
+  markChatRead: (id: string) => Promise<void>
   notifications: AppNotification[]
   unreadNotificationCount: number
   loadNotifications: () => Promise<void>
@@ -55,6 +56,12 @@ export interface DataSlice {
   markAllNotificationsRead: () => Promise<void>
   clearReadNotifications: () => Promise<void>
 }
+
+/**
+ * Ennyit varunk fokuszvesztes utan, mielott olvasatlannak tekintenenk barmit.
+ * Enelkul minden ablakvaltas hamis olvasatlant szulne.
+ */
+export const READ_GRACE_MS = 3000
 
 export const createDataSlice: StateCreator<AppState, [], [], DataSlice> = (set, get) => ({
   networkInfo: null,
@@ -133,11 +140,23 @@ export const createDataSlice: StateCreator<AppState, [], [], DataSlice> = (set, 
       setIfChanged<AppState>(set, 'activityEntries', [])
     }
   },
+  // A chatroom-ok olvasottsaga marad kliens-oldalon: rajuk ez a funkcio nem
+  // vonatkozik (1. dontes), es a szerveren nincs is hova irni.
   lastReadTimestamps: safeStorageGetJson<Record<string, number>>('sc_last_read', {}),
-  markChatRead: (id) => {
+  markChatroomRead: (id) => {
     const ts = { ...get().lastReadTimestamps, [id]: Date.now() }
     set({ lastReadTimestamps: ts })
     safeStorageSet('sc_last_read', JSON.stringify(ts))
+  },
+  // A chatek olvasottsaga a szerveren el.
+  markChatRead: async (id) => {
+    try {
+      await api('POST', `/chats/${id}/read`)
+      invalidateFingerprint('sessions')
+    } catch {
+      // Az optimista jeloles visszaall a kovetkezo betoltessel. A legrosszabb,
+      // ami tortenhet, hogy egy pont ott marad.
+    }
   },
   // Manual: derived state side-effect
   notifications: [],
