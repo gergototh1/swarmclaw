@@ -215,6 +215,7 @@ export async function drainExecution(
         error: next.run.error,
         durationMs: (next.run.endedAt || now()) - (next.run.startedAt || now()),
       })
+      recordFailedTurn(next.run.sessionId, next.run.status, { patch: patchSession })
       if (err instanceof Error && err.stack) {
         log.error('session-run', `Run failed stack trace ${next.run.id}`, {
           sessionId: next.run.sessionId,
