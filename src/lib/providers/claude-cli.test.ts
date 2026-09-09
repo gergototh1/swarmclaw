@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { addAssignedMcpServers, buildClaudeCliPrompt } from './claude-cli'
+import { addAssignedMcpServers, buildClaudeCliPrompt, claudeCliStreamEvents } from './claude-cli'
 import { MCP_INJECTION_PROVIDER_IDS } from '@/lib/provider-sets'
 
 /**
@@ -192,5 +192,105 @@ describe('buildClaudeCliPrompt', () => {
       assert.match(prompt, /Attached image: kep\.png at /)
       assert.ok(prompt.includes(img))
     } finally { fs.rmSync(dir, { recursive: true, force: true }) }
+  })
+})
+
+/**
+ * The CLI's own tool loop, read off stdout.
+ *
+ * A `--print --output-format stream-json` run that writes a file emits exactly
+ * this: an `assistant` event whose content carries a `tool_use` block naming
+ * the tool and its arguments, then a `user` event carrying the `tool_result`
+ * that answered it. The reader used to keep `text` blocks and drop the rest,
+ * which is why a claude-cli agent showed no tool calls, no thinking, and left
+ * no record of a file it created. Each case below is one of those losses.
+ */
+describe('claudeCliStreamEvents', () => {
+  it('turns a tool_use block into a tool_call carrying the file it touched', () => {
+    const { events } = claudeCliStreamEvents({
+      type: 'assistant',
+      message: { content: [{ type: 'tool_use', id: 'tu_1', name: 'Write', input: { file_path: '/p/ajanlat.html', content: 'x' } }] },
+    }, new Map())
+    assert.equal(events.length, 1)
+    assert.equal(events[0].t, 'tool_call')
+    assert.equal(events[0].toolName, 'Write')
+    assert.equal(events[0].toolCallId, 'tu_1')
+    assert.match(events[0].toolInput || '', /ajanlat\.html/)
+  })
+
+  it('names a tool_result after the call it answers', () => {
+    // A result names its call by id; the store matches by NAME. Without the map
+    // the answer arrives unattached and the call spins as "running" forever.
+    const toolNames = new Map<string, string>()
+    claudeCliStreamEvents({
+      type: 'assistant',
+      message: { content: [{ type: 'tool_use', id: 'tu_7', name: 'Read', input: {} }] },
+    }, toolNames)
+    const { events } = claudeCliStreamEvents({
+      type: 'user',
+      message: { content: [{ type: 'tool_result', tool_use_id: 'tu_7', content: 'file body' }] },
+    }, toolNames)
+    assert.equal(events.length, 1)
+    assert.equal(events[0].t, 'tool_result')
+    assert.equal(events[0].toolName, 'Read')
+    assert.equal(events[0].toolOutput, 'file body')
+  })
+
+  it('calls an unpaired result unknown rather than guessing a name', () => {
+    // A resumed session's earlier turn ran in a process this one never saw.
+    const { events } = claudeCliStreamEvents({
+      type: 'user',
+      message: { content: [{ type: 'tool_result', tool_use_id: 'tu_from_before', content: 'x' }] },
+    }, new Map())
+    assert.equal(events[0].toolName, 'unknown')
+  })
+
+  it('flattens a block-list tool_result into text', () => {
+    const { events } = claudeCliStreamEvents({
+      type: 'user',
+      message: { content: [{ type: 'tool_result', tool_use_id: 'a', content: [{ type: 'text', text: 'első' }, { type: 'text', text: 'második' }] }] },
+    }, new Map())
+    assert.equal(events[0].toolOutput, 'első\nmásodik')
+  })
+
+  it('says Error in the text when the result is an error', () => {
+    // `is_error` is not in the SSE protocol: the store reads the error off the
+    // text, so a flag that never reaches the text is a failure shown as success.
+    const { events } = claudeCliStreamEvents({
+      type: 'user',
+      message: { content: [{ type: 'tool_result', tool_use_id: 'a', content: 'no such file', is_error: true }] },
+    }, new Map())
+    assert.match(events[0].toolOutput || '', /^Error: no such file/)
+  })
+
+  it('truncates an output long enough to bloat the transcript', () => {
+    const { events } = claudeCliStreamEvents({
+      type: 'user',
+      message: { content: [{ type: 'tool_result', tool_use_id: 'a', content: 'x'.repeat(20_000) }] },
+    }, new Map())
+    const out = events[0].toolOutput || ''
+    assert.ok(out.length < 9_000, `levágatlan kimenet: ${out.length}`)
+    assert.match(out, /more characters/)
+  })
+
+  it('forwards a thinking block, which had nowhere to go', () => {
+    const { events } = claudeCliStreamEvents({
+      type: 'assistant',
+      message: { content: [{ type: 'thinking', thinking: 'gondolkodom' }] },
+    }, new Map())
+    assert.deepEqual(events, [{ t: 'thinking', text: 'gondolkodom' }])
+  })
+
+  it('returns assistant text to the caller instead of emitting it as the response', () => {
+    const { events, text } = claudeCliStreamEvents({
+      type: 'assistant',
+      message: { content: [{ type: 'text', text: 'kész' }] },
+    }, new Map())
+    assert.equal(text, 'kész')
+    assert.deepEqual(events, [{ t: 'md', text: 'kész' }])
+  })
+
+  it('ignores an event with no content list', () => {
+    assert.deepEqual(claudeCliStreamEvents({ type: 'system', subtype: 'init' }, new Map()), { events: [], text: null })
   })
 })

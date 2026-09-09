@@ -76,4 +76,62 @@ describe('collectConversationFiles', () => {
   it('returns nothing for a conversation with no files', () => {
     assert.deepEqual(collectConversationFiles([msg({ text: 'csak szöveg' })]), [])
   })
+
+  // Egy CLI provider a saját tool-hurkát futtatja, és oda ír, ahova az operátor
+  // kérte -- projektkönyvtárba, nem az upload tárba. A fájl ott marad, ahol a
+  // helye van; a lista a `/api/files/serve`-en át mutat rá.
+  it('finds a file a write tool touched, where it actually lives', () => {
+    const [file] = collectConversationFiles([
+      msg({
+        role: 'assistant',
+        time: 5,
+        toolEvents: [{ name: 'Write', input: JSON.stringify({ file_path: '/Users/x/DEV/site/ajanlat.html', content: 'x' }) }],
+      }),
+    ])
+    assert.equal(file.name, 'ajanlat.html')
+    assert.equal(file.origin, 'produced')
+    assert.equal(file.url, `/api/files/serve?path=${encodeURIComponent('/Users/x/DEV/site/ajanlat.html')}`)
+  })
+
+  it('does not call a file the agent read one it produced', () => {
+    // A `Read` is `file_path`-t hordoz. Ez az a rossz sor, ami rosszabb a hiánynál.
+    assert.deepEqual(collectConversationFiles([
+      msg({ role: 'assistant', toolEvents: [{ name: 'Read', input: JSON.stringify({ file_path: '/etc/hosts' }) }] }),
+    ]), [])
+  })
+
+  it('carries the session cwd so a workspace-relative path resolves', () => {
+    const [file] = collectConversationFiles([
+      msg({ role: 'assistant', toolEvents: [{ name: 'Edit', input: JSON.stringify({ file_path: '/docs/terv.md' }) }] }),
+    ], { cwd: '/work' })
+    assert.match(file.url, /&cwd=%2Fwork$/)
+  })
+
+  it('finds a path the agent named in a code span, and says only that', () => {
+    const [file] = collectConversationFiles([
+      msg({ role: 'assistant', time: 3, text: 'Kész: `/Users/x/DEV/site/penz-zrt.html` — nézd meg.' }),
+    ])
+    assert.equal(file.name, 'penz-zrt.html')
+    assert.equal(file.origin, 'mentioned', 'említésből nem lehet "készítette"')
+  })
+
+  it('keeps produced over mentioned for the same file', () => {
+    const files = collectConversationFiles([
+      msg({
+        role: 'assistant',
+        time: 3,
+        text: 'Kész: `/w/a.html`',
+        toolEvents: [{ name: 'Write', input: JSON.stringify({ file_path: '/w/a.html' }) }],
+      }),
+    ])
+    assert.equal(files.length, 1)
+    assert.equal(files[0].origin, 'produced')
+  })
+
+  it('ignores a code span the user wrote, and one that is not a path', () => {
+    assert.deepEqual(collectConversationFiles([
+      msg({ role: 'user', text: 'nézd meg a `/Users/x/titok.env` fájlt' }),
+      msg({ role: 'assistant', text: 'futtasd: `npm run dev` a `package.json` szerint' }),
+    ]), [])
+  })
 })

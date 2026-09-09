@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react'
 import { useChatStore } from '@/stores/use-chat-store'
+import { useAppStore } from '@/stores/use-app-store'
+import { selectActiveSessionId } from '@/stores/slices/session-slice'
 import { collectConversationFiles, type ConversationFile } from '@/lib/conversation-files'
 
 /**
@@ -20,6 +22,17 @@ function ext(name: string): string {
 }
 
 const IMAGE = /^(png|jpe?g|gif|webp|bmp|svg|avif|heic)$/
+
+/**
+ * `mentioned` says less than the other two, and says it plainly. The path came
+ * out of the agent's own sentence, so the file may be one it only read -- the
+ * row is honest about that instead of claiming the agent made it.
+ */
+const ORIGIN_LABEL: Record<ConversationFile['origin'], string> = {
+  attached: 'csatolva',
+  produced: 'az ügynök készítette',
+  mentioned: 'a beszélgetésben említve',
+}
 
 function FileRow({ file }: { file: ConversationFile }) {
   const kind = ext(file.name)
@@ -43,7 +56,7 @@ function FileRow({ file }: { file: ConversationFile }) {
       <div className="flex-1 min-w-0">
         <div className="text-[12.5px] text-text truncate">{file.name}</div>
         <div className="text-[10px] text-text-3">
-          {file.origin === 'attached' ? 'csatolva' : 'az ügynök készítette'}
+          {ORIGIN_LABEL[file.origin]}
           {file.time ? ` · ${new Date(file.time).toLocaleString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}
         </div>
       </div>
@@ -57,7 +70,12 @@ function FileRow({ file }: { file: ConversationFile }) {
 
 export function ConversationFilesPanel() {
   const messages = useChatStore((s) => s.messages)
-  const files = useMemo(() => collectConversationFiles(messages), [messages])
+  // The session's working directory, so a workspace-relative path resolves.
+  const cwd = useAppStore((s) => {
+    const id = selectActiveSessionId(s)
+    return id ? s.sessions[id]?.cwd ?? null : null
+  })
+  const files = useMemo(() => collectConversationFiles(messages, { cwd }), [messages, cwd])
 
   if (files.length === 0) {
     return (
