@@ -1,10 +1,11 @@
-import { app, BrowserWindow, dialog, nativeImage, shell, WebContents } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell, WebContents } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { resolveRuntimePaths, RuntimePaths } from './paths'
 import { ServerHandle, startEmbeddedServer, tailLogFile } from './server-lifecycle'
 import { buildAppMenu } from './menu'
 import { shouldExternaliseNavigation, shouldOpenExternally } from './external-navigation'
+import { showReplyNotification } from './notifications'
 
 const DEV_URL_DEFAULT = 'http://127.0.0.1:3456'
 const LOG_TAIL_BYTES = 1500
@@ -13,6 +14,22 @@ let mainWindow: BrowserWindow | null = null
 let serverHandle: ServerHandle | null = null
 let serverLogFile: string | null = null
 let isQuitting = false
+
+interface ReplyNotifyPayload {
+  sessionId: string
+  title: string
+  body: string
+  isError: boolean
+}
+
+/**
+ * The renderer decides whether to notify (it alone knows focus and the
+ * active chat, via `shouldNotifyForReply`); the send itself happens here so
+ * it keeps working for a backgrounded, throttled window.
+ */
+ipcMain.on('swarmclaw:notify', (_e, payload: ReplyNotifyPayload) => {
+  showReplyNotification(mainWindow, payload.sessionId, payload)
+})
 
 /*
  * A RENAME MUST NOT MOVE THE DATA.
@@ -137,6 +154,7 @@ function createMainWindow(startUrl: string): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      preload: path.join(__dirname, 'preload.js'),
     },
   })
 
