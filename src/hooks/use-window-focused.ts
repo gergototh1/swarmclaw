@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from 'react'
 
-function subscribe(cb: () => void) {
+export function subscribe(cb: () => void) {
   window.addEventListener('focus', cb)
   window.addEventListener('blur', cb)
   return () => {
@@ -23,7 +23,7 @@ export function focusedSnapshot(): boolean {
   return document.hasFocus()
 }
 
-function getServerSnapshot(): boolean {
+export function getServerSnapshot(): boolean {
   return true
 }
 
