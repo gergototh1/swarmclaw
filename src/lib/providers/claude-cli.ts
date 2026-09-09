@@ -12,6 +12,7 @@ import { getAgent } from '@/lib/server/agents/agent-repository'
 import { loadMcpServers } from '@/lib/server/storage'
 import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
 import { buildCliMemoryPreamble } from '@/lib/server/memory/cli-memory-preamble'
+import { patchSession } from '@/lib/server/sessions/session-repository'
 
 const TAG = 'provider-claude-cli'
 
@@ -277,14 +278,25 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
       projectRoot: typeof session.cwd === 'string' ? session.cwd : null,
     })
     if (recall.preamble) {
+      // Each memory records two keys (its id and its fact key), so report
+      // memories, not keys.
       const before = Object.keys(session.injectedMemoryIds || {}).length
-      const added = Object.keys(recall.injectedMemoryIds).length - before
+      const added = Math.round((Object.keys(recall.injectedMemoryIds).length - before) / 2)
       prompt = `${recall.preamble}\n\n${prompt}`
-      // Mutating the session is how this provider already persists
-      // claudeSessionId: the turn's finalizer saves the record afterwards.
-      // Without it every turn would re-send the same memories, and in a
-      // resumed transcript those copies stack rather than replace.
       session.injectedMemoryIds = recall.injectedMemoryIds
+      // Mutating the in-memory session is not enough: the turn's finalizer
+      // saves a record it fetched itself, so the field was lost every time and
+      // the same memories were re-sent on every turn — stacking copies in a
+      // resumed transcript instead of replacing them. Write it through.
+      if (typeof session.id === 'string' && session.id) {
+        try {
+          patchSession(session.id, (current) => (
+            current ? { ...current, injectedMemoryIds: recall.injectedMemoryIds } : current
+          ))
+        } catch (persistErr) {
+          log.warn('claude-cli', `Could not persist injected memory ids: ${persistErr}`)
+        }
+      }
       log.info('claude-cli', `Injected ${added} memory line(s) into the prompt`, {
         sessionId: session.id,
         agentId: session.agentId,
