@@ -159,3 +159,41 @@ test('runChatReadMigrationOnce: ervenytelen JSON torli a kulcsot, es nem push-ol
     resetMigrationDoneFlag()
   }
 })
+
+/**
+ * A `done` flag onmagaban nem szuntetheto meg: ha egy reszleges hiba utan a
+ * kulcs megmarad, egy MASODIK hivas UGYANABBAN A PROCESSZBEN (nincs
+ * `resetMigrationDoneFlag()` a ket hivas kozott -- pont ez a kulonbseg a
+ * "runs once" teszthez kepest, ahol az elso hivas sikeres es torli a kulcsot,
+ * ezert az a teszt nem venne eszre, ha a `done`-guard kikerulne) nem probalja
+ * ujra felkuldeni ugyanazokat a kulcsokat. Ha a `if (migrationState.done) return`
+ * sor kikerul (a `migrationState.done = true` megmaradasa mellett), a masodik
+ * hivas is vegigfut a fuggveny testen, es ujra push-ol.
+ */
+test('runChatReadMigrationOnce: reszleges hiba utan a masodik hivas UGYANABBAN a processzben nem told fel ismet', async () => {
+  const savedLocalStorage = (globalThis as { localStorage?: unknown }).localStorage
+  const savedFetch = globalThis.fetch
+  resetMigrationDoneFlag()
+
+  let fetchCalls = 0
+  const fake = makeFakeLocalStorage({ [LOCAL_READ_KEY]: JSON.stringify({ a: 1, b: 2 }) })
+  ;(globalThis as { localStorage?: unknown }).localStorage = fake
+  globalThis.fetch = (async (input: unknown) => {
+    fetchCalls += 1
+    return makeFetchMock((url) => url.includes('/b/read'))(input)
+  }) as typeof fetch
+
+  try {
+    await runChatReadMigrationOnce()
+    assert.equal(fetchCalls, 2, 'elso hivas: a es b is megprobalva, b elhasal')
+    assert.equal(fake.getItem(LOCAL_READ_KEY), JSON.stringify({ a: 1, b: 2 }), 'reszleges hiba utan a kulcs megmarad')
+
+    await runChatReadMigrationOnce()
+    assert.equal(fetchCalls, 2, 'a masodik hivas ugyanabban a processzben nem probalja ujra felkuldeni a reszlegesen elhalt migraciot')
+  } finally {
+    if (savedLocalStorage === undefined) delete (globalThis as { localStorage?: unknown }).localStorage
+    else (globalThis as { localStorage?: unknown }).localStorage = savedLocalStorage
+    globalThis.fetch = savedFetch
+    resetMigrationDoneFlag()
+  }
+})
