@@ -914,113 +914,172 @@ EOF
 
 ---
 
-### Task 7: A lista és a kártya átállítása
+### Task 7: A `/chat` lista sorai — olvasatlan, dolgozik, és a fókusz-szabály
+
+> **EZ A FELADAT UJRA LETT IRVA.** Az elso valtozat a `chat-list.tsx` /
+> `chat-card.tsx` parost celozta. **Azok HALOTT KODOK**: a `ChatList`-re nulla
+> hivatkozas van a fában, a `ChatCard`-ot csak a `chat-list.tsx` importálja.
+> A `/chat` oldal valodi listaja a `ConversationList`
+> (`src/components/chat/conversation-list.tsx`), es az sajat sorokat renderel,
+> nem `ChatCard`-ot. A `d10733d0` commit munkaja ezert a kepernyore soha nem
+> jutott volna ki.
 
 **Files:**
-- Modify: `src/components/chat/chat-card.tsx:47,156-164`
-- Modify: `src/components/chat/chat-list.tsx:34-35,82,117,125`
+- Modify: `src/components/chat/conversation-list.tsx`
+- Create: `src/components/chat/conversation-row-state.ts`
+- Create: `src/components/chat/conversation-row-state.test.ts`
+- Modify: `package.json` (`test:runtime`)
 
 **Interfaces:**
 - Consumes: `sessionUnreadState` (Task 2), `useWindowFocused` (Task 5),
   `markChatRead` és `READ_GRACE_MS` (Task 6).
-- Produces: semmi új felület.
+- Produces: `conversationRowState(session)` → `{ unread, isError, working }`.
 
-- [ ] **Step 1: `chat-card.tsx` — a badge átállítása**
+**Amit a `ConversationList` ma tud** (olvasd el, mielott hozzanyulsz):
+soronkent avatar + cim + `ugynok neve · ido`, magyar szoveggel; van
+`data-testid="conversation-row"` es `data-session-id`; es MAR fel van iratkozva
+mindket topicra: `useWs('sessions', loadSessions, 15_000)` es
+`useWs('runs', loadSessions, 5_000)`. Uj feliratkozas NEM kell -- a `runs`
+5 masodperces tartaleka hajtja a "dolgozik" jelzest.
 
-Töröld a `lastReadTimestamps` sort (47.), és importáld helyette:
-
-```ts
-import { sessionUnreadState } from '@/lib/chat/session-unread'
-```
-
-A 156-164. sor közti IIFE helyére:
-
-```tsx
-        {(() => {
-          const { unread, isError } = sessionUnreadState(session)
-          if (!unread) return null
-          return (
-            <span
-              title={isError ? 'A legutobbi futas hibaval vegzodott' : 'Olvasatlan valasz'}
-              className={`shrink-0 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-600 px-1 ${
-                isError ? 'bg-red-500 text-white' : 'bg-accent-bright text-accent-fg'
-              }`}
-            >
-              {isError ? '!' : '1'}
-            </span>
-          )
-        })()}
-```
-
-- [ ] **Step 2: `chat-list.tsx` — a szűrő átállítása**
-
-A 34-35. sorból töröld a `lastReadTimestamps` sort, tartsd meg a
-`markChatRead`-et. Importáld:
+- [ ] **Step 1: Írd meg a bukó tesztet a sor-állapotra**
 
 ```ts
-import { sessionUnreadState } from '@/lib/chat/session-unread'
-import { useWindowFocused } from '@/hooks/use-window-focused'
-import { READ_GRACE_MS } from '@/stores/slices/data-slice'
+// src/components/chat/conversation-row-state.test.ts
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { conversationRowState } from './conversation-row-state'
+
+test('semmi sem tortent -> se olvasatlan, se dolgozik', () => {
+  assert.deepEqual(conversationRowState({}), { unread: false, isError: false, working: false })
+})
+
+test('olvasatlan valasz', () => {
+  const s = conversationRowState({ lastAssistantAt: 200, lastReadAt: 100 })
+  assert.equal(s.unread, true)
+  assert.equal(s.isError, false)
+})
+
+test('hibas turn -> olvasatlan, hibakent', () => {
+  const s = conversationRowState({ lastAssistantAt: 100, lastFailedTurnAt: 200, lastReadAt: 50 })
+  assert.equal(s.unread, true)
+  assert.equal(s.isError, true)
+})
+
+test('active -> dolgozik', () => {
+  assert.equal(conversationRowState({ active: true }).working, true)
+})
+
+test('a dolgozik fuggetlen az olvasatlantol: egyszerre is igaz lehet', () => {
+  const s = conversationRowState({ active: true, lastAssistantAt: 200, lastReadAt: 100 })
+  assert.equal(s.working, true)
+  assert.equal(s.unread, true)
+})
+
+test('active hianyzik vagy false -> nem dolgozik', () => {
+  assert.equal(conversationRowState({ active: false }).working, false)
+  assert.equal(conversationRowState({}).working, false)
+})
 ```
 
-A 82. sor `unreadCount` számítása helyére:
+- [ ] **Step 2: Futtasd, hogy lássad a bukást**
+
+Run: `npx tsx --test src/components/chat/conversation-row-state.test.ts`
+Elvárt: FAIL — `Cannot find module './conversation-row-state'`
+
+- [ ] **Step 3: Írd meg**
 
 ```ts
-        const unreadCount = sessionUnreadState(s).unread ? 1 : 0
+// src/components/chat/conversation-row-state.ts
+import { sessionUnreadState, type SessionUnreadInput } from '@/lib/chat/session-unread'
+
+/**
+ * Amit egy sor magarol tud. Harom fuggetlen teny, nem egy allapotgep:
+ * egy chat lehet EGYSZERRE olvasatlan es dolgozo (valaszolt, aztan tovabb
+ * ment), ezert nem `status`-t adunk vissza, hanem harom boolt.
+ *
+ * `working` a `session.active`, amit a futasido tart karban. A lista mar fel
+ * van iratkozva a `runs` topicra, tehat ez magatol frissul.
+ */
+export interface ConversationRowInput extends SessionUnreadInput {
+  active?: boolean
+}
+
+export interface ConversationRowState {
+  unread: boolean
+  isError: boolean
+  working: boolean
+}
+
+export function conversationRowState(session: ConversationRowInput): ConversationRowState {
+  const { unread, isError } = sessionUnreadState(session)
+  return { unread, isError, working: session.active === true }
+}
 ```
 
-A 117. sor dependency-tömbjéből vedd ki a `lastReadTimestamps`-t.
+- [ ] **Step 4: Rajzold ki a sorban**
 
-- [ ] **Step 3: Fókusz-szabály és türelmi idő**
+A `conversation-list.tsx` sor-blokkjaban, az `ago(now, s.lastActiveAt)` melle.
+Kovesd a fajl megleve magyar szovegeit es Tailwind-osztalyait; ne hozz be uj
+design-nyelvet.
 
-A komponens törzsébe, a meglévő `markChatRead(id)` hívás (125. sor) **mellé**:
+- **dolgozik**: zold, pulzalo pont + `dolgozik` felirat.
+- **olvasatlan**: tomor pont a sor jobb szelen (`bg-accent-bright`), hibas
+  esetben piros (`bg-red-500`) es `title` attributumban a magyarazat.
+- Az aktiv (megnyitott) sor is mutathatja mindkettot -- a jelzest az
+  olvasottsag tunteti el, nem a kivalasztas.
+
+Minden uj elemre `data-testid` kerul (`row-working`, `row-unread`), hogy egy
+kesobbi e2e ne osztalynevekre fogodzon.
+
+- [ ] **Step 5: Fókusz-szabály és türelmi idő**
+
+Ugyanebben a komponensben:
 
 ```tsx
   const windowFocused = useWindowFocused()
 
-  // Az aktiv chat akkor lesz olvasott, ha az ablak is fokuszban van. Fokuszvesztes
-  // utan `READ_GRACE_MS`-ig meg olvasottnak szamit: enelkul minden ablakvaltas
-  // hamis olvasatlant szulne.
+  // Az aktiv chat akkor lesz olvasott, ha az ablak is fokuszban van.
   useEffect(() => {
-    if (!currentSessionId) return
+    if (!activeId) return
     if (!windowFocused) return
-    const timer = setTimeout(() => { void markChatRead(currentSessionId) }, 0)
-    return () => clearTimeout(timer)
-  }, [currentSessionId, windowFocused, markChatRead])
+    void markChatRead(activeId)
+  }, [activeId, windowFocused, markChatRead])
 
+  // Fokuszvesztes utan `READ_GRACE_MS`-ig meg olvasottnak szamit: enelkul
+  // minden ablakvaltas hamis olvasatlant szulne. A lejartakor UJRA megnezzuk a
+  // fokuszt -- ha kozben visszatert, jeloljunk; ha nem, ne.
   useEffect(() => {
-    if (!currentSessionId) return
+    if (!activeId) return
     if (windowFocused) return
-    // Fokuszvesztes: a turelmi ido leteltevel meg egyszer jelolunk, hogy a
-    // kozben megjott valasz ne maradjon olvasatlanul, ha rogton visszaterunk.
     const timer = setTimeout(() => {
-      if (document.hasFocus()) void markChatRead(currentSessionId)
+      if (document.hasFocus()) void markChatRead(activeId)
     }, READ_GRACE_MS)
     return () => clearTimeout(timer)
-  }, [currentSessionId, windowFocused, markChatRead])
+  }, [activeId, windowFocused, markChatRead])
 ```
 
-- [ ] **Step 4: Típusellenőrzés és lint**
+A `clearTimeout` a takaritasban NEM elhagyhato: gyors chat-valtasnal egy
+elarvult idozito a ROSSZ chatet jelolne olvasottnak.
 
-Run: `npx tsc --noEmit -p tsconfig.json && npx eslint src/components/chat/chat-card.tsx src/components/chat/chat-list.tsx src/stores/slices/data-slice.ts`
-Elvárt: hibátlan. Ha a `lastReadTimestamps` máshol is használatban maradt
-(`chatroom-view.tsx:115`), azt **ne** bántsd: a chatroom-ok kívül esnek a
-hatókörön (1. döntés). Ilyenkor a store-ban a mező marad, csak a chat-lista nem
-használja. Ezt írd bele a commit-üzenetbe.
+- [ ] **Step 6: Vedd fel a suite-ba, és futtasd**
 
-- [ ] **Step 5: Commit**
+`package.json` `test:runtime` végére: `src/components/chat/conversation-row-state.test.ts`
+
+Run: `npm run test:runtime 2>&1 | grep -c "a dolgozik fuggetlen"`
+Elvárt: 1 vagy tobb. Ha 0, a fajl nem fut.
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/components/chat/chat-card.tsx src/components/chat/chat-list.tsx
+git add src/components/chat/conversation-list.tsx src/components/chat/conversation-row-state.ts src/components/chat/conversation-row-state.test.ts package.json
 git commit -m "$(cat <<'EOF'
-feat: read chat unread state from the server in list and card
+feat: show unread and working state in the conversation list
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 EOF
 )"
 ```
-
----
 
 ### Task 8: A két kapcsoló
 
