@@ -3,6 +3,7 @@ import os from 'os'
 import path from 'path'
 import { spawn } from 'child_process'
 import type { StreamChatOptions } from './index'
+import type { SSEEvent } from '@/types'
 import { log } from '../server/logger'
 import { loadRuntimeSettings } from '@/lib/server/runtime/runtime-settings'
 import { getEnabledToolIds } from '@/lib/capability-selection'
@@ -10,6 +11,7 @@ import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, isStde
 import { getAgent } from '@/lib/server/agents/agent-repository'
 import { loadMcpServers } from '@/lib/server/storage'
 import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
+import { buildCliMemoryPreamble } from '@/lib/server/memory/cli-memory-preamble'
 
 const TAG = 'provider-claude-cli'
 
@@ -115,6 +117,116 @@ export function addAssignedMcpServers(
 
 
 /**
+ * A tool output long enough to bloat the transcript. The CLI runs its own tool
+ * loop, so what comes back here is whatever `Read` or `Bash` produced -- an
+ * order of magnitude larger than the host's own tool results, and it is stored
+ * on the message and re-rendered on every load. The head is what a reader
+ * wants; the tail is what a log file wants.
+ */
+const MAX_TOOL_OUTPUT = 8_000
+
+/** The text of a `tool_result` block, whose content is a string OR a block list. */
+function toolResultText(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return content == null ? '' : JSON.stringify(content)
+  return content
+    .map((part) => {
+      if (typeof part === 'string') return part
+      if (part && typeof part === 'object' && typeof (part as { text?: unknown }).text === 'string') {
+        return (part as { text: string }).text
+      }
+      return JSON.stringify(part)
+    })
+    .join('\n')
+}
+
+function truncate(text: string): string {
+  if (text.length <= MAX_TOOL_OUTPUT) return text
+  return `${text.slice(0, MAX_TOOL_OUTPUT)}\n… [${text.length - MAX_TOOL_OUTPUT} more characters]`
+}
+
+/**
+ * What one line of the CLI's `stream-json` output means to the chat UI.
+ *
+ * WHY THIS EXISTS. The CLI emits its whole tool loop on stdout -- `tool_use`
+ * blocks carrying the file a Write touched, the `tool_result` that answered
+ * them, and the model's `thinking` -- and all of it arrived inside
+ * `message.content` beside the text. The reader here took `block.type ===
+ * 'text'` and dropped the rest on the floor, so a claude-cli agent showed no
+ * tool calls, no tool results and an empty thinking box, and a file it created
+ * left no structured trace anywhere in the transcript. The SSE protocol already
+ * carries all three (`tool_call`, `tool_result`, `thinking`) and the chat store
+ * already renders them: nothing needed inventing, only forwarding.
+ *
+ * A `tool_result` NAMES ITS CALL BY ID, NOT BY NAME, and the store matches a
+ * result to a running call by name. Hence `toolNames`: the caller keeps one map
+ * per process and this fills it from each `tool_use` it sees, so the answer can
+ * say which tool it is answering. An id with no entry means the pairing was
+ * lost (a resumed session whose earlier turn this process never saw), and
+ * 'unknown' is the honest label for it -- the store leaves such a result
+ * unmatched rather than closing the wrong call.
+ *
+ * `text` is returned rather than emitted because the caller owns the running
+ * response: only it knows whether a block replaces what came before.
+ */
+export function claudeCliStreamEvents(
+  ev: unknown,
+  toolNames: Map<string, string>,
+): { events: SSEEvent[]; text: string | null } {
+  const events: SSEEvent[] = []
+  let text: string | null = null
+
+  const event = ev as { type?: string; message?: { content?: unknown } }
+  const content = event.message?.content
+  if (!Array.isArray(content)) return { events, text }
+
+  for (const raw of content) {
+    if (!raw || typeof raw !== 'object') continue
+    const block = raw as {
+      type?: string
+      text?: string
+      thinking?: string
+      id?: string
+      name?: string
+      input?: unknown
+      tool_use_id?: string
+      content?: unknown
+      is_error?: boolean
+    }
+
+    if (event.type === 'assistant') {
+      if (block.type === 'text' && block.text) {
+        text = block.text
+        events.push({ t: 'md', text: block.text })
+      } else if (block.type === 'thinking' && block.thinking) {
+        events.push({ t: 'thinking', text: block.thinking })
+      } else if (block.type === 'tool_use' && block.name) {
+        if (block.id) toolNames.set(block.id, block.name)
+        events.push({
+          t: 'tool_call',
+          toolName: block.name,
+          toolInput: block.input === undefined ? '' : JSON.stringify(block.input),
+          ...(block.id ? { toolCallId: block.id } : {}),
+        })
+      }
+    } else if (event.type === 'user' && block.type === 'tool_result') {
+      const body = truncate(toolResultText(block.content))
+      // The store reads an error off the text, so an errored result has to say
+      // so in the text -- `is_error` alone would be shown as a success.
+      const output = block.is_error && !/^error:/i.test(body.trim()) ? `Error: ${body}` : body
+      events.push({
+        t: 'tool_result',
+        toolName: (block.tool_use_id && toolNames.get(block.tool_use_id)) || 'unknown',
+        toolOutput: output,
+        ...(block.tool_use_id ? { toolCallId: block.tool_use_id } : {}),
+      })
+    }
+  }
+
+  return { events, text }
+}
+
+/**
  * The prompt the CLI is given, attachments included.
  *
  * EVERY ATTACHMENT, NOT JUST THE FIRST IMAGE. This read `imagePath` alone and
@@ -147,7 +259,41 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
     return Promise.resolve('')
   }
 
-  const prompt = await buildClaudeCliPrompt(message, imagePath, attachedFiles)
+  let prompt = await buildClaudeCliPrompt(message, imagePath, attachedFiles)
+
+  // Durable memory. The LangGraph path that normally injects this is skipped
+  // for every CLI provider, so without this block a claude-cli agent runs with
+  // no memory at all -- the search runs upstream and its result is thrown
+  // away. It goes into the prompt rather than the system prompt because
+  // --system-prompt-snapshot pins the system prompt to the conversation's
+  // first request, so a per-turn block placed there is silently ignored on
+  // every resume.
+  try {
+    const memoryAgent = session.agentId ? getAgent(session.agentId as string) : null
+    const recall = buildCliMemoryPreamble({
+      session: session as Parameters<typeof buildCliMemoryPreamble>[0]['session'],
+      agent: memoryAgent as Parameters<typeof buildCliMemoryPreamble>[0]['agent'],
+      message,
+      projectRoot: typeof session.cwd === 'string' ? session.cwd : null,
+    })
+    if (recall.preamble) {
+      const before = Object.keys(session.injectedMemoryIds || {}).length
+      const added = Object.keys(recall.injectedMemoryIds).length - before
+      prompt = `${recall.preamble}\n\n${prompt}`
+      // Mutating the session is how this provider already persists
+      // claudeSessionId: the turn's finalizer saves the record afterwards.
+      // Without it every turn would re-send the same memories, and in a
+      // resumed transcript those copies stack rather than replace.
+      session.injectedMemoryIds = recall.injectedMemoryIds
+      log.info('claude-cli', `Injected ${added} memory line(s) into the prompt`, {
+        sessionId: session.id,
+        agentId: session.agentId,
+      })
+    }
+  } catch (memErr) {
+    // Recall is an enhancement; a failure here must not cost the user a turn.
+    log.warn('claude-cli', `Memory recall skipped: ${memErr}`)
+  }
 
   const args = ['--print', '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions']
   const resumeSessionId = typeof session.claudeSessionId === 'string' ? session.claudeSessionId : ''
@@ -253,6 +399,8 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
   let buf = ''
   let eventCount = 0
   let stderrText = ''
+  /** tool_use id -> tool name, so a `tool_result` can name the call it answers. */
+  const toolNames = new Map<string, string>()
 
   proc.stdout!.on('data', (chunk: Buffer) => {
     const raw = chunk.toString()
@@ -284,13 +432,15 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
             write(`data: ${JSON.stringify({ t: 'r', text: ev.result })}\n\n`)
             log.debug('claude-cli', `Result event (${ev.result.length} chars)`)
           }
-        } else if (ev.type === 'assistant' && ev.message?.content) {
-          for (const block of ev.message.content) {
-            if (block.type === 'text' && block.text) {
-              fullResponse = block.text
-              write(`data: ${JSON.stringify({ t: 'md', text: block.text })}\n\n`)
-              log.debug('claude-cli', `Assistant text block (${block.text.length} chars)`)
-            }
+        } else if (ev.type === 'assistant' || ev.type === 'user') {
+          const { events, text } = claudeCliStreamEvents(ev, toolNames)
+          if (text !== null) {
+            fullResponse = text
+            log.debug('claude-cli', `Assistant text block (${text.length} chars)`)
+          }
+          for (const out of events) {
+            write(`data: ${JSON.stringify(out)}\n\n`)
+            if (out.t === 'tool_call') log.debug('claude-cli', `Tool call: ${out.toolName}`)
           }
         } else if (ev.type === 'content_block_delta' && ev.delta?.text) {
           fullResponse += ev.delta.text
