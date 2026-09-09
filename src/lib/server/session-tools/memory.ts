@@ -379,8 +379,12 @@ export async function executeMemoryAction(input: unknown, ctx: MemoryActionConte
     action, key, value, query, scope, rerank,
     scopeSessionId, projectRoot, filePaths, references, project,
     linkedMemoryIds, targetIds,
-    pinned, sharedWith,
+    pinned, sharedWith, importance,
   } = n
+  // The recall preamble asks the writer for a 1..10 score and a short
+  // abstract; the store clamps both, so an out-of-range value costs nothing.
+  const importanceValue = typeof importance === 'number' ? importance : undefined
+  const suppliedAbstract = typeof n.abstract === 'string' && n.abstract.trim() ? n.abstract.trim() : undefined
   const actionText = typeof action === 'string' ? action.trim() : ''
   const keyText = typeof key === 'string' ? key.trim() : ''
   const hasValueText = typeof value === 'string'
@@ -589,6 +593,8 @@ export async function executeMemoryAction(input: unknown, ctx: MemoryActionConte
       linkedMemoryIds: normalizedLinkedMemoryIds,
       pinned: pinned === true,
       sharedWith: Array.isArray(sharedWith) ? sharedWith : undefined,
+      importance: importanceValue,
+      abstract: suppliedAbstract,
     })
     invalidateAgentMemoryCache(currentAgentId)
     return `Stored memory "${entry.title}" (id: ${entry.id}) in ${normalizedCategory}. No further memory lookup is needed unless the user asked you to verify.`
@@ -1065,6 +1071,8 @@ export const MemoryExtension: Extension = {
         properties: {
           action: { type: 'string', enum: ['store', 'get', 'search', 'list', 'delete', 'update', 'link', 'unlink', 'doctor'] },
           id: { type: 'string' },
+          importance: { type: 'number', description: 'How much this matters: 1 (routine) to 10 (changes how the fleet works). Used for ranking.' },
+          abstract: { type: 'string', description: 'One-sentence summary, used when this memory is recalled into a prompt.' },
           key: { type: 'string' },
           title: { type: 'string' },
           value: { type: 'string' },

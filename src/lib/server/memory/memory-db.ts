@@ -37,6 +37,10 @@ export const MAX_FTS_TERM_LENGTH = 48
 const MAX_FTS_RESULT_ROWS = 50
 const DEFAULT_VECTOR_SIMILARITY_THRESHOLD = 0.3
 const MAX_MERGED_RESULTS = 80
+/** Ceiling on the reinforcement multiplier — a tie-breaker, not a ranking. */
+const MAX_REINFORCEMENT_BOOST = 1.6
+/** Ceiling on the writer-supplied importance multiplier. */
+const MAX_IMPORTANCE_BOOST = 1.8
 
 export const MEMORY_FTS_STOP_WORDS = new Set([
   'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'how',
@@ -606,6 +610,7 @@ function initDb() {
     'contentHash TEXT',
     'reinforcementCount INTEGER DEFAULT 0',
     'abstract TEXT',
+    'importance INTEGER DEFAULT 0',
   ]) {
     try { db.exec(`ALTER TABLE memories ADD COLUMN ${col}`) } catch { /* already exists */ }
   }
@@ -724,9 +729,9 @@ function initDb() {
     insert: db.prepare(`
       INSERT INTO memories (
         id, agentId, sessionId, category, title, content, metadata, embedding,
-        "references", filePaths, image, imagePath, linkedMemoryIds, pinned, sharedWith, contentHash, abstract, createdAt, updatedAt
+        "references", filePaths, image, imagePath, linkedMemoryIds, pinned, sharedWith, contentHash, abstract, importance, createdAt, updatedAt
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     update: db.prepare(`
       UPDATE memories
@@ -838,6 +843,7 @@ function initDb() {
       contentHash: typeof row.contentHash === 'string' ? row.contentHash : undefined,
       reinforcementCount: typeof row.reinforcementCount === 'number' ? row.reinforcementCount : 0,
       abstract: typeof row.abstract === 'string' ? row.abstract : null,
+      importance: typeof row.importance === 'number' ? row.importance : 0,
       createdAt: typeof row.createdAt === 'number' ? row.createdAt : Date.now(),
       updatedAt: typeof row.updatedAt === 'number' ? row.updatedAt : Date.now(),
     }
@@ -889,6 +895,13 @@ function initDb() {
         : null
       const abstract = suppliedAbstract || (content ? summarizeWithoutModel(content) : null) || null
 
+      // 1..10, clamped. A number outside the scale is treated as unscored
+      // rather than rejected — a bad value must not cost the agent its write.
+      const rawImportance = typeof data.importance === 'number' && Number.isFinite(data.importance)
+        ? Math.round(data.importance)
+        : 0
+      const importance = rawImportance >= 1 && rawImportance <= 10 ? rawImportance : 0
+
       // Content-hash dedup: if same content already exists for this agent, reinforce instead of duplicating
       const agentId = data.agentId || null
       const existingByHash = agentId
@@ -920,6 +933,7 @@ function initDb() {
         sharedWith,
         contentHash,
         abstract,
+        importance,
         now, now,
       )
       // Compute embedding in background (fire-and-forget)
@@ -1231,10 +1245,21 @@ function initDb() {
         const recencyDecay = isDecayExempt({ pinned: entry.pinned, category: entry.category, metadata: entry.metadata })
           ? 1.0
           : calculateTemporalDecayMultiplier(daysSinceAccess, halfLifeDays)
-        const reinforcement = Math.log((entry.reinforcementCount || 0) + 1) + 1
+        // Reinforcement breaks ties; it must not decide the ranking. Uncapped,
+        // log(n+1)+1 reaches 7.7x on this store, and the only rows carrying a
+        // non-zero count are the machine's own consolidation digests — so the
+        // term exclusively promoted machine bulk over everything a person or
+        // an agent wrote.
+        const reinforcement = Math.min(MAX_REINFORCEMENT_BOOST, Math.log((entry.reinforcementCount || 0) + 1) + 1)
+        // Importance is the writer's own 1..10 score. Unscored entries sit at
+        // 1.0 so an older store is not penalised for lacking the field.
+        const importanceScore = typeof entry.importance === 'number' && entry.importance >= 1 && entry.importance <= 10
+          ? entry.importance
+          : 0
+        const importanceBoost = 1 + (importanceScore / 10) * (MAX_IMPORTANCE_BOOST - 1)
         const pinnedBoost = entry.pinned ? 1.5 : 1.0
         const followUpBoost = followUpSalienceMultiplier(entry, now)
-        const salience = Math.max(0.0001, relevance) * recencyDecay * reinforcement * pinnedBoost * followUpBoost
+        const salience = Math.max(0.0001, relevance) * recencyDecay * reinforcement * importanceBoost * pinnedBoost * followUpBoost
         return { entry, salience, embedding: rawEmbeddings.get(entry.id) }
       })
 

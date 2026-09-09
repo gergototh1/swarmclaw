@@ -481,6 +481,12 @@ export interface MemoryEntry {
   contentHash?: string
   reinforcementCount?: number
   abstract?: string | null
+  /**
+   * How much this entry matters, 1 (routine) to 10 (changes how the fleet
+   * works), supplied by whoever wrote it. Ranking multiplies by it, so an
+   * unscored entry (0/undefined) is treated as ordinary rather than worthless.
+   */
+  importance?: number | null
   createdAt: number
   updatedAt: number
 }

@@ -329,6 +329,87 @@ describe('memory-db', () => {
     })
   })
 
+  // --- Ranking ---
+
+  describe('ranking weights', () => {
+    it('does not let a heavily reinforced digest bury a relevant fact', () => {
+      // reinforcementCount is non-zero on exactly one category in the live
+      // store -- the machine's own consolidation digests, up to 803 -- so an
+      // uncapped log multiplier hands them a 7.7x boost that no relevance
+      // difference can overcome.
+      const db = memDb.getMemoryDb()
+      const agentId = `rank-${Date.now()}`
+      const digest = db.add({
+        agentId,
+        category: 'note',
+        title: 'Consolidated digest',
+        content: 'kubernetes klaszter összefoglaló a gépi digestből',
+      })
+      for (let i = 0; i < 400; i++) {
+        db.add({ agentId, category: 'note', title: 'Consolidated digest', content: 'kubernetes klaszter összefoglaló a gépi digestből' })
+      }
+      const reinforced = db.get(digest.id)
+      assert.ok((reinforced?.reinforcementCount || 0) > 100, `expected heavy reinforcement, got ${reinforced?.reinforcementCount}`)
+
+      const fact = db.add({
+        agentId,
+        category: 'projects/decisions',
+        title: 'Kubernetes döntés',
+        content: 'A kubernetes klaszter a frankfurti régióban fut, ezt döntöttük el.',
+        importance: 9,
+      })
+
+      // A query that matches BOTH equally, so relevance cannot decide it and
+      // the multipliers are what is actually under test.
+      const results = db.search('kubernetes klaszter', agentId, { scope: { mode: 'agent', agentId } })
+      const factRank = results.findIndex((r) => r.id === fact.id)
+      const digestRank = results.findIndex((r) => r.id === digest.id)
+      assert.ok(factRank >= 0, 'the relevant fact should be returned at all')
+      assert.ok(factRank < digestRank || digestRank === -1, `fact at ${factRank}, digest at ${digestRank}`)
+    })
+  })
+
+  // --- Importance ---
+
+  describe('importance', () => {
+    it('stores a score the writer supplied', () => {
+      const db = memDb.getMemoryDb()
+      const entry = db.add({
+        agentId: `imp-${Date.now()}`,
+        category: 'projects/decisions',
+        title: 'Fontos döntés',
+        content: 'Ez a döntés megváltoztatja, hogyan dolgozik a flotta.',
+        importance: 9,
+      })
+      assert.equal(db.get(entry.id)?.importance, 9)
+    })
+
+    it('treats an out-of-range score as unscored rather than failing the write', () => {
+      const db = memDb.getMemoryDb()
+      for (const [i, bad] of [0, -3, 42, Number.NaN].entries()) {
+        const entry = db.add({
+          agentId: `imp-bad-${Date.now()}-${i}`,
+          category: 'note',
+          title: `Rossz pontszám ${i}`,
+          content: `Tartalom ${i}.`,
+          importance: bad as number,
+        })
+        assert.equal(db.get(entry.id)?.importance, 0, `importance=${String(bad)}`)
+      }
+    })
+
+    it('defaults to unscored when nothing is supplied', () => {
+      const db = memDb.getMemoryDb()
+      const entry = db.add({
+        agentId: `imp-none-${Date.now()}`,
+        category: 'note',
+        title: 'Pontszám nélkül',
+        content: 'Nincs megadva fontosság.',
+      })
+      assert.equal(db.get(entry.id)?.importance, 0)
+    })
+  })
+
   // --- Fleet-wide sharing ---
 
   describe('sharedWith "everyone" sentinel', () => {

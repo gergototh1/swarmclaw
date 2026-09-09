@@ -197,6 +197,8 @@ const MemoryToolExtension: Extension = {
           },
           targetIds: { type: 'array', items: { type: 'string' }, description: 'Target memory IDs for link/unlink' },
           pinned: { type: 'boolean', description: 'Pin this memory so it always loads in context' },
+          importance: { type: 'number', description: 'How much this matters: 1 (routine) to 10 (changes how the fleet works). Used for ranking.' },
+          abstract: { type: 'string', description: 'One-sentence summary, used when this memory is recalled into a prompt.' },
           sharedWith: { type: 'array', items: { type: 'string' }, description: 'Agent IDs to share this memory with' },
           references: { type: 'array', description: 'Reference objects to attach to the memory' },
           filePaths: { type: 'array', description: 'File references to attach to the memory' },
