@@ -1090,6 +1090,21 @@ export function createRepo(storage) {
      */
     sweepById(id) { return S.get('SELECT * FROM ext_aisignal_sweeps WHERE id = ?', [id]) || null },
     /**
+     * The sweep rows that were opened before `startedBefore` and never closed.
+     *
+     * `finished_at` is the column that separates "completed" from "still
+     * running or died" (see the table above), and nothing distinguishes the two
+     * halves of that second state -- an open row is an open row whether its run
+     * is mid-work or long gone. So the caller passes the cutoff instead of this
+     * method choosing one: the age is the whole of the evidence, and what
+     * counts as old enough is a statement about how long a run takes, which
+     * belongs to the sweep layer and not to the store. Ids only; the caller
+     * closes each one through `finishSweep`, which reads what it needs.
+     */
+    unfinishedSweeps(startedBefore) {
+      return S.all(`SELECT id FROM ext_aisignal_sweeps WHERE finished_at IS NULL AND ran_at < ? ORDER BY ${SWEEP_ORDER}`, [startedBefore]).map((r) => r.id)
+    },
+    /**
      * The distinct message ids this sweep actually turned into a signal row.
      *
      * The same read `finishSweep` makes for its unfinished branch, published so

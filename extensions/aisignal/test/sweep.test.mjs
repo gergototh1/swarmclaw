@@ -3,7 +3,7 @@ import { test } from 'node:test'
 
 import { MAIL_KIND, MIGRATIONS, createRepo, alreadyClosedMessage } from '../src/db.mjs'
 import { MAILBOX_CONTRACT, MAILBOX_PROVIDER, MAILBOX_UNAVAILABLE, MailboxError, sinceQuery } from '../src/mailbox.mjs'
-import { createSweepTools, listQuery } from '../src/sweep.mjs'
+import { DEFAULT_MAX, createSweepTools, listQuery } from '../src/sweep.mjs'
 import { memStorage } from './helpers.mjs'
 
 /**
@@ -381,12 +381,12 @@ test('a cap stop and a page_ceiling stop are recorded as different facts', async
 // --- The message cap --------------------------------------------------------
 
 test('a blank maxMessages setting falls back to the default rather than asking Gmail for zero', async () => {
-  const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+  const ids = Array.from({ length: DEFAULT_MAX + 2 }, (_, i) => `a${i}`)
   for (const blank of [undefined, '']) {
     const gmail = fakeMailbox({ ids })
     const { run } = setup(gmail, { label: 'AI hírlevél', maxMessages: blank })
     const r = await run('signalSweep')
-    assert.equal(r.messages.length, 5)
+    assert.equal(r.messages.length, DEFAULT_MAX)
     assert.equal(r.leftover, 2)
     assert.equal(r.error, undefined)
   }
@@ -2004,4 +2004,82 @@ test('the unread term goes out with a window and without one', () => {
   assert.equal(listQuery(null), 'is:unread')
   assert.equal(listQuery('not a date'), 'is:unread')
   assert.equal(listQuery('2026-09-05T00:00:00.000Z'), 'after:2026/09/04 is:unread')
+})
+
+/*
+ * THE RUN THAT NEVER CLOSED
+ * =========================
+ * The 2026-09-09T18:57Z row again, from the other side. The test above pins
+ * what an interrupted run must NOT do; these pin what somebody has to do about
+ * it afterwards, because nothing did. That row is still open in the live
+ * database: `found = 0` while three items point at it, no id marked seen, no
+ * message marked read. The page reads it as the latest sweep and every number
+ * on it is a number the run did not earn -- and now that marking read follows
+ * the close, an interrupted run loses the marking too, so the cost of leaving
+ * it open went up rather than down.
+ *
+ * So the next run closes it, and closes it as what it was: `ok: false`, which
+ * marks seen exactly the ids that became cards and moves no frontier. The
+ * alternative -- leaving it open and only labelling it in the UI -- fixes the
+ * reading and none of the rest: the messages stay unread, the cards stay
+ * uncounted, and the next run re-offers mail it already has rows for.
+ */
+test('a run that died before it closed is closed by the next run, and the mail it recorded is marked read', async () => {
+  const gmail = fakeMailbox({ ids: ['a1', 'a2', 'a3', 'a4', 'a5'] })
+  const { run, state, storage } = setup(gmail)
+
+  const { sweepId } = await run('signalSweep')
+  for (const id of ['a2', 'a3', 'a5']) {
+    await run('recordSignal', { sweepId, messageId: id, headline: `H ${id}`, summary: 'Egy.', score: 0.5, applyScore: 0.5 })
+  }
+  // The agent died here. Age the row past the grace window, which is the only
+  // thing that separates a dead run from one still working.
+  storage.exec('UPDATE ext_aisignal_sweeps SET ran_at = ? WHERE id = ?',
+    [new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), sweepId])
+
+  const second = await run('signalSweep')
+
+  const abandoned = state.repo.sweepById(sweepId)
+  assert.ok(abandoned.finished_at, 'the row nobody closed is closed')
+  assert.equal(abandoned.ok, 0, 'as a run that did not finish, which is not the same row as a clean empty one')
+  assert.equal(abandoned.found, 3, 'and its three cards are counted onto it rather than left reading as zero')
+  assert.ok(abandoned.note.includes('abandoned'), `the row says why it was closed: ${abandoned.note}`)
+  assert.deepEqual(gmail.calls.markRead, ['a2', 'a3', 'a5'], 'only the three that became cards were marked read')
+  assert.deepEqual(second.messages.map((m) => m.id), ['a1', 'a4'],
+    'and the run that closed it is offered only the mail the dead run left without a card')
+})
+
+/**
+ * The grace window, from the side it exists for.
+ *
+ * "Open" and "dead" are not the same fact and the row cannot tell them apart:
+ * a run in the middle of its work has an open row too. Closing that one would
+ * be worse than leaving it -- the sweep it stole would fail its own
+ * `recordSignal` and `finishSweep` calls against an already-closed id. So only
+ * a row older than a whole run's worth of time is reclaimed, and a young one is
+ * left alone even though the next run cannot see what it is doing.
+ */
+test('a sweep still inside the grace window is left open, so a slow run is not closed underneath itself', async () => {
+  const gmail = fakeMailbox({ ids: ['b1', 'b2'] })
+  const { run, state } = setup(gmail)
+
+  const { sweepId } = await run('signalSweep')
+  await run('signalSweep')
+
+  assert.equal(state.repo.sweepById(sweepId).finished_at, null, 'the young row is untouched')
+  const closed = await run('finishSweep', { sweepId, ok: true })
+  assert.equal(closed.ok, true, 'and the run that owns it can still close it itself')
+})
+
+/**
+ * The cap an operator never set, in the one place it is written.
+ *
+ * Five was a number for reading the code, not for draining a mailbox: the label
+ * held 116 unread when this changed, and five every two hours is over a week of
+ * runs to catch up. The ceiling is not Gmail -- it is that the agent writes a
+ * judgement per message and its run is time-boxed, so a cap it cannot reach
+ * produces exactly the abandoned row the tests above are about.
+ */
+test('the per-run cap is one number, declared once', () => {
+  assert.equal(DEFAULT_MAX, 20)
 })

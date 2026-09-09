@@ -5,7 +5,7 @@ import { MAILBOX_CONTRACT, MAILBOX_PROVIDER, MAILBOX_VERSION } from './src/mailb
 import { createResearchTool } from './src/research.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
 import { createRpc } from './src/rpc.mjs'
-import { createSweepTools } from './src/sweep.mjs'
+import { DEFAULT_MAX, createSweepTools } from './src/sweep.mjs'
 
 /**
  * Everything the host hands over in setup(), in one place.
@@ -134,8 +134,9 @@ const aisignal = {
       // replace `DEFAULT_MAX` in sweep.mjs -- a field the operator clears stores
       // '' rather than undefined, so the host default never fires again and the
       // sweep layer is the only thing that can turn a blank setting back into a
-      // working run. The two numbers are the same on purpose.
-      { key: 'maxMessages', label: 'Levél / futás', type: 'number', placeholder: '5', defaultValue: 5 },
+      // working run. Both are that one constant now, rather than two literals
+      // that agreed by comment.
+      { key: 'maxMessages', label: 'Levél / futás', type: 'number', placeholder: String(DEFAULT_MAX), defaultValue: DEFAULT_MAX },
     ],
   },
   /**

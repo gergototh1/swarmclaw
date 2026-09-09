@@ -43,9 +43,31 @@ import { MailboxError, codeOf, mailboxFor, resolveSource, sinceQuery } from './m
  * field, and its `placeholder: '5'` is UI text the host never substitutes -- a
  * blank setting arrives as `''`. This layer is the one place that sees both the tool
  * argument and the operator's setting, and turning "nobody said" into a working
- * run is exactly its job. The number matches the placeholder the operator sees.
+ * run is exactly its job.
+ *
+ * Exported, so this is the only place the number is written: `index.mjs` builds
+ * its `placeholder` and `defaultValue` from it and the tool description below
+ * interpolates it. Three literal fives drifted the moment one of them changed.
+ *
+ * WHAT SETS IT. Not Gmail, which will hand over far more than this, and not the
+ * database. The reader is an LLM agent that has to write a judgement for every
+ * message it is given, and its run is time-boxed by the schedule that starts
+ * it; a cap it cannot reach inside that box does not produce a bigger run, it
+ * produces a run that stops in the middle -- an open sweep row, mail recorded
+ * but never marked read, and the reclaim below cleaning up after it. So the
+ * cap is the number of messages a run can finish, not the number it may see.
+ *
+ * Five was the number while this layer was being built and it was too small to
+ * do the job: the label held 116 unread the day this changed, and five every
+ * two hours is more than a week of runs to catch up on a backlog that keeps
+ * growing. Twenty at that cadence drains it inside a day. It is the higher end
+ * of what a single run has been observed to get through -- a message costs the
+ * agent a read, a judgement and sometimes a link fetch -- and deliberately not
+ * the highest: the failure of guessing too high is the interrupted run, which
+ * is the more expensive of the two mistakes, and the operator can raise it in
+ * the settings without a release.
  */
-const DEFAULT_MAX = 5
+export const DEFAULT_MAX = 20
 
 /**
  * The label swept when neither the call nor the settings name one.
@@ -119,6 +141,18 @@ const UNREAD_QUERY = 'is:unread'
  * that the mailbox's own progress record fell behind the database's.
  */
 const MARK_READ_FAILED_NOTE = 'mark_read_failed'
+
+/**
+ * The note segment a sweep gets when a LATER run had to close it, and how old
+ * an open row must be before a later run is allowed to.
+ *
+ * See RECLAIMING AN ABANDONED SWEEP below. The window is a whole run's worth of
+ * time and then some: it is the one thing separating a row nobody will ever
+ * close from a row somebody is working in right now, and closing the second
+ * kind breaks a run that was doing fine.
+ */
+const ABANDONED_NOTE = 'abandoned'
+const ABANDONED_AFTER_MS = 30 * 60 * 1000
 
 const HTTP_RE = /^https?:\/\//i
 
@@ -532,6 +566,61 @@ async function markRecordedRead(state, repo, sweepId) {
   return { marked, failed }
 }
 
+/*
+ * RECLAIMING AN ABANDONED SWEEP
+ * =============================
+ * A run that dies between `signalSweep` and `finishSweep` leaves its row open
+ * forever, and open is the one state nothing else in this file repairs. What
+ * that row then says is false in three directions at once: `found` is still the
+ * zero `openSweep` wrote while the items table holds the cards the run did
+ * record, so the page reads the last run as fruitless when it was not; no id
+ * was marked seen, so the next run is offered the same mail and the agent pays
+ * to judge it twice; and since marking read now follows the close, none of the
+ * messages it did record were marked read either, so they stay in the unread
+ * set the sweep is draining. The 2026-09-09T18:57Z row is all three.
+ *
+ * The next run closes it, before it lists anything of its own. `ok: false` is
+ * the honest close and is exactly the shape needed here: it marks seen only the
+ * ids that became cards, leaves everything else fetchable, and moves no
+ * frontier -- a run that died proved nothing about how far the source was
+ * swept. `finishSweep` recomputes `found` from the items table on its way out,
+ * so the row stops lying about its own cards as a side effect. Then the same
+ * `markRecordedRead` the ordinary close uses marks that mail read.
+ *
+ * Doing it here rather than only labelling the row in the UI is the point: a
+ * label would fix the reading and none of the rest. This ordering matters too
+ * -- the reclaim runs before this run reads the seen set, so the ids it
+ * recovers are already seen by the time the dedup below asks.
+ *
+ * WHY IT CANNOT FAIL THE RUN. Everything it touches belongs to an earlier run
+ * that is already over. A failure here leaves that row exactly as it found it,
+ * to be tried again by the next run, and has nothing to say about whether this
+ * run can sweep -- so it is logged and swallowed, per row, and the sweep goes
+ * on. The same reasoning as `markRecordedRead`'s, one run further back.
+ */
+async function reclaimAbandonedSweeps(state, repo, ranAt) {
+  let ids = []
+  try {
+    ids = repo.unfinishedSweeps(new Date(Date.parse(ranAt) - ABANDONED_AFTER_MS).toISOString())
+  } catch (e) {
+    state.log.warn(`aisignal: could not look for abandoned sweeps: ${e.message}`)
+    return 0
+  }
+  let reclaimed = 0
+  for (const id of ids) {
+    try {
+      const closed = repo.finishSweep({ sweepId: id, ok: false, note: ABANDONED_NOTE })
+      const read = await markRecordedRead(state, repo, id)
+      if (read.failed > 0) repo.appendSweepNote(id, `${MARK_READ_FAILED_NOTE}=${read.failed}`)
+      reclaimed += 1
+      state.log.warn(`aisignal: closed abandoned sweep ${id}`, { found: closed.found, seenMarked: closed.seenMarked, markedRead: read.marked })
+    } catch (e) {
+      state.log.warn(`aisignal: could not close abandoned sweep ${id}: ${e.message}`)
+    }
+  }
+  return reclaimed
+}
+
 export function createSweepTools(state) {
   return [
     {
@@ -542,7 +631,7 @@ export function createSweepTools(state) {
         properties: {
           label: { type: 'string', description: 'Gmail címke; alapból a beállított.' },
           sinceDays: { type: 'number', description: 'Ennyi napra visszamenőleg. Csak tágítani tud: ha a vízjel régebbi, az marad, hogy az elmaradt levelek ne vesszenek el.' },
-          maxMessages: { type: 'number', description: 'Levél / futás; alapból a beállított, annak híján 5.' },
+          maxMessages: { type: 'number', description: `Levél / futás; alapból a beállított, annak híján ${DEFAULT_MAX}.` },
         },
       },
       async execute(args) {
@@ -566,6 +655,11 @@ export function createSweepTools(state) {
          * moment it gave up.
          */
         const ranAt = new Date().toISOString()
+
+        // Before this run has a row of its own: close whatever an earlier run
+        // left open, so its cards are counted, its mail is marked read, and the
+        // ids it recorded are seen before the dedup below reads the seen set.
+        await reclaimAbandonedSweeps(state, repo, ranAt)
 
         let max
         let sinceFloor
