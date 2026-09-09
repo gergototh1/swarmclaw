@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-08T10:03:42.326Z",
-  "totalIssues": 384,
-  "uniqueIssues": 126,
+  "generatedAt": "2026-09-09T19:30:17.268Z",
+  "totalIssues": 381,
+  "uniqueIssues": 125,
   "issues": [
     {
       "filePath": "bin/worker-cmd.js",
@@ -850,13 +850,6 @@
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "count": 2
-    },
-    {
-      "filePath": "src/proxy.test.ts",
-      "ruleId": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "count": 3
     },
     {
       "filePath": "src/stores/slices/auth-slice.ts",

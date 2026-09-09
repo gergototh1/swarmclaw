@@ -13,7 +13,17 @@ afterEach(() => {
   else process.env.ACCESS_KEY = originalAccessKey
   if (originalCspEnforce === undefined) delete process.env.SWARMCLAW_CSP_ENFORCE
   else process.env.SWARMCLAW_CSP_ENFORCE = originalCspEnforce
+  // The rate-limit bucket is module state keyed by source IP, and every request
+  // built here shares one. Left uncleared, one test's failed attempts spend the
+  // next test's budget and it gets a 429 it never asked for.
+  clearRateLimitState()
 })
+
+/** Drops every rate-limit bucket, if the proxy has created the map at all. */
+function clearRateLimitState() {
+  const store = globalThis as unknown as Record<string, Map<string, unknown> | undefined>
+  store.__swarmclaw_rate_limit__?.clear()
+}
 
 function nonceFromPolicy(policy: string): string {
   const match = policy.match(/'nonce-([^']+)'/)
@@ -32,6 +42,49 @@ function forwardedRequestHeaders(response: Response): Headers {
         .map((key) => [key, response.headers.get(`x-middleware-request-${key}`) ?? '']),
     ),
   )
+}
+
+interface TestRateLimitEntry {
+  count: number
+  lockedUntil: number
+  lastFailureAt: number
+}
+
+/** The proxy's rate-limit state, reached the same way HMR reaches it. */
+function rateLimitState(): Map<string, TestRateLimitEntry> {
+  const store = globalThis as unknown as Record<string, Map<string, TestRateLimitEntry>>
+  const map = store.__swarmclaw_rate_limit__
+  assert.ok(map, 'rate-limit map has not been created yet')
+  return map
+}
+
+function apiRequest(key: string, forwardedFor = '203.0.113.7'): NextRequest {
+  return new NextRequest('http://localhost/api/agents', {
+    headers: { 'x-access-key': key, 'x-forwarded-for': forwardedFor },
+  })
+}
+
+
+type MutableEnv = Record<string, string | undefined>
+
+/** Runs `body` with NODE_ENV pinned, an access key configured, and a clean bucket. */
+function withNodeEnv(value: string, body: () => void) {
+  const env = process.env as unknown as MutableEnv
+  const originalNodeEnv = env.NODE_ENV
+  env.NODE_ENV = value
+  process.env.ACCESS_KEY = 'top-secret'
+  try {
+    body()
+  } finally {
+    if (originalNodeEnv === undefined) delete env.NODE_ENV
+    else env.NODE_ENV = originalNodeEnv
+    clearRateLimitState()
+  }
+}
+
+/** Runs `body` with the proxy in its production configuration. */
+function inProduction(body: () => void) {
+  withNodeEnv('production', body)
 }
 
 describe('proxy', () => {
@@ -92,29 +145,11 @@ describe('proxy', () => {
   })
 
   it('does not lock out invalid requests in development', () => {
-    process.env.ACCESS_KEY = 'top-secret'
-    const originalNodeEnv = process.env.NODE_ENV;
-    (process.env as any).NODE_ENV = 'development'
-
-    try {
-      for (let i = 0; i < 6; i++) {
-        const response = proxy(new NextRequest('http://localhost/api/agents', {
-          headers: {
-            'x-access-key': 'bad-key',
-          },
-        }))
-        assert.equal(response.status, 401)
+    withNodeEnv('development', () => {
+      for (let i = 0; i < 7; i++) {
+        assert.equal(proxy(apiRequest('bad-key')).status, 401, `attempt ${i}`)
       }
-      const finalResponse = proxy(new NextRequest('http://localhost/api/agents', {
-        headers: {
-          'x-access-key': 'bad-key',
-        },
-      }))
-      assert.equal(finalResponse.status, 401)
-    } finally {
-      if (originalNodeEnv === undefined) delete (process.env as any).NODE_ENV
-      else (process.env as any).NODE_ENV = originalNodeEnv
-    }
+    })
   })
 })
 
@@ -243,5 +278,70 @@ describe('proxy content-security-policy', () => {
     const response = proxy(new NextRequest('http://localhost/branding/swarmclaw-mark.png'))
     assert.equal(response.headers.get('content-security-policy'), null)
     assert.equal(response.headers.get('content-security-policy-report-only'), null)
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/*  Rate limiting                                                      */
+/* ------------------------------------------------------------------ */
+
+describe('proxy rate limiting', () => {
+  it('does not let a client with a bad key lock out a client with the good key on the same IP', () => {
+    // Desktop builds put every client on 127.0.0.1, so one misconfigured local
+    // program used to take the Electron window down with it for 15 minutes.
+    inProduction(() => {
+      for (let i = 0; i < 5; i++) {
+        assert.equal(proxy(apiRequest('bad-key', '127.0.0.1')).status, 401, `attempt ${i}`)
+      }
+      assert.equal(
+        proxy(apiRequest('bad-key', '127.0.0.1')).status,
+        429,
+        'the bad-key client must really be locked out, or this proves nothing',
+      )
+
+      const good = proxy(apiRequest('top-secret', '127.0.0.1'))
+      assert.equal(good.status, 200, 'the correct key must never be answered with 429')
+    })
+  })
+
+  it('still locks out a client that keeps presenting a bad key', () => {
+    inProduction(() => {
+      for (let i = 0; i < 5; i++) {
+        assert.equal(proxy(apiRequest('bad-key')).status, 401, `attempt ${i}`)
+      }
+
+      const locked = proxy(apiRequest('bad-key'))
+      assert.equal(locked.status, 429)
+      assert.ok(Number(locked.headers.get('retry-after')) > 0)
+    })
+  })
+
+  it('gives a fresh attempt budget once the lockout window has passed', () => {
+    // The count used to only reset on a successful auth, which a locked-out
+    // bucket can never reach — so the first miss after a lockout expired
+    // re-locked the bucket immediately, forever.
+    inProduction(() => {
+      for (let i = 0; i < 5; i++) proxy(apiRequest('bad-key'))
+      assert.equal(proxy(apiRequest('bad-key')).status, 429)
+
+      // Wind the clock forward past the window.
+      const entry = rateLimitState().get('203.0.113.7')
+      assert.ok(entry)
+      const longAgo = Date.now() - 16 * 60 * 1000
+      entry.lockedUntil = longAgo
+      entry.lastFailureAt = longAgo
+
+      assert.equal(proxy(apiRequest('bad-key')).status, 401, 'first miss after the window must not re-lock')
+      assert.equal(proxy(apiRequest('bad-key')).status, 401, 'the budget must have reset, not resumed at 5')
+    })
+  })
+
+  it('does not exempt a spoofable loopback X-Forwarded-For from the limit', () => {
+    // getClientIp trusts x-forwarded-for, so a loopback exemption would be an
+    // opt-out any remote client could ask for by setting one header.
+    inProduction(() => {
+      for (let i = 0; i < 5; i++) proxy(apiRequest('bad-key', '127.0.0.1'))
+      assert.equal(proxy(apiRequest('bad-key', '127.0.0.1')).status, 429)
+    })
   })
 })
