@@ -60,6 +60,29 @@ export function BrandMark({ size = 40 }: { size?: number }) {
   )
 }
 
+/**
+ * Jel + név egyben. Ez kell mindenhová, ahol a márkanév KI VAN ÍRVA: a nyitott
+ * railre és a kezdőlap címére. Azért egy komponens, mert különben a köz és a
+ * jel mérete a két helyen külön értékként élne, és az első átméretezésnél
+ * elcsúsznának egymástól.
+ *
+ * A jel a dobozos változat, ugyanaz, amit a csukott rail mutat -- így a rail
+ * nyitásakor a jel nem vált alakot, csak zsugorodik. (Doboz nélküli jellel is
+ * működik: `BrandMark` helyett `BrandGlyph`, accent színnel.)
+ *
+ * 1.35 / 0.42: a doboz valamivel magasabb a nagybetűnél, a köz pedig a
+ * betűméret alig fele -- ennél szűkebben a jel a "S"-hez tapad, tágabban két
+ * külön dolognak látszik.
+ */
+export function BrandLockup({ size = 19, className = '' }: { size?: number; className?: string }) {
+  return (
+    <span className={`inline-flex items-center ${className}`} style={{ gap: Math.round(size * 0.42) }}>
+      <BrandMark size={Math.round(size * 1.35)} />
+      <BrandWordmark size={size} />
+    </span>
+  )
+}
+
 export function BrandWordmark({ size = 20, className = '' }: { size?: number; className?: string }) {
   return (
     <span

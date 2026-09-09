@@ -27,7 +27,7 @@ import { PageLoader } from '@/components/ui/page-loader'
 import { SectionHeader } from '@/components/ui/section-header'
 import { StatCard } from '@/components/ui/stat-card'
 import { HOME_TABS } from './home-tabs'
-import { BrandWordmark } from '@/components/layout/brand-logo'
+import { BrandLockup } from '@/components/layout/brand-logo'
 
 const ACTIVITY_ICONS: Record<ActivityEntry['action'], string> = {
   created: 'M12 5v14m-7-7h14',
@@ -316,7 +316,7 @@ export default function HomePage() {
             {/* A lap saját címe a szóvédjegy: egy márkanév ne két betűvel
                 jelenjen meg attól függően, hol áll. */}
             <h1 className="tracking-[-0.01em]">
-              <BrandWordmark size={30} />
+              <BrandLockup size={30} />
             </h1>
             <p className="text-[14px] text-text-3 mt-1">
               Workspace overview for your agent chats, tasks, and automations

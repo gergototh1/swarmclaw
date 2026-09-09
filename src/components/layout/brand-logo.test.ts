@@ -58,8 +58,34 @@ describe('SidekickOS wordmark', () => {
 
   it('is what the rail draws, in both of its widths', () => {
     const rail = fs.readFileSync(path.join(ROOT, 'src/components/layout/sidebar-rail.tsx'), 'utf8')
-    assert.match(rail, /BrandWordmark/, 'a nyitott rail nem a szóvédjegyet rajzolja')
-    assert.match(rail, /BrandMark/, 'a csukott rail nem a jelet rajzolja')
+    assert.match(rail, /BrandLockup/, 'a nyitott rail nem a jelet és a nevet rajzolja')
+    assert.match(rail, /BrandMark size=\{40\}/, 'a csukott rail nem a jelet rajzolja')
+  })
+
+  it('puts the mark before the name wherever the name is spelled out', () => {
+    // Két hely írja ki a nevet: a nyitott rail és a kezdőlap címe. Mindkettő
+    // a lockupot rajzolja, nem a csupasz szóvédjegyet -- különben a jel csak
+    // csukott railen létezne, és a márka fele eltűnne, amint valaki kinyitja.
+    for (const f of ['src/components/layout/sidebar-rail.tsx', 'src/app/home/page.tsx']) {
+      const src = fs.readFileSync(path.join(ROOT, f), 'utf8')
+      assert.match(src, /<BrandLockup\b/, `${f} nem a lockupot rajzolja`)
+      assert.ok(!/<BrandWordmark\b/.test(src), `${f} még a csupasz szóvédjegyet rajzolja`)
+    }
+  })
+
+  it('ships an app icon and a favicon drawn from the same mark', () => {
+    // Az ikonokat a scripts/build-brand-icons.py generálja a komponens path-jából.
+    // Ha a jel változik és az ikon nem, az sehol nem hibázik -- csak a Dockban
+    // marad a régi rajz, amit a fejlesztés közben senki nem néz.
+    const glyph = fs.readFileSync(path.join(ROOT, 'src/components/layout/brand-logo.tsx'), 'utf8')
+    const d = /d="(M[^"]{40})/.exec(glyph)?.[1]
+    assert.ok(d, 'nem találom a jel path-ját')
+    const favicon = fs.readFileSync(path.join(ROOT, 'src/app/icon.svg'), 'utf8')
+    assert.ok(favicon.includes(d), 'a favicon nem ugyanazt a jelet rajzolja')
+    for (const f of ['resources/icon.png', 'resources/icon.icns', 'resources/icon.ico',
+                     'public/brand/sidekick-avatar.png']) {
+      assert.ok(fs.existsSync(path.join(ROOT, f)), `hiányzik: ${f}`)
+    }
   })
 
   it('keeps the data directory where it already is, despite the rename', () => {
