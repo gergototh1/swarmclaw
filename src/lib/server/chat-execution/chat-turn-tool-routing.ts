@@ -9,6 +9,7 @@
  * Extracted from chat-execution.ts for testability and readability.
  */
 
+import { detectExplicitMemoryRequest } from '@/lib/server/chat-execution/explicit-memory-request'
 import path from 'node:path'
 import type { StructuredToolInterface } from '@langchain/core/tools'
 import type { AppSettings, MessageToolEvent, SSEEvent } from '@/types'
@@ -107,6 +108,10 @@ async function resolveDirectMemoryIntentWithTimeout(
     : DEFAULT_MEMORY_INTENT_TIMEOUT_MS
 
   let timer: NodeJS.Timeout | null = null
+  // A classifier that threw is a classifier that cannot run at all -- no
+  // generation model is configured. A classifier that timed out might have
+  // answered given longer, so the turn is left alone in that case.
+  let classifierUnavailable = false
   try {
     const result = await Promise.race<DirectMemoryIntent | null>([
       classifyMemoryIntent({
@@ -116,12 +121,32 @@ async function resolveDirectMemoryIntentWithTimeout(
         currentResponse: '',
         currentError: null,
         toolEvents: [],
-      }).catch(() => null),
+      }).catch(() => { classifierUnavailable = true; return null }),
       new Promise<null>((resolve) => {
         timer = setTimeout(() => resolve(null), timeoutMs)
       }),
     ])
-    return result
+    if (result) return result
+    if (!classifierUnavailable) return null
+
+    // Fallback, not a shortcut. The classifier above needs a generation model,
+    // and a fleet on CLI providers has none — buildLLM throws, the throw is
+    // swallowed, and "jegyezd meg, hogy ..." has been a silent no-op. A phrase
+    // list cannot judge what is worth remembering, but it can recognise an
+    // explicit instruction, which is the one case that must not depend on a
+    // model being configured. It refuses anything that also asked for other
+    // work, so it can only ever add a write the classifier failed to see.
+    const explicit = detectExplicitMemoryRequest(ctx.message)
+    if (explicit) {
+      return {
+        action: 'store',
+        confidence: 1,
+        value: explicit.content,
+        acknowledgement: 'Megjegyeztem.',
+        exclusiveCompletion: true,
+      }
+    }
+    return null
   } finally {
     if (timer) clearTimeout(timer)
   }
