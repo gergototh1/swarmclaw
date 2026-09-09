@@ -9,6 +9,7 @@ import { getEnabledToolIds } from '@/lib/capability-selection'
 import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, isStderrNoise } from './cli-utils'
 import { getAgent } from '@/lib/server/agents/agent-repository'
 import { loadMcpServers } from '@/lib/server/storage'
+import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
 
 const TAG = 'provider-claude-cli'
 
@@ -112,7 +113,32 @@ export function addAssignedMcpServers(
   return existing
 }
 
-export function streamClaudeCliChat({ session, message, imagePath, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
+
+/**
+ * The prompt the CLI is given, attachments included.
+ *
+ * EVERY ATTACHMENT, NOT JUST THE FIRST IMAGE. This read `imagePath` alone and
+ * called whatever it found an image, so a second attachment vanished and a
+ * .docx was announced to the CLI as an image. The block names each file and
+ * carries the text of the ones the CLI cannot open for itself -- a Word
+ * document is a ZIP of XML, so `Read` on it comes back with nothing usable.
+ *
+ * Exported so the wiring is testable without spawning a process: the extractor
+ * has its own tests, and this is the seam where a provider forgets to call it.
+ */
+export async function buildClaudeCliPrompt(
+  message: string,
+  imagePath?: string,
+  attachedFiles?: string[],
+): Promise<string> {
+  const block = await buildAttachmentPreamble([
+    ...(imagePath ? [imagePath] : []),
+    ...(attachedFiles || []),
+  ])
+  return block ? `${block}\n\n${message}` : message
+}
+
+export async function streamClaudeCliChat({ session, message, imagePath, attachedFiles, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
   const processTimeoutMs = loadRuntimeSettings().cliProcessTimeoutMs
   const binary = resolveCliBinary('claude')
   if (!binary) {
@@ -121,10 +147,7 @@ export function streamClaudeCliChat({ session, message, imagePath, systemPrompt,
     return Promise.resolve('')
   }
 
-  let prompt = message
-  if (imagePath) {
-    prompt = `[The user has shared an image at: ${imagePath}]\n\n${message}`
-  }
+  const prompt = await buildClaudeCliPrompt(message, imagePath, attachedFiles)
 
   const args = ['--print', '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions']
   const resumeSessionId = typeof session.claudeSessionId === 'string' ? session.claudeSessionId : ''

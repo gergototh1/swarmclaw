@@ -10,6 +10,7 @@ import { normalizeOpenClawAgentId } from '@/lib/openclaw/openclaw-agent-id'
 import { loadAgents } from '../server/storage'
 import { getSharedDeviceToken } from '../server/openclaw/sync'
 import { DATA_DIR } from '../server/data-dir'
+import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
 import {
   resolveOpenClawGatewayAgentIdFromList,
   type OpenClawGatewayAgentSummary,
@@ -416,11 +417,13 @@ async function resolveConnectedGatewayAgentId(
 
 // --- Provider ---
 
-export function streamOpenClawChat({ session, message, imagePath, apiKey, write, active, signal }: StreamChatOptions): Promise<string> {
-  let prompt = message
-  if (imagePath) {
-    prompt = `[The user has shared an image at: ${imagePath}]\n\n${message}`
-  }
+export async function streamOpenClawChat({ session, message, imagePath, attachedFiles, apiKey, write, active, signal }: StreamChatOptions): Promise<string> {
+  // Minden csatolmány, a szövegével együtt, nem csak az első kép útvonala.
+  const attachmentBlock = await buildAttachmentPreamble([
+    ...(imagePath ? [imagePath] : []),
+    ...(attachedFiles || []),
+  ])
+  const prompt = attachmentBlock ? `${attachmentBlock}\n\n${message}` : message
 
   const wsUrl = session.apiEndpoint ? deriveOpenClawWsUrl(session.apiEndpoint) : 'ws://127.0.0.1:18789'
   const token = apiKey || session.apiKey || undefined

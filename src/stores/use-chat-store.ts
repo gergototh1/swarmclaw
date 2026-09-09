@@ -26,6 +26,7 @@ import { getStoredAccessKey } from '@/lib/app/api-client'
 import { useAppStore } from './use-app-store'
 import { selectActiveSessionId } from './slices/session-slice'
 import { getSoundEnabled, setSoundEnabled, playStreamStart, playStreamEnd, playToolComplete, playError } from '@/lib/notifications/notification-sounds'
+import { splitPendingAttachments } from '@/lib/pending-attachments'
 
 export interface PendingFile {
   file: File
@@ -431,13 +432,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const sessionId = targetSessionId
     if (!sessionId) return
 
-    // Primary image (backward compat)
-    const imagePath = filesForSend[0]?.path
-    const imageUrl = filesForSend[0]?.url
-    // All attached file paths
-    const attachedFiles = filesForSend.length > 1
-      ? filesForSend.map((f) => f.path)
-      : undefined
+    const { imagePath, imageUrl, attachedFiles } = splitPendingAttachments(filesForSend)
     const replyToId = replyForSend?.message?.replyToId ? undefined : replyForSend?.message ? `msg-${replyForSend.index}` : undefined
 
     const userMsg: Message = {

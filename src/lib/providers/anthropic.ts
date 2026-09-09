@@ -1,8 +1,9 @@
 import fs from 'fs'
 import type { StreamChatOptions } from './index'
-import { PROVIDER_DEFAULTS, IMAGE_EXTS, TEXT_EXTS, ANTHROPIC_MAX_TOKENS, MAX_HISTORY_MESSAGES, writeSSE } from './provider-defaults'
+import { PROVIDER_DEFAULTS, IMAGE_EXTS, ANTHROPIC_MAX_TOKENS, MAX_HISTORY_MESSAGES, writeSSE } from './provider-defaults'
 import { log } from '@/lib/server/logger'
 import { resolveImagePath } from '@/lib/server/resolve-image'
+import { describeAttachment } from '@/lib/server/attachments/attachment-text'
 
 const TAG = 'provider-anthropic'
 
@@ -14,21 +15,17 @@ async function fileToContentBlocks(filePath: string): Promise<Array<Record<strin
     const mediaType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`
     return [{ type: 'image', source: { type: 'base64', media_type: mediaType, data } }]
   }
-  if (TEXT_EXTS.test(filePath) || filePath.endsWith('.pdf')) {
-    try {
-      const text = await fs.promises.readFile(filePath, 'utf-8')
-      const name = filePath.split('/').pop() || 'file'
-      return [{ type: 'text', text: `[Attached file: ${name}]\n\n${text}` }]
-    } catch { return [] }
-  }
-  return [{ type: 'text', text: `[Attached file: ${filePath.split('/').pop()}]` }]
+  // Ez az ág a PDF-et UTF-8 SZÖVEGKÉNT olvasta be. A PDF bináris konténer,
+  // tehát ami a modellhez ért, az értelmezhetetlen bájtsorozat volt, nem a
+  // dokumentum. A közös kibontó a PDF-et is rendesen kezeli.
+  return [{ type: 'text', text: await describeAttachment(filePath) }]
 }
 
-export function streamAnthropicChat({ session, message, imagePath, apiKey, systemPrompt, write, active, loadHistory, onUsage, signal }: StreamChatOptions): Promise<string> {
+export function streamAnthropicChat({ session, message, imagePath, attachedFiles, apiKey, systemPrompt, write, active, loadHistory, onUsage, signal }: StreamChatOptions): Promise<string> {
   return new Promise((resolve, reject) => {
     ;(async () => {
       try {
-        const messages = await buildMessages(session, message, imagePath, loadHistory)
+        const messages = await buildMessages(session, message, imagePath, loadHistory, attachedFiles)
         const model = session.model || 'claude-sonnet-4-6'
         let usageInput = 0
         let usageOutput = 0
@@ -152,7 +149,7 @@ export function streamAnthropicChat({ session, message, imagePath, apiKey, syste
   })
 }
 
-async function buildMessages(session: Record<string, unknown> & { id: string }, message: string, imagePath: string | undefined, loadHistory: (id: string) => Record<string, unknown>[]) {
+async function buildMessages(session: Record<string, unknown> & { id: string }, message: string, imagePath: string | undefined, loadHistory: (id: string) => Record<string, unknown>[], attachedFiles?: string[]) {
   const msgs: Array<{ role: string; content: unknown }> = []
 
   if (loadHistory) {
@@ -168,8 +165,17 @@ async function buildMessages(session: Record<string, unknown> & { id: string }, 
     }
   }
 
-  if (imagePath) {
-    const blocks = await fileToContentBlocks(imagePath)
+  // Az ELSŐ kép mellett minden további csatolmány is a fordulóra kerül. A
+  // `attachedFiles` korábban el sem jutott idáig: nem volt ilyen mező a
+  // provider-interfészen, tehát a másodiktól kezdve minden fájl elveszett.
+  const currentPaths: string[] = []
+  if (imagePath) currentPaths.push(imagePath)
+  for (const f of attachedFiles || []) {
+    if (f && !currentPaths.includes(f)) currentPaths.push(f)
+  }
+  if (currentPaths.length) {
+    const blocks: unknown[] = []
+    for (const f of currentPaths) blocks.push(...(await fileToContentBlocks(f)))
     msgs.push({ role: 'user', content: [...blocks, { type: 'text', text: message }] })
   } else {
     msgs.push({ role: 'user', content: message })

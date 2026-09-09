@@ -3,11 +3,15 @@ import type { StreamChatOptions } from './index'
 import { log } from '../server/logger'
 import { loadRuntimeSettings } from '@/lib/server/runtime/runtime-settings'
 import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, isStderrNoise } from './cli-utils'
+import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
 
-function buildQwenPrompt(message: string, systemPrompt?: string, imagePath?: string): string {
+async function buildQwenPrompt(message: string, systemPrompt?: string, imagePath?: string, attachedFiles?: string[]): Promise<string> {
   const parts: string[] = []
   if (systemPrompt) parts.push(`[System instructions]\n${systemPrompt}`)
-  if (imagePath) parts.push(`[The user shared an image at: ${imagePath}]`)
+  // Minden csatolmány, nem csak az első kép -- és a szövegük is, ha a CLI
+  // magától nem tudná megnyitni a formátumot.
+  const attachments = await buildAttachmentPreamble([...(imagePath ? [imagePath] : []), ...(attachedFiles || [])])
+  if (attachments) parts.push(attachments)
   parts.push(message)
   return parts.join('\n\n')
 }
@@ -34,7 +38,7 @@ function extractQwenAssistantText(event: Record<string, unknown>): string | null
   return null
 }
 
-export function streamQwenCodeCliChat({ session, message, imagePath, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
+export async function streamQwenCodeCliChat({ session, message, imagePath, attachedFiles, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
   const processTimeoutMs = loadRuntimeSettings().cliProcessTimeoutMs
   const binary = resolveCliBinary('qwen')
   if (!binary) {
@@ -52,7 +56,7 @@ export function streamQwenCodeCliChat({ session, message, imagePath, systemPromp
     }
   }
 
-  const prompt = buildQwenPrompt(message, !session.qwenSessionId ? systemPrompt : undefined, imagePath)
+  const prompt = await buildQwenPrompt(message, !session.qwenSessionId ? systemPrompt : undefined, imagePath, attachedFiles)
   const args = ['-p', prompt, '--output-format', 'stream-json', '--include-partial-messages', '--yolo']
   if (session.qwenSessionId) args.push('--resume', session.qwenSessionId)
   if (session.model && session.model !== 'default') args.push('--model', session.model)

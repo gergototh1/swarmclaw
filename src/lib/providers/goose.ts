@@ -3,11 +3,15 @@ import type { StreamChatOptions } from './index'
 import { log } from '../server/logger'
 import { loadRuntimeSettings } from '@/lib/server/runtime/runtime-settings'
 import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, isStderrNoise } from './cli-utils'
+import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
 
-function buildGoosePrompt(message: string, systemPrompt?: string, imagePath?: string): string {
+async function buildGoosePrompt(message: string, systemPrompt?: string, imagePath?: string, attachedFiles?: string[]): Promise<string> {
   const parts: string[] = []
   if (systemPrompt) parts.push(`[System instructions]\n${systemPrompt}`)
-  if (imagePath) parts.push(`[The user shared an image at: ${imagePath}]`)
+  // Minden csatolmány, nem csak az első kép -- és a szövegük is, ha a CLI
+  // magától nem tudná megnyitni a formátumot.
+  const attachments = await buildAttachmentPreamble([...(imagePath ? [imagePath] : []), ...(attachedFiles || [])])
+  if (attachments) parts.push(attachments)
   parts.push(message)
   return parts.join('\n\n')
 }
@@ -38,7 +42,7 @@ function extractGooseText(event: Record<string, unknown>): string | null {
   return null
 }
 
-export function streamGooseChat({ session, message, imagePath, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
+export async function streamGooseChat({ session, message, imagePath, attachedFiles, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
   const processTimeoutMs = loadRuntimeSettings().cliProcessTimeoutMs
   const binary = resolveCliBinary('goose')
   if (!binary) {
@@ -57,7 +61,7 @@ export function streamGooseChat({ session, message, imagePath, systemPrompt, wri
   }
   if (session.apiKey) env.GOOSE_API_KEY = session.apiKey
 
-  const prompt = buildGoosePrompt(message, !session.acpSessionId ? systemPrompt : undefined, imagePath)
+  const prompt = await buildGoosePrompt(message, !session.acpSessionId ? systemPrompt : undefined, imagePath, attachedFiles)
   const sessionName = session.acpSessionId || deriveGooseSessionName(session.id)
   const args = ['run', '-t', prompt, '--format', 'json', '--quiet', '--name', sessionName]
   if (session.acpSessionId) args.push('--resume')

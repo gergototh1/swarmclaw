@@ -3,6 +3,7 @@ import type { StreamChatOptions } from './index'
 import { log } from '../server/logger'
 import { loadRuntimeSettings } from '@/lib/server/runtime/runtime-settings'
 import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, isStderrNoise } from './cli-utils'
+import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
 
 export const OPENCODE_CLI_STDIO: ['ignore', 'pipe', 'pipe'] = ['ignore', 'pipe', 'pipe']
 
@@ -10,7 +11,7 @@ export const OPENCODE_CLI_STDIO: ['ignore', 'pipe', 'pipe'] = ['ignore', 'pipe',
  * OpenCode CLI provider — spawns `opencode run <message> --format json` for non-interactive usage.
  * Tracks `session.opencodeSessionId` from streamed JSON events to support multi-turn continuity.
  */
-export function streamOpenCodeCliChat({ session, message, imagePath, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
+export async function streamOpenCodeCliChat({ session, message, imagePath, attachedFiles, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
   const processTimeoutMs = loadRuntimeSettings().cliProcessTimeoutMs
   const binary = resolveCliBinary('opencode')
   if (!binary) {
@@ -25,6 +26,13 @@ export function streamOpenCodeCliChat({ session, message, imagePath, systemPromp
     promptParts.push(`[System instructions]\n${systemPrompt}`)
   }
   promptParts.push(message)
+  /*
+   * A CLI saját zászlója (`--file` / `-i`) az ELSŐ képet viszi; minden további
+   * csatolmány szövege a promptba kerül. Így egy .docx akkor is megérkezik, ha
+   * a zászló csak képet fogad, és akkor sem vész el, ha a CLI nem ismételhető.
+   */
+  const attachmentBlock = await buildAttachmentPreamble(attachedFiles || [])
+  if (attachmentBlock) promptParts.push(attachmentBlock)
   const prompt = promptParts.join('\n\n')
 
   const env = buildCliEnv()

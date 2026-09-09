@@ -3,17 +3,18 @@ import http from 'http'
 import https from 'https'
 import type { StreamChatOptions } from './index'
 import { streamOpenAiChat } from './openai'
-import { IMAGE_EXTS, TEXT_EXTS, MAX_HISTORY_MESSAGES, writeSSE } from './provider-defaults'
+import { IMAGE_EXTS, MAX_HISTORY_MESSAGES, writeSSE } from './provider-defaults'
 import { log } from '@/lib/server/logger'
 import { resolveOllamaRuntimeConfig } from '@/lib/server/ollama-runtime'
 import { resolveImagePath } from '@/lib/server/resolve-image'
+import { describeAttachment } from '@/lib/server/attachments/attachment-text'
 
 const TAG = 'provider-ollama'
 
 /** Ollama Cloud uses the OpenAI-compatible /v1 endpoint, not the native /api/chat protocol. */
 const OLLAMA_CLOUD_OPENAI_ENDPOINT = 'https://ollama.com/v1'
 
-export function streamOllamaChat(opts: StreamChatOptions): Promise<string> {
+export async function streamOllamaChat(opts: StreamChatOptions): Promise<string> {
   const { session, apiKey, write, active } = opts
   const runtime = resolveOllamaRuntimeConfig({
     model: session.model,
@@ -33,9 +34,11 @@ export function streamOllamaChat(opts: StreamChatOptions): Promise<string> {
     return streamOpenAiChat({ ...opts, session: cloudSession, apiKey: runtime.apiKey })
   }
 
-  const { message, imagePath, loadHistory, onUsage, signal } = opts
+  const { message, imagePath, attachedFiles, loadHistory, onUsage, signal } = opts
+  // A csatolmányok kibontása I/O, tehát a Promise ELŐTT fut le: a régi
+  // szinkron hívás egy Promise-t adott volna a `messages` helyére.
+  const messages = await buildMessages(session, message, imagePath, loadHistory, attachedFiles)
   return new Promise((resolve, reject) => {
-    const messages = buildMessages(session, message, imagePath, loadHistory)
     const model = runtime.model || 'llama3'
     const endpoint = runtime.endpoint
 
@@ -151,23 +154,18 @@ export function streamOllamaChat(opts: StreamChatOptions): Promise<string> {
   })
 }
 
-function fileToOllamaMsg(text: string, filePath?: string): { content: string; images?: string[] } {
+async function fileToOllamaMsg(text: string, filePath?: string): Promise<{ content: string; images?: string[] }> {
   if (!filePath || !fs.existsSync(filePath)) return { content: text }
   if (IMAGE_EXTS.test(filePath)) {
     const data = fs.readFileSync(filePath).toString('base64')
     return { content: text, images: [data] }
   }
-  if (TEXT_EXTS.test(filePath) || filePath.endsWith('.pdf')) {
-    try {
-      const fileContent = fs.readFileSync(filePath, 'utf-8')
-      const name = filePath.split('/').pop() || 'file'
-      return { content: `[Attached file: ${name}]\n\n${fileContent}\n\n${text}` }
-    } catch { return { content: text } }
-  }
-  return { content: `[Attached file: ${filePath.split('/').pop()}]\n\n${text}` }
+  // A PDF-et ez az ág is UTF-8 szövegként olvasta; a közös kibontó rendesen
+  // bontja, és az Office-formátumokat is ismeri.
+  return { content: `${await describeAttachment(filePath)}\n\n${text}` }
 }
 
-function buildMessages(session: Record<string, unknown>, message: string, imagePath: string | undefined, loadHistory: (id: string) => Record<string, unknown>[]) {
+async function buildMessages(session: Record<string, unknown>, message: string, imagePath: string | undefined, loadHistory: (id: string) => Record<string, unknown>[], attachedFiles?: string[]) {
   const msgs: Array<{ role: string; content: string; images?: string[] }> = []
 
   if (loadHistory) {
@@ -175,7 +173,7 @@ function buildMessages(session: Record<string, unknown>, message: string, imageP
     for (const m of history) {
       const histImagePath = resolveImagePath(m.imagePath as string | undefined, m.imageUrl as string | undefined)
       if (m.role === 'user' && histImagePath) {
-        msgs.push({ role: 'user', ...fileToOllamaMsg(m.text as string, histImagePath) })
+        msgs.push({ role: 'user', ...(await fileToOllamaMsg(m.text as string, histImagePath)) })
       } else {
         msgs.push({ role: m.role as string, content: m.text as string })
       }
@@ -183,6 +181,14 @@ function buildMessages(session: Record<string, unknown>, message: string, imageP
   }
 
   const resolvedPath = resolveImagePath(imagePath)
-  msgs.push({ role: 'user', ...fileToOllamaMsg(message, resolvedPath ?? undefined) })
+  const current = await fileToOllamaMsg(message, resolvedPath ?? undefined)
+  // A többi csatolmány szövege a fordulóra kerül. Enélkül a fájlválasztóban
+  // kiválasztott második fájl sehol nem jelent meg.
+  const extras: string[] = []
+  for (const f of attachedFiles || []) {
+    if (f && f !== resolvedPath) extras.push(await describeAttachment(f))
+  }
+  if (extras.length) current.content = `${extras.join('\n\n')}\n\n${current.content}`
+  msgs.push({ role: 'user', ...current })
   return msgs
 }

@@ -6,12 +6,13 @@ import type { StreamChatOptions } from './index'
 import { log } from '../server/logger'
 import { loadRuntimeSettings } from '@/lib/server/runtime/runtime-settings'
 import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, symlinkConfigFiles, isStderrNoise } from './cli-utils'
+import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
 
 /**
  * Factory Droid CLI provider — spawns `droid exec <message> --output-format stream-json`.
  * Tracks `session.droidSessionId` from streamed events to support multi-turn continuity.
  */
-export function streamDroidCliChat({ session, message, imagePath, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
+export async function streamDroidCliChat({ session, message, imagePath, attachedFiles, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
   const processTimeoutMs = loadRuntimeSettings().cliProcessTimeoutMs
   const binary = resolveCliBinary('droid')
   if (!binary) {
@@ -36,9 +37,12 @@ export function streamDroidCliChat({ session, message, imagePath, systemPrompt, 
   }
 
   const promptParts: string[] = []
-  if (imagePath) {
-    promptParts.push(`[The user has shared an image at: ${imagePath}]`)
-  }
+  // Minden csatolmány, a szövegével együtt, nem csak az első kép útvonala.
+  const attachmentBlock = await buildAttachmentPreamble([
+    ...(imagePath ? [imagePath] : []),
+    ...(attachedFiles || []),
+  ])
+  if (attachmentBlock) promptParts.push(attachmentBlock)
   promptParts.push(message)
   const prompt = promptParts.join('\n\n')
 

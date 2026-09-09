@@ -98,6 +98,7 @@ import { processIterationEvents } from '@/lib/server/chat-execution/iteration-ev
 import { evaluateContinuation } from '@/lib/server/chat-execution/continuation-evaluator'
 import { evaluateResponseCompleteness } from '@/lib/server/chat-execution/response-completeness'
 import { finalizeStreamResult } from '@/lib/server/chat-execution/post-stream-finalization'
+import { describeAttachment } from '@/lib/server/attachments/attachment-text'
 import {
   classifyMessage,
   isDeliverableTask as classifiedIsDeliverableTask,
@@ -563,7 +564,6 @@ async function streamAgentChatCore(opts: StreamAgentChatOpts): Promise<StreamAge
 
   // Build message history for context
   const IMAGE_EXTS = /\.(png|jpg|jpeg|gif|webp|bmp)$/i
-  const TEXT_EXTS = /\.(txt|md|csv|json|xml|html|js|ts|tsx|jsx|py|go|rs|java|c|cpp|h|yml|yaml|toml|env|log|sh|sql|css|scss)$/i
 
   async function buildContentForFile(filePath: string): Promise<LangChainContentPart | string | null> {
     if (!fs.existsSync(filePath)) {
@@ -586,30 +586,9 @@ async function streamAgentChatCore(opts: StreamAgentChatOpts): Promise<StreamAge
       else if (buf[0] === 0x52 && buf[1] === 0x49) mimeType = 'image/webp'
       return { type: 'image_url', image_url: { url: `data:${mimeType};base64,${data}`, detail: 'auto' } }
     }
-    if (filePath.endsWith('.pdf')) {
-      try {
-        const pdfParseModule = await import(/* webpackIgnore: true */ 'pdf-parse') as unknown as {
-          default: (input: Buffer) => Promise<{ text?: string; numpages: number }>
-        }
-        const pdfParse = pdfParseModule.default
-        const buf = fs.readFileSync(filePath)
-        const result = await pdfParse(buf)
-        const pdfText = (result.text || '').trim()
-        if (!pdfText) return `[Attached PDF: ${name} — no extractable text]`
-        const maxChars = 100_000
-        const truncated = pdfText.length > maxChars ? pdfText.slice(0, maxChars) + '\n\n[... truncated]' : pdfText
-        return `[Attached PDF: ${name} (${result.numpages} pages)]\n\n${truncated}`
-      } catch {
-        return `[Attached PDF: ${name} — could not extract text]`
-      }
-    }
-    if (TEXT_EXTS.test(filePath)) {
-      try {
-        const fileContent = fs.readFileSync(filePath, 'utf-8')
-        return `[Attached file: ${name}]\n\n${fileContent}`
-      } catch { return `[Attached file: ${name} — read error]` }
-    }
-    return `[Attached file: ${name}]`
+    // Minden nem-kép csatolmány egy helyen dől el: PDF, szöveg, Office és az
+    // ismeretlen formátum is. Lásd `attachment-text.ts`.
+    return describeAttachment(filePath)
   }
 
   async function buildLangChainContent(

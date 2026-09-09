@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { addAssignedMcpServers } from './claude-cli'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+
+import { addAssignedMcpServers, buildClaudeCliPrompt } from './claude-cli'
 import { MCP_INJECTION_PROVIDER_IDS } from '@/lib/provider-sets'
 
 /**
@@ -138,5 +142,55 @@ describe('provider registry', () => {
     // provider every agent in a CLI-only fleet uses unable to be given a
     // server from the UI at all.
     assert.ok(MCP_INJECTION_PROVIDER_IDS.has('claude-cli'))
+  })
+})
+
+
+/**
+ * Every agent in this install runs on claude-cli, and this provider read
+ * `imagePath` and nothing else: a second attachment was dropped before the CLI
+ * saw it, and a .docx was announced as an image. These cover the seam -- the
+ * extraction itself is covered in `attachment-text.test.ts`.
+ */
+describe('buildClaudeCliPrompt', () => {
+  it('leaves a message with no attachments exactly as it is', async () => {
+    assert.equal(await buildClaudeCliPrompt('szia'), 'szia')
+  })
+
+  it('carries every attachment, not just the first', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-cli-prompt-'))
+    try {
+      const a = path.join(dir, 'elso.md')
+      const b = path.join(dir, 'masodik.md')
+      fs.writeFileSync(a, 'ELSO-TARTALOM')
+      fs.writeFileSync(b, 'MASODIK-TARTALOM')
+      const prompt = await buildClaudeCliPrompt('nézd meg', undefined, [a, b])
+      assert.match(prompt, /ELSO-TARTALOM/)
+      assert.match(prompt, /MASODIK-TARTALOM/, 'a második csatolmány elveszett')
+      assert.ok(prompt.endsWith('nézd meg'), 'a felhasználó üzenete a blokk után áll')
+    } finally { fs.rmSync(dir, { recursive: true, force: true }) }
+  })
+
+  it('does not call a document an image', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-cli-prompt-'))
+    try {
+      const doc = path.join(dir, 'ajanlat.docx')
+      // Nem valódi docx: a kibontó visszautasítja, a lényeg a MEGNEVEZÉS.
+      fs.writeFileSync(doc, 'not a zip')
+      const prompt = await buildClaudeCliPrompt('mennyi az ár?', doc)
+      assert.ok(!/shared an image/.test(prompt), 'a dokumentumot képként jelentette be')
+      assert.match(prompt, /ajanlat\.docx/)
+    } finally { fs.rmSync(dir, { recursive: true, force: true }) }
+  })
+
+  it('names an image by its path, which is what a CLI can open', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-cli-prompt-'))
+    try {
+      const img = path.join(dir, 'kep.png')
+      fs.writeFileSync(img, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+      const prompt = await buildClaudeCliPrompt('mi ez?', img)
+      assert.match(prompt, /Attached image: kep\.png at /)
+      assert.ok(prompt.includes(img))
+    } finally { fs.rmSync(dir, { recursive: true, force: true }) }
   })
 })

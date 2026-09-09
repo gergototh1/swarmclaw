@@ -39,6 +39,16 @@ export interface StreamChatOptions {
   message: string
   imagePath?: string
   imageUrl?: string
+  /**
+   * Every other file the user attached to this turn.
+   *
+   * This field did not exist, so only the first image survived the trip from
+   * the composer: a second attachment, and every non-image attachment, was
+   * dropped before any provider saw it. The LangChain path read them off the
+   * stored history instead, which is why attachments worked there and nowhere
+   * else.
+   */
+  attachedFiles?: string[]
   apiKey?: string | null
   systemPrompt?: string
   write: (data: string) => void

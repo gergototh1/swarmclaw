@@ -587,8 +587,8 @@ export function ChatroomInput({ agents, onSend, disabled, onBreakoutRequest }: P
       </ComposerShell>
 
       {/* Hidden file inputs */}
+      {/* Nincs `accept` lista -- lásd a chat-input.tsx-beli indoklást. */}
       <input ref={fileInputRef} type="file" multiple
-        accept="image/*,.pdf,.txt,.md,.csv,.json,.xml,.html,.js,.ts,.tsx,.jsx,.py,.go,.rs,.java,.c,.cpp,.h,.yml,.yaml,.toml,.env,.log,.sh,.sql,.css,.scss"
         onChange={handleFileChange} className="hidden" />
       <input ref={imageInputRef} type="file" multiple
         accept="image/*"

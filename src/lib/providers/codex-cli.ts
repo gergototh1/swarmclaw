@@ -8,6 +8,7 @@ import { loadRuntimeSettings } from '@/lib/server/runtime/runtime-settings'
 import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, symlinkConfigFiles, isStderrNoise, ensureCliWorkingDirectory } from './cli-utils'
 import { getAgent } from '@/lib/server/agents/agent-repository'
 import { loadMcpServers } from '@/lib/server/storage'
+import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
 
 const TAG = 'provider-codex'
 
@@ -16,7 +17,7 @@ function codexModelRequiresReasoningDowngrade(model: string | null | undefined):
   return value === 'gpt-5-codex' || value === 'gpt-5-codex-mini'
 }
 
-export function streamCodexCliChat({ session, message, imagePath, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
+export async function streamCodexCliChat({ session, message, imagePath, attachedFiles, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
   const processTimeoutMs = loadRuntimeSettings().cliProcessTimeoutMs
   const binary = resolveCliBinary('codex')
   if (!binary) {
@@ -25,7 +26,13 @@ export function streamCodexCliChat({ session, message, imagePath, systemPrompt, 
     return Promise.resolve('')
   }
 
-  const prompt = message
+  /*
+   * A CLI saját zászlója (`--file` / `-i`) az ELSŐ képet viszi; minden további
+   * csatolmány szövege a promptba kerül. Így egy .docx akkor is megérkezik, ha
+   * a zászló csak képet fogad, és akkor sem vész el, ha a CLI nem ismételhető.
+   */
+  const attachmentBlock = await buildAttachmentPreamble(attachedFiles || [])
+  const prompt = attachmentBlock ? `${attachmentBlock}\n\n${message}` : message
   const args: string[] = ['exec']
   // Use ~/.codex-sessions/ not /tmp — codex refuses to create helper binaries under /tmp.
   const sessionsDir = path.join(os.homedir(), '.codex-sessions')

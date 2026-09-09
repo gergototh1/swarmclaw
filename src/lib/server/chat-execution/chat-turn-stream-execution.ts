@@ -227,6 +227,7 @@ export async function executePreparedChatTurn(params: {
           session: sessionForRun,
           message: effectiveMessage,
           imagePath: resolvedImagePath,
+          attachedFiles,
           apiKey,
           systemPrompt,
           write: (raw: string) => parseAndEmit(raw),

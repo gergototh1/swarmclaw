@@ -1,6 +1,6 @@
 import fs from 'fs'
 import type { StreamChatOptions } from './index'
-import { PROVIDER_DEFAULTS, IMAGE_EXTS, TEXT_EXTS, PDF_MAX_CHARS, MAX_HISTORY_MESSAGES, writeSSE } from './provider-defaults'
+import { PROVIDER_DEFAULTS, IMAGE_EXTS, MAX_HISTORY_MESSAGES, writeSSE } from './provider-defaults'
 import { log } from '@/lib/server/logger'
 import { resolveImagePath } from '@/lib/server/resolve-image'
 import {
@@ -8,6 +8,7 @@ import {
   shouldUseDeepSeekReasoningBridge,
 } from '@/lib/providers/deepseek-reasoning-chat-openai'
 import { normalizeLmStudioEndpoint, normalizeOpenAiCompatibleV1Endpoint } from '@/lib/providers/openai-compatible-endpoint'
+import { describeAttachment } from '@/lib/server/attachments/attachment-text'
 
 const TAG = 'provider-openai'
 
@@ -26,34 +27,17 @@ async function fileToContentParts(filePath: string): Promise<Array<Record<string
     else if (buf[0] === 0x52 && buf[1] === 0x49) mimeType = 'image/webp'
     return [{ type: 'image_url', image_url: { url: `data:${mimeType};base64,${data}`, detail: 'auto' } }]
   }
-  if (filePath.endsWith('.pdf')) {
-    try {
-      // @ts-expect-error — pdf-parse types
-      const pdfParse = (await import(/* webpackIgnore: true */ 'pdf-parse')).default
-      const buf = await fs.promises.readFile(filePath)
-      const result = await pdfParse(buf)
-      const pdfText = (result.text || '').trim()
-      if (!pdfText) return [{ type: 'text', text: `[Attached PDF: ${name} — no extractable text]` }]
-      const truncated = pdfText.length > PDF_MAX_CHARS ? pdfText.slice(0, PDF_MAX_CHARS) + '\n\n[... truncated]' : pdfText
-      return [{ type: 'text', text: `[Attached PDF: ${name} (${result.numpages} pages)]\n\n${truncated}` }]
-    } catch {
-      return [{ type: 'text', text: `[Attached PDF: ${name} — could not extract text]` }]
-    }
-  }
-  if (TEXT_EXTS.test(filePath)) {
-    try {
-      const text = await fs.promises.readFile(filePath, 'utf-8')
-      return [{ type: 'text', text: `[Attached file: ${name}]\n\n${text}` }]
-    } catch { return [] }
-  }
-  return [{ type: 'text', text: `[Attached file: ${name}]` }]
+  // Minden nem-kép csatolmány EGY helyen dől el (`attachment-text.ts`): PDF,
+  // szöveg, Office és az ismeretlen formátum is. Korábban ez a négy ág négy
+  // fájlban élt külön, és el is tért egymástól.
+  return [{ type: 'text', text: await describeAttachment(filePath) }]
 }
 
-export function streamOpenAiChat({ session, message, imagePath, imageUrl, apiKey, systemPrompt, write, active, loadHistory, onUsage, signal }: StreamChatOptions): Promise<string> {
+export function streamOpenAiChat({ session, message, imagePath, imageUrl, attachedFiles, apiKey, systemPrompt, write, active, loadHistory, onUsage, signal }: StreamChatOptions): Promise<string> {
   return new Promise((resolve, reject) => {
     ;(async () => {
       try {
-        const messages = await buildMessages(session, message, imagePath, systemPrompt, loadHistory, imageUrl)
+        const messages = await buildMessages(session, message, imagePath, systemPrompt, loadHistory, imageUrl, attachedFiles)
         const model = session.model || 'gpt-4o'
 
         let fullResponse = ''
@@ -226,7 +210,7 @@ export function streamOpenAiChat({ session, message, imagePath, imageUrl, apiKey
   })
 }
 
-async function buildMessages(session: Record<string, unknown>, message: string, imagePath: string | undefined, systemPrompt: string | undefined, loadHistory: (id: string) => Record<string, unknown>[], imageUrl?: string) {
+async function buildMessages(session: Record<string, unknown>, message: string, imagePath: string | undefined, systemPrompt: string | undefined, loadHistory: (id: string) => Record<string, unknown>[], imageUrl?: string, attachedFiles?: string[]) {
   const msgs: Array<{ role: string; content: unknown; reasoning_content?: string }> = []
   const includeReasoningContent = shouldUseDeepSeekReasoningBridge(
     typeof session.provider === 'string' ? session.provider : null,
@@ -258,10 +242,18 @@ async function buildMessages(session: Record<string, unknown>, message: string, 
     }
   }
 
-  // Current message with optional attachment
+  // Az ELSŐ kép mellett minden további csatolmány is a fordulóra kerül. A
+  // `attachedFiles` korábban el sem jutott idáig: nem volt ilyen mező a
+  // provider-interfészen, tehát a másodiktól kezdve minden fájl elveszett.
   const resolvedPath = resolveImagePath(imagePath, imageUrl)
-  if (resolvedPath) {
-    const parts = await fileToContentParts(resolvedPath)
+  const currentPaths: string[] = []
+  if (resolvedPath) currentPaths.push(resolvedPath)
+  for (const f of attachedFiles || []) {
+    if (f && !currentPaths.includes(f)) currentPaths.push(f)
+  }
+  if (currentPaths.length) {
+    const parts: unknown[] = []
+    for (const f of currentPaths) parts.push(...(await fileToContentParts(f)))
     msgs.push({ role: 'user', content: [...parts, { type: 'text', text: message }] })
   } else {
     msgs.push({ role: 'user', content: message })

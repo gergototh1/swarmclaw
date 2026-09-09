@@ -3,12 +3,13 @@ import type { StreamChatOptions } from './index'
 import { log } from '../server/logger'
 import { loadRuntimeSettings } from '@/lib/server/runtime/runtime-settings'
 import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, isStderrNoise } from './cli-utils'
+import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
 
 /**
  * Gemini CLI provider — spawns `gemini --prompt <message> --output-format stream-json --yolo`.
  * Tracks `session.geminiSessionId` from streamed JSON events to support multi-turn continuity.
  */
-export function streamGeminiCliChat({ session, message, imagePath, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
+export async function streamGeminiCliChat({ session, message, imagePath, attachedFiles, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
   const processTimeoutMs = loadRuntimeSettings().cliProcessTimeoutMs
   const binary = resolveCliBinary('gemini')
   if (!binary) {
@@ -39,6 +40,13 @@ export function streamGeminiCliChat({ session, message, imagePath, systemPrompt,
   if (systemPrompt && !session.geminiSessionId) {
     promptParts.push(`[System instructions]\n${systemPrompt}`)
   }
+  /*
+   * A CLI saját zászlója (`--file` / `-i`) az ELSŐ képet viszi; minden további
+   * csatolmány szövege a promptba kerül. Így egy .docx akkor is megérkezik, ha
+   * a zászló csak képet fogad, és akkor sem vész el, ha a CLI nem ismételhető.
+   */
+  const attachmentBlock = await buildAttachmentPreamble(attachedFiles || [])
+  if (attachmentBlock) promptParts.push(attachmentBlock)
   promptParts.push(message)
   const prompt = promptParts.join('\n\n')
 

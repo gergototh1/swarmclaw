@@ -14,6 +14,7 @@ import { listQueuedMessagesForSession } from '@/lib/chat/queued-message-queue'
 import { toast } from 'sonner'
 import { safeStorageGet, safeStorageRemove, safeStorageSet } from '@/lib/app/safe-storage'
 import { errorMessage } from '@/lib/shared-utils'
+import { splitPendingAttachments } from '@/lib/pending-attachments'
 
 interface Props {
   streaming: boolean
@@ -98,9 +99,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
       try {
         await queueMessage(sessionId, {
           text: text || 'See attached file(s).',
-          imagePath: pendingFiles[0]?.path,
-          imageUrl: pendingFiles[0]?.url,
-          attachedFiles: pendingFiles.length > 1 ? pendingFiles.map((file) => file.path) : undefined,
+          ...splitPendingAttachments(pendingFiles),
           replyToId,
         })
         clearPendingFiles()
@@ -545,11 +544,19 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
           </div>
         )}
 
+        {/*
+          NO `accept` LIST. Attaching a file the picker refuses to show is not a
+          filter, it is a dead end: the list left out .docx, .xlsx, .pptx, .zip
+          and every archive and binary, and the operator had no way to tell
+          whether the format was rejected or the button was broken. Whether the
+          content can be READ is a separate question, answered per format on the
+          server (`attachment-text.ts`), and a format it cannot read is still
+          attached, still named, and still openable by an agent with file tools.
+        */}
         <input
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/*,.pdf,.txt,.md,.csv,.json,.xml,.html,.js,.ts,.tsx,.jsx,.py,.go,.rs,.java,.c,.cpp,.h,.yml,.yaml,.toml,.env,.log,.sh,.sql,.css,.scss"
           onChange={handleFileChange}
           className="hidden"
         />
