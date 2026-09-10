@@ -144,18 +144,22 @@ export function SubagentPanel({
   return (
     <div
       /*
-       * A fejléc alatt kezdődik, nem a viewport tetején. A ChatHeader
-       * `min-h-[64px]`, és mindkét törésponton ott van (`chat-area.tsx`
-       * desktop és mobil ágon is rendereli) -- `top-0`-val a panel ráült
-       * volna, és a szülő chat címe eltűnt volna alóla, miközben a panel
-       * saját fejléce pont ugyanoda került.
+       * Ugyanaz a hasáb, mint az InspectorPanel (a fogaskerék "Settings"
+       * panelje): `w-[420px] shrink-0 border-l ... h-full`, a chat-area
+       * testvéreként a külső flex-sorban. Ettől nem lebeg a chat fölött --
+       * helyet foglal, és a szülő transzkript ÉS composer mellé szorul, nem
+       * alá. Korábban `fixed` volt, és emiatt kellett előbb a fejlécet, majd
+       * a composert külön kikerülnie; egy beépülő oszlopnak egyiket sem kell.
+       *
+       * `md` alatt viszont nincs hova szorulni, ott marad a teljes szélességű
+       * borítás -- ezért vált `fixed`-ről `static`-ra a törésponton.
        */
-      className="fixed right-0 top-[64px] bottom-0 w-full md:w-[440px] lg:w-[520px] z-40 flex flex-col bg-surface border-l border-line-default"
+      className="fixed inset-y-0 right-0 z-40 w-full md:static md:inset-auto md:z-auto md:w-[420px] shrink-0 flex flex-col h-full overflow-hidden border-l border-line-subtle bg-bg fade-up-delay"
       data-testid="subagent-panel"
       role="complementary"
       aria-label={`${frame.agentName} subagent beszélgetése`}
     >
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-line-subtle shrink-0">
+      <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-line-subtle shrink-0 bg-layer-1">
         {stack.length > 1 && (
           <button
             type="button"
@@ -179,13 +183,19 @@ export function SubagentPanel({
             ■ Leállít
           </button>
         )}
+        {/* Ugyanaz a záró gomb, mint az InspectorPanelé -- ez a panel arra
+            a helyre és arra a szerepre ül, tehát ne egy másik ✕ legyen. */}
         <button
           type="button"
           onClick={onClose}
-          className="text-[14px] text-text-3 hover:text-text bg-transparent border-none cursor-pointer px-1"
+          className="p-1.5 rounded-sm text-text-3/50 hover:text-text-3 bg-transparent border-none cursor-pointer transition-all hover:bg-layer-2"
           title="Bezárás"
+          aria-label="Subagent panel bezárása"
         >
-          ✕
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       </div>
 
