@@ -337,4 +337,15 @@ describe('MessageBubble', () => {
     )
     assert.ok(html.includes('Marveen'), 'a connector turn must say which channel it came through')
   })
+
+  it('keeps the grey bubble shell on the user turn', async () => {
+    const mod = await import('./message-bubble')
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MessageBubble, {
+        message: { role: 'user', text: 'Csináld meg.', time: 1_700_000_000_000, kind: 'chat' },
+      } as React.ComponentProps<typeof mod.MessageBubble>),
+    )
+    assert.ok(html.includes('bubble-user'), 'the user turn keeps its bubble')
+    assert.ok(html.includes('Csináld meg.'))
+  })
 })

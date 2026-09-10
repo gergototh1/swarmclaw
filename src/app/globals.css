@@ -235,7 +235,8 @@
      hunt through 85 class lists, and it survived the move from Orchid to coral
      without one of them being touched. */
   --color-accent-fg: var(--ac-fg);
-  --color-user-text: var(--ac-fg);
+  /* A buborék már nem accent-színű, tehát a szövege sem on-accent szöveg. */
+  --color-user-text: var(--color-text);
   --color-success: var(--st-green);
   --color-success-soft: var(--st-green-soft);
   --color-danger: var(--st-red);
@@ -245,8 +246,9 @@
   --color-warning: var(--st-orange);
   --color-warning-soft: var(--st-orange-soft);
   --color-shereen: var(--st-pink);
-  --color-user-bubble: var(--ac);
-  --color-user-bubble-2: var(--ac-2);
+  /* A felület-létra kiválasztott foka: sötétben #3A3A3C, világosban #E8E8ED.
+     A -2 párja a gradiens eltávolítása óta holt volt, semmi nem olvasta. */
+  --color-user-bubble: var(--surface-selected);
   --color-glass: var(--sf-glass);
   --color-glass-border: var(--ln-default);
 
@@ -1267,7 +1269,7 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
      forbids decorative gradients outright, and the 1px drop was the last
      shadow on a non-overlay surface in the whole app. */
   background: var(--color-user-bubble);
-  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-xs) var(--radius-lg);
+  border-radius: var(--radius-lg);
   color: var(--color-user-text);
 }
 
