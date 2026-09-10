@@ -23,13 +23,21 @@ interface Props {
   onSend: (text: string) => void
   onStop: () => void
   extensionChatActions?: Array<{ id: string; label: string; action: string; value: string; tooltip?: string }>
+  /**
+   * 'docked' is the chat page: the composer sits at the foot of the view,
+   * pinned to the viewport on narrow screens and inset to match the
+   * transcript's gutters. 'inline' drops both, so the composer fills whatever
+   * container it is given -- what the home page needs to line it up with the
+   * cards beside it.
+   */
+  variant?: 'docked' | 'inline'
 }
 
 // FilePreview is now imported from @/components/shared/file-preview
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 
-export function ChatInput({ streaming, busy, onSend, onStop, extensionChatActions = [] }: Props) {
+export function ChatInput({ streaming, busy, onSend, onStop, extensionChatActions = [], variant = 'docked' }: Props) {
   const [value, setValue] = useState('')
   const [extrasOpen, setExtrasOpen] = useState(false)
   const { ref: textareaRef, resize } = useAutoResize()
@@ -202,8 +210,11 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
     : 'Queued messages will send automatically when the current turn finishes.'
 
   return (
-    <div className="shrink-0 px-4 md:px-12 lg:px-16 pb-4 pt-2 fixed bottom-0 left-0 right-0 z-20 bg-bg/80 backdrop-blur-md md:relative md:z-auto md:bg-transparent md:backdrop-blur-none"
-      style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div
+      className={variant === 'inline'
+        ? 'shrink-0'
+        : 'shrink-0 px-4 md:px-12 lg:px-16 pb-4 pt-2 fixed bottom-0 left-0 right-0 z-20 bg-bg/80 backdrop-blur-md md:relative md:z-auto md:bg-transparent md:backdrop-blur-none'}
+      style={variant === 'inline' ? undefined : { paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="relative" ref={extrasRef}>
         {busy && visibleQueuedMessages.length === 0 && (
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/15 bg-amber-500/[0.06] px-3.5 py-2">
@@ -443,7 +454,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
         </ComposerShell>
 
         {extrasOpen && (
-          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-subtle bg-surface/80 p-2 backdrop-blur-xl">
+          <div className={`absolute left-0 ${variant === 'inline' ? 'top-[72px]' : 'bottom-[72px]'} w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-subtle bg-surface/80 p-2 backdrop-blur-xl`}>
             <button
               type="button"
               onClick={() => {

@@ -13,6 +13,7 @@ import { selectVisibleUnreadSessions } from '@/lib/chat/session-unread'
 import { isLocalhostBrowser } from '@/lib/observability/local-observability'
 import { filterPulseActions, NEEDS_YOU_PULSE_KINDS } from '@/lib/home/pulse-partition'
 import { dedupeNotifications } from '@/lib/home/notification-dedup'
+import { notificationHref } from '@/lib/home/notification-target'
 import { selectProblemTasks } from '@/lib/home/problem-tasks'
 import { SectionHeader } from '@/components/ui/section-header'
 import { RecentlyOpened } from '@/components/home/recently-opened'
@@ -163,6 +164,7 @@ export function TierAct() {
             busy={composerBusy}
             onSend={handleAskSend}
             onStop={stopStreaming}
+            variant="inline"
           />
         ) : (
           <div className="flex items-center gap-2 rounded-lg border border-line-subtle bg-surface p-4 text-[13px] text-text-3">
@@ -224,22 +226,40 @@ export function TierAct() {
                 </div>
               </button>
             ))}
-            {dedupedNotifications.map(({ notification, occurrenceCount }) => (
-              <div key={notification.id} className="flex items-center gap-3 rounded-md px-3 py-2.5">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-red-400/10 text-red-400">
-                  <AlertTriangle size={14} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-600 text-text">{notification.title}</span>
-                  {notification.message && <span className="block truncate text-[11px] text-text-3">{notification.message}</span>}
-                </div>
-                {occurrenceCount > 1 && (
-                  <span className="shrink-0 rounded-full border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] font-700 text-text-3">
-                    x{occurrenceCount}
+            {dedupedNotifications.map(({ notification, occurrenceCount }) => {
+              const href = notificationHref(notification)
+              const body = (
+                <>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-red-400/10 text-red-400">
+                    <AlertTriangle size={14} />
                   </span>
-                )}
-              </div>
-            ))}
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-600 text-text">{notification.title}</span>
+                    {notification.message && <span className="block truncate text-[11px] text-text-3">{notification.message}</span>}
+                  </div>
+                  {occurrenceCount > 1 && (
+                    <span className="shrink-0 rounded-full border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] font-700 text-text-3">
+                      x{occurrenceCount}
+                    </span>
+                  )}
+                </>
+              )
+              /* A row that cannot go anywhere stays a plain row rather than a
+                 button that looks clickable and does nothing. */
+              return href ? (
+                <button
+                  key={notification.id}
+                  onClick={() => router.push(href)}
+                  className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left bg-transparent border-none
+                    hover:bg-layer-1 transition-colors cursor-pointer w-full"
+                  style={{ fontFamily: 'inherit' }}
+                >
+                  {body}
+                </button>
+              ) : (
+                <div key={notification.id} className="flex items-center gap-3 rounded-md px-3 py-2.5">{body}</div>
+              )
+            })}
             {pulseRows.slice(0, NEEDS_YOU_LIMIT).map((action) => (
               <button
                 key={action.id}

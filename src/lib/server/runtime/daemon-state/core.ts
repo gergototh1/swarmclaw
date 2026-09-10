@@ -934,6 +934,11 @@ async function runOpenClawGatewayHealthChecks() {
       title: `OpenClaw gateway unreachable: ${tuple.credentialName}`,
       message: result.error || 'Health check failed',
       dedupKey: `openclaw-gw-down:${tuple.agentId}`,
+      // Without these the home page's "Needs you" row has nowhere to send the
+      // reader: it knows a gateway is down but not whose, so it rendered as a
+      // dead row among clickable ones.
+      entityType: 'agent',
+      entityId: tuple.agentId,
     })
   }
 }
