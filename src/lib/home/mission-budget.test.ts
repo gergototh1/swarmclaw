@@ -55,4 +55,71 @@ describe('tightestCap', () => {
     })
     assert.equal(cap?.label, '5 / 10 min')
   })
+
+  it('does not lose a sub-minute wallclock cap to rounding-to-zero', () => {
+    const cap = tightestCap({
+      budget: budget({ maxWallclockSec: 20 }),
+      usage: usage({ wallclockMsElapsed: 10_000 }),
+    })
+    assert.equal(cap?.label, '10 / 20 sec')
+    assert.equal(cap?.fraction, 0.5)
+  })
+
+  it('computes a sub-minute wallclock fraction from raw seconds, not rounded minutes', () => {
+    const cap = tightestCap({
+      budget: budget({ maxWallclockSec: 40 }),
+      usage: usage({ wallclockMsElapsed: 20_000 }),
+    })
+    assert.equal(cap?.label, '20 / 40 sec')
+    assert.equal(cap?.fraction, 0.5)
+  })
+
+  it('skips a NaN usage value instead of letting it mask a tighter cap', () => {
+    const cap = tightestCap({
+      budget: budget({ maxUsd: 10, maxTurns: 10 }),
+      usage: usage({ usdSpent: Number.NaN, turnsRun: 9 }),
+    })
+    assert.equal(cap?.label, '9 / 10 turns')
+    assert.equal(cap?.fraction, 0.9)
+    assert.equal(cap?.tone, 'warn')
+  })
+
+  it('uses the mission\'s own warnAtFractions schedule instead of the hardcoded thresholds', () => {
+    const cap = tightestCap({
+      budget: budget({ maxUsd: 10, warnAtFractions: [0.3, 0.6, 0.9] }),
+      usage: usage({ usdSpent: 6.5 }),
+    })
+    // 0.65 fraction: hardcoded thresholds (0.8/0.95) would say 'normal',
+    // this mission's own schedule (warn 0.6, danger 0.9) says 'warn'.
+    assert.equal(cap?.fraction, 0.65)
+    assert.equal(cap?.tone, 'warn')
+
+    const dangerCap = tightestCap({
+      budget: budget({ maxUsd: 10, warnAtFractions: [0.3, 0.6, 0.9] }),
+      usage: usage({ usdSpent: 9 }),
+    })
+    assert.equal(dangerCap?.tone, 'danger')
+  })
+
+  it('falls back to defaults for an empty warnAtFractions array', () => {
+    const cap = tightestCap({
+      budget: budget({ maxUsd: 10, warnAtFractions: [] }),
+      usage: usage({ usdSpent: 8.5 }),
+    })
+    assert.equal(cap?.tone, 'warn')
+  })
+
+  it('collapses warn and danger to the same threshold for a single-entry warnAtFractions array', () => {
+    const belowCap = tightestCap({
+      budget: budget({ maxUsd: 10, warnAtFractions: [0.9] }),
+      usage: usage({ usdSpent: 8.9 }),
+    })
+    assert.equal(belowCap?.tone, 'normal')
+
+    const atCap = tightestCap({
+      budget: budget({ maxUsd: 10, warnAtFractions: [0.9] }),
+      usage: usage({ usdSpent: 9 }),
+    })
+    assert.equal(atCap?.tone, 'danger')
+  })
 })
