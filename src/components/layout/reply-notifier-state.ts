@@ -1,4 +1,6 @@
-import { sessionUnreadState, type SessionUnreadInput } from '@/lib/chat/session-unread'
+import { sessionUnreadState } from '@/lib/chat/session-unread'
+import { listConversations } from '@/lib/conversation-list'
+import type { Session, Sessions } from '@/types'
 
 /**
  * The sequencing that `reply-notifier.tsx` drives, pulled out so it can be
@@ -15,11 +17,16 @@ import { sessionUnreadState, type SessionUnreadInput } from '@/lib/chat/session-
  * already-unread chat -- a notification burst on cold start. So: while
  * `seen` is `null`, an empty `sessions` list leaves it `null` and baselines
  * nothing. Do not "simplify" this by dropping the empty-list check.
+ *
+ * This function is also where the scope of "notifiable" narrows to what
+ * `listConversations` (`src/lib/conversation-list.ts`) would show on the
+ * Chat page -- a scheduled/task run, a chatroom half-session, or an empty
+ * session must never reach `fired`, even once its activity advances. That
+ * filter is applied once, here, rather than in the caller, so the raw store
+ * map can be handed straight through and the two lists cannot drift apart.
  */
 
-export interface ReplyNotifierSession extends SessionUnreadInput {
-  id: string
-}
+export type ReplyNotifierSession = Session
 
 export interface ReplyNotifierStep {
   seen: Map<string, number> | null
@@ -27,21 +34,20 @@ export interface ReplyNotifierStep {
   fired: string[]
 }
 
-export function advanceReplyNotifierSeen(
-  seen: Map<string, number> | null,
-  sessions: ReplyNotifierSession[],
-): ReplyNotifierStep {
+export function advanceReplyNotifierSeen(seen: Map<string, number> | null, sessions: Sessions): ReplyNotifierStep {
+  const conversations = listConversations(sessions)
+
   if (seen === null) {
     // See the module comment: do not baseline from an empty list, or the
     // next real population looks like a burst of brand-new activity.
-    if (sessions.length === 0) return { seen: null, fired: [] }
-    const baseline = new Map(sessions.map((s) => [s.id, sessionUnreadState(s).lastActivityAt]))
+    if (conversations.length === 0) return { seen: null, fired: [] }
+    const baseline = new Map(conversations.map((s) => [s.id, sessionUnreadState(s).lastActivityAt]))
     return { seen: baseline, fired: [] }
   }
 
   const next = new Map(seen)
   const fired: string[] = []
-  for (const session of sessions) {
+  for (const session of conversations) {
     const state = sessionUnreadState(session)
     const previous = next.get(session.id) ?? 0
     next.set(session.id, state.lastActivityAt)

@@ -4,10 +4,10 @@ import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/stores/use-app-store'
 import { selectActiveSessionId } from '@/stores/slices/session-slice'
-import { sessionUnreadState } from '@/lib/chat/session-unread'
 import { shouldNotifyForReply } from '@/lib/chat/notification-gate'
 import { advanceReplyNotifierSeen } from '@/components/layout/reply-notifier-state'
 import { useWindowFocused } from '@/hooks/use-window-focused'
+import { buildNotificationPayload } from '../../../electron/notification-payload'
 
 interface NotifyPayload {
   sessionId: string
@@ -71,15 +71,15 @@ export function ReplyNotifier() {
   useEffect(() => {
     const b = bridge()
     if (!b) return
-    const list = Object.values(sessions ?? {})
-
-    const step = advanceReplyNotifierSeen(seen.current, list)
+    // `advanceReplyNotifierSeen` narrows this to what the Chat page would
+    // actually list as a conversation -- scheduled/task runs, chatroom
+    // half-sessions and empty sessions never reach `fired`.
+    const step = advanceReplyNotifierSeen(seen.current, sessions ?? {})
     seen.current = step.seen
 
     for (const sessionId of step.fired) {
       const session = sessions?.[sessionId]
       if (!session) continue
-      const state = sessionUnreadState(session)
       const agent = session.agentId ? agents?.[session.agentId] : null
       const allowed = shouldNotifyForReply({
         globalEnabled: appSettings?.agentReplyNotifications ?? true,
@@ -89,11 +89,21 @@ export function ReplyNotifier() {
       })
       if (!allowed) continue
 
+      const payload = buildNotificationPayload(
+        {
+          name: session.name,
+          lastAssistantAt: session.lastAssistantAt,
+          lastFailedTurnAt: session.lastFailedTurnAt,
+          lastMessageText: session.lastMessageSummary?.text ?? null,
+        },
+        agent?.name || '',
+      )
+
       b.notify({
         sessionId: session.id,
-        title: (agent?.name || '').trim() || 'SwarmClaw',
-        body: state.isError ? `A futas hibaval vegzodott: ${session.name}` : `Valaszolt: ${session.name}`,
-        isError: state.isError,
+        title: payload.title,
+        body: payload.body,
+        isError: payload.isError,
       })
     }
   }, [sessions, agents, appSettings, activeSessionId, windowFocused])

@@ -21,8 +21,12 @@ import type { Session, Sessions } from '@/types'
  *   install, most named after their agent, which is what a list of "Sidekick,
  *   Sidekick, Sidekick" would be made of.
  *
- * The two prefixes each have exactly one writer, named above; this is the only
- * reader, so the pair cannot drift apart unnoticed while its test stands.
+ * The two prefixes each have exactly one writer, named above. There are two
+ * readers -- the Chat page (`conversation-list.tsx`) and the desktop
+ * notifier's diff logic (`reply-notifier-state.ts`), which must not fire a
+ * notification for a row the list would not show -- and both go through
+ * `listConversations` here rather than reimplementing the predicates, so the
+ * two cannot drift apart unnoticed while this module's test stands.
  */
 
 const TASK_SESSION_NAME_PREFIX = '[Task] '
