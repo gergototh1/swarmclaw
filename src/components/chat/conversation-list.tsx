@@ -8,9 +8,9 @@ import { useNow } from '@/hooks/use-now'
 import { useWindowFocused } from '@/hooks/use-window-focused'
 import { READ_GRACE_MS } from '@/stores/slices/data-slice'
 import { SearchInput } from '@/components/ui/search-input'
-import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { conversationTitle, groupConversationsByAge, listConversations, type ConversationGroup } from '@/lib/conversation-list'
 import { conversationRowState } from './conversation-row-state'
+import { conversationDot } from './conversation-dot'
 import type { Session } from '@/types'
 
 /**
@@ -110,6 +110,7 @@ export function ConversationList({ activeId }: { activeId?: string | null }) {
     const agent = s.agentId ? agents[s.agentId] : undefined
     const isActive = s.id === activeId
     const { unread, isError, working } = conversationRowState(s)
+    const dot = conversationDot({ unread, isError, working })
     return (
       <div
         key={s.id}
@@ -129,10 +130,25 @@ export function ConversationList({ activeId }: { activeId?: string | null }) {
           ${isActive ? 'bg-accent-soft/80 border border-accent-bright/20' : 'bg-transparent hover:bg-layer-1'}`}
       >
         <div className="flex items-start gap-2.5">
-          <div className="shrink-0 mt-0.5">
-            {agent
-              ? <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={28} />
-              : <div className="w-7 h-7 rounded-full bg-layer-2" />}
+          {/* A pont az avatar pozícióját örökli, és akkor is helyet
+              foglal, ha nincs jelzés -- különben a címek elcsúsznának
+              egymáshoz képest soronként. */}
+          <div className="shrink-0 w-1.5 flex justify-center mt-[7px]">
+            {dot !== 'none' && (
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  dot === 'error' ? 'bg-red-500'
+                    : dot === 'working' ? 'bg-amber-400 animate-pulse'
+                    : 'bg-accent-bright'
+                }`}
+                data-testid={dot === 'working' ? 'row-working' : 'row-unread'}
+                title={
+                  dot === 'error' ? 'Sikertelen válasz'
+                    : dot === 'working' ? 'Az ügynök dolgozik'
+                    : 'Olvasatlan üzenet'
+                }
+              />
+            )}
           </div>
           <div className="flex flex-col flex-1 min-w-0">
             <span className="font-display text-[13.5px] font-600 text-text tracking-[-0.01em] line-clamp-2">
@@ -140,27 +156,14 @@ export function ConversationList({ activeId }: { activeId?: string | null }) {
             </span>
             <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-text-3">
               <span className="truncate">{agent?.name || 'ismeretlen ügynök'}</span>
-              {ago(now, s.lastActiveAt) && <span aria-hidden="true">·</span>}
-              <span className="shrink-0">{ago(now, s.lastActiveAt)}</span>
-              {working && (
-                <span
-                  className="flex items-center gap-1 text-emerald-400 shrink-0"
-                  data-testid="row-working"
-                >
-                  <span aria-hidden="true">·</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  dolgozik
-                </span>
-              )}
+              <span aria-hidden="true">·</span>
+              <span className={`shrink-0 ${dot === 'error' ? 'text-red-400' : dot === 'working' ? 'text-amber-400' : ''}`}>
+                {dot === 'error' ? 'sikertelen válasz'
+                  : dot === 'working' ? 'dolgozik…'
+                  : ago(now, s.lastActiveAt)}
+              </span>
             </span>
           </div>
-          {unread && (
-            <span
-              className={`shrink-0 mt-1.5 w-2 h-2 rounded-full ${isError ? 'bg-red-500' : 'bg-accent-bright'}`}
-              data-testid="row-unread"
-              title={isError ? 'Sikertelen válasz' : 'Olvasatlan üzenet'}
-            />
-          )}
         </div>
       </div>
     )
