@@ -29,18 +29,27 @@ import { memStorage } from './helpers.mjs'
  * to a shared answer somewhere below.
  */
 
-/** The six, in the order design spec 6.1 lists them. Written out rather than derived: this list is the boundary. */
-const HAT_METODUS = ['mailbox', 'labels', 'list', 'get', 'draft', 'outbox']
+/** The seven, in declaration order. Written out rather than derived: this list is the boundary. */
+const HET_METODUS = ['mailbox', 'labels', 'list', 'get', 'mark_read', 'draft', 'outbox']
 
-/** Names that are on the rpc and must never be on the contract. */
+/**
+ * Names that are on the rpc and must never be on the contract.
+ *
+ * `label` stays here now that `mark_read` exists, and that is the point of
+ * `mark_read` being its own method: the general one takes two caller-supplied
+ * label lists, so a consumer holding it can file mail into any bucket, take a
+ * message out of the operator's own INBOX, or strip the very label the sweep
+ * finds its work under. `mark_read` names the one label it touches in this
+ * module's own source, and a consumer cannot spell a second one.
+ */
 const TILTOTT_METODUSOK = ['releaseDraft', 'discardDraft', 'label', 'addRecipient', 'retireRecipient', 'health', 'mcpConfig', 'board', 'attempts', 'liveDraft', 'search', 'read']
 
 const TARGY = 'Havi jelentes'
 const TORZS = 'Szia, itt a jelentes.'
 
 /** A client double. Each answer carries a field the boundary does not declare, so a pass-through would show. */
-function ketto({ profil = 'operator@example.test', uzenet, cimkek, lap, draftHiba } = {}) {
-  const hivasok = { createDraft: [], list: [], get: [] }
+function ketto({ profil = 'operator@example.test', uzenet, cimkek, lap, draftHiba, modifyHiba } = {}) {
+  const hivasok = { createDraft: [], list: [], get: [], modifyLabels: [] }
   return {
     hivasok,
     async mailbox() { return profil },
@@ -76,6 +85,12 @@ function ketto({ profil = 'operator@example.test', uzenet, cimkek, lap, draftHib
       if (draftHiba) throw draftHiba
       return { draftId: 'd1', messageId: 'md1' }
     },
+    async modifyLabels(id, valtozas) {
+      hivasok.modifyLabels.push({ id, ...valtozas })
+      if (modifyHiba) throw modifyHiba
+      // Answers with MORE than the boundary declares, so a pass-through shows.
+      return { id, labelIds: ['INBOX', 'Label_8'], historyId: '99', snippet: 'reszlet' }
+    },
   }
 }
 
@@ -104,11 +119,11 @@ async function dobas(promise) {
   throw new Error('expected a refusal, got a return')
 }
 
-test('the contract declares exactly the six methods of design spec 6.1', () => {
+test('the contract declares exactly the seven methods on the boundary', () => {
   const { contract } = fresh()
-  assert.deepEqual(Object.keys(contract.methods), HAT_METODUS)
+  assert.deepEqual(Object.keys(contract.methods), HET_METODUS)
   assert.equal(MAILBOX_CONTRACT, 'mailbox')
-  assert.equal(MAILBOX_CONTRACT_VERSION, 1)
+  assert.equal(MAILBOX_CONTRACT_VERSION, 2)
   assert.equal(contract.version, MAILBOX_CONTRACT_VERSION)
 })
 
@@ -291,4 +306,72 @@ test('the contract summary fits the host cap, because a longer one stops the who
   // length is the whole assertion; the wording is not this test's business.
   assert.ok(summary.length > 0, 'the summary is required')
   assert.ok(summary.length <= MAX_DECLARATION_TEXT, `summary is ${summary.length} characters, cap is ${MAX_DECLARATION_TEXT}`)
+})
+
+
+/* ------------------------------------------------------------------ */
+/*  markRead -- contract v2                                            */
+/* ------------------------------------------------------------------ */
+
+test('markRead takes UNREAD off and asks for nothing else', async () => {
+  const client = ketto()
+  const { contract } = fresh({ client })
+
+  const valasz = await contract.methods.mark_read({ id: 'm1' })
+
+  assert.deepEqual(client.hivasok.modifyLabels, [{
+    id: 'm1',
+    addLabelIds: [],
+    removeLabelIds: ['UNREAD'],
+  }], 'the removed label is written in this module, never taken from the caller')
+  assert.deepEqual(valasz, { id: 'm1', labelIds: ['INBOX', 'Label_8'] })
+})
+
+test('markRead takes no label list from the caller, so the door cannot be widened through it', async () => {
+  const client = ketto()
+  const { contract } = fresh({ client })
+
+  // A consumer that tried to smuggle a second label through gets the one
+  // change this method makes, and its extra arguments reach no request.
+  await contract.methods.mark_read({
+    id: 'm1',
+    hozzaad: ['TRASH'],
+    elvesz: ['Label_8', 'INBOX'],
+    removeLabelIds: ['SPAM'],
+  })
+
+  assert.deepEqual(client.hivasok.modifyLabels[0].removeLabelIds, ['UNREAD'])
+  assert.deepEqual(client.hivasok.modifyLabels[0].addLabelIds, [])
+})
+
+test('markRead refuses a missing id rather than modifying whatever Gmail resolves', async () => {
+  const client = ketto()
+  const { contract } = fresh({ client })
+
+  const err = await dobas(contract.methods.mark_read({}))
+  assert.equal(err.code, 'gmail_argumentum_alak')
+  assert.equal(client.hivasok.modifyLabels.length, 0)
+})
+
+test('markRead reports the labels Gmail says the message now has, not the request', async () => {
+  // The same rule `label` follows: Gmail can apply part of a change, and a
+  // caller told its own request back has been told nothing.
+  const client = ketto()
+  client.modifyLabels = async (id) => ({ id, labelIds: ['INBOX', 'UNREAD'] })
+  const { contract } = fresh({ client })
+
+  const valasz = await contract.methods.mark_read({ id: 'm1' })
+  assert.deepEqual(valasz.labelIds, ['INBOX', 'UNREAD'], 'a change Gmail did not apply must not read as applied')
+})
+
+test('a markRead failure throws rather than answering a value, like every other contract method', async () => {
+  const client = ketto({ modifyHiba: new GmailError('gmail_cimkezes_sikertelen', 'a modify nem ment at') })
+  const { contract } = fresh({ client })
+
+  const err = await dobas(contract.methods.mark_read({ id: 'm1' }))
+  assert.equal(err.code, 'gmail_cimkezes_sikertelen')
+})
+
+test('the contract version is bumped, because markRead is a new promise consumers pin', () => {
+  assert.equal(MAILBOX_CONTRACT_VERSION, 2)
 })

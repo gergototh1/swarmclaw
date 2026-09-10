@@ -511,6 +511,8 @@ const FIELDS_NEEDING_NO_MENTION = Object.freeze({
   linksRead: "same: a counter recomputed by the close from `link_read`, not a fact the run has to report",
   seenMarked: "same: how many seen rows the close wrote. The RULE behind it is what the agent must know, and both prompts state it under `ok`",
   frontierHeld: 'whether the close held the frontier because the machine clock was ahead of it (THE CLOCK in db.mjs). A fact about the host clock, which the agent can neither cause nor fix; the sweep row carries it as `frontier_held=clock_ahead` for the operator, and the agent has nothing to do differently on its next turn',
+  markedRead: 'how many of the sweep\'s recorded messages the close marked read in Gmail. The marking follows the rows and is decided by the rows (MARKING READ IS THE SECOND HALF in sweep.mjs), so there is no input the agent controls and nothing it would do differently on being told the number',
+  markReadFailed: 'how many of them the mailbox refused. Those messages simply stay unread and come back on the next run, where the dedup drops them; the operator reads the shortfall off the sweep row as `mark_read_failed=N`, and the agent has no retry to make',
 })
 
 /**

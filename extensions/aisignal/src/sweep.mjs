@@ -43,9 +43,31 @@ import { MailboxError, codeOf, mailboxFor, resolveSource, sinceQuery } from './m
  * field, and its `placeholder: '5'` is UI text the host never substitutes -- a
  * blank setting arrives as `''`. This layer is the one place that sees both the tool
  * argument and the operator's setting, and turning "nobody said" into a working
- * run is exactly its job. The number matches the placeholder the operator sees.
+ * run is exactly its job.
+ *
+ * Exported, so this is the only place the number is written: `index.mjs` builds
+ * its `placeholder` and `defaultValue` from it and the tool description below
+ * interpolates it. Three literal fives drifted the moment one of them changed.
+ *
+ * WHAT SETS IT. Not Gmail, which will hand over far more than this, and not the
+ * database. The reader is an LLM agent that has to write a judgement for every
+ * message it is given, and its run is time-boxed by the schedule that starts
+ * it; a cap it cannot reach inside that box does not produce a bigger run, it
+ * produces a run that stops in the middle -- an open sweep row, mail recorded
+ * but never marked read, and the reclaim below cleaning up after it. So the
+ * cap is the number of messages a run can finish, not the number it may see.
+ *
+ * Five was the number while this layer was being built and it was too small to
+ * do the job: the label held 116 unread the day this changed, and five every
+ * two hours is more than a week of runs to catch up on a backlog that keeps
+ * growing. Twenty at that cadence drains it inside a day. It is the higher end
+ * of what a single run has been observed to get through -- a message costs the
+ * agent a read, a judgement and sometimes a link fetch -- and deliberately not
+ * the highest: the failure of guessing too high is the interrupted run, which
+ * is the more expensive of the two mistakes, and the operator can raise it in
+ * the settings without a release.
  */
-const DEFAULT_MAX = 5
+export const DEFAULT_MAX = 20
 
 /**
  * The label swept when neither the call nor the settings name one.
@@ -89,6 +111,48 @@ const TEXT_LIMIT = 20000
 const TRUNCATED_NOTE = 'list_truncated'
 /** The note segment a run writes when it set a future frontier aside; the value is the frontier it did not resume from. */
 const FRONTIER_AHEAD_NOTE = 'frontier_ahead'
+
+/**
+ * The Gmail search term that makes the swept set and the unread set the same
+ * set.
+ *
+ * WHY THE SWEEP FILTERS ON UNREAD AT ALL. Every message this run turns into a
+ * signal row is marked read at close (see MARKING READ IS THE SECOND HALF in
+ * `finishSweep` below), so "unread" becomes this extension's own record of what
+ * it has not got to yet -- one visible in the operator's own client, unlike the
+ * seen table. The two halves only work as a pair: a listing that ignored
+ * `is:unread` would keep re-offering mail already marked read, and a close that
+ * marked read without the filter would be recording progress nothing reads
+ * back.
+ *
+ * It is ANDed with the date window rather than replacing it. The window is what
+ * bounds the request -- a mailbox whose whole unread backlog is years deep would
+ * otherwise be listed in full on every run -- and the frontier is still the
+ * thing that moves. Unread is the narrowing, not the boundary.
+ */
+const UNREAD_QUERY = 'is:unread'
+
+/**
+ * The note segment a close writes when it wrote the signal rows and then could
+ * not mark some of their messages read; the value is how many.
+ *
+ * It is a count and not a failure: see `markRecordedRead`. The row it lands on
+ * is a row that succeeded, and this segment is the only place a reader can see
+ * that the mailbox's own progress record fell behind the database's.
+ */
+const MARK_READ_FAILED_NOTE = 'mark_read_failed'
+
+/**
+ * The note segment a sweep gets when a LATER run had to close it, and how old
+ * an open row must be before a later run is allowed to.
+ *
+ * See RECLAIMING AN ABANDONED SWEEP below. The window is a whole run's worth of
+ * time and then some: it is the one thing separating a row nobody will ever
+ * close from a row somebody is working in right now, and closing the second
+ * kind breaks a run that was doing fine.
+ */
+const ABANDONED_NOTE = 'abandoned'
+const ABANDONED_AFTER_MS = 30 * 60 * 1000
 
 const HTTP_RE = /^https?:\/\//i
 
@@ -423,6 +487,140 @@ function resolveOk(raw) {
   throw new Error('ok must be true or false')
 }
 
+/**
+ * The `q` one sweep hands the mailbox: the date window ANDed with `is:unread`.
+ *
+ * `sinceQuery` answers an empty string for an absent or unparseable `since`,
+ * and the empty half is dropped rather than joined, so a run with no frontier
+ * asks for the whole label's unread mail rather than sending a leading space
+ * Gmail would have to forgive.
+ *
+ * The unread term is never the one dropped. A run that lost its window still
+ * has a correct set to sweep; a run that lost its unread filter would re-offer
+ * every message this extension has already marked read, and the dedup -- which
+ * is keyed on ids this account has been *shown*, not on ids Gmail still calls
+ * unread -- is not a substitute for it on a mailbox the operator has been
+ * reading by hand.
+ */
+export function listQuery(since) {
+  return [sinceQuery(since), UNREAD_QUERY].filter(Boolean).join(' ')
+}
+
+/**
+ * Mark read exactly the messages this sweep turned into a signal row, and count
+ * the ones that would not.
+ *
+ * THE ORDER IS THE WHOLE POINT, AND IT IS NOT A STYLE CHOICE.
+ * -----------------------------------------------------------
+ * A message is marked read only after `recordSignal` has actually written its
+ * row, because `is:unread` is now the set this extension sweeps: a message
+ * marked read is a message no later run will ever list again. Marking at fetch
+ * time -- the obvious place, since that is where the mailbox handle is already
+ * open -- would make an interrupted run silently destructive.
+ *
+ * That is not hypothetical. The run of 2026-09-09T18:57Z listed five messages,
+ * recorded rows for three, and the agent died before the fourth. Marking at
+ * fetch would have marked all five read; the two with no row would have left
+ * the unread set without ever having been read by anything, and nothing --
+ * not the frontier, not the dedup, not a later sweep -- brings a message back
+ * out of that. Marking here, after the close has written the rows, means an
+ * interruption costs a re-listing and nothing else.
+ *
+ * The ids come from the items table rather than from `fetchedIds`, so "was a
+ * row written for this message" is answered by the rows themselves. A message
+ * that was fetched, read by the agent and judged not worth a card is therefore
+ * NOT marked read: it stays in the operator's unread mail, where they can see
+ * it, and the seen table is what keeps it from being scored twice.
+ *
+ * A FAILURE HERE DOES NOT FAIL THE CLOSE. The rows are already committed and
+ * the frontier has already moved; throwing now would report a run that did its
+ * work as a run that did not, and a retry could not undo the rows. So each id
+ * is attempted on its own, a failure is logged and counted, and the message
+ * simply stays unread -- it comes back on the next run, where the dedup drops
+ * it. The count reaches the sweep row so the shortfall is visible rather than
+ * silent.
+ */
+async function markRecordedRead(state, repo, sweepId) {
+  const ids = repo.recordedMessageIds(sweepId)
+  if (ids.length === 0) return { marked: 0, failed: 0 }
+  let mb
+  try {
+    mb = mailboxFor(state)
+  } catch (e) {
+    // No mailbox at all -- the provider was switched off between the listing
+    // and the close. Every id is a shortfall, and none of them is lost.
+    state.log.warn(`aisignal: no mailbox to mark ${ids.length} message(s) read`, { code: codeOf(e) })
+    return { marked: 0, failed: ids.length }
+  }
+  let marked = 0
+  let failed = 0
+  for (const id of ids) {
+    try {
+      await mb.mark_read({ id })
+      marked += 1
+    } catch (e) {
+      failed += 1
+      state.log.warn(`aisignal: mark_read failed for ${id}`, { code: codeOf(e) })
+    }
+  }
+  return { marked, failed }
+}
+
+/*
+ * RECLAIMING AN ABANDONED SWEEP
+ * =============================
+ * A run that dies between `signalSweep` and `finishSweep` leaves its row open
+ * forever, and open is the one state nothing else in this file repairs. What
+ * that row then says is false in three directions at once: `found` is still the
+ * zero `openSweep` wrote while the items table holds the cards the run did
+ * record, so the page reads the last run as fruitless when it was not; no id
+ * was marked seen, so the next run is offered the same mail and the agent pays
+ * to judge it twice; and since marking read now follows the close, none of the
+ * messages it did record were marked read either, so they stay in the unread
+ * set the sweep is draining. The 2026-09-09T18:57Z row is all three.
+ *
+ * The next run closes it, before it lists anything of its own. `ok: false` is
+ * the honest close and is exactly the shape needed here: it marks seen only the
+ * ids that became cards, leaves everything else fetchable, and moves no
+ * frontier -- a run that died proved nothing about how far the source was
+ * swept. `finishSweep` recomputes `found` from the items table on its way out,
+ * so the row stops lying about its own cards as a side effect. Then the same
+ * `markRecordedRead` the ordinary close uses marks that mail read.
+ *
+ * Doing it here rather than only labelling the row in the UI is the point: a
+ * label would fix the reading and none of the rest. This ordering matters too
+ * -- the reclaim runs before this run reads the seen set, so the ids it
+ * recovers are already seen by the time the dedup below asks.
+ *
+ * WHY IT CANNOT FAIL THE RUN. Everything it touches belongs to an earlier run
+ * that is already over. A failure here leaves that row exactly as it found it,
+ * to be tried again by the next run, and has nothing to say about whether this
+ * run can sweep -- so it is logged and swallowed, per row, and the sweep goes
+ * on. The same reasoning as `markRecordedRead`'s, one run further back.
+ */
+async function reclaimAbandonedSweeps(state, repo, ranAt) {
+  let ids = []
+  try {
+    ids = repo.unfinishedSweeps(new Date(Date.parse(ranAt) - ABANDONED_AFTER_MS).toISOString())
+  } catch (e) {
+    state.log.warn(`aisignal: could not look for abandoned sweeps: ${e.message}`)
+    return 0
+  }
+  let reclaimed = 0
+  for (const id of ids) {
+    try {
+      const closed = repo.finishSweep({ sweepId: id, ok: false, note: ABANDONED_NOTE })
+      const read = await markRecordedRead(state, repo, id)
+      if (read.failed > 0) repo.appendSweepNote(id, `${MARK_READ_FAILED_NOTE}=${read.failed}`)
+      reclaimed += 1
+      state.log.warn(`aisignal: closed abandoned sweep ${id}`, { found: closed.found, seenMarked: closed.seenMarked, markedRead: read.marked })
+    } catch (e) {
+      state.log.warn(`aisignal: could not close abandoned sweep ${id}: ${e.message}`)
+    }
+  }
+  return reclaimed
+}
+
 export function createSweepTools(state) {
   return [
     {
@@ -433,7 +631,7 @@ export function createSweepTools(state) {
         properties: {
           label: { type: 'string', description: 'Gmail címke; alapból a beállított.' },
           sinceDays: { type: 'number', description: 'Ennyi napra visszamenőleg. Csak tágítani tud: ha a vízjel régebbi, az marad, hogy az elmaradt levelek ne vesszenek el.' },
-          maxMessages: { type: 'number', description: 'Levél / futás; alapból a beállított, annak híján 5.' },
+          maxMessages: { type: 'number', description: `Levél / futás; alapból a beállított, annak híján ${DEFAULT_MAX}.` },
         },
       },
       async execute(args) {
@@ -457,6 +655,11 @@ export function createSweepTools(state) {
          * moment it gave up.
          */
         const ranAt = new Date().toISOString()
+
+        // Before this run has a row of its own: close whatever an earlier run
+        // left open, so its cards are counted, its mail is marked read, and the
+        // ids it recorded are seen before the dedup below reads the seen set.
+        await reclaimAbandonedSweeps(state, repo, ranAt)
 
         let max
         let sinceFloor
@@ -537,9 +740,10 @@ export function createSweepTools(state) {
          *
          * `since` is an instant and the contract's `q` is a Gmail search term,
          * so `sinceQuery` is what turns one into the other -- and it is the
-         * only thing that does. The `q` goes to Gmail literally, which is what
-         * makes a stored frontier hold: the same window names the same set
-         * until the mailbox changes.
+         * only thing that does. `listQuery` ANDs `is:unread` onto it, which is
+         * what pairs this listing with the marking done at close. The `q` goes
+         * to Gmail literally, which is what makes a stored frontier hold: the
+         * same window names the same set until the mailbox changes.
          *
          * `ids` is checked for being an array because it is what the dedup and
          * the counting of `leftover` are built out of, and anything else
@@ -555,7 +759,16 @@ export function createSweepTools(state) {
          */
         let listed
         try {
-          listed = await mb.list({ labelIds: [source.sourceId], q: sinceQuery(since), max: LIST_BUDGET })
+          // EXACTLY ONE LABEL ID, AND THAT IS LOAD-BEARING. Gmail's
+          // `users.messages.list` treats `labelIds` as a conjunction: a
+          // message must carry EVERY id listed. A second id here would not
+          // widen the sweep, it would narrow it to the intersection, and for
+          // two ordinary labels that intersection is usually empty -- an
+          // empty sweep that reports success and looks exactly like a quiet
+          // mailbox. A run is about one source (`resolveSource`), so one id
+          // is also the only correct number; if this ever has to cover two
+          // labels, it must become two calls, not two ids.
+          listed = await mb.list({ labelIds: [source.sourceId], q: listQuery(since), max: LIST_BUDGET })
           if (!Array.isArray(listed?.ids)) throw new MailboxError('gmail_unexpected', 'the mailbox contract returned a listing with no ids array')
         } catch (e) {
           return failedSweep(repo, { label, source, since, code: codeOf(e), message: e.message, note: clockNote, ranAt })
@@ -762,13 +975,36 @@ export function createSweepTools(state) {
         },
       },
       async execute(a) {
+        const repo = repoOf(state)
+        const sweepId = String(a.sweepId ?? '')
         // An unknown id throws from the repository rather than quietly marking
         // a batch of messages seen against nothing, which would lose them.
-        return repoOf(state).finishSweep({
-          sweepId: String(a.sweepId ?? ''),
+        const closed = repo.finishSweep({
+          sweepId,
           ok: resolveOk(a.ok),
           note: a.note ? String(a.note) : '',
         })
+
+        /*
+         * MARKING READ IS THE SECOND HALF, and it happens after the close, not
+         * before it.
+         *
+         * The listing filters on `is:unread` (see UNREAD_QUERY), so a message
+         * marked read is a message no later run lists. The database write is
+         * therefore what has to come first: after this line the rows are
+         * committed and the frontier has moved, so the worst a failure here can
+         * do is leave a message unread that the dedup will drop next time.
+         * Marking first and closing second would invert that -- a close that
+         * threw, or a process that died between the two, would leave messages
+         * read with nothing recorded and no way back.
+         *
+         * `markRecordedRead` never throws for the same reason: the run's work
+         * is already durable, and reporting it as failed would be a false
+         * report that a retry could not correct.
+         */
+        const read = await markRecordedRead(state, repo, sweepId)
+        if (read.failed > 0) repo.appendSweepNote(sweepId, `${MARK_READ_FAILED_NOTE}=${read.failed}`)
+        return { ...closed, markedRead: read.marked, markReadFailed: read.failed }
       },
     },
   ]

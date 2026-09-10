@@ -36,9 +36,10 @@ test('subscribe: registers both focus and blur listeners', () => {
     addEventListener(event: string, cb: () => void) {
       listeners.push({ event, callback: cb })
     },
-    removeEventListener(_event: string, _cb: () => void) {
-      // stub
-    },
+    // Ez a teszt nem a takaritast allitja, hanem a felvetelt -- a
+    // paramétereket ezért nem veszi át: egy fel nem használt paraméter
+    // csak lint-zajt ad, nem szerződést.
+    removeEventListener() {},
   }
 
   g.window = fakeWindow
@@ -66,9 +67,10 @@ test('subscribe: dispatching focus and blur events calls the callback', () => {
     addEventListener(event: string, cb: () => void) {
       callbacks.set(event, cb)
     },
-    removeEventListener(_event: string, _cb: () => void) {
-      // stub
-    },
+    // Ez a teszt nem a takaritast allitja, hanem a felvetelt -- a
+    // paramétereket ezért nem veszi át: egy fel nem használt paraméter
+    // csak lint-zajt ad, nem szerződést.
+    removeEventListener() {},
   }
 
   g.window = fakeWindow

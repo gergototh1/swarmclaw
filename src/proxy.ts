@@ -20,12 +20,19 @@ import { hmrSingleton } from '@/lib/shared-utils'
 interface RateLimitEntry {
   count: number
   lockedUntil: number
+  /** When the most recent failed attempt landed, so old failures can age out. */
+  lastFailureAt: number
 }
 
 const rateLimitMap = hmrSingleton('__swarmclaw_rate_limit__', () => new Map<string, RateLimitEntry>())
 
 const MAX_ATTEMPTS = 5
 const LOCKOUT_MS = 15 * 60 * 1000 // 15 minutes
+// Failures older than this stop counting toward the budget. Without it the
+// count only ever fell back to zero on a successful auth, so the first miss
+// after a lockout expired re-locked the bucket for another 15 minutes, and a
+// client that never gets its key right keeps an IP locked forever.
+const FAILURE_WINDOW_MS = 15 * 60 * 1000
 const PRUNE_THRESHOLD = 1000
 
 function isRateLimitEnabled(): boolean {
@@ -37,7 +44,9 @@ function pruneRateLimitMap() {
   if (rateLimitMap.size <= PRUNE_THRESHOLD) return
   const now = Date.now()
   rateLimitMap.forEach((entry, ip) => {
-    if (entry.lockedUntil < now && entry.count < MAX_ATTEMPTS) {
+    const lockExpired = entry.lockedUntil < now
+    const failuresAgedOut = now - entry.lastFailureAt >= FAILURE_WINDOW_MS
+    if (lockExpired && failuresAgedOut) {
       rateLimitMap.delete(ip)
     }
   })
@@ -209,7 +218,10 @@ function documentResponse(request: NextRequest): NextResponse {
  *  Checks X-Access-Key header or auth cookie on all /api/ routes except /api/auth
  *  and the Google OAuth callback.
  *  The key is validated against the ACCESS_KEY env var.
- *  After 5 failed attempts from a single IP the client is locked out for 15 minutes.
+ *  After 5 failed attempts inside 15 minutes from a single IP, that IP is locked
+ *  out for 15 minutes. The lockout is applied only to requests that fail
+ *  validation: a request carrying the correct key is never answered with a 429.
+ *  See the note at the check below for why.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -277,32 +289,47 @@ export function proxy(request: NextRequest) {
   if (rateLimitEnabled) pruneRateLimitMap()
 
   const clientIp = getClientIp(request)
-  const entry = rateLimitEnabled ? rateLimitMap.get(clientIp) : undefined
-
-  // Check lockout before even validating the key
-  if (rateLimitEnabled && entry && entry.lockedUntil > Date.now()) {
-    const retryAfter = Math.ceil((entry.lockedUntil - Date.now()) / 1000)
-    return NextResponse.json(
-      { error: 'Too many failed attempts. Try again later.', retryAfter },
-      {
-        status: 429,
-        headers: withExtensionInstallCorsHeaders(pathname, corsOrigin, { 'Retry-After': String(retryAfter) }),
-      },
-    )
-  }
 
   const cookieKey = request.cookies.get(AUTH_COOKIE_NAME)?.value?.trim() || ''
   const headerKey = request.headers.get('x-access-key')?.trim() || ''
   const providedKey = cookieKey || headerKey
 
+  // The key is validated *before* the lockout is consulted, and the lockout is
+  // consulted only on the failing branch. The bucket is keyed by source IP, and
+  // in the desktop build every client shares 127.0.0.1 — so gating a valid key
+  // on the bucket let one misconfigured local program answer the Electron
+  // window's own requests with a 429 for 15 minutes at a time. Nothing is given
+  // away by letting a correct key through: an attacker who already holds the key
+  // has won regardless of how many wrong guesses preceded it, and every wrong
+  // guess still lands in the branch below.
   if (providedKey !== accessKey) {
     let remaining = MAX_ATTEMPTS
     if (rateLimitEnabled) {
-      const current = rateLimitMap.get(clientIp) ?? { count: 0, lockedUntil: 0 }
-      current.count += 1
+      const now = Date.now()
+      const entry = rateLimitMap.get(clientIp)
 
+      if (entry && entry.lockedUntil > now) {
+        const retryAfter = Math.ceil((entry.lockedUntil - now) / 1000)
+        return NextResponse.json(
+          { error: 'Too many failed attempts. Try again later.', retryAfter },
+          {
+            status: 429,
+            headers: withExtensionInstallCorsHeaders(pathname, corsOrigin, { 'Retry-After': String(retryAfter) }),
+          },
+        )
+      }
+
+      // A bucket whose last failure is older than the window starts over, so an
+      // expired lockout hands back a full budget instead of re-locking on the
+      // very next miss.
+      const current = entry && now - entry.lastFailureAt < FAILURE_WINDOW_MS
+        ? entry
+        : { count: 0, lockedUntil: 0, lastFailureAt: 0 }
+
+      current.count += 1
+      current.lastFailureAt = now
       if (current.count >= MAX_ATTEMPTS) {
-        current.lockedUntil = Date.now() + LOCKOUT_MS
+        current.lockedUntil = now + LOCKOUT_MS
       }
 
       rateLimitMap.set(clientIp, current)
@@ -318,7 +345,7 @@ export function proxy(request: NextRequest) {
   }
 
   // Successful auth — clear any prior failed-attempt tracking for this IP
-  if (rateLimitEnabled && entry) {
+  if (rateLimitEnabled) {
     rateLimitMap.delete(clientIp)
   }
 

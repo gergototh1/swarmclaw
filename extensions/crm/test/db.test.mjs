@@ -371,6 +371,24 @@ test('a sopres-allapot irhato es visszaolvashato', () => {
   assert.equal(repo.getSweepState('gmail').cursor, 'c2', 'a masodik iras felulir, nem duplikal')
 })
 
+test('a 7-es migracio torli a regi, kozos gmail kurzorsort', () => {
+  // A regi sor kurzora egy `labelIds: ['INBOX','SENT']` listazasra szolt, ami
+  // a Gmail ES-szemantikaja miatt mindig ures halmaz volt -- egy olyan
+  // lapozas allapota, ami sosem latott levelet. Egyik cimke menetere sem
+  // ervenyes, ezert torlodik, nem oroklodik.
+  const S = memStorage()
+  const v7Elott = MIGRATIONS.filter((m) => m.version < 7)
+  for (const m of v7Elott) S.raw.exec(m.sql)
+  const repo = createRepo(S)
+  repo.setSweepState('gmail', { cursor: 'regi_kurzor', lastSeenAt: '2026-09-01T10:00:00.000Z' })
+  repo.setSweepState('gmail:INBOX', { cursor: 'inbox_kurzor', lastSeenAt: '2026-09-01T10:00:00.000Z' })
+
+  for (const m of MIGRATIONS.filter((m2) => m2.version === 7)) S.raw.exec(m.sql)
+
+  assert.equal(repo.getSweepState('gmail'), null, 'a regi, kozos sor eltunt')
+  assert.equal(repo.getSweepState('gmail:INBOX').cursor, 'inbox_kurzor', 'a cimkenkenti sorokhoz nem nyul')
+})
+
 test('accountIdByThread a szal mar besorolt uzenetebol dolgozik', () => {
   const { repo } = repoOf()
   const acc = repo.createAccount({ name: 'X' })

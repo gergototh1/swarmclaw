@@ -48,7 +48,7 @@ export const MAILBOX_CONTRACT = 'mailbox'
  * WHICH version they wanted; a second, weaker version check on this side would
  * only be another place to disagree with the host.
  */
-export const MAILBOX_VERSION = 1
+export const MAILBOX_VERSION = 2
 
 /**
  * The contract could not be resolved into a handle at all: the `gmail`

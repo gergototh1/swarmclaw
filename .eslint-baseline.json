@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-09T20:50:26.318Z",
-  "totalIssues": 387,
-  "uniqueIssues": 127,
+  "generatedAt": "2026-09-10T07:52:31.221Z",
+  "totalIssues": 380,
+  "uniqueIssues": 124,
   "issues": [
     {
       "filePath": "bin/worker-cmd.js",
@@ -360,20 +360,6 @@
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "count": 4
-    },
-    {
-      "filePath": "src/hooks/use-window-focused.test.ts",
-      "ruleId": "@typescript-eslint/no-unused-vars",
-      "severity": 1,
-      "message": "'_cb' is defined but never used.",
-      "count": 2
-    },
-    {
-      "filePath": "src/hooks/use-window-focused.test.ts",
-      "ruleId": "@typescript-eslint/no-unused-vars",
-      "severity": 1,
-      "message": "'_event' is defined but never used.",
-      "count": 2
     },
     {
       "filePath": "src/lib/observability/local-observability.test.ts",
@@ -857,13 +843,6 @@
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "count": 2
-    },
-    {
-      "filePath": "src/proxy.test.ts",
-      "ruleId": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "count": 3
     },
     {
       "filePath": "src/stores/slices/auth-slice.ts",

@@ -344,10 +344,10 @@ async function main() {
     assert.equal(entry.managedScheduleCount ?? 0, 0, 'managedScheduleCount')
     assert.deepEqual(
       (entry.contractsProvided || []).map((c) => ({ contract: c.contract, version: c.version })),
-      [{ contract: 'mailbox', version: 1 }],
+      [{ contract: 'mailbox', version: 2 }],
       'contractsProvided',
     )
-    return `name=${entry.name} tools=${entry.toolCount ?? 0} contract=mailbox v1 managed=0/0`
+    return `name=${entry.name} tools=${entry.toolCount ?? 0} contract=mailbox v2 managed=0/0`
   })
 
   const page = await check('page is declared and its assets are served from dist', async () => {

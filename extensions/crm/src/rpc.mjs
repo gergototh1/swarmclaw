@@ -307,6 +307,22 @@ async function crmProjektId(state) {
  * (src/tools.mjs) ezekből egyet sem visz, és külön fájlban van, hogy egy
  * átvitel a diffből látsszon, ne egy megosztott listából.
  */
+/**
+ * Az operátor (vagy egy HTTP-hívó) által megadott címke-lista tömbbé, vagy
+ * `undefined`-dá, ha nem adott meg használhatót.
+ *
+ * Tömböt és vesszős szöveget is elfogad -- az rpc JSON-teste az egyiket, a
+ * kézzel összerakott curl a másikat adja --, és a nem szöveges elemeket
+ * eldobja. Az `undefined` szándékos: a hívó „nem mondtam semmit"-je így
+ * egyértelműen elkülönül a „ne szűkíts semmire"-től, amit a `runSweep` nem is
+ * fogadna el (üres címkelista a teljes postafiókot söpörné).
+ */
+function normalizeLabelIds(raw) {
+  const lista = Array.isArray(raw) ? raw : String(raw ?? '').split(',')
+  const tiszta = lista.map((l) => String(l ?? '').trim()).filter(Boolean)
+  return tiszta.length ? tiszta : undefined
+}
+
 export function createRpc(state) {
   const repo = () => {
     if (!state.repo) throw new Error('crm_nincs_tar')
@@ -490,9 +506,25 @@ export function createRpc(state) {
       return { ...resolved, event, eventFiled: Boolean(event) }
     },
 
-    /** A söprés az operátor gombjáról. Ugyanaz a törzs, mint az eszközé. */
-    async sweepNow({ max } = {}) {
-      return createSweep(state).runSweep({ max: Number(max) || 50 })
+    /**
+     * A söprés az operátor gombjáról. Ugyanaz a törzs, mint az eszközé.
+     *
+     * A `labelIds` ÉS A `q` IS ÁTMEGY, ÉS EZ NEM KÉNYELMI MEZŐ. A `runSweep`
+     * mindkettőt fogadja, de amíg ez az ajtó csak a `max`-ot adta tovább,
+     * addig egy üres söprés okát nem lehetett innen szűkíteni: nem lehetett
+     * megkérdezni, hoz-e a puszta INBOX levelet. Pontosan ez tette hosszúvá a
+     * Gmail ÉS-szemantikájából eredő üres söprés diagnózisát.
+     *
+     * Az üres vagy értelmezhetetlen érték `undefined`-ra esik, NEM üres
+     * tömbre -- de ez ma már csak takarékosság: a `runSweep` üres listára és
+     * `undefined`-ra egyaránt a teljes postafiókot söpri, mert az archivált
+     * levél (amiből az idővonal áll) egyik alapértelmezett címkét sem viseli.
+     * A címkelista innen SZŰKÍTÉS, és több címke a Gmailnél ÉS-kapcsolat.
+     */
+    async sweepNow({ max, labelIds, q } = {}) {
+      const cimkek = normalizeLabelIds(labelIds)
+      const kereses = typeof q === 'string' && q.trim() ? q.trim() : undefined
+      return createSweep(state).runSweep({ max: Number(max) || 50, labelIds: cimkek, q: kereses })
     },
 
     /**

@@ -282,7 +282,7 @@ test('index.mjs declares the signals contract and consumes the gmail mailbox', (
   assert.match(reason, /tarolja/)
   // The name matches the version the code is written against, so a provider on
   // another version is refused by the host rather than read wrongly here.
-  assert.equal(MAILBOX_VERSION, 1)
+  assert.equal(MAILBOX_VERSION, 2)
 })
 
 /** Both surfaces are built before setup() runs, so neither may capture a repository. */

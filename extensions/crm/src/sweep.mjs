@@ -15,6 +15,47 @@ import { matchMessage } from './matching.mjs'
  * automatikusan besorolna, a `noreply@`, a könyvelő és a külsős alvállalkozó
  * mind az ügyfél idővonalára kerülne, onnan az összefoglalójába.
  *
+ * A TELJES POSTAFIÓKOT SÖPRI, ÉS EZ SZÁNDÉKOS. A Gmailnek nincs `ALL_MAIL`
+ * címke-id-je, tehát a teljes postafiók egyetlen módja az, hogy `labelIds`
+ * egyáltalán NEM megy a `list` hívásba. Az „üres `labelIds` = teljes
+ * postafiók" korábban védőkorlát volt itt; most a kívánt viselkedés. Amit a
+ * korlát célzott -- hogy egy futás ne akarja behúzni a fél postafiókot --, azt
+ * a `q` (alapból `newer_than:90d`), a `max` keret és a lapozó kurzor együtt
+ * elvégzi: egy futás legfeljebb `max` levelet néz meg, a következő futás pedig
+ * a kurzorról folytatja.
+ *
+ * AZ ARCHIVÁLT LEVÉL NÉLKÜL NINCS IDŐVONAL. Az `['INBOX','SENT']`
+ * alapértelmezés szerkezetileg vak volt mindenre, amit az operátor elintézett
+ * és kiarchivált -- márpedig épp az elintézett ügyfél-levelezés az, amiből egy
+ * idővonal áll. Mérve: mind a 8 Dénes Architects levél `IMPORTANT` +
+ * `CATEGORY_PERSONAL` címkét visel, INBOX-ot nem, és `in:inbox`-ra nulla
+ * találat jön. A CRM pont abból nem látott semmit, amiért van.
+ *
+ * A GMAIL `labelIds`-E ÉS-KAPCSOLAT -- EZ IGAZ MARAD, CSAK MÁR NEM EZ A KÓD
+ * ALAKJA. A `users.messages.list` `labelIds` paramétere metszetet szűr: a
+ * levélnek MINDEN felsorolt címkével rendelkeznie kell. Egy levél vagy az
+ * INBOX-ban van, vagy a SENT-ben, sosem mindkettőben, tehát egy
+ * `list({ labelIds: ['INBOX','SENT'] })` hívás GARANTÁLTAN üres halmazt ad --
+ * ettől a hibától nem húzott be a söprés élesben egyetlen levelet sem,
+ * miközben minden teszt zöld maradt. Aki valaha címkét ad ennek a kódnak
+ * (`runSweep({ labelIds })`), annak ez a szabály újra érvényes: egyszerre
+ * csak olyan címkéket soroljon fel, amik EGY levélen együtt előfordulnak.
+ *
+ * A BEJÖVŐ/KIMENŐ MEGKÜLÖNBÖZTETÉS NEM A LISTÁZÁSON MÚLIK. A `kind` az üzenet
+ * saját `SENT` címkéjéből dől el (`msg.labelIds.includes('SENT')`), a `get`
+ * válaszából, üzenetenként -- tehát a címke nélküli listázás sem mossa össze
+ * a kimenő levelet a bejövővel.
+ *
+ * A BESOROLATLAN DOBOZ TEENDŐ-LISTA, NEM ARCHÍVUM. Eseményt a teljes söpört
+ * halmazból rögzítünk, archiváltból is: ha ISMERT kapcsolattartótól jött, az
+ * idővonalra való. A besorolatlanba viszont csak INBOX-ban lévő levél kerül.
+ * A besorolatlan sor azt kérdezi az operátortól, hogy „ki ez?", és ennek csak
+ * olyan levélnél van értelme, amivel még dolga van. Egy fél éve archivált
+ * hírlevélről ugyanezt megkérdezni nem információ, hanem munka. Nem veszítünk
+ * vele semmit -- az archivált levél ismert feladótól így is bekerül --, csak
+ * nem kérdezünk vissza olyasmiről, amit az operátor már lezárt. A kihagyás
+ * nem néma: `skippedUnmatchedArchived` számolja.
+ *
  * EGY LAPON EGY ROSSZ LEVÉL NEM ÁLLÍTHATJA MEG A TÖBBIT. Minden üzenet saját
  * try/catch-ben fut: egy dobott hiba (lekérés, ismeretlen alak) a `failed`
  * számlálóba kerül és névvel a logba, a lap többi levele változatlanul
@@ -23,12 +64,11 @@ import { matchMessage } from './matching.mjs'
  */
 
 /**
- * A söprés alapértelmezett Gmail-címkéi és keresési szűrője, ha az operátor
- * nem állított be sajátot. A SENT itt is benne van: e nélkül egy friss
- * telepítés (beállítás mentése előtt) nem látná a kimenő leveleket, és a
- * „válasz nélküli levél" jelzés (CRM-3) hallgatna.
+ * A söprés alapértelmezett keresési szűrője, ha az operátor nem állított be
+ * sajátot. Címke-alapértelmezés NINCS: címke nélkül a listázás a teljes
+ * postafiókot látja (lásd a fájl tetején), és a `q` az, ami a futást
+ * időben határolja.
  */
-const DEFAULT_LABELS = ['INBOX', 'SENT']
 const DEFAULT_QUERY = 'newer_than:90d'
 
 /**
@@ -39,19 +79,18 @@ const DEFAULT_QUERY = 'newer_than:90d'
  */
 const EXCLUDED_LABELS = new Set(['DRAFT'])
 
+
 /**
- * Vesszős címke-lista szöveggé alakítása tömbbé: vág, üreset dob. Üres
- * bemenetre (nincs beállítás egyik kulcson sem) az alapértelmezett címkéket
- * adja -- SOHA nem üres tömböt, mert a `mailbox.list({ labelIds: [] })`
- * a teljes postafiókot söpörné (lásd a fájl tetején lévő figyelmeztetést).
+ * A söprés egyetlen kurzora.
+ *
+ * EGY MENET, EGY KURZOR. Amíg címkénként külön `list` menet futott, címkénként
+ * külön kurzorra is szükség volt (`gmail:INBOX`, `gmail:SENT`), különben az
+ * egyik menet a másik lapozásáról folytatta volna, és levelek fölött ugrott
+ * volna át. Címke nélkül egyetlen lapozás van, tehát egyetlen sor. Az `:all`
+ * utótag szándékos: a régi, címkés sorok érintetlenül maradnak, és egy
+ * frissítés nem egy fél postafióknyi lapozás közepéről indul.
  */
-function parseLabelList(raw) {
-  const parsed = String(raw || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-  return parsed.length ? parsed : DEFAULT_LABELS
-}
+const SWEEP_KEY_ALL = 'gmail:all'
 
 export function createSweep(state) {
   const repo = () => {
@@ -78,15 +117,16 @@ export function createSweep(state) {
     __state: state,
 
     /**
-     * Egy lap behúzása. `labelIds` és `q` a hívóé, de a gyakorlatban egyik
-     * belépési pont (rpc `sweepNow`, ügynök `crm_sweep`) sem ad meg egyiket
-     * sem -- ilyenkor a beállított (`sopresCimke`, `sopresLekerdezes`) vagy
-     * ennek híján az alapértelmezett érték határolja a listázást, hogy a
-     * gomb és az eszköz pontosan ugyanazt csinálja.
+     * Egy lap behúzása. `q` a hívóé, de a gyakorlatban egyik belépési pont
+     * (rpc `sweepNow`, ügynök `crm_sweep`) sem ad meg -- ilyenkor a beállított
+     * (`sopresLekerdezes`) vagy ennek híján az alapértelmezett érték határolja
+     * a listázást, hogy a gomb és az eszköz pontosan ugyanazt csinálja.
      *
      * Egy üresre állított beállítás (`''`) is az alapértelmezettre esik
      * vissza -- a `state.settings()` egy törölt mezőre üres stringet ad,
      * sosem `undefined`-et, tehát az `||` mindkét esetben a helyes ágra visz.
+     *
+     * `labelIds` szűkítés, nem bővítés: e nélkül a teljes postafiók jön.
      */
     async runSweep({ labelIds, q, max = 50 } = {}) {
       const r = repo()
@@ -98,48 +138,69 @@ export function createSweep(state) {
         accountsByDomain: (d) => r.accountsByDomain(d),
       }
 
-      // A `sopresCimkek` (többes szám, vesszős lista) az uralkodó kulcs.
-      // A régi, egyes számú `sopresCimke` tartalék: az operátor telepítésén
-      // ez már be lehet állítva, és e nélkül a tartalék nélkül egy frissítés
-      // némán visszaállítaná az alapértékre az ő beállítását.
-      const effectiveLabelIds = Array.isArray(labelIds) && labelIds.length
-        ? labelIds
-        : parseLabelList(settings.sopresCimkek || settings.sopresCimke)
+      // A HÍVÓ CÍMKÉJE FELÜLÍRHATJA A TELJES POSTAFIÓKOT, A BEÁLLÍTÁS NEM.
+      // Alapból nem megy `labelIds` a listázásba -- ez húzza be az archivált
+      // levelet is (lásd a fájl tetején). A régi `sopresCimkek` /
+      // `sopresCimke` beállítást SZÁNDÉKOSAN nem olvassuk: az operátor
+      // telepítésén ott `'INBOX'` állhat egy korábbi verzióból, és annak a
+      // néma tiszteletben tartása pontosan azt a vakságot állítaná vissza,
+      // amit ez a söprés megszüntet. Nevesítve naplózzuk, hogy a mező ne
+      // tűnjön hatásosnak.
+      const settingsLabels = String(settings.sopresCimkek || settings.sopresCimke || '').trim()
+      if (settingsLabels) {
+        state.log?.warn?.(
+          'crm sweep: a sopresCimkek/sopresCimke beallitas figyelmen kivul marad -- '
+          + 'a sopres a teljes postafiokot nezi, kulonben az archivalt level kimaradna. '
+          + 'A beallitas torolheto.',
+          { sopresCimkek: settingsLabels },
+        )
+      }
+
+      // A `labelIds` felülírás megmarad a hívónak (rpc `sweepNow`), de üresen
+      // marad, ha nem adnak ilyet -- és üres `labelIds` a Gmailnél a teljes
+      // postafiók. Aki ad, annak a Gmail ÉS-szemantikájával kell számolnia.
+      const explicitLabels = (Array.isArray(labelIds) ? labelIds : [])
+        .map((l) => String(l).trim())
+        .filter(Boolean)
       const effectiveQ = typeof q === 'string' && q
         ? q
         : String(settings.sopresLekerdezes || DEFAULT_QUERY)
 
-      // A SENT hianya NEM egy szuk, kihagyhato eset: a CRM-2 alapertelmezett
-      // `sopresCimke`-je pontosan `'INBOX'` volt, tehat barmelyik telepitesen,
-      // ahol az operator azt a mezot valaha elmentette, a tartalek-ag egy
-      // SENT nelkuli listat ad. Ekkor egyetlen `email_out` esemeny sem kerul
-      // az idovonalra, es az `unansweredThreads` -- ami pontosan a kimeno
-      // esemeny hianyat keresi -- MINDEN bejovo levelet valasz nelkulinek
-      // mond. A CRM-3 zaszloshajo jelzese igy nem elhallgat, hanem
-      // forditva: teljes zajja valik, es semmi nem mondja meg, miert. A
-      // sopres emiatt fut tovabb (az operator beallitasat nem irjuk felul),
-      // de nevesitve naplozzuk, hogy a diagnozis ne az esemenytabla
-      // visszafejtesevel kezdodjon.
-      if (!effectiveLabelIds.some((l) => String(l).toUpperCase() === 'SENT')) {
+      // TÖBB CÍMKE ÉS-KAPCSOLAT, ÉS EZ EGYSZER MÁR ELESBEN FÁJT. A
+      // `users.messages.list` metszetet szűr, tehát `['INBOX','SENT']`
+      // garantáltan üres halmaz -- ettől nem húzott be a söprés egyetlen
+      // levelet sem, miközben minden teszt zöld volt. A hívó felülírását nem
+      // írjuk felül, de nevesítve naplózzuk, hogy a diagnózis ne az
+      // eseménytábla visszafejtésével kezdődjön.
+      if (explicitLabels.length > 1) {
         state.log?.warn?.(
-          'crm sweep: a felbontott cimkelistaban nincs SENT -- kimeno level nem kerul az idovonalra, '
-          + 'es a "valasz nelkuli level" jelzes emiatt minden bejovo levelet valasz nelkulinek fog mondani. '
-          + 'Vedd fel a SENT-et a sopresCimkek beallitasba.',
-          { labelIds: effectiveLabelIds },
+          'crm sweep: tobb cimke egy listazasban ES-kapcsolat -- csak olyan level jon vissza, '
+          + 'amin MINDEGYIK cimke rajta van, es pl. az INBOX+SENT metszete mindig ures.',
+          { labelIds: explicitLabels },
         )
       }
 
-      const lap = await box.list({
-        labelIds: effectiveLabelIds,
-        q: effectiveQ,
-        max,
-        cursor: r.getSweepState('gmail')?.cursor || undefined,
-      })
+      // A felülírt címkelistának saját kurzora van: egy szűkített menet
+      // lapozása nem folytatható a teljes postafiók lapozásáról, és fordítva.
+      const kulcs = explicitLabels.length ? `gmail:${explicitLabels.join('+')}` : SWEEP_KEY_ALL
+
+      let scanned = 0
       let recorded = 0
       let recordedOut = 0
       let unmatched = 0
       let failed = 0
       let skippedOut = 0
+      let skippedUnmatchedArchived = 0
+
+      // EGY MENET. A Gmailnek nincs `ALL_MAIL` címkéje, tehát a teljes
+      // postafiók egyetlen módja az, hogy `labelIds` nem megy a hívásba.
+      const lap = await box.list({
+        ...(explicitLabels.length ? { labelIds: explicitLabels } : {}),
+        q: effectiveQ,
+        max: Math.max(1, Number(max) || 50),
+        cursor: r.getSweepState(kulcs)?.cursor || undefined,
+      })
+      scanned += lap.ids.length
 
       for (const id of lap.ids) {
         try {
@@ -163,7 +224,8 @@ export function createSweep(state) {
           // A SENT címke az egyetlen megbízható jel arra, hogy ez a levél tőlünk
           // ment. A feladó címére nem építünk: az operátornak több címe lehet, és
           // egy alias vagy egy megosztott postafiók ugyanúgy tőle jön.
-          const kimeno = Array.isArray(msg.labelIds) && msg.labelIds.includes('SENT')
+          const cimkek = Array.isArray(msg.labelIds) ? msg.labelIds : []
+          const kimeno = cimkek.includes('SENT')
           const kind = kimeno ? 'email_out' : 'email_in'
 
           const talalat = matchMessage({ fromEmail: msg.fromEmail, threadId: msg.threadId }, lookups)
@@ -171,6 +233,10 @@ export function createSweep(state) {
           // A kimenő levélnél az 1. lépés (pontos cím) szándékosan nem talál
           // -- a feladó te vagy --, tehát a 2. lépés, a szál viszi. Ez helyes:
           // egy kimenő levél oda tartozik, ahova a beszélgetés.
+          //
+          // Az ILLESZTÉS MAGA VÁLTOZATLAN ARCHIVÁLT LEVÉLRE IS: ha ismert a
+          // feladó vagy a szál, az esemény akkor is az idővonalra kerül, ha a
+          // levél már rég ki van archiválva. Épp ez a fix lényege.
           if (talalat.kind === 'exact' || talalat.kind === 'thread') {
             const { created } = r.recordEvent({
               accountId: talalat.accountId,
@@ -205,6 +271,16 @@ export function createSweep(state) {
             continue
           }
 
+          // A BESOROLATLAN DOBOZ TEENDŐ-LISTA, NEM ARCHÍVUM. Illesztetlen
+          // levél csak akkor kerül be, ha az INBOX-ban van, tehát az
+          // operátornak még dolga van vele. Egy archivált, ismeretlen feladójú
+          // levél (hírlevél, rendszerüzenet) csendben kimarad -- de nem
+          // nyomtalanul: a `skippedUnmatchedArchived` számolja.
+          if (!cimkek.includes('INBOX')) {
+            skippedUnmatchedArchived += 1
+            continue
+          }
+
           const { created } = r.recordUnmatched({
             sourceSystem: 'gmail',
             sourceId: msg.id,
@@ -228,8 +304,13 @@ export function createSweep(state) {
       // A kurzor akkor is előrébb áll, ha a lapon volt hiba -- a hibás
       // levelek elszámoltak a `failed`-ben, de nem tarthatják a kurzort
       // örökre a lap elején.
-      r.setSweepState('gmail', { cursor: lap.complete ? '' : (lap.nextCursor || ''), lastSeenAt: new Date().toISOString() })
-      return { scanned: lap.ids.length, recorded, recordedOut, unmatched, failed, skippedOut, complete: lap.complete, cursor: lap.nextCursor || '' }
+      const cursor = lap.complete ? '' : (lap.nextCursor || '')
+      r.setSweepState(kulcs, { cursor, lastSeenAt: new Date().toISOString() })
+
+      return {
+        scanned, recorded, recordedOut, unmatched, failed,
+        skippedOut, skippedUnmatchedArchived, complete: Boolean(lap.complete), cursor,
+      }
     },
   }
 }

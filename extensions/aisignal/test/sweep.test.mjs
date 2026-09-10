@@ -3,7 +3,7 @@ import { test } from 'node:test'
 
 import { MAIL_KIND, MIGRATIONS, createRepo, alreadyClosedMessage } from '../src/db.mjs'
 import { MAILBOX_CONTRACT, MAILBOX_PROVIDER, MAILBOX_UNAVAILABLE, MailboxError, sinceQuery } from '../src/mailbox.mjs'
-import { createSweepTools } from '../src/sweep.mjs'
+import { DEFAULT_MAX, createSweepTools, listQuery } from '../src/sweep.mjs'
 import { memStorage } from './helpers.mjs'
 
 /**
@@ -57,8 +57,8 @@ const openedAt = (repo) => repo.latestSweep().since
  * Every call is recorded so a test can assert what the sweep asked for -- the
  * cap it resolved and the query it built are only observable there.
  */
-function fakeMailbox({ label = LABEL_ID, labelName = LABEL, mailbox = MAILBOX, ids = [], stoppedOn = null, complete = stoppedOn === null, message, labelsFail, mailboxFail, fetchFail } = {}) {
-  const calls = { labels: [], mailbox: [], list: [], get: [] }
+function fakeMailbox({ label = LABEL_ID, labelName = LABEL, mailbox = MAILBOX, ids = [], stoppedOn = null, complete = stoppedOn === null, message, labelsFail, mailboxFail, fetchFail, markReadFail } = {}) {
+  const calls = { labels: [], mailbox: [], list: [], get: [], markRead: [] }
   return {
     calls,
     labels: async () => {
@@ -83,6 +83,15 @@ function fakeMailbox({ label = LABEL_ID, labelName = LABEL, mailbox = MAILBOX, i
         ? message(id)
         : { id, subject: `S ${id}`, fromName: 'F', fromEmail: 'f@x', sentAt: null, text: 'body', textInAttachment: false }
     },
+    // Contract v2. Recorded rather than merely tolerated: which ids reach this
+    // is the whole assertion of the marking tests, and a double that swallowed
+    // the call would let a close that marked the wrong messages read pass.
+    mark_read: async ({ id }) => {
+      calls.markRead.push(id)
+      const fail = markReadFail?.(id)
+      if (fail) throw fail
+      return { id, labelIds: [label] }
+    },
   }
 }
 
@@ -93,7 +102,7 @@ function fakeMailbox({ label = LABEL_ID, labelName = LABEL, mailbox = MAILBOX, i
  * label list, which is how a mailbox expresses a label it does not have.
  */
 function multiLabelMailbox(idsByLabel) {
-  const calls = { labels: [], mailbox: [], list: [], get: [] }
+  const calls = { labels: [], mailbox: [], list: [], get: [], markRead: [] }
   return {
     calls,
     labels: async () => {
@@ -111,6 +120,10 @@ function multiLabelMailbox(idsByLabel) {
     get: async ({ id }) => {
       calls.get.push(id)
       return { id, subject: `S ${id}`, fromName: 'F', fromEmail: 'f@x', sentAt: null, text: 'body', textInAttachment: false }
+    },
+    mark_read: async ({ id }) => {
+      calls.markRead.push(id)
+      return { id, labelIds: [] }
     },
   }
 }
@@ -133,12 +146,19 @@ function multiLabelMailbox(idsByLabel) {
  * another Google account, does underneath a setting nobody edited.
  */
 function liveMailbox(box) {
-  const calls = { labels: [], mailbox: [], list: [], get: [] }
+  const calls = { labels: [], mailbox: [], list: [], get: [], markRead: [] }
+  // The `q` is now several terms, so the window is read out of the `after:`
+  // one rather than off the front of the string. A `q` carrying no `after:`
+  // term is a run with no frontier, which opens at the whole label.
   const windowStart = (q) => {
-    if (!q) return -Infinity
-    const [y, m, d] = q.slice('after:'.length).split('/').map(Number)
+    const term = String(q || '').split(/\s+/).find((t) => t.startsWith('after:'))
+    if (!term) return -Infinity
+    const [y, m, d] = term.slice('after:'.length).split('/').map(Number)
     return Date.UTC(y, m - 1, d)
   }
+  // Gmail's own `is:unread`: the double holds read state and honours the term,
+  // so a message this extension marked read genuinely stops being listed.
+  const unreadOnly = (q) => String(q || '').split(/\s+/).includes('is:unread')
   return {
     calls,
     labels: async () => {
@@ -152,13 +172,23 @@ function liveMailbox(box) {
     list: async ({ labelIds, q, max }) => {
       calls.list.push({ labelIds, q, max, account: box.address })
       const from = windowStart(q)
-      const ids = (box.messages[labelIds[0]] || []).filter((m) => m.at >= from).map((m) => m.id)
+      const onlyUnread = unreadOnly(q)
+      const ids = (box.messages[labelIds[0]] || [])
+        .filter((m) => m.at >= from && !(onlyUnread && m.read === true))
+        .map((m) => m.id)
       const cut = ids.length > max
       return { ids: ids.slice(0, max), nextCursor: cut ? 'PAGE_2' : null, complete: !cut, stoppedOn: cut ? 'cap' : null }
     },
     get: async ({ id }) => {
       calls.get.push(id)
       return { id, subject: `S ${id}`, fromName: 'F', fromEmail: 'f@x', sentAt: null, text: 'body', textInAttachment: false }
+    },
+    mark_read: async ({ id }) => {
+      calls.markRead.push(id)
+      for (const label of Object.keys(box.messages)) {
+        for (const m of box.messages[label]) if (m.id === id) m.read = true
+      }
+      return { id, labelIds: [] }
     },
   }
 }
@@ -351,12 +381,12 @@ test('a cap stop and a page_ceiling stop are recorded as different facts', async
 // --- The message cap --------------------------------------------------------
 
 test('a blank maxMessages setting falls back to the default rather than asking Gmail for zero', async () => {
-  const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+  const ids = Array.from({ length: DEFAULT_MAX + 2 }, (_, i) => `a${i}`)
   for (const blank of [undefined, '']) {
     const gmail = fakeMailbox({ ids })
     const { run } = setup(gmail, { label: 'AI hírlevél', maxMessages: blank })
     const r = await run('signalSweep')
-    assert.equal(r.messages.length, 5)
+    assert.equal(r.messages.length, DEFAULT_MAX)
     assert.equal(r.leftover, 2)
     assert.equal(r.error, undefined)
   }
@@ -400,7 +430,7 @@ test('the frontier is the stored point a drained run left behind, and sinceDays 
   assert.equal(openedAt(state.repo), ranAt)
   // And that window is what reaches the mailbox, as the `after:` day it renders
   // to -- the one translation between an instant and a Gmail query.
-  assert.equal(gmail.calls.list[0].q, sinceQuery(ranAt))
+  assert.equal(gmail.calls.list[0].q, listQuery(ranAt))
 
   // Three days back is earlier than a frontier written moments ago, so this
   // asks for more mail than the frontier would have given and gets it.
@@ -436,7 +466,7 @@ test('a drained sweep of one label does not move the frontier of another', async
   // pick the backlog up, rather than starting after the quiet run.
   const again = await run('signalSweep', { maxMessages: 2 })
   assert.equal(openedAt(state.repo), null)
-  assert.equal(gmail.calls.list[2].q, '', 'a whole-source window sends no query at all')
+  assert.equal(gmail.calls.list[2].q, 'is:unread', 'a whole-source window sends no `after:` term, only the unread narrowing')
   assert.deepEqual(again.messages.map((m) => m.id), ['m3', 'm4'])
 })
 
@@ -642,7 +672,7 @@ test('a narrow sinceDays cannot move the window past mail an earlier run left be
   // The frontier here is the whole label, and nothing is wider than that, so
   // the narrow ask is answered with the window that still contains m1..m6.
   assert.equal(second.since, null)
-  assert.equal(gmail.calls.list[1].q, '', 'and no `after:` term goes out for it')
+  assert.equal(gmail.calls.list[1].q, 'is:unread', 'and no `after:` term goes out for it')
 
   const third = await run('signalSweep', { maxMessages: 2 })
   assert.equal(third.since, null)
@@ -697,7 +727,7 @@ test('sinceDays is clamped to a watermark that is already older than it', async 
   const r = await run('signalSweep', { sinceDays: 2 })
 
   assert.equal(r.since, tenDaysAgo)
-  assert.equal(gmail.calls.list[0].q, sinceQuery(tenDaysAgo))
+  assert.equal(gmail.calls.list[0].q, listQuery(tenDaysAgo))
 })
 
 test('the sweep layer takes the frontier from the stored cell and from nowhere else', async () => {
@@ -791,7 +821,7 @@ test('a frontier that will not parse widens the window rather than being replace
   const r = await run('signalSweep', { sinceDays: 3 })
 
   assert.equal(r.since, 'tegnapelőtt', 'the unreadable frontier wins over the narrower sinceDays')
-  assert.equal(gmail.calls.list[0].q, '', 'and it renders to no query at all, which lists the whole source')
+  assert.equal(gmail.calls.list[0].q, 'is:unread', 'and it renders to no `after:` term at all, which lists the whole source')
 })
 
 // --- Fix round 5: the frontier belongs to the resolved source ---------------
@@ -1449,7 +1479,7 @@ test('a frontier ahead of the clock with no clean window behind it falls back to
   failing.list = async (opts) => { failing.calls.list.push(opts); throw new MailboxError('gmail_timeout', 'no answer') }
   const failed = await (Object.fromEntries(createSweepTools({ ...state, gmailFactory: () => failing }).map((tool) => [tool.name, tool])).signalSweep.execute({}, { session: {}, message: '' }))
   assert.equal(state.repo.sweepById(failed.sweepId).since, null, 'no clean window to fall back to: the whole source')
-  assert.equal(failing.calls.list.at(-1).q, '', 'and it goes out as no query at all')
+  assert.equal(failing.calls.list.at(-1).q, 'is:unread', 'and it goes out with no `after:` term at all')
   assert.equal(failed.error.code, 'gmail_timeout')
   assert.match(state.repo.sweepById(failed.sweepId).note, /frontier_ahead=/, 'the failure row still says the frontier was set aside')
 })
@@ -1830,7 +1860,7 @@ test('a frontier an install earned before the move is resumed from, not re-liste
   // everything) and not a point past it (which would skip the backlog).
   assert.equal(r.error, undefined)
   assert.equal(r.since, earned)
-  assert.equal(handle.calls.list[0].q, sinceQuery(earned))
+  assert.equal(handle.calls.list[0].q, listQuery(earned))
   assert.deepEqual(handle.calls.list[0].labelIds, [LABEL_ID])
 
   // And the dedup is asked about the same mailbox, so nothing already swept is
@@ -1842,4 +1872,214 @@ test('a frontier an install earned before the move is resumed from, not re-liste
   // Only closing a sweep touches either, and this run is still open.
   assert.deepEqual(row(), wasStored)
   assert.equal(row().frontier, earned)
+})
+
+/* ------------------------------------------------------------------ */
+/*  Marking read: the swept set and the unread set are the same set    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * THE ESSENTIAL CASE, and the reason the marking is at the close rather than at
+ * the fetch.
+ *
+ * Once the listing filters on `is:unread`, marking a message read takes it out
+ * of every future sweep for good -- there is no watermark, no dedup and no
+ * later run that brings it back. So the only messages that may be marked are
+ * the ones whose signal row is already written, and this pins that the run
+ * marks exactly those and no more.
+ *
+ * The other two fetched messages stand for the two ways a message ends a run
+ * without a row: one the agent read and judged not worth a card, one the agent
+ * never got to. Neither is distinguishable from the other here, and neither may
+ * be marked -- which is what makes the rule a rule about rows rather than a
+ * rule about intent.
+ */
+test('only a message whose signal row was written is marked read', async () => {
+  const gmail = fakeMailbox({ ids: ['m1', 'm2', 'm3'] })
+  const { run } = setup(gmail)
+
+  const { sweepId } = await run('signalSweep')
+  await run('recordSignal', { sweepId, messageId: 'm2', headline: 'H', summary: 'Egy.', score: 0.5, applyScore: 0.5 })
+  const closed = await run('finishSweep', { sweepId, ok: true })
+
+  assert.deepEqual(gmail.calls.get, ['m1', 'm2', 'm3'], 'all three were fetched and handed to the agent')
+  assert.deepEqual(gmail.calls.markRead, ['m2'], 'and only the one that became a card was marked read')
+  assert.equal(closed.markedRead, 1)
+  assert.equal(closed.markReadFailed, 0)
+})
+
+/**
+ * The 2026-09-09T18:57Z run, reproduced: five listed, three recorded, and the
+ * agent gone before it could close.
+ *
+ * Marking at fetch time would have marked all five read, and the two with no
+ * row would have left the unread set unread by anyone. Marking at the close
+ * means an interrupted run marks nothing at all, and the whole batch is offered
+ * again -- which is the direction this file is allowed to err in.
+ */
+test('a run that dies before it closes marks nothing read, so no unrecorded message is lost', async () => {
+  const gmail = fakeMailbox({ ids: ['a1', 'a2', 'a3', 'a4', 'a5'] })
+  const { run } = setup(gmail)
+
+  const { sweepId } = await run('signalSweep')
+  for (const id of ['a2', 'a3', 'a5']) {
+    await run('recordSignal', { sweepId, messageId: id, headline: `H ${id}`, summary: 'Egy.', score: 0.5, applyScore: 0.5 })
+  }
+  // No finishSweep: this is where the agent died.
+
+  assert.deepEqual(gmail.calls.markRead, [], 'nothing was marked read, not even the three that had rows')
+})
+
+/**
+ * A message this extension marked read is not offered a second time, and one it
+ * left unread is.
+ *
+ * The double honours `is:unread` the way Gmail does, so this is the round trip
+ * rather than an assertion about a query string: sweep, record one of two,
+ * close, sweep again. The recorded one is gone from the mailbox's unread set;
+ * the unrecorded one comes back and is dropped by the dedup instead, which is
+ * the safety net that makes leaving it unread cheap.
+ */
+test('the second sweep is offered the message that was left unread, and not the one that was marked', async () => {
+  const box = {
+    address: MAILBOX,
+    names: { [LABEL]: LABEL_ID },
+    messages: { [LABEL_ID]: [aged('u1', 1), aged('u2', 1)] },
+  }
+  const handle = liveMailbox(box)
+  const { run } = setup(handle)
+
+  const first = await run('signalSweep')
+  await run('recordSignal', { sweepId: first.sweepId, messageId: 'u1', headline: 'H', summary: 'Egy.', score: 0.5, applyScore: 0.5 })
+  await run('finishSweep', { sweepId: first.sweepId, ok: false })
+
+  assert.deepEqual(handle.calls.markRead, ['u1'])
+  assert.equal(box.messages[LABEL_ID].find((m) => m.id === 'u1').read, true)
+  assert.notEqual(box.messages[LABEL_ID].find((m) => m.id === 'u2').read, true)
+
+  const second = await run('signalSweep')
+  assert.deepEqual(second.messages.map((m) => m.id), ['u2'], 'only the message that was never recorded comes back')
+})
+
+/**
+ * The mailbox refusing one `mark_read` does not undo a run that already did its
+ * work.
+ *
+ * The rows are committed and the frontier has moved by the time the marking
+ * runs, so throwing here would report a successful run as a failure that no
+ * retry could correct. The message simply stays unread and returns next run,
+ * where the dedup drops it -- but the shortfall is counted onto the row, so an
+ * operator can see that the mailbox's own progress record fell behind.
+ */
+test('a mark_read that fails is counted onto the sweep row and does not fail the close', async () => {
+  const gmail = fakeMailbox({
+    ids: ['k1', 'k2'],
+    markReadFail: (id) => (id === 'k2' ? new MailboxError('gmail_timeout', 'Gmail did not answer') : null),
+  })
+  const { run, state } = setup(gmail)
+
+  const { sweepId } = await run('signalSweep')
+  for (const id of ['k1', 'k2']) {
+    await run('recordSignal', { sweepId, messageId: id, headline: `H ${id}`, summary: 'Egy.', score: 0.5, applyScore: 0.5 })
+  }
+  const closed = await run('finishSweep', { sweepId, ok: true })
+
+  assert.equal(closed.ok, true, 'the close still succeeded')
+  assert.equal(closed.found, 2, 'and still reports both rows')
+  assert.equal(closed.markedRead, 1)
+  assert.equal(closed.markReadFailed, 1)
+  assert.match(state.repo.sweepById(sweepId).note, /mark_read_failed=1/)
+})
+
+/**
+ * The listing asks for unread mail whether or not it has a window to ask
+ * within.
+ *
+ * The two terms are ANDed, and the unread one is never the half that is
+ * dropped: a run with no frontier still has a correct set to sweep, while a run
+ * that lost the unread term would re-offer everything this extension has
+ * already marked read.
+ */
+test('the unread term goes out with a window and without one', () => {
+  assert.equal(listQuery(null), 'is:unread')
+  assert.equal(listQuery('not a date'), 'is:unread')
+  assert.equal(listQuery('2026-09-05T00:00:00.000Z'), 'after:2026/09/04 is:unread')
+})
+
+/*
+ * THE RUN THAT NEVER CLOSED
+ * =========================
+ * The 2026-09-09T18:57Z row again, from the other side. The test above pins
+ * what an interrupted run must NOT do; these pin what somebody has to do about
+ * it afterwards, because nothing did. That row is still open in the live
+ * database: `found = 0` while three items point at it, no id marked seen, no
+ * message marked read. The page reads it as the latest sweep and every number
+ * on it is a number the run did not earn -- and now that marking read follows
+ * the close, an interrupted run loses the marking too, so the cost of leaving
+ * it open went up rather than down.
+ *
+ * So the next run closes it, and closes it as what it was: `ok: false`, which
+ * marks seen exactly the ids that became cards and moves no frontier. The
+ * alternative -- leaving it open and only labelling it in the UI -- fixes the
+ * reading and none of the rest: the messages stay unread, the cards stay
+ * uncounted, and the next run re-offers mail it already has rows for.
+ */
+test('a run that died before it closed is closed by the next run, and the mail it recorded is marked read', async () => {
+  const gmail = fakeMailbox({ ids: ['a1', 'a2', 'a3', 'a4', 'a5'] })
+  const { run, state, storage } = setup(gmail)
+
+  const { sweepId } = await run('signalSweep')
+  for (const id of ['a2', 'a3', 'a5']) {
+    await run('recordSignal', { sweepId, messageId: id, headline: `H ${id}`, summary: 'Egy.', score: 0.5, applyScore: 0.5 })
+  }
+  // The agent died here. Age the row past the grace window, which is the only
+  // thing that separates a dead run from one still working.
+  storage.exec('UPDATE ext_aisignal_sweeps SET ran_at = ? WHERE id = ?',
+    [new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), sweepId])
+
+  const second = await run('signalSweep')
+
+  const abandoned = state.repo.sweepById(sweepId)
+  assert.ok(abandoned.finished_at, 'the row nobody closed is closed')
+  assert.equal(abandoned.ok, 0, 'as a run that did not finish, which is not the same row as a clean empty one')
+  assert.equal(abandoned.found, 3, 'and its three cards are counted onto it rather than left reading as zero')
+  assert.ok(abandoned.note.includes('abandoned'), `the row says why it was closed: ${abandoned.note}`)
+  assert.deepEqual(gmail.calls.markRead, ['a2', 'a3', 'a5'], 'only the three that became cards were marked read')
+  assert.deepEqual(second.messages.map((m) => m.id), ['a1', 'a4'],
+    'and the run that closed it is offered only the mail the dead run left without a card')
+})
+
+/**
+ * The grace window, from the side it exists for.
+ *
+ * "Open" and "dead" are not the same fact and the row cannot tell them apart:
+ * a run in the middle of its work has an open row too. Closing that one would
+ * be worse than leaving it -- the sweep it stole would fail its own
+ * `recordSignal` and `finishSweep` calls against an already-closed id. So only
+ * a row older than a whole run's worth of time is reclaimed, and a young one is
+ * left alone even though the next run cannot see what it is doing.
+ */
+test('a sweep still inside the grace window is left open, so a slow run is not closed underneath itself', async () => {
+  const gmail = fakeMailbox({ ids: ['b1', 'b2'] })
+  const { run, state } = setup(gmail)
+
+  const { sweepId } = await run('signalSweep')
+  await run('signalSweep')
+
+  assert.equal(state.repo.sweepById(sweepId).finished_at, null, 'the young row is untouched')
+  const closed = await run('finishSweep', { sweepId, ok: true })
+  assert.equal(closed.ok, true, 'and the run that owns it can still close it itself')
+})
+
+/**
+ * The cap an operator never set, in the one place it is written.
+ *
+ * Five was a number for reading the code, not for draining a mailbox: the label
+ * held 116 unread when this changed, and five every two hours is over a week of
+ * runs to catch up. The ceiling is not Gmail -- it is that the agent writes a
+ * judgement per message and its run is time-boxed, so a cap it cannot reach
+ * produces exactly the abandoned row the tests above are about.
+ */
+test('the per-run cap is one number, declared once', () => {
+  assert.equal(DEFAULT_MAX, 20)
 })

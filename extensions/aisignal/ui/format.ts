@@ -171,6 +171,7 @@ export function noteSegments(note: string | null | undefined): NoteSegment[] {
     if (key === 'unavailable') return { key, text: `nem válaszolt: ${value.split(',').join(', ')}` }
     if (key === 'unasked') return { key, text: `meg sem lett kérdezve: ${value.split(',').join(', ')}` }
     if (key === 'dropped') return { key, text: `${value} jelölt kimaradt a sapka miatt` }
+    if (key === 'abandoned') return { key, text: 'megszakadt futás: egy későbbi futás zárta le, csak a rögzített sorok lettek látottak' }
     if (key === 'frontier_held') return { key, text: 'a vízjel nem mozdult: a gép órája előrébb járt a lezáráskor' }
     if (key === 'frontier_ahead') return { key, text: `a tárolt vízjel (${value}) a jövőben volt, a futás a korábbi biztos ablaktól indult` }
     return { key, text: segment }
