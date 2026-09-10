@@ -80,12 +80,13 @@ describe('subagent-runtime', () => {
       lineage._clearLineage()
       seedAgent('depth-agent', 'Depth Agent')
 
-      // Create a chain of sessions to simulate depth
+      // A real delegation chain: a human root chat with three subagent
+      // generations hanging off it.
       const sessions = storage.loadSessions()
-      sessions['depth-s0'] = { id: 'depth-s0', parentSessionId: null, cwd: tempDir } as unknown as import('@/types').Session
-      sessions['depth-s1'] = { id: 'depth-s1', parentSessionId: 'depth-s0', cwd: tempDir } as unknown as import('@/types').Session
-      sessions['depth-s2'] = { id: 'depth-s2', parentSessionId: 'depth-s1', cwd: tempDir } as unknown as import('@/types').Session
-      sessions['depth-s3'] = { id: 'depth-s3', parentSessionId: 'depth-s2', cwd: tempDir } as unknown as import('@/types').Session
+      sessions['depth-s0'] = { id: 'depth-s0', parentSessionId: null, sessionType: 'human', cwd: tempDir } as unknown as import('@/types').Session
+      sessions['depth-s1'] = { id: 'depth-s1', parentSessionId: 'depth-s0', sessionType: 'delegated', delegationDepth: 1, cwd: tempDir } as unknown as import('@/types').Session
+      sessions['depth-s2'] = { id: 'depth-s2', parentSessionId: 'depth-s1', sessionType: 'delegated', delegationDepth: 2, cwd: tempDir } as unknown as import('@/types').Session
+      sessions['depth-s3'] = { id: 'depth-s3', parentSessionId: 'depth-s2', sessionType: 'delegated', delegationDepth: 3, cwd: tempDir } as unknown as import('@/types').Session
       storage.saveSessions(sessions)
 
       await assert.rejects(
@@ -95,6 +96,40 @@ describe('subagent-runtime', () => {
         ),
         /Max subagent depth/,
       )
+    })
+
+    /**
+     * Regression: the "new chat" button (`buildNewAgentSessionPayload`) sets
+     * `parentSessionId` on every fresh user chat, so a day of ordinary
+     * conversation builds a long `parentSessionId` chain of `human` sessions.
+     * Counting those hops as delegation depth killed `spawn_subagent` for good
+     * after the fourth new chat.
+     */
+    it('does not count a chain of plain user chats as delegation depth', async () => {
+      lineage._clearLineage()
+      seedAgent('chained-agent', 'Chained Agent')
+
+      const sessions = storage.loadSessions()
+      let parent: string | null = null
+      for (let i = 0; i < 5; i++) {
+        const id = `chat-c${i}`
+        sessions[id] = { id, parentSessionId: parent, sessionType: 'human', agentId: 'default', cwd: tempDir } as unknown as import('@/types').Session
+        parent = id
+      }
+      storage.saveSessions(sessions)
+
+      assert.equal(runtime.getSessionDepth('chat-c4', 3, storage.loadSessions() as unknown as Record<string, unknown>), 0)
+
+      let handle: Awaited<ReturnType<typeof runtime.spawnSubagent>> | null = null
+      try {
+        handle = await runtime.spawnSubagent(
+          { agentId: 'chained-agent', message: 'from a deeply chained chat', waitForCompletion: false },
+          { sessionId: 'chat-c4', cwd: tempDir },
+        )
+      } catch (err) {
+        assert.doesNotMatch(String(err), /Max subagent depth/)
+      }
+      if (handle) assert.ok(handle.jobId)
     })
 
     it('creates session, lineage node, and delegation job', async () => {
@@ -270,6 +305,76 @@ describe('subagent-runtime', () => {
       assert.equal(marks.some((mark) => mark.startsWith('spawned:')), true)
       assert.equal(marks.includes('ended:completed'), true)
       assert.equal(marks.includes('session_end:completed'), true)
+    })
+  })
+
+  describe('getSessionDepth', () => {
+    function seedSessions(records: Record<string, Record<string, unknown>>): Record<string, unknown> {
+      return records as unknown as Record<string, unknown>
+    }
+
+    it('returns the stored delegationDepth without walking', () => {
+      const sessions = seedSessions({
+        s: { id: 's', parentSessionId: 'p', sessionType: 'delegated', delegationDepth: 2 },
+        p: { id: 'p', parentSessionId: null, sessionType: 'human' },
+      })
+      assert.equal(runtime.getSessionDepth('s', 3, sessions), 2)
+    })
+
+    it('returns 0 for a root chat', () => {
+      const sessions = seedSessions({ root: { id: 'root', parentSessionId: null, sessionType: 'human' } })
+      assert.equal(runtime.getSessionDepth('root', 3, sessions), 0)
+    })
+
+    it('returns 0 for a human chat below other human chats', () => {
+      const sessions = seedSessions({
+        a: { id: 'a', parentSessionId: null, sessionType: 'human' },
+        b: { id: 'b', parentSessionId: 'a', sessionType: 'human' },
+        c: { id: 'c', parentSessionId: 'b', sessionType: 'human' },
+        d: { id: 'd', parentSessionId: 'c', sessionType: 'human' },
+      })
+      assert.equal(runtime.getSessionDepth('d', 3, sessions), 0)
+    })
+
+    it('counts delegated hops and stops at the human chat that started the chain', () => {
+      // Legacy shape: delegated sessions stored before `delegationDepth` existed.
+      const sessions = seedSessions({
+        root: { id: 'root', parentSessionId: 'older-chat', sessionType: 'human' },
+        'older-chat': { id: 'older-chat', parentSessionId: null, sessionType: 'human' },
+        sub1: { id: 'sub1', parentSessionId: 'root', sessionType: 'delegated' },
+        sub2: { id: 'sub2', parentSessionId: 'sub1', sessionType: 'delegated' },
+      })
+      assert.equal(runtime.getSessionDepth('sub1', 3, sessions), 1)
+      assert.equal(runtime.getSessionDepth('sub2', 3, sessions), 2)
+    })
+
+    it('returns 0 for an unknown session id', () => {
+      assert.equal(runtime.getSessionDepth('missing', 3, seedSessions({})), 0)
+    })
+  })
+
+  describe('collectAncestorAgentIds', () => {
+    it('stops at the current session for a chain of plain user chats', () => {
+      const sessions = {
+        a: { id: 'a', parentSessionId: null, sessionType: 'human', agentId: 'default' },
+        b: { id: 'b', parentSessionId: 'a', sessionType: 'human', agentId: 'default' },
+        c: { id: 'c', parentSessionId: 'b', sessionType: 'human', agentId: 'default' },
+      } as unknown as Record<string, unknown>
+      assert.deepEqual(runtime.collectAncestorAgentIds('c', sessions), ['default'])
+    })
+
+    it('walks the delegation chain up to the human chat that started it', () => {
+      const sessions = {
+        root: { id: 'root', parentSessionId: 'prev-chat', sessionType: 'human', agentId: 'coordinator' },
+        'prev-chat': { id: 'prev-chat', parentSessionId: null, sessionType: 'human', agentId: 'coordinator' },
+        sub1: { id: 'sub1', parentSessionId: 'root', sessionType: 'delegated', agentId: 'alpha' },
+        sub2: { id: 'sub2', parentSessionId: 'sub1', sessionType: 'delegated', agentId: 'beta' },
+      } as unknown as Record<string, unknown>
+      assert.deepEqual(runtime.collectAncestorAgentIds('sub2', sessions), ['beta', 'alpha', 'coordinator'])
+    })
+
+    it('returns an empty list without a session id', () => {
+      assert.deepEqual(runtime.collectAncestorAgentIds(undefined, {}), [])
     })
   })
 

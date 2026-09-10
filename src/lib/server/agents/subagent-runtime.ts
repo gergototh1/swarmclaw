@@ -161,6 +161,20 @@ function mergeCapabilities(
 // Depth Guard
 // ---------------------------------------------------------------------------
 
+/**
+ * True when a stored session record is a delegated subagent session.
+ *
+ * `parentSessionId` alone does NOT mean delegation. The "new chat" button
+ * (`buildNewAgentSessionPayload`, `src/lib/chat/new-session.ts`) links each
+ * fresh user chat to the one it was started from, so an ordinary conversation
+ * can sit several `parentSessionId` hops below the first chat with an agent.
+ * `sessionType` is the field that separates the two, which is why
+ * `isDelegatedSession` (`src/lib/conversation-list.ts`) keys on it as well.
+ */
+function isDelegatedRecord(session: Record<string, unknown> | undefined): boolean {
+  return session?.sessionType === 'delegated'
+}
+
 export function getSessionDepth(
   sessionId: string | undefined,
   maxDepth: number,
@@ -173,21 +187,36 @@ export function getSessionDepth(
   if (session && typeof session.delegationDepth === 'number' && session.delegationDepth >= 0) {
     return session.delegationDepth
   }
-  // Fallback: walk the parent chain
+  // No stored depth. `spawnSubagentImpl` writes `sessionType: 'delegated'` and
+  // `delegationDepth` into the same object literal and nothing else writes
+  // either field, so a session that is not delegated was never spawned as a
+  // subagent: its depth is 0, however long its `parentSessionId` chain is.
+  if (!isDelegatedRecord(session)) return 0
+  // Fallback for a delegated session stored before `delegationDepth` existed:
+  // count the delegated hops and stop at the human chat that started the chain.
   let depth = 0
-  let current = sessionId
-  while (current && depth < maxDepth + 1) {
+  let current: string | undefined = sessionId
+  const visited = new Set<string>()
+  while (current && depth < maxDepth + 1 && !visited.has(current)) {
+    visited.add(current)
     const s = allSessions[current] as unknown as Record<string, unknown> | undefined
-    if (!s?.parentSessionId) break
-    current = s.parentSessionId as string
+    if (!isDelegatedRecord(s)) break
     depth++
+    const parentId = typeof s?.parentSessionId === 'string' ? s.parentSessionId : null
+    if (!parentId) break
+    current = parentId
   }
   return depth
 }
 
 /**
- * Collect agentIds of every session in the parent chain including the given
+ * Collect agentIds of every session in the delegation chain including the given
  * session. Used to detect delegation cycles (A → B → A) before spawning.
+ *
+ * The walk climbs only through delegated sessions. A human chat's
+ * `parentSessionId` points at the chat it was started from, not at a delegating
+ * parent, so following it would report the same agent several times over and
+ * refuse a legitimate spawn as a cycle.
  */
 export function collectAncestorAgentIds(
   sessionId: string | undefined,
@@ -203,6 +232,7 @@ export function collectAncestorAgentIds(
     const s = sessions[current] as Record<string, unknown> | undefined
     const agentId = typeof s?.agentId === 'string' ? s.agentId.trim() : ''
     if (agentId) ids.push(agentId)
+    if (!isDelegatedRecord(s)) break
     const parentId = typeof s?.parentSessionId === 'string' ? s.parentSessionId : null
     if (!parentId) break
     current = parentId

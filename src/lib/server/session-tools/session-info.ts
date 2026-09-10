@@ -14,6 +14,7 @@ import { getExtensionManager } from '@/lib/server/extensions'
 import { canonicalizeExtensionId, expandExtensionIds } from '@/lib/server/tool-aliases'
 import { resolvePromptMode } from '@/lib/server/chat-execution/prompt-mode'
 import { resolveActiveProjectContext } from '@/lib/server/project-context'
+import { isDelegatedSession } from '@/lib/conversation-list'
 import { resolveSessionLineageIds } from '@/lib/server/sessions/session-lineage'
 import { loadSettings } from '@/lib/server/settings/settings-repository'
 import { resolveSessionToolPolicy } from '@/lib/server/tool-capability-policy'
@@ -110,7 +111,10 @@ export function buildSessionIdentityPayload(params: {
     sessionId: params.context.sessionId || undefined,
     sessionName: current?.name || undefined,
     sessionType: current?.sessionType || undefined,
-    sessionKind: current?.parentSessionId ? 'delegated_child' : 'root_chat',
+    // Keyed on `sessionType`, not `parentSessionId`: the "new chat" button links
+    // each fresh user chat to the one it was started from, so a plain
+    // conversation can carry a `parentSessionId` without being delegated.
+    sessionKind: current && isDelegatedSession(current) ? 'delegated_child' : 'root_chat',
     promptMode: current ? resolvePromptMode(current) : undefined,
     user: current?.user || undefined,
     agentId: params.context.agentId || current?.agentId || undefined,
