@@ -121,7 +121,7 @@ export function OperationsPulsePanel({
  Missions, runs, approvals, connector readiness, OpenClaw gateways, and budget pressure rolled into one triage queue.
  </p>
  </div>
- <div className="flex flex-wrap items-center gap-2">
+ <div className="flex shrink-0 items-center justify-end gap-2 lg:ml-auto">
  {(['24h', '7d'] as const).map((item) => (
  <button
  key={item}

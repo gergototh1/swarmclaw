@@ -69,17 +69,17 @@ export function TierContext({ todayCost, costTrend }: {
         description="Operations health and today's spend, out of the way until you need them."
         summary={`$${todayCost.toFixed(2)} spent today`}
       >
-        <div>
-          <OperationsPulsePanel className="!py-0 mb-6" kinds={OPERATIONS_PULSE_KINDS} />
+        <div className="space-y-6">
+          <OperationsPulsePanel className="!py-0" kinds={OPERATIONS_PULSE_KINDS} />
 
           {/* Unlinked warning/info/success notices live here; unlinked errors
               are promoted to Tier 1 so nothing urgent hides behind the
               collapse. Between the two filters, every AppNotification type is
               now claimed by exactly one tier. */}
           {softNotices.length > 0 && (
-            <div className="mb-8 flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
               {softNotices.map((n) => (
-                <div key={n.id} className="flex items-center gap-2.5 rounded-md px-3 py-2">
+                <div key={n.id} className="flex items-center gap-2.5">
                   <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${SOFT_NOTICE_DOT[n.type]}`} />
                   <span className="text-[12px] font-600 text-text">{n.title}</span>
                   {n.message && <span className="truncate text-[11px] text-text-3">{n.message}</span>}
