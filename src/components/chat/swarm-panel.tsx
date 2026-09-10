@@ -9,6 +9,9 @@ import { formatDurationMs } from '@/lib/format-display'
 
 interface SwarmAgent {
   jobId: string
+  /** A gyerek session, amit a spawn nyitott. Ez a kapocs a panelhez.
+   *  Hiányzik, amíg a spawn el nem indult (batch/swarm started). */
+  sessionId?: string
   agentId?: string
   agentName: string
   status: 'running' | 'completed' | 'failed' | 'cancelled' | 'timed_out'
@@ -19,7 +22,7 @@ interface SwarmAgent {
   depth?: number
 }
 
-interface SwarmPanelData {
+export interface SwarmPanelData {
   /** 'batch' for multi-spawn, 'single' for individual spawn results */
   kind: 'batch' | 'single'
   /** Overall status */
@@ -52,6 +55,7 @@ export function parseSwarmOutput(toolName: string, output: string): SwarmPanelDa
         status: data.failed > 0 ? 'partial' : 'completed',
         agents: data.results.map((r: any) => ({
           jobId: r.jobId || '',
+          sessionId: r.sessionId || undefined,
           agentName: r.agentName || 'Agent',
           status: r.status || 'completed',
           response: r.response || null,
@@ -92,6 +96,7 @@ export function parseSwarmOutput(toolName: string, output: string): SwarmPanelDa
           : 'running',
         agents: (snap.members || []).map((m: any) => ({
           jobId: m.jobId || '',
+          sessionId: m.sessionId || undefined,
           agentId: m.agentId,
           agentName: m.agentName || 'Agent',
           status: m.status === 'spawn_error' ? 'failed' : m.status || 'running',
@@ -127,6 +132,7 @@ export function parseSwarmOutput(toolName: string, output: string): SwarmPanelDa
         status: 'running',
         agents: [{
           jobId: data.jobId,
+          sessionId: data.sessionId || undefined,
           agentId: data.agentId,
           agentName: data.agentName || 'Agent',
           status: 'running',
@@ -143,6 +149,7 @@ export function parseSwarmOutput(toolName: string, output: string): SwarmPanelDa
         status: data.status === 'completed' ? 'completed' : 'failed',
         agents: [{
           jobId: data.jobId,
+          sessionId: data.sessionId || undefined,
           agentId: data.agentId,
           agentName: data.agentName,
           status: data.status,

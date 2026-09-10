@@ -272,3 +272,56 @@ describe('parseSwarmStatusOutput', () => {
     assert.equal(result.parentAgentName, 'Delegating Agent')
   })
 })
+
+/*
+ * A sessionId a kapocs a transzkript és a gyerek beszélgetés között.
+ * A tool már küldi (subagent.ts:574,588) -- a parser eddig eldobta, és
+ * enélkül az inline sor nem tud hova kattintani.
+ */
+describe('parseSwarmOutput keeps the child session id', () => {
+  it('keeps it on a running single spawn', () => {
+    const data = parseSwarmOutput('spawn_subagent', JSON.stringify({
+      jobId: 'job-1', status: 'running', agentId: 'a1',
+      agentName: 'Fejlesztő', sessionId: 'sess-child-1', lineageId: 'ln-1',
+    }))
+    assert.equal(data?.agents[0].sessionId, 'sess-child-1')
+  })
+
+  it('keeps it on a completed single spawn', () => {
+    const data = parseSwarmOutput('spawn_subagent', JSON.stringify({
+      jobId: 'job-1', status: 'completed', agentId: 'a1',
+      agentName: 'Fejlesztő', sessionId: 'sess-child-1',
+      response: 'Kész.', durationMs: 120_000,
+    }))
+    assert.equal(data?.agents[0].sessionId, 'sess-child-1')
+  })
+
+  it('keeps it for every member of a batch', () => {
+    const data = parseSwarmOutput('spawn_subagent', JSON.stringify({
+      action: 'batch', completed: 2, failed: 0,
+      results: [
+        { jobId: 'j1', agentName: 'Fejlesztő', status: 'completed', sessionId: 'sess-1' },
+        { jobId: 'j2', agentName: 'Tesztelő', status: 'completed', sessionId: 'sess-2' },
+      ],
+    }))
+    assert.deepEqual(data?.agents.map((a) => a.sessionId), ['sess-1', 'sess-2'])
+  })
+
+  it('keeps it for every member of a swarm snapshot', () => {
+    const data = parseSwarmOutput('spawn_subagent', JSON.stringify({
+      action: 'swarm',
+      snapshot: {
+        status: 'completed', completedCount: 1, failedCount: 0,
+        members: [{ jobId: 'j1', agentId: 'a1', agentName: 'Fejlesztő', status: 'completed', sessionId: 'sess-1' }],
+      },
+    }))
+    assert.equal(data?.agents[0].sessionId, 'sess-1')
+  })
+
+  it('leaves it undefined when the spawn has not produced a session yet', () => {
+    const data = parseSwarmOutput('spawn_subagent', JSON.stringify({
+      action: 'batch', status: 'running', jobIds: ['j1', 'j2'],
+    }))
+    assert.equal(data?.agents[0].sessionId, undefined)
+  })
+})
