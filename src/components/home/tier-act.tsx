@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { AlertTriangle, Clock3, MessageCircle } from 'lucide-react'
 import { api } from '@/lib/app/api-client'
 import { useAppStore } from '@/stores/use-app-store'
 import { useChatStore } from '@/stores/use-chat-store'
@@ -9,8 +10,10 @@ import { useApprovalStore } from '@/stores/use-approval-store'
 import { useNavigate } from '@/lib/app/navigation'
 import { selectUnreadSessions } from '@/lib/chat/session-unread'
 import { filterPulseActions, NEEDS_YOU_PULSE_KINDS } from '@/lib/home/pulse-partition'
+import { dedupeNotifications } from '@/lib/home/notification-dedup'
 import { SectionHeader } from '@/components/ui/section-header'
 import { RecentlyOpened } from '@/components/home/recently-opened'
+import { ChatInput } from '@/components/input/chat-input'
 import type { OperationPulse } from '@/types'
 
 const NEEDS_YOU_LIMIT = 6
@@ -23,22 +26,31 @@ export function TierAct() {
   const currentAgentId = useAppStore((s) => s.currentAgentId)
   const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
   const sendMessage = useChatStore((s) => s.sendMessage)
+  const streamingSessionId = useChatStore((s) => s.streamingSessionId)
+  const stopStreaming = useChatStore((s) => s.stopStreaming)
   const approvals = useApprovalStore((s) => s.approvals)
   const loadApprovals = useApprovalStore((s) => s.loadApprovals)
 
-  const [draft, setDraft] = useState('')
-  const [sending, setSending] = useState(false)
-  const [askAgentId, setAskAgentId] = useState<string>('')
   const [pulse, setPulse] = useState<OperationPulse | null>(null)
 
-  const agentList = useMemo(() => Object.values(agents), [agents])
+  const agentList = useMemo(() => Object.values(agents).filter((a) => !a.trashedAt), [agents])
   const hasAgents = agentList.length > 0
+  const firstAgent = agentList[0] ?? null
 
+  /*
+   * The ask bar targets the app's global "current agent" -- the same concept
+   * ComposerAgentPicker (embedded in ChatInput) already manages -- rather
+   * than a second, Home-local picker. See the redesign report for why: two
+   * competing "who answers next" states would drift, and this is the only
+   * one every other page already trusts. A brand new install has no current
+   * agent yet, so default it once agents exist; this never clobbers a
+   * selection the user (or another page) already made.
+   */
   useEffect(() => {
-    if (!askAgentId && (currentAgentId || agentList[0])) {
-      setAskAgentId(currentAgentId || agentList[0]!.id)
+    if (!currentAgentId && firstAgent) {
+      void setCurrentAgent(firstAgent.id)
     }
-  }, [askAgentId, currentAgentId, agentList])
+  }, [currentAgentId, firstAgent, setCurrentAgent])
 
   useEffect(() => {
     void loadApprovals()
@@ -52,6 +64,31 @@ export function TierAct() {
     return () => { cancelled = true }
   }, [])
 
+  const targetAgentId = currentAgentId || firstAgent?.id || null
+  const targetSessionId = targetAgentId ? agents[targetAgentId]?.threadSessionId || null : null
+  const targetSession = targetSessionId ? sessions[targetSessionId] : null
+  const composerStreaming = !!targetSessionId && streamingSessionId === targetSessionId
+  const composerBusy = composerStreaming || targetSession?.active === true
+
+  const handleAskSend = useCallback((text: string) => {
+    const agentId = currentAgentId || firstAgent?.id
+    if (!agentId) return
+    void (async () => {
+      try {
+        await setCurrentAgent(agentId)
+        const sessionId = useAppStore.getState().agents[agentId]?.threadSessionId
+        if (!sessionId) {
+          toast.error('Couldn’t start a conversation with this agent.', { description: 'Try again in a moment.' })
+          return
+        }
+        navigateTo('agents')
+        await sendMessage(text, { sessionId })
+      } catch {
+        toast.error('Something went wrong sending that message.', { description: 'Try again.' })
+      }
+    })()
+  }, [currentAgentId, firstAgent, navigateTo, sendMessage, setCurrentAgent])
+
   const unreadChats = useMemo(() => selectUnreadSessions(sessions), [sessions])
 
   const pulseRows = useMemo(
@@ -63,11 +100,14 @@ export function TierAct() {
    * An unlinked error notification would be invisible if it went to the
    * collapsed Tier 3, so it is promoted here. Anything with an entityId is
    * already represented by its own row and is deliberately left out.
+   * Repeats (the same underlying problem firing more than once before it's
+   * read) are collapsed client-side and capped -- see notification-dedup.ts.
    */
   const errorNotifications = useMemo(
     () => notifications.filter((n) => !n.read && n.type === 'error' && !n.entityId),
     [notifications],
   )
+  const dedupedNotifications = useMemo(() => dedupeNotifications(errorNotifications), [errorNotifications])
 
   const approvalRows = useMemo(() => Object.values(approvals), [approvals])
 
@@ -75,69 +115,21 @@ export function TierAct() {
     approvalRows.length === 0
     && unreadChats.length === 0
     && pulseRows.length === 0
-    && errorNotifications.length === 0
-
-  const ask = async () => {
-    const text = draft.trim()
-    if (!text || !askAgentId || sending) return
-    setSending(true)
-    try {
-      await setCurrentAgent(askAgentId)
-      const sessionId = useAppStore.getState().agents[askAgentId]?.threadSessionId
-      if (!sessionId) {
-        // Draft is deliberately left in place so the user can retry without retyping.
-        toast.error('Couldn’t start a conversation with this agent.', { description: 'Try again in a moment.' })
-        return
-      }
-      setDraft('')
-      navigateTo('agents')
-      await sendMessage(text, { sessionId })
-    } catch {
-      toast.error('Something went wrong sending that message.', { description: 'Try again.' })
-    } finally {
-      setSending(false)
-    }
-  }
+    && dedupedNotifications.length === 0
 
   return (
     <>
       {/* Ask bar */}
-      <section className="mb-8">
-        <div className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-surface p-3 sm:flex-row sm:items-center">
-          <select
-            value={askAgentId}
-            onChange={(e) => setAskAgentId(e.target.value)}
-            disabled={!hasAgents}
-            className="rounded-md border border-line-subtle bg-layer-1 px-2.5 py-2 text-[12px] font-600 text-text
-              disabled:opacity-40"
-            style={{ fontFamily: 'inherit' }}
-          >
-            {hasAgents
-              ? agentList.map((agent) => (
-                <option key={agent.id} value={agent.id}>{agent.name}</option>
-              ))
-              : <option value="">No agents</option>}
-          </select>
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void ask() } }}
-            placeholder="Ask an agent…"
-            className="min-w-0 flex-1 bg-transparent px-2 py-2 text-[14px] text-text outline-none"
-            style={{ fontFamily: 'inherit' }}
+      <section className="mb-6">
+        {hasAgents ? (
+          <ChatInput
+            streaming={composerStreaming}
+            busy={composerBusy}
+            onSend={handleAskSend}
+            onStop={stopStreaming}
           />
-          <button
-            onClick={() => void ask()}
-            disabled={!hasAgents || !draft.trim() || !askAgentId || sending}
-            className="rounded-md bg-accent-soft px-3 py-2 text-[12px] font-700 text-accent-bright
-              disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-none"
-            style={{ fontFamily: 'inherit' }}
-          >
-            Send
-          </button>
-        </div>
-        {!hasAgents && (
-          <div className="mt-2 flex items-center gap-2 text-[12px] text-text-3">
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg border border-line-subtle bg-surface p-4 text-[13px] text-text-3">
             <span>You don’t have any agents yet.</span>
             <button
               onClick={() => navigateTo('agents')}
@@ -152,51 +144,73 @@ export function TierAct() {
 
       {/* Needs you — rendered only when something is actually waiting */}
       {!nothingWaiting && (
-        <section className="mb-8">
-          <SectionHeader label="Needs you" />
+        <section className="mb-6 rounded-lg border border-line-subtle bg-surface p-5 sm:p-6">
+          <SectionHeader
+            label="Needs you"
+            count={approvalRows.length + dedupedNotifications.length + pulseRows.length + unreadChats.length}
+          />
           <div className="flex flex-col gap-1">
             {approvalRows.slice(0, NEEDS_YOU_LIMIT).map((approval) => (
               <button
                 key={approval.id}
                 onClick={() => navigateTo('agents')}
-                className="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-left bg-transparent border-none
-                  hover:bg-layer-2 transition-colors cursor-pointer w-full"
+                className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left bg-transparent border-none
+                  hover:bg-layer-1 transition-colors cursor-pointer w-full"
                 style={{ fontFamily: 'inherit' }}
               >
-                <div className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
-                <span className="text-[13px] font-600 text-text">Approval requested</span>
-                <span className="truncate text-[11px] text-text-3">{approval.command}</span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-400/10 text-amber-400">
+                  <AlertTriangle size={14} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-600 text-text">Approval requested</span>
+                  <span className="block truncate text-[11px] text-text-3">{approval.command}</span>
+                </div>
               </button>
             ))}
-            {errorNotifications.slice(0, NEEDS_YOU_LIMIT).map((n) => (
-              <div key={n.id} className="flex items-center gap-2.5 rounded-md px-3 py-2.5">
-                <div className="h-2 w-2 shrink-0 rounded-full bg-red-400" />
-                <span className="text-[13px] font-600 text-text">{n.title}</span>
-                {n.message && <span className="truncate text-[11px] text-text-3">{n.message}</span>}
+            {dedupedNotifications.map(({ notification, occurrenceCount }) => (
+              <div key={notification.id} className="flex items-center gap-3 rounded-md px-3 py-2.5">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-red-400/10 text-red-400">
+                  <AlertTriangle size={14} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-600 text-text">{notification.title}</span>
+                  {notification.message && <span className="block truncate text-[11px] text-text-3">{notification.message}</span>}
+                </div>
+                {occurrenceCount > 1 && (
+                  <span className="shrink-0 rounded-full border border-line-default bg-layer-2 px-2 py-0.5 text-[10px] font-700 text-text-3">
+                    x{occurrenceCount}
+                  </span>
+                )}
               </div>
             ))}
             {pulseRows.slice(0, NEEDS_YOU_LIMIT).map((action) => (
               <button
                 key={action.id}
                 onClick={() => navigateTo('missions')}
-                className="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-left bg-transparent border-none
-                  hover:bg-layer-2 transition-colors cursor-pointer w-full"
+                className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left bg-transparent border-none
+                  hover:bg-layer-1 transition-colors cursor-pointer w-full"
                 style={{ fontFamily: 'inherit' }}
               >
-                <div className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
-                <span className="text-[13px] font-600 text-text">{action.title}</span>
-                <span className="truncate text-[11px] text-text-3">{action.summary}</span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-400/10 text-amber-400">
+                  <Clock3 size={14} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-600 text-text">{action.title}</span>
+                  <span className="block truncate text-[11px] text-text-3">{action.summary}</span>
+                </div>
               </button>
             ))}
             {unreadChats.slice(0, NEEDS_YOU_LIMIT).map(({ session, unread }) => (
               <button
                 key={session.id}
                 onClick={() => navigateTo('conversations', session.id)}
-                className="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-left bg-transparent border-none
-                  hover:bg-layer-2 transition-colors cursor-pointer w-full"
+                className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left bg-transparent border-none
+                  hover:bg-layer-1 transition-colors cursor-pointer w-full"
                 style={{ fontFamily: 'inherit' }}
               >
-                <div className={`h-2 w-2 shrink-0 rounded-full ${unread.isError ? 'bg-red-400' : 'bg-sky-400'}`} />
+                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${unread.isError ? 'bg-red-400/10 text-red-400' : 'bg-sky-400/10 text-sky-400'}`}>
+                  <MessageCircle size={14} />
+                </span>
                 <div className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] font-600 text-text">{session.name || 'Untitled chat'}</span>
                   {session.lastMessageSummary?.text && (

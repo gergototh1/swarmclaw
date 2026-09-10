@@ -86,7 +86,7 @@ export function RecentlyOpened() {
   if (resolved.length === 0) return null
 
   return (
-    <section className="mb-8">
+    <section className="mb-6 rounded-lg border border-line-subtle bg-surface p-5 sm:p-6">
       <SectionHeader label="Recently opened" />
       <div className="flex flex-wrap gap-2">
         {resolved.map((item) => (

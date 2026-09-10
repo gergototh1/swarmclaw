@@ -10,10 +10,20 @@ interface Props {
  badges?: string[]
  /** Heading text. Defaults to the settings wording this started life with. */
  title?: string
+ /** Subhead under the title. Defaults to the settings wording this started life with. */
+ description?: string
  children: ReactNode
 }
 
-export function AdvancedSettingsSection({ open, onToggle, summary, badges = [], title = 'Advanced Settings', children }: Props) {
+export function AdvancedSettingsSection({
+ open,
+ onToggle,
+ summary,
+ badges = [],
+ title = 'Advanced Settings',
+ description = 'Power-user controls for routing, runtime behavior, and expert overrides.',
+ children,
+}: Props) {
  return (
  <section className="section-band mb-8 ">
  <button
@@ -32,7 +42,7 @@ export function AdvancedSettingsSection({ open, onToggle, summary, badges = [], 
  )}
  </div>
  <p className="mt-1 text-[13px] leading-[1.6] text-text-3">
- Power-user controls for routing, runtime behavior, and expert overrides.
+ {description}
  </p>
  {badges.length > 0 && (
  <div className="mt-3 flex flex-wrap gap-2">

@@ -77,13 +77,13 @@ export function TierLive() {
   const nothingRunning = missions.length === 0 && runningTasks.length === 0 && !streamingSession
 
   if (nothingRunning && upcoming.length === 0) {
-    return <p className="mb-8 px-1 text-[12px] text-text-3">Nothing running.</p>
+    return <p className="mb-6 px-1 text-[12px] text-text-3">Nothing running.</p>
   }
 
   return (
     <>
       {!nothingRunning && (
-        <section className="mb-8">
+        <section className="mb-6 rounded-lg border border-line-subtle bg-surface p-5 sm:p-6">
           <SectionHeader label="Running now" />
           <div className="flex flex-col gap-1">
             {missions.map((mission) => {
@@ -93,7 +93,7 @@ export function TierLive() {
                 <button
                   key={mission.id}
                   onClick={() => navigateTo('missions')}
-                  className="rounded-md px-3 py-2.5 text-left bg-transparent border-none hover:bg-layer-2
+                  className="rounded-md px-3 py-2.5 text-left bg-transparent border-none hover:bg-layer-1
                     transition-colors cursor-pointer w-full"
                   style={{ fontFamily: 'inherit' }}
                 >
@@ -133,7 +133,7 @@ export function TierLive() {
               <button
                 onClick={() => navigateTo('conversations', streamingSession.id)}
                 className="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-left bg-transparent border-none
-                  hover:bg-layer-2 transition-colors cursor-pointer w-full"
+                  hover:bg-layer-1 transition-colors cursor-pointer w-full"
                 style={{ fontFamily: 'inherit' }}
               >
                 <div className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-400" />
@@ -147,7 +147,7 @@ export function TierLive() {
       )}
 
       {upcoming.length > 0 && (
-        <section className="mb-8">
+        <section className="mb-6 rounded-lg border border-line-subtle bg-surface p-5 sm:p-6">
           <SectionHeader
             label="Next 24 hours"
             action={{ label: 'View all →', onClick: () => navigateTo('schedules') }}

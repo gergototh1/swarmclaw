@@ -32,7 +32,7 @@ export function TierContext({ todayCost, costTrend }: {
   return (
     <>
       {pinned.length > 0 && (
-        <section className="mb-8">
+        <section className="mb-6 rounded-lg border border-line-subtle bg-surface p-5 sm:p-6">
           <SectionHeader label="Pinned agents" />
           <div className="flex flex-wrap gap-2">
             {pinned.map((agent) => (
@@ -54,6 +54,7 @@ export function TierContext({ todayCost, costTrend }: {
         open={open}
         onToggle={() => setOpen((v) => !v)}
         title="Details"
+        description="Operations health and today's spend, out of the way until you need them."
         summary={`$${todayCost.toFixed(2)} spent today`}
       >
         <div className="px-5 pb-5 sm:px-6">
