@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-10T07:52:31.221Z",
-  "totalIssues": 380,
-  "uniqueIssues": 124,
+  "generatedAt": "2026-09-10T14:26:09.403Z",
+  "totalIssues": 375,
+  "uniqueIssues": 121,
   "issues": [
     {
       "filePath": "bin/worker-cmd.js",
@@ -157,27 +157,6 @@
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "count": 1
-    },
-    {
-      "filePath": "src/components/chat/message-bubble.tsx",
-      "ruleId": "no-restricted-syntax",
-      "severity": 1,
-      "message": "Use the surface ladder (bg-layer-1..4, border-line-*, text-text/-2/-3), not a hardcoded white alpha. This covers both white/[0.06] and the shorthand white/6.",
-      "count": 1
-    },
-    {
-      "filePath": "src/components/chat/swarm-panel.tsx",
-      "ruleId": "@typescript-eslint/no-unused-vars",
-      "severity": 1,
-      "message": "'count' is assigned a value but never used.",
-      "count": 1
-    },
-    {
-      "filePath": "src/components/chat/swarm-panel.tsx",
-      "ruleId": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "count": 3
     },
     {
       "filePath": "src/components/connectors/connector-health.tsx",
