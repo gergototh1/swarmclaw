@@ -62,11 +62,20 @@ export function isConversation(session: Session): boolean {
   return hasMessages(session) && !isTaskRunSession(session) && !isChatroomSession(session)
 }
 
+/**
+ * Newest-first ordering, shared by `listConversations` and
+ * `groupConversationsByAge`'s per-bucket sort. One definition, so a future
+ * tiebreaker cannot land in one call site and silently not the other.
+ */
+function sortByRecency(a: Session, b: Session): number {
+  return (b.lastActiveAt || 0) - (a.lastActiveAt || 0)
+}
+
 /** The conversations, newest activity first. */
 export function listConversations(sessions: Sessions): Session[] {
   return Object.values(sessions)
     .filter(isConversation)
-    .sort((a, b) => (b.lastActiveAt || 0) - (a.lastActiveAt || 0))
+    .sort(sortByRecency)
 }
 
 /**
@@ -129,7 +138,7 @@ export function groupConversationsByAge(sessions: Session[], now: number): Conve
   }
 
   for (const bucket of buckets) {
-    bucket.sessions.sort((a, b) => (b.lastActiveAt || 0) - (a.lastActiveAt || 0))
+    bucket.sessions.sort(sortByRecency)
   }
 
   return buckets.filter((bucket) => bucket.sessions.length > 0)
