@@ -39,7 +39,7 @@ export function AdvancedSettingsSection({
  <button
  type="button"
  onClick={onToggle}
- className="flex w-full items-start justify-between gap-4 rounded-lg bg-transparent px-5 py-5 text-left transition-all hover:bg-layer-1 sm:px-6"
+ className={`flex w-full items-start justify-between gap-4 rounded-lg bg-transparent text-left transition-all hover:bg-layer-1 ${variant === 'card' ? 'px-4 py-4 sm:px-5' : 'px-5 py-5 sm:px-6'}`}
  style={{ fontFamily: 'inherit' }}
  >
  <div className="min-w-0">
