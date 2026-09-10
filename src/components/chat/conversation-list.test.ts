@@ -16,7 +16,7 @@ describe('resolveConversationGroups', () => {
   // `now` starts null until useNow()'s first requestAnimationFrame tick, which
   // a backgrounded or inactive tab can delay indefinitely. `now ?? 0` used to
   // paper over that by handing groupConversationsByAge an epoch-0 `now`, which
-  // put every session's startOfToday in 1970 and filed every row under MÁRA.
+  // put every session's startOfToday in 1970 and filed every row under TODAY.
   it('does not fabricate buckets from an unknown now', () => {
     const rows = [
       session({ id: 'old', messageCount: 1, lastActiveAt: 1 }),
@@ -30,7 +30,7 @@ describe('resolveConversationGroups', () => {
     const rows = [session({ id: 'a', messageCount: 1, lastActiveAt: now })]
     const groups = resolveConversationGroups(rows, now)
     assert.notEqual(groups, null)
-    assert.deepEqual(groups?.map((g) => g.label), ['MÁRA'])
+    assert.deepEqual(groups?.map((g) => g.label), ['TODAY'])
   })
 })
 

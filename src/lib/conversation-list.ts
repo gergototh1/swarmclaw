@@ -137,7 +137,7 @@ export interface ConversationGroup {
  * A hét hétfővel kezdődik (magyar konvenció; a JS `getDay()` vasárnapot ad
  * 0-nak, ezt a `(day + 6) % 7` fordítja meg).
  *
- * A `lastActiveAt` nélküli session a RÉGEBBI vödörbe kerül, nem esik ki: egy
+ * A `lastActiveAt` nélküli session az OLDER vödörbe kerül, nem esik ki: egy
  * hiányzó időbélyeg nem ok arra, hogy egy beszélgetés eltűnjön a listáról.
  */
 export function groupConversationsByAge(sessions: Session[], now: number): ConversationGroup[] {
@@ -148,11 +148,11 @@ export function groupConversationsByAge(sessions: Session[], now: number): Conve
   const startOfMonth = new Date(ref.getFullYear(), ref.getMonth(), 1).getTime()
 
   const buckets: ConversationGroup[] = [
-    { label: 'MÁRA', sessions: [] },
-    { label: 'TEGNAP', sessions: [] },
-    { label: 'EZEN A HÉTEN', sessions: [] },
-    { label: 'EZ A HÓNAP', sessions: [] },
-    { label: 'RÉGEBBI', sessions: [] },
+    { label: 'TODAY', sessions: [] },
+    { label: 'YESTERDAY', sessions: [] },
+    { label: 'THIS WEEK', sessions: [] },
+    { label: 'THIS MONTH', sessions: [] },
+    { label: 'OLDER', sessions: [] },
   ]
 
   for (const session of sessions) {

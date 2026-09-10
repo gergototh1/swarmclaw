@@ -105,14 +105,14 @@ describe('groupConversationsByAge', () => {
     const groups = groupConversationsByAge([
       session({ id: 'a', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 10, 0, 1)) }),
     ], now)
-    assert.deepEqual(groups.map((g) => g.label), ['MÁRA'])
+    assert.deepEqual(groups.map((g) => g.label), ['TODAY'])
   })
 
   it('puts one minute earlier under TEGNAP', () => {
     const groups = groupConversationsByAge([
       session({ id: 'a', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 9, 23, 59)) }),
     ], now)
-    assert.deepEqual(groups.map((g) => g.label), ['TEGNAP'])
+    assert.deepEqual(groups.map((g) => g.label), ['YESTERDAY'])
   })
 
   it('separates this week, this month and older', () => {
@@ -122,7 +122,7 @@ describe('groupConversationsByAge', () => {
       session({ id: 'm', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 3, 10, 0)) }),
       session({ id: 'o', messageCount: 1, lastActiveAt: at(new Date(2026, 5, 1, 10, 0)) }),
     ], now)
-    assert.deepEqual(groups.map((g) => g.label), ['EZEN A HÉTEN', 'EZ A HÓNAP', 'RÉGEBBI'])
+    assert.deepEqual(groups.map((g) => g.label), ['THIS WEEK', 'THIS MONTH', 'OLDER'])
   })
 
   it('leaves an empty bucket out entirely', () => {
@@ -130,7 +130,7 @@ describe('groupConversationsByAge', () => {
       session({ id: 'a', messageCount: 1, lastActiveAt: now }),
     ], now)
     assert.equal(groups.length, 1)
-    assert.equal(groups[0].label, 'MÁRA')
+    assert.equal(groups[0].label, 'TODAY')
   })
 
   it('keeps the newest-first order inside a bucket', () => {
@@ -145,6 +145,6 @@ describe('groupConversationsByAge', () => {
     const groups = groupConversationsByAge([
       session({ id: 'ghost', messageCount: 1, lastActiveAt: 0 }),
     ], now)
-    assert.deepEqual(groups.map((g) => g.label), ['RÉGEBBI'])
+    assert.deepEqual(groups.map((g) => g.label), ['OLDER'])
   })
 })

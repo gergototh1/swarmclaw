@@ -141,10 +141,10 @@ export function ConversationList({ activeId }: { activeId?: string | null }) {
             router.push(`/chat/${encodeURIComponent(s.id)}`)
           }
         }}
-        className={`group/row w-full text-left py-3 px-4 rounded-md cursor-pointer transition-all duration-150 border-none
+        className={`group/row w-full text-left py-3 px-3 rounded-md cursor-pointer transition-all duration-150 border-none
           ${isActive ? 'bg-accent-soft/80 border border-accent-bright/20' : 'bg-transparent hover:bg-layer-1'}`}
       >
-        <div className="flex items-start gap-2.5">
+        <div className="flex items-start gap-2">
           {/* A pont az avatar pozícióját örökli, és akkor is helyet
               foglal, ha nincs jelzés -- különben a címek elcsúsznának
               egymáshoz képest soronként. */}
@@ -218,8 +218,8 @@ export function ConversationList({ activeId }: { activeId?: string | null }) {
           ? rows.map((s) => renderRow(s))
           : groups.map((group) => (
               <div key={group.label} className="flex flex-col gap-0.5">
-                <div className="sticky top-0 z-10 bg-surface/95 backdrop-blur-sm px-4 pt-4 pb-1.5">
-                  <span className="text-[10px] font-600 tracking-[0.06em] text-text-3">
+                <div className="sticky top-0 z-10 bg-surface/95 backdrop-blur-sm px-3 py-1.5">
+                  <span className="text-[9px] font-600 tracking-[0.08em] text-text-3">
                     {group.label}
                   </span>
                 </div>
