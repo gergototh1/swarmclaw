@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useRef, type ReactNode } from 'react'
 import { ClipboardList, Plus } from 'lucide-react'
 import type { Session } from '@/types'
 import { useAppStore } from '@/stores/use-app-store'
+import { listRunningSubagentChildren } from '@/lib/chat/subagent-children'
 import { useChatStore } from '@/stores/use-chat-store'
 import { useNow } from '@/hooks/use-now'
 import { IconButton } from '@/components/shared/icon-button'
@@ -88,12 +89,27 @@ interface Props {
   onCompactComplete?: () => void
   onClearRequest?: () => void
   onStartNewSession?: () => void
+  /** Megnyitja egy futó subagent beszélgetését a szülő chat melletti panelben. */
+  onOpenSubagent?: (sessionId: string, agentName: string) => void
 }
 
-export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, mobile, browserActive, onStopBrowser, onVoiceToggle, voiceActive, voiceSupported, connectorSources, connectorFilter, onConnectorFilterChange, hasMultipleSources, messageCount = 0, onCompactComplete, onClearRequest, onStartNewSession }: Props) {
+export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, mobile, browserActive, onStopBrowser, onVoiceToggle, voiceActive, voiceSupported, connectorSources, connectorFilter, onConnectorFilterChange, hasMultipleSources, messageCount = 0, onCompactComplete, onClearRequest, onStartNewSession, onOpenSubagent }: Props) {
   const now = useNow()
   const agentStatus = useChatStore((s) => s.agentStatus)
   const agents = useAppStore((s) => s.agents)
+  const allSessions = useAppStore((s) => s.sessions)
+  /*
+   * A futó subagentek a resume-sávban ülnek, a `Claude: <id>` chip mellett.
+   *
+   * Az inline sor a transzkriptben csak ott mutatja a gyereket, ahol a spawn
+   * történt -- egy hosszú beszélgetésben az rég kigörgött a képből. Ez a sáv
+   * mindig látszik, tehát innen bármikor át lehet látni és bele lehet nyúlni
+   * abba, ami MOST dolgozik.
+   */
+  const runningSubagents = useMemo(
+    () => listRunningSubagentChildren(allSessions, session.id),
+    [allSessions, session.id],
+  )
   const tasks = useAppStore((s) => s.tasks)
   const navigateTo = useNavigate()
   const setMemoryAgentFilter = useAppStore((s) => s.setMemoryAgentFilter)
@@ -675,6 +691,24 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
             </button>
             </Tip>
           )}
+          {onOpenSubagent && runningSubagents.map((child) => {
+            /* A gyerek session neve `subagent-<Ügynök>`; ha az ügynök még
+               megvan a store-ban, az ő nevét használjuk, mert az a friss. */
+            const childName = (child.agentId && agents[child.agentId]?.name)
+              || child.name.replace(/^subagent-/, '')
+            return (
+              <Tip key={child.id} label={`${childName} dolgozik — beszélgetés megnyitása`}>
+                <button
+                  onClick={() => onOpenSubagent(child.id, childName)}
+                  data-testid="running-subagent-chip"
+                  className="flex min-w-0 items-center gap-1.5 rounded-xs bg-layer-1 px-2 py-1 shrink-0 hover:bg-layer-2 transition-colors cursor-pointer border-none"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                  <span className="text-[10px] text-text-3/60 truncate max-w-[140px]">{childName}</span>
+                </button>
+              </Tip>
+            )
+          })}
           {resumeHandle && (
             <div className="flex items-center rounded-xs bg-layer-1 group/resume shrink-0">
               <Tip label="Copy CLI resume command">

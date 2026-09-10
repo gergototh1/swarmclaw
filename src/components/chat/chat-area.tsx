@@ -609,6 +609,7 @@ export function ChatArea() {
           onCompactComplete={handleCompactComplete}
           onClearRequest={handleClearRequest}
           onStartNewSession={handleStartNewSession}
+          onOpenSubagent={(sessionId: string, agentName: string) => setOpenSubagent({ sessionId, agentName })}
         />
       )}
       {!isDesktop && (
@@ -631,6 +632,7 @@ export function ChatArea() {
           onCompactComplete={handleCompactComplete}
           onClearRequest={handleClearRequest}
           onStartNewSession={handleStartNewSession}
+          onOpenSubagent={(sessionId: string, agentName: string) => setOpenSubagent({ sessionId, agentName })}
         />
       )}
       <DevServerBar status={devServerStatus} onStop={handleStopDevServer} />

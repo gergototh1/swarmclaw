@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 
 import { PLATFORM_MCP_TOOL_NAMES } from './platform-mcp'
@@ -48,5 +49,32 @@ describe('PLATFORM_MCP_TOOL_NAMES', () => {
     for (const name of PLATFORM_MCP_TOOL_NAMES) {
       assert.match(name, /^[a-z][a-z0-9_]*$/, `${name} is not a plain tool name`)
     }
+  })
+})
+
+/*
+ * A híd továbbadja, KI kérdez.
+ *
+ * A `spawn_subagent` ebből írja a gyerek session `parentSessionId`-jét
+ * (`subagent-runtime.ts`: `context.sessionId || null`). Amíg a híd
+ * bedrótozott `null`-t adott át, minden CLI-provider ügynök szülő nélküli
+ * gyereket hagyott maga után -- és mivel MINDEN ilyen ügynök ezen a hídon jár,
+ * a tárolt subagent sessionök egyikén sem volt szülő, tehát semmi nem tudta
+ * őket a szülő chathez kötni.
+ *
+ * Ez forrás-szintű őrszem, nem viselkedési teszt: ez a modul `getAgent`-et és
+ * `buildSessionTools`-t hív, amiket kimockolni itt aránytalan lenne. Annyit
+ * bizonyít, hogy a bedrótozott `null` nem jön vissza észrevétlenül.
+ */
+describe('the platform MCP bridge passes the caller session on', () => {
+  const src = readFileSync(new URL('./platform-mcp.ts', import.meta.url), 'utf8')
+
+  it('does not hand buildSessionTools a hardcoded null session', () => {
+    assert.doesNotMatch(src, /^\s*sessionId:\s*null,/m)
+  })
+
+  it('reads the session off the caller stamp', () => {
+    assert.match(src, /function callerSessionId\(caller: PlatformMcpCaller\)/)
+    assert.match(src, /toolsForAgent\(agentId, callerSessionId\(caller\)\)/)
   })
 })
