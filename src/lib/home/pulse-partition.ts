@@ -3,23 +3,41 @@ import type { OperationPulseAction, OperationPulseActionKind } from '@/types'
 /**
  * The operations pulse already ranks approvals, budgets and missions, which is
  * exactly where it collides with the home page's "Needs you" block. Rather
- * than let both render the same row, the kinds are partitioned: each one
- * belongs to exactly one surface, and the test asserts the split is total and
- * disjoint. A new kind added to `OperationPulseActionKind` fails that test
- * until somebody decides where it goes.
+ * than let both render the same row, each kind is assigned to exactly one
+ * tier below. `PULSE_KIND_TIER` is a `Record` keyed by the full
+ * `OperationPulseActionKind` union, so adding a member to that union without
+ * assigning it a tier here is a compile error, not just a failing test — the
+ * exported lists are derived from this record, so disjointness is structural
+ * (a key cannot sit in two tiers) rather than merely asserted. The colocated
+ * test still pins each kind to its specific tier, so a kind quietly sliding
+ * between tiers (e.g. `budget` moving out of "needs you") still fails a test.
  */
-export const ALL_PULSE_KINDS: readonly OperationPulseActionKind[] = [
-  'mission', 'run', 'approval', 'connector', 'gateway', 'budget', 'quality',
-]
+type PulseTier = 'needs-you' | 'operations' | 'home-suppressed'
+
+const PULSE_KIND_TIER: Record<OperationPulseActionKind, PulseTier> = {
+  mission: 'needs-you',
+  budget: 'needs-you',
+  connector: 'operations',
+  gateway: 'operations',
+  run: 'operations',
+  quality: 'operations',
+  approval: 'home-suppressed',
+}
+
+const kindsInTier = (tier: PulseTier): readonly OperationPulseActionKind[] =>
+  (Object.keys(PULSE_KIND_TIER) as OperationPulseActionKind[]).filter((kind) => PULSE_KIND_TIER[kind] === tier)
+
+export const ALL_PULSE_KINDS: readonly OperationPulseActionKind[] =
+  Object.keys(PULSE_KIND_TIER) as OperationPulseActionKind[]
 
 /** Decisions waiting on a person — Tier 1. */
-export const NEEDS_YOU_PULSE_KINDS: readonly OperationPulseActionKind[] = ['mission', 'budget']
+export const NEEDS_YOU_PULSE_KINDS: readonly OperationPulseActionKind[] = kindsInTier('needs-you')
 
 /** Infrastructure health — Tier 3, behind the collapse. */
-export const OPERATIONS_PULSE_KINDS: readonly OperationPulseActionKind[] = ['connector', 'gateway', 'run', 'quality']
+export const OPERATIONS_PULSE_KINDS: readonly OperationPulseActionKind[] = kindsInTier('operations')
 
 /** Shown from `useApprovalStore` instead, which is live rather than polled. */
-export const HOME_SUPPRESSED_PULSE_KINDS: readonly OperationPulseActionKind[] = ['approval']
+export const HOME_SUPPRESSED_PULSE_KINDS: readonly OperationPulseActionKind[] = kindsInTier('home-suppressed')
 
 export function filterPulseActions(
   actions: readonly OperationPulseAction[],

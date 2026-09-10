@@ -21,12 +21,23 @@ describe('pulse kind partition', () => {
   })
 
   it('lists every kind the type declares', () => {
-    // Adding a member to OperationPulseActionKind must fail here until it is
-    // assigned to a tier. This literal is the second copy on purpose.
+    // ALL_PULSE_KINDS is derived from a Record keyed by the full union, so
+    // tsc itself fails a member added to OperationPulseActionKind and left
+    // unassigned to a tier — that's the compile-time guard. This hand-typed
+    // literal is a second, independent copy that a Record alone can't
+    // replace: it catches a kind being *removed* from the union (or its name
+    // changed) without ALL_PULSE_KINDS necessarily shrinking to match, since
+    // Object.keys always reflects whatever the record currently declares.
     const declared: OperationPulseActionKind[] = [
       'mission', 'run', 'approval', 'connector', 'gateway', 'budget', 'quality',
     ]
     assert.deepEqual([...ALL_PULSE_KINDS].sort(), declared.sort())
+  })
+
+  it('assigns each kind to exactly its documented tier', () => {
+    assert.deepEqual([...NEEDS_YOU_PULSE_KINDS].sort(), ['budget', 'mission'])
+    assert.deepEqual([...OPERATIONS_PULSE_KINDS].sort(), ['connector', 'gateway', 'quality', 'run'])
+    assert.deepEqual([...HOME_SUPPRESSED_PULSE_KINDS].sort(), ['approval'])
   })
 })
 
