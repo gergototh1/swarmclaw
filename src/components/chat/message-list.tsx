@@ -182,9 +182,10 @@ interface Props {
   streaming: boolean
   connectorFilter?: string | null
   loading?: boolean
+  onOpenSubagent?: (sessionId: string, agentName: string) => void
 }
 
-export function MessageList({ messages, streaming, connectorFilter = null, loading = false }: Props) {
+export function MessageList({ messages, streaming, connectorFilter = null, loading = false, onOpenSubagent }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const settledCountRef = useRef(0)
@@ -513,6 +514,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               onToggleBookmark={toggleBookmark}
               onEditResend={handleEditResend}
               momentOverlay={momentOverlay}
+              onOpenSubagent={onOpenSubagent}
             />
           </div>
         </div>
@@ -528,6 +530,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
     currentSearchMatchIndex,
     filteredMessages,
     lastMomentOverlay,
+    onOpenSubagent,
     originalIndexMap,
     retryLastMessage,
     searchMatchSet,

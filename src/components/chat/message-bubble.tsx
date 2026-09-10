@@ -20,6 +20,8 @@ import { FilePathChip, FILE_PATH_RE, DIR_PATH_RE } from './file-path-chip'
 import { TransferAgentPicker } from './transfer-agent-picker'
 import { DelegationSourceBanner, TaskCompletionCard, parseTaskCompletion } from './delegation-banner'
 import { ConnectorPlatformIcon, getConnectorPlatformLabel } from '@/components/shared/connector-platform-icon'
+import { parseSwarmOutput } from './swarm-panel'
+import { SubagentRow } from './subagent-row'
 import { copyTextToClipboard } from '@/lib/clipboard'
 import { formatMessageTimestamp } from '@/lib/chat/chat-display'
 import { stripAllInternalMetadata } from '@/lib/strip-internal-metadata'
@@ -311,10 +313,11 @@ interface Props {
   onToggleBookmark?: (index: number) => void
   onEditResend?: (index: number, newText: string) => void
   onTransferToAgent?: (messageIndex: number, agentId: string) => void
+  onOpenSubagent?: (sessionId: string, agentName: string) => void
   momentOverlay?: React.ReactNode
 }
 
-export const MessageBubble = memo(function MessageBubble({ message, assistantName, cwd, liveStream, isLast, onRetry, messageIndex, onToggleBookmark, onEditResend, onTransferToAgent, momentOverlay }: Props) {
+export const MessageBubble = memo(function MessageBubble({ message, assistantName, cwd, liveStream, isLast, onRetry, messageIndex, onToggleBookmark, onEditResend, onTransferToAgent, onOpenSubagent, momentOverlay }: Props) {
   const isUser = message.role === 'user'
   const isHeartbeat = !isUser && (message.kind === 'heartbeat' || /^\s*HEARTBEAT_OK\b/i.test(message.text || ''))
   const isExtensionUI = !isUser && message.kind === 'extension-ui'
@@ -636,6 +639,13 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
           </div>
         </div>
       )}
+
+      {/* Subagent sor: ki dolgozott, és hol van a beszélgetése */}
+      {!isUser && onOpenSubagent && displayToolEvents.map((ev, i) => {
+        const swarm = parseSwarmOutput(ev.name, ev.output || '')
+        if (!swarm) return null
+        return <SubagentRow key={`sw-${i}`} data={swarm} onOpen={onOpenSubagent} />
+      })}
 
 
       {/* Thinking block (collapsible, shown for assistant messages with persisted thinking) */}
