@@ -65,7 +65,7 @@ describe('tightestCap', () => {
     assert.equal(cap?.fraction, 0.5)
   })
 
-  it('computes a sub-minute wallclock fraction from raw seconds, not rounded minutes', () => {
+  it('computes a sub-minute wallclock fraction from raw seconds, not whole minutes', () => {
     const cap = tightestCap({
       budget: budget({ maxWallclockSec: 40 }),
       usage: usage({ wallclockMsElapsed: 20_000 }),

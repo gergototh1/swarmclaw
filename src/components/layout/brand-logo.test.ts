@@ -63,14 +63,38 @@ describe('SidekickOS wordmark', () => {
   })
 
   it('puts the mark before the name wherever the name is spelled out', () => {
-    // Két hely írja ki a nevet: a nyitott rail és a kezdőlap címe. Mindkettő
-    // a lockupot rajzolja, nem a csupasz szóvédjegyet -- különben a jel csak
-    // csukott railen létezne, és a márka fele eltűnne, amint valaki kinyitja.
-    for (const f of ['src/components/layout/sidebar-rail.tsx', 'src/app/home/page.tsx']) {
-      const src = fs.readFileSync(path.join(ROOT, f), 'utf8')
-      assert.match(src, /<BrandLockup\b/, `${f} nem a lockupot rajzolja`)
-      assert.ok(!/<BrandWordmark\b/.test(src), `${f} még a csupasz szóvédjegyet rajzolja`)
+    /*
+     * Ahol kiírjuk a nevet, ott a jel is ott van -- különben a jel csak csukott
+     * railen létezne, és a márka fele eltűnne, amint valaki kinyitja.
+     *
+     * A lista korábban be volt drótozva a railre és a kezdőlapra. A kezdőlap
+     * azóta három szintre épült át, és nem írja ki a nevet sehol; a rögzített
+     * lista emiatt egy már nem létező hívást kért számon. Most a fájlok maguk
+     * jelentkeznek: amelyik a csupasz szóvédjegyet rajzolja, annak a lockupot
+     * kell rajzolnia helyette. Így egy új névkiíró hely magától a hatálya alá
+     * kerül, és egy megszűnő magától kiesik belőle.
+     */
+    const offenders: string[] = []
+    const walk = (dir: string): void => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue
+        const full = path.join(dir, entry.name)
+        if (entry.isDirectory()) { walk(full); continue }
+        if (!full.endsWith('.tsx')) continue
+        // A komponenst definiáló fájl nyilván hivatkozik rá.
+        if (full.endsWith('brand-logo.tsx')) continue
+        const src = fs.readFileSync(full, 'utf8')
+        if (/<BrandWordmark\b/.test(src) && !/<BrandLockup\b/.test(src)) {
+          offenders.push(path.relative(ROOT, full))
+        }
+      }
     }
+    walk(path.join(ROOT, 'src'))
+    assert.deepEqual(offenders, [], 'ezek a csupasz szóvédjegyet rajzolják a lockup helyett')
+
+    // A rail az egyetlen hely, ahol a név ma ki van írva, és ott a lockup a mód.
+    const rail = fs.readFileSync(path.join(ROOT, 'src/components/layout/sidebar-rail.tsx'), 'utf8')
+    assert.match(rail, /<BrandLockup\b/, 'a nyitott rail nem a lockupot rajzolja')
   })
 
   it('ships an app icon and a favicon drawn from the same mark', () => {
