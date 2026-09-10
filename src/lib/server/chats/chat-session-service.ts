@@ -35,7 +35,7 @@ import { normalizeProviderEndpoint } from '@/lib/openclaw/openclaw-endpoint'
 import { serviceFail, serviceOk } from '@/lib/server/service-result'
 import { WORKSPACE_DIR } from '@/lib/server/data-dir'
 import { buildSessionListSummary } from '@/lib/chat/session-summary'
-import { getLastMessages, getMessageCount, getMessageCounts } from '@/lib/server/messages/message-repository'
+import { getLastMessage, getLastMessages, getMessageCount, getMessageCounts } from '@/lib/server/messages/message-repository'
 import type { Session } from '@/types'
 import type { ServiceResult } from '@/lib/server/service-result'
 import { notify } from '@/lib/server/ws-hub'
@@ -112,6 +112,20 @@ export function getChatSessionForApi(sessionId: string): Session | null {
    * of it a moment later.
    */
   session.messageCount = getMessageCount(sessionId)
+  /*
+   * The same real summary the list endpoint reports, for the one session
+   * this endpoint fetches -- a single-session read via `getLastMessage`
+   * rather than the whole-table `getLastMessages` the list uses.
+   *
+   * `refreshSession` on the client replaces the whole store entry with
+   * whatever this endpoint returns, so a stale (empty) `lastMessageSummary`
+   * here overwrote the good summary the list endpoint had just supplied the
+   * moment a chat was opened or refreshed -- the notification body and the
+   * chat list's own preview fell back to the chat name until the next full
+   * list load.
+   */
+  const lastMessage = getLastMessage(sessionId)
+  if (lastMessage) session.lastMessageSummary = lastMessage
   return session
 }
 
