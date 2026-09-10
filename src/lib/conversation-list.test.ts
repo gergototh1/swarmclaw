@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { conversationTitle, isConversation, listConversations } from './conversation-list'
+import { conversationTitle, groupConversationsByAge, isConversation, listConversations } from './conversation-list'
 import { resolveChatroomSyntheticSessionId } from './chatroom-sessions'
 import type { Session, Sessions } from '@/types'
 
@@ -64,5 +64,58 @@ describe('conversationTitle', () => {
 
   it('falls back to the agent when there is nothing else', () => {
     assert.equal(conversationTitle(session({ id: 'c', name: '' }), 'Ügyfélkezelő'), 'Ügyfélkezelő')
+  })
+})
+
+describe('groupConversationsByAge', () => {
+  // 2026-09-10 csütörtök, 14:00 helyi idő.
+  const now = new Date(2026, 8, 10, 14, 0, 0).getTime()
+  const at = (d: Date) => d.getTime()
+
+  it('puts anything from today under MÁRA, down to one minute past midnight', () => {
+    const groups = groupConversationsByAge([
+      session({ id: 'a', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 10, 0, 1)) }),
+    ], now)
+    assert.deepEqual(groups.map((g) => g.label), ['MÁRA'])
+  })
+
+  it('puts one minute earlier under TEGNAP', () => {
+    const groups = groupConversationsByAge([
+      session({ id: 'a', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 9, 23, 59)) }),
+    ], now)
+    assert.deepEqual(groups.map((g) => g.label), ['TEGNAP'])
+  })
+
+  it('separates this week, this month and older', () => {
+    // now = 2026-09-10 (Thursday), so this week's Monday is 2026-09-07.
+    const groups = groupConversationsByAge([
+      session({ id: 'w', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 8, 10, 0)) }),
+      session({ id: 'm', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 3, 10, 0)) }),
+      session({ id: 'o', messageCount: 1, lastActiveAt: at(new Date(2026, 5, 1, 10, 0)) }),
+    ], now)
+    assert.deepEqual(groups.map((g) => g.label), ['EZEN A HÉTEN', 'EZ A HÓNAP', 'RÉGEBBI'])
+  })
+
+  it('leaves an empty bucket out entirely', () => {
+    const groups = groupConversationsByAge([
+      session({ id: 'a', messageCount: 1, lastActiveAt: now }),
+    ], now)
+    assert.equal(groups.length, 1)
+    assert.equal(groups[0].label, 'MÁRA')
+  })
+
+  it('keeps the newest-first order inside a bucket', () => {
+    const groups = groupConversationsByAge([
+      session({ id: 'older', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 10, 9, 0)) }),
+      session({ id: 'newer', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 10, 13, 0)) }),
+    ], now)
+    assert.deepEqual(groups[0].sessions.map((s) => s.id), ['newer', 'older'])
+  })
+
+  it('files a session with no activity timestamp under RÉGEBBI instead of dropping it', () => {
+    const groups = groupConversationsByAge([
+      session({ id: 'ghost', messageCount: 1, lastActiveAt: 0 }),
+    ], now)
+    assert.deepEqual(groups.map((g) => g.label), ['RÉGEBBI'])
   })
 })

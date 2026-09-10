@@ -84,3 +84,53 @@ export function conversationTitle(session: Session, fallback: string): string {
   if (summary) return summary.split('\n')[0].slice(0, 80)
   return fallback
 }
+
+export interface ConversationGroup {
+  label: string
+  sessions: Session[]
+}
+
+/**
+ * Naptári vödrök, nem eltelt óra.
+ *
+ * A "24 óránál frissebb" nem az, amit az olvasó keres: reggel kilenckor a
+ * tegnap esti beszélgetés tegnapi, nem "17 órás". Ezért minden határ helyi
+ * idő szerinti nap-, hét- és hónapkezdet, és ezért kell a `now` paraméter --
+ * enélkül a függvény nem lenne tesztelhető határnapokra.
+ *
+ * A hét hétfővel kezdődik (magyar konvenció; a JS `getDay()` vasárnapot ad
+ * 0-nak, ezt a `(day + 6) % 7` fordítja meg).
+ *
+ * A `lastActiveAt` nélküli session a RÉGEBBI vödörbe kerül, nem esik ki: egy
+ * hiányzó időbélyeg nem ok arra, hogy egy beszélgetés eltűnjön a listáról.
+ */
+export function groupConversationsByAge(sessions: Session[], now: number): ConversationGroup[] {
+  const ref = new Date(now)
+  const startOfToday = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()).getTime()
+  const startOfYesterday = startOfToday - 86_400_000
+  const startOfWeek = startOfToday - ((ref.getDay() + 6) % 7) * 86_400_000
+  const startOfMonth = new Date(ref.getFullYear(), ref.getMonth(), 1).getTime()
+
+  const buckets: ConversationGroup[] = [
+    { label: 'MÁRA', sessions: [] },
+    { label: 'TEGNAP', sessions: [] },
+    { label: 'EZEN A HÉTEN', sessions: [] },
+    { label: 'EZ A HÓNAP', sessions: [] },
+    { label: 'RÉGEBBI', sessions: [] },
+  ]
+
+  for (const session of sessions) {
+    const at = session.lastActiveAt || 0
+    if (at >= startOfToday) buckets[0].sessions.push(session)
+    else if (at >= startOfYesterday) buckets[1].sessions.push(session)
+    else if (at >= startOfWeek) buckets[2].sessions.push(session)
+    else if (at >= startOfMonth) buckets[3].sessions.push(session)
+    else buckets[4].sessions.push(session)
+  }
+
+  for (const bucket of buckets) {
+    bucket.sessions.sort((a, b) => (b.lastActiveAt || 0) - (a.lastActiveAt || 0))
+  }
+
+  return buckets.filter((bucket) => bucket.sessions.length > 0)
+}
