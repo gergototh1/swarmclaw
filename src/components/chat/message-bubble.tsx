@@ -836,7 +836,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
             )}
           </div>
         ) : hasDisplayText ? (
-          <div className={`msg-content text-[15px] md:text-[14px] break-words ${liveStreamActive ? 'streaming-cursor' : ''} ${isUser ? 'leading-[1.6] text-white/95' : 'leading-[1.7] text-text'}`}>
+          <div className={`msg-content text-[15px] md:text-[14px] break-words ${liveStreamActive ? 'streaming-cursor' : ''} ${isUser ? 'leading-[1.6]' : 'leading-[1.7] text-text'}`}>
             {!isUser && message.kind === 'connector-delivery' && connectorDeliveryTranscript && (
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-700 tracking-[0.03em] text-emerald-200/85">
                 <span>Delivered via connector</span>

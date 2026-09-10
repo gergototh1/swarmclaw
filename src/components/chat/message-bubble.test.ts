@@ -348,4 +348,26 @@ describe('MessageBubble', () => {
     assert.ok(html.includes('bubble-user'), 'the user turn keeps its bubble')
     assert.ok(html.includes('Csináld meg.'))
   })
+
+  /*
+   * A buborék szövege a tokenből jön, nem egy bedrótozott fehérből.
+   *
+   * Amíg a buborék korall volt, a `text-white/95` helyes volt rajta. A
+   * felület-létrára költözve viszont felülbírálta a `.bubble-user`
+   * `--color-user-text` értékét, és világos témában fehér szöveget hagyott
+   * #E8E8ED háttéren -- olvashatatlanul. Sötét témában véletlenül jól nézett
+   * ki, ezért maradt észrevétlen.
+   */
+  it('lets the token colour the user bubble text instead of hardcoding white', async () => {
+    const mod = await import('./message-bubble')
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MessageBubble, {
+        message: { role: 'user', text: 'Csináld meg.', time: 1_700_000_000_000, kind: 'chat' },
+      } as React.ComponentProps<typeof mod.MessageBubble>),
+    )
+    assert.ok(
+      !/\btext-white\b|\btext-white\//.test(html),
+      `the user turn must not hardcode a text colour over --color-user-text, got: ${html.slice(0, 400)}`,
+    )
+  })
 })
