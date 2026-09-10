@@ -9,8 +9,6 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { useAppStore } from '@/stores/use-app-store'
 import { useChatStore } from '@/stores/use-chat-store'
 import type { ToolEvent } from '@/stores/use-chat-store'
-import { AiAvatar } from '@/components/shared/avatar'
-import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { CodeBlock } from './code-block'
 import { extractMedia, isExplicitScreenshot } from './tool-call-bubble'
 import { ToolEventsSection, ToolActivityPill } from './tool-events-section'
@@ -316,7 +314,7 @@ interface Props {
   momentOverlay?: React.ReactNode
 }
 
-export const MessageBubble = memo(function MessageBubble({ message, assistantName, agentAvatarSeed, agentAvatarUrl, agentName, cwd, liveStream, isLast, onRetry, messageIndex, onToggleBookmark, onEditResend, onTransferToAgent, momentOverlay }: Props) {
+export const MessageBubble = memo(function MessageBubble({ message, assistantName, cwd, liveStream, isLast, onRetry, messageIndex, onToggleBookmark, onEditResend, onTransferToAgent, momentOverlay }: Props) {
   const isUser = message.role === 'user'
   const isHeartbeat = !isUser && (message.kind === 'heartbeat' || /^\s*HEARTBEAT_OK\b/i.test(message.text || ''))
   const isExtensionUI = !isUser && message.kind === 'extension-ui'
@@ -557,6 +555,17 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
     || (!isUser && typeof messageIndex === 'number' && Boolean(onTransferToAgent))
   const safeMomentOverlay = isValidElement(momentOverlay) ? momentOverlay : null
 
+  /*
+   * A fejléc-sor eltűnik, amikor nincs benne semmi.
+   *
+   * Nem csak a nevet hordozta: a tool-pill és a live-stream jelző is itt ül,
+   * és azok maradnak. Egy sima, tool nélküli agent üzenet fölött viszont
+   * semmi nem marad, és ilyenkor a sor sem -- különben egy 8px magas üres
+   * doboz nyílna minden válasz fölé.
+   */
+  const showSenderLabel = isUser || !!message.source
+  const showHeaderRow = showSenderLabel || hasToolEvents || (!isUser && liveStreamActive) || !!connectorMeta
+
   return (
     <div
       data-testid="message-bubble"
@@ -564,22 +573,16 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
       data-message-kind={message.kind || 'chat'}
       data-message-time={message.time || undefined}
       data-message-has-tools={hasToolEvents || undefined}
-      className={`group ${isUser ? 'flex flex-col items-end' : 'flex flex-col items-start relative pl-[44px]'}`}
+      className={`group ${isUser ? 'flex flex-col items-end' : 'flex flex-col items-start'}`}
     >
-      {/* Avatar on spine (assistant) */}
-      {!isUser && (
-        <div className="absolute left-[4px] top-0">
-          <div style={safeMomentOverlay ? { animation: 'avatar-moment-pulse 0.6s ease' } : undefined}>
-            {agentName
-              ? <AgentAvatar seed={agentAvatarSeed || null} avatarUrl={agentAvatarUrl} name={agentName} size={28} />
-              : <AiAvatar size="sm" mood={liveStream?.phase === 'tool' ? 'tool' : liveStreamActive ? 'thinking' : undefined} />}
-          </div>
-          {safeMomentOverlay}
-        </div>
+      {!isUser && safeMomentOverlay && (
+        <div className="mb-1">{safeMomentOverlay}</div>
       )}
-      {/* Sender label + timestamp */}
+      {/* Sender label + tool pill + stream indicator */}
+      {showHeaderRow && (
       <div className={`flex flex-col gap-0.5 mb-2 px-1 ${isUser ? 'items-end' : 'items-start'}`}>
         <div className={`flex items-center gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}>
+          {showSenderLabel && (
           <span className={`text-[12px] font-600 flex items-center gap-1.5 ${isUser ? 'text-accent-bright/70' : 'text-text-3'}`}>
             {message.source && (
               <ConnectorPlatformIcon platform={message.source.platform} size={12} />
@@ -592,6 +595,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                   ? `${assistantName || 'Claude'} via ${getConnectorPlatformLabel(message.source.platform)}`
                   : (assistantName || 'Claude'))}
           </span>
+          )}
           {hasToolEvents && (
             <ToolActivityPill
               toolEvents={displayToolEvents}
@@ -614,9 +618,6 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
               </span>
             </span>
           )}
-          <span className="text-[11px] text-text-3 font-mono" title={message.time ? new Date(message.time).toLocaleString() : ''}>
-            {message.time ? formatMessageTimestamp(message) : ''}
-          </span>
         </div>
         {connectorMeta && (
           <div className={`text-[10px] font-mono text-text-3 ${isUser ? 'text-right' : ''}`}>
@@ -624,6 +625,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
           </div>
         )}
       </div>
+      )}
 
       {/* Tool events expanded card (controlled by pill toggle) */}
       {hasToolEvents && effectiveToolSectionOpen && (
@@ -684,7 +686,18 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
         </div>
       ) : shouldRenderBubbleShell ? (
         /* Message bubble */
-        <div className={`${isStructured ? 'max-w-[92%] md:max-w-[85%]' : 'max-w-[85%] md:max-w-[72%]'} ${isUser ? 'bubble-user px-5 py-3.5' : isHeartbeat ? 'bubble-ai px-4 py-3' : 'bubble-ai px-5 py-3.5'}`}>
+        <div className={
+          isUser
+            ? `${isStructured ? 'max-w-[92%] md:max-w-[85%]' : 'max-w-[85%] md:max-w-[72%]'} bubble-user px-5 py-3.5`
+            /*
+             * A heartbeat nem doboz, de nem is sima válasz: egy halvány bal
+             * vonal mondja meg, hogy ez a rendszer beszél, nem az ügynök.
+             * Keret nélkül nem lehetne megkülönböztetni egy valódi választól.
+             */
+            : isHeartbeat
+              ? 'w-full border-l border-line-subtle pl-4 py-1 text-text-3'
+              : 'w-full'
+        }>
           {installRequest ? (
           <div className="flex flex-col gap-3 p-4 rounded-lg bg-emerald-500/[0.03] border border-emerald-500/20">
             <div className="flex items-center gap-2 mb-1">
@@ -1000,6 +1013,14 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
       {/* Action buttons */}
       {showActions && (
         <MessageActions layout="bubble" align={isUser ? 'end' : 'start'}>
+          {message.time && (
+            <span
+              className="text-[10px] text-text-3 font-mono mr-1"
+              title={new Date(message.time).toLocaleString()}
+            >
+              {formatMessageTimestamp(message)}
+            </span>
+          )}
           {canCopy && (
             <ActionButton
               onClick={handleCopy}

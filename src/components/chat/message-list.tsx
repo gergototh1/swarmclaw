@@ -840,8 +840,6 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 md:px-12 lg:px-16 pt-4 pb-[120px] md:pb-10 fade-up"
       >
         <div className="flex flex-col gap-6 relative">
-          {/* Chat spine — vertical line for assistant messages */}
-          <div className="absolute left-[15px] top-0 bottom-0 w-px bg-layer-2 pointer-events-none" />
           {hasMoreMessages && (
             <div className="flex justify-center py-3">
               <button

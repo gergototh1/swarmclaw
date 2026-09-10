@@ -247,7 +247,6 @@
   --color-shereen: var(--st-pink);
   --color-user-bubble: var(--ac);
   --color-user-bubble-2: var(--ac-2);
-  --color-ai-bubble: var(--surface-card);
   --color-glass: var(--sf-glass);
   --color-glass-border: var(--ln-default);
 
@@ -1270,12 +1269,6 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   background: var(--color-user-bubble);
   border-radius: var(--radius-lg) var(--radius-lg) var(--radius-xs) var(--radius-lg);
   color: var(--color-user-text);
-}
-
-.bubble-ai {
-  background: var(--color-ai-bubble);
-  border: 1px solid var(--color-line-default);
-  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) var(--radius-xs);
 }
 
 /* Suggestion card */

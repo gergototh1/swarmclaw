@@ -284,4 +284,37 @@ describe('MessageBubble', () => {
     assert.match(html, /I tested the platform and sent the update through Telegram\./)
     assert.doesNotMatch(html, />Message delivered\.<\/p>/)
   })
+
+  it('renders a plain assistant turn with no avatar, no bubble shell and no name label', async () => {
+    const mod = await import('./message-bubble')
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MessageBubble, {
+        message: { role: 'assistant', text: 'Kész van.', time: 1_700_000_000_000, kind: 'chat' },
+        assistantName: 'Marveen',
+        agentName: 'Marveen',
+      } as React.ComponentProps<typeof mod.MessageBubble>),
+    )
+    assert.ok(!html.includes('bubble-ai'), 'assistant turn must not carry the bubble shell')
+    assert.ok(!html.includes('pl-[44px]'), 'assistant turn must not reserve the avatar spine')
+    assert.ok(!html.includes('>Marveen<'), 'assistant turn must not print a name label')
+    assert.ok(html.includes('Kész van.'), 'the answer text must still render')
+  })
+
+  it('keeps the sender label for a connector-delivered assistant turn', async () => {
+    const mod = await import('./message-bubble')
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MessageBubble, {
+        message: {
+          role: 'assistant',
+          text: 'Válasz Telegramra.',
+          time: 1_700_000_000_000,
+          kind: 'chat',
+          source: { platform: 'telegram', connectorId: 'c1' },
+        },
+        assistantName: 'Marveen',
+        agentName: 'Marveen',
+      } as React.ComponentProps<typeof mod.MessageBubble>),
+    )
+    assert.ok(html.includes('Marveen'), 'a connector turn must say which channel it came through')
+  })
 })
