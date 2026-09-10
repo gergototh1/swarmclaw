@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { AlertTriangle, CheckCircle2, Clock, PlugZap, RadioTower, RefreshCw } from 'lucide-react'
 import { api } from '@/lib/app/api-client'
 import { cn } from '@/lib/utils'
-import type { OperationPulse, OperationPulseAction, OperationPulseRange, OperationPulseSeverity } from '@/types'
+import { filterPulseActions } from '@/lib/home/pulse-partition'
+import type { OperationPulse, OperationPulseAction, OperationPulseActionKind, OperationPulseRange, OperationPulseSeverity } from '@/types'
 
 const SEVERITY_CLASS: Record<OperationPulseSeverity, string> = {
  high: 'border-rose-500/20 bg-rose-500/[0.06] text-rose-200',
@@ -48,10 +49,14 @@ export function OperationsPulsePanel({
  defaultRange = '24h',
  className,
  compact = false,
+ kinds,
 }: {
  defaultRange?: OperationPulseRange
  className?: string
  compact?: boolean
+ /** Restrict which action kinds render. Omitted means all of them, which is
+  *  what the /operations view wants; the home page passes a subset. */
+ kinds?: readonly OperationPulseActionKind[]
 }) {
  const router = useRouter()
  const [range, setRange] = useState<OperationPulseRange>(defaultRange)
@@ -77,7 +82,7 @@ export function OperationsPulsePanel({
  void loadPulse(range)
  }, [loadPulse, range])
 
- const actions = pulse?.actions || []
+ const actions = useMemo(() => filterPulseActions(pulse?.actions || [], kinds), [pulse, kinds])
  const stable = useMemo(() => {
  if (!pulse) return false
  return pulse.kpis.failedRuns === 0
