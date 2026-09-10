@@ -33,6 +33,35 @@ describe('what the Chat page lists', () => {
     assert.equal(isConversation(session({ id: 'd', name: 'Sidekick', messageCount: 0 })), false)
   })
 
+  it('leaves out a session an agent opened for a subagent', () => {
+    // A subagent-runtime.ts így menti: sessionType 'delegated', saját
+    // parentSessionId-vel és `subagent-<Név>` névvel.
+    assert.equal(isConversation(session({
+      id: 'sub1',
+      name: 'subagent-Fejlesztő',
+      sessionType: 'delegated',
+      parentSessionId: 'parent-1',
+      delegationDepth: 1,
+      messageCount: 12,
+    })), false)
+  })
+
+  it('KEEPS a chat the user branched off another chat', () => {
+    /*
+     * Ez a csapda, amiért a szűrő a sessionType-ra megy és nem a
+     * parentSessionId-re: a buildNewAgentSessionPayload (new-session.ts)
+     * a felhasználó "új chat ebből" sessionjére IS ráteszi a szülőt, de
+     * 'human' típussal. A parentSessionId-re szűrés ezt eltüntetné.
+     */
+    assert.equal(isConversation(session({
+      id: 'branch1',
+      name: 'Nézzük meg máshogy',
+      sessionType: 'human',
+      parentSessionId: 'parent-1',
+      messageCount: 4,
+    })), true)
+  })
+
   it('falls back to the last-message summary when no count came through', () => {
     // A listázó végpont valódi számot ad (listChatsForApi), de egy máshonnan
     // érkező session-objektumon nem feltétlenül van rajta.

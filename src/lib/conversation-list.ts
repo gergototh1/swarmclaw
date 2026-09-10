@@ -58,8 +58,28 @@ export function hasMessages(session: Session): boolean {
   return Array.isArray(session.messages) && session.messages.length > 0
 }
 
+/**
+ * Egy session, amit egy ügynök nyitott egy subagentnek, nem beszélgetés.
+ *
+ * A `spawn_subagent` valódi, tartós sessiont hoz létre (`subagent-runtime.ts`),
+ * üzenetekkel -- tehát a `hasMessages` igazat mond rá, és egyetlen Sidekick-futás
+ * öt sorral tolja lejjebb a valódi beszélgetéseket. Ezek a szülő chatből érhetők
+ * el, nem innen.
+ *
+ * A szűrő a `sessionType`-ra megy, NEM a `parentSessionId`-re: a
+ * `buildNewAgentSessionPayload` (`new-session.ts`) a felhasználó saját
+ * "új chat ebből" sessionjére is ráteszi a szülőt, csak 'human' típussal.
+ * A parentSessionId-re szűrés valódi beszélgetéseket tüntetne el.
+ */
+export function isDelegatedSession(session: Session): boolean {
+  return session.sessionType === 'delegated'
+}
+
 export function isConversation(session: Session): boolean {
-  return hasMessages(session) && !isTaskRunSession(session) && !isChatroomSession(session)
+  return hasMessages(session)
+    && !isTaskRunSession(session)
+    && !isChatroomSession(session)
+    && !isDelegatedSession(session)
 }
 
 /**
