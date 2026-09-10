@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { sessionUnreadState } from './session-unread'
+import { sessionUnreadState, selectUnreadSessions } from './session-unread'
 
 test('minden ures -> nincs olvasatlan', () => {
   assert.deepEqual(sessionUnreadState({}), { unread: false, isError: false, lastActivityAt: 0 })
@@ -57,4 +57,38 @@ test('nincs valodi hibas turn -> nem hibakent szamit, meg akkor sem, ha a keplet
   const s = sessionUnreadState({ lastReadAt: -100 })
   assert.equal(s.unread, true)
   assert.equal(s.isError, false)
+})
+
+test('selectUnreadSessions - ures record -> ures tomb', () => {
+  assert.deepEqual(selectUnreadSessions({}), [])
+})
+
+test('selectUnreadSessions - csak olvasott session -> kiszurt', () => {
+  const sessions = {
+    sess1: { lastAssistantAt: 100, lastReadAt: 100 },
+  }
+  assert.deepEqual(selectUnreadSessions(sessions), [])
+})
+
+test('selectUnreadSessions - olvasatlan session -> benne van', () => {
+  const sessions = {
+    sess1: { lastAssistantAt: 200, lastReadAt: 100 },
+  }
+  const result = selectUnreadSessions(sessions)
+  assert.equal(result.length, 1)
+  assert.equal(result[0].session.lastAssistantAt, 200)
+  assert.equal(result[0].unread.unread, true)
+})
+
+test('selectUnreadSessions - tobb session, legujabbak elore rendezve', () => {
+  const sessions = {
+    sess1: { lastAssistantAt: 100, lastReadAt: 50 },
+    sess2: { lastAssistantAt: 300, lastReadAt: 50 },
+    sess3: { lastAssistantAt: 200, lastReadAt: 50 },
+  }
+  const result = selectUnreadSessions(sessions)
+  assert.equal(result.length, 3)
+  assert.equal(result[0].session.lastAssistantAt, 300)
+  assert.equal(result[1].session.lastAssistantAt, 200)
+  assert.equal(result[2].session.lastAssistantAt, 100)
 })

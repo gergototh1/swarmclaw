@@ -7,7 +7,7 @@ import { useAppStore } from '@/stores/use-app-store'
 import { useChatStore } from '@/stores/use-chat-store'
 import { useApprovalStore } from '@/stores/use-approval-store'
 import { useNavigate } from '@/lib/app/navigation'
-import { sessionUnreadState } from '@/lib/chat/session-unread'
+import { selectUnreadSessions } from '@/lib/chat/session-unread'
 import { filterPulseActions, NEEDS_YOU_PULSE_KINDS } from '@/lib/home/pulse-partition'
 import { SectionHeader } from '@/components/ui/section-header'
 import { RecentlyOpened } from '@/components/home/recently-opened'
@@ -52,12 +52,7 @@ export function TierAct() {
     return () => { cancelled = true }
   }, [])
 
-  const unreadChats = useMemo(() => (
-    Object.values(sessions)
-      .map((session) => ({ session, unread: sessionUnreadState(session) }))
-      .filter((row) => row.unread.unread)
-      .sort((a, b) => b.unread.lastActivityAt - a.unread.lastActivityAt)
-  ), [sessions])
+  const unreadChats = useMemo(() => selectUnreadSessions(sessions), [sessions])
 
   const pulseRows = useMemo(
     () => filterPulseActions(pulse?.actions || [], NEEDS_YOU_PULSE_KINDS),

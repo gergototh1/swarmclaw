@@ -62,14 +62,16 @@ export function RecentlyOpened() {
    * `resolveRecentItems` drops any entry it cannot name. Fetch once per
    * mount, and skip it if another view already hydrated the store this
    * session (the payload includes full message history, so it is not free).
+   * Only call if the recent-items list actually contains a chatroom entry.
    */
   const chatroomsFetchedRef = useRef(false)
   useEffect(() => {
     if (chatroomsFetchedRef.current) return
+    if (!items.some((i) => i.view === 'chatrooms')) return
     chatroomsFetchedRef.current = true
     if (Object.keys(useChatroomStore.getState().chatrooms).length > 0) return
     void loadChatrooms()
-  }, [loadChatrooms])
+  }, [loadChatrooms, items])
 
   const resolved = resolveRecentItems(
     items,

@@ -36,3 +36,17 @@ export function sessionUnreadState(session: SessionUnreadInput): SessionUnreadSt
   const unread = lastActivityAt > read
   return { unread, isError: unread && failed >= assistant && failed > 0, lastActivityAt }
 }
+
+export interface SessionWithUnreadState<T extends SessionUnreadInput = SessionUnreadInput> {
+  session: T
+  unread: SessionUnreadState
+}
+
+export function selectUnreadSessions<T extends SessionUnreadInput>(
+  sessions: Record<string, T>,
+): SessionWithUnreadState<T>[] {
+  return Object.values(sessions)
+    .map((session) => ({ session, unread: sessionUnreadState(session) }))
+    .filter((row) => row.unread.unread)
+    .sort((a, b) => b.unread.lastActivityAt - a.unread.lastActivityAt)
+}
