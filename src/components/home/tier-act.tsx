@@ -13,17 +13,13 @@ import { selectVisibleUnreadSessions } from '@/lib/chat/session-unread'
 import { isLocalhostBrowser } from '@/lib/observability/local-observability'
 import { filterPulseActions, NEEDS_YOU_PULSE_KINDS } from '@/lib/home/pulse-partition'
 import { dedupeNotifications } from '@/lib/home/notification-dedup'
+import { selectProblemTasks } from '@/lib/home/problem-tasks'
 import { SectionHeader } from '@/components/ui/section-header'
 import { RecentlyOpened } from '@/components/home/recently-opened'
 import { ChatInput } from '@/components/input/chat-input'
-import type { BoardTask, OperationPulse } from '@/types'
+import type { OperationPulse } from '@/types'
 
 const NEEDS_YOU_LIMIT = 6
-
-interface ProblemTaskRow {
-  task: BoardTask
-  kind: 'failed' | 'blocked'
-}
 
 export function TierAct() {
   const navigateTo = useNavigate()
@@ -127,14 +123,7 @@ export function TierAct() {
    * blocked or failed task would otherwise have no signal anywhere outside
    * the Tasks board.
    */
-  const problemTasks = useMemo<ProblemTaskRow[]>(() => {
-    const rows: ProblemTaskRow[] = []
-    for (const task of Object.values(tasks)) {
-      if (task.status === 'failed') rows.push({ task, kind: 'failed' })
-      else if ((task.blockedBy?.length ?? 0) > 0) rows.push({ task, kind: 'blocked' })
-    }
-    return rows.sort((a, b) => (b.task.updatedAt || b.task.createdAt || 0) - (a.task.updatedAt || a.task.createdAt || 0))
-  }, [tasks])
+  const problemTasks = useMemo(() => selectProblemTasks(tasks), [tasks])
 
   const openTask = useCallback((taskId: string) => {
     navigateTo('tasks')
