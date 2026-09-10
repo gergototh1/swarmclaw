@@ -72,7 +72,7 @@ export function AdvancedSettingsSection({
  </span>
  </button>
  {open && (
- <div className="border-t border-line-subtle px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
+ <div className={`border-t border-line-subtle pt-4 ${variant === 'card' ? 'px-4 pb-4 sm:px-5 sm:pb-5' : 'px-5 pb-5 sm:px-6 sm:pb-6'}`}>
  {children}
  </div>
  )}

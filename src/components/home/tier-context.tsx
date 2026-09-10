@@ -69,7 +69,7 @@ export function TierContext({ todayCost, costTrend }: {
         description="Operations health and today's spend, out of the way until you need them."
         summary={`$${todayCost.toFixed(2)} spent today`}
       >
-        <div className="px-4 pb-4 sm:px-5">
+        <div>
           <OperationsPulsePanel className="!py-0 mb-6" kinds={OPERATIONS_PULSE_KINDS} />
 
           {/* Unlinked warning/info/success notices live here; unlinked errors
