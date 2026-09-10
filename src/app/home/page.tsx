@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts'
 import { useAppStore } from '@/stores/use-app-store'
 import { useChatStore } from '@/stores/use-chat-store'
+import { recordRecentItem } from '@/lib/app/recent-items'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { HomeLaunchpad } from '@/components/home/home-launchpad'
 import { OperationsPulsePanel } from '@/components/operations/operations-pulse-panel'
@@ -224,9 +225,9 @@ export default function HomePage() {
   }
 
   const handleTaskClick = (task: BoardTask) => {
+    recordRecentItem('tasks', task.id)
     setEditingTaskId(task.id)
     setTaskSheetOpen(true)
-    navigateTo('tasks')
   }
 
   const handleNotificationClick = (n: AppNotification) => {
