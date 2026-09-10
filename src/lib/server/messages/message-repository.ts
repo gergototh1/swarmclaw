@@ -34,6 +34,10 @@ function buildStatements() {
     selectLast: db.prepare(
       'SELECT data FROM session_messages WHERE session_id = ? ORDER BY seq DESC LIMIT 1',
     ),
+    selectAllLast: db.prepare(
+      'SELECT sm.session_id as sessionId, sm.data as data FROM session_messages sm '
+      + 'WHERE sm.seq = (SELECT MAX(seq) FROM session_messages WHERE session_id = sm.session_id)',
+    ),
     selectRecent: db.prepare(
       'SELECT data FROM session_messages WHERE session_id = ? ORDER BY seq DESC LIMIT ?',
     ),
@@ -255,6 +259,31 @@ export function getLastMessage(sessionId: string): Message | null {
     const msgs = session?.messages
     return Array.isArray(msgs) && msgs.length > 0 ? msgs[msgs.length - 1] : null
   }, { sessionId })
+}
+
+/**
+ * Every session's last message, in one query.
+ *
+ * Same staleness as `getMessageCounts()`, one field over: the stored
+ * `session.lastMessageSummary` is denormalised and goes stale, so in a real
+ * install every session's `lastMessageSummary.text` came back empty while the
+ * real text (1000-1500 chars) sat in this table. Anything that showed a chat
+ * preview -- the chat list row, the desktop notification body -- fell back to
+ * showing the chat name instead. The list endpoint needs this for all
+ * sessions at once, so it asks once rather than once per session, same as
+ * `getMessageCounts()`. A session with no rows is simply absent from the
+ * result -- callers read a missing key as "no message yet".
+ */
+export function getLastMessages(): Record<string, Message> {
+  return perf.measureSync('message-repo', 'getLastMessages', () => {
+    const rows = stmts().selectAllLast.all() as Array<{ sessionId: string; data: string }>
+    const out: Record<string, Message> = {}
+    for (const row of rows) {
+      const m = parseMsg(row.data)
+      if (m) out[row.sessionId] = m
+    }
+    return out
+  })
 }
 
 /** Return the last N messages in chronological order. */

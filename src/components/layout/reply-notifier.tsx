@@ -22,8 +22,12 @@ interface SwarmclawBridge {
 }
 
 function bridge(): SwarmclawBridge | null {
-  const w = window as unknown as { swarmclaw?: SwarmclawBridge }
-  return w.swarmclaw ?? null
+  // `swarmclawDesktop`, not `swarmclaw` -- the bare name is the extension-page
+  // API surface owned by `getHostRegistry()` in
+  // `src/components/layout/extension-host.tsx`. See the comment on
+  // `contextBridge.exposeInMainWorld` in `electron/preload.ts` for why.
+  const w = window as unknown as { swarmclawDesktop?: SwarmclawBridge }
+  return w.swarmclawDesktop ?? null
 }
 
 /**
@@ -31,8 +35,8 @@ function bridge(): SwarmclawBridge | null {
  * the renderer knows focus and the active chat; only the main process can
  * reliably deliver a notification for a backgrounded, throttled window.
  *
- * Outside Electron `window.swarmclaw` is undefined and every effect below is
- * a no-op, so this component is safe to render on the web build too.
+ * Outside Electron `window.swarmclawDesktop` is undefined and every effect
+ * below is a no-op, so this component is safe to render on the web build too.
  *
  * `seen` is the baseline captured on first mount: without it every
  * already-unread chat at load time would fire a notification on startup.

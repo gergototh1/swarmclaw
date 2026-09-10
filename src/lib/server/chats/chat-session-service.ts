@@ -35,7 +35,7 @@ import { normalizeProviderEndpoint } from '@/lib/openclaw/openclaw-endpoint'
 import { serviceFail, serviceOk } from '@/lib/server/service-result'
 import { WORKSPACE_DIR } from '@/lib/server/data-dir'
 import { buildSessionListSummary } from '@/lib/chat/session-summary'
-import { getMessageCount, getMessageCounts } from '@/lib/server/messages/message-repository'
+import { getLastMessages, getMessageCount, getMessageCounts } from '@/lib/server/messages/message-repository'
 import type { Session } from '@/types'
 import type { ServiceResult } from '@/lib/server/service-result'
 import { notify } from '@/lib/server/ws-hub'
@@ -70,8 +70,14 @@ export function listChatsForApi(): Record<string, ReturnType<typeof buildSession
    * asking "does this conversation have anything in it" got the wrong answer
    * for half the store, so the count is read from the message table here --
    * once for every session, not once per session.
+   *
+   * `lastMessageSummary` has the identical staleness (see `getLastMessages`):
+   * the stored field is empty for every session in a real install while the
+   * real text sits in the same message table, so it is read the same way --
+   * once for every session here, rather than once per session.
    */
   const counts = getMessageCounts()
+  const lastMessages = getLastMessages()
   for (const id of Object.keys(sessions)) {
     const run = getSessionRunState(id)
     const queue = getSessionQueueSnapshot(id)
@@ -79,6 +85,8 @@ export function listChatsForApi(): Record<string, ReturnType<typeof buildSession
     sessions[id].queuedCount = queue.queueLength
     sessions[id].currentRunId = run.runningRunId || null
     sessions[id].messageCount = counts[id] ?? 0
+    const lastMessage = lastMessages[id]
+    if (lastMessage) sessions[id].lastMessageSummary = lastMessage
   }
   return Object.fromEntries(
     Object.entries(sessions).map(([id, session]) => [id, buildSessionListSummary(session)]),
