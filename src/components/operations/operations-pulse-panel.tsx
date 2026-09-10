@@ -156,7 +156,7 @@ export function OperationsPulsePanel({
  </div>
  ) : (
  <>
- <div className={cn('mt-4 grid gap-2', visibleKpis.length <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-7')}>
+ <div className={cn('mt-4 grid gap-2', visibleKpis.length <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 md:grid-cols-4 xl:grid-cols-7')}>
  {visibleKpis.map((kpi) => (
  <Kpi key={kpi.label} label={kpi.label} value={kpi.value} danger={kpi.danger} />
  ))}

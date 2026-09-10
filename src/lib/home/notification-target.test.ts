@@ -28,6 +28,11 @@ describe('notificationHref', () => {
     assert.equal(notificationHref(notif({ entityType: 'task', entityId: 't1' })), null)
   })
 
+  it('returns null when a known entity kind carries no usable id', () => {
+    assert.equal(notificationHref(notif({ entityType: 'agent', entityId: '   ' })), null)
+    assert.equal(notificationHref(notif({ entityType: 'session' })), null)
+  })
+
   it('returns null when there is nothing to link to', () => {
     assert.equal(notificationHref(notif({})), null)
   })

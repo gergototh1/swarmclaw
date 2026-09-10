@@ -32,7 +32,7 @@ export function TierContext({ todayCost, costTrend }: {
 
   const pinned = Object.values(agents).filter((a) => a.pinned)
   const softNotices = notifications.filter(
-    (n) => !n.read && !n.entityId && (n.type === 'warning' || n.type === 'info' || n.type === 'success'),
+    (n) => !n.read && n.type !== 'error' && n.entityType !== 'session',
   )
 
   const openAgent = async (id: string) => {
@@ -72,10 +72,12 @@ export function TierContext({ todayCost, costTrend }: {
         <div className="space-y-6">
           <OperationsPulsePanel className="!py-0" kinds={OPERATIONS_PULSE_KINDS} />
 
-          {/* Unlinked warning/info/success notices live here; unlinked errors
-              are promoted to Tier 1 so nothing urgent hides behind the
-              collapse. Between the two filters, every AppNotification type is
-              now claimed by exactly one tier. */}
+          {/* Everything that is not an error lands here; errors are promoted
+              to Tier 1 so nothing urgent hides behind the collapse. The split
+              is on type alone -- keying it on "has no entity" meant that
+              giving the gateway notice an agent to link to silently dropped it
+              out of BOTH tiers. A notice about a conversation is the one
+              exception: that conversation already has its own row above. */}
           {softNotices.length > 0 && (
             <div className="flex flex-col gap-2">
               {softNotices.map((n) => (

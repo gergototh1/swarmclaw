@@ -79,13 +79,17 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
      */
     const handler = (e: MouseEvent) => {
       const target = e.target as Node
-      if (extrasMenuRef.current?.contains(target)) return
-      if (addButtonRef.current?.contains(target)) return
-      setExtrasOpen(false)
+      if (variant === 'inline') {
+        if (extrasMenuRef.current?.contains(target)) return
+        if (addButtonRef.current?.contains(target)) return
+        setExtrasOpen(false)
+        return
+      }
+      if (extrasRef.current && !extrasRef.current.contains(target)) setExtrasOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [extrasOpen])
+  }, [extrasOpen, variant])
 
   /*
    * The docked composer sits at the foot of the chat, so its menu opens

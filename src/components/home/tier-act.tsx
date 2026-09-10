@@ -140,7 +140,7 @@ export function TierAct() {
    * read) are collapsed client-side and capped -- see notification-dedup.ts.
    */
   const errorNotifications = useMemo(
-    () => notifications.filter((n) => !n.read && n.type === 'error' && !n.entityId),
+    () => notifications.filter((n) => !n.read && n.type === 'error' && n.entityType !== 'session'),
     [notifications],
   )
   const dedupedNotifications = useMemo(() => dedupeNotifications(errorNotifications), [errorNotifications])
