@@ -21,14 +21,14 @@ function computeToolSummary(toolEvents: ToolEvent[]) {
  * A csukott tool-sor osztályai.
  *
  * Nyugalmi állapotban se keret, se háttér: csak szöveg a vásznon, ami
- * hoverre kap egy finom kiemelést. A futó és a többségében elhasalt
+ * hoverre kap egy halvány felületet. A futó és a többségében elhasalt
  * állapot megtartja a színét -- azok élnek, illetve beavatkozást kérnek,
  * és egy csendes sor elrejtené őket.
  */
 export function toolPillClass(isRunning: boolean, mostlyFailed: boolean): string {
   if (isRunning) return 'border border-amber-500/20 bg-amber-500/10 text-amber-300'
   if (mostlyFailed) return 'border border-rose-500/20 bg-rose-500/10 text-rose-300'
-  return 'text-text-3/70 hover:text-text-2'
+  return 'text-text-3/70 hover:bg-layer-1'
 }
 
 /* ── Inline pill shown in the sender row ───────────────── */
