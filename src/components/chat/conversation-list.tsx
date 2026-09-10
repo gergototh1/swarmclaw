@@ -58,6 +58,20 @@ export function resolveConversationGroups(rows: Session[], now: number | null): 
   return now == null ? null : groupConversationsByAge(rows, now)
 }
 
+/**
+ * Komputes the trailing text that follows the agent name separator (·).
+ *
+ * Returns one of: an error label ('sikertelen válasz'), a working label
+ * ('dolgozik…'), or a time-ago string from `ago(now, at)`. When `now` is
+ * null, returns an empty string for settled rows (no error, not working),
+ * which suppresses the separator.
+ */
+export function conversationTrailingText(now: number | null, dot: ReturnType<typeof conversationDot>, at: number | undefined): string {
+  if (dot === 'error') return 'sikertelen válasz'
+  if (dot === 'working') return 'dolgozik…'
+  return ago(now, at)
+}
+
 export function ConversationList({ activeId }: { activeId?: string | null }) {
   const router = useRouter()
   const now = useNow()
@@ -111,6 +125,7 @@ export function ConversationList({ activeId }: { activeId?: string | null }) {
     const isActive = s.id === activeId
     const { unread, isError, working } = conversationRowState(s)
     const dot = conversationDot({ unread, isError, working })
+    const trailingText = conversationTrailingText(now, dot, s.lastActiveAt)
     return (
       <div
         key={s.id}
@@ -156,12 +171,14 @@ export function ConversationList({ activeId }: { activeId?: string | null }) {
             </span>
             <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-text-3">
               <span className="truncate">{agent?.name || 'ismeretlen ügynök'}</span>
-              <span aria-hidden="true">·</span>
-              <span className={`shrink-0 ${dot === 'error' ? 'text-red-400' : dot === 'working' ? 'text-amber-400' : ''}`}>
-                {dot === 'error' ? 'sikertelen válasz'
-                  : dot === 'working' ? 'dolgozik…'
-                  : ago(now, s.lastActiveAt)}
-              </span>
+              {trailingText && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className={`shrink-0 ${dot === 'error' ? 'text-red-400' : dot === 'working' ? 'text-amber-400' : ''}`}>
+                    {trailingText}
+                  </span>
+                </>
+              )}
             </span>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { resolveConversationGroups } from './conversation-list'
+import { resolveConversationGroups, conversationTrailingText } from './conversation-list'
 import type { Session } from '@/types'
 
 function session(over: Partial<Session> & { id: string }): Session {
@@ -31,5 +31,49 @@ describe('resolveConversationGroups', () => {
     const groups = resolveConversationGroups(rows, now)
     assert.notEqual(groups, null)
     assert.deepEqual(groups?.map((g) => g.label), ['MÁRA'])
+  })
+})
+
+describe('conversationTrailingText', () => {
+  // When `now` is null (clock unresolved), a settled row must not render any
+  // trailing text, which suppresses the separator. Error and working rows
+  // always render their labels.
+
+  it('returns empty string when now is null and dot is settled', () => {
+    assert.equal(conversationTrailingText(null, 'none', 1_000_000), '')
+  })
+
+  it('returns error label even when now is null', () => {
+    assert.equal(conversationTrailingText(null, 'error', 1_000_000), 'sikertelen válasz')
+  })
+
+  it('returns working label even when now is null', () => {
+    assert.equal(conversationTrailingText(null, 'working', 1_000_000), 'dolgozik…')
+  })
+
+  it('returns unread label even when now is null', () => {
+    assert.equal(conversationTrailingText(null, 'unread', 1_000_000), '')
+  })
+
+  it('returns time-ago when now is known and dot is settled', () => {
+    const now = new Date(2026, 8, 10, 14, 0, 0).getTime()
+    const at = new Date(2026, 8, 10, 13, 0, 0).getTime() // 1 hour ago
+    const result = conversationTrailingText(now, 'none', at)
+    assert.equal(result, '1 órája')
+  })
+
+  it('returns error label when now is known', () => {
+    const now = new Date(2026, 8, 10, 14, 0, 0).getTime()
+    assert.equal(conversationTrailingText(now, 'error', 1_000_000), 'sikertelen válasz')
+  })
+
+  it('returns working label when now is known', () => {
+    const now = new Date(2026, 8, 10, 14, 0, 0).getTime()
+    assert.equal(conversationTrailingText(now, 'working', 1_000_000), 'dolgozik…')
+  })
+
+  it('returns time-ago when lastActiveAt is undefined', () => {
+    const now = new Date(2026, 8, 10, 14, 0, 0).getTime()
+    assert.equal(conversationTrailingText(now, 'none', undefined), '')
   })
 })
