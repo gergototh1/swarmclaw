@@ -504,6 +504,16 @@ Operational docs: https://swarmclaw.ai/docs/observability
 
 - **Doksik gets a seventh tool: `doksi_video_forgatokonyv`.** An agent can ask for a finished video's script and get it laid down as a document in its own folder — title, status, source, file path, sha256, length, and the narration — with the first line saying that the title and the narration are agent and stranger text. It reads the Video module through the host-mediated `video.videos` contract, which is declared in the Doksik manifest and is this module's only reach outside itself; a provider that is missing, switched off, on another contract version, or that dies mid-call is refused by name with the operator's next step, never skipped silently.
 
+### v1.11.0 Highlights
+
+The chat list now tells you which conversations have something you have not read and which ones are working, and the desktop app says so out loud when an agent answers somewhere you are not looking.
+
+- **An unread mark on every conversation that answered while you were elsewhere.** A chat counts as read when it is the one you have open *and* the window has focus, with a three-second grace period so switching windows does not manufacture a false unread. A turn that ended in failure marks the row too, in its own colour — a failed run often persists no message at all, so it would otherwise vanish silently. The state lives on the server (`lastReadAt` on the session), not in the browser, so it survives a reinstall and reads the same in the desktop app and in a browser tab.
+- **Your existing read state is carried up on first launch.** It used to live in `localStorage` under `sc_last_read`. On the first load after this upgrade it is pushed to the server once and the key is removed; if any part of that fails the key is kept and the next start tries again, because migrating twice is cheaper than losing it. Without this step every conversation you had already read would come back unread.
+- **A native desktop notification when an agent replies somewhere else.** Title is the agent's name, body is the opening of what it wrote; clicking it raises the window and opens that conversation. It is sent from the Electron main process rather than the page, because the case it exists for is a window that is not focused — exactly where a throttled renderer is least reliable. Notifications follow the chat list: scheduled runs, task runs and chatroom sessions produce none. Two switches gate them — one global in Settings, one per agent on the agent's own page — and nothing fires for a chat that was already read.
+- **The conversation list shows which chat is busy.** Driven by the same run state the app already tracks, so it covers chats you are not viewing, not just the open one.
+- **Last-message previews are no longer blank.** The stored summary on a session record had gone stale and carried empty text for every conversation in a real install; the list and single-chat endpoints now read the last message from the message table, the way the message count already did.
+
 ### v1.10.0 Highlights
 
 A document manager for operators and agents, a picture of every scene type in the video kit, and one change to how skills are loaded that takes effect on upgrade.
