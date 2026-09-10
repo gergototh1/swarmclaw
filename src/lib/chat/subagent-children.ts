@@ -7,7 +7,14 @@ import type { Session, Sessions } from '@/types'
  * Ez a biztonsági háló az inline sor mögött. Régi chatekben a swarm
  * tool-output már nincs a transzkriptben, és az `assign_to_agent` által
  * nyitott gyerekek sosem kapnak inline sort -- a `parentSessionId` viszont
- * mindegyikre rá van írva és tartós.
+ * tartós, és rá van írva mindegyikre, amit a `platform-mcp.ts` javítása ÓTA
+ * indítottak.
+ *
+ * Az az előtt keletkezettekre nincs: a híd bedrótozott `sessionId: null`-lal
+ * építette a tool-tömböt, így a régebbi subagent sessionök szülő nélkül
+ * maradtak, és visszamenőleg nem pótolható. Azok csak az inline sorukból
+ * érhetők el, ami a transzkriptből olvas. A háló tehát előre feszül, nem
+ * hátra.
  *
  * A `sessionType` szűrő azért kell a szülő-egyezés MELLÉ, mert a
  * `buildNewAgentSessionPayload` (`new-session.ts`) a felhasználó saját
