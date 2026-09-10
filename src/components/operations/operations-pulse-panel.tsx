@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { AlertTriangle, CheckCircle2, Clock, PlugZap, RadioTower, RefreshCw } from 'lucide-react'
 import { api } from '@/lib/app/api-client'
 import { cn } from '@/lib/utils'
-import type { OperationPulse, OperationPulseAction, OperationPulseRange, OperationPulseSeverity } from '@/types'
+import { filterPulseActions } from '@/lib/home/pulse-partition'
+import type { OperationPulse, OperationPulseAction, OperationPulseActionKind, OperationPulseRange, OperationPulseSeverity } from '@/types'
 
 const SEVERITY_CLASS: Record<OperationPulseSeverity, string> = {
  high: 'border-rose-500/20 bg-rose-500/[0.06] text-rose-200',
@@ -29,7 +30,7 @@ function kpiTone(value: number, danger = false): string {
 
 function Kpi({ label, value, danger = false }: { label: string; value: number; danger?: boolean }) {
  return (
- <div className="min-w-[110px] rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
+ <div className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2">
  <div className="text-[10px] font-700 tracking-[0.03em] text-text-3">{label}</div>
  <div className={cn('mt-1 font-display text-[22px] font-700 tracking-normal', kpiTone(value, danger))}>{value}</div>
  </div>
@@ -47,11 +48,13 @@ function actionIcon(action: OperationPulseAction) {
 export function OperationsPulsePanel({
  defaultRange = '24h',
  className,
- compact = false,
+ kinds,
 }: {
  defaultRange?: OperationPulseRange
  className?: string
- compact?: boolean
+ /** Restrict which action kinds render. Omitted means all of them, which is
+  *  what the /operations view wants; the home page passes a subset. */
+ kinds?: readonly OperationPulseActionKind[]
 }) {
  const router = useRouter()
  const [range, setRange] = useState<OperationPulseRange>(defaultRange)
@@ -77,7 +80,28 @@ export function OperationsPulsePanel({
  void loadPulse(range)
  }, [loadPulse, range])
 
- const actions = pulse?.actions || []
+ const actions = useMemo(() => filterPulseActions(pulse?.actions || [], kinds), [pulse, kinds])
+
+ /*
+  * The tiles follow the same kind filter as the rows. Without this the home
+  * page's collapsed panel counted Missions, Approvals and Budgets -- whose
+  * clickable rows live in the tier above it -- so the same work was reported
+  * in two places while only one of them could be acted on.
+  */
+ const visibleKpis = useMemo(() => {
+  const all = [
+   { kind: 'mission' as const, label: 'Missions', value: pulse?.kpis.activeMissions ?? 0, danger: false },
+   { kind: 'run' as const, label: 'Running', value: pulse?.kpis.runningRuns ?? 0, danger: false },
+   { kind: 'run' as const, label: 'Failed', value: pulse?.kpis.failedRuns ?? 0, danger: true },
+   { kind: 'approval' as const, label: 'Approvals', value: pulse?.kpis.pendingApprovals ?? 0, danger: false },
+   { kind: 'connector' as const, label: 'Connectors', value: pulse?.kpis.connectorAttention ?? 0, danger: true },
+   { kind: 'gateway' as const, label: 'Gateways', value: pulse?.kpis.gatewayAttention ?? 0, danger: true },
+   { kind: 'budget' as const, label: 'Budgets', value: pulse?.kpis.budgetWarnings ?? 0, danger: false },
+  ]
+  if (!kinds) return all
+  const allowed = new Set(kinds)
+  return all.filter((kpi) => allowed.has(kpi.kind))
+ }, [pulse, kinds])
  const stable = useMemo(() => {
  if (!pulse) return false
  return pulse.kpis.failedRuns === 0
@@ -97,7 +121,7 @@ export function OperationsPulsePanel({
  Missions, runs, approvals, connector readiness, OpenClaw gateways, and budget pressure rolled into one triage queue.
  </p>
  </div>
- <div className="flex flex-wrap items-center gap-2">
+ <div className="flex shrink-0 items-center justify-end gap-2 lg:ml-auto">
  {(['24h', '7d'] as const).map((item) => (
  <button
  key={item}
@@ -132,14 +156,10 @@ export function OperationsPulsePanel({
  </div>
  ) : (
  <>
- <div className={cn('mt-4 grid gap-2', compact ? 'grid-cols-2 md:grid-cols-4 xl:grid-cols-7' : 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-7')}>
- <Kpi label="Missions" value={pulse.kpis.activeMissions} />
- <Kpi label="Running" value={pulse.kpis.runningRuns} />
- <Kpi label="Failed" value={pulse.kpis.failedRuns} danger />
- <Kpi label="Approvals" value={pulse.kpis.pendingApprovals} />
- <Kpi label="Connectors" value={pulse.kpis.connectorAttention} danger />
- <Kpi label="Gateways" value={pulse.kpis.gatewayAttention} danger />
- <Kpi label="Budgets" value={pulse.kpis.budgetWarnings} />
+ <div className={cn('mt-4 grid gap-2', visibleKpis.length <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 md:grid-cols-4 xl:grid-cols-7')}>
+ {visibleKpis.map((kpi) => (
+ <Kpi key={kpi.label} label={kpi.label} value={kpi.value} danger={kpi.danger} />
+ ))}
  </div>
 
  <div className="mt-4">
@@ -148,7 +168,7 @@ export function OperationsPulsePanel({
  No current blockers in the selected window.
  </div>
  ) : (
- <div className="grid gap-2 lg:grid-cols-2">
+ <div className={cn('grid gap-2', actions.length > 1 && 'lg:grid-cols-2')}>
  {actions.map((action) => (
  <button
  key={action.id}
@@ -163,7 +183,7 @@ export function OperationsPulsePanel({
  <span className="truncate text-[12px] font-700 text-text">{action.title}</span>
  <span className="shrink-0 text-[10px] text-text-3">{formatRelative(action.createdAt, pulse.generatedAt)}</span>
  </span>
- <span className="mt-1 line-clamp-2 block text-[12px] leading-relaxed text-text-3">{action.summary}</span>
+ <span className="mt-1 line-clamp-2 block break-words text-[12px] leading-relaxed text-text-3">{action.summary}</span>
  {action.evidence.length > 0 && (
  <span className="mt-2 flex flex-wrap gap-1.5">
  {action.evidence.slice(0, 2).map((item) => (

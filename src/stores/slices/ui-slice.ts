@@ -2,6 +2,7 @@ import { StateCreator } from 'zustand'
 import type { AppState } from '../use-app-store'
 import type { Agent, AppView, FleetFilter } from '../../types'
 import { safeStorageGet, safeStorageSet } from '@/lib/app/safe-storage'
+import { recordRecentItem } from '@/lib/app/recent-items'
 
 export interface UiSlice {
   sidebarOpen: boolean
@@ -140,7 +141,14 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
   taskSheetOpen: false,
   setTaskSheetOpen: (open) => set({ taskSheetOpen: open, ...(open ? {} : { taskSheetViewOnly: false }) }),
   editingTaskId: null,
-  setEditingTaskId: (id) => set({ editingTaskId: id }),
+  setEditingTaskId: (id) => {
+    // Record the task being opened in the recent items list. This centralizes the recording
+    // in the one place every task-sheet opener already goes through, rather than scattering
+    // the call across every call site that opens the task sheet and risking it being
+    // forgotten when a new one is added.
+    if (id !== null) recordRecentItem('tasks', id)
+    set({ editingTaskId: id })
+  },
   taskSheetViewOnly: false,
   setTaskSheetViewOnly: (v) => set({ taskSheetViewOnly: v }),
   providerSheetOpen: false,

@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes'
 import { initAudioContext } from '@/lib/tts'
 import { clearStoredAccessKey } from '@/lib/app/api-client'
 import { safeStorageGet, safeStorageRemove, safeStorageSet } from '@/lib/app/safe-storage'
+import { recordRecentPath } from '@/lib/app/recent-items'
 import { disconnectWs } from '@/lib/ws-client'
 import { useAppBootstrap } from '@/hooks/use-app-bootstrap'
 import { useAppStore } from '@/stores/use-app-store'
@@ -176,6 +177,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     themeReplayed.current = true
     setTheme(normalizeThemeMode(appSettings.themeMode))
   }, [appSettings.themeMode, setTheme])
+
+  /*
+   * Watch the pathname rather than wrapping `useNavigate`: a pathname watcher
+   * also catches <Link> clicks and the browser back button, which a hook
+   * wrapper never sees. Auth pages are not destinations worth returning to.
+   */
+  useEffect(() => {
+    if (isAuthPage) return
+    recordRecentPath(pathname)
+  }, [pathname, isAuthPage])
 
   // View validity check
   const isViewEnabled = useCallback((view: AppView) => {

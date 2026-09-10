@@ -40,7 +40,7 @@ export function ComposerAgentPicker({ sessionId }: { sessionId: string | null })
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [query, setQuery] = useState('')
-  const [rect, setRect] = useState<{ left: number; bottom: number } | null>(null)
+  const [rect, setRect] = useState<{ left: number; bottom: number } | { left: number; top: number } | null>(null)
   const buttonRef = useRef<HTMLButtonElement | null>(null)
 
   const agents = useAppStore((s) => s.agents)
@@ -56,7 +56,18 @@ export function ComposerAgentPicker({ sessionId }: { sessionId: string | null })
     const r = el.getBoundingClientRect()
     // Balra igazítva a gombhoz, de sosem lóg ki a nézetből.
     const left = Math.min(Math.max(8, r.left), window.innerWidth - MENU_WIDTH - 8)
-    setRect({ left, bottom: window.innerHeight - r.top + GAP })
+    /*
+     * A chatben a szerkesztő a lap alján ül, ezért a menü fölfelé nyílt --
+     * fixen. A home tetején ugyanez a menüt a nézeten kívülre tolta: a gomb
+     * fölött nem volt hova nyílnia. Ezért mérünk, és arra fordulunk, ahol
+     * elfér; egyenlőség esetén marad a fölfelé nyíló, megszokott irány.
+     */
+    const spaceAbove = r.top - GAP
+    const spaceBelow = window.innerHeight - r.bottom - GAP
+    const openDown = spaceAbove < MENU_MAX_HEIGHT && spaceBelow > spaceAbove
+    setRect(openDown
+      ? { left, top: r.bottom + GAP }
+      : { left, bottom: window.innerHeight - r.top + GAP })
   }, [])
 
   useLayoutEffect(() => { if (open) place() }, [open, place])
@@ -131,7 +142,7 @@ export function ComposerAgentPicker({ sessionId }: { sessionId: string | null })
             aria-label="Válassz ügynököt"
             data-testid="composer-agent-menu"
             className="fixed z-[61] rounded-md border border-line-default bg-raised shadow-[var(--overlay-shadow)] overflow-hidden"
-            style={{ left: rect.left, bottom: rect.bottom, width: MENU_WIDTH, maxHeight: MENU_MAX_HEIGHT }}
+            style={{ left: rect.left, ...('top' in rect ? { top: rect.top } : { bottom: rect.bottom }), width: MENU_WIDTH, maxHeight: MENU_MAX_HEIGHT }}
           >
             <div className="p-2 border-b border-line-subtle">
               <input

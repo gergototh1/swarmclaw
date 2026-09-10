@@ -9,7 +9,7 @@ interface Props {
 
 export default function CostTrendChart({ costTrend }: Props) {
   return (
-    <div className="mb-10 px-1" style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
+    <div style={{ animation: 'fade-up 0.6s var(--ease-spring) 0.3s both' }}>
       <p className="text-[10px] text-text-3 tracking-[0.03em] mb-1 flex items-center gap-1.5">
         7-day cost trend <HintTip text="Daily API spend over the past week — hover for details" />
       </p>

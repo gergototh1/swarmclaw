@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useLayoutEffect} from 'react'
 import { useChatStore } from '@/stores/use-chat-store'
 import { useAppStore } from '@/stores/use-app-store'
 import { selectActiveSessionId } from '@/stores/slices/session-slice'
@@ -23,15 +23,26 @@ interface Props {
   onSend: (text: string) => void
   onStop: () => void
   extensionChatActions?: Array<{ id: string; label: string; action: string; value: string; tooltip?: string }>
+  /**
+   * 'docked' is the chat page: the composer sits at the foot of the view,
+   * pinned to the viewport on narrow screens and inset to match the
+   * transcript's gutters. 'inline' drops both, so the composer fills whatever
+   * container it is given -- what the home page needs to line it up with the
+   * cards beside it.
+   */
+  variant?: 'docked' | 'inline'
 }
 
 // FilePreview is now imported from @/components/shared/file-preview
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 
-export function ChatInput({ streaming, busy, onSend, onStop, extensionChatActions = [] }: Props) {
+export function ChatInput({ streaming, busy, onSend, onStop, extensionChatActions = [], variant = 'docked' }: Props) {
   const [value, setValue] = useState('')
   const [extrasOpen, setExtrasOpen] = useState(false)
+  const addButtonRef = useRef<HTMLButtonElement | null>(null)
+  const [extrasTop, setExtrasTop] = useState<number | null>(null)
+  const extrasMenuRef = useRef<HTMLDivElement | null>(null)
   const { ref: textareaRef, resize } = useAutoResize()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -60,14 +71,48 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
 
   useEffect(() => {
     if (!extrasOpen) return
+    /*
+     * Close on anything outside the menu itself -- not outside the whole
+     * composer. `extrasRef` wraps the shell too, so testing against it left
+     * the menu open while the reader clicked into the textarea behind it. The
+     * agent picker closes on any click off its own menu; this matches that.
+     */
     const handler = (e: MouseEvent) => {
-      if (extrasRef.current && !extrasRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (variant === 'inline') {
+        if (extrasMenuRef.current?.contains(target)) return
+        if (addButtonRef.current?.contains(target)) return
         setExtrasOpen(false)
+        return
       }
+      if (extrasRef.current && !extrasRef.current.contains(target)) setExtrasOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [extrasOpen])
+  }, [extrasOpen, variant])
+
+  /*
+   * The docked composer sits at the foot of the chat, so its menu opens
+   * upward off a fixed offset. Inline -- at the top of the home page -- it has
+   * to open downward, and the container it is positioned against reaches past
+   * the button: ComposerShell renders a hint line below its own box. Anchoring
+   * to that edge put the menu 22px from the button instead of the 8px the
+   * agent picker uses, so measure the button rather than guess an offset.
+   */
+  useLayoutEffect(() => {
+    if (variant !== 'inline' || !extrasOpen) return
+    const btn = addButtonRef.current
+    const box = extrasRef.current
+    if (!btn || !box) return
+    const measure = () => {
+      const b = btn.getBoundingClientRect()
+      const c = box.getBoundingClientRect()
+      setExtrasTop(b.bottom - c.top + 8)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [variant, extrasOpen])
 
   // Draft persistence: restore on session change
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -202,8 +247,11 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
     : 'Queued messages will send automatically when the current turn finishes.'
 
   return (
-    <div className="shrink-0 px-4 md:px-12 lg:px-16 pb-4 pt-2 fixed bottom-0 left-0 right-0 z-20 bg-bg/80 backdrop-blur-md md:relative md:z-auto md:bg-transparent md:backdrop-blur-none"
-      style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div
+      className={variant === 'inline'
+        ? 'shrink-0'
+        : 'shrink-0 px-4 md:px-12 lg:px-16 pb-4 pt-2 fixed bottom-0 left-0 right-0 z-20 bg-bg/80 backdrop-blur-md md:relative md:z-auto md:bg-transparent md:backdrop-blur-none'}
+      style={variant === 'inline' ? undefined : { paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="relative" ref={extrasRef}>
         {busy && visibleQueuedMessages.length === 0 && (
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/15 bg-amber-500/[0.06] px-3.5 py-2">
@@ -372,6 +420,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
             <div className="flex items-center gap-1 px-4 pb-3.5">
               <button
                 type="button"
+                ref={addButtonRef}
                 onClick={() => setExtrasOpen((open) => !open)}
                 aria-label="Add attachment"
                 data-testid="chat-add"
@@ -443,7 +492,11 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
         </ComposerShell>
 
         {extrasOpen && (
-          <div className="absolute left-0 bottom-[72px] w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-subtle bg-surface/80 p-2 backdrop-blur-xl">
+          <div
+            ref={extrasMenuRef}
+            className={`absolute left-0 ${variant === 'inline' ? '' : 'bottom-[72px]'} w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-subtle bg-surface/80 p-2 backdrop-blur-xl`}
+            style={variant === 'inline' && extrasTop != null ? { top: extrasTop } : undefined}
+          >
             <button
               type="button"
               onClick={() => {

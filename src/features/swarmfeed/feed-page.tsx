@@ -1,12 +1,14 @@
 'use client'
 
-import { useDeferredValue, useState, type ReactNode } from 'react'
-import { Bell, Hash, Search, Sparkles, TrendingUp, Users } from 'lucide-react'
+import { useDeferredValue, useEffect, useState, type ReactNode } from 'react'
+import { Activity as ActivityIcon, Bell, Hash, Search, Sparkles, TrendingUp, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { MainContent } from '@/components/layout/main-content'
 import { PageLoader } from '@/components/ui/page-loader'
 import { useAppStore } from '@/stores/use-app-store'
+import { useNow } from '@/hooks/use-now'
+import { timeAgo } from '@/lib/time-format'
 import { ComposePost } from './compose-post'
 import { PostCard, type PostCardAction } from './post-card'
 import { PostThreadSheet } from './post-thread-sheet'
@@ -20,7 +22,7 @@ import {
   useSwarmFeedSearchQuery,
   useSwarmFeedSuggestedQuery,
 } from './queries'
-import type { Agent } from '@/types'
+import type { Agent, ActivityEntry } from '@/types'
 import type {
   FeedType,
   SwarmFeedAgentSummary,
@@ -29,7 +31,7 @@ import type {
   SwarmFeedSearchType,
 } from '@/types/swarmfeed'
 
-type FeedTab = 'for_you' | 'following' | 'trending' | 'bookmarks' | 'notifications'
+type FeedTab = 'for_you' | 'following' | 'trending' | 'bookmarks' | 'notifications' | 'activity'
 
 const FEED_TABS: Array<{ key: FeedTab; label: string; icon: typeof Sparkles }> = [
   { key: 'for_you', label: 'For You', icon: Sparkles },
@@ -37,7 +39,63 @@ const FEED_TABS: Array<{ key: FeedTab; label: string; icon: typeof Sparkles }> =
   { key: 'trending', label: 'Trending', icon: TrendingUp },
   { key: 'bookmarks', label: 'Bookmarks', icon: Hash },
   { key: 'notifications', label: 'Notifications', icon: Bell },
+  { key: 'activity', label: 'Activity', icon: ActivityIcon },
 ]
+
+/**
+ * Workspace activity (agents/tasks/connectors CRUD) — moved here from
+ * /home, which used to carry its own copy. This is unrelated to SwarmFeed's
+ * own agent-to-agent `notifications` tab above; it's the audit-log style
+ * feed of what changed across the workspace.
+ */
+const ACTIVITY_ICONS: Record<ActivityEntry['action'], string> = {
+  created: 'M12 5v14m-7-7h14',
+  updated: 'M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z',
+  deleted: 'M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
+  archived: 'M3 7h18M6 7v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7m-9 4h6',
+  restored: 'M4 12a8 8 0 1 0 2.34-5.66M4 4v6h6',
+  started: 'M5 3l14 9-14 9V3z',
+  stopped: 'M6 4h4v16H6zm8 0h4v16h-4z',
+  queued: 'M12 6v6l4 2',
+  completed: 'M20 6L9 17l-5-5',
+  failed: 'M18 6L6 18M6 6l12 12',
+  approved: 'M22 11.08V12a10 10 0 1 1-5.93-9.14',
+  rejected: 'M10 15l5-5m0 5l-5-5',
+  delegated: 'M7 17l9.2-9.2M17 17V7H7',
+  queried: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+  spawned: 'M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-5.07l-2.83 2.83M9.76 14.24l-2.83 2.83m11.14 0l-2.83-2.83M9.76 9.76L6.93 6.93',
+  timeout: 'M12 6v6l4 2M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20',
+  cancelled: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m5 5L7 17',
+  incident: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4m0 4h.01',
+  running: 'M12 2v4m0 12v4m10-10h-4M6 12H2',
+  claimed: 'M9 12l2 2 4-4m6 2a10 10 0 1 1-20 0 10 10 0 0 1 20 0z',
+  configured: 'M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z',
+  budget_exceeded: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 6v4m0 4h.01',
+  budget_warning: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4m0 4h.01',
+}
+
+const ACTIVITY_COLORS: Record<string, string> = {
+  created: 'text-emerald-400',
+  updated: 'text-sky-400',
+  deleted: 'text-red-400',
+  archived: 'text-amber-300',
+  restored: 'text-sky-300',
+  started: 'text-emerald-400',
+  stopped: 'text-text-3',
+  queued: 'text-amber-400',
+  completed: 'text-emerald-400',
+  failed: 'text-red-400',
+  approved: 'text-emerald-400',
+  rejected: 'text-red-400',
+  delegated: 'text-purple-400',
+  queried: 'text-sky-400',
+  spawned: 'text-purple-400',
+  timeout: 'text-amber-400',
+  cancelled: 'text-gray-400',
+  incident: 'text-red-400',
+  running: 'text-blue-400',
+  claimed: 'text-emerald-400',
+}
 
 const SEARCH_FILTERS: Array<{ key?: SwarmFeedSearchType; label: string }> = [
   { label: 'All' },
@@ -72,9 +130,16 @@ function formatTimestamp(iso: string): string {
  */
 export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
   const agents = useAppStore((s) => s.agents)
+  const activityEntries = useAppStore((s) => s.activityEntries)
+  const loadActivity = useAppStore((s) => s.loadActivity)
+  const now = useNow()
   const feedAgents = Object.values(agents).filter(
     (agent: Agent) => agent.swarmfeedEnabled && !agent.disabled && !agent.trashedAt,
   )
+
+  useEffect(() => {
+    void loadActivity({ limit: 8 })
+  }, [loadActivity])
 
   const [activeTab, setActiveTab] = useState<FeedTab>('for_you')
   const [selectedAgentId, setSelectedAgentId] = useState('')
@@ -270,6 +335,33 @@ export function FeedPage({ topBar }: { topBar?: ReactNode } = {}) {
               description="Try a broader query, or change the search filter to a different result type."
             />
           ) : null}
+        </div>
+      )
+    }
+
+    if (activeTab === 'activity') {
+      if (activityEntries.length === 0) {
+        return (
+          <EmptyState
+            title="No activity yet"
+            description="Actions across your agents, tasks, and connectors will show up here."
+          />
+        )
+      }
+      return (
+        <div className="rounded-lg border border-line-subtle bg-surface p-2">
+          <div className="flex flex-col gap-0.5">
+            {activityEntries.slice(0, 8).map((entry) => (
+              <div key={entry.id} className="flex items-center gap-2.5 px-3 py-2 rounded-sm">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                  className={`shrink-0 ${ACTIVITY_COLORS[entry.action] || 'text-text-3'}`}>
+                  <path d={ACTIVITY_ICONS[entry.action] || ACTIVITY_ICONS.updated} />
+                </svg>
+                <span className="text-[12px] text-text-3 flex-1 truncate">{entry.summary}</span>
+                <span className="text-[10px] text-text-3 shrink-0">{timeAgo(entry.timestamp, now)}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )
     }
