@@ -1,0 +1,81 @@
+'use client'
+
+import { useState } from 'react'
+import { useAppStore } from '@/stores/use-app-store'
+import { useNavigate } from '@/lib/app/navigation'
+import { OPERATIONS_PULSE_KINDS } from '@/lib/home/pulse-partition'
+import { OperationsPulsePanel } from '@/components/operations/operations-pulse-panel'
+import CostTrendChart from '@/components/home/cost-trend-chart'
+import { AdvancedSettingsSection } from '@/components/shared/advanced-settings-section'
+import { SectionHeader } from '@/components/ui/section-header'
+
+export function TierContext({ todayCost, costTrend }: {
+  todayCost: number
+  costTrend: { cost: number; bucket: string }[]
+}) {
+  const navigateTo = useNavigate()
+  const agents = useAppStore((s) => s.agents)
+  const notifications = useAppStore((s) => s.notifications)
+  const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
+  const [open, setOpen] = useState(false)
+
+  const pinned = Object.values(agents).filter((a) => a.pinned)
+  const softNotices = notifications.filter(
+    (n) => !n.read && !n.entityId && (n.type === 'warning' || n.type === 'info'),
+  )
+
+  const openAgent = async (id: string) => {
+    await setCurrentAgent(id)
+    navigateTo('agents')
+  }
+
+  return (
+    <>
+      {pinned.length > 0 && (
+        <section className="mb-8">
+          <SectionHeader label="Pinned agents" />
+          <div className="flex flex-wrap gap-2">
+            {pinned.map((agent) => (
+              <button
+                key={agent.id}
+                onClick={() => void openAgent(agent.id)}
+                className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] font-600 text-text
+                  transition-colors hover:bg-layer-2 cursor-pointer"
+                style={{ fontFamily: 'inherit' }}
+              >
+                {agent.name}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <AdvancedSettingsSection
+        open={open}
+        onToggle={() => setOpen((v) => !v)}
+        title="Details"
+        summary={`$${todayCost.toFixed(2)} spent today`}
+      >
+        <div className="px-5 pb-5 sm:px-6">
+          <OperationsPulsePanel className="mb-8" compact kinds={OPERATIONS_PULSE_KINDS} />
+
+          {/* Unlinked warning/info notices live here; unlinked errors are
+              promoted to Tier 1 so nothing urgent hides behind the collapse. */}
+          {softNotices.length > 0 && (
+            <div className="mb-8 flex flex-col gap-1">
+              {softNotices.map((n) => (
+                <div key={n.id} className="flex items-center gap-2.5 rounded-md px-3 py-2">
+                  <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${n.type === 'warning' ? 'bg-amber-400' : 'bg-sky-400'}`} />
+                  <span className="text-[12px] font-600 text-text">{n.title}</span>
+                  {n.message && <span className="truncate text-[11px] text-text-3">{n.message}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {costTrend.length > 1 && <CostTrendChart costTrend={costTrend} />}
+        </div>
+      </AdvancedSettingsSection>
+    </>
+  )
+}

@@ -8,10 +8,12 @@ interface Props {
  onToggle: () => void
  summary?: string | null
  badges?: string[]
+ /** Heading text. Defaults to the settings wording this started life with. */
+ title?: string
  children: ReactNode
 }
 
-export function AdvancedSettingsSection({ open, onToggle, summary, badges = [], children }: Props) {
+export function AdvancedSettingsSection({ open, onToggle, summary, badges = [], title = 'Advanced Settings', children }: Props) {
  return (
  <section className="section-band mb-8 ">
  <button
@@ -22,7 +24,7 @@ export function AdvancedSettingsSection({ open, onToggle, summary, badges = [], 
  >
  <div className="min-w-0">
  <div className="flex flex-wrap items-center gap-2">
- <h3 className="font-display text-[17px] font-700 tracking-[-0.02em] text-text">Advanced Settings</h3>
+ <h3 className="font-display text-[17px] font-700 tracking-[-0.02em] text-text">{title}</h3>
  {summary && (
  <span className="rounded-full border border-line-default bg-layer-1 px-2.5 py-1 text-[10px] font-700 tracking-[0.03em] text-text-3">
  {summary}
