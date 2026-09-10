@@ -42,6 +42,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
   const [extrasOpen, setExtrasOpen] = useState(false)
   const addButtonRef = useRef<HTMLButtonElement | null>(null)
   const [extrasTop, setExtrasTop] = useState<number | null>(null)
+  const extrasMenuRef = useRef<HTMLDivElement | null>(null)
   const { ref: textareaRef, resize } = useAutoResize()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -70,10 +71,17 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
 
   useEffect(() => {
     if (!extrasOpen) return
+    /*
+     * Close on anything outside the menu itself -- not outside the whole
+     * composer. `extrasRef` wraps the shell too, so testing against it left
+     * the menu open while the reader clicked into the textarea behind it. The
+     * agent picker closes on any click off its own menu; this matches that.
+     */
     const handler = (e: MouseEvent) => {
-      if (extrasRef.current && !extrasRef.current.contains(e.target as Node)) {
-        setExtrasOpen(false)
-      }
+      const target = e.target as Node
+      if (extrasMenuRef.current?.contains(target)) return
+      if (addButtonRef.current?.contains(target)) return
+      setExtrasOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -481,6 +489,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
 
         {extrasOpen && (
           <div
+            ref={extrasMenuRef}
             className={`absolute left-0 ${variant === 'inline' ? '' : 'bottom-[72px]'} w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-subtle bg-surface/80 p-2 backdrop-blur-xl`}
             style={variant === 'inline' && extrasTop != null ? { top: extrasTop } : undefined}
           >
