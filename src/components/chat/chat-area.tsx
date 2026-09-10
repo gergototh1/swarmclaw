@@ -24,6 +24,7 @@ const SessionDebugPanel = dynamic(() => import('./session-debug-panel').then((m)
 const ChatPreviewPanel = dynamic(() => import('./chat-preview-panel').then((m) => m.ChatPreviewPanel), { ssr: false })
 const InspectorPanel = dynamic(() => import('@/components/agents/inspector-panel').then((m) => m.InspectorPanel), { ssr: false })
 const HeartbeatHistoryPanel = dynamic(() => import('./heartbeat-history-panel').then((m) => m.HeartbeatHistoryPanel), { ssr: false })
+const SubagentPanel = dynamic(() => import('./subagent-panel').then((m) => m.SubagentPanel), { ssr: false })
 import { Dropdown, DropdownItem } from '@/components/shared/dropdown'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { speak } from '@/lib/tts'
@@ -139,6 +140,7 @@ export function ChatArea() {
   const setHeartbeatHistoryOpen = useAppStore((s) => s.setHeartbeatHistoryOpen)
   const [messagesLoading, setMessagesLoading] = useState(true)
   const [connectorFilter, setConnectorFilter] = useState<string | null>(null)
+  const [openSubagent, setOpenSubagent] = useState<{ sessionId: string, agentName: string } | null>(null)
   const [extensionChatActions, setExtensionChatActions] = useState<Array<{ id: string; label: string; action: string; value: string; tooltip?: string }>>([])
   const sessionHasBrowserExtension = getEnabledToolIds(session).includes('browser')
 
@@ -607,6 +609,7 @@ export function ChatArea() {
           onCompactComplete={handleCompactComplete}
           onClearRequest={handleClearRequest}
           onStartNewSession={handleStartNewSession}
+          onOpenSubagent={(sessionId: string, agentName: string) => setOpenSubagent({ sessionId, agentName })}
         />
       )}
       {!isDesktop && (
@@ -629,6 +632,7 @@ export function ChatArea() {
           onCompactComplete={handleCompactComplete}
           onClearRequest={handleClearRequest}
           onStartNewSession={handleStartNewSession}
+          onOpenSubagent={(sessionId: string, agentName: string) => setOpenSubagent({ sessionId, agentName })}
         />
       )}
       <DevServerBar status={devServerStatus} onStop={handleStopDevServer} />
@@ -713,7 +717,13 @@ export function ChatArea() {
           </div>
         </div>
       ) : (
-        <MessageList messages={messages} streaming={streamingForThisSession} connectorFilter={connectorFilter} loading={messagesLoading} />
+        <MessageList
+          messages={messages}
+          streaming={streamingForThisSession}
+          connectorFilter={connectorFilter}
+          loading={messagesLoading}
+          onOpenSubagent={(sessionId: string, agentName: string) => setOpenSubagent({ sessionId, agentName })}
+        />
       )}
 
       {voice.active && (
@@ -824,6 +834,14 @@ export function ChatArea() {
         messages={messages}
         agentHeartbeatGoal={currentAgent.heartbeatGoal ?? undefined}
         onClose={() => setHeartbeatHistoryOpen(false)}
+      />
+    )}
+    {openSubagent && (
+      <SubagentPanel
+        sessionId={openSubagent.sessionId}
+        agentName={openSubagent.agentName}
+        parentName={currentAgent?.name || null}
+        onClose={() => setOpenSubagent(null)}
       />
     )}
     </div>

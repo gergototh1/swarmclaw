@@ -106,7 +106,7 @@ export interface PlatformMcpToolDescriptor {
  * The caller owns `cleanup()`: `buildSessionTools` can open MCP connections and
  * other resources, and skipping it leaks one set per request.
  */
-async function toolsForAgent(agentId: string): Promise<{ tools: StructuredToolInterface[]; cleanup: () => Promise<void> }> {
+async function toolsForAgent(agentId: string, sessionId: string | null): Promise<{ tools: StructuredToolInterface[]; cleanup: () => Promise<void> }> {
   const agent = getAgent(agentId) as Agent | null
   if (!agent) throw new PlatformMcpError('unknown_agent', `no agent with id "${agentId}"`)
   const record = agent as unknown as Record<string, unknown>
@@ -114,7 +114,18 @@ async function toolsForAgent(agentId: string): Promise<{ tools: StructuredToolIn
   const project = resolveActiveProjectContext(record as { agentId?: string | null; cwd?: string | null; projectId?: string | null })
   const built = await buildSessionTools(process.cwd(), capabilities, {
     agentId,
-    sessionId: null,
+    /*
+     * A hívó sessionje, nem `null`.
+     *
+     * Ez a mező dönti el, mit ír a `spawn_subagent` a gyerek session
+     * `parentSessionId`-jébe (`subagent-runtime.ts`: `context.sessionId || null`).
+     * Bedrótozott `null`-lal minden CLI-provider ügynök szülő nélküli gyereket
+     * hagyott maga után -- és mivel ezen a hídon MINDEGYIK ilyen ügynök jár, a
+     * tárolt subagent sessionök egyikén sincs szülő. A hívót a host bélyegzi
+     * (`SWARMCLAW_SESSION_ID`), tehát az érték itt rendelkezésre állt, csak
+     * eldobtuk.
+     */
+    sessionId,
     // Straight off the record, never widened. An agent whose operator has not
     // enabled delegation must not gain it by being reached over MCP.
     delegationEnabled: record.delegationEnabled === true,
@@ -160,7 +171,7 @@ function inputSchemaOf(tool: StructuredToolInterface): Record<string, unknown> {
 
 export async function listPlatformMcpTools(caller: PlatformMcpCaller): Promise<PlatformMcpToolDescriptor[]> {
   const agentId = requireAgentId(caller)
-  const { tools, cleanup } = await toolsForAgent(agentId)
+  const { tools, cleanup } = await toolsForAgent(agentId, callerSessionId(caller))
   try {
     return tools.map((t) => ({
       name: t.name,
@@ -181,7 +192,7 @@ export async function callPlatformMcpTool(
   if (!ALLOWED.has(toolName)) {
     throw new PlatformMcpError('unknown_tool', `"${toolName}" is not a platform tool offered over MCP`)
   }
-  const { tools, cleanup } = await toolsForAgent(agentId)
+  const { tools, cleanup } = await toolsForAgent(agentId, callerSessionId(caller))
   try {
     const tool = tools.find((t) => t.name === toolName)
     if (!tool) {
@@ -197,6 +208,11 @@ export async function callPlatformMcpTool(
   } finally {
     await cleanup()
   }
+}
+
+function callerSessionId(caller: PlatformMcpCaller): string | null {
+  const sessionId = typeof caller.sessionId === 'string' ? caller.sessionId.trim() : ''
+  return sessionId || null
 }
 
 function requireAgentId(caller: PlatformMcpCaller): string {

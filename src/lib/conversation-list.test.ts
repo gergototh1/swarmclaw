@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { conversationTitle, isConversation, listConversations } from './conversation-list'
+import { conversationTitle, groupConversationsByAge, isConversation, listConversations } from './conversation-list'
 import { resolveChatroomSyntheticSessionId } from './chatroom-sessions'
 import type { Session, Sessions } from '@/types'
 
@@ -31,6 +31,35 @@ describe('what the Chat page lists', () => {
 
   it('leaves out a session nobody has written in', () => {
     assert.equal(isConversation(session({ id: 'd', name: 'Sidekick', messageCount: 0 })), false)
+  })
+
+  it('leaves out a session an agent opened for a subagent', () => {
+    // A subagent-runtime.ts így menti: sessionType 'delegated', saját
+    // parentSessionId-vel és `subagent-<Név>` névvel.
+    assert.equal(isConversation(session({
+      id: 'sub1',
+      name: 'subagent-Fejlesztő',
+      sessionType: 'delegated',
+      parentSessionId: 'parent-1',
+      delegationDepth: 1,
+      messageCount: 12,
+    })), false)
+  })
+
+  it('KEEPS a chat the user branched off another chat', () => {
+    /*
+     * Ez a csapda, amiért a szűrő a sessionType-ra megy és nem a
+     * parentSessionId-re: a buildNewAgentSessionPayload (new-session.ts)
+     * a felhasználó "új chat ebből" sessionjére IS ráteszi a szülőt, de
+     * 'human' típussal. A parentSessionId-re szűrés ezt eltüntetné.
+     */
+    assert.equal(isConversation(session({
+      id: 'branch1',
+      name: 'Nézzük meg máshogy',
+      sessionType: 'human',
+      parentSessionId: 'parent-1',
+      messageCount: 4,
+    })), true)
   })
 
   it('falls back to the last-message summary when no count came through', () => {
@@ -64,5 +93,58 @@ describe('conversationTitle', () => {
 
   it('falls back to the agent when there is nothing else', () => {
     assert.equal(conversationTitle(session({ id: 'c', name: '' }), 'Ügyfélkezelő'), 'Ügyfélkezelő')
+  })
+})
+
+describe('groupConversationsByAge', () => {
+  // 2026-09-10 csütörtök, 14:00 helyi idő.
+  const now = new Date(2026, 8, 10, 14, 0, 0).getTime()
+  const at = (d: Date) => d.getTime()
+
+  it('puts anything from today under MÁRA, down to one minute past midnight', () => {
+    const groups = groupConversationsByAge([
+      session({ id: 'a', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 10, 0, 1)) }),
+    ], now)
+    assert.deepEqual(groups.map((g) => g.label), ['TODAY'])
+  })
+
+  it('puts one minute earlier under TEGNAP', () => {
+    const groups = groupConversationsByAge([
+      session({ id: 'a', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 9, 23, 59)) }),
+    ], now)
+    assert.deepEqual(groups.map((g) => g.label), ['YESTERDAY'])
+  })
+
+  it('separates this week, this month and older', () => {
+    // now = 2026-09-10 (Thursday), so this week's Monday is 2026-09-07.
+    const groups = groupConversationsByAge([
+      session({ id: 'w', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 8, 10, 0)) }),
+      session({ id: 'm', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 3, 10, 0)) }),
+      session({ id: 'o', messageCount: 1, lastActiveAt: at(new Date(2026, 5, 1, 10, 0)) }),
+    ], now)
+    assert.deepEqual(groups.map((g) => g.label), ['THIS WEEK', 'THIS MONTH', 'OLDER'])
+  })
+
+  it('leaves an empty bucket out entirely', () => {
+    const groups = groupConversationsByAge([
+      session({ id: 'a', messageCount: 1, lastActiveAt: now }),
+    ], now)
+    assert.equal(groups.length, 1)
+    assert.equal(groups[0].label, 'TODAY')
+  })
+
+  it('keeps the newest-first order inside a bucket', () => {
+    const groups = groupConversationsByAge([
+      session({ id: 'older', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 10, 9, 0)) }),
+      session({ id: 'newer', messageCount: 1, lastActiveAt: at(new Date(2026, 8, 10, 13, 0)) }),
+    ], now)
+    assert.deepEqual(groups[0].sessions.map((s) => s.id), ['newer', 'older'])
+  })
+
+  it('files a session with no activity timestamp under RÉGEBBI instead of dropping it', () => {
+    const groups = groupConversationsByAge([
+      session({ id: 'ghost', messageCount: 1, lastActiveAt: 0 }),
+    ], now)
+    assert.deepEqual(groups.map((g) => g.label), ['OLDER'])
   })
 })

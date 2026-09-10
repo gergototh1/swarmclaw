@@ -8,9 +8,10 @@ import { useNow } from '@/hooks/use-now'
 import { useWindowFocused } from '@/hooks/use-window-focused'
 import { READ_GRACE_MS } from '@/stores/slices/data-slice'
 import { SearchInput } from '@/components/ui/search-input'
-import { AgentAvatar } from '@/components/agents/agent-avatar'
-import { conversationTitle, listConversations } from '@/lib/conversation-list'
+import { conversationTitle, groupConversationsByAge, listConversations, type ConversationGroup } from '@/lib/conversation-list'
 import { conversationRowState } from './conversation-row-state'
+import { conversationDot } from './conversation-dot'
+import type { Session } from '@/types'
 
 /**
  * The Chat page's rail: the same 280px column the agent list fills, asking the
@@ -39,6 +40,36 @@ function ago(now: number | null, at: number | undefined): string {
   if (days === 1) return 'tegnap'
   if (days < 7) return `${days} napja`
   return new Date(at).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' })
+}
+
+/**
+ * Buckets the rows by calendar age, or says "not yet" instead of guessing.
+ *
+ * `now` starts `null` until `useNow()`'s first `requestAnimationFrame` tick,
+ * and a backgrounded or inactive tab can delay that tick indefinitely --
+ * this is not "one frame". Substituting 0 for an unknown `now` would put
+ * every session's `startOfToday` in 1970, so every row would satisfy
+ * `at >= startOfToday` and file under MÁRA regardless of its real age. So:
+ * no `now`, no buckets. The caller falls back to the flat, unheaded row list
+ * it already has -- the same "not hydrated yet" state `ago()` shows via its
+ * blank timestamp -- until a real `now` arrives.
+ */
+export function resolveConversationGroups(rows: Session[], now: number | null): ConversationGroup[] | null {
+  return now == null ? null : groupConversationsByAge(rows, now)
+}
+
+/**
+ * Komputes the trailing text that follows the agent name separator (·).
+ *
+ * Returns one of: an error label ('sikertelen válasz'), a working label
+ * ('dolgozik…'), or a time-ago string from `ago(now, at)`. When `now` is
+ * null, returns an empty string for settled rows (no error, not working),
+ * which suppresses the separator.
+ */
+export function conversationTrailingText(now: number | null, dot: ReturnType<typeof conversationDot>, at: number | undefined): string {
+  if (dot === 'error') return 'sikertelen válasz'
+  if (dot === 'working') return 'dolgozik…'
+  return ago(now, at)
 }
 
 export function ConversationList({ activeId }: { activeId?: string | null }) {
@@ -86,6 +117,75 @@ export function ConversationList({ activeId }: { activeId?: string | null }) {
     })
   }, [sessions, agents, search])
 
+  // `null` until `now` is known -- see resolveConversationGroups' doc comment.
+  const groups = useMemo(() => resolveConversationGroups(rows, now), [rows, now])
+
+  function renderRow(s: Session) {
+    const agent = s.agentId ? agents[s.agentId] : undefined
+    const isActive = s.id === activeId
+    const { unread, isError, working } = conversationRowState(s)
+    const dot = conversationDot({ unread, isError, working })
+    const trailingText = conversationTrailingText(now, dot, s.lastActiveAt)
+    return (
+      <div
+        key={s.id}
+        role="button"
+        tabIndex={0}
+        data-testid="conversation-row"
+        data-session-id={s.id}
+        aria-label={`Beszélgetés megnyitása: ${conversationTitle(s, agent?.name || '')}`}
+        onClick={() => router.push(`/chat/${encodeURIComponent(s.id)}`)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            router.push(`/chat/${encodeURIComponent(s.id)}`)
+          }
+        }}
+        className={`group/row w-full text-left py-3 px-3 rounded-md cursor-pointer transition-all duration-150 border-none
+          ${isActive ? 'bg-accent-soft/80 border border-accent-bright/20' : 'bg-transparent hover:bg-layer-1'}`}
+      >
+        <div className="flex items-start gap-2">
+          {/* A pont az avatar pozícióját örökli, és akkor is helyet
+              foglal, ha nincs jelzés -- különben a címek elcsúsznának
+              egymáshoz képest soronként. */}
+          <div className="shrink-0 w-1.5 flex justify-center mt-[7px]">
+            {dot !== 'none' && (
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  dot === 'error' ? 'bg-red-500'
+                    : dot === 'working' ? 'bg-amber-400 animate-pulse'
+                    : 'bg-accent-bright'
+                }`}
+                data-testid={dot === 'working' ? 'row-working' : 'row-unread'}
+                title={
+                  dot === 'error' ? 'Sikertelen válasz'
+                    : dot === 'working' ? 'Az ügynök dolgozik'
+                    : 'Olvasatlan üzenet'
+                }
+              />
+            )}
+          </div>
+          <div className="flex flex-col flex-1 min-w-0">
+            <span className="font-display text-[13.5px] font-600 text-text tracking-[-0.01em] line-clamp-2">
+              {conversationTitle(s, agent?.name || 'Beszélgetés')}
+            </span>
+            <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-text-3">
+              <span className="truncate">{agent?.name || 'ismeretlen ügynök'}</span>
+              {trailingText && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className={`shrink-0 ${dot === 'error' ? 'text-red-400' : dot === 'working' ? 'text-amber-400' : ''}`}>
+                    {trailingText}
+                  </span>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (rows.length === 0 && !search) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-center text-text-3">
@@ -113,66 +213,19 @@ export function ConversationList({ activeId }: { activeId?: string | null }) {
         <p className="px-5 py-3 text-[13px] text-text-3">Nincs találat.</p>
       )}
 
-      <div className="flex flex-col gap-0.5 px-2 pb-4">
-        {rows.map((s) => {
-          const agent = s.agentId ? agents[s.agentId] : undefined
-          const isActive = s.id === activeId
-          const { unread, isError, working } = conversationRowState(s)
-          return (
-            <div
-              key={s.id}
-              role="button"
-              tabIndex={0}
-              data-testid="conversation-row"
-              data-session-id={s.id}
-              aria-label={`Beszélgetés megnyitása: ${conversationTitle(s, agent?.name || '')}`}
-              onClick={() => router.push(`/chat/${encodeURIComponent(s.id)}`)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  router.push(`/chat/${encodeURIComponent(s.id)}`)
-                }
-              }}
-              className={`group/row w-full text-left py-3 px-4 rounded-md cursor-pointer transition-all duration-150 border-none
-                ${isActive ? 'bg-accent-soft/80 border border-accent-bright/20' : 'bg-transparent hover:bg-layer-1'}`}
-            >
-              <div className="flex items-start gap-2.5">
-                <div className="shrink-0 mt-0.5">
-                  {agent
-                    ? <AgentAvatar seed={agent.avatarSeed} avatarUrl={agent.avatarUrl} name={agent.name} size={28} />
-                    : <div className="w-7 h-7 rounded-full bg-layer-2" />}
-                </div>
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="font-display text-[13.5px] font-600 text-text tracking-[-0.01em] line-clamp-2">
-                    {conversationTitle(s, agent?.name || 'Beszélgetés')}
-                  </span>
-                  <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-text-3">
-                    <span className="truncate">{agent?.name || 'ismeretlen ügynök'}</span>
-                    {ago(now, s.lastActiveAt) && <span aria-hidden="true">·</span>}
-                    <span className="shrink-0">{ago(now, s.lastActiveAt)}</span>
-                    {working && (
-                      <span
-                        className="flex items-center gap-1 text-emerald-400 shrink-0"
-                        data-testid="row-working"
-                      >
-                        <span aria-hidden="true">·</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        dolgozik
-                      </span>
-                    )}
+      <div className="flex flex-col px-2 pb-4">
+        {groups === null
+          ? rows.map((s) => renderRow(s))
+          : groups.map((group) => (
+              <div key={group.label} className="flex flex-col gap-0.5">
+                <div className="sticky top-0 z-10 bg-surface/95 backdrop-blur-sm px-3 py-1.5">
+                  <span className="text-[9px] font-600 tracking-[0.08em] text-text-3">
+                    {group.label}
                   </span>
                 </div>
-                {unread && (
-                  <span
-                    className={`shrink-0 mt-1.5 w-2 h-2 rounded-full ${isError ? 'bg-red-500' : 'bg-accent-bright'}`}
-                    data-testid="row-unread"
-                    title={isError ? 'Sikertelen válasz' : 'Olvasatlan üzenet'}
-                  />
-                )}
+                {group.sessions.map((s) => renderRow(s))}
               </div>
-            </div>
-          )
-        })}
+            ))}
       </div>
     </div>
   )

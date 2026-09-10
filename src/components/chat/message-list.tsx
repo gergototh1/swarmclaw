@@ -182,9 +182,10 @@ interface Props {
   streaming: boolean
   connectorFilter?: string | null
   loading?: boolean
+  onOpenSubagent?: (sessionId: string, agentName: string) => void
 }
 
-export function MessageList({ messages, streaming, connectorFilter = null, loading = false }: Props) {
+export function MessageList({ messages, streaming, connectorFilter = null, loading = false, onOpenSubagent }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const settledCountRef = useRef(0)
@@ -499,7 +500,10 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <div className="flex-1 h-px bg-layer-2" />
             </div>
           )}
-          <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-lg bg-amber-400/[0.04]' : isSearchMatch ? 'bg-surface rounded-lg' : ''}>
+          {/* A találat-kiemelésnek saját belső margó kell. Amíg az agent válasza
+                  `bubble-ai px-5 py-3.5` volt, a buborék tartotta a szöveget a
+                  gyűrűtől; a keret nélküli válaszon a gyűrű hozzáért a betűkhöz. */}
+              <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-lg bg-amber-400/[0.04] px-4 py-3' : isSearchMatch ? 'bg-surface rounded-lg px-4 py-3' : ''}>
             <BubbleComponent
               message={msg}
               assistantName={assistantName}
@@ -513,6 +517,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               onToggleBookmark={toggleBookmark}
               onEditResend={handleEditResend}
               momentOverlay={momentOverlay}
+              onOpenSubagent={onOpenSubagent}
             />
           </div>
         </div>
@@ -528,6 +533,7 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
     currentSearchMatchIndex,
     filteredMessages,
     lastMomentOverlay,
+    onOpenSubagent,
     originalIndexMap,
     retryLastMessage,
     searchMatchSet,
@@ -840,8 +846,6 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 md:px-12 lg:px-16 pt-4 pb-[120px] md:pb-10 fade-up"
       >
         <div className="flex flex-col gap-6 relative">
-          {/* Chat spine — vertical line for assistant messages */}
-          <div className="absolute left-[15px] top-0 bottom-0 w-px bg-layer-2 pointer-events-none" />
           {hasMoreMessages && (
             <div className="flex justify-center py-3">
               <button

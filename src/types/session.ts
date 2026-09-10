@@ -236,5 +236,14 @@ export type SessionTool =
   | 'table'
   | 'crawl'
 
-export type SessionType = 'human'
+/**
+ * 'human'     -- a felhasználó nyitotta, akár új chatként, akár egy másikból elágazva
+ * 'delegated' -- egy ügynök nyitotta egy subagentnek (`subagent-runtime.ts`)
+ *
+ * A 'delegated' eddig hiányzott innen, pedig a runtime évek óta ezt írja és a
+ * tárolt adat is tele van vele -- a típus egyszerűen nem mondott igazat.
+ * Az `isConversation` (`conversation-list.ts`) ezen a mezőn szűr, ezért itt
+ * kellett először helyreállítani.
+ */
+export type SessionType = 'human' | 'delegated'
 export type AppView = 'home' | 'conversations' | 'agents' | 'org_chart' | 'inbox' | 'chatrooms' | 'protocols' | 'schedules' | 'memory' | 'tasks' | 'quality' | 'vault' | 'providers' | 'skills' | 'connectors' | 'webhooks' | 'mcp_servers' | 'knowledge' | 'extensions' | 'usage' | 'stream' | 'autonomy' | 'settings' | 'projects' | 'swarmfeed' | 'marketplace' | 'missions'

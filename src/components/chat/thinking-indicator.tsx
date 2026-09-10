@@ -97,7 +97,7 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
 
       {hasThinkingContent ? (
         <details className="group/think w-full max-w-[85%] md:max-w-[72%]">
-          <summary className="bubble-ai px-5 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden relative overflow-hidden group-open/think:rounded-b-none border border-transparent hover:border-line-subtle transition-all">
+          <summary className="px-5 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden relative overflow-hidden border border-transparent hover:border-line-subtle transition-all">
             {/* Thinking pulse background */}
             <div className="absolute inset-0 bg-accent-bright/5 opacity-0 group-hover/think:opacity-100 transition-opacity" style={{ animation: 'pulse-subtle 2s ease-in-out infinite' }} />
             
@@ -118,7 +118,7 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
               </svg>
             </div>
           </summary>
-          <div className="px-4 py-3 rounded-b-md bg-bg border-x border-b border-line-subtle max-h-[300px] overflow-y-auto">
+          <div className="px-4 py-3 rounded-md bg-bg border border-line-subtle max-h-[300px] overflow-y-auto">
             <div className="msg-content text-[13px] leading-[1.6] text-text-3">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {thinkingText}
@@ -127,7 +127,7 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
           </div>
         </details>
       ) : (
-        <div className="bubble-ai px-6 py-5 relative overflow-hidden">
+        <div className="border border-line-subtle bg-layer-1 rounded-md px-6 py-5 relative overflow-hidden">
           {/* Thinking glow effect */}
           
           <div className="flex items-center gap-3 relative z-10">

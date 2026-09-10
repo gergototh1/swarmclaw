@@ -17,6 +17,20 @@ function computeToolSummary(toolEvents: ToolEvent[]) {
   return { total: toolEvents.length, running, done, error }
 }
 
+/**
+ * A csukott tool-sor osztályai.
+ *
+ * Nyugalmi állapotban se keret, se háttér: csak szöveg a vásznon, ami
+ * hoverre kap egy halvány felületet. A futó és a többségében elhasalt
+ * állapot megtartja a színét -- azok élnek, illetve beavatkozást kérnek,
+ * és egy csendes sor elrejtené őket.
+ */
+export function toolPillClass(isRunning: boolean, mostlyFailed: boolean): string {
+  if (isRunning) return 'border border-amber-500/20 bg-amber-500/10 text-amber-300'
+  if (mostlyFailed) return 'border border-rose-500/20 bg-rose-500/10 text-rose-300'
+  return 'text-text-3/70 hover:bg-layer-1'
+}
+
 /* ── Inline pill shown in the sender row ───────────────── */
 export const ToolActivityPill = memo(function ToolActivityPill({
   toolEvents,
@@ -58,11 +72,7 @@ export const ToolActivityPill = memo(function ToolActivityPill({
   // green even if a few failed. Only show red when errors are the majority.
   const mostlyFailed = summary.error > summary.done
 
-  const pillClass = isRunning
-    ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
-    : mostlyFailed
-      ? 'border-rose-500/20 bg-rose-500/10 text-rose-300'
-      : 'border-line-default bg-layer-2 text-text-3/70'
+  const pillClass = toolPillClass(isRunning, mostlyFailed)
 
   const dotClass = isRunning
     ? 'bg-amber-400'
@@ -74,7 +84,7 @@ export const ToolActivityPill = memo(function ToolActivityPill({
     <button
       type="button"
       onClick={onToggle}
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-600 cursor-pointer transition-colors hover:brightness-125 ${pillClass}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-600 cursor-pointer transition-colors ${pillClass}`}
       data-testid="tool-activity-pill"
     >
       <span

@@ -9,6 +9,9 @@ import { formatDurationMs } from '@/lib/format-display'
 
 interface SwarmAgent {
   jobId: string
+  /** A gyerek session, amit a spawn nyitott. Ez a kapocs a panelhez.
+   *  Hiányzik, amíg a spawn el nem indult (batch/swarm started). */
+  sessionId?: string
   agentId?: string
   agentName: string
   status: 'running' | 'completed' | 'failed' | 'cancelled' | 'timed_out'
@@ -19,7 +22,7 @@ interface SwarmAgent {
   depth?: number
 }
 
-interface SwarmPanelData {
+export interface SwarmPanelData {
   /** 'batch' for multi-spawn, 'single' for individual spawn results */
   kind: 'batch' | 'single'
   /** Overall status */
@@ -36,22 +39,94 @@ interface SwarmPanelData {
   jobIds?: string[]
 }
 
+interface RawBatchResult {
+  jobId?: string
+  sessionId?: string
+  agentName?: string
+  status?: string
+  response?: string | null
+  error?: string | null
+}
+
+interface RawSwarmMember {
+  index?: number
+  jobId?: string
+  sessionId?: string
+  agentId?: string
+  agentName?: string
+  task?: string
+  status?: string
+  resultPreview?: string | null
+  error?: string | null
+  durationMs?: number
+}
+
+const KNOWN_AGENT_STATUSES = ['running', 'completed', 'failed', 'cancelled', 'timed_out'] as const
+
+function normalizeAgentStatus(status: unknown): SwarmAgent['status'] {
+  return (KNOWN_AGENT_STATUSES as readonly string[]).includes(status as string)
+    ? (status as SwarmAgent['status'])
+    : 'failed'
+}
+
+/**
+ * Terminal subagent job records observed in production always leave
+ * `completedAt` null, so the completion time is derived from `updatedAt`
+ * (the timestamp of the last checkpoint write) once the job has actually
+ * finished. A still-running job has no reliable end time yet, so this
+ * returns undefined rather than a duration that would keep growing on every
+ * re-render.
+ */
+function deriveJobDurationMs(job: Record<string, unknown>): number | undefined {
+  const createdAt = typeof job.createdAt === 'number' ? job.createdAt : undefined
+  if (createdAt === undefined) return undefined
+  if (typeof job.completedAt === 'number') return Math.max(0, job.completedAt - createdAt)
+  if (job.status === 'running') return undefined
+  if (typeof job.updatedAt === 'number') return Math.max(0, job.updatedAt - createdAt)
+  const checkpoints = Array.isArray(job.checkpoints) ? job.checkpoints : []
+  const last = checkpoints[checkpoints.length - 1]
+  if (last && typeof last === 'object' && typeof (last as Record<string, unknown>).at === 'number') {
+    return Math.max(0, ((last as Record<string, unknown>).at as number) - createdAt)
+  }
+  return undefined
+}
+
+/**
+ * The host's MCP bridge namespaces tool names as `mcp__<server>__<tool>` —
+ * the server name is operator configuration (e.g. "Platform-MCP"), not a
+ * constant, so match on the final `__`-separated segment. This also matches
+ * the bare `spawn_subagent` form a non-namespaced caller could still send.
+ */
+function isSpawnSubagentTool(toolName: string): boolean {
+  const segments = toolName.split('__')
+  return segments[segments.length - 1] === 'spawn_subagent'
+}
+
 // ---------------------------------------------------------------------------
 // Parse tool output into SwarmPanelData
 // ---------------------------------------------------------------------------
 
 export function parseSwarmOutput(toolName: string, output: string): SwarmPanelData | null {
-  if (toolName !== 'spawn_subagent') return null
+  if (!isSpawnSubagentTool(toolName)) return null
   try {
-    const data = JSON.parse(output)
+    let data = JSON.parse(output)
+    // The stored output is sometimes a JSON string whose content is itself
+    // JSON (double-encoded). Unwrap once -- bounded, not a loop, so a
+    // triple-encoded (or otherwise malformed) value falls through to null
+    // below instead of being unwrapped indefinitely.
+    if (typeof data === 'string') {
+      data = JSON.parse(data)
+    }
+    if (typeof data !== 'object' || data === null) return null
 
     // Batch result (completed)
     if (data.action === 'batch' && Array.isArray(data.results)) {
       return {
         kind: 'batch',
         status: data.failed > 0 ? 'partial' : 'completed',
-        agents: data.results.map((r: any) => ({
+        agents: data.results.map((r: RawBatchResult) => ({
           jobId: r.jobId || '',
+          sessionId: r.sessionId || undefined,
           agentName: r.agentName || 'Agent',
           status: r.status || 'completed',
           response: r.response || null,
@@ -68,7 +143,6 @@ export function parseSwarmOutput(toolName: string, output: string): SwarmPanelDa
 
     // Batch started (running)
     if (data.action === 'batch' && data.status === 'running') {
-      const count = data.taskCount || data.jobIds?.length || 0
       return {
         kind: 'batch',
         status: 'running',
@@ -90,11 +164,12 @@ export function parseSwarmOutput(toolName: string, output: string): SwarmPanelDa
           : snap.status === 'failed' ? 'failed'
           : snap.failedCount > 0 ? 'partial'
           : 'running',
-        agents: (snap.members || []).map((m: any) => ({
+        agents: (snap.members || []).map((m: RawSwarmMember) => ({
           jobId: m.jobId || '',
+          sessionId: m.sessionId || undefined,
           agentId: m.agentId,
           agentName: m.agentName || 'Agent',
-          status: m.status === 'spawn_error' ? 'failed' : m.status || 'running',
+          status: m.status === 'spawn_error' ? 'failed' : (m.status as SwarmAgent['status']) || 'running',
           response: m.resultPreview || null,
           error: m.error || null,
           durationMs: m.durationMs,
@@ -127,6 +202,7 @@ export function parseSwarmOutput(toolName: string, output: string): SwarmPanelDa
         status: 'running',
         agents: [{
           jobId: data.jobId,
+          sessionId: data.sessionId || undefined,
           agentId: data.agentId,
           agentName: data.agentName || 'Agent',
           status: 'running',
@@ -143,6 +219,7 @@ export function parseSwarmOutput(toolName: string, output: string): SwarmPanelDa
         status: data.status === 'completed' ? 'completed' : 'failed',
         agents: [{
           jobId: data.jobId,
+          sessionId: data.sessionId || undefined,
           agentId: data.agentId,
           agentName: data.agentName,
           status: data.status,
@@ -158,6 +235,36 @@ export function parseSwarmOutput(toolName: string, output: string): SwarmPanelDa
       }
     }
 
+    // Subagent job record — the shape a spawn started with an explicit
+    // agentId returns, for both a still-running job and a terminal one. It
+    // carries no `jobId` (the job id is `id`) and no `sessionId` (the child
+    // session is `childSessionId`), so neither branch above ever matches it.
+    if (data.kind === 'subagent' && typeof data.id === 'string' && typeof data.agentName === 'string') {
+      const job = data as Record<string, unknown>
+      const status = normalizeAgentStatus(job.status)
+      const durationMs = deriveJobDurationMs(job)
+      const response = typeof job.resultPreview === 'string' ? job.resultPreview
+        : typeof job.result === 'string' ? job.result
+        : null
+      return {
+        kind: 'single',
+        status: status === 'running' ? 'running' : status === 'completed' ? 'completed' : 'failed',
+        agents: [{
+          jobId: data.id,
+          sessionId: typeof data.childSessionId === 'string' ? data.childSessionId : undefined,
+          agentId: typeof data.agentId === 'string' ? data.agentId : undefined,
+          agentName: data.agentName,
+          status,
+          response,
+          error: typeof data.error === 'string' ? data.error : null,
+          durationMs,
+        }],
+        completed: status === 'completed' ? 1 : 0,
+        failed: status === 'failed' || status === 'cancelled' || status === 'timed_out' ? 1 : 0,
+        totalDurationMs: durationMs,
+      }
+    }
+
     return null
   } catch {
     return null
@@ -169,9 +276,15 @@ export function parseSwarmOutput(toolName: string, output: string): SwarmPanelDa
  * Returns data compatible with SwarmStatusCard when snapshot is present.
  */
 export function parseSwarmStatusOutput(toolName: string, output: string): import('./swarm-status-card').SwarmStatusData | null {
-  if (toolName !== 'spawn_subagent') return null
+  if (!isSpawnSubagentTool(toolName)) return null
   try {
-    const data = JSON.parse(output)
+    let data = JSON.parse(output)
+    // Same double-encoding the host can apply to any spawn_subagent output
+    // (see parseSwarmOutput above) -- unwrap once, bounded.
+    if (typeof data === 'string') {
+      data = JSON.parse(data)
+    }
+    if (typeof data !== 'object' || data === null) return null
     if (data.action !== 'swarm' || !data.snapshot) return null
     const snap = data.snapshot
     return {
@@ -185,14 +298,14 @@ export function parseSwarmStatusOutput(toolName: string, output: string): import
       memberCount: snap.memberCount || 0,
       completedCount: snap.completedCount || 0,
       failedCount: snap.failedCount || 0,
-      members: (snap.members || []).map((m: any) => ({
+      members: (snap.members || []).map((m: RawSwarmMember) => ({
         index: m.index ?? 0,
         agentId: m.agentId || '',
         agentName: m.agentName || 'Agent',
         jobId: m.jobId || '',
         sessionId: m.sessionId || '',
         task: m.task || '',
-        status: m.status || 'running',
+        status: (m.status as import('./swarm-status-card').SwarmMemberData['status']) || 'running',
         resultPreview: m.resultPreview || null,
         error: m.error || null,
         durationMs: m.durationMs || 0,

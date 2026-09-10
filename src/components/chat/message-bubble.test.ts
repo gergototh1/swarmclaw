@@ -284,4 +284,90 @@ describe('MessageBubble', () => {
     assert.match(html, /I tested the platform and sent the update through Telegram\./)
     assert.doesNotMatch(html, />Message delivered\.<\/p>/)
   })
+
+  it('renders a plain assistant turn with no avatar, no bubble shell and no name label', async () => {
+    const mod = await import('./message-bubble')
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MessageBubble, {
+        message: { role: 'assistant', text: 'Kész van.', time: 1_700_000_000_000, kind: 'chat' },
+        assistantName: 'Marveen',
+        agentName: 'Marveen',
+      } as React.ComponentProps<typeof mod.MessageBubble>),
+    )
+    assert.ok(!html.includes('bubble-ai'), 'assistant turn must not carry the bubble shell')
+    assert.ok(!html.includes('pl-[44px]'), 'assistant turn must not reserve the avatar spine')
+    assert.ok(!html.includes('>Marveen<'), 'assistant turn must not print a name label')
+    assert.ok(html.includes('Kész van.'), 'the answer text must still render')
+  })
+
+  it('renders the timestamp for a textless assistant message with nothing to copy', async () => {
+    const mod = await import('./message-bubble')
+    const chatDisplay = await import('@/lib/chat/chat-display')
+    const message = { role: 'assistant' as const, text: '', time: 1_700_000_000_000, kind: 'chat' as const }
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MessageBubble, {
+        message,
+        assistantName: 'Hal2k',
+        agentName: 'Hal2k',
+      } as React.ComponentProps<typeof mod.MessageBubble>),
+    )
+    const expectedTimestamp = chatDisplay.formatMessageTimestamp(message)
+    assert.ok(expectedTimestamp.length > 0, 'test setup: timestamp text must be non-empty')
+    assert.ok(
+      html.includes(expectedTimestamp),
+      'a message with no copyable text must still render its timestamp in the hover action row',
+    )
+    assert.ok(!html.includes('Copy message'), 'there is nothing to copy, so no copy button should render')
+  })
+
+  it('keeps the sender label for a connector-delivered assistant turn', async () => {
+    const mod = await import('./message-bubble')
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MessageBubble, {
+        message: {
+          role: 'assistant',
+          text: 'Válasz Telegramra.',
+          time: 1_700_000_000_000,
+          kind: 'chat',
+          source: { platform: 'telegram', connectorId: 'c1' },
+        },
+        assistantName: 'Marveen',
+        agentName: 'Marveen',
+      } as React.ComponentProps<typeof mod.MessageBubble>),
+    )
+    assert.ok(html.includes('Marveen'), 'a connector turn must say which channel it came through')
+  })
+
+  it('keeps the grey bubble shell on the user turn', async () => {
+    const mod = await import('./message-bubble')
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MessageBubble, {
+        message: { role: 'user', text: 'Csináld meg.', time: 1_700_000_000_000, kind: 'chat' },
+      } as React.ComponentProps<typeof mod.MessageBubble>),
+    )
+    assert.ok(html.includes('bubble-user'), 'the user turn keeps its bubble')
+    assert.ok(html.includes('Csináld meg.'))
+  })
+
+  /*
+   * A buborék szövege a tokenből jön, nem egy bedrótozott fehérből.
+   *
+   * Amíg a buborék korall volt, a `text-white/95` helyes volt rajta. A
+   * felület-létrára költözve viszont felülbírálta a `.bubble-user`
+   * `--color-user-text` értékét, és világos témában fehér szöveget hagyott
+   * #E8E8ED háttéren -- olvashatatlanul. Sötét témában véletlenül jól nézett
+   * ki, ezért maradt észrevétlen.
+   */
+  it('lets the token colour the user bubble text instead of hardcoding white', async () => {
+    const mod = await import('./message-bubble')
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MessageBubble, {
+        message: { role: 'user', text: 'Csináld meg.', time: 1_700_000_000_000, kind: 'chat' },
+      } as React.ComponentProps<typeof mod.MessageBubble>),
+    )
+    assert.ok(
+      !/\btext-white\b|\btext-white\//.test(html),
+      `the user turn must not hardcode a text colour over --color-user-text, got: ${html.slice(0, 400)}`,
+    )
+  })
 })
