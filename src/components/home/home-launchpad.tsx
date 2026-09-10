@@ -143,7 +143,7 @@ export function HomeLaunchpad({
         </div>
       </div>
 
-      <OperationsPulsePanel className="mt-6" compact />
+      <OperationsPulsePanel className="mt-6" />
 
       <div className="mt-6 grid gap-3 lg:grid-cols-3">
         <PathCard

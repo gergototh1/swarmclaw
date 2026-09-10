@@ -931,7 +931,7 @@ export function QualityWorkspace() {
 
  {activeTab === 'overview' && (
  <div className="flex flex-col gap-6">
- <OperationsPulsePanel defaultRange="7d" compact />
+ <OperationsPulsePanel defaultRange="7d" />
  <ReleaseReadinessPanel
  report={releaseReadiness}
  loading={releaseReadinessLoading}

@@ -69,7 +69,7 @@ export function TierContext({ todayCost, costTrend }: {
         summary={`$${todayCost.toFixed(2)} spent today`}
       >
         <div className="px-5 pb-5 sm:px-6">
-          <OperationsPulsePanel className="mb-8" compact kinds={OPERATIONS_PULSE_KINDS} />
+          <OperationsPulsePanel className="mb-8" kinds={OPERATIONS_PULSE_KINDS} />
 
           {/* Unlinked warning/info/success notices live here; unlinked errors
               are promoted to Tier 1 so nothing urgent hides behind the
