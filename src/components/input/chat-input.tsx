@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useLayoutEffect} from 'react'
 import { useChatStore } from '@/stores/use-chat-store'
 import { useAppStore } from '@/stores/use-app-store'
 import { selectActiveSessionId } from '@/stores/slices/session-slice'
@@ -40,6 +40,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 export function ChatInput({ streaming, busy, onSend, onStop, extensionChatActions = [], variant = 'docked' }: Props) {
   const [value, setValue] = useState('')
   const [extrasOpen, setExtrasOpen] = useState(false)
+  const addButtonRef = useRef<HTMLButtonElement | null>(null)
+  const [extrasTop, setExtrasTop] = useState<number | null>(null)
   const { ref: textareaRef, resize } = useAutoResize()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -76,6 +78,29 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [extrasOpen])
+
+  /*
+   * The docked composer sits at the foot of the chat, so its menu opens
+   * upward off a fixed offset. Inline -- at the top of the home page -- it has
+   * to open downward, and the container it is positioned against reaches past
+   * the button: ComposerShell renders a hint line below its own box. Anchoring
+   * to that edge put the menu 22px from the button instead of the 8px the
+   * agent picker uses, so measure the button rather than guess an offset.
+   */
+  useLayoutEffect(() => {
+    if (variant !== 'inline' || !extrasOpen) return
+    const btn = addButtonRef.current
+    const box = extrasRef.current
+    if (!btn || !box) return
+    const measure = () => {
+      const b = btn.getBoundingClientRect()
+      const c = box.getBoundingClientRect()
+      setExtrasTop(b.bottom - c.top + 8)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [variant, extrasOpen])
 
   // Draft persistence: restore on session change
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -383,6 +408,7 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
             <div className="flex items-center gap-1 px-4 pb-3.5">
               <button
                 type="button"
+                ref={addButtonRef}
                 onClick={() => setExtrasOpen((open) => !open)}
                 aria-label="Add attachment"
                 data-testid="chat-add"
@@ -453,14 +479,11 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
           />
         </ComposerShell>
 
-        {/*
-          * The menu anchors to the shell's bottom edge, but the button that
-          * opens it sits above the footer's own pb-3.5. Pulling back 6px lands
-          * the menu the same 8px from its button that the agent picker uses,
-          * instead of the 22px the raw edge would give.
-          */}
         {extrasOpen && (
-          <div className={`absolute left-0 ${variant === 'inline' ? 'top-full -mt-1.5' : 'bottom-[72px]'} w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-subtle bg-surface/80 p-2 backdrop-blur-xl`}>
+          <div
+            className={`absolute left-0 ${variant === 'inline' ? '' : 'bottom-[72px]'} w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-subtle bg-surface/80 p-2 backdrop-blur-xl`}
+            style={variant === 'inline' && extrasTop != null ? { top: extrasTop } : undefined}
+          >
             <button
               type="button"
               onClick={() => {
