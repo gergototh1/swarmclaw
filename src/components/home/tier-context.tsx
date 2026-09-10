@@ -62,6 +62,7 @@ export function TierContext({ todayCost, costTrend }: {
       )}
 
       <AdvancedSettingsSection
+        variant="card"
         open={open}
         onToggle={() => setOpen((v) => !v)}
         title="Details"

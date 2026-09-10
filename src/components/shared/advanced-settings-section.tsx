@@ -12,6 +12,13 @@ interface Props {
  title?: string
  /** Subhead under the title. Defaults to the settings wording this started life with. */
  description?: string
+ /**
+  * 'band' is the settings pages: a flattened run of sections divided by hair
+  * rules, never a card. 'card' matches the surrounding block idiom instead --
+  * what the home page needs so this sits on the same edges as the cards above
+  * it rather than spanning past them.
+  */
+ variant?: 'band' | 'card'
  children: ReactNode
 }
 
@@ -22,10 +29,13 @@ export function AdvancedSettingsSection({
  badges = [],
  title = 'Advanced Settings',
  description = 'Power-user controls for routing, runtime behavior, and expert overrides.',
+ variant = 'band',
  children,
 }: Props) {
  return (
- <section className="section-band mb-8 ">
+ <section className={variant === 'card'
+  ? 'mb-6 overflow-hidden rounded-lg border border-line-subtle bg-surface'
+  : 'section-band mb-8 '}>
  <button
  type="button"
  onClick={onToggle}
