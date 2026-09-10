@@ -549,6 +549,7 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
     || hasDisplayText
   const canCopy = copySourceText.trim().length > 0
   const showActions = canCopy
+    || Boolean(message.time)
     || (typeof messageIndex === 'number' && Boolean(onToggleBookmark))
     || (isUser && typeof messageIndex === 'number' && Boolean(onEditResend))
     || (!isUser && isLast && Boolean(onRetry))

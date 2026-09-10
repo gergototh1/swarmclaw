@@ -300,6 +300,26 @@ describe('MessageBubble', () => {
     assert.ok(html.includes('Kész van.'), 'the answer text must still render')
   })
 
+  it('renders the timestamp for a textless assistant message with nothing to copy', async () => {
+    const mod = await import('./message-bubble')
+    const chatDisplay = await import('@/lib/chat/chat-display')
+    const message = { role: 'assistant' as const, text: '', time: 1_700_000_000_000, kind: 'chat' as const }
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MessageBubble, {
+        message,
+        assistantName: 'Hal2k',
+        agentName: 'Hal2k',
+      } as React.ComponentProps<typeof mod.MessageBubble>),
+    )
+    const expectedTimestamp = chatDisplay.formatMessageTimestamp(message)
+    assert.ok(expectedTimestamp.length > 0, 'test setup: timestamp text must be non-empty')
+    assert.ok(
+      html.includes(expectedTimestamp),
+      'a message with no copyable text must still render its timestamp in the hover action row',
+    )
+    assert.ok(!html.includes('Copy message'), 'there is nothing to copy, so no copy button should render')
+  })
+
   it('keeps the sender label for a connector-delivered assistant turn', async () => {
     const mod = await import('./message-bubble')
     const html = renderToStaticMarkup(
