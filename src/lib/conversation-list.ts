@@ -1,10 +1,12 @@
 import type { Session, Sessions } from '@/types'
 
 /**
- * Which sessions the Chat page lists, and why the other three kinds are not on it.
+ * Which sessions the Chat page lists, and why the other four kinds are not on it.
  *
- * Every session in this app is `sessionType: 'human'` and carries an `agentId`,
- * so the type tells nothing apart. What separates them is who opened them:
+ * Three of the four are told apart by who opened them rather than by any field:
+ * they all carry `sessionType: 'human'` and an `agentId`, so the type says
+ * nothing about them. The fourth, a subagent session, is the exception -- it is
+ * the one kind the type does name.
  *
  * - A SCHEDULED RUN is opened by the task pipeline, which names it
  *   `[Task] <agent>: <task>` (`src/lib/server/agents/task-session.ts`). These
@@ -20,6 +22,11 @@ import type { Session, Sessions } from '@/types'
  * - An EMPTY session is not a conversation yet. There are nine of them in this
  *   install, most named after their agent, which is what a list of "Sidekick,
  *   Sidekick, Sidekick" would be made of.
+ *
+ * - A DELEGATED session is one an agent opened for a subagent. Unlike the three
+ *   above it is marked as such (`sessionType: 'delegated'`), and that mark is
+ *   what `isDelegatedSession` reads -- see its own note for why the
+ *   `parentSessionId` is the wrong field to key on.
  *
  * The two prefixes each have exactly one writer, named above. There are two
  * readers -- the Chat page (`conversation-list.tsx`) and the desktop
