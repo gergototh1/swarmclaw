@@ -500,7 +500,10 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               <div className="flex-1 h-px bg-layer-2" />
             </div>
           )}
-          <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-lg bg-amber-400/[0.04]' : isSearchMatch ? 'bg-surface rounded-lg' : ''}>
+          {/* A találat-kiemelésnek saját belső margó kell. Amíg az agent válasza
+                  `bubble-ai px-5 py-3.5` volt, a buborék tartotta a szöveget a
+                  gyűrűtől; a keret nélküli válaszon a gyűrű hozzáért a betűkhöz. */}
+              <div className={isCurrentMatch ? 'ring-1 ring-amber-400/50 rounded-lg bg-amber-400/[0.04] px-4 py-3' : isSearchMatch ? 'bg-surface rounded-lg px-4 py-3' : ''}>
             <BubbleComponent
               message={msg}
               assistantName={assistantName}

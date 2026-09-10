@@ -91,7 +91,14 @@ export function SubagentPanel({
 
   return (
     <div
-      className="fixed right-0 top-0 bottom-0 w-full md:w-[440px] lg:w-[520px] z-40 flex flex-col bg-surface border-l border-line-default"
+      /*
+       * A fejléc alatt kezdődik, nem a viewport tetején. A ChatHeader
+       * `min-h-[64px]`, és mindkét törésponton ott van (`chat-area.tsx`
+       * desktop és mobil ágon is rendereli) -- `top-0`-val a panel ráült
+       * volna, és a szülő chat címe eltűnt volna alóla, miközben a panel
+       * saját fejléce pont ugyanoda került.
+       */
+      className="fixed right-0 top-[64px] bottom-0 w-full md:w-[440px] lg:w-[520px] z-40 flex flex-col bg-surface border-l border-line-default"
       data-testid="subagent-panel"
       role="complementary"
       aria-label={`${frame.agentName} subagent beszélgetése`}
