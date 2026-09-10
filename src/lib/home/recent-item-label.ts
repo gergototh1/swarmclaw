@@ -1,6 +1,6 @@
 import type { AppView } from '@/types'
 import type { RecentItem } from '@/lib/app/recent-items'
-import { NAV_SECTIONS, sectionForView } from '@/lib/app/nav-sections'
+import { VIEW_LABELS } from '@/lib/app/view-constants'
 
 export interface ResolvedRecentItem {
   view: AppView
@@ -14,25 +14,8 @@ export interface RecentLabelLookups {
   chatroomNames: Record<string, string>
 }
 
-/** Fallback names for views the rail reaches through a section, not a row. */
-const VIEW_LABELS: Partial<Record<AppView, string>> = {
-  home: 'Home',
-  conversations: 'Chat',
-  org_chart: 'Org Chart',
-  mcp_servers: 'MCP Servers',
-  swarmfeed: 'Feed',
-}
-
-function titleCase(view: AppView): string {
-  return view.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
-}
-
 function viewLabel(view: AppView): string {
-  const direct = VIEW_LABELS[view]
-  if (direct) return direct
-  const section = NAV_SECTIONS.find((s) => s.direct === view)
-  if (section) return section.label
-  return titleCase(view)
+  return VIEW_LABELS[view]
 }
 
 function entityLabel(item: RecentItem, lookups: RecentLabelLookups): string | null {
@@ -50,8 +33,11 @@ function entityLabel(item: RecentItem, lookups: RecentLabelLookups): string | nu
  * dropped, which is what keeps the list from offering a click into a 404. The
  * limit applies after that filter, so a deleted entity does not eat a slot.
  *
- * An entry with a view that is not registered in the navigation is also
- * dropped, protecting against corrupted or stale localStorage entries.
+ * An entry with a view that is not a valid AppView is also dropped, protecting
+ * against corrupted or stale localStorage entries. Validity is determined by
+ * checking against VIEW_LABELS, the exhaustive compiler-enforced map over all
+ * AppView kinds, not by navigation registry membership (which could exempt views
+ * that are still legitimate app surfaces).
  */
 export function resolveRecentItems(
   items: readonly RecentItem[],
@@ -62,8 +48,9 @@ export function resolveRecentItems(
   for (const item of items) {
     if (out.length >= limit) break
 
-    // Validate that the view is a real AppView registered in navigation
-    if (sectionForView(item.view as AppView) === null) {
+    // Validate that the view is a real AppView
+    const view = item.view as AppView
+    if (!(view in VIEW_LABELS)) {
       continue
     }
 
