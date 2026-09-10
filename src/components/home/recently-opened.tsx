@@ -50,6 +50,9 @@ export function RecentlyOpened() {
   const navigateTo = useNavigate()
   const agents = useAppStore((s) => s.agents)
   const sessions = useAppStore((s) => s.sessions)
+  const tasks = useAppStore((s) => s.tasks)
+  const setEditingTaskId = useAppStore((s) => s.setEditingTaskId)
+  const setTaskSheetOpen = useAppStore((s) => s.setTaskSheetOpen)
   const chatrooms = useChatroomStore((s) => s.chatrooms)
   const loadChatrooms = useChatroomStore((s) => s.loadChatrooms)
   const items = useSyncExternalStore(subscribeToRecentItems, getRecentItemsSnapshot, getRecentItemsServerSnapshot)
@@ -79,11 +82,31 @@ export function RecentlyOpened() {
       agentNames: Object.fromEntries(Object.values(agents).map((a) => [a.id, a.name])),
       sessionTitles: Object.fromEntries(Object.values(sessions).map((s) => [s.id, s.name || 'Untitled chat'])),
       chatroomNames: Object.fromEntries(Object.values(chatrooms).map((c) => [c.id, c.name])),
+      taskTitles: Object.fromEntries(Object.values(tasks).map((t) => [t.id, t.title])),
     },
     VISIBLE,
   )
 
   if (resolved.length === 0) return null
+
+  /*
+   * A task has no route of its own -- it opens in a sheet layered over
+   * whatever page is behind it (see TaskSheet in sheet-layer.tsx, which is
+   * mounted app-wide). `getViewPath('tasks', id)` therefore never carries an
+   * id, so a plain `navigateTo` would land back on the generic /tasks list.
+   * Reopen the sheet directly instead, the same way search-dialog's
+   * `goToResult` does for a 'task' search result: navigate to the tasks view
+   * for context, then point the sheet at this specific task.
+   */
+  const openItem = (item: (typeof resolved)[number]) => {
+    if (item.view === 'tasks' && item.id) {
+      navigateTo('tasks')
+      setEditingTaskId(item.id)
+      setTaskSheetOpen(true)
+      return
+    }
+    navigateTo(item.view, item.id)
+  }
 
   return (
     <section className="mb-6 rounded-lg border border-line-subtle bg-surface p-5 sm:p-6">
@@ -92,7 +115,7 @@ export function RecentlyOpened() {
         {resolved.map((item) => (
           <button
             key={`${item.view}:${item.id ?? ''}`}
-            onClick={() => navigateTo(item.view, item.id)}
+            onClick={() => openItem(item)}
             className="rounded-md border border-line-subtle bg-layer-1 px-3 py-2 text-[12px] font-600 text-text
               transition-colors hover:bg-layer-2 cursor-pointer"
             style={{ fontFamily: 'inherit' }}

@@ -1,30 +1,42 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { AlertTriangle, Clock3, MessageCircle } from 'lucide-react'
+import { AlertTriangle, Ban, Clock3, MessageCircle } from 'lucide-react'
 import { api } from '@/lib/app/api-client'
 import { useAppStore } from '@/stores/use-app-store'
 import { useChatStore } from '@/stores/use-chat-store'
 import { useApprovalStore } from '@/stores/use-approval-store'
 import { useNavigate } from '@/lib/app/navigation'
-import { selectUnreadSessions } from '@/lib/chat/session-unread'
+import { selectVisibleUnreadSessions } from '@/lib/chat/session-unread'
+import { isLocalhostBrowser } from '@/lib/observability/local-observability'
 import { filterPulseActions, NEEDS_YOU_PULSE_KINDS } from '@/lib/home/pulse-partition'
 import { dedupeNotifications } from '@/lib/home/notification-dedup'
 import { SectionHeader } from '@/components/ui/section-header'
 import { RecentlyOpened } from '@/components/home/recently-opened'
 import { ChatInput } from '@/components/input/chat-input'
-import type { OperationPulse } from '@/types'
+import type { BoardTask, OperationPulse } from '@/types'
 
 const NEEDS_YOU_LIMIT = 6
 
+interface ProblemTaskRow {
+  task: BoardTask
+  kind: 'failed' | 'blocked'
+}
+
 export function TierAct() {
   const navigateTo = useNavigate()
+  const router = useRouter()
   const agents = useAppStore((s) => s.agents)
   const sessions = useAppStore((s) => s.sessions)
+  const tasks = useAppStore((s) => s.tasks)
   const notifications = useAppStore((s) => s.notifications)
+  const currentUser = useAppStore((s) => s.currentUser)
   const currentAgentId = useAppStore((s) => s.currentAgentId)
   const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
+  const setEditingTaskId = useAppStore((s) => s.setEditingTaskId)
+  const setTaskSheetOpen = useAppStore((s) => s.setTaskSheetOpen)
   const sendMessage = useChatStore((s) => s.sendMessage)
   const streamingSessionId = useChatStore((s) => s.streamingSessionId)
   const stopStreaming = useChatStore((s) => s.stopStreaming)
@@ -89,12 +101,46 @@ export function TierAct() {
     })()
   }, [currentAgentId, firstAgent, navigateTo, sendMessage, setCurrentAgent])
 
-  const unreadChats = useMemo(() => selectUnreadSessions(sessions), [sessions])
+  /*
+   * `GET /api/chats` returns every session in the install and the `/chat`
+   * destination does not re-check ownership, so this is the only gate between
+   * a raw unread-chat computation and showing another user's conversation
+   * (including their last-message preview text) on this viewer's home. Every
+   * other surface that lists sessions -- search-dialog, command-palette --
+   * gates through the same `isVisibleSessionForViewer` check before this one.
+   */
+  const unreadChats = useMemo(
+    () => selectVisibleUnreadSessions(sessions, currentUser, { localhost: isLocalhostBrowser() }),
+    [currentUser, sessions],
+  )
 
   const pulseRows = useMemo(
     () => filterPulseActions(pulse?.actions || [], NEEDS_YOU_PULSE_KINDS),
     [pulse],
   )
+
+  /*
+   * The pre-rebuild home surfaced failed and blocked kanban tasks directly
+   * (see the redesign report); the rebuild dropped them and nothing else
+   * covers the gap -- `buildOperationPulse()` never ingests a `BoardTask`,
+   * and task failures go through `logActivity`, not `createNotification`. A
+   * blocked or failed task would otherwise have no signal anywhere outside
+   * the Tasks board.
+   */
+  const problemTasks = useMemo<ProblemTaskRow[]>(() => {
+    const rows: ProblemTaskRow[] = []
+    for (const task of Object.values(tasks)) {
+      if (task.status === 'failed') rows.push({ task, kind: 'failed' })
+      else if ((task.blockedBy?.length ?? 0) > 0) rows.push({ task, kind: 'blocked' })
+    }
+    return rows.sort((a, b) => (b.task.updatedAt || b.task.createdAt || 0) - (a.task.updatedAt || a.task.createdAt || 0))
+  }, [tasks])
+
+  const openTask = useCallback((taskId: string) => {
+    navigateTo('tasks')
+    setEditingTaskId(taskId)
+    setTaskSheetOpen(true)
+  }, [navigateTo, setEditingTaskId, setTaskSheetOpen])
 
   /*
    * An unlinked error notification would be invisible if it went to the
@@ -116,6 +162,7 @@ export function TierAct() {
     && unreadChats.length === 0
     && pulseRows.length === 0
     && dedupedNotifications.length === 0
+    && problemTasks.length === 0
 
   return (
     <>
@@ -147,13 +194,13 @@ export function TierAct() {
         <section className="mb-6 rounded-lg border border-line-subtle bg-surface p-5 sm:p-6">
           <SectionHeader
             label="Needs you"
-            count={approvalRows.length + dedupedNotifications.length + pulseRows.length + unreadChats.length}
+            count={approvalRows.length + dedupedNotifications.length + pulseRows.length + unreadChats.length + problemTasks.length}
           />
           <div className="flex flex-col gap-1">
             {approvalRows.slice(0, NEEDS_YOU_LIMIT).map((approval) => (
               <button
                 key={approval.id}
-                onClick={() => navigateTo('agents')}
+                onClick={() => navigateTo('agents', approval.agentId)}
                 className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left bg-transparent border-none
                   hover:bg-layer-1 transition-colors cursor-pointer w-full"
                 style={{ fontFamily: 'inherit' }}
@@ -164,6 +211,27 @@ export function TierAct() {
                 <div className="min-w-0 flex-1">
                   <span className="block text-[13px] font-600 text-text">Approval requested</span>
                   <span className="block truncate text-[11px] text-text-3">{approval.command}</span>
+                </div>
+              </button>
+            ))}
+            {problemTasks.slice(0, NEEDS_YOU_LIMIT).map(({ task, kind }) => (
+              <button
+                key={task.id}
+                onClick={() => openTask(task.id)}
+                className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left bg-transparent border-none
+                  hover:bg-layer-1 transition-colors cursor-pointer w-full"
+                style={{ fontFamily: 'inherit' }}
+              >
+                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${kind === 'failed' ? 'bg-red-400/10 text-red-400' : 'bg-amber-400/10 text-amber-400'}`}>
+                  {kind === 'failed' ? <AlertTriangle size={14} /> : <Ban size={14} />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-600 text-text">{task.title}</span>
+                  <span className="block truncate text-[11px] text-text-3">
+                    {kind === 'failed'
+                      ? (task.error ? task.error.slice(0, 120) : 'Task failed')
+                      : `${(task.agentId && agents[task.agentId]?.name) || 'This task'} is blocked by dependencies`}
+                  </span>
                 </div>
               </button>
             ))}
@@ -186,7 +254,7 @@ export function TierAct() {
             {pulseRows.slice(0, NEEDS_YOU_LIMIT).map((action) => (
               <button
                 key={action.id}
-                onClick={() => navigateTo('missions')}
+                onClick={() => router.push(action.href)}
                 className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left bg-transparent border-none
                   hover:bg-layer-1 transition-colors cursor-pointer w-full"
                 style={{ fontFamily: 'inherit' }}

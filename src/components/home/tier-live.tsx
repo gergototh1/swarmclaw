@@ -61,11 +61,6 @@ export function TierLive() {
     return () => { cancelled = true; clearInterval(timer) }
   }, [])
 
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), NOW_TICK_MS)
-    return () => clearInterval(timer)
-  }, [])
-
   const runningTasks = useMemo(
     () => Object.values(tasks).filter((t) => t.status === 'running' || t.status === 'queued'),
     [tasks],
@@ -75,8 +70,21 @@ export function TierLive() {
 
   const streamingSession = streamingSessionId ? sessions[streamingSessionId] : null
   const nothingRunning = missions.length === 0 && runningTasks.length === 0 && !streamingSession
+  const nothingToShow = nothingRunning && upcoming.length === 0
 
-  if (nothingRunning && upcoming.length === 0) {
+  /*
+   * A completely idle home has nothing that a minute-old `now` would change --
+   * no upcoming schedule to drop off, no "Nothing running." line that depends
+   * on the clock. Skip the tick entirely rather than re-rendering the same
+   * static line every minute.
+   */
+  useEffect(() => {
+    if (nothingToShow) return
+    const timer = setInterval(() => setNow(Date.now()), NOW_TICK_MS)
+    return () => clearInterval(timer)
+  }, [nothingToShow])
+
+  if (nothingToShow) {
     return <p className="mb-6 px-1 text-[12px] text-text-3">Nothing running.</p>
   }
 

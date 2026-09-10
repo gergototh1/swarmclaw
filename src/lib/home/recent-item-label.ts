@@ -12,6 +12,7 @@ export interface RecentLabelLookups {
   agentNames: Record<string, string>
   sessionTitles: Record<string, string>
   chatroomNames: Record<string, string>
+  taskTitles: Record<string, string>
 }
 
 function viewLabel(view: AppView): string {
@@ -23,6 +24,7 @@ function entityLabel(item: RecentItem, lookups: RecentLabelLookups): string | nu
   if (item.view === 'agents') return lookups.agentNames[item.id] ?? null
   if (item.view === 'conversations') return lookups.sessionTitles[item.id] ?? null
   if (item.view === 'chatrooms') return lookups.chatroomNames[item.id] ?? null
+  if (item.view === 'tasks') return lookups.taskTitles[item.id] ?? null
   return null
 }
 

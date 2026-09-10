@@ -144,7 +144,8 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
   setEditingTaskId: (id) => {
     // Record the task being opened in the recent items list. This centralizes the recording
     // in the one place every task-sheet opener already goes through, rather than scattering
-    // the call across thirteen call sites and risking it being forgotten when a new one is added.
+    // the call across every call site that opens the task sheet and risking it being
+    // forgotten when a new one is added.
     if (id !== null) recordRecentItem('tasks', id)
     set({ editingTaskId: id })
   },

@@ -36,7 +36,16 @@ export const NEEDS_YOU_PULSE_KINDS: readonly OperationPulseActionKind[] = kindsI
 /** Infrastructure health — Tier 3, behind the collapse. */
 export const OPERATIONS_PULSE_KINDS: readonly OperationPulseActionKind[] = kindsInTier('operations')
 
-/** Shown from `useApprovalStore` instead, which is live rather than polled. */
+/**
+ * Shown from `useApprovalStore` instead of the pulse -- not because that store
+ * is live, but because home already calls `loadApprovals()` once on mount to
+ * populate it. In truth the store is the less fresh of the two: `addApproval`
+ * and `removeApproval` are never called anywhere in the codebase, so the list
+ * is a one-shot snapshot that never updates again for the rest of the visit,
+ * while the pulse itself is at least re-fetched each time this page mounts.
+ * An approval that arrives while the user is already sitting on home will not
+ * appear until they navigate away and back.
+ */
 export const HOME_SUPPRESSED_PULSE_KINDS: readonly OperationPulseActionKind[] = kindsInTier('home-suppressed')
 
 export function filterPulseActions(
