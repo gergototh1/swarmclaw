@@ -583,7 +583,18 @@ export function ChatArea() {
     <div className="flex-1 flex h-full min-h-0 min-w-0">
     <div
       data-testid="chat-area"
-      className="flex-1 flex flex-col h-full min-h-0 min-w-0 relative"
+      /*
+       * A SubagentPanel `fixed right-0` -- a saját szélessége nem szorítja
+       * össze a szülőt automatikusan. Enélkül a panel a szülő chat jobb
+       * alsó sarkára ülne, pont oda, ahol a szülő saját composere van, és a
+       * felhasználó nem érné el. Ezért a panel szélességével megegyező jobb
+       * margót kap a chat-area a panel nyitott állapotában -- a transzkript
+       * ÉS a composer (ami md-től felfelé `md:relative`, tehát ennek a
+       * dobozának a szélességét követi) így balra tolódik a panel mellé,
+       * nem alá. Mobilon (md alatt) a panel szándékosan teljes szélességű
+       * és eltakarja a szülőt -- ott nincs margó.
+       */
+      className={`flex-1 flex flex-col h-full min-h-0 min-w-0 relative ${openSubagent ? 'md:mr-[440px] lg:mr-[520px]' : ''}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '@/lib/app/api-client'
 import { useWs } from '@/hooks/use-ws'
 import { MessageBubble } from './message-bubble'
@@ -18,6 +18,33 @@ export function subagentPanelWarning(running: boolean, parentName: string | null
   if (!running) return null
   const who = parentName?.trim() || 'A szülő ügynök'
   return `${who} erre a futásra vár — amit írsz, megváltoztatja, amit visszakap.`
+}
+
+/**
+ * Igaz, ha egy `load()` hívás eredménye még ahhoz a framehez tartozik, ami
+ * jelenleg a verem tetején van.
+ *
+ * A panel breadcrumb-verme lehetővé teszi, hogy a felhasználó egy beágyazott
+ * subagentet megnyisson (frame B), majd a `‹`-vel visszalépjen a szülőre
+ * (frame A) MIELŐTT B lekérése lefutna. Ha B válasza ekkor még alkalmazásra
+ * kerülne, A fejléce alatt B üzenetei jelennének meg. Minden `load()` hívás
+ * lezáráskor ezt ellenőrzi, és eldobja magát, ha időközben elavult.
+ */
+export function isCurrentPanelFrame(requestedSessionId: string, activeSessionId: string): boolean {
+  return requestedSessionId === activeSessionId
+}
+
+/**
+ * Felhasználó-olvasható hibaszöveg egy `load`/`send`/`stop` híváshoz.
+ *
+ * A panelnek nincs hova jelentenie a hibát -- önálló felület, így a hibát
+ * magában a panelben kell megjeleníteni, nem console.error-ba nyelni.
+ */
+export function describeSubagentPanelError(action: 'load' | 'send' | 'stop', err: unknown): string {
+  const detail = err instanceof Error && err.message.trim() ? err.message.trim() : 'ismeretlen hiba'
+  if (action === 'load') return `Nem sikerült betölteni a beszélgetést: ${detail}`
+  if (action === 'send') return `Nem sikerült elküldeni az üzenetet: ${detail}`
+  return `Nem sikerült leállítani a subagentet: ${detail}`
 }
 
 interface PanelFrame {
@@ -50,18 +77,34 @@ export function SubagentPanel({
   const [session, setSession] = useState<Session | null>(null)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // A verem tetején lévő frame session id-ja, mindig friss -- ezt nézi meg
+  // egy `load()` hívás lezáráskor, hogy még mindig neki szól-e a válasz.
+  const activeSessionIdRef = useRef(frame.sessionId)
+  useEffect(() => {
+    activeSessionIdRef.current = frame.sessionId
+  }, [frame.sessionId])
 
   const load = useCallback(async () => {
-    /*
-     * A /messages `limit` nelkul CSUPASZ tombot ad vissza, nem { messages }
-     * burkot (route.ts:37-38). A generikus `api<T>` igy pontosan Message[].
-     */
-    const [msgs, sess] = await Promise.all([
-      api<Message[]>('GET', `/chats/${encodeURIComponent(frame.sessionId)}/messages`),
-      api<Session>('GET', `/chats/${encodeURIComponent(frame.sessionId)}`),
-    ])
-    setMessages(Array.isArray(msgs) ? msgs : [])
-    setSession(sess || null)
+    const targetSessionId = frame.sessionId
+    try {
+      /*
+       * A /messages `limit` nelkul CSUPASZ tombot ad vissza, nem { messages }
+       * burkot (route.ts:37-38). A generikus `api<T>` igy pontosan Message[].
+       */
+      const [msgs, sess] = await Promise.all([
+        api<Message[]>('GET', `/chats/${encodeURIComponent(targetSessionId)}/messages`),
+        api<Session>('GET', `/chats/${encodeURIComponent(targetSessionId)}`),
+      ])
+      if (!isCurrentPanelFrame(targetSessionId, activeSessionIdRef.current)) return
+      setMessages(Array.isArray(msgs) ? msgs : [])
+      setSession(sess || null)
+      setError(null)
+    } catch (err) {
+      if (!isCurrentPanelFrame(targetSessionId, activeSessionIdRef.current)) return
+      setError(describeSubagentPanelError('load', err))
+    }
   }, [frame.sessionId])
 
   useEffect(() => { void load() }, [load])
@@ -78,15 +121,24 @@ export function SubagentPanel({
     try {
       await api('POST', `/chats/${encodeURIComponent(frame.sessionId)}/chat`, { message: text })
       setDraft('')
+      setError(null)
       await load()
+    } catch (err) {
+      // A draft NEM ürül ki -- a felhasználó újra tudja próbálni ugyanazzal a szöveggel.
+      setError(describeSubagentPanelError('send', err))
     } finally {
       setSending(false)
     }
   }
 
   const stop = async () => {
-    await api('POST', `/chats/${encodeURIComponent(frame.sessionId)}/stop`, {})
-    await load()
+    try {
+      await api('POST', `/chats/${encodeURIComponent(frame.sessionId)}/stop`, {})
+      setError(null)
+      await load()
+    } catch (err) {
+      setError(describeSubagentPanelError('stop', err))
+    }
   }
 
   return (
@@ -137,6 +189,22 @@ export function SubagentPanel({
         </button>
       </div>
 
+      {error && (
+        <div
+          className="flex items-center gap-2 px-4 py-2 text-[11.5px] text-rose-400 bg-rose-500/5 border-b border-rose-500/15 shrink-0"
+          role="alert"
+        >
+          <span className="flex-1 min-w-0">{error}</span>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="shrink-0 text-[11px] font-600 text-rose-300 hover:text-rose-200 bg-transparent border-none cursor-pointer underline decoration-current/30"
+          >
+            Újra
+          </button>
+        </div>
+      )}
+
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col gap-4">
         {/*
           * A MessageBubble-t hasznaljuk, nem sajat renderelest.
@@ -182,9 +250,18 @@ export function SubagentPanel({
             type="button"
             onClick={() => void send()}
             disabled={sending || !draft.trim()}
-            className="shrink-0 px-3 py-2 rounded-md bg-accent-soft text-accent-bright text-[12px] font-600 border-none cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            aria-label="Üzenet küldése"
+            title="Üzenet küldése"
+            className={`w-9 h-9 rounded-lg border-none flex items-center justify-center
+              shrink-0 cursor-pointer transition-all duration-250 disabled:opacity-60
+              ${draft.trim()
+                ? 'bg-accent-bright text-accent-fg active:scale-90'
+                : 'bg-layer-2 text-text-3 pointer-events-none'}`}
           >
-            Küldés
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="19" x2="12" y2="5" />
+              <polyline points="5 12 12 5 19 12" />
+            </svg>
           </button>
         </div>
       </div>

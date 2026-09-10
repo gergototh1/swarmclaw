@@ -21,7 +21,7 @@ import { TransferAgentPicker } from './transfer-agent-picker'
 import { DelegationSourceBanner, TaskCompletionCard, parseTaskCompletion } from './delegation-banner'
 import { ConnectorPlatformIcon, getConnectorPlatformLabel } from '@/components/shared/connector-platform-icon'
 import { parseSwarmOutput } from './swarm-panel'
-import { SubagentRow } from './subagent-row'
+import { SubagentRow, mergeSubagentEvents } from './subagent-row'
 import { copyTextToClipboard } from '@/lib/clipboard'
 import { formatMessageTimestamp } from '@/lib/chat/chat-display'
 import { stripAllInternalMetadata } from '@/lib/strip-internal-metadata'
@@ -390,6 +390,22 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
   )
   const hasToolEvents = !isUser && displayToolEvents.length > 0
 
+  /*
+   * Egy spawn tipikusan KÉT tool-eseményt ír a transzkriptbe -- egy
+   * `running`-ot és egy később érkező terminálisat --, úgyhogy a
+   * `displayToolEvents`-en egyenként végigmenni ugyanazt a subagentet
+   * kétszer, egy örökre "dolgozik…"-ot mutató és egy terminális sorral
+   * jelenítené meg. A `mergeSubagentEvents` job id (session id fallback)
+   * szerint egyesíti a tagokat egyetlen sorba, a legkésőbbi eseményt tartva
+   * meg mindegyikhez.
+   */
+  const mergedSubagentData = useMemo(() => {
+    const swarmEvents = displayToolEvents
+      .map((ev) => parseSwarmOutput(ev.name, ev.output || ''))
+      .filter((swarm): swarm is NonNullable<typeof swarm> => swarm !== null)
+    return mergeSubagentEvents(swarmEvents)
+  }, [displayToolEvents])
+
   // Tool pill open/close state (lifted from ToolEventsSection)
   const [toolSectionOpen, setToolSectionOpen] = useState(false)
   const [toolUserToggled, setToolUserToggled] = useState(false)
@@ -641,11 +657,9 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
       )}
 
       {/* Subagent sor: ki dolgozott, és hol van a beszélgetése */}
-      {!isUser && onOpenSubagent && displayToolEvents.map((ev, i) => {
-        const swarm = parseSwarmOutput(ev.name, ev.output || '')
-        if (!swarm) return null
-        return <SubagentRow key={`sw-${i}`} data={swarm} onOpen={onOpenSubagent} />
-      })}
+      {!isUser && onOpenSubagent && mergedSubagentData && (
+        <SubagentRow data={mergedSubagentData} onOpen={onOpenSubagent} />
+      )}
 
 
       {/* Thinking block (collapsible, shown for assistant messages with persisted thinking) */}
