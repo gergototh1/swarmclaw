@@ -453,8 +453,14 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
           />
         </ComposerShell>
 
+        {/*
+          * The menu anchors to the shell's bottom edge, but the button that
+          * opens it sits above the footer's own pb-3.5. Pulling back 6px lands
+          * the menu the same 8px from its button that the agent picker uses,
+          * instead of the 22px the raw edge would give.
+          */}
         {extrasOpen && (
-          <div className={`absolute left-0 ${variant === 'inline' ? 'top-full mt-2' : 'bottom-[72px]'} w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-subtle bg-surface/80 p-2 backdrop-blur-xl`}>
+          <div className={`absolute left-0 ${variant === 'inline' ? 'top-full -mt-1.5' : 'bottom-[72px]'} w-[280px] max-w-[calc(100vw-2rem)] rounded-lg border border-line-subtle bg-surface/80 p-2 backdrop-blur-xl`}>
             <button
               type="button"
               onClick={() => {
