@@ -641,12 +641,12 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
       {/* Thinking block (collapsible, shown for assistant messages with persisted thinking) */}
       {!isUser && effectiveThinking && (
         <div className="max-w-[85%] md:max-w-[72%] mb-2">
-          <details className="group rounded-md border border-purple-500/15 bg-purple-500/[0.04]">
+          <details className="group rounded-md open:border open:border-line-subtle open:bg-layer-1">
             <summary className="flex items-center gap-2 px-3.5 py-2.5 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-purple-400/60 shrink-0 transition-transform group-open:rotate-90">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-3 shrink-0 transition-transform group-open:rotate-90">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
-              <span className="text-[11px] font-600 text-purple-400/70 tracking-[0.03em]">Thinking</span>
+              <span className="text-[11px] font-600 text-text-3 tracking-[0.03em]">Thinking</span>
               {!liveStreamActive && (
                 <span className="text-[10px] text-text-3 font-mono">{Math.ceil(effectiveThinking.length / 4)} tokens</span>
               )}

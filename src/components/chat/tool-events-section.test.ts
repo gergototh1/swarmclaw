@@ -23,3 +23,29 @@ describe('collectCollapsedMedia', () => {
     assert.equal(media, null)
   })
 })
+
+import { toolPillClass } from './tool-events-section'
+
+/*
+ * A csukott tool-sor nem kártya.
+ *
+ * Egy tool-hívás egy sor metaadat, nem strukturált rekord -- keretben
+ * ugyanannyi helyet foglal a képernyőn, mint a válasz, amihez tartozik.
+ * A keret a kinyitott állapoté, ahol tényleg van tartalom, amit el kell
+ * határolni.
+ */
+describe('toolPillClass', () => {
+  it('draws no border and no fill in the resting state', () => {
+    const cls = toolPillClass(false, false)
+    assert.ok(!cls.includes('border-'), `resting pill must be borderless, got: ${cls}`)
+    assert.ok(!cls.includes('bg-'), `resting pill must have no fill, got: ${cls}`)
+  })
+
+  it('still colours a running pill, because that one is live', () => {
+    assert.match(toolPillClass(true, false), /amber/)
+  })
+
+  it('still colours a mostly-failed pill, because that one needs the eye', () => {
+    assert.match(toolPillClass(false, true), /rose/)
+  })
+})
