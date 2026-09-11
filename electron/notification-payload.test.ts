@@ -83,6 +83,7 @@ test('markdown marks are stripped from the excerpt', () => {
 test('snake_case words and lone asterisks survive', () => {
   assert.equal(stripMarkdown('Renamed foo_bar_baz to qux'), 'Renamed foo_bar_baz to qux')
   assert.equal(stripMarkdown('2 * 3 = 6'), '2 * 3 = 6')
+  assert.equal(stripMarkdown('5*3=15 or 2*4=8'), '5*3=15 or 2*4=8')
   assert.equal(stripMarkdown('an *italic* and _another_ one'), 'an italic and another one')
 })
 

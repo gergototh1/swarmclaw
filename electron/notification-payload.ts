@@ -47,7 +47,7 @@ export function stripMarkdown(text: string): string {
     .replace(/^\s{0,3}>\s?/gm, '')
     .replace(/^\s*(?:[-*+]|\d+[.)])\s+/gm, '')
     .replace(/(\*\*|__)(\S(?:.*?\S)?)\1/g, '$2')
-    .replace(/\*(\S(?:.*?\S)?)\*/g, '$1')
+    .replace(/(?<![\p{L}\p{N}*])\*(\S(?:.*?\S)?)\*(?![\p{L}\p{N}*])/gu, '$1')
     .replace(/(?<![\p{L}\p{N}])_(\S(?:.*?\S)?)_(?![\p{L}\p{N}])/gu, '$1')
     .replace(/`([^`]*)`/g, '$1')
 }
