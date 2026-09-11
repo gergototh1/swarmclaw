@@ -26,15 +26,38 @@ export interface NotificationPayload {
   isError: boolean
 }
 
-/** Body length past which the excerpt is cut with an ellipsis. */
-const MAX_BODY_LENGTH = 120
+/**
+ * Body length past which the excerpt is cut with an ellipsis. macOS trims a
+ * banner further on its own; this only keeps a pathological reply from
+ * shipping kilobytes over IPC.
+ */
+const MAX_BODY_LENGTH = 200
 
 /**
- * Collapse whitespace/newlines into single spaces and cut to a single-line
- * excerpt, falling back to `fallback` when there is no usable text.
+ * Remove markdown syntax so the few characters a notification shows are words,
+ * not `**` and `#`. Only markup is removed: underscores inside words
+ * (`foo_bar`) and a lone `*` (`2 * 3`) are left alone.
+ */
+export function stripMarkdown(text: string): string {
+  return text
+    .replace(/```[^\n]*/g, ' ')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}>\s?/gm, '')
+    .replace(/^\s*(?:[-*+]|\d+[.)])\s+/gm, '')
+    .replace(/(\*\*|__)(\S(?:.*?\S)?)\1/g, '$2')
+    .replace(/\*(\S(?:.*?\S)?)\*/g, '$1')
+    .replace(/(?<![\p{L}\p{N}])_(\S(?:.*?\S)?)_(?![\p{L}\p{N}])/gu, '$1')
+    .replace(/`([^`]*)`/g, '$1')
+}
+
+/**
+ * Strip markdown, collapse whitespace/newlines into single spaces and cut to
+ * a single-line excerpt, falling back to `fallback` when nothing is left.
  */
 function excerptOf(text: string | null | undefined, fallback: string): string {
-  const collapsed = (text ?? '').replace(/\s+/g, ' ').trim()
+  const collapsed = stripMarkdown(text ?? '').replace(/\s+/g, ' ').trim()
   if (!collapsed) return fallback
   if (collapsed.length <= MAX_BODY_LENGTH) return collapsed
   return `${collapsed.slice(0, MAX_BODY_LENGTH).trimEnd()}…`
@@ -42,8 +65,8 @@ function excerptOf(text: string | null | undefined, fallback: string): string {
 
 /**
  * The text is its own function so it is testable without an Electron
- * runtime. No user text is reinterpreted: it is only whitespace-collapsed
- * and length-limited, never parsed or reformatted.
+ * runtime. User text is only stripped of markdown marks, whitespace-collapsed
+ * and length-limited — never otherwise rewritten.
  */
 export function buildNotificationPayload(session: NotifiableSession, agentName: string): NotificationPayload {
   const failed = typeof session.lastFailedTurnAt === 'number' ? session.lastFailedTurnAt : 0
@@ -52,7 +75,7 @@ export function buildNotificationPayload(session: NotifiableSession, agentName: 
   return {
     title: agentName.trim() || 'SwarmClaw',
     body: isError
-      ? `A futas hibaval vegzodott: ${session.name}`
+      ? `Run failed: ${session.name}`
       : excerptOf(session.lastMessageText, session.name),
     isError,
   }

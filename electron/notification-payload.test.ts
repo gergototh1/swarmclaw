@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildNotificationPayload } from './notification-payload'
+import { buildNotificationPayload, stripMarkdown } from './notification-payload'
 
 test('sikeres valasz: az ugynok neve a cim, a valasz kivonata a torzs', () => {
   const p = buildNotificationPayload(
@@ -21,14 +21,12 @@ test('tobbsoros/tobb szokozos valasz egyetlen sorba tomorul', () => {
 })
 
 test('tul hosszu valasz levagva, három ponttal', () => {
-  const longText = 'a'.repeat(200)
+  const longText = 'a'.repeat(300)
   const p = buildNotificationPayload(
     { name: 'Kutatas', lastFailedTurnAt: null, lastAssistantAt: 5, lastMessageText: longText },
     'Marveen',
   )
-  assert.ok(p.body.length < longText.length)
-  assert.ok(p.body.endsWith('…'))
-  assert.ok(p.body.startsWith('a'.repeat(50)))
+  assert.equal(p.body, `${'a'.repeat(200)}…`)
 })
 
 test('hianyzo vagy ures valaszszoveg eseten a chat neve a tartalek', () => {
@@ -50,7 +48,7 @@ test('hibas turn eseten mas torzs, meg akkor is ha van valaszkivonat', () => {
     'Marveen',
   )
   assert.equal(p.isError, true)
-  assert.equal(p.body, 'A futas hibaval vegzodott: Kutatas')
+  assert.equal(p.body, 'Run failed: Kutatas')
 })
 
 test('nevtelen ugynok eseten sem ures a cim', () => {
@@ -66,5 +64,36 @@ test('hibas turn es valasz azonos pillanatban -> hibakent szamit (>= nem >)', ()
   // ugyanezt a hataresetet a masik oldalon.
   const p = buildNotificationPayload({ name: 'Kutatas', lastFailedTurnAt: 5, lastAssistantAt: 5 }, 'Marveen')
   assert.equal(p.isError, true)
-  assert.equal(p.body, 'A futas hibaval vegzodott: Kutatas')
+  assert.equal(p.body, 'Run failed: Kutatas')
+})
+
+test('markdown marks are stripped from the excerpt', () => {
+  const p = buildNotificationPayload(
+    {
+      name: 'Kutatas',
+      lastFailedTurnAt: null,
+      lastAssistantAt: 5,
+      lastMessageText: '# Summary\n\n**Done**: found [three offers](https://x.y) and `npm test` passes.\n- first\n- second\n> quoted',
+    },
+    'Marveen',
+  )
+  assert.equal(p.body, 'Summary Done: found three offers and npm test passes. first second quoted')
+})
+
+test('snake_case words and lone asterisks survive', () => {
+  assert.equal(stripMarkdown('Renamed foo_bar_baz to qux'), 'Renamed foo_bar_baz to qux')
+  assert.equal(stripMarkdown('2 * 3 = 6'), '2 * 3 = 6')
+  assert.equal(stripMarkdown('an *italic* and _another_ one'), 'an italic and another one')
+})
+
+test('an image becomes its alt text', () => {
+  assert.equal(stripMarkdown('![chart of sales](a.png)'), 'chart of sales')
+})
+
+test('text that is only markup falls back to the chat name', () => {
+  const p = buildNotificationPayload(
+    { name: 'Kutatas', lastFailedTurnAt: null, lastAssistantAt: 5, lastMessageText: '```\n```' },
+    'Marveen',
+  )
+  assert.equal(p.body, 'Kutatas')
 })
