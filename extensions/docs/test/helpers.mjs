@@ -50,14 +50,14 @@ export function memStorage() {
 export function videoRow(over = {}) {
   return {
     id: 'vid_1',
-    cim: 'Miért drágul a kávé',
+    cim: 'Why is coffee getting pricier',
     status: 'kesz',
     forras_tipus: 'signal',
     forras_id: 'sig_9',
     out_path: 'out/vid_1.mp4',
     file_sha256: 'aabb',
     hossz_ms: 42300,
-    narracio_szoveg: 'Első mondat. Második mondat.',
+    narracio_szoveg: 'First sentence. Second sentence.',
     created_at: '2026-09-01T10:00:00.000Z',
     qa_ok_at: '2026-09-01T11:00:00.000Z',
     ...over,

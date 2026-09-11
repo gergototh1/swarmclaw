@@ -3,7 +3,7 @@ import test from 'node:test'
 
 import { agentSlug, canRead, canWrite, homeFolderOf, ownerOf } from '../src/permissions.mjs'
 
-const OPTS = { kozosMappaNev: 'kozos' }
+const OPTS = { sharedFolderName: 'kozos' }
 const user = { kind: 'user' }
 const marketing = { kind: 'agent', slug: 'marketing' }
 const kutato = { kind: 'agent', slug: 'kutato' }
@@ -34,7 +34,7 @@ test('ownerOf and homeFolderOf name the actor consistently', () => {
 
 test('everyone can read everything', () => {
   for (const actor of [user, marketing, videoExt]) {
-    for (const p of ['agents/marketing/a.md', 'kozos/b.md', '_sablonok/c.md', '.swarmdocs/trash/doc_1/d.md']) {
+    for (const p of ['agents/marketing/a.md', 'kozos/b.md', '_templates/c.md', '.swarmdocs/trash/doc_1/d.md']) {
       assert.equal(canRead(actor, p), true, `${JSON.stringify(actor)} nem olvashatja: ${p}`)
     }
   }
@@ -43,7 +43,7 @@ test('everyone can read everything', () => {
 test('the operator can write anywhere outside the internal folders', () => {
   assert.equal(canWrite(user, 'agents/marketing/a.md', OPTS), true)
   assert.equal(canWrite(user, 'kozos/b.md', OPTS), true)
-  assert.equal(canWrite(user, '_sablonok/c.md', OPTS), true)
+  assert.equal(canWrite(user, '_templates/c.md', OPTS), true)
   assert.equal(canWrite(user, 'barmi/mashol.md', OPTS), true)
   assert.equal(canWrite(user, 'gyoker-szinten.md', OPTS), true)
   // A kuka nem szerkeszthető, csak a kuka-műveleteken át.
@@ -58,7 +58,7 @@ test('an agent writes its own folder and the shared one, nothing else', () => {
 
   assert.equal(canWrite(marketing, 'agents/kutato/a.md', OPTS), false)
   assert.equal(canWrite(kutato, 'agents/marketing/a.md', OPTS), false)
-  assert.equal(canWrite(marketing, '_sablonok/c.md', OPTS), false)
+  assert.equal(canWrite(marketing, '_templates/c.md', OPTS), false)
   assert.equal(canWrite(marketing, '.swarmdocs/trash/doc_1/d.md', OPTS), false)
   assert.equal(canWrite(marketing, 'gyoker-szinten.md', OPTS), false)
 })
@@ -70,7 +70,7 @@ test('a prefix that only looks like the home folder is refused', () => {
 })
 
 test('the shared folder name comes from settings, not from a constant', () => {
-  const opts = { kozosMappaNev: 'shared' }
+  const opts = { sharedFolderName: 'shared' }
   assert.equal(canWrite(marketing, 'shared/b.md', opts), true)
   assert.equal(canWrite(marketing, 'kozos/b.md', opts), false)
 })

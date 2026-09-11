@@ -1,5 +1,6 @@
 import { DocsError, ERR, errorResult } from './errors.mjs'
 import { AGENTS_ROOT } from './permissions.mjs'
+import { ConflictError } from './service.mjs'
 
 /**
  * What the page may ask for.
@@ -13,6 +14,13 @@ import { AGENTS_ROOT } from './permissions.mjs'
  * The actor is always the operator. The page is behind the host's own
  * authentication and only the operator can open it, so there is no identity to
  * negotiate here -- and nothing the browser sends is allowed to change it.
+ *
+ * The method names and the request/response field names on this boundary are
+ * deliberately left as they were: the page (`ui/*.tsx`) still reads and sends
+ * these exact names, and renaming them is the UI task's job, not this one.
+ * What changed underneath is `service.mjs`'s own parameter and field names, so
+ * every handler below adapts between the two rather than the wire shape
+ * changing out from under the page.
  */
 
 const OPERATOR = { kind: 'user' }
@@ -27,6 +35,39 @@ async function guard(log, fn) {
     }
     log?.error?.('docs rpc failed', { error: err?.message })
     return errorResult(ERR.invalid_argument, `A művelet nem sikerült: ${err?.message ?? 'ismeretlen hiba'}`)
+  }
+}
+
+/**
+ * A conflict's details, translated back to the field names the page still
+ * reads (`ui/api.ts`'s `readUtkozes`). `service.mjs` names them
+ * `currentVersion`/`modifiedBy`/`theirs` now; this is the one place that
+ * difference is bridged.
+ */
+function legacyConflict(fn) {
+  try {
+    return fn()
+  } catch (err) {
+    if (err instanceof ConflictError) {
+      const legacy = new DocsError(err.code, err.message)
+      legacy.details = {
+        jelenlegiVerzio: err.details?.currentVersion ?? null,
+        modositotta: err.details?.modifiedBy ?? null,
+        ovek: err.details?.theirs ?? null,
+      }
+      throw legacy
+    }
+    throw err
+  }
+}
+
+/** A doc result from `service.mjs`, translated back to the page's field names. */
+function toDocResult(r) {
+  return {
+    id: r.id,
+    utvonal: r.path,
+    verzio: r.version,
+    ...(r.links ? { linkek: { frissitett: r.links.updated, kihagyott: r.links.skipped } } : {}),
   }
 }
 
@@ -49,7 +90,7 @@ export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus,
     /** The whole left column in one call. */
     fa: () => run(() => {
       const service = serviceOf()
-      const docs = service.list(OPERATOR, { mappa: '', limit: 2000 })
+      const docs = service.list(OPERATOR, { folder: '', limit: 2000 })
       const all = repoOf().listDocs({ limit: 2000 })
       return {
         gyoker: vaultOf().root,
@@ -67,38 +108,55 @@ export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus,
       }
     }),
 
-    olvas: (body) => run(() => serviceOf().read(body.id)),
+    olvas: (body) => run(() => {
+      const r = serviceOf().read(body.id)
+      return {
+        id: r.id,
+        cim: r.title,
+        utvonal: r.path,
+        tulajdonos: r.owner,
+        tagek: r.tags,
+        letrehozva: r.created,
+        frissitve: r.updated,
+        verzio: r.version,
+        tartalom: r.content,
+      }
+    }),
 
-    ment: (body) => run(() => serviceOf().update(OPERATOR, {
+    ment: (body) => run(() => legacyConflict(() => toDocResult(serviceOf().update(OPERATOR, {
       id: body.id,
-      tartalom: body.tartalom,
-      cim: body.cim,
-      tagek: body.tagek,
+      content: body.tartalom,
+      title: body.cim,
+      tags: body.tagek,
       baseVersion: body.baseVersion,
-    })),
+    })))),
 
-    letrehoz: (body) => run(() => serviceOf().create(OPERATOR, {
-      mappa: body.mappa,
-      cim: body.cim,
-      tartalom: body.tartalom,
-      sablon: body.sablon,
-    })),
+    letrehoz: (body) => run(() => toDocResult(serviceOf().create(OPERATOR, {
+      folder: body.mappa,
+      title: body.cim,
+      content: body.tartalom,
+      template: body.sablon,
+    }))),
 
     keres: (body) => run(() => ({
-      talalatok: serviceOf().search(body.q, { mappa: body.mappa, limit: body.limit ?? 50 }),
+      talalatok: serviceOf().search(body.q, { folder: body.mappa, limit: body.limit ?? 50 })
+        .map((r) => ({ id: r.id, path: r.path, title: r.title, reszlet: r.snippet })),
     })),
 
-    mozgat: (body) => run(() => serviceOf().move(OPERATOR, {
-      id: body.id,
-      ujUtvonal: body.ujUtvonal,
-      ujMappa: body.ujMappa,
-    })),
+    mozgat: (body) => run(() => {
+      const r = serviceOf().move(OPERATOR, {
+        id: body.id,
+        newPath: body.ujUtvonal,
+        newFolder: body.ujMappa,
+      })
+      return { utvonal: r.path }
+    }),
 
-    atnevez: (body) => run(() => serviceOf().update(OPERATOR, {
+    atnevez: (body) => run(() => legacyConflict(() => toDocResult(serviceOf().update(OPERATOR, {
       id: body.id,
-      cim: body.ujCim,
+      title: body.ujCim,
       baseVersion: body.baseVersion,
-    })),
+    })))),
 
     torol: (body) => run(() => serviceOf().remove(OPERATOR, { id: body.id })),
     visszaallit: (body) => run(() => serviceOf().restore(OPERATOR, { id: body.id })),
@@ -112,14 +170,16 @@ export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus,
 
     verziok: (body) => run(() => ({ verziok: serviceOf().versions(body.id) })),
     verzio: (body) => run(() => serviceOf().version(body.id, body.verzio)),
-    visszaallitVerzio: (body) => run(() => serviceOf().restoreVersion(OPERATOR, {
+    visszaallitVerzio: (body) => run(() => legacyConflict(() => toDocResult(serviceOf().restoreVersion(OPERATOR, {
       id: body.id,
-      verzio: body.verzio,
+      version: body.verzio,
       baseVersion: body.baseVersion,
-    })),
+    })))),
 
     hivatkozok: (body) => run(() => ({ backlinkek: serviceOf().backlinks(body.id) })),
-    sablonok: () => run(() => ({ sablonok: serviceOf().templates() })),
+    sablonok: () => run(() => ({
+      sablonok: serviceOf().templates().map((t) => ({ nev: t.name, utvonal: t.path })),
+    })),
 
     /** The agent folders that exist on disk, so the tree can show real names. */
     ugynokok: () => run(() => {
@@ -170,7 +230,10 @@ export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus,
       }
     }),
 
-    ujraindex: () => run(() => writerOf().indexAll()),
+    ujraindex: () => run(() => {
+      const r = writerOf().indexAll()
+      return { atnezett: r.scanned, valtozott: r.changed, eltavolitott: r.removed }
+    }),
     figyeloUjraindit: () => run(() => restartWatcher()),
 
     /** Creates a folder by placing nothing in it; the tree reads folders from

@@ -108,7 +108,7 @@ test("a tool's own throw is left to propagate, so the host reports it", async ()
 test('every tool the extension declares is reachable over the bridge', () => {
   const listed = docs.rpc.mcpTools().tools.map((t) => t.name)
   assert.deepEqual(listed, docs.tools.map((t) => t.name))
-  assert.ok(listed.includes('doksi_ir'), 'writing a doc is the tool the agents actually run')
+  assert.ok(listed.includes('docs_write'), 'writing a doc is the tool the agents actually run')
 })
 
 /**

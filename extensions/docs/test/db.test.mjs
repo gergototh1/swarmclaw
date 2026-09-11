@@ -80,7 +80,7 @@ test('search returns a snippet and can be scoped to a folder', () => {
   const scoped = r.search('morvai', { folder: 'kozos' })
   assert.equal(scoped.length, 1)
   assert.equal(scoped[0].id, 'doc_2')
-  assert.ok(scoped[0].reszlet.includes('Morvai'))
+  assert.ok(scoped[0].snippet.includes('Morvai'))
 })
 
 test('a folder scope does not leak into a sibling with the same prefix', () => {

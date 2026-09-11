@@ -87,8 +87,8 @@ test('renameLinksTo rewrites the title links and reports what it wrote', () => {
     writeBody: (p, body) => { bodies[p] = body },
   })
 
-  assert.deepEqual(res.frissitett, ['kozos/b.md'])
-  assert.deepEqual(res.kihagyott, [])
+  assert.deepEqual(res.updated, ['kozos/b.md'])
+  assert.deepEqual(res.skipped, [])
   // A címre mutató link átíródik, az id-re mutató érintetlen marad.
   assert.equal(bodies['kozos/b.md'], 'Lásd [[Morvai profil]] és [[doc_1]] is.\n')
 })
@@ -109,8 +109,8 @@ test('renameLinksTo skips a referrer it may not write, and names it', () => {
     writeBody: (p, body) => { bodies[p] = body },
   })
 
-  assert.deepEqual(res.frissitett, [])
-  assert.deepEqual(res.kihagyott, ['agents/kutato/b.md'])
+  assert.deepEqual(res.updated, [])
+  assert.deepEqual(res.skipped, ['agents/kutato/b.md'])
   assert.equal(bodies['agents/kutato/b.md'], 'Lásd [[Ügyfélprofil]].\n', 'mégis írt bele')
 })
 
@@ -152,5 +152,5 @@ test('renameLinksTo writes nothing when no body actually changed', () => {
   })
 
   assert.equal(irasok, 0)
-  assert.deepEqual(res.frissitett, [])
+  assert.deepEqual(res.updated, [])
 })

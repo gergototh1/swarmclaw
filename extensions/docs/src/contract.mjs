@@ -25,20 +25,20 @@ export function createDocsContract({ serviceOf, extensionNameOf }) {
     // Required by the host, and it is the operator who reads it: the extensions
     // list renders this sentence beside every consumer that declares the
     // contract, and that listing is the only place the reach shows up at all.
-    summary: 'Doksit tehet le a saját mappájába, és vissza tudja olvasni, amit letett. Listázni, keresni, módosítani és törölni nem tud.',
+    summary: 'Can put a doc into its own folder and read back what it put. It cannot list, search, change or delete.',
     methods: {
       /** Creates a document in the calling extension's own folder. */
-      letesz(args = {}) {
+      put(args = {}) {
         const actor = { kind: 'ext', name: extensionNameOf(args) }
         return serviceOf().create(actor, {
-          mappa: args.mappa,
-          cim: args.cim,
-          tartalom: args.tartalom,
-          tagek: args.tagek,
+          folder: args.folder,
+          title: args.title,
+          content: args.content,
+          tags: args.tags,
         })
       },
       /** Reads one document by id or path. */
-      olvas(args = {}) {
+      read(args = {}) {
         return serviceOf().read(args.id)
       },
     },

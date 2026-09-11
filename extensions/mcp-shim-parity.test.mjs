@@ -98,14 +98,14 @@ test('every shipped shim is installed, or it is not on the machine that runs it'
  */
 
 const { VIDEOS_CONTRACT: PROVIDER_NAME, VIDEOS_CONTRACT_VERSION: PROVIDER_VERSION, VIDEO_CONTRACT_COLUMNS } = await import('./video/src/contract.mjs')
-const { VIDEOS_CONTRACT: CONSUMER_NAME, VIDEOS_CONTRACT_VERSION: CONSUMER_VERSION, forgatokonyv } = await import('./docs/src/video-forgatokonyv.mjs')
+const { VIDEOS_CONTRACT: CONSUMER_NAME, VIDEOS_CONTRACT_VERSION: CONSUMER_VERSION, videoScript } = await import('./docs/src/video-script.mjs')
 
 test('the docs module pins the contract the video module actually offers', () => {
   assert.equal(CONSUMER_NAME, PROVIDER_NAME, 'a fogyasztó más nevű szerződést kér, mint amit a szolgáltató kínál')
   assert.equal(
     CONSUMER_VERSION,
     PROVIDER_VERSION,
-    'a két verzió elvált: így a host version_mismatch-et ad, és a doksi_video_forgatokonyv minden hívónál elutasít. '
+    'a két verzió elvált: így a host version_mismatch-et ad, és a docs_video_script minden hívónál elutasít. '
     + 'Ha a videos szerződés szándékosan lépett verziót, a Doksik oldalát is át kell nézni és utána léptetni.',
   )
 })
@@ -115,25 +115,25 @@ test('every column the videos contract carries reaches the document the docs mod
   // hord. Egy tizenkettedik oszlop, amit a fogyasztó nem ír le, itt bukik --
   // nem pedig egy doksiban, amiről senki nem tudja, hogy hiányos.
   const nyom = (col) => (col === 'hossz_ms'
-    // Az egyetlen nem szöveg oszlop: a fogyasztó másodpercre váltja, tehát a
-    // kiírt alakját kell keresni, nem a nyers számot.
-    ? { ertek: 12345, latszik: '12,3 mp' }
+    // The one non-text column: the consumer converts it to seconds, so the
+    // written form has to be searched for, not the raw number.
+    ? { ertek: 12345, latszik: '12.3 s' }
     : { ertek: `NYOM_${col}`, latszik: `NYOM_${col}` })
 
   const row = Object.fromEntries(VIDEO_CONTRACT_COLUMNS.map((col) => [col, nyom(col).ertek]))
-  // A második argumentum SZÁNDÉKOSAN nem `row.id`. A fogyasztó a `video.id ??
-  // videoId` alakot írja ki, tehát a kettőt azonosnak átadva az `id` oszlopra
-  // vonatkozó állítás önmagát bizonyította: egy olyan implementáció is átment
-  // volna, ami az oszlopot meg se nézi. Ez az id csak akkor jelenhet meg, ha a
-  // sorét valaki eldobja.
-  const { cim, tartalom } = forgatokonyv(row, 'NEM_A_SOR_ID_JE')
-  assert.equal(tartalom.includes('NEM_A_SOR_ID_JE'), false, 'a doksi a szerződés `id` oszlopát írja ki, nem a hívó által beírt id-t')
-  const doksi = `${cim}\n${tartalom}`
+  // The second argument is DELIBERATELY not `row.id`. The consumer writes out
+  // `video.id ?? videoId`, so passing the two as the same value would have the
+  // assertion about the `id` column prove itself: an implementation that never
+  // looked at the column would still pass. This id can only show up if
+  // somebody drops the row's own.
+  const { title, content } = videoScript(row, 'NEM_A_SOR_ID_JE')
+  assert.equal(content.includes('NEM_A_SOR_ID_JE'), false, 'the doc writes out the contract\'s `id` column, not the caller-supplied id')
+  const doksi = `${title}\n${content}`
   for (const col of VIDEO_CONTRACT_COLUMNS) {
     assert.ok(
       doksi.includes(nyom(col).latszik),
-      `a videos szerződés "${col}" oszlopa nem jelenik meg a Doksik által írt doksiban. `
-      + 'Ha új oszlop, vedd fel a forgatokonyv() felsorolásába; ha szándékosan marad ki, ez a teszt mondja meg, hogy döntés volt.',
+      `the videos contract's "${col}" column does not appear in the doc the Docs module writes. `
+      + 'If it is a new column, add it to videoScript()\'s list; if it is deliberately left out, this test says so was a decision.',
     )
   }
 })

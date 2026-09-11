@@ -58,12 +58,12 @@ export function createAgentContext(state, { serviceOf, sharedFolder, logOf }) {
       const service = serviceOf()
       const home = homeFolderOf(actor)
 
-      const own = home ? service.list(actor, { mappa: home, limit: OWN_LIMIT }) : []
-      const shared = service.list(actor, { mappa: sharedFolder(), limit: SHARED_LIMIT })
+      const own = home ? service.list(actor, { folder: home, limit: OWN_LIMIT }) : []
+      const shared = service.list(actor, { folder: sharedFolder(), limit: SHARED_LIMIT })
 
       return fit([
-        { heading: `## A te doksijaid (${home ?? sharedFolder()})`, lines: own.map(line) },
-        { heading: `## Közös doksik (${sharedFolder()})`, lines: shared.map(line) },
+        { heading: `## Your docs (${home ?? sharedFolder()})`, lines: own.map(line) },
+        { heading: `## Shared docs (${sharedFolder()})`, lines: shared.map(line) },
       ], CHAR_BUDGET)
     } catch (err) {
       logOf()?.warn?.('docs agent context skipped', { error: err?.message })
@@ -72,15 +72,15 @@ export function createAgentContext(state, { serviceOf, sharedFolder, logOf }) {
   }
 
   function getCapabilityDescription() {
-    return 'Tartós markdown-doksikat tudok olvasni, keresni és írni; van saját mappám, és a közös mappát is elérem.'
+    return 'I can read, search and write durable markdown docs; I have my own folder, and I can reach the shared folder too.'
   }
 
   function getOperatingGuidance() {
     return [
-      'Írj doksit, ha az eredmény a beszélgetés után is értékes marad — kutatási összefoglaló, ügyfélprofil, döntés indoklása. Átmeneti gondolatmenetet ne írj bele.',
-      'Módosítás előtt mindig olvasd be a doksit a doksi_olvas hívással, és add vissza a kapott verziószámot baseVersion néven. Enélkül a doksi_ir elutasítja a módosítást.',
-      'Ha ütközést kapsz, a doksit közben más írta át: olvasd újra, fésüld össze a változtatásodat a friss tartalommal, és írd újra az új verziószámmal. Ne írd felül a másik változatot vakon.',
-      'Más ügynök mappájába nem tudsz írni, de olvasni onnan is tudsz. Ha közös anyagot készítesz, a közös mappába tedd.',
+      'Write a doc when the result stays valuable after the conversation ends — a research summary, a customer profile, the reasoning behind a decision. Do not write a passing train of thought into one.',
+      'Before changing a doc, always read it first with docs_read, and pass back the version number you got as baseVersion. Without it docs_write refuses the change.',
+      'If you get a conflict, someone else wrote to the doc meanwhile: read it again, merge your change into the fresh content, and write it back with the new version number. Do not blindly overwrite the other version.',
+      'You cannot write into another agent\'s folder, but you can read from it. If you are producing shared material, put it in the shared folder.',
     ]
   }
 

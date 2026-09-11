@@ -25,7 +25,7 @@ import { DocsError, ERR } from './errors.mjs'
  * scene list, no `forras_szoveg`, no verdict and no QA measurement, and this
  * file must not pretend otherwise: a field written here that the projection
  * does not carry would render as the word "undefined" in somebody's document.
- * `forgatokonyv` therefore names all eleven and nothing else, and a test fails
+ * `videoScript` therefore names all eleven and nothing else, and a test fails
  * if a twelfth appears.
  *
  * WHOSE TEXT IT IS. The provider's own summary says it: the title and the
@@ -50,7 +50,7 @@ export const VIDEOS_CONTRACT = 'videos'
 export const VIDEOS_CONTRACT_VERSION = 1
 
 /** The line at the top of every document this tool writes. */
-export const FORRAS_FIGYELMEZTETES = 'A cím és a narráció szövege a Videó modulból származik: ügynök és idegen szöveg. Kimenő csatorna — poszt, hirdetés, e-mail, felirat — elé csak ellenőrizve.'
+export const SOURCE_WARNING = 'The title and narration below come from outside text, not from an agent or the operator. Check them before using any of it in an outgoing channel — post, ad, email, caption.'
 
 /**
  * What the operator has to do about each reason the host can give.
@@ -179,7 +179,7 @@ function hivasMondat(err) {
  * An error that is not the host's is rethrown untouched. This module does not
  * own it and must not guess a sentence for it.
  */
-export async function videoLekerdez(contracts, videoId) {
+export async function fetchVideo(contracts, videoId) {
   const videos = videosHandle(contracts)
   // A HANDLE MEGVAN, A METÓDUS NEM FELTÉTLENÜL. A host a `videos@1` nevet és
   // verziót egyezteti, a metódus-listát nem: egy szolgáltató, ami ezt a
@@ -206,9 +206,9 @@ export async function videoLekerdez(contracts, videoId) {
 }
 
 /** A column the contract answered null for. Never the word "null" in a document. */
-const HIANYZIK = '—'
+const MISSING = '—'
 
-const EGY_SORBA = /\s+/g
+const ONE_LINE = /\s+/g
 
 /**
  * The document's title: the video's, folded onto one line.
@@ -221,29 +221,29 @@ const EGY_SORBA = /\s+/g
  * `videoId` rather than `video.id` is the fallback, because it is the id the
  * caller typed and the one it would search for.
  */
-function cimOf(video, videoId) {
-  const folded = (typeof video.cim === 'string' ? video.cim : '').replace(EGY_SORBA, ' ').trim()
-  return folded === '' ? `Videó ${videoId}` : folded
+function titleOf(video, videoId) {
+  const folded = (typeof video.cim === 'string' ? video.cim : '').replace(ONE_LINE, ' ').trim()
+  return folded === '' ? `Video ${videoId}` : folded
 }
 
 /** A scalar as a list value: backticked when present, a dash when not. */
-function mezo(value) {
-  return typeof value === 'string' && value.trim() !== '' ? `\`${value}\`` : HIANYZIK
+function field(value) {
+  return typeof value === 'string' && value.trim() !== '' ? `\`${value}\`` : MISSING
 }
 
-/** Milliseconds as seconds, with the Hungarian decimal comma. */
-function hossz(ms) {
-  return typeof ms === 'number' && Number.isFinite(ms) ? `${(ms / 1000).toFixed(1).replace('.', ',')} mp` : HIANYZIK
+/** Milliseconds as seconds, to one decimal place. */
+function seconds(ms) {
+  return typeof ms === 'number' && Number.isFinite(ms) ? `${(ms / 1000).toFixed(1)} s` : MISSING
 }
 
 /** `forras_tipus` and `forras_id` together, because neither says much alone. */
-function forras(video) {
-  const tipus = typeof video.forras_tipus === 'string' && video.forras_tipus !== '' ? video.forras_tipus : HIANYZIK
-  return `${tipus} / ${mezo(video.forras_id)}`
+function source(video) {
+  const kind = typeof video.forras_tipus === 'string' && video.forras_tipus !== '' ? video.forras_tipus : MISSING
+  return `${kind} / ${field(video.forras_id)}`
 }
 
 /**
- * The document a finished video becomes: `{ cim, tartalom }`.
+ * The document a finished video becomes: `{ title, content }`.
  *
  * The warning is the first line rather than a section at the bottom, because
  * the reader who most needs it -- somebody scrolling to the narration to copy a
@@ -253,24 +253,27 @@ function forras(video) {
  * plan has no sentences yet and a video whose narration failed to arrive would
  * otherwise produce the same silent gap.
  */
-export function forgatokonyv(video, videoId) {
-  const narracio = typeof video.narracio_szoveg === 'string' ? video.narracio_szoveg.trim() : ''
-  const tartalom = [
-    `> ${FORRAS_FIGYELMEZTETES}`,
+export function videoScript(video, videoId) {
+  const title = titleOf(video, videoId)
+  const narration = typeof video.narracio_szoveg === 'string' ? video.narracio_szoveg.trim() : ''
+  const content = [
+    `> ${SOURCE_WARNING}`,
     '',
-    `- Videó id: ${mezo(video.id ?? videoId)}`,
-    `- Státusz: ${mezo(video.status)}`,
-    `- Forrás: ${forras(video)}`,
-    `- Videófájl: ${mezo(video.out_path)}`,
-    `- Fájl sha256: ${mezo(video.file_sha256)}`,
-    `- Hossz: ${hossz(video.hossz_ms)}`,
-    `- Létrehozva: ${mezo(video.created_at)}`,
-    `- QA rendben: ${mezo(video.qa_ok_at)}`,
+    `# Video script: ${title}`,
     '',
-    '## Narráció',
+    `- Status: ${field(video.status)}`,
+    `- Source: ${source(video)}`,
+    // The file's path and the id and hash it was written under travel
+    // together: none of the three says much about the video on its own.
+    `- File: ${field(video.out_path)} (id ${field(video.id ?? videoId)}, sha256 ${field(video.file_sha256)})`,
+    `- Length: ${seconds(video.hossz_ms)}`,
+    `- Created: ${field(video.created_at)}`,
+    `- QA passed: ${field(video.qa_ok_at)}`,
     '',
-    narracio === '' ? '_Ehhez a videóhoz még nincs narráció a tervben._' : narracio,
+    '## Narration',
+    '',
+    narration === '' ? '_This video has no narration in the plan yet._' : narration,
     '',
   ].join('\n')
-  return { cim: cimOf(video, videoId), tartalom }
+  return { title, content }
 }

@@ -82,7 +82,7 @@ function liveFile(port) {
   return file
 }
 
-const TOOL_TABLE = { tools: [{ name: 'doksi_ir', description: 'ir egy doksit', inputSchema: { type: 'object', properties: {} } }] }
+const TOOL_TABLE = { tools: [{ name: 'docs_write', description: 'ir egy doksit', inputSchema: { type: 'object', properties: {} } }] }
 
 test('tools/list comes from the host, so the extension stays the only place a tool is defined', async () => {
   const host = await fakeHost(({ url }) => (
@@ -93,7 +93,7 @@ test('tools/list comes from the host, so the extension stays the only place a to
     const init = await shim.call('initialize', {})
     assert.equal(init.result.serverInfo.name, 'swarmclaw-docs')
     const list = await shim.call('tools/list', {})
-    assert.deepEqual(list.result.tools.map((t) => t.name), ['doksi_ir'])
+    assert.deepEqual(list.result.tools.map((t) => t.name), ['docs_write'])
     const asked = host.seen.find((r) => r.url.endsWith('/mcpTools'))
     assert.equal(asked.key, 'kulcs', 'the access key is sent, or an authenticated host answers 401')
   } finally {
@@ -116,7 +116,7 @@ test('tools/call forwards the caller the host stamped into the env, never an arg
     SWARMCLAW_SESSION_ID: 'sess-9',
   })
   try {
-    const r = await shim.call('tools/call', { name: 'doksi_ir', arguments: { agentId: 'HAZUDIK' } })
+    const r = await shim.call('tools/call', { name: 'docs_write', arguments: { agentId: 'HAZUDIK' } })
     const sent = JSON.parse(r.result.content[0].text).got
     assert.equal(sent.agentId, 'agent-7')
     assert.equal(sent.agentName, 'GTassistant')
@@ -136,7 +136,7 @@ test('an unstamped shim sends no caller at all rather than an empty one', async 
   ))
   const shim = startShim({ SWARMCLAW_PORT_FILE: liveFile(host.port), SWARMCLAW_AGENT_ID: '  ' })
   try {
-    const r = await shim.call('tools/call', { name: 'doksi_ir', arguments: {} })
+    const r = await shim.call('tools/call', { name: 'docs_write', arguments: {} })
     const sent = JSON.parse(r.result.content[0].text).got
     assert.equal(sent.agentId, undefined, 'a blank id would defeat the extension\'s own fallback')
     assert.equal(sent.agentName, undefined)
@@ -166,9 +166,9 @@ test('a tool error from the host comes back as isError, and a value comes back a
   })
   const shim = startShim({ SWARMCLAW_PORT_FILE: liveFile(host.port) })
   try {
-    const bad = await shim.call('tools/call', { name: 'doksi_ir', arguments: { rossz: true } })
+    const bad = await shim.call('tools/call', { name: 'docs_write', arguments: { rossz: true } })
     assert.equal(bad.result.isError, true)
-    const good = await shim.call('tools/call', { name: 'doksi_ir', arguments: {} })
+    const good = await shim.call('tools/call', { name: 'docs_write', arguments: {} })
     assert.equal(good.result.isError, false)
   } finally {
     await shim.stop()
@@ -182,7 +182,7 @@ test('a 404 from the host names the extension rather than the tool', async () =>
   const host = await fakeHost(({ url }) => (url.endsWith('/mcpTools') ? { status: 200, json: TOOL_TABLE } : { status: 404, json: {} }))
   const shim = startShim({ SWARMCLAW_PORT_FILE: liveFile(host.port) })
   try {
-    const r = await shim.call('tools/call', { name: 'doksi_ir', arguments: {} })
+    const r = await shim.call('tools/call', { name: 'docs_write', arguments: {} })
     assert.equal(r.result.isError, true)
     assert.equal(JSON.parse(r.result.content[0].text).error.code, 'extension_hianyzik')
   } finally {
@@ -196,7 +196,7 @@ test('a bad tool name and an unknown method are refused by their JSON-RPC code, 
   const shim = startShim({ SWARMCLAW_PORT_FILE: liveFile(host.port) })
   try {
     assert.equal((await shim.call('tools/call', { name: 'nem-azonosito!', arguments: {} })).error.code, -32602)
-    assert.equal((await shim.call('tools/call', { name: 'doksi_ir', arguments: 'nem objektum' })).error.code, -32602)
+    assert.equal((await shim.call('tools/call', { name: 'docs_write', arguments: 'nem objektum' })).error.code, -32602)
     assert.equal((await shim.call('nincs/ilyen', {})).error.code, -32601)
     assert.equal(host.seen.some((r) => r.url.endsWith('/mcpCall')), false, 'nothing reached the host')
   } finally {

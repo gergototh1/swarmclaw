@@ -225,7 +225,7 @@ export function createRepo(storage) {
     }
     return rows(
       `SELECT d.id AS id, d.path AS path, d.title AS title,
-              snippet(ext_docs_fts, 2, '', '', '…', 12) AS reszlet
+              snippet(ext_docs_fts, 2, '', '', '…', 12) AS snippet
        FROM ext_docs_fts
        JOIN ext_docs_docs d ON d.id = ext_docs_fts.doc_id
        WHERE ${where.join(' AND ')}

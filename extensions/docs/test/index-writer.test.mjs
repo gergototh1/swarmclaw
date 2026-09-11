@@ -37,8 +37,8 @@ test('indexing a file written by the module keeps its id and title', () => {
     write(h, 'kozos/a.md', { id: 'doc_a', title: 'Ügyfélprofil', created: 'c', updated: 'u' }, 'Morvai jegyzet.\n')
     const res = h.writer.indexPath('kozos/a.md')
     assert.equal(res.id, 'doc_a')
-    assert.equal(res.javitottFejlec, false)
-    assert.equal(res.valtozott, true)
+    assert.equal(res.headerRepaired, false)
+    assert.equal(res.changed, true)
     assert.equal(h.repo.getById('doc_a').title, 'Ügyfélprofil')
     assert.equal(h.repo.search('morvai', {}).length, 1)
   } finally { h.cleanup() }
@@ -51,7 +51,7 @@ test('a file with no front matter gets one written back into it', () => {
     fs.writeFileSync(path.join(h.vault.root, 'kozos/kivulrol.md'), '# Kívülről jött\n\nSzöveg.\n')
 
     const res = h.writer.indexPath('kozos/kivulrol.md')
-    assert.equal(res.javitottFejlec, true)
+    assert.equal(res.headerRepaired, true)
     assert.match(res.id, /^doc_[0-9a-f]{8}$/)
 
     const read = h.vault.readDoc('kozos/kivulrol.md')
@@ -90,8 +90,8 @@ test('indexing is idempotent: the second run reports no change', () => {
   const h = harness()
   try {
     write(h, 'kozos/a.md', { id: 'doc_a', title: 'A' }, 'x\n')
-    assert.equal(h.writer.indexPath('kozos/a.md').valtozott, true)
-    assert.equal(h.writer.indexPath('kozos/a.md').valtozott, false)
+    assert.equal(h.writer.indexPath('kozos/a.md').changed, true)
+    assert.equal(h.writer.indexPath('kozos/a.md').changed, false)
     assert.equal(h.repo.listDocs({}).length, 1)
     assert.equal(h.repo.getById('doc_a').version, 1, 'a verzió nőtt, pedig semmi nem változott')
   } finally { h.cleanup() }
@@ -117,7 +117,7 @@ test('two files carrying the same id: the second gets a fresh one', () => {
     const res = h.writer.indexPath('kozos/masolat.md')
 
     assert.notEqual(res.id, 'doc_a')
-    assert.equal(res.javitottFejlec, true)
+    assert.equal(res.headerRepaired, true)
     assert.equal(h.repo.getByPath('kozos/a.md').id, 'doc_a')
     assert.equal(h.vault.readDoc('kozos/masolat.md').meta.id, res.id)
   } finally { h.cleanup() }
@@ -157,10 +157,10 @@ test('indexAll drops rows whose file is gone', () => {
   try {
     write(h, 'kozos/a.md', { id: 'doc_a', title: 'A' }, 'x\n')
     write(h, 'kozos/b.md', { id: 'doc_b', title: 'B' }, 'x\n')
-    assert.deepEqual(h.writer.indexAll(), { atnezett: 2, valtozott: 2, eltavolitott: 0 })
+    assert.deepEqual(h.writer.indexAll(), { scanned: 2, changed: 2, removed: 0 })
 
     fs.rmSync(path.join(h.vault.root, 'kozos/b.md'))
-    assert.deepEqual(h.writer.indexAll(), { atnezett: 1, valtozott: 0, eltavolitott: 1 })
+    assert.deepEqual(h.writer.indexAll(), { scanned: 1, changed: 0, removed: 1 })
     assert.equal(h.repo.getById('doc_b'), undefined)
   } finally { h.cleanup() }
 })
@@ -174,7 +174,7 @@ test('indexAll keeps a trashed document, whose file is deliberately gone', () =>
     h.repo.softDelete('doc_a', 'x')
     h.vault.trash('kozos/a.md', 'doc_a')
 
-    assert.deepEqual(h.writer.indexAll(), { atnezett: 0, valtozott: 0, eltavolitott: 0 })
+    assert.deepEqual(h.writer.indexAll(), { scanned: 0, changed: 0, removed: 0 })
     assert.equal(h.repo.listDocs({ includeDeleted: true }).length, 1)
   } finally { h.cleanup() }
 })

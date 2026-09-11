@@ -15,7 +15,7 @@
  */
 
 const AGENTS_ROOT = 'agents'
-const TEMPLATES_FOLDER = '_sablonok'
+const TEMPLATES_FOLDER = '_templates'
 const INTERNAL_FOLDER = '.swarmdocs'
 
 /**
@@ -40,7 +40,7 @@ export function agentSlug(name, id) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
   if (folded !== '') return folded
-  return String(id ?? '').slice(0, 6) || 'ismeretlen'
+  return String(id ?? '').slice(0, 6) || 'unknown'
 }
 
 /** How this actor is recorded in a document's `owner` field. */
@@ -75,7 +75,7 @@ export function canRead() {
   return true
 }
 
-export function canWrite(actor, relPath, { kozosMappaNev = 'kozos' } = {}) {
+export function canWrite(actor, relPath, { sharedFolderName = 'shared' } = {}) {
   if (typeof relPath !== 'string' || relPath === '') return false
   // The trash is reachable only through the delete and restore operations, so
   // that a document cannot be edited into or out of it by path.
@@ -86,7 +86,7 @@ export function canWrite(actor, relPath, { kozosMappaNev = 'kozos' } = {}) {
   const home = homeFolderOf(actor)
   if (!home) return false
   if (isInside(relPath, home)) return true
-  if (isInside(relPath, kozosMappaNev)) return true
+  if (isInside(relPath, sharedFolderName)) return true
   // Templates are the operator's to curate; an agent reads them and starts
   // documents from them, but does not rewrite them under everyone else.
   return false

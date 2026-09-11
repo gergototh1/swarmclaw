@@ -42,7 +42,7 @@ test('every migration table carries the ext_docs_ prefix, lower case', () => {
 
 test('the module declares the one contract it reaches for, with a reason the operator reads', () => {
   // A deklaráció maga a hozzáférés: nincs jóváhagyás, nincs visszavonás. Ha
-  // ez a bejegyzés elveszik, a doksi_video_forgatokonyv not_declared-ot kap,
+  // ez a bejegyzés elveszik, a docs_video_script not_declared-ot kap,
   // és a hetedik tool minden hívónál elutasít.
   // A `reason` mezőt korábban önmagával hasonlítottuk össze: az a sor minden
   // szövegre igaz volt, az üresre is. Itt a MARADÉK egyezik pontosan, az
@@ -55,7 +55,7 @@ test('the module declares the one contract it reaches for, with a reason the ope
   assert.ok(reason.length > 30, 'az indoklás túl rövid ahhoz, hogy az operátornak mondjon valamit')
   // Megnevezi a toolt, ami miatt a hozzáférés kell, és azt, hogy mit hoz be:
   // egy „a Videó modulhoz kell” mondat ugyanolyan hosszú, és semmit nem mond.
-  assert.match(reason, /doksi_video_forgatokonyv/)
+  assert.match(reason, /docs_video_script/)
   assert.match(reason, /videó/i)
 })
 

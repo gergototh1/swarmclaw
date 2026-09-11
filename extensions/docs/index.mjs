@@ -7,7 +7,7 @@ import { createRpc } from './src/rpc.mjs'
 import { createService } from './src/service.mjs'
 import { createTools } from './src/tools.mjs'
 import { createVault } from './src/vault.mjs'
-import { VIDEOS_CONTRACT_VERSION } from './src/video-forgatokonyv.mjs'
+import { VIDEOS_CONTRACT_VERSION } from './src/video-script.mjs'
 import { createWatcherControl } from './src/watcher.mjs'
 
 /**
@@ -160,16 +160,16 @@ const docs = {
    * the Videó bővítmény, which takes it from every consumer at once.
    *
    * A provider that is not installed is not a load failure: the host answers a
-   * missing one at call time, and `doksi_video_forgatokonyv` names it
+   * missing one at call time, and `docs_video_script` names it
    * (`contract_missing`) rather than skipping quietly.
    */
   consumes: [
-    { extension: 'video', contract: 'videos', version: VIDEOS_CONTRACT_VERSION, reason: 'A doksi_video_forgatokonyv tool ebből kéri le egy kész videó adatait (cím, narráció, fájladatok), és doksiként teszi le a kérő ügynök saját mappájába. Ez a modul egyetlen kifelé nyúlása.' },
+    { extension: 'video', contract: 'videos', version: VIDEOS_CONTRACT_VERSION, reason: 'A docs_video_script tool ebből kéri le egy kész videó adatait (cím, narráció, fájladatok), és doksiként teszi le a kérő ügynök saját mappájába. Ez a modul egyetlen kifelé nyúlása.' },
   ],
   provides: {
     [DOCS_CONTRACT]: createDocsContract({
       serviceOf,
-      extensionNameOf: (args) => (typeof args?.hivo === 'string' && args.hivo.trim() !== '' ? args.hivo.trim() : 'ext'),
+      extensionNameOf: (args) => (typeof args?.caller === 'string' && args.caller.trim() !== '' ? args.caller.trim() : 'ext'),
     }),
   },
   hooks: {

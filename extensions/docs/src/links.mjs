@@ -105,11 +105,11 @@ export function linkRowsFor(repo, body) {
  * keeps the old title, and applies the offsets to the real body.
  */
 export function renameLinksTo(repo, { docId, oldTitle, newTitle, canWrite, readBody, writeBody }) {
-  const frissitett = []
-  const kihagyott = []
+  const updated = []
+  const skipped = []
   for (const back of repo.backlinks(docId)) {
     if (!canWrite(back.path)) {
-      kihagyott.push(back.path)
+      skipped.push(back.path)
       continue
     }
     const body = readBody(back.path)
@@ -126,7 +126,7 @@ export function renameLinksTo(repo, { docId, oldTitle, newTitle, canWrite, readB
     if (cursor === 0) continue
     out += body.slice(cursor)
     writeBody(back.path, out)
-    frissitett.push(back.path)
+    updated.push(back.path)
   }
-  return { frissitett, kihagyott }
+  return { updated, skipped }
 }

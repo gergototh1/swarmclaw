@@ -39,17 +39,17 @@ const MAX_SLUG = 60
 export function fileSlug(title) {
   const folded = String(title ?? '')
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, MAX_SLUG)
     .replace(/-+$/g, '')
-  return folded === '' ? 'doksi' : folded
+  return folded === '' ? 'doc' : folded
 }
 
 export function createService({ vault, writer, repo, sharedFolder, versionsKept, now = () => new Date() }) {
-  const opts = () => ({ kozosMappaNev: sharedFolder() })
+  const opts = () => ({ sharedFolderName: sharedFolder() })
 
   function requireRoot() {
     vault.ensureRoot()
@@ -59,7 +59,7 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
     if (!canWrite(actor, relPath, opts())) {
       throw new DocsError(
         ERR.forbidden,
-        `Ebbe nem írhatsz: ${relPath}. A saját mappádba (${homeFolderOf(actor) ?? '—'}) és a(z) "${sharedFolder()}" mappába írhatsz.`,
+        `You cannot write to this: ${relPath}. You can write to your own folder (${homeFolderOf(actor) ?? '—'}) and the "${sharedFolder()}" folder.`,
       )
     }
   }
@@ -79,7 +79,7 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
 
   function docOr404(id) {
     const row = repo.getById(id)
-    if (!row) throw new DocsError(ERR.doc_not_found, `Nincs ilyen doksi: ${id}`)
+    if (!row) throw new DocsError(ERR.doc_not_found, `No such doc: ${id}`)
     return row
   }
 
@@ -96,36 +96,36 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
       createdAt: now().toISOString(),
     })
     repo.pruneVersions(indexed.id, versionsKept())
-    return { id: indexed.id, utvonal: relPath, verzio: row.version }
+    return { id: indexed.id, path: relPath, version: row.version, title: row.title }
   }
 
-  function create(actor, { mappa, cim, tartalom, tagek, sablon } = {}) {
+  function create(actor, { folder, title, content, tags, template } = {}) {
     requireRoot()
-    if (typeof cim !== 'string' || cim.trim() === '') {
-      throw new DocsError(ERR.invalid_argument, 'A "cim" kötelező egy új doksinál.')
+    if (typeof title !== 'string' || title.trim() === '') {
+      throw new DocsError(ERR.invalid_argument, 'The "title" is required for a new doc.')
     }
-    const title = cim.trim()
-    const folder = typeof mappa === 'string' && mappa.trim() !== ''
-      ? mappa.trim().replace(/^\/+|\/+$/g, '')
+    const docTitle = title.trim()
+    const targetFolder = typeof folder === 'string' && folder.trim() !== ''
+      ? folder.trim().replace(/^\/+|\/+$/g, '')
       : (homeFolderOf(actor) ?? sharedFolder())
 
-    let body = typeof tartalom === 'string' ? tartalom : ''
-    if (typeof sablon === 'string' && sablon.trim() !== '') {
-      const templateRel = `${TEMPLATES_FOLDER}/${sablon.trim().replace(/\.md$/, '')}.md`
+    let body = typeof content === 'string' ? content : ''
+    if (typeof template === 'string' && template.trim() !== '') {
+      const templateRel = `${TEMPLATES_FOLDER}/${template.trim().replace(/\.md$/, '')}.md`
       if (!vault.exists(templateRel)) {
-        throw new DocsError(ERR.doc_not_found, `Nincs ilyen sablon: ${sablon}. A sablonok listáját a doksi_lista adja a "${TEMPLATES_FOLDER}" mappára.`)
+        throw new DocsError(ERR.doc_not_found, `No such template: ${template}. docs_list gives the list of templates for the "${TEMPLATES_FOLDER}" folder.`)
       }
       body = vault.readDoc(templateRel).body + (body === '' ? '' : `\n${body}`)
     }
 
-    const relPath = freePath(folder, title)
+    const relPath = freePath(targetFolder, docTitle)
     requireWrite(actor, relPath)
     const stamp = now().toISOString()
     return persist(relPath, {
       id: undefined,
-      title,
+      title: docTitle,
       owner: ownerOf(actor),
-      tags: Array.isArray(tagek) ? tagek : [],
+      tags: Array.isArray(tags) ? tags : [],
       created: stamp,
       updated: stamp,
     }, body, ownerOf(actor))
@@ -138,46 +138,46 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
    * omit it by default and the check would only fire when one happened to
    * remember -- which is the same as not having the check.
    */
-  function update(actor, { id, tartalom, cim, tagek, baseVersion } = {}) {
+  function update(actor, { id, content, title, tags, baseVersion } = {}) {
     requireRoot()
     const row = docOr404(id)
     requireWrite(actor, row.path)
     if (!Number.isInteger(baseVersion)) {
       throw new DocsError(
         ERR.invalid_argument,
-        'A "baseVersion" kötelező módosításnál. Olvasd be a doksit a doksi_olvas hívással, és add vissza a kapott verziószámot.',
+        '"baseVersion" is required to change a doc. Read the doc with docs_read and pass back the version number you got.',
       )
     }
     if (baseVersion !== row.version) {
       const newest = repo.getVersion(id, row.version)
       throw new ConflictError(
-        `A doksit közben módosította: ${newest?.author ?? 'valaki más'}. Olvasd újra a doksi_olvas hívással, fésüld össze a változtatásodat, és írd újra az új verziószámmal.`,
+        `The doc was changed meanwhile by: ${newest?.author ?? 'someone else'}. Read it again with docs_read, merge your change in, and write it back with the new version number.`,
         {
-          jelenlegiVerzio: row.version,
-          modositotta: newest?.author ?? null,
-          ovek: newest?.content ?? null,
+          currentVersion: row.version,
+          modifiedBy: newest?.author ?? null,
+          theirs: newest?.content ?? null,
         },
       )
     }
 
     const current = vault.readDoc(row.path)
-    const title = typeof cim === 'string' && cim.trim() !== '' ? cim.trim() : row.title
-    const body = typeof tartalom === 'string' ? tartalom : current.body
+    const newTitle = typeof title === 'string' && title.trim() !== '' ? title.trim() : row.title
+    const body = typeof content === 'string' ? content : current.body
     const result = persist(row.path, {
       ...current.meta,
       id: row.id,
-      title,
+      title: newTitle,
       owner: row.owner,
-      tags: Array.isArray(tagek) ? tagek : row.tags,
+      tags: Array.isArray(tags) ? tags : row.tags,
       created: row.created,
       updated: now().toISOString(),
     }, body, ownerOf(actor))
 
-    if (title !== row.title) {
-      result.linkek = renameLinksTo(repo, {
+    if (newTitle !== row.title) {
+      result.links = renameLinksTo(repo, {
         docId: row.id,
         oldTitle: row.title,
-        newTitle: title,
+        newTitle,
         canWrite: (p) => canWrite(actor, p, opts()),
         readBody: (p) => vault.readDoc(p).body,
         writeBody: (p, newBody) => {
@@ -194,69 +194,69 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
   function read(idOrPath) {
     requireRoot()
     const row = repo.getById(idOrPath) ?? repo.getByPath(idOrPath)
-    if (!row) throw new DocsError(ERR.doc_not_found, `Nincs ilyen doksi: ${idOrPath}`)
+    if (!row) throw new DocsError(ERR.doc_not_found, `No such doc: ${idOrPath}`)
     const file = vault.readDoc(row.path)
     return {
       id: row.id,
-      cim: row.title,
-      utvonal: row.path,
-      tulajdonos: row.owner,
-      tagek: row.tags,
-      letrehozva: row.created,
-      frissitve: row.updated,
-      verzio: row.version,
-      tartalom: file.body,
+      title: row.title,
+      path: row.path,
+      owner: row.owner,
+      tags: row.tags,
+      created: row.created,
+      updated: row.updated,
+      version: row.version,
+      content: file.body,
     }
   }
 
-  function list(actor, { mappa, tulajdonos, tag, limit } = {}) {
+  function list(actor, { folder, owner, tag, limit } = {}) {
     requireRoot()
-    if (mappa) return repo.listDocs({ folder: mappa, owner: tulajdonos, tag, limit })
+    if (folder) return repo.listDocs({ folder, owner, tag, limit })
     const home = homeFolderOf(actor)
-    if (!home) return repo.listDocs({ owner: tulajdonos, tag, limit })
+    if (!home) return repo.listDocs({ owner, tag, limit })
     // An agent's default view is its own folder plus the shared one, because
     // that is what it can act on; everything else is one explicit ask away.
     return [
-      ...repo.listDocs({ folder: home, owner: tulajdonos, tag, limit }),
-      ...repo.listDocs({ folder: sharedFolder(), owner: tulajdonos, tag, limit }),
+      ...repo.listDocs({ folder: home, owner, tag, limit }),
+      ...repo.listDocs({ folder: sharedFolder(), owner, tag, limit }),
     ]
   }
 
-  function search(q, { mappa, tulajdonos, limit } = {}) {
+  function search(q, { folder, owner, limit } = {}) {
     requireRoot()
     if (typeof q !== 'string' || q.trim() === '') {
-      throw new DocsError(ERR.invalid_argument, 'A "q" keresőkifejezés kötelező.')
+      throw new DocsError(ERR.invalid_argument, 'The "q" search term is required.')
     }
-    return repo.search(q.trim(), { folder: mappa, owner: tulajdonos, limit })
+    return repo.search(q.trim(), { folder, owner, limit })
   }
 
   /** Rename or relocate. Both ends need write permission, not just the target. */
-  function move(actor, { id, ujUtvonal, ujMappa } = {}) {
+  function move(actor, { id, newPath, newFolder } = {}) {
     requireRoot()
     const row = docOr404(id)
     requireWrite(actor, row.path)
 
     let target
-    if (typeof ujUtvonal === 'string' && ujUtvonal.trim() !== '') {
-      target = ujUtvonal.trim().replace(/^\/+/, '')
+    if (typeof newPath === 'string' && newPath.trim() !== '') {
+      target = newPath.trim().replace(/^\/+/, '')
       if (!target.endsWith('.md')) target = `${target}.md`
-    } else if (typeof ujMappa === 'string') {
-      const folder = ujMappa.trim().replace(/^\/+|\/+$/g, '')
+    } else if (typeof newFolder === 'string') {
+      const folder = newFolder.trim().replace(/^\/+|\/+$/g, '')
       target = folder === '' ? path.basename(row.path) : `${folder}/${path.basename(row.path)}`
     } else {
-      throw new DocsError(ERR.invalid_argument, 'Add meg az "ujUtvonal" vagy az "ujMappa" mezőt.')
+      throw new DocsError(ERR.invalid_argument, 'Give the "newPath" or "newFolder" field.')
     }
-    if (target === row.path) return { utvonal: row.path }
+    if (target === row.path) return { path: row.path }
     requireWrite(actor, target)
     if (vault.exists(target)) {
-      throw new DocsError(ERR.already_exists, `Ezen az útvonalon már van doksi: ${target}`)
+      throw new DocsError(ERR.already_exists, `There is already a doc at this path: ${target}`)
     }
 
     vault.move(row.path, target)
     const file = vault.readDoc(target)
     writer.noteSelfWrite(target, file.hash)
     writer.indexPath(target)
-    return { utvonal: target }
+    return { path: target }
   }
 
   /**
@@ -278,17 +278,17 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
     })
     const { trashRel } = vault.trash(row.path, row.id)
     repo.softDelete(row.id, now().toISOString())
-    return { id: row.id, kukaban: trashRel, eredetiUtvonal: row.path }
+    return { id: row.id, trashPath: trashRel, originalPath: row.path }
   }
 
   function restore(actor, { id } = {}) {
     requireRoot()
     const row = repo.getById(id)
-    if (!row) throw new DocsError(ERR.doc_not_found, `Nincs ilyen doksi: ${id}`)
+    if (!row) throw new DocsError(ERR.doc_not_found, `No such doc: ${id}`)
     requireWrite(actor, row.path)
     const trashRel = `${INTERNAL_FOLDER}/trash/${row.id}/${path.basename(row.path)}`
     if (!vault.exists(trashRel)) {
-      throw new DocsError(ERR.doc_not_found, `A kukában nincs meg a fájl: ${trashRel}`)
+      throw new DocsError(ERR.doc_not_found, `The file is not in the trash: ${trashRel}`)
     }
     const target = vault.exists(row.path) ? freePath(path.dirname(row.path), row.title) : row.path
     vault.move(trashRel, target)
@@ -296,15 +296,15 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
     const file = vault.readDoc(target)
     writer.noteSelfWrite(target, file.hash)
     writer.indexPath(target)
-    return { id: row.id, utvonal: target }
+    return { id: row.id, path: target }
   }
 
   function purge(actor, { id } = {}) {
     requireRoot()
     const row = repo.getById(id)
-    if (!row) throw new DocsError(ERR.doc_not_found, `Nincs ilyen doksi: ${id}`)
+    if (!row) throw new DocsError(ERR.doc_not_found, `No such doc: ${id}`)
     if (actor?.kind !== 'user') {
-      throw new DocsError(ERR.forbidden, 'Véglegesen törölni csak az operátor tud, a Doksik lapról.')
+      throw new DocsError(ERR.forbidden, 'Only the operator can purge for good, from the Docs page.')
     }
     const trashRel = `${INTERNAL_FOLDER}/trash/${row.id}/${path.basename(row.path)}`
     if (vault.exists(trashRel)) vault.remove(trashRel)
@@ -320,14 +320,14 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
   function version(id, v) {
     docOr404(id)
     const found = repo.getVersion(id, v)
-    if (!found) throw new DocsError(ERR.doc_not_found, `Nincs ilyen verzió: ${v}`)
+    if (!found) throw new DocsError(ERR.doc_not_found, `No such version: ${v}`)
     return found
   }
 
   /** Writes an old text back as a new version; the history is not rewound. */
-  function restoreVersion(actor, { id, verzio, baseVersion } = {}) {
-    const old = version(id, verzio)
-    return update(actor, { id, tartalom: old.content, baseVersion })
+  function restoreVersion(actor, { id, version: targetVersion, baseVersion } = {}) {
+    const old = version(id, targetVersion)
+    return update(actor, { id, content: old.content, baseVersion })
   }
 
   function backlinks(id) {
@@ -340,7 +340,7 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
     if (!vault.exists(TEMPLATES_FOLDER)) return []
     return vault.listDocs()
       .filter((p) => p.startsWith(`${TEMPLATES_FOLDER}/`))
-      .map((p) => ({ nev: path.basename(p, '.md'), utvonal: p }))
+      .map((p) => ({ name: path.basename(p, '.md'), path: p }))
   }
 
   return {

@@ -49,7 +49,7 @@ function harness({ root: rootOverride } = {}) {
 
   const contract = createDocsContract({
     serviceOf: () => build().service,
-    extensionNameOf: (args) => args?.hivo ?? 'ext',
+    extensionNameOf: (args) => args?.caller ?? 'ext',
   })
 
   return {
@@ -272,14 +272,14 @@ test('every handler answers a broken root with a named error, none of them throw
 test('the contract writes into the calling extension folder and reads back', async () => {
   const h = harness()
   try {
-    const made = await h.contract.methods.letesz({
-      hivo: 'video', cim: 'Forgatókönyv', tartalom: '## 1. jelenet\n',
+    const made = await h.contract.methods.put({
+      caller: 'video', title: 'Forgatókönyv', content: '## 1. jelenet\n',
     })
-    assert.equal(made.utvonal, 'agents/video/forgatokonyv.md')
+    assert.equal(made.path, 'agents/video/forgatokonyv.md')
 
-    const back = await h.contract.methods.olvas({ id: made.id })
-    assert.equal(back.tartalom, '## 1. jelenet\n')
-    assert.equal(back.tulajdonos, 'ext:video')
+    const back = await h.contract.methods.read({ id: made.id })
+    assert.equal(back.content, '## 1. jelenet\n')
+    assert.equal(back.owner, 'ext:video')
   } finally { h.cleanup() }
 })
 
@@ -287,7 +287,7 @@ test('the contract cannot write into an agent folder that is not its own', async
   const h = harness()
   try {
     await assert.rejects(
-      async () => h.contract.methods.letesz({ hivo: 'video', mappa: 'agents/marketing', cim: 'X' }),
+      async () => h.contract.methods.put({ caller: 'video', folder: 'agents/marketing', title: 'X' }),
       (err) => err.code === ERR.forbidden,
     )
   } finally { h.cleanup() }
@@ -324,7 +324,7 @@ test('the contract exposes exactly two methods, at version 1', () => {
     // visszavonás, tehát egy metódus hozzáadása visszafordíthatatlan. Ezt a
     // tesztet bukni kell látni ahhoz, hogy bővüljön.
     assert.equal(h.contract.version, 1)
-    assert.deepEqual(Object.keys(h.contract.methods).sort(), ['letesz', 'olvas'])
+    assert.deepEqual(Object.keys(h.contract.methods).sort(), ['put', 'read'])
     assert.equal(DOCS_CONTRACT, 'docs')
   } finally { h.cleanup() }
 })
