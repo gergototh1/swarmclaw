@@ -17,6 +17,7 @@ import { ProviderDiagnosticsList } from '@/components/providers/provider-diagnos
 import { AgentAvatar } from '../agent-avatar'
 import { SectionCard } from './section-card'
 import type { AgentTabProps } from './agent-draft'
+import { encodeFilenameHeader } from '@/lib/upload-filename'
 
 type TestStatus = 'idle' | 'testing' | 'pass' | 'fail'
 
@@ -183,7 +184,7 @@ export function TabEssentials({
                     try {
                       const res = await fetch('/api/upload', {
                         method: 'POST',
-                        headers: { 'x-filename': file.name },
+                        headers: { 'x-filename': encodeFilenameHeader(file.name) },
                         body: await file.arrayBuffer(),
                       })
                       const data = await res.json()

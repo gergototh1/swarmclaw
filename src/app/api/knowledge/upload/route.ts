@@ -4,9 +4,10 @@ import path from 'path'
 import { genId } from '@/lib/id'
 import { UPLOAD_DIR } from '@/lib/server/storage'
 import { deriveKnowledgeTitle, extractKnowledgeTextFromBuffer } from '@/lib/server/knowledge-import'
+import { decodeFilenameHeader, safeUploadFilename } from '@/lib/upload-filename'
 
 export async function POST(req: Request) {
-  const filename = req.headers.get('x-filename') || 'document.txt'
+  const filename = decodeFilenameHeader(req.headers.get('x-filename'), 'document.txt')
   const buf = Buffer.from(await req.arrayBuffer())
 
   if (buf.length === 0) {
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
 
   // Save file to uploads
   if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true })
-  const safeName = genId() + '-' + filename.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const safeName = genId() + '-' + safeUploadFilename(filename)
   const filePath = path.join(UPLOAD_DIR, safeName)
   fs.writeFileSync(filePath, buf)
 

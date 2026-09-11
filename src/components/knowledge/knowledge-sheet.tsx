@@ -7,6 +7,7 @@ import { BottomSheet } from '@/components/shared/bottom-sheet'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import type { KnowledgeSourceDetail, KnowledgeSourceKind } from '@/types'
 import { toast } from 'sonner'
+import { encodeFilenameHeader } from '@/lib/upload-filename'
 
 const ACCEPTED_TYPES = '.txt,.md,.csv,.json,.jsonl,.html,.xml,.yaml,.yml,.toml,.py,.js,.ts,.tsx,.jsx,.go,.rs,.java,.c,.cpp,.h,.rb,.php,.sh,.sql,.log,.pdf'
 
@@ -112,7 +113,7 @@ export function KnowledgeSheet() {
     try {
       const response = await fetch('/api/knowledge/upload', {
         method: 'POST',
-        headers: { 'X-Filename': file.name },
+        headers: { 'X-Filename': encodeFilenameHeader(file.name) },
         body: file,
       })
 

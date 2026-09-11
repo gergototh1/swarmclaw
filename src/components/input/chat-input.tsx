@@ -198,7 +198,9 @@ export function ChatInput({ streaming, busy, onSend, onStop, extensionChatAction
       const result = await uploadImage(file)
       addPendingFile({ file, path: result.path, url: result.url })
     } catch (err: unknown) {
-      console.error('File upload failed:', errorMessage(err))
+      // A failed upload used to leave the composer looking untouched, so the
+      // file simply never appeared and nothing said why.
+      toast.error(`Could not attach ${file.name}: ${errorMessage(err)}`)
     }
   }, [addPendingFile])
 

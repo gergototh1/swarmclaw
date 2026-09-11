@@ -29,6 +29,7 @@ import { SectionLabel } from '@/components/shared/section-label'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { InfoChip } from '@/components/ui/info-chip'
 import { fetchTaskHandoffMarkdown, saveTaskHandoffSnapshot } from '@/lib/tasks'
+import { encodeFilenameHeader } from '@/lib/upload-filename'
 
 function fmtTime(ts: number) {
   const d = new Date(ts)
@@ -341,7 +342,7 @@ export function TaskSheet() {
     try {
       const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'x-filename': file.name },
+        headers: { 'x-filename': encodeFilenameHeader(file.name) },
         body: await file.arrayBuffer(),
       })
       const data = await res.json()
