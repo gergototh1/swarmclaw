@@ -6,7 +6,7 @@ import test from 'node:test'
 
 import { createAgentContext } from '../src/agent-context.mjs'
 import { MIGRATIONS, createRepo } from '../src/db.mjs'
-import { HIBA } from '../src/errors.mjs'
+import { ERR } from '../src/errors.mjs'
 import { createIndexWriter } from '../src/index-writer.mjs'
 import { createService } from '../src/service.mjs'
 import { actorOf, createTools } from '../src/tools.mjs'
@@ -120,8 +120,8 @@ test('doksi_ir refuses another agent folder and returns a message, not a throw',
       { mappa: 'agents/kutato', cim: 'Belenyúlás' },
       agentCtx('abc123', 'Marketing'),
     )
-    assert.equal(res.hiba, HIBA.nincs_jog)
-    assert.match(res.uzenet, /agents\/marketing/)
+    assert.equal(res.error, ERR.forbidden)
+    assert.match(res.message, /agents\/marketing/)
   } finally { h.cleanup() }
 })
 
@@ -131,8 +131,8 @@ test('doksi_ir on an existing doc without baseVersion is refused', async () => {
     const ctx = agentCtx('abc123', 'Marketing')
     const made = await h.byName.doksi_ir.execute({ cim: 'A', tartalom: 'egy\n' }, ctx)
     const res = await h.byName.doksi_ir.execute({ id: made.id, tartalom: 'ketto\n' }, ctx)
-    assert.equal(res.hiba, HIBA.rossz_parameter)
-    assert.match(res.uzenet, /baseVersion/)
+    assert.equal(res.error, ERR.invalid_argument)
+    assert.match(res.message, /baseVersion/)
     assert.equal((await h.byName.doksi_olvas.execute({ id: made.id }, ctx)).tartalom, 'egy\n')
   } finally { h.cleanup() }
 })
@@ -145,10 +145,10 @@ test('a conflict comes back with the other side content attached', async () => {
     await h.byName.doksi_ir.execute({ id: made.id, tartalom: 'operatore\n', baseVersion: 1 }, operatorCtx)
 
     const res = await h.byName.doksi_ir.execute({ id: made.id, tartalom: 'ugynoke\n', baseVersion: 1 }, ctx)
-    assert.equal(res.hiba, HIBA.utkozes)
+    assert.equal(res.error, ERR.conflict)
     assert.equal(res.jelenlegiVerzio, 2)
     assert.equal(res.ovek, 'operatore\n')
-    assert.match(res.uzenet, /Olvasd újra/)
+    assert.match(res.message, /Olvasd újra/)
   } finally { h.cleanup() }
 })
 
@@ -215,8 +215,8 @@ test('every tool answers an unwritable root with a message rather than throwing'
     ]
     for (const [tool, args] of calls) {
       const res = await tool.execute(args, ctx)
-      assert.ok(res.hiba, `${tool.name} nem adott hibakódot`)
-      assert.ok(res.uzenet.length > 0, `${tool.name} nem adott üzenetet`)
+      assert.ok(res.error, `${tool.name} nem adott hibakódot`)
+      assert.ok(res.message.length > 0, `${tool.name} nem adott üzenetet`)
     }
   } finally {
     fs.chmodSync(parent, 0o700)
@@ -326,8 +326,8 @@ test('a missing provider is a named refusal and writes nothing', async () => {
   try {
     const ctx = agentCtx('abc123', 'Videó Gyártó')
     const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_1' }, ctx)
-    assert.equal(res.hiba, HIBA.szerzodes_hianyzik)
-    assert.match(res.uzenet, /provider_missing/)
+    assert.equal(res.error, ERR.contract_missing)
+    assert.match(res.message, /provider_missing/)
     assert.equal((await h.byName.doksi_lista.execute({}, ctx)).doksik.length, 0, 'félkész doksit hagyott maga után')
   } finally { h.cleanup() }
 })
@@ -346,10 +346,10 @@ test('a video id that names nothing is refused by name, and no empty doc is left
   try {
     const ctx = agentCtx('abc123', 'Videó Gyártó')
     const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_nincs' }, ctx)
-    assert.equal(res.hiba, HIBA.nincs_ilyen_video)
-    assert.notEqual(res.hiba, HIBA.rossz_parameter, 'a hiányzó mező és az eltűnt sor nem ugyanaz a teendő')
-    assert.match(res.uzenet, /videoId/, 'a mező NEVE elmondja, mit kell javítani')
-    assert.equal(res.uzenet.includes('vid_nincs'), false, 'a visszautasítás soha nem ismétli meg a hívó által küldött értéket')
+    assert.equal(res.error, ERR.video_not_found)
+    assert.notEqual(res.error, ERR.invalid_argument, 'a hiányzó mező és az eltűnt sor nem ugyanaz a teendő')
+    assert.match(res.message, /videoId/, 'a mező NEVE elmondja, mit kell javítani')
+    assert.equal(res.message.includes('vid_nincs'), false, 'a visszautasítás soha nem ismétli meg a hívó által küldött értéket')
     assert.equal((await h.byName.doksi_lista.execute({}, ctx)).doksik.length, 0)
   } finally { h.cleanup() }
 })
@@ -359,8 +359,8 @@ test('a missing videoId is refused before the contract is touched', async () => 
   const h = harness({ contracts: contractsDouble({ videos: { get: async () => { hivas += 1; return videoRow() } } }) })
   try {
     const res = await h.byName.doksi_video_forgatokonyv.execute({}, agentCtx('abc123', 'Videó'))
-    assert.equal(res.hiba, HIBA.rossz_parameter)
-    assert.match(res.uzenet, /videoId/)
+    assert.equal(res.error, ERR.invalid_argument)
+    assert.match(res.message, /videoId/)
     assert.equal(hivas, 0)
   } finally { h.cleanup() }
 })
@@ -398,7 +398,7 @@ test('the operator calling the tool lands in the shared folder, not in an agent 
 
 test('a provider that dies at call time reaches the agent as a contract failure, not a bad argument', async () => {
   // A hetedik tool az első, amelynek a bukásai nem ebben a modulban
-  // keletkeznek. A generikus ág `rossz_parameter`-t adna egy stack-szövegre:
+  // keletkeznek. A generikus ág `invalid_argument`-t adna egy stack-szövegre:
   // az ügynök a hibátlan argumentumait javítgatná a végtelenségig.
   for (const code of ['unavailable', 'provider_threw']) {
     const h = harness({
@@ -407,9 +407,9 @@ test('a provider that dies at call time reaches the agent as a contract failure,
     try {
       const ctx = agentCtx('abc123', 'Videó Gyártó')
       const res = await h.byName.doksi_video_forgatokonyv.execute({ videoId: 'vid_1' }, ctx)
-      assert.equal(res.hiba, HIBA.szerzodes_hianyzik, code)
-      assert.match(res.uzenet, new RegExp(code), code)
-      assert.doesNotMatch(res.uzenet, /A művelet nem sikerült/, `${code}: a generikus ágra esett`)
+      assert.equal(res.error, ERR.contract_missing, code)
+      assert.match(res.message, new RegExp(code), code)
+      assert.doesNotMatch(res.message, /A művelet nem sikerült/, `${code}: a generikus ágra esett`)
       assert.equal((await h.byName.doksi_lista.execute({}, ctx)).doksik.length, 0, code)
     } finally { h.cleanup() }
   }

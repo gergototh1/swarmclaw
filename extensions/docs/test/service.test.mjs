@@ -5,7 +5,7 @@ import path from 'node:path'
 import test from 'node:test'
 
 import { MIGRATIONS, createRepo } from '../src/db.mjs'
-import { HIBA } from '../src/errors.mjs'
+import { ERR } from '../src/errors.mjs'
 import { createIndexWriter } from '../src/index-writer.mjs'
 import { createService, fileSlug } from '../src/service.mjs'
 import { createVault } from '../src/vault.mjs'
@@ -71,7 +71,7 @@ test('create refuses another agent folder by name', () => {
   try {
     assert.throws(
       () => h.service.create(marketing, { mappa: 'agents/kutato', cim: 'Belenyúlás' }),
-      (err) => err.code === HIBA.nincs_jog,
+      (err) => err.code === ERR.forbidden,
     )
   } finally { h.cleanup() }
 })
@@ -104,7 +104,7 @@ test('create names a missing template instead of writing an empty doc', () => {
   try {
     assert.throws(
       () => h.service.create(marketing, { cim: 'X', sablon: 'nincs-ilyen' }),
-      (err) => err.code === HIBA.nincs_ilyen_doksi,
+      (err) => err.code === ERR.doc_not_found,
     )
   } finally { h.cleanup() }
 })
@@ -115,7 +115,7 @@ test('update without baseVersion is refused, not silently applied', () => {
     const doc = h.service.create(marketing, { cim: 'A', tartalom: 'eredeti\n' })
     assert.throws(
       () => h.service.update(marketing, { id: doc.id, tartalom: 'új\n' }),
-      (err) => err.code === HIBA.rossz_parameter,
+      (err) => err.code === ERR.invalid_argument,
     )
     assert.equal(h.service.read(doc.id).tartalom, 'eredeti\n')
   } finally { h.cleanup() }
@@ -132,7 +132,7 @@ test('update with a stale baseVersion conflicts and writes nothing', () => {
       h.service.update(marketing, { id: doc.id, tartalom: 'ügynöké\n', baseVersion: 1 })
     } catch (err) { caught = err }
 
-    assert.equal(caught.code, HIBA.utkozes)
+    assert.equal(caught.code, ERR.conflict)
     assert.equal(caught.details.jelenlegiVerzio, 2)
     assert.equal(caught.details.modositotta, 'user')
     assert.equal(caught.details.ovek, 'operátoré\n')
@@ -216,7 +216,7 @@ test('search folds diacritics and can be scoped', () => {
     h.service.create(marketing, { cim: 'A', tartalom: 'Kőműves Morvai.\n' })
     assert.equal(h.service.search('komuves').length, 1)
     assert.equal(h.service.search('komuves', { mappa: 'kozos' }).length, 0)
-    assert.throws(() => h.service.search('  '), (err) => err.code === HIBA.rossz_parameter)
+    assert.throws(() => h.service.search('  '), (err) => err.code === ERR.invalid_argument)
   } finally { h.cleanup() }
 })
 
@@ -230,7 +230,7 @@ test('move keeps the id and refuses a destination the actor cannot write', () =>
 
     assert.throws(
       () => h.service.move(marketing, { id: doc.id, ujMappa: 'agents/kutato' }),
-      (err) => err.code === HIBA.nincs_jog,
+      (err) => err.code === ERR.forbidden,
     )
   } finally { h.cleanup() }
 })
@@ -261,7 +261,7 @@ test('only the operator may purge', () => {
     h.service.remove(marketing, { id: doc.id })
     assert.throws(
       () => h.service.purge(marketing, { id: doc.id }),
-      (err) => err.code === HIBA.nincs_jog,
+      (err) => err.code === ERR.forbidden,
     )
     h.service.purge(user, { id: doc.id })
     assert.equal(h.repo.listDocs({ includeDeleted: true }).length, 0)
@@ -305,7 +305,7 @@ test('every operation names a missing document rather than returning nothing', (
       () => h.service.versions('doc_nincs'),
       () => h.service.backlinks('doc_nincs'),
     ]) {
-      assert.throws(call, (err) => err.code === HIBA.nincs_ilyen_doksi)
+      assert.throws(call, (err) => err.code === ERR.doc_not_found)
     }
   } finally { h.cleanup() }
 })

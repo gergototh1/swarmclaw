@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 
-import { HIBA } from '../src/errors.mjs'
+import { ERR } from '../src/errors.mjs'
 import { createVault, hashOf, newDocId, parseFrontMatter, serializeDoc } from '../src/vault.mjs'
 
 function tempRoot() {
@@ -16,7 +16,7 @@ test('abs() refuses to leave the root', () => {
   try {
     const vault = createVault({ root })
     for (const bad of ['../elsewhere.md', 'a/../../b.md', '/etc/passwd', 'a/../../']) {
-      assert.throws(() => vault.abs(bad), (err) => err.code === HIBA.utvonal_tiltott, `elfogadta: ${bad}`)
+      assert.throws(() => vault.abs(bad), (err) => err.code === ERR.path_forbidden, `elfogadta: ${bad}`)
     }
     assert.equal(vault.abs('agents/marketing/x.md'), path.join(vault.root, 'agents/marketing/x.md'))
   } finally {
@@ -30,7 +30,7 @@ test('abs() refuses a symlink that points out of the root', () => {
   try {
     const vault = createVault({ root })
     fs.symlinkSync(outside, path.join(vault.root, 'kifele'))
-    assert.throws(() => vault.abs('kifele/x.md'), (err) => err.code === HIBA.utvonal_tiltott)
+    assert.throws(() => vault.abs('kifele/x.md'), (err) => err.code === ERR.path_forbidden)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
     fs.rmSync(outside, { recursive: true, force: true })
@@ -116,7 +116,7 @@ test('move refuses to overwrite, trash preserves the file', () => {
     vault.writeDoc('kozos/a.md', { meta: { id: 'doc_a', title: 'a' }, body: 'aaa\n' })
     vault.writeDoc('kozos/b.md', { meta: { id: 'doc_b', title: 'b' }, body: 'bbb\n' })
 
-    assert.throws(() => vault.move('kozos/a.md', 'kozos/b.md'), (err) => err.code === HIBA.mar_letezik)
+    assert.throws(() => vault.move('kozos/a.md', 'kozos/b.md'), (err) => err.code === ERR.already_exists)
 
     vault.move('kozos/a.md', 'agents/x/a.md')
     assert.equal(vault.exists('kozos/a.md'), false)
@@ -135,7 +135,7 @@ test('ensureRoot names an unwritable root instead of failing silently', () => {
   try {
     fs.chmodSync(root, 0o500)
     const vault = createVault({ root: path.join(root, 'alatta') })
-    assert.throws(() => vault.ensureRoot(), (err) => err.code === HIBA.gyoker_nem_irhato)
+    assert.throws(() => vault.ensureRoot(), (err) => err.code === ERR.root_not_writable)
   } finally {
     fs.chmodSync(root, 0o700)
     fs.rmSync(root, { recursive: true, force: true })
@@ -168,7 +168,7 @@ test('readDoc names a missing file', () => {
   try {
     const vault = createVault({ root })
     vault.ensureRoot()
-    assert.throws(() => vault.readDoc('nincs.md'), (err) => err.code === HIBA.nincs_ilyen_doksi)
+    assert.throws(() => vault.readDoc('nincs.md'), (err) => err.code === ERR.doc_not_found)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

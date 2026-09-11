@@ -161,7 +161,7 @@ const docs = {
    *
    * A provider that is not installed is not a load failure: the host answers a
    * missing one at call time, and `doksi_video_forgatokonyv` names it
-   * (`szerzodes_hianyzik`) rather than skipping quietly.
+   * (`contract_missing`) rather than skipping quietly.
    */
   consumes: [
     { extension: 'video', contract: 'videos', version: VIDEOS_CONTRACT_VERSION, reason: 'A doksi_video_forgatokonyv tool ebből kéri le egy kész videó adatait (cím, narráció, fájladatok), és doksiként teszi le a kérő ügynök saját mappájába. Ez a modul egyetlen kifelé nyúlása.' },

@@ -86,23 +86,23 @@ export interface Allapot {
 }
 
 export interface Utkozes {
-  hiba: 'utkozes'
-  uzenet: string
+  error: 'conflict'
+  message: string
   jelenlegiVerzio: number
   modositotta: string | null
   ovek: string | null
 }
 
-/** The `{ hiba, uzenet }` shape every handler answers a failure with. */
+/** The `{ error, message }` shape every handler answers a failure with. */
 export function errorText(raw: unknown): string | null {
   if (!raw || typeof raw !== 'object') return null
   const rec = raw as Record<string, unknown>
-  if (typeof rec.hiba !== 'string') return null
-  return typeof rec.uzenet === 'string' ? rec.uzenet : rec.hiba
+  if (typeof rec.error !== 'string') return null
+  return typeof rec.message === 'string' ? rec.message : rec.error
 }
 
 export function isConflict(raw: unknown): raw is Utkozes {
-  return Boolean(raw) && typeof raw === 'object' && (raw as Record<string, unknown>).hiba === 'utkozes'
+  return Boolean(raw) && typeof raw === 'object' && (raw as Record<string, unknown>).error === 'conflict'
 }
 
 function fail(method: string, why: string): never {

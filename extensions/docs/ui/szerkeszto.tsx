@@ -33,8 +33,8 @@ type Allas =
   | { kind: 'nyugalom' }
   | { kind: 'mentes' }
   | { kind: 'mentve'; mikor: number }
-  | { kind: 'hiba'; uzenet: string }
-  | { kind: 'utkozes'; utkozes: Utkozes; sajat: string }
+  | { kind: 'hiba'; message: string }
+  | { kind: 'conflict'; utkozes: Utkozes; sajat: string }
 
 function Eszkoztar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   if (!editor) return null
@@ -123,16 +123,16 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
     setAllas({ kind: 'mentes' })
     rpc('ment', { id, tartalom: md, baseVersion: base })
       .then((raw) => {
-        if (isConflict(raw)) { setAllas({ kind: 'utkozes', utkozes: raw, sajat: md }); return }
+        if (isConflict(raw)) { setAllas({ kind: 'conflict', utkozes: raw, sajat: md }); return }
         const message = errorText(raw)
-        if (message) { setAllas({ kind: 'hiba', uzenet: message }); return }
+        if (message) { setAllas({ kind: 'hiba', message }); return }
         const uj = (raw as { verzio?: number }).verzio
         if (typeof uj === 'number') setVerzio(uj)
         savedMd.current = md
         setAllas({ kind: 'mentve', mikor: Date.now() })
         onMentve()
       })
-      .catch((err) => setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) }))
+      .catch((err) => setAllas({ kind: 'hiba', message: String(err?.message ?? err) }))
   }, [id, rpc, onMentve])
 
   /**
@@ -148,16 +148,16 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
     setAllas({ kind: 'mentes' })
     rpc('ment', { id, tartalom: savedMd.current, cim: tiszta, baseVersion: verzio })
       .then((raw) => {
-        if (isConflict(raw)) { setAllas({ kind: 'utkozes', utkozes: raw, sajat: savedMd.current }); return }
+        if (isConflict(raw)) { setAllas({ kind: 'conflict', utkozes: raw, sajat: savedMd.current }); return }
         const message = errorText(raw)
-        if (message) { setAllas({ kind: 'hiba', uzenet: message }); return }
+        if (message) { setAllas({ kind: 'hiba', message }); return }
         const uj = (raw as { verzio?: number }).verzio
         if (typeof uj === 'number') setVerzio(uj)
         setDoc((elozo) => (elozo ? { ...elozo, cim: tiszta } : elozo))
         setAllas({ kind: 'mentve', mikor: Date.now() })
         onMentve()
       })
-      .catch((err) => setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) }))
+      .catch((err) => setAllas({ kind: 'hiba', message: String(err?.message ?? err) }))
   }, [id, cim, doc, rpc, verzio, onMentve])
 
   // Egy frissen létrehozott doksi címe a helykitöltő; a kurzor odamegy, és a
@@ -211,7 +211,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
     <section className="docs-oszlop docs-szerkeszto">
       {betoltesHiba && <p className="docs-hiba" role="alert">{betoltesHiba}</p>}
 
-      {allas.kind === 'utkozes' && (
+      {allas.kind === 'conflict' && (
         <div className="docs-utkozes" role="alert">
           <p>
             <strong>Ezt a doksit közben módosította: {allas.utkozes.modositotta ?? 'valaki más'}.</strong>{' '}
@@ -293,7 +293,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
           {allas.kind === 'mentes' && ' · mentés…'}
           {allas.kind === 'mentve' && ' · mentve'}
         </span>
-        {allas.kind === 'hiba' && <span className="docs-hiba">{allas.uzenet}</span>}
+        {allas.kind === 'hiba' && <span className="docs-hiba">{allas.message}</span>}
       </header>
 
       <Eszkoztar editor={editor} />

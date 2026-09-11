@@ -1,4 +1,4 @@
-import { DocsError, HIBA } from './errors.mjs'
+import { DocsError, ERR } from './errors.mjs'
 
 /**
  * The one thing this module asks another extension for: a finished video's
@@ -106,7 +106,7 @@ const NEM_KERHETO = 'A videó forgatókönyve nem kérhető le, mert '
 export function videosHandle(contracts) {
   if (!contracts || typeof contracts.get !== 'function') {
     throw new DocsError(
-      HIBA.szerzodes_hianyzik,
+      ERR.contract_missing,
       `${NEM_KERHETO}a Doksik modul még nem kapott szerződés-hozzáférést a hosttól. Indítsd újra a bővítményt a Bővítmények lapon, aztán hívd újra ezt a toolt.`,
     )
   }
@@ -116,11 +116,11 @@ export function videosHandle(contracts) {
   const why = typeof contracts.why === 'function' ? contracts.why(VIDEO_EXTENSION, VIDEOS_CONTRACT) : null
   if (why === null || why === undefined || why === '') {
     throw new DocsError(
-      HIBA.szerzodes_hianyzik,
+      ERR.contract_missing,
       `${NEM_KERHETO}a szerződés nem oldható fel, és az ok a két lekérdezés között megváltozott. Hívd újra ezt a toolt.`,
     )
   }
-  throw new DocsError(HIBA.szerzodes_hianyzik, `${NEM_KERHETO}${okMondat(why)}`)
+  throw new DocsError(ERR.contract_missing, `${NEM_KERHETO}${okMondat(why)}`)
 }
 
 /**
@@ -172,7 +172,7 @@ function hivasMondat(err) {
  * name can happen one line later instead, and arrive as a thrown
  * `unavailable` rather than as a null handle. Unwrapped, both that and a
  * provider whose own code raised would fall through to the tool's generic
- * catch and reach the agent as `rossz_parameter` over a stack string -- the
+ * catch and reach the agent as `invalid_argument` over a stack string -- the
  * exact pairing `errors.mjs` argues against, since nothing about the call was
  * wrong and the message would name no next step.
  *
@@ -186,21 +186,21 @@ export async function videoLekerdez(contracts, videoId) {
   // szerződést kínálja `get` nélkül, ép handle-t ad, és a hívás egy sorral
   // lejjebb sima TypeError-ral dől el. Azt a `szerzodesHiba` nem ismeri fel --
   // nincs `extensionId`-je --, tehát a tool generikus ágára esik, és
-  // `rossz_parameter: "videos.get is not a function"` érkezik az ügynökhöz:
+  // `invalid_argument: "videos.get is not a function"` érkezik az ügynökhöz:
   // pontosan az a párosítás, ami ellen az `errors.mjs` nyolcadik kódja
   // született, csak az egyetlen ajtón át, amit nem zárt be. A hívó tettei
   // ugyanazok, mint a `version_mismatch`-nél -- frissítsd a régebbi
   // bővítményt --, tehát ugyanaz a kód, a saját mondatával.
   if (typeof videos.get !== 'function') {
     throw new DocsError(
-      HIBA.szerzodes_hianyzik,
+      ERR.contract_missing,
       `${NEM_KERHETO}a Videó bővítmény ${VIDEOS_CONTRACT} szerződése nem kínálja a "get" metódust, amire ennek a toolnak szüksége van. Frissítsd a két bővítmény közül a régebbit a Bővítmények lapon, aztán hívd újra ezt a toolt.`,
     )
   }
   try {
     return await videos.get({ id: videoId })
   } catch (err) {
-    if (szerzodesHiba(err)) throw new DocsError(HIBA.szerzodes_hianyzik, `${NEM_KERHETO}${hivasMondat(err)}`)
+    if (szerzodesHiba(err)) throw new DocsError(ERR.contract_missing, `${NEM_KERHETO}${hivasMondat(err)}`)
     throw err
   }
 }

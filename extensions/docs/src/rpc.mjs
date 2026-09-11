@@ -1,4 +1,4 @@
-import { DocsError, HIBA, hiba } from './errors.mjs'
+import { DocsError, ERR, errorResult } from './errors.mjs'
 import { AGENTS_ROOT } from './permissions.mjs'
 
 /**
@@ -23,10 +23,10 @@ async function guard(log, fn) {
     return await fn()
   } catch (err) {
     if (err instanceof DocsError) {
-      return err.details ? { ...hiba(err.code, err.message), ...err.details } : hiba(err.code, err.message)
+      return err.details ? { ...errorResult(err.code, err.message), ...err.details } : errorResult(err.code, err.message)
     }
     log?.error?.('docs rpc failed', { error: err?.message })
-    return hiba(HIBA.rossz_parameter, `A művelet nem sikerült: ${err?.message ?? 'ismeretlen hiba'}`)
+    return errorResult(ERR.invalid_argument, `A művelet nem sikerült: ${err?.message ?? 'ismeretlen hiba'}`)
   }
 }
 
@@ -177,7 +177,7 @@ export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus,
      * document paths, so an empty folder needs a real directory to exist. */
     mappaLetrehoz: (body) => run(() => {
       const folder = String(body.mappa ?? '').trim().replace(/^\/+|\/+$/g, '')
-      if (folder === '') throw new DocsError(HIBA.rossz_parameter, 'Adj meg mappanevet.')
+      if (folder === '') throw new DocsError(ERR.invalid_argument, 'Adj meg mappanevet.')
       const vault = vaultOf()
       vault.ensureRoot()
       vault.abs(folder)

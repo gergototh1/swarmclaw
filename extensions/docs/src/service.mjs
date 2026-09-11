@@ -1,6 +1,6 @@
 import path from 'node:path'
 
-import { DocsError, HIBA } from './errors.mjs'
+import { DocsError, ERR } from './errors.mjs'
 import { renameLinksTo } from './links.mjs'
 import { INTERNAL_FOLDER, TEMPLATES_FOLDER, canWrite, homeFolderOf, ownerOf } from './permissions.mjs'
 
@@ -28,7 +28,7 @@ import { INTERNAL_FOLDER, TEMPLATES_FOLDER, canWrite, homeFolderOf, ownerOf } fr
 /** A conflict carries what the other side has, so one round trip is enough. */
 export class ConflictError extends DocsError {
   constructor(message, details) {
-    super(HIBA.utkozes, message)
+    super(ERR.conflict, message)
     this.details = details
   }
 }
@@ -58,7 +58,7 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
   function requireWrite(actor, relPath) {
     if (!canWrite(actor, relPath, opts())) {
       throw new DocsError(
-        HIBA.nincs_jog,
+        ERR.forbidden,
         `Ebbe nem írhatsz: ${relPath}. A saját mappádba (${homeFolderOf(actor) ?? '—'}) és a(z) "${sharedFolder()}" mappába írhatsz.`,
       )
     }
@@ -79,7 +79,7 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
 
   function docOr404(id) {
     const row = repo.getById(id)
-    if (!row) throw new DocsError(HIBA.nincs_ilyen_doksi, `Nincs ilyen doksi: ${id}`)
+    if (!row) throw new DocsError(ERR.doc_not_found, `Nincs ilyen doksi: ${id}`)
     return row
   }
 
@@ -102,7 +102,7 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
   function create(actor, { mappa, cim, tartalom, tagek, sablon } = {}) {
     requireRoot()
     if (typeof cim !== 'string' || cim.trim() === '') {
-      throw new DocsError(HIBA.rossz_parameter, 'A "cim" kötelező egy új doksinál.')
+      throw new DocsError(ERR.invalid_argument, 'A "cim" kötelező egy új doksinál.')
     }
     const title = cim.trim()
     const folder = typeof mappa === 'string' && mappa.trim() !== ''
@@ -113,7 +113,7 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
     if (typeof sablon === 'string' && sablon.trim() !== '') {
       const templateRel = `${TEMPLATES_FOLDER}/${sablon.trim().replace(/\.md$/, '')}.md`
       if (!vault.exists(templateRel)) {
-        throw new DocsError(HIBA.nincs_ilyen_doksi, `Nincs ilyen sablon: ${sablon}. A sablonok listáját a doksi_lista adja a "${TEMPLATES_FOLDER}" mappára.`)
+        throw new DocsError(ERR.doc_not_found, `Nincs ilyen sablon: ${sablon}. A sablonok listáját a doksi_lista adja a "${TEMPLATES_FOLDER}" mappára.`)
       }
       body = vault.readDoc(templateRel).body + (body === '' ? '' : `\n${body}`)
     }
@@ -144,7 +144,7 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
     requireWrite(actor, row.path)
     if (!Number.isInteger(baseVersion)) {
       throw new DocsError(
-        HIBA.rossz_parameter,
+        ERR.invalid_argument,
         'A "baseVersion" kötelező módosításnál. Olvasd be a doksit a doksi_olvas hívással, és add vissza a kapott verziószámot.',
       )
     }
@@ -194,7 +194,7 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
   function read(idOrPath) {
     requireRoot()
     const row = repo.getById(idOrPath) ?? repo.getByPath(idOrPath)
-    if (!row) throw new DocsError(HIBA.nincs_ilyen_doksi, `Nincs ilyen doksi: ${idOrPath}`)
+    if (!row) throw new DocsError(ERR.doc_not_found, `Nincs ilyen doksi: ${idOrPath}`)
     const file = vault.readDoc(row.path)
     return {
       id: row.id,
@@ -225,7 +225,7 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
   function search(q, { mappa, tulajdonos, limit } = {}) {
     requireRoot()
     if (typeof q !== 'string' || q.trim() === '') {
-      throw new DocsError(HIBA.rossz_parameter, 'A "q" keresőkifejezés kötelező.')
+      throw new DocsError(ERR.invalid_argument, 'A "q" keresőkifejezés kötelező.')
     }
     return repo.search(q.trim(), { folder: mappa, owner: tulajdonos, limit })
   }
@@ -244,12 +244,12 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
       const folder = ujMappa.trim().replace(/^\/+|\/+$/g, '')
       target = folder === '' ? path.basename(row.path) : `${folder}/${path.basename(row.path)}`
     } else {
-      throw new DocsError(HIBA.rossz_parameter, 'Add meg az "ujUtvonal" vagy az "ujMappa" mezőt.')
+      throw new DocsError(ERR.invalid_argument, 'Add meg az "ujUtvonal" vagy az "ujMappa" mezőt.')
     }
     if (target === row.path) return { utvonal: row.path }
     requireWrite(actor, target)
     if (vault.exists(target)) {
-      throw new DocsError(HIBA.mar_letezik, `Ezen az útvonalon már van doksi: ${target}`)
+      throw new DocsError(ERR.already_exists, `Ezen az útvonalon már van doksi: ${target}`)
     }
 
     vault.move(row.path, target)
@@ -284,11 +284,11 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
   function restore(actor, { id } = {}) {
     requireRoot()
     const row = repo.getById(id)
-    if (!row) throw new DocsError(HIBA.nincs_ilyen_doksi, `Nincs ilyen doksi: ${id}`)
+    if (!row) throw new DocsError(ERR.doc_not_found, `Nincs ilyen doksi: ${id}`)
     requireWrite(actor, row.path)
     const trashRel = `${INTERNAL_FOLDER}/trash/${row.id}/${path.basename(row.path)}`
     if (!vault.exists(trashRel)) {
-      throw new DocsError(HIBA.nincs_ilyen_doksi, `A kukában nincs meg a fájl: ${trashRel}`)
+      throw new DocsError(ERR.doc_not_found, `A kukában nincs meg a fájl: ${trashRel}`)
     }
     const target = vault.exists(row.path) ? freePath(path.dirname(row.path), row.title) : row.path
     vault.move(trashRel, target)
@@ -302,9 +302,9 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
   function purge(actor, { id } = {}) {
     requireRoot()
     const row = repo.getById(id)
-    if (!row) throw new DocsError(HIBA.nincs_ilyen_doksi, `Nincs ilyen doksi: ${id}`)
+    if (!row) throw new DocsError(ERR.doc_not_found, `Nincs ilyen doksi: ${id}`)
     if (actor?.kind !== 'user') {
-      throw new DocsError(HIBA.nincs_jog, 'Véglegesen törölni csak az operátor tud, a Doksik lapról.')
+      throw new DocsError(ERR.forbidden, 'Véglegesen törölni csak az operátor tud, a Doksik lapról.')
     }
     const trashRel = `${INTERNAL_FOLDER}/trash/${row.id}/${path.basename(row.path)}`
     if (vault.exists(trashRel)) vault.remove(trashRel)
@@ -320,7 +320,7 @@ export function createService({ vault, writer, repo, sharedFolder, versionsKept,
   function version(id, v) {
     docOr404(id)
     const found = repo.getVersion(id, v)
-    if (!found) throw new DocsError(HIBA.nincs_ilyen_doksi, `Nincs ilyen verzió: ${v}`)
+    if (!found) throw new DocsError(ERR.doc_not_found, `Nincs ilyen verzió: ${v}`)
     return found
   }
 

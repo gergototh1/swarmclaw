@@ -1,4 +1,4 @@
-import { DocsError, HIBA, hiba } from './errors.mjs'
+import { DocsError, ERR, errorResult } from './errors.mjs'
 import { agentSlug } from './permissions.mjs'
 import { forgatokonyv, videoLekerdez } from './video-forgatokonyv.mjs'
 
@@ -9,7 +9,7 @@ import { forgatokonyv, videoLekerdez } from './video-forgatokonyv.mjs'
  *
  * NONE OF THEM THROWS. An agent acts on the text it reads back, and a thrown
  * exception reaches it as a harness error with no instructions in it. So every
- * handler catches, and a failure comes back as `{ hiba, uzenet }` where the
+ * handler catches, and a failure comes back as `{ error, message }` where the
  * message says what to do next.
  *
  * NONE OF THEM TAKES THE CALLER'S IDENTITY AS AN ARGUMENT. Who is calling comes
@@ -43,10 +43,10 @@ async function guard(log, fn) {
     return await fn()
   } catch (err) {
     if (err instanceof DocsError) {
-      return err.details ? { ...hiba(err.code, err.message), ...err.details } : hiba(err.code, err.message)
+      return err.details ? { ...errorResult(err.code, err.message), ...err.details } : errorResult(err.code, err.message)
     }
     log?.error?.('docs tool failed', { error: err?.message })
-    return hiba(HIBA.rossz_parameter, `A művelet nem sikerült: ${err?.message ?? 'ismeretlen hiba'}`)
+    return errorResult(ERR.invalid_argument, `A művelet nem sikerült: ${err?.message ?? 'ismeretlen hiba'}`)
   }
 }
 
@@ -159,7 +159,7 @@ export function createTools(state, { serviceOf, logOf }) {
        * lets an agent write its OWN folder and the shared one, and an agent's
        * folder is its NAME folded to a slug -- so a fixed `agents/video/`
        * succeeds only for an agent literally called "Videó", and every other
-       * caller, the Videó Gyártó included, gets `nincs_jog` and no document.
+       * caller, the Videó Gyártó included, gets `forbidden` and no document.
        * A tool whose single purpose fails for almost every caller is not a
        * tool, and the way to make it work would have been to widen `canWrite`,
        * which is the one thing that must not happen for a convenience.
@@ -182,7 +182,7 @@ export function createTools(state, { serviceOf, logOf }) {
       execute: (args, ctx) => run(async () => {
         const videoId = typeof args?.videoId === 'string' ? args.videoId.trim() : ''
         if (videoId === '') {
-          throw new DocsError(HIBA.rossz_parameter, 'Add meg a "videoId" mezőt: a videó id-jét a Videó lapon vagy a videó-toolok válaszában találod.')
+          throw new DocsError(ERR.invalid_argument, 'Add meg a "videoId" mezőt: a videó id-jét a Videó lapon vagy a videó-toolok válaszában találod.')
         }
         const video = await videoLekerdez(state.contracts, videoId)
         // `get` answers null for an id that names nothing -- including the case
@@ -197,7 +197,7 @@ export function createTools(state, { serviceOf, logOf }) {
         // The rule is extensions/video/src/args.mjs's, and commit 58547a6 took
         // three of these out of the video tree.
         if (video === null || video === undefined) {
-          throw new DocsError(HIBA.nincs_ilyen_video, 'A "videoId" mezőben megadott videó nincs meg a Videó modulban — vagy elírás, vagy a sor azóta eltűnt. Nézd meg a helyes id-t a Videó lapon, és hívd újra.')
+          throw new DocsError(ERR.video_not_found, 'A "videoId" mezőben megadott videó nincs meg a Videó modulban — vagy elírás, vagy a sor azóta eltűnt. Nézd meg a helyes id-t a Videó lapon, és hívd újra.')
         }
         const { cim, tartalom } = forgatokonyv(video, videoId)
         return serviceOf().create(actorOf(ctx), { cim, tartalom })

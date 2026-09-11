@@ -206,6 +206,6 @@ test('a self-write note expires after five seconds', () => {
 test('indexPath names a missing file rather than inventing a row', () => {
   const h = harness()
   try {
-    assert.throws(() => h.writer.indexPath('nincs.md'), (err) => err.code === 'nincs_ilyen_doksi')
+    assert.throws(() => h.writer.indexPath('nincs.md'), (err) => err.code === 'doc_not_found')
   } finally { h.cleanup() }
 })

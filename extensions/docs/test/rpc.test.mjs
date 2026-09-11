@@ -6,7 +6,7 @@ import test from 'node:test'
 
 import { DOCS_CONTRACT, createDocsContract } from '../src/contract.mjs'
 import { MIGRATIONS, createRepo } from '../src/db.mjs'
-import { HIBA } from '../src/errors.mjs'
+import { ERR } from '../src/errors.mjs'
 import { createIndexWriter } from '../src/index-writer.mjs'
 import { createRpc, foldersOf } from '../src/rpc.mjs'
 import { createService } from '../src/service.mjs'
@@ -99,7 +99,7 @@ test('ment with a stale baseVersion returns the conflict with the other text', a
     await h.rpc.ment({ id: made.id, tartalom: 'ketto\n', baseVersion: 1 })
 
     const res = await h.rpc.ment({ id: made.id, tartalom: 'harom\n', baseVersion: 1 })
-    assert.equal(res.hiba, HIBA.utkozes)
+    assert.equal(res.error, ERR.conflict)
     assert.equal(res.jelenlegiVerzio, 2)
     assert.equal(res.ovek, 'ketto\n')
     assert.equal((await h.rpc.olvas({ id: made.id })).tartalom, 'ketto\n')
@@ -188,7 +188,7 @@ test('mappaLetrehoz makes an empty folder the tree can show', async () => {
     assert.ok(fa.mappak.includes('kozos/uj-mappa'), `a fa nem mutatja: ${fa.mappak.join(', ')}`)
 
     const bad = await h.rpc.mappaLetrehoz({ mappa: '  ' })
-    assert.equal(bad.hiba, HIBA.rossz_parameter)
+    assert.equal(bad.error, ERR.invalid_argument)
   } finally { h.cleanup() }
 })
 
@@ -196,7 +196,7 @@ test('mappaLetrehoz refuses to leave the root', async () => {
   const h = harness()
   try {
     const res = await h.rpc.mappaLetrehoz({ mappa: '../kifele' })
-    assert.equal(res.hiba, HIBA.utvonal_tiltott)
+    assert.equal(res.error, ERR.path_forbidden)
   } finally { h.cleanup() }
 })
 
@@ -206,7 +206,7 @@ test('allapot reports a broken root as state, not as a failed call', async () =>
   const h = harness({ root: path.join(parent, 'alatta') })
   try {
     const res = await h.rpc.allapot()
-    assert.equal(res.hiba, undefined, 'a hívás maga hibázott el')
+    assert.equal(res.error, undefined, 'a hívás maga hibázott el')
     assert.equal(res.gyokerRendben, false)
     assert.match(res.gyokerHiba, /nem hozható létre vagy nem írható/)
     assert.equal(res.doksiSzam, 0)
@@ -261,8 +261,8 @@ test('every handler answers a broken root with a named error, none of them throw
       assert.ok(res && typeof res === 'object', `${name} nem adott objektumot`)
     }
     // A tizenkilenc közül a nyilvánvalóan gyökérfüggők meg is nevezik a bajt.
-    assert.equal((await h.rpc.letrehoz({ cim: 'X' })).hiba, HIBA.gyoker_nem_irhato)
-    assert.equal((await h.rpc.fa()).hiba, HIBA.gyoker_nem_irhato)
+    assert.equal((await h.rpc.letrehoz({ cim: 'X' })).error, ERR.root_not_writable)
+    assert.equal((await h.rpc.fa()).error, ERR.root_not_writable)
   } finally {
     fs.chmodSync(parent, 0o700)
     fs.rmSync(parent, { recursive: true, force: true })
@@ -288,7 +288,7 @@ test('the contract cannot write into an agent folder that is not its own', async
   try {
     await assert.rejects(
       async () => h.contract.methods.letesz({ hivo: 'video', mappa: 'agents/marketing', cim: 'X' }),
-      (err) => err.code === HIBA.nincs_jog,
+      (err) => err.code === ERR.forbidden,
     )
   } finally { h.cleanup() }
 })

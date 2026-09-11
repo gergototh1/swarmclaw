@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { HIBA } from '../src/errors.mjs'
+import { ERR } from '../src/errors.mjs'
 import {
   FORRAS_FIGYELMEZTETES,
   VIDEOS_CONTRACT,
@@ -40,7 +40,7 @@ test('the module names the provider, the contract and the version it pins', () =
 
 test('the error table knows the code this reach needs', () => {
   // A kód a tool válaszában ér el az ügynökhöz, tehát a törlése törés.
-  assert.equal(HIBA.szerzodes_hianyzik, 'szerzodes_hianyzik')
+  assert.equal(ERR.contract_missing, 'contract_missing')
 })
 
 test('videosHandle asks for exactly the video.videos pair and returns the handle', () => {
@@ -54,15 +54,15 @@ test('every reason a handle can be missing is named, and each says something dif
   // A négy ok négy különböző operátori mozdulat: telepíts, kapcsold be,
   // frissíts, javítsd a modult. Egyetlen "nincs szerződés" mondat mind a
   // négyre az operátort küldi rossz helyre.
-  const uzenetek = new Set()
+  const messages = new Set()
   for (const why of ['not_declared', 'provider_missing', 'provider_disabled', 'version_mismatch']) {
     const err = refusal(() => videosHandle(contractsDouble({ why })))
     assert.ok(err, `${why}: nem utasította el`)
-    assert.equal(err.code, HIBA.szerzodes_hianyzik, `${why}: rossz hibakód`)
+    assert.equal(err.code, ERR.contract_missing, `${why}: rossz hibakód`)
     assert.match(err.message, new RegExp(why), `${why}: az üzenet nem nevezi meg az okot`)
-    uzenetek.add(err.message)
+    messages.add(err.message)
   }
-  assert.equal(uzenetek.size, 4, 'két ok ugyanazt a mondatot kapta')
+  assert.equal(messages.size, 4, 'két ok ugyanazt a mondatot kapta')
 })
 
 test('provider_missing tells the operator to install, provider_disabled to switch on', () => {
@@ -73,7 +73,7 @@ test('provider_missing tells the operator to install, provider_disabled to switc
 
 test('a reason that moved between the two reads is reported as that, not as one of the four', () => {
   const err = refusal(() => videosHandle(contractsDouble({ why: null })))
-  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.equal(err.code, ERR.contract_missing)
   assert.match(err.message, /újra/i)
   for (const why of ['not_declared', 'provider_missing', 'provider_disabled', 'version_mismatch']) {
     assert.doesNotMatch(err.message, new RegExp(why), `nem megfigyelt okot állít: ${why}`)
@@ -82,13 +82,13 @@ test('a reason that moved between the two reads is reported as that, not as one 
 
 test('an unknown reason word is passed through rather than swallowed', () => {
   const err = refusal(() => videosHandle(contractsDouble({ why: 'valami_uj_ok' })))
-  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.equal(err.code, ERR.contract_missing)
   assert.match(err.message, /valami_uj_ok/)
 })
 
 test('a host that handed over no contracts object is a named refusal, not a TypeError', () => {
   const err = refusal(() => videosHandle(undefined))
-  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.equal(err.code, ERR.contract_missing)
   assert.ok(err.message.length > 20)
 })
 
@@ -154,11 +154,11 @@ test('a handle that carries no get is a named contract failure, not a TypeError'
   // A host a szerződés NEVÉT és VERZIÓJÁT egyezteti, a metódusait nem. Egy
   // `videos@1`-et kínáló szolgáltató `get` nélkül ép handle-t ad, és a hívás
   // sima TypeError-ral dőlne el: azt a `szerzodesHiba` nem ismeri fel, tehát a
-  // tool generikus ága `rossz_parameter: "videos.get is not a function"`-t
+  // tool generikus ága `invalid_argument: "videos.get is not a function"`-t
   // adna az ügynöknek. Ez az utolsó ajtó, amin ez a párosítás bejöhetett.
   const contracts = contractsDouble({ handle: { lista: async () => [] } })
   const err = await refusalOf(videoLekerdez(contracts, 'vid_1'))
-  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.equal(err.code, ERR.contract_missing)
   // Idézőjelekkel: a `/get/` egy magyar mondatra nézve majdnem bármire illik,
   // és a metódus NEVE az, amit a mondatnak ki kell mondania.
   assert.match(err.message, /"get"/)
@@ -169,12 +169,12 @@ test('a provider that went away between the handle and the call is named, not ge
   // A host minden híváskor újra feloldja a szerződést (callContractMethod),
   // tehát ugyanaz a verseny, amit a videosHandle egy sorral feljebb kezel,
   // itt dobott `unavailable`-ként érkezik. Kezeletlenül a tool generikus
-  // ágára esne, és rossz_parameter-t adna egy stack-szövegre.
+  // ágára esne, és invalid_argument-t adna egy stack-szövegre.
   const contracts = contractsDouble({
     handle: { get: async () => { throw contractError('unavailable', { reason: 'provider_disabled' }) } },
   })
   const err = await refusalOf(videoLekerdez(contracts, 'vid_1'))
-  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.equal(err.code, ERR.contract_missing)
   assert.match(err.message, /unavailable/)
   // Az ok szava a hosté; ugyanaz a mondat jár rá, mint feloldáskor.
   assert.match(err.message, /provider_disabled/)
@@ -184,7 +184,7 @@ test('a provider that went away between the handle and the call is named, not ge
 test('an unavailable with no reason word says to retry rather than guessing one', async () => {
   const contracts = contractsDouble({ handle: { get: async () => { throw contractError('unavailable') } } })
   const err = await refusalOf(videoLekerdez(contracts, 'vid_1'))
-  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.equal(err.code, ERR.contract_missing)
   assert.match(err.message, /unavailable/)
   for (const why of ['not_declared', 'provider_missing', 'provider_disabled', 'version_mismatch']) {
     assert.doesNotMatch(err.message, new RegExp(why), `nem megfigyelt okot állít: ${why}`)
@@ -194,7 +194,7 @@ test('an unavailable with no reason word says to retry rather than guessing one'
 test('a provider whose own code threw is a different fact from a provider that is gone', async () => {
   const contracts = contractsDouble({ handle: { get: async () => { throw contractError('provider_threw') } } })
   const err = await refusalOf(videoLekerdez(contracts, 'vid_1'))
-  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.equal(err.code, ERR.contract_missing)
   assert.match(err.message, /provider_threw/)
   // A bővítmény telepítve van és be van kapcsolva: a Bővítmények lapon nincs
   // mit tenni, a napló a következő lépés.
@@ -205,7 +205,7 @@ test('a provider whose own code threw is a different fact from a provider that i
 test('a host code this module has not learnt is still a contract failure, not a bad argument', async () => {
   const contracts = contractsDouble({ handle: { get: async () => { throw contractError('unknown_method') } } })
   const err = await refusalOf(videoLekerdez(contracts, 'vid_1'))
-  assert.equal(err.code, HIBA.szerzodes_hianyzik)
+  assert.equal(err.code, ERR.contract_missing)
   assert.match(err.message, /unknown_method/)
 })
 
@@ -228,7 +228,7 @@ test('a reason word that names an Object prototype member takes the unknown fall
   // bele az operátor üzenetébe.
   for (const why of ['constructor', 'toString', '__proto__']) {
     const err = refusal(() => videosHandle(contractsDouble({ why })))
-    assert.equal(err.code, HIBA.szerzodes_hianyzik, why)
+    assert.equal(err.code, ERR.contract_missing, why)
     assert.match(err.message, /nem oldható fel/, why)
     assert.doesNotMatch(err.message, /function|\[object/i, `${why}: prototípus-tag szivárgott az üzenetbe`)
   }
