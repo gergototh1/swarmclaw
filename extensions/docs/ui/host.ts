@@ -1,3 +1,19 @@
+import type { ComponentType, ReactNode } from 'react'
+
+/** Props the host's `Dropdown` component (`components/shared/dropdown.tsx`) takes. */
+export interface HostDropdownProps {
+  open: boolean
+  onClose: () => void
+  children: ReactNode
+}
+
+/** Props the host's `DropdownItem` component takes. */
+export interface HostDropdownItemProps {
+  children: ReactNode
+  danger?: boolean
+  onClick: () => void
+}
+
 /**
  * `window.swarmclaw`, as this bundle sees it.
  *
@@ -13,6 +29,18 @@ export interface SwarmclawHostView {
   registerPage: (pageId: string, component: unknown, opts: { react: unknown; extensionId: string }) => void
   /** Saves HTML as a PDF; absent on a host older than this feature. */
   savePdf?: (input: { html: string; fileName: string }) => Promise<{ status: 'saved' | 'cancelled' | 'printed' }>
+  /**
+   * Styling-only host components an extension page may render instead of
+   * shipping its own (`components/layout/extension-host.tsx`'s `hostUi`).
+   * Only the pieces this bundle actually uses are typed here; an older host
+   * that predates one of them simply omits the key, so every field is
+   * optional and callers must fall back when a field is missing.
+   */
+  ui?: {
+    Dropdown?: ComponentType<HostDropdownProps>
+    DropdownItem?: ComponentType<HostDropdownItemProps>
+    DropdownSep?: ComponentType<Record<string, never>>
+  }
 }
 
 /** The host table, or a thrown error naming what is missing. */

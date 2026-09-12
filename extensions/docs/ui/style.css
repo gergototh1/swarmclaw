@@ -414,14 +414,18 @@
  * The header's three toggles (Markdown, Export, Details) are icon-only, in
  * the same round 28x28 shape as `.docs-delete`. `.docs-details-toggle` and
  * `.docs-mode-toggle` are both plain toggle buttons and share one rule set;
- * `.docs-export > summary` is styled to match even though it is a `<summary>`
- * rather than a `<button>`, so the three read as one family of controls.
- * The pressed/active look (`.docs-active`, or `[open]` for the disclosure)
- * is the same accent-soft treatment the toolbar buttons above use.
+ * `.docs-export-trigger` is styled to match whether it renders as a
+ * `<summary>` (the `<details>` fallback for a host that predates the shared
+ * `Dropdown` component) or a plain `<button>` (the host-`Dropdown` path,
+ * which needs a real click handler rather than disclosure semantics) -- see
+ * `editor.tsx`. Either way the three read as one family of controls. The
+ * pressed/active look (`.docs-active`, applied by React for the button case
+ * and by `[open]` for the `<details>` case) is the same accent-soft
+ * treatment the toolbar buttons above use.
  */
 .docs-details-toggle,
 .docs-mode-toggle,
-.docs-export > summary {
+.docs-export-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -438,13 +442,14 @@
 }
 .docs-details-toggle:hover,
 .docs-mode-toggle:hover,
-.docs-export > summary:hover {
+.docs-export-trigger:hover {
   background: var(--color-layer-2, rgba(16,24,40,0.05));
   color: var(--color-text-2, #48484A);
 }
 .docs-details-toggle.docs-active,
 .docs-mode-toggle.docs-active,
-.docs-export[open] > summary {
+.docs-export-trigger.docs-active,
+.docs-export[open] > .docs-export-trigger {
   background: var(--color-accent-soft, rgba(255,107,84,0.18));
   color: var(--color-accent-bright, #FF6B54);
 }
@@ -670,17 +675,26 @@ button.docs-primary:hover {
 .docs-export { position: relative; }
 .docs-export > summary { list-style: none; cursor: pointer; }
 .docs-export > summary::-webkit-details-marker { display: none; }
+/*
+ * `.docs-export-menu` is the fallback `<details>` panel's own floating
+ * shell (position, border, background) for a host that does not yet publish
+ * the shared `Dropdown` component. When `Dropdown` is available, the host
+ * component supplies that shell itself, so `.docs-export-item` below is the
+ * only rule that still applies there -- see the comment in `editor.tsx`.
+ */
 .docs-export-menu {
   position: absolute; right: 0; top: calc(100% + 4px); z-index: 20;
   display: flex; flex-direction: column; min-width: 140px; padding: 4px;
   border: 1px solid var(--color-line-subtle, rgba(255,255,255,0.12)); border-radius: 6px;
   background: var(--color-bg, #111);
 }
-.docs-export-menu button {
+/* Icon + label row, shared by every export menu item regardless of which shell renders it. */
+.docs-export-item {
   display: flex;
   align-items: center;
   gap: 6px;
   text-align: left;
-  padding: 6px 10px;
+  width: 100%;
 }
-.docs-export-menu button svg { flex-shrink: 0; }
+button.docs-export-item { padding: 6px 10px; }
+.docs-export-item svg { flex-shrink: 0; }

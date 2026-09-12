@@ -73,7 +73,7 @@ test('a recorded migration does not run again, even if kozos reappears', () => {
   assert.equal(writer.calls.indexAll, 0)
 })
 
-test('when indexAll throws, the rename already happened but no ledger is written so the next load retries', () => {
+test('when indexAll throws, a pending marker survives so the next load retries', () => {
   const root = tmpRoot()
   put(root, 'kozos/a.md')
   const throwingWriter = { indexAll() { throw new Error('unreadable .md') } }
@@ -82,12 +82,32 @@ test('when indexAll throws, the rename already happened but no ledger is written
     /unreadable \.md/,
   )
   // The rename already happened -- indexAll runs after it, per the fixed
-  // order -- but because indexAll threw, the ledger must NOT have been
-  // written. An unwritten ledger is what makes the next load retry the
-  // reindex instead of trusting a half-finished migration as done.
+  // order -- and even though indexAll threw, the ledger records a pending
+  // marker for the move. `fs.existsSync(from)` is false forever after the
+  // rename, so this marker -- not the folder's presence -- is what the next
+  // load must use to know a reindex is still owed.
   assert.equal(fs.existsSync(path.join(root, 'shared', 'a.md')), true)
   assert.equal(fs.existsSync(path.join(root, 'kozos')), false)
-  assert.equal(fs.existsSync(path.join(root, '.swarmdocs', 'migrations.json')), false)
+  const ledgerAfterFailure = ledgerOf(root)
+  assert.deepEqual(ledgerAfterFailure.__pendingReindex, ['kozos->shared'])
+  assert.equal(ledgerAfterFailure['kozos->shared'], undefined)
+
+  // The next load calls migrateLegacyFolders again (as a real reload would).
+  // No new folder needs renaming -- `kozos` is already gone -- but the
+  // pending marker must still trigger a reindex, and once it succeeds the
+  // migration is finalized and the marker cleared.
+  const workingWriter = countingWriter()
+  const r = migrateLegacyFolders({
+    root,
+    sharedFolderName: 'shared',
+    writer: workingWriter,
+    now: () => new Date('2026-09-11T10:00:00Z'),
+  })
+  assert.deepEqual(r, { moved: [], blocked: [] })
+  assert.equal(workingWriter.calls.indexAll, 1)
+  const ledgerAfterRetry = ledgerOf(root)
+  assert.equal(ledgerAfterRetry['kozos->shared'], '2026-09-11T10:00:00.000Z')
+  assert.equal('__pendingReindex' in ledgerAfterRetry, false)
 })
 
 test('a root with neither old folder is left untouched and writes no ledger', () => {

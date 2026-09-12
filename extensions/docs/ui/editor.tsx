@@ -77,14 +77,24 @@ function ExportIcon() {
   )
 }
 
-/** The document glyph in the export menu, shared by both formats. */
-function DocumentIcon() {
+/** The document-with-a-W glyph for the "Word (.docx)" export item. */
+function WordDocIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
+      <polyline points="7 12 8.5 18 10.5 13 12.5 18 14 12" />
+    </svg>
+  )
+}
+
+/** The document-with-a-"PDF"-tag glyph for the "PDF" export item. */
+function PdfDocIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <text x="6.3" y="17" fontSize="6.5" fontWeight="700" fill="currentColor" stroke="none">PDF</text>
     </svg>
   )
 }
@@ -138,6 +148,14 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   const [mode, setMode] = useState<EditorMode>(() => readEditorMode())
   const [rawText, setRawText] = useState('')
   const [exportError, setExportError] = useState<string | null>(null)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  // Read once per render, not cached in a ref: the host installs
+  // `window.swarmclaw` before this component can mount (see `host.ts`), so
+  // there is nothing to race, and re-reading is cheap. `HostDropdown`/
+  // `HostDropdownItem` are `undefined` on a host older than this feature --
+  // the JSX below falls back to the plain `<details>` menu in that case.
+  const HostDropdown = hostOf().ui?.Dropdown
+  const HostDropdownItem = hostOf().ui?.DropdownItem
   const savedMd = useRef<string>('')
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   /**
@@ -409,21 +427,74 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
             >
               <MarkdownIcon />
             </button>
-            <details className="docs-export">
-              <summary title="Export" aria-label="Export">
-                <ExportIcon />
-              </summary>
-              <div className="docs-export-menu" role="menu">
-                <button type="button" role="menuitem" onClick={() => { void exportDocx() }}>
-                  <DocumentIcon />
-                  <span>Word (.docx)</span>
+            {HostDropdown ? (
+              <div className="docs-export">
+                <button
+                  type="button"
+                  className={`docs-export-trigger${exportMenuOpen ? ' docs-active' : ''}`}
+                  title="Export"
+                  aria-label="Export"
+                  aria-haspopup="menu"
+                  aria-expanded={exportMenuOpen}
+                  onClick={() => setExportMenuOpen((open) => !open)}
+                >
+                  <ExportIcon />
                 </button>
-                <button type="button" role="menuitem" onClick={() => { void exportPdf() }}>
-                  <DocumentIcon />
-                  <span>PDF</span>
-                </button>
+                {/*
+                  The host's own `Dropdown` already positions and styles the
+                  floating panel (see `components/shared/dropdown.tsx`), so
+                  its children go straight in rather than through another
+                  `.docs-export-menu` wrapper -- nesting one absolutely
+                  positioned menu shell inside another would fight the host's
+                  own fixed positioning instead of matching it.
+                */}
+                <HostDropdown open={exportMenuOpen} onClose={() => setExportMenuOpen(false)}>
+                  {HostDropdownItem ? (
+                    <>
+                      <HostDropdownItem onClick={() => { setExportMenuOpen(false); void exportDocx() }}>
+                        <span className="docs-export-item">
+                          <WordDocIcon />
+                          <span>Word (.docx)</span>
+                        </span>
+                      </HostDropdownItem>
+                      <HostDropdownItem onClick={() => { setExportMenuOpen(false); void exportPdf() }}>
+                        <span className="docs-export-item">
+                          <PdfDocIcon />
+                          <span>PDF</span>
+                        </span>
+                      </HostDropdownItem>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" role="menuitem" className="docs-export-item" onClick={() => { setExportMenuOpen(false); void exportDocx() }}>
+                        <WordDocIcon />
+                        <span>Word (.docx)</span>
+                      </button>
+                      <button type="button" role="menuitem" className="docs-export-item" onClick={() => { setExportMenuOpen(false); void exportPdf() }}>
+                        <PdfDocIcon />
+                        <span>PDF</span>
+                      </button>
+                    </>
+                  )}
+                </HostDropdown>
               </div>
-            </details>
+            ) : (
+              <details className="docs-export">
+                <summary className="docs-export-trigger" title="Export" aria-label="Export">
+                  <ExportIcon />
+                </summary>
+                <div className="docs-export-menu" role="menu">
+                  <button type="button" role="menuitem" className="docs-export-item" onClick={() => { void exportDocx() }}>
+                    <WordDocIcon />
+                    <span>Word (.docx)</span>
+                  </button>
+                  <button type="button" role="menuitem" className="docs-export-item" onClick={() => { void exportPdf() }}>
+                    <PdfDocIcon />
+                    <span>PDF</span>
+                  </button>
+                </div>
+              </details>
+            )}
             {onTogglePanel && (
               <button
                 type="button"

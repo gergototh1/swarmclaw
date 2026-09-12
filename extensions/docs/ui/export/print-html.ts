@@ -64,7 +64,13 @@ async function fetchFontFaceRule(path: string, unicodeRange: string, fetchImpl: 
     binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
   }
   const dataUri = `data:font/woff2;base64,${btoa(binary)}`
-  return `@font-face { font-family: 'Gabarito'; src: url(${dataUri}) format('woff2'); font-weight: 400 900; font-style: normal; unicode-range: ${unicodeRange}; }`
+  // `font-display: swap` matters more here than in a normal page load: the
+  // print/PDF path gives the font only a short, bounded window (see the
+  // comment in `electron/pdf-save.ts`) before the page gets rasterized. Without
+  // `swap`, headings sit in the font's "block" period -- invisible, not a
+  // fallback glyph -- and a print/printToPDF that fires inside that window
+  // captures blank headings even though the font arrives moments later.
+  return `@font-face { font-family: 'Gabarito'; src: url(${dataUri}) format('woff2'); font-weight: 400 900; font-style: normal; font-display: swap; unicode-range: ${unicodeRange}; }`
 }
 
 /**

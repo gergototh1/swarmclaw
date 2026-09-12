@@ -51,6 +51,17 @@ export async function savePdfFromHtml(parent: BrowserWindow | null, raw: unknown
 
     await fs.writeFile(htmlPath, input.html, 'utf8')
     await win.loadFile(htmlPath)
+    // `loadFile` resolving means the HTML parsed and initial layout ran, not
+    // that the embedded @font-face has been swapped in -- font-display: swap
+    // (see print-html.ts) means headings render in a fallback font first and
+    // Chromium repaints once the ~34 kB embedded woff2 decodes. This window
+    // runs with `javascript: false`, so `document.fonts.ready` isn't
+    // reachable to await properly. A real, unbounded wait isn't an option
+    // either -- a font fetch can hang or fail, and the export must still
+    // complete. So: a short, fixed delay that is comfortably longer than a
+    // local embedded-font swap needs, capping how long "Export PDF" can be
+    // stalled by a font that never arrives.
+    await new Promise((resolve) => setTimeout(resolve, 300))
     const pdf = await win.webContents.printToPDF({ printBackground: true, pageSize: 'A4' })
     const options = {
       defaultPath: path.join(app.getPath('downloads'), safePdfFileName(input.fileName)),

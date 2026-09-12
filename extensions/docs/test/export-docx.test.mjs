@@ -49,12 +49,36 @@ test('the title becomes the first heading only when the doc does not start with 
   assert.equal(withTitleHeading('text', '  '), 'text')
 })
 
-test('paragraphs get default spacing so they do not touch, and the body font is Inter', async () => {
+test('paragraphs get default spacing so they do not touch, and the body font is Helvetica Neue', async () => {
   const xml = await stylesXml('# Report\n\nSome text.', 'Report')
   // The document defaults, not just an individual style: this is what stops
   // every paragraph in the file from touching its neighbour.
-  assert.match(xml, /<w:docDefaults>[\s\S]*<w:spacing[^>]*w:after="160"[^>]*\/>[\s\S]*<\/w:docDefaults>/)
-  assert.match(xml, /<w:docDefaults>[\s\S]*<w:rFonts[^>]*w:ascii="Inter"[^>]*\/>[\s\S]*<\/w:docDefaults>/)
+  assert.match(xml, /<w:docDefaults>[\s\S]*<w:spacing[^>]*w:after="240"[^>]*\/>[\s\S]*<\/w:docDefaults>/)
+  assert.match(xml, /<w:docDefaults>[\s\S]*<w:rFonts[^>]*w:ascii="Helvetica Neue"[^>]*\/>[\s\S]*<\/w:docDefaults>/)
+})
+
+test('headings get clearly more space before them than after, and list items stay tighter than body paragraphs', async () => {
+  const xml = await stylesXml('# Report\n\n## Part two\n\n- a\n- b', 'Report')
+  const styleBlock = (id) => new RegExp(`<w:style [^>]*w:styleId="${id}"[^>]*>[\\s\\S]*?<\\/w:style>`).exec(xml)?.[0] ?? ''
+  const spacingOf = (block) => {
+    const match = /<w:spacing\b([^/]*)\/>/.exec(block)
+    const attrs = match?.[1] ?? ''
+    const before = /w:before="(\d+)"/.exec(attrs)?.[1]
+    const after = /w:after="(\d+)"/.exec(attrs)?.[1]
+    return { before: before ? Number(before) : undefined, after: after ? Number(after) : undefined }
+  }
+
+  const heading1 = spacingOf(styleBlock('Heading1'))
+  const heading2 = spacingOf(styleBlock('Heading2'))
+  const listParagraph = spacingOf(styleBlock('ListParagraph'))
+
+  assert.ok(heading1.before !== undefined && heading1.after !== undefined)
+  assert.ok(heading1.before > heading1.after * 2, 'Heading1 should have well over double the space before as after')
+  assert.ok(heading2.before !== undefined && heading2.after !== undefined)
+  assert.ok(heading2.before > heading2.after * 2, 'Heading2 should have well over double the space before as after')
+
+  const bodyAfter = 240
+  assert.ok(listParagraph.after !== undefined && listParagraph.after < bodyAfter, 'list items should stay tighter than body paragraphs')
 })
 
 test('heading styles are a dark colour, never Word\'s default blue', async () => {

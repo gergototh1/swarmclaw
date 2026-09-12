@@ -48,10 +48,16 @@ function writeLedger(root, ledger) {
 
 export function migrateLegacyFolders({ root, sharedFolderName, writer, log, now = () => new Date() }) {
   const ledger = readLedger(root)
+  // Migrations whose folder was already renamed by a previous, interrupted
+  // call -- `ledger[key]` is not set yet (indexing never finished), but the
+  // `from` folder is already gone, so the loop below must not be the only
+  // thing deciding whether to reindex them.
+  const pending = new Set(Array.isArray(ledger.__pendingReindex) ? ledger.__pendingReindex : [])
   const moved = []
   const blocked = []
+
   for (const m of MIGRATIONS) {
-    if (ledger[m.key]) continue
+    if (ledger[m.key] || pending.has(m.key)) continue
     if (m.onlyForDefaultShared && sharedFolderName !== m.to) continue
     const from = path.join(root, m.from)
     const to = path.join(root, m.to)
@@ -62,19 +68,32 @@ export function migrateLegacyFolders({ root, sharedFolderName, writer, log, now 
       continue
     }
     fs.renameSync(from, to)
-    ledger[m.key] = now().toISOString()
     moved.push(m.key)
+    pending.add(m.key)
   }
-  if (moved.length > 0) {
-    // Reindex before recording the move in the ledger. indexAll() is
-    // idempotent, so if this throws (one unreadable .md is enough) the
-    // ledger is left unwritten and the next load retries the reindex --
-    // the alternative order would strand the index: the ledger would say
-    // done, the rename already happened, and every doc under the old path
-    // would fail to read until someone pressed "Reindex now".
-    writer.indexAll()
-    writeLedger(root, ledger)
-    log?.info?.('docs folders migrated', { moved })
-  }
+
+  if (pending.size === 0) return { moved, blocked }
+
+  // Persist the "renamed, index pending" marker BEFORE calling indexAll().
+  // The rename(s) above have already happened on disk, so if indexAll()
+  // throws (one unreadable .md is enough), this write is what survives to
+  // the next load. Without it, a thrown indexAll() would leave nothing on
+  // disk saying a migration is half-done, and the next load's
+  // `fs.existsSync(from)` check would find the folder already moved and
+  // skip the migration forever -- silently stranding the index instead of
+  // retrying it, which is exactly the bug this marker exists to prevent.
+  ledger.__pendingReindex = [...pending]
+  writeLedger(root, ledger)
+
+  writer.indexAll()
+
+  // indexAll() succeeded (for both migrations renamed just now and any left
+  // pending from an earlier, interrupted call): finalize every pending key
+  // and clear the marker.
+  for (const key of pending) ledger[key] = now().toISOString()
+  delete ledger.__pendingReindex
+  writeLedger(root, ledger)
+  if (moved.length > 0) log?.info?.('docs folders migrated', { moved })
+
   return { moved, blocked }
 }

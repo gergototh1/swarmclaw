@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardAction } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Dropdown, DropdownItem, DropdownSep } from '@/components/shared/dropdown'
 
 /**
  * What an extension page bundle sees as `window.swarmclaw`.
@@ -48,6 +49,13 @@ declare global {
  * into a public contract. Note that these render Tailwind classes compiled into
  * the host stylesheet, so an extension gets them styled for free but cannot
  * invent new Tailwind classes of its own.
+ *
+ * `Dropdown`/`DropdownItem`/`DropdownSep` (`components/shared/dropdown.tsx`)
+ * qualify too even though `Dropdown` owns a click-outside listener: the
+ * open/closed state itself is not internal, it is the `open`/`onClose` props
+ * the caller passes in, so this stays the same "styling behaviour, not app
+ * state" shape as everything else here — just with the outside-click-closes
+ * behaviour built in rather than left for every extension to reimplement.
  */
 const hostUi: Record<string, unknown> = {
   Button,
@@ -60,6 +68,9 @@ const hostUi: Record<string, unknown> = {
   CardContent,
   CardFooter,
   CardAction,
+  Dropdown,
+  DropdownItem,
+  DropdownSep,
 }
 
 // A response body that starts a whole HTML document, as opposed to a fragment.
