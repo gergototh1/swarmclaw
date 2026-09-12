@@ -14,6 +14,18 @@ import docs, { rootSetting, sharedFolder, state, vaultOf, versionsKept, watchEna
 after(() => { watcherControl.stop() })
 
 /** The smallest ctx the host could hand over. */
+/**
+ * The settings readers with nothing else that setup() does.
+ *
+ * Deliberately NOT setup(): setup() runs the folder migration against the
+ * configured root, so a settings test that leaves the root unset would run it
+ * against the operator's real ~/SwarmClaw/docs -- which is exactly what
+ * happened once. A default belongs to the reader, not to a full load.
+ */
+function withSettings(settings = {}) {
+  state.settings = () => settings
+}
+
 function fakeCtx(settings = {}) {
   return {
     extensionId: 'docs.mjs',
@@ -140,7 +152,7 @@ test('setup() starts at most one watcher however often it runs', () => {
 })
 
 test('settings readers fall back rather than returning undefined', () => {
-  docs.setup(fakeCtx({}))
+  withSettings({})
   assert.equal(rootSetting(), '~/SwarmClaw/docs')
   assert.equal(sharedFolder(), 'shared')
   assert.equal(versionsKept(), 50)
@@ -150,21 +162,21 @@ test('settings readers fall back rather than returning undefined', () => {
 test('a cleared text setting falls back instead of becoming an empty path', () => {
   // Az operátor által kiürített mező '' -t tárol, nem undefined-ot, tehát a
   // host defaultValue-ja többé nem sül el: a fallback itt az egyetlen védelem.
-  docs.setup(fakeCtx({ root: '   ', sharedFolderName: '', versionsKept: 0 }))
+  withSettings({ root: '   ', sharedFolderName: '', versionsKept: 0 })
   assert.equal(rootSetting(), '~/SwarmClaw/docs')
   assert.equal(sharedFolder(), 'shared')
   assert.equal(versionsKept(), 50)
 })
 
 test('watching is on unless the operator turned it off', () => {
-  docs.setup(fakeCtx({ watchEnabled: false }))
+  withSettings({ watchEnabled: false })
   assert.equal(watchEnabled(), false)
-  docs.setup(fakeCtx({ watchEnabled: true }))
+  withSettings({ watchEnabled: true })
   assert.equal(watchEnabled(), true)
 })
 
 test('settings are read from the English keys', () => {
-  docs.setup(fakeCtx({ root: '/tmp/docs-a', watchEnabled: false, versionsKept: 7, sharedFolderName: 'team' }))
+  withSettings({ root: '/tmp/docs-a', watchEnabled: false, versionsKept: 7, sharedFolderName: 'team' })
   assert.equal(rootSetting(), '/tmp/docs-a')
   assert.equal(watchEnabled(), false)
   assert.equal(versionsKept(), 7)
@@ -172,7 +184,7 @@ test('settings are read from the English keys', () => {
 })
 
 test('a setting stored under the old Hungarian key still counts', () => {
-  docs.setup(fakeCtx({ gyoker: '/tmp/docs-b', figyelesBe: false, verzioMegtartas: 9, kozosMappaNev: 'csapat' }))
+  withSettings({ gyoker: '/tmp/docs-b', figyelesBe: false, verzioMegtartas: 9, kozosMappaNev: 'csapat' })
   assert.equal(rootSetting(), '/tmp/docs-b')
   assert.equal(watchEnabled(), false)
   assert.equal(versionsKept(), 9)
@@ -182,12 +194,12 @@ test('a setting stored under the old Hungarian key still counts', () => {
 test('the old default shared folder name does not pin the old folder', () => {
   // A stored "kozos" is what the settings form wrote as the default. Honouring
   // it would stop the kozos -> shared migration from ever running.
-  docs.setup(fakeCtx({ kozosMappaNev: 'kozos' }))
+  withSettings({ kozosMappaNev: 'kozos' })
   assert.equal(sharedFolder(), 'shared')
 })
 
 test('with nothing configured the defaults are English', () => {
-  docs.setup(fakeCtx({}))
+  withSettings({})
   assert.equal(rootSetting(), '~/SwarmClaw/docs')
   assert.equal(sharedFolder(), 'shared')
   assert.equal(versionsKept(), 50)
