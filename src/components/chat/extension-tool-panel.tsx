@@ -48,7 +48,7 @@ class PanelBoundary extends Component<{ panelKey: string; children: ReactNode },
   }
 }
 
-export function ExtensionToolPanel({ panelRef, onClose }: { panelRef: ToolPanelRef; onClose: () => void }) {
+export function ExtensionToolPanel({ panelRef, onClose, headerSlot }: { panelRef: ToolPanelRef; onClose: () => void; headerSlot?: HTMLElement | null }) {
   const componentId = `panel:${panelRef.panelId}`
   const state = useRegisteredExtensionComponent({
     extensionId: panelRef.extensionId,
@@ -68,7 +68,7 @@ export function ExtensionToolPanel({ panelRef, onClose }: { panelRef: ToolPanelR
   const PanelComponent = state.registered.Component
   return (
     <PanelBoundary key={`${panelRef.extensionId}:${componentId}:${panelRef.refId}`} panelKey={`${panelRef.extensionId}:${componentId}`}>
-      <PanelComponent extensionId={panelRef.extensionId} rpc={rpc} refId={panelRef.refId} onClose={onClose} />
+      <PanelComponent extensionId={panelRef.extensionId} rpc={rpc} refId={panelRef.refId} onClose={onClose} headerSlot={headerSlot} />
     </PanelBoundary>
   )
 }

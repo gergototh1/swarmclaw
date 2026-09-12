@@ -16,29 +16,21 @@ import { Editor } from './editor'
  * that is already narrow.
  */
 
-/** The host's header action slot (`chat-preview-panel.tsx`). */
-const HEADER_ACTIONS_ID = 'chat-preview-header-actions'
-
-/**
- * The header slot node, once it is in the DOM.
- *
- * Looked up in an effect rather than during render: the host's header and this
- * panel mount in the same commit, so on the first render the node does not
- * exist yet. Returning null until it does simply leaves the link out for one
- * frame; throwing a portal at a missing node would take the panel down.
- */
-function useHeaderSlot(): Element | null {
-  const [slot, setSlot] = useState<Element | null>(null)
-  useEffect(() => {
-    setSlot(document.getElementById(HEADER_ACTIONS_ID))
-  }, [])
-  return slot
-}
-
-export function DocPanel({ rpc, refId, onClose, extensionId }: { extensionId: string; rpc: Rpc; refId: string; onClose: () => void }) {
+export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
+  extensionId: string
+  rpc: Rpc
+  refId: string
+  onClose: () => void
+  /**
+   * The host header's action area, handed over by `ExtensionToolPanel`. Null
+   * on the first render -- the host sets it from a ref callback during commit
+   * -- so the link simply appears one render later rather than the panel
+   * having to hunt for a node that is not there yet.
+   */
+  headerSlot?: HTMLElement | null
+}) {
   const [titles, setTitles] = useState<Set<string>>(new Set())
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const headerSlot = useHeaderSlot()
 
   useEffect(() => {
     rpc('tree')

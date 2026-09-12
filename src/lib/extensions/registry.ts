@@ -30,6 +30,17 @@ export type ExtensionPageComponent = ComponentType<{
   refId?: string
   /** Tool panels only: closes the panel. */
   onClose?: () => void
+  /**
+   * Tool panels only: the action area of the host's panel header, beside the
+   * close button. A panel with one or two controls of its own portals them in
+   * here instead of drawing a second full-width bar under a header that is
+   * already there — on a panel this narrow that bar costs a visible share of
+   * the reading area.
+   *
+   * Null until the host's ref callback has run, which is the render after
+   * mount, so guard on it rather than portalling into nothing.
+   */
+  headerSlot?: HTMLElement | null
 }>
 
 export interface RegisterPageOptions {

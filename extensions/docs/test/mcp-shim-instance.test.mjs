@@ -36,8 +36,9 @@ async function fakeHost(instanceId) {
       res.end(JSON.stringify({ ok: true, service: 'swarmclaw', instanceId }))
       return
     }
-    let body = ''
-    req.on('data', (c) => { body += c })
+    // Drained, not read: what the shim posts does not matter here, only that
+    // the request is allowed to finish before the answer goes back.
+    req.resume()
     req.on('end', () => {
       if (req.url.endsWith('/call/mcpTools')) {
         res.end(JSON.stringify({ tools: [{ name: 'docs_list', description: 'x', parameters: { type: 'object' } }] }))
