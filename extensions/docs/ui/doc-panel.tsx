@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import type { Rpc } from './api'
-import { readTree } from './api'
+import { errorText, readTree } from './api'
 import { Editor } from './editor'
 
 /**
@@ -14,6 +14,7 @@ import { Editor } from './editor'
  */
 export function DocPanel({ rpc, refId, onClose }: { extensionId: string; rpc: Rpc; refId: string; onClose: () => void }) {
   const [titles, setTitles] = useState<Set<string>>(new Set())
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     rpc('tree')
@@ -28,13 +29,25 @@ export function DocPanel({ rpc, refId, onClose }: { extensionId: string; rpc: Rp
       <div className="docs-panel-bar">
         <a className="docs-panel-open" href={docsHref}>Open in Docs</a>
       </div>
+      {deleteError && <p className="docs-error" role="alert">{deleteError}</p>}
       <Editor
         rpc={rpc}
         id={refId}
         titles={titles}
         onSaved={() => {}}
         panelOpen={false}
-        onDelete={() => { rpc('delete', { id: refId }).finally(onClose) }}
+        onDelete={() => {
+          // Closing on failure would tell the reader the doc is gone when it
+          // is not, so the panel stays open and says what happened.
+          setDeleteError(null)
+          rpc('delete', { id: refId })
+            .then((raw) => {
+              const message = errorText(raw)
+              if (message) setDeleteError(message)
+              else onClose()
+            })
+            .catch((err) => setDeleteError(String(err?.message ?? err)))
+        }}
         focusTitle={false}
         onTitleFocused={() => {}}
       />
