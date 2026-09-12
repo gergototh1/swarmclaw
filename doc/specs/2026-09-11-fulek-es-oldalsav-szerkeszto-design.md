@@ -93,6 +93,14 @@ interface TabsState {
 - **Plafon:** `MAX_LIVE_FRAMES = 6`. A 7. kerethez a `lastUsed` szerinti
   legrégebbi keret lebomlik; a fül a sávban marad, aktiváláskor az URL-jéből
   újra létrejön.
+- **A kiürítendő keretet előbb megkérjük, csak utána bontjuk le.** A gazda a
+  lebomlásra kiszemelt keretnek egy flush-üzenetet küld, és csak a keret
+  nyugtázása után távolítja el az iframe-et a DOM-ból. Az iframe puszta
+  eltávolítása nem hívja meg megbízhatóan a `pagehide`-ot, és a benne futó
+  React-fa cleanupját sem futtatja le, tehát a szerkesztő flush-a enélkül nem
+  futna le, és egy még el nem mentett gépelés veszne el — pontosan az
+  ellentéte annak, amit a terv máshol ígér: hogy a beírt szöveg a fültől
+  függetlenül mentődik.
 
 ### Kommunikáció
 
@@ -117,7 +125,12 @@ interface TabsState {
 - Rail-kattintás → `navigate` az aktív fülnek. ⌘-kattintás vagy középső
   kattintás → új fül.
 - A ⌘K paletta a gazdában él, az aktív fülbe navigál, és kiegészül a
-  bővítmény-oldalakkal.
+  bővítmény-oldalakkal. A navigáció a `navigate { href }` üzenettel az aktív
+  fül keretébe megy, nem a gazda saját routerén keresztül egyenesen a
+  `children`-be — a mai paletta (`command-palette.tsx`) a bővítmény-oldalakat
+  még közvetlenül a routeren tolja át, ami a gazda ablakban a fülsávot és a
+  railt magát cserélné le. Ezt át kell kötni az üzenetküldésre, mielőtt a
+  gazda/fül mód él.
 
 ### Billentyűk
 
@@ -185,7 +198,10 @@ A gazda állítja elő az URL-ből:
 - bővítmény-oldal → a saját `label` + `icon`, vagy a `setTitle` szövege.
 
 A `setTitle` szövege a `Tab.title`-be mentődik, így az alvó fül is a pontos
-címet mutatja.
+címet mutatja. Ehhez a hívásnak a nyers cím-szöveget kell megőriznie, nem csak
+a `document.title`-be összeállított formát (pl. „Doksik · <cím>”) — a fül-modell
+a `title { text | null }` üzenethez és a `Tab.title` mezőhöz is a nyers
+szöveget várja, nem a gazda saját, előtaggal ellátott változatát.
 
 ## 3. Oldalsáv-szerkesztő
 

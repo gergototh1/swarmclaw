@@ -91,12 +91,19 @@ export function DocsPage({ rpc, subPath, navigate, setTitle }: OldalProps) {
    * It lives here rather than in the tree because it acts on the OPEN
    * document: the editor has to be closed in the same step, or it goes on
    * autosaving into a row nothing shows any more.
+   *
+   * RETURNS whether the delete actually happened. The editor keys its
+   * "delete in progress" block on this: it only lifts that block on `false`
+   * (the rpc failed and the document is still open, still autosaving), never
+   * on `true` (the document is gone, `aktivId` moves to `null`, and the
+   * editor's own effects tear the block down when they next run for a real
+   * document).
    */
-  const torol = useCallback(() => {
-    if (!aktivId) return
-    rpc('torol', { id: aktivId })
-      .then(() => { setAktivId(null); refresh() })
-      .catch(() => refresh())
+  const torol = useCallback((): Promise<boolean> => {
+    if (!aktivId) return Promise.resolve(false)
+    return rpc('torol', { id: aktivId })
+      .then(() => { setAktivId(null); refresh(); return true })
+      .catch(() => { refresh(); return false })
   }, [aktivId, rpc, refresh, setAktivId])
 
   const cimek = useMemo(() => new Set(fa?.cimek ?? []), [fa])
