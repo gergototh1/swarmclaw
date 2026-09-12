@@ -90,6 +90,15 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   const [cim, setCim] = useState('')
   const cimMezo = useRef<HTMLInputElement | null>(null)
 
+  // `ment`/`mentCim` mentése aszinkron: mire visszajön a válasz, lehet, hogy a
+  // felhasználó már másik doksit nyitott meg. `verzioRef` a legfrissebb
+  // verziót tartja (az autosave ebből olvas, ld. lent), `nyitottIdRef` pedig
+  // azt, hogy melyik doksi van épp nyitva -- mindkettő szinkronban frissül a
+  // lenti ref-sync effektben, hogy a visszaérkező válasz eldönthesse, van-e
+  // még kire alkalmazni.
+  const verzioRef = useRef(verzio)
+  const nyitottIdRef = useRef<string | null>(id)
+
   const editor = useEditor({
     extensions: [StarterKit, Table.configure({ resizable: false }), TableRow, TableHeader, TableCell],
     content: '',
@@ -108,6 +117,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
         const loaded = readDoc(raw)
         setDoc(loaded)
         setVerzio(loaded.verzio)
+        verzioRef.current = loaded.verzio
         setCim(loaded.cim)
         savedMd.current = loaded.tartalom
         editor.commands.setContent(mdToHtml(loaded.tartalom, cimek))
@@ -121,39 +131,58 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, editor, rpc, onCim])
 
-  const ment = useCallback((md: string, base: number) => {
-    if (!id) return
+  // A válasz csak akkor kerül alkalmazásra, ha még ugyanaz a doksi van
+  // nyitva, mint amelyikre a mentés elindult. Enélkül egy doksiváltás közben
+  // beérkező válasz (flush a lebontáskor) a most nyitott másik doksi
+  // verzióját, mentett-alapját és akár az ütközés-sávját is felülírná a régi
+  // doksi adataival.
+  const ment = useCallback((md: string, base: number): Promise<void> => {
+    if (!id) return Promise.resolve()
+    const sajatId = id
     setAllas({ kind: 'mentes' })
-    rpc('ment', { id, tartalom: md, baseVersion: base })
+    return rpc('ment', { id, tartalom: md, baseVersion: base })
       .then((raw) => {
+        if (nyitottIdRef.current !== sajatId) return
         if (isConflict(raw)) { setAllas({ kind: 'utkozes', utkozes: raw, sajat: md }); return }
         const message = errorText(raw)
         if (message) { setAllas({ kind: 'hiba', uzenet: message }); return }
         const uj = (raw as { verzio?: number }).verzio
-        if (typeof uj === 'number') setVerzio(uj)
+        if (typeof uj === 'number') { verzioRef.current = uj; setVerzio(uj) }
         savedMd.current = md
         setAllas({ kind: 'mentve', mikor: Date.now() })
         onMentve()
       })
-      .catch((err) => setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) }))
+      .catch((err) => {
+        if (nyitottIdRef.current !== sajatId) return
+        setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) })
+      })
   }, [id, rpc, onMentve])
 
   // Az autosave a legfrissebb verziót és mentőt olvassa, de nem épül újra
   // tőlük: ha újraépülne, egy mentés visszaigazolása (új `verzio`) eldobná a
   // közben gépelt szöveg időzítőjét. Lebontáskor a ref még az előző doksi
   // értékeit tartja (a React minden cleanupot a következő setupok előtt
-  // futtat), így a függő mentés a régi doksiba megy, ahová való.
-  const verzioRef = useRef(verzio)
+  // futtat), így a függő mentés a régi doksiba megy, ahová való -- és ugyanez
+  // igaz `nyitottIdRef`-re is, ezért a fenti guard helyesen viselkedik a
+  // lebontás alatt lefutó flush-nál is.
   const mentRef = useRef(ment)
   useEffect(() => {
     verzioRef.current = verzio
     mentRef.current = ment
+    nyitottIdRef.current = id
   })
   // A nyitott doksi autosave-je, hogy a törlés eldobhassa a függő mentést:
-  // egy kukába tett doksiba nem írunk utólag új verziót.
+  // egy kukába tett doksiba nem írunk utólag új verziót. `torolveRef` ennek a
+  // másik fele: a cancel() csak az épp várakozó mentést dobja el, de a
+  // szerkesztő a törlési kérés alatt is felkerül marad, és további gépelés
+  // újraindítaná az időzítőt. A jelző ezt zárja le a törlés gombra kattintás
+  // után; a lenti autosave-effekt nyitja meg újra, amikor egy másik doksira
+  // épül újra ([editor, id] függőség).
   const autosaveRef = useRef<Autosave | null>(null)
+  const torolveRef = useRef(false)
   const torolj = useCallback(() => {
     autosaveRef.current?.cancel()
+    torolveRef.current = true
     onTorol()
   }, [onTorol])
 
@@ -167,20 +196,25 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
     if (!id) return
     const tiszta = cim.trim()
     if (tiszta === '' || tiszta === doc?.cim) { setCim(doc?.cim ?? ''); return }
+    const sajatId = id
     setAllas({ kind: 'mentes' })
     rpc('ment', { id, tartalom: savedMd.current, cim: tiszta, baseVersion: verzio })
       .then((raw) => {
+        if (nyitottIdRef.current !== sajatId) return
         if (isConflict(raw)) { setAllas({ kind: 'utkozes', utkozes: raw, sajat: savedMd.current }); return }
         const message = errorText(raw)
         if (message) { setAllas({ kind: 'hiba', uzenet: message }); return }
         const uj = (raw as { verzio?: number }).verzio
-        if (typeof uj === 'number') setVerzio(uj)
+        if (typeof uj === 'number') { verzioRef.current = uj; setVerzio(uj) }
         setDoc((elozo) => (elozo ? { ...elozo, cim: tiszta } : elozo))
         setAllas({ kind: 'mentve', mikor: Date.now() })
         onCim?.(tiszta)
         onMentve()
       })
-      .catch((err) => setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) }))
+      .catch((err) => {
+        if (nyitottIdRef.current !== sajatId) return
+        setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) })
+      })
   }, [id, cim, doc, rpc, verzio, onMentve, onCim])
 
   // Egy frissen létrehozott doksi címe a helykitöltő; a kurzor odamegy, és a
@@ -199,6 +233,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   // elhagyásakor (`pagehide`) a függő mentés lefut, nem vész el.
   useEffect(() => {
     if (!editor || !id) return
+    torolveRef.current = false
     const autosave = createAutosave({
       delayMs: AUTOSAVE_MS,
       read: () => htmlToMd(editor.getHTML()),
@@ -206,7 +241,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
       save: (md) => mentRef.current(md, verzioRef.current),
     })
     autosaveRef.current = autosave
-    const onUpdate = () => autosave.schedule()
+    const onUpdate = () => { if (!torolveRef.current) autosave.schedule() }
     const onPageHide = () => autosave.flushPending()
     editor.on('update', onUpdate)
     window.addEventListener('pagehide', onPageHide)
