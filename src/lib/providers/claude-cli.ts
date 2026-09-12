@@ -13,6 +13,7 @@ import { loadMcpServers } from '@/lib/server/storage'
 import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
 import { buildCliMemoryPreamble } from '@/lib/server/memory/cli-memory-preamble'
 import { patchSession } from '@/lib/server/sessions/session-repository'
+import { currentHostBinding, refreshShimEnv, staleShimVars, type McpHostBinding } from '@/lib/server/runtime/mcp-host-binding'
 
 const TAG = 'provider-claude-cli'
 
@@ -78,6 +79,7 @@ export function addAssignedMcpServers(
   serverIds: string[],
   allMcpServers: Record<string, Record<string, unknown>>,
   stamp: McpCallerStamp = {},
+  binding?: McpHostBinding,
 ): Record<string, McpServerEntry> {
   // An empty id is left out rather than written as '': the extensions read
   // these with `??`, so a present-but-blank value defeats their own fallback.
@@ -98,7 +100,13 @@ export function addAssignedMcpServers(
       // The stamp goes last so an operator cannot pin a different agent's id
       // into the server's own env and have it win — that would be exactly the
       // self-named caller this mechanism exists to rule out.
-      const mergedEnv = { ...(env || {}), ...stamped }
+      //
+      // The host binding is refreshed for the same reason and one more: the
+      // access key and port-file path in a shim's stored env were written once
+      // by its installer and go stale silently (see mcp-host-binding.ts). Only
+      // an entry that already declares them is touched, so a third-party stdio
+      // server never gains the host's access key by being assigned.
+      const mergedEnv = { ...(binding ? refreshShimEnv(env || {}, binding) : (env || {})), ...stamped }
       existing[name] = {
         command: config.command,
         args: (config.args as string[] | undefined) || [],
@@ -360,6 +368,7 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
     const agentMcpServerIds: string[] = agentForMcp?.mcpServerIds || []
     if (agentMcpServerIds.length > 0) {
       const before = Object.keys(mcpServers).length
+      const binding = currentHostBinding()
       addAssignedMcpServers(
         mcpServers,
         agentMcpServerIds,
@@ -369,11 +378,24 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
           agentName: typeof agentForMcp?.name === 'string' ? agentForMcp.name : null,
           sessionId: session.id,
         },
+        binding,
       )
       log.info('claude-cli', `Injecting ${Object.keys(mcpServers).length - before} agent-assigned MCP server(s)`, {
         requested: agentMcpServerIds.length,
         names: Object.keys(mcpServers),
       })
+      // Corrected for this turn, but still wrong in storage: an installer wrote
+      // these once and the host has moved since. Left unsaid, the only symptom
+      // is an agent whose extension tools quietly do not exist -- the shim
+      // answers tools/list with an empty list when the host refuses it.
+      const stored = loadMcpServers() as unknown as Record<string, Record<string, unknown>>
+      for (const serverId of agentMcpServerIds) {
+        const env = stored[serverId]?.env as Record<string, string> | undefined
+        const stale = env ? staleShimVars(env, binding) : []
+        if (stale.length > 0) {
+          log.warn('claude-cli', `MCP server "${serverId}" carries stale host settings; re-run the extension's installer`, { stale })
+        }
+      }
     }
   } catch (mcpErr) {
     log.warn('claude-cli', `Failed to build MCP config: ${mcpErr}`)

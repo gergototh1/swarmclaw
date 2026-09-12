@@ -52,9 +52,13 @@ import { setTimeout as sleep } from 'node:timers/promises'
  *   3. Service: `GET /api/healthz` on the port has to answer JSON whose
  *      `service` is `"swarmclaw"`. Within one boot a pid can be reused after
  *      the server dies, so 1 and 2 only make 3 rare; they do not replace it.
- *   4. Instance: that answer's `instanceId` has to be the token from the file,
- *      or a second SwarmClaw on that port would serve the request with a
- *      different database.
+ *   4. Instance: that answer's `instanceId` has to name the host this shim is
+ *      bound to -- `SWARMCLAW_INSTANCE_ID` from the env when the host stamped
+ *      it there, and the token from the file otherwise. Checking the port
+ *      against the file alone is circular: two SwarmClaws sharing one
+ *      SWARMCLAW_HOME both pass it, because the second rewrote the very file
+ *      the first is compared against, and the shim then sends a request keyed
+ *      for one host to the other, which answers 401.
  *
  * The file is read fresh on every call rather than cached: the host can restart
  * on another port while this process lives, and a cached base would then be
@@ -161,10 +165,21 @@ function isConnectionRefused(err) {
 
 /**
  * Checks 3 and 4. `null` when the server on `port` says it is SwarmClaw AND
- * names the instance that wrote the port file. Only `service` and `instanceId`
+ * names the instance this shim is bound to. Only `service` and `instanceId`
  * are read from the body, the token is compared and never repeated, and no part
  * of the body is quoted: it came from whatever owns the port, which at this
  * point may be anything.
+ *
+ * WHICH instance is the one that matters. The token defaults to the one in the
+ * port file, but the host stamps `SWARMCLAW_INSTANCE_ID` into this process's
+ * env when it writes the per-turn MCP config, and that one wins: it names the
+ * host that actually spawned this shim. Comparing the port file against the
+ * port file is circular -- two SwarmClaws sharing one SWARMCLAW_HOME both pass
+ * it, because the second one rewrote the file it is being checked against, and
+ * the shim then sends its request (with the first host's access key) to the
+ * second host, which answers 401. That is not hypothetical: it cost a long hunt
+ * for a phantom "a big peer server evicts ours" bug, because a 401 here becomes
+ * an empty `tools/list` and an agent that silently has no tools.
  */
 async function confirmSwarmclaw(base, instanceId) {
   for (let attempt = 1; ; attempt += 1) {
@@ -206,7 +221,7 @@ function notRunningMessage(reason, file, info) {
     case 'healthz_timed_out': return `something is listening on the port file's port, but it did not answer /api/healthz within ${HEALTHZ_TIMEOUT_MS} ms (${at}); whether it is SwarmClaw is unknown`
     case 'healthz_unreachable': return `/api/healthz is unreachable on the port file's port (${at})`
     case 'wrong_program_on_port': return `whatever answers /api/healthz on the port file's port is not SwarmClaw (${at}); the file is stale`
-    case 'wrong_instance_on_port': return `a DIFFERENT SwarmClaw instance answers on the port file's port (${at}); the file is stale, and this instance would work against a different database`
+    case 'wrong_instance_on_port': return `a DIFFERENT SwarmClaw instance answers on the port file's port (${at}); it is not the host that started this MCP server, so it has a different database and a different access key`
     case 'connection_lost': return `the host left mid-request, right after /api/healthz (${at})`
     default: return `SwarmClaw is unreachable (${at})`
   }
@@ -228,7 +243,8 @@ async function resolveHost() {
   const stale = staleReason(info)
   if (stale) return notRunning(stale, file, info)
   const base = `http://127.0.0.1:${info.port}`
-  const identity = await confirmSwarmclaw(base, info.instanceId)
+  const bound = (process.env.SWARMCLAW_INSTANCE_ID || '').trim()
+  const identity = await confirmSwarmclaw(base, bound === '' ? info.instanceId : bound)
   if (identity) return notRunning(identity, file, info)
   return { base, file, info }
 }
