@@ -6,6 +6,7 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import { useEffect } from 'react'
 
 import { createExtensionRegistry, type ExtensionRegistry } from '@/lib/extensions/registry'
+import { savePdf, type SavePdfRequest, type SavePdfResult } from '@/lib/extensions/save-pdf'
 import { api } from '@/lib/app/api-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardAction } from '@/components/ui/card'
@@ -27,6 +28,8 @@ export interface SwarmclawHost extends ExtensionRegistry {
   modules: Record<string, unknown>
   rpc: (extensionId: string, method: string, body?: object) => Promise<unknown>
   ui: Record<string, unknown>
+  /** Saves HTML as a PDF: a file in the desktop app, the print dialog in a browser. */
+  savePdf: (input: SavePdfRequest) => Promise<SavePdfResult>
 }
 
 declare global {
@@ -128,6 +131,7 @@ export function getHostRegistry(): SwarmclawHost {
     },
     rpc: callExtensionMethod,
     ui: hostUi,
+    savePdf: (input) => savePdf(input),
   }
   window.swarmclaw = host
   return host

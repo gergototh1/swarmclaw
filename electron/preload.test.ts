@@ -32,3 +32,9 @@ test('preload exposes swarmclawDesktop, never the bare swarmclaw global', () => 
     'preload must not exposeInMainWorld("swarmclaw", ...) -- that name belongs to the extension host',
   )
 })
+
+test('preload offers savePdf over the swarmclaw:save-pdf channel', () => {
+  const source = fs.readFileSync(new URL('./preload.ts', import.meta.url), 'utf8')
+  assert.match(source, /savePdf:\s*\(/)
+  assert.match(source, /ipcRenderer\.invoke\(\s*'swarmclaw:save-pdf'/)
+})

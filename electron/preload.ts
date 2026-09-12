@@ -26,4 +26,6 @@ contextBridge.exposeInMainWorld('swarmclawDesktop', {
       ipcRenderer.off('swarmclaw:open-chat', handler)
     }
   },
+  savePdf: (input: { html: string; fileName: string }): Promise<{ saved: boolean; path?: string; error?: string }> =>
+    ipcRenderer.invoke('swarmclaw:save-pdf', input),
 })

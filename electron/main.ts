@@ -6,6 +6,7 @@ import { ServerHandle, startEmbeddedServer, tailLogFile } from './server-lifecyc
 import { buildAppMenu } from './menu'
 import { shouldExternaliseNavigation, shouldOpenExternally } from './external-navigation'
 import { showReplyNotification } from './notifications'
+import { savePdfFromHtml } from './pdf-save'
 
 const DEV_URL_DEFAULT = 'http://127.0.0.1:3456'
 const LOG_TAIL_BYTES = 1500
@@ -30,6 +31,8 @@ interface ReplyNotifyPayload {
 ipcMain.on('swarmclaw:notify', (_e, payload: ReplyNotifyPayload) => {
   showReplyNotification(mainWindow, payload.sessionId, payload)
 })
+
+ipcMain.handle('swarmclaw:save-pdf', (_e, raw: unknown) => savePdfFromHtml(mainWindow, raw))
 
 /*
  * A RENAME MUST NOT MOVE THE DATA.
