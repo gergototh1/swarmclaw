@@ -423,3 +423,20 @@ test('a provider that dies at call time reaches the agent as a contract failure,
     } finally { h.cleanup() }
   }
 })
+
+test('docs_write names the doc it wrote as a panel reference', async () => {
+  const { byName } = harness()
+  const who = agentCtx('a1', 'Kutato')
+  const created = await byName.docs_write.execute({ title: 'Weekly report', content: '# Hi' }, who)
+  assert.deepEqual(created.panel, { id: created.id, title: 'Weekly report' })
+
+  const changed = await byName.docs_write.execute({ id: created.id, baseVersion: created.version, title: 'Weekly report v2' }, who)
+  assert.deepEqual(changed.panel, { id: created.id, title: 'Weekly report v2' })
+})
+
+test('a failed docs_write carries no panel reference', async () => {
+  const { byName } = harness()
+  const r = await byName.docs_write.execute({ content: 'no title' }, agentCtx('a1', 'Kutato'))
+  assert.equal(r.error, 'invalid_argument')
+  assert.equal('panel' in r, false)
+})

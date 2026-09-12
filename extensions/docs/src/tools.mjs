@@ -53,6 +53,17 @@ async function guard(log, fn) {
 const STR = { type: 'string' }
 const NUM = { type: 'integer' }
 
+/**
+ * The reference the chat turns into a card that opens this doc beside the
+ * conversation. It rides on the tool's own answer, so the host never has to
+ * know what a doc is: it reads `panel` and passes the id to the panel this
+ * extension declared in `ui.toolPanels`.
+ */
+function withPanel(result) {
+  if (!result || typeof result !== 'object' || result.error || typeof result.id !== 'string') return result
+  return { ...result, panel: { id: result.id, title: result.title } }
+}
+
 export function createTools(state, { serviceOf, logOf }) {
   const run = (fn) => guard(logOf(), fn)
 
@@ -121,9 +132,7 @@ export function createTools(state, { serviceOf, logOf }) {
       execute: (args, ctx) => run(() => {
         const actor = actorOf(ctx)
         const service = serviceOf()
-        return args.id
-          ? service.update(actor, args)
-          : service.create(actor, args)
+        return withPanel(args.id ? service.update(actor, args) : service.create(actor, args))
       }),
     },
     {
@@ -200,7 +209,7 @@ export function createTools(state, { serviceOf, logOf }) {
           throw new DocsError(ERR.video_not_found, 'The video named in the "videoId" field is not in the Video module — either a typo, or the row is gone since. Look up the right id on the Video page and call this again.')
         }
         const { title, content } = videoScript(video, videoId)
-        return serviceOf().create(actorOf(ctx), { title, content })
+        return withPanel(serviceOf().create(actorOf(ctx), { title, content }))
       }),
     },
   ]

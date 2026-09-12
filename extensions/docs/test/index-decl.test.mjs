@@ -219,3 +219,14 @@ test('the settings form offers the English keys', () => {
   assert.deepEqual(keys, ['root', 'watchEnabled', 'versionsKept', 'sharedFolderName'])
   assert.equal(docs.ui.settingsFields.find((f) => f.key === 'sharedFolderName').defaultValue, 'shared')
 })
+
+test('the doc panel is declared for the tools that write docs, old names included', () => {
+  assert.deepEqual(docs.ui.toolPanels, [{
+    id: 'doc',
+    label: 'Doc',
+    icon: 'FileText',
+    tools: ['docs_write', 'docs_video_script', 'doksi_ir', 'doksi_video_forgatokonyv'],
+    entry: 'dist/index.js',
+    css: 'dist/style.css',
+  }])
+})

@@ -3,7 +3,7 @@ import { DOCS_CONTRACT, createDocsContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { migrateLegacyFolders } from './src/folder-migration.mjs'
 import { createIndexWriter } from './src/index-writer.mjs'
-import { LEGACY_SETTING_KEYS, LEGACY_SHARED_FOLDER } from './src/legacy-names.mjs'
+import { LEGACY_PANEL_TOOLS, LEGACY_SETTING_KEYS, LEGACY_SHARED_FOLDER } from './src/legacy-names.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
 import { createRpc } from './src/rpc.mjs'
 import { createService } from './src/service.mjs'
@@ -248,6 +248,19 @@ const docs = {
       entry: 'dist/index.js',
       css: 'dist/style.css',
       position: 'after:tasks',
+    }],
+    /**
+     * The card under an agent message that wrote a doc, and the panel it
+     * opens. The old tool names are listed so a message from before the
+     * rename still gets its card.
+     */
+    toolPanels: [{
+      id: 'doc',
+      label: 'Doc',
+      icon: 'FileText',
+      tools: ['docs_write', 'docs_video_script', ...LEGACY_PANEL_TOOLS],
+      entry: 'dist/index.js',
+      css: 'dist/style.css',
     }],
     settingsFields: [
       { key: 'root', label: 'Docs root folder', type: 'text', required: true, placeholder: '~/SwarmClaw/docs', help: 'Every .md file goes here. It opens in Finder and Obsidian too.' },
