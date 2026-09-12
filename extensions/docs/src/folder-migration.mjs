@@ -82,6 +82,10 @@ export function migrateLegacyFolders({ root, sharedFolderName, writer, log, now 
   // `fs.existsSync(from)` check would find the folder already moved and
   // skip the migration forever -- silently stranding the index instead of
   // retrying it, which is exactly the bug this marker exists to prevent.
+  // Known residual risk: all of this call's renames happen before this one
+  // ledger write, so a process kill between the last `fs.renameSync` above
+  // and this `writeLedger` can still strand the index -- a much smaller
+  // window than the bug this marker fixes, but not zero.
   ledger.__pendingReindex = [...pending]
   writeLedger(root, ledger)
 

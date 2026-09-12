@@ -51,6 +51,12 @@ const ORDERED = 'ordered'
  * Word would substitute silently rather than render either. `Helvetica Neue`
  * is used for both body and headings instead: a real static face that ships
  * with the OS, so what the export names is what Word actually draws.
+ *
+ * Caveat: "ships with the OS" means macOS specifically -- Helvetica Neue is
+ * not a standard face on Windows or Linux, so Word there falls back to a
+ * substitute the same way it would have for Inter Tight, the very failure
+ * this change chases. Accepted for now because the operator is on macOS;
+ * revisit with a cross-platform static face if that changes.
  */
 const BODY_FONT = 'Helvetica Neue'
 const HEADING_COLOR = '1A1A1A'

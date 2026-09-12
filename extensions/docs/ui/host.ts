@@ -5,6 +5,12 @@ export interface HostDropdownProps {
   open: boolean
   onClose: () => void
   children: ReactNode
+  /**
+   * `'trigger'` anchors the menu to its nearest positioned ancestor instead
+   * of the viewport corner; absent on a host that predates this option, in
+   * which case the host's own default (`'viewport'`) applies.
+   */
+  anchor?: 'viewport' | 'trigger'
 }
 
 /** Props the host's `DropdownItem` component takes. */

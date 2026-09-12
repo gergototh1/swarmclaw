@@ -80,7 +80,7 @@ function ExportIcon() {
 /** The document-with-a-W glyph for the "Word (.docx)" export item. */
 function WordDocIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
       <polyline points="7 12 8.5 18 10.5 13 12.5 18 14 12" />
@@ -91,7 +91,7 @@ function WordDocIcon() {
 /** The document-with-a-"PDF"-tag glyph for the "PDF" export item. */
 function PdfDocIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
       <text x="6.3" y="17" fontSize="6.5" fontWeight="700" fill="currentColor" stroke="none">PDF</text>
@@ -446,9 +446,20 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
                   its children go straight in rather than through another
                   `.docs-export-menu` wrapper -- nesting one absolutely
                   positioned menu shell inside another would fight the host's
-                  own fixed positioning instead of matching it.
+                  own positioning instead of matching it.
+
+                  `anchor="trigger"` is what keeps the menu next to the
+                  Export button: the default `Dropdown` position is fixed to
+                  the viewport corner, which drifts away from this trigger
+                  because it sits in the editor's middle column rather than a
+                  page corner, and drifts further still once the details
+                  panel (toggled by the button right next to this one) opens
+                  and narrows that column. `anchor="trigger"` instead
+                  positions the menu absolutely against the nearest
+                  positioned ancestor, which is `.docs-export` on the
+                  wrapping `<div>` just below (see `style.css`).
                 */}
-                <HostDropdown open={exportMenuOpen} onClose={() => setExportMenuOpen(false)}>
+                <HostDropdown open={exportMenuOpen} onClose={() => setExportMenuOpen(false)} anchor="trigger">
                   {HostDropdownItem ? (
                     <>
                       <HostDropdownItem onClick={() => { setExportMenuOpen(false); void exportDocx() }}>
