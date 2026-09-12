@@ -14,7 +14,7 @@ import { actorOf } from './tools.mjs'
  * It never throws. A root that is missing or unreadable must not stop an agent
  * from holding a conversation, so a failure logs and contributes nothing.
  *
- * It adds nothing when there is nothing. An empty "Doksik:" heading over no
+ * It adds nothing when there is nothing. An empty "Docs:" heading over no
  * items is noise in every prompt for no benefit, so an empty listing returns
  * null instead.
  *

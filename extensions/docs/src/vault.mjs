@@ -136,7 +136,7 @@ export function createVault({ root }) {
   if (typeof root !== 'string' || root.trim() === '') {
     throw new DocsError(
       ERR.root_not_writable,
-      'A doksi-gyökér nincs beállítva. Add meg a Doksik extension beállításainál.',
+      'The docs root is not configured. Set it in the Docs extension settings.',
     )
   }
   const expanded = root.startsWith('~/') ? path.join(os.homedir(), root.slice(2)) : root
@@ -170,11 +170,11 @@ export function createVault({ root }) {
    * of a write does not exist yet.
    */
   function abs(rel) {
-    if (typeof rel !== 'string') throw new DocsError(ERR.path_forbidden, 'Az útvonal nem szöveg.')
+    if (typeof rel !== 'string') throw new DocsError(ERR.path_forbidden, 'The path is not text.')
     const joined = path.resolve(realRoot, rel)
     const relative = path.relative(realRoot, joined)
     if (relative === '' || relative.startsWith('..') || path.isAbsolute(relative)) {
-      throw new DocsError(ERR.path_forbidden, `Ez az útvonal kilépne a doksi-gyökérből: ${rel}`)
+      throw new DocsError(ERR.path_forbidden, `This path would leave the docs root: ${rel}`)
     }
     let probe = joined
     while (!fs.existsSync(probe)) {
@@ -185,7 +185,7 @@ export function createVault({ root }) {
     if (fs.existsSync(probe)) {
       const realRelative = path.relative(realRoot, fs.realpathSync(probe))
       if (realRelative !== '' && (realRelative.startsWith('..') || path.isAbsolute(realRelative))) {
-        throw new DocsError(ERR.path_forbidden, `Ez az útvonal a doksi-gyökéren kívülre mutat: ${rel}`)
+        throw new DocsError(ERR.path_forbidden, `This path points outside the docs root: ${rel}`)
       }
     }
     return joined
@@ -206,7 +206,7 @@ export function createVault({ root }) {
     } catch {
       throw new DocsError(
         ERR.root_not_writable,
-        `A doksi-gyökér nem hozható létre vagy nem írható: ${realRoot}`,
+        `The docs root cannot be created or is not writable: ${realRoot}`,
       )
     }
   }
@@ -221,7 +221,7 @@ export function createVault({ root }) {
     try {
       raw = fs.readFileSync(target, 'utf8')
     } catch {
-      throw new DocsError(ERR.doc_not_found, `Nincs ilyen doksi: ${relPath}`)
+      throw new DocsError(ERR.doc_not_found, `No such document: ${relPath}`)
     }
     const { meta, body } = parseFrontMatter(raw)
     return { meta, body, raw, size: Buffer.byteLength(raw), hash: hashOf(raw) }
@@ -302,10 +302,10 @@ export function createVault({ root }) {
     const from = abs(fromRel)
     const to = abs(toRel)
     if (fs.existsSync(to)) {
-      throw new DocsError(ERR.already_exists, `Ezen az útvonalon már van doksi: ${toRel}`)
+      throw new DocsError(ERR.already_exists, `A document already exists at this path: ${toRel}`)
     }
     if (!fs.existsSync(from)) {
-      throw new DocsError(ERR.doc_not_found, `Nincs ilyen doksi: ${fromRel}`)
+      throw new DocsError(ERR.doc_not_found, `No such document: ${fromRel}`)
     }
     fs.mkdirSync(path.dirname(to), { recursive: true })
     fs.renameSync(from, to)

@@ -30,7 +30,7 @@ function doc(over = {}) {
 test('every migration table uses the ext_docs_ prefix, lower case', () => {
   for (const m of MIGRATIONS) {
     for (const t of m.sql.matchAll(/CREATE (?:VIRTUAL )?TABLE IF NOT EXISTS (\w+)/g)) {
-      assert.ok(t[1].startsWith('ext_docs_'), `rossz előtag: ${t[1]}`)
+      assert.ok(t[1].startsWith('ext_docs_'), `wrong prefix: ${t[1]}`)
       assert.equal(t[1], t[1].toLowerCase())
     }
   }
@@ -59,7 +59,7 @@ test('search folds Hungarian diacritics both ways', () => {
   const r = fresh()
   r.upsertDoc(doc())
   for (const q of ['ügyfélprofil', 'ugyfelprofil', 'kőműves', 'komuves', 'MORVAI']) {
-    assert.equal(r.search(q, {}).length, 1, `nem találta: ${q}`)
+    assert.equal(r.search(q, {}).length, 1, `did not find it: ${q}`)
   }
   assert.equal(r.search('nincsilyen', {}).length, 0)
 })
@@ -68,7 +68,7 @@ test('search survives punctuation that would be FTS5 syntax', () => {
   const r = fresh()
   r.upsertDoc(doc({ body: 'A B2B-ügyfél "idézve" (zárójel) is.' }))
   for (const q of ['B2B-ügyfél', '"idézve"', 'zárójel)', 'A*', '-', '^x']) {
-    assert.doesNotThrow(() => r.search(q, {}), `elszállt: ${q}`)
+    assert.doesNotThrow(() => r.search(q, {}), `threw: ${q}`)
   }
 })
 
@@ -152,7 +152,7 @@ test('versions are listed newest first without content, and pruning keeps the ne
   assert.equal(list.length, 5)
   assert.equal(list[0].version, 5)
   assert.equal(list[0].content, undefined)
-  assert.equal(list[0].meret, 2)
+  assert.equal(list[0].size, 2)
   assert.equal(r.getVersion('doc_1', 3).content, 'v3')
   assert.equal(r.getVersion('doc_1', 99), undefined)
 

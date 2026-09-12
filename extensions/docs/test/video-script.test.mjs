@@ -67,14 +67,14 @@ test('every reason a handle can be missing is named, and each says something dif
 
 test('provider_missing tells the operator to install, provider_disabled to switch on', () => {
   // These two are the most common pair, and the fix is the opposite of each other.
-  assert.match(refusal(() => videosHandle(contractsDouble({ why: 'provider_missing' }))).message, /telepít/i)
-  assert.match(refusal(() => videosHandle(contractsDouble({ why: 'provider_disabled' }))).message, /kapcsold be/i)
+  assert.match(refusal(() => videosHandle(contractsDouble({ why: 'provider_missing' }))).message, /install/i)
+  assert.match(refusal(() => videosHandle(contractsDouble({ why: 'provider_disabled' }))).message, /turn it on/i)
 })
 
 test('a reason that moved between the two reads is reported as that, not as one of the four', () => {
   const err = refusal(() => videosHandle(contractsDouble({ why: null })))
   assert.equal(err.code, ERR.contract_missing)
-  assert.match(err.message, /újra/i)
+  assert.match(err.message, /again/i)
   for (const why of ['not_declared', 'provider_missing', 'provider_disabled', 'version_mismatch']) {
     assert.doesNotMatch(err.message, new RegExp(why), `states an unobserved reason: ${why}`)
   }
@@ -154,7 +154,7 @@ async function refusalOf(promise) {
 test('a handle that carries no get is a named contract failure, not a TypeError', async () => {
   // The host reconciles the contract's NAME and VERSION, not its methods. A
   // provider offering `videos@1` without `get` gives a healthy handle, and the
-  // call would die on a plain TypeError: unrecognised by `szerzodesHiba`, it
+  // call would die on a plain TypeError: unrecognised by `isHostContractError`, it
   // would fall to the tool's generic branch and hand the agent
   // `invalid_argument: "videos.get is not a function"`. This is the last door
   // that pairing could still get in through.
@@ -180,7 +180,7 @@ test('a provider that went away between the handle and the call is named, not ge
   assert.match(err.message, /unavailable/)
   // The reason word is the host's; the same sentence applies as at resolution time.
   assert.match(err.message, /provider_disabled/)
-  assert.match(err.message, /kapcsold be/i)
+  assert.match(err.message, /turn it on/i)
 })
 
 test('an unavailable with no reason word says to retry rather than guessing one', async () => {
@@ -200,8 +200,8 @@ test('a provider whose own code threw is a different fact from a provider that i
   assert.match(err.message, /provider_threw/)
   // The extension is installed and switched on: there is nothing to toggle on
   // the Extensions page, and the module's own log is the next step.
-  assert.match(err.message, /napló/i)
-  assert.doesNotMatch(err.message, /Bővítmények lapon/)
+  assert.match(err.message, /log/i)
+  assert.doesNotMatch(err.message, /Extensions page/)
 })
 
 test('a host code this module has not learnt is still a contract failure, not a bad argument', async () => {
@@ -225,12 +225,12 @@ test('fetchVideo hands the video back untouched when the call goes through', asy
 
 test('a reason word that names an Object prototype member takes the unknown fallback', async () => {
   // The key comes from the host, not this module: on a plain object,
-  // SZERZODES_OKOK['constructor'] would answer a function, and that would end
+  // CONTRACT_REASONS['constructor'] would answer a function, and that would end
   // up in the operator's message.
   for (const why of ['constructor', 'toString', '__proto__']) {
     const err = refusal(() => videosHandle(contractsDouble({ why })))
     assert.equal(err.code, ERR.contract_missing, why)
-    assert.match(err.message, /nem oldható fel/, why)
+    assert.match(err.message, /cannot be resolved/, why)
     assert.doesNotMatch(err.message, /function|\[object/i, `${why}: a prototype member leaked into the message`)
   }
 })

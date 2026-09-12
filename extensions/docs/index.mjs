@@ -60,9 +60,10 @@ export function rootSetting() {
 /**
  * The shared folder's name, which the operator may rename.
  *
- * A stored "kozos" is ignored rather than honoured: it is the old default the
- * settings form wrote, not a choice, and honouring it would keep the
- * kozos -> shared migration from ever running.
+ * A stored value equal to `LEGACY_SHARED_FOLDER` is ignored rather than
+ * honoured: it is the old default the settings form wrote, not a choice, and
+ * honouring it would keep the old-name -> shared folder migration from ever
+ * running.
  */
 export function sharedFolder() {
   const fresh = trimmed(state.settings()?.sharedFolderName)

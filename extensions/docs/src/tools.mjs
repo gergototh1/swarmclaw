@@ -158,8 +158,8 @@ export function createTools(state, { serviceOf, logOf }) {
        * `agents/video/`, and `permissions.mjs` will not have it. `canWrite`
        * lets an agent write its OWN folder and the shared one, and an agent's
        * folder is its NAME folded to a slug -- so a fixed `agents/video/`
-       * succeeds only for an agent literally called "Videó", and every other
-       * caller, the Videó Gyártó included, gets `forbidden` and no document.
+       * succeeds only for an agent literally called "Video", and every other
+       * caller, the Video Producer included, gets `forbidden` and no document.
        * A tool whose single purpose fails for almost every caller is not a
        * tool, and the way to make it work would have been to widen `canWrite`,
        * which is the one thing that must not happen for a convenience.
@@ -168,7 +168,7 @@ export function createTools(state, { serviceOf, logOf }) {
        * where every other document that agent writes goes: its own folder
        * (the operator's calls land in the shared folder, same rule). Nothing
        * is lost by that, because `canRead` is true for everybody -- the script
-       * is as visible in `agents/video-gyarto/` as it would be anywhere else,
+       * is as visible in `agents/video-producer/` as it would be anywhere else,
        * and `docs_move` relocates it under the same permission check if the
        * operator would rather it sat in the shared folder.
        */

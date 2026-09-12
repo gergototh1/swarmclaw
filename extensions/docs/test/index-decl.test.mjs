@@ -46,27 +46,27 @@ test('the declaration names the module the way the host expects', () => {
 test('every migration table carries the ext_docs_ prefix, lower case', () => {
   for (const m of docs.migrations) {
     for (const t of m.sql.matchAll(/CREATE (?:VIRTUAL )?TABLE IF NOT EXISTS (\w+)/g)) {
-      assert.ok(t[1].startsWith('ext_docs_'), `rossz előtag: ${t[1]}`)
+      assert.ok(t[1].startsWith('ext_docs_'), `wrong prefix: ${t[1]}`)
       assert.equal(t[1], t[1].toLowerCase())
     }
   }
 })
 
 test('the module declares the one contract it reaches for, with a reason the operator reads', () => {
-  // A deklaráció maga a hozzáférés: nincs jóváhagyás, nincs visszavonás. Ha
-  // ez a bejegyzés elveszik, a docs_video_script not_declared-ot kap,
-  // és a hetedik tool minden hívónál elutasít.
-  // A `reason` mezőt korábban önmagával hasonlítottuk össze: az a sor minden
-  // szövegre igaz volt, az üresre is. Itt a MARADÉK egyezik pontosan, az
-  // indoklást pedig külön mérjük, mert az operátor azt olvassa a Bővítmények
-  // lapon, amikor eldönti, helyénvaló-e ez a hozzáférés.
-  assert.equal(docs.consumes.length, 1, 'ez a modul pontosan egy szerződésért nyúl ki')
-  const [{ reason, ...deklaracio }] = docs.consumes
-  assert.deepEqual(deklaracio, { extension: 'video', contract: 'videos', version: 1 })
+  // The declaration IS the access: there is no approve and no revoke. If this
+  // entry is lost, docs_video_script gets not_declared, and the seventh tool
+  // refuses every caller.
+  // The `reason` field used to be compared against itself: that line was true
+  // for any text, including an empty one. Here the REST compares exactly, and
+  // the wording is measured separately, because the operator reads it on the
+  // Extensions page when deciding whether this access is appropriate.
+  assert.equal(docs.consumes.length, 1, 'this module reaches for exactly one contract')
+  const [{ reason, ...declaration }] = docs.consumes
+  assert.deepEqual(declaration, { extension: 'video', contract: 'videos', version: 1 })
   assert.equal(typeof reason, 'string')
-  assert.ok(reason.length > 30, 'az indoklás túl rövid ahhoz, hogy az operátornak mondjon valamit')
-  // Megnevezi a toolt, ami miatt a hozzáférés kell, és azt, hogy mit hoz be:
-  // egy „a Videó modulhoz kell” mondat ugyanolyan hosszú, és semmit nem mond.
+  assert.ok(reason.length > 30, 'the reason is too short to tell the operator anything')
+  // Names the tool that needs the access and what it brings in: a sentence
+  // like "needed for the Video module" is just as long, and says nothing.
   assert.match(reason, /docs_video_script/)
   assert.match(reason, /video/i)
 })
@@ -86,7 +86,7 @@ test('every settings field has a key, a label and a known type', () => {
   const keys = docs.ui.settingsFields.map((f) => f.key)
   assert.deepEqual(keys, ['root', 'watchEnabled', 'versionsKept', 'sharedFolderName'])
   for (const f of docs.ui.settingsFields) {
-    assert.ok(f.label, `nincs címke: ${f.key}`)
+    assert.ok(f.label, `no label: ${f.key}`)
     assert.ok(['text', 'number', 'boolean', 'select', 'secret'].includes(f.type))
   }
 })
@@ -99,13 +99,13 @@ test('the root folder is declared as a managed local folder', () => {
 })
 
 test('setup() can run twice, and the second run follows the new root', () => {
-  // A setup() minden data/extensions alatti írásra újrafut, tehát az
-  // ismételhetőség nem kényelmi kérdés. A lényeg, hogy a második futás után
-  // semmi ne az előző gyökérre mutasson.
+  // setup() reruns on every write under data/extensions, so repeatability is
+  // not a matter of convenience. The point is that nothing after the second
+  // run still points at the previous root.
   //
-  // A vault a gyökeret realpath-tal oldja fel -- macOS-en a /tmp maga is
-  // symlink --, ezért a kanonikus alakhoz hasonlítunk, nem a beírthoz.
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-ket-'))
+  // The vault resolves the root through realpath -- on macOS /tmp is itself a
+  // symlink -- so we compare against the canonical form, not the one typed in.
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-two-'))
   const a = path.join(base, 'a')
   const b = path.join(base, 'b')
   try {
@@ -122,14 +122,14 @@ test('setup() can run twice, and the second run follows the new root', () => {
 })
 
 test('setup() creates the root so the first watch does not fail on ENOENT', () => {
-  // Élesben ez bukott: a setup() a figyelőt még nem létező mappára indította,
-  // az fs.watch ENOENT-tel elszállt, és a figyelés a telepítés után addig
-  // állt, amíg az operátor kézzel újra nem indította.
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-setup-')) + '/friss'
+  // This broke in production: setup() started the watcher on a root that did
+  // not exist yet, fs.watch died with ENOENT, and watching stayed down after
+  // install until the operator restarted it by hand.
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-setup-')) + '/fresh'
   try {
     docs.setup(fakeCtx({ root }))
-    assert.equal(fs.existsSync(root), true, 'a setup() nem hozta létre a gyökeret')
-    assert.equal(watcherControl.status().running, true, 'a figyelő nem indult el')
+    assert.equal(fs.existsSync(root), true, 'setup() did not create the root')
+    assert.equal(watcherControl.status().running, true, 'the watcher did not start')
     assert.equal(watcherControl.status().error, null)
   } finally {
     watcherControl.stop()
@@ -138,7 +138,7 @@ test('setup() creates the root so the first watch does not fail on ENOENT', () =
 })
 
 test('setup() starts at most one watcher however often it runs', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-egy-'))
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-one-'))
   try {
     docs.setup(fakeCtx({ root }))
     const first = watcherControl.status()
@@ -160,8 +160,8 @@ test('settings readers fall back rather than returning undefined', () => {
 })
 
 test('a cleared text setting falls back instead of becoming an empty path', () => {
-  // Az operátor által kiürített mező '' -t tárol, nem undefined-ot, tehát a
-  // host defaultValue-ja többé nem sül el: a fallback itt az egyetlen védelem.
+  // A field the operator cleared stores '', not undefined, so the host's
+  // defaultValue no longer kicks in: the fallback here is the only guard left.
   withSettings({ root: '   ', sharedFolderName: '', versionsKept: 0 })
   assert.equal(rootSetting(), '~/SwarmClaw/docs')
   assert.equal(sharedFolder(), 'shared')

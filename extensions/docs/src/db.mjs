@@ -111,7 +111,7 @@ function hydrate(row) {
  * A user's search string as one FTS5 term.
  *
  * FTS5 gives `"`, `*`, `:`, `-`, `^`, `(` and `)` syntactic meaning, so a
- * perfectly ordinary query like `B2B-ügyfél` is a syntax error rather than a
+ * perfectly ordinary query like `co-branded` is a syntax error rather than a
  * search. Wrapping the whole thing in quotes makes it a single phrase, and
  * doubling any embedded quote keeps that wrapper intact. A query that is all
  * punctuation ends up an empty phrase, which matches nothing -- the right
@@ -124,9 +124,9 @@ function ftsPhrase(query) {
 /**
  * A LIKE pattern that matches a folder's contents and nothing beside it.
  *
- * The trailing slash is what stops `kozos` from also matching `kozosseg/`, and
- * the escape clause is what stops a folder with `%` or `_` in its name from
- * turning into a wildcard.
+ * The trailing slash is what stops `docs` from also matching `docsarchive/`,
+ * and the escape clause is what stops a folder with `%` or `_` in its name
+ * from turning into a wildcard.
  */
 function folderPattern(folder) {
   const escaped = String(folder).replace(/[\\%_]/g, (c) => `\\${c}`)
@@ -295,7 +295,7 @@ export function createRepo(storage) {
   /** Newest first, without the content: a version list is a list, not a load. */
   function listVersions(docId) {
     return rows(
-      `SELECT version, author, created_at AS createdAt, length(content) AS meret
+      `SELECT version, author, created_at AS createdAt, length(content) AS size
        FROM ext_docs_versions WHERE doc_id = ? ORDER BY version DESC`,
       [docId],
     )

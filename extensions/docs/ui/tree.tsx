@@ -210,7 +210,7 @@ export function TreeColumn({ rpc, tree, treeError, activeId, onOpen, onChanged, 
           <button
             type="button"
             className="docs-primary"
-            onClick={() => newDoc(tree?.sharedFolderName ?? 'kozos', UNTITLED_DOC_TITLE)}
+            onClick={() => newDoc(tree?.sharedFolderName ?? 'shared', UNTITLED_DOC_TITLE)}
           >
             + Doc
           </button>
@@ -250,7 +250,7 @@ export function TreeColumn({ rpc, tree, treeError, activeId, onOpen, onChanged, 
                 autoFocus
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. kozos/projects"
+                placeholder="e.g. shared/projects"
                 aria-label="The new folder's path"
               />
               <div className="docs-modal-buttons">

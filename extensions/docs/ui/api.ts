@@ -146,7 +146,7 @@ export function readTree(raw: unknown): Tree {
   if (!Array.isArray(r.folders)) fail('tree', 'no "folders" list in it')
   return {
     root: str(r.root),
-    sharedFolderName: str(r.sharedFolderName, 'kozos'),
+    sharedFolderName: str(r.sharedFolderName, 'shared'),
     folders: strList(r.folders),
     docs: r.docs.map(docRow),
     titles: strList(r.titles),
@@ -183,7 +183,7 @@ export function readStatus(raw: unknown): Status {
     watcherRunning: Boolean(r.watcherRunning),
     watcherError: typeof r.watcherError === 'string' ? r.watcherError : null,
     docCount: typeof r.docCount === 'number' ? r.docCount : 0,
-    sharedFolderName: str(r.sharedFolderName, 'kozos'),
+    sharedFolderName: str(r.sharedFolderName, 'shared'),
     migrationBlocked: migrationBlockedList(r.migrationBlocked),
   }
 }

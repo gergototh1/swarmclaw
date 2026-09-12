@@ -29,10 +29,10 @@ test('importing the module opens no handle, reads no file, starts no timer', asy
 
   try {
     await import(`../index.mjs?t=${Date.now()}`)
-    // A node_modules alóli olvasás a betöltő dolga, nem a modulé.
+    // A read from under node_modules is the loader's business, not the module's.
     assert.deepEqual(reads.filter((p) => !p.includes('node_modules')), [])
-    assert.equal(watches, 0, 'a betöltés figyelőt nyitott')
-    assert.deepEqual(timers, [], 'a betöltés időzítőt indított')
+    assert.equal(watches, 0, 'the import opened a watcher')
+    assert.deepEqual(timers, [], 'the import started a timer')
   } finally {
     fs.readFileSync = readFileSync
     fs.watch = watch

@@ -147,8 +147,8 @@ test('a root created after the vault was built still accepts paths', () => {
   // építette, így a root feloldatlan maradt (/var/...), miközben a később
   // létrejött mappát az abs() már /private/var/...-ként oldotta fel -- és
   // onnantól a vault minden útvonalat kilépésnek ítélt.
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-kesoi-'))
-  const root = path.join(base, 'meg-nincs')
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-later-'))
+  const root = path.join(base, 'not-yet')
   try {
     const vault = createVault({ root })
     assert.equal(fs.existsSync(root), false)

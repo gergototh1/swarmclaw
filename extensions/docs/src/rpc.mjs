@@ -119,7 +119,7 @@ export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus,
 
     versions: (body) => run(() => ({
       versions: serviceOf().versions(body.id).map((v) => ({
-        version: v.version, author: v.author, createdAt: v.createdAt, size: v.meret,
+        version: v.version, author: v.author, createdAt: v.createdAt, size: v.size,
       })),
     })),
     version: (body) => run(() => serviceOf().version(body.id, body.version)),

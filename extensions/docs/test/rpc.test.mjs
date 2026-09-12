@@ -195,7 +195,7 @@ test('createFolder makes an empty folder the tree can show', async () => {
 test('createFolder refuses to leave the root', async () => {
   const h = harness()
   try {
-    const res = await h.rpc.createFolder({ folder: '../kifele' })
+    const res = await h.rpc.createFolder({ folder: '../outside' })
     assert.equal(res.error, ERR.path_forbidden)
   } finally { h.cleanup() }
 })
@@ -203,12 +203,12 @@ test('createFolder refuses to leave the root', async () => {
 test('status reports a broken root as state, not as a failed call', async () => {
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-rpc-locked-'))
   fs.chmodSync(parent, 0o500)
-  const h = harness({ root: path.join(parent, 'alatta') })
+  const h = harness({ root: path.join(parent, 'under-it') })
   try {
     const res = await h.rpc.status()
     assert.equal(res.error, undefined, 'the call itself failed')
     assert.equal(res.rootOk, false)
-    assert.match(res.rootError, /nem hozható létre vagy nem írható/)
+    assert.match(res.rootError, /cannot be created or is not writable/)
     assert.equal(res.docCount, 0)
   } finally {
     fs.chmodSync(parent, 0o700)
