@@ -142,9 +142,14 @@ test('every docs.setup(fakeCtx(...)) call in the test suite passes an explicit r
       // root. Shorthand `{ root }` (no colon) has no literal to inspect here --
       // it is a variable, and the runtime guard in fakeCtx() covers whatever
       // that variable turns out to hold.
-      const rootMatch = args.match(/\broot\b(?:\s*:\s*([^\s,)}]+))?/)
-      const emptyRootValues = new Set(['undefined', 'null', "''", '""', '``'])
-      if (!rootMatch || (rootMatch[1] !== undefined && emptyRootValues.has(rootMatch[1]))) {
+      // The value pattern takes a whole quoted literal, spaces included: a
+      // root of '   ' is as empty as '' once rootSetting() trims it.
+      const rootMatch = args.match(/\broot\b(?:\s*:\s*('[^']*'|"[^"]*"|`[^`]*`|[^\s,)}]+))?/)
+      const literal = rootMatch?.[1]
+      const unquoted = literal && /^(['"`]).*\1$/s.test(literal) ? literal.slice(1, -1) : literal
+      const emptyRoot = unquoted !== undefined
+        && (unquoted === 'undefined' || unquoted === 'null' || unquoted.trim() === '')
+      if (!rootMatch || emptyRoot) {
         problems.push(`${rel}:${i + 1} setup(fakeCtx(...)) without an explicit root: ${raw.trim().slice(0, 80)}`)
       }
     })

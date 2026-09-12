@@ -32,8 +32,8 @@ function fakeCtx(settings = {}) {
   // live documents. Every caller of this helper feeds a docs.setup() call, so
   // a missing or empty root has to fail loudly here, not just in the
   // source-scanning guard in english-only.test.mjs.
-  if (typeof settings.root !== 'string' || settings.root.length === 0) {
-    throw new Error('fakeCtx() requires an explicit non-empty settings.root')
+  if (typeof settings.root !== 'string' || settings.root.trim() === '') {
+    throw new Error('fakeCtx() requires an explicit settings.root that is not blank')
   }
   return {
     extensionId: 'docs.mjs',
