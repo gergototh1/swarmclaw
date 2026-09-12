@@ -66,7 +66,7 @@ function Eszkoztar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   )
 }
 
-export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt, onTorol, fokuszCim, onCimFokuszalva }: {
+export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt, onTorol, fokuszCim, onCimFokuszalva, onCim }: {
   rpc: Rpc
   id: string | null
   cimek: Set<string>
@@ -76,6 +76,8 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   onTorol: () => void
   fokuszCim: boolean
   onCimFokuszalva: () => void
+  /** A nyitott doksi címe betöltéskor és átnevezés után; null, ha nincs nyitott doksi. */
+  onCim?: (cim: string | null) => void
 }) {
   const [doc, setDoc] = useState<Doc | null>(null)
   const [betoltesHiba, setBetoltesHiba] = useState<string | null>(null)
@@ -97,7 +99,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   // Betöltés: a szerkesztő tartalmát csak akkor cseréljük, ha tényleg más
   // doksit nyitottunk — különben minden mentés visszaugrasztaná a kurzort.
   useEffect(() => {
-    if (!id || !editor) { setDoc(null); return }
+    if (!id || !editor) { setDoc(null); onCim?.(null); return }
     let elavult = false
     setBetoltesHiba(null)
     rpc('olvas', { id })
@@ -110,13 +112,14 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
         savedMd.current = loaded.tartalom
         editor.commands.setContent(mdToHtml(loaded.tartalom, cimek))
         setAllas({ kind: 'nyugalom' })
+        onCim?.(loaded.cim)
       })
       .catch((err) => { if (!elavult) setBetoltesHiba(String(err?.message ?? err)) })
     return () => { elavult = true }
     // `cimek` szándékosan nincs a listában: a címhalmaz változása nem ok a
     // szerkesztő tartalmának újratöltésére, az elvenné a kurzort.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, editor, rpc])
+  }, [id, editor, rpc, onCim])
 
   const ment = useCallback((md: string, base: number) => {
     if (!id) return
@@ -155,10 +158,11 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
         if (typeof uj === 'number') setVerzio(uj)
         setDoc((elozo) => (elozo ? { ...elozo, cim: tiszta } : elozo))
         setAllas({ kind: 'mentve', mikor: Date.now() })
+        onCim?.(tiszta)
         onMentve()
       })
       .catch((err) => setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) }))
-  }, [id, cim, doc, rpc, verzio, onMentve])
+  }, [id, cim, doc, rpc, verzio, onMentve, onCim])
 
   // Egy frissen létrehozott doksi címe a helykitöltő; a kurzor odamegy, és a
   // szöveg ki van jelölve, hogy gépelni lehessen rá.

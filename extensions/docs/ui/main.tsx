@@ -6,6 +6,7 @@ import { FaOszlop } from './fa'
 import { currentExtensionId, hostOf, hostReact } from './host'
 import { Panel } from './panel'
 import { Szerkeszto } from './szerkeszto'
+import { doksiIdAzUtbol, utADoksihoz } from './utvonal'
 
 /**
  * The page: a status strip and three columns.
@@ -22,12 +23,34 @@ import { Szerkeszto } from './szerkeszto'
  * see that reads the empty tree below it as "I have no documents".
  */
 
-export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
+/**
+ * What the host hands the page. `subPath`, `navigate` and `setTitle` arrive
+ * from a newer host; on an older one they are absent and the page falls back
+ * to local state.
+ */
+type OldalProps = {
+  extensionId: string
+  rpc: Rpc
+  subPath?: string
+  navigate?: (subPath: string, opts?: { replace?: boolean }) => void
+  setTitle?: (text: string | null) => void
+}
+
+export function DocsPage({ rpc, subPath, navigate, setTitle }: OldalProps) {
   const [fa, setFa] = useState<Fa | null>(null)
   const [faHiba, setFaHiba] = useState<string | null>(null)
   const [allapot, setAllapot] = useState<Allapot | null>(null)
   const [allapotHiba, setAllapotHiba] = useState<string | null>(null)
-  const [aktivId, setAktivId] = useState<string | null>(null)
+  const [helyiUt, setHelyiUt] = useState('')
+  const aktivId = doksiIdAzUtbol(subPath ?? helyiUt)
+  const setAktivId = useCallback((id: string | null) => {
+    const ut = utADoksihoz(id)
+    if (navigate) navigate(ut)
+    else setHelyiUt(ut)
+  }, [navigate])
+  const cimJelzes = useCallback((cim: string | null) => {
+    setTitle?.(cim ? `Doksik · ${cim}` : null)
+  }, [setTitle])
   const [agentNevek, setAgentNevek] = useState<Map<string, string>>(new Map())
   // AZ ADATOK-HASÁB ZÁRVA INDUL. Amíg mindig ott állt, a szerkesztő harmadik
   // hasábként osztozott a szélességen egy olyan panellel, aminek a tartalma
@@ -74,7 +97,7 @@ export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
     rpc('torol', { id: aktivId })
       .then(() => { setAktivId(null); refresh() })
       .catch(() => refresh())
-  }, [aktivId, rpc, refresh])
+  }, [aktivId, rpc, refresh, setAktivId])
 
   const cimek = useMemo(() => new Set(fa?.cimek ?? []), [fa])
 
@@ -121,6 +144,7 @@ export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
           onTorol={torol}
           fokuszCim={frissDoksiId !== null && frissDoksiId === aktivId}
           onCimFokuszalva={() => setFrissDoksiId(null)}
+          onCim={cimJelzes}
         />
         {panelNyitva && <Panel rpc={rpc} id={aktivId} onValtozott={refresh} />}
       </div>
