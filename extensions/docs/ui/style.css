@@ -650,10 +650,25 @@ button.docs-primary:hover {
 
 /* --- Chat panel --- */
 .docs-panel { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.docs-panel-bar { display: flex; justify-content: flex-end; padding: 6px 12px; border-bottom: 1px solid var(--color-line-subtle, rgba(255,255,255,0.08)); }
-.docs-panel-open { font-size: 12px; font-weight: 600; text-decoration: none; }
+/* Rendered into the host's header slot, so it wears the header's own size. */
+.docs-panel-open { font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; }
 .docs-panel-open:hover { text-decoration: underline; }
 .docs-panel > :last-child { flex: 1; min-height: 0; overflow: auto; }
+
+/*
+ * In the chat panel the doc IS the panel, so it drops the card treatment it
+ * wears on the Docs page. There the white card separates the text from the
+ * tree beside it; here the host already draws the surface and its edge, and
+ * the card became a second rounded frame inset inside the first. Only the
+ * side padding stays -- that is what keeps the text off the edge, and it is
+ * not what the frame was doing.
+ */
+.docs-panel .docs-editor {
+  margin: 0;
+  padding: 0 16px 24px;
+  border: none;
+  border-radius: 0;
+}
 
 /* --- Raw markdown view --- */
 .docs-raw {

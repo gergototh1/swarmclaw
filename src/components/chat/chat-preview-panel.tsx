@@ -5,6 +5,13 @@ import { CodeBlock } from './code-block'
 import { ExtensionToolPanel } from './extension-tool-panel'
 import type { ChatPreviewContent } from '@/stores/use-chat-store'
 
+/**
+ * The id of the header's action slot. Exported so a panel — including one
+ * loaded from an extension bundle — can find it without hard-coding the
+ * string, and so a rename shows up as a compile error on this side at least.
+ */
+export const PANEL_HEADER_ACTIONS_ID = 'chat-preview-header-actions'
+
 interface Props {
   content: ChatPreviewContent
   onClose: () => void
@@ -59,6 +66,15 @@ export function ChatPreviewPanel({ content, onClose, fullWidth }: Props) {
         <span className="text-[12px] font-600 text-text-2 truncate flex-1">
           {content.title || 'Preview'}
         </span>
+        {/*
+          Where a panel puts its own header controls, so it does not have to
+          draw a second full-width bar directly under this one. An extension
+          panel renders here through a portal (react-dom is one of the modules
+          the host publishes to extension bundles), which is why this is a
+          plain id rather than a React slot: the panel component is loaded at
+          runtime and cannot pass a node up to its parent.
+        */}
+        <div id={PANEL_HEADER_ACTIONS_ID} className="flex items-center gap-1 shrink-0" />
         <button
           onClick={onClose}
           className="p-1 rounded-xs text-text-3 hover:text-text-2 hover:bg-layer-2 cursor-pointer border-none bg-transparent transition-colors"
