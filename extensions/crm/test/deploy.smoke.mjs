@@ -133,7 +133,7 @@ for (const [nev, tipus] of [['index.js', 'javascript'], ['style.css', 'css']]) {
 {
   const { status, body } = await call('mcpCall', { tool: 'crm_nincs_ilyen_eszkoz' })
   ok('mcpCall ismeretlen tool-ra nevesitett hibat ad ertekkent, nem 500-at',
-     status === 200 && body?.error?.code === 'mcp_ismeretlen_tool', JSON.stringify(body), status)
+     status === 200 && body?.error?.code === 'mcp_unknown_tool', JSON.stringify(body), status)
 }
 
 // --- CRM-3 ---------------------------------------------------------------

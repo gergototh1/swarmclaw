@@ -67,7 +67,7 @@ test('no shim names a tool, because the tool table comes from the host', () => {
   // own table, which is the drift the generic design exists to avoid.
   for (const name of EXTENSIONS) {
     const text = read(name, 'mcp', 'server.mjs')
-    assert.equal(/\bvideo[A-Z]\w*|doksi_\w+|signalSweep\b/.test(text), false, `${name}/mcp/server.mjs names a tool`)
+    assert.equal(/\bvideo[A-Z]\w*|doksi_\w+|docs_\w+|signalSweep\b/.test(text), false, `${name}/mcp/server.mjs names a tool`)
   }
 })
 

@@ -48,7 +48,7 @@
  */
 
 /** The shape a failure takes, matching what the tools themselves return. */
-function hiba(code, message) {
+function errorResult(code, message) {
   return { error: { code, message } }
 }
 
@@ -98,13 +98,13 @@ export function createMcpBridge(toolsOf) {
     async mcpCall(body) {
       const name = isPlainObject(body) ? body.tool : undefined
       if (typeof name !== 'string' || name === '') {
-        return hiba('mcp_rossz_keres', 'tool: nem üres szöveg kell')
+        return errorResult('mcp_bad_request', 'tool: needs a non-empty string')
       }
       const args = isPlainObject(body) && isPlainObject(body.args) ? body.args : {}
       const tool = (toolsOf() || []).find((t) => t.name === name)
       if (!tool) {
-        const ismert = (toolsOf() || []).map((t) => t.name).join(', ')
-        return hiba('mcp_ismeretlen_tool', `nincs "${name}" nevű tool ebben az extensionben; a meglévők: ${ismert}`)
+        const known = (toolsOf() || []).map((t) => t.name).join(', ')
+        return errorResult('mcp_unknown_tool', `no tool named "${name}" in this extension; the ones there are: ${known}`)
       }
       // The same shape buildSessionTools() passes, so a tool cannot tell which
       // side called it. `agentRecord` carries the name because that is where
