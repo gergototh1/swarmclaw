@@ -17,7 +17,7 @@ test('agentSlug strips accents, lowercases and joins with dashes', () => {
 })
 
 test('agentSlug falls back to the id when the name leaves nothing', () => {
-  // Enélkül az ügynök mappája 'agents//' lenne.
+  // Without this the agent's folder would be 'agents//'.
   assert.equal(agentSlug('', 'abc123def456'), 'abc123')
   assert.equal(agentSlug('!!!', 'abc123def456'), 'abc123')
   assert.equal(agentSlug(null, 'abc123def456'), 'abc123')
@@ -46,7 +46,7 @@ test('the operator can write anywhere outside the internal folders', () => {
   assert.equal(canWrite(user, '_templates/c.md', OPTS), true)
   assert.equal(canWrite(user, 'barmi/mashol.md', OPTS), true)
   assert.equal(canWrite(user, 'gyoker-szinten.md', OPTS), true)
-  // A kuka nem szerkeszthető, csak a kuka-műveleteken át.
+  // The trash is not editable, only through the trash operations.
   assert.equal(canWrite(user, '.swarmdocs/trash/doc_1/d.md', OPTS), false)
 })
 

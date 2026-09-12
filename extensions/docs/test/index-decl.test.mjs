@@ -27,6 +27,14 @@ function withSettings(settings = {}) {
 }
 
 function fakeCtx(settings = {}) {
+  // Regression guard for a real incident: a rootless setup call once ran the
+  // folder migration against the operator's REAL ~/SwarmClaw/docs and moved
+  // live documents. Every caller of this helper feeds a docs.setup() call, so
+  // a missing or empty root has to fail loudly here, not just in the
+  // source-scanning guard in english-only.test.mjs.
+  if (typeof settings.root !== 'string' || settings.root.length === 0) {
+    throw new Error('fakeCtx() requires an explicit non-empty settings.root')
+  }
   return {
     extensionId: 'docs.mjs',
     tablePrefix: 'ext_docs_',

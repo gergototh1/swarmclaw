@@ -84,7 +84,7 @@ test('writeDoc is atomic and readDoc gives back what was written', () => {
     assert.equal(read.body, 'Törzs.\n')
     assert.equal(read.hash, written.hash)
 
-    // A rename-hez használt ideiglenes fájl nem maradhat ott.
+    // The temp file used for the rename must not stay behind.
     assert.deepEqual(fs.readdirSync(path.join(vault.root, 'kozos')), ['teszt.md'])
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
@@ -143,10 +143,10 @@ test('ensureRoot names an unwritable root instead of failing silently', () => {
 })
 
 test('a root created after the vault was built still accepts paths', () => {
-  // Élesben ez bukott meg: a setup() a vaultot a gyökér létrejötte ELŐTT
-  // építette, így a root feloldatlan maradt (/var/...), miközben a később
-  // létrejött mappát az abs() már /private/var/...-ként oldotta fel -- és
-  // onnantól a vault minden útvonalat kilépésnek ítélt.
+  // This broke in production: setup() built the vault BEFORE the root
+  // existed, so the root stayed unresolved (/var/...), while the folder that
+  // showed up later got resolved by abs() as /private/var/... -- and from
+  // then on the vault judged every path an escape.
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-later-'))
   const root = path.join(base, 'not-yet')
   try {
@@ -154,7 +154,7 @@ test('a root created after the vault was built still accepts paths', () => {
     assert.equal(fs.existsSync(root), false)
 
     vault.ensureRoot()
-    assert.equal(vault.root, fs.realpathSync(root), 'a root nem oldódott fel a létrejötte után')
+    assert.equal(vault.root, fs.realpathSync(root), 'the root did not resolve after it was created')
     assert.doesNotThrow(() => vault.abs('kozos/a.md'))
     vault.writeDoc('kozos/a.md', { meta: { id: 'doc_a', title: 'A', owner: 'user', tags: [] }, body: 'x\n' })
     assert.equal(vault.readDoc('kozos/a.md').body, 'x\n')
@@ -175,9 +175,10 @@ test('readDoc names a missing file', () => {
 })
 
 test('listFolders reports a folder that holds nothing', () => {
-  // A `mkdirp` egyetlen célja, hogy üres mappa is létezhessen. Amíg a fa a
-  // mappákat a doksik útvonalaiból vezette le, egy ilyen mappa a lemezen ott
-  // volt, a lapon soha -- a művelet sikeres volt és láthatatlan.
+  // `mkdirp`'s only purpose is to let an empty folder exist at all. As long as
+  // the tree derived folders from the docs' paths, a folder like this existed
+  // on disk but never in the listing -- the operation succeeded and stayed
+  // invisible.
   const root = tempRoot()
   try {
     const vault = createVault({ root })
@@ -186,9 +187,9 @@ test('listFolders reports a folder that holds nothing', () => {
     vault.writeDoc('kozos/telt/a.md', { meta: { id: 'doc_a', title: 'A', owner: 'user', tags: [] }, body: 'x\n' })
 
     const folders = vault.listFolders()
-    assert.ok(folders.includes('kozos/ures'), 'az üres mappa hiányzik')
-    assert.ok(folders.includes('kozos/telt'), 'a doksit tartó mappa hiányzik')
-    assert.ok(folders.includes('kozos'), 'a köztes mappa hiányzik')
+    assert.ok(folders.includes('kozos/ures'), 'the empty folder is missing')
+    assert.ok(folders.includes('kozos/telt'), 'the folder holding the doc is missing')
+    assert.ok(folders.includes('kozos'), 'the intermediate folder is missing')
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

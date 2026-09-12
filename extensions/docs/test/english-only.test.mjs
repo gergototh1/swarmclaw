@@ -135,7 +135,16 @@ test('every docs.setup(fakeCtx(...)) call in the test suite passes an explicit r
         }
       }
       const args = end === -1 ? rest : rest.slice(0, end)
-      if (!/\broot\b/.test(args)) {
+      // A `root` key has to be present, and if it carries a value that value has
+      // to be real: `root: undefined`, `root: null`, `root: ''`, `root: ""` and
+      // `root: ``` `` ``` all resolve to the operator's real ~/SwarmClaw/docs
+      // once rootSetting() falls back, so none of them count as an explicit
+      // root. Shorthand `{ root }` (no colon) has no literal to inspect here --
+      // it is a variable, and the runtime guard in fakeCtx() covers whatever
+      // that variable turns out to hold.
+      const rootMatch = args.match(/\broot\b(?:\s*:\s*([^\s,)}]+))?/)
+      const emptyRootValues = new Set(['undefined', 'null', "''", '""', '``'])
+      if (!rootMatch || (rootMatch[1] !== undefined && emptyRootValues.has(rootMatch[1]))) {
         problems.push(`${rel}:${i + 1} setup(fakeCtx(...)) without an explicit root: ${raw.trim().slice(0, 80)}`)
       }
     })

@@ -147,7 +147,7 @@ test('an event whose content matches a self-write is dropped', async () => {
     h.watchImpl.last().cb('change', 'kozos/a.md')
     await settle()
 
-    assert.equal(h.repo.listDocs({}).length, 0, 'a saját írásunk visszhangját is indexelte')
+    assert.equal(h.repo.listDocs({}).length, 0, 'indexed the echo of our own write')
   } finally { h.cleanup() }
 })
 
@@ -160,7 +160,7 @@ test('an edit that really came from outside after our save is processed', async 
       body: 'Mienk.\n',
     })
     h.writer.noteSelfWrite('kozos/a.md', written.hash)
-    // Valaki tényleg átírja: a hash már nem a miénk.
+    // Someone really overwrites it: the hash is no longer ours.
     h.vault.writeDoc('kozos/a.md', {
       meta: { id: 'doc_a', title: 'A', owner: 'user', tags: [] },
       body: 'Kívülről Morvai.\n',

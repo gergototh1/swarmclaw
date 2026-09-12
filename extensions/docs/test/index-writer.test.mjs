@@ -57,7 +57,7 @@ test('a file with no front matter gets one written back into it', () => {
     const read = h.vault.readDoc('kozos/kivulrol.md')
     assert.equal(read.meta.id, res.id)
     assert.equal(read.meta.title, 'Kívülről jött')
-    assert.equal(read.body, '# Kívülről jött\n\nSzöveg.\n', 'a törzs nem maradt érintetlen')
+    assert.equal(read.body, '# Kívülről jött\n\nSzöveg.\n', 'the body did not stay untouched')
   } finally { h.cleanup() }
 })
 
@@ -93,7 +93,7 @@ test('indexing is idempotent: the second run reports no change', () => {
     assert.equal(h.writer.indexPath('kozos/a.md').changed, true)
     assert.equal(h.writer.indexPath('kozos/a.md').changed, false)
     assert.equal(h.repo.listDocs({}).length, 1)
-    assert.equal(h.repo.getById('doc_a').version, 1, 'a verzió nőtt, pedig semmi nem változott')
+    assert.equal(h.repo.getById('doc_a').version, 1, 'the version bumped even though nothing changed')
   } finally { h.cleanup() }
 })
 
@@ -143,8 +143,8 @@ test('links are recorded, and bind as soon as the target is indexed', () => {
     h.writer.indexPath('kozos/a.md')
     assert.deepEqual(h.repo.backlinks('doc_cel'), [])
 
-    // A cél indexelése köti be a rá váró hivatkozást, a hivatkozó
-    // újraindexelése nélkül.
+    // Indexing the target links up the backlink waiting on it, without the
+    // referrer being reindexed.
     write(h, 'kozos/cel.md', { id: 'doc_cel', title: 'Cél' }, 'y\n')
     h.writer.indexPath('kozos/cel.md')
 
