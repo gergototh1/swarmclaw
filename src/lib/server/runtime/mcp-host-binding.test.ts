@@ -25,6 +25,18 @@ describe('refreshShimEnv', () => {
     })
   })
 
+  it('supplies the key to an entry that stores only the port file', () => {
+    // The shape an installer prints now: the key is not stored at all, so
+    // storage cannot hold a stale copy of it and cannot leak one either. The
+    // host is the only place the live value exists.
+    const out = refreshShimEnv({ SWARMCLAW_PORT_FILE: '/live/run/port.json' }, BINDING)
+    assert.deepEqual(out, {
+      SWARMCLAW_ACCESS_KEY: 'live-key',
+      SWARMCLAW_PORT_FILE: '/live/run/port.json',
+      SWARMCLAW_INSTANCE_ID: 'live-instance',
+    })
+  })
+
   it('leaves a third-party stdio server alone rather than handing it the access key', () => {
     // The whole point of gating on "already declares one of ours": an operator's
     // own MCP server is a local program, and being assigned to an agent is not
@@ -60,6 +72,12 @@ describe('staleShimVars', () => {
       staleShimVars({ SWARMCLAW_ACCESS_KEY: 'live-key', SWARMCLAW_PORT_FILE: '/live/run/port.json' }, BINDING),
       [],
     )
+  })
+
+  it('does not call an absent key stale, because absent is the shape we want', () => {
+    // Reporting this would tell the operator to repair the very thing the
+    // installer stopped writing on purpose.
+    assert.deepEqual(staleShimVars({ SWARMCLAW_PORT_FILE: '/live/run/port.json' }, BINDING), [])
   })
 
   it('is silent for a server that is not one of our shims', () => {

@@ -25,12 +25,22 @@ import { serverInstanceId } from './instance-id'
  * port file and instance token when it spawns the shim, and a value it stamps
  * at that moment cannot be stale.
  *
- * ONLY WHAT THE ENTRY ALREADY DECLARES. A refresh must never ADD
- * `SWARMCLAW_ACCESS_KEY` to a server that did not have one: an operator's
- * third-party stdio MCP server is a local program like any other, and handing
- * it the host's access key because it happened to be assigned to an agent would
- * be a credential leak dressed up as a bug fix. An entry that declares neither
- * SwarmClaw variable is left exactly as stored.
+ * THE KEY IS NOT STORED AT ALL ANY MORE. Refreshing a stale value was the
+ * first fix and it treats the symptom: the registration still holds a
+ * credential that every other reader sees, and it goes stale again on the next
+ * key change. So an extension's installer no longer prints
+ * `SWARMCLAW_ACCESS_KEY`, the entry declares only `SWARMCLAW_PORT_FILE`, and
+ * the key is supplied here, from the running host, on every turn. It then
+ * cannot be stale, and it stops sitting in a storage file that has no reason
+ * to hold it. A registration that still carries an old key keeps working —
+ * it is overwritten, and `staleShimVars` names it so the operator can clear it.
+ *
+ * ONLY OUR OWN SHIMS. The key is written only to an entry whose env already
+ * declares one of the two SwarmClaw variables. An operator's third-party stdio
+ * MCP server is a local program like any other, and handing it the host's
+ * access key because it happened to be assigned to an agent would be a
+ * credential leak dressed up as a bug fix. An entry that declares neither is
+ * left exactly as stored.
  */
 export interface McpHostBinding {
   accessKey: string
@@ -57,12 +67,13 @@ function isSwarmclawShimEnv(env: Record<string, string>): boolean {
  * host-bound values replaced by the live ones. Returns the input unchanged for
  * anything that is not one of our shims.
  *
- * `SWARMCLAW_INSTANCE_ID` is added rather than refreshed, because no installer
- * ever wrote it: it is what lets the shim check it reached the instance that
- * spawned it, instead of trusting whichever instance last wrote the port file.
- * An empty access key is not written -- a host started without one accepts
- * every request, and a blank value would defeat the shim's own "is a key set"
- * test.
+ * The access key and `SWARMCLAW_INSTANCE_ID` are written whether or not the
+ * entry already had them: neither belongs in storage, and the instance token no
+ * installer ever wrote at all -- it is what lets the shim check it reached the
+ * host that spawned it, instead of trusting whichever instance last wrote the
+ * port file. An empty access key is not written: a host started without one
+ * accepts every request, and a blank value would defeat the shim's own "is a
+ * key set" test, which is what tells "none configured" from "the wrong one".
  */
 export function refreshShimEnv(env: Record<string, string>, binding: McpHostBinding): Record<string, string> {
   if (!isSwarmclawShimEnv(env)) return env
@@ -78,9 +89,14 @@ export function refreshShimEnv(env: Record<string, string>, binding: McpHostBind
  *
  * `refreshShimEnv` silently corrects them, which is right for the turn and
  * wrong for the operator: the registration on the MCP servers page still holds
- * the stale values, every other consumer of it is still broken, and re-running
- * the extension's installer is the actual fix. So the caller logs this once per
- * turn. Empty for anything that is not one of our shims.
+ * the stale values and every other consumer of it is still broken. So the
+ * caller logs this once per turn.
+ *
+ * An ABSENT access key is not stale — that is the shape the installer prints
+ * now, and the host supplies the value. Only a key that is present and wrong
+ * is reported, because the repair for that one is to delete it.
+ *
+ * Empty for anything that is not one of our shims.
  */
 export function staleShimVars(env: Record<string, string>, binding: McpHostBinding): string[] {
   if (!isSwarmclawShimEnv(env)) return []

@@ -208,7 +208,11 @@ if (copied.includes('mcp')) {
     transport: 'stdio',
     command: process.execPath,
     args: [path.join(wsDir, 'mcp', 'server.mjs')],
-    env: { SWARMCLAW_PORT_FILE: path.join(runDir, 'port.json'), SWARMCLAW_ACCESS_KEY: '<a host .env.local ACCESS_KEY értéke>' },
+    // No SWARMCLAW_ACCESS_KEY: the host stamps its own, live, into every
+    // turn's MCP config (src/lib/server/runtime/mcp-host-binding.ts). A key
+    // pasted in here would be a copy that goes stale silently -- and a stale
+    // one empties this server's tool list without reporting anything.
+    env: { SWARMCLAW_PORT_FILE: path.join(runDir, 'port.json') },
   }
   console.log('\nMCP-bejegyzés (Settings → MCP Servers), majd rendeld hozzá az ügynökökhöz:')
   console.log(JSON.stringify(entry, null, 2))
