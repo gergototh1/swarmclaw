@@ -2,6 +2,7 @@ import { createAgentContext } from './src/agent-context.mjs'
 import { DOCS_CONTRACT, createDocsContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
 import { createIndexWriter } from './src/index-writer.mjs'
+import { LEGACY_SETTING_KEYS, LEGACY_SHARED_FOLDER } from './src/legacy-names.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
 import { createRpc } from './src/rpc.mjs'
 import { createService } from './src/service.mjs'
@@ -37,27 +38,47 @@ export const state = {
   _root: null,
 }
 
-/** The configured root, with the fallback a never-configured install gets. */
-export function rootSetting() {
-  const raw = state.settings()?.gyoker
-  return typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : '~/SwarmClaw/docs'
+/** A setting under its English key, else under the key it was stored as before the rename. */
+function setting(key) {
+  const all = state.settings() ?? {}
+  const fresh = all[key]
+  if (fresh !== undefined && fresh !== null && fresh !== '') return fresh
+  return all[LEGACY_SETTING_KEYS[key]]
 }
 
-/** The shared folder's name, which the operator may rename. */
+function trimmed(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+/** The configured root, with the fallback a never-configured install gets. */
+export function rootSetting() {
+  return trimmed(setting('root')) || '~/SwarmClaw/docs'
+}
+
+/**
+ * The shared folder's name, which the operator may rename.
+ *
+ * A stored "kozos" is ignored rather than honoured: it is the old default the
+ * settings form wrote, not a choice, and honouring it would keep the
+ * kozos -> shared migration from ever running.
+ */
 export function sharedFolder() {
-  const raw = state.settings()?.kozosMappaNev
-  return typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : 'kozos'
+  const fresh = trimmed(state.settings()?.sharedFolderName)
+  if (fresh) return fresh
+  const legacy = trimmed(state.settings()?.[LEGACY_SETTING_KEYS.sharedFolderName])
+  if (legacy && legacy !== LEGACY_SHARED_FOLDER) return legacy
+  return 'shared'
 }
 
 /** How many versions a document keeps. */
 export function versionsKept() {
-  const raw = Number(state.settings()?.verzioMegtartas)
+  const raw = Number(setting('versionsKept'))
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 50
 }
 
 /** Whether the operator wants outside edits noticed. */
 export function watchEnabled() {
-  const raw = state.settings()?.figyelesBe
+  const raw = setting('watchEnabled')
   return raw === undefined || raw === null ? true : Boolean(raw)
 }
 
@@ -131,9 +152,9 @@ export function syncWatcher() {
 }
 
 const docs = {
-  name: 'Doksik',
+  name: 'Docs',
   version: '0.1.0',
-  description: 'Markdown-doksik egy mappában: grafikus szerkesztő az operátornak, hét tool az ügynököknek, ügynökönként saját mappa.',
+  description: 'Markdown docs in one folder: a graphical editor for the operator, seven tools for agents, a folder of its own for every agent.',
   migrations: MIGRATIONS,
   tools: createTools(state, { serviceOf, logOf }),
   rpc: { ...createRpc({
@@ -157,14 +178,14 @@ const docs = {
    * the call goes through. Nothing reads `reason`, nothing records a decision
    * about it, and there is no grant, approve or revoke anywhere. So the only
    * way to take this module's reach away is to delete this entry or to disable
-   * the Videó bővítmény, which takes it from every consumer at once.
+   * the Video extension, which takes it from every consumer at once.
    *
    * A provider that is not installed is not a load failure: the host answers a
    * missing one at call time, and `docs_video_script` names it
    * (`contract_missing`) rather than skipping quietly.
    */
   consumes: [
-    { extension: 'video', contract: 'videos', version: VIDEOS_CONTRACT_VERSION, reason: 'A docs_video_script tool ebből kéri le egy kész videó adatait (cím, narráció, fájladatok), és doksiként teszi le a kérő ügynök saját mappájába. Ez a modul egyetlen kifelé nyúlása.' },
+    { extension: 'video', contract: 'videos', version: VIDEOS_CONTRACT_VERSION, reason: "docs_video_script asks it for a finished video's data (title, narration, file details) and puts it as a doc into the asking agent's own folder. This module's only reach outside itself." },
   ],
   provides: {
     [DOCS_CONTRACT]: createDocsContract({
@@ -194,7 +215,7 @@ const docs = {
   ui: {
     pages: [{
       id: 'docs',
-      label: 'Doksik',
+      label: 'Docs',
       icon: 'FileText',
       path: '/x/docs',
       entry: 'dist/index.js',
@@ -202,46 +223,22 @@ const docs = {
       position: 'after:tasks',
     }],
     settingsFields: [
-      {
-        key: 'gyoker',
-        label: 'Doksik gyökérmappája',
-        type: 'text',
-        required: true,
-        placeholder: '~/SwarmClaw/docs',
-        help: 'Ide kerül minden .md fájl. Finderben és Obsidianban is megnyitható.',
-      },
-      {
-        key: 'figyelesBe',
-        label: 'Külső szerkesztés figyelése',
-        type: 'boolean',
-        defaultValue: true,
-        help: 'Ha kívülről (Obsidian, Finder) módosul egy doksi, a kereső is frissül.',
-      },
-      {
-        key: 'verzioMegtartas',
-        label: 'Megtartott verziók / doksi',
-        type: 'number',
-        defaultValue: 50,
-      },
-      {
-        key: 'kozosMappaNev',
-        label: 'Közös mappa neve',
-        type: 'text',
-        defaultValue: 'kozos',
-        help: 'Ebbe a mappába minden ügynök írhat.',
-      },
+      { key: 'root', label: 'Docs root folder', type: 'text', required: true, placeholder: '~/SwarmClaw/docs', help: 'Every .md file goes here. It opens in Finder and Obsidian too.' },
+      { key: 'watchEnabled', label: 'Watch for outside edits', type: 'boolean', defaultValue: true, help: 'When a doc changes outside (Obsidian, Finder), search picks it up too.' },
+      { key: 'versionsKept', label: 'Versions kept per doc', type: 'number', defaultValue: 50 },
+      { key: 'sharedFolderName', label: 'Shared folder name', type: 'text', defaultValue: 'shared', help: 'Every agent can write into this folder.' },
     ],
   },
   managedResources: {
     localFolders: [{
       folderKey: 'docs-root',
-      displayName: 'Doksik gyökérmappája',
-      description: 'A markdown-doksik mappafája.',
+      displayName: 'Docs root folder',
+      description: 'The markdown docs folder tree.',
       access: 'readWrite',
     }],
     setupChecks: [{
       checkKey: 'docs_root_writable',
-      displayName: 'A doksi-gyökér létezik és írható',
+      displayName: 'The docs root exists and is writable',
       kind: 'manual',
       required: true,
     }],

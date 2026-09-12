@@ -25,7 +25,7 @@ function fakeCtx(settings = {}) {
 }
 
 test('the declaration names the module the way the host expects', () => {
-  assert.equal(docs.name, 'Doksik')
+  assert.equal(docs.name, 'Docs')
   assert.equal(typeof docs.setup, 'function')
   assert.ok(Array.isArray(docs.migrations) && docs.migrations.length >= 1)
   assert.ok(docs.description.length > 0)
@@ -56,13 +56,13 @@ test('the module declares the one contract it reaches for, with a reason the ope
   // Megnevezi a toolt, ami miatt a hozzáférés kell, és azt, hogy mit hoz be:
   // egy „a Videó modulhoz kell” mondat ugyanolyan hosszú, és semmit nem mond.
   assert.match(reason, /docs_video_script/)
-  assert.match(reason, /videó/i)
+  assert.match(reason, /video/i)
 })
 
 test('the page declaration satisfies the host validator rules', () => {
   const [page] = docs.ui.pages
   assert.equal(page.id, 'docs')
-  assert.equal(page.label, 'Doksik')
+  assert.equal(page.label, 'Docs')
   assert.match(page.path, /^\/x\/[a-z0-9][a-z0-9-]*$/)
   assert.match(page.entry, /^dist\/[A-Za-z0-9_./-]+\.js$/)
   assert.match(page.css, /^dist\/[A-Za-z0-9_./-]+\.css$/)
@@ -72,7 +72,7 @@ test('the page declaration satisfies the host validator rules', () => {
 
 test('every settings field has a key, a label and a known type', () => {
   const keys = docs.ui.settingsFields.map((f) => f.key)
-  assert.deepEqual(keys, ['gyoker', 'figyelesBe', 'verzioMegtartas', 'kozosMappaNev'])
+  assert.deepEqual(keys, ['root', 'watchEnabled', 'versionsKept', 'sharedFolderName'])
   for (const f of docs.ui.settingsFields) {
     assert.ok(f.label, `nincs címke: ${f.key}`)
     assert.ok(['text', 'number', 'boolean', 'select', 'secret'].includes(f.type))
@@ -97,10 +97,10 @@ test('setup() can run twice, and the second run follows the new root', () => {
   const a = path.join(base, 'a')
   const b = path.join(base, 'b')
   try {
-    docs.setup(fakeCtx({ gyoker: a }))
+    docs.setup(fakeCtx({ root: a }))
     assert.equal(vaultOf().root, fs.realpathSync(a))
 
-    docs.setup(fakeCtx({ gyoker: b }))
+    docs.setup(fakeCtx({ root: b }))
     assert.equal(vaultOf().root, fs.realpathSync(b))
     assert.equal(state._root, b)
   } finally {
@@ -115,7 +115,7 @@ test('setup() creates the root so the first watch does not fail on ENOENT', () =
   // állt, amíg az operátor kézzel újra nem indította.
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-setup-')) + '/friss'
   try {
-    docs.setup(fakeCtx({ gyoker: root }))
+    docs.setup(fakeCtx({ root }))
     assert.equal(fs.existsSync(root), true, 'a setup() nem hozta létre a gyökeret')
     assert.equal(watcherControl.status().running, true, 'a figyelő nem indult el')
     assert.equal(watcherControl.status().error, null)
@@ -128,10 +128,10 @@ test('setup() creates the root so the first watch does not fail on ENOENT', () =
 test('setup() starts at most one watcher however often it runs', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-egy-'))
   try {
-    docs.setup(fakeCtx({ gyoker: root }))
+    docs.setup(fakeCtx({ root }))
     const first = watcherControl.status()
-    docs.setup(fakeCtx({ gyoker: root }))
-    docs.setup(fakeCtx({ gyoker: root }))
+    docs.setup(fakeCtx({ root }))
+    docs.setup(fakeCtx({ root }))
     assert.deepEqual(watcherControl.status(), first)
   } finally {
     watcherControl.stop()
@@ -142,7 +142,7 @@ test('setup() starts at most one watcher however often it runs', () => {
 test('settings readers fall back rather than returning undefined', () => {
   docs.setup(fakeCtx({}))
   assert.equal(rootSetting(), '~/SwarmClaw/docs')
-  assert.equal(sharedFolder(), 'kozos')
+  assert.equal(sharedFolder(), 'shared')
   assert.equal(versionsKept(), 50)
   assert.equal(watchEnabled(), true)
 })
@@ -150,15 +150,52 @@ test('settings readers fall back rather than returning undefined', () => {
 test('a cleared text setting falls back instead of becoming an empty path', () => {
   // Az operátor által kiürített mező '' -t tárol, nem undefined-ot, tehát a
   // host defaultValue-ja többé nem sül el: a fallback itt az egyetlen védelem.
-  docs.setup(fakeCtx({ gyoker: '   ', kozosMappaNev: '', verzioMegtartas: 0 }))
+  docs.setup(fakeCtx({ root: '   ', sharedFolderName: '', versionsKept: 0 }))
   assert.equal(rootSetting(), '~/SwarmClaw/docs')
-  assert.equal(sharedFolder(), 'kozos')
+  assert.equal(sharedFolder(), 'shared')
   assert.equal(versionsKept(), 50)
 })
 
 test('watching is on unless the operator turned it off', () => {
-  docs.setup(fakeCtx({ figyelesBe: false }))
+  docs.setup(fakeCtx({ watchEnabled: false }))
   assert.equal(watchEnabled(), false)
-  docs.setup(fakeCtx({ figyelesBe: true }))
+  docs.setup(fakeCtx({ watchEnabled: true }))
   assert.equal(watchEnabled(), true)
+})
+
+test('settings are read from the English keys', () => {
+  docs.setup(fakeCtx({ root: '/tmp/docs-a', watchEnabled: false, versionsKept: 7, sharedFolderName: 'team' }))
+  assert.equal(rootSetting(), '/tmp/docs-a')
+  assert.equal(watchEnabled(), false)
+  assert.equal(versionsKept(), 7)
+  assert.equal(sharedFolder(), 'team')
+})
+
+test('a setting stored under the old Hungarian key still counts', () => {
+  docs.setup(fakeCtx({ gyoker: '/tmp/docs-b', figyelesBe: false, verzioMegtartas: 9, kozosMappaNev: 'csapat' }))
+  assert.equal(rootSetting(), '/tmp/docs-b')
+  assert.equal(watchEnabled(), false)
+  assert.equal(versionsKept(), 9)
+  assert.equal(sharedFolder(), 'csapat')
+})
+
+test('the old default shared folder name does not pin the old folder', () => {
+  // A stored "kozos" is what the settings form wrote as the default. Honouring
+  // it would stop the kozos -> shared migration from ever running.
+  docs.setup(fakeCtx({ kozosMappaNev: 'kozos' }))
+  assert.equal(sharedFolder(), 'shared')
+})
+
+test('with nothing configured the defaults are English', () => {
+  docs.setup(fakeCtx({}))
+  assert.equal(rootSetting(), '~/SwarmClaw/docs')
+  assert.equal(sharedFolder(), 'shared')
+  assert.equal(versionsKept(), 50)
+  assert.equal(watchEnabled(), true)
+})
+
+test('the settings form offers the English keys', () => {
+  const keys = docs.ui.settingsFields.map((f) => f.key)
+  assert.deepEqual(keys, ['root', 'watchEnabled', 'versionsKept', 'sharedFolderName'])
+  assert.equal(docs.ui.settingsFields.find((f) => f.key === 'sharedFolderName').defaultValue, 'shared')
 })

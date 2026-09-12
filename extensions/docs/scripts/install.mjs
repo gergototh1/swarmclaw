@@ -46,7 +46,7 @@ const extDir = path.join(dataDir, 'extensions')
 const wsDir = path.join(extDir, '.workspaces', 'docs_mjs')
 
 if (!fs.existsSync(path.join(root, 'dist', 'index.js'))) {
-  console.error('Nincs meg a dist/index.js. Futtasd előbb: npm run build')
+  console.error('No dist/index.js. Run first: npm run build')
   process.exit(1)
 }
 
@@ -69,8 +69,8 @@ fs.copyFileSync(path.join(root, 'index.mjs'), path.join(wsDir, 'index.js'))
 fs.copyFileSync(path.join(root, 'package.json'), path.join(wsDir, 'package.json'))
 fs.writeFileSync(path.join(extDir, 'docs.mjs'), "export { default } from './.workspaces/docs_mjs/index.js'\n")
 
-console.log(`Telepítve ide: ${extDir}/docs.mjs`)
-console.log('Kapcsold be a SwarmClaw Extensions listájában, és állítsd be a doksi-gyökeret.')
+console.log(`Installed to: ${extDir}/docs.mjs`)
+console.log('Switch it on in the SwarmClaw Extensions list and set the docs root.')
 
 // The host does not register MCP servers on an extension's behalf. The JSON is
 // printed rather than left to be worked out, because two of its fields are
@@ -80,12 +80,12 @@ console.log('Kapcsold be a SwarmClaw Extensions listájában, és állítsd be a
 // turn, and a value written here would be an agent naming itself.
 if (copied.includes('mcp')) {
   const entry = {
-    name: 'Doksik MCP',
+    name: 'Docs MCP',
     transport: 'stdio',
     command: process.execPath,
     args: [path.join(wsDir, 'mcp', 'server.mjs')],
-    env: { SWARMCLAW_PORT_FILE: path.join(path.dirname(dataDir), 'run', 'port.json'), SWARMCLAW_ACCESS_KEY: '<a host .env.local ACCESS_KEY értéke>' },
+    env: { SWARMCLAW_PORT_FILE: path.join(path.dirname(dataDir), 'run', 'port.json'), SWARMCLAW_ACCESS_KEY: '<the host .env.local ACCESS_KEY value>' },
   }
-  console.log('\nMCP-bejegyzés (Settings → MCP Servers), majd rendeld hozzá MINDEN ügynökhöz:')
+  console.log('\nMCP entry (Settings → MCP Servers), then assign it to EVERY agent:')
   console.log(JSON.stringify(entry, null, 2))
 }
