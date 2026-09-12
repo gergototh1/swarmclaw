@@ -17,6 +17,7 @@
     "@tiptap/extension-table-row": "^2.27.3",
     "@tiptap/react": "^2.27.3",
     "@tiptap/starter-kit": "^2.27.3",
+    "docx": "^9.7.1",
     "esbuild": "^0.25.0",
     "marked": "^15.0.12",
     "react": "19.2.3",

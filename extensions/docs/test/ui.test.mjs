@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { HOST_MODULES, bundle } from '../scripts/build.mjs'
+import { HOST_MODULES, bundle, bundleExport } from '../scripts/build.mjs'
 
 /**
  * What the built page must be true of, pinned.
@@ -63,4 +63,22 @@ test('the bundle stays under a size the page can justify', async () => {
 test('the bundle registers the chat panel beside the page', async () => {
   const code = await output()
   assert.ok(code.includes('panel:doc'), 'the doc panel is not registered')
+})
+
+let builtExport = null
+async function exportOutput() {
+  if (!builtExport) {
+    const result = await bundleExport({ write: false, minify: true })
+    builtExport = result.outputFiles[0].text
+  }
+  return builtExport
+}
+
+test('the export bundle installs itself and stays apart from the page bundle', async () => {
+  const page = await output()
+  const exporter = await exportOutput()
+  assert.ok(exporter.includes('swarmclawDocsExport'), 'the export bundle does not install its global')
+  assert.ok(exporter.includes('wordprocessingml'), 'the export bundle does not carry the docx writer')
+  assert.ok(!page.includes('wordprocessingml'), 'the docx writer leaked into the page bundle')
+  assert.ok(Buffer.byteLength(exporter) / 1024 < 600, 'the export bundle grew past 600 kB')
 })

@@ -60,10 +60,32 @@ export async function bundle({ write = true, minify = true } = {}) {
   })
 }
 
+/**
+ * The Word exporter, as a second bundle. It carries the `docx` writer, which
+ * alone is most of a page bundle's size budget, so the page fetches it only
+ * when someone exports. It needs nothing from the host.
+ */
+export async function bundleExport({ write = true, minify = true } = {}) {
+  return build({
+    entryPoints: [path.join(root, 'ui/export/docx-entry.ts')],
+    bundle: true,
+    write,
+    format: 'iife',
+    target: 'es2022',
+    platform: 'browser',
+    outfile: path.join(root, 'dist/export.js'),
+    minify,
+    sourcemap: false,
+    logLevel: 'silent',
+  })
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   await bundle()
+  await bundleExport()
   fs.mkdirSync(path.join(root, 'dist'), { recursive: true })
   fs.copyFileSync(path.join(root, 'ui/style.css'), path.join(root, 'dist/style.css'))
   const size = fs.statSync(path.join(root, 'dist/index.js')).size
-  console.log(`built dist/index.js (${Math.round(size / 1024)} kB), dist/style.css`)
+  const exportSize = fs.statSync(path.join(root, 'dist/export.js')).size
+  console.log(`built dist/index.js (${Math.round(size / 1024)} kB), dist/export.js (${Math.round(exportSize / 1024)} kB), dist/style.css`)
 }
