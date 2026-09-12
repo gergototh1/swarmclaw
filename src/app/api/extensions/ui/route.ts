@@ -15,6 +15,10 @@ export async function GET(req: Request) {
     return NextResponse.json(manager.getPages())
   }
 
+  if (type === 'tool_panels') {
+    return NextResponse.json(manager.getToolPanels())
+  }
+
   if (type === 'sidebar') {
     const items = extensions.flatMap((ui) => ui.sidebarItems || [])
     return NextResponse.json(items)

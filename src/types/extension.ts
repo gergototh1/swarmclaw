@@ -247,6 +247,27 @@ export interface ExtensionPageDefinition {
   position?: string
 }
 
+/**
+ * A panel an extension renders beside the chat for something one of its tools
+ * produced. The chat shows a card under any assistant message that called one
+ * of `tools`; the card opens the component the extension registered as
+ * `panel:<id>`, handed the reference the tool put in its answer as
+ * `panel: { id, title }`.
+ */
+export interface ExtensionToolPanelDefinition {
+  id: string
+  label: string
+  /** One of `EXTENSION_PAGE_ICON_NAMES`; anything else renders the default icon. */
+  icon?: string
+  /** Bare tool names (no `mcp__<server>__` prefix). */
+  tools: string[]
+  /** Built browser entry under `dist/`, same rule as a page's `entry`. */
+  entry: string
+  css?: string
+}
+
+export type ExtensionToolPanel = ExtensionToolPanelDefinition & { extensionId: string }
+
 export interface ExtensionUIDefinition {
   sidebarItems?: Array<{
     id: string
@@ -286,6 +307,8 @@ export interface ExtensionUIDefinition {
   }>
   /** Full pages the extension renders from its own bundle under the /x/ namespace. */
   pages?: ExtensionPageDefinition[]
+  /** Panels opened from a card under an assistant message that called one of the extension's tools. */
+  toolPanels?: ExtensionToolPanelDefinition[]
 }
 
 export type ExtensionManagedResourceKind = 'agent' | 'schedule' | 'local_folder' | 'project'

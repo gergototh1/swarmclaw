@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
-import { validateExtensionPages } from './extension-pages'
+import { validateExtensionPages, validateExtensionToolPanels } from './extension-pages'
 import { EXTENSION_PAGE_ICON_NAMES, EXTENSION_PAGE_PATH_PREFIX } from '@/lib/extension-page-nav'
 import { runWithTempDataDir } from '@/lib/server/test-utils/run-with-temp-data-dir'
 
@@ -124,5 +124,53 @@ describe('extension page nav contract', () => {
   it('stays importable from server code by not being a client module', () => {
     const src = readFileSync(new URL('../../extension-page-nav.ts', import.meta.url), 'utf8')
     assert.ok(!src.includes('use client'))
+  })
+})
+
+const goodPanel = { id: 'doc', label: 'Doc', tools: ['docs_write'], entry: 'dist/index.js' }
+
+describe('validateExtensionToolPanels', () => {
+  it('accepts a missing declaration as no panels', () => {
+    assert.deepEqual(validateExtensionToolPanels(undefined), { ok: true, panels: [] })
+  })
+  it('accepts a panel and keeps icon and css', () => {
+    const r = validateExtensionToolPanels([{ ...goodPanel, icon: 'FileText', css: 'dist/style.css' }])
+    assert.equal(r.ok, true)
+    if (r.ok) assert.deepEqual(r.panels[0], { id: 'doc', label: 'Doc', icon: 'FileText', tools: ['docs_write'], entry: 'dist/index.js', css: 'dist/style.css' })
+  })
+  it('rejects a non-array', () => {
+    assert.equal(validateExtensionToolPanels({}).ok, false)
+  })
+  it('rejects a panel without id or label', () => {
+    assert.equal(validateExtensionToolPanels([{ ...goodPanel, id: '' }]).ok, false)
+    assert.equal(validateExtensionToolPanels([{ ...goodPanel, label: ' ' }]).ok, false)
+  })
+  it('rejects an empty or malformed tools list', () => {
+    assert.equal(validateExtensionToolPanels([{ ...goodPanel, tools: [] }]).ok, false)
+    assert.equal(validateExtensionToolPanels([{ ...goodPanel, tools: ['has space'] }]).ok, false)
+    assert.equal(validateExtensionToolPanels([{ ...goodPanel, tools: 'docs_write' }]).ok, false)
+  })
+  it('rejects an entry or css outside dist/', () => {
+    assert.equal(validateExtensionToolPanels([{ ...goodPanel, entry: 'index.js' }]).ok, false)
+    assert.equal(validateExtensionToolPanels([{ ...goodPanel, css: 'dist/../x.css' }]).ok, false)
+  })
+  it('rejects the same panel id twice', () => {
+    const r = validateExtensionToolPanels([goodPanel, goodPanel])
+    assert.equal(r.ok, false)
+    if (!r.ok) assert.match(r.error, /twice/)
+  })
+})
+
+describe('manager.getToolPanels', () => {
+  it('lists declared panels with their extensionId', () => {
+    const out = runWithTempDataDir<{ panels: Array<{ extensionId: string; id: string; tools: string[] }> }>(`
+      const extensionsMod = await import('@/lib/server/extensions')
+      const { getExtensionManager } = extensionsMod.default || extensionsMod
+      const m = getExtensionManager()
+      await m.saveExtensionSource('tp_a.mjs', 'export default { name: "A", tools: [], ui: { toolPanels: [{ id: "doc", label: "Doc", tools: ["docs_write"], entry: "dist/index.js" }] } }')
+      await m.reload()
+      console.log(JSON.stringify({ panels: m.getToolPanels().map((p) => ({ extensionId: p.extensionId, id: p.id, tools: p.tools })) }))
+    `)
+    assert.deepEqual(out.panels, [{ extensionId: 'tp_a.mjs', id: 'doc', tools: ['docs_write'] }])
   })
 })
