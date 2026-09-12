@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import type { Rpc, Status, Tree } from './api'
 import { errorText, readStatus, readTree } from './api'
+import { DocPanel } from './doc-panel'
 import { Editor } from './editor'
 import { currentExtensionId, hostOf, hostReact } from './host'
 import { DetailsPanel } from './details-panel'
@@ -27,7 +28,11 @@ export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
   const [treeError, setTreeError] = useState<string | null>(null)
   const [status, setStatus] = useState<Status | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
-  const [activeId, setActiveId] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    const fromUrl = new URLSearchParams(window.location.search).get('doc')
+    return fromUrl && fromUrl.trim() !== '' ? fromUrl : null
+  })
   const [agentNames, setAgentNames] = useState<Map<string, string>>(new Map())
   // THE DETAILS COLUMN STARTS CLOSED. While it always stood there, the editor
   // shared its width as a third column with a panel whose content -- path,
@@ -145,5 +150,8 @@ export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
  * have no host to register with.
  */
 if (typeof document !== 'undefined') {
-  hostOf().registerPage('docs', DocsPage, { react: hostReact(), extensionId: currentExtensionId() ?? '' })
+  const host = hostOf()
+  const opts = { react: hostReact(), extensionId: currentExtensionId() ?? '' }
+  host.registerPage('docs', DocsPage, opts)
+  host.registerPage('panel:doc', DocPanel, opts)
 }

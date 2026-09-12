@@ -72,7 +72,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   titles: Set<string>
   onSaved: () => void
   panelOpen: boolean
-  onTogglePanel: () => void
+  onTogglePanel?: () => void
   onDelete: () => void
   focusTitle: boolean
   onTitleFocused: () => void
@@ -268,14 +268,16 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
             }}
           />
           <div className="docs-head-buttons">
-            <button
-              type="button"
-              className={`docs-details-toggle${panelOpen ? ' docs-active' : ''}`}
-              aria-pressed={panelOpen}
-              onClick={onTogglePanel}
-            >
-              Details
-            </button>
+            {onTogglePanel && (
+              <button
+                type="button"
+                className={`docs-details-toggle${panelOpen ? ' docs-active' : ''}`}
+                aria-pressed={panelOpen}
+                onClick={onTogglePanel}
+              >
+                Details
+              </button>
+            )}
             <button
               type="button"
               className="docs-delete"

@@ -59,3 +59,8 @@ test('the bundle stays under a size the page can justify', async () => {
   // editor is worth replacing rather than growing further.
   assert.ok(kb < 700, `bundle grew too large: ${Math.round(kb)} kB`)
 })
+
+test('the bundle registers the chat panel beside the page', async () => {
+  const code = await output()
+  assert.ok(code.includes('panel:doc'), 'the doc panel is not registered')
+})
