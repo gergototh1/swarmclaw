@@ -630,3 +630,19 @@ button.docs-primary:hover {
 .docs-panel-open { font-size: 12px; font-weight: 600; text-decoration: none; }
 .docs-panel-open:hover { text-decoration: underline; }
 .docs-panel > :last-child { flex: 1; min-height: 0; overflow: auto; }
+
+/* --- Raw markdown view --- */
+.docs-raw {
+  width: 100%;
+  min-height: 60vh;
+  flex: 1;
+  resize: vertical;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: 13px/1.6 Menlo, Consolas, monospace;
+  tab-size: 2;
+}

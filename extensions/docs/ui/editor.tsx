@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { Conflict, Doc, Rpc } from './api'
 import { errorText, isConflict, readDoc } from './api'
+import { readEditorMode, writeEditorMode, type EditorMode } from './editor-mode'
 import { htmlToMd, mdToHtml } from './markdown'
 
 /**
@@ -81,6 +82,8 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saveState, setSaveState] = useState<SaveState>({ kind: 'idle' })
   const [version, setVersion] = useState<number>(0)
+  const [mode, setMode] = useState<EditorMode>(() => readEditorMode())
+  const [rawText, setRawText] = useState('')
   const savedMd = useRef<string>('')
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // The title is editable, so it has its own field state. `doc.title` is what
@@ -108,6 +111,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
         setVersion(loaded.version)
         setTitle(loaded.title)
         savedMd.current = loaded.content
+        setRawText(loaded.content)
         editor.commands.setContent(mdToHtml(loaded.content, titles))
         setSaveState({ kind: 'idle' })
       })
@@ -135,6 +139,38 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
       })
       .catch((err) => setSaveState({ kind: 'error', message: String(err?.message ?? err) }))
   }, [id, rpc, onSaved])
+
+  /** The markdown on screen, saved or not: the textarea in markdown mode, the editor otherwise. */
+  const currentMd = useCallback(
+    () => (mode === 'markdown' ? rawText : editor ? htmlToMd(editor.getHTML()) : savedMd.current),
+    [mode, rawText, editor],
+  )
+
+  /**
+   * Switching views carries the text across and saves what is pending first:
+   * a change typed a moment ago in one view must not be lost to the other
+   * view's copy.
+   */
+  const switchMode = useCallback((next: EditorMode) => {
+    if (next === mode || !editor) return
+    if (timer.current) { clearTimeout(timer.current); timer.current = null }
+    const md = currentMd()
+    if (md !== savedMd.current) save(md, version)
+    if (next === 'markdown') setRawText(md)
+    else editor.commands.setContent(mdToHtml(md, titles))
+    setMode(next)
+    writeEditorMode(next)
+  }, [mode, editor, currentMd, save, version, titles])
+
+  /** Autosave for the raw view, on the same delay as the editor's. */
+  const onRawChange = useCallback((text: string) => {
+    setRawText(text)
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      if (text === savedMd.current) return
+      save(text, version)
+    }, AUTOSAVE_MS)
+  }, [save, version])
 
   /**
    * Renaming goes through the same `save` call as the body, because a title is
@@ -193,12 +229,12 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault()
-        if (editor && id) save(htmlToMd(editor.getHTML()), version)
+        if (id) save(currentMd(), version)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [editor, id, version, save])
+  }, [id, version, save, currentMd])
 
   if (!id) {
     return (
@@ -240,6 +276,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
               onClick={() => {
                 const theirs = saveState.conflict.theirs ?? ''
                 savedMd.current = theirs
+                setRawText(theirs)
                 setVersion(saveState.conflict.currentVersion)
                 editor?.commands.setContent(mdToHtml(theirs, titles))
                 setSaveState({ kind: 'idle' })
@@ -268,6 +305,15 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
             }}
           />
           <div className="docs-head-buttons">
+            <button
+              type="button"
+              className={`docs-mode-toggle${mode === 'markdown' ? ' docs-active' : ''}`}
+              aria-pressed={mode === 'markdown'}
+              title={mode === 'markdown' ? 'Show formatted' : 'Show markdown source'}
+              onClick={() => switchMode(mode === 'markdown' ? 'formatted' : 'markdown')}
+            >
+              Markdown
+            </button>
             {onTogglePanel && (
               <button
                 type="button"
@@ -299,10 +345,21 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
         {saveState.kind === 'error' && <span className="docs-error">{saveState.message}</span>}
       </header>
 
-      <Toolbar editor={editor} />
+      {mode === 'formatted' && <Toolbar editor={editor} />}
       </div>
 
-      <EditorContent editor={editor} className="docs-editor-body" />
+      <div hidden={mode === 'markdown'}>
+        <EditorContent editor={editor} className="docs-editor-body" />
+      </div>
+      {mode === 'markdown' && (
+        <textarea
+          className="docs-raw"
+          value={rawText}
+          onChange={(e) => onRawChange(e.target.value)}
+          spellCheck={false}
+          aria-label="Markdown source"
+        />
+      )}
     </section>
   )
 }
