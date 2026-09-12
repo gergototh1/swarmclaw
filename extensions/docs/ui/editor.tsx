@@ -8,11 +8,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { Conflict, Doc, Rpc } from './api'
 import { errorText, isConflict, readDoc } from './api'
+import { shouldSaveOnModeSwitch } from './editor-dirty'
 import { readEditorMode, writeEditorMode, type EditorMode } from './editor-mode'
 import { downloadBlob } from './export/download'
 import { exportFileName } from './export/file-name'
 import { loadExportBundle } from './export/load-export-bundle'
-import { buildPrintHtml } from './export/print-html'
+import { buildPrintHtml, fetchEmbeddedFontsCss } from './export/print-html'
 import { hostOf } from './host'
 import { htmlToMd, mdToHtml } from './markdown'
 
@@ -41,6 +42,52 @@ type SaveState =
   | { kind: 'saved'; at: number }
   | { kind: 'error'; message: string }
   | { kind: 'conflict'; conflict: Conflict; mine: string }
+
+/**
+ * Icons for the editor header's icon-only buttons, drawn in the same style as
+ * the delete button already there: 24x24 viewBox, `currentColor` stroke,
+ * `aria-hidden` since the button carries the label as `title`/`aria-label`.
+ */
+function MarkdownIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="8 6 2 12 8 18" />
+      <polyline points="16 6 22 12 16 18" />
+    </svg>
+  )
+}
+
+function DetailsIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  )
+}
+
+function ExportIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  )
+}
+
+/** The document glyph in the export menu, shared by both formats. */
+function DocumentIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+    </svg>
+  )
+}
 
 function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   if (!editor) return null
@@ -93,6 +140,16 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   const [exportError, setExportError] = useState<string | null>(null)
   const savedMd = useRef<string>('')
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /**
+   * Whether the viewer edited the doc since it was loaded (or last saved).
+   * This is NOT derived from comparing text: `editor.commands.setContent`
+   * (used on load, on mode switch, and to apply "keep theirs") is called
+   * with `emitUpdate` left at its default of `false`, so it never fires the
+   * `update` event below -- only a genuine keystroke or toolbar command
+   * does. That is what makes this ref a true "did the viewer touch it"
+   * signal rather than a "does the text differ" one; see `editor-dirty.ts`.
+   */
+  const dirty = useRef(false)
   // The title is editable, so it has its own field state. `doc.title` is what
   // came from the server; this is what is being typed right now.
   const [title, setTitle] = useState('')
@@ -120,6 +177,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
         savedMd.current = loaded.content
         setRawText(loaded.content)
         editor.commands.setContent(mdToHtml(loaded.content, titles))
+        dirty.current = false
         setSaveState({ kind: 'idle' })
       })
       .catch((err) => { if (!stale) setLoadError(String(err?.message ?? err)) })
@@ -141,6 +199,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
         const next = (raw as { version?: number }).version
         if (typeof next === 'number') setVersion(next)
         savedMd.current = md
+        dirty.current = false
         setSaveState({ kind: 'saved', at: Date.now() })
         onSaved()
       })
@@ -162,7 +221,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     if (next === mode || !editor) return
     if (timer.current) { clearTimeout(timer.current); timer.current = null }
     const md = currentMd()
-    if (md !== savedMd.current) save(md, version)
+    if (shouldSaveOnModeSwitch(dirty.current, md, savedMd.current)) save(md, version)
     if (next === 'markdown') setRawText(md)
     else editor.commands.setContent(mdToHtml(md, titles))
     setMode(next)
@@ -187,7 +246,8 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     try {
       const host = hostOf()
       if (typeof host.savePdf !== 'function') throw new Error('this SwarmClaw version cannot save PDFs; update the app')
-      await host.savePdf({ html: buildPrintHtml(currentMd(), exportTitle), fileName: exportFileName(exportTitle, 'pdf') })
+      const embeddedFontsCss = await fetchEmbeddedFontsCss()
+      await host.savePdf({ html: buildPrintHtml(currentMd(), exportTitle, embeddedFontsCss), fileName: exportFileName(exportTitle, 'pdf') })
     } catch (err) {
       setExportError(`Export failed: ${err instanceof Error ? err.message : String(err)}`)
     }
@@ -196,6 +256,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   /** Autosave for the raw view, on the same delay as the editor's. */
   const onRawChange = useCallback((text: string) => {
     setRawText(text)
+    dirty.current = true
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => {
       if (text === savedMd.current) return
@@ -244,6 +305,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   useEffect(() => {
     if (!editor || !id) return
     const handler = () => {
+      dirty.current = true
       if (timer.current) clearTimeout(timer.current)
       timer.current = setTimeout(() => {
         const md = htmlToMd(editor.getHTML())
@@ -310,6 +372,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
                 setRawText(theirs)
                 setVersion(saveState.conflict.currentVersion)
                 editor?.commands.setContent(mdToHtml(theirs, titles))
+                dirty.current = false
                 setSaveState({ kind: 'idle' })
               }}
             >
@@ -341,15 +404,24 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
               className={`docs-mode-toggle${mode === 'markdown' ? ' docs-active' : ''}`}
               aria-pressed={mode === 'markdown'}
               title={mode === 'markdown' ? 'Show formatted' : 'Show markdown source'}
+              aria-label={mode === 'markdown' ? 'Show formatted' : 'Show markdown source'}
               onClick={() => switchMode(mode === 'markdown' ? 'formatted' : 'markdown')}
             >
-              Markdown
+              <MarkdownIcon />
             </button>
             <details className="docs-export">
-              <summary>Export</summary>
+              <summary title="Export" aria-label="Export">
+                <ExportIcon />
+              </summary>
               <div className="docs-export-menu" role="menu">
-                <button type="button" role="menuitem" onClick={() => { void exportDocx() }}>Word (.docx)</button>
-                <button type="button" role="menuitem" onClick={() => { void exportPdf() }}>PDF</button>
+                <button type="button" role="menuitem" onClick={() => { void exportDocx() }}>
+                  <DocumentIcon />
+                  <span>Word (.docx)</span>
+                </button>
+                <button type="button" role="menuitem" onClick={() => { void exportPdf() }}>
+                  <DocumentIcon />
+                  <span>PDF</span>
+                </button>
               </div>
             </details>
             {onTogglePanel && (
@@ -357,9 +429,11 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
                 type="button"
                 className={`docs-details-toggle${panelOpen ? ' docs-active' : ''}`}
                 aria-pressed={panelOpen}
+                title={panelOpen ? 'Hide details' : 'Show details'}
+                aria-label={panelOpen ? 'Hide details' : 'Show details'}
                 onClick={onTogglePanel}
               >
-                Details
+                <DetailsIcon />
               </button>
             )}
             <button

@@ -37,6 +37,42 @@ const HEADINGS = [
 const MONO = 'Menlo'
 const ORDERED = 'ordered'
 
+/**
+ * Typography defaults for the generated file.
+ *
+ * Left empty, `docDefaults` gives Word nothing to fall back on but its own
+ * factory template -- paragraphs with no spacing between them, and headings
+ * in Word's built-in blue. `Inter` is used rather than the app's own
+ * wordmark face (Gabarito) because Word substitutes a missing font silently:
+ * Inter is installed on this machine, Gabarito is not, and a silent
+ * substitution is worse than picking a font that is actually there.
+ */
+const BODY_FONT = 'Inter'
+const HEADING_COLOR = '1A1A1A'
+
+const DOC_STYLES = {
+  default: {
+    document: {
+      // 22 half-points = 11pt; 276 = line height 1.15; 160 twips = 8pt after.
+      run: { font: BODY_FONT, size: 22 },
+      paragraph: { spacing: { after: 160, line: 276 } },
+    },
+    // Every bulleted/numbered paragraph gets the `ListParagraph` style
+    // automatically (docx pushes it whenever `bullet` or a non-custom
+    // `numbering` is set) -- tighter than the body so a list does not read
+    // as a stack of separate paragraphs.
+    listParagraph: {
+      paragraph: { spacing: { after: 40, line: 240 } },
+    },
+    heading1: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 36 }, paragraph: { spacing: { before: 240, after: 120 } } },
+    heading2: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 30 }, paragraph: { spacing: { before: 200, after: 100 } } },
+    heading3: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 26 }, paragraph: { spacing: { before: 200, after: 80 } } },
+    heading4: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 24 }, paragraph: { spacing: { before: 160, after: 80 } } },
+    heading5: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 22 }, paragraph: { spacing: { before: 160, after: 60 } } },
+    heading6: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 20 }, paragraph: { spacing: { before: 120, after: 60 } } },
+  },
+}
+
 interface RunStyle {
   bold?: boolean
   italics?: boolean
@@ -155,8 +191,12 @@ function blocks(tokens: Token[], ctx: BlockContext): Array<Paragraph | Table> {
         out.push(...blocks((token as Tokens.Blockquote).tokens, { ...ctx, quote: true }))
         break
       case 'code':
+        // Each source line is its own Paragraph; without an explicit spacing
+        // override every one of them would carry the document's 8pt-after
+        // default, spreading a code block out into widely separated lines.
         for (const line of (token as Tokens.Code).text.split('\n')) {
           out.push(new Paragraph({
+            spacing: { before: 0, after: 0 },
             shading: { type: ShadingType.CLEAR, color: 'auto', fill: 'F3F4F6' },
             children: [new TextRun({ text: line, font: MONO, size: 20 })],
           }))
@@ -164,8 +204,10 @@ function blocks(tokens: Token[], ctx: BlockContext): Array<Paragraph | Table> {
         break
       case 'table': {
         const table = token as Tokens.Table
+        // No extra spacing inside a cell: the document default would leave
+        // 8pt of dead air below the last (often only) line of every cell.
         const cell = (c: Tokens.TableCell, bold: boolean) => new TableCell({
-          children: [new Paragraph({ children: inlineRuns(c.tokens, { bold }) })],
+          children: [new Paragraph({ spacing: { before: 0, after: 0 }, children: inlineRuns(c.tokens, { bold }) })],
         })
         out.push(new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
@@ -211,6 +253,7 @@ export function buildDocxDocument(md: string, title: string): Document {
     title,
     creator: 'SwarmClaw Docs',
     numbering: NUMBERING,
+    styles: DOC_STYLES,
     sections: [{ children: blocks(tokens, { listLevel: 0, quote: false, nextListInstance: { value: 1 } }) }],
   })
 }

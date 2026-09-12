@@ -14,6 +14,12 @@ async function documentXml(md, title) {
   return zip.file('word/document.xml').async('string')
 }
 
+async function stylesXml(md, title) {
+  const buffer = await Packer.toBuffer(buildDocxDocument(md, title))
+  const zip = await JSZip.loadAsync(buffer)
+  return zip.file('word/styles.xml').async('string')
+}
+
 test('headings and inline styles reach the Word document', async () => {
   const xml = await documentXml('# Report\n\nSome **bold** and *leaning* and `code`.\n\n## Part two', 'Report')
   assert.match(xml, /w:val="Heading1"/)
@@ -41,6 +47,23 @@ test('the title becomes the first heading only when the doc does not start with 
   assert.equal(withTitleHeading('\n# Own heading\n\nx', 'My doc'), '\n# Own heading\n\nx')
   assert.equal(withTitleHeading('## Sub first', 'My doc'), '# My doc\n\n## Sub first')
   assert.equal(withTitleHeading('text', '  '), 'text')
+})
+
+test('paragraphs get default spacing so they do not touch, and the body font is Inter', async () => {
+  const xml = await stylesXml('# Report\n\nSome text.', 'Report')
+  // The document defaults, not just an individual style: this is what stops
+  // every paragraph in the file from touching its neighbour.
+  assert.match(xml, /<w:docDefaults>[\s\S]*<w:spacing[^>]*w:after="160"[^>]*\/>[\s\S]*<\/w:docDefaults>/)
+  assert.match(xml, /<w:docDefaults>[\s\S]*<w:rFonts[^>]*w:ascii="Inter"[^>]*\/>[\s\S]*<\/w:docDefaults>/)
+})
+
+test('heading styles are a dark colour, never Word\'s default blue', async () => {
+  const xml = await stylesXml('# Report\n\n## Part two', 'Report')
+  const heading1 = /<w:style [^>]*w:styleId="Heading1"[^>]*>[\s\S]*?<\/w:style>/.exec(xml)?.[0] ?? ''
+  assert.ok(heading1, 'Heading1 style is not defined')
+  assert.match(heading1, /w:val="1A1A1A"/)
+  // 2E74B5 is Word's own default Heading 1 blue -- the colour this fix replaces.
+  assert.doesNotMatch(heading1, /w:val="2E74B5"/i)
 })
 
 test('file names drop what a file system refuses, and never come out empty', () => {
