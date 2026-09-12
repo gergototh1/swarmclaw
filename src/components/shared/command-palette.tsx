@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/stores/use-app-store'
 import { isLocalhostBrowser, isVisibleSessionForViewer } from '@/lib/observability/local-observability'
 import { useNavigate } from '@/lib/app/navigation'
+import { useExtensionPages } from '@/hooks/use-extension-pages'
+import { extensionPageNavTargets } from '@/lib/app/palette-extension-pages'
 import { toast } from 'sonner'
 
 interface CommandItem {
@@ -55,6 +58,8 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
   const tasks = useAppStore((s) => s.tasks)
   const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
   const navigateTo = useNavigate()
+  const router = useRouter()
+  const extensionPages = useExtensionPages()
   const setEditingTaskId = useAppStore((s) => s.setEditingTaskId)
   const setTaskSheetOpen = useAppStore((s) => s.setTaskSheetOpen)
 
@@ -110,6 +115,17 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
         keywords: [...view.keywords],
         category: 'nav',
         onSelect: () => { navigateTo(view.id); setOpen(false) },
+      })
+    }
+
+    for (const target of extensionPageNavTargets(extensionPages)) {
+      result.push({
+        id: target.id,
+        label: target.label,
+        description: target.description,
+        keywords: target.keywords,
+        category: 'nav',
+        onSelect: () => { router.push(target.href); setOpen(false) },
       })
     }
 
@@ -196,7 +212,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
     }
 
     return result
-  }, [agents, currentUser, navigateTo, openSettingsSection, sessions, setCurrentAgent, setEditingTaskId, setOpen, setTaskSheetOpen, tasks])
+  }, [agents, currentUser, navigateTo, openSettingsSection, sessions, setCurrentAgent, setEditingTaskId, setOpen, setTaskSheetOpen, tasks, extensionPages, router])
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items.slice(0, 20)
