@@ -10,6 +10,7 @@ import type { Doc, Rpc, Utkozes } from './api'
 import { errorText, isConflict, readDoc } from './api'
 import { htmlToMd, mdToHtml } from './markdown'
 import { createAutosave, type Autosave } from './autosave'
+import { letrehozMentesSor, type Sorba } from './mentes-sor'
 import { dontsUtkozesrol, valaszElavult } from './utkozes-dontes'
 
 /**
@@ -100,11 +101,12 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   // még kire alkalmazni.
   const verzioRef = useRef(verzio)
   const nyitottIdRef = useRef<string | null>(id)
-  // Hány `ment()` hívás van épp úton dokumentumonként. Egy saját korábbi
-  // mentésünk lehet az oka egy ütközésnek (a debounce és egy flush/Cmd+S
-  // versenyez ugyanarra a doksira) -- ez a térkép mondja meg `ment`-nek, hogy
-  // ilyenkor volt-e már másik mentés folyamatban ugyanahhoz a doksihoz.
-  const folyamatbanRef = useRef<Map<string, number>>(new Map())
+  // Dokumentumonként sorba állítja a mentéseket, hogy egy adott doksira soha
+  // ne legyen két mentés egyszerre úton -- lásd `mentes-sor.ts` fejlécét.
+  // Ez teszi lehetővé, hogy `ment` a bázisverziót csak a várakozás UTÁN
+  // olvassa ki (`verzioRef.current`-ből), amikorra az előző mentés válasza már
+  // szinkronban beírta a magáét.
+  const sorRef = useRef<Sorba>(letrehozMentesSor())
 
   const editor = useEditor({
     extensions: [StarterKit, Table.configure({ resizable: false }), TableRow, TableHeader, TableCell],
@@ -159,7 +161,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   // Cmd+S és a cím-mentés is) mindig azt az id-t adja át, amelyikhez a mentés
   // ténylegesen tartozik.
   //
-  // A negyedik, opcionális paraméter a cím: ha meg van adva, ez a hívás egy
+  // A harmadik, opcionális paraméter a cím: ha meg van adva, ez a hívás egy
   // átnevezés (ld. `mentCim` lent) -- ugyanazon az úton megy, mint a törzs
   // mentése, mert a cím a dokumentum saját front matterjében van tárolva,
   // nincs külön átnevező végpont. Ez azért fontos, mert az átnevezésnek
@@ -167,35 +169,27 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   // mentésének: egy külön, e két szabályt meg nem kapó út volt az az elavult
   // hiba, amit ez a réteg korábban máshol már kijavított.
   //
+  // A negyedik, opcionális paraméter EGYSZER kell: az ütközés-sáv "Az enyém
+  // maradjon" gombja, ami a szerver által JELENTETT verzióra akar újrapróbálni
+  // (nem arra, amit mi tartunk -- azt épp elavultnak láttuk). Enélkül az
+  // argumentum nélkül `ment` a bázisverziót magától, `verzioRef.current`-ből
+  // olvassa -- de csak AZUTÁN, hogy a lenti sor (`sorRef.current`) megvárta,
+  // amíg ugyanerre a doksira szóló korábbi mentés lezárul. Ez a sorrend a
+  // lényeg: mire ez a mentés ténylegesen elindul, az előző mentés válasza már
+  // szinkronban beírta a saját verzióját, tehát amit itt olvasunk, mindig
+  // friss -- nincs mit "önokozott ütközésként" kitalálni, mert két mentés
+  // ugyanarra a doksira soha nincs egyszerre úton (ld. `mentes-sor.ts`).
+  //
   // A válasz csak akkor kerül alkalmazásra -- beleértve a kezdő "mentés…"
   // állapotot is --, ha még ugyanaz a doksi van nyitva, mint amelyikre a
   // mentés elindult. Enélkül egy doksiváltás közben beérkező válasz (flush a
   // lebontáskor) a most nyitott másik doksi verzióját, mentett-alapját és
   // akár az ütközés-sávját is felülírná a régi doksi adataival.
-  //
-  // ÖNOKOZOTT ÜTKÖZÉS. Egy debounce és egy flush/Cmd+S/átnevezés versenyezhet
-  // ugyanarra a doksira: amíg az egyik mentés úton van, a másik is elindulhat
-  // a régi verzióval. Ha a szerver ütközést jelez, és ekkor MÁR volt egy másik
-  // mentés folyamatban ugyanehhez a doksihoz, az ütközés a saját korábbi
-  // mentésünk, ami közben landolt -- ilyenkor egyszer, azonnal újrapróbáljuk,
-  // a MI ÁLTALUNK TARTOTT verzióval (`verzioRef.current`), nem a szerver által
-  // az ütközésben jelzettel: a sajátunk legalább annyira friss, hiszen épp
-  // egy saját, közben landolt mentésünk állította be. `folyamatbanRef` tartja
-  // számon dokumentumonként a folyamatban lévő mentések számát, hogy a döntés
-  // (`dontsUtkozesrol`) tudja, volt-e ilyen verseny -- ez EGYETLEN,
-  // háromfelé ágazó szabály (újrapróbál / sáv / eldob), nem egy elavultság-
-  // ellenőrzés, ami a retry-ellenőrzés elé eldobhatná a választ: lásd a
-  // `utkozes-dontes.ts` fejlécét arról, miért veszett el emiatt korábban a
-  // frissebb szöveg egy fordított érkezési sorrendben. Egy retry legfeljebb
-  // egyszer futhat le hívásonként, kör nem alakulhat ki.
-  const ment = useCallback((docId: string, md: string, base: number, cim?: string): Promise<void> => {
-    const terkep = folyamatbanRef.current
-    const masikMentesFolyamatban = (terkep.get(docId) ?? 0) > 0
-    terkep.set(docId, (terkep.get(docId) ?? 0) + 1)
-    if (nyitottIdRef.current === docId) setAllas({ kind: 'mentes' })
-
-    const probalkozas = (baseVersion: number, marUjraprobalt: boolean): Promise<void> =>
-      rpc('ment', { id: docId, tartalom: md, baseVersion, ...(cim !== undefined ? { cim } : {}) })
+  const ment = useCallback((docId: string, md: string, cim?: string, kikenyszeritettAlap?: number): Promise<void> => {
+    const futas = (): Promise<void> => {
+      const baseVersion = kikenyszeritettAlap ?? verzioRef.current
+      if (nyitottIdRef.current === docId) setAllas({ kind: 'mentes' })
+      return rpc('ment', { id: docId, tartalom: md, baseVersion, ...(cim !== undefined ? { cim } : {}) })
         .then((raw) => {
           // Ez a két őr az EGÉSZ válasz-kezelőre vonatkozik, ütközés és
           // siker ágra egyaránt, és ebben a sorrendben: az azonosság-ellenőrzés
@@ -211,13 +205,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
           if (nyitottIdRef.current !== docId) return
           if (torolveRef.current === docId) return
           if (isConflict(raw)) {
-            const dontes = dontsUtkozesrol({
-              masikMentesFolyamatban,
-              marUjraprobalt,
-              jelenlegiVerzio: raw.jelenlegiVerzio,
-              jelenlegi: verzioRef.current,
-            })
-            if (dontes === 'ujraprobal') return probalkozas(verzioRef.current, true)
+            const dontes = dontsUtkozesrol({ jelenlegiVerzio: raw.jelenlegiVerzio, jelenlegi: verzioRef.current })
             if (dontes === 'eldob') return
             setAllas({ kind: 'utkozes', utkozes: raw, sajat: md })
             return
@@ -225,11 +213,11 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
           const message = errorText(raw)
           if (message) { setAllas({ kind: 'hiba', uzenet: message }); return }
           const uj = (raw as { verzio?: number }).verzio
-          // A korábban elindult, később megérkező mentésünk verziója már nem
-          // újabb, mint amit egy közben landolt másik mentésünk beállított --
-          // ezt a választ nem szabad alkalmazni, különben a verzió és a
-          // mentett-alap visszaugrana, és a következő autosave hamis
-          // ütközést váltana ki.
+          // Egy doksiváltással vagy egy közvetlenül utána induló átnevezéssel
+          // versenyző válasz verziója már nem újabb, mint amit egy közben
+          // landolt válasz beállított -- ezt nem szabad alkalmazni, különben a
+          // verzió és a mentett-alap visszaugrana, és a következő autosave
+          // hamis ütközést váltana ki.
           if (valaszElavult({ uj, jelenlegi: verzioRef.current })) return
           if (typeof uj === 'number') { verzioRef.current = uj; setVerzio(uj) }
           savedMd.current = md
@@ -245,12 +233,9 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
           if (torolveRef.current === docId) return
           setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) })
         })
+    }
 
-    return probalkozas(base, false).finally(() => {
-      const jelenlegi = terkep.get(docId) ?? 0
-      if (jelenlegi <= 1) terkep.delete(docId)
-      else terkep.set(docId, jelenlegi - 1)
-    })
+    return sorRef.current(docId, futas)
   }, [rpc, onMentve, onCim])
 
   // Az autosave a legfrissebb verziót és mentőt olvassa, de nem épül újra
@@ -284,28 +269,41 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   // felrakta (egy közben elindult, másik doksira szóló zárat nem törölhet le).
   const autosaveRef = useRef<Autosave | null>(null)
   const torolveRef = useRef<string | null>(null)
+  // Melyik doksira fut épp egy törlés-kérés -- ez tiltja le a kuka-gombot.
+  // Külön állapot `torolveRef`-től, mert az egy ref (nem vált ki renderelést);
+  // ez pedig kifejezetten a gomb `disabled`-jéhez kell. A kettő mindig
+  // szinkronban indul/oldódik.
+  const [torlesFolyamatbanId, setTorlesFolyamatbanId] = useState<string | null>(null)
   const torolj = useCallback(() => {
     if (!id) return
+    // Újrabelépés-védelem: két gyors kattintás ugyanarra a doksira csak egy
+    // törlés-kérést indít. A `torolveRef` ellenőrzése szinkron, tehát ez akkor
+    // is tart, ha a második kattintás a `torlesFolyamatbanId` állapot még be
+    // nem érkezett újrarenderelése előtt érkezik.
+    if (torolveRef.current === id) return
     const sajatId = id
     autosaveRef.current?.cancel()
     torolveRef.current = sajatId
+    setTorlesFolyamatbanId(sajatId)
     onTorol().then((megtortent) => {
-      if (!megtortent && torolveRef.current === sajatId) torolveRef.current = null
+      if (!megtortent && torolveRef.current === sajatId) {
+        torolveRef.current = null
+        setTorlesFolyamatbanId((elozo) => (elozo === sajatId ? null : elozo))
+      }
     })
   }, [id, onTorol])
 
   /**
-   * Renaming goes through the exact same `ment` call as the body (its optional
-   * fourth argument), because a title is stored in the document's own front
-   * matter -- there is no separate rename -- and because a rename can race an
-   * autosave for the same document exactly like two body saves can. Routing
-   * it through `ment` means it shares `folyamatbanRef`'s in-flight tracking,
-   * the same three-way conflict rule, and the same success-staleness check,
-   * instead of repeating a thinner copy of all three that wasn't kept in
-   * sync. `verzioRef.current`, not the `verzio` state, is the base: the ref is
-   * updated synchronously (ld. lent), so a rename issued right after a save's
-   * response landed sees that save's version, not a possibly one-render-stale
-   * state value.
+   * Renaming goes through the exact same `ment` call as the body (its
+   * optional third argument), because a title is stored in the document's own
+   * front matter -- there is no separate rename -- and because a rename can
+   * race an autosave for the same document exactly like two body saves can.
+   * Routing it through `ment` means it shares `sorRef`'s per-document
+   * serialization and the same success-staleness check, instead of repeating
+   * a thinner copy of both that wasn't kept in sync. The base version is
+   * `verzioRef.current`, read only once `ment`'s queued turn actually starts
+   * -- see `ment`'s own comment for why that ordering is what makes the base
+   * always fresh.
    *
    * It is sent on blur and on Enter rather than on every keystroke: a rename
    * writes a version, and one per letter would bury the real history.
@@ -314,7 +312,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
     if (!id) return
     const tiszta = cim.trim()
     if (tiszta === '' || tiszta === doc?.cim) { setCim(doc?.cim ?? ''); return }
-    ment(id, savedMd.current, verzioRef.current, tiszta)
+    ment(id, savedMd.current, tiszta)
   }, [id, cim, doc, ment])
 
   // Egy frissen létrehozott doksi címe a helykitöltő; a kurzor odamegy, és a
@@ -346,7 +344,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
       // `sajatId` az effekt saját id-je, nem a ref: lebontáskor egy flush így
       // biztosan a doksihoz megy, amelyikhez az autosave tartozott, akkor is,
       // ha `id` (és `nyitottIdRef`) már a következő doksira váltott.
-      save: (md) => { mentRef.current(sajatId, md, verzioRef.current) },
+      save: (md) => { mentRef.current(sajatId, md) },
     })
     autosaveRef.current = autosave
     const onUpdate = () => { if (torolveRef.current !== sajatId) autosave.schedule() }
@@ -366,12 +364,12 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault()
-        if (editor && id) ment(id, htmlToMd(editor.getHTML()), verzio)
+        if (editor && id) ment(id, htmlToMd(editor.getHTML()))
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [editor, id, verzio, ment])
+  }, [editor, id, ment])
 
   if (!id) {
     return (
@@ -405,7 +403,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
             </div>
           </details>
           <div className="docs-utkozes-gombok">
-            <button type="button" onClick={() => ment(id, allas.sajat, allas.utkozes.jelenlegiVerzio)}>
+            <button type="button" onClick={() => ment(id, allas.sajat, undefined, allas.utkozes.jelenlegiVerzio)}>
               Az enyém maradjon
             </button>
             <button
@@ -455,6 +453,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
               aria-label="A doksi a kukába"
               title="A kukába"
               onClick={torolj}
+              disabled={torlesFolyamatbanId === id}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6M10 11v6M14 11v6" />
