@@ -82,3 +82,9 @@ test('the export bundle installs itself and stays apart from the page bundle', a
   assert.ok(!page.includes('wordprocessingml'), 'the docx writer leaked into the page bundle')
   assert.ok(Buffer.byteLength(exporter) / 1024 < 600, 'the export bundle grew past 600 kB')
 })
+
+test('the page can export: it asks the host for PDFs and loads the Word bundle on demand', async () => {
+  const code = await output()
+  assert.ok(code.includes('savePdf'), 'the page never asks the host to save a PDF')
+  assert.ok(code.includes('export.js'), 'the page never loads the export bundle')
+})

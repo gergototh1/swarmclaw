@@ -11,6 +11,8 @@ export interface SwarmclawHostView {
   /** The host's own copies of `react`, `react-dom` and `react/jsx-runtime`. */
   modules: Record<string, unknown>
   registerPage: (pageId: string, component: unknown, opts: { react: unknown; extensionId: string }) => void
+  /** Saves HTML as a PDF; absent on a host older than this feature. */
+  savePdf?: (input: { html: string; fileName: string }) => Promise<{ status: 'saved' | 'cancelled' | 'printed' }>
 }
 
 /** The host table, or a thrown error naming what is missing. */

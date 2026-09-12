@@ -9,6 +9,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Conflict, Doc, Rpc } from './api'
 import { errorText, isConflict, readDoc } from './api'
 import { readEditorMode, writeEditorMode, type EditorMode } from './editor-mode'
+import { downloadBlob } from './export/download'
+import { exportFileName } from './export/file-name'
+import { loadExportBundle } from './export/load-export-bundle'
+import { buildPrintHtml } from './export/print-html'
+import { hostOf } from './host'
 import { htmlToMd, mdToHtml } from './markdown'
 
 /**
@@ -67,7 +72,7 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   )
 }
 
-export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onDelete, focusTitle, onTitleFocused }: {
+export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onDelete, focusTitle, onTitleFocused, extensionId }: {
   rpc: Rpc
   id: string | null
   titles: Set<string>
@@ -77,6 +82,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   onDelete: () => void
   focusTitle: boolean
   onTitleFocused: () => void
+  extensionId: string
 }) {
   const [doc, setDoc] = useState<Doc | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -84,6 +90,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   const [version, setVersion] = useState<number>(0)
   const [mode, setMode] = useState<EditorMode>(() => readEditorMode())
   const [rawText, setRawText] = useState('')
+  const [exportError, setExportError] = useState<string | null>(null)
   const savedMd = useRef<string>('')
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // The title is editable, so it has its own field state. `doc.title` is what
@@ -161,6 +168,30 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     setMode(next)
     writeEditorMode(next)
   }, [mode, editor, currentMd, save, version, titles])
+
+  const exportTitle = (title.trim() || doc?.title || 'doc')
+
+  const exportDocx = useCallback(async () => {
+    setExportError(null)
+    try {
+      const api = await loadExportBundle(extensionId)
+      const blob = await api.markdownToDocx(currentMd(), exportTitle)
+      downloadBlob(blob, exportFileName(exportTitle, 'docx'))
+    } catch (err) {
+      setExportError(`Export failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }, [extensionId, currentMd, exportTitle])
+
+  const exportPdf = useCallback(async () => {
+    setExportError(null)
+    try {
+      const host = hostOf()
+      if (typeof host.savePdf !== 'function') throw new Error('this SwarmClaw version cannot save PDFs; update the app')
+      await host.savePdf({ html: buildPrintHtml(currentMd(), exportTitle), fileName: exportFileName(exportTitle, 'pdf') })
+    } catch (err) {
+      setExportError(`Export failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }, [currentMd, exportTitle])
 
   /** Autosave for the raw view, on the same delay as the editor's. */
   const onRawChange = useCallback((text: string) => {
@@ -314,6 +345,13 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
             >
               Markdown
             </button>
+            <details className="docs-export">
+              <summary>Export</summary>
+              <div className="docs-export-menu" role="menu">
+                <button type="button" role="menuitem" onClick={() => { void exportDocx() }}>Word (.docx)</button>
+                <button type="button" role="menuitem" onClick={() => { void exportPdf() }}>PDF</button>
+              </div>
+            </details>
             {onTogglePanel && (
               <button
                 type="button"
@@ -344,6 +382,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
         </span>
         {saveState.kind === 'error' && <span className="docs-error">{saveState.message}</span>}
       </header>
+      {exportError && <p className="docs-error" role="alert">{exportError}</p>}
 
       {mode === 'formatted' && <Toolbar editor={editor} />}
       </div>

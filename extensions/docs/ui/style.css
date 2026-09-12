@@ -646,3 +646,15 @@ button.docs-primary:hover {
   font: 13px/1.6 Menlo, Consolas, monospace;
   tab-size: 2;
 }
+
+/* --- Export menu --- */
+.docs-export { position: relative; }
+.docs-export > summary { list-style: none; cursor: pointer; }
+.docs-export > summary::-webkit-details-marker { display: none; }
+.docs-export-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 20;
+  display: flex; flex-direction: column; min-width: 140px; padding: 4px;
+  border: 1px solid var(--color-line-subtle, rgba(255,255,255,0.12)); border-radius: 6px;
+  background: var(--color-bg, #111);
+}
+.docs-export-menu button { text-align: left; padding: 6px 10px; }

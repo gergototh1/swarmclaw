@@ -12,7 +12,7 @@ import { Editor } from './editor'
  * be writing. The host draws the title and the close button; this adds the
  * way over to the full page.
  */
-export function DocPanel({ rpc, refId, onClose }: { extensionId: string; rpc: Rpc; refId: string; onClose: () => void }) {
+export function DocPanel({ rpc, refId, onClose, extensionId }: { extensionId: string; rpc: Rpc; refId: string; onClose: () => void }) {
   const [titles, setTitles] = useState<Set<string>>(new Set())
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
@@ -34,6 +34,7 @@ export function DocPanel({ rpc, refId, onClose }: { extensionId: string; rpc: Rp
         rpc={rpc}
         id={refId}
         titles={titles}
+        extensionId={extensionId}
         onSaved={() => {}}
         panelOpen={false}
         onDelete={() => {

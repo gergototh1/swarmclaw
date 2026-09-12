@@ -23,7 +23,7 @@ import { TreeColumn } from './tree'
  * see that reads the empty tree below it as "I have no documents".
  */
 
-export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
+export function DocsPage({ rpc, extensionId }: { extensionId: string; rpc: Rpc }) {
   const [tree, setTree] = useState<Tree | null>(null)
   const [treeError, setTreeError] = useState<string | null>(null)
   const [status, setStatus] = useState<Status | null>(null)
@@ -126,6 +126,7 @@ export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
           rpc={rpc}
           id={activeId}
           titles={titles}
+          extensionId={extensionId}
           onSaved={refresh}
           panelOpen={panelOpen}
           onTogglePanel={() => setPanelOpen((prev) => !prev)}
