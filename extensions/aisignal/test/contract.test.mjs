@@ -262,7 +262,7 @@ test('index.mjs declares the signals contract and consumes the gmail mailbox', (
   // receives the extension tool layer, and MCP is the only layer that crosses
   // into a CLI's own tool loop. They are listed here so that adding a third
   // one is a decision rather than an accident.
-  assert.deepEqual(Object.keys(aisignal.rpc), ['board', 'items', 'decide', 'sweeps', 'health', 'mcpTools', 'mcpCall'])
+  assert.deepEqual(Object.keys(aisignal.rpc), ['board', 'items', 'decide', 'sweeps', 'health', 'mcpTools', 'mcpCall', 'mcpInstructions'])
 
   // The one grant this extension asks for, and the only one: the mailbox behind
   // the newsletter label. Without the declaration the host answers every call

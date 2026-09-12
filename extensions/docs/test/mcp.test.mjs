@@ -210,3 +210,39 @@ test('the shim exits when its stdin closes', async () => {
   const code = await shim.stop()
   assert.equal(code, 0)
 })
+
+test('initialize carries the host\'s instructions', async () => {
+  const host = await fakeHost(({ url }) => (
+    url.endsWith('/mcpInstructions') ? { status: 200, json: { instructions: 'Use docs_write for readable output.' } } : { status: 404, json: {} }
+  ))
+  const shim = startShim({ SWARMCLAW_PORT_FILE: liveFile(host.port) })
+  try {
+    const init = await shim.call('initialize', {})
+    assert.equal(init.result.instructions, 'Use docs_write for readable output.')
+    assert.equal(init.result.serverInfo.name, 'swarmclaw-docs')
+  } finally {
+    await shim.stop()
+    await host.close()
+  }
+})
+
+test('initialize still succeeds without instructions when the host has none or is down', async () => {
+  const host = await fakeHost(() => ({ status: 200, json: { instructions: null } }))
+  const shim = startShim({ SWARMCLAW_PORT_FILE: liveFile(host.port) })
+  try {
+    const init = await shim.call('initialize', {})
+    assert.equal('instructions' in init.result, false)
+  } finally {
+    await shim.stop()
+    await host.close()
+  }
+
+  const down = startShim({ SWARMCLAW_PORT_FILE: path.join(tmp, 'missing', 'port.json') })
+  try {
+    const init = await down.call('initialize', {})
+    assert.equal(init.result.protocolVersion, '2024-11-05')
+    assert.equal('instructions' in init.result, false)
+  } finally {
+    await down.stop()
+  }
+})

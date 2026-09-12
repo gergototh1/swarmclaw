@@ -112,7 +112,7 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   // exactly the kind this file exists to surface as a diff.
   assert.deepEqual(out.rpc.slice().sort(), [
     'alapSavokatFelvesz', 'atutemez', 'fiokok', 'fiokotOsszekot', 'jovahagy',
-    'kiadas', 'mcpCall', 'mcpTools', 'naptar', 'savotFelvesz', 'savotTorol',
+    'kiadas', 'mcpCall', 'mcpInstructions', 'mcpTools', 'naptar', 'savotFelvesz', 'savotTorol',
     'ujraprobal',
   ])
   // Nothing provided yet: this task is a consumer of `video.videos`, not yet

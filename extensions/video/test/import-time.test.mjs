@@ -77,7 +77,7 @@ test('index.mjs imports under plain node well inside the host deadline and decla
   // producer and the reviewer at all. Listed here so a third one is a decision.
   assert.deepEqual(out.rpc.slice().sort(), [
     'board', 'cancelRender', 'cleanup', 'decideProposal', 'feedback', 'health', 'importFeedback',
-    'importRetention', 'lezar', 'mcpCall', 'mcpTools', 'narral', 'nyit', 'proposals', 'renderel',
+    'importRetention', 'lezar', 'mcpCall', 'mcpInstructions', 'mcpTools', 'narral', 'nyit', 'proposals', 'renderel',
     'retireLesson', 'templatePreview', 'templatePreviewCancel', 'templatePreviewStart',
     'templatePreviewStatus', 'templates', 'video', 'youtubeOtletek',
   ])

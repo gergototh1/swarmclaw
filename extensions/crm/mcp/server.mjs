@@ -85,6 +85,7 @@ const HEALTHZ_RETRY_MS = 250
 /** Listing tools is a database read; running one can research, sweep or render. */
 const LIST_TIMEOUT_MS = 15_000
 const CALL_TIMEOUT_MS = 600_000
+const INSTRUCTIONS_TIMEOUT_MS = 3_000
 
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
 
@@ -357,6 +358,23 @@ async function listTools() {
   return answer.tools.filter((t) => isPlainObject(t) && typeof t.name === 'string')
 }
 
+/**
+ * The extension's instructions, asked of the host at `initialize`.
+ *
+ * Short timeout, and never an error: a host that is down or slow costs the
+ * agent this hint for one launch, not the server. The reason goes to stderr.
+ */
+async function fetchInstructions() {
+  const answer = await callHost('mcpInstructions', {}, INSTRUCTIONS_TIMEOUT_MS)
+  if (isPlainObject(answer) && typeof answer.instructions === 'string' && answer.instructions.trim() !== '') {
+    return answer.instructions
+  }
+  if (isPlainObject(answer) && answer.error) {
+    process.stderr.write(`[${SERVER_INFO.name}] instructions: ${answer.error.message}\n`)
+  }
+  return null
+}
+
 async function callTool(id, params) {
   const name = isPlainObject(params) ? params.name : undefined
   const args = isPlainObject(params) && params.arguments !== undefined ? params.arguments : {}
@@ -379,7 +397,13 @@ async function handle(msg) {
   // A notification carries no id and gets no reply, whatever its method.
   if (id === undefined || id === null) return null
   if (method === 'initialize') {
-    return reply(id, { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: {} }, serverInfo: SERVER_INFO })
+    const instructions = await fetchInstructions()
+    return reply(id, {
+      protocolVersion: PROTOCOL_VERSION,
+      capabilities: { tools: {} },
+      serverInfo: SERVER_INFO,
+      ...(instructions ? { instructions } : {}),
+    })
   }
   if (method === 'tools/list') return reply(id, { tools: await listTools() })
   if (method === 'tools/call') return callTool(id, params)

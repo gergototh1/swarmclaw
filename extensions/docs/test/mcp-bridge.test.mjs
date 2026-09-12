@@ -124,3 +124,18 @@ test('the agent name survives the trip, because the folder is named after it', a
   await mcpCall({ tool: 't', args: {}, agentId: 'c3377d', agentName: 'GTassistant' })
   assert.equal(seen[0].session.agentRecord.name, 'GTassistant')
 })
+
+test('mcpInstructions hands back the extension\'s own text', () => {
+  const { mcpInstructions } = createMcpBridge(tools, () => 'Write readable output into Docs.')
+  assert.deepEqual(mcpInstructions(), { instructions: 'Write readable output into Docs.' })
+})
+
+test('mcpInstructions is null when the extension gives none, or gives blank text', () => {
+  assert.deepEqual(createMcpBridge(tools).mcpInstructions(), { instructions: null })
+  assert.deepEqual(createMcpBridge(tools, () => '   ').mcpInstructions(), { instructions: null })
+})
+
+test('a throwing instructionsOf costs the instructions, not the bridge', () => {
+  const { mcpInstructions } = createMcpBridge(tools, () => { throw new Error('boom') })
+  assert.deepEqual(mcpInstructions(), { instructions: null })
+})
