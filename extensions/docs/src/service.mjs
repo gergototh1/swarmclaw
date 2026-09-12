@@ -39,7 +39,7 @@ const MAX_SLUG = 60
 export function fileSlug(title) {
   const folded = String(title ?? '')
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
