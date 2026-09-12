@@ -27,7 +27,7 @@ export function createWatcherControl({ watchImpl = fs.watch, now = Date.now } = 
     handle: null,
     root: null,
     indultAt: null,
-    hiba: null,
+    error: null,
     timers: new Map(),
   }
 
@@ -48,10 +48,10 @@ export function createWatcherControl({ watchImpl = fs.watch, now = Date.now } = 
 
   function status() {
     return {
-      fut: Boolean(state.handle),
+      running: Boolean(state.handle),
       root: state.root,
       indultAt: state.indultAt,
-      hiba: state.hiba,
+      error: state.error,
     }
   }
 
@@ -94,7 +94,7 @@ export function createWatcherControl({ watchImpl = fs.watch, now = Date.now } = 
   function ensureWatcher({ root, enabled, writer, vault, log }) {
     if (!enabled) {
       stop()
-      state.hiba = null
+      state.error = null
       return status()
     }
     if (state.handle && state.root === root) return status()
@@ -106,13 +106,13 @@ export function createWatcherControl({ watchImpl = fs.watch, now = Date.now } = 
       })
       state.root = root
       state.indultAt = now()
-      state.hiba = null
+      state.error = null
     } catch (err) {
       state.handle = null
       state.root = null
       state.indultAt = null
-      state.hiba = err?.message ?? 'a figyelő nem indult el'
-      log?.warn?.('docs watcher failed to start', { root, error: state.hiba })
+      state.error = err?.message ?? 'the watcher did not start'
+      log?.warn?.('docs watcher failed to start', { root, error: state.error })
     }
     return status()
   }

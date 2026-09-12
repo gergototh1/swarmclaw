@@ -65,7 +65,7 @@ export function ReplyNotifier() {
       // window still comes forward (the main process handles that) -- here we
       // only explain why nothing opened, instead of leaving an empty view.
       if (!useAppStore.getState().sessions?.[sessionId]) {
-        toast.error('Ez a beszelgetes mar nem letezik.')
+        toast.error('This conversation no longer exists.')
         return
       }
       setActiveSessionIdOverride(sessionId)

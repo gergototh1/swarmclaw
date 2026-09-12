@@ -1,13 +1,18 @@
+import os from 'node:os'
+import path from 'node:path'
+
 import { createAgentContext } from './src/agent-context.mjs'
 import { DOCS_CONTRACT, createDocsContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { migrateLegacyFolders } from './src/folder-migration.mjs'
 import { createIndexWriter } from './src/index-writer.mjs'
+import { LEGACY_PANEL_TOOLS, LEGACY_SETTING_KEYS, LEGACY_SHARED_FOLDER } from './src/legacy-names.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
 import { createRpc } from './src/rpc.mjs'
 import { createService } from './src/service.mjs'
 import { createTools } from './src/tools.mjs'
 import { createVault } from './src/vault.mjs'
-import { VIDEOS_CONTRACT_VERSION } from './src/video-forgatokonyv.mjs'
+import { VIDEOS_CONTRACT_VERSION } from './src/video-script.mjs'
 import { createWatcherControl } from './src/watcher.mjs'
 
 /**
@@ -35,29 +40,51 @@ export const state = {
   _writer: null,
   _service: null,
   _root: null,
+  migration: { moved: [], blocked: [] },
+}
+
+/** A setting under its English key, else under the key it was stored as before the rename. */
+function setting(key) {
+  const all = state.settings() ?? {}
+  const fresh = all[key]
+  if (fresh !== undefined && fresh !== null && fresh !== '') return fresh
+  return all[LEGACY_SETTING_KEYS[key]]
+}
+
+function trimmed(value) {
+  return typeof value === 'string' ? value.trim() : ''
 }
 
 /** The configured root, with the fallback a never-configured install gets. */
 export function rootSetting() {
-  const raw = state.settings()?.gyoker
-  return typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : '~/SwarmClaw/docs'
+  return trimmed(setting('root')) || '~/SwarmClaw/docs'
 }
 
-/** The shared folder's name, which the operator may rename. */
+/**
+ * The shared folder's name, which the operator may rename.
+ *
+ * A stored value equal to `LEGACY_SHARED_FOLDER` is ignored rather than
+ * honoured: it is the old default the settings form wrote, not a choice, and
+ * honouring it would keep the old-name -> shared folder migration from ever
+ * running.
+ */
 export function sharedFolder() {
-  const raw = state.settings()?.kozosMappaNev
-  return typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : 'kozos'
+  const fresh = trimmed(state.settings()?.sharedFolderName)
+  if (fresh) return fresh
+  const legacy = trimmed(state.settings()?.[LEGACY_SETTING_KEYS.sharedFolderName])
+  if (legacy && legacy !== LEGACY_SHARED_FOLDER) return legacy
+  return 'shared'
 }
 
 /** How many versions a document keeps. */
 export function versionsKept() {
-  const raw = Number(state.settings()?.verzioMegtartas)
+  const raw = Number(setting('versionsKept'))
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 50
 }
 
 /** Whether the operator wants outside edits noticed. */
 export function watchEnabled() {
-  const raw = state.settings()?.figyelesBe
+  const raw = setting('watchEnabled')
   return raw === undefined || raw === null ? true : Boolean(raw)
 }
 
@@ -102,6 +129,62 @@ const agentContext = createAgentContext(state, { serviceOf, sharedFolder, logOf 
  */
 export const watcherControl = createWatcherControl()
 
+/** The real, unconfigured default root -- never a value a test should be pointed at. */
+function isDefaultHomeRoot(resolvedRoot) {
+  return resolvedRoot === path.resolve(path.join(os.homedir(), 'SwarmClaw', 'docs'))
+}
+
+/**
+ * True while running under Node's own test runner (`node --test`, which is
+ * what this extension's `npm test` invokes as `node --import tsx --test`).
+ * `NODE_TEST_CONTEXT` is set by node:test itself for the whole process --
+ * verified empirically for both invocations -- rather than by the caller, so
+ * it cannot be walked around the way a `.setup(fakeCtx(...))` source-text
+ * scan can: it does not matter how a test builds its fake ctx, or whether it
+ * calls fakeCtx at all.
+ */
+function runningUnderTestRunner() {
+  return Boolean(process.env.NODE_TEST_CONTEXT)
+}
+
+/**
+ * Renames the folders that moved with the module, before anything watches the
+ * root: a watcher running during the rename would read it as an outside edit
+ * and index in parallel with the migration.
+ *
+ * Refuses outright when the resolved root is the real, unconfigured default
+ * AND the process is running under a test runner: a rootless
+ * `docs.setup(fakeCtx({}))` in a test once ran this migration against the
+ * operator's real ~/SwarmClaw/docs and moved live documents. The
+ * english-only.test.mjs source-text scan for that pattern can be walked
+ * around by any other helper or an inline ctx object; this check cannot,
+ * because it does not read the caller's source at all.
+ */
+export function runFolderMigration() {
+  try {
+    const vault = vaultOf()
+    if (isDefaultHomeRoot(vault.root) && runningUnderTestRunner()) {
+      state.log?.warn?.('docs folder migration refused: default root under a test runner', { root: vault.root })
+      return state.migration
+    }
+    vault.ensureRoot()
+    state.migration = migrateLegacyFolders({
+      root: vault.root,
+      sharedFolderName: sharedFolder(),
+      writer: writerOf(),
+      log: state.log,
+    })
+  } catch (err) {
+    state.log?.warn?.('docs folder migration skipped', { error: err?.message })
+    // Keep whatever blocked/moved state migrateLegacyFolders already computed
+    // before the failure (e.g. a genuine clash reported this call) rather
+    // than erasing it -- an unrelated throw after that point should not make
+    // a legitimate blocked banner disappear from the UI.
+    state.migration = state.migration ?? { moved: [], blocked: [] }
+  }
+  return state.migration
+}
+
 /**
  * Brings the watcher in line with the settings. Idempotent in both directions,
  * which is what makes it safe to call from setup() -- and setup() runs again on
@@ -131,9 +214,9 @@ export function syncWatcher() {
 }
 
 const docs = {
-  name: 'Doksik',
+  name: 'Docs',
   version: '0.1.0',
-  description: 'Markdown-doksik egy mappában: grafikus szerkesztő az operátornak, hét tool az ügynököknek, ügynökönként saját mappa.',
+  description: 'Markdown docs in one folder: a graphical editor for the operator, seven tools for agents, a folder of its own for every agent.',
   migrations: MIGRATIONS,
   tools: createTools(state, { serviceOf, logOf }),
   rpc: { ...createRpc({
@@ -146,7 +229,8 @@ const docs = {
     sharedFolder,
     rootSetting,
     logOf,
-  }), ...createMcpBridge(() => docs.tools) },
+    migrationStatus: () => state.migration,
+  }), ...createMcpBridge(() => docs.tools, () => agentContext.getMcpInstructions()) },
   /**
    * The one contract this module reaches for, and the sentence the operator
    * reads beside it on the extension card.
@@ -157,19 +241,19 @@ const docs = {
    * the call goes through. Nothing reads `reason`, nothing records a decision
    * about it, and there is no grant, approve or revoke anywhere. So the only
    * way to take this module's reach away is to delete this entry or to disable
-   * the Videó bővítmény, which takes it from every consumer at once.
+   * the Video extension, which takes it from every consumer at once.
    *
    * A provider that is not installed is not a load failure: the host answers a
-   * missing one at call time, and `doksi_video_forgatokonyv` names it
-   * (`szerzodes_hianyzik`) rather than skipping quietly.
+   * missing one at call time, and `docs_video_script` names it
+   * (`contract_missing`) rather than skipping quietly.
    */
   consumes: [
-    { extension: 'video', contract: 'videos', version: VIDEOS_CONTRACT_VERSION, reason: 'A doksi_video_forgatokonyv tool ebből kéri le egy kész videó adatait (cím, narráció, fájladatok), és doksiként teszi le a kérő ügynök saját mappájába. Ez a modul egyetlen kifelé nyúlása.' },
+    { extension: 'video', contract: 'videos', version: VIDEOS_CONTRACT_VERSION, reason: "docs_video_script asks it for a finished video's data (title, narration, file details) and puts it as a doc into the asking agent's own folder. This module's only reach outside itself." },
   ],
   provides: {
     [DOCS_CONTRACT]: createDocsContract({
       serviceOf,
-      extensionNameOf: (args) => (typeof args?.hivo === 'string' && args.hivo.trim() !== '' ? args.hivo.trim() : 'ext'),
+      extensionNameOf: (args) => (typeof args?.caller === 'string' && args.caller.trim() !== '' ? args.caller.trim() : 'ext'),
     }),
   },
   hooks: {
@@ -189,59 +273,49 @@ const docs = {
     state._writer = null
     state._service = null
     state._root = null
+    runFolderMigration()
     syncWatcher()
   },
   ui: {
     pages: [{
       id: 'docs',
-      label: 'Doksik',
+      label: 'Docs',
       icon: 'FileText',
       path: '/x/docs',
       entry: 'dist/index.js',
       css: 'dist/style.css',
       position: 'after:tasks',
     }],
+    /**
+     * The card under an agent message that wrote a doc, and the panel it
+     * opens. The old tool names are listed so a message from before the
+     * rename still gets its card.
+     */
+    toolPanels: [{
+      id: 'doc',
+      label: 'Doc',
+      icon: 'FileText',
+      tools: ['docs_write', 'docs_video_script', ...LEGACY_PANEL_TOOLS],
+      entry: 'dist/index.js',
+      css: 'dist/style.css',
+    }],
     settingsFields: [
-      {
-        key: 'gyoker',
-        label: 'Doksik gyökérmappája',
-        type: 'text',
-        required: true,
-        placeholder: '~/SwarmClaw/docs',
-        help: 'Ide kerül minden .md fájl. Finderben és Obsidianban is megnyitható.',
-      },
-      {
-        key: 'figyelesBe',
-        label: 'Külső szerkesztés figyelése',
-        type: 'boolean',
-        defaultValue: true,
-        help: 'Ha kívülről (Obsidian, Finder) módosul egy doksi, a kereső is frissül.',
-      },
-      {
-        key: 'verzioMegtartas',
-        label: 'Megtartott verziók / doksi',
-        type: 'number',
-        defaultValue: 50,
-      },
-      {
-        key: 'kozosMappaNev',
-        label: 'Közös mappa neve',
-        type: 'text',
-        defaultValue: 'kozos',
-        help: 'Ebbe a mappába minden ügynök írhat.',
-      },
+      { key: 'root', label: 'Docs root folder', type: 'text', required: true, placeholder: '~/SwarmClaw/docs', help: 'Every .md file goes here. It opens in Finder and Obsidian too.' },
+      { key: 'watchEnabled', label: 'Watch for outside edits', type: 'boolean', defaultValue: true, help: 'When a doc changes outside (Obsidian, Finder), search picks it up too.' },
+      { key: 'versionsKept', label: 'Versions kept per doc', type: 'number', defaultValue: 50 },
+      { key: 'sharedFolderName', label: 'Shared folder name', type: 'text', defaultValue: 'shared', help: 'Every agent can write into this folder.' },
     ],
   },
   managedResources: {
     localFolders: [{
       folderKey: 'docs-root',
-      displayName: 'Doksik gyökérmappája',
-      description: 'A markdown-doksik mappafája.',
+      displayName: 'Docs root folder',
+      description: 'The markdown docs folder tree.',
       access: 'readWrite',
     }],
     setupChecks: [{
       checkKey: 'docs_root_writable',
-      displayName: 'A doksi-gyökér létezik és írható',
+      displayName: 'The docs root exists and is writable',
       kind: 'manual',
       required: true,
     }],

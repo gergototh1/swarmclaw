@@ -187,7 +187,7 @@ test('a 404 from the host names the extension rather than the tool', async () =>
   try {
     const r = await shim.call('tools/call', { name: 'crm_search', arguments: {} })
     assert.equal(r.result.isError, true)
-    assert.equal(JSON.parse(r.result.content[0].text).error.code, 'extension_hianyzik')
+    assert.equal(JSON.parse(r.result.content[0].text).error.code, 'extension_missing')
   } finally {
     await shim.stop()
     await host.close()

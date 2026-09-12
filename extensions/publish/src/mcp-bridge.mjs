@@ -48,7 +48,7 @@
  */
 
 /** The shape a failure takes, matching what the tools themselves return. */
-function hiba(code, message) {
+function errorResult(code, message) {
   return { error: { code, message } }
 }
 
@@ -57,13 +57,19 @@ function isPlainObject(value) {
 }
 
 /**
- * Build the two handlers over a `tools` array.
+ * Build the handlers over a `tools` array, and optionally over the text an
+ * MCP client should put in front of the model.
  *
  * `toolsOf` is a function rather than the array itself because `setup()` runs
  * again on every reload and rebuilds the tools; a captured array would be the
  * previous load's.
+ *
+ * `instructionsOf` feeds MCP's `instructions` field, which the Claude CLI puts
+ * into the system prompt and re-reads on every launch. It is how an extension
+ * tells an agent WHEN to reach for its tools: the CLI loads MCP tools lazily,
+ * so a tool's own description is not seen until the agent has already decided.
  */
-export function createMcpBridge(toolsOf) {
+export function createMcpBridge(toolsOf, instructionsOf) {
   return {
     /**
      * The tool table, in MCP's shape. `parameters` is the host's name for the
@@ -98,13 +104,13 @@ export function createMcpBridge(toolsOf) {
     async mcpCall(body) {
       const name = isPlainObject(body) ? body.tool : undefined
       if (typeof name !== 'string' || name === '') {
-        return hiba('mcp_rossz_keres', 'tool: nem üres szöveg kell')
+        return errorResult('mcp_bad_request', 'tool: needs a non-empty string')
       }
       const args = isPlainObject(body) && isPlainObject(body.args) ? body.args : {}
       const tool = (toolsOf() || []).find((t) => t.name === name)
       if (!tool) {
-        const ismert = (toolsOf() || []).map((t) => t.name).join(', ')
-        return hiba('mcp_ismeretlen_tool', `nincs "${name}" nevű tool ebben az extensionben; a meglévők: ${ismert}`)
+        const known = (toolsOf() || []).map((t) => t.name).join(', ')
+        return errorResult('mcp_unknown_tool', `no tool named "${name}" in this extension; the ones there are: ${known}`)
       }
       // The same shape buildSessionTools() passes, so a tool cannot tell which
       // side called it. `agentRecord` carries the name because that is where
@@ -122,6 +128,17 @@ export function createMcpBridge(toolsOf) {
         },
       }
       return await tool.execute(args, ctx)
+    },
+
+    /** The extension's instructions, or null. A failure here must not cost the server its tools. */
+    mcpInstructions() {
+      if (typeof instructionsOf !== 'function') return { instructions: null }
+      try {
+        const text = instructionsOf()
+        return { instructions: typeof text === 'string' && text.trim() !== '' ? text : null }
+      } catch {
+        return { instructions: null }
+      }
     },
   }
 }

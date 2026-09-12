@@ -14,7 +14,7 @@ import { actorOf } from './tools.mjs'
  * It never throws. A root that is missing or unreadable must not stop an agent
  * from holding a conversation, so a failure logs and contributes nothing.
  *
- * It adds nothing when there is nothing. An empty "Doksik:" heading over no
+ * It adds nothing when there is nothing. An empty "Docs:" heading over no
  * items is noise in every prompt for no benefit, so an empty listing returns
  * null instead.
  *
@@ -58,12 +58,12 @@ export function createAgentContext(state, { serviceOf, sharedFolder, logOf }) {
       const service = serviceOf()
       const home = homeFolderOf(actor)
 
-      const own = home ? service.list(actor, { mappa: home, limit: OWN_LIMIT }) : []
-      const shared = service.list(actor, { mappa: sharedFolder(), limit: SHARED_LIMIT })
+      const own = home ? service.list(actor, { folder: home, limit: OWN_LIMIT }) : []
+      const shared = service.list(actor, { folder: sharedFolder(), limit: SHARED_LIMIT })
 
       return fit([
-        { heading: `## A te doksijaid (${home ?? sharedFolder()})`, lines: own.map(line) },
-        { heading: `## Közös doksik (${sharedFolder()})`, lines: shared.map(line) },
+        { heading: `## Your docs (${home ?? sharedFolder()})`, lines: own.map(line) },
+        { heading: `## Shared docs (${sharedFolder()})`, lines: shared.map(line) },
       ], CHAR_BUDGET)
     } catch (err) {
       logOf()?.warn?.('docs agent context skipped', { error: err?.message })
@@ -72,17 +72,35 @@ export function createAgentContext(state, { serviceOf, sharedFolder, logOf }) {
   }
 
   function getCapabilityDescription() {
-    return 'Tartós markdown-doksikat tudok olvasni, keresni és írni; van saját mappám, és a közös mappát is elérem.'
+    return 'I can read, search and write durable markdown docs; I have a folder of my own and can reach the shared folder.'
   }
 
   function getOperatingGuidance() {
     return [
-      'Írj doksit, ha az eredmény a beszélgetés után is értékes marad — kutatási összefoglaló, ügyfélprofil, döntés indoklása. Átmeneti gondolatmenetet ne írj bele.',
-      'Módosítás előtt mindig olvasd be a doksit a doksi_olvas hívással, és add vissza a kapott verziószámot baseVersion néven. Enélkül a doksi_ir elutasítja a módosítást.',
-      'Ha ütközést kapsz, a doksit közben más írta át: olvasd újra, fésüld össze a változtatásodat a friss tartalommal, és írd újra az új verziószámmal. Ne írd felül a másik változatot vakon.',
-      'Más ügynök mappájába nem tudsz írni, de olvasni onnan is tudsz. Ha közös anyagot készítesz, a közös mappába tedd.',
+      'Anything you write for the user or another agent to read — a report, summary, plan, estimate, research note — goes into Docs with docs_write, not into a file in your working directory (Write, Bash, `cat >`). Working files (code, config, temporary files, video assets) stay in your working directory. Once a doc is written, naming its title in your reply is enough: the user opens it from the chat.',
+      'Before changing a doc, always read it with docs_read and pass back the version you got as baseVersion. Without it docs_write refuses the change.',
+      'If you get a conflict, someone else changed the doc meanwhile: read it again, merge your change into the fresh content, and write again with the new version. Never blindly overwrite the other version.',
+      "You cannot write into another agent's folder, but you can read from it. Put shared material into the shared folder.",
     ]
   }
 
-  return { getAgentContext, getCapabilityDescription, getOperatingGuidance }
+  /**
+   * What an agent on a CLI provider is told up front, through MCP.
+   *
+   * Short on purpose: it lands in every system prompt of every agent the
+   * server is assigned to. The details stay in the tool descriptions, which
+   * the agent reads once it has decided to use a tool -- this only has to make
+   * it decide.
+   */
+  function getMcpInstructions() {
+    return [
+      'Docs is the shared home for durable markdown documents: every agent has its own folder, and everyone can write into the shared folder.',
+      'Anything you write for the user or another agent to read — a report, summary, plan, estimate, research note — goes into Docs with docs_write, never into a file in your working directory. Working files (code, config, temporary files, assets) stay where they are.',
+      'To change a doc, read it with docs_read first and pass its version back as baseVersion.',
+      `The shared folder is "${sharedFolder()}".`,
+      'After writing a doc, name its title in your reply; the user opens it from the chat.',
+    ].join('\n')
+  }
+
+  return { getAgentContext, getCapabilityDescription, getOperatingGuidance, getMcpInstructions }
 }

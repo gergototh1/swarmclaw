@@ -1,0 +1,277 @@
+import {
+  AlignmentType,
+  BorderStyle,
+  Document,
+  ExternalHyperlink,
+  HeadingLevel,
+  LevelFormat,
+  Packer,
+  Paragraph,
+  ShadingType,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+  WidthType,
+  type ParagraphChild,
+} from 'docx'
+import { marked, type Token, type Tokens } from 'marked'
+
+import { withTitleHeading } from './title-heading'
+
+/**
+ * Markdown to a Word document, through marked's tokens.
+ *
+ * Not through HTML: a token already says "heading, depth 2" or "ordered list
+ * item, level 1", which is exactly what a Word paragraph needs, where HTML
+ * would have to be parsed back into the same facts. What Word has no plain
+ * equivalent for degrades to text: a wiki link becomes its title, an image its
+ * alt text, raw HTML its text content.
+ */
+
+const HEADINGS = [
+  HeadingLevel.HEADING_1, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3,
+  HeadingLevel.HEADING_4, HeadingLevel.HEADING_5, HeadingLevel.HEADING_6,
+] as const
+
+const MONO = 'Menlo'
+const ORDERED = 'ordered'
+
+/**
+ * Typography defaults for the generated file.
+ *
+ * Left empty, `docDefaults` gives Word nothing to fall back on but its own
+ * factory template -- paragraphs with no spacing between them, and headings
+ * in Word's built-in blue. A docx names one font family per run, and Word
+ * resolves that name against the faces actually installed on the reading
+ * machine -- it does not carry the file's own font data the way a PDF does.
+ * That rules out the app's own faces: the UI's headings use Gabarito and its
+ * body uses Inter, but this machine (and most readers') has no static Inter
+ * face installed, only the variable font registered as "Inter Tight" --
+ * Word would substitute silently rather than render either. `Helvetica Neue`
+ * is used for both body and headings instead: a real static face that ships
+ * with the OS, so what the export names is what Word actually draws.
+ *
+ * Caveat: "ships with the OS" means macOS specifically -- Helvetica Neue is
+ * not a standard face on Windows or Linux, so Word there falls back to a
+ * substitute the same way it would have for Inter Tight, the very failure
+ * this change chases. Accepted for now because the operator is on macOS;
+ * revisit with a cross-platform static face if that changes.
+ */
+const BODY_FONT = 'Helvetica Neue'
+const HEADING_COLOR = '1A1A1A'
+
+const DOC_STYLES = {
+  default: {
+    document: {
+      // 22 half-points = 11pt; 276 = line height 1.15; 240 twips = 12pt after.
+      run: { font: BODY_FONT, size: 22 },
+      paragraph: { spacing: { after: 240, line: 276 } },
+    },
+    // Every bulleted/numbered paragraph gets the `ListParagraph` style
+    // automatically (docx pushes it whenever `bullet` or a non-custom
+    // `numbering` is set) -- kept well under the body's 240 twips so a list
+    // does not read as a stack of separate paragraphs.
+    listParagraph: {
+      paragraph: { spacing: { after: 80, line: 240 } },
+    },
+    // Each heading's `before` is well past double its own `after`, so a
+    // heading visibly separates from the block above it while staying close
+    // to the block it introduces.
+    heading1: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 36 }, paragraph: { spacing: { before: 360, after: 160 } } },
+    heading2: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 30 }, paragraph: { spacing: { before: 320, after: 140 } } },
+    heading3: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 26 }, paragraph: { spacing: { before: 280, after: 120 } } },
+    heading4: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 24 }, paragraph: { spacing: { before: 240, after: 100 } } },
+    heading5: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 22 }, paragraph: { spacing: { before: 220, after: 90 } } },
+    heading6: { run: { font: BODY_FONT, color: HEADING_COLOR, bold: true, size: 20 }, paragraph: { spacing: { before: 200, after: 80 } } },
+  },
+}
+
+interface RunStyle {
+  bold?: boolean
+  italics?: boolean
+  strike?: boolean
+  code?: boolean
+}
+
+interface BlockContext {
+  listLevel: number
+  quote: boolean
+  nextListInstance: { value: number }
+}
+
+const ENTITIES: Record<string, string> = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" }
+
+function decode(text: string): string {
+  return text.replace(/&(amp|lt|gt|quot|#39);/g, (m) => ENTITIES[m] ?? m)
+}
+
+function run(text: string, style: RunStyle): TextRun {
+  return new TextRun({
+    text: decode(text),
+    bold: style.bold,
+    italics: style.italics,
+    strike: style.strike,
+    ...(style.code ? { font: MONO } : {}),
+  })
+}
+
+function inlineRuns(tokens: Token[] | undefined, style: RunStyle = {}): ParagraphChild[] {
+  const out: ParagraphChild[] = []
+  for (const token of tokens ?? []) {
+    switch (token.type) {
+      case 'strong':
+        out.push(...inlineRuns((token as Tokens.Strong).tokens, { ...style, bold: true }))
+        break
+      case 'em':
+        out.push(...inlineRuns((token as Tokens.Em).tokens, { ...style, italics: true }))
+        break
+      case 'del':
+        out.push(...inlineRuns((token as Tokens.Del).tokens, { ...style, strike: true }))
+        break
+      case 'codespan':
+        out.push(run((token as Tokens.Codespan).text, { ...style, code: true }))
+        break
+      case 'br':
+        out.push(new TextRun({ break: 1 }))
+        break
+      case 'link': {
+        const link = token as Tokens.Link
+        out.push(new ExternalHyperlink({
+          link: link.href,
+          children: [new TextRun({ text: decode(link.text), style: 'Hyperlink' })],
+        }))
+        break
+      }
+      case 'image':
+        out.push(run((token as Tokens.Image).text, { ...style, italics: true }))
+        break
+      case 'html':
+        out.push(run((token as Tokens.HTML).text.replace(/<[^>]+>/g, ''), style))
+        break
+      default: {
+        const withChildren = token as { tokens?: Token[]; text?: string }
+        if (withChildren.tokens?.length) out.push(...inlineRuns(withChildren.tokens, style))
+        else if (typeof withChildren.text === 'string') out.push(run(withChildren.text, style))
+      }
+    }
+  }
+  return out
+}
+
+const QUOTE = {
+  indent: { left: 720 },
+  border: { left: { style: BorderStyle.SINGLE, size: 12, color: 'CCCCCC', space: 8 } },
+}
+
+function listItemParagraphs(item: Tokens.ListItem, ordered: boolean, instance: number, ctx: BlockContext): Array<Paragraph | Table> {
+  const out: Array<Paragraph | Table> = []
+  const marker = ordered
+    ? { numbering: { reference: ORDERED, level: ctx.listLevel, instance } }
+    : { bullet: { level: ctx.listLevel } }
+  const prefix = item.task ? (item.checked ? '☑ ' : '☐ ') : ''
+  for (const sub of item.tokens) {
+    if (sub.type === 'list') {
+      out.push(...blocks([sub], { ...ctx, listLevel: Math.min(ctx.listLevel + 1, 5) }))
+    } else if (sub.type === 'text' || sub.type === 'paragraph') {
+      const inner = (sub as Tokens.Text | Tokens.Paragraph).tokens ?? [sub]
+      out.push(new Paragraph({ ...marker, children: [...(prefix ? [new TextRun(prefix)] : []), ...inlineRuns(inner)] }))
+    } else if (sub.type !== 'space') {
+      out.push(...blocks([sub], ctx))
+    }
+  }
+  return out
+}
+
+function blocks(tokens: Token[], ctx: BlockContext): Array<Paragraph | Table> {
+  const out: Array<Paragraph | Table> = []
+  for (const token of tokens) {
+    switch (token.type) {
+      case 'heading': {
+        const heading = token as Tokens.Heading
+        out.push(new Paragraph({ heading: HEADINGS[Math.min(heading.depth, 6) - 1], children: inlineRuns(heading.tokens) }))
+        break
+      }
+      case 'paragraph':
+        out.push(new Paragraph({ ...(ctx.quote ? QUOTE : {}), children: inlineRuns((token as Tokens.Paragraph).tokens) }))
+        break
+      case 'list': {
+        const list = token as Tokens.List
+        const instance = list.ordered ? ctx.nextListInstance.value++ : 0
+        for (const item of list.items) out.push(...listItemParagraphs(item, list.ordered, instance, ctx))
+        break
+      }
+      case 'blockquote':
+        out.push(...blocks((token as Tokens.Blockquote).tokens, { ...ctx, quote: true }))
+        break
+      case 'code':
+        // Each source line is its own Paragraph; without an explicit spacing
+        // override every one of them would carry the document's 8pt-after
+        // default, spreading a code block out into widely separated lines.
+        for (const line of (token as Tokens.Code).text.split('\n')) {
+          out.push(new Paragraph({
+            spacing: { before: 0, after: 0 },
+            shading: { type: ShadingType.CLEAR, color: 'auto', fill: 'F3F4F6' },
+            children: [new TextRun({ text: line, font: MONO, size: 20 })],
+          }))
+        }
+        break
+      case 'table': {
+        const table = token as Tokens.Table
+        // No extra spacing inside a cell: the document default would leave
+        // 8pt of dead air below the last (often only) line of every cell.
+        const cell = (c: Tokens.TableCell, bold: boolean) => new TableCell({
+          children: [new Paragraph({ spacing: { before: 0, after: 0 }, children: inlineRuns(c.tokens, { bold }) })],
+        })
+        out.push(new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({ tableHeader: true, children: table.header.map((c) => cell(c, true)) }),
+            ...table.rows.map((row) => new TableRow({ children: row.map((c) => cell(c, false)) })),
+          ],
+        }))
+        break
+      }
+      case 'hr':
+        out.push(new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '999999', space: 1 } }, children: [] }))
+        break
+      case 'html': {
+        const text = (token as Tokens.HTML).text.replace(/<[^>]+>/g, '').trim()
+        if (text) out.push(new Paragraph({ children: [run(text, {})] }))
+        break
+      }
+      default:
+        break
+    }
+  }
+  return out
+}
+
+const NUMBERING = {
+  config: [{
+    reference: ORDERED,
+    levels: Array.from({ length: 6 }, (_, level) => ({
+      level,
+      format: LevelFormat.DECIMAL,
+      text: `%${level + 1}.`,
+      alignment: AlignmentType.START,
+      style: { paragraph: { indent: { left: 720 * (level + 1), hanging: 360 } } },
+    })),
+  }],
+}
+
+export function buildDocxDocument(md: string, title: string): Document {
+  const source = withTitleHeading(md, title).replace(/\[\[([^\]\n]+)\]\]/g, '$1')
+  const tokens = marked.lexer(source, { gfm: true })
+  return new Document({
+    title,
+    creator: 'SwarmClaw Docs',
+    numbering: NUMBERING,
+    styles: DOC_STYLES,
+    sections: [{ children: blocks(tokens, { listLevel: 0, quote: false, nextListInstance: { value: 1 } }) }],
+  })
+}
+
+export function markdownToDocx(md: string, title: string): Promise<Blob> {
+  return Packer.toBlob(buildDocxDocument(md, title))
+}

@@ -40,7 +40,7 @@ test('extractLinks ignores fenced code and inline code', () => {
 
 test('extractLinks handles a tilde fence and an unclosed one', () => {
   assert.deepEqual(extractLinks('~~~\n[[Rejtve]]\n~~~\n[[Látszik]]'), ['Látszik'])
-  // Egy le nem zárt kerítés a fájl végéig tart: ami benne van, az kód.
+  // An unclosed fence runs to the end of the file: whatever is inside it is code.
   assert.deepEqual(extractLinks('[[Előtte]]\n```\n[[Utána]]'), ['Előtte'])
 })
 
@@ -87,9 +87,9 @@ test('renameLinksTo rewrites the title links and reports what it wrote', () => {
     writeBody: (p, body) => { bodies[p] = body },
   })
 
-  assert.deepEqual(res.frissitett, ['kozos/b.md'])
-  assert.deepEqual(res.kihagyott, [])
-  // A címre mutató link átíródik, az id-re mutató érintetlen marad.
+  assert.deepEqual(res.updated, ['kozos/b.md'])
+  assert.deepEqual(res.skipped, [])
+  // The link pointing at the title gets rewritten; the one pointing at the id stays untouched.
   assert.equal(bodies['kozos/b.md'], 'Lásd [[Morvai profil]] és [[doc_1]] is.\n')
 })
 
@@ -109,9 +109,9 @@ test('renameLinksTo skips a referrer it may not write, and names it', () => {
     writeBody: (p, body) => { bodies[p] = body },
   })
 
-  assert.deepEqual(res.frissitett, [])
-  assert.deepEqual(res.kihagyott, ['agents/kutato/b.md'])
-  assert.equal(bodies['agents/kutato/b.md'], 'Lásd [[Ügyfélprofil]].\n', 'mégis írt bele')
+  assert.deepEqual(res.updated, [])
+  assert.deepEqual(res.skipped, ['agents/kutato/b.md'])
+  assert.equal(bodies['agents/kutato/b.md'], 'Lásd [[Ügyfélprofil]].\n', 'wrote into it anyway')
 })
 
 test('renameLinksTo does not touch a link inside a code fence', () => {
@@ -152,5 +152,5 @@ test('renameLinksTo writes nothing when no body actually changed', () => {
   })
 
   assert.equal(irasok, 0)
-  assert.deepEqual(res.frissitett, [])
+  assert.deepEqual(res.updated, [])
 })

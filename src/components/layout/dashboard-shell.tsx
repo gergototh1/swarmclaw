@@ -57,6 +57,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const appSettings = useAppStore((s) => s.appSettings)
   const extensions = useAppStore((s) => s.extensions)
   const loadExtensions = useAppStore((s) => s.loadExtensions)
+  const loadExtensionToolPanels = useAppStore((s) => s.loadExtensionToolPanels)
   const isDesktop = useMediaQuery('(min-width: 768px)')
 
   const isAuthPage = AUTH_PATHS.has(pathname)
@@ -218,7 +219,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   // Extension sidebar items
   const refreshExtensionState = useCallback(() => {
     void loadExtensions()
-  }, [loadExtensions])
+    void loadExtensionToolPanels()
+  }, [loadExtensions, loadExtensionToolPanels])
 
   useEffect(() => { refreshExtensionState() }, [refreshExtensionState])
   // Must stay equal to `PAGES_FALLBACK_MS` in `hooks/use-extension-pages.ts` —

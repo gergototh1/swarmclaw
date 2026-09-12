@@ -84,14 +84,14 @@ test('mcpCall refuses an unknown tool as a value and names the ones that exist',
   // would stop rather than correct the name.
   const { mcpCall } = createMcpBridge(tools)
   const out = await mcpCall({ tool: 'nincs_ilyen', args: {} })
-  assert.equal(out.error.code, 'mcp_ismeretlen_tool')
+  assert.equal(out.error.code, 'mcp_unknown_tool')
   assert.match(out.error.message, /echo/)
 })
 
 test('mcpCall refuses a body with no tool name', async () => {
   const { mcpCall } = createMcpBridge(tools)
-  assert.equal((await mcpCall({})).error.code, 'mcp_rossz_keres')
-  assert.equal((await mcpCall({ tool: '' })).error.code, 'mcp_rossz_keres')
+  assert.equal((await mcpCall({})).error.code, 'mcp_bad_request')
+  assert.equal((await mcpCall({ tool: '' })).error.code, 'mcp_bad_request')
 })
 
 test('a non-object args becomes an empty object rather than reaching the tool', async () => {
@@ -108,7 +108,7 @@ test("a tool's own throw is left to propagate, so the host reports it", async ()
 test('every tool the extension declares is reachable over the bridge', () => {
   const listed = docs.rpc.mcpTools().tools.map((t) => t.name)
   assert.deepEqual(listed, docs.tools.map((t) => t.name))
-  assert.ok(listed.includes('doksi_ir'), 'writing a doc is the tool the agents actually run')
+  assert.ok(listed.includes('docs_write'), 'writing a doc is the tool the agents actually run')
 })
 
 /**
@@ -123,4 +123,24 @@ test('the agent name survives the trip, because the folder is named after it', a
   const { mcpCall } = createMcpBridge(() => [{ name: 't', execute: (_a, ctx) => { seen.push(ctx); return {} } }])
   await mcpCall({ tool: 't', args: {}, agentId: 'c3377d', agentName: 'GTassistant' })
   assert.equal(seen[0].session.agentRecord.name, 'GTassistant')
+})
+
+test('mcpInstructions hands back the extension\'s own text', () => {
+  const { mcpInstructions } = createMcpBridge(tools, () => 'Write readable output into Docs.')
+  assert.deepEqual(mcpInstructions(), { instructions: 'Write readable output into Docs.' })
+})
+
+test('mcpInstructions is null when the extension gives none, or gives blank text', () => {
+  assert.deepEqual(createMcpBridge(tools).mcpInstructions(), { instructions: null })
+  assert.deepEqual(createMcpBridge(tools, () => '   ').mcpInstructions(), { instructions: null })
+})
+
+test('a throwing instructionsOf costs the instructions, not the bridge', () => {
+  const { mcpInstructions } = createMcpBridge(tools, () => { throw new Error('boom') })
+  assert.deepEqual(mcpInstructions(), { instructions: null })
+})
+
+test('the docs extension offers its instructions over the bridge', () => {
+  const { instructions } = docs.rpc.mcpInstructions()
+  assert.match(instructions, /docs_write/)
 })

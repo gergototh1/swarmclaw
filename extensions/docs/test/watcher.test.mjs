@@ -54,7 +54,7 @@ test('ensureWatcher twice on the same root opens one handle', () => {
     h.control.ensureWatcher(h.deps)
     h.control.ensureWatcher(h.deps)
     assert.equal(h.watchImpl.calls.length, 1)
-    assert.equal(h.control.status().fut, true)
+    assert.equal(h.control.status().running, true)
     assert.equal(h.control.status().indultAt, 12345)
   } finally { h.cleanup() }
 })
@@ -78,7 +78,7 @@ test('enabled false closes what runs and opens nothing', () => {
     const handle = h.watchImpl.last().handle
     const s = h.control.ensureWatcher({ ...h.deps, enabled: false })
     assert.equal(handle.closed, true)
-    assert.equal(s.fut, false)
+    assert.equal(s.running, false)
     assert.equal(h.watchImpl.calls.length, 1)
   } finally { h.cleanup() }
 })
@@ -147,7 +147,7 @@ test('an event whose content matches a self-write is dropped', async () => {
     h.watchImpl.last().cb('change', 'kozos/a.md')
     await settle()
 
-    assert.equal(h.repo.listDocs({}).length, 0, 'a saját írásunk visszhangját is indexelte')
+    assert.equal(h.repo.listDocs({}).length, 0, 'indexed the echo of our own write')
   } finally { h.cleanup() }
 })
 
@@ -160,7 +160,7 @@ test('an edit that really came from outside after our save is processed', async 
       body: 'Mienk.\n',
     })
     h.writer.noteSelfWrite('kozos/a.md', written.hash)
-    // Valaki tényleg átírja: a hash már nem a miénk.
+    // Someone really overwrites it: the hash is no longer ours.
     h.vault.writeDoc('kozos/a.md', {
       meta: { id: 'doc_a', title: 'A', owner: 'user', tags: [] },
       body: 'Kívülről Morvai.\n',
@@ -184,7 +184,7 @@ test('an indexing failure is logged and the watcher stays up', async () => {
     h.watchImpl.last().cb('change', 'kozos/a.md')
     await settle()
 
-    assert.equal(h.control.status().fut, true)
+    assert.equal(h.control.status().running, true)
     assert.equal(h.warnings.length, 1)
     assert.match(h.warnings[0].meta.error, /szándékos hiba/)
   } finally { h.cleanup() }
@@ -201,8 +201,8 @@ test('a watch that cannot start is reported in status, not thrown', () => {
     vault: {},
     log: { warn: (m, meta) => warnings.push(meta) },
   })
-  assert.equal(s.fut, false)
-  assert.match(s.hiba, /watcher limit/)
+  assert.equal(s.running, false)
+  assert.match(s.error, /watcher limit/)
   assert.equal(warnings.length, 1)
 })
 
@@ -212,6 +212,6 @@ test('an event with no filename is ignored rather than crashing', async () => {
     h.control.ensureWatcher(h.deps)
     h.watchImpl.last().cb('rename', null)
     await settle()
-    assert.equal(h.control.status().fut, true)
+    assert.equal(h.control.status().running, true)
   } finally { h.cleanup() }
 })

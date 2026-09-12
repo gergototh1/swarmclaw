@@ -3,6 +3,7 @@ import { perf } from '@/lib/server/runtime/perf'
 import { log } from '@/lib/server/logger'
 import { getDb, withTransaction, loadSession, patchSession } from '@/lib/server/storage'
 import { notify } from '@/lib/server/ws-hub'
+import { isVisibleAssistantMessage } from '@/lib/chat/visible-assistant-message'
 
 const TAG = 'message-repo'
 const MAX_SUMMARY_TEXT = 280
@@ -95,8 +96,9 @@ function summarizeForMeta(message: Message): Message {
 
 function getLastAssistantAt(messages: Message[]): number | null {
   for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'assistant' && typeof messages[i].time === 'number') {
-      return messages[i].time
+    const message = messages[i]
+    if (isVisibleAssistantMessage(message) && typeof message.time === 'number') {
+      return message.time
     }
   }
   return null
@@ -138,7 +140,11 @@ function syncSessionMeta(sessionId: string): void {
     if (!current) return null
     current.messageCount = count
     current.lastMessageSummary = lastMsg ? summarizeForMeta(lastMsg) : null
-    if (lastMsg?.role === 'assistant' && typeof lastMsg.time === 'number') {
+    // Only a finished, visible reply moves this. Partial saves during a run
+    // (`streaming: true`, often tool events and no text) used to move it too,
+    // and every one of them fired a desktop notification. See
+    // `isVisibleAssistantMessage`.
+    if (lastMsg && isVisibleAssistantMessage(lastMsg) && typeof lastMsg.time === 'number') {
       current.lastAssistantAt = lastMsg.time
     }
     current.lastActiveAt = Date.now()

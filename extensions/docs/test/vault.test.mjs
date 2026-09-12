@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 
-import { HIBA } from '../src/errors.mjs'
+import { ERR } from '../src/errors.mjs'
 import { createVault, hashOf, newDocId, parseFrontMatter, serializeDoc } from '../src/vault.mjs'
 
 function tempRoot() {
@@ -16,7 +16,7 @@ test('abs() refuses to leave the root', () => {
   try {
     const vault = createVault({ root })
     for (const bad of ['../elsewhere.md', 'a/../../b.md', '/etc/passwd', 'a/../../']) {
-      assert.throws(() => vault.abs(bad), (err) => err.code === HIBA.utvonal_tiltott, `elfogadta: ${bad}`)
+      assert.throws(() => vault.abs(bad), (err) => err.code === ERR.path_forbidden, `elfogadta: ${bad}`)
     }
     assert.equal(vault.abs('agents/marketing/x.md'), path.join(vault.root, 'agents/marketing/x.md'))
   } finally {
@@ -30,7 +30,7 @@ test('abs() refuses a symlink that points out of the root', () => {
   try {
     const vault = createVault({ root })
     fs.symlinkSync(outside, path.join(vault.root, 'kifele'))
-    assert.throws(() => vault.abs('kifele/x.md'), (err) => err.code === HIBA.utvonal_tiltott)
+    assert.throws(() => vault.abs('kifele/x.md'), (err) => err.code === ERR.path_forbidden)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
     fs.rmSync(outside, { recursive: true, force: true })
@@ -84,7 +84,7 @@ test('writeDoc is atomic and readDoc gives back what was written', () => {
     assert.equal(read.body, 'Törzs.\n')
     assert.equal(read.hash, written.hash)
 
-    // A rename-hez használt ideiglenes fájl nem maradhat ott.
+    // The temp file used for the rename must not stay behind.
     assert.deepEqual(fs.readdirSync(path.join(vault.root, 'kozos')), ['teszt.md'])
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
@@ -116,7 +116,7 @@ test('move refuses to overwrite, trash preserves the file', () => {
     vault.writeDoc('kozos/a.md', { meta: { id: 'doc_a', title: 'a' }, body: 'aaa\n' })
     vault.writeDoc('kozos/b.md', { meta: { id: 'doc_b', title: 'b' }, body: 'bbb\n' })
 
-    assert.throws(() => vault.move('kozos/a.md', 'kozos/b.md'), (err) => err.code === HIBA.mar_letezik)
+    assert.throws(() => vault.move('kozos/a.md', 'kozos/b.md'), (err) => err.code === ERR.already_exists)
 
     vault.move('kozos/a.md', 'agents/x/a.md')
     assert.equal(vault.exists('kozos/a.md'), false)
@@ -135,7 +135,7 @@ test('ensureRoot names an unwritable root instead of failing silently', () => {
   try {
     fs.chmodSync(root, 0o500)
     const vault = createVault({ root: path.join(root, 'alatta') })
-    assert.throws(() => vault.ensureRoot(), (err) => err.code === HIBA.gyoker_nem_irhato)
+    assert.throws(() => vault.ensureRoot(), (err) => err.code === ERR.root_not_writable)
   } finally {
     fs.chmodSync(root, 0o700)
     fs.rmSync(root, { recursive: true, force: true })
@@ -143,18 +143,18 @@ test('ensureRoot names an unwritable root instead of failing silently', () => {
 })
 
 test('a root created after the vault was built still accepts paths', () => {
-  // Élesben ez bukott meg: a setup() a vaultot a gyökér létrejötte ELŐTT
-  // építette, így a root feloldatlan maradt (/var/...), miközben a később
-  // létrejött mappát az abs() már /private/var/...-ként oldotta fel -- és
-  // onnantól a vault minden útvonalat kilépésnek ítélt.
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-kesoi-'))
-  const root = path.join(base, 'meg-nincs')
+  // This broke in production: setup() built the vault BEFORE the root
+  // existed, so the root stayed unresolved (/var/...), while the folder that
+  // showed up later got resolved by abs() as /private/var/... -- and from
+  // then on the vault judged every path an escape.
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-later-'))
+  const root = path.join(base, 'not-yet')
   try {
     const vault = createVault({ root })
     assert.equal(fs.existsSync(root), false)
 
     vault.ensureRoot()
-    assert.equal(vault.root, fs.realpathSync(root), 'a root nem oldódott fel a létrejötte után')
+    assert.equal(vault.root, fs.realpathSync(root), 'the root did not resolve after it was created')
     assert.doesNotThrow(() => vault.abs('kozos/a.md'))
     vault.writeDoc('kozos/a.md', { meta: { id: 'doc_a', title: 'A', owner: 'user', tags: [] }, body: 'x\n' })
     assert.equal(vault.readDoc('kozos/a.md').body, 'x\n')
@@ -168,16 +168,17 @@ test('readDoc names a missing file', () => {
   try {
     const vault = createVault({ root })
     vault.ensureRoot()
-    assert.throws(() => vault.readDoc('nincs.md'), (err) => err.code === HIBA.nincs_ilyen_doksi)
+    assert.throws(() => vault.readDoc('nincs.md'), (err) => err.code === ERR.doc_not_found)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
 })
 
 test('listFolders reports a folder that holds nothing', () => {
-  // A `mkdirp` egyetlen célja, hogy üres mappa is létezhessen. Amíg a fa a
-  // mappákat a doksik útvonalaiból vezette le, egy ilyen mappa a lemezen ott
-  // volt, a lapon soha -- a művelet sikeres volt és láthatatlan.
+  // `mkdirp`'s only purpose is to let an empty folder exist at all. As long as
+  // the tree derived folders from the docs' paths, a folder like this existed
+  // on disk but never in the listing -- the operation succeeded and stayed
+  // invisible.
   const root = tempRoot()
   try {
     const vault = createVault({ root })
@@ -186,9 +187,9 @@ test('listFolders reports a folder that holds nothing', () => {
     vault.writeDoc('kozos/telt/a.md', { meta: { id: 'doc_a', title: 'A', owner: 'user', tags: [] }, body: 'x\n' })
 
     const folders = vault.listFolders()
-    assert.ok(folders.includes('kozos/ures'), 'az üres mappa hiányzik')
-    assert.ok(folders.includes('kozos/telt'), 'a doksit tartó mappa hiányzik')
-    assert.ok(folders.includes('kozos'), 'a köztes mappa hiányzik')
+    assert.ok(folders.includes('kozos/ures'), 'the empty folder is missing')
+    assert.ok(folders.includes('kozos/telt'), 'the folder holding the doc is missing')
+    assert.ok(folders.includes('kozos'), 'the intermediate folder is missing')
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

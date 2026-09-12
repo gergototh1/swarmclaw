@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand'
 import type { AppState } from '../use-app-store'
-import type { NetworkInfo, Directory, ProviderInfo, Credentials, Schedule, AppSettings, StoredSecret, ProviderConfig, Skill, Connector, Webhook, McpServerConfig, ExtensionMeta, Project, ActivityEntry, AppNotification, GatewayProfile, SafeWallet } from '../../types'
+import type { NetworkInfo, Directory, ProviderInfo, Credentials, Schedule, AppSettings, StoredSecret, ProviderConfig, Skill, Connector, Webhook, McpServerConfig, ExtensionMeta, ExtensionToolPanel, Project, ActivityEntry, AppNotification, GatewayProfile, SafeWallet } from '../../types'
 import { api } from '@/lib/app/api-client'
 import { safeStorageGetJson, safeStorageSet } from '@/lib/app/safe-storage'
 import { fetchDirs, fetchProviders, fetchCredentials } from '@/lib/chat/chats'
@@ -42,6 +42,8 @@ export interface DataSlice {
   loadMcpServers: () => Promise<void>
   extensions: Record<string, ExtensionMeta>
   loadExtensions: () => Promise<void>
+  extensionToolPanels: ExtensionToolPanel[]
+  loadExtensionToolPanels: () => Promise<void>
   projects: Record<string, Project>
   loadProjects: () => Promise<void>
   activityEntries: ActivityEntry[]
@@ -123,6 +125,13 @@ export const createDataSlice: StateCreator<AppState, [], [], DataSlice> = (set, 
       setIfChanged<AppState>(set, 'extensions', {})
     }
   },
+  extensionToolPanels: [],
+  loadExtensionToolPanels: createLoader<AppState>(
+    set,
+    'extensionToolPanels',
+    () => api<ExtensionToolPanel[]>('GET', '/extensions/ui?type=tool_panels'),
+    [],
+  ),
   projects: {},
   loadProjects: createLoader<AppState>(set, 'projects', () => api<Record<string, Project>>('GET', '/projects'), {}),
   // Manual: params

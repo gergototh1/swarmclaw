@@ -1,23 +1,22 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { DocsError, HIBA, hiba } from '../src/errors.mjs'
+import { DocsError, ERR, errorResult } from '../src/errors.mjs'
 
-test('DocsError carries a code from the table', () => {
-  const err = new DocsError(HIBA.gyoker_nem_irhato, 'A doksi-gyökér nem írható: /tmp/x')
-  assert.ok(err instanceof Error)
-  assert.equal(err.code, 'gyoker_nem_irhato')
-  assert.equal(err.message, 'A doksi-gyökér nem írható: /tmp/x')
+test('every error code is English snake_case and equals its key', () => {
+  assert.deepEqual(Object.keys(ERR).sort(), [
+    'already_exists', 'conflict', 'contract_missing', 'doc_not_found', 'forbidden',
+    'invalid_argument', 'path_forbidden', 'root_not_writable', 'video_not_found',
+  ])
+  for (const [key, value] of Object.entries(ERR)) assert.equal(key, value)
 })
 
-test('hiba() builds the tool response shape', () => {
-  assert.deepEqual(hiba(HIBA.nincs_jog, 'Ebbe a mappába nem írhatsz.'), {
-    hiba: 'nincs_jog',
-    uzenet: 'Ebbe a mappába nem írhatsz.',
-  })
+test('errorResult carries the code under "error" so an MCP client reads it as a failure', () => {
+  assert.deepEqual(errorResult(ERR.forbidden, 'no'), { error: 'forbidden', message: 'no' })
 })
 
-test('the code table is frozen and every value equals its key', () => {
-  assert.ok(Object.isFrozen(HIBA))
-  for (const [key, value] of Object.entries(HIBA)) assert.equal(value, key)
+test('DocsError keeps its code', () => {
+  const e = new DocsError(ERR.conflict, 'changed meanwhile')
+  assert.equal(e.code, 'conflict')
+  assert.equal(e.message, 'changed meanwhile')
 })

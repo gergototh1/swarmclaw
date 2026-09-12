@@ -35,6 +35,28 @@ describe('addAssignedMcpServers', () => {
     assert.deepEqual(out.bare, { command: 'node', args: [] })
   })
 
+  it('refreshes a shim\'s stale host binding and leaves a third-party server untouched', () => {
+    // The registration's access key and port file were written once, by the
+    // extension's installer, and go stale silently: the shim answers tools/list
+    // with an empty list when the host refuses it, so a wrong key reaches the
+    // agent as "this extension has no tools" and nothing else.
+    const out = addAssignedMcpServers({}, ['shim', 'theirs'], {
+      shim: {
+        name: 'Docs-MCP',
+        transport: 'stdio',
+        command: 'node',
+        env: { SWARMCLAW_ACCESS_KEY: 'installed-long-ago', SWARMCLAW_PORT_FILE: '/old/port.json' },
+      },
+      theirs: { name: 'Third-Party', transport: 'stdio', command: 'node', env: { THEIR_TOKEN: 't' } },
+    }, {}, { accessKey: 'live-key', portFile: '/live/port.json', instanceId: 'live-instance' })
+    assert.deepEqual(out['Docs-MCP'].env, {
+      SWARMCLAW_ACCESS_KEY: 'live-key',
+      SWARMCLAW_PORT_FILE: '/live/port.json',
+      SWARMCLAW_INSTANCE_ID: 'live-instance',
+    })
+    assert.deepEqual(out['Third-Party'].env, { THEIR_TOKEN: 't' })
+  })
+
   it('translates url transports and keeps their headers', () => {
     const out = addAssignedMcpServers({}, ['h'], {
       h: { name: 'remote', transport: 'streamable-http', url: 'https://example.test/mcp', headers: { Authorization: 'Bearer x' } },

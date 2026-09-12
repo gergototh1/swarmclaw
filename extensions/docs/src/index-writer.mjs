@@ -90,7 +90,7 @@ export function createIndexWriter({ vault, repo, now = Date.now }) {
     const needsHeader = claimed === '' || duplicate
 
     let { meta, body, hash, size } = read
-    let javitottFejlec = false
+    let headerRepaired = false
     if (needsHeader) {
       meta = {
         id: newDocId(),
@@ -108,12 +108,12 @@ export function createIndexWriter({ vault, repo, now = Date.now }) {
       hash = written.hash
       size = written.size
       noteSelfWrite(relPath, hash)
-      javitottFejlec = true
+      headerRepaired = true
     }
 
     const existing = repo.getById(meta.id)
     if (existing && existing.hash === hash && existing.path === relPath) {
-      return { id: meta.id, valtozott: false, javitottFejlec }
+      return { id: meta.id, changed: false, headerRepaired }
     }
 
     const title = typeof meta.title === 'string' && meta.title !== '' ? meta.title : inferTitle(body, relPath)
@@ -136,7 +136,7 @@ export function createIndexWriter({ vault, repo, now = Date.now }) {
     // reindexed, which for a document nobody touches again is never.
     repo.resolveUnresolved(title, meta.id)
 
-    return { id: meta.id, valtozott: true, javitottFejlec }
+    return { id: meta.id, changed: true, headerRepaired }
   }
 
   /**
@@ -149,24 +149,24 @@ export function createIndexWriter({ vault, repo, now = Date.now }) {
    */
   function indexAll() {
     const onDisk = vault.listDocs()
-    let valtozott = 0
+    let changed = 0
     for (const relPath of onDisk) {
-      if (indexPath(relPath).valtozott) valtozott += 1
+      if (indexPath(relPath).changed) changed += 1
     }
     const alive = new Set(onDisk)
-    let eltavolitott = 0
+    let removed = 0
     for (const row of repo.allPaths()) {
       if (alive.has(row.path)) continue
       const doc = repo.getById(row.id)
       if (doc?.deleted_at) continue
       repo.purge(row.id)
-      eltavolitott += 1
+      removed += 1
     }
     // Three separate facts, because a caller that wants to say "nothing needed
     // doing" cannot tell that from a count of files walked, and a caller that
     // wants to say "I looked at 400 documents" cannot tell it from a count of
     // changes either.
-    return { atnezett: onDisk.length, valtozott, eltavolitott }
+    return { scanned: onDisk.length, changed, removed }
   }
 
   return { indexPath, indexAll, noteSelfWrite, isSelfWrite, forgetSelfWrites }

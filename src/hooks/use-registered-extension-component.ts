@@ -1,0 +1,167 @@
+import { useEffect, useState } from 'react'
+import { getHostRegistry } from '@/components/layout/extension-host'
+import { assetUrl, loadExtensionPage, type RegisteredPage } from '@/lib/extensions/registry'
+
+/**
+ * How long a loaded bundle gets to call `registerPage` before this gives up.
+ *
+ * Generous because a bundle may register from a dynamic import rather than at
+ * top-level script scope, and because the alternative to waiting is telling the
+ * user an extension is broken when it is merely slow.
+ */
+const REGISTER_TIMEOUT_MS = 10_000
+
+export interface ExtensionComponentFailure {
+  title: string
+  detail: string
+  /** What the extension author should change. Omitted when the detail already says it. */
+  hint?: string
+}
+
+export type ExtensionComponentState =
+  | { status: 'loading' }
+  | { status: 'ready'; registered: RegisteredPage }
+  | { status: 'error'; failure: ExtensionComponentFailure }
+
+/**
+ * Fetches an extension's built bundle, waits for it to hand back a component
+ * through `window.swarmclaw.registerPage`, and reports every way that can fail.
+ *
+ * Most of this is failure handling, deliberately. This is the only place a user
+ * ever finds out that an installed extension is broken, and every way it breaks
+ * looks identical from here by default — an empty frame. The four that matter:
+ *
+ * 1. the assets 404 (never built, or a bad `entry`) — the loader rejects;
+ * 2. the bundle runs but never calls `registerPage` — nothing distinguishes this
+ *    from success except that no component arrives, hence the timeout;
+ * 3. `registerPage` refused the call. The throw happens inside the bundle's own
+ *    top-level execution, so `script.onload` still fires and the loader still
+ *    resolves: the only trace is the refusal the registry records for us;
+ * 4. the component throws on its first render, overwhelmingly "Invalid hook call"
+ *    from a bundle that shipped its own React. The registry cannot catch this one
+ *    (a bundle that passes `window.swarmclaw.modules.react` satisfies the
+ *    identity check by definition), so the caller needs its own error boundary.
+ *
+ * `target === null` means there is nothing to load yet (e.g. the caller is still
+ * resolving which extension owns this id): the hook returns `{ status: 'loading' }`
+ * without touching the network.
+ */
+export function useRegisteredExtensionComponent(
+  target: {
+    extensionId: string
+    componentId: string
+    entry: string
+    css?: string
+    declaredIn: 'ui.pages' | 'ui.toolPanels'
+  } | null,
+): ExtensionComponentState {
+  const [tracked, setTracked] = useState<{ target: string; state: ExtensionComponentState }>({
+    target: '',
+    state: { status: 'loading' },
+  })
+
+  // Depend on the fields rather than the object: callers may hand back a fresh
+  // object on every render, and re-running the load effect for an unchanged
+  // target would flash the spinner over an already rendered component.
+  const extensionId = target?.extensionId
+  const componentId = target?.componentId
+  const entry = target?.entry
+  const css = target?.css
+  const declaredIn = target?.declaredIn
+
+  // Which bundle the state below belongs to. Switching to another extension
+  // component must show a spinner rather than the previous one's outcome, and
+  // deriving that here beats resetting state from the effect, which would
+  // render the stale outcome for one frame first.
+  const key = extensionId && componentId && entry ? [extensionId, componentId, entry, css ?? ''].join('\u0000') : ''
+  const state: ExtensionComponentState = tracked.target === key ? tracked.state : { status: 'loading' }
+
+  useEffect(() => {
+    if (!extensionId || !componentId || !entry) return
+    let cancelled = false
+    let bundleLoaded = false
+    const host = getHostRegistry()
+
+    const settle = (next: ExtensionComponentState) => { if (!cancelled) setTracked({ target: key, state: next }) }
+    const fail = (failure: ExtensionComponentFailure) => settle({ status: 'error', failure })
+
+    const noun = declaredIn === 'ui.toolPanels' ? 'panel' : 'page'
+
+    // Scoped to this component's own bundle so that an extension shipping one
+    // entry per component never has one component's refusal reported on
+    // another's route.
+    const bundleSrc = assetUrl(extensionId, entry)
+    const refusalFailure = (): ExtensionComponentFailure | undefined => {
+      const refusal = host.registrationRefusal(extensionId, componentId, bundleSrc)
+      if (!refusal) return undefined
+      return {
+        title: `Extension "${extensionId}" was refused when it registered ${noun} "${refusal.pageId}"`,
+        detail: refusal.message,
+        hint: 'SwarmClaw rejected the registration, so no component was stored for this ' + noun + '. Fix the '
+          + 'bundle, rebuild the extension and reload.',
+      }
+    }
+
+    const timer = setTimeout(() => {
+      if (cancelled || host.getPage(extensionId, componentId)) return
+      // A bundle may register from a later tick than the one the load settled on,
+      // and be refused then. That case is the reason this timer exists, so the
+      // refusal recorded since is checked here too: without this the real reason
+      // is discarded in favour of the generic "never registered" below.
+      const refused = refusalFailure()
+      if (refused) {
+        fail(refused)
+        return
+      }
+      if (!bundleLoaded) {
+        fail({
+          title: `Extension "${extensionId}" is still loading its bundle`,
+          detail: `${entry} has not finished loading after ${REGISTER_TIMEOUT_MS / 1000} seconds, and it reported `
+            + 'neither success nor an error.',
+          hint: 'Check the Network tab for the request to this extension\'s assets, then reload.',
+        })
+        return
+      }
+      fail({
+        title: `Extension "${extensionId}" loaded its bundle but never registered ${noun} "${componentId}"`,
+        detail: `${entry} ran without calling window.swarmclaw.registerPage('${componentId}', Component, `
+          + `{ react, extensionId }) within ${REGISTER_TIMEOUT_MS / 1000} seconds.`,
+        hint: `Register at top-level script scope, and pass exactly the id "${componentId}" — the id this `
+          + `component is declared under in the extension's ${declaredIn} (a tool panel registers as "panel:<id>"), `
+          + 'not its label or its path slug.',
+      })
+    }, REGISTER_TIMEOUT_MS)
+
+    const off = host.onPageRegistered(extensionId, componentId, () => {
+      clearTimeout(timer)
+      const registered = host.getPage(extensionId, componentId)
+      if (registered) settle({ status: 'ready', registered })
+    })
+
+    loadExtensionPage({ extensionId, entry, css })
+      .then(() => {
+        bundleLoaded = true
+        if (cancelled || host.getPage(extensionId, componentId)) return
+        // The bundle has executed, so a refusal it triggered is already recorded.
+        // Without one, the bundle may still register from a later tick, so the
+        // timeout above is left to decide, and looks again for a refusal itself.
+        const refused = refusalFailure()
+        if (!refused) return
+        clearTimeout(timer)
+        fail(refused)
+      })
+      .catch((err: unknown) => {
+        clearTimeout(timer)
+        fail({
+          title: `Extension "${extensionId}" could not load the bundle for ${noun} "${componentId}"`,
+          detail: err instanceof Error ? err.message : String(err),
+          hint: `Check that the extension has been built and that ${entry} exists in its workspace directory, `
+            + 'then reload.',
+        })
+      })
+
+    return () => { cancelled = true; clearTimeout(timer); off() }
+  }, [extensionId, componentId, entry, css, declaredIn, key])
+
+  return state
+}

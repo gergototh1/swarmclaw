@@ -9,6 +9,7 @@ import type {
   ExtensionToolDef,
   ExtensionUIDefinition,
   ExtensionPageDefinition,
+  ExtensionToolPanel,
   ExtensionProviderDefinition,
   ExtensionConnectorDefinition,
   ExtensionManagedResources,
@@ -43,7 +44,7 @@ import { notify } from './ws-hub'
 import { decryptKey, encryptKey, loadSettings, saveSettings } from './storage'
 import { buildExtensionHooks } from './extensions-approval-guidance'
 import { createExtensionBinaryResolver } from './extensions/extension-binaries'
-import { validateExtensionPages } from './extensions/extension-pages'
+import { validateExtensionPages, validateExtensionToolPanels } from './extensions/extension-pages'
 import { createExtensionStorage, dropExtensionStorage, extensionTablePrefix, runExtensionMigrations } from './extensions/extension-storage'
 import {
   createExtensionContracts,
@@ -1772,6 +1773,13 @@ class ExtensionManager {
           }
           if (ext.ui) ext.ui.pages = pagesCheck.pages
 
+          const toolPanelsCheck = validateExtensionToolPanels(ext.ui?.toolPanels)
+          if (!toolPanelsCheck.ok) {
+            this.markExtensionFailure(file, 'load.ui_tool_panels', toolPanelsCheck.error, true)
+            continue
+          }
+          if (ext.ui) ext.ui.toolPanels = toolPanelsCheck.panels
+
           // Contract declarations are checked here, alongside the pages, and
           // for the same reason: a declaration the author got wrong should
           // fail the load rather than resolve to nothing at call time. A
@@ -2091,6 +2099,15 @@ class ExtensionManager {
     const out: Array<ExtensionPageDefinition & { extensionId: string }> = []
     for (const p of this.extensions.values()) {
       for (const page of p.ui?.pages || []) out.push({ ...page, extensionId: p.id })
+    }
+    return out
+  }
+
+  getToolPanels(): ExtensionToolPanel[] {
+    this.load()
+    const out: ExtensionToolPanel[] = []
+    for (const p of this.extensions.values()) {
+      for (const panel of p.ui?.toolPanels || []) out.push({ ...panel, extensionId: p.id })
     }
     return out
   }

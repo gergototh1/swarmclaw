@@ -29,7 +29,7 @@ const turndown = new TurndownService({
 /**
  * Wiki links survive the round trip as plain text.
  *
- * Without this rule Turndown escapes the brackets -- `\[\[Cél\]\]` -- and the
+ * Without this rule Turndown escapes the brackets -- `\[\[Target\]\]` -- and the
  * link silently stops being one. The rule matches the text node produced for a
  * link that was never turned into an anchor, and hands the brackets back.
  */

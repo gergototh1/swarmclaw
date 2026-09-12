@@ -37,8 +37,8 @@ test('indexing a file written by the module keeps its id and title', () => {
     write(h, 'kozos/a.md', { id: 'doc_a', title: 'Ügyfélprofil', created: 'c', updated: 'u' }, 'Morvai jegyzet.\n')
     const res = h.writer.indexPath('kozos/a.md')
     assert.equal(res.id, 'doc_a')
-    assert.equal(res.javitottFejlec, false)
-    assert.equal(res.valtozott, true)
+    assert.equal(res.headerRepaired, false)
+    assert.equal(res.changed, true)
     assert.equal(h.repo.getById('doc_a').title, 'Ügyfélprofil')
     assert.equal(h.repo.search('morvai', {}).length, 1)
   } finally { h.cleanup() }
@@ -51,13 +51,13 @@ test('a file with no front matter gets one written back into it', () => {
     fs.writeFileSync(path.join(h.vault.root, 'kozos/kivulrol.md'), '# Kívülről jött\n\nSzöveg.\n')
 
     const res = h.writer.indexPath('kozos/kivulrol.md')
-    assert.equal(res.javitottFejlec, true)
+    assert.equal(res.headerRepaired, true)
     assert.match(res.id, /^doc_[0-9a-f]{8}$/)
 
     const read = h.vault.readDoc('kozos/kivulrol.md')
     assert.equal(read.meta.id, res.id)
     assert.equal(read.meta.title, 'Kívülről jött')
-    assert.equal(read.body, '# Kívülről jött\n\nSzöveg.\n', 'a törzs nem maradt érintetlen')
+    assert.equal(read.body, '# Kívülről jött\n\nSzöveg.\n', 'the body did not stay untouched')
   } finally { h.cleanup() }
 })
 
@@ -90,10 +90,10 @@ test('indexing is idempotent: the second run reports no change', () => {
   const h = harness()
   try {
     write(h, 'kozos/a.md', { id: 'doc_a', title: 'A' }, 'x\n')
-    assert.equal(h.writer.indexPath('kozos/a.md').valtozott, true)
-    assert.equal(h.writer.indexPath('kozos/a.md').valtozott, false)
+    assert.equal(h.writer.indexPath('kozos/a.md').changed, true)
+    assert.equal(h.writer.indexPath('kozos/a.md').changed, false)
     assert.equal(h.repo.listDocs({}).length, 1)
-    assert.equal(h.repo.getById('doc_a').version, 1, 'a verzió nőtt, pedig semmi nem változott')
+    assert.equal(h.repo.getById('doc_a').version, 1, 'the version bumped even though nothing changed')
   } finally { h.cleanup() }
 })
 
@@ -117,7 +117,7 @@ test('two files carrying the same id: the second gets a fresh one', () => {
     const res = h.writer.indexPath('kozos/masolat.md')
 
     assert.notEqual(res.id, 'doc_a')
-    assert.equal(res.javitottFejlec, true)
+    assert.equal(res.headerRepaired, true)
     assert.equal(h.repo.getByPath('kozos/a.md').id, 'doc_a')
     assert.equal(h.vault.readDoc('kozos/masolat.md').meta.id, res.id)
   } finally { h.cleanup() }
@@ -143,8 +143,8 @@ test('links are recorded, and bind as soon as the target is indexed', () => {
     h.writer.indexPath('kozos/a.md')
     assert.deepEqual(h.repo.backlinks('doc_cel'), [])
 
-    // A cél indexelése köti be a rá váró hivatkozást, a hivatkozó
-    // újraindexelése nélkül.
+    // Indexing the target links up the backlink waiting on it, without the
+    // referrer being reindexed.
     write(h, 'kozos/cel.md', { id: 'doc_cel', title: 'Cél' }, 'y\n')
     h.writer.indexPath('kozos/cel.md')
 
@@ -157,10 +157,10 @@ test('indexAll drops rows whose file is gone', () => {
   try {
     write(h, 'kozos/a.md', { id: 'doc_a', title: 'A' }, 'x\n')
     write(h, 'kozos/b.md', { id: 'doc_b', title: 'B' }, 'x\n')
-    assert.deepEqual(h.writer.indexAll(), { atnezett: 2, valtozott: 2, eltavolitott: 0 })
+    assert.deepEqual(h.writer.indexAll(), { scanned: 2, changed: 2, removed: 0 })
 
     fs.rmSync(path.join(h.vault.root, 'kozos/b.md'))
-    assert.deepEqual(h.writer.indexAll(), { atnezett: 1, valtozott: 0, eltavolitott: 1 })
+    assert.deepEqual(h.writer.indexAll(), { scanned: 1, changed: 0, removed: 1 })
     assert.equal(h.repo.getById('doc_b'), undefined)
   } finally { h.cleanup() }
 })
@@ -174,7 +174,7 @@ test('indexAll keeps a trashed document, whose file is deliberately gone', () =>
     h.repo.softDelete('doc_a', 'x')
     h.vault.trash('kozos/a.md', 'doc_a')
 
-    assert.deepEqual(h.writer.indexAll(), { atnezett: 0, valtozott: 0, eltavolitott: 0 })
+    assert.deepEqual(h.writer.indexAll(), { scanned: 0, changed: 0, removed: 0 })
     assert.equal(h.repo.listDocs({ includeDeleted: true }).length, 1)
   } finally { h.cleanup() }
 })
@@ -206,6 +206,6 @@ test('a self-write note expires after five seconds', () => {
 test('indexPath names a missing file rather than inventing a row', () => {
   const h = harness()
   try {
-    assert.throws(() => h.writer.indexPath('nincs.md'), (err) => err.code === 'nincs_ilyen_doksi')
+    assert.throws(() => h.writer.indexPath('nincs.md'), (err) => err.code === 'doc_not_found')
   } finally { h.cleanup() }
 })

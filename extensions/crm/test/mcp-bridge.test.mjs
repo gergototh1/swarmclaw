@@ -92,14 +92,14 @@ test('mcpCall refuses an unknown tool as a value and names the ones that exist',
   // és leállna, ahelyett hogy a nevet javítaná.
   const { mcpCall } = createMcpBridge(tools)
   const out = await mcpCall({ tool: 'nincs_ilyen', args: {} })
-  assert.equal(out.error.code, 'mcp_ismeretlen_tool')
+  assert.equal(out.error.code, 'mcp_unknown_tool')
   assert.match(out.error.message, /echo/)
 })
 
 test('mcpCall refuses a body with no tool name', async () => {
   const { mcpCall } = createMcpBridge(tools)
-  assert.equal((await mcpCall({})).error.code, 'mcp_rossz_keres')
-  assert.equal((await mcpCall({ tool: '' })).error.code, 'mcp_rossz_keres')
+  assert.equal((await mcpCall({})).error.code, 'mcp_bad_request')
+  assert.equal((await mcpCall({ tool: '' })).error.code, 'mcp_bad_request')
 })
 
 test('a non-object args becomes an empty object rather than reaching the tool', async () => {

@@ -814,6 +814,11 @@ export function ChatArea() {
     {isDesktop && previewContent && (
       <ChatPreviewPanel content={previewContent} onClose={() => setPreviewContent(null)} />
     )}
+    {!isDesktop && previewContent?.type === 'extension' && (
+      <div className="fixed inset-0 z-50 flex bg-bg">
+        <ChatPreviewPanel content={previewContent} onClose={() => setPreviewContent(null)} fullWidth />
+      </div>
+    )}
     {isDesktop && inspectorOpen && currentAgent && (
       <InspectorPanel
         agent={currentAgent}

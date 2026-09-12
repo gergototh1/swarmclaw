@@ -45,8 +45,8 @@ test('a fenced code block keeps its content and stays fenced', () => {
 })
 
 test('a wiki link is still a wiki link after a round trip', () => {
-  // Enélkül a Turndown kiescape-eli a szögletes zárójeleket, és a link némán
-  // megszűnik linknek lenni.
+  // Without this, Turndown escapes the square brackets and the link silently
+  // stops being a link.
   const back = trip('Lásd [[Ügyfélprofil]] és [[doc_a1b2c3d4]].\n')
   assert.match(back, /\[\[Ügyfélprofil\]\]/)
   assert.match(back, /\[\[doc_a1b2c3d4\]\]/)
@@ -60,9 +60,9 @@ test('an unresolved wiki link is marked so the operator can see it', () => {
 
 test('html in a document is shown as text, not rendered', () => {
   const html = mdToHtml('<script>alert(1)</script> és <b>vastag</b>')
-  assert.ok(!html.includes('<script>'), 'a script tag átment nyers HTML-ként')
-  assert.ok(html.includes('&lt;script&gt;'), 'nem szövegként jelenik meg')
-  assert.ok(!html.includes('<b>vastag</b>'), 'a nyers HTML formázásként ment át')
+  assert.ok(!html.includes('<script>'), 'the script tag passed through as raw HTML')
+  assert.ok(html.includes('&lt;script&gt;'), 'it does not render as text')
+  assert.ok(!html.includes('<b>vastag</b>'), 'the raw HTML passed through as formatting')
 })
 
 test('a table survives as a table', () => {

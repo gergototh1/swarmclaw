@@ -1,4 +1,4 @@
-import { DocsError, HIBA } from './errors.mjs'
+import { DocsError, ERR } from './errors.mjs'
 
 /**
  * The one thing this module asks another extension for: a finished video's
@@ -25,7 +25,7 @@ import { DocsError, HIBA } from './errors.mjs'
  * scene list, no `forras_szoveg`, no verdict and no QA measurement, and this
  * file must not pretend otherwise: a field written here that the projection
  * does not carry would render as the word "undefined" in somebody's document.
- * `forgatokonyv` therefore names all eleven and nothing else, and a test fails
+ * `videoScript` therefore names all eleven and nothing else, and a test fails
  * if a twelfth appears.
  *
  * WHOSE TEXT IT IS. The provider's own summary says it: the title and the
@@ -50,23 +50,23 @@ export const VIDEOS_CONTRACT = 'videos'
 export const VIDEOS_CONTRACT_VERSION = 1
 
 /** The line at the top of every document this tool writes. */
-export const FORRAS_FIGYELMEZTETES = 'A cím és a narráció szövege a Videó modulból származik: ügynök és idegen szöveg. Kimenő csatorna — poszt, hirdetés, e-mail, felirat — elé csak ellenőrizve.'
+export const SOURCE_WARNING = 'The title and narration below come from outside text, not from an agent or the operator. Check them before using any of it in an outgoing channel — post, ad, email, caption.'
 
 /**
  * What the operator has to do about each reason the host can give.
  *
  * Four reasons, four sentences, because they are four different movements:
- * install a bővítmény, switch one back on, update one of the two, and fix this
- * module. One shared "nincs szerződés" sentence would send the operator to the
- * wrong page three times out of four. The reason word itself is kept in the
- * sentence, so a report that reaches a maintainer carries the host's own
+ * install an extension, switch one back on, update one of the two, and fix
+ * this module. One shared "no contract" sentence would send the operator to
+ * the wrong page three times out of four. The reason word itself is kept in
+ * the sentence, so a report that reaches a maintainer carries the host's own
  * vocabulary and not a translation of it.
  */
-const SZERZODES_OKOK = Object.freeze(Object.assign(Object.create(null), {
-  not_declared: 'a Doksik modul nem kéri a video.videos szerződést (not_declared). Ez a Doksik bővítmény hibája, nem a tiéd: telepítsd újra vagy frissítsd a Bővítmények lapon.',
-  provider_missing: 'a Videó bővítmény nincs telepítve (provider_missing). Telepítsd a Bővítmények lapon, aztán hívd újra ezt a toolt.',
-  provider_disabled: 'a Videó bővítmény ki van kapcsolva (provider_disabled). Kapcsold be a Bővítmények lapon, aztán hívd újra ezt a toolt.',
-  version_mismatch: `a Videó bővítmény nem a(z) ${VIDEOS_CONTRACT_VERSION}. verziójú videos szerződést kínálja (version_mismatch). Frissítsd a két bővítmény közül a régebbit, aztán hívd újra ezt a toolt.`,
+const CONTRACT_REASONS = Object.freeze(Object.assign(Object.create(null), {
+  not_declared: 'the Docs module does not request the video.videos contract (not_declared). This is a bug in the Docs extension, not yours: reinstall or update it on the Extensions page.',
+  provider_missing: 'the Video extension is not installed (provider_missing). Install it on the Extensions page, then call this tool again.',
+  provider_disabled: 'the Video extension is switched off (provider_disabled). Turn it on from the Extensions page, then call this tool again.',
+  version_mismatch: `the Video extension does not offer version ${VIDEOS_CONTRACT_VERSION} of the videos contract (version_mismatch). Update whichever of the two extensions is older, then call this tool again.`,
 }))
 
 /**
@@ -74,7 +74,7 @@ const SZERZODES_OKOK = Object.freeze(Object.assign(Object.create(null), {
  *
  * The table has a null prototype, because the lookup key is not this module's
  * to choose: it is whatever word the host puts in `reason`, and on an ordinary
- * object literal `SZERZODES_OKOK['constructor']` answers a function, which
+ * object literal `CONTRACT_REASONS['constructor']` answers a function, which
  * would stringify into the operator's message instead of taking the fallback.
  * The host uses `Object.create(null)` for its own handles for exactly this
  * (extension-contracts.ts, `buildContractHandle`).
@@ -83,12 +83,12 @@ const SZERZODES_OKOK = Object.freeze(Object.assign(Object.create(null), {
  * naming an unknown state as a known one is the failure an operator cannot
  * debug.
  */
-function okMondat(why) {
-  return SZERZODES_OKOK[why] ?? `a szerződés nem oldható fel (${why}). Nézd meg a Videó bővítmény állapotát a Bővítmények lapon.`
+function reasonSentence(why) {
+  return CONTRACT_REASONS[why] ?? `the contract cannot be resolved (${why}). Check the Video extension's status on the Extensions page.`
 }
 
 /** Prefixes every refusal, so the sentence reads whole wherever it is quoted. */
-const NEM_KERHETO = 'A videó forgatókönyve nem kérhető le, mert '
+const CANNOT_FETCH = 'The video script cannot be fetched because '
 
 /**
  * The handle for `video.videos`, or a named refusal.
@@ -106,8 +106,8 @@ const NEM_KERHETO = 'A videó forgatókönyve nem kérhető le, mert '
 export function videosHandle(contracts) {
   if (!contracts || typeof contracts.get !== 'function') {
     throw new DocsError(
-      HIBA.szerzodes_hianyzik,
-      `${NEM_KERHETO}a Doksik modul még nem kapott szerződés-hozzáférést a hosttól. Indítsd újra a bővítményt a Bővítmények lapon, aztán hívd újra ezt a toolt.`,
+      ERR.contract_missing,
+      `${CANNOT_FETCH}the Docs module has not been granted contract access by the host yet. Restart the extension on the Extensions page, then call this tool again.`,
     )
   }
   const handle = contracts.get(VIDEO_EXTENSION, VIDEOS_CONTRACT)
@@ -116,11 +116,11 @@ export function videosHandle(contracts) {
   const why = typeof contracts.why === 'function' ? contracts.why(VIDEO_EXTENSION, VIDEOS_CONTRACT) : null
   if (why === null || why === undefined || why === '') {
     throw new DocsError(
-      HIBA.szerzodes_hianyzik,
-      `${NEM_KERHETO}a szerződés nem oldható fel, és az ok a két lekérdezés között megváltozott. Hívd újra ezt a toolt.`,
+      ERR.contract_missing,
+      `${CANNOT_FETCH}the contract could not be resolved, and the reason changed between the two queries. Call this tool again.`,
     )
   }
-  throw new DocsError(HIBA.szerzodes_hianyzik, `${NEM_KERHETO}${okMondat(why)}`)
+  throw new DocsError(ERR.contract_missing, `${CANNOT_FETCH}${reasonSentence(why)}`)
 }
 
 /**
@@ -133,7 +133,7 @@ export function videosHandle(contracts) {
  * error and on nothing else. This is the same recognition
  * `extensions/video/src/args.mjs` does, for the same reason.
  */
-function szerzodesHiba(err) {
+function isHostContractError(err) {
   return err instanceof Error
     && typeof err.code === 'string'
     && typeof err.extensionId === 'string'
@@ -142,26 +142,26 @@ function szerzodesHiba(err) {
 }
 
 /** What the operator does about a call that did not go through, by host code. */
-function hivasMondat(err) {
+function callFailureSentence(err) {
   if (err.code === 'unavailable') {
     // The same race `videosHandle` guards one step earlier, and the host loses
-    // it too: `callContractMethod` re-resolves on every call, so a bővítmény
+    // it too: `callContractMethod` re-resolves on every call, so an extension
     // switched off between the handle and the call fails here rather than
     // there. `reason` is the host's own word for why, so it gets the same four
     // sentences -- the operator's move is identical either side of the race.
     const reason = typeof err.reason === 'string' && err.reason !== '' ? err.reason : null
     return reason === null
-      ? 'a Videó bővítmény elérése a hívás közben szűnt meg (unavailable). Hívd újra ezt a toolt; ha újra ezt kapod, nézd meg a Videó bővítmény állapotát a Bővítmények lapon.'
-      : `a Videó bővítmény elérése a hívás közben szűnt meg (unavailable): ${okMondat(reason)}`
+      ? 'the Video extension became unreachable during the call (unavailable). Call this tool again; if you get this again, check the Video extension\'s status on the Extensions page.'
+      : `the Video extension became unreachable during the call (unavailable): ${reasonSentence(reason)}`
   }
   if (err.code === 'provider_threw') {
-    // Not the same fact at all: the bővítmény is installed, switched on and
+    // Not the same fact at all: the extension is installed, switched on and
     // answered -- its own code raised. Nothing the agent can change about the
     // call fixes it, and no page the operator can toggle does either; the next
-    // step is the Videó modul's log.
-    return 'a Videó bővítmény saját kódja hibára futott a hívás közben (provider_threw). A hívásod rendben volt: nézd meg a Videó modul naplóját, és ha ott nincs nyom, szólj az operátornak.'
+    // step is the Video module's log.
+    return 'the Video extension\'s own code threw during the call (provider_threw). Your call was fine: check the Video module\'s log, and if there is no trace there, tell the operator.'
   }
-  return `a szerződéshívás nem ment át (${err.code}). Nézd meg a Videó bővítmény állapotát a Bővítmények lapon, és szólj az operátornak.`
+  return `the contract call did not go through (${err.code}). Check the Video extension's status on the Extensions page, and tell the operator.`
 }
 
 /**
@@ -172,78 +172,78 @@ function hivasMondat(err) {
  * name can happen one line later instead, and arrive as a thrown
  * `unavailable` rather than as a null handle. Unwrapped, both that and a
  * provider whose own code raised would fall through to the tool's generic
- * catch and reach the agent as `rossz_parameter` over a stack string -- the
+ * catch and reach the agent as `invalid_argument` over a stack string -- the
  * exact pairing `errors.mjs` argues against, since nothing about the call was
  * wrong and the message would name no next step.
  *
  * An error that is not the host's is rethrown untouched. This module does not
  * own it and must not guess a sentence for it.
  */
-export async function videoLekerdez(contracts, videoId) {
+export async function fetchVideo(contracts, videoId) {
   const videos = videosHandle(contracts)
-  // A HANDLE MEGVAN, A METÓDUS NEM FELTÉTLENÜL. A host a `videos@1` nevet és
-  // verziót egyezteti, a metódus-listát nem: egy szolgáltató, ami ezt a
-  // szerződést kínálja `get` nélkül, ép handle-t ad, és a hívás egy sorral
-  // lejjebb sima TypeError-ral dől el. Azt a `szerzodesHiba` nem ismeri fel --
-  // nincs `extensionId`-je --, tehát a tool generikus ágára esik, és
-  // `rossz_parameter: "videos.get is not a function"` érkezik az ügynökhöz:
-  // pontosan az a párosítás, ami ellen az `errors.mjs` nyolcadik kódja
-  // született, csak az egyetlen ajtón át, amit nem zárt be. A hívó tettei
-  // ugyanazok, mint a `version_mismatch`-nél -- frissítsd a régebbi
-  // bővítményt --, tehát ugyanaz a kód, a saját mondatával.
+  // THE HANDLE EXISTS, THE METHOD MAY NOT. The host reconciles the `videos@1`
+  // name and version, not the method list: a provider offering this contract
+  // without `get` gives a healthy handle, and the call dies a line further
+  // down on a plain TypeError. `isHostContractError` does not recognise that --
+  // it has no `extensionId` -- so it falls to the tool's generic branch and
+  // `invalid_argument: "videos.get is not a function"` reaches the agent:
+  // exactly the pairing `errors.mjs`'s eighth code was created against, just
+  // through the one door it did not close. The caller's fix is the same as for
+  // `version_mismatch` -- update the older extension -- so it gets the same
+  // code, with its own sentence.
   if (typeof videos.get !== 'function') {
     throw new DocsError(
-      HIBA.szerzodes_hianyzik,
-      `${NEM_KERHETO}a Videó bővítmény ${VIDEOS_CONTRACT} szerződése nem kínálja a "get" metódust, amire ennek a toolnak szüksége van. Frissítsd a két bővítmény közül a régebbit a Bővítmények lapon, aztán hívd újra ezt a toolt.`,
+      ERR.contract_missing,
+      `${CANNOT_FETCH}the Video extension's ${VIDEOS_CONTRACT} contract does not offer the "get" method that this tool needs. Update whichever of the two extensions is older on the Extensions page, then call this tool again.`,
     )
   }
   try {
     return await videos.get({ id: videoId })
   } catch (err) {
-    if (szerzodesHiba(err)) throw new DocsError(HIBA.szerzodes_hianyzik, `${NEM_KERHETO}${hivasMondat(err)}`)
+    if (isHostContractError(err)) throw new DocsError(ERR.contract_missing, `${CANNOT_FETCH}${callFailureSentence(err)}`)
     throw err
   }
 }
 
 /** A column the contract answered null for. Never the word "null" in a document. */
-const HIANYZIK = '—'
+const MISSING = '—'
 
-const EGY_SORBA = /\s+/g
+const ONE_LINE = /\s+/g
 
 /**
  * The document's title: the video's, folded onto one line.
  *
- * The fold is not cosmetic. `cim` is stranger-derived text, and the vault's
- * front matter is line-based (`serializeDoc`): an embedded newline would cut
+ * The fold is not cosmetic. `video.cim` is stranger-derived text, and the
+ * vault's front matter is line-based (`serializeDoc`): an embedded newline would cut
  * the header in two and the document would come back titleless. Trimming it
  * here is the consumer guarding text the provider explicitly does not clean.
  *
  * `videoId` rather than `video.id` is the fallback, because it is the id the
  * caller typed and the one it would search for.
  */
-function cimOf(video, videoId) {
-  const folded = (typeof video.cim === 'string' ? video.cim : '').replace(EGY_SORBA, ' ').trim()
-  return folded === '' ? `Videó ${videoId}` : folded
+function titleOf(video, videoId) {
+  const folded = (typeof video.cim === 'string' ? video.cim : '').replace(ONE_LINE, ' ').trim()
+  return folded === '' ? `Video ${videoId}` : folded
 }
 
 /** A scalar as a list value: backticked when present, a dash when not. */
-function mezo(value) {
-  return typeof value === 'string' && value.trim() !== '' ? `\`${value}\`` : HIANYZIK
+function field(value) {
+  return typeof value === 'string' && value.trim() !== '' ? `\`${value}\`` : MISSING
 }
 
-/** Milliseconds as seconds, with the Hungarian decimal comma. */
-function hossz(ms) {
-  return typeof ms === 'number' && Number.isFinite(ms) ? `${(ms / 1000).toFixed(1).replace('.', ',')} mp` : HIANYZIK
+/** Milliseconds as seconds, to one decimal place. */
+function seconds(ms) {
+  return typeof ms === 'number' && Number.isFinite(ms) ? `${(ms / 1000).toFixed(1)} s` : MISSING
 }
 
 /** `forras_tipus` and `forras_id` together, because neither says much alone. */
-function forras(video) {
-  const tipus = typeof video.forras_tipus === 'string' && video.forras_tipus !== '' ? video.forras_tipus : HIANYZIK
-  return `${tipus} / ${mezo(video.forras_id)}`
+function source(video) {
+  const kind = typeof video.forras_tipus === 'string' && video.forras_tipus !== '' ? video.forras_tipus : MISSING
+  return `${kind} / ${field(video.forras_id)}`
 }
 
 /**
- * The document a finished video becomes: `{ cim, tartalom }`.
+ * The document a finished video becomes: `{ title, content }`.
  *
  * The warning is the first line rather than a section at the bottom, because
  * the reader who most needs it -- somebody scrolling to the narration to copy a
@@ -253,24 +253,27 @@ function forras(video) {
  * plan has no sentences yet and a video whose narration failed to arrive would
  * otherwise produce the same silent gap.
  */
-export function forgatokonyv(video, videoId) {
-  const narracio = typeof video.narracio_szoveg === 'string' ? video.narracio_szoveg.trim() : ''
-  const tartalom = [
-    `> ${FORRAS_FIGYELMEZTETES}`,
+export function videoScript(video, videoId) {
+  const title = titleOf(video, videoId)
+  const narration = typeof video.narracio_szoveg === 'string' ? video.narracio_szoveg.trim() : ''
+  const content = [
+    `> ${SOURCE_WARNING}`,
     '',
-    `- Videó id: ${mezo(video.id ?? videoId)}`,
-    `- Státusz: ${mezo(video.status)}`,
-    `- Forrás: ${forras(video)}`,
-    `- Videófájl: ${mezo(video.out_path)}`,
-    `- Fájl sha256: ${mezo(video.file_sha256)}`,
-    `- Hossz: ${hossz(video.hossz_ms)}`,
-    `- Létrehozva: ${mezo(video.created_at)}`,
-    `- QA rendben: ${mezo(video.qa_ok_at)}`,
+    `# Video script: ${title}`,
     '',
-    '## Narráció',
+    `- Status: ${field(video.status)}`,
+    `- Source: ${source(video)}`,
+    // The file's path and the id and hash it was written under travel
+    // together: none of the three says much about the video on its own.
+    `- File: ${field(video.out_path)} (id ${field(video.id ?? videoId)}, sha256 ${field(video.file_sha256)})`,
+    `- Length: ${seconds(video.hossz_ms)}`,
+    `- Created: ${field(video.created_at)}`,
+    `- QA passed: ${field(video.qa_ok_at)}`,
     '',
-    narracio === '' ? '_Ehhez a videóhoz még nincs narráció a tervben._' : narracio,
+    '## Narration',
+    '',
+    narration === '' ? '_This video has no narration in the plan yet._' : narration,
     '',
   ].join('\n')
-  return { cim: cimOf(video, videoId), tartalom }
+  return { title, content }
 }

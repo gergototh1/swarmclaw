@@ -52,9 +52,13 @@ import { setTimeout as sleep } from 'node:timers/promises'
  *   3. Service: `GET /api/healthz` on the port has to answer JSON whose
  *      `service` is `"swarmclaw"`. Within one boot a pid can be reused after
  *      the server dies, so 1 and 2 only make 3 rare; they do not replace it.
- *   4. Instance: that answer's `instanceId` has to be the token from the file,
- *      or a second SwarmClaw on that port would serve the request with a
- *      different database.
+ *   4. Instance: that answer's `instanceId` has to name the host this shim is
+ *      bound to -- `SWARMCLAW_INSTANCE_ID` from the env when the host stamped
+ *      it there, and the token from the file otherwise. Checking the port
+ *      against the file alone is circular: two SwarmClaws sharing one
+ *      SWARMCLAW_HOME both pass it, because the second rewrote the very file
+ *      the first is compared against, and the shim then sends a request keyed
+ *      for one host to the other, which answers 401.
  *
  * The file is read fresh on every call rather than cached: the host can restart
  * on another port while this process lives, and a cached base would then be
@@ -85,6 +89,7 @@ const HEALTHZ_RETRY_MS = 250
 /** Listing tools is a database read; running one can research, sweep or render. */
 const LIST_TIMEOUT_MS = 15_000
 const CALL_TIMEOUT_MS = 600_000
+const INSTRUCTIONS_TIMEOUT_MS = 3_000
 
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
 
@@ -108,23 +113,23 @@ function readPortFile(file) {
   try {
     text = fs.readFileSync(file, 'utf8')
   } catch {
-    return { reason: 'port_fajl_hianyzik' }
+    return { reason: 'port_file_missing' }
   }
   let parsed
   try {
     parsed = JSON.parse(text)
   } catch {
-    return { reason: 'port_fajl_ervenytelen' }
+    return { reason: 'port_file_invalid' }
   }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { reason: 'port_fajl_ervenytelen' }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { reason: 'port_file_invalid' }
   const { port, wsPort, pid, startedAt, instanceId } = parsed
-  if (!isPort(port) || !isPort(wsPort)) return { reason: 'port_fajl_ervenytelen' }
-  if (!isWholeNumber(pid) || pid < 1) return { reason: 'port_fajl_ervenytelen' }
-  if (!isWholeNumber(startedAt)) return { reason: 'port_fajl_ervenytelen' }
+  if (!isPort(port) || !isPort(wsPort)) return { reason: 'port_file_invalid' }
+  if (!isWholeNumber(pid) || pid < 1) return { reason: 'port_file_invalid' }
+  if (!isWholeNumber(startedAt)) return { reason: 'port_file_invalid' }
   // Without the token there is nothing to compare the server on the port
   // against, and accepting the file anyway would be the pid check standing in
   // for an identity check.
-  if (typeof instanceId !== 'string' || instanceId === '') return { reason: 'port_fajl_ervenytelen' }
+  if (typeof instanceId !== 'string' || instanceId === '') return { reason: 'port_file_invalid' }
   return { info: { port, wsPort, pid, startedAt, instanceId } }
 }
 
@@ -137,12 +142,12 @@ function readPortFile(file) {
  */
 function staleReason(info) {
   const bootAt = Date.now() - os.uptime() * 1000
-  if (info.startedAt < bootAt - BOOT_TOLERANCE_MS) return 'port_fajl_regi'
+  if (info.startedAt < bootAt - BOOT_TOLERANCE_MS) return 'port_file_stale'
   try {
     process.kill(info.pid, 0)
     return null
   } catch (err) {
-    return err && err.code === 'EPERM' ? null : 'pid_nem_el'
+    return err && err.code === 'EPERM' ? null : 'pid_not_alive'
   }
 }
 
@@ -160,10 +165,21 @@ function isConnectionRefused(err) {
 
 /**
  * Checks 3 and 4. `null` when the server on `port` says it is SwarmClaw AND
- * names the instance that wrote the port file. Only `service` and `instanceId`
+ * names the instance this shim is bound to. Only `service` and `instanceId`
  * are read from the body, the token is compared and never repeated, and no part
  * of the body is quoted: it came from whatever owns the port, which at this
  * point may be anything.
+ *
+ * WHICH instance is the one that matters. The token defaults to the one in the
+ * port file, but the host stamps `SWARMCLAW_INSTANCE_ID` into this process's
+ * env when it writes the per-turn MCP config, and that one wins: it names the
+ * host that actually spawned this shim. Comparing the port file against the
+ * port file is circular -- two SwarmClaws sharing one SWARMCLAW_HOME both pass
+ * it, because the second one rewrote the file it is being checked against, and
+ * the shim then sends its request (with the first host's access key) to the
+ * second host, which answers 401. That is not hypothetical: it cost a long hunt
+ * for a phantom "a big peer server evicts ours" bug, because a 401 here becomes
+ * an empty `tools/list` and an agent that silently has no tools.
  */
 async function confirmSwarmclaw(base, instanceId) {
   for (let attempt = 1; ; attempt += 1) {
@@ -176,50 +192,50 @@ async function confirmSwarmclaw(base, instanceId) {
           await sleep(HEALTHZ_RETRY_MS)
           continue
         }
-        return 'kapcsolat_elutasitva'
+        return 'connection_refused'
       }
-      if (err && err.name === 'TimeoutError') return 'healthz_nem_valaszolt'
-      return 'healthz_nem_erheto_el'
+      if (err && err.name === 'TimeoutError') return 'healthz_timed_out'
+      return 'healthz_unreachable'
     }
     let json
     try {
       json = await res.json()
     } catch {
-      return 'masik_program_a_porton'
+      return 'wrong_program_on_port'
     }
-    if (!json || typeof json !== 'object' || json.service !== 'swarmclaw') return 'masik_program_a_porton'
-    if (typeof json.instanceId !== 'string' || json.instanceId === '' || json.instanceId !== instanceId) return 'masik_peldany_a_porton'
+    if (!json || typeof json !== 'object' || json.service !== 'swarmclaw') return 'wrong_program_on_port'
+    if (typeof json.instanceId !== 'string' || json.instanceId === '' || json.instanceId !== instanceId) return 'wrong_instance_on_port'
     return null
   }
 }
 
-/** What each `swarmclaw_nem_fut` reason means. Paths and numbers only; never text from the file or the port. */
+/** What each `swarmclaw_not_running` reason means. Paths and numbers only; never text from the file or the port. */
 function notRunningMessage(reason, file, info) {
   const at = info ? `port ${info.port}, pid ${info.pid}` : ''
   switch (reason) {
-    case 'port_fajl_hianyzik': return `nincs port-fájl: ${file}; a SwarmClaw nem fut, vagy máshova írja`
-    case 'port_fajl_ervenytelen': return `a port-fájl nem a host alakja: ${file}; nem a SwarmClaw írta`
-    case 'port_fajl_regi': return `a port-fájl a mostani rendszerindítás előttről való (${at}); a pid ma bármi lehet`
-    case 'pid_nem_el': return `a port-fájl pidje nem él (${at})`
-    case 'kapcsolat_elutasitva': return `a port-fájl portján semmi nem fogad kapcsolatot (${at})`
-    case 'healthz_nem_valaszolt': return `valami hallgat a port-fájl portján, de ${HEALTHZ_TIMEOUT_MS} ms alatt nem felelt a /api/healthz-re (${at}); nem tudni, SwarmClaw-e`
-    case 'healthz_nem_erheto_el': return `a /api/healthz nem érhető el a port-fájl portján (${at})`
-    case 'masik_program_a_porton': return `a port-fájl portján nem SwarmClaw felel a /api/healthz-re (${at}); a fájl elavult`
-    case 'masik_peldany_a_porton': return `a port-fájl portján egy MÁSIK SwarmClaw-példány felel (${at}); a fájl elavult, és ez a példány más adatbázissal dolgozna`
-    case 'kapcsolat_megszakadt': return `a host a /api/healthz után, a kérés közben ment el (${at})`
-    default: return `a SwarmClaw nem érhető el (${at})`
+    case 'port_file_missing': return `no port file: ${file}; SwarmClaw is not running, or it writes it somewhere else`
+    case 'port_file_invalid': return `the port file is not the host's shape: ${file}; SwarmClaw did not write it`
+    case 'port_file_stale': return `the port file predates the current boot (${at}); the pid could be anything today`
+    case 'pid_not_alive': return `the port file's pid is not alive (${at})`
+    case 'connection_refused': return `nothing accepts a connection on the port file's port (${at})`
+    case 'healthz_timed_out': return `something is listening on the port file's port, but it did not answer /api/healthz within ${HEALTHZ_TIMEOUT_MS} ms (${at}); whether it is SwarmClaw is unknown`
+    case 'healthz_unreachable': return `/api/healthz is unreachable on the port file's port (${at})`
+    case 'wrong_program_on_port': return `whatever answers /api/healthz on the port file's port is not SwarmClaw (${at}); the file is stale`
+    case 'wrong_instance_on_port': return `a DIFFERENT SwarmClaw instance answers on the port file's port (${at}); it is not the host that started this MCP server, so it has a different database and a different access key`
+    case 'connection_lost': return `the host left mid-request, right after /api/healthz (${at})`
+    default: return `SwarmClaw is unreachable (${at})`
   }
 }
 
 function notRunning(reason, file, info) {
-  return { error: { code: 'swarmclaw_nem_fut', reason, message: notRunningMessage(reason, file, info) } }
+  return { error: { code: 'swarmclaw_not_running', reason, message: notRunningMessage(reason, file, info) } }
 }
 
 /** The base URL of a server that passed all four checks, or the refusal naming the check it failed. Read fresh on every call. */
 async function resolveHost() {
   const file = (process.env.SWARMCLAW_PORT_FILE || '').trim()
   if (file === '') {
-    return { error: { code: 'port_fajl_beallitatlan', message: 'SWARMCLAW_PORT_FILE nincs beállítva az MCP-bejegyzés env-jében' } }
+    return { error: { code: 'port_file_unset', message: 'SWARMCLAW_PORT_FILE is not set in the MCP entry\'s env' } }
   }
   const read = readPortFile(file)
   if (read.reason) return notRunning(read.reason, file, null)
@@ -227,7 +243,8 @@ async function resolveHost() {
   const stale = staleReason(info)
   if (stale) return notRunning(stale, file, info)
   const base = `http://127.0.0.1:${info.port}`
-  const identity = await confirmSwarmclaw(base, info.instanceId)
+  const bound = (process.env.SWARMCLAW_INSTANCE_ID || '').trim()
+  const identity = await confirmSwarmclaw(base, bound === '' ? info.instanceId : bound)
   if (identity) return notRunning(identity, file, info)
   return { base, file, info }
 }
@@ -247,7 +264,7 @@ function hostMessage(json, status) {
  * accepts every request, and refusing to try would be a refusal the host itself
  * would not make. A 401 is then read against whether a key was sent, which
  * tells "none set" from "the wrong one". 403 is not a key failure on this host
- * (its proxy answers 403 to a disallowed browser Origin), so it is `host_hiba`
+ * (its proxy answers 403 to a disallowed browser Origin), so it is `host_error`
  * with its status.
  */
 async function callHost(method, body, timeoutMs) {
@@ -265,11 +282,11 @@ async function callHost(method, body, timeoutMs) {
       signal: AbortSignal.timeout(timeoutMs),
     })
   } catch (err) {
-    if (isConnectionRefused(err)) return notRunning('kapcsolat_megszakadt', target.file, target.info)
+    if (isConnectionRefused(err)) return notRunning('connection_lost', target.file, target.info)
     if (err && err.name === 'TimeoutError') {
-      return { error: { code: 'host_hiba', reason: 'idotullepes', message: `a host ${timeoutMs} ms alatt nem felelt a(z) ${method} hívásra; a kérés a hostban még futhat` } }
+      return { error: { code: 'host_error', reason: 'timeout', message: `the host did not answer ${method} within ${timeoutMs} ms; the request may still be running on the host` } }
     }
-    return { error: { code: 'host_hiba', reason: 'kapcsolat_hiba', message: `a kérés nem jutott el a hosthoz (${err && err.name ? err.name : 'hiba'})` } }
+    return { error: { code: 'host_error', reason: 'connection_error', message: `the request never reached the host (${err && err.name ? err.name : 'error'})` } }
   }
   let text
   try {
@@ -287,23 +304,23 @@ async function callHost(method, body, timeoutMs) {
     }
   }
   if (res.status === 401) {
-    if (key === '') return { error: { code: 'kulcs_beallitatlan', message: 'a host hozzáférési kulcsot kér, és SWARMCLAW_ACCESS_KEY üres az MCP-bejegyzés env-jében' } }
-    return { error: { code: 'kulcs_ervenytelen', message: 'a host 401-et adott: SWARMCLAW_ACCESS_KEY nem a host ACCESS_KEY értéke' } }
+    if (key === '') return { error: { code: 'access_key_unset', message: 'the host asks for an access key and SWARMCLAW_ACCESS_KEY is empty in the MCP entry\'s env' } }
+    return { error: { code: 'access_key_invalid', message: 'the host answered 401: SWARMCLAW_ACCESS_KEY is not the host\'s ACCESS_KEY' } }
   }
   if (res.status === 404) {
-    return { error: { code: 'extension_hianyzik', message: `a hoston nincs ${EXTENSION_ID}/${method} rpc: az extension nincs telepítve, le van tiltva, vagy régebbi kiadás (${hostMessage(json, 404)})` } }
+    return { error: { code: 'extension_missing', message: `the host has no ${EXTENSION_ID}/${method} rpc: the extension is not installed, is disabled, or is an older release (${hostMessage(json, 404)})` } }
   }
   if (res.status === 429) {
     const retryAfter = json && typeof json === 'object' && isWholeNumber(json.retryAfter) ? json.retryAfter : undefined
-    const error = { code: 'host_hiba', reason: 'zarolas', message: 'a host túl sok rossz kulcs után ideiglenesen zárolta ezt a címet' }
+    const error = { code: 'host_error', reason: 'locked_out', message: 'the host locked this address out for a while after too many wrong keys' }
     if (retryAfter !== undefined) error.retryAfter = retryAfter
     return { error }
   }
   if (!res.ok) {
-    return { error: { code: 'host_hiba', reason: `http_${res.status}`, httpStatus: res.status, message: hostMessage(json, res.status) } }
+    return { error: { code: 'host_error', reason: `http_${res.status}`, httpStatus: res.status, message: hostMessage(json, res.status) } }
   }
   if (!parsable) {
-    return { error: { code: 'host_hiba', reason: 'valasz_nem_json', message: `a host 200-at adott, de a válasz ${text.trim() === '' ? 'üres' : 'nem JSON'}` } }
+    return { error: { code: 'host_error', reason: 'response_not_json', message: `the host answered 200 but the response is ${text.trim() === '' ? 'empty' : 'not JSON'}` } }
   }
   return json
 }
@@ -350,11 +367,28 @@ function isPlainObject(value) {
 async function listTools() {
   const answer = await callHost('mcpTools', {}, LIST_TIMEOUT_MS)
   if (!isPlainObject(answer) || !Array.isArray(answer.tools)) {
-    const why = isPlainObject(answer) && answer.error ? answer.error.message : 'a host nem tool-listát adott'
+    const why = isPlainObject(answer) && answer.error ? answer.error.message : 'the host did not return a tool list'
     process.stderr.write(`[${SERVER_INFO.name}] tools/list: ${why}\n`)
     return []
   }
   return answer.tools.filter((t) => isPlainObject(t) && typeof t.name === 'string')
+}
+
+/**
+ * The extension's instructions, asked of the host at `initialize`.
+ *
+ * Short timeout, and never an error: a host that is down or slow costs the
+ * agent this hint for one launch, not the server. The reason goes to stderr.
+ */
+async function fetchInstructions() {
+  const answer = await callHost('mcpInstructions', {}, INSTRUCTIONS_TIMEOUT_MS)
+  if (isPlainObject(answer) && typeof answer.instructions === 'string' && answer.instructions.trim() !== '') {
+    return answer.instructions
+  }
+  if (isPlainObject(answer) && answer.error) {
+    process.stderr.write(`[${SERVER_INFO.name}] instructions: ${answer.error.message}\n`)
+  }
+  return null
 }
 
 async function callTool(id, params) {
@@ -362,7 +396,7 @@ async function callTool(id, params) {
   const args = isPlainObject(params) && params.arguments !== undefined ? params.arguments : {}
   if (typeof name !== 'string') return failure(id, -32602, 'params.name must be a string')
   if (!isPlainObject(args)) return failure(id, -32602, 'params.arguments must be an object')
-  if (!IDENTIFIER.test(name)) return failure(id, -32602, 'ismeretlen tool: (nem azonosító nevű tool)')
+  if (!IDENTIFIER.test(name)) return failure(id, -32602, 'unknown tool: (name is not a valid identifier)')
   const value = await callHost('mcpCall', { tool: name, args, ...callerStamp() }, CALL_TIMEOUT_MS)
   return reply(id, toolResult(value))
 }
@@ -379,7 +413,13 @@ async function handle(msg) {
   // A notification carries no id and gets no reply, whatever its method.
   if (id === undefined || id === null) return null
   if (method === 'initialize') {
-    return reply(id, { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: {} }, serverInfo: SERVER_INFO })
+    const instructions = await fetchInstructions()
+    return reply(id, {
+      protocolVersion: PROTOCOL_VERSION,
+      capabilities: { tools: {} },
+      serverInfo: SERVER_INFO,
+      ...(instructions ? { instructions } : {}),
+    })
   }
   if (method === 'tools/list') return reply(id, { tools: await listTools() })
   if (method === 'tools/call') return callTool(id, params)

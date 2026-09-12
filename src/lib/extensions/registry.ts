@@ -23,23 +23,41 @@ import { hmrSingleton } from '@/lib/shared-utils'
 export type ExtensionPageRpc = (method: string, body?: object) => Promise<unknown>
 
 /**
- * What the page renderer hands an extension's page component.
+ * What the host hands an extension's component.
  *
- * `subPath`, `navigate` and `setTitle` arrived after the first two; a bundle
- * built before them simply ignores them and keeps working.
+ * One type for two surfaces, because one registry serves both: a page under
+ * `/x/<slug>` gets the page fields, a tool panel beside the chat gets the panel
+ * fields, and each side ignores the other's. The page fields are required
+ * because the route always passes them; the panel fields are optional because a
+ * page is not a panel.
  */
 export interface ExtensionPageProps {
   extensionId: string
   rpc: ExtensionPageRpc
-  /** The path below the page's declared `path`, without slashes at either end; '' at the page root. */
-  subPath: string
-  /** Move to `subPath` inside this same page. The component stays mounted. */
-  navigate: (subPath: string, opts?: { replace?: boolean }) => void
-  /** Name what the page is showing, e.g. "CRM · Kovács Kft"; null goes back to the plain title. */
-  setTitle: (text: string | null) => void
+  /** Pages: the path below the page's declared `path`, without slashes at either end; '' at the page root. */
+  subPath?: string
+  /** Pages: move to `subPath` inside this same page. The component stays mounted. */
+  navigate?: (subPath: string, opts?: { replace?: boolean }) => void
+  /** Pages: name what the page is showing, e.g. "CRM · Kovács Kft"; null goes back to the plain title. */
+  setTitle?: (text: string | null) => void
+  /** Tool panels only: the reference the tool put in its answer as `panel.id`. */
+  refId?: string
+  /** Tool panels only: closes the panel. */
+  onClose?: () => void
+  /**
+   * Tool panels only: the action area of the host's panel header, beside the
+   * close button. A panel with one or two controls of its own portals them in
+   * here instead of drawing a second full-width bar under a header that is
+   * already there — on a panel this narrow that bar costs a visible share of
+   * the reading area.
+   *
+   * Null until the host's ref callback has run, which is the render after
+   * mount, so guard on it rather than portalling into nothing.
+   */
+  headerSlot?: HTMLElement | null
 }
 
-/** The component an extension bundle registers for one of its declared pages. */
+/** The component an extension bundle registers for one of its declared pages or tool panels. */
 export type ExtensionPageComponent = ComponentType<ExtensionPageProps>
 
 export interface RegisterPageOptions {
