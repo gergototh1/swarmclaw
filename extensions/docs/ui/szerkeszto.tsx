@@ -10,7 +10,7 @@ import type { Doc, Rpc, Utkozes } from './api'
 import { errorText, isConflict, readDoc } from './api'
 import { htmlToMd, mdToHtml } from './markdown'
 import { createAutosave, type Autosave } from './autosave'
-import { dontsUjraprobalni } from './utkozes-dontes'
+import { dontsUjraprobalni, utkozesElavult, valaszElavult } from './utkozes-dontes'
 
 /**
  * The middle column: the document, edited as formatted text and saved as
@@ -169,6 +169,9 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
       rpc('ment', { id: docId, tartalom: md, baseVersion })
         .then((raw) => {
           if (isConflict(raw)) {
+            // A saját később elindult mentésünk már túllépett ezen a
+            // verzión -- ez nem valódi ütközés, se sáv, se retry nem jár rá.
+            if (utkozesElavult({ jelenlegiVerzio: raw.jelenlegiVerzio, jelenlegi: verzioRef.current })) return
             if (dontsUjraprobalni({ masikMentesFolyamatban, marUjraprobalt })) {
               return probalkozas(raw.jelenlegiVerzio, true)
             }
@@ -179,7 +182,18 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
           if (nyitottIdRef.current !== docId) return
           const message = errorText(raw)
           if (message) { setAllas({ kind: 'hiba', uzenet: message }); return }
+          // A kuka-gomb már letiltotta ennek a doksinak az autosave-jét: egy
+          // ekkor még úton lévő mentés válasza ne írjon se verziót, se
+          // mentett-alapot, se "mentve" állapotot egy törlés alatt álló
+          // doksira.
+          if (torolveRef.current) return
           const uj = (raw as { verzio?: number }).verzio
+          // A korábban elindult, később megérkező mentésünk verziója már nem
+          // újabb, mint amit egy közben landolt másik mentésünk beállított --
+          // ezt a választ nem szabad alkalmazni, különben a verzió és a
+          // mentett-alap visszaugrana, és a következő autosave hamis
+          // ütközést váltana ki.
+          if (valaszElavult({ uj, jelenlegi: verzioRef.current })) return
           if (typeof uj === 'number') { verzioRef.current = uj; setVerzio(uj) }
           savedMd.current = md
           setAllas({ kind: 'mentve', mikor: Date.now() })

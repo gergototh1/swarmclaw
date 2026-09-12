@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { dontsUjraprobalni } from '../ui/utkozes-dontes.ts'
+import { dontsUjraprobalni, utkozesElavult, valaszElavult } from '../ui/utkozes-dontes.ts'
 
 test('másik mentés volt folyamatban, és még nem próbáltuk újra: igen', () => {
   assert.equal(
@@ -29,4 +29,32 @@ test('nem volt másik mentés folyamatban, és már próbáltuk újra: nem', () 
     dontsUjraprobalni({ masikMentesFolyamatban: false, marUjraprobalt: true }),
     false,
   )
+})
+
+test('siker válasz: újabb verzió -> nem elavult, alkalmazzuk', () => {
+  assert.equal(valaszElavult({ uj: 5, jelenlegi: 4 }), false)
+})
+
+test('siker válasz: egyenlő verzió -> elavult', () => {
+  assert.equal(valaszElavult({ uj: 4, jelenlegi: 4 }), true)
+})
+
+test('siker válasz: régebbi verzió -> elavult', () => {
+  assert.equal(valaszElavult({ uj: 3, jelenlegi: 4 }), true)
+})
+
+test('siker válasz: nincs verziószám -> nem elavult, alkalmazzuk', () => {
+  assert.equal(valaszElavult({ uj: undefined, jelenlegi: 4 }), false)
+})
+
+test('ütközés: újabb jelenlegiVerzio -> nem elavult', () => {
+  assert.equal(utkozesElavult({ jelenlegiVerzio: 5, jelenlegi: 4 }), false)
+})
+
+test('ütközés: egyenlő jelenlegiVerzio -> elavult', () => {
+  assert.equal(utkozesElavult({ jelenlegiVerzio: 4, jelenlegi: 4 }), true)
+})
+
+test('ütközés: régebbi jelenlegiVerzio -> elavult', () => {
+  assert.equal(utkozesElavult({ jelenlegiVerzio: 3, jelenlegi: 4 }), true)
 })
