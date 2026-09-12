@@ -139,3 +139,8 @@ test('a throwing instructionsOf costs the instructions, not the bridge', () => {
   const { mcpInstructions } = createMcpBridge(tools, () => { throw new Error('boom') })
   assert.deepEqual(mcpInstructions(), { instructions: null })
 })
+
+test('the docs extension offers its instructions over the bridge', () => {
+  const { instructions } = docs.rpc.mcpInstructions()
+  assert.match(instructions, /docs_write/)
+})

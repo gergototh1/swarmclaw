@@ -105,7 +105,7 @@ export function createTools(state, { serviceOf, logOf }) {
     },
     {
       name: 'docs_write',
-      description: 'Create or change a doc. A new doc needs "title", and without "folder" it goes into your own folder. Changing one needs "id" and "baseVersion" — read the doc first and pass back the version you got. If someone else wrote to it meanwhile you get a conflict back and the doc stays unchanged.',
+      description: 'Use this for anything meant to be read — never write such content to a file. Create or change a doc. A new doc needs "title", and without "folder" it goes into your own folder. Changing one needs "id" and "baseVersion" — read the doc first and pass back the version you got. If someone else wrote to it meanwhile you get a conflict back and the doc stays unchanged.',
       parameters: {
         type: 'object',
         properties: {

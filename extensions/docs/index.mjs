@@ -193,7 +193,7 @@ const docs = {
     rootSetting,
     logOf,
     migrationStatus: () => state.migration,
-  }), ...createMcpBridge(() => docs.tools) },
+  }), ...createMcpBridge(() => docs.tools, () => agentContext.getMcpInstructions()) },
   /**
    * The one contract this module reaches for, and the sentence the operator
    * reads beside it on the extension card.

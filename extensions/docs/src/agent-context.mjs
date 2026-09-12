@@ -72,17 +72,35 @@ export function createAgentContext(state, { serviceOf, sharedFolder, logOf }) {
   }
 
   function getCapabilityDescription() {
-    return 'I can read, search and write durable markdown docs; I have my own folder, and I can reach the shared folder too.'
+    return 'I can read, search and write durable markdown docs; I have a folder of my own and can reach the shared folder.'
   }
 
   function getOperatingGuidance() {
     return [
-      'Write a doc when the result stays valuable after the conversation ends — a research summary, a customer profile, the reasoning behind a decision. Do not write a passing train of thought into one.',
-      'Before changing a doc, always read it first with docs_read, and pass back the version number you got as baseVersion. Without it docs_write refuses the change.',
-      'If you get a conflict, someone else wrote to the doc meanwhile: read it again, merge your change into the fresh content, and write it back with the new version number. Do not blindly overwrite the other version.',
-      'You cannot write into another agent\'s folder, but you can read from it. If you are producing shared material, put it in the shared folder.',
+      'Anything you write for the user or another agent to read — a report, summary, plan, estimate, research note — goes into Docs with docs_write, not into a file in your working directory (Write, Bash, `cat >`). Working files (code, config, temporary files, video assets) stay in your working directory. Once a doc is written, naming its title in your reply is enough: the user opens it from the chat.',
+      'Before changing a doc, always read it with docs_read and pass back the version you got as baseVersion. Without it docs_write refuses the change.',
+      'If you get a conflict, someone else changed the doc meanwhile: read it again, merge your change into the fresh content, and write again with the new version. Never blindly overwrite the other version.',
+      "You cannot write into another agent's folder, but you can read from it. Put shared material into the shared folder.",
     ]
   }
 
-  return { getAgentContext, getCapabilityDescription, getOperatingGuidance }
+  /**
+   * What an agent on a CLI provider is told up front, through MCP.
+   *
+   * Short on purpose: it lands in every system prompt of every agent the
+   * server is assigned to. The details stay in the tool descriptions, which
+   * the agent reads once it has decided to use a tool -- this only has to make
+   * it decide.
+   */
+  function getMcpInstructions() {
+    return [
+      'Docs is the shared home for durable markdown documents: every agent has its own folder, and everyone can write into the shared folder.',
+      'Anything you write for the user or another agent to read — a report, summary, plan, estimate, research note — goes into Docs with docs_write, never into a file in your working directory. Working files (code, config, temporary files, assets) stay where they are.',
+      'To change a doc, read it with docs_read first and pass its version back as baseVersion.',
+      `The shared folder is "${sharedFolder()}".`,
+      'After writing a doc, name its title in your reply; the user opens it from the chat.',
+    ].join('\n')
+  }
+
+  return { getAgentContext, getCapabilityDescription, getOperatingGuidance, getMcpInstructions }
 }
