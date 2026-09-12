@@ -23,6 +23,18 @@ export interface ToolPanelRef {
 }
 
 /**
+ * Joins the three parts that identify one card. A ref id is whatever the
+ * tool answered with, so this cannot use a printable separator like `:` --
+ * with one, panel `doc` + refId `a:b` would collide with panel `doc:a` +
+ * refId `b`. `\u0000` cannot appear in any of the three parts in practice,
+ * so it is used both for the internal dedupe map here and for the React
+ * `key` in `tool-panel-cards.tsx`, so the two cannot drift apart again.
+ */
+export function toolPanelRefKey(ref: Pick<ToolPanelRef, 'extensionId' | 'panelId' | 'refId'>): string {
+  return `${ref.extensionId}\u0000${ref.panelId}\u0000${ref.refId}`
+}
+
+/**
  * A CLI provider records an MCP tool as `mcp__<server>__<tool>`; the
  * declaration names the bare tool, because the server name is whatever the
  * operator typed when registering it.
@@ -70,7 +82,7 @@ export function findToolPanelRefs(
     if (!panel) continue
     const ref = refOf(event.output)
     if (!ref) continue
-    const key = `${panel.extensionId}\u0000${panel.id}\u0000${ref.id}`
+    const key = toolPanelRefKey({ extensionId: panel.extensionId, panelId: panel.id, refId: ref.id })
     const previous = found.get(key)
     found.set(key, {
       extensionId: panel.extensionId,

@@ -19,6 +19,7 @@
     "@tiptap/starter-kit": "^2.27.3",
     "docx": "^9.7.1",
     "esbuild": "^0.25.0",
+    "jszip": "^3.10.2",
     "marked": "^15.0.12",
     "react": "19.2.3",
     "react-dom": "19.2.3",

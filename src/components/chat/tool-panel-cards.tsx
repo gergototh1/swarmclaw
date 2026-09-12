@@ -1,7 +1,7 @@
 'use client'
 
 import { useChatStore } from '@/stores/use-chat-store'
-import type { ToolPanelRef } from '@/lib/chat/tool-panel-refs'
+import { toolPanelRefKey, type ToolPanelRef } from '@/lib/chat/tool-panel-refs'
 
 /**
  * One card per thing the message's tools produced that an extension can open.
@@ -17,7 +17,7 @@ export function ToolPanelCards({ refs }: { refs: ToolPanelRef[] }) {
     <div className="mt-2 flex flex-col gap-1.5 max-w-[85%] md:max-w-[72%]" data-testid="tool-panel-cards">
       {refs.map((ref) => (
         <button
-          key={`${ref.extensionId}:${ref.panelId}:${ref.refId}`}
+          key={toolPanelRefKey(ref)}
           type="button"
           onClick={() => setPreviewContent({ type: 'extension', title: ref.title, ref })}
           className="flex items-center gap-2.5 rounded-md border border-line-subtle bg-surface px-3 py-2 text-left

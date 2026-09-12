@@ -66,8 +66,14 @@ export function migrateLegacyFolders({ root, sharedFolderName, writer, log, now 
     moved.push(m.key)
   }
   if (moved.length > 0) {
-    writeLedger(root, ledger)
+    // Reindex before recording the move in the ledger. indexAll() is
+    // idempotent, so if this throws (one unreadable .md is enough) the
+    // ledger is left unwritten and the next load retries the reindex --
+    // the alternative order would strand the index: the ledger would say
+    // done, the rename already happened, and every doc under the old path
+    // would fail to read until someone pressed "Reindex now".
     writer.indexAll()
+    writeLedger(root, ledger)
     log?.info?.('docs folders migrated', { moved })
   }
   return { moved, blocked }

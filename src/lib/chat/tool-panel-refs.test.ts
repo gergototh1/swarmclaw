@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { bareToolName, findToolPanelRefs } from './tool-panel-refs'
+import { bareToolName, findToolPanelRefs, toolPanelRefKey } from './tool-panel-refs'
 import type { ExtensionToolPanel } from '@/types/extension'
 
 const panels: ExtensionToolPanel[] = [{
@@ -70,6 +70,14 @@ test('ids that contain the key separator character still make separate cards', (
     { name: 'docs_video_script', input: '{}', output: out({ id: 'b', panel: { id: 'b', title: 'Two' } }) },
   ], two)
   assert.deepEqual(refs.map((r) => [r.panelId, r.refId, r.title]), [['doc', 'a:b', 'One'], ['doc:a', 'b', 'Two']])
+})
+
+test('toolPanelRefKey does not collide when a panel id and a refId share a printable separator', () => {
+  // Pins the exact collision the dedupe key and the React key must both
+  // avoid: panel 'doc' + refId 'a:b' vs panel 'doc:a' + refId 'b'.
+  const a = toolPanelRefKey({ extensionId: 'docs.mjs', panelId: 'doc', refId: 'a:b' })
+  const b = toolPanelRefKey({ extensionId: 'docs.mjs', panelId: 'doc:a', refId: 'b' })
+  assert.notEqual(a, b)
 })
 
 test('no tool events or no panels give no cards', () => {

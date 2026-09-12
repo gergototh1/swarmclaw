@@ -73,6 +73,23 @@ test('a recorded migration does not run again, even if kozos reappears', () => {
   assert.equal(writer.calls.indexAll, 0)
 })
 
+test('when indexAll throws, the rename already happened but no ledger is written so the next load retries', () => {
+  const root = tmpRoot()
+  put(root, 'kozos/a.md')
+  const throwingWriter = { indexAll() { throw new Error('unreadable .md') } }
+  assert.throws(
+    () => migrateLegacyFolders({ root, sharedFolderName: 'shared', writer: throwingWriter }),
+    /unreadable \.md/,
+  )
+  // The rename already happened -- indexAll runs after it, per the fixed
+  // order -- but because indexAll threw, the ledger must NOT have been
+  // written. An unwritten ledger is what makes the next load retry the
+  // reindex instead of trusting a half-finished migration as done.
+  assert.equal(fs.existsSync(path.join(root, 'shared', 'a.md')), true)
+  assert.equal(fs.existsSync(path.join(root, 'kozos')), false)
+  assert.equal(fs.existsSync(path.join(root, '.swarmdocs', 'migrations.json')), false)
+})
+
 test('a root with neither old folder is left untouched and writes no ledger', () => {
   const root = tmpRoot()
   const r = migrateLegacyFolders({ root, sharedFolderName: 'shared', writer: countingWriter() })

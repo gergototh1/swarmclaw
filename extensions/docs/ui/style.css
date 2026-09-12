@@ -430,6 +430,27 @@
   color: var(--color-accent-bright, #FF6B54);
 }
 
+/* Same chip as its neighbour .docs-details-toggle, including the pressed
+   (docs-active) state -- this toggles Markdown source vs. formatted view. */
+.docs-mode-toggle {
+  flex-shrink: 0;
+  padding: 6px 13px;
+  border: none;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-layer-1, rgba(16,24,40,0.03));
+  color: var(--color-text-3, #8E8E93);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.docs-mode-toggle:hover { background: var(--color-layer-2, rgba(16,24,40,0.05)); color: var(--color-text-2, #48484A); }
+.docs-mode-toggle.docs-active {
+  background: var(--color-accent-soft, rgba(255,107,84,0.18));
+  color: var(--color-accent-bright, #FF6B54);
+}
+
 /*
  * TITLE, PATH AND TOOLBAR STICK AS ONE BLOCK.
  *

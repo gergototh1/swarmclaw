@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import test, { after } from 'node:test'
 
-import docs, { rootSetting, sharedFolder, state, vaultOf, versionsKept, watchEnabled, watcherControl } from '../index.mjs'
+import docs, { rootSetting, runFolderMigration, sharedFolder, state, vaultOf, versionsKept, watchEnabled, watcherControl } from '../index.mjs'
 
 /**
  * setup() now starts a real watcher, and an open fs.watch handle keeps the
@@ -96,6 +96,58 @@ test('every settings field has a key, a label and a known type', () => {
   for (const f of docs.ui.settingsFields) {
     assert.ok(f.label, `no label: ${f.key}`)
     assert.ok(['text', 'number', 'boolean', 'select', 'secret'].includes(f.type))
+  }
+})
+
+/**
+ * Regression guard for the same real incident `fakeCtx()` above guards
+ * against, but at the layer that cannot be walked around: the
+ * english-only.test.mjs source scan for a setup call feeding a fake ctx (and
+ * `fakeCtx()`'s own runtime check) only catches callers that go through that
+ * one helper. `runFolderMigration()` itself has to refuse a rootless call
+ * however it was reached, or a different helper -- or an inline ctx object --
+ * would run the migration against the operator's real ~/SwarmClaw/docs
+ * again.
+ *
+ * `HOME` is pointed at a throwaway temp directory for the duration of the
+ * test precisely so this test can never touch the real one, even if the
+ * guard under test were broken: os.homedir() (and so the '~/SwarmClaw/docs'
+ * default) resolves from `process.env.HOME` on every call, not once at
+ * process start.
+ */
+test('runFolderMigration refuses a rootless call under the test runner instead of touching the real default root', () => {
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-fakehome-'))
+  const originalHome = process.env.HOME
+  const originalSettings = state.settings
+  const originalLog = state.log
+  process.env.HOME = fakeHome
+  try {
+    withSettings({}) // no root configured -> rootSetting() falls back to the default
+    state._vault = null
+    state._writer = null
+    state._service = null
+    state._root = null
+    const warnings = []
+    state.log = { info() {}, warn: (msg, meta) => warnings.push([msg, meta]), error() {} }
+
+    const before = state.migration
+    const result = runFolderMigration()
+
+    const defaultRoot = path.join(fakeHome, 'SwarmClaw', 'docs')
+    assert.equal(fs.existsSync(defaultRoot), false, 'the guard must never create the default root under a test run')
+    assert.equal(result, before, 'a refused call must not overwrite the previous migration state')
+    assert.ok(
+      warnings.some(([msg]) => /refused/.test(msg)),
+      `expected a refusal warning, got: ${JSON.stringify(warnings)}`,
+    )
+  } finally {
+    process.env.HOME = originalHome
+    state.settings = originalSettings
+    state.log = originalLog
+    state._vault = null
+    state._writer = null
+    state._service = null
+    state._root = null
   }
 })
 

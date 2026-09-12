@@ -1,3 +1,6 @@
+import os from 'node:os'
+import path from 'node:path'
+
 import { createAgentContext } from './src/agent-context.mjs'
 import { DOCS_CONTRACT, createDocsContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
@@ -126,14 +129,44 @@ const agentContext = createAgentContext(state, { serviceOf, sharedFolder, logOf 
  */
 export const watcherControl = createWatcherControl()
 
+/** The real, unconfigured default root -- never a value a test should be pointed at. */
+function isDefaultHomeRoot(resolvedRoot) {
+  return resolvedRoot === path.resolve(path.join(os.homedir(), 'SwarmClaw', 'docs'))
+}
+
+/**
+ * True while running under Node's own test runner (`node --test`, which is
+ * what this extension's `npm test` invokes as `node --import tsx --test`).
+ * `NODE_TEST_CONTEXT` is set by node:test itself for the whole process --
+ * verified empirically for both invocations -- rather than by the caller, so
+ * it cannot be walked around the way a `.setup(fakeCtx(...))` source-text
+ * scan can: it does not matter how a test builds its fake ctx, or whether it
+ * calls fakeCtx at all.
+ */
+function runningUnderTestRunner() {
+  return Boolean(process.env.NODE_TEST_CONTEXT)
+}
+
 /**
  * Renames the folders that moved with the module, before anything watches the
  * root: a watcher running during the rename would read it as an outside edit
  * and index in parallel with the migration.
+ *
+ * Refuses outright when the resolved root is the real, unconfigured default
+ * AND the process is running under a test runner: a rootless
+ * `docs.setup(fakeCtx({}))` in a test once ran this migration against the
+ * operator's real ~/SwarmClaw/docs and moved live documents. The
+ * english-only.test.mjs source-text scan for that pattern can be walked
+ * around by any other helper or an inline ctx object; this check cannot,
+ * because it does not read the caller's source at all.
  */
 export function runFolderMigration() {
   try {
     const vault = vaultOf()
+    if (isDefaultHomeRoot(vault.root) && runningUnderTestRunner()) {
+      state.log?.warn?.('docs folder migration refused: default root under a test runner', { root: vault.root })
+      return state.migration
+    }
     vault.ensureRoot()
     state.migration = migrateLegacyFolders({
       root: vault.root,
@@ -143,7 +176,11 @@ export function runFolderMigration() {
     })
   } catch (err) {
     state.log?.warn?.('docs folder migration skipped', { error: err?.message })
-    state.migration = { moved: [], blocked: [] }
+    // Keep whatever blocked/moved state migrateLegacyFolders already computed
+    // before the failure (e.g. a genuine clash reported this call) rather
+    // than erasing it -- an unrelated throw after that point should not make
+    // a legitimate blocked banner disappear from the UI.
+    state.migration = state.migration ?? { moved: [], blocked: [] }
   }
   return state.migration
 }

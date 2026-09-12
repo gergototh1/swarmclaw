@@ -16,7 +16,14 @@ export interface SavePdfResult {
  *
  * The HTML goes through a temporary file rather than a data: URL, because a
  * long doc would pass the length Chromium accepts for one. The window never
- * shows, never runs script, and is destroyed whatever happens.
+ * shows, never runs script, never navigates anywhere else, and is destroyed
+ * whatever happens -- but it is not sandboxed from the network. Chromium
+ * still fetches ordinary subresources (an `<img>` or `@font-face` the doc's
+ * own Markdown/HTML references) to render them into the PDF, the same way a
+ * browser tab would. That is a deliberate choice, not an oversight: SwarmClaw
+ * keeps remote images working in exported PDFs rather than blocking every
+ * subresource load, at the cost of the export making an outbound request per
+ * image/font the moment "Export PDF" runs.
  */
 export async function savePdfFromHtml(parent: BrowserWindow | null, raw: unknown): Promise<SavePdfResult> {
   const input = readSavePdfInput(raw)
