@@ -167,7 +167,7 @@ export function UgyfelLap({ rpc, accountId, onBack, onBetoltve }: {
       .catch((e: Error) => setFeladatHiba(e.message))
   }
   useEffect(feladatokatTolt, [accountId])
-  useEffect(tolt, [accountId, rpc])
+  useEffect(tolt, [accountId, rpc, onBetoltve])
 
   const korabbiak = () => {
     if (!lap || lap.events.length === 0) return

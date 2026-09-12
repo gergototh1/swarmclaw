@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 
 import { makeRpc, type Rpc } from './api'
 import { currentExtensionId, hostOf, hostReact } from './host'
@@ -58,6 +58,11 @@ export function CrmPage({ rpc, subPath, navigate, setTitle }: OldalProps) {
   // Ügyféllap nélkül a cím a sima CRM; a lapon a betöltött név adja (lásd lent).
   useEffect(() => { if (!nyitottAccount) setTitle?.(null) }, [nyitottAccount, setTitle])
 
+  // A név-jelzés MEMOIZÁLVA: az ügyféllap betöltő effektje a függőségei közt
+  // tartja, és egy renderelésenként újragyártott függvény minden rendereléskor
+  // újratöltetné a lapot. A host `setTitle`-je maga is stabil.
+  const jelezdCim = useCallback((nev: string) => { setTitle?.(`CRM · ${nev}`) }, [setTitle])
+
   const fulsav = useRef<HTMLDivElement | null>(null)
 
   /**
@@ -97,7 +102,7 @@ export function CrmPage({ rpc, subPath, navigate, setTitle }: OldalProps) {
               rpc={rpc}
               accountId={nyitottAccount}
               onBack={() => menj({ nezet: 'ugyfelek', accountId: null })}
-              onBetoltve={(nev) => setTitle?.(`CRM · ${nev}`)}
+              onBetoltve={jelezdCim}
             />
           : <UgyfelekNezet rpc={rpc} onOpen={(id) => menj({ nezet: 'ugyfelek', accountId: id })} />)}
         {nezet === 'ugyek' && <UgyekNezet rpc={rpc} />}
