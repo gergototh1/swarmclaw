@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import type { Message, DevServerStatus, SSEEvent, ChatTraceBlock } from '../types'
+import type { ToolPanelRef } from '@/lib/chat/tool-panel-refs'
 import { streamChat } from '@/lib/chat/chat'
 import {
   clearSessionQueue,
@@ -27,6 +28,10 @@ import { useAppStore } from './use-app-store'
 import { selectActiveSessionId } from './slices/session-slice'
 import { getSoundEnabled, setSoundEnabled, playStreamStart, playStreamEnd, playToolComplete, playError } from '@/lib/notifications/notification-sounds'
 import { splitPendingAttachments } from '@/lib/pending-attachments'
+
+export type ChatPreviewContent =
+  | { type: 'browser' | 'image' | 'code' | 'html'; url?: string; content?: string; title?: string }
+  | { type: 'extension'; title: string; ref: ToolPanelRef }
 
 export interface PendingFile {
   file: File
@@ -98,8 +103,8 @@ interface ChatState {
   devServer: DevServerStatus | null
   setDevServer: (ds: DevServerStatus | null) => void
 
-  previewContent: { type: 'browser' | 'image' | 'code' | 'html'; url?: string; content?: string; title?: string } | null
-  setPreviewContent: (content: { type: 'browser' | 'image' | 'code' | 'html'; url?: string; content?: string; title?: string } | null) => void
+  previewContent: ChatPreviewContent | null
+  setPreviewContent: (content: ChatPreviewContent | null) => void
 
   debugOpen: boolean
   setDebugOpen: (open: boolean) => void

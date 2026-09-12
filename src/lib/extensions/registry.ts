@@ -22,8 +22,15 @@ import { hmrSingleton } from '@/lib/shared-utils'
 /** Calls an extension's server-side method; bound to one extension by the page renderer. */
 export type ExtensionPageRpc = (method: string, body?: object) => Promise<unknown>
 
-/** The component an extension bundle registers for one of its declared pages. */
-export type ExtensionPageComponent = ComponentType<{ extensionId: string; rpc: ExtensionPageRpc }>
+/** The component an extension bundle registers for one of its declared pages or tool panels. */
+export type ExtensionPageComponent = ComponentType<{
+  extensionId: string
+  rpc: ExtensionPageRpc
+  /** Tool panels only: the reference the tool put in its answer as `panel.id`. */
+  refId?: string
+  /** Tool panels only: closes the panel. */
+  onClose?: () => void
+}>
 
 export interface RegisterPageOptions {
   /**
