@@ -168,6 +168,16 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
     const probalkozas = (baseVersion: number, marUjraprobalt: boolean): Promise<void> =>
       rpc('ment', { id: docId, tartalom: md, baseVersion })
         .then((raw) => {
+          // Ez a két őr az EGÉSZ válasz-kezelőre vonatkozik, ütközés és
+          // siker ágra egyaránt, és ebben a sorrendben: az azonosság-ellenőrzés
+          // (van-e még mire alkalmazni a választ) mindig előbb fut, mint
+          // bármelyik verzió-összehasonlítás -- egy másik doksira váltás után
+          // `verzioRef` már AZT a doksit tartja, és egy ütközés-válasz
+          // `jelenlegiVerzio`-ja nem hasonlítható hozzá. A kuka-gomb tiltása
+          // pedig ezután jön: egy törlés alatt álló doksira sem verziót, sem
+          // mentett-alapot, sem "mentve"/"ütközés" állapotot nem írunk.
+          if (nyitottIdRef.current !== docId) return
+          if (torolveRef.current) return
           if (isConflict(raw)) {
             // A saját később elindult mentésünk már túllépett ezen a
             // verzión -- ez nem valódi ütközés, se sáv, se retry nem jár rá.
@@ -175,18 +185,11 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
             if (dontsUjraprobalni({ masikMentesFolyamatban, marUjraprobalt })) {
               return probalkozas(raw.jelenlegiVerzio, true)
             }
-            if (nyitottIdRef.current !== docId) return
             setAllas({ kind: 'utkozes', utkozes: raw, sajat: md })
             return
           }
-          if (nyitottIdRef.current !== docId) return
           const message = errorText(raw)
           if (message) { setAllas({ kind: 'hiba', uzenet: message }); return }
-          // A kuka-gomb már letiltotta ennek a doksinak az autosave-jét: egy
-          // ekkor még úton lévő mentés válasza ne írjon se verziót, se
-          // mentett-alapot, se "mentve" állapotot egy törlés alatt álló
-          // doksira.
-          if (torolveRef.current) return
           const uj = (raw as { verzio?: number }).verzio
           // A korábban elindult, később megérkező mentésünk verziója már nem
           // újabb, mint amit egy közben landolt másik mentésünk beállított --
@@ -201,6 +204,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
         })
         .catch((err) => {
           if (nyitottIdRef.current !== docId) return
+          if (torolveRef.current) return
           setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) })
         })
 
@@ -253,7 +257,11 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
     setAllas({ kind: 'mentes' })
     rpc('ment', { id, tartalom: savedMd.current, cim: tiszta, baseVersion: verzio })
       .then((raw) => {
+        // Ugyanaz a két őr, ugyanabban a sorrendben, mint a `ment` válasz-
+        // kezelőjében: azonosság előbb, utána a kuka-gomb tiltása -- egy
+        // törlés alatt álló doksira ütközés-válasz se dobja fel a sávot.
         if (nyitottIdRef.current !== sajatId) return
+        if (torolveRef.current) return
         if (isConflict(raw)) { setAllas({ kind: 'utkozes', utkozes: raw, sajat: savedMd.current }); return }
         const message = errorText(raw)
         if (message) { setAllas({ kind: 'hiba', uzenet: message }); return }
@@ -266,6 +274,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
       })
       .catch((err) => {
         if (nyitottIdRef.current !== sajatId) return
+        if (torolveRef.current) return
         setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) })
       })
   }, [id, cim, doc, rpc, verzio, onMentve, onCim])
