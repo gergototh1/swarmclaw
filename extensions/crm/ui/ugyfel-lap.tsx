@@ -112,7 +112,13 @@ export function esemenyFajtaCimke(kind: string): string {
   return ESEMENY_FAJTA[kind] || kind
 }
 
-export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: string; onBack: () => void }) {
+export function UgyfelLap({ rpc, accountId, onBack, onBetoltve }: {
+  rpc: Rpc
+  accountId: string
+  onBack: () => void
+  /** Az ügyfél neve minden sikeres betöltés után -- a fül és az ablak címéhez. */
+  onBetoltve?: (nev: string) => void
+}) {
   const [lap, setLap] = useState<Lap | null>(null)
   const [hiba, setHiba] = useState('')
   const [jegyzet, setJegyzet] = useState('')
@@ -130,7 +136,9 @@ export function UgyfelLap({ rpc, accountId, onBack }: { rpc: Rpc; accountId: str
   const tolt = () => {
     rpc('account', { accountId })
       .then((x) => {
-        setLap(x as Lap)
+        const betoltott = x as Lap
+        setLap(betoltott)
+        onBetoltve?.(betoltott.account.name)
         setHiba('')
         // Egy teljes lapújratöltés friss (legfeljebb 50, legújabb) eseményt
         // hoz -- a korábbi lapozás állapota és a megnyitott teljes szövegek
