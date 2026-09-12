@@ -10,15 +10,11 @@
  * scheduled, so a save that lands in between is taken into account and an
  * unchanged document is never rewritten.
  *
- * SAVES ARE SINGLE-FLIGHT. `save` is a round trip, and a flush can now fire
- * while one is still in the air (the countdown finishes right as a flush
- * happens, or a flush happens right as the countdown finishes). Starting a
- * second request in that window used to send a save built on a version the
- * first request had not confirmed yet. Instead, a run that lands while a save
- * is in flight only records that another one is wanted; when the in-flight
- * save settles -- resolved or rejected, it does not matter which -- one more
- * run happens with the text as it is at that later moment, and it saves
- * nothing if that text already matches `saved()` by then.
+ * This module does not coalesce or single-flight saves: `flushPending` issues
+ * its `save` immediately, even if an earlier save is still outstanding.
+ * Keeping saves ordered and bound to the right document when one is already
+ * in flight is the caller's business -- see `ment` in `szerkeszto.tsx`, which
+ * tracks in-flight saves per document and guards responses by document id.
  */
 
 export interface Autosave {
@@ -34,31 +30,15 @@ export function createAutosave(opts: {
   delayMs: number
   read: () => string
   saved: () => string
-  save: (md: string) => Promise<void>
+  save: (md: string) => void
 }): Autosave {
   let timer: ReturnType<typeof setTimeout> | null = null
-  let saving = false
-  let runWanted = false
-
-  const settle = () => {
-    saving = false
-    if (runWanted) {
-      runWanted = false
-      attempt()
-    }
-  }
-
-  const attempt = () => {
-    const md = opts.read()
-    if (md === opts.saved()) return
-    if (saving) { runWanted = true; return }
-    saving = true
-    opts.save(md).then(settle, settle)
-  }
 
   const run = () => {
     timer = null
-    attempt()
+    const md = opts.read()
+    if (md === opts.saved()) return
+    opts.save(md)
   }
 
   return {

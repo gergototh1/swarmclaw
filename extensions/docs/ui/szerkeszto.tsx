@@ -10,6 +10,7 @@ import type { Doc, Rpc, Utkozes } from './api'
 import { errorText, isConflict, readDoc } from './api'
 import { htmlToMd, mdToHtml } from './markdown'
 import { createAutosave, type Autosave } from './autosave'
+import { dontsUjraprobalni } from './utkozes-dontes'
 
 /**
  * The middle column: the document, edited as formatted text and saved as
@@ -98,6 +99,11 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   // még kire alkalmazni.
   const verzioRef = useRef(verzio)
   const nyitottIdRef = useRef<string | null>(id)
+  // Hány `ment()` hívás van épp úton dokumentumonként. Egy saját korábbi
+  // mentésünk lehet az oka egy ütközésnek (a debounce és egy flush/Cmd+S
+  // versenyez ugyanarra a doksira) -- ez a térkép mondja meg `ment`-nek, hogy
+  // ilyenkor volt-e már másik mentés folyamatban ugyanahhoz a doksihoz.
+  const folyamatbanRef = useRef<Map<string, number>>(new Map())
 
   const editor = useEditor({
     extensions: [StarterKit, Table.configure({ resizable: false }), TableRow, TableHeader, TableCell],
@@ -131,32 +137,65 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, editor, rpc, onCim])
 
-  // A válasz csak akkor kerül alkalmazásra, ha még ugyanaz a doksi van
-  // nyitva, mint amelyikre a mentés elindult. Enélkül egy doksiváltás közben
-  // beérkező válasz (flush a lebontáskor) a most nyitott másik doksi
-  // verzióját, mentett-alapját és akár az ütközés-sávját is felülírná a régi
-  // doksi adataival.
-  const ment = useCallback((md: string, base: number): Promise<void> => {
-    if (!id) return Promise.resolve()
-    const sajatId = id
-    setAllas({ kind: 'mentes' })
-    return rpc('ment', { id, tartalom: md, baseVersion: base })
-      .then((raw) => {
-        if (nyitottIdRef.current !== sajatId) return
-        if (isConflict(raw)) { setAllas({ kind: 'utkozes', utkozes: raw, sajat: md }); return }
-        const message = errorText(raw)
-        if (message) { setAllas({ kind: 'hiba', uzenet: message }); return }
-        const uj = (raw as { verzio?: number }).verzio
-        if (typeof uj === 'number') { verzioRef.current = uj; setVerzio(uj) }
-        savedMd.current = md
-        setAllas({ kind: 'mentve', mikor: Date.now() })
-        onMentve()
-      })
-      .catch((err) => {
-        if (nyitottIdRef.current !== sajatId) return
-        setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) })
-      })
-  }, [id, rpc, onMentve])
+  // `ment` explicit dokumentum-kötésű: az elsó paramétere melyik doksinak
+  // szól, nem a komponens aktuális `id`-jét zárja magába. Ez azért fontos,
+  // mert egy lebontáskori flush a RÉGI doksi id-jét kell hogy elküldje, akkor
+  // is, ha `id` időközben már a másikra váltott -- a hívó (az autosave és a
+  // Cmd+S) mindig azt az id-t adja át, amelyikhez a mentés ténylegesen
+  // tartozik.
+  //
+  // A válasz csak akkor kerül alkalmazásra -- beleértve a kezdő "mentés…"
+  // állapotot is --, ha még ugyanaz a doksi van nyitva, mint amelyikre a
+  // mentés elindult. Enélkül egy doksiváltás közben beérkező válasz (flush a
+  // lebontáskor) a most nyitott másik doksi verzióját, mentett-alapját és
+  // akár az ütközés-sávját is felülírná a régi doksi adataival.
+  //
+  // ÖNOKOZOTT ÜTKÖZÉS. Egy debounce és egy flush/Cmd+S versenyezhet ugyanarra
+  // a doksira: amíg az egyik mentés úton van, a másik is elindulhat a régi
+  // verzióval. Ha a szerver ütközést jelez, és ekkor MÁR volt egy másik
+  // mentés folyamatban ugyanehhez a doksihoz, az ütközés valószínűleg a saját
+  // korábbi mentésünk, ami közben landolt -- ilyenkor egyszer, azonnal
+  // újrapróbáljuk a szerver által jelzett verzióval. `folyamatbanRef` tartja
+  // számon dokumentumonként a folyamatban lévő mentések számát, hogy a
+  // döntés (`dontsUjraprobalni`) tudja, volt-e ilyen verseny -- egy retry
+  // legfeljebb egyszer futhat le hívásonként, kör nem alakulhat ki.
+  const ment = useCallback((docId: string, md: string, base: number): Promise<void> => {
+    const terkep = folyamatbanRef.current
+    const masikMentesFolyamatban = (terkep.get(docId) ?? 0) > 0
+    terkep.set(docId, (terkep.get(docId) ?? 0) + 1)
+    if (nyitottIdRef.current === docId) setAllas({ kind: 'mentes' })
+
+    const probalkozas = (baseVersion: number, marUjraprobalt: boolean): Promise<void> =>
+      rpc('ment', { id: docId, tartalom: md, baseVersion })
+        .then((raw) => {
+          if (isConflict(raw)) {
+            if (dontsUjraprobalni({ masikMentesFolyamatban, marUjraprobalt })) {
+              return probalkozas(raw.jelenlegiVerzio, true)
+            }
+            if (nyitottIdRef.current !== docId) return
+            setAllas({ kind: 'utkozes', utkozes: raw, sajat: md })
+            return
+          }
+          if (nyitottIdRef.current !== docId) return
+          const message = errorText(raw)
+          if (message) { setAllas({ kind: 'hiba', uzenet: message }); return }
+          const uj = (raw as { verzio?: number }).verzio
+          if (typeof uj === 'number') { verzioRef.current = uj; setVerzio(uj) }
+          savedMd.current = md
+          setAllas({ kind: 'mentve', mikor: Date.now() })
+          onMentve()
+        })
+        .catch((err) => {
+          if (nyitottIdRef.current !== docId) return
+          setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) })
+        })
+
+    return probalkozas(base, false).finally(() => {
+      const jelenlegi = terkep.get(docId) ?? 0
+      if (jelenlegi <= 1) terkep.delete(docId)
+      else terkep.set(docId, jelenlegi - 1)
+    })
+  }, [rpc, onMentve])
 
   // Az autosave a legfrissebb verziót és mentőt olvassa, de nem épül újra
   // tőlük: ha újraépülne, egy mentés visszaigazolása (új `verzio`) eldobná a
@@ -233,12 +272,16 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   // elhagyásakor (`pagehide`) a függő mentés lefut, nem vész el.
   useEffect(() => {
     if (!editor || !id) return
+    const sajatId = id
     torolveRef.current = false
     const autosave = createAutosave({
       delayMs: AUTOSAVE_MS,
       read: () => htmlToMd(editor.getHTML()),
       saved: () => savedMd.current,
-      save: (md) => mentRef.current(md, verzioRef.current),
+      // `sajatId` az effekt saját id-je, nem a ref: lebontáskor egy flush így
+      // biztosan a doksihoz megy, amelyikhez az autosave tartozott, akkor is,
+      // ha `id` (és `nyitottIdRef`) már a következő doksira váltott.
+      save: (md) => { mentRef.current(sajatId, md, verzioRef.current) },
     })
     autosaveRef.current = autosave
     const onUpdate = () => { if (!torolveRef.current) autosave.schedule() }
@@ -258,7 +301,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault()
-        if (editor && id) ment(htmlToMd(editor.getHTML()), verzio)
+        if (editor && id) ment(id, htmlToMd(editor.getHTML()), verzio)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -297,7 +340,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
             </div>
           </details>
           <div className="docs-utkozes-gombok">
-            <button type="button" onClick={() => ment(allas.sajat, allas.utkozes.jelenlegiVerzio)}>
+            <button type="button" onClick={() => ment(id, allas.sajat, allas.utkozes.jelenlegiVerzio)}>
               Az enyém maradjon
             </button>
             <button
