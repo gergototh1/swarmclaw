@@ -21,10 +21,27 @@ export interface SavePdfResult {
 export async function savePdfFromHtml(parent: BrowserWindow | null, raw: unknown): Promise<SavePdfResult> {
   const input = readSavePdfInput(raw)
   if (!input) return { saved: false, error: 'invalid input' }
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'swarmclaw-pdf-'))
-  const htmlPath = path.join(dir, 'doc.html')
-  const win = new BrowserWindow({ show: false, webPreferences: { javascript: false, sandbox: true, contextIsolation: true } })
+  let dir: string | null = null
+  let win: BrowserWindow | null = null
   try {
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'swarmclaw-pdf-'))
+    const htmlPath = path.join(dir, 'doc.html')
+    win = new BrowserWindow({ show: false, webPreferences: { javascript: false, sandbox: true, contextIsolation: true } })
+
+    // The HTML is a doc's own content rendered to a page -- untrusted from
+    // here. `javascript: false` stops script, but a script-free construct
+    // (a <meta http-equiv="refresh">, or a redirect from a remote resource
+    // the page references) can still move this window off the loaded file
+    // before printToPDF runs, so the PDF would silently print whatever the
+    // window navigated to instead of the requested HTML. This window has no
+    // legitimate destination other than the temp file it is about to load,
+    // so every navigation and every new-window request is denied outright --
+    // unlike `attachExternalNavigationHandlers` in `main.ts`, there is no
+    // origin to allow.
+    win.webContents.on('will-navigate', (event) => event.preventDefault())
+    win.webContents.on('will-redirect', (event) => event.preventDefault())
+    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+
     await fs.writeFile(htmlPath, input.html, 'utf8')
     await win.loadFile(htmlPath)
     const pdf = await win.webContents.printToPDF({ printBackground: true, pageSize: 'A4' })
@@ -39,7 +56,7 @@ export async function savePdfFromHtml(parent: BrowserWindow | null, raw: unknown
   } catch (err) {
     return { saved: false, error: err instanceof Error ? err.message : String(err) }
   } finally {
-    win.destroy()
-    await fs.rm(dir, { recursive: true, force: true })
+    win?.destroy()
+    if (dir) await fs.rm(dir, { recursive: true, force: true })
   }
 }

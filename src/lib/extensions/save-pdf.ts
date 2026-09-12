@@ -37,20 +37,27 @@ export function printHtmlInHiddenFrame(html: string): Promise<void> {
     frame.setAttribute('sandbox', 'allow-modals allow-same-origin')
     frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'
     let done = false
+    let timer: ReturnType<typeof setTimeout> | null = null
     const finish = () => {
       if (done) return
       done = true
+      if (timer !== null) clearTimeout(timer)
       frame.remove()
       resolve()
     }
+    // The safety timeout starts the moment the frame is appended, not inside
+    // `onload`: if `onload` never fires (a malformed doc, a frame the
+    // renderer never finishes loading), the promise must still settle and the
+    // iframe must still leave the DOM rather than sit there forever.
+    timer = setTimeout(finish, 60_000)
     frame.onload = () => {
       const target = frame.contentWindow
       if (!target) { finish(); return }
       target.addEventListener('afterprint', finish)
       target.focus()
       target.print()
-      setTimeout(finish, 60_000)
     }
+    frame.onerror = finish
     frame.srcdoc = html
     document.body.appendChild(frame)
   })
