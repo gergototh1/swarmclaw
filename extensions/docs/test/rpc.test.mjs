@@ -34,14 +34,14 @@ function harness({ root: rootOverride } = {}) {
     return built
   }
 
-  let watcher = { fut: true, root, indultAt: 1, hiba: null }
+  let watcher = { running: true, root, indultAt: 1, error: null }
   const rpc = createRpc({
     serviceOf: () => build().service,
     vaultOf: () => build().vault,
     writerOf: () => build().writer,
     repoOf: () => repo,
     watcherStatus: () => watcher,
-    restartWatcher: () => { watcher = { ...watcher, fut: true, hiba: null }; return watcher },
+    restartWatcher: () => { watcher = { ...watcher, running: true, error: null }; return watcher },
     sharedFolder: () => 'kozos',
     rootSetting: () => root,
     logOf: () => log,
@@ -70,174 +70,174 @@ test('foldersOf lists every intermediate folder, once, sorted', () => {
   )
 })
 
-test('fa answers an empty root without throwing', async () => {
+test('tree answers an empty root without throwing', async () => {
   const h = harness()
   try {
-    const res = await h.rpc.fa()
-    assert.deepEqual(res.doksik, [])
-    assert.ok(res.mappak.includes('kozos'))
-    assert.equal(res.kozosMappaNev, 'kozos')
+    const res = await h.rpc.tree()
+    assert.deepEqual(res.docs, [])
+    assert.ok(res.folders.includes('kozos'))
+    assert.equal(res.sharedFolderName, 'kozos')
   } finally { h.cleanup() }
 })
 
-test('letrehoz then fa shows the document and its folders', async () => {
+test('create then tree shows the document and its folders', async () => {
   const h = harness()
   try {
-    await h.rpc.letrehoz({ mappa: 'agents/marketing/mely', cim: 'Ügyfélprofil' })
-    const res = await h.rpc.fa()
-    assert.equal(res.doksik.length, 1)
-    assert.equal(res.doksik[0].utvonal, 'agents/marketing/mely/ugyfelprofil.md')
-    assert.ok(res.mappak.includes('agents/marketing/mely'))
-    assert.deepEqual(res.cimek, ['Ügyfélprofil'])
+    await h.rpc.create({ folder: 'agents/marketing/mely', title: 'Ügyfélprofil' })
+    const res = await h.rpc.tree()
+    assert.equal(res.docs.length, 1)
+    assert.equal(res.docs[0].path, 'agents/marketing/mely/ugyfelprofil.md')
+    assert.ok(res.folders.includes('agents/marketing/mely'))
+    assert.deepEqual(res.titles, ['Ügyfélprofil'])
   } finally { h.cleanup() }
 })
 
-test('ment with a stale baseVersion returns the conflict with the other text', async () => {
+test('save with a stale baseVersion returns the conflict with the other text', async () => {
   const h = harness()
   try {
-    const made = await h.rpc.letrehoz({ cim: 'A', tartalom: 'egy\n' })
-    await h.rpc.ment({ id: made.id, tartalom: 'ketto\n', baseVersion: 1 })
+    const made = await h.rpc.create({ title: 'A', content: 'egy\n' })
+    await h.rpc.save({ id: made.id, content: 'ketto\n', baseVersion: 1 })
 
-    const res = await h.rpc.ment({ id: made.id, tartalom: 'harom\n', baseVersion: 1 })
+    const res = await h.rpc.save({ id: made.id, content: 'harom\n', baseVersion: 1 })
     assert.equal(res.error, ERR.conflict)
-    assert.equal(res.jelenlegiVerzio, 2)
-    assert.equal(res.ovek, 'ketto\n')
-    assert.equal((await h.rpc.olvas({ id: made.id })).tartalom, 'ketto\n')
+    assert.equal(res.currentVersion, 2)
+    assert.equal(res.theirs, 'ketto\n')
+    assert.equal((await h.rpc.read({ id: made.id })).content, 'ketto\n')
   } finally { h.cleanup() }
 })
 
-test('atnevez rewrites the links that pointed at the old title', async () => {
+test('rename rewrites the links that pointed at the old title', async () => {
   const h = harness()
   try {
-    const target = await h.rpc.letrehoz({ cim: 'Ügyfélprofil', tartalom: 'x\n' })
-    const referrer = await h.rpc.letrehoz({ cim: 'Hivatkozó', tartalom: 'Lásd [[Ügyfélprofil]].\n' })
+    const target = await h.rpc.create({ title: 'Ügyfélprofil', content: 'x\n' })
+    const referrer = await h.rpc.create({ title: 'Hivatkozó', content: 'Lásd [[Ügyfélprofil]].\n' })
 
-    const res = await h.rpc.atnevez({ id: target.id, ujCim: 'Morvai profil', baseVersion: 1 })
-    assert.deepEqual(res.linkek.frissitett, ['kozos/hivatkozo.md'])
-    assert.equal((await h.rpc.olvas({ id: referrer.id })).tartalom, 'Lásd [[Morvai profil]].\n')
+    const res = await h.rpc.rename({ id: target.id, newTitle: 'Morvai profil', baseVersion: 1 })
+    assert.deepEqual(res.links.updated, ['kozos/hivatkozo.md'])
+    assert.equal((await h.rpc.read({ id: referrer.id })).content, 'Lásd [[Morvai profil]].\n')
   } finally { h.cleanup() }
 })
 
-test('torol, kuka, visszaallit round-trips a document', async () => {
+test('delete, trash, restore round-trips a document', async () => {
   const h = harness()
   try {
-    const made = await h.rpc.letrehoz({ cim: 'A', tartalom: 'Morvai.\n' })
-    await h.rpc.torol({ id: made.id })
+    const made = await h.rpc.create({ title: 'A', content: 'Morvai.\n' })
+    await h.rpc.delete({ id: made.id })
 
-    const kuka = await h.rpc.kuka()
-    assert.deepEqual(kuka.elemek.map((e) => e.id), [made.id])
-    assert.equal((await h.rpc.fa()).doksik.length, 0)
+    const trash = await h.rpc.trash()
+    assert.deepEqual(trash.items.map((e) => e.id), [made.id])
+    assert.equal((await h.rpc.tree()).docs.length, 0)
 
-    await h.rpc.visszaallit({ id: made.id })
-    assert.equal((await h.rpc.fa()).doksik.length, 1)
-    assert.deepEqual((await h.rpc.kuka()).elemek, [])
+    await h.rpc.restore({ id: made.id })
+    assert.equal((await h.rpc.tree()).docs.length, 1)
+    assert.deepEqual((await h.rpc.trash()).items, [])
   } finally { h.cleanup() }
 })
 
-test('veglegesTorol removes the row and the trashed file for good', async () => {
+test('purge removes the row and the trashed file for good', async () => {
   const h = harness()
   try {
-    const made = await h.rpc.letrehoz({ cim: 'A' })
-    await h.rpc.torol({ id: made.id })
-    await h.rpc.veglegesTorol({ id: made.id })
-    assert.deepEqual((await h.rpc.kuka()).elemek, [])
+    const made = await h.rpc.create({ title: 'A' })
+    await h.rpc.delete({ id: made.id })
+    await h.rpc.purge({ id: made.id })
+    assert.deepEqual((await h.rpc.trash()).items, [])
     assert.equal(h.repo.listDocs({ includeDeleted: true }).length, 0)
   } finally { h.cleanup() }
 })
 
-test('visszaallitVerzio writes the old text forward, keeping the history', async () => {
+test('restoreVersion writes the old text forward, keeping the history', async () => {
   const h = harness()
   try {
-    const made = await h.rpc.letrehoz({ cim: 'A', tartalom: 'egy\n' })
-    await h.rpc.ment({ id: made.id, tartalom: 'ketto\n', baseVersion: 1 })
-    await h.rpc.visszaallitVerzio({ id: made.id, verzio: 1, baseVersion: 2 })
+    const made = await h.rpc.create({ title: 'A', content: 'egy\n' })
+    await h.rpc.save({ id: made.id, content: 'ketto\n', baseVersion: 1 })
+    await h.rpc.restoreVersion({ id: made.id, version: 1, baseVersion: 2 })
 
-    assert.equal((await h.rpc.olvas({ id: made.id })).tartalom, 'egy\n')
-    const v = await h.rpc.verziok({ id: made.id })
-    assert.deepEqual(v.verziok.map((x) => x.version), [3, 2, 1])
-    assert.equal((await h.rpc.verzio({ id: made.id, verzio: 2 })).content, 'ketto\n')
+    assert.equal((await h.rpc.read({ id: made.id })).content, 'egy\n')
+    const v = await h.rpc.versions({ id: made.id })
+    assert.deepEqual(v.versions.map((x) => x.version), [3, 2, 1])
+    assert.equal((await h.rpc.version({ id: made.id, version: 2 })).content, 'ketto\n')
   } finally { h.cleanup() }
 })
 
-test('hivatkozok, sablonok and ugynokok answer in the page shapes', async () => {
+test('backlinks, templates and agents answer in the page shapes', async () => {
   const h = harness()
   try {
-    const target = await h.rpc.letrehoz({ cim: 'Cél', tartalom: 'x\n' })
-    await h.rpc.letrehoz({ cim: 'Forrás', tartalom: 'Lásd [[Cél]].\n' })
-    await h.rpc.letrehoz({ mappa: 'agents/marketing', cim: 'Ügynöké' })
+    const target = await h.rpc.create({ title: 'Cél', content: 'x\n' })
+    await h.rpc.create({ title: 'Forrás', content: 'Lásd [[Cél]].\n' })
+    await h.rpc.create({ folder: 'agents/marketing', title: 'Ügynöké' })
 
-    assert.deepEqual((await h.rpc.hivatkozok({ id: target.id })).backlinkek.map((b) => b.title), ['Forrás'])
-    assert.deepEqual((await h.rpc.sablonok()).sablonok, [])
-    assert.deepEqual((await h.rpc.ugynokok()).ugynokok, [
-      { slug: 'marketing', mappa: 'agents/marketing', doksik: 1 },
+    assert.deepEqual((await h.rpc.backlinks({ id: target.id })).backlinks.map((b) => b.title), ['Forrás'])
+    assert.deepEqual((await h.rpc.templates()).templates, [])
+    assert.deepEqual((await h.rpc.agents()).agents, [
+      { slug: 'marketing', folder: 'agents/marketing', docs: 1 },
     ])
   } finally { h.cleanup() }
 })
 
-test('mappaLetrehoz makes an empty folder the tree can show', async () => {
+test('createFolder makes an empty folder the tree can show', async () => {
   const h = harness()
   try {
-    await h.rpc.mappaLetrehoz({ mappa: 'kozos/uj-mappa' })
+    await h.rpc.createFolder({ folder: 'kozos/uj-mappa' })
     assert.equal(h.build().vault.exists('kozos/uj-mappa'), true)
 
-    // A NÉV ÁLLÍTÁSÁT IS MEG KELL KÉRDEZNI. Ez a teszt korábban csak a
-    // lemezt nézte, ezért zöld maradt akkor is, amikor a `fa` a mappákat
-    // kizárólag a doksik útvonalaiból vezette le -- a mappa létrejött, és a
-    // fából hiányzott. A művelet ott számít késznek, ahol a lap látja.
-    const fa = await h.rpc.fa()
-    assert.ok(fa.mappak.includes('kozos/uj-mappa'), `a fa nem mutatja: ${fa.mappak.join(', ')}`)
+    // THE NAME SHOWING UP HAS TO BE CHECKED TOO. This test used to look only at
+    // disk, so it stayed green even when `tree` derived folders solely from
+    // document paths -- the folder existed and the tree was missing it. The
+    // operation only counts as done where the page can see it.
+    const tree = await h.rpc.tree()
+    assert.ok(tree.folders.includes('kozos/uj-mappa'), `the tree does not show it: ${tree.folders.join(', ')}`)
 
-    const bad = await h.rpc.mappaLetrehoz({ mappa: '  ' })
+    const bad = await h.rpc.createFolder({ folder: '  ' })
     assert.equal(bad.error, ERR.invalid_argument)
   } finally { h.cleanup() }
 })
 
-test('mappaLetrehoz refuses to leave the root', async () => {
+test('createFolder refuses to leave the root', async () => {
   const h = harness()
   try {
-    const res = await h.rpc.mappaLetrehoz({ mappa: '../kifele' })
+    const res = await h.rpc.createFolder({ folder: '../kifele' })
     assert.equal(res.error, ERR.path_forbidden)
   } finally { h.cleanup() }
 })
 
-test('allapot reports a broken root as state, not as a failed call', async () => {
+test('status reports a broken root as state, not as a failed call', async () => {
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-rpc-locked-'))
   fs.chmodSync(parent, 0o500)
   const h = harness({ root: path.join(parent, 'alatta') })
   try {
-    const res = await h.rpc.allapot()
-    assert.equal(res.error, undefined, 'a hívás maga hibázott el')
-    assert.equal(res.gyokerRendben, false)
-    assert.match(res.gyokerHiba, /nem hozható létre vagy nem írható/)
-    assert.equal(res.doksiSzam, 0)
+    const res = await h.rpc.status()
+    assert.equal(res.error, undefined, 'the call itself failed')
+    assert.equal(res.rootOk, false)
+    assert.match(res.rootError, /nem hozható létre vagy nem írható/)
+    assert.equal(res.docCount, 0)
   } finally {
     fs.chmodSync(parent, 0o700)
     fs.rmSync(parent, { recursive: true, force: true })
   }
 })
 
-test('allapot carries the watcher state and figyeloUjraindit clears it', async () => {
+test('status carries the watcher state and restartWatcher clears it', async () => {
   const h = harness()
   try {
-    h.setWatcher({ fut: false, root: null, indultAt: null, hiba: 'ENOSPC' })
-    const down = await h.rpc.allapot()
-    assert.equal(down.figyeloFut, false)
-    assert.equal(down.figyeloHiba, 'ENOSPC')
+    h.setWatcher({ running: false, root: null, indultAt: null, error: 'ENOSPC' })
+    const down = await h.rpc.status()
+    assert.equal(down.watcherRunning, false)
+    assert.equal(down.watcherError, 'ENOSPC')
 
-    await h.rpc.figyeloUjraindit()
-    const up = await h.rpc.allapot()
-    assert.equal(up.figyeloFut, true)
-    assert.equal(up.figyeloHiba, null)
+    await h.rpc.restartWatcher()
+    const up = await h.rpc.status()
+    assert.equal(up.watcherRunning, true)
+    assert.equal(up.watcherError, null)
   } finally { h.cleanup() }
 })
 
-test('ujraindex rebuilds the index from the files on disk', async () => {
+test('reindex rebuilds the index from the files on disk', async () => {
   const h = harness()
   try {
-    await h.rpc.letrehoz({ cim: 'A', tartalom: 'x\n' })
-    const res = await h.rpc.ujraindex()
-    assert.equal(res.atnezett, 1)
-    assert.equal(res.eltavolitott, 0)
+    await h.rpc.create({ title: 'A', content: 'x\n' })
+    const res = await h.rpc.reindex()
+    assert.equal(res.scanned, 1)
+    assert.equal(res.removed, 0)
   } finally { h.cleanup() }
 })
 
@@ -247,22 +247,22 @@ test('every handler answers a broken root with a named error, none of them throw
   const h = harness({ root: path.join(parent, 'alatta') })
   try {
     const calls = {
-      fa: {}, olvas: { id: 'doc_x' }, ment: { id: 'doc_x', baseVersion: 1 },
-      letrehoz: { cim: 'X' }, keres: { q: 'x' }, mozgat: { id: 'doc_x', ujMappa: 'kozos' },
-      atnevez: { id: 'doc_x', ujCim: 'Y', baseVersion: 1 }, torol: { id: 'doc_x' },
-      visszaallit: { id: 'doc_x' }, veglegesTorol: { id: 'doc_x' }, kuka: {},
-      verziok: { id: 'doc_x' }, verzio: { id: 'doc_x', verzio: 1 },
-      visszaallitVerzio: { id: 'doc_x', verzio: 1, baseVersion: 1 },
-      hivatkozok: { id: 'doc_x' }, sablonok: {}, ugynokok: {}, allapot: {},
-      ujraindex: {}, figyeloUjraindit: {}, mappaLetrehoz: { mappa: 'uj' },
+      tree: {}, read: { id: 'doc_x' }, save: { id: 'doc_x', baseVersion: 1 },
+      create: { title: 'X' }, search: { q: 'x' }, move: { id: 'doc_x', newFolder: 'kozos' },
+      rename: { id: 'doc_x', newTitle: 'Y', baseVersion: 1 }, delete: { id: 'doc_x' },
+      restore: { id: 'doc_x' }, purge: { id: 'doc_x' }, trash: {},
+      versions: { id: 'doc_x' }, version: { id: 'doc_x', version: 1 },
+      restoreVersion: { id: 'doc_x', version: 1, baseVersion: 1 },
+      backlinks: { id: 'doc_x' }, templates: {}, agents: {}, status: {},
+      reindex: {}, restartWatcher: {}, createFolder: { folder: 'uj' },
     }
     for (const [name, body] of Object.entries(calls)) {
       const res = await h.rpc[name](body)
-      assert.ok(res && typeof res === 'object', `${name} nem adott objektumot`)
+      assert.ok(res && typeof res === 'object', `${name} did not answer with an object`)
     }
-    // A tizenkilenc közül a nyilvánvalóan gyökérfüggők meg is nevezik a bajt.
-    assert.equal((await h.rpc.letrehoz({ cim: 'X' })).error, ERR.root_not_writable)
-    assert.equal((await h.rpc.fa()).error, ERR.root_not_writable)
+    // Of the twenty, the obviously root-dependent ones name the trouble too.
+    assert.equal((await h.rpc.create({ title: 'X' })).error, ERR.root_not_writable)
+    assert.equal((await h.rpc.tree()).error, ERR.root_not_writable)
   } finally {
     fs.chmodSync(parent, 0o700)
     fs.rmSync(parent, { recursive: true, force: true })
@@ -296,22 +296,22 @@ test('the contract cannot write into an agent folder that is not its own', async
 test('the contract declaration satisfies every rule the host enforces', () => {
   const h = harness()
   try {
-    // A host validátora (src/lib/server/extensions/extension-contracts.ts,
-    // validateContracts) ezeket kéri. A `summary` hiánya nem a betöltéskor
-    // derült ki, hanem élesben, a naplóból -- ezért van itt.
+    // What the host's validator (src/lib/server/extensions/extension-contracts.ts,
+    // validateContracts) requires. The missing `summary` was not caught at load
+    // time -- it surfaced live, from the log -- which is why it is checked here.
     const NAME_RE = /^[a-z][a-z0-9_]{0,63}$/
     const MAX_TEXT = 200
 
-    assert.ok(NAME_RE.test(DOCS_CONTRACT), 'a szerződés neve nem felel meg a mintának')
+    assert.ok(NAME_RE.test(DOCS_CONTRACT), 'the contract name does not match the pattern')
     assert.ok(Number.isInteger(h.contract.version) && h.contract.version >= 1)
     assert.equal(typeof h.contract.summary, 'string')
-    assert.ok(h.contract.summary.trim().length > 0, 'nincs summary: a host visszautasítja a betöltést')
-    assert.ok(h.contract.summary.length <= MAX_TEXT, `túl hosszú summary: ${h.contract.summary.length}`)
+    assert.ok(h.contract.summary.trim().length > 0, 'no summary: the host refuses to load it')
+    assert.ok(h.contract.summary.length <= MAX_TEXT, `summary too long: ${h.contract.summary.length}`)
 
     const names = Object.keys(h.contract.methods)
-    assert.ok(names.length > 0, 'metódus nélküli szerződést a host elutasít')
+    assert.ok(names.length > 0, 'the host refuses a contract with no methods')
     for (const name of names) {
-      assert.ok(NAME_RE.test(name), `rossz metódusnév: ${name}`)
+      assert.ok(NAME_RE.test(name), `bad method name: ${name}`)
       assert.equal(typeof h.contract.methods[name], 'function')
     }
   } finally { h.cleanup() }
@@ -320,9 +320,9 @@ test('the contract declaration satisfies every rule the host enforces', () => {
 test('the contract exposes exactly two methods, at version 1', () => {
   const h = harness()
   try {
-    // Ebben a hostban a deklaráció maga a hozzáférés: nincs jóváhagyás és nincs
-    // visszavonás, tehát egy metódus hozzáadása visszafordíthatatlan. Ezt a
-    // tesztet bukni kell látni ahhoz, hogy bővüljön.
+    // In this host the declaration itself IS the access: there is no approval
+    // and no revocation, so adding a method is irreversible. This test has to
+    // be seen failing for it to grow.
     assert.equal(h.contract.version, 1)
     assert.deepEqual(Object.keys(h.contract.methods).sort(), ['put', 'read'])
     assert.equal(DOCS_CONTRACT, 'docs')

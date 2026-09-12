@@ -19,45 +19,45 @@ export type Rpc = (method: string, body?: object) => Promise<unknown>
 
 export interface DocRow {
   id: string
-  cim: string
-  utvonal: string
-  tulajdonos: string
-  frissitve: string
-  tagek: string[]
+  title: string
+  path: string
+  owner: string
+  updated: string
+  tags: string[]
 }
 
-export interface Fa {
-  gyoker: string
-  kozosMappaNev: string
-  mappak: string[]
-  doksik: DocRow[]
-  cimek: string[]
+export interface Tree {
+  root: string
+  sharedFolderName: string
+  folders: string[]
+  docs: DocRow[]
+  titles: string[]
 }
 
 export interface Doc {
   id: string
-  cim: string
-  utvonal: string
-  tulajdonos: string
-  tagek: string[]
-  letrehozva: string
-  frissitve: string
-  verzio: number
-  tartalom: string
+  title: string
+  path: string
+  owner: string
+  tags: string[]
+  created: string
+  updated: string
+  version: number
+  content: string
 }
 
-export interface Talalat {
+export interface SearchHit {
   id: string
   path: string
   title: string
-  reszlet: string
+  snippet: string
 }
 
-export interface Verzio {
+export interface Version {
   version: number
   author: string
   createdAt: string
-  meret: number
+  size: number
 }
 
 export interface Backlink {
@@ -67,30 +67,30 @@ export interface Backlink {
   toRaw: string
 }
 
-export interface KukaElem {
+export interface TrashItem {
   id: string
-  cim: string
-  utvonal: string
-  torolve: string
+  title: string
+  path: string
+  deletedAt: string
 }
 
-export interface Allapot {
-  gyoker: string
-  beallitottGyoker: string
-  gyokerRendben: boolean
-  gyokerHiba: string | null
-  figyeloFut: boolean
-  figyeloHiba: string | null
-  doksiSzam: number
-  kozosMappaNev: string
+export interface Status {
+  root: string
+  configuredRoot: string
+  rootOk: boolean
+  rootError: string | null
+  watcherRunning: boolean
+  watcherError: string | null
+  docCount: number
+  sharedFolderName: string
 }
 
-export interface Utkozes {
+export interface Conflict {
   error: 'conflict'
   message: string
-  jelenlegiVerzio: number
-  modositotta: string | null
-  ovek: string | null
+  currentVersion: number
+  modifiedBy: string | null
+  theirs: string | null
 }
 
 /** The `{ error, message }` shape every handler answers a failure with. */
@@ -101,12 +101,12 @@ export function errorText(raw: unknown): string | null {
   return typeof rec.message === 'string' ? rec.message : rec.error
 }
 
-export function isConflict(raw: unknown): raw is Utkozes {
+export function isConflict(raw: unknown): raw is Conflict {
   return Boolean(raw) && typeof raw === 'object' && (raw as Record<string, unknown>).error === 'conflict'
 }
 
 function fail(method: string, why: string): never {
-  throw new Error(`A(z) "${method}" válasza olvashatatlan: ${why}`)
+  throw new Error(`The "${method}" response could not be read: ${why}`)
 }
 
 function str(value: unknown, fallback = ''): string {
@@ -121,26 +121,26 @@ function docRow(raw: unknown): DocRow {
   const r = (raw ?? {}) as Record<string, unknown>
   return {
     id: str(r.id),
-    cim: str(r.cim),
-    utvonal: str(r.utvonal),
-    tulajdonos: str(r.tulajdonos),
-    frissitve: str(r.frissitve),
-    tagek: strList(r.tagek),
+    title: str(r.title),
+    path: str(r.path),
+    owner: str(r.owner),
+    updated: str(r.updated),
+    tags: strList(r.tags),
   }
 }
 
-export function readFa(raw: unknown): Fa {
+export function readTree(raw: unknown): Tree {
   const message = errorText(raw)
   if (message) throw new Error(message)
   const r = (raw ?? {}) as Record<string, unknown>
-  if (!Array.isArray(r.doksik)) fail('fa', 'nincs benne doksi-lista')
-  if (!Array.isArray(r.mappak)) fail('fa', 'nincs benne mappalista')
+  if (!Array.isArray(r.docs)) fail('tree', 'no "docs" list in it')
+  if (!Array.isArray(r.folders)) fail('tree', 'no "folders" list in it')
   return {
-    gyoker: str(r.gyoker),
-    kozosMappaNev: str(r.kozosMappaNev, 'kozos'),
-    mappak: strList(r.mappak),
-    doksik: r.doksik.map(docRow),
-    cimek: strList(r.cimek),
+    root: str(r.root),
+    sharedFolderName: str(r.sharedFolderName, 'kozos'),
+    folders: strList(r.folders),
+    docs: r.docs.map(docRow),
+    titles: strList(r.titles),
   }
 }
 
@@ -148,33 +148,33 @@ export function readDoc(raw: unknown): Doc {
   const message = errorText(raw)
   if (message) throw new Error(message)
   const r = (raw ?? {}) as Record<string, unknown>
-  if (typeof r.id !== 'string' || typeof r.verzio !== 'number') fail('olvas', 'nincs benne id vagy verzió')
+  if (typeof r.id !== 'string' || typeof r.version !== 'number') fail('read', 'no "id" or "version" in it')
   return {
     id: r.id,
-    cim: str(r.cim),
-    utvonal: str(r.utvonal),
-    tulajdonos: str(r.tulajdonos),
-    tagek: strList(r.tagek),
-    letrehozva: str(r.letrehozva),
-    frissitve: str(r.frissitve),
-    verzio: r.verzio,
-    tartalom: str(r.tartalom),
+    title: str(r.title),
+    path: str(r.path),
+    owner: str(r.owner),
+    tags: strList(r.tags),
+    created: str(r.created),
+    updated: str(r.updated),
+    version: r.version,
+    content: str(r.content),
   }
 }
 
-export function readAllapot(raw: unknown): Allapot {
+export function readStatus(raw: unknown): Status {
   const message = errorText(raw)
   if (message) throw new Error(message)
   const r = (raw ?? {}) as Record<string, unknown>
   return {
-    gyoker: str(r.gyoker),
-    beallitottGyoker: str(r.beallitottGyoker),
-    gyokerRendben: Boolean(r.gyokerRendben),
-    gyokerHiba: typeof r.gyokerHiba === 'string' ? r.gyokerHiba : null,
-    figyeloFut: Boolean(r.figyeloFut),
-    figyeloHiba: typeof r.figyeloHiba === 'string' ? r.figyeloHiba : null,
-    doksiSzam: typeof r.doksiSzam === 'number' ? r.doksiSzam : 0,
-    kozosMappaNev: str(r.kozosMappaNev, 'kozos'),
+    root: str(r.root),
+    configuredRoot: str(r.configuredRoot),
+    rootOk: Boolean(r.rootOk),
+    rootError: typeof r.rootError === 'string' ? r.rootError : null,
+    watcherRunning: Boolean(r.watcherRunning),
+    watcherError: typeof r.watcherError === 'string' ? r.watcherError : null,
+    docCount: typeof r.docCount === 'number' ? r.docCount : 0,
+    sharedFolderName: str(r.sharedFolderName, 'kozos'),
   }
 }
 
@@ -182,22 +182,22 @@ export function readList<T>(method: string, key: string, raw: unknown, map: (ite
   const message = errorText(raw)
   if (message) throw new Error(message)
   const r = (raw ?? {}) as Record<string, unknown>
-  if (!Array.isArray(r[key])) fail(method, `nincs benne "${key}" lista`)
+  if (!Array.isArray(r[key])) fail(method, `no "${key}" list in it`)
   return (r[key] as unknown[]).map(map)
 }
 
-export const readTalalat = (raw: unknown): Talalat => {
+export const readSearchHit = (raw: unknown): SearchHit => {
   const r = (raw ?? {}) as Record<string, unknown>
-  return { id: str(r.id), path: str(r.path), title: str(r.title), reszlet: str(r.reszlet) }
+  return { id: str(r.id), path: str(r.path), title: str(r.title), snippet: str(r.snippet) }
 }
 
-export const readVerzio = (raw: unknown): Verzio => {
+export const readVersion = (raw: unknown): Version => {
   const r = (raw ?? {}) as Record<string, unknown>
   return {
     version: typeof r.version === 'number' ? r.version : 0,
     author: str(r.author),
     createdAt: str(r.createdAt),
-    meret: typeof r.meret === 'number' ? r.meret : 0,
+    size: typeof r.size === 'number' ? r.size : 0,
   }
 }
 
@@ -206,7 +206,7 @@ export const readBacklink = (raw: unknown): Backlink => {
   return { fromId: str(r.fromId), path: str(r.path), title: str(r.title), toRaw: str(r.toRaw) }
 }
 
-export const readKukaElem = (raw: unknown): KukaElem => {
+export const readTrashItem = (raw: unknown): TrashItem => {
   const r = (raw ?? {}) as Record<string, unknown>
-  return { id: str(r.id), cim: str(r.cim), utvonal: str(r.utvonal), torolve: str(r.torolve) }
+  return { id: str(r.id), title: str(r.title), path: str(r.path), deletedAt: str(r.deletedAt) }
 }

@@ -27,7 +27,7 @@
  * Those four are the whole vocabulary. Everything below is one of them.
  */
 
-.docs-lap {
+.docs-page {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -38,7 +38,7 @@
   color: var(--color-text, #1D1D1F);
 }
 
-.docs-hasabok {
+.docs-columns {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 0;
@@ -46,19 +46,19 @@
   min-height: 0;
 }
 
-.docs-hasabok-panellel { grid-template-columns: 280px minmax(0, 1fr) minmax(260px, 320px); }
+.docs-columns-with-details { grid-template-columns: 280px minmax(0, 1fr) minmax(260px, 320px); }
 
 @media (max-width: 900px) {
-  .docs-hasabok, .docs-hasabok-panellel { grid-template-columns: 1fr; }
-  .docs-panel { display: none; }
+  .docs-columns, .docs-columns-with-details { grid-template-columns: 1fr; }
+  .docs-details-panel { display: none; }
 }
 
-.docs-oszlop {
+.docs-column {
   min-height: 0;
   overflow-y: auto;
 }
 
-.docs-fa {
+.docs-tree {
   padding: 0 0 24px;
   background: var(--color-bg, #F5F5F7);
   border-right: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
@@ -71,17 +71,17 @@
  * agent list in every other respect still had visibly heavier lines.
  */
 @media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
-  .docs-fa,
-  .docs-panel,
-  .docs-szerkeszto,
-  .docs-fa-fejlec input,
+  .docs-tree,
+  .docs-details-panel,
+  .docs-editor,
+  .docs-tree-header input,
   .docs-modal,
   .docs-modal input,
   .docs-meta,
-  .docs-fa-doksi,
-  .docs-fa-mappanev { border-width: 0.5px; }
+  .docs-tree-doc,
+  .docs-tree-folder-name { border-width: 0.5px; }
 }
-.docs-panel { padding: 16px 16px 24px; border-left: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17)); }
+.docs-details-panel { padding: 16px 16px 24px; border-left: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17)); }
 
 /*
  * The document sits on its own card, not on the page ground. The tree beside
@@ -89,7 +89,7 @@
  * work, and the white ground is what separates the two -- the same split the
  * chat view makes between the agent rail and the conversation.
  */
-.docs-szerkeszto {
+.docs-editor {
   margin: 16px;
   padding: 0 24px 28px;
   background: var(--color-surface, #FFFFFF);
@@ -103,7 +103,7 @@
  * -- a panel with the right colours and half the type scale still reads as a
  * different application.
  */
-.docs-fa-cim {
+.docs-tree-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -111,7 +111,7 @@
   padding: 20px 20px 12px;
 }
 
-.docs-fa-cim h1 {
+.docs-tree-title h1 {
   margin: 0;
   font-size: 14px;
   font-weight: 400;
@@ -124,7 +124,7 @@
  * agent list's "Default Agent", and the same 65% accent -- it has to read as a
  * label rather than as a row one could click.
  */
-.docs-cimke {
+.docs-label {
   padding: 0 8px 4px;
   margin: 0 8px;
   font-size: 10px;
@@ -133,9 +133,9 @@
   color: color-mix(in srgb, var(--color-accent-bright, #FF6B54) 65%, transparent);
 }
 
-/* --- Sávok --- */
+/* --- Bars --- */
 
-.docs-sav {
+.docs-bar {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -148,26 +148,26 @@
   border-bottom: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
 }
 
-.docs-sav-baj {
+.docs-bar-alert {
   background: var(--color-danger-soft);
   color: var(--color-danger, #b91c1c);
 }
 
-.docs-hiba {
+.docs-error {
   margin: 4px 10px;
   font-size: 12px;
   color: var(--color-danger, #b91c1c);
 }
 
-.docs-halvany {
+.docs-muted {
   color: var(--color-text-3, #8E8E93);
 }
 
-/* --- Fa --- */
+/* --- Tree --- */
 
-.docs-fa-fejlec { display: flex; flex-direction: column; padding: 10px 16px 4px; }
+.docs-tree-header { display: flex; flex-direction: column; padding: 10px 16px 4px; }
 
-.docs-fa-fejlec input {
+.docs-tree-header input {
   width: 100%;
   padding: 10px 16px;
   font: inherit;
@@ -181,16 +181,16 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.docs-fa-fejlec input::placeholder { color: var(--color-text-3, #8E8E93); }
+.docs-tree-header input::placeholder { color: var(--color-text-3, #8E8E93); }
 
-.docs-fa-fejlec input:focus {
+.docs-tree-header input:focus {
   border-color: var(--color-border-focus, rgba(255,107,84,0.50));
   box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(255,107,84,0.28));
 }
 
 /* The header's pair: the secondary action, then the one filled control. */
-.docs-fa-cim-gombok { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.docs-fa-gombok { display: flex; gap: 4px; }
+.docs-tree-title-buttons { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.docs-tree-buttons { display: flex; gap: 4px; }
 
 /*
  * The creation dialog.
@@ -201,7 +201,7 @@
  * the panel white would have made the input invisible inside it -- the mistake
  * the host already fixed once for its own modals.
  */
-.docs-modal-hatter {
+.docs-modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 50;
@@ -254,14 +254,14 @@
   box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(255,107,84,0.28));
 }
 
-.docs-modal-gombok { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
-.docs-modal-gombok button[disabled] { opacity: 0.5; cursor: not-allowed; }
+.docs-modal-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.docs-modal-buttons button[disabled] { opacity: 0.5; cursor: not-allowed; }
 
-.docs-fa-lista { list-style: none; margin: 0; padding-left: 12px; }
-.docs-fa-gyoker { padding: 0 8px 16px; margin: 0; }
+.docs-tree-list { list-style: none; margin: 0; padding-left: 12px; }
+.docs-tree-root { padding: 0 8px 16px; margin: 0; }
 
-.docs-fa-mappanev,
-.docs-fa-doksi {
+.docs-tree-folder-name,
+.docs-tree-doc {
   width: 100%;
   padding: 12px 16px;
   border: 1px solid transparent;
@@ -289,7 +289,7 @@
  * stay on the title's line.
  */
 /* The disclosure arrow and the agent glyph share the folder's line. */
-.docs-fa-mappanev { display: flex; align-items: center; gap: 6px; }
+.docs-tree-folder-name { display: flex; align-items: center; gap: 6px; }
 
 /*
  * THE CLAMP IS ON AN INNER SPAN, NOT ON THE BUTTON.
@@ -300,9 +300,9 @@
  * line two with a half-cut line three under it. A span with no padding of its
  * own has nowhere for that line to go.
  */
-.docs-fa-doksi { display: block; }
+.docs-tree-doc { display: block; }
 
-.docs-fa-doksicim {
+.docs-tree-doc-title {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -310,22 +310,22 @@
   overflow: hidden;
 }
 
-.docs-fa-mappanev:hover,
-.docs-fa-doksi:hover { background: var(--color-layer-1, rgba(16,24,40,0.03)); }
+.docs-tree-folder-name:hover,
+.docs-tree-doc:hover { background: var(--color-layer-1, rgba(16,24,40,0.03)); }
 
 /*
  * The selected document. The agent list draws its selected row as accent-soft
  * with an accent border at a fifth opacity, and that pairing is the thing being
  * matched -- the tint alone reads as a hover state.
  */
-.docs-fa-doksi.docs-aktiv {
+.docs-tree-doc.docs-active {
   background: var(--color-accent-soft, rgba(255,107,84,0.18));
   border-color: color-mix(in srgb, var(--color-accent-bright, #FF6B54) 20%, transparent);
 }
 
-.docs-talalatok { display: flex; flex-direction: column; gap: 4px; padding: 0 10px; }
+.docs-results { display: flex; flex-direction: column; gap: 4px; padding: 0 10px; }
 
-.docs-talalat {
+.docs-result {
   display: flex; flex-direction: column; gap: 2px;
   padding: 10px 12px;
   font: inherit;
@@ -338,27 +338,27 @@
   cursor: pointer;
   transition: background-color 0.15s;
 }
-.docs-talalat:hover { background: var(--color-layer-1, rgba(16,24,40,0.03)); }
-.docs-talalat strong { font-family: var(--font-display, system-ui, sans-serif); letter-spacing: -0.01em; }
-.docs-talalat .docs-halvany { font-size: 11px; }
+.docs-result:hover { background: var(--color-layer-1, rgba(16,24,40,0.03)); }
+.docs-result strong { font-family: var(--font-display, system-ui, sans-serif); letter-spacing: -0.01em; }
+.docs-result .docs-muted { font-size: 11px; }
 
-.docs-kuka { margin: 18px 16px 0; border-top: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17)); padding-top: 12px; }
-.docs-kuka-elem { display: flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 13px; }
-.docs-kuka-elem span { flex: 1; }
-.docs-veszelyes { color: var(--color-danger, #b91c1c); }
+.docs-trash { margin: 18px 16px 0; border-top: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17)); padding-top: 12px; }
+.docs-trash-item { display: flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 13px; }
+.docs-trash-item span { flex: 1; }
+.docs-dangerous { color: var(--color-danger, #b91c1c); }
 
-/* --- Szerkesztő --- */
+/* --- Editor --- */
 
-.docs-szerkeszto { display: flex; flex-direction: column; }
-.docs-szerkeszto-fejlec { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
-.docs-szerkeszto-cim { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.docs-editor { display: flex; flex-direction: column; }
+.docs-editor-header { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+.docs-editor-title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 /*
  * The title is a field, not a heading: a new document is created with a
  * placeholder name and opens with the caret already in it. It carries no
  * chrome until it is hovered or focused, so it still reads as the page's
  * heading rather than as a form.
  */
-.docs-cim {
+.docs-title {
   flex: 1;
   min-width: 0;
   margin: 0 -8px;
@@ -376,21 +376,21 @@
   transition: background-color 0.15s, border-color 0.15s;
 }
 
-.docs-cim::placeholder { color: var(--color-text-3, #8E8E93); }
-.docs-cim:hover { background: var(--color-layer-1, rgba(16,24,40,0.03)); }
+.docs-title::placeholder { color: var(--color-text-3, #8E8E93); }
+.docs-title:hover { background: var(--color-layer-1, rgba(16,24,40,0.03)); }
 
-.docs-cim:focus {
+.docs-title:focus {
   background: var(--color-surface, #FFFFFF);
   border-color: var(--color-border-focus, rgba(255,107,84,0.50));
   box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(255,107,84,0.28));
 }
-.docs-szerkeszto-fejlec .docs-halvany { font-size: 12px; }
+.docs-editor-header .docs-muted { font-size: 12px; }
 
-.docs-fejgombok { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.docs-head-buttons { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 
 /* The one destructive control the page shows. It acts on the OPEN document,
    which is why it sits beside the title rather than on every tree row. */
-.docs-torol {
+.docs-delete {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -405,13 +405,13 @@
   transition: background-color 0.15s, color 0.15s;
 }
 
-.docs-torol:hover {
+.docs-delete:hover {
   background: var(--color-danger-soft);
   color: var(--color-danger, #b91c1c);
 }
 
 /* The control that brings the data column in. A chip, like every other. */
-.docs-panelvalt {
+.docs-details-toggle {
   flex-shrink: 0;
   padding: 6px 13px;
   border: none;
@@ -424,8 +424,8 @@
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s;
 }
-.docs-panelvalt:hover { background: var(--color-layer-2, rgba(16,24,40,0.05)); color: var(--color-text-2, #48484A); }
-.docs-panelvalt.docs-aktiv {
+.docs-details-toggle:hover { background: var(--color-layer-2, rgba(16,24,40,0.05)); color: var(--color-text-2, #48484A); }
+.docs-details-toggle.docs-active {
   background: var(--color-accent-soft, rgba(255,107,84,0.18));
   color: var(--color-accent-bright, #FF6B54);
 }
@@ -440,7 +440,7 @@
  *
  * The negative side margins pull it out to the card's edges so the text passing
  * underneath is covered all the way across; the side padding puts it back. The
- * scrollport here is `.docs-szerkeszto` itself, which is why `top: 0` lands at
+ * scrollport here is `.docs-editor` itself, which is why `top: 0` lands at
  * the card's inner top edge rather than the page's.
  *
  * THE CARD HAS NO TOP PADDING; this block supplies it. A negative top margin
@@ -449,9 +449,9 @@
  * the border edge ended up above the scrollport rather than at it.
  */
 /* With no document open there is no sticky block to supply the top padding. */
-.docs-szerkeszto-ures { padding-top: 20px; }
+.docs-editor-empty { padding-top: 20px; }
 
-.docs-szerkeszto-teteje {
+.docs-editor-top {
   position: sticky;
   top: 0;
   z-index: 2;
@@ -461,7 +461,7 @@
   border-radius: var(--radius-lg, 18px) var(--radius-lg, 18px) 0 0;
 }
 
-.docs-eszkoztar {
+.docs-toolbar {
   display: flex; flex-wrap: wrap; gap: 4px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17));
@@ -472,15 +472,15 @@
  * 600, no border until it is hovered. One shape, so a toolbar toggle and a
  * version action do not read as two different kinds of control.
  */
-.docs-eszkoztar button,
-.docs-fa-cim button,
-.docs-fa-cim-gombok button,
-.docs-modal-gombok button,
-.docs-fa-gombok button,
-.docs-utkozes-gombok button,
-.docs-sav button,
-.docs-kuka-elem button,
-.docs-verziok button {
+.docs-toolbar button,
+.docs-tree-title button,
+.docs-tree-title-buttons button,
+.docs-modal-buttons button,
+.docs-tree-buttons button,
+.docs-conflict-buttons button,
+.docs-bar button,
+.docs-trash-item button,
+.docs-versions button {
   padding: 4px 10px;
   border: none;
   border-radius: var(--radius-full, 9999px);
@@ -493,21 +493,21 @@
   transition: background-color 0.15s, color 0.15s;
 }
 
-.docs-eszkoztar button:hover,
-.docs-fa-cim button:hover,
-.docs-fa-cim-gombok button:hover,
-.docs-modal-gombok button:hover,
-.docs-fa-gombok button:hover,
-.docs-utkozes-gombok button:hover,
-.docs-sav button:hover,
-.docs-kuka-elem button:hover,
-.docs-verziok button:hover {
+.docs-toolbar button:hover,
+.docs-tree-title button:hover,
+.docs-tree-title-buttons button:hover,
+.docs-modal-buttons button:hover,
+.docs-tree-buttons button:hover,
+.docs-conflict-buttons button:hover,
+.docs-bar button:hover,
+.docs-trash-item button:hover,
+.docs-versions button:hover {
   background: var(--color-layer-2, rgba(16,24,40,0.05));
   color: var(--color-text-2, #48484A);
 }
 
-.docs-eszkoztar button.docs-aktiv,
-.docs-eszkoztar button.docs-aktiv:hover {
+.docs-toolbar button.docs-active,
+.docs-toolbar button.docs-active:hover {
   background: var(--color-accent-soft, rgba(255,107,84,0.18));
   color: var(--color-accent-bright, #FF6B54);
 }
@@ -516,43 +516,43 @@
  * The one filled control on the page: creating a document, as "+ Agent" is.
  *
  * `button.` is load-bearing. The chip base above is written as
- * `.docs-fa-cim button` and `.docs-fa-gombok button:hover`, which outrank a
- * lone `.docs-elsodleges` -- the class rendered as a plain ghost chip until
+ * `.docs-tree-title button` and `.docs-tree-buttons button:hover`, which outrank a
+ * lone `.docs-primary` -- the class rendered as a plain ghost chip until
  * this selector matched their specificity.
  */
-button.docs-elsodleges,
-button.docs-elsodleges:hover {
+button.docs-primary,
+button.docs-primary:hover {
   padding: 6px 12px;
   font-size: 11px;
   background: var(--color-accent-bright, #FF6B54);
   color: var(--color-accent-fg, #FFFFFF);
 }
 
-.docs-editor { flex: 1; min-height: 0; }
-.docs-proza { outline: none; line-height: 1.65; min-height: 300px; }
-.docs-proza h1 { font-family: var(--font-display, system-ui, sans-serif); font-size: 24px; letter-spacing: -0.01em; margin: 16px 0 8px; }
-.docs-proza h2 { font-family: var(--font-display, system-ui, sans-serif); font-size: 20px; letter-spacing: -0.01em; margin: 14px 0 6px; }
-.docs-proza h3 { font-family: var(--font-display, system-ui, sans-serif); font-size: 16px; margin: 12px 0 4px; }
-.docs-proza p { margin: 8px 0; }
-.docs-proza ul, .docs-proza ol { padding-left: 22px; }
-.docs-proza blockquote { margin: 8px 0; padding-left: 12px; border-left: 3px solid var(--color-line-default, rgba(16,24,40,0.24)); color: var(--color-text-3, #8E8E93); }
-.docs-proza pre { padding: 10px 12px; overflow-x: auto; border-radius: var(--radius-md, 11px); background: var(--color-layer-1, rgba(16,24,40,0.03)); }
+.docs-editor-body { flex: 1; min-height: 0; }
+.docs-prose { outline: none; line-height: 1.65; min-height: 300px; }
+.docs-prose h1 { font-family: var(--font-display, system-ui, sans-serif); font-size: 24px; letter-spacing: -0.01em; margin: 16px 0 8px; }
+.docs-prose h2 { font-family: var(--font-display, system-ui, sans-serif); font-size: 20px; letter-spacing: -0.01em; margin: 14px 0 6px; }
+.docs-prose h3 { font-family: var(--font-display, system-ui, sans-serif); font-size: 16px; margin: 12px 0 4px; }
+.docs-prose p { margin: 8px 0; }
+.docs-prose ul, .docs-prose ol { padding-left: 22px; }
+.docs-prose blockquote { margin: 8px 0; padding-left: 12px; border-left: 3px solid var(--color-line-default, rgba(16,24,40,0.24)); color: var(--color-text-3, #8E8E93); }
+.docs-prose pre { padding: 10px 12px; overflow-x: auto; border-radius: var(--radius-md, 11px); background: var(--color-layer-1, rgba(16,24,40,0.03)); }
 /*
  * A wide table scrolls inside its own box rather than pushing the card open.
  * TipTap wraps every table in `.tableWrapper`, so the scroll goes there --
  * putting `overflow` on the table itself would need `display: block`, and that
  * throws away the column sizing the table is for.
  */
-.docs-proza .tableWrapper { overflow-x: auto; max-width: 100%; }
-.docs-proza table { border-collapse: collapse; width: 100%; }
-.docs-proza th, .docs-proza td { border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17)); padding: 6px 10px; }
-.docs-proza th { background: var(--color-layer-1, rgba(16,24,40,0.03)); font-weight: 600; }
-.docs-proza { font-size: 15px; }
+.docs-prose .tableWrapper { overflow-x: auto; max-width: 100%; }
+.docs-prose table { border-collapse: collapse; width: 100%; }
+.docs-prose th, .docs-prose td { border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17)); padding: 6px 10px; }
+.docs-prose th { background: var(--color-layer-1, rgba(16,24,40,0.03)); font-weight: 600; }
+.docs-prose { font-size: 15px; }
 
 .docs-link { color: var(--color-accent-bright, #FF6B54); }
 .docs-link-unresolved { color: var(--color-text-3, #8E8E93); text-decoration: underline dotted; }
 
-.docs-utkozes {
+.docs-conflict {
   padding: 12px 14px;
   margin-bottom: 12px;
   font-size: 13px;
@@ -560,18 +560,18 @@ button.docs-elsodleges:hover {
   border-radius: var(--radius-lg, 18px);
   background: var(--color-danger-soft);
 }
-.docs-utkozes p { margin: 0 0 6px; }
-.docs-utkozes-gombok { display: flex; gap: 6px; margin-top: 8px; }
+.docs-conflict p { margin: 0 0 6px; }
+.docs-conflict-buttons { display: flex; gap: 6px; margin-top: 8px; }
 .docs-diff { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .docs-diff h4 { margin: 0 0 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; color: var(--color-text-3, #8E8E93); }
 .docs-diff pre { max-height: 240px; overflow: auto; padding: 8px 10px; background: var(--color-surface, #FFFFFF); border: 1px solid var(--color-line-subtle, rgba(16,24,40,0.17)); border-radius: var(--radius-md, 11px); white-space: pre-wrap; }
 
-/* --- Panel --- */
+/* --- Details panel --- */
 
-.docs-panel section { margin-bottom: 24px; }
+.docs-details-panel section { margin-bottom: 24px; }
 
 /* The panel's section heads are the same micro-label the tree groups use. */
-.docs-panel h3 {
+.docs-details-panel h3 {
   margin: 0 0 8px;
   padding: 0 2px;
   font-size: 10px;
@@ -599,14 +599,14 @@ button.docs-elsodleges:hover {
 .docs-meta dt { color: var(--color-text-3, #8E8E93); }
 .docs-meta dd { margin: 0; overflow-wrap: anywhere; color: var(--color-text, #1D1D1F); }
 
-.docs-verziok, .docs-backlinkek { list-style: none; margin: 0; padding: 0; }
-.docs-verziok li {
+.docs-versions, .docs-backlinks { list-style: none; margin: 0; padding: 0; }
+.docs-versions li {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
   padding: 2px; border-radius: var(--radius-md, 11px);
 }
-.docs-verziok li:hover { background: var(--color-layer-1, rgba(16,24,40,0.03)); }
-.docs-verziok li > button:first-child { flex: 1; text-align: left; }
-.docs-elonezet {
+.docs-versions li:hover { background: var(--color-layer-1, rgba(16,24,40,0.03)); }
+.docs-versions li > button:first-child { flex: 1; text-align: left; }
+.docs-preview {
   flex-basis: 100%; max-height: 200px; overflow: auto;
   margin: 4px 0 2px;
   padding: 8px 10px; font-size: 11px;
@@ -614,12 +614,12 @@ button.docs-elsodleges:hover {
   border-radius: var(--radius-md, 11px);
   white-space: pre-wrap;
 }
-.docs-backlinkek li {
+.docs-backlinks li {
   display: flex; flex-direction: column;
   padding: 8px 10px; font-size: 13px;
   border-radius: var(--radius-md, 11px);
 }
-.docs-backlinkek li:hover { background: var(--color-layer-1, rgba(16,24,40,0.03)); }
-.docs-backlinkek strong { font-family: var(--font-display, system-ui, sans-serif); font-size: 13px; letter-spacing: -0.01em; }
-.docs-backlinkek .docs-halvany { font-size: 11px; }
-.docs-masodlagos { opacity: 0.85; }
+.docs-backlinks li:hover { background: var(--color-layer-1, rgba(16,24,40,0.03)); }
+.docs-backlinks strong { font-family: var(--font-display, system-ui, sans-serif); font-size: 13px; letter-spacing: -0.01em; }
+.docs-backlinks .docs-muted { font-size: 11px; }
+.docs-secondary { opacity: 0.85; }

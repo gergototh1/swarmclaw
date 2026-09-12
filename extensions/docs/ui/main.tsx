@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import type { Allapot, Fa, Rpc } from './api'
-import { errorText, readAllapot, readFa } from './api'
-import { FaOszlop } from './fa'
+import type { Rpc, Status, Tree } from './api'
+import { errorText, readStatus, readTree } from './api'
+import { Editor } from './editor'
 import { currentExtensionId, hostOf, hostReact } from './host'
-import { Panel } from './panel'
-import { Szerkeszto } from './szerkeszto'
+import { DetailsPanel } from './details-panel'
+import { TreeColumn } from './tree'
 
 /**
  * The page: a status strip and three columns.
  *
- * TWO LOADS, TWO FAILURE STATES, NEVER FOLDED TOGETHER. `allapot` failing means
- * the module could not be asked about itself; `fa` failing means the tree could
- * not be read. Neither gates the other, and neither is drawn as its opposite: a
- * tree that never loaded shows its message rather than an empty folder list,
- * and a status that could not be read does not make the page pretend everything
- * is fine.
+ * TWO LOADS, TWO FAILURE STATES, NEVER FOLDED TOGETHER. `status` failing means
+ * the module could not be asked about itself; `tree` failing means the tree
+ * could not be read. Neither gates the other, and neither is drawn as its
+ * opposite: a tree that never loaded shows its message rather than an empty
+ * folder list, and a status that could not be read does not make the page
+ * pretend everything is fine.
  *
  * The most important thing this page can say is that the root is unwritable,
  * and it says it at the top, with the way out -- because a reader who does not
@@ -23,36 +23,36 @@ import { Szerkeszto } from './szerkeszto'
  */
 
 export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
-  const [fa, setFa] = useState<Fa | null>(null)
-  const [faHiba, setFaHiba] = useState<string | null>(null)
-  const [allapot, setAllapot] = useState<Allapot | null>(null)
-  const [allapotHiba, setAllapotHiba] = useState<string | null>(null)
-  const [aktivId, setAktivId] = useState<string | null>(null)
-  const [agentNevek, setAgentNevek] = useState<Map<string, string>>(new Map())
-  // AZ ADATOK-HASÁB ZÁRVA INDUL. Amíg mindig ott állt, a szerkesztő harmadik
-  // hasábként osztozott a szélességen egy olyan panellel, aminek a tartalma
-  // -- útvonal, tulajdonos, dátumok -- a szerkesztés közben nem változik és
-  // nem is kell hozzá. A szöveg kapja a helyet, és aki az adatokra kíváncsi,
-  // egy kattintással előhozza.
-  const [panelNyitva, setPanelNyitva] = useState(false)
-  // Melyik doksi született épp most. Egyetlen dolgot vezérel: a szerkesztő a
-  // címre viszi a kurzort, hogy a "Névtelen doksi" ne maradjon úgy.
-  const [frissDoksiId, setFrissDoksiId] = useState<string | null>(null)
+  const [tree, setTree] = useState<Tree | null>(null)
+  const [treeError, setTreeError] = useState<string | null>(null)
+  const [status, setStatus] = useState<Status | null>(null)
+  const [statusError, setStatusError] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [agentNames, setAgentNames] = useState<Map<string, string>>(new Map())
+  // THE DETAILS COLUMN STARTS CLOSED. While it always stood there, the editor
+  // shared its width as a third column with a panel whose content -- path,
+  // owner, dates -- does not change while editing and is not needed for it.
+  // The text gets the room, and whoever is curious about the details brings it
+  // up with one click.
+  const [panelOpen, setPanelOpen] = useState(false)
+  // Which doc was just created. It drives exactly one thing: the editor moves
+  // the caret to the title, so "Untitled doc" does not stay that way.
+  const [freshDocId, setFreshDocId] = useState<string | null>(null)
 
   const refresh = useCallback(() => {
-    rpc('fa')
-      .then((raw) => { setFa(readFa(raw)); setFaHiba(null) })
-      .catch((err) => setFaHiba(String(err?.message ?? err)))
-    rpc('allapot')
-      .then((raw) => { setAllapot(readAllapot(raw)); setAllapotHiba(null) })
-      .catch((err) => setAllapotHiba(String(err?.message ?? err)))
-    rpc('ugynokok')
+    rpc('tree')
+      .then((raw) => { setTree(readTree(raw)); setTreeError(null) })
+      .catch((err) => setTreeError(String(err?.message ?? err)))
+    rpc('status')
+      .then((raw) => { setStatus(readStatus(raw)); setStatusError(null) })
+      .catch((err) => setStatusError(String(err?.message ?? err)))
+    rpc('agents')
       .then((raw) => {
         if (errorText(raw)) return
-        const list = (raw as { ugynokok?: Array<{ slug?: string }> }).ugynokok ?? []
-        setAgentNevek(new Map(list.map((a) => [String(a.slug ?? ''), String(a.slug ?? '')])))
+        const list = (raw as { agents?: Array<{ slug?: string }> }).agents ?? []
+        setAgentNames(new Map(list.map((a) => [String(a.slug ?? ''), String(a.slug ?? '')])))
       })
-      .catch(() => { /* A fa a sluggal is használható; ez csak szebb nevet adna. */ })
+      .catch(() => { /* The tree also works with the slug; this would only give a nicer name. */ })
   }, [rpc])
 
   useEffect(() => { refresh() }, [refresh])
@@ -60,69 +60,69 @@ export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
   /**
    * DELETING IS A MOVE TO THE TRASH, NOT A REMOVAL.
    *
-   * `torol` sets `deleted_at`; the document leaves the tree and turns up under
-   * Archívum, where "Vissza" brings it back and "Végleg" is the one
-   * irreversible button on this page. The undo is one click away and visible
-   * in the same column, which is why this asks nothing first.
+   * `delete` sets `deleted_at`; the document leaves the tree and turns up
+   * under Trash, where "Restore" brings it back and "Delete forever" is the
+   * one irreversible button on this page. The undo is one click away and
+   * visible in the same column, which is why this asks nothing first.
    *
    * It lives here rather than in the tree because it acts on the OPEN
    * document: the editor has to be closed in the same step, or it goes on
    * autosaving into a row nothing shows any more.
    */
-  const torol = useCallback(() => {
-    if (!aktivId) return
-    rpc('torol', { id: aktivId })
-      .then(() => { setAktivId(null); refresh() })
+  const handleDelete = useCallback(() => {
+    if (!activeId) return
+    rpc('delete', { id: activeId })
+      .then(() => { setActiveId(null); refresh() })
       .catch(() => refresh())
-  }, [aktivId, rpc, refresh])
+  }, [activeId, rpc, refresh])
 
-  const cimek = useMemo(() => new Set(fa?.cimek ?? []), [fa])
+  const titles = useMemo(() => new Set(tree?.titles ?? []), [tree])
 
   return (
-    <div className="docs-lap">
-      {allapot && !allapot.gyokerRendben && (
-        <p className="docs-sav docs-sav-baj" role="alert">
-          A doksi-gyökér nem érhető el: {allapot.gyokerHiba ?? allapot.beallitottGyoker}. Állítsd be a Doksik
-          extension beállításainál, aztán frissítsd ezt a lapot.
+    <div className="docs-page">
+      {status && !status.rootOk && (
+        <p className="docs-bar docs-bar-alert" role="alert">
+          The docs root is not reachable: {status.rootError ?? status.configuredRoot}. Set it in the Docs extension
+          settings, then reload this page.
         </p>
       )}
-      {allapotHiba && <p className="docs-sav docs-sav-baj" role="alert">Az állapot nem olvasható: {allapotHiba}</p>}
-      {allapot?.gyokerRendben && !allapot.figyeloFut && (
-        <p className="docs-sav">
-          A külső szerkesztés figyelése áll{allapot.figyeloHiba ? `: ${allapot.figyeloHiba}` : ''}. A Finderben vagy
-          Obsidianban végzett módosítás nem jelenik meg a keresőben, amíg újra nem indítod.
-          <button type="button" onClick={() => { rpc('figyeloUjraindit').then(refresh).catch(() => refresh()) }}>
-            Újraindítom
+      {statusError && <p className="docs-bar docs-bar-alert" role="alert">Status could not be read: {statusError}</p>}
+      {status?.rootOk && !status.watcherRunning && (
+        <p className="docs-bar">
+          Watching for outside edits is stopped{status.watcherError ? `: ${status.watcherError}` : ''}. Changes made
+          in Finder or Obsidian will not show in search until you restart it.
+          <button type="button" onClick={() => { rpc('restartWatcher').then(refresh).catch(() => refresh()) }}>
+            Restart
           </button>
-          <button type="button" onClick={() => { rpc('ujraindex').then(refresh).catch(() => refresh()) }}>
-            Újraindexelem most
+          <button type="button" onClick={() => { rpc('reindex').then(refresh).catch(() => refresh()) }}>
+            Reindex now
           </button>
         </p>
       )}
 
-      <div className={`docs-hasabok${panelNyitva ? ' docs-hasabok-panellel' : ''}`}>
-        <FaOszlop
+      <div className={`docs-columns${panelOpen ? ' docs-columns-with-details' : ''}`}>
+        <TreeColumn
           rpc={rpc}
-          fa={fa}
-          faHiba={faHiba}
-          aktivId={aktivId}
-          onOpen={setAktivId}
-          onValtozott={refresh}
-          onUjDoksi={setFrissDoksiId}
-          agentNevek={agentNevek}
+          tree={tree}
+          treeError={treeError}
+          activeId={activeId}
+          onOpen={setActiveId}
+          onChanged={refresh}
+          onNewDoc={setFreshDocId}
+          agentNames={agentNames}
         />
-        <Szerkeszto
+        <Editor
           rpc={rpc}
-          id={aktivId}
-          cimek={cimek}
-          onMentve={refresh}
-          panelNyitva={panelNyitva}
-          onPanelValt={() => setPanelNyitva((elozo) => !elozo)}
-          onTorol={torol}
-          fokuszCim={frissDoksiId !== null && frissDoksiId === aktivId}
-          onCimFokuszalva={() => setFrissDoksiId(null)}
+          id={activeId}
+          titles={titles}
+          onSaved={refresh}
+          panelOpen={panelOpen}
+          onTogglePanel={() => setPanelOpen((prev) => !prev)}
+          onDelete={handleDelete}
+          focusTitle={freshDocId !== null && freshDocId === activeId}
+          onTitleFocused={() => setFreshDocId(null)}
         />
-        {panelNyitva && <Panel rpc={rpc} id={aktivId} onValtozott={refresh} />}
+        {panelOpen && <DetailsPanel rpc={rpc} id={activeId} onChanged={refresh} />}
       </div>
     </div>
   )

@@ -1,6 +1,5 @@
 import { DocsError, ERR, errorResult } from './errors.mjs'
 import { AGENTS_ROOT } from './permissions.mjs'
-import { ConflictError } from './service.mjs'
 
 /**
  * What the page may ask for.
@@ -15,12 +14,10 @@ import { ConflictError } from './service.mjs'
  * authentication and only the operator can open it, so there is no identity to
  * negotiate here -- and nothing the browser sends is allowed to change it.
  *
- * The method names and the request/response field names on this boundary are
- * deliberately left as they were: the page (`ui/*.tsx`) still reads and sends
- * these exact names, and renaming them is the UI task's job, not this one.
- * What changed underneath is `service.mjs`'s own parameter and field names, so
- * every handler below adapts between the two rather than the wire shape
- * changing out from under the page.
+ * Every method name and every request/response field here is the English name
+ * from the project's rename glossary. `service.mjs` already speaks these same
+ * names, so most handlers below are a direct pass-through of its return value
+ * rather than a translation layer.
  */
 
 const OPERATOR = { kind: 'user' }
@@ -34,40 +31,7 @@ async function guard(log, fn) {
       return err.details ? { ...errorResult(err.code, err.message), ...err.details } : errorResult(err.code, err.message)
     }
     log?.error?.('docs rpc failed', { error: err?.message })
-    return errorResult(ERR.invalid_argument, `A művelet nem sikerült: ${err?.message ?? 'ismeretlen hiba'}`)
-  }
-}
-
-/**
- * A conflict's details, translated back to the field names the page still
- * reads (`ui/api.ts`'s `readUtkozes`). `service.mjs` names them
- * `currentVersion`/`modifiedBy`/`theirs` now; this is the one place that
- * difference is bridged.
- */
-function legacyConflict(fn) {
-  try {
-    return fn()
-  } catch (err) {
-    if (err instanceof ConflictError) {
-      const legacy = new DocsError(err.code, err.message)
-      legacy.details = {
-        jelenlegiVerzio: err.details?.currentVersion ?? null,
-        modositotta: err.details?.modifiedBy ?? null,
-        ovek: err.details?.theirs ?? null,
-      }
-      throw legacy
-    }
-    throw err
-  }
-}
-
-/** A doc result from `service.mjs`, translated back to the page's field names. */
-function toDocResult(r) {
-  return {
-    id: r.id,
-    utvonal: r.path,
-    verzio: r.version,
-    ...(r.links ? { linkek: { frissitett: r.links.updated, kihagyott: r.links.skipped } } : {}),
+    return errorResult(ERR.invalid_argument, `The operation failed: ${err?.message ?? 'unknown error'}`)
   }
 }
 
@@ -88,101 +52,88 @@ export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus,
 
   return {
     /** The whole left column in one call. */
-    fa: () => run(() => {
+    tree: () => run(() => {
       const service = serviceOf()
       const docs = service.list(OPERATOR, { folder: '', limit: 2000 })
       const all = repoOf().listDocs({ limit: 2000 })
       return {
-        gyoker: vaultOf().root,
-        kozosMappaNev: sharedFolder(),
-        // A mappák a LEMEZRŐL jönnek, nem csak a doksik útvonalaiból: egy
-        // frissen létrehozott, még üres mappa különben nem jelenne meg, pedig
-        // a `mappaLetrehoz` valódi könyvtárat írt.
-        mappak: foldersOf(all.map((d) => d.path), [AGENTS_ROOT, sharedFolder(), ...vaultOf().listFolders()]),
-        doksik: all.map((d) => ({
-          id: d.id, cim: d.title, utvonal: d.path, tulajdonos: d.owner, frissitve: d.updated, tagek: d.tags,
+        root: vaultOf().root,
+        sharedFolderName: sharedFolder(),
+        // The folders come from DISK, not just from the documents' own paths: a
+        // freshly created, still-empty folder would otherwise not show up, even
+        // though `createFolder` wrote a real directory.
+        folders: foldersOf(all.map((d) => d.path), [AGENTS_ROOT, sharedFolder(), ...vaultOf().listFolders()]),
+        docs: all.map((d) => ({
+          id: d.id, title: d.title, path: d.path, owner: d.owner, updated: d.updated, tags: d.tags,
         })),
-        // A lap ebből dönti el, melyik [[link]] oldódott fel: cím szerint.
-        cimek: all.map((d) => d.title),
+        // The page decides from this which [[link]] resolved: by title.
+        titles: all.map((d) => d.title),
         docsCount: docs.length,
       }
     }),
 
-    olvas: (body) => run(() => {
-      const r = serviceOf().read(body.id)
-      return {
-        id: r.id,
-        cim: r.title,
-        utvonal: r.path,
-        tulajdonos: r.owner,
-        tagek: r.tags,
-        letrehozva: r.created,
-        frissitve: r.updated,
-        verzio: r.version,
-        tartalom: r.content,
-      }
-    }),
+    read: (body) => run(() => serviceOf().read(body.id)),
 
-    ment: (body) => run(() => legacyConflict(() => toDocResult(serviceOf().update(OPERATOR, {
+    save: (body) => run(() => serviceOf().update(OPERATOR, {
       id: body.id,
-      content: body.tartalom,
-      title: body.cim,
-      tags: body.tagek,
+      content: body.content,
+      title: body.title,
+      tags: body.tags,
       baseVersion: body.baseVersion,
-    })))),
-
-    letrehoz: (body) => run(() => toDocResult(serviceOf().create(OPERATOR, {
-      folder: body.mappa,
-      title: body.cim,
-      content: body.tartalom,
-      template: body.sablon,
-    }))),
-
-    keres: (body) => run(() => ({
-      talalatok: serviceOf().search(body.q, { folder: body.mappa, limit: body.limit ?? 50 })
-        .map((r) => ({ id: r.id, path: r.path, title: r.title, reszlet: r.snippet })),
     })),
 
-    mozgat: (body) => run(() => {
-      const r = serviceOf().move(OPERATOR, {
-        id: body.id,
-        newPath: body.ujUtvonal,
-        newFolder: body.ujMappa,
-      })
-      return { utvonal: r.path }
-    }),
+    create: (body) => run(() => serviceOf().create(OPERATOR, {
+      folder: body.folder,
+      title: body.title,
+      content: body.content,
+      tags: body.tags,
+      template: body.template,
+    })),
 
-    atnevez: (body) => run(() => legacyConflict(() => toDocResult(serviceOf().update(OPERATOR, {
+    search: (body) => run(() => ({
+      results: serviceOf().search(body.q, { folder: body.folder, limit: body.limit ?? 50 })
+        .map((r) => ({ id: r.id, path: r.path, title: r.title, snippet: r.snippet })),
+    })),
+
+    move: (body) => run(() => serviceOf().move(OPERATOR, {
       id: body.id,
-      title: body.ujCim,
+      newPath: body.newPath,
+      newFolder: body.newFolder,
+    })),
+
+    rename: (body) => run(() => serviceOf().update(OPERATOR, {
+      id: body.id,
+      title: body.newTitle,
       baseVersion: body.baseVersion,
-    })))),
+    })),
 
-    torol: (body) => run(() => serviceOf().remove(OPERATOR, { id: body.id })),
-    visszaallit: (body) => run(() => serviceOf().restore(OPERATOR, { id: body.id })),
-    veglegesTorol: (body) => run(() => serviceOf().purge(OPERATOR, { id: body.id })),
+    delete: (body) => run(() => serviceOf().remove(OPERATOR, { id: body.id })),
+    restore: (body) => run(() => serviceOf().restore(OPERATOR, { id: body.id })),
+    purge: (body) => run(() => serviceOf().purge(OPERATOR, { id: body.id })),
 
-    kuka: () => run(() => ({
-      elemek: repoOf().listDocs({ includeDeleted: true, limit: 500 })
+    trash: () => run(() => ({
+      items: repoOf().listDocs({ includeDeleted: true, limit: 500 })
         .filter((d) => d.deleted_at)
-        .map((d) => ({ id: d.id, cim: d.title, utvonal: d.path, torolve: d.deleted_at })),
+        .map((d) => ({ id: d.id, title: d.title, path: d.path, deletedAt: d.deleted_at })),
     })),
 
-    verziok: (body) => run(() => ({ verziok: serviceOf().versions(body.id) })),
-    verzio: (body) => run(() => serviceOf().version(body.id, body.verzio)),
-    visszaallitVerzio: (body) => run(() => legacyConflict(() => toDocResult(serviceOf().restoreVersion(OPERATOR, {
+    versions: (body) => run(() => ({
+      versions: serviceOf().versions(body.id).map((v) => ({
+        version: v.version, author: v.author, createdAt: v.createdAt, size: v.meret,
+      })),
+    })),
+    version: (body) => run(() => serviceOf().version(body.id, body.version)),
+    restoreVersion: (body) => run(() => serviceOf().restoreVersion(OPERATOR, {
       id: body.id,
-      version: body.verzio,
+      version: body.version,
       baseVersion: body.baseVersion,
-    })))),
-
-    hivatkozok: (body) => run(() => ({ backlinkek: serviceOf().backlinks(body.id) })),
-    sablonok: () => run(() => ({
-      sablonok: serviceOf().templates().map((t) => ({ nev: t.name, utvonal: t.path })),
     })),
+
+    backlinks: (body) => run(() => ({ backlinks: serviceOf().backlinks(body.id) })),
+    templates: () => run(() => ({ templates: serviceOf().templates() })),
 
     /** The agent folders that exist on disk, so the tree can show real names. */
-    ugynokok: () => run(() => {
+    agents: () => run(() => {
       const seen = new Map()
       for (const doc of repoOf().listDocs({ limit: 2000 })) {
         const match = new RegExp(`^${AGENTS_ROOT}/([^/]+)/`).exec(doc.path)
@@ -191,8 +142,8 @@ export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus,
         seen.set(slug, (seen.get(slug) ?? 0) + 1)
       }
       return {
-        ugynokok: [...seen.entries()].map(([slug, doksik]) => ({
-          slug, mappa: `${AGENTS_ROOT}/${slug}`, doksik,
+        agents: [...seen.entries()].map(([slug, docs]) => ({
+          slug, folder: `${AGENTS_ROOT}/${slug}`, docs,
         })),
       }
     }),
@@ -204,48 +155,45 @@ export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus,
      * the single most important thing this call can report, and reporting it as
      * a failure of the call itself would lose it.
      */
-    allapot: () => run(() => {
-      const beallitottGyoker = rootSetting()
-      let gyoker = beallitottGyoker
-      let gyokerRendben = false
-      let gyokerHiba = null
+    status: () => run(() => {
+      const configuredRoot = rootSetting()
+      let root = configuredRoot
+      let rootOk = false
+      let rootError = null
       try {
         const vault = vaultOf()
-        gyoker = vault.root
+        root = vault.root
         vault.ensureRoot()
-        gyokerRendben = true
+        rootOk = true
       } catch (err) {
-        gyokerHiba = err?.message ?? 'a doksi-gyökér nem érhető el'
+        rootError = err?.message ?? 'the docs root is not reachable'
       }
       const watcher = watcherStatus()
       return {
-        gyoker,
-        beallitottGyoker,
-        gyokerRendben,
-        gyokerHiba,
-        figyeloFut: watcher.fut,
-        figyeloHiba: watcher.hiba,
-        doksiSzam: gyokerRendben ? repoOf().listDocs({ limit: 2000 }).length : 0,
-        kozosMappaNev: sharedFolder(),
+        root,
+        configuredRoot,
+        rootOk,
+        rootError,
+        watcherRunning: watcher.running,
+        watcherError: watcher.error,
+        docCount: rootOk ? repoOf().listDocs({ limit: 2000 }).length : 0,
+        sharedFolderName: sharedFolder(),
       }
     }),
 
-    ujraindex: () => run(() => {
-      const r = writerOf().indexAll()
-      return { atnezett: r.scanned, valtozott: r.changed, eltavolitott: r.removed }
-    }),
-    figyeloUjraindit: () => run(() => restartWatcher()),
+    reindex: () => run(() => writerOf().indexAll()),
+    restartWatcher: () => run(() => restartWatcher()),
 
     /** Creates a folder by placing nothing in it; the tree reads folders from
      * document paths, so an empty folder needs a real directory to exist. */
-    mappaLetrehoz: (body) => run(() => {
-      const folder = String(body.mappa ?? '').trim().replace(/^\/+|\/+$/g, '')
-      if (folder === '') throw new DocsError(ERR.invalid_argument, 'Adj meg mappanevet.')
+    createFolder: (body) => run(() => {
+      const folder = String(body.folder ?? '').trim().replace(/^\/+|\/+$/g, '')
+      if (folder === '') throw new DocsError(ERR.invalid_argument, 'Give a folder name.')
       const vault = vaultOf()
       vault.ensureRoot()
       vault.abs(folder)
       vault.mkdirp(folder)
-      return { mappa: folder }
+      return { folder }
     }),
   }
 }

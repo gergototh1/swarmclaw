@@ -117,8 +117,8 @@ test('setup() creates the root so the first watch does not fail on ENOENT', () =
   try {
     docs.setup(fakeCtx({ gyoker: root }))
     assert.equal(fs.existsSync(root), true, 'a setup() nem hozta létre a gyökeret')
-    assert.equal(watcherControl.status().fut, true, 'a figyelő nem indult el')
-    assert.equal(watcherControl.status().hiba, null)
+    assert.equal(watcherControl.status().running, true, 'a figyelő nem indult el')
+    assert.equal(watcherControl.status().error, null)
   } finally {
     watcherControl.stop()
     fs.rmSync(path.dirname(root), { recursive: true, force: true })
