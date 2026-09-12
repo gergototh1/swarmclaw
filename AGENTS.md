@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 ### Keeping Instructions in Sync
 - **`CLAUDE.md` and `AGENTS.md` must stay in sync.** When you add, edit, or remove a rule in one file, apply the same change to the other. They contain the same project guidelines — one for Claude Code, one for other coding agents.

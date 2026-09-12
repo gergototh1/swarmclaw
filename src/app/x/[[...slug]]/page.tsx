@@ -1,11 +1,12 @@
 'use client'
 
-import { Component, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { usePathname } from 'next/navigation'
+import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { MainContent } from '@/components/layout/main-content'
 import { getHostRegistry } from '@/components/layout/extension-host'
 import { useExtensionPagesState } from '@/hooks/use-extension-pages'
 import { assetUrl, loadExtensionPage, pageKey, type RegisteredPage } from '@/lib/extensions/registry'
+import { extensionPageHref, extensionSubPath, pageDocumentTitle } from '@/lib/extensions/page-location'
 import { looksLikeDuplicateReact } from '@/lib/extensions/duplicate-react'
 
 /**
@@ -117,6 +118,7 @@ class ExtensionPageBoundary extends Component<
 
 export default function ExtensionPageRoute() {
   const pathname = usePathname()
+  const router = useRouter()
   const { pages, loaded, error: pagesError } = useExtensionPagesState()
   const [tracked, setTracked] = useState<{ target: string; state: LoadState }>({
     target: '',
@@ -234,6 +236,28 @@ export default function ExtensionPageRoute() {
     [extensionId],
   )
 
+  const pagePath = page?.path
+  const subPath = pagePath ? extensionSubPath(pagePath, pathname) : ''
+
+  // Push by default so the browser's back button walks the page's own history.
+  const navigate = useCallback((next: string, opts?: { replace?: boolean }) => {
+    if (!pagePath) return
+    const href = extensionPageHref(pagePath, next)
+    if (opts?.replace) router.replace(href)
+    else router.push(href)
+  }, [router, pagePath])
+
+  // The title the app had before any page named itself, captured on first use
+  // so that null — and leaving the page — can put it back.
+  const baseTitle = useRef<string | null>(null)
+  const setTitle = useCallback((text: string | null) => {
+    if (baseTitle.current === null) baseTitle.current = document.title
+    document.title = pageDocumentTitle(text, baseTitle.current)
+  }, [])
+  useEffect(() => () => {
+    if (baseTitle.current !== null) document.title = baseTitle.current
+  }, [extensionId, pageId])
+
   if (!page) {
     if (!loaded) {
       return (
@@ -298,7 +322,13 @@ export default function ExtensionPageRoute() {
           extensionId={page.extensionId}
           pageId={page.id}
         >
-          <ExtensionComponent extensionId={page.extensionId} rpc={rpc} />
+          <ExtensionComponent
+            extensionId={page.extensionId}
+            rpc={rpc}
+            subPath={subPath}
+            navigate={navigate}
+            setTitle={setTitle}
+          />
         </ExtensionPageBoundary>
       </div>
     </MainContent>

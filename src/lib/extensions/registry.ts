@@ -22,8 +22,25 @@ import { hmrSingleton } from '@/lib/shared-utils'
 /** Calls an extension's server-side method; bound to one extension by the page renderer. */
 export type ExtensionPageRpc = (method: string, body?: object) => Promise<unknown>
 
+/**
+ * What the page renderer hands an extension's page component.
+ *
+ * `subPath`, `navigate` and `setTitle` arrived after the first two; a bundle
+ * built before them simply ignores them and keeps working.
+ */
+export interface ExtensionPageProps {
+  extensionId: string
+  rpc: ExtensionPageRpc
+  /** The path below the page's declared `path`, without slashes at either end; '' at the page root. */
+  subPath: string
+  /** Move to `subPath` inside this same page. The component stays mounted. */
+  navigate: (subPath: string, opts?: { replace?: boolean }) => void
+  /** Name what the page is showing, e.g. "CRM · Kovács Kft"; null goes back to the plain title. */
+  setTitle: (text: string | null) => void
+}
+
 /** The component an extension bundle registers for one of its declared pages. */
-export type ExtensionPageComponent = ComponentType<{ extensionId: string; rpc: ExtensionPageRpc }>
+export type ExtensionPageComponent = ComponentType<ExtensionPageProps>
 
 export interface RegisterPageOptions {
   /**
