@@ -87,6 +87,12 @@ export function DocsPage({ rpc }: { extensionId: string; rpc: Rpc }) {
         </p>
       )}
       {statusError && <p className="docs-bar docs-bar-alert" role="alert">Status could not be read: {statusError}</p>}
+      {status && status.migrationBlocked.map((b) => (
+        <p key={b.from} className="docs-bar docs-bar-alert" role="alert">
+          The <code>{b.from}</code> folder could not be renamed to <code>{b.to}</code> because <code>{b.to}</code> already
+          exists. Merge the two by hand; the rename runs by itself on the next load after that.
+        </p>
+      ))}
       {status?.rootOk && !status.watcherRunning && (
         <p className="docs-bar">
           Watching for outside edits is stopped{status.watcherError ? `: ${status.watcherError}` : ''}. Changes made

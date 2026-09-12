@@ -1,6 +1,7 @@
 import { createAgentContext } from './src/agent-context.mjs'
 import { DOCS_CONTRACT, createDocsContract } from './src/contract.mjs'
 import { MIGRATIONS, createRepo } from './src/db.mjs'
+import { migrateLegacyFolders } from './src/folder-migration.mjs'
 import { createIndexWriter } from './src/index-writer.mjs'
 import { LEGACY_SETTING_KEYS, LEGACY_SHARED_FOLDER } from './src/legacy-names.mjs'
 import { createMcpBridge } from './src/mcp-bridge.mjs'
@@ -36,6 +37,7 @@ export const state = {
   _writer: null,
   _service: null,
   _root: null,
+  migration: { moved: [], blocked: [] },
 }
 
 /** A setting under its English key, else under the key it was stored as before the rename. */
@@ -124,6 +126,28 @@ const agentContext = createAgentContext(state, { serviceOf, sharedFolder, logOf 
 export const watcherControl = createWatcherControl()
 
 /**
+ * Renames the folders that moved with the module, before anything watches the
+ * root: a watcher running during the rename would read it as an outside edit
+ * and index in parallel with the migration.
+ */
+export function runFolderMigration() {
+  try {
+    const vault = vaultOf()
+    vault.ensureRoot()
+    state.migration = migrateLegacyFolders({
+      root: vault.root,
+      sharedFolderName: sharedFolder(),
+      writer: writerOf(),
+      log: state.log,
+    })
+  } catch (err) {
+    state.log?.warn?.('docs folder migration skipped', { error: err?.message })
+    state.migration = { moved: [], blocked: [] }
+  }
+  return state.migration
+}
+
+/**
  * Brings the watcher in line with the settings. Idempotent in both directions,
  * which is what makes it safe to call from setup() -- and setup() runs again on
  * every write under data/extensions.
@@ -167,6 +191,7 @@ const docs = {
     sharedFolder,
     rootSetting,
     logOf,
+    migrationStatus: () => state.migration,
   }), ...createMcpBridge(() => docs.tools) },
   /**
    * The one contract this module reaches for, and the sentence the operator
@@ -210,6 +235,7 @@ const docs = {
     state._writer = null
     state._service = null
     state._root = null
+    runFolderMigration()
     syncWatcher()
   },
   ui: {

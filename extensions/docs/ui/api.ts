@@ -83,6 +83,7 @@ export interface Status {
   watcherError: string | null
   docCount: number
   sharedFolderName: string
+  migrationBlocked: Array<{ from: string; to: string }>
 }
 
 export interface Conflict {
@@ -115,6 +116,14 @@ function str(value: unknown, fallback = ''): string {
 
 function strList(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
+}
+
+function migrationBlockedList(value: unknown): Array<{ from: string; to: string }> {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((v) => (v ?? {}) as Record<string, unknown>)
+    .filter((v): v is Record<string, unknown> => typeof v.from === 'string' && typeof v.to === 'string')
+    .map((v) => ({ from: v.from as string, to: v.to as string }))
 }
 
 function docRow(raw: unknown): DocRow {
@@ -175,6 +184,7 @@ export function readStatus(raw: unknown): Status {
     watcherError: typeof r.watcherError === 'string' ? r.watcherError : null,
     docCount: typeof r.docCount === 'number' ? r.docCount : 0,
     sharedFolderName: str(r.sharedFolderName, 'kozos'),
+    migrationBlocked: migrationBlockedList(r.migrationBlocked),
   }
 }
 

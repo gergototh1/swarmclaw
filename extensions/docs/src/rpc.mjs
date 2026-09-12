@@ -47,7 +47,7 @@ function foldersOf(paths, extra = []) {
   return [...folders].sort()
 }
 
-export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus, restartWatcher, sharedFolder, rootSetting, logOf }) {
+export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus, restartWatcher, sharedFolder, rootSetting, logOf, migrationStatus }) {
   const run = (fn) => guard(logOf(), fn)
 
   return {
@@ -178,6 +178,7 @@ export function createRpc({ serviceOf, vaultOf, writerOf, repoOf, watcherStatus,
         watcherError: watcher.error,
         docCount: rootOk ? repoOf().listDocs({ limit: 2000 }).length : 0,
         sharedFolderName: sharedFolder(),
+        migrationBlocked: migrationStatus?.()?.blocked ?? [],
       }
     }),
 
