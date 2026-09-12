@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Doc, Rpc, Utkozes } from './api'
 import { errorText, isConflict, readDoc } from './api'
 import { htmlToMd, mdToHtml } from './markdown'
+import { createAutosave, type Autosave } from './autosave'
 
 /**
  * The middle column: the document, edited as formatted text and saved as
@@ -84,7 +85,6 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   const [allas, setAllas] = useState<Allas>({ kind: 'nyugalom' })
   const [verzio, setVerzio] = useState<number>(0)
   const savedMd = useRef<string>('')
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // A cím szerkeszthető, ezért saját mezőállapota van. A `doc.cim` a szerverről
   // jött érték; ez az, amit épp gépelnek.
   const [cim, setCim] = useState('')
@@ -138,6 +138,25 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
       .catch((err) => setAllas({ kind: 'hiba', uzenet: String(err?.message ?? err) }))
   }, [id, rpc, onMentve])
 
+  // Az autosave a legfrissebb verziót és mentőt olvassa, de nem épül újra
+  // tőlük: ha újraépülne, egy mentés visszaigazolása (új `verzio`) eldobná a
+  // közben gépelt szöveg időzítőjét. Lebontáskor a ref még az előző doksi
+  // értékeit tartja (a React minden cleanupot a következő setupok előtt
+  // futtat), így a függő mentés a régi doksiba megy, ahová való.
+  const verzioRef = useRef(verzio)
+  const mentRef = useRef(ment)
+  useEffect(() => {
+    verzioRef.current = verzio
+    mentRef.current = ment
+  })
+  // A nyitott doksi autosave-je, hogy a törlés eldobhassa a függő mentést:
+  // egy kukába tett doksiba nem írunk utólag új verziót.
+  const autosaveRef = useRef<Autosave | null>(null)
+  const torolj = useCallback(() => {
+    autosaveRef.current?.cancel()
+    onTorol()
+  }, [onTorol])
+
   /**
    * Renaming goes through the same `ment` call as the body, because a title is
    * stored in the document's own front matter -- there is no separate rename.
@@ -176,20 +195,28 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
   }, [fokuszCim, doc, onCimFokuszalva])
 
   // Automatikus mentés: csak akkor, ha a markdown tényleg más, mint amit a
-  // szerver utoljára visszaigazolt.
+  // szerver utoljára visszaigazolt. Doksiváltáskor, elnavigáláskor és a lap
+  // elhagyásakor (`pagehide`) a függő mentés lefut, nem vész el.
   useEffect(() => {
     if (!editor || !id) return
-    const handler = () => {
-      if (timer.current) clearTimeout(timer.current)
-      timer.current = setTimeout(() => {
-        const md = htmlToMd(editor.getHTML())
-        if (md === savedMd.current) return
-        ment(md, verzio)
-      }, AUTOSAVE_MS)
+    const autosave = createAutosave({
+      delayMs: AUTOSAVE_MS,
+      read: () => htmlToMd(editor.getHTML()),
+      saved: () => savedMd.current,
+      save: (md) => mentRef.current(md, verzioRef.current),
+    })
+    autosaveRef.current = autosave
+    const onUpdate = () => autosave.schedule()
+    const onPageHide = () => autosave.flushPending()
+    editor.on('update', onUpdate)
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      editor.off('update', onUpdate)
+      window.removeEventListener('pagehide', onPageHide)
+      autosave.flushPending()
+      if (autosaveRef.current === autosave) autosaveRef.current = null
     }
-    editor.on('update', handler)
-    return () => { editor.off('update', handler); if (timer.current) clearTimeout(timer.current) }
-  }, [editor, id, verzio, ment])
+  }, [editor, id])
 
   // Cmd+S / Ctrl+S
   useEffect(() => {
@@ -284,7 +311,7 @@ export function Szerkeszto({ rpc, id, cimek, onMentve, panelNyitva, onPanelValt,
               className="docs-torol"
               aria-label="A doksi a kukába"
               title="A kukába"
-              onClick={onTorol}
+              onClick={torolj}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6M10 11v6M14 11v6" />

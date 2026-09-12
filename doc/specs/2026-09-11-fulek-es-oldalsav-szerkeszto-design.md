@@ -171,7 +171,9 @@ Ismeretlen `subPath` → Ma nézet.
 
 **Hibajavítás:** a szerkesztő lebontáskor és `pagehide`-kor az időzítő
 törlése helyett azonnal ment, ha a markdown eltér a szerver által utoljára
-visszaigazolttól (`keepalive` kéréssel).
+visszaigazolttól. A `pagehide`-kori mentés best-effort: a host `rpc`-je nem
+ad `keepalive` opciót, így egy bezáródó oldal a kérést elvághatja. Doksiváltás
+és appon belüli navigáció esetén a mentés biztosan kimegy.
 
 ### Fülcím és ikon
 
