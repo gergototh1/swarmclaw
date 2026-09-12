@@ -56,6 +56,22 @@ test('three writes to one doc are one card, carrying the latest title, in first-
   assert.deepEqual(refs.map((r) => [r.refId, r.title]), [['a', 'A2'], ['b', 'B']])
 })
 
+test('ids that contain the key separator character still make separate cards', () => {
+  // The dedupe key joins extensionId, panelId and refId. A ref id is whatever
+  // the tool answered with, so the join has to use a character that cannot
+  // appear inside one -- with a printable separator, 'a:b' plus panel 'doc'
+  // would collide with panel 'doc:a' plus id 'b'.
+  const two: ExtensionToolPanel[] = [
+    { ...panels[0], id: 'doc' },
+    { ...panels[0], id: 'doc:a', tools: ['docs_video_script'] },
+  ]
+  const refs = findToolPanelRefs([
+    { name: 'docs_write', input: '{}', output: out({ id: 'a:b', panel: { id: 'a:b', title: 'One' } }) },
+    { name: 'docs_video_script', input: '{}', output: out({ id: 'b', panel: { id: 'b', title: 'Two' } }) },
+  ], two)
+  assert.deepEqual(refs.map((r) => [r.panelId, r.refId, r.title]), [['doc', 'a:b', 'One'], ['doc:a', 'b', 'Two']])
+})
+
 test('no tool events or no panels give no cards', () => {
   assert.deepEqual(findToolPanelRefs(undefined, panels), [])
   assert.deepEqual(findToolPanelRefs([{ name: 'docs_write', input: '{}', output: out({ id: 'a' }) }], []), [])

@@ -70,7 +70,7 @@ export function findToolPanelRefs(
     if (!panel) continue
     const ref = refOf(event.output)
     if (!ref) continue
-    const key = `${panel.extensionId}:${panel.id}:${ref.id}`
+    const key = `${panel.extensionId}\u0000${panel.id}\u0000${ref.id}`
     const previous = found.get(key)
     found.set(key, {
       extensionId: panel.extensionId,
