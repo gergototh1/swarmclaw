@@ -25,6 +25,8 @@ import { SubagentRow, mergeSubagentEvents } from './subagent-row'
 import { copyTextToClipboard } from '@/lib/clipboard'
 import { formatMessageTimestamp } from '@/lib/chat/chat-display'
 import { stripAllInternalMetadata } from '@/lib/strip-internal-metadata'
+import { findToolPanelRefs } from '@/lib/chat/tool-panel-refs'
+import { ToolPanelCards } from './tool-panel-cards'
 import { GroundingPanel } from '@/components/knowledge/grounding-panel'
 
 /** Parse delegation-source metadata prefix from system messages */
@@ -350,6 +352,11 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
   const liveStreamActive = !isUser && liveStream?.active === true
   const liveToolEvents = liveStream?.toolEvents ?? emptyLiveToolEvents
   const toolEvents = message.toolEvents ?? emptyToolEvents
+  const toolPanels = useAppStore((s) => s.extensionToolPanels)
+  const toolPanelRefs = useMemo(
+    () => (isUser ? [] : findToolPanelRefs(toolEvents, toolPanels)),
+    [isUser, toolEvents, toolPanels],
+  )
   const toolEventsForMedia = useMemo(
     () => (liveStreamActive
       ? (liveToolEvents.length > 0
@@ -1015,6 +1022,8 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
           )}
         </div>
       ) : null}
+
+      {!isUser && toolPanelRefs.length > 0 && <ToolPanelCards refs={toolPanelRefs} />}
 
       {!isUser && (message.citations?.length || message.retrievalTrace?.hits?.length) ? (
         <div className="mt-2 max-w-[85%] md:max-w-[72%]">
