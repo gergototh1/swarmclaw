@@ -142,6 +142,24 @@ export interface KeyLike {
 
 export type KeyPlatform = 'desktop-app' | 'browser'
 
+const NON_TEXT_INPUT_TYPES = new Set([
+  'button', 'checkbox', 'color', 'file', 'hidden', 'image', 'radio', 'range', 'reset', 'submit',
+])
+
+/**
+ * True for an element that takes typed or pasted text: a textarea, a select, any
+ * `contentEditable` element, or an input whose type is not one of the handful
+ * that take no text (`checkbox`, `range`, `submit`, ...). An input with no
+ * `type` attribute defaults to `text`, so it counts as editable too.
+ */
+export function isEditableElementLike(el: { tagName?: string; isContentEditable?: boolean; type?: string } | null): boolean {
+  if (!el) return false
+  if (el.isContentEditable) return true
+  if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') return true
+  if (el.tagName !== 'INPUT') return false
+  return !NON_TEXT_INPUT_TYPES.has((el.type ?? 'text').toLowerCase())
+}
+
 /**
  * The tab command a keystroke means, if any.
  *
@@ -149,9 +167,16 @@ export type KeyPlatform = 'desktop-app' | 'browser'
  * is on Option/Alt and is read by `code` (Option+T types a dagger on a Mac, so
  * `key` is useless there). In the desktop app the Electron menu owns the tab
  * keys and delivers them itself, so only the palette is mapped here.
+ *
+ * `opts.editable` is true when the key landed in a text field: on Hungarian and
+ * German Mac layouts, Option+digits and Option+letters type characters such as
+ * `[ ] { } @`, and Option+Left/Right moves the caret by word on every Mac. So
+ * inside a text field, only the Cmd/Ctrl+K palette command is taken; every
+ * Option-based command is left for the field to handle.
  */
-export function tabCommandForKey(e: KeyLike, platform: KeyPlatform): TabCommand | null {
+export function tabCommandForKey(e: KeyLike, platform: KeyPlatform, opts: { editable?: boolean } = {}): TabCommand | null {
   if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'k') return { kind: 'palette' }
+  if (opts.editable) return null
   if (platform === 'desktop-app') return null
   if (!e.altKey || e.metaKey || e.ctrlKey) return null
   if (e.code === 'KeyT') return e.shiftKey ? { kind: 'reopen' } : { kind: 'new' }

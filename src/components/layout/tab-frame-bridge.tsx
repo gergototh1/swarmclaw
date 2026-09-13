@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { tabIdFromWindow } from '@/lib/app/shell-mode'
 import { runTabFlushHandlers } from '@/lib/app/tab-flush'
-import { appUrlFromHref, parseHostMessage, tabCommandForKey, type FrameMessage } from '@/lib/app/tab-protocol'
+import { appUrlFromHref, isEditableElementLike, parseHostMessage, tabCommandForKey, type FrameMessage } from '@/lib/app/tab-protocol'
 
 export function postToHost(message: FrameMessage): void {
   window.parent.postMessage(message, window.location.origin)
@@ -36,6 +36,7 @@ export function openAppUrlInNewTab(href: string): boolean {
  */
 export function TabFrameBridge({ tabId }: { tabId: string }) {
   const pathname = usePathname()
+  const search = useSearchParams().toString()
   const router = useRouter()
 
   useEffect(() => {
@@ -50,14 +51,20 @@ export function TabFrameBridge({ tabId }: { tabId: string }) {
     report()
     window.addEventListener('popstate', report)
     return () => window.removeEventListener('popstate', report)
-  }, [pathname, tabId])
+    // `usePathname()` alone misses a query-only navigation (pushState /
+    // replaceState fire no `popstate`), so the search string is also a
+    // dependency here.
+  }, [pathname, search, tabId])
 
   useEffect(() => {
     // Capture phase on window, so the host sees a tab key or Cmd/Ctrl+K before
     // any handler in the page, and the page's own Cmd+K (search, palette) does
     // not open inside the tab as well.
     const onKey = (e: KeyboardEvent) => {
-      const command = tabCommandForKey(e, 'browser')
+      // In a text field the Option keys type characters ([ ] { } @ on Hungarian
+      // and German layouts) and move by word, so only Cmd/Ctrl+K is taken there.
+      const editable = isEditableElementLike(e.target instanceof Element ? e.target : null)
+      const command = tabCommandForKey(e, 'browser', { editable })
       if (!command) return
       e.preventDefault()
       e.stopImmediatePropagation()
@@ -68,23 +75,26 @@ export function TabFrameBridge({ tabId }: { tabId: string }) {
   }, [tabId])
 
   useEffect(() => {
+    // Bubble phase, and skip a click a page already handled: a modified click
+    // is taken only when the page's own handler (if any) declined it, so the
+    // page's link handling always runs first.
     const onClick = (e: MouseEvent) => {
       if (e.defaultPrevented) return
       if (!(e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1)) return
       const target = e.target instanceof Element ? e.target.closest('a[href]') : null
       if (!(target instanceof HTMLAnchorElement)) return
       if (target.target && target.target !== '_self') return
+      if (target.hasAttribute('download')) return
       const url = appUrlFromHref(target.href, window.location.origin)
       if (!url) return
       e.preventDefault()
-      e.stopImmediatePropagation()
       postToHost({ source: 'sc-tab', type: 'open-tab', tabId, url, activate: false })
     }
-    document.addEventListener('click', onClick, { capture: true })
-    document.addEventListener('auxclick', onClick, { capture: true })
+    document.addEventListener('click', onClick)
+    document.addEventListener('auxclick', onClick)
     return () => {
-      document.removeEventListener('click', onClick, { capture: true })
-      document.removeEventListener('auxclick', onClick, { capture: true })
+      document.removeEventListener('click', onClick)
+      document.removeEventListener('auxclick', onClick)
     }
   }, [tabId])
 

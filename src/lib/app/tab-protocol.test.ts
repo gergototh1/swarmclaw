@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { appUrlFromHref, parseFrameMessage, parseHostMessage, parseTabCommand, tabCommandForKey } from './tab-protocol'
+import { appUrlFromHref, isEditableElementLike, parseFrameMessage, parseHostMessage, parseTabCommand, tabCommandForKey } from './tab-protocol'
 
 const key = (over: Partial<{ key: string; code: string; metaKey: boolean; ctrlKey: boolean; altKey: boolean; shiftKey: boolean }>) => ({
   key: '', code: '', metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...over,
@@ -137,5 +137,37 @@ describe('tabCommandForKey', () => {
   it('ignores Option combined with Cmd or Ctrl, and plain typing', () => {
     assert.equal(tabCommandForKey(key({ code: 'KeyT', altKey: true, metaKey: true }), 'browser'), null)
     assert.equal(tabCommandForKey(key({ key: 't', code: 'KeyT' }), 'browser'), null)
+  })
+
+  it('in an editable target, takes only Cmd/Ctrl+K -- every Option command becomes null', () => {
+    assert.equal(tabCommandForKey(key({ code: 'KeyT', altKey: true }), 'browser', { editable: true }), null)
+    assert.equal(tabCommandForKey(key({ code: 'KeyW', altKey: true }), 'browser', { editable: true }), null)
+    assert.equal(tabCommandForKey(key({ key: 'ArrowLeft', code: 'ArrowLeft', altKey: true }), 'browser', { editable: true }), null)
+    assert.equal(tabCommandForKey(key({ code: 'Digit3', altKey: true }), 'browser', { editable: true }), null)
+    assert.deepEqual(tabCommandForKey(key({ key: 'k', metaKey: true }), 'browser', { editable: true }), { kind: 'palette' })
+  })
+})
+
+describe('isEditableElementLike', () => {
+  it('is true for a textarea, a select and a contentEditable element', () => {
+    assert.equal(isEditableElementLike({ tagName: 'TEXTAREA' }), true)
+    assert.equal(isEditableElementLike({ tagName: 'SELECT' }), true)
+    assert.equal(isEditableElementLike({ tagName: 'DIV', isContentEditable: true }), true)
+  })
+
+  it('is true for a text input, and for an input with no type (defaults to text)', () => {
+    assert.equal(isEditableElementLike({ tagName: 'INPUT', type: 'text' }), true)
+    assert.equal(isEditableElementLike({ tagName: 'INPUT' }), true)
+  })
+
+  it('is false for an input type that takes no text, and for a plain div', () => {
+    for (const type of ['button', 'checkbox', 'color', 'file', 'hidden', 'image', 'radio', 'range', 'reset', 'submit']) {
+      assert.equal(isEditableElementLike({ tagName: 'INPUT', type }), false)
+    }
+    assert.equal(isEditableElementLike({ tagName: 'DIV' }), false)
+  })
+
+  it('is false for null', () => {
+    assert.equal(isEditableElementLike(null), false)
   })
 })
