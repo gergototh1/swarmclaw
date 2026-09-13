@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { beforeEach, test } from 'node:test'
 
-import { createDocSaver, flushAllEditors, trackMountedEditor } from '../ui/doc-saver.ts'
+import { createDocSaver, flushAllEditors, leaveBlockedMessage, trackMountedEditor } from '../ui/doc-saver.ts'
 import { failedEdits } from '../ui/doc-store.ts'
 import { createSaveQueue } from '../ui/save-queue.ts'
 
@@ -62,6 +62,7 @@ function harness() {
     setSavedMd: (md) => { s.saved = md },
     isDirty: () => s.dirty,
     setDirty: (value) => { s.dirty = value },
+    saveState: () => s.state,
     setSaveState: (next) => { s.state = typeof next === 'function' ? next(s.state) : next },
     setVersion: (version) => { s.version = version },
     docTitle: () => s.doc?.title ?? null,
@@ -267,7 +268,7 @@ test('a conflict while the doc is off screen is recorded, and shown against the 
   call.reply.resolve(refusal)
   await saving
   assert.deepEqual(h.s.state, { kind: 'idle' }, 'doc_a\'s conflict showed over doc_b')
-  assert.deepEqual(failedEdits.get('doc_a'), { mine: 'A mine', title: undefined, conflict: refusal, message: null })
+  assert.deepEqual(failedEdits.get('doc_a'), { mine: 'A mine', title: undefined, conflict: refusal, message: null, baseVersion: 1 })
 
   await openDoc(h, 'doc_a', { version: 3, content: 'A theirs now' })
   assert.deepEqual(h.s.state, {
@@ -282,7 +283,7 @@ test('a conflict while the doc is off screen is recorded, and shown against the 
   assert.equal(failedEdits.has('doc_a'), false)
 })
 
-test('an error while the doc is off screen is recorded, and shown when the doc next loads', async () => {
+test('an error while the doc is off screen is recorded, and shown as not saved when the doc loads on the same version', async () => {
   const h = harness()
   await openDoc(h, 'doc_a', { version: 1, content: 'A' })
   h.s.md = 'A mine'
@@ -295,7 +296,284 @@ test('an error while the doc is off screen is recorded, and shown when the doc n
   assert.equal(failedEdits.get('doc_a')?.message, 'The disk is full.')
 
   await openDoc(h, 'doc_a', { version: 1, content: 'A' })
-  assert.deepEqual(h.s.state, { kind: 'unsaved', docId: 'doc_a', mine: 'A mine', message: 'The disk is full.' })
+  assert.deepEqual(h.s.state, {
+    kind: 'unsaved',
+    docId: 'doc_a',
+    mine: 'A mine',
+    message: 'The disk is full.',
+    title: undefined,
+    baseVersion: 1,
+  })
+
+  // "Restore it" puts the edit back and saves it on that same version.
+  h.saver.restoreUnsaved(h.s.state)
+  assert.equal(h.s.md, 'A mine')
+  assert.equal(h.s.timer, true)
+  const restored = h.saver.saveNow('doc_a')
+  const call2 = await nextCall(h, 'save')
+  assert.deepEqual(call2.body, { id: 'doc_a', content: 'A mine', baseVersion: 1 })
+  call2.reply.resolve({ version: 2 })
+  await restored
+})
+
+test('an edit that failed off screen, reopened on a newer version, is shown as a conflict with the doc as loaded', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A' })
+  h.s.md = 'A mine'
+  const saving = h.saver.saveNow('doc_a')
+  const call = await nextCall(h, 'save')
+  await openDoc(h, 'doc_b')
+  call.reply.resolve({ error: 'io', message: 'The disk is full.' })
+  await saving
+
+  await openDoc(h, 'doc_a', { version: 2, content: 'A, written by someone else' })
+  assert.deepEqual(h.s.state, {
+    kind: 'conflict',
+    docId: 'doc_a',
+    conflict: {
+      error: 'conflict',
+      message: 'The disk is full.',
+      currentVersion: 2,
+      modifiedBy: null,
+      theirs: 'A, written by someone else',
+    },
+    mine: 'A mine',
+    title: undefined,
+    restored: true,
+  })
+
+  // "Keep mine" now overwrites the newer version only because the reader chose to.
+  const kept = h.saver.keepMine(h.s.state)
+  const keptCall = await nextCall(h, 'save')
+  assert.deepEqual(keptCall.body, { id: 'doc_a', content: 'A mine', baseVersion: 2 })
+  keptCall.reply.resolve({ version: 3 })
+  await kept
+})
+
+/** What the editor does as the reader moves from the open doc to `docId`. */
+async function switchTo(h, docId, loaded) {
+  h.saver.leave(h.s.open)
+  await openDoc(h, docId, loaded)
+}
+
+/** The reader types `text` into the open doc, then Cmd+S; the save is refused with `reply`. */
+async function failOnScreen(h, text, reply) {
+  h.s.md = text
+  h.saver.edited(h.s.open)
+  const saving = h.saver.saveNow(h.s.open)
+  ;(await nextCall(h, 'save')).reply.resolve(reply)
+  await saving
+}
+
+test('leaving a doc after its save failed on screen sends the edit again', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A' })
+  await failOnScreen(h, 'A edited', { error: 'io', message: 'offline' })
+  assert.deepEqual(h.s.state, { kind: 'error', message: 'offline' })
+  assert.equal(h.s.timer, false, 'a countdown is still waiting, so this is not the case under test')
+
+  await switchTo(h, 'doc_b')
+  const retry = await nextCall(h, 'save')
+  assert.deepEqual(retry.body, { id: 'doc_a', content: 'A edited', baseVersion: 1 })
+  retry.reply.resolve({ version: 2 })
+  await h.queue.whenIdle()
+  assert.equal(failedEdits.size, 0)
+  assert.equal(h.s.md, 'doc_b body')
+  assert.deepEqual(h.s.state, { kind: 'idle' })
+})
+
+test('if the save sent on leaving fails too, the edit is recorded and shown on reopen', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A' })
+  await failOnScreen(h, 'A edited', { error: 'io', message: 'offline' })
+
+  await switchTo(h, 'doc_b')
+  ;(await nextCall(h, 'save')).reply.resolve({ error: 'io', message: 'still offline' })
+  await h.queue.whenIdle()
+  assert.deepEqual(failedEdits.get('doc_a'), {
+    mine: 'A edited',
+    title: undefined,
+    conflict: null,
+    message: 'still offline',
+    baseVersion: 1,
+  })
+
+  await switchTo(h, 'doc_a', { version: 1, content: 'A' })
+  assert.deepEqual(h.s.state, {
+    kind: 'unsaved',
+    docId: 'doc_a',
+    mine: 'A edited',
+    message: 'still offline',
+    title: undefined,
+    baseVersion: 1,
+  })
+})
+
+test('leaving sends nothing when the text on screen differs only because the view converted it', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: '|a|b|\n|---|---|' })
+  // The formatted view hands back `| --- |` for `|---|`; nobody typed.
+  h.s.md = '| a | b |\n| --- | --- |'
+  await switchTo(h, 'doc_b')
+  await h.queue.whenIdle()
+  assert.deepEqual(sent(h, 'save'), [])
+})
+
+test('leaving while the same text is still being saved does not send it twice', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A' })
+  h.s.md = 'A edited'
+  h.saver.edited('doc_a')
+  const saving = h.saver.saveNow('doc_a')
+  const call = await nextCall(h, 'save')
+  await switchTo(h, 'doc_b')
+  call.reply.resolve({ version: 2 })
+  await saving
+  await h.queue.whenIdle()
+  assert.equal(sent(h, 'save').length, 1)
+})
+
+test('a conflict bar still up when the reader leaves is recorded with its mine, title and conflict, and offered on reopen', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A', title: 'Offer' })
+  const refusal = conflictReply(2, 'A theirs')
+  const renaming = h.saver.rename('doc_a', 'Offer v2')
+  ;(await nextCall(h, 'save')).reply.resolve(refusal)
+  await renaming
+  assert.equal(h.s.state.kind, 'conflict')
+
+  await switchTo(h, 'doc_b')
+  await h.queue.whenIdle()
+  assert.equal(sent(h, 'save').length, 1, 'leaving sent the refused save again on the same base')
+  assert.deepEqual(failedEdits.get('doc_a'), { mine: 'A', title: 'Offer v2', conflict: refusal, message: null, baseVersion: 2 })
+
+  await switchTo(h, 'doc_a', { version: 2, content: 'A theirs', title: 'Offer' })
+  assert.deepEqual(h.s.state, {
+    kind: 'conflict',
+    docId: 'doc_a',
+    conflict: { ...refusal, currentVersion: 2, theirs: 'A theirs' },
+    mine: 'A',
+    title: 'Offer v2',
+    restored: true,
+  })
+})
+
+test('a conflict bar left behind keeps the text typed after the refusal, without sending it on the refused base', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A' })
+  const refusal = conflictReply(2, 'A theirs')
+  await failOnScreen(h, 'A mine', refusal)
+  h.s.md = 'A mine, and more'
+  h.saver.edited('doc_a')
+
+  await switchTo(h, 'doc_b')
+  await h.queue.whenIdle()
+  assert.equal(sent(h, 'save').length, 1)
+  assert.equal(failedEdits.get('doc_a')?.mine, 'A mine, and more')
+  assert.deepEqual(failedEdits.get('doc_a')?.conflict, refusal)
+})
+
+test('text typed during a delete is saved when the reader has switched away and the delete then fails', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A' })
+  const answer = deferred()
+  const removing = h.saver.remove('doc_a', () => answer.promise)
+  h.s.md = 'A, typed during the delete'
+  h.saver.edited('doc_a')
+  assert.equal(h.s.dirty, true)
+  assert.equal(h.s.timer, false)
+
+  await switchTo(h, 'doc_b')
+  answer.resolve(false)
+  await removing
+  const call = await nextCall(h, 'save')
+  assert.deepEqual(call.body, { id: 'doc_a', content: 'A, typed during the delete', baseVersion: 1 })
+  call.reply.resolve({ version: 2 })
+  await h.queue.whenIdle()
+})
+
+test('a delete goes out after the save already out for its doc, and a successful one drops that doc\'s failed edit', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A' })
+  h.s.md = 'A edited'
+  const saving = h.saver.saveNow('doc_a')
+  const call = await nextCall(h, 'save')
+  let asked = 0
+  const answer = deferred()
+  const removing = h.saver.remove('doc_a', () => { asked += 1; return answer.promise })
+  await afterMicrotasks()
+  assert.equal(asked, 0, 'the delete went out while a save for the doc was still out')
+
+  call.reply.resolve({ error: 'io', message: 'offline' })
+  await saving
+  for (let i = 0; i < 50 && asked === 0; i += 1) await afterMicrotasks()
+  assert.equal(asked, 1)
+  assert.equal(failedEdits.has('doc_a'), true, 'the save that failed while the delete waited was not kept')
+
+  answer.resolve(true)
+  await removing
+  assert.equal(failedEdits.has('doc_a'), false, 'a trashed doc kept its failed edit')
+})
+
+test('nothing is saved into a doc once its delete has succeeded, not even on the way out', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A' })
+  const answer = deferred()
+  const removing = h.saver.remove('doc_a', () => answer.promise)
+  h.s.md = 'A, typed during the delete'
+  h.saver.edited('doc_a')
+  answer.resolve(true)
+  await removing
+
+  // The page closes the doc after the delete; the editor leaves it on the way.
+  h.saver.leave('doc_a')
+  h.s.open = null
+  h.saver.open(null, h.show)
+  await h.queue.whenIdle()
+  assert.deepEqual(sent(h, 'save'), [])
+})
+
+test('flushAllEditors sends an edit whose save failed on screen, with no countdown waiting', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A' })
+  await failOnScreen(h, 'A edited', { error: 'io', message: 'offline' })
+  const untrack = trackMountedEditor({ flush: () => h.saver.flush('doc_a'), hasBar: () => h.saver.hasBar('doc_a'), queue: h.queue })
+  try {
+    const flushed = flushAllEditors()
+    const retry = await nextCall(h, 'save')
+    assert.deepEqual(retry.body, { id: 'doc_a', content: 'A edited', baseVersion: 1 })
+    retry.reply.resolve({ version: 2 })
+    assert.equal(await flushed, true)
+    assert.equal(h.s.state.kind, 'saved')
+  } finally {
+    untrack()
+  }
+})
+
+test('flushAllEditors resolves false while a conflict bar is up, even with nothing pending', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A' })
+  await failOnScreen(h, 'A mine', conflictReply(2, 'A theirs'))
+  const untrack = trackMountedEditor({ flush: () => h.saver.flush('doc_a'), hasBar: () => h.saver.hasBar('doc_a'), queue: h.queue })
+  try {
+    assert.equal(await flushAllEditors(), false)
+    assert.equal(sent(h, 'save').length, 1, 'the flush sent the refused edit again on the same base')
+  } finally {
+    untrack()
+  }
+})
+
+test('the message for a blocked "Open in Docs" names each doc whose edit was not saved', () => {
+  const edit = (title) => ({ mine: 'x', title, conflict: null, message: 'offline', baseVersion: 1 })
+  assert.equal(leaveBlockedMessage(new Map()), null)
+  assert.equal(
+    leaveBlockedMessage(new Map([['doc_a', edit('Offer')]])),
+    'An edit to "Offer" could not be saved, so Docs was not opened.',
+  )
+  assert.equal(
+    leaveBlockedMessage(new Map([['doc_a', edit(undefined)], ['doc_b', edit('Plan')], ['doc_c', edit(undefined)]])),
+    'Edits to doc_a, "Plan" and doc_c could not be saved, so Docs was not opened.',
+  )
 })
 
 test('flushAllEditors resolves true when every save lands', async () => {
@@ -306,8 +584,8 @@ test('flushAllEditors resolves true when every save lands', async () => {
   one.s.md = 'A pending'
   two.s.md = 'B pending'
   const untrack = [
-    trackMountedEditor({ flush: () => { void one.saver.save('doc_a', one.s.md) }, queue: one.queue }),
-    trackMountedEditor({ flush: () => { void two.saver.save('doc_b', two.s.md) }, queue: two.queue }),
+    trackMountedEditor({ flush: () => { void one.saver.save('doc_a', one.s.md) }, hasBar: () => false, queue: one.queue }),
+    trackMountedEditor({ flush: () => { void two.saver.save('doc_b', two.s.md) }, hasBar: () => false, queue: two.queue }),
   ]
   try {
     const flushed = flushAllEditors()
@@ -330,8 +608,8 @@ test('flushAllEditors resolves false when one save fails', async () => {
   one.s.md = 'A pending'
   two.s.md = 'B pending'
   const untrack = [
-    trackMountedEditor({ flush: () => { void one.saver.save('doc_a', one.s.md) }, queue: one.queue }),
-    trackMountedEditor({ flush: () => { void two.saver.save('doc_b', two.s.md) }, queue: two.queue }),
+    trackMountedEditor({ flush: () => { void one.saver.save('doc_a', one.s.md) }, hasBar: () => false, queue: one.queue }),
+    trackMountedEditor({ flush: () => { void two.saver.save('doc_b', two.s.md) }, hasBar: () => false, queue: two.queue }),
   ]
   try {
     const flushed = flushAllEditors()

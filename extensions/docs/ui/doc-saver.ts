@@ -7,8 +7,12 @@
  * NOTHING TYPED IS DROPPED, AND NOTHING LANDS IN THE WRONG DOC. Each rule below
  * closes a way an edit used to go missing:
  *
- * - A pending autosave is flushed, not cleared, when the editor moves to
- *   another doc, unmounts or the page is hidden (`autosave.ts`).
+ * - Leaving a doc -- another doc opens, the editor unmounts, the page is
+ *   hidden, `flushAllEditors` runs -- saves the unsaved edit, whether or not
+ *   its autosave countdown is still waiting: after a save failed on screen,
+ *   none is. A conflict or not-saved bar still up when the editor moves to
+ *   another doc or unmounts is kept in `failedEdits`, so the next open offers
+ *   it again.
  * - Reads and saves for one doc run one at a time (`save-queue.ts`), and a
  *   save reads its base version when it starts. The last confirmed version and
  *   body are kept per doc id, so a save for a doc the reader has already left
@@ -31,11 +35,16 @@
  *   an edit typed during the wait (an autosave tick, a Cmd+S) cannot queue
  *   behind the run and land on top of theirs once it is applied.
  * - An edit typed while a delete is out is still marked dirty, so a failed
- *   delete saves it.
+ *   delete saves it. The delete goes through the doc's queue, after any save
+ *   already out for it; once it succeeds, nothing more is saved into that doc
+ *   and its `failedEdits` entry goes.
  * - A save that fails while its doc is not on screen is kept, and shown the
  *   next time that doc opens -- by any editor, not just the one that failed.
  *   A later save that merely succeeds does not clear it: only the load that
- *   shows it, or the bar's own buttons, take it out of `failedEdits`.
+ *   shows it, the bar's own buttons, or the doc's delete take it out of
+ *   `failedEdits`. It comes back as a conflict when the doc has moved on from
+ *   the version the edit was made on, so "Restore it" never writes over a
+ *   version the reader was not shown.
  *
  * Pure: no React, no DOM. The shared queue, `failedEdits` and the failure
  * count come from `doc-store.ts`; everything on screen goes through `DocScreen`.
@@ -67,8 +76,11 @@ export type SaveState =
    * doc was not on screen: the editor then shows the doc as loaded, not `mine`.
    */
   | { kind: 'conflict'; docId: string; conflict: Conflict; mine: string; title?: string; restored?: boolean }
-  /** A save made while the doc was not on screen failed for a reason other than a conflict. */
-  | { kind: 'unsaved'; docId: string; mine: string; message: string }
+  /**
+   * A save made while the doc was not on screen failed for a reason other than
+   * a conflict, on the version that is still current (`baseVersion`).
+   */
+  | { kind: 'unsaved'; docId: string; mine: string; message: string; title?: string; baseVersion: number }
 
 const IDLE: SaveState = { kind: 'idle' }
 
@@ -96,6 +108,8 @@ export interface DocScreen {
   /** Whether the reader edited since the doc loaded or was last saved on screen. */
   isDirty(): boolean
   setDirty(dirty: boolean): void
+  /** The bar or status shown now, as last set. */
+  saveState(): SaveState
   setSaveState(next: SaveState | ((prev: SaveState) => SaveState)): void
   setVersion(version: number): void
   /** The stored title of the doc on screen, null when no doc is shown. */
@@ -130,6 +144,12 @@ export interface SaveOptions {
   title?: string
   /** Save on this version rather than the confirmed one ("Keep mine"). */
   baseVersion?: number
+  /**
+   * Send nothing when the body is already what this editor last saw confirmed:
+   * a save of the same text may still have been out when this one was asked
+   * for, and a second copy would only write another version.
+   */
+  unlessConfirmed?: boolean
 }
 
 export interface DocSaver {
@@ -158,31 +178,71 @@ export interface DocSaver {
   discardUnsaved(state: SaveState): void
   /** The trash button. `onDelete` resolves true when the doc is gone. */
   remove(docId: string | null, onDelete: () => Promise<boolean>): Promise<void>
+  /** Pagehide and `flushAllEditors`: saves the unsaved edit to `docId` now. */
+  flush(docId: string | null): void
+  /** The editor moves off `docId`: keeps a bar still up, then saves the unsaved edit. */
+  leave(docId: string | null): void
+  /** Whether a conflict or not-saved bar for `docId` is up. */
+  hasBar(docId: string): boolean
 }
 
 /**
- * The bar for an edit that failed while its doc was not on screen. A conflict
- * is compared against the doc as just loaded, which is what the server holds
- * now, not what it held when the save was refused.
+ * The bar for an edit that failed while its doc was not on screen, against the
+ * doc as just loaded -- what the server holds now, not what it held when the
+ * save failed.
+ *
+ * A refused save is a conflict. So is any other failure once the doc has moved
+ * on from the version the edit was made on: "Restore it" saves on the version
+ * just loaded, and would silently erase a newer one the reader was never
+ * shown. Only a failure on the version still current is a plain "not saved"
+ * bar.
  */
 export function stateForFailedEdit(docId: string, failed: FailedEdit, current: ConfirmedDoc): SaveState {
-  if (failed.conflict) {
+  if (failed.conflict || failed.baseVersion !== current.version) {
+    const refusal: Conflict = failed.conflict ?? {
+      error: 'conflict',
+      message: failed.message ?? 'The save failed.',
+      currentVersion: current.version,
+      modifiedBy: null,
+      theirs: current.content,
+    }
     return {
       kind: 'conflict',
       docId,
-      conflict: { ...failed.conflict, currentVersion: current.version, theirs: current.content },
+      conflict: { ...refusal, currentVersion: current.version, theirs: current.content },
       mine: failed.mine,
       title: failed.title,
       restored: true,
     }
   }
-  return { kind: 'unsaved', docId, mine: failed.mine, message: failed.message ?? 'The save failed.' }
+  return {
+    kind: 'unsaved',
+    docId,
+    mine: failed.mine,
+    message: failed.message ?? 'The save failed.',
+    title: failed.title,
+    baseVersion: failed.baseVersion,
+  }
+}
+
+/**
+ * What "Open in Docs" says when kept failed edits stop it: each doc by the
+ * title its failed save carried, or by its id when it carried none. Null when
+ * nothing is kept.
+ */
+export function leaveBlockedMessage(edits: ReadonlyMap<string, FailedEdit> = failedEdits): string | null {
+  const names = [...edits].map(([docId, edit]) => (edit.title ? `"${edit.title}"` : docId))
+  if (names.length === 0) return null
+  if (names.length === 1) return `An edit to ${names[0]} could not be saved, so Docs was not opened.`
+  return `Edits to ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} could not be saved, so Docs was not opened.`
 }
 
 /** A mounted editor, as `flushAllEditors` sees it. */
 export interface MountedEditor {
-  /** Saves the editor's pending edit now. */
+  /** Saves the editor's unsaved edit now. */
   flush(): void
+  /** Whether the editor shows a conflict or not-saved bar the reader has not resolved. */
+  hasBar(): boolean
   /** The queue its saves go through. */
   queue: SaveQueue
 }
@@ -202,8 +262,10 @@ export function trackMountedEditor(entry: MountedEditor): () => void {
  *
  * Resolves true only when every save it waited on landed: false when one of
  * them failed (on screen, where its editor shows the bar or the error, or off
- * screen), or when any doc still has an edit in `failedEdits`. Those live in
- * module memory, which a page load wipes, so a caller must not leave on false.
+ * screen), when any doc still has an edit in `failedEdits`, or when a mounted
+ * editor still shows a conflict or not-saved bar -- that edit is not saved
+ * either. All of it lives in module memory, which a page load wipes, so a
+ * caller must not leave on false.
  */
 export async function flushAllEditors(): Promise<boolean> {
   const failuresBefore = saveFailureCount()
@@ -213,7 +275,8 @@ export async function flushAllEditors(): Promise<boolean> {
     queues.add(entry.queue)
   }
   await Promise.all([...queues].map((queue) => queue.whenIdle()))
-  return saveFailureCount() === failuresBefore && failedEdits.size === 0
+  const barUp = [...mountedEditors].some((entry) => entry.hasBar())
+  return saveFailureCount() === failuresBefore && failedEdits.size === 0 && !barUp
 }
 
 function messageOf(err: unknown): string {
@@ -228,6 +291,8 @@ export function createDocSaver({ rpc, queue, screen }: { rpc: Rpc; queue: SaveQu
   const confirmed = new Map<string, ConfirmedDoc>()
   /** Per doc id, bumped by this editor's "Keep theirs" to void its own queued saves. */
   const generations = new Map<string, number>()
+  /** Docs this editor deleted: nothing more is saved into them until one loads again. */
+  const trashed = new Set<string>()
 
   const canSave = (docId: string | null, need: ScreenNeed = 'unblocked'): docId is string => {
     if (docId === null || screen.openId() !== docId) return false
@@ -255,6 +320,7 @@ export function createDocSaver({ rpc, queue, screen }: { rpc: Rpc; queue: SaveQu
         if (stale) return
         const current = { version: loaded.version, content: loaded.content }
         confirmed.set(docId, current)
+        trashed.delete(docId)
         screen.setDoc(loaded)
         screen.setVersion(loaded.version)
         screen.setTitleField(loaded.title)
@@ -300,24 +366,25 @@ export function createDocSaver({ rpc, queue, screen }: { rpc: Rpc; queue: SaveQu
     const generation = generationOf(generations, docId)
     return queue(docId, async () => {
       const current = () => generationOf(generations, docId) === generation
-      if (!current() || screen.isDeleteBlocked(docId)) return
+      if (!current() || screen.isDeleteBlocked(docId) || trashed.has(docId)) return
       const content = md ?? confirmed.get(docId)?.content
       if (content === undefined) return
+      if (opts.unlessConfirmed && confirmed.get(docId)?.content === content) return
       // Loaded, not merely open: a doc reopened while this save was out is read
       // after it, and that load would wipe a bar put up before it.
       const onScreen = () => canSave(docId)
+      const baseVersion = opts.baseVersion ?? confirmed.get(docId)?.version ?? 0
       const fail = (conflict: Conflict | null, message: string | null) => {
         if (!current()) return
         noteSaveFailure()
         if (!onScreen()) {
-          failedEdits.set(docId, { mine: content, title: opts.title, conflict, message })
+          failedEdits.set(docId, { mine: content, title: opts.title, conflict, message, baseVersion })
           return
         }
         if (conflict) screen.setSaveState({ kind: 'conflict', docId, conflict, mine: content, title: opts.title })
         else screen.setSaveState({ kind: 'error', message: message ?? 'The save failed.' })
       }
       if (onScreen()) screen.setSaveState({ kind: 'saving' })
-      const baseVersion = opts.baseVersion ?? confirmed.get(docId)?.version ?? 0
       try {
         const raw = await rpc('save', opts.title === undefined
           ? { id: docId, content, baseVersion }
@@ -505,30 +572,110 @@ export function createDocSaver({ rpc, queue, screen }: { rpc: Rpc; queue: SaveQu
    * confirmed meanwhile: a save that was out when the button was pressed
    * landed without touching the screen. Then any text that differs from the
    * saved text is scheduled, whether it was typed before the click or after.
+   *
+   * The delete runs in the doc's queue, after any save already out for it, so
+   * none of those lands in the trash or leaves a failed edit for a doc that is
+   * gone. What follows it runs in the same step, so a save queued meanwhile --
+   * by leaving the doc -- starts only once saving is back on, or the doc is
+   * known to be gone and the save does nothing.
    */
   const remove = async (docId: string | null, onDelete: () => Promise<boolean>): Promise<void> => {
     if (docId === null || screen.isDeleteBlocked(docId)) return
     screen.setDeleteBlocked(docId)
     screen.cancelAutosave()
     screen.showDeleting(docId, true)
-    let gone = false
-    try {
-      gone = await onDelete()
-    } catch {
-      gone = false
-    }
-    screen.showDeleting(docId, false)
-    if (gone || !screen.isDeleteBlocked(docId)) return
-    screen.setDeleteBlocked(null)
-    if (!canSave(docId, 'loaded')) return
-    const known = confirmed.get(docId)
-    if (known) {
-      screen.setVersion(known.version)
-      if (!screen.isDirty()) screen.setSavedMd(known.content)
-    }
-    screen.setSaveState((state) => (state.kind === 'saving' ? IDLE : state))
-    if (screen.currentMd() !== screen.savedMd()) screen.scheduleAutosave()
+    await queue(docId, async () => {
+      let gone = false
+      try {
+        gone = await onDelete()
+      } catch {
+        gone = false
+      }
+      screen.showDeleting(docId, false)
+      if (gone) {
+        trashed.add(docId)
+        failedEdits.delete(docId)
+        return
+      }
+      if (!screen.isDeleteBlocked(docId)) return
+      screen.setDeleteBlocked(null)
+      if (!canSave(docId, 'loaded')) return
+      const known = confirmed.get(docId)
+      if (known) {
+        screen.setVersion(known.version)
+        if (!screen.isDirty()) screen.setSavedMd(known.content)
+      }
+      screen.setSaveState((state) => (state.kind === 'saving' ? IDLE : state))
+      if (screen.currentMd() !== screen.savedMd()) screen.scheduleAutosave()
+    })
   }
 
-  return { canSave, open, edited, save, saveNow, rename, leaveView, keepMine, keepTheirs, restoreUnsaved, discardUnsaved, remove }
+  /** The conflict or not-saved bar up for `docId`, while the screen shows that doc loaded. */
+  const barFor = (docId: string): Extract<SaveState, { kind: 'conflict' | 'unsaved' }> | null => {
+    if (!canSave(docId, 'loaded')) return null
+    const state = screen.saveState()
+    return (state.kind === 'conflict' || state.kind === 'unsaved') && state.docId === docId ? state : null
+  }
+
+  /** The text on screen for `docId` that the reader edited and the server has not confirmed. */
+  const unsavedEdit = (docId: string): string | null => {
+    if (!canSave(docId, 'loaded') || !screen.isDirty()) return null
+    const md = screen.currentMd()
+    return md === screen.savedMd() ? null : md
+  }
+
+  /**
+   * Saves the unsaved edit to `docId` now, whether or not its countdown is
+   * still waiting: after a save failed on screen, none is. Not while a conflict
+   * bar from a save made on screen is up -- the edit would be refused again on
+   * the same base, and the bar is what holds it.
+   */
+  const flush = (docId: string | null): void => {
+    screen.cancelAutosave()
+    if (docId === null) return
+    const md = unsavedEdit(docId)
+    if (md === null) return
+    const bar = barFor(docId)
+    if (bar?.kind === 'conflict' && !bar.restored) return
+    void save(docId, md, { unlessConfirmed: true })
+  }
+
+  /**
+   * The editor moves off `docId`: another doc opens, or it unmounts. A bar
+   * still up is kept in `failedEdits` first, so the next open offers it again
+   * instead of the edit going away with the screen. For a conflict from a save
+   * made on screen, the edit kept is the text on screen, which carries whatever
+   * was typed after the refusal. Then the unsaved edit is saved; its failure,
+   * now off screen, is kept by the rule in `save`.
+   */
+  const leave = (docId: string | null): void => {
+    const bar = docId === null ? null : barFor(docId)
+    if (docId !== null && bar?.kind === 'conflict') {
+      const mine = bar.restored ? bar.mine : unsavedEdit(docId) ?? bar.mine
+      failedEdits.set(docId, { mine, title: bar.title, conflict: bar.conflict, message: null, baseVersion: bar.conflict.currentVersion })
+    } else if (docId !== null && bar?.kind === 'unsaved') {
+      failedEdits.set(docId, { mine: bar.mine, title: bar.title, conflict: null, message: bar.message, baseVersion: bar.baseVersion })
+    }
+    flush(docId)
+  }
+
+  const hasBar = (docId: string): boolean => barFor(docId) !== null
+
+  return {
+    canSave,
+    open,
+    edited,
+    save,
+    saveNow,
+    rename,
+    leaveView,
+    keepMine,
+    keepTheirs,
+    restoreUnsaved,
+    discardUnsaved,
+    remove,
+    flush,
+    leave,
+    hasBar,
+  }
 }

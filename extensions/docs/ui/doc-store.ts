@@ -11,8 +11,9 @@
  *   editor's read waits in the same queue, so it reads after the flushed save
  *   has landed, with the edit and its version in it.
  * - `failedEdits`: the latest save per doc that failed while that doc was not
- *   on screen, kept until the doc is opened again -- in whichever editor -- so
- *   the edit is not lost unseen.
+ *   on screen, or a bar still up when its editor left the doc, kept until the
+ *   doc is opened again -- in whichever editor -- so the edit is not lost
+ *   unseen.
  * - `saveFailureCount`: how many saves have failed so far, on screen or not,
  *   so a flush can tell whether the saves it waited on all landed.
  *
@@ -49,6 +50,12 @@ export interface FailedEdit {
   conflict: Conflict | null
   /** Set when the save failed for any other reason. */
   message: string | null
+  /**
+   * The version the edit was made on: the base the failed save was sent with.
+   * For a conflict bar kept when its editor left the doc, the version that
+   * refused it. Compared on the next open only when `conflict` is null.
+   */
+  baseVersion: number
 }
 
 export const saveQueue = createSaveQueue()

@@ -146,6 +146,8 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   const [doc, setDoc] = useState<Doc | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saveState, setSaveState] = useState<SaveState>({ kind: 'idle' })
+  /** The same, readable by the saver between renders; every write goes through the screen. */
+  const saveStateRef = useRef<SaveState>({ kind: 'idle' })
   const [version, setVersion] = useState<number>(0)
   const [mode, setMode] = useState<EditorMode>(() => readEditorMode())
   const [rawText, setRawText] = useState('')
@@ -199,13 +201,6 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     titlesRef.current = titles
     docRef.current = doc
   })
-  // An unmounted editor shows no doc: a save flushed on the way out lands off
-  // screen, so a failure is kept for the next open instead of vanishing.
-  useEffect(() => () => {
-    openIdRef.current = null
-    loadedIdRef.current = null
-  }, [])
-
   const setRaw = useCallback((text: string) => {
     rawTextRef.current = text
     setRawText(text)
@@ -239,7 +234,12 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     setSavedMd: (md) => { savedMd.current = md },
     isDirty: () => dirty.current,
     setDirty: (value) => { dirty.current = value },
-    setSaveState,
+    saveState: () => saveStateRef.current,
+    setSaveState: (next) => {
+      const value = typeof next === 'function' ? next(saveStateRef.current) : next
+      saveStateRef.current = value
+      setSaveState(value)
+    },
     setVersion,
     docTitle: () => docRef.current?.title ?? null,
     setDoc: (next) => {
@@ -341,7 +341,8 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
 
   // Autosave: only when the markdown is actually different from what the
   // server last confirmed. Moving to another doc, unmounting and hiding the
-  // page flush the pending edit instead of dropping it.
+  // page save the unsaved edit, countdown or not (`leave` and `flush` in
+  // `doc-saver.ts`).
   useEffect(() => {
     if (!editor || !id) return
     const docId = id
@@ -352,19 +353,36 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
       save: (md) => { void saver.save(docId, md) },
     })
     autosaveRef.current = autosave
-    const untrack = trackMountedEditor({ flush: () => autosave.flushPending(), queue: saveQueue })
+    const untrack = trackMountedEditor({
+      flush: () => saver.flush(docId),
+      hasBar: () => saver.hasBar(docId),
+      queue: saveQueue,
+    })
     const onEdit = () => saver.edited(docId)
-    const onPageHide = () => autosave.flushPending()
+    const onPageHide = () => saver.flush(docId)
     editor.on('update', onEdit)
     window.addEventListener('pagehide', onPageHide)
     return () => {
       editor.off('update', onEdit)
       window.removeEventListener('pagehide', onPageHide)
-      autosave.flushPending()
       untrack()
+      saver.leave(docId)
+      autosave.cancel()
       if (autosaveRef.current === autosave) autosaveRef.current = null
     }
   }, [editor, id, screen, saver])
+
+  // An unmounted editor shows no doc: a save sent on the way out lands off
+  // screen, so a failure is kept for the next open instead of vanishing.
+  //
+  // Declared after the effect above ON PURPOSE. React runs an unmounting
+  // component's cleanups in declaration order, so `leave` still sees the doc
+  // as open and loaded -- which it needs, to keep a bar and to tell the doc's
+  // own text from a previous doc's -- and only then is it cleared.
+  useEffect(() => () => {
+    openIdRef.current = null
+    loadedIdRef.current = null
+  }, [])
 
   // Cmd+S / Ctrl+S
   useEffect(() => {
