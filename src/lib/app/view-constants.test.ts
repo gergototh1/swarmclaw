@@ -14,6 +14,14 @@ describe('panel sidebar route helpers', () => {
     assert.equal(shouldAutoOpenPanelSidebar('knowledge', false), false)
   })
 
+  it('auto-opens the Chat conversation list, reload or bookmark included', () => {
+    // conversations (the /chat route) renders SidebarPanelShell just like
+    // every other panel view; before this it wasn't in PANEL_SIDEBAR_VIEWS,
+    // so only a rail click ever opened the list -- a reload, a bookmark, or
+    // opening /chat inside the tab host left the page empty.
+    assert.equal(shouldAutoOpenPanelSidebar('conversations', true), true)
+  })
+
   it('does not auto-open full-width views without panel layouts', () => {
     assert.equal(shouldAutoOpenPanelSidebar('home', true), false)
     assert.equal(shouldAutoOpenPanelSidebar('settings', true), false)

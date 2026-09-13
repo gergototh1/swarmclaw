@@ -282,11 +282,19 @@ export const FULL_WIDTH_VIEWS = new Set<AppView>([
  * and what a route actually renders are two separate claims, and nothing
  * checks that they agree. A view listed here with no panel leaks a true flag
  * into the next view; a view with a panel listed as full-width loses it.
+ *
+ * `conversations` (the Chat route, `src/app/chat`) belongs here for the same
+ * reason `chatrooms`, `missions` and `projects` do: it has always rendered
+ * SidebarPanelShell, but sat in neither set, so the only thing that ever set
+ * `sidebarOpen` for it was the rail's own click handler. A reload, a
+ * bookmark, or opening it inside the tab host (no rail there at all) landed
+ * on a page with no conversation list -- not full-width, just empty.
  */
 export const PANEL_SIDEBAR_VIEWS = new Set<AppView>([
   'agents',
   'chatrooms',
   'connectors',
+  'conversations',
   'extensions',
   'knowledge',
   'mcp_servers',
