@@ -2,6 +2,7 @@
 
 import { Component, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { reportTabTitle } from '@/components/layout/tab-frame-bridge'
 import { MainContent } from '@/components/layout/main-content'
 import { getHostRegistry } from '@/components/layout/extension-host'
 import { useExtensionPagesState } from '@/hooks/use-extension-pages'
@@ -148,9 +149,11 @@ export default function ExtensionPageRoute() {
   const setTitle = useCallback((text: string | null) => {
     if (baseTitle.current === null) baseTitle.current = document.title
     document.title = pageDocumentTitle(text, baseTitle.current)
+    reportTabTitle(text)
   }, [])
   useEffect(() => () => {
     if (baseTitle.current !== null) document.title = baseTitle.current
+    reportTabTitle(null)
   }, [extensionId, pageId])
 
   if (!page) {

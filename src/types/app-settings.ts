@@ -138,6 +138,11 @@ export interface AppSettings {
   // Theme
   themeHue?: string
   themeMode?: ThemeMode
+  /**
+   * Browser-style tabs on desktop widths. Undefined means on; false is the kill
+   * switch that brings back the single-page app.
+   */
+  tabsEnabled?: boolean
   // Web search provider
   webSearchProvider?: 'duckduckgo' | 'google' | 'bing' | 'searxng' | 'tavily' | 'brave' | 'exa'
   searxngUrl?: string

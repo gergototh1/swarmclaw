@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { initAudioContext } from '@/lib/tts'
@@ -15,6 +15,7 @@ import { useSwipe } from '@/hooks/use-swipe'
 import { useWs } from '@/hooks/use-ws'
 import { api } from '@/lib/app/api-client'
 import { pathToView, useNavigate } from '@/lib/app/navigation'
+import { detectShellMode, tabIdFromWindow } from '@/lib/app/shell-mode'
 import { shouldAutoOpenPanelSidebar } from '@/lib/app/view-constants'
 import { normalizeThemeMode } from '@/lib/theme-mode'
 
@@ -24,6 +25,7 @@ import { ExtensionHost } from '@/components/layout/extension-host'
 import { ErrorBoundary } from '@/components/layout/error-boundary'
 import { SheetLayer } from '@/components/layout/sheet-layer'
 import { CommandPalette } from '@/components/shared/command-palette'
+import { TabFrameBridge, postToHost } from '@/components/layout/tab-frame-bridge'
 
 import type { AppView } from '@/types'
 
@@ -61,6 +63,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const isDesktop = useMediaQuery('(min-width: 768px)')
 
   const isAuthPage = AUTH_PATHS.has(pathname)
+
+  const tabsEnabled = appSettings.tabsEnabled !== false
+  // Read from `window`, so it is 'plain' during server rendering. The first
+  // client renders show the boot loader either way, so the difference never
+  // reaches markup that hydrates.
+  const shellMode = useMemo(
+    () => detectShellMode(typeof window === 'undefined' ? undefined : window, { isDesktop, tabsEnabled }),
+    [isDesktop, tabsEnabled],
+  )
+  const frameTabId = useMemo(
+    () => (shellMode === 'tab' && typeof window !== 'undefined' ? tabIdFromWindow(window) : null),
+    [shellMode],
+  )
 
   // Audio context init on first click
   useEffect(() => {
@@ -125,15 +140,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       }
       return
     }
-    if (!authenticated) { router.replace('/login'); return }
+    // A tab never shows the login or setup page itself: the host window does,
+    // and reloads its tabs afterwards.
+    const leaveTo = (path: string) => {
+      if (frameTabId) postToHost({ source: 'sc-tab', type: 'auth-required', tabId: frameTabId })
+      else router.replace(path)
+    }
+    if (!authenticated) { leaveTo('/login'); return }
     if (!userReady) return
-    if (setupDone === false) { router.replace('/setup'); return }
-    if (!currentUser) { router.replace('/setup'); return }
-  }, [hydrated, authChecked, authenticated, currentUser, setupDone, router, isAuthPage, userReady])
+    if (setupDone === false) { leaveTo('/setup'); return }
+    if (!currentUser) { leaveTo('/setup'); return }
+  }, [hydrated, authChecked, authenticated, currentUser, setupDone, router, isAuthPage, userReady, frameTabId])
 
   // Star notification (one-time)
   useEffect(() => {
-    if (!authenticated) return
+    if (!authenticated || shellMode === 'tab') return
     if (safeStorageGet(STAR_NOTIFICATION_KEY)) return
     safeStorageSet(STAR_NOTIFICATION_KEY, '1')
     void api('POST', '/notifications', {
@@ -148,7 +169,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     }).then(() => {
       void useAppStore.getState().loadNotifications()
     }).catch(() => {})
-  }, [authenticated])
+  }, [authenticated, shellMode])
 
   // Theme hue
   useEffect(() => {
@@ -292,6 +313,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         onReload={reloadApp}
         onReset={resetLocalSession}
       />
+    )
+  }
+
+  if (shellMode === 'tab') {
+    return (
+      <div className="h-full flex overflow-hidden">
+        <ExtensionHost />
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+        <SheetLayer profileSheetOpen={profileSheetOpen} setProfileSheetOpen={setProfileSheetOpen} />
+        {frameTabId && <TabFrameBridge tabId={frameTabId} />}
+      </div>
     )
   }
 
