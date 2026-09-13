@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { routeLinkClick } from '@/lib/app/tab-navigation'
+import type { PanelIntent } from '@/lib/app/tab-protocol'
 
 export function RailTooltip({ label, description, children }: { label: string; description: string; children: React.ReactNode }) {
   return (
@@ -27,18 +28,22 @@ export function RailTooltip({ label, description, children }: { label: string; d
  * labelled — the 52px icon rail has no room for it — so this renders one row,
  * sized to match the built-in rows below it (`SectionSubList`'s own `<Link>`)
  * rather than the wider rail-button form.
+ *
+ * `panel` is what the active tab does with its side panel when the tab host
+ * routes the click there; in a plain window `onClick` does that job itself.
  */
-export function ExtensionNavItem({ href, label, isActive, onClick, children }: {
+export function ExtensionNavItem({ href, label, isActive, onClick, panel, children }: {
   href: string
   label: string
   isActive: boolean
   onClick?: () => void
+  panel?: PanelIntent
   children: React.ReactNode
 }) {
   return (
     <Link
       href={href}
-      onClick={(e) => { if (routeLinkClick(e, href) !== 'background') onClick?.() }}
+      onClick={(e) => { if (routeLinkClick(e, href, { panel }) !== 'background') onClick?.() }}
       onAuxClick={(e) => { if (e.button === 1) routeLinkClick(e, href) }}
       className={`flex items-center gap-2 px-2.5 py-1.5 rounded-sm text-[12.5px] transition-colors no-underline
         ${isActive

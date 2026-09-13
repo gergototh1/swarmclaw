@@ -2,14 +2,17 @@
 
 import { create } from 'zustand'
 import { safeStorageGetJson, safeStorageSet } from '@/lib/app/safe-storage'
-import { initialTabsState, landOnUrl, newTabId, tabsStateFromStorage, type TabsState } from '@/lib/app/tabs'
+import { newTabId, restoreTabsState, type TabsState } from '@/lib/app/tabs'
 
 export const TABS_STORAGE_KEY = 'sc_tabs_v1'
 
 interface TabsStore {
   state: TabsState | null
-  /** Restores the stored tabs and lands on the URL the host window was loaded at. */
-  hydrate: (url: string) => void
+  /**
+   * Restores the stored tabs and lands on the address the host window was
+   * loaded at (`href`), or on Home when that is not a tabbable app path.
+   */
+  hydrate: (href: string, origin: string) => void
   apply: (change: (state: TabsState) => TabsState) => void
 }
 
@@ -23,10 +26,9 @@ function persist(state: TabsState): void {
  */
 export const useTabsStore = create<TabsStore>((set, get) => ({
   state: null,
-  hydrate: (url) => {
+  hydrate: (href, origin) => {
     if (get().state) return
-    const stored = tabsStateFromStorage(safeStorageGetJson<unknown>(TABS_STORAGE_KEY, null))
-    const state = stored ? landOnUrl(stored, url, newTabId) : initialTabsState(newTabId, url)
+    const state = restoreTabsState(safeStorageGetJson<unknown>(TABS_STORAGE_KEY, null), href, origin, newTabId)
     persist(state)
     set({ state })
   },

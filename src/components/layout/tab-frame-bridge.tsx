@@ -2,9 +2,11 @@
 
 import { useEffect } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { sidebarOpenForNavigate } from '@/lib/app/panel-intent'
 import { tabIdFromWindow } from '@/lib/app/shell-mode'
 import { runTabFlushHandlers } from '@/lib/app/tab-flush'
 import { appUrlFromHref, isEditableElementLike, parseHostMessage, tabCommandForKey, type FrameMessage } from '@/lib/app/tab-protocol'
+import { useAppStore } from '@/stores/use-app-store'
 
 export function postToHost(message: FrameMessage): void {
   window.parent.postMessage(message, window.location.origin)
@@ -104,6 +106,13 @@ export function TabFrameBridge({ tabId }: { tabId: string }) {
       const message = parseHostMessage(event.data)
       if (!message) return
       if (message.type === 'navigate') {
+        // The side panel renders here, from this window's store, so a rail
+        // click's intent for it is applied here -- against the path this tab
+        // is on before it moves, as the rail does in a plain window.
+        if (message.panel) {
+          const { sidebarOpen, setSidebarOpen } = useAppStore.getState()
+          setSidebarOpen(sidebarOpenForNavigate(message.panel, window.location.pathname, message.href, sidebarOpen))
+        }
         router.push(message.href)
         return
       }

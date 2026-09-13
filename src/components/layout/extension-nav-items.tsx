@@ -10,6 +10,7 @@ import {
 import { ExtensionNavItem } from '@/components/layout/nav-item'
 import { pagesForSection, useExtensionPages, type ExtensionPage } from '@/hooks/use-extension-pages'
 import type { NavSectionId } from '@/lib/app/nav-sections'
+import type { PanelIntent } from '@/lib/app/tab-protocol'
 import type { ExtensionPageIconName } from '@/lib/extension-page-nav'
 
 /**
@@ -35,9 +36,10 @@ export function PageIcon({ name, size = 18 }: { name?: string; size?: number }) 
   return <Icon size={size} />
 }
 
-function ExtensionPageLinks({ pages, onNavigate }: {
+function ExtensionPageLinks({ pages, onNavigate, panel }: {
   pages: ExtensionPage[]
   onNavigate?: () => void
+  panel?: PanelIntent
 }) {
   const pathname = usePathname()
   return (
@@ -49,6 +51,7 @@ function ExtensionPageLinks({ pages, onNavigate }: {
           label={p.label}
           isActive={pathname === p.path || pathname.startsWith(`${p.path}/`)}
           onClick={onNavigate}
+          panel={panel}
         >
           <PageIcon name={p.icon} />
         </ExtensionNavItem>
@@ -70,15 +73,17 @@ function ExtensionPageLinks({ pages, onNavigate }: {
  * built-in entry, which is how the CRM page ended up at the very bottom of the
  * rail for no reason its own extension declared.
  */
-export function ExtensionPagesForSection({ section, onNavigate }: {
+export function ExtensionPagesForSection({ section, onNavigate, panel }: {
   section: NavSectionId
   onNavigate?: () => void
+  /** Passed to each link for the tab host; see `ExtensionNavItem`. */
+  panel?: PanelIntent
 }) {
   const pages = pagesForSection(useExtensionPages(), section)
   if (pages.length === 0) return null
   return (
     <>
-      <ExtensionPageLinks pages={pages} onNavigate={onNavigate} />
+      <ExtensionPageLinks pages={pages} onNavigate={onNavigate} panel={panel} />
       <div className="my-2 mx-2 h-px bg-line-subtle" />
     </>
   )

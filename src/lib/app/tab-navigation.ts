@@ -1,8 +1,19 @@
+import type { PanelIntent } from '@/lib/app/tab-protocol'
 import { hmrSingleton } from '@/lib/shared-utils'
 
+export interface NavigateOptions {
+  /** What the active tab does with its side panel; see `PanelIntent`. */
+  panel?: PanelIntent
+}
+
 export interface TabNavigator {
-  navigateActive(href: string): void
+  navigateActive(href: string, opts?: NavigateOptions): void
   openInNewTab(href: string, opts?: { activate?: boolean }): void
+  /**
+   * Moves keyboard focus into the active tab's frame, unless something in the
+   * host window (a dialog, a sheet) already holds it.
+   */
+  focusActive(): void
 }
 
 export interface ClickLike {
@@ -30,7 +41,7 @@ export function getTabNavigator(): TabNavigator | null {
  * caller can skip its own click handling for a background tab (the active tab
  * did not move); false, leaving the link alone, when there is no host.
  */
-export function routeLinkClick(e: ClickLike, href: string): 'active' | 'background' | false {
+export function routeLinkClick(e: ClickLike, href: string, opts: NavigateOptions = {}): 'active' | 'background' | false {
   const navigator = slot.current
   if (!navigator) return false
   e.preventDefault()
@@ -38,13 +49,21 @@ export function routeLinkClick(e: ClickLike, href: string): 'active' | 'backgrou
     navigator.openInNewTab(href, { activate: false })
     return 'background'
   }
-  navigator.navigateActive(href)
+  navigator.navigateActive(href, opts)
   return 'active'
 }
 
-export function navigateInActiveTab(href: string): boolean {
+export function navigateInActiveTab(href: string, opts: NavigateOptions = {}): boolean {
   const navigator = slot.current
   if (!navigator) return false
-  navigator.navigateActive(href)
+  navigator.navigateActive(href, opts)
+  return true
+}
+
+/** Focus back into the active tab, in the tab host; false (and nothing moves) everywhere else. */
+export function focusActiveTab(): boolean {
+  const navigator = slot.current
+  if (!navigator) return false
+  navigator.focusActive()
   return true
 }

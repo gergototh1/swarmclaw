@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict'
 import { afterEach, describe, it } from 'node:test'
-import { navigateInActiveTab, routeLinkClick, setTabNavigator, type TabNavigator } from './tab-navigation'
+import { focusActiveTab, navigateInActiveTab, routeLinkClick, setTabNavigator, type TabNavigator } from './tab-navigation'
 
 function recorder() {
   const calls: string[] = []
   const navigator: TabNavigator = {
-    navigateActive: (href) => { calls.push(`active:${href}`) },
+    navigateActive: (href, opts) => { calls.push(opts?.panel ? `active:${href}:${opts.panel}` : `active:${href}`) },
     openInNewTab: (href, opts) => { calls.push(`new:${href}:${opts?.activate ?? true}`) },
+    focusActive: () => { calls.push('focus') },
   }
   return { calls, navigator }
 }
@@ -37,6 +38,14 @@ describe('routeLinkClick', () => {
     assert.deepEqual(calls, ['active:/tasks'])
   })
 
+  it('passes the panel intent to the active tab, and not to a background one', () => {
+    const { calls, navigator } = recorder()
+    setTabNavigator(navigator)
+    assert.equal(routeLinkClick(click().event, '/tasks', { panel: 'toggle' }), 'active')
+    assert.equal(routeLinkClick(click({ metaKey: true }).event, '/home', { panel: 'close' }), 'background')
+    assert.deepEqual(calls, ['active:/tasks:toggle', 'new:/home:false'])
+  })
+
   it('opens a modified or middle click in a background tab', () => {
     const { calls, navigator } = recorder()
     setTabNavigator(navigator)
@@ -55,5 +64,15 @@ describe('navigateInActiveTab', () => {
     setTabNavigator(navigator)
     assert.equal(navigateInActiveTab('/tasks'), true)
     assert.deepEqual(calls, ['active:/tasks'])
+  })
+})
+
+describe('focusActiveTab', () => {
+  it('does nothing without a host, and asks the host to focus the active tab when there is one', () => {
+    assert.equal(focusActiveTab(), false)
+    const { calls, navigator } = recorder()
+    setTabNavigator(navigator)
+    assert.equal(focusActiveTab(), true)
+    assert.deepEqual(calls, ['focus'])
   })
 })

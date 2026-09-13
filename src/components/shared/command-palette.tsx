@@ -7,7 +7,7 @@ import { isLocalhostBrowser, isVisibleSessionForViewer } from '@/lib/observabili
 import { useNavigate } from '@/lib/app/navigation'
 import { useExtensionPages } from '@/hooks/use-extension-pages'
 import { extensionPageNavTargets } from '@/lib/app/palette-extension-pages'
-import { navigateInActiveTab } from '@/lib/app/tab-navigation'
+import { focusActiveTab, navigateInActiveTab } from '@/lib/app/tab-navigation'
 import { toast } from 'sonner'
 
 interface CommandItem {
@@ -48,6 +48,23 @@ export function CommandPalette() {
     window.addEventListener('swarmclaw:open-palette', handler)
     return () => window.removeEventListener('swarmclaw:open-palette', handler)
   }, [])
+
+  // In the tab host, focus goes back into the active tab once the palette
+  // closes (after a pick, Esc or a click outside), so typing continues there
+  // instead of on the host's body. A plain window has no host: nothing moves.
+  // Deferred a task, so a dialog or sheet the pick opened can take focus first;
+  // the host leaves focus with it.
+  const wasOpen = useRef(false)
+  useEffect(() => {
+    if (open) {
+      wasOpen.current = true
+      return
+    }
+    if (!wasOpen.current) return
+    wasOpen.current = false
+    const timer = window.setTimeout(() => { focusActiveTab() }, 0)
+    return () => window.clearTimeout(timer)
+  }, [open])
 
   if (!open) return null
 

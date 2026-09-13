@@ -1,9 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { TabStrip } from '@/components/layout/tab-strip'
 import { useExtensionPages } from '@/hooks/use-extension-pages'
+import { pageDocumentTitle } from '@/lib/extensions/page-location'
 import { createFlushRequests } from '@/lib/app/tab-flush'
+import { addressBarUpdate, isOwnFrameMessage, reconcileFrames, type MountedFrame } from '@/lib/app/tab-frames'
 import { tabLabel, type TabLabel } from '@/lib/app/tab-label'
 import { setTabNavigator } from '@/lib/app/tab-navigation'
 import {
@@ -19,13 +22,8 @@ import { useChatroomStore } from '@/stores/use-chatroom-store'
 import { useTabsStore } from '@/stores/use-tabs-store'
 
 const READY_TIMEOUT_MS = 20_000
-
-interface MountedFrame {
-  id: string
-  src: string
-  /** Bumped to force a fresh load of the same URL. */
-  generation: number
-}
+/** Long enough to read the tab's name and reach "Close anyway". */
+const REFUSED_CLOSE_TOAST_MS = 10_000
 
 interface DesktopTabBridge {
   onTabCommand?: (cb: (command: unknown) => void) => () => void
@@ -37,20 +35,6 @@ function desktopBridge(): DesktopTabBridge | null {
 
 function post(frame: HTMLIFrameElement, message: HostMessage): void {
   frame.contentWindow?.postMessage(message, window.location.origin)
-}
-
-/**
- * The frames that follow from a tab change: a closed tab loses its frame at
- * once (closing already flushed), and the active tab always has one, loaded
- * from its URL. Frames over the live cap are left for the flush-then-sleep
- * effect. Returns `current` itself when nothing changed.
- */
-function reconcileFrames(current: MountedFrame[], state: TabsState): MountedFrame[] {
-  const known = new Set(state.tabs.map((t) => t.id))
-  let next = current.every((f) => known.has(f.id)) ? current : current.filter((f) => known.has(f.id))
-  const active = state.tabs.find((t) => t.id === state.activeId)
-  if (active && !next.some((f) => f.id === active.id)) next = [...next, { id: active.id, src: active.url, generation: 0 }]
-  return next
 }
 
 /** Timers are keyed `${tabId}:${generation}`; drops every one a tab has, whatever its generation. */
@@ -98,7 +82,12 @@ export function TabHost() {
   const [mounted, setMounted] = useState<MountedFrame[]>([])
   const [failed, setFailed] = useState<ReadonlySet<string>>(new Set())
   const frames = useRef(new Map<string, HTMLIFrameElement>())
-  const ready = useRef(new Set<string>())
+  /**
+   * Tabs whose frame said it is ready, with the document that said so. A frame
+   * that reloads itself (the loader's Reload, an error boundary) fires `load`
+   * with a new document, and is not ready again until that one says so.
+   */
+  const ready = useRef(new Map<string, Document | null>())
   const readyTimers = useRef(new Map<string, number>())
   const [flushes] = useState(() => createFlushRequests({
     newRequestId: newTabId,
@@ -120,7 +109,7 @@ export function TabHost() {
   }
 
   useEffect(() => {
-    hydrate(`${window.location.pathname}${window.location.search}${window.location.hash}`)
+    hydrate(window.location.href, window.location.origin)
   }, [hydrate])
 
   const labels = useMemo(() => {
@@ -135,6 +124,12 @@ export function TabHost() {
     return map
   }, [agents, sessions, chatrooms, extensionPages, state])
 
+  // Read by callbacks that outlive a render (a flush answer, a toast action).
+  const labelsRef = useRef(labels)
+  useEffect(() => {
+    labelsRef.current = labels
+  }, [labels])
+
   // A closed tab's bookkeeping goes with it. Reopening a closed tab brings back
   // the same id, and its new frame must not inherit "ready", a running timer,
   // a pending flush or a refusal from the old one. (`failed` is pruned above.)
@@ -143,7 +138,7 @@ export function TabHost() {
   useEffect(() => {
     if (!state) return
     const known = new Set(state.tabs.map((t) => t.id))
-    for (const id of [...ready.current]) if (!known.has(id)) ready.current.delete(id)
+    for (const id of [...ready.current.keys()]) if (!known.has(id)) ready.current.delete(id)
     for (const key of [...readyTimers.current.keys()]) {
       const id = key.slice(0, key.lastIndexOf(':'))
       if (!known.has(id)) clearReadyTimers(readyTimers.current, id)
@@ -178,16 +173,29 @@ export function TabHost() {
   }, [state, mounted, requestFlush, flushes])
 
   // A frame that does not say it is ready in time is marked, with a reload.
+  const armReadyTimer = useCallback((id: string, generation: number) => {
+    const key = `${id}:${generation}`
+    if (ready.current.has(id) || readyTimers.current.has(key)) return
+    readyTimers.current.set(key, window.setTimeout(() => {
+      readyTimers.current.delete(key)
+      if (!ready.current.has(id)) setFailed((current) => new Set(current).add(id))
+    }, READY_TIMEOUT_MS))
+  }, [])
+
   useEffect(() => {
-    for (const frame of mounted) {
-      const key = `${frame.id}:${frame.generation}`
-      if (ready.current.has(frame.id) || readyTimers.current.has(key)) continue
-      readyTimers.current.set(key, window.setTimeout(() => {
-        readyTimers.current.delete(key)
-        if (!ready.current.has(frame.id)) setFailed((current) => new Set(current).add(frame.id))
-      }, READY_TIMEOUT_MS))
-    }
-  }, [mounted])
+    for (const frame of mounted) armReadyTimer(frame.id, frame.generation)
+  }, [mounted, armReadyTimer])
+
+  // A frame that loaded a document other than the one that said it was ready
+  // has reloaded itself: it is booting again, so a flush has nothing to ask it
+  // and a navigate goes in by reloading it at the new URL, as for a fresh frame.
+  // The initial load, and a load whose document already said ready (its `ready`
+  // can arrive before its `load`), change nothing.
+  const onFrameLoad = useCallback((id: string, generation: number, element: HTMLIFrameElement) => {
+    if (!ready.current.has(id) || ready.current.get(id) === element.contentDocument) return
+    ready.current.delete(id)
+    armReadyTimer(id, generation)
+  }, [armReadyTimer])
 
   useEffect(() => {
     const timers = readyTimers.current
@@ -207,10 +215,25 @@ export function TabHost() {
     setMounted((current) => current.map((f) => (f.id === id ? { id, src: tab.url, generation: f.generation + 1 } : f)))
   }, [])
 
+  // A tab whose flush comes back false (or times out) is not closed: it is
+  // brought forward so the reader sees what did not save, and the toast names
+  // it and offers to close it without asking again. Without that way out a tab
+  // holding an edit that can never save (a conflict filed on a doc the reader
+  // has left) could never be closed at all.
   const closeWithFlush = useCallback(async (id: string) => {
     const ok = await requestFlush(id)
-    if (ok) apply((s) => closeTab(s, id, newTabId))
-    else apply((s) => activateTab(s, id))
+    if (ok) {
+      apply((s) => closeTab(s, id, newTabId))
+      return
+    }
+    apply((s) => activateTab(s, id))
+    if (!useTabsStore.getState().state?.tabs.some((t) => t.id === id)) return
+    const label = labelsRef.current.get(id)?.title ?? 'This tab'
+    toast.error(`${label} has changes that could not be saved.`, {
+      id: `tab-close-refused:${id}`,
+      duration: REFUSED_CLOSE_TOAST_MS,
+      action: { label: 'Close anyway', onClick: () => apply((s) => closeTab(s, id, newTabId)) },
+    })
   }, [apply, requestFlush])
 
   const runCommand = useCallback((command: TabCommand) => {
@@ -231,17 +254,15 @@ export function TabHost() {
 
   // Messages from the frames. Acted on only when they come from this origin AND
   // from the very window of the frame this host created for that tab id -- any
-  // other same-origin window (a chat preview iframe, a popup) is ignored.
+  // other same-origin window (a chat preview iframe, a popup) is ignored. The
+  // rule is `isOwnFrameMessage` (src/lib/app/tab-frames.ts), tested there.
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return
       const message = parseFrameMessage(event.data)
-      if (!message) return
-      const frame = frames.current.get(message.tabId)
-      if (!frame || !frame.contentWindow || event.source !== frame.contentWindow) return
+      if (!message || !isOwnFrameMessage(event, window.location.origin, message.tabId, frames.current)) return
       switch (message.type) {
         case 'ready':
-          ready.current.add(message.tabId)
+          ready.current.set(message.tabId, frames.current.get(message.tabId)?.contentDocument ?? null)
           clearReadyTimers(readyTimers.current, message.tabId)
           setFailed((current) => withoutId(current, message.tabId))
           return
@@ -264,12 +285,37 @@ export function TabHost() {
   // carrying its `__NA` flag straight through, so its router would never learn
   // the URL and `usePathname()` (the rail's highlight) would stay put. Without
   // the flag it copies its own history fields over and restores to the new URL.
+  // `addressBarUpdate` refuses a URL that is not a valid app path; the catch is
+  // the second line: a replaceState that throws here would, with the tabs
+  // stored, throw again on every load.
   useEffect(() => {
-    const active = state?.tabs.find((t) => t.id === state.activeId)
-    if (!active) return
-    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
-    if (current !== active.url) window.history.replaceState(null, '', active.url)
+    const next = addressBarUpdate(state, `${window.location.pathname}${window.location.search}${window.location.hash}`)
+    if (!next) return
+    try {
+      window.history.replaceState(null, '', next)
+    } catch {
+      // The address bar keeps its previous URL; the tab itself is unaffected.
+    }
   }, [state])
+
+  // The window title follows the active tab, as the page itself names it in a
+  // plain window ("Offer draft · SidekickOS"). The base is the title the host
+  // mounted with, and it is put back when the host goes.
+  const baseTitle = useRef<string | null>(null)
+  useEffect(() => {
+    const base = document.title
+    baseTitle.current = base
+    return () => {
+      document.title = base
+      baseTitle.current = null
+    }
+  }, [])
+  const activeTitle = state ? labels.get(state.activeId)?.title ?? null : null
+  useEffect(() => {
+    if (baseTitle.current === null) return
+    document.title = pageDocumentTitle(activeTitle, baseTitle.current)
+    // `state` too: a replaceState above may let the router re-apply its own title.
+  }, [activeTitle, state])
 
   // Focus never stays in a frame that went to the background (a tab key pressed
   // inside a tab switches tabs with focus still there): it follows to the
@@ -288,15 +334,18 @@ export function TabHost() {
   // The rail, the palette and useNavigate go through here.
   useEffect(() => {
     setTabNavigator({
-      navigateActive: (href) => {
+      navigateActive: (href, opts) => {
         const url = appUrlFromHref(href, window.location.origin)
         const s = useTabsStore.getState().state
         if (!url || !s) return
         const frame = frames.current.get(s.activeId)
         if (frame && ready.current.has(s.activeId)) {
-          post(frame, { source: 'sc-host', type: 'navigate', href: url })
+          post(frame, { source: 'sc-host', type: 'navigate', href: url, panel: opts?.panel })
           return
         }
+        // Not ready (still booting, or reloading itself): load it at the new URL.
+        // A panel intent has nothing to act on there; the fresh page opens its
+        // own panel for a view that has one.
         apply((x) => setTabUrl(x, s.activeId, url))
         clearReadyTimers(readyTimers.current, s.activeId)
         setMounted((current) => current.map((f) => (f.id === s.activeId ? { id: f.id, src: url, generation: f.generation + 1 } : f)))
@@ -305,6 +354,14 @@ export function TabHost() {
         const url = appUrlFromHref(href, window.location.origin)
         if (!url) return
         apply((s) => openTab(s, { id: newTabId(), url, title: null }, { activate: opts?.activate ?? true }))
+      },
+      focusActive: () => {
+        // Something in the host window that took focus (a dialog, a sheet) keeps it.
+        const focused = document.activeElement
+        if (focused && focused !== document.body && !(focused instanceof HTMLIFrameElement)) return
+        const s = useTabsStore.getState().state
+        const frame = s ? frames.current.get(s.activeId) : undefined
+        frame?.focus()
       },
     })
     return () => setTabNavigator(null)
@@ -378,6 +435,7 @@ export function TabHost() {
                 name={`${TAB_WINDOW_NAME_PREFIX}${frame.id}`}
                 src={frame.src}
                 title={labels.get(frame.id)?.title ?? 'Tab'}
+                onLoad={(e) => onFrameLoad(frame.id, frame.generation, e.currentTarget)}
                 className="w-full h-full border-0 bg-bg"
               />
               {failed.has(frame.id) && (

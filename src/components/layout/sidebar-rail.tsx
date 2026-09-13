@@ -16,7 +16,8 @@ import { ExtensionPagesForSection } from '@/components/layout/extension-nav-item
 import { useExtensionPages } from '@/hooks/use-extension-pages'
 import { useWs } from '@/hooks/use-ws'
 import { NAV_SECTIONS, type NavSection, type NavSectionId, type NavSectionIconName } from '@/lib/app/nav-sections'
-import { FULL_WIDTH_VIEWS, isPanelSidebarView, VIEW_DESCRIPTIONS, VIEW_LABELS } from '@/lib/app/view-constants'
+import { VIEW_DESCRIPTIONS, VIEW_LABELS } from '@/lib/app/view-constants'
+import { panelIntentForView, sidebarOpenAfter } from '@/lib/app/panel-intent'
 import { getViewPath, resolveSidebarActiveView, useNavigate } from '@/lib/app/navigation'
 import { routeLinkClick } from '@/lib/app/tab-navigation'
 import {
@@ -86,7 +87,7 @@ function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtens
   const pathname = usePathname()
   return (
     <div className="ml-5 pl-2 mt-0.5 mb-1 flex flex-col gap-0.5 border-l border-line-subtle">
-      <ExtensionPagesForSection section={section.id} onNavigate={onExtensionNavigate} />
+      <ExtensionPagesForSection section={section.id} onNavigate={onExtensionNavigate} panel="close" />
       {section.views.filter(isViewEnabled).map((view) => {
         const href = getViewPath(view)
         const on = pathname === href || pathname.startsWith(`${href}/`)
@@ -97,7 +98,8 @@ function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtens
             href={href}
             onClick={(e) => {
               // A background tab leaves the active tab where it is, so the rail's own handling has nothing to follow.
-              if (routeLinkClick(e, href) === 'background') return
+              // In the tab host the panel lives in the tab, so the intent travels with the navigation.
+              if (routeLinkClick(e, href, { panel: panelIntentForView(view) }) === 'background') return
               onSelectView(view)
             }}
             onAuxClick={(e) => { if (e.button === 1) routeLinkClick(e, href) }}
@@ -225,7 +227,7 @@ export function SidebarRail({
   }
 
   const goToDefaultChat = () => {
-    navigateTo('agents', defaultAgentId)
+    navigateTo('agents', defaultAgentId, { panel: 'close' })
     setSidebarOpen(false)
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('swarmclaw:scroll-bottom'))
@@ -239,17 +241,13 @@ export function SidebarRail({
       setSidebarOpen(false)
       return
     }
-    if (isPanelSidebarView(view)) {
-      setSidebarOpen(!(activeView === view && sidebarOpen))
-    } else if (FULL_WIDTH_VIEWS.has(view)) {
-      setSidebarOpen(false)
-    } else {
-      setSidebarOpen(true)
-    }
+    // The same rule a tab applies to a navigate from the host (`panelIntentForView`).
+    setSidebarOpen(sidebarOpenAfter(panelIntentForView(view), { currentView: activeView, targetView: view, sidebarOpen }))
   }
 
   // Extension pages render full width and have no panel sidebar of their own, so
-  // navigating to one collapses the panel (and closes the drawer on mobile).
+  // navigating to one collapses the panel (and closes the drawer on mobile). In
+  // the tab host the links carry `panel: 'close'` to the tab for the same reason.
   const handleExtensionNavClick = () => setSidebarOpen(false)
 
   // What the 52px rail says about a section it can only draw as an icon —
@@ -302,7 +300,8 @@ export function SidebarRail({
         key={section.id}
         href={getViewPath(direct)}
         onClick={(e) => {
-          if (routeLinkClick(e, getViewPath(direct)) === 'background') return
+          const panel = isViewEnabled(direct) ? panelIntentForView(direct) : undefined
+          if (routeLinkClick(e, getViewPath(direct), { panel }) === 'background') return
           handleNavClick(direct)
           selectSection(section.id)
         }}
