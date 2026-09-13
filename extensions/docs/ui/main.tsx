@@ -74,11 +74,16 @@ export function DocsPage({ rpc, extensionId }: { extensionId: string; rpc: Rpc }
    * document: the editor has to be closed in the same step, or it goes on
    * autosaving into a row nothing shows any more.
    */
-  const handleDelete = useCallback(() => {
-    if (!activeId) return
-    rpc('delete', { id: activeId })
-      .then(() => { setActiveId(null); refresh() })
-      .catch(() => refresh())
+  const handleDelete = useCallback((): Promise<boolean> => {
+    if (!activeId) return Promise.resolve(false)
+    return rpc('delete', { id: activeId })
+      .then((raw) => {
+        refresh()
+        if (errorText(raw)) return false
+        setActiveId(null)
+        return true
+      })
+      .catch(() => { refresh(); return false })
   }, [activeId, rpc, refresh])
 
   const titles = useMemo(() => new Set(tree?.titles ?? []), [tree])

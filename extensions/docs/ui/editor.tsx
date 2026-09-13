@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { Conflict, Doc, Rpc } from './api'
 import { errorText, isConflict, readDoc } from './api'
+import { createAutosave, type Autosave } from './autosave'
 import { shouldSaveOnModeSwitch } from './editor-dirty'
 import { readEditorMode, writeEditorMode, type EditorMode } from './editor-mode'
 import { downloadBlob } from './export/download'
@@ -16,6 +17,7 @@ import { loadExportBundle } from './export/load-export-bundle'
 import { buildPrintHtml, fetchEmbeddedFontsCss } from './export/print-html'
 import { hostOf } from './host'
 import { htmlToMd, mdToHtml } from './markdown'
+import { createSaveQueue } from './save-queue'
 
 /**
  * The middle column: the document, edited as formatted text and saved as
@@ -32,6 +34,20 @@ import { htmlToMd, mdToHtml } from './markdown'
  * the converted markdown differs from it, which is what stops merely opening a
  * document from rewriting it -- an important property when the file may have
  * been written by hand or by another tool.
+ *
+ * NOTHING TYPED IS DROPPED, AND NOTHING LANDS IN THE WRONG DOC. Each rule below
+ * closes a way an edit used to go missing:
+ *
+ * - A pending autosave is flushed, not cleared, when the editor moves to
+ *   another doc, unmounts or the page is hidden (`autosave.ts`).
+ * - Reads and saves for one doc run one at a time (`save-queue.ts`), and a
+ *   save reads its base version when it starts. The last confirmed version and
+ *   body are kept per doc id, so a save for a doc the reader has already left
+ *   still uses, and still records, that doc's own version.
+ * - A response only touches what is on screen while its doc is still the open
+ *   one.
+ * - Nothing is saved until the open doc has loaded: until then the editor is
+ *   still showing the previous doc's text.
  */
 
 const AUTOSAVE_MS = 800
@@ -129,16 +145,19 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   )
 }
 
-export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onDelete, focusTitle, onTitleFocused, extensionId }: {
+export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onDelete, focusTitle, onTitleFocused, onTitle, extensionId }: {
   rpc: Rpc
   id: string | null
   titles: Set<string>
   onSaved: () => void
   panelOpen: boolean
   onTogglePanel?: () => void
-  onDelete: () => void
+  /** Moves the open doc to the trash. Resolves true when it is gone, false when it is not. */
+  onDelete: () => Promise<boolean>
   focusTitle: boolean
   onTitleFocused: () => void
+  /** The open doc's title after every load and rename; null when no doc is open or it could not be read. */
+  onTitle?: (title: string | null) => void
   extensionId: string
 }) {
   const [doc, setDoc] = useState<Doc | null>(null)
@@ -157,7 +176,22 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   const HostDropdown = hostOf().ui?.Dropdown
   const HostDropdownItem = hostOf().ui?.DropdownItem
   const savedMd = useRef<string>('')
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** The doc on screen now, for a response that lands after the reader moved on. */
+  const openIdRef = useRef<string | null>(id)
+  /** The doc whose content is in the editor; nothing is saved before it loads. */
+  const loadedIdRef = useRef<string | null>(null)
+  /** The last version and body the server confirmed, per doc id. */
+  const [confirmed] = useState(() => new Map<string, { version: number; content: string }>())
+  /** Reads and saves for one doc run one at a time; see `save-queue.ts`. */
+  const [queue] = useState(createSaveQueue)
+  const autosaveRef = useRef<Autosave | null>(null)
+  /** The doc whose trash button was pressed: it takes no saves until the delete settles. */
+  const deleteBlockRef = useRef<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  /** The view and the markdown text as of the last event, readable from a timer. */
+  const modeRef = useRef<EditorMode>(mode)
+  const rawTextRef = useRef('')
+  const onTitleRef = useRef(onTitle)
   /**
    * Whether the viewer edited the doc since it was loaded (or last saved).
    * This is NOT derived from comparing text: `editor.commands.setContent`
@@ -173,6 +207,16 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   const [title, setTitle] = useState('')
   const titleInput = useRef<HTMLInputElement | null>(null)
 
+  useEffect(() => {
+    openIdRef.current = id
+    onTitleRef.current = onTitle
+  })
+
+  const setRaw = useCallback((text: string) => {
+    rawTextRef.current = text
+    setRawText(text)
+  }, [])
+
   const editor = useEditor({
     extensions: [StarterKit, Table.configure({ resizable: false }), TableRow, TableHeader, TableCell],
     content: '',
@@ -180,25 +224,46 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   })
 
   // Loading: the editor's content is only replaced when a different doc was
-  // actually opened -- otherwise every save would bounce the caret back.
+  // actually opened -- otherwise every save would bounce the caret back. The
+  // read waits behind any save still out for the same doc, so a doc reopened
+  // mid-save is read with that save already in it.
   useEffect(() => {
-    if (!id || !editor) { setDoc(null); return }
+    loadedIdRef.current = null
+    if (deleteBlockRef.current !== id) deleteBlockRef.current = null
+    if (!id || !editor) { setDoc(null); onTitleRef.current?.(null); return }
+    const docId = id
     let stale = false
     setLoadError(null)
-    rpc('read', { id })
-      .then((raw) => {
+    void queue(docId, async () => {
+      try {
+        const loaded = readDoc(await rpc('read', { id: docId }))
         if (stale) return
-        const loaded = readDoc(raw)
+        confirmed.set(docId, { version: loaded.version, content: loaded.content })
         setDoc(loaded)
         setVersion(loaded.version)
         setTitle(loaded.title)
         savedMd.current = loaded.content
-        setRawText(loaded.content)
+        setRaw(loaded.content)
         editor.commands.setContent(mdToHtml(loaded.content, titles))
         dirty.current = false
         setSaveState({ kind: 'idle' })
-      })
-      .catch((err) => { if (!stale) setLoadError(String(err?.message ?? err)) })
+        loadedIdRef.current = docId
+        onTitleRef.current?.(loaded.title)
+      } catch (err) {
+        if (stale) return
+        // A doc that cannot be read must not leave the previous doc's text on
+        // screen under this doc's URL.
+        setDoc(null)
+        setVersion(0)
+        setTitle('')
+        savedMd.current = ''
+        setRaw('')
+        editor.commands.setContent('')
+        dirty.current = false
+        setLoadError(err instanceof Error ? err.message : String(err))
+        onTitleRef.current?.(null)
+      }
+    })
     return () => { stale = true }
     // `titles` is deliberately not in the list: a change to the title set is
     // not a reason to reload the editor's content, that would take the caret
@@ -206,29 +271,58 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, editor, rpc])
 
-  const save = useCallback((md: string, base: number) => {
-    if (!id) return
-    setSaveState({ kind: 'saving' })
-    rpc('save', { id, content: md, baseVersion: base })
-      .then((raw) => {
-        if (isConflict(raw)) { setSaveState({ kind: 'conflict', conflict: raw, mine: md }); return }
-        const message = errorText(raw)
-        if (message) { setSaveState({ kind: 'error', message }); return }
-        const next = (raw as { version?: number }).version
-        if (typeof next === 'number') setVersion(next)
-        savedMd.current = md
-        dirty.current = false
-        setSaveState({ kind: 'saved', at: Date.now() })
-        onSaved()
-      })
-      .catch((err) => setSaveState({ kind: 'error', message: String(err?.message ?? err) }))
-  }, [id, rpc, onSaved])
-
   /** The markdown on screen, saved or not: the textarea in markdown mode, the editor otherwise. */
   const currentMd = useCallback(
-    () => (mode === 'markdown' ? rawText : editor ? htmlToMd(editor.getHTML()) : savedMd.current),
-    [mode, rawText, editor],
+    () => (modeRef.current === 'markdown' ? rawTextRef.current : editor ? htmlToMd(editor.getHTML()) : savedMd.current),
+    [editor],
   )
+
+  /**
+   * Every save goes through here: the body, a rename, Cmd+S, a flush, a view
+   * switch and "Keep mine". It is queued per doc and reads that doc's base
+   * version when it starts. `md` null means a rename: it sends the body as
+   * confirmed when the rename starts, so it cannot undo a body save queued
+   * ahead of it.
+   */
+  const save = useCallback((docId: string, md: string | null, opts?: { title?: string; baseVersion?: number }): Promise<void> =>
+    queue(docId, async () => {
+      if (deleteBlockRef.current === docId) return
+      const content = md ?? confirmed.get(docId)?.content
+      if (content === undefined) return
+      const onScreen = () => openIdRef.current === docId && deleteBlockRef.current !== docId
+      if (onScreen()) setSaveState({ kind: 'saving' })
+      const baseVersion = opts?.baseVersion ?? confirmed.get(docId)?.version ?? 0
+      try {
+        const raw = await rpc('save', opts?.title === undefined
+          ? { id: docId, content, baseVersion }
+          : { id: docId, content, title: opts.title, baseVersion })
+        if (isConflict(raw)) {
+          if (onScreen()) setSaveState({ kind: 'conflict', conflict: raw, mine: content })
+          return
+        }
+        const message = errorText(raw)
+        if (message) {
+          if (onScreen()) setSaveState({ kind: 'error', message })
+          return
+        }
+        const next = (raw as { version?: number }).version
+        confirmed.set(docId, { version: typeof next === 'number' ? next : baseVersion, content })
+        onSaved()
+        if (!onScreen()) return
+        if (typeof next === 'number') setVersion(next)
+        savedMd.current = content
+        // Text typed while this save was out is still unsaved.
+        if (currentMd() === content) dirty.current = false
+        if (opts?.title !== undefined) {
+          const renamed = opts.title
+          setDoc((prev) => (prev ? { ...prev, title: renamed } : prev))
+          onTitleRef.current?.(renamed)
+        }
+        setSaveState({ kind: 'saved', at: Date.now() })
+      } catch (err) {
+        if (onScreen()) setSaveState({ kind: 'error', message: err instanceof Error ? err.message : String(err) })
+      }
+    }), [queue, confirmed, rpc, onSaved, currentMd])
 
   /**
    * Switching views carries the text across and saves what is pending first:
@@ -237,14 +331,15 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
    */
   const switchMode = useCallback((next: EditorMode) => {
     if (next === mode || !editor) return
-    if (timer.current) { clearTimeout(timer.current); timer.current = null }
+    autosaveRef.current?.cancel()
     const md = currentMd()
-    if (shouldSaveOnModeSwitch(dirty.current, md, savedMd.current)) save(md, version)
-    if (next === 'markdown') setRawText(md)
+    if (id && loadedIdRef.current === id && shouldSaveOnModeSwitch(dirty.current, md, savedMd.current)) void save(id, md)
+    if (next === 'markdown') setRaw(md)
     else editor.commands.setContent(mdToHtml(md, titles))
+    modeRef.current = next
     setMode(next)
     writeEditorMode(next)
-  }, [mode, editor, currentMd, save, version, titles])
+  }, [mode, editor, currentMd, id, save, setRaw, titles])
 
   const exportTitle = (title.trim() || doc?.title || 'doc')
 
@@ -271,16 +366,13 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     }
   }, [currentMd, exportTitle])
 
-  /** Autosave for the raw view, on the same delay as the editor's. */
+  /** The raw view autosaves through the same debouncer as the formatted one. */
   const onRawChange = useCallback((text: string) => {
-    setRawText(text)
+    setRaw(text)
+    if (!id || loadedIdRef.current !== id || deleteBlockRef.current === id) return
     dirty.current = true
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => {
-      if (text === savedMd.current) return
-      save(text, version)
-    }, AUTOSAVE_MS)
-  }, [save, version])
+    autosaveRef.current?.schedule()
+  }, [id, setRaw])
 
   /**
    * Renaming goes through the same `save` call as the body, because a title is
@@ -289,23 +381,11 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
    * writes a version, and one per letter would bury the real history.
    */
   const saveTitle = useCallback(() => {
-    if (!id) return
+    if (!id || loadedIdRef.current !== id) return
     const trimmed = title.trim()
     if (trimmed === '' || trimmed === doc?.title) { setTitle(doc?.title ?? ''); return }
-    setSaveState({ kind: 'saving' })
-    rpc('save', { id, content: savedMd.current, title: trimmed, baseVersion: version })
-      .then((raw) => {
-        if (isConflict(raw)) { setSaveState({ kind: 'conflict', conflict: raw, mine: savedMd.current }); return }
-        const message = errorText(raw)
-        if (message) { setSaveState({ kind: 'error', message }); return }
-        const next = (raw as { version?: number }).version
-        if (typeof next === 'number') setVersion(next)
-        setDoc((prev) => (prev ? { ...prev, title: trimmed } : prev))
-        setSaveState({ kind: 'saved', at: Date.now() })
-        onSaved()
-      })
-      .catch((err) => setSaveState({ kind: 'error', message: String(err?.message ?? err) }))
-  }, [id, title, doc, rpc, version, onSaved])
+    void save(id, null, { title: trimmed })
+  }, [id, title, doc, save])
 
   // A freshly created doc's title is the placeholder; the caret goes there and
   // the text is selected, so it can be typed over.
@@ -319,33 +399,72 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   }, [focusTitle, doc, onTitleFocused])
 
   // Autosave: only when the markdown is actually different from what the
-  // server last confirmed.
+  // server last confirmed. Moving to another doc, unmounting and hiding the
+  // page flush the pending edit instead of dropping it.
+  const saveRef = useRef(save)
+  useEffect(() => { saveRef.current = save })
   useEffect(() => {
     if (!editor || !id) return
-    const handler = () => {
+    const docId = id
+    const autosave = createAutosave({
+      delayMs: AUTOSAVE_MS,
+      read: currentMd,
+      saved: () => savedMd.current,
+      save: (md) => { void saveRef.current(docId, md) },
+    })
+    autosaveRef.current = autosave
+    const onEdit = () => {
+      if (loadedIdRef.current !== docId || deleteBlockRef.current === docId) return
       dirty.current = true
-      if (timer.current) clearTimeout(timer.current)
-      timer.current = setTimeout(() => {
-        const md = htmlToMd(editor.getHTML())
-        if (md === savedMd.current) return
-        save(md, version)
-      }, AUTOSAVE_MS)
+      autosave.schedule()
     }
-    editor.on('update', handler)
-    return () => { editor.off('update', handler); if (timer.current) clearTimeout(timer.current) }
-  }, [editor, id, version, save])
+    const onPageHide = () => autosave.flushPending()
+    editor.on('update', onEdit)
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      editor.off('update', onEdit)
+      window.removeEventListener('pagehide', onPageHide)
+      autosave.flushPending()
+      if (autosaveRef.current === autosave) autosaveRef.current = null
+    }
+  }, [editor, id, currentMd])
 
   // Cmd+S / Ctrl+S
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault()
-        if (id) save(currentMd(), version)
+        if (!id || loadedIdRef.current !== id || deleteBlockRef.current === id) return
+        autosaveRef.current?.cancel()
+        void save(id, currentMd())
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [id, version, save, currentMd])
+  }, [id, save, currentMd])
+
+  /**
+   * The trash button. While the delete is out, this doc takes no saves and the
+   * button takes no second click. If the doc turns out not to be gone, saving
+   * comes back on, and an edit the click left pending is scheduled again.
+   */
+  const handleDelete = useCallback(async () => {
+    if (!id || deleteBlockRef.current === id) return
+    const docId = id
+    deleteBlockRef.current = docId
+    autosaveRef.current?.cancel()
+    setDeletingId(docId)
+    let gone = false
+    try {
+      gone = await onDelete()
+    } catch {
+      gone = false
+    }
+    setDeletingId((current) => (current === docId ? null : current))
+    if (gone || deleteBlockRef.current !== docId) return
+    deleteBlockRef.current = null
+    if (dirty.current && openIdRef.current === docId) autosaveRef.current?.schedule()
+  }, [id, onDelete])
 
   if (!id) {
     return (
@@ -379,16 +498,18 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
             </div>
           </details>
           <div className="docs-conflict-buttons">
-            <button type="button" onClick={() => save(saveState.mine, saveState.conflict.currentVersion)}>
+            <button type="button" onClick={() => { void save(id, saveState.mine, { baseVersion: saveState.conflict.currentVersion }) }}>
               Keep mine
             </button>
             <button
               type="button"
               onClick={() => {
                 const theirs = saveState.conflict.theirs ?? ''
+                const theirVersion = saveState.conflict.currentVersion
+                confirmed.set(id, { version: theirVersion, content: theirs })
                 savedMd.current = theirs
-                setRawText(theirs)
-                setVersion(saveState.conflict.currentVersion)
+                setRaw(theirs)
+                setVersion(theirVersion)
                 editor?.commands.setContent(mdToHtml(theirs, titles))
                 dirty.current = false
                 setSaveState({ kind: 'idle' })
@@ -523,7 +644,8 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
               className="docs-delete"
               aria-label="Move to trash"
               title="To the trash"
-              onClick={onDelete}
+              disabled={deletingId === id}
+              onClick={() => { void handleDelete() }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6M10 11v6M14 11v6" />

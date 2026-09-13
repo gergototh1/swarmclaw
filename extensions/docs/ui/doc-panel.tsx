@@ -58,13 +58,17 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
           // Closing on failure would tell the reader the doc is gone when it
           // is not, so the panel stays open and says what happened.
           setDeleteError(null)
-          rpc('delete', { id: refId })
+          return rpc('delete', { id: refId })
             .then((raw) => {
               const message = errorText(raw)
-              if (message) setDeleteError(message)
-              else onClose()
+              if (message) { setDeleteError(message); return false }
+              onClose()
+              return true
             })
-            .catch((err) => setDeleteError(String(err?.message ?? err)))
+            .catch((err: unknown) => {
+              setDeleteError(err instanceof Error ? err.message : String(err))
+              return false
+            })
         }}
         focusTitle={false}
         onTitleFocused={() => {}}
