@@ -37,7 +37,10 @@ function isTabbablePath(pathname: string): boolean {
   if (!pathname.startsWith('/') || pathname.startsWith('//')) return false
   if (hasEncodedPathSeparator(pathname)) return false
   if (NOT_TABBABLE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false
-  return !NOT_TABBABLE_PATHS.has(pathname)
+  // `/login/` serves the login page as well as `/login`, so one trailing slash is
+  // ignored here -- only one, and only at the end, so `/login-help` is unaffected.
+  const withoutTrailingSlash = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
+  return !NOT_TABBABLE_PATHS.has(withoutTrailingSlash)
 }
 
 /**

@@ -49,6 +49,11 @@ describe('parseFrameMessage', () => {
     assert.ok(parseFrameMessage(message))
   })
 
+  it('rejects a location url that is an auth page with one trailing slash', () => {
+    assert.equal(parseFrameMessage({ source: 'sc-tab', type: 'location', tabId: 't1', url: '/setup/' }), null)
+    assert.equal(parseFrameMessage({ source: 'sc-tab', type: 'location', tabId: 't1', url: '/login/?next=%2Fhome' }), null)
+  })
+
   it('accepts a valid url with a query and a hash unchanged', () => {
     const message = { source: 'sc-tab', type: 'location', tabId: 't1', url: '/tasks?a=1#frag' }
     assert.deepEqual(parseFrameMessage(message), message)
@@ -96,6 +101,17 @@ describe('appUrlFromHref', () => {
     assert.equal(appUrlFromHref('/_next/static/a.js', origin), null)
     assert.equal(appUrlFromHref('/login', origin), null)
     assert.equal(appUrlFromHref('/setup', origin), null)
+  })
+
+  it('refuses an auth page reached with one trailing slash', () => {
+    assert.equal(appUrlFromHref('/login/', origin), null)
+    assert.equal(appUrlFromHref('/setup/', origin), null)
+    assert.equal(appUrlFromHref('/user/', origin), null)
+  })
+
+  it('does not treat a path that only starts with an auth page name as one', () => {
+    assert.equal(appUrlFromHref('/login-help', origin), '/login-help')
+    assert.equal(appUrlFromHref('/user/settings', origin), '/user/settings')
   })
 
   it('refuses the backslash-as-slash origin trick', () => {
