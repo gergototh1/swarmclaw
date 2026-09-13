@@ -19,34 +19,34 @@ function directives(policy: string): Map<string, string[]> {
 
 describe('buildContentSecurityPolicy', () => {
   it('puts the nonce in script-src where Next parses it back out', () => {
-    const policy = buildContentSecurityPolicy('abc123', { allowEval: false })
+    const policy = buildContentSecurityPolicy('abc123', { allowEval: false, frameAncestors: 'none' })
     assert.ok(directives(policy).get('script-src')?.includes("'nonce-abc123'"))
   })
 
   it('keeps host sources usable by never emitting strict-dynamic', () => {
     // 'strict-dynamic' makes browsers ignore 'self', so a page Next renders
     // statically (no nonce) would load none of its scripts and go blank.
-    const policy = buildContentSecurityPolicy('abc123', { allowEval: false })
+    const policy = buildContentSecurityPolicy('abc123', { allowEval: false, frameAncestors: 'none' })
     assert.ok(!policy.includes('strict-dynamic'))
     assert.ok(directives(policy).get('script-src')?.includes("'self'"))
   })
 
   it('never allows inline script, in either mode', () => {
     for (const allowEval of [true, false]) {
-      const scriptSrc = directives(buildContentSecurityPolicy('n', { allowEval })).get('script-src')
+      const scriptSrc = directives(buildContentSecurityPolicy('n', { allowEval, frameAncestors: 'none' })).get('script-src')
       assert.ok(!scriptSrc?.includes("'unsafe-inline'"))
     }
   })
 
   it('allows eval only when asked, so development keeps React Refresh', () => {
-    const dev = directives(buildContentSecurityPolicy('n', { allowEval: true })).get('script-src')
-    const prod = directives(buildContentSecurityPolicy('n', { allowEval: false })).get('script-src')
+    const dev = directives(buildContentSecurityPolicy('n', { allowEval: true, frameAncestors: 'none' })).get('script-src')
+    const prod = directives(buildContentSecurityPolicy('n', { allowEval: false, frameAncestors: 'none' })).get('script-src')
     assert.ok(dev?.includes("'unsafe-eval'"))
     assert.ok(!prod?.includes("'unsafe-eval'"))
   })
 
   it('allows inline style attributes, which React style props and Recharts need', () => {
-    const styleSrc = directives(buildContentSecurityPolicy('n', { allowEval: false })).get('style-src')
+    const styleSrc = directives(buildContentSecurityPolicy('n', { allowEval: false, frameAncestors: 'none' })).get('style-src')
     assert.ok(styleSrc?.includes("'unsafe-inline'"))
   })
 
@@ -54,12 +54,12 @@ describe('buildContentSecurityPolicy', () => {
     // Extension pages load /api/extensions/<id>/assets/<file>.js by script tag.
     // That is same-origin, so 'self' covers it and no per-extension source is
     // needed. This is not isolation: the bundle runs with full page privileges.
-    const scriptSrc = directives(buildContentSecurityPolicy('n', { allowEval: false })).get('script-src')
+    const scriptSrc = directives(buildContentSecurityPolicy('n', { allowEval: false, frameAncestors: 'none' })).get('script-src')
     assert.deepEqual(scriptSrc, ["'self'", "'nonce-n'"])
   })
 
   it('keeps the directives an unpolicied app already relied on', () => {
-    const parsed = directives(buildContentSecurityPolicy('n', { allowEval: false }))
+    const parsed = directives(buildContentSecurityPolicy('n', { allowEval: false, frameAncestors: 'none' }))
     // Chat embeds YouTube and frames uploaded PDFs; tool output plays remote media.
     assert.ok(parsed.get('frame-src')?.includes('https:'))
     assert.ok(parsed.get('media-src')?.includes('blob:'))
@@ -70,30 +70,28 @@ describe('buildContentSecurityPolicy', () => {
   })
 
   it('does not upgrade insecure requests, which would break http installs', () => {
-    assert.ok(!buildContentSecurityPolicy('n', { allowEval: false }).includes('upgrade-insecure-requests'))
+    assert.ok(!buildContentSecurityPolicy('n', { allowEval: false, frameAncestors: 'none' }).includes('upgrade-insecure-requests'))
   })
 
   it('locks down the directives nothing in the app uses', () => {
-    const parsed = directives(buildContentSecurityPolicy('n', { allowEval: false }))
+    const parsed = directives(buildContentSecurityPolicy('n', { allowEval: false, frameAncestors: 'none' }))
     assert.deepEqual(parsed.get('object-src'), ["'none'"])
     assert.deepEqual(parsed.get('base-uri'), ["'self'"])
     assert.deepEqual(parsed.get('form-action'), ["'self'"])
   })
 
-  it('refuses embedding, which stops /s/<token> share pages being framed once enforcing', () => {
-    // A share link is a public revocable page to open, not a widget to embed.
-    // Browsers ignore frame-ancestors in a report-only policy, so this is inert
-    // today and only bites when SWARMCLAW_CSP_ENFORCE=1. Asserted here so the
-    // share-page decision cannot be reversed by editing one directive quietly.
-    const parsed = directives(buildContentSecurityPolicy('n', { allowEval: false }))
-    assert.deepEqual(parsed.get('frame-ancestors'), ["'none'"])
+  it('lets only the app frame its own pages, and nothing frame a share page', () => {
+    const app = directives(buildContentSecurityPolicy('n', { allowEval: false, frameAncestors: 'self' }))
+    assert.deepEqual(app.get('frame-ancestors'), ["'self'"])
+    const share = directives(buildContentSecurityPolicy('n', { allowEval: false, frameAncestors: 'none' }))
+    assert.deepEqual(share.get('frame-ancestors'), ["'none'"])
   })
 
   it('sends violations nowhere but the operator console', () => {
     // Deliberate: a self-hosted install has no collector to point report-to at,
     // and reporting page URLs off-box would leak a private deployment. Report-only
     // here is an operator dry-run switch, not telemetry.
-    const policy = buildContentSecurityPolicy('n', { allowEval: false })
+    const policy = buildContentSecurityPolicy('n', { allowEval: false, frameAncestors: 'none' })
     assert.ok(!policy.includes('report-to'))
     assert.ok(!policy.includes('report-uri'))
   })

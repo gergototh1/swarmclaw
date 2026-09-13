@@ -97,14 +97,15 @@ function withExtensionInstallCorsHeaders(pathname: string, origin: string | null
  *    nobody is watching a console.
  *
  * One further behaviour appears the moment this flips, deliberately rather than
- * as a break: `frame-ancestors 'none'` starts being honoured. A browser ignores
+ * as a break: `frame-ancestors` starts being honoured. A browser ignores
  * `frame-ancestors` in a report-only policy, so today it is inert; enforcing it
- * means `/s/<token>` share pages can no longer be embedded in an iframe
- * anywhere. That is the intended posture — a share link is a public, revocable,
- * read-only page (`src/app/s/[token]/page.tsx`) that promises no embedding
- * contract in either direction — but it is visible to anyone who was framing
- * one. Allowing it again means giving that route its own policy, not loosening
- * this one for the whole app.
+ * means app pages may be framed by the app itself (`'self'`) for the tab host,
+ * while `/s/<token>` share pages can no longer be embedded in an iframe
+ * anywhere (`'none'`). That is the intended posture — a share link is a public,
+ * revocable, read-only page (`src/app/s/[token]/page.tsx`) that promises no
+ * embedding contract in either direction — but it is visible to anyone who was
+ * framing one. Allowing it again means giving that route its own policy, not
+ * loosening this one for the whole app.
  */
 function isCspEnforced(): boolean {
   return process.env.SWARMCLAW_CSP_ENFORCE === '1'
@@ -198,7 +199,11 @@ function isDocumentRequest(pathname: string): boolean {
  */
 function documentResponse(request: NextRequest): NextResponse {
   const nonce = btoa(crypto.randomUUID())
-  const policy = buildContentSecurityPolicy(nonce, { allowEval: isDevelopmentLikeRuntime() })
+  const policy = buildContentSecurityPolicy(nonce, {
+    allowEval: isDevelopmentLikeRuntime(),
+    // The tab host frames the app's own pages; a share link is framed by no one.
+    frameAncestors: request.nextUrl.pathname.startsWith('/s/') ? 'none' : 'self',
+  })
   const headerName = contentSecurityPolicyHeaderName(isCspEnforced())
 
   const requestHeaders = new Headers(request.headers)

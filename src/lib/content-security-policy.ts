@@ -68,6 +68,12 @@ export interface ContentSecurityPolicyOptions {
    * production build, so this must stay false there.
    */
   allowEval: boolean
+  /**
+   * Who may frame the page. The app frames its own pages in the tab host, so
+   * app pages are `'self'`. A share link (`/s/<token>`) is a public, revocable
+   * page to open, not a widget to frame, and stays `'none'`.
+   */
+  frameAncestors: 'self' | 'none'
 }
 
 /**
@@ -102,14 +108,9 @@ export function buildContentSecurityPolicy(nonce: string, options: ContentSecuri
     `frame-src 'self' data: blob: https: http:`,
     `worker-src 'self' blob:`,
     `form-action 'self'`,
-    // Nothing in the app is meant to be embedded, share pages included: a
-    // `/s/<token>` link (`app/s/[token]/page.tsx`) is a public revocable page
-    // to open, not a widget to frame. Inert while the policy is delivered
-    // report-only, since browsers ignore `frame-ancestors` there, so this bites
-    // only once `SWARMCLAW_CSP_ENFORCE=1` — see the note on `isCspEnforced` in
-    // `proxy.ts`. Allowing embedding again means a separate policy for that
-    // route, not a looser directive here.
-    `frame-ancestors 'none'`,
+    // Enforced only once `SWARMCLAW_CSP_ENFORCE=1`: browsers ignore
+    // `frame-ancestors` in a report-only policy.
+    `frame-ancestors '${options.frameAncestors}'`,
   ].join('; ')
   // Deliberately omitted: `upgrade-insecure-requests`. Self-hosted SwarmClaw is
   // reached over plain http on localhost and on a LAN address, and upgrading
