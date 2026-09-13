@@ -38,6 +38,13 @@
  *   delete saves it. The delete goes through the doc's queue, after any save
  *   already out for it; once it succeeds, nothing more is saved into that doc
  *   and its `failedEdits` entry goes.
+ * - Delete-blocked is not the same as off screen. A save already out when the
+ *   trash button is pressed can still come back refused: while the doc is
+ *   still open, that failure shows on screen like any other -- a conflict or
+ *   error bar, not a `failedEdits` entry -- and a failed delete's own recovery
+ *   (resync from the confirmed record, reschedule whatever still differs)
+ *   picks it up from there. Only a doc the reader has actually left records a
+ *   failure.
  * - A save that fails while its doc is not on screen is kept, and shown the
  *   next time that doc opens -- by any editor, not just the one that failed.
  *   A later save that merely succeeds does not clear it: only the load that
@@ -360,7 +367,9 @@ export function createDocSaver({ rpc, queue, screen }: { rpc: Rpc; queue: SaveQu
    * The doc's generation is taken when `save` is called: if "Keep theirs" has
    * bumped it by the time the run starts, the run does nothing, and a response
    * that lands after the bump touches nothing on screen. A conflict or an error
-   * for a doc that is not on screen is kept in `failedEdits` for its next open.
+   * for a doc that is not on screen is kept in `failedEdits` for its next open
+   * -- open, not merely unblocked, so a delete-blocked doc the reader has not
+   * left still shows the failure on screen instead.
    */
   const save = (docId: string, md: string | null, opts: SaveOptions = {}): Promise<void> => {
     const generation = generationOf(generations, docId)
@@ -371,8 +380,12 @@ export function createDocSaver({ rpc, queue, screen }: { rpc: Rpc; queue: SaveQu
       if (content === undefined) return
       if (opts.unlessConfirmed && confirmed.get(docId)?.content === content) return
       // Loaded, not merely open: a doc reopened while this save was out is read
-      // after it, and that load would wipe a bar put up before it.
-      const onScreen = () => canSave(docId)
+      // after it, and that load would wipe a bar put up before it. Deliberately
+      // `'loaded'`, not the default `'unblocked'`: a delete-blocked doc is still
+      // open, so a save that fails while its delete is out must show on screen
+      // like any other failure, not be treated as off screen and recorded into
+      // `failedEdits`, where nothing but the delete or a reopen would surface it.
+      const onScreen = () => canSave(docId, 'loaded')
       const baseVersion = opts.baseVersion ?? confirmed.get(docId)?.version ?? 0
       const fail = (conflict: Conflict | null, message: string | null) => {
         if (!current()) return

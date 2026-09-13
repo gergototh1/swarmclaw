@@ -38,6 +38,13 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
    * editor. It keeps blocking; "Open anyway" is the reader's way past it.
    */
   const [leaveError, setLeaveError] = useState<string | null>(null)
+  /**
+   * Whether the panel's own editor is currently showing a conflict, not-saved
+   * bar, or plain save error for the doc on screen. Unlike `failedEdits`,
+   * this covers a block the reader has not yet caused by leaving -- the edit
+   * simply is not saved yet.
+   */
+  const [ownEditorBlocked, setOwnEditorBlocked] = useState(false)
 
   useEffect(() => {
     rpc('tree')
@@ -59,9 +66,13 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
             if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
             // This link is a full page load, and the `pagehide` flush can be cut
             // off by it: save what is pending first, then go -- but only when
-            // every save landed. A failure on screen is shown by its editor.
-            // One kept in `failedEdits` is not, and lives in module memory the
-            // page load would wipe: it is named here, with "Open anyway".
+            // every save landed. A failure kept in `failedEdits` lives in
+            // module memory the page load would wipe, so it is named here with
+            // "Open anyway". A block that is not a kept `failedEdits` entry --
+            // a conflict, not-saved bar, or plain error still showing in this
+            // panel's own editor -- would otherwise say nothing at all: the
+            // reader has not gone anywhere, so nothing was recorded off
+            // screen, but the edit still is not saved.
             e.preventDefault()
             setLeaveError(null)
             void flushAllEditors().then(
@@ -70,7 +81,12 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
                   window.location.assign(docsHref)
                   return
                 }
-                setLeaveError(leaveBlockedMessage())
+                setLeaveError(
+                  leaveBlockedMessage()
+                  ?? (ownEditorBlocked
+                    ? 'The edit in this doc is not saved yet, so Docs was not opened.'
+                    : 'Some edits could not be saved, so Docs was not opened.'),
+                )
               },
               (err: unknown) => {
                 setLeaveError(`Pending edits could not be saved, so Docs was not opened: ${err instanceof Error ? err.message : String(err)}`)
@@ -97,6 +113,7 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
         titles={titles}
         extensionId={extensionId}
         onSaved={() => {}}
+        onBlocked={setOwnEditorBlocked}
         panelOpen={false}
         onDelete={() => {
           // Closing on failure would tell the reader the doc is gone when it

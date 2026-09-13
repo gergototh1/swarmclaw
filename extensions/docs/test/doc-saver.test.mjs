@@ -492,7 +492,7 @@ test('text typed during a delete is saved when the reader has switched away and 
   await h.queue.whenIdle()
 })
 
-test('a delete goes out after the save already out for its doc, and a successful one drops that doc\'s failed edit', async () => {
+test('a delete goes out after the save already out for its doc, and its failure shows on screen rather than being kept off screen', async () => {
   const h = harness()
   await openDoc(h, 'doc_a', { version: 1, content: 'A' })
   h.s.md = 'A edited'
@@ -508,11 +508,42 @@ test('a delete goes out after the save already out for its doc, and a successful
   await saving
   for (let i = 0; i < 50 && asked === 0; i += 1) await afterMicrotasks()
   assert.equal(asked, 1)
-  assert.equal(failedEdits.has('doc_a'), true, 'the save that failed while the delete waited was not kept')
+  assert.deepEqual(h.s.state, { kind: 'error', message: 'offline' }, 'the doc is still open, so its failure belongs on screen')
+  assert.equal(failedEdits.has('doc_a'), false, 'the open doc was wrongly treated as off screen because its delete was out')
 
   answer.resolve(true)
   await removing
   assert.equal(failedEdits.has('doc_a'), false, 'a trashed doc kept its failed edit')
+})
+
+test('a save that fails while a delete is out for the still-open doc is not recorded off screen, and a later save saves it once the delete fails', async () => {
+  const h = harness()
+  await openDoc(h, 'doc_a', { version: 1, content: 'A' })
+  h.s.md = 'A edited'
+  h.saver.edited('doc_a')
+  const saving = h.saver.saveNow('doc_a')
+  const call = await nextCall(h, 'save')
+  const answer = deferred()
+  const removing = h.saver.remove('doc_a', () => answer.promise)
+
+  call.reply.resolve({ error: 'io', message: 'offline' })
+  await saving
+  assert.deepEqual(h.s.state, { kind: 'error', message: 'offline' }, 'a save failing on the still-open doc should show on screen, not vanish into failedEdits')
+  assert.equal(failedEdits.has('doc_a'), false, 'the open doc was wrongly treated as off screen because its delete was out')
+
+  answer.resolve(false)
+  await removing
+  assert.equal(failedEdits.has('doc_a'), false)
+  assert.equal(h.s.timer, true, 'the delete-failure recovery did not reschedule the text that still differs from saved')
+
+  const retry = h.saver.saveNow('doc_a')
+  const retryCall = await nextCall(h, 'save')
+  assert.deepEqual(retryCall.body, { id: 'doc_a', content: 'A edited', baseVersion: 1 })
+  retryCall.reply.resolve({ version: 2 })
+  await retry
+  assert.equal(failedEdits.has('doc_a'), false)
+  assert.equal(h.s.saved, 'A edited', 'the on-screen text is saved')
+  assert.equal(h.s.state.kind, 'saved')
 })
 
 test('nothing is saved into a doc once its delete has succeeded, not even on the way out', async () => {

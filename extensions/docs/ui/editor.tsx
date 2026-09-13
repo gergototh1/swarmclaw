@@ -128,7 +128,7 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   )
 }
 
-export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onDelete, focusTitle, onTitleFocused, onTitle, extensionId }: {
+export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onDelete, focusTitle, onTitleFocused, onTitle, onBlocked, extensionId }: {
   rpc: Rpc
   id: string | null
   titles: Set<string>
@@ -141,6 +141,14 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   onTitleFocused: () => void
   /** The open doc's title after every load and rename; null when no doc is open or it could not be read. */
   onTitle?: (title: string | null) => void
+  /**
+   * Whether this editor is showing a conflict or not-saved bar, or a plain
+   * save error, for the doc on screen. A caller with its own "leave" link
+   * (`DocPanel`'s "Open in Docs") reads this to explain a block that is not a
+   * kept `failedEdits` entry -- the reader has not gone anywhere yet, so
+   * nothing has been recorded off screen, but the edit still is not saved.
+   */
+  onBlocked?: (blocked: boolean) => void
   extensionId: string
 }) {
   const [doc, setDoc] = useState<Doc | null>(null)
@@ -173,6 +181,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   const modeRef = useRef<EditorMode>(mode)
   const rawTextRef = useRef('')
   const onTitleRef = useRef(onTitle)
+  const onBlockedRef = useRef(onBlocked)
   /**
    * Whether the viewer edited the doc since it was loaded (or last saved).
    * This is NOT derived from comparing text: `editor.commands.setContent`
@@ -196,6 +205,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   useEffect(() => {
     openIdRef.current = id
     onTitleRef.current = onTitle
+    onBlockedRef.current = onBlocked
     rpcRef.current = rpc
     onSavedRef.current = onSaved
     titlesRef.current = titles
@@ -239,6 +249,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
       const value = typeof next === 'function' ? next(saveStateRef.current) : next
       saveStateRef.current = value
       setSaveState(value)
+      onBlockedRef.current?.(value.kind === 'conflict' || value.kind === 'unsaved' || value.kind === 'error')
     },
     setVersion,
     docTitle: () => docRef.current?.title ?? null,
@@ -367,22 +378,22 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
       window.removeEventListener('pagehide', onPageHide)
       untrack()
       saver.leave(docId)
+      // An unmounted (or switched-away) editor shows no doc: a save sent on
+      // the way out lands off screen, so a failure is kept for the next open
+      // instead of vanishing. Cleared here, right after `leave`, so `leave`
+      // still sees the doc as open and loaded -- which it needs, to keep a
+      // bar and to tell the doc's own text from a previous doc's -- and only
+      // then are the ids cleared. On a doc switch this is harmless: React
+      // runs every cleanup for the commit before any effect's setup, so the
+      // always-on ref-sync effect above puts the new id back into
+      // `openIdRef` right after, and `loadedIdRef` is set again once that
+      // doc's own load resolves.
+      openIdRef.current = null
+      loadedIdRef.current = null
       autosave.cancel()
       if (autosaveRef.current === autosave) autosaveRef.current = null
     }
   }, [editor, id, screen, saver])
-
-  // An unmounted editor shows no doc: a save sent on the way out lands off
-  // screen, so a failure is kept for the next open instead of vanishing.
-  //
-  // Declared after the effect above ON PURPOSE. React runs an unmounting
-  // component's cleanups in declaration order, so `leave` still sees the doc
-  // as open and loaded -- which it needs, to keep a bar and to tell the doc's
-  // own text from a previous doc's -- and only then is it cleared.
-  useEffect(() => () => {
-    openIdRef.current = null
-    loadedIdRef.current = null
-  }, [])
 
   // Cmd+S / Ctrl+S
   useEffect(() => {
