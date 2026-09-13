@@ -115,7 +115,7 @@ interface TabsState {
 | fül → gazda | `open-tab { url }` | ⌘-/középső kattintás belső linken |
 | fül → gazda | `shortcut { action }` | fülkezelő billentyű vagy ⌘K a kereten belül |
 | fül → gazda | `auth-required` | lejárt bejelentkezés |
-| gazda → fül | `navigate { href }` | navigálj ide (rail, paletta) |
+| gazda → fül | `navigate { href, panel? }` | navigálj ide (rail, paletta); `panel` (`toggle` / `open` / `close`) a fül oldalpanelje, mert az a kereten belül él |
 
 ### Navigáció
 
@@ -166,6 +166,21 @@ beágyazhatóságot route-onként kell adni, nem a közös direktívát lazítan
   gyorsbillentyűje; az ablak bezárása ⇧⌘W.
 - **A fül ikonja** a szekció ikonja (bővítmény-oldalnál a saját ikonja); a külön
   `VIEW_ICONS` tábla a 3. szakaszban készül.
+- **Egy fül, amelynek a flush-a nem sikerül** (pl. a Doksi ütközést tart egy
+  másik doksin), életben marad, akkor is, ha ezzel túllépi a hat élő keretet.
+  Bezárni csak a figyelmeztető toast „Close anyway” gombjával lehet, és az
+  mentés nélkül zár.
+- **A `sc_tabs_v1` kulcsot a böngésző minden ablaka közösen használja.** Két
+  ablak nem tart külön fül-listát: amelyik utoljára ír, annak az állapota marad
+  meg, és a következő betöltés azt kapja.
+- **A háttérben lévő keretek tovább futnak** (lekérdezések, websocket,
+  időzítők), így minden élő fül CPU-t és memóriát használ; a hat élő keretes
+  plafon csak ezt korlátozza, nem függeszti fel őket.
+- **A fülek kikapcsolása (`tabsEnabled`)** a következő újratöltéskor lép
+  életbe, ugyanazért, amiért a 768 px alá keskenyítés. Bekapcsolni egy sima
+  ablakban azonnal lehet, mert ott nincs lebontandó keret.
+- **Az app saját gyorsbillentyűi** (pl. ⌘N) a füleken belül is futnak, és arra
+  a fülre hatnak, amelyikben a fókusz van, nem a gazdára.
 
 ## 2. Bővítmény-oldalak helye az URL-ben, fülcímek
 

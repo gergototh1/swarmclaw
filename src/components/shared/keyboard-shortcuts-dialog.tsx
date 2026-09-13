@@ -15,6 +15,7 @@ interface ShortcutGroup {
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent)
 const MOD = isMac ? '\u2318' : 'Ctrl'
+const ALT = isMac ? '\u2325' : 'Alt'
 
 const GROUPS: ShortcutGroup[] = [
   {
@@ -23,7 +24,32 @@ const GROUPS: ShortcutGroup[] = [
       { keys: [MOD, 'K'], description: 'Open search' },
       { keys: [MOD, 'Shift', 'A'], description: 'Switch agent' },
       { keys: [MOD, 'N'], description: 'New chat' },
-      { keys: [MOD, 'Shift', 'T'], description: 'Jump to tasks' },
+      { keys: [MOD, 'Shift', 'T'], description: 'Jump to tasks (not in the desktop app)' },
+    ],
+  },
+  {
+    // The browser keeps Cmd/Ctrl+T, W and Tab for itself, so tabs use Option/Alt there.
+    title: 'Tabs (browser)',
+    shortcuts: [
+      { keys: [ALT, 'T'], description: 'New tab' },
+      { keys: [ALT, 'W'], description: 'Close tab' },
+      { keys: [ALT, 'Shift', 'T'], description: 'Reopen closed tab' },
+      { keys: [ALT, '\u2190'], description: 'Previous tab' },
+      { keys: [ALT, '\u2192'], description: 'Next tab' },
+      { keys: [ALT, '1\u20139'], description: 'Go to tab (9 is the last)' },
+    ],
+  },
+  {
+    // electron/tab-menu.ts and electron/menu.ts.
+    title: 'Tabs (desktop app)',
+    shortcuts: [
+      { keys: [MOD, 'T'], description: 'New tab' },
+      { keys: [MOD, 'W'], description: 'Close tab' },
+      { keys: [MOD, 'Shift', 'T'], description: 'Reopen closed tab' },
+      { keys: ['Ctrl', 'Tab'], description: 'Next tab' },
+      { keys: ['Ctrl', 'Shift', 'Tab'], description: 'Previous tab' },
+      { keys: [MOD, '1\u20139'], description: 'Go to tab (9 is the last)' },
+      { keys: [MOD, 'Shift', 'W'], description: 'Close window' },
     ],
   },
   {
