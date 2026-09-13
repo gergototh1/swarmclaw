@@ -13,15 +13,22 @@
  * Different docs never wait for each other. A run that rejects does not block
  * the next run for its doc, and its caller still gets the rejection.
  *
+ * `whenIdle` is for leaving the page: it resolves once every run queued at the
+ * moment of the call has settled, on every doc, and it never rejects.
+ *
  * Pure: no React, no DOM.
  */
 
-export type SaveQueue = (docId: string, run: () => Promise<void>) => Promise<void>
+export interface SaveQueue {
+  (docId: string, run: () => Promise<void>): Promise<void>
+  /** Resolves when every doc's runs queued before this call have settled. */
+  whenIdle(): Promise<void>
+}
 
 export function createSaveQueue(): SaveQueue {
   const tails = new Map<string, Promise<void>>()
 
-  return (docId, run) => {
+  const enqueue = (docId: string, run: () => Promise<void>): Promise<void> => {
     const previous = tails.get(docId) ?? Promise.resolve()
     const result = previous.then(run)
     // What the next run for this doc waits on: settled, never rejected.
@@ -32,4 +39,8 @@ export function createSaveQueue(): SaveQueue {
     })
     return result
   }
+
+  const whenIdle = (): Promise<void> => Promise.all([...tails.values()]).then(() => undefined)
+
+  return Object.assign(enqueue, { whenIdle })
 }

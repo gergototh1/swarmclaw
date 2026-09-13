@@ -9,6 +9,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Conflict, Doc, Rpc } from './api'
 import { errorText, isConflict, readDoc } from './api'
 import { createAutosave, type Autosave } from './autosave'
+import {
+  bumpGeneration,
+  confirmed,
+  failedEdits,
+  generationOf,
+  saveQueue,
+  type ConfirmedDoc,
+  type FailedEdit,
+} from './doc-store'
 import { shouldSaveOnModeSwitch } from './editor-dirty'
 import { readEditorMode, writeEditorMode, type EditorMode } from './editor-mode'
 import { downloadBlob } from './export/download'
@@ -17,7 +26,6 @@ import { loadExportBundle } from './export/load-export-bundle'
 import { buildPrintHtml, fetchEmbeddedFontsCss } from './export/print-html'
 import { hostOf } from './host'
 import { htmlToMd, mdToHtml } from './markdown'
-import { createSaveQueue } from './save-queue'
 
 /**
  * The middle column: the document, edited as formatted text and saved as
@@ -48,6 +56,17 @@ import { createSaveQueue } from './save-queue'
  *   one.
  * - Nothing is saved until the open doc has loaded: until then the editor is
  *   still showing the previous doc's text.
+ * - The queue, the confirmed record and the generation count are shared by
+ *   every editor this bundle mounts (`doc-store.ts`), so the Docs page and the
+ *   chat panel wait for each other's saves on the same doc.
+ * - The conflict bar belongs to one doc: it goes away when another doc opens,
+ *   and its buttons act only while that doc is open and loaded.
+ * - "Keep theirs" voids every save for the doc queued before the click, and
+ *   applies theirs through the queue, after whatever is already out.
+ * - An edit typed while a delete is out is still marked dirty, so a failed
+ *   delete saves it.
+ * - A save that fails while its doc is not on screen is kept, and shown the
+ *   next time that doc opens.
  */
 
 const AUTOSAVE_MS = 800
@@ -57,7 +76,46 @@ type SaveState =
   | { kind: 'saving' }
   | { kind: 'saved'; at: number }
   | { kind: 'error'; message: string }
-  | { kind: 'conflict'; conflict: Conflict; mine: string }
+  /**
+   * `title` is set when the refused save was a rename, so "Keep mine" sends it
+   * again. `restored` is set when the conflict came from a save made while the
+   * doc was not on screen: the editor then shows the doc as loaded, not `mine`.
+   */
+  | { kind: 'conflict'; docId: string; conflict: Conflict; mine: string; title?: string; restored?: boolean }
+  /** A save made while the doc was not on screen failed for a reason other than a conflict. */
+  | { kind: 'unsaved'; docId: string; mine: string; message: string }
+
+/**
+ * The bar for an edit that failed while its doc was not on screen. A conflict
+ * is compared against the doc as just loaded, which is what the server holds
+ * now, not what it held when the save was refused.
+ */
+function stateForFailedEdit(docId: string, failed: FailedEdit, current: ConfirmedDoc): SaveState {
+  if (failed.conflict) {
+    return {
+      kind: 'conflict',
+      docId,
+      conflict: { ...failed.conflict, currentVersion: current.version, theirs: current.content },
+      mine: failed.mine,
+      title: failed.title,
+      restored: true,
+    }
+  }
+  return { kind: 'unsaved', docId, mine: failed.mine, message: failed.message ?? 'The save failed.' }
+}
+
+/** The autosave of every mounted editor, so leaving the page can flush them all. */
+const mountedAutosaves = new Set<Autosave>()
+
+/**
+ * Saves every pending edit in every mounted editor now, and resolves once every
+ * read and save out at that moment has settled. For a link that leaves the page
+ * with a full load, where the `pagehide` flush may be cut off.
+ */
+export async function flushAllEditors(): Promise<void> {
+  for (const autosave of mountedAutosaves) autosave.flushPending()
+  await saveQueue.whenIdle()
+}
 
 /**
  * Icons for the editor header's icon-only buttons, drawn in the same style as
@@ -180,10 +238,6 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   const openIdRef = useRef<string | null>(id)
   /** The doc whose content is in the editor; nothing is saved before it loads. */
   const loadedIdRef = useRef<string | null>(null)
-  /** The last version and body the server confirmed, per doc id. */
-  const [confirmed] = useState(() => new Map<string, { version: number; content: string }>())
-  /** Reads and saves for one doc run one at a time; see `save-queue.ts`. */
-  const [queue] = useState(createSaveQueue)
   const autosaveRef = useRef<Autosave | null>(null)
   /** The doc whose trash button was pressed: it takes no saves until the delete settles. */
   const deleteBlockRef = useRef<string | null>(null)
@@ -211,6 +265,12 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     openIdRef.current = id
     onTitleRef.current = onTitle
   })
+  // An unmounted editor shows no doc: a save flushed on the way out lands off
+  // screen, so a failure is kept for the next open instead of vanishing.
+  useEffect(() => () => {
+    openIdRef.current = null
+    loadedIdRef.current = null
+  }, [])
 
   const setRaw = useCallback((text: string) => {
     rawTextRef.current = text
@@ -229,16 +289,19 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   // mid-save is read with that save already in it.
   useEffect(() => {
     loadedIdRef.current = null
+    // The previous doc's bar, conflict included, must not stay up over this one.
+    setSaveState({ kind: 'idle' })
     if (deleteBlockRef.current !== id) deleteBlockRef.current = null
     if (!id || !editor) { setDoc(null); onTitleRef.current?.(null); return }
     const docId = id
     let stale = false
     setLoadError(null)
-    void queue(docId, async () => {
+    void saveQueue(docId, async () => {
       try {
         const loaded = readDoc(await rpc('read', { id: docId }))
         if (stale) return
-        confirmed.set(docId, { version: loaded.version, content: loaded.content })
+        const current = { version: loaded.version, content: loaded.content }
+        confirmed.set(docId, current)
         setDoc(loaded)
         setVersion(loaded.version)
         setTitle(loaded.title)
@@ -246,7 +309,9 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
         setRaw(loaded.content)
         editor.commands.setContent(mdToHtml(loaded.content, titles))
         dirty.current = false
-        setSaveState({ kind: 'idle' })
+        const failed = failedEdits.get(docId)
+        failedEdits.delete(docId)
+        setSaveState(failed ? stateForFailedEdit(docId, failed, current) : { kind: 'idle' })
         loadedIdRef.current = docId
         onTitleRef.current?.(loaded.title)
       } catch (err) {
@@ -260,6 +325,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
         setRaw('')
         editor.commands.setContent('')
         dirty.current = false
+        setSaveState({ kind: 'idle' })
         setLoadError(err instanceof Error ? err.message : String(err))
         onTitleRef.current?.(null)
       }
@@ -283,13 +349,32 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
    * version when it starts. `md` null means a rename: it sends the body as
    * confirmed when the rename starts, so it cannot undo a body save queued
    * ahead of it.
+   *
+   * The doc's generation is taken when `save` is called: if "Keep theirs" has
+   * bumped it by the time the run starts, the run does nothing, and a response
+   * that lands after the bump touches nothing on screen. A conflict or an error
+   * for a doc that is not on screen is kept in `failedEdits` for its next open.
    */
-  const save = useCallback((docId: string, md: string | null, opts?: { title?: string; baseVersion?: number }): Promise<void> =>
-    queue(docId, async () => {
-      if (deleteBlockRef.current === docId) return
+  const save = useCallback((docId: string, md: string | null, opts?: { title?: string; baseVersion?: number }): Promise<void> => {
+    const generation = generationOf(docId)
+    return saveQueue(docId, async () => {
+      const current = () => generationOf(docId) === generation
+      if (!current() || deleteBlockRef.current === docId) return
       const content = md ?? confirmed.get(docId)?.content
       if (content === undefined) return
-      const onScreen = () => openIdRef.current === docId && deleteBlockRef.current !== docId
+      // Loaded, not merely open: a doc reopened while this save was out is read
+      // after it, and that load would wipe a bar put up before it.
+      const onScreen = () =>
+        openIdRef.current === docId && loadedIdRef.current === docId && deleteBlockRef.current !== docId
+      const fail =(conflict: Conflict | null, message: string | null) => {
+        if (!current()) return
+        if (!onScreen()) {
+          failedEdits.set(docId, { mine: content, title: opts?.title, conflict, message })
+          return
+        }
+        if (conflict) setSaveState({ kind: 'conflict', docId, conflict, mine: content, title: opts?.title })
+        else setSaveState({ kind: 'error', message: message ?? 'The save failed.' })
+      }
       if (onScreen()) setSaveState({ kind: 'saving' })
       const baseVersion = opts?.baseVersion ?? confirmed.get(docId)?.version ?? 0
       try {
@@ -297,18 +382,19 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
           ? { id: docId, content, baseVersion }
           : { id: docId, content, title: opts.title, baseVersion })
         if (isConflict(raw)) {
-          if (onScreen()) setSaveState({ kind: 'conflict', conflict: raw, mine: content })
+          fail(raw, null)
           return
         }
         const message = errorText(raw)
         if (message) {
-          if (onScreen()) setSaveState({ kind: 'error', message })
+          fail(null, message)
           return
         }
         const next = (raw as { version?: number }).version
         confirmed.set(docId, { version: typeof next === 'number' ? next : baseVersion, content })
+        failedEdits.delete(docId)
         onSaved()
-        if (!onScreen()) return
+        if (!onScreen() || !current()) return
         if (typeof next === 'number') setVersion(next)
         savedMd.current = content
         // Text typed while this save was out is still unsaved.
@@ -320,9 +406,10 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
         }
         setSaveState({ kind: 'saved', at: Date.now() })
       } catch (err) {
-        if (onScreen()) setSaveState({ kind: 'error', message: err instanceof Error ? err.message : String(err) })
+        fail(null, err instanceof Error ? err.message : String(err))
       }
-    }), [queue, confirmed, rpc, onSaved, currentMd])
+    })
+  }, [rpc, onSaved, currentMd])
 
   /**
    * Switching views carries the text across and saves what is pending first:
@@ -366,11 +453,15 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     }
   }, [currentMd, exportTitle])
 
-  /** The raw view autosaves through the same debouncer as the formatted one. */
+  /**
+   * The raw view autosaves through the same debouncer as the formatted one. An
+   * edit is dirty even while a delete is out; only the countdown waits for it.
+   */
   const onRawChange = useCallback((text: string) => {
     setRaw(text)
-    if (!id || loadedIdRef.current !== id || deleteBlockRef.current === id) return
+    if (!id || loadedIdRef.current !== id) return
     dirty.current = true
+    if (deleteBlockRef.current === id) return
     autosaveRef.current?.schedule()
   }, [id, setRaw])
 
@@ -413,9 +504,12 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
       save: (md) => { void saveRef.current(docId, md) },
     })
     autosaveRef.current = autosave
+    mountedAutosaves.add(autosave)
     const onEdit = () => {
-      if (loadedIdRef.current !== docId || deleteBlockRef.current === docId) return
+      if (loadedIdRef.current !== docId) return
+      // Dirty even while a delete is out: if the delete fails, this is saved.
       dirty.current = true
+      if (deleteBlockRef.current === docId) return
       autosave.schedule()
     }
     const onPageHide = () => autosave.flushPending()
@@ -425,6 +519,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
       editor.off('update', onEdit)
       window.removeEventListener('pagehide', onPageHide)
       autosave.flushPending()
+      mountedAutosaves.delete(autosave)
       if (autosaveRef.current === autosave) autosaveRef.current = null
     }
   }, [editor, id, currentMd])
@@ -446,7 +541,10 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   /**
    * The trash button. While the delete is out, this doc takes no saves and the
    * button takes no second click. If the doc turns out not to be gone, saving
-   * comes back on, and an edit the click left pending is scheduled again.
+   * comes back on and the screen is brought back in line with what the server
+   * confirmed meanwhile: a save that was out when the button was pressed
+   * landed without touching the screen. Then any text that differs from the
+   * saved text is scheduled, whether it was typed before the click or after.
    */
   const handleDelete = useCallback(async () => {
     if (!id || deleteBlockRef.current === id) return
@@ -463,8 +561,15 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     setDeletingId((current) => (current === docId ? null : current))
     if (gone || deleteBlockRef.current !== docId) return
     deleteBlockRef.current = null
-    if (dirty.current && openIdRef.current === docId) autosaveRef.current?.schedule()
-  }, [id, onDelete])
+    if (openIdRef.current !== docId || loadedIdRef.current !== docId) return
+    const known = confirmed.get(docId)
+    if (known) {
+      setVersion(known.version)
+      if (!dirty.current) savedMd.current = known.content
+    }
+    setSaveState((state) => (state.kind === 'saving' ? { kind: 'idle' } : state))
+    if (currentMd() !== savedMd.current) autosaveRef.current?.schedule()
+  }, [id, onDelete, currentMd])
 
   if (!id) {
     return (
@@ -474,11 +579,90 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     )
   }
 
+  /** A bar's buttons act only while its doc is the open one and has loaded. */
+  const barIsLive = (docId: string) => docId === id && loadedIdRef.current === id
+
+  const keepMine = () => {
+    if (saveState.kind !== 'conflict' || !barIsLive(saveState.docId)) return
+    const { mine, title: mineTitle, conflict, restored } = saveState
+    if (restored) {
+      // The editor shows the doc as loaded, not the kept text: put it there.
+      autosaveRef.current?.cancel()
+      setRaw(mine)
+      editor?.commands.setContent(mdToHtml(mine, titles))
+      dirty.current = true
+      if (mineTitle !== undefined) setTitle(mineTitle)
+    }
+    void save(id, mine, { baseVersion: conflict.currentVersion, title: mineTitle })
+  }
+
+  /**
+   * Every save for this doc queued before the click is void from here on, and
+   * theirs is applied in the queue, after whatever is already out. The newest
+   * text the server is known to hold wins over an older conflict's.
+   */
+  const keepTheirs = () => {
+    if (saveState.kind !== 'conflict' || !barIsLive(saveState.docId)) return
+    const { docId, conflict, title: refusedTitle } = saveState
+    autosaveRef.current?.cancel()
+    const generation = bumpGeneration(docId)
+    const titleBefore = doc?.title ?? ''
+    setSaveState({ kind: 'idle' })
+    void saveQueue(docId, async () => {
+      if (generationOf(docId) !== generation) return
+      const known = confirmed.get(docId)
+      const theirs = known && known.version > conflict.currentVersion
+        ? known
+        : { version: conflict.currentVersion, content: conflict.theirs ?? '' }
+      confirmed.set(docId, theirs)
+      if (openIdRef.current !== docId || loadedIdRef.current !== docId) return
+      savedMd.current = theirs.content
+      setRaw(theirs.content)
+      setVersion(theirs.version)
+      editor?.commands.setContent(mdToHtml(theirs.content, titles))
+      dirty.current = false
+      if (refusedTitle !== undefined) setTitle(titleBefore)
+      setSaveState({ kind: 'idle' })
+    })
+  }
+
+  const restoreUnsaved = () => {
+    if (saveState.kind !== 'unsaved' || !barIsLive(saveState.docId)) return
+    const { mine } = saveState
+    setRaw(mine)
+    editor?.commands.setContent(mdToHtml(mine, titles))
+    dirty.current = true
+    setSaveState({ kind: 'idle' })
+    if (deleteBlockRef.current !== id) autosaveRef.current?.schedule()
+  }
+
+  const discardUnsaved = () => {
+    if (saveState.kind !== 'unsaved' || !barIsLive(saveState.docId)) return
+    setSaveState({ kind: 'idle' })
+  }
+
   return (
     <section className="docs-column docs-editor">
       {loadError && <p className="docs-error" role="alert">{loadError}</p>}
 
-      {saveState.kind === 'conflict' && (
+      {saveState.kind === 'unsaved' && saveState.docId === id && (
+        <div className="docs-conflict" role="alert">
+          <p>
+            <strong>An earlier edit to this doc was not saved.</strong>{' '}
+            {saveState.message}
+          </p>
+          <div className="docs-conflict-buttons">
+            <button type="button" onClick={restoreUnsaved}>
+              Restore it
+            </button>
+            <button type="button" onClick={discardUnsaved}>
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+
+      {saveState.kind === 'conflict' && saveState.docId === id && (
         <div className="docs-conflict" role="alert">
           <p>
             <strong>This doc was changed in the meantime by: {saveState.conflict.modifiedBy ?? 'someone else'}.</strong>{' '}
@@ -498,23 +682,10 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
             </div>
           </details>
           <div className="docs-conflict-buttons">
-            <button type="button" onClick={() => { void save(id, saveState.mine, { baseVersion: saveState.conflict.currentVersion }) }}>
+            <button type="button" onClick={keepMine}>
               Keep mine
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                const theirs = saveState.conflict.theirs ?? ''
-                const theirVersion = saveState.conflict.currentVersion
-                confirmed.set(id, { version: theirVersion, content: theirs })
-                savedMd.current = theirs
-                setRaw(theirs)
-                setVersion(theirVersion)
-                editor?.commands.setContent(mdToHtml(theirs, titles))
-                dirty.current = false
-                setSaveState({ kind: 'idle' })
-              }}
-            >
+            <button type="button" onClick={keepTheirs}>
               Keep theirs
             </button>
           </div>

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 
 import type { Rpc } from './api'
 import { errorText, readTree } from './api'
-import { Editor } from './editor'
+import { Editor, flushAllEditors } from './editor'
 import { subPathForDoc } from './doc-route'
 
 /**
@@ -44,7 +44,22 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
   return (
     <div className="docs-panel">
       {headerSlot && createPortal(
-        <a className="docs-panel-open" href={docsHref}>Open in Docs</a>,
+        <a
+          className="docs-panel-open"
+          href={docsHref}
+          onClick={(e) => {
+            // A modified or non-primary click opens elsewhere and leaves this
+            // page, and its editor, where they are.
+            if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+            // This link is a full page load, and the `pagehide` flush can be cut
+            // off by it: save what is pending first, then go.
+            e.preventDefault()
+            const go = () => window.location.assign(docsHref)
+            void flushAllEditors().then(go, go)
+          }}
+        >
+          Open in Docs
+        </a>,
         headerSlot,
       )}
       {deleteError && <p className="docs-error" role="alert">{deleteError}</p>}
