@@ -135,9 +135,17 @@ export function TabHost() {
   // a pending flush or a refusal from the old one. (`failed` is pruned above.)
   // Declared before the ready-timer effect so a reopened frame's timer starts
   // against pruned state.
+  // A "Close anyway" toast goes too: reopening brings the id back, and the old
+  // toast would then close the reopened tab without asking it to flush.
+  const refusedCloseToasts = useRef(new Set<string>())
   useEffect(() => {
     if (!state) return
     const known = new Set(state.tabs.map((t) => t.id))
+    for (const id of [...refusedCloseToasts.current]) {
+      if (known.has(id)) continue
+      toast.dismiss(`tab-close-refused:${id}`)
+      refusedCloseToasts.current.delete(id)
+    }
     for (const id of [...ready.current.keys()]) if (!known.has(id)) ready.current.delete(id)
     for (const key of [...readyTimers.current.keys()]) {
       const id = key.slice(0, key.lastIndexOf(':'))
@@ -229,6 +237,7 @@ export function TabHost() {
     apply((s) => activateTab(s, id))
     if (!useTabsStore.getState().state?.tabs.some((t) => t.id === id)) return
     const label = labelsRef.current.get(id)?.title ?? 'This tab'
+    refusedCloseToasts.current.add(id)
     toast.error(`${label} has changes that could not be saved.`, {
       id: `tab-close-refused:${id}`,
       duration: REFUSED_CLOSE_TOAST_MS,
